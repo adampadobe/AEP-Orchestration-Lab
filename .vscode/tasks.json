@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Validate project",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/validate.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Git: commit and push (with validate)",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/git-sync.sh",
+      "args": ["${input:commitMessage}"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "commitMessage",
+      "type": "promptString",
+      "description": "Commit message (leave empty for auto timestamp)",
+      "default": ""
+    }
+  ]
+}
