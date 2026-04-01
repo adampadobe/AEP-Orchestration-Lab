@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Content decision — profile &amp; webhook</title>
+  <style>
+    :root {
+      --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --bg: #f5f5f5;
+      --card: #fff;
+      --border: #e1e1e1;
+      --text: #2c2c2c;
+      --muted: #6e6e6e;
+      --blue: #0d66d0;
+      --green: #268e6c;
+      --red: #d7373f;
+      --radius: 8px;
+    }
+    [data-theme="dark"] {
+      --bg: #1e1e1e;
+      --card: #2c2c2c;
+      --border: #444;
+      --text: #fff;
+      --muted: #b9b9b9;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; max-width: 720px; margin: 0 auto; }
+    header { margin-bottom: 20px; }
+    h1 { font-size: 1.35rem; font-weight: 700; }
+    .sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .sub a { color: var(--blue); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .card h2 { font-size: 15px; margin-bottom: 10px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    input[type="email"], input[type="text"], input[type="url"], select, textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 14px; background: var(--card); color: var(--text); margin-bottom: 10px;
+    }
+    textarea { min-height: 88px; font-family: ui-monospace, monospace; font-size: 12px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+    button.primary {
+      background: var(--blue); color: #fff; border: none; border-radius: var(--radius);
+      padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--font);
+    }
+    button.secondary {
+      background: var(--bg); color: var(--text); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 14px; font-size: 14px; cursor: pointer; font-family: var(--font);
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .status { font-size: 13px; margin-top: 8px; color: var(--muted); }
+    .status.ok { color: var(--green); }
+    .status.err { color: var(--red); }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    details { margin-top: 10px; }
+    details summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--muted); }
+    pre {
+      font-size: 11px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 10px; overflow: auto; max-height: 200px; margin-top: 8px;
+    }
+    label.chk { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text); margin-top: 8px; }
+    label.chk input { width: auto; margin: 2px 0 0 0; }
+    /* Banner + editor (aligned with main lab) */
+    .cd-banner-wrap {
+      margin-top: 12px; border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .cd-banner-wrap[hidden] { display: none !important; }
+    .cd-banner {
+      position: relative; min-height: 220px; display: flex; flex-direction: column;
+      align-items: stretch; justify-content: var(--cd-block-justify, flex-end); isolation: isolate;
+    }
+    @media (min-width: 640px) { .cd-banner { min-height: 280px; } }
+    .cd-banner-bg {
+      position: absolute; inset: 0; background-color: var(--bg); background-size: cover;
+      background-position: center; z-index: 0;
+    }
+    .cd-banner-scrim {
+      position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.2) 100%);
+      pointer-events: none;
+    }
+    .cd-banner-inner {
+      position: relative; z-index: 2; padding: 20px; max-width: 100%; display: flex; flex-direction: column;
+      width: 100%; gap: 10px; min-height: 10.5rem;
+    }
+    .cd-slot { display: flex; width: 100%; justify-content: var(--cd-slot-justify, flex-start); align-items: var(--cd-slot-align, flex-start); }
+    .cd-slot--title { min-height: 2.5rem; flex: 0 0 auto; }
+    .cd-slot--desc { min-height: 4rem; flex: 1 1 auto; }
+    .cd-slot--cta { min-height: 2.75rem; flex: 0 0 auto; }
+    .cd-banner-title {
+      margin: 0; font-size: clamp(1.2rem, 3vw, 1.65rem); font-weight: 700; line-height: 1.25;
+      color: var(--cd-title-color, #fff); text-shadow: 0 2px 12px rgba(0,0,0,0.65); max-width: 100%;
+    }
+    .cd-banner-desc {
+      margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--cd-desc-color, rgba(255,255,255,0.95));
+      text-shadow: 0 1px 8px rgba(0,0,0,0.6); max-width: 42em;
+    }
+    .cd-banner-cta {
+      display: inline-block; padding: 10px 20px; font-size: 14px; font-weight: 600; font-family: var(--font);
+      color: var(--cd-cta-text, #2c2c2c); background: var(--cd-cta-bg, #fff); border-radius: var(--radius);
+      text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .cd-banner-cta--ghost { cursor: default; opacity: 0.85; }
+    .cd-banner-editor {
+      margin-top: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px;
+    }
+    .cd-banner-editor summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+    .cd-editor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .cd-editor-block {
+      padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    }
+    .cd-editor-block strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px; }
+    .cd-editor-block label { font-size: 11px; margin-top: 6px; }
+    .cd-editor-block label:first-of-type { margin-top: 0; }
+    .cd-editor-block select { margin-bottom: 0; padding: 6px 8px; font-size: 13px; }
+    .cd-color-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+    .cd-color-row input[type='color'] { width: 40px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; margin-bottom: 0; }
+    .cd-color-row input[type='text'] { flex: 1; min-width: 0; margin-bottom: 0; padding: 6px 8px; font-family: ui-monospace, monospace; font-size: 12px; }
+    .cd-editor-actions { margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Content decision — live</h1>
+    <p class="sub"><a href="/aep-decisioning-lab/content-decision-live.html">Lab path</a> · <a href="/content-decision-live.html">root</a> · <a href="/index.html">full lab</a></p>
+    <button type="button" class="secondary" id="themeBtn" style="margin-top:10px;font-size:12px;">Toggle theme</button>
+  </header>
+
+  <section class="card">
+    <h2>1. Profile &amp; <code>get.decisions</code></h2>
+    <label for="cdLiveEmail">Email (identity value)</label>
+    <input id="cdLiveEmail" type="email" autocomplete="email" placeholder="adamp.adobedemo+010426-4@gmail.com">
+    <div class="row2">
+      <div>
+        <label for="cdLiveNs">Namespace code</label>
+        <input id="cdLiveNs" type="text" value="Email" autocomplete="off">
+      </div>
+    </div>
+    <label for="firebaseEventUrl">Experience event endpoint (Cloud Run)</label>
+    <input id="firebaseEventUrl" type="url" autocomplete="off">
+    <div class="actions">
+      <button type="button" class="secondary" id="btnFetchProfile">Fetch profile only</button>
+      <button type="button" class="primary" id="btnProfileAndSendEvent">Fetch profile + send <code>get.decisions</code></button>
+    </div>
+    <p class="status" id="profileStatus"></p>
+    <p class="status" id="eventStatus" style="margin-top:4px;"></p>
+    <p class="hint" id="ecidHint"></p>
+    <label class="chk"><input type="checkbox" id="autoFetchWebhook" checked> <span>After a successful event send, fetch webhooks in ~2s</span></label>
+    <details>
+      <summary>Profile response (raw)</summary>
+      <pre id="profileRaw">{}</pre>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>2. Webhook</h2>
+    <div class="actions">
+      <button type="button" class="primary" id="btnFetchWebhook">Fetch webhooks</button>
+      <button type="button" class="secondary" id="btnShowBanner" disabled>Show content banner</button>
+    </div>
+    <p class="status" id="webhookStatus"></p>
+  </section>
+
+  <section class="card">
+    <h2>3. Banner</h2>
+    <details class="cd-banner-editor" id="journeyBannerEditor" open>
+      <summary>Alignment &amp; colors</summary>
+      <div class="cd-editor-grid">
+        <div class="cd-editor-block">
+          <strong>Whole block</strong>
+          <label for="cdBlockY">Vertical on hero</label>
+          <select id="cdBlockY" data-cd-key="blockY">
+            <option value="flex-start">Top</option>
+            <option value="center">Middle</option>
+            <option value="flex-end" selected>Bottom</option>
+          </select>
+        </div>
+        <div class="cd-editor-block">
+          <strong>Title</strong>
+          <label for="cdTitleH">Horizontal</label>
+          <select id="cdTitleH"><option value="flex-start" selected>Left</option><option value="center">Center</option><option value="flex-end">Right</option></select>
+          <label for="cdTitleV">Vertical</label>
+          <select id="cdTitleV"><option value="flex-start" selected>Top</option><option value="center">Middle</option><option value="flex-end">Bottom</option></select>
+          <label>Text color</label>
+          <div class="cd-color-row">
+            <input type="color" id="cdTitleColorPick" value="#ffffff">
+            <input type="text" id="cdTitleColorHex" value="#ffffff" maxlength="9">
+          </div>
+        </div>
+        <div class="cd-editor-block">
+          <strong>Description</strong>
+          <label for="cdDescH">Horizontal</label>
+          <select id="cdDescH"><option value="flex-start" selected>Left</option><option value="center">Center</option><option value="flex-end">Right</option></select>
+          <label for="cdDescV">Vertical</label>
+          <select id="cdDescV"><option value="flex-start">Top</option><option value="center" selected>Middle</option><option value="flex-end">Bottom</option></select>
+          <label>Text color</label>
+          <div class="cd-color-row">
+            <input type="color" id="cdDescColorPick" value="#f5f5f5">
+            <input type="text" id="cdDescColorHex" value="#f5f5f5" maxlength="9">
+          </div>
+        </div>
+        <div class="cd-editor-block">
+          <strong>Button</strong>
+          <label for="cdCtaH">Horizontal</label>
+          <select id="cdCtaH"><option value="flex-start" selected>Left</option><option value="center">Center</option><option value="flex-end">Right</option></select>
+          <label for="cdCtaV">Vertical</label>
+          <select id="cdCtaV"><option value="flex-start">Top</option><option value="center">Middle</option><option value="flex-end" selected>Bottom</option></select>
+          <label>Background</label>
+          <div class="cd-color-row">
+            <input type="color" id="cdCtaBgPick" value="#ffffff">
+            <input type="text" id="cdCtaBgHex" value="#ffffff" maxlength="9">
+          </div>
+          <label>Button text</label>
+          <div class="cd-color-row">
+            <input type="color" id="cdCtaTextPick" value="#2c2c2c">
+            <input type="text" id="cdCtaTextHex" value="#2c2c2c" maxlength="9">
+          </div>
+        </div>
+      </div>
+      <div class="cd-editor-actions">
+        <button type="button" class="secondary" id="cdBannerResetStyles">Reset banner styles</button>
+      </div>
+    </details>
+    <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Content decision banner"></div>
+  </section>
+
+  <script>
+(function () {
+  const WEBHOOK_FILTER_CUSTOM_NAME = 'Content Decision';
+  const WEBHOOK_LISTENER_DIRECT_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
+  const CD_BANNER_LS = 'aep-cd-banner-editor';
+  const LS_EMAIL = 'aep-cd-live-email';
+  const LS_NS = 'aep-cd-live-ns';
+  const LS_FIREBASE_URL = 'aep-cd-live-firebase-event-url';
+  /** Same Cloud Run target as firebaseFunctions experience-events.html */
+  const DEFAULT_EXPERIENCE_EVENT_POST_URL = 'https://createadobeprofile-pscg5c4cja-uc.a.run.app';
+  /** Hidden defaults from experience-events.html (orgId, datasetId, schemaRef) */
+  const EG_IMS_ORG = 'BF9C27AA6464801C0A495FD0@AdobeOrg';
+  const EG_DATASET_ID = '68231dbb0c05072aef38b7f2';
+  const EG_SCHEMA_ID = 'https://ns.adobe.com/demoemea/schemas/2b314523710861bbdc32c9558110fff24e032fa499fe5deb';
+  const EG_SCHEMA_CT = 'application/vnd.adobe.xed-full+json;version=1';
+  const EG_TENANT = '_demoemea';
+  /** DevTools: filter console by this string */
+  const LOG_PREFIX = '[content-decision-live]';
+  function cdLog() {
+    var args = Array.prototype.slice.call(arguments);
+    args.unshift(LOG_PREFIX);
+    console.log.apply(console, args);
+  }
+
+  const CD_BANNER_DEFAULTS = {
+    blockY: 'flex-end', titleH: 'flex-start', titleV: 'flex-start',
+    descH: 'flex-start', descV: 'center', ctaH: 'flex-start', ctaV: 'flex-end',
+    titleColor: '#ffffff', descColor: '#f5f5f5', ctaBg: '#ffffff', ctaText: '#2c2c2c',
+  };
+
+  let lastUpsPayload = null;
+  let lastWebhookRaw = null;
+
+  document.getElementById('themeBtn').addEventListener('click', function () {
+    const d = document.documentElement;
+    d.dataset.theme = d.dataset.theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('aep-cd-live-theme', d.dataset.theme); } catch (e) {}
+  });
+  (function () {
+    try {
+      const t = localStorage.getItem('aep-cd-live-theme');
+      if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  })();
+
+  function persistLiveIdentity() {
+    const em = document.getElementById('cdLiveEmail').value.trim();
+    const ns = document.getElementById('cdLiveNs').value.trim();
+    try {
+      if (em) localStorage.setItem(LS_EMAIL, em); else localStorage.removeItem(LS_EMAIL);
+      if (ns) localStorage.setItem(LS_NS, ns); else localStorage.removeItem(LS_NS);
+    } catch (e) {}
+  }
+  function persistFirebaseEventUrl() {
+    var v = document.getElementById('firebaseEventUrl').value.trim();
+    try {
+      if (v) localStorage.setItem(LS_FIREBASE_URL, v);
+      else localStorage.removeItem(LS_FIREBASE_URL);
+    } catch (e) {}
+  }
+
+  (function initFields() {
+    try {
+      var em = localStorage.getItem(LS_EMAIL);
+      var ns = localStorage.getItem(LS_NS);
+      if (em) document.getElementById('cdLiveEmail').value = em;
+      if (ns) document.getElementById('cdLiveNs').value = ns;
+      var fu = localStorage.getItem(LS_FIREBASE_URL);
+      document.getElementById('firebaseEventUrl').value = fu || DEFAULT_EXPERIENCE_EVENT_POST_URL;
+    } catch (e) {}
+  })();
+
+  document.getElementById('cdLiveEmail').addEventListener('blur', persistLiveIdentity);
+  document.getElementById('cdLiveNs').addEventListener('blur', persistLiveIdentity);
+  document.getElementById('firebaseEventUrl').addEventListener('blur', persistFirebaseEventUrl);
+
+  async function aepCall(payload) {
+    cdLog('UPS proxy →', payload.method || 'POST', payload.path || '', payload.params || {});
+    let res;
+    try {
+      res = await fetch('/api/aep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    } catch (e) {
+      cdLog('UPS proxy ✗ network', String(e.message || e));
+      return { httpOk: false, data: { error: 'Network error calling /api/aep', detail: String(e.message || e) } };
+    }
+    const text = await res.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { error: 'Non-JSON from proxy', detail: text.slice(0, 200) }; }
+    cdLog('UPS proxy ← HTTP', res.status, res.ok ? 'ok' : 'error');
+    return { httpOk: res.ok, data };
+  }
+
+  function randomUuidV4() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0, v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
+  /**
+   * Minimal xdmEntityCreate for eventType get.decisions — same envelope shape as
+   * firebaseFunctions experience-events.html buildExperienceEventPayload(), without flight fields.
+   */
+  function buildGetDecisionsExperienceEventPayload(email) {
+    var schemaRef = { id: EG_SCHEMA_ID, contentType: EG_SCHEMA_CT };
+    var xdmEntity = {
+      _id: 'joTestModeEvent_' + randomUuidV4(),
+      eventType: 'get.decisions',
+      timestamp: new Date().toISOString(),
+    };
+    xdmEntity[EG_TENANT] = { identification: { core: { email: email } } };
+    return {
+      header: {
+        msgType: 'xdmEntityCreate',
+        msgId: randomUuidV4(),
+        msgVersion: '1.0',
+        xactionId: randomUuidV4(),
+        datasetId: EG_DATASET_ID,
+        imsOrgId: EG_IMS_ORG,
+        schemaRef: schemaRef,
+        source: { name: 'Journeys' },
+        strictValidation: true,
+      },
+      body: {
+        xdmMeta: { schemaRef: schemaRef },
+        xdmEntity: xdmEntity,
+      },
+    };
+  }
+
+  function isUpsProfileSuccess(data) {
+    if (data == null || typeof data !== 'object') return false;
+    if (typeof data.status === 'number' && data.status >= 400) return false;
+    var t = data.type;
+    if (typeof t === 'string' && (t.indexOf('/errors/') !== -1 || t.indexOf('problem') !== -1)) return false;
+    return true;
+  }
+
+  function extractEcidFromUpsApiResponse(clientData) {
+    if (!clientData || typeof clientData !== 'object') return '';
+    var root = clientData.platform_response != null ? clientData.platform_response : clientData;
+    var seen = new WeakSet();
+    function walk(node, depth) {
+      if (!node || typeof node !== 'object' || depth > 10) return '';
+      if (seen.has(node)) return '';
+      seen.add(node);
+      var im = node.identityMap;
+      if (im && typeof im === 'object') {
+        for (var k in im) {
+          if (!/^ecid$/i.test(k)) continue;
+          var arr = im[k];
+          if (!Array.isArray(arr)) continue;
+          for (var i = 0; i < arr.length; i++) {
+            if (arr[i] && arr[i].id) return String(arr[i].id).trim();
+          }
+        }
+      }
+      for (var v of Object.values(node)) {
+        if (v && typeof v === 'object') {
+          var f = walk(v, depth + 1);
+          if (f) return f;
+        }
+      }
+      return '';
+    }
+    return walk(root, 0);
+  }
+
+  async function fetchProfileByIdentity(ns, id) {
+    return aepCall({
+      method: 'GET',
+      path: '/data/core/ups/access/entities',
+      params: { 'schema.name': '_xdm.context.profile', entityId: id, entityIdNS: ns },
+    });
+  }
+
+  function getWebhookPayloadObject(entry) {
+    var raw = entry && (entry.body != null ? entry.body : entry);
+    if (typeof raw === 'string') {
+      try { raw = JSON.parse(raw); } catch (e) { return null; }
+    }
+    if (raw == null || typeof raw !== 'object') return null;
+    return raw;
+  }
+
+  function webhookPayloadHasCustomName(raw, customName) {
+    if (raw == null || typeof raw !== 'object') return false;
+    function match(o) {
+      return o && o.config && String(o.config.customName || '') === customName;
+    }
+    if (match(raw)) return true;
+    var arr = raw.data;
+    if (!Array.isArray(arr)) return false;
+    for (var i = 0; i < arr.length; i++) if (match(arr[i])) return true;
+    return false;
+  }
+
+  function deepFindOfferContentNode(obj, depth) {
+    if (depth > 14 || obj == null || typeof obj !== 'object') return null;
+    if (Array.isArray(obj)) {
+      for (var i = 0; i < obj.length; i++) {
+        var f = deepFindOfferContentNode(obj[i], depth + 1);
+        if (f) return f;
+      }
+      return null;
+    }
+    var c = obj.content;
+    if (c && c.mediaAssets && typeof c.mediaAssets === 'object' && c.textContent && typeof c.textContent === 'object') return c;
+    var keys = Object.keys(obj);
+    for (var ki = 0; ki < keys.length; ki++) {
+      var f2 = deepFindOfferContentNode(obj[keys[ki]], depth + 1);
+      if (f2) return f2;
+    }
+    return null;
+  }
+
+  function pickHeroSourceUrlFromMediaAssets(mediaAssets) {
+    if (!mediaAssets || typeof mediaAssets !== 'object') return '';
+    var order = ['imageHighRes', 'imageMediumRes', 'imageSmallRes', 'thumbnail', 'videoAsset'];
+    for (var oi = 0; oi < order.length; oi++) {
+      var a = mediaAssets[order[oi]];
+      if (a && a.sourceURL) return String(a.sourceURL).trim();
+    }
+    for (var ki = 0; ki < Object.keys(mediaAssets).length; ki++) {
+      var k = Object.keys(mediaAssets)[ki];
+      var a2 = mediaAssets[k];
+      if (a2 && a2.sourceURL) return String(a2.sourceURL).trim();
+    }
+    return '';
+  }
+
+  function extractJourneyContentDecision(raw) {
+    var obj = raw;
+    if (typeof obj === 'string') {
+      try { obj = JSON.parse(obj); } catch (e) { return null; }
+    }
+    if (!obj || typeof obj !== 'object') return null;
+    var content = deepFindOfferContentNode(obj, 0);
+    if (!content) return null;
+    var tc = content.textContent || {};
+    var ma = content.mediaAssets || {};
+    var nav = content.navigation || {};
+    var imageUrl = pickHeroSourceUrlFromMediaAssets(ma);
+    var ctaHref = '';
+    if (ma.imageHighRes && ma.imageHighRes.destinationURL) ctaHref = String(ma.imageHighRes.destinationURL).trim();
+    if (!ctaHref && nav.webUrl) ctaHref = String(nav.webUrl).trim();
+    if (!ctaHref && nav.internalUrl) ctaHref = String(nav.internalUrl).trim();
+    var bannerTitle = tc.bannerTitle != null ? String(tc.bannerTitle) : '';
+    var fullDescription = tc.fullDescription != null ? String(tc.fullDescription) : (tc.fullTitle != null ? String(tc.fullTitle) : '');
+    var bannerCTA = tc.bannerCTA != null ? String(tc.bannerCTA) : (tc.fullCTA != null ? String(tc.fullCTA) : 'Learn more');
+    if (!imageUrl && !bannerTitle && !fullDescription) return null;
+    return { imageUrl: imageUrl, bannerTitle: bannerTitle, fullDescription: fullDescription, bannerCTA: bannerCTA, ctaHref: ctaHref };
+  }
+
+  function normalizeCdHex(s) {
+    var t = String(s == null ? '' : s).trim();
+    if (!t) return null;
+    if (t[0] !== '#') t = '#' + t;
+    if (/^#([0-9a-fA-F]{3})$/.test(t)) {
+      var h = t.slice(1);
+      t = '#' + h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    }
+    if (/^#([0-9a-fA-F]{6})$/.test(t)) return t.toLowerCase();
+    return null;
+  }
+
+  function loadCdBannerEditorFromStorage() {
+    try {
+      var raw = localStorage.getItem(CD_BANNER_LS);
+      if (!raw) return Object.assign({}, CD_BANNER_DEFAULTS);
+      return Object.assign({}, CD_BANNER_DEFAULTS, JSON.parse(raw));
+    } catch (e) { return Object.assign({}, CD_BANNER_DEFAULTS); }
+  }
+
+  function saveCdBannerEditorToStorage(state) {
+    try { localStorage.setItem(CD_BANNER_LS, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function readCdBannerEditorForm() {
+    function g(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+    return {
+      blockY: g('cdBlockY') || CD_BANNER_DEFAULTS.blockY,
+      titleH: g('cdTitleH') || CD_BANNER_DEFAULTS.titleH,
+      titleV: g('cdTitleV') || CD_BANNER_DEFAULTS.titleV,
+      descH: g('cdDescH') || CD_BANNER_DEFAULTS.descH,
+      descV: g('cdDescV') || CD_BANNER_DEFAULTS.descV,
+      ctaH: g('cdCtaH') || CD_BANNER_DEFAULTS.ctaH,
+      ctaV: g('cdCtaV') || CD_BANNER_DEFAULTS.ctaV,
+      titleColor: normalizeCdHex(g('cdTitleColorHex')) || CD_BANNER_DEFAULTS.titleColor,
+      descColor: normalizeCdHex(g('cdDescColorHex')) || CD_BANNER_DEFAULTS.descColor,
+      ctaBg: normalizeCdHex(g('cdCtaBgHex')) || CD_BANNER_DEFAULTS.ctaBg,
+      ctaText: normalizeCdHex(g('cdCtaTextHex')) || CD_BANNER_DEFAULTS.ctaText,
+    };
+  }
+
+  function writeCdBannerEditorForm(state) {
+    function set(id, val) { var el = document.getElementById(id); if (el) el.value = val; }
+    set('cdBlockY', state.blockY);
+    set('cdTitleH', state.titleH); set('cdTitleV', state.titleV);
+    set('cdDescH', state.descH); set('cdDescV', state.descV);
+    set('cdCtaH', state.ctaH); set('cdCtaV', state.ctaV);
+    set('cdTitleColorHex', state.titleColor); set('cdTitleColorPick', state.titleColor);
+    set('cdDescColorHex', state.descColor); set('cdDescColorPick', state.descColor);
+    set('cdCtaBgHex', state.ctaBg); set('cdCtaBgPick', state.ctaBg);
+    set('cdCtaTextHex', state.ctaText); set('cdCtaTextPick', state.ctaText);
+  }
+
+  function applyCdBannerEditorStyles() {
+    var wrap = document.getElementById('journeyContentDecisionBanner');
+    if (!wrap || wrap.hidden) return;
+    var st = readCdBannerEditorForm();
+    var banner = wrap.querySelector('.cd-banner');
+    if (banner) banner.style.setProperty('--cd-block-justify', st.blockY);
+    wrap.style.setProperty('--cd-title-color', st.titleColor);
+    wrap.style.setProperty('--cd-desc-color', st.descColor);
+    wrap.style.setProperty('--cd-cta-bg', st.ctaBg);
+    wrap.style.setProperty('--cd-cta-text', st.ctaText);
+    var titleSlot = wrap.querySelector('.cd-slot--title');
+    var descSlot = wrap.querySelector('.cd-slot--desc');
+    var ctaSlot = wrap.querySelector('.cd-slot--cta');
+    if (titleSlot) {
+      titleSlot.style.setProperty('--cd-slot-justify', st.titleH);
+      titleSlot.style.setProperty('--cd-slot-align', st.titleV);
+    }
+    if (descSlot) {
+      descSlot.style.setProperty('--cd-slot-justify', st.descH);
+      descSlot.style.setProperty('--cd-slot-align', st.descV);
+    }
+    if (ctaSlot) {
+      ctaSlot.style.setProperty('--cd-slot-justify', st.ctaH);
+      ctaSlot.style.setProperty('--cd-slot-align', st.ctaV);
+    }
+  }
+
+  function initCdBannerEditor() {
+    writeCdBannerEditorForm(loadCdBannerEditorFromStorage());
+    function onChange() {
+      saveCdBannerEditorToStorage(readCdBannerEditorForm());
+      applyCdBannerEditorStyles();
+    }
+    ['cdBlockY', 'cdTitleH', 'cdTitleV', 'cdDescH', 'cdDescV', 'cdCtaH', 'cdCtaV'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('change', onChange);
+    });
+    function bindPair(pickId, hexId) {
+      var pick = document.getElementById(pickId);
+      var hex = document.getElementById(hexId);
+      if (!pick || !hex) return;
+      pick.addEventListener('input', function () { hex.value = pick.value; onChange(); });
+      hex.addEventListener('change', function () {
+        var n = normalizeCdHex(hex.value);
+        if (n) { hex.value = n; pick.value = n; } else { hex.value = pick.value; }
+        onChange();
+      });
+    }
+    bindPair('cdTitleColorPick', 'cdTitleColorHex');
+    bindPair('cdDescColorPick', 'cdDescColorHex');
+    bindPair('cdCtaBgPick', 'cdCtaBgHex');
+    bindPair('cdCtaTextPick', 'cdCtaTextHex');
+    document.getElementById('cdBannerResetStyles').addEventListener('click', function () {
+      writeCdBannerEditorForm(CD_BANNER_DEFAULTS);
+      saveCdBannerEditorToStorage(CD_BANNER_DEFAULTS);
+      applyCdBannerEditorStyles();
+    });
+  }
+
+  function renderJourneyContentDecisionBanner(jd) {
+    var wrap = document.getElementById('journeyContentDecisionBanner');
+    var ph = document.getElementById('journeyBannerPlaceholder');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    if (!jd) {
+      cdLog('Banner render: cleared (no data)');
+      wrap.hidden = true;
+      if (ph) ph.hidden = false;
+      return;
+    }
+    cdLog('Banner render: DOM updated', { slots: [!!jd.bannerTitle, !!jd.fullDescription, !!jd.bannerCTA].filter(Boolean).length + '/3' });
+    if (ph) ph.hidden = true;
+    wrap.hidden = false;
+    var banner = document.createElement('div');
+    banner.className = 'cd-banner';
+    var bg = document.createElement('div');
+    bg.className = 'cd-banner-bg';
+    if (jd.imageUrl) bg.style.backgroundImage = 'url(' + JSON.stringify(jd.imageUrl) + ')';
+    var scrim = document.createElement('div');
+    scrim.className = 'cd-banner-scrim';
+    var inner = document.createElement('div');
+    inner.className = 'cd-banner-inner';
+    if (jd.bannerTitle) {
+      var st = document.createElement('div');
+      st.className = 'cd-slot cd-slot--title';
+      var h = document.createElement('h2');
+      h.className = 'cd-banner-title';
+      h.textContent = jd.bannerTitle;
+      st.appendChild(h);
+      inner.appendChild(st);
+    }
+    if (jd.fullDescription) {
+      var sd = document.createElement('div');
+      sd.className = 'cd-slot cd-slot--desc';
+      var p = document.createElement('p');
+      p.className = 'cd-banner-desc';
+      p.textContent = jd.fullDescription;
+      sd.appendChild(p);
+      inner.appendChild(sd);
+    }
+    if (jd.bannerCTA) {
+      var sc = document.createElement('div');
+      sc.className = 'cd-slot cd-slot--cta';
+      if (jd.ctaHref) {
+        var a = document.createElement('a');
+        a.className = 'cd-banner-cta';
+        a.href = jd.ctaHref;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = jd.bannerCTA;
+        sc.appendChild(a);
+      } else {
+        var span = document.createElement('span');
+        span.className = 'cd-banner-cta cd-banner-cta--ghost';
+        span.textContent = jd.bannerCTA;
+        sc.appendChild(span);
+      }
+      inner.appendChild(sc);
+    }
+    banner.appendChild(bg);
+    banner.appendChild(scrim);
+    banner.appendChild(inner);
+    wrap.appendChild(banner);
+    applyCdBannerEditorStyles();
+  }
+
+  async function fetchWebhookListenerDirect() {
+    try {
+      var res = await fetch(WEBHOOK_LISTENER_DIRECT_URL, { method: 'GET', mode: 'cors', credentials: 'omit', headers: { Accept: 'application/json' } });
+      var text = await res.text();
+      var payload;
+      try { payload = text ? JSON.parse(text) : {}; } catch (e) {
+        return { ok: false, error: 'Listener non-JSON', detail: text.slice(0, 200) };
+      }
+      if (!res.ok) return { ok: false, error: 'HTTP ' + res.status, detail: JSON.stringify(payload).slice(0, 200) };
+      return { ok: true, data: payload, via_direct: true };
+    } catch (e) {
+      return { ok: false, error: 'Direct fetch failed', detail: String(e.message || e) };
+    }
+  }
+
+  async function fetchWebhookFeed() {
+    var res;
+    try {
+      cdLog('Webhook feed → /api/webhook-listener');
+      res = await fetch('/api/webhook-listener');
+    } catch (e) {
+      cdLog('Webhook feed: proxy unreachable, trying direct listener', String(e.message || e));
+      var d = await fetchWebhookListenerDirect();
+      if (d.ok) {
+        cdLog('Webhook feed ← direct listener OK');
+        return { ok: true, data: d.data, via_direct: true };
+      }
+      return { ok: false, error: 'Proxy and direct failed', detail: String(e.message || e) };
+    }
+    var text = await res.text();
+    var data;
+    try { data = text ? JSON.parse(text) : {}; } catch (e) {
+      cdLog('Webhook feed: proxy returned non-JSON, trying direct listener');
+      var d2 = await fetchWebhookListenerDirect();
+      if (d2.ok) {
+        cdLog('Webhook feed ← direct listener OK');
+        return { ok: true, data: d2.data, via_direct: true };
+      }
+      return { ok: false, error: 'Not JSON from proxy' };
+    }
+    if (data && data.ok === false) {
+      cdLog('Webhook feed ← proxy body ok:false', data.error || '');
+      return data;
+    }
+    if (!res.ok) {
+      cdLog('Webhook feed: proxy HTTP', res.status, '→ trying direct listener');
+      var d3 = await fetchWebhookListenerDirect();
+      if (d3.ok) {
+        cdLog('Webhook feed ← direct listener OK');
+        return { ok: true, data: d3.data, via_direct: true };
+      }
+      return { ok: false, error: data.error || 'HTTP ' + res.status };
+    }
+    cdLog('Webhook feed ← proxy OK');
+    return { ok: true, data: data.data != null ? data.data : data };
+  }
+
+  function filterContentDecisionHooks(data) {
+    var hooks = data && Array.isArray(data.webhooks) ? data.webhooks : [];
+    return hooks.filter(function (h) {
+      return webhookPayloadHasCustomName(getWebhookPayloadObject(h), WEBHOOK_FILTER_CUSTOM_NAME);
+    });
+  }
+
+  async function runFetchWebhook() {
+    cdLog('Fetch webhooks: start');
+    var st = document.getElementById('webhookStatus');
+    var btnBanner = document.getElementById('btnShowBanner');
+    st.textContent = 'Loading…';
+    st.className = 'status';
+    lastWebhookRaw = null;
+    btnBanner.disabled = true;
+    var env = await fetchWebhookFeed();
+    if (!env.ok) {
+      cdLog('Fetch webhooks ✗', env.error || 'Failed', env.detail || '');
+      st.textContent = env.error || 'Failed';
+      st.className = 'status err';
+      return;
+    }
+    var hooks = env.data && Array.isArray(env.data.webhooks) ? env.data.webhooks : [];
+    cdLog('Fetch webhooks: total hooks in feed', hooks.length, env.via_direct ? '(via direct)' : '(via proxy)');
+    var filtered = filterContentDecisionHooks(env.data);
+    cdLog('Fetch webhooks: after filter “' + WEBHOOK_FILTER_CUSTOM_NAME + '”', filtered.length);
+    if (!filtered.length) {
+      cdLog('Fetch webhooks ✗ no matching rows');
+      st.textContent = 'No “Content Decision” webhooks in feed.';
+      st.className = 'status err';
+      return;
+    }
+    var first = filtered[0];
+    lastWebhookRaw = getWebhookPayloadObject(first);
+    var jd = extractJourneyContentDecision(lastWebhookRaw);
+    cdLog('Fetch webhooks ✓ using first row; banner extract', jd ? { titleLen: (jd.bannerTitle || '').length, descLen: (jd.fullDescription || '').length, hasImage: !!jd.imageUrl, hasCtaHref: !!jd.ctaHref } : null);
+    st.textContent = 'Loaded first Content Decision row' + (env.via_direct ? ' (direct to listener).' : '.') + (jd ? ' Ready to show banner.' : ' Payload has no mediaAssets/textContent for banner.');
+    st.className = 'status ok';
+    btnBanner.disabled = !jd;
+  }
+
+  function scheduleAutoWebhook() {
+    if (!document.getElementById('autoFetchWebhook').checked) {
+      cdLog('Auto webhook fetch skipped (checkbox off)');
+      return;
+    }
+    cdLog('Auto webhook fetch scheduled in ~2s');
+    setTimeout(function () { runFetchWebhook(); }, 2000);
+  }
+
+  /**
+   * Same request body as experience-events.html sendExperienceEvent():
+   * fetch(url, { body: JSON.stringify({ payload, type: 'experience-event' }) })
+   */
+  async function sendGetDecisionsViaCloudRun(email) {
+    persistFirebaseEventUrl();
+    var url = document.getElementById('firebaseEventUrl').value.trim() || DEFAULT_EXPERIENCE_EVENT_POST_URL;
+    var evSt = document.getElementById('eventStatus');
+    var payload = buildGetDecisionsExperienceEventPayload(email);
+    var body = { type: 'experience-event', payload: payload };
+    var xdm = payload.body && payload.body.xdmEntity;
+    cdLog('Cloud Run → POST', url, { type: body.type, eventType: xdm && xdm.eventType, xdm_id: xdm && xdm._id });
+    evSt.textContent = 'Sending experience event…';
+    evSt.className = 'status';
+    try {
+      var res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        mode: 'cors',
+      });
+      var txt = await res.text();
+      var data;
+      try {
+        data = txt ? JSON.parse(txt) : {};
+      } catch (e) {
+        cdLog('Cloud Run ← non-JSON HTTP', res.status, (txt || '').slice(0, 120));
+        evSt.textContent = 'Non-JSON response (HTTP ' + res.status + '): ' + (txt || '').slice(0, 160);
+        evSt.className = 'status err';
+        return false;
+      }
+      if (data.success) {
+        cdLog('Cloud Run ← success', { http: res.status, success: data.success });
+        evSt.textContent = 'Cloud Run accepted event (get.decisions).';
+        evSt.className = 'status ok';
+        scheduleAutoWebhook();
+        return true;
+      }
+      cdLog('Cloud Run ← rejected', { http: res.status, error: data.error, keys: Object.keys(data || {}) });
+      evSt.textContent = (data.error ? String(data.error) : 'Event not accepted') + ' (HTTP ' + res.status + ')';
+      evSt.className = 'status err';
+      return false;
+    } catch (e) {
+      cdLog('Cloud Run ✗ fetch error', String(e.message || e));
+      evSt.textContent = 'Request failed (CORS/network?): ' + String(e.message || e);
+      evSt.className = 'status err';
+      return false;
+    }
+  }
+
+  document.getElementById('btnFetchProfile').addEventListener('click', async function () {
+    persistLiveIdentity();
+    var email = document.getElementById('cdLiveEmail').value.trim();
+    var ns = document.getElementById('cdLiveNs').value.trim() || 'Email';
+    var st = document.getElementById('profileStatus');
+    var hint = document.getElementById('ecidHint');
+    cdLog('Fetch profile only: start', { namespace: ns, identity: email ? '(set)' : '(empty)' });
+    st.textContent = 'Loading…';
+    st.className = 'status';
+    if (!email) {
+      cdLog('Fetch profile only ✗ missing email');
+      st.textContent = 'Enter an email.';
+      st.className = 'status err';
+      return;
+    }
+    var r = await fetchProfileByIdentity(ns, email);
+    lastUpsPayload = r.data;
+    document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
+    if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
+      cdLog('Fetch profile only ✗ UPS not successful', { httpOk: r.httpOk });
+      st.textContent = 'Profile not found or UPS error — check namespace/value.';
+      st.className = 'status err';
+      hint.textContent = '';
+      return;
+    }
+    var ecid = extractEcidFromUpsApiResponse(r.data);
+    cdLog('Fetch profile only ✓', { ecid: ecid ? ecid.slice(0, 8) + '…' : null });
+    st.textContent = 'Profile loaded.';
+    st.className = 'status ok';
+    hint.textContent = ecid ? 'ECID in profile: ' + ecid : 'No ECID in identityMap; journey may still key on email.';
+  });
+
+  document.getElementById('btnProfileAndSendEvent').addEventListener('click', async function () {
+    persistLiveIdentity();
+    var email = document.getElementById('cdLiveEmail').value.trim();
+    var ns = document.getElementById('cdLiveNs').value.trim() || 'Email';
+    var st = document.getElementById('profileStatus');
+    var evSt = document.getElementById('eventStatus');
+    cdLog('Profile + get.decisions: start', { namespace: ns });
+    evSt.textContent = '';
+    evSt.className = 'status';
+    if (!email) {
+      cdLog('Profile + get.decisions ✗ missing email');
+      st.textContent = 'Enter an email.';
+      st.className = 'status err';
+      return;
+    }
+    st.textContent = 'Fetching profile…';
+    st.className = 'status';
+    var r = await fetchProfileByIdentity(ns, email);
+    lastUpsPayload = r.data;
+    document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
+    if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
+      cdLog('Profile + get.decisions ✗ stopped: profile failed', { httpOk: r.httpOk });
+      st.textContent = 'Stop: profile failed — fix identity before sending event.';
+      st.className = 'status err';
+      return;
+    }
+    var ecid = extractEcidFromUpsApiResponse(r.data);
+    document.getElementById('ecidHint').textContent = ecid ? 'ECID: ' + ecid : 'No ECID in payload.';
+    cdLog('Profile + get.decisions: profile OK', { ecidPrefix: ecid ? ecid.slice(0, 8) + '…' : null });
+    st.textContent = 'Profile OK — calling Event Generator Cloud Run…';
+    var ok = await sendGetDecisionsViaCloudRun(email);
+    cdLog('Profile + get.decisions: done', { cloudRunOk: ok });
+    if (ok) st.textContent = 'Profile OK + get.decisions event sent via Cloud Run.';
+    st.className = ok ? 'status ok' : 'status err';
+  });
+
+  document.getElementById('btnFetchWebhook').addEventListener('click', runFetchWebhook);
+
+  document.getElementById('btnShowBanner').addEventListener('click', function () {
+    if (!lastWebhookRaw) {
+      cdLog('Show banner: skipped (no webhook payload)');
+      return;
+    }
+    var jd = extractJourneyContentDecision(lastWebhookRaw);
+    if (jd) {
+      cdLog('Show banner: rendering', { title: jd.bannerTitle && jd.bannerTitle.slice(0, 40) });
+      renderJourneyContentDecisionBanner(jd);
+    } else {
+      cdLog('Show banner: no extractable content node');
+    }
+  });
+
+  initCdBannerEditor();
+  cdLog('initialized (filter console by tag above)');
+})();
+  </script>
+</body>
+</html>

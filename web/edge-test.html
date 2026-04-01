@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edge decisioning test (template)</title>
+  <link rel="stylesheet" href="https://use.typekit.net/lqg4ofl.css">
+  <style>
+    :root {
+      --font-family: adobe-clean, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --bg-primary: #FFFFFF;
+      --bg-secondary: #FAFAFA;
+      --text-primary: #2C2C2C;
+      --text-secondary: #6E6E6E;
+      --border: #E1E1E1;
+      --blue-600: #0D66D0;
+      --radius: 8px;
+      --spacing-md: 16px;
+    }
+    [data-theme="dark"] {
+      --bg-primary: #1E1E1E;
+      --bg-secondary: #2C2C2C;
+      --text-primary: #FFFFFF;
+      --text-secondary: #B9B9B9;
+      --border: #393939;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: var(--font-family); background: var(--bg-secondary); color: var(--text-primary); margin: 0; padding: var(--spacing-md); line-height: 1.5; }
+    header { max-width: 720px; margin: 0 auto 24px; }
+    h1 { font-size: 20px; }
+    .subtitle { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
+    .back { font-size: 13px; margin-top: 8px; }
+    .back a { color: var(--blue-600); }
+    .card { max-width: 720px; margin: 0 auto; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--spacing-md); }
+    label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+    input, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--font-family); margin-bottom: 12px; background: var(--bg-primary); color: var(--text-primary); }
+    textarea { min-height: 220px; font-family: ui-monospace, monospace; font-size: 12px; }
+    button { background: var(--blue-600); color: #fff; border: none; border-radius: var(--radius); padding: 10px 18px; font-weight: 600; cursor: pointer; font-family: var(--font-family); }
+    .hint { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
+    .warn { background: #fff8e6; border: 1px solid #e68619; padding: 12px; border-radius: var(--radius); font-size: 13px; margin-bottom: 16px; }
+    [data-theme="dark"] .warn { background: #3d3500; border-color: #e68619; }
+    label.chk { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    label.chk input { width: auto; margin: 0; }
+  </style>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+  </script>
+  <script src="https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js" async></script>
+</head>
+<body>
+  <header>
+    <h1>Edge decisioning test</h1>
+    <p class="subtitle">Adobe Launch → Web SDK → Edge (same embed as main lab)</p>
+    <p class="back"><a href="index.html">← DPS REST lab</a> · <code>docs/EDGE_TESTING.md</code></p>
+  </header>
+  <div class="card">
+    <div class="warn">
+      Uses your <strong>Launch development</strong> library. Datastream is normally set in the Launch <strong>Web SDK</strong> extension — only enable “configure override” below if you need to debug.
+    </div>
+    <p class="hint">Waits up to ~25s for <code>alloy</code> after Launch loads, then runs <code>sendEvent</code>.</p>
+    <label for="edgeConfigId">Datastream ID (reference or override)</label>
+    <input id="edgeConfigId" type="text" value="ef0ee758-260c-4596-8a97-d8474d11c0ca" autocomplete="off">
+    <label class="chk" for="edgeForceConfigure">
+      <input type="checkbox" id="edgeForceConfigure">
+      <span>Call <code>alloy('configure')</code> (leave off if Launch already loads Web SDK — avoids duplicate configure)</span>
+    </label>
+    <label for="decisionScopes">Decision scopes (comma-separated)</label>
+    <input id="decisionScopes" type="text" placeholder="Leave empty + check spoof below for DSN apalmer-I018 scopes" autocomplete="off">
+    <label class="chk" for="spoofDsnWebContext" style="margin-top:12px;">
+      <input type="checkbox" id="spoofDsnWebContext">
+      <span>Spoof DSN URL + default scopes (<code>web://dsn.adobe.com/apalmer-I018#travel-hero-banner</code>, <code>#TopRibbon</code>)</span>
+    </label>
+    <label for="spoofDsnPageUrl">Spoof page URL</label>
+    <input id="spoofDsnPageUrl" type="url" value="https://dsn.adobe.com/web/apalmer-I018/home" autocomplete="off">
+    <label for="identityEmail">Optional email in XDM identityMap</label>
+    <input id="identityEmail" type="email" value="adamp.adobedemo+010426-4@gmail.com" placeholder="test@example.com" autocomplete="email">
+    <label class="chk" for="directCallAfterSendEvent" style="margin-top:12px;">
+      <input type="checkbox" id="directCallAfterSendEvent" checked>
+      <span>After <code>sendEvent</code>, <code>_satellite.track</code> (Launch Direct Call)</span>
+    </label>
+    <label for="directCallRuleIdEdgeDecisioning">Direct Call — Edge decisioning (after sendEvent)</label>
+    <input id="directCallRuleIdEdgeDecisioning" type="text" value="experience-decisioning-lab" placeholder="experience-decisioning-lab" autocomplete="off">
+    <button type="button" id="btnRun">Wait for Launch + sendEvent</button>
+    <label for="out" style="margin-top:16px">Result</label>
+    <textarea id="out" readonly></textarea>
+  </div>
+  <script>
+    const DEFAULT_EDGE_CONFIG_ID = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
+    const ADOBE_LAUNCH_SRC = 'https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js';
+    const DSN_SPOOF_DEFAULT_PAGE_URL = 'https://dsn.adobe.com/web/apalmer-I018/home';
+    const DSN_SPOOF_DECISION_SCOPES = [
+      'web://dsn.adobe.com/apalmer-I018#travel-hero-banner',
+      'web://dsn.adobe.com/apalmer-I018#TopRibbon',
+    ];
+    (function initEdgeTestIdentity() {
+      const val = localStorage.getItem('aep-lab-identity-value');
+      if (val !== null) document.getElementById('identityEmail').value = val;
+    })();
+
+    function persistEdgeTestIdentity() {
+      const val = document.getElementById('identityEmail').value.trim();
+      if (val) localStorage.setItem('aep-lab-identity-value', val);
+      else localStorage.removeItem('aep-lab-identity-value');
+    }
+    document.getElementById('identityEmail').addEventListener('blur', persistEdgeTestIdentity);
+
+    let configuredFor = '';
+
+    function waitForAlloy(timeoutMs) {
+      const t = timeoutMs || 25000;
+      return new Promise((resolve, reject) => {
+        if (typeof alloy === 'function') return resolve();
+        const start = Date.now();
+        const id = setInterval(() => {
+          if (typeof alloy === 'function') {
+            clearInterval(id);
+            resolve();
+          } else if (Date.now() - start > t) {
+            clearInterval(id);
+            reject(new Error('Alloy not available after Launch. Check ' + ADOBE_LAUNCH_SRC));
+          }
+        }, 50);
+      });
+    }
+
+    function log(obj) {
+      document.getElementById('out').value = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+    }
+    document.getElementById('btnRun').addEventListener('click', async () => {
+      let edgeConfigId = document.getElementById('edgeConfigId').value.trim() || DEFAULT_EDGE_CONFIG_ID;
+      const scopesRaw = document.getElementById('decisionScopes').value.trim();
+      const email = document.getElementById('identityEmail').value.trim();
+      const forceCfg = document.getElementById('edgeForceConfigure').checked;
+      const spoofDsn = document.getElementById('spoofDsnWebContext').checked;
+      const spoofPageUrl =
+        document.getElementById('spoofDsnPageUrl').value.trim() || DSN_SPOOF_DEFAULT_PAGE_URL;
+      let decisionScopes = scopesRaw ? scopesRaw.split(',').map((s) => s.trim()).filter(Boolean) : [];
+      if (spoofDsn && !decisionScopes.length) {
+        decisionScopes = DSN_SPOOF_DECISION_SCOPES.slice();
+      }
+      if (!decisionScopes.length) {
+        log('Add decision scopes, or enable “Spoof DSN URL + default scopes”.');
+        return;
+      }
+      persistEdgeTestIdentity();
+      try {
+        await waitForAlloy();
+      } catch (e) {
+        log(String(e && e.message ? e.message : e));
+        return;
+      }
+      if (forceCfg && edgeConfigId) {
+        if (configuredFor !== edgeConfigId) {
+          try {
+            await alloy('configure', { edgeConfigId });
+          } catch (e) {
+            const msg = e && e.message ? String(e.message) : String(e);
+            if (!/already been configured|only be configured once/i.test(msg)) {
+              log(msg);
+              return;
+            }
+          }
+          configuredFor = edgeConfigId;
+        }
+      }
+      const pageUrl = spoofDsn ? spoofPageUrl : window.location.href || '';
+      const xdm = {
+        eventType: 'web.webpagedetails.pageViews',
+        web: {
+          webPageDetails: {
+            URL: pageUrl,
+            name: spoofDsn ? 'DSN home (spoofed)' : 'AEP Decisioning edge test',
+          },
+        },
+      };
+      if (email) {
+        xdm.identityMap = {
+          email: [{ id: email, authenticatedState: 'ambiguous', primary: true }],
+        };
+      }
+      try {
+        const result = await alloy('sendEvent', {
+          renderDecisions: false,
+          personalization: { decisionScopes },
+          xdm,
+        });
+        if (document.getElementById('directCallAfterSendEvent').checked) {
+          const rid = document.getElementById('directCallRuleIdEdgeDecisioning').value.trim();
+          if (rid && typeof window._satellite !== 'undefined' && typeof window._satellite.track === 'function') {
+            try {
+              const payload = {};
+              if (result && Array.isArray(result.decisions)) payload.decisions = result.decisions;
+              if (result && Array.isArray(result.propositions)) payload.propositions = result.propositions;
+              if (Object.keys(payload).length) window._satellite.track(rid, payload);
+              else window._satellite.track(rid);
+              console.log('[edge-test] Direct Call:', rid);
+            } catch (ex) {
+              console.warn('[edge-test] _satellite.track failed', ex);
+            }
+          }
+        }
+        log(result);
+      } catch (e) {
+        log(String(e && e.message ? e.message : e));
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Launch Direct Call smoke — AEP Decisioning lab</title>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+  </script>
+  <script src="https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js" async></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 52rem; margin: 24px; line-height: 1.45; }
+    pre { background: #f4f4f4; padding: 12px; overflow: auto; font-size: 13px; }
+    button { padding: 10px 16px; font-size: 15px; cursor: pointer; margin-top: 8px; }
+    label { display: block; margin-top: 12px; font-weight: 600; }
+    input[type="text"] { width: 100%; max-width: 28rem; padding: 8px; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <h1>Launch Direct Call smoke test</h1>
+  <p>Same Launch embed as <code>index.html</code>. Use this to confirm Tags receives <code>_satellite.track</code> and your <strong>Direct Call</strong> rules run (e.g. build XDM / <code>sendEvent</code>) without calling UPS.</p>
+  <p><a href="index.html">← Back to lab</a></p>
+
+  <label for="ruleId">Direct Call identifier</label>
+  <input id="ruleId" type="text" value="get.decisions" autocomplete="off" />
+
+  <button type="button" id="btnSmoke">Wait for Launch + fire Direct Call</button>
+
+  <label for="log">Result</label>
+  <pre id="log"></pre>
+
+  <script>
+    function logLine(msg) {
+      var el = document.getElementById('log');
+      el.textContent += msg + '\n';
+    }
+
+    function waitForSatellite(timeoutMs) {
+      var t = timeoutMs || 25000;
+      return new Promise(function (resolve, reject) {
+        if (typeof window._satellite === 'object' && typeof window._satellite.track === 'function') {
+          return resolve();
+        }
+        var start = Date.now();
+        var id = setInterval(function () {
+          if (typeof window._satellite === 'object' && typeof window._satellite.track === 'function') {
+            clearInterval(id);
+            resolve();
+          } else if (Date.now() - start > t) {
+            clearInterval(id);
+            reject(new Error('_satellite.track not available (Launch blocked, wrong property, or slow load).'));
+          }
+        }, 50);
+      });
+    }
+
+    document.getElementById('btnSmoke').addEventListener('click', function () {
+      document.getElementById('log').textContent = '';
+      logLine('Waiting for Launch…');
+      waitForSatellite()
+        .then(function () {
+          logLine('Launch ready (_satellite.track exists).');
+          var rid = document.getElementById('ruleId').value.trim();
+          if (!rid) {
+            logLine('ERR: empty rule id');
+            return;
+          }
+          var payload = {
+            eventType: 'get.decisions',
+            source: 'aep-decisioning-lab-smoke',
+            profile: {
+              _smoke: true,
+              note: 'Replace with real UPS JSON from index.html Profile + Direct Call',
+            },
+            identityMap: {
+              email: [
+                {
+                  id: 'smoke@example.com',
+                  authenticatedState: 'ambiguous',
+                  primary: true,
+                },
+              ],
+            },
+          };
+          try {
+            window._satellite.track(rid, payload);
+            logLine('OK: _satellite.track(' + JSON.stringify(rid) + ', payload)');
+            logLine(JSON.stringify(payload, null, 2));
+            logLine('Check: Tags debugger / Assurance / your rule logging for this identifier.');
+          } catch (e) {
+            logLine('ERR: ' + (e && e.message ? e.message : String(e)));
+          }
+        })
+        .catch(function (e) {
+          logLine('ERR: ' + (e && e.message ? e.message : String(e)));
+        });
+    });
+  </script>
+</body>
+</html>

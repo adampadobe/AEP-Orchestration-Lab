@@ -1,0 +1,2971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experience Decisioning lab</title>
+  <link rel="stylesheet" href="https://use.typekit.net/lqg4ofl.css">
+  <style>
+    :root {
+      --font-family: adobe-clean, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --bg-primary: #FFFFFF;
+      --bg-secondary: #FAFAFA;
+      --bg-tertiary: #F5F5F5;
+      --text-primary: #2C2C2C;
+      --text-secondary: #6E6E6E;
+      --border: #E1E1E1;
+      --blue-500: #1473E6;
+      --blue-600: #0D66D0;
+      --positive: #268E6C;
+      --negative: #D7373F;
+      --notice: #E68619;
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+      --spacing-xl: 32px;
+      --radius: 8px;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.1);
+      --shadow-md: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    [data-theme="dark"] {
+      --bg-primary: #1E1E1E;
+      --bg-secondary: #2C2C2C;
+      --bg-tertiary: #393939;
+      --text-primary: #FFFFFF;
+      --text-secondary: #B9B9B9;
+      --border: #393939;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.4);
+      --shadow-md: 0 4px 8px rgba(0,0,0,0.4);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-family);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      transition: background 0.3s, color 0.3s;
+    }
+    header {
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border);
+      padding: var(--spacing-lg);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 22px; font-weight: 700; }
+    .subtitle { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+    .nav-links { font-size: 13px; margin-top: 8px; }
+    .nav-links a { color: var(--blue-600); }
+    .theme-toggle {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--spacing-sm) var(--spacing-md);
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+    main { max-width: 1100px; margin: 0 auto; padding: var(--spacing-lg); }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-lg);
+    }
+    .grid.cols-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    @media (max-width: 1100px) {
+      .grid.cols-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--spacing-lg);
+      box-shadow: var(--shadow-sm);
+    }
+    .card h2 {
+      font-size: 16px;
+      margin-bottom: var(--spacing-md);
+      color: var(--text-primary);
+    }
+    label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: var(--spacing-xs); }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: var(--font-family);
+      font-size: 14px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-md);
+    }
+    textarea { min-height: 120px; font-family: ui-monospace, monospace; font-size: 12px; }
+    button.primary {
+      background: var(--blue-600);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-family);
+    }
+    button.primary:hover { background: var(--blue-500); }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: var(--spacing-sm);
+      vertical-align: middle;
+    }
+    .badge.new { background: #e6f0ff; color: var(--blue-600); }
+    .badge.legacy { background: var(--bg-tertiary); color: var(--text-secondary); }
+    [data-theme="dark"] .badge.new { background: #1a3a5c; color: #6cb4ff; }
+    pre {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--spacing-md);
+      overflow: auto;
+      max-height: 420px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .status { font-size: 13px; margin-top: var(--spacing-sm); color: var(--text-secondary); }
+    .status.ok { color: var(--positive); }
+    .status.err { color: var(--negative); }
+    .hint { font-size: 12px; color: var(--text-secondary); margin-top: var(--spacing-sm); }
+    .actions { display: flex; gap: var(--spacing-sm); flex-wrap: wrap; margin-top: var(--spacing-md); }
+    details.legacy { margin-top: var(--spacing-lg); }
+    details.legacy summary {
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding: var(--spacing-sm) 0;
+    }
+    .callout {
+      border-left: 4px solid var(--notice);
+      padding: var(--spacing-sm) var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      font-size: 13px;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+    .content-preview {
+      margin-top: var(--spacing-md);
+      padding: var(--spacing-md);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+    .content-preview h3 { font-size: 14px; margin-bottom: var(--spacing-sm); }
+    .prop-block {
+      margin-bottom: var(--spacing-md);
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--bg-primary);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .prop-block .scope { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+    .prop-block pre { max-height: 180px; margin-top: 8px; background: var(--bg-tertiary); }
+    button.secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: var(--font-family);
+    }
+    /* DOM targets aligned with Launch “Edit Code” rule (Offer Decisioning / personalization) */
+    .demo-personalization {
+      margin-top: var(--spacing-lg);
+    }
+    .topRibbon {
+      min-height: 36px;
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--bg-tertiary);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-md);
+    }
+    .topRibbon:empty::before { content: '.topRibbon (HTML content item)'; }
+    .travel-hero-banner {
+      display: flex;
+      gap: var(--spacing-md);
+      align-items: flex-start;
+      padding: var(--spacing-md);
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .travel-hero-banner > div > img {
+      max-width: 180px;
+      height: auto;
+      border-radius: 4px;
+      display: block;
+    }
+    .travel-hero-banner .title__content p {
+      margin: 0 0 4px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .travel-hero-banner .title__content h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .channel-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--blue-600);
+      margin-bottom: 6px;
+    }
+    [data-theme="dark"] .channel-label { color: #6cb4ff; }
+    .channel-map {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-md);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    @media (max-width: 600px) { .channel-map { grid-template-columns: 1fr; } }
+    .channel-map code { font-size: 11px; color: var(--text-primary); }
+    .rest-summary {
+      margin-bottom: var(--spacing-md);
+      padding: var(--spacing-md);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+    .rest-summary[hidden] { display: none !important; }
+    .rest-summary-meta {
+      margin: 0 0 var(--spacing-sm) 0;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+    .rest-summary-meta strong { color: var(--text-primary); }
+    .rest-summary-list {
+      margin: 0;
+      padding-left: 1.2em;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+    .rest-summary-list li { margin-bottom: 6px; }
+    .rest-summary-dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 12px;
+      font-size: 12px;
+    }
+    .rest-summary-dl dt { color: var(--text-secondary); margin: 0; }
+    .rest-summary-dl dd { margin: 0; word-break: break-word; }
+    .rest-summary-problem {
+      color: var(--negative);
+      font-size: 13px;
+      margin: 0;
+    }
+    #schemaIdPreset {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      margin-bottom: var(--spacing-sm);
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+    .webhook-feed-list {
+      list-style: none;
+      margin: var(--spacing-md) 0 0 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .webhook-feed-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--bg-tertiary);
+      font-size: 13px;
+    }
+    .webhook-feed-item header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .webhook-feed-item code {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .webhook-feed-item pre {
+      max-height: 220px;
+      margin: 8px 0 0 0;
+      font-size: 11px;
+    }
+    /* Journey webhook: Content Decision — text overlaid on hero image (AJO mediaAssets + textContent) */
+    .cd-banner-wrap {
+      margin-top: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+    }
+    .cd-banner-wrap[hidden] { display: none !important; }
+    .cd-banner {
+      position: relative;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: var(--cd-block-justify, flex-end);
+      isolation: isolate;
+    }
+    @media (min-width: 640px) {
+      .cd-banner { min-height: 280px; }
+    }
+    .cd-banner-bg {
+      position: absolute;
+      inset: 0;
+      background-color: var(--bg-tertiary);
+      background-size: cover;
+      background-position: center;
+      z-index: 0;
+    }
+    .cd-banner-scrim {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.82) 0%,
+        rgba(0, 0, 0, 0.45) 45%,
+        rgba(0, 0, 0, 0.2) 100%
+      );
+      pointer-events: none;
+    }
+    .cd-banner-inner {
+      position: relative;
+      z-index: 2;
+      padding: var(--spacing-lg);
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      box-sizing: border-box;
+      gap: 10px;
+      min-height: 10.5rem;
+    }
+    /* Per-row slot: align content inside with H/V dropdowns */
+    .cd-slot {
+      display: flex;
+      width: 100%;
+      box-sizing: border-box;
+      justify-content: var(--cd-slot-justify, flex-start);
+      align-items: var(--cd-slot-align, flex-start);
+    }
+    .cd-slot--title {
+      min-height: 2.5rem;
+      flex: 0 0 auto;
+    }
+    .cd-slot--desc {
+      min-height: 4rem;
+      flex: 1 1 auto;
+    }
+    .cd-slot--cta {
+      min-height: 2.75rem;
+      flex: 0 0 auto;
+    }
+    .cd-banner-title {
+      margin: 0;
+      font-size: clamp(1.25rem, 3vw, 1.75rem);
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--cd-title-color, #fff);
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.65);
+      max-width: 100%;
+    }
+    .cd-banner-desc {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: var(--cd-desc-color, rgba(255, 255, 255, 0.95));
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+      max-width: 42em;
+    }
+    .cd-banner-cta {
+      display: inline-block;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: var(--font-family);
+      color: var(--cd-cta-text, var(--text-primary));
+      background: var(--cd-cta-bg, #fff);
+      border-radius: var(--radius);
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cd-banner-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+    .cd-banner-cta:focus-visible {
+      outline: 2px solid var(--blue-500);
+      outline-offset: 2px;
+    }
+    .cd-banner-cta--ghost {
+      cursor: default;
+      opacity: 0.85;
+    }
+    .cd-banner-editor {
+      margin-top: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      padding: var(--spacing-md);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+    .cd-banner-editor summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-sm);
+    }
+    .cd-banner-editor[open] summary {
+      margin-bottom: var(--spacing-md);
+    }
+    .cd-editor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: var(--spacing-md);
+    }
+    .cd-editor-block {
+      padding: var(--spacing-sm);
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .cd-editor-block strong {
+      display: block;
+      margin-bottom: var(--spacing-sm);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+    }
+    .cd-editor-block label {
+      display: block;
+      font-size: 11px;
+      margin-bottom: 2px;
+      margin-top: 8px;
+      color: var(--text-secondary);
+    }
+    .cd-editor-block label:first-of-type {
+      margin-top: 0;
+    }
+    .cd-editor-block select {
+      width: 100%;
+      margin-bottom: 0;
+      padding: 6px 8px;
+      font-size: 13px;
+    }
+    .cd-color-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .cd-color-row input[type='color'] {
+      width: 40px;
+      height: 32px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 0;
+    }
+    .cd-color-row input[type='text'] {
+      flex: 1;
+      min-width: 0;
+      margin-bottom: 0;
+      padding: 6px 8px;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+    }
+    .cd-editor-actions {
+      margin-top: var(--spacing-md);
+      display: flex;
+      gap: var(--spacing-sm);
+      flex-wrap: wrap;
+    }
+  </style>
+  <!-- Launch rules sometimes push to dataLayer (GTM-style); define before Launch to avoid ReferenceError -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+  </script>
+  <!-- Web SDK loaded by Adobe Launch (datastream set in the Launch Web SDK extension) -->
+  <script src="https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js" async></script>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div>
+        <h1>Experience Decisioning lab <span class="badge new">DPS REST</span></h1>
+        <p class="subtitle">Profile (UPS) + DPS REST + Edge via Adobe Launch / Web SDK · <a href="content-decision-live.html">Content decision (simple)</a> · <a href="edge-test.html">standalone Edge page</a> · <a href="launch-direct-call-smoke.html">Direct Call smoke test</a></p>
+        <p class="nav-links">Docs: <code>docs/DECISIONING_APIS.md</code> · <code>docs/EDGE_TESTING.md</code></p>
+      </div>
+      <button type="button" class="theme-toggle" id="themeBtn" aria-label="Toggle theme">Theme</button>
+    </div>
+  </header>
+  <main>
+    <div class="callout">
+      <strong>Offer Decisioning</strong> (legacy) uses <code>/offers?offer-type=…</code>.
+      <strong>Experience Decisioning</strong> (current) uses <code>/offer-items</code>, <code>/item-collections</code>, <code>/selection-strategies</code>, etc. Same host <code>/data/core/dps</code>, different resources — see docs.
+    </div>
+    <div class="grid cols-3">
+      <section class="card">
+        <h2>1. Profile by identity</h2>
+        <p class="hint">UPS access API — confirms the identity exists. <strong>Profile → Edge</strong> copies the profile <code>entity.identityMap</code> into <code>sendEvent</code> (namespace <code>ecid</code> → <code>ECID</code>, same email id as UPS). That aligns Edge with the profile lookup; empty propositions usually mean wrong <strong>decision scopes / spoof URL</strong> for the site where experiences are published, or Edge errors — not a missing ECID.</p>
+        <label for="nsCode">Identity namespace code</label>
+        <input id="nsCode" type="text" value="Email" autocomplete="off">
+        <label for="nsValue">Identity value</label>
+        <input id="nsValue" type="email" value="adamp.adobedemo+010426-4@gmail.com" placeholder="you@example.com" autocomplete="email">
+        <label for="vertical">Industry tag (for your notes only)</label>
+        <select id="vertical">
+          <option value="cross">Cross-industry</option>
+          <option value="travel">Travel</option>
+          <option value="retail">Retail</option>
+          <option value="telco">Telco</option>
+        </select>
+        <div class="actions">
+          <button type="button" class="primary" id="btnProfileAndContent" title="UPS profile must succeed before Edge sendEvent and DOM render">Profile → Edge decisions + render</button>
+          <button type="button" class="secondary" id="btnProfile">Fetch profile only</button>
+        </div>
+        <p class="status" id="profileStatus"></p>
+        <p class="hint" id="profileEcidHint" style="margin-top:8px;"></p>
+        <p class="hint" style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border);">Uses the <strong>get.decisions</strong> Direct Call identifier in §3 (not <code>experience-decisioning-lab</code>). Fetches UPS, then <code>_satellite.track</code> with UPS + <code>eventType: 'get.decisions'</code> + <code>identityMap</code> when parseable.</p>
+        <div class="actions">
+          <button type="button" class="secondary" id="btnProfileAndDirectCall" title="Requires Launch; _satellite.track('get.decisions', …)">Profile + Direct Call</button>
+        </div>
+        <p class="status" id="profileDirectCallStatus"></p>
+        <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
+          <p class="hint"><strong>Streaming HTTP API</strong> (<code>header.msgType: xdmEntityCreate</code>): after UPS, POST the envelope to your Flow Service <strong>inlet URL</strong> (<code>https://dcs.adobedc.net/collection/…</code> from the base connection’s <code>inletUrl</code>). The proxy sends your IMS bearer + <code>x-api-key</code> + org + sandbox (authenticated inlet). Tune dataset, schema, and tenant path to match your XDM.</p>
+          <label for="streamingInletUrl">Streaming inlet URL (required)</label>
+          <input id="streamingInletUrl" type="url" placeholder="https://dcs.adobedc.net/collection/…" autocomplete="off">
+          <label for="streamingDatasetId">Dataset ID</label>
+          <input id="streamingDatasetId" type="text" value="s69cd3f882708ada085750150" autocomplete="off">
+          <label for="streamingImsOrgId">IMS org ID</label>
+          <input id="streamingImsOrgId" type="text" value="BF9C27AA6464801C0A495FD0@AdobeOrg" autocomplete="off">
+          <label for="streamingSchemaId">Schema <code>$id</code> (XED)</label>
+          <input id="streamingSchemaId" type="text" value="https://ns.adobe.com/demoemea/schemas/2b314523710861bbdc32c9558110fff24e032fa499fe5deb" autocomplete="off">
+          <label for="streamingSchemaContentType">Schema content type</label>
+          <input id="streamingSchemaContentType" type="text" value="application/vnd.adobe.xed-full+json;version=1" autocomplete="off">
+          <label for="streamingTenantKey">Tenant object key on <code>xdmEntity</code></label>
+          <input id="streamingTenantKey" type="text" value="_demoemea" autocomplete="off" title="e.g. _demoemea → xdmEntity._demoemea.identification.core.email">
+          <label for="streamingEventType">eventType (in <code>xdmEntity</code>)</label>
+          <input id="streamingEventType" type="text" value="get.decisions" autocomplete="off">
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:10px;">
+            <input type="checkbox" id="streamingStrictValidation" checked style="width:auto;margin:4px 0 0 0;">
+            <span><code>header.strictValidation: true</code> (uncheck if schema is still evolving)</span>
+          </label>
+          <div class="actions">
+            <button type="button" class="secondary" id="btnProfileAndStreamingIngest" title="UPS then POST xdmEntityCreate via proxy">Profile + stream XDM (HTTP API)</button>
+          </div>
+          <p class="status" id="profileStreamingIngestStatus"></p>
+        </div>
+      </section>
+      <section class="card">
+        <h2>2. Experience Decisioning (REST)</h2>
+        <p class="hint">Many orgs require <code>x-schema-id</code> for <code>/offer-items</code> (decision item schema). <strong>List decision items</strong> needs a schema URI unless your org allows the call without it. <strong>Item collections</strong> and <strong>selection strategies</strong> often work with <strong>None</strong>. REST calls require <code>python proxy_server.py</code> (repo root) — static servers have no <code>/api/aep</code>.</p>
+        <label for="schemaIdPreset">x-schema-id (optional)</label>
+        <select id="schemaIdPreset">
+          <option value="">None — item-collections / selection-strategies</option>
+          <option value="https://ns.adobe.com/demoemea/schemas/7fdc9de4101bde9186542920e0b021d164ef6602b8778e6a" selected>Personalized Offer Items — Experience Decisioning (demoemea)</option>
+          <option value="__custom__">Custom URI…</option>
+        </select>
+        <input id="schemaId" type="text" placeholder="Paste schema URI from Schema Registry → API usage" autocomplete="off" hidden>
+        <label for="preset">Preset</label>
+        <select id="preset">
+          <option value="offer-items">List decision items (offer-items)</option>
+          <option value="item-collections">List item collections</option>
+          <option value="selection-strategies">List selection strategies</option>
+        </select>
+        <div class="actions">
+          <button type="button" class="primary" id="btnPreset">Run preset</button>
+        </div>
+        <p class="status" id="dpsStatus"></p>
+      </section>
+      <section class="card">
+        <h2>3. Content decisioning (Edge)</h2>
+        <p class="hint">Loads <strong>Adobe Launch</strong> (development). For the main flow, use <strong>Profile → Edge decisions + render</strong> in section 1: Edge <code>sendEvent</code> runs only after UPS returns a profile. Email above is sent in <code>identityMap</code> on that call.</p>
+        <label for="edgeConfigId">Datastream ID (reference — should match Launch Web SDK extension)</label>
+        <input id="edgeConfigId" type="text" placeholder="ef0ee758-260c-4596-8a97-d8474d11c0ca" value="ef0ee758-260c-4596-8a97-d8474d11c0ca" autocomplete="off">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;">
+          <input type="checkbox" id="edgeForceConfigure" style="width:auto;margin:0;">
+          <span>Also call <code>alloy('configure')</code> with the datastream above (almost always leave <strong>off</strong> when Launch is loaded — Launch already configures Alloy; a second call errors)</span>
+        </label>
+        <label for="decisionScopes">Decision scopes (optional on this page)</label>
+        <input id="decisionScopes" type="text" placeholder="Leave empty to send identity only — like a full site where Launch already requests personalization" autocomplete="off">
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:12px;margin-bottom:8px;">
+          <input type="checkbox" id="localChannelPath" style="width:auto;margin:4px 0 0 0;">
+          <span><strong>Local AJO channel</strong> — use path <code>aep-decisioning-lab</code>: set <code>xdm.web.webPageDetails.URL</code> to <code>…/aep-decisioning-lab/home</code> (this origin) and, if scopes are empty, default scopes <code>web://&lt;host&gt;/aep-decisioning-lab#…</code>. Open the lab at <code>/aep-decisioning-lab/home</code> so the address bar matches. <strong>Off</strong> when spoofing DSN.</span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:12px;margin-bottom:8px;">
+          <input type="checkbox" id="spoofDsnWebContext" style="width:auto;margin:4px 0 0 0;">
+          <span>Spoof <strong>DSN</strong> web context for AJO surfaces (<code>apalmer-I018</code>): send DSN home URL in <code>xdm.web.webPageDetails.URL</code> and, if scopes are empty, request <code>web://dsn.adobe.com/apalmer-I018#travel-hero-banner</code> + <code>#TopRibbon</code>.</span>
+        </label>
+        <label for="spoofDsnPageUrl">Spoof page URL</label>
+        <input id="spoofDsnPageUrl" type="url" value="https://dsn.adobe.com/web/apalmer-I018/home" autocomplete="off" title="Must align with how your AJO web channel builds web://… URIs">
+        <p class="status err" id="spoofUrlMismatchHint" hidden style="margin-top:8px;"></p>
+        <p class="hint" style="margin-top:-8px;">On real <strong>DSN</strong>, Launch sets scopes from the page; on localhost this mimics that URL so Edge can match the same channel config. The path must include the same site id as in <code>web://dsn.adobe.com/<em>…</em>#…</code> (e.g. <code>apalmer-I018</code>, not a truncated <code>I01</code>). If you enter scopes above, those win; leave scopes empty to use the two defaults.</p>
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:12px;margin-bottom:8px;">
+          <input type="checkbox" id="directCallAfterSendEvent" checked style="width:auto;margin:4px 0 0 0;">
+          <span>After Web SDK <code>sendEvent</code> resolves, fire Launch Direct Call <code>experience-decisioning-lab</code> (below) with <code>decisions</code> / <code>propositions</code> when present.</span>
+        </label>
+        <label for="directCallRuleIdEdgeDecisioning">Direct Call — Edge decisioning (after <code>sendEvent</code>)</label>
+        <input id="directCallRuleIdEdgeDecisioning" type="text" value="experience-decisioning-lab" placeholder="experience-decisioning-lab" autocomplete="off">
+        <p class="hint" style="margin-top:-8px;">Tags rule: <strong>Direct Call</strong> identifier <code>experience-decisioning-lab</code> — map Edge payloads into the page (channel DOM, etc.). Payload includes <code>decisions</code> / <code>propositions</code> from the Web SDK result when available.</p>
+        <label for="directCallRuleIdGetDecisions" style="margin-top:12px;">Direct Call — <code>get.decisions</code> (§1 profile button)</label>
+        <input id="directCallRuleIdGetDecisions" type="text" value="get.decisions" placeholder="get.decisions" autocomplete="off">
+        <p class="hint" style="margin-top:-8px;">Separate Tags rule: <strong>Direct Call</strong> identifier <code>get.decisions</code> — fired by <strong>Profile + Direct Call</strong> in §1 with UPS + <code>eventType</code> in the payload (your rule logs/sends XDM to AEP).</p>
+        <details class="legacy" style="margin-top: var(--spacing-md);">
+          <summary>Debug: Edge without UPS check</summary>
+          <p class="hint" style="margin-top: var(--spacing-sm);">Calls <code>sendEvent</code> even if profile was not loaded. If you used <strong>Fetch profile only</strong> first, the last UPS <code>ECID</code> is included with email when present.</p>
+          <div class="actions">
+            <button type="button" class="secondary" id="btnEdge">Send identity to Edge / fetch decisions</button>
+          </div>
+        </details>
+        <p class="status" id="edgeStatus"></p>
+      </section>
+    </div>
+    <details class="legacy">
+      <summary>Legacy Offer Decisioning (Decision Management) — optional</summary>
+      <div class="card" style="margin-top: var(--spacing-md);">
+        <p class="hint">Uses <code>/offers</code> and legacy placements list. Prefer Experience Decisioning above.</p>
+        <label for="legacyPreset">Legacy preset</label>
+        <select id="legacyPreset">
+          <option value="placements">List placements (legacy catalog)</option>
+          <option value="offers-pers">List personalized offers</option>
+          <option value="offers-fb">List fallback offers</option>
+          <option value="rules">List decision rules</option>
+          <option value="collections">List collections (legacy)</option>
+        </select>
+        <div class="actions">
+          <button type="button" class="primary" id="btnLegacy">Run legacy preset</button>
+        </div>
+        <p class="status" id="legacyStatus"></p>
+      </div>
+    </details>
+    <section class="card" style="margin-top: var(--spacing-lg);">
+      <h2>Content preview (Edge)</h2>
+      <p class="hint">Shows <code>event.decisions</code> or <code>propositions</code> from <code>sendEvent</code> — same shape your Launch rule iterates.</p>
+      <div id="contentPreview" class="content-preview" hidden>
+        <h3 id="contentPreviewTitle">Decisions / propositions</h3>
+        <div id="contentPreviewBody"></div>
+      </div>
+      <p class="hint" id="contentPreviewEmpty">Run <strong>Profile → Edge decisions + render</strong> (after UPS returns a profile), or use <strong>Debug: Edge without UPS check</strong> in section 3.</p>
+    </section>
+    <section class="card" style="margin-top: var(--spacing-lg);">
+      <h2>Journey webhook feed (poll)</h2>
+      <p class="hint"><strong>Best:</strong> repo proxy <code>python proxy_server.py</code> (default <code>:8765</code>, or <code>PORT=8877 python proxy_server.py</code> to match your static server port). <strong>Fallback:</strong> if <code>/api/webhook-listener</code> 404s, the lab tries the public listener URL directly in the browser when CORS allows.</p>
+      <p class="hint">Use an AJO <strong>custom action</strong> (or any step that can POST JSON) to the listener’s <strong>HTTPS</strong> URL only: <code>https://webhooklistener-pscg5c4cja-uc.a.run.app</code> (TLS end-to-end; Cloud Run shows <code>x-forwarded-proto: https</code>). This lab <strong>polls</strong> the index with <code>GET https://…</code> (proxy or browser fallback). The feed list <strong>only shows</strong> entries whose JSON has <code>config.customName</code> equal to <code>Content Decision</code> (on the root object or on any element of a top-level <code>data[]</code> array, typical AJO success shape). Map bodies to include <code>decisions</code> or <code>propositions</code> when possible for <strong>Preview + apply to demo DOM</strong>; other JSON still appears in the list as raw when it passes that filter. Webhook stores may contain <strong>PII</strong>.</p>
+      <div class="actions">
+        <button type="button" class="primary" id="btnWebhookFetch">Fetch webhooks now</button>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+          <input type="checkbox" id="webhookAutoPoll" style="width:auto;margin:0;">
+          <span>Auto-refresh every 15s</span>
+        </label>
+      </div>
+      <p class="status" id="webhookFeedStatus"></p>
+      <ul id="webhookFeedList" class="webhook-feed-list" hidden></ul>
+    </section>
+    <section class="card demo-personalization">
+      <h2>Channel config → DOM (your AJO setup)</h2>
+      <p class="hint">These two surfaces match your Experience Decisioning <strong>channel configurations</strong> and the Launch rule that maps schema payloads into the page.</p>
+      <div class="channel-label" style="margin-top: 0">Journey: Content Decision (webhook)</div>
+      <p class="hint" id="journeyBannerPlaceholder">After <strong>Profile → Edge</strong> (or your journey) triggers the webhook, use <strong>Fetch webhooks</strong> then <strong>Preview</strong> or <strong>Show content banner</strong> on a Content Decision row. Text and CTA render over the hero <code>imageHighRes.sourceURL</code> (or next available asset).</p>
+      <details class="cd-banner-editor" id="journeyBannerEditor" open>
+        <summary>Style the content banner (alignment &amp; colors)</summary>
+        <p class="hint" style="margin-top:0">Each row has its own <strong>horizontal</strong> and <strong>vertical</strong> alignment inside its area. The <strong>whole block</strong> control moves title + description + button together to the top, middle, or bottom of the hero. Colors use the pickers or hex fields. Settings are saved in this browser.</p>
+        <div class="cd-editor-grid">
+          <div class="cd-editor-block">
+            <strong>Whole block</strong>
+            <label for="cdBlockY">Vertical position on hero</label>
+            <select id="cdBlockY" data-cd-key="blockY" aria-label="Whole block vertical position">
+              <option value="flex-start">Top</option>
+              <option value="center">Middle</option>
+              <option value="flex-end" selected>Bottom</option>
+            </select>
+          </div>
+          <div class="cd-editor-block">
+            <strong>Title</strong>
+            <label for="cdTitleH">Horizontal</label>
+            <select id="cdTitleH" data-cd-key="titleH" aria-label="Title horizontal alignment">
+              <option value="flex-start" selected>Left</option>
+              <option value="center">Center</option>
+              <option value="flex-end">Right</option>
+            </select>
+            <label for="cdTitleV">Vertical (in title row)</label>
+            <select id="cdTitleV" data-cd-key="titleV" aria-label="Title vertical alignment">
+              <option value="flex-start" selected>Top</option>
+              <option value="center">Middle</option>
+              <option value="flex-end">Bottom</option>
+            </select>
+            <label>Text color</label>
+            <div class="cd-color-row">
+              <input type="color" id="cdTitleColorPick" value="#ffffff" data-cd-color="title" aria-label="Title color picker">
+              <input type="text" id="cdTitleColorHex" value="#ffffff" maxlength="9" placeholder="#ffffff" data-cd-hex="title" aria-label="Title color hex">
+            </div>
+          </div>
+          <div class="cd-editor-block">
+            <strong>Description</strong>
+            <label for="cdDescH">Horizontal</label>
+            <select id="cdDescH" data-cd-key="descH" aria-label="Description horizontal alignment">
+              <option value="flex-start" selected>Left</option>
+              <option value="center">Center</option>
+              <option value="flex-end">Right</option>
+            </select>
+            <label for="cdDescV">Vertical (in description area)</label>
+            <select id="cdDescV" data-cd-key="descV" aria-label="Description vertical alignment">
+              <option value="flex-start">Top</option>
+              <option value="center" selected>Middle</option>
+              <option value="flex-end">Bottom</option>
+            </select>
+            <label>Text color</label>
+            <div class="cd-color-row">
+              <input type="color" id="cdDescColorPick" value="#f5f5f5" data-cd-color="desc" aria-label="Description color picker">
+              <input type="text" id="cdDescColorHex" value="#f5f5f5" maxlength="9" placeholder="#f5f5f5" data-cd-hex="desc" aria-label="Description color hex">
+            </div>
+          </div>
+          <div class="cd-editor-block">
+            <strong>Button (CTA)</strong>
+            <label for="cdCtaH">Horizontal</label>
+            <select id="cdCtaH" data-cd-key="ctaH" aria-label="Button horizontal alignment">
+              <option value="flex-start" selected>Left</option>
+              <option value="center">Center</option>
+              <option value="flex-end">Right</option>
+            </select>
+            <label for="cdCtaV">Vertical (in button row)</label>
+            <select id="cdCtaV" data-cd-key="ctaV" aria-label="Button vertical alignment">
+              <option value="flex-start">Top</option>
+              <option value="center">Middle</option>
+              <option value="flex-end" selected>Bottom</option>
+            </select>
+            <label>Button background</label>
+            <div class="cd-color-row">
+              <input type="color" id="cdCtaBgPick" value="#ffffff" data-cd-color="ctaBg" aria-label="Button background color picker">
+              <input type="text" id="cdCtaBgHex" value="#ffffff" maxlength="9" placeholder="#ffffff" data-cd-hex="ctaBg" aria-label="Button background hex">
+            </div>
+            <label>Button text</label>
+            <div class="cd-color-row">
+              <input type="color" id="cdCtaTextPick" value="#2c2c2c" data-cd-color="ctaText" aria-label="Button text color picker">
+              <input type="text" id="cdCtaTextHex" value="#2c2c2c" maxlength="9" placeholder="#2c2c2c" data-cd-hex="ctaText" aria-label="Button text color hex">
+            </div>
+          </div>
+        </div>
+        <div class="cd-editor-actions">
+          <button type="button" class="secondary" id="cdBannerResetStyles">Reset banner styles</button>
+        </div>
+      </details>
+      <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Journey content decision banner"></div>
+      <div class="channel-map">
+        <div><strong>Local channel</strong> <code>web://&lt;host&gt;/aep-decisioning-lab#…</code> (checkbox in §3) or <strong>DSN</strong> <code>web://dsn.adobe.com/apalmer-I018#…</code> → same DOM mapping below.</div>
+        <div><strong>DSN scope</strong> <code>…#TopRibbon</code> → lab selector <code>.topRibbon</code> · HTML content item</div>
+        <div><strong>DSN / local scope</strong> <code>…#travel-hero-banner</code> → selector <code>.travel-hero-banner …</code> · JSON content item (title, image, text)</div>
+      </div>
+      <div class="channel-label">Channel: topRibbon</div>
+      <div class="topRibbon" data-channel-config="topRibbon" aria-label="topRibbon channel"></div>
+      <div class="channel-label" style="margin-top: var(--spacing-md);">Channel: travel-hero-banner</div>
+      <div class="travel-hero-banner" data-channel-config="travel-hero-banner">
+        <div>
+          <img src="" alt="" />
+        </div>
+        <div class="banner__content">
+          <div>
+            <div class="title__content">
+              <p></p>
+              <h1></h1>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="card" style="margin-top: var(--spacing-lg);">
+      <h2>Raw JSON</h2>
+      <p class="hint" id="restSummaryHint" hidden style="margin-top: 0;">Readable summary of the last <strong>Experience Decisioning (REST)</strong> preset response (below).</p>
+      <div id="restSummary" class="rest-summary" hidden aria-live="polite"></div>
+      <pre id="out">{}</pre>
+    </section>
+  </main>
+  <script>
+    const themeBtn = document.getElementById('themeBtn');
+    const root = document.documentElement;
+    function applyTheme(t) {
+      root.dataset.theme = t;
+      localStorage.setItem('aep-decisioning-theme', t);
+    }
+    themeBtn.addEventListener('click', () => {
+      applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    (function initTheme() {
+      const saved = localStorage.getItem('aep-decisioning-theme');
+      if (saved === 'dark' || saved === 'light') applyTheme(saved);
+    })();
+
+    const DEFAULT_EDGE_CONFIG_ID = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
+    const ADOBE_LAUNCH_SRC = 'https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js';
+    const DSN_SPOOF_DEFAULT_PAGE_URL = 'https://dsn.adobe.com/web/apalmer-I018/home';
+    const HERO_CHANNEL_LOCATION = 'travel-hero-banner';
+    const DSN_SPOOF_DECISION_SCOPES = [
+      'web://dsn.adobe.com/apalmer-I018#' + HERO_CHANNEL_LOCATION,
+      'web://dsn.adobe.com/apalmer-I018#TopRibbon',
+    ];
+    const LOCAL_LAB_PATH_SEGMENT = 'aep-decisioning-lab';
+
+    function getLocalLabPageUrl() {
+      if (typeof location === 'undefined') return '';
+      return `${location.origin}/${LOCAL_LAB_PATH_SEGMENT}/home`;
+    }
+
+    function getLocalLabDecisionScopes() {
+      if (typeof location === 'undefined') return [];
+      const h = location.host;
+      const base = `web://${h}/${LOCAL_LAB_PATH_SEGMENT}`;
+      return [`${base}#${HERO_CHANNEL_LOCATION}`, `${base}#TopRibbon`];
+    }
+    /** Fix typo: live DSN uses apalmer-I018 (capital I); older lab used apalmer-l018 (lowercase L). */
+    function migrateLegacyDsnSiteIdInStorage() {
+      const typo = 'apalmer-l018';
+      const urlKey = 'aep-spoof-dsn-url';
+      const u = localStorage.getItem(urlKey);
+      if (u && u.includes(typo)) {
+        localStorage.setItem(urlKey, u.replace(/apalmer-l018/g, 'apalmer-I018'));
+      }
+      const scKey = 'aep-decision-scopes';
+      let sc = localStorage.getItem(scKey);
+      if (sc && sc.includes(typo)) {
+        sc = sc.replace(/apalmer-l018/g, 'apalmer-I018');
+        localStorage.setItem(scKey, sc);
+      }
+      if (sc && sc.includes('#hero-banner') && !sc.includes('travel-hero-banner')) {
+        sc = sc.replace(/#hero-banner/g, '#travel-hero-banner');
+        localStorage.setItem(scKey, sc);
+      }
+    }
+    (function initEdgeFields() {
+      migrateLegacyDsnSiteIdInStorage();
+      const ec = localStorage.getItem('aep-edge-config-id');
+      const sc = localStorage.getItem('aep-decision-scopes');
+      const fc = localStorage.getItem('aep-edge-force-configure');
+      const spoof = localStorage.getItem('aep-spoof-dsn');
+      const spoofUrl = localStorage.getItem('aep-spoof-dsn-url');
+      const dcEn = localStorage.getItem('aep-direct-call-enabled');
+      const dcEdge = localStorage.getItem('aep-direct-call-edge-id');
+      const dcGet = localStorage.getItem('aep-direct-call-get-decisions-id');
+      const dcLegacy = localStorage.getItem('aep-direct-call-id');
+      const localPath = localStorage.getItem('aep-local-lab-path');
+      document.getElementById('edgeConfigId').value = ec || DEFAULT_EDGE_CONFIG_ID;
+      if (sc) document.getElementById('decisionScopes').value = sc;
+      if (fc === '1') document.getElementById('edgeForceConfigure').checked = true;
+      if (localPath === '1') {
+        document.getElementById('localChannelPath').checked = true;
+        document.getElementById('spoofDsnWebContext').checked = false;
+      } else if (spoof === '1') {
+        document.getElementById('spoofDsnWebContext').checked = true;
+      }
+      if (spoofUrl) document.getElementById('spoofDsnPageUrl').value = spoofUrl;
+      if (dcEn === '0') document.getElementById('directCallAfterSendEvent').checked = false;
+      else if (dcEn === '1') document.getElementById('directCallAfterSendEvent').checked = true;
+      if (dcEdge) document.getElementById('directCallRuleIdEdgeDecisioning').value = dcEdge;
+      if (dcGet) document.getElementById('directCallRuleIdGetDecisions').value = dcGet;
+      if (!dcEdge && !dcGet && dcLegacy) {
+        if (dcLegacy === 'get.decisions') {
+          document.getElementById('directCallRuleIdGetDecisions').value = dcLegacy;
+        } else {
+          document.getElementById('directCallRuleIdEdgeDecisioning').value = dcLegacy;
+        }
+      }
+      const siu = localStorage.getItem('aep-streaming-inlet-url');
+      const sds = localStorage.getItem('aep-streaming-dataset-id');
+      const sim = localStorage.getItem('aep-streaming-ims-org-id');
+      const ssc = localStorage.getItem('aep-streaming-schema-id');
+      const sct = localStorage.getItem('aep-streaming-schema-ct');
+      const stk = localStorage.getItem('aep-streaming-tenant-key');
+      const set = localStorage.getItem('aep-streaming-event-type');
+      const sst = localStorage.getItem('aep-streaming-strict');
+      if (siu) document.getElementById('streamingInletUrl').value = siu;
+      if (sds) document.getElementById('streamingDatasetId').value = sds;
+      if (sim) document.getElementById('streamingImsOrgId').value = sim;
+      if (ssc) document.getElementById('streamingSchemaId').value = ssc;
+      if (sct) document.getElementById('streamingSchemaContentType').value = sct;
+      if (stk) document.getElementById('streamingTenantKey').value = stk;
+      if (set) document.getElementById('streamingEventType').value = set;
+      if (sst === '0') document.getElementById('streamingStrictValidation').checked = false;
+    })();
+
+    (function initIdentityFields() {
+      const ns = localStorage.getItem('aep-lab-identity-ns');
+      const val = localStorage.getItem('aep-lab-identity-value');
+      if (ns !== null) document.getElementById('nsCode').value = ns;
+      if (val !== null) document.getElementById('nsValue').value = val;
+    })();
+
+    (function initSchemaIdPreset() {
+      const sel = document.getElementById('schemaIdPreset');
+      const inp = document.getElementById('schemaId');
+      if (!sel || !inp) return;
+      function syncPresetToInput() {
+        if (sel.value === '__custom__') {
+          inp.hidden = false;
+        } else {
+          inp.hidden = true;
+          inp.value = sel.value;
+        }
+      }
+      const savedPreset = localStorage.getItem('aep-lab-schema-preset');
+      const savedCustom = localStorage.getItem('aep-lab-schema-custom') || '';
+      if (savedPreset === '__custom__') {
+        sel.value = '__custom__';
+        inp.value = savedCustom;
+      } else if (savedPreset !== null) {
+        if (savedPreset === '') {
+          sel.value = '';
+        } else {
+          let found = false;
+          for (let i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === savedPreset) {
+              sel.selectedIndex = i;
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            sel.value = '__custom__';
+            inp.value = savedPreset;
+          }
+        }
+      }
+      syncPresetToInput();
+      sel.addEventListener('change', function () {
+        syncPresetToInput();
+        localStorage.setItem('aep-lab-schema-preset', sel.value);
+        if (sel.value !== '__custom__') localStorage.removeItem('aep-lab-schema-custom');
+      });
+      inp.addEventListener('blur', function () {
+        if (sel.value === '__custom__') localStorage.setItem('aep-lab-schema-custom', inp.value.trim());
+      });
+    })();
+
+    let alloyConfiguredFor = '';
+    /** ECID from the last successful UPS profile response; also passed explicitly on Profile → Edge. */
+    let lastProfileEcid = '';
+    /** Full proxy JSON from last successful UPS call — used to rebuild identityMap for Edge like the profile. */
+    let lastUpsClientData = null;
+    /** identityMap attached to the last sendEvent (for Raw JSON). */
+    let lastIdentityMapSentForDebug = null;
+
+    function extractEntityFromUpsClientData(clientData) {
+      if (!clientData || typeof clientData !== 'object') return null;
+      const root = clientData.platform_response != null ? clientData.platform_response : clientData;
+      if (!root || typeof root !== 'object') return null;
+      for (const v of Object.values(root)) {
+        if (v && typeof v === 'object' && v.entity && typeof v.entity === 'object') return v.entity;
+      }
+      if (root.entity && typeof root.entity === 'object') return root.entity;
+      return null;
+    }
+
+    /**
+     * Build Web SDK identityMap from UPS profile entity so Edge sees the same ids/namespaces as Profile.
+     * - Namespace ecid → ECID (Alloy convention). Other keys preserved (e.g. email).
+     * - One primary: ECID when present (matches typical web + decisioning), else email.
+     */
+    function buildIdentityMapFromUpsEntity(entity, fallbackEmail) {
+      const im = entity && entity.identityMap;
+      const out = {};
+      if (im && typeof im === 'object') {
+        for (const rawKey of Object.keys(im)) {
+          const arr = im[rawKey];
+          if (!Array.isArray(arr) || !arr.length) continue;
+          const pick = arr.find(function (e) {
+            return e && e.id;
+          });
+          if (!pick || !pick.id) continue;
+          let nsKey = rawKey;
+          if (/^ecid$/i.test(rawKey)) nsKey = 'ECID';
+          const entry = {
+            id: String(pick.id).trim(),
+            authenticatedState: pick.authenticatedState || 'ambiguous',
+          };
+          if (pick.primary === true || pick.primary === false) entry.primary = pick.primary;
+          out[nsKey] = [entry];
+        }
+      }
+      const fe = (fallbackEmail || '').trim();
+      if (fe && !Object.keys(out).some(function (k) { return /^email$/i.test(k); })) {
+        out.email = [{ id: fe, authenticatedState: 'ambiguous' }];
+      }
+      const keys = Object.keys(out);
+      if (!keys.length) return null;
+      const hasEcid = keys.indexOf('ECID') !== -1;
+      keys.forEach(function (k) {
+        const arr = out[k];
+        if (!arr || !arr[0]) return;
+        if (hasEcid) arr[0].primary = k === 'ECID';
+        else arr[0].primary = true;
+      });
+      return out;
+    }
+
+    /**
+     * Walk UPS JSON (proxy shape: { platform_response: … } or raw) for identityMap ECID.
+     */
+    function extractEcidFromUpsApiResponse(clientData) {
+      if (!clientData || typeof clientData !== 'object') return '';
+      const root = clientData.platform_response != null ? clientData.platform_response : clientData;
+      const seen = new WeakSet();
+
+      function walk(node, depth) {
+        if (!node || typeof node !== 'object' || depth > 10) return '';
+        if (seen.has(node)) return '';
+        seen.add(node);
+        const im = node.identityMap;
+        if (im && typeof im === 'object') {
+          for (const k of Object.keys(im)) {
+            if (!/^ecid$/i.test(k)) continue;
+            const arr = im[k];
+            if (!Array.isArray(arr)) continue;
+            for (let i = 0; i < arr.length; i++) {
+              const entry = arr[i];
+              if (entry && entry.id) return String(entry.id).trim();
+            }
+          }
+        }
+        for (const v of Object.values(node)) {
+          if (v && typeof v === 'object') {
+            const found = walk(v, depth + 1);
+            if (found) return found;
+          }
+        }
+        return '';
+      }
+
+      return walk(root, 0);
+    }
+
+    function recordEcidFromUpsProfile(clientData) {
+      const ecid = extractEcidFromUpsApiResponse(clientData);
+      lastProfileEcid = ecid || '';
+      return ecid || '';
+    }
+
+    function updateProfileEcidHint(ecid) {
+      const el = document.getElementById('profileEcidHint');
+      if (!el) return;
+      if (ecid) {
+        el.textContent =
+          'ECID from UPS identityMap (included on Edge sendEvent with email): ' + ecid;
+      } else {
+        el.textContent =
+          'No ECID in this UPS payload’s identityMap — Edge uses email only. If DSN shows a different ECID, identities may not be stitched the same on localhost.';
+      }
+    }
+
+    /**
+     * @param {string} ruleId
+     * @param {object} [data] If empty/omitted, calls track(ruleId) only.
+     * @returns {boolean} true if track ran
+     */
+    function launchDirectCallTrack(ruleId, data) {
+      if (!ruleId) {
+        console.warn('[AEP Decisioning lab] Direct Call skipped: no identifier.');
+        return false;
+      }
+      if (typeof window._satellite === 'undefined' || typeof window._satellite.track !== 'function') {
+        console.warn(
+          '[AEP Decisioning lab] Direct Call skipped: _satellite.track unavailable (Launch still loading or blocked).'
+        );
+        return false;
+      }
+      try {
+        if (data && typeof data === 'object' && Object.keys(data).length) {
+          window._satellite.track(ruleId, data);
+        } else {
+          window._satellite.track(ruleId);
+        }
+        console.log('[AEP Decisioning lab] Launch Direct Call fired:', ruleId);
+        return true;
+      } catch (err) {
+        console.warn('[AEP Decisioning lab] _satellite.track failed:', err);
+        return false;
+      }
+    }
+
+    function waitForSatellite(timeoutMs) {
+      const t = timeoutMs || 15000;
+      return new Promise((resolve, reject) => {
+        if (typeof window._satellite === 'object' && typeof window._satellite.track === 'function') {
+          return resolve();
+        }
+        const start = Date.now();
+        const id = setInterval(() => {
+          if (typeof window._satellite === 'object' && typeof window._satellite.track === 'function') {
+            clearInterval(id);
+            resolve();
+          } else if (Date.now() - start > t) {
+            clearInterval(id);
+            reject(
+              new Error(
+                '_satellite.track not available yet — wait for Launch or check blockers. Identifier is set in §3.'
+              )
+            );
+          }
+        }, 50);
+      });
+    }
+
+    /**
+     * Fire Core Direct Call so Tags rules with matching identifier run after sendEvent (explicit vs Send event complete only).
+     */
+    function fireLaunchDirectCallAfterSendEvent(edgeResult) {
+      const enabled = document.getElementById('directCallAfterSendEvent').checked;
+      const ruleId = document.getElementById('directCallRuleIdEdgeDecisioning').value.trim();
+      if (!enabled || !ruleId) return;
+      var payload = {};
+      if (edgeResult && typeof edgeResult === 'object') {
+        if (Array.isArray(edgeResult.decisions)) payload.decisions = edgeResult.decisions;
+        if (Array.isArray(edgeResult.propositions)) payload.propositions = edgeResult.propositions;
+      }
+      launchDirectCallTrack(ruleId, Object.keys(payload).length ? payload : undefined);
+    }
+
+    function waitForAlloy(timeoutMs) {
+      const t = timeoutMs || 25000;
+      return new Promise((resolve, reject) => {
+        if (typeof alloy === 'function') return resolve();
+        const start = Date.now();
+        const id = setInterval(() => {
+          if (typeof alloy === 'function') {
+            clearInterval(id);
+            resolve();
+          } else if (Date.now() - start > t) {
+            clearInterval(id);
+            reject(
+              new Error(
+                'Alloy not available after Launch load. Check: script URL, ad blockers, Consent/Launch rules, and that the property publishes Web SDK. Launch: ' +
+                  ADOBE_LAUNCH_SRC
+              )
+            );
+          }
+        }, 50);
+      });
+    }
+
+    function persistEdgeFields() {
+      const ec = document.getElementById('edgeConfigId').value.trim();
+      const sc = document.getElementById('decisionScopes').value.trim();
+      const fc = document.getElementById('edgeForceConfigure').checked;
+      const spoof = document.getElementById('spoofDsnWebContext').checked;
+      const spoofUrl = document.getElementById('spoofDsnPageUrl').value.trim();
+      const localCh = document.getElementById('localChannelPath').checked;
+      if (ec) localStorage.setItem('aep-edge-config-id', ec);
+      else localStorage.removeItem('aep-edge-config-id');
+      if (sc) localStorage.setItem('aep-decision-scopes', sc);
+      else localStorage.removeItem('aep-decision-scopes');
+      localStorage.setItem('aep-edge-force-configure', fc ? '1' : '0');
+      localStorage.setItem('aep-local-lab-path', localCh ? '1' : '0');
+      localStorage.setItem('aep-spoof-dsn', spoof ? '1' : '0');
+      if (spoofUrl) localStorage.setItem('aep-spoof-dsn-url', spoofUrl);
+      else localStorage.removeItem('aep-spoof-dsn-url');
+      const dcEdge = document.getElementById('directCallRuleIdEdgeDecisioning').value.trim();
+      const dcGet = document.getElementById('directCallRuleIdGetDecisions').value.trim();
+      const dcAfter = document.getElementById('directCallAfterSendEvent').checked;
+      localStorage.setItem('aep-direct-call-enabled', dcAfter ? '1' : '0');
+      if (dcEdge) localStorage.setItem('aep-direct-call-edge-id', dcEdge);
+      else localStorage.removeItem('aep-direct-call-edge-id');
+      if (dcGet) localStorage.setItem('aep-direct-call-get-decisions-id', dcGet);
+      else localStorage.removeItem('aep-direct-call-get-decisions-id');
+      localStorage.removeItem('aep-direct-call-id');
+    }
+
+    function persistIdentityFields() {
+      const ns = document.getElementById('nsCode').value.trim();
+      const val = document.getElementById('nsValue').value.trim();
+      if (ns) localStorage.setItem('aep-lab-identity-ns', ns);
+      else localStorage.removeItem('aep-lab-identity-ns');
+      if (val) localStorage.setItem('aep-lab-identity-value', val);
+      else localStorage.removeItem('aep-lab-identity-value');
+    }
+
+    function persistStreamingFields() {
+      const u = document.getElementById('streamingInletUrl').value.trim();
+      const ds = document.getElementById('streamingDatasetId').value.trim();
+      const org = document.getElementById('streamingImsOrgId').value.trim();
+      const sid = document.getElementById('streamingSchemaId').value.trim();
+      const ct = document.getElementById('streamingSchemaContentType').value.trim();
+      const tk = document.getElementById('streamingTenantKey').value.trim();
+      const et = document.getElementById('streamingEventType').value.trim();
+      if (u) localStorage.setItem('aep-streaming-inlet-url', u);
+      else localStorage.removeItem('aep-streaming-inlet-url');
+      if (ds) localStorage.setItem('aep-streaming-dataset-id', ds);
+      else localStorage.removeItem('aep-streaming-dataset-id');
+      if (org) localStorage.setItem('aep-streaming-ims-org-id', org);
+      else localStorage.removeItem('aep-streaming-ims-org-id');
+      if (sid) localStorage.setItem('aep-streaming-schema-id', sid);
+      else localStorage.removeItem('aep-streaming-schema-id');
+      if (ct) localStorage.setItem('aep-streaming-schema-ct', ct);
+      else localStorage.removeItem('aep-streaming-schema-ct');
+      if (tk) localStorage.setItem('aep-streaming-tenant-key', tk);
+      else localStorage.removeItem('aep-streaming-tenant-key');
+      if (et) localStorage.setItem('aep-streaming-event-type', et);
+      else localStorage.removeItem('aep-streaming-event-type');
+      localStorage.setItem(
+        'aep-streaming-strict',
+        document.getElementById('streamingStrictValidation').checked ? '1' : '0'
+      );
+    }
+
+    document.getElementById('nsCode').addEventListener('blur', persistIdentityFields);
+    document.getElementById('nsValue').addEventListener('blur', persistIdentityFields);
+    document.getElementById('directCallRuleIdEdgeDecisioning').addEventListener('blur', persistEdgeFields);
+    document.getElementById('directCallRuleIdGetDecisions').addEventListener('blur', persistEdgeFields);
+    document.getElementById('directCallAfterSendEvent').addEventListener('change', persistEdgeFields);
+    document.getElementById('localChannelPath').addEventListener('change', function () {
+      if (this.checked) document.getElementById('spoofDsnWebContext').checked = false;
+      persistEdgeFields();
+      updateSpoofUrlMismatchHint();
+    });
+    document.getElementById('edgeConfigId').addEventListener('blur', persistEdgeFields);
+    document.getElementById('decisionScopes').addEventListener('blur', persistEdgeFields);
+    document.getElementById('edgeForceConfigure').addEventListener('change', persistEdgeFields);
+    [
+      'streamingInletUrl',
+      'streamingDatasetId',
+      'streamingImsOrgId',
+      'streamingSchemaId',
+      'streamingSchemaContentType',
+      'streamingTenantKey',
+      'streamingEventType',
+    ].forEach(function (id) {
+      document.getElementById(id).addEventListener('blur', persistStreamingFields);
+    });
+    document.getElementById('streamingStrictValidation').addEventListener('change', persistStreamingFields);
+
+    function getExpectedDsnSitePathFromScopes() {
+      const s = DSN_SPOOF_DECISION_SCOPES[0];
+      const m = s && s.match(/^web:\/\/dsn\.adobe\.com\/([^#]+)#/);
+      return m ? m[1] : null;
+    }
+
+    function updateSpoofUrlMismatchHint() {
+      const el = document.getElementById('spoofUrlMismatchHint');
+      if (!el) return;
+      const spoofOn = document.getElementById('spoofDsnWebContext').checked;
+      const url = document.getElementById('spoofDsnPageUrl').value.trim();
+      const path = getExpectedDsnSitePathFromScopes();
+      if (!spoofOn || !path) {
+        el.hidden = true;
+        el.textContent = '';
+        return;
+      }
+      if (url.includes(path)) {
+        el.hidden = true;
+        el.textContent = '';
+        return;
+      }
+      el.hidden = false;
+      el.textContent =
+        'Spoof URL should contain “' +
+        path +
+        '” to match the default AJO scopes. Typos (e.g. truncated site id, or l018 vs I018) prevent matching the same surfaces as on DSN.';
+    }
+
+    document.getElementById('spoofDsnWebContext').addEventListener('change', function () {
+      if (this.checked) document.getElementById('localChannelPath').checked = false;
+      persistEdgeFields();
+      updateSpoofUrlMismatchHint();
+    });
+    document.getElementById('spoofDsnPageUrl').addEventListener('input', updateSpoofUrlMismatchHint);
+    document.getElementById('spoofDsnPageUrl').addEventListener('change', updateSpoofUrlMismatchHint);
+    document.getElementById('spoofDsnPageUrl').addEventListener('blur', updateSpoofUrlMismatchHint);
+    updateSpoofUrlMismatchHint();
+
+    function parseScopes() {
+      const raw = document.getElementById('decisionScopes').value.trim();
+      return raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    }
+
+    /** Normalize sendEvent result: your Launch rule uses event.decisions; Web SDK often returns propositions (same payload.items shape). */
+    function getPersonalizationPayloads(edgeResult) {
+      if (!edgeResult) return { source: 'none', payloads: [] };
+      if (Array.isArray(edgeResult.decisions) && edgeResult.decisions.length) {
+        return { source: 'decisions', payloads: edgeResult.decisions };
+      }
+      if (Array.isArray(edgeResult.propositions) && edgeResult.propositions.length) {
+        return { source: 'propositions', payloads: edgeResult.propositions };
+      }
+      return { source: 'none', payloads: [] };
+    }
+
+    /** For journey POST bodies: find nested object with decisions[] or propositions[] (Alloy-like). */
+    function findEdgeLikePayloadFromObject(obj, depth) {
+      if (depth > 8 || obj == null || typeof obj !== 'object') return null;
+      if (Array.isArray(obj.decisions) && obj.decisions.length) return obj;
+      if (Array.isArray(obj.propositions) && obj.propositions.length) return obj;
+      const keys = [
+        'body',
+        'rawBody',
+        'payload',
+        'edge',
+        'result',
+        'sendEventResult',
+        'personalization',
+        'content',
+        'data',
+        'response',
+        'output',
+      ];
+      for (let ki = 0; ki < keys.length; ki++) {
+        const k = keys[ki];
+        if (!Object.prototype.hasOwnProperty.call(obj, k) || obj[k] == null || typeof obj[k] !== 'object')
+          continue;
+        const nested = findEdgeLikePayloadFromObject(obj[k], depth + 1);
+        if (nested) return nested;
+      }
+      return null;
+    }
+
+    /** Only show journey webhooks whose body matches this AJO custom action name (config.customName). */
+    const WEBHOOK_FILTER_CUSTOM_NAME = 'Content Decision';
+
+    function getWebhookPayloadObject(entry) {
+      let raw = entry && (entry.body != null ? entry.body : entry);
+      if (typeof raw === 'string') {
+        try {
+          raw = JSON.parse(raw);
+        } catch (e) {
+          return null;
+        }
+      }
+      if (raw == null || typeof raw !== 'object') return null;
+      return raw;
+    }
+
+    /** True if payload is AJO-shaped with matching config.customName on root or on any success.data[] item. */
+    function webhookPayloadHasCustomName(raw, customName) {
+      if (raw == null || typeof raw !== 'object') return false;
+      const match = function (o) {
+        return (
+          o &&
+          typeof o === 'object' &&
+          o.config &&
+          typeof o.config === 'object' &&
+          String(o.config.customName || '') === customName
+        );
+      };
+      if (match(raw)) return true;
+      const arr = raw.data;
+      if (!Array.isArray(arr)) return false;
+      for (let i = 0; i < arr.length; i++) {
+        if (match(arr[i])) return true;
+      }
+      return false;
+    }
+
+    /**
+     * Find AJO Personalized Offer Items–shaped content: object with mediaAssets + textContent (often under _tenant.content).
+     */
+    function deepFindOfferContentNode(obj, depth) {
+      if (depth > 14 || obj == null || typeof obj !== 'object') return null;
+      if (Array.isArray(obj)) {
+        for (let i = 0; i < obj.length; i++) {
+          const f = deepFindOfferContentNode(obj[i], depth + 1);
+          if (f) return f;
+        }
+        return null;
+      }
+      const c = obj.content;
+      if (
+        c &&
+        typeof c === 'object' &&
+        c.mediaAssets &&
+        typeof c.mediaAssets === 'object' &&
+        c.textContent &&
+        typeof c.textContent === 'object'
+      ) {
+        return c;
+      }
+      const keys = Object.keys(obj);
+      for (let ki = 0; ki < keys.length; ki++) {
+        const f = deepFindOfferContentNode(obj[keys[ki]], depth + 1);
+        if (f) return f;
+      }
+      return null;
+    }
+
+    function pickHeroSourceUrlFromMediaAssets(mediaAssets) {
+      if (!mediaAssets || typeof mediaAssets !== 'object') return '';
+      const order = ['imageHighRes', 'imageMediumRes', 'imageSmallRes', 'thumbnail', 'videoAsset'];
+      for (let oi = 0; oi < order.length; oi++) {
+        const a = mediaAssets[order[oi]];
+        if (a && typeof a === 'object' && a.sourceURL) return String(a.sourceURL).trim();
+      }
+      const ks = Object.keys(mediaAssets);
+      for (let ki = 0; ki < ks.length; ki++) {
+        const a = mediaAssets[ks[ki]];
+        if (a && typeof a === 'object' && a.sourceURL) return String(a.sourceURL).trim();
+      }
+      return '';
+    }
+
+    /** @returns {null | { imageUrl: string, bannerTitle: string, fullDescription: string, bannerCTA: string, ctaHref: string }} */
+    function extractJourneyContentDecision(raw) {
+      let obj = raw;
+      if (typeof obj === 'string') {
+        try {
+          obj = JSON.parse(obj);
+        } catch (e) {
+          return null;
+        }
+      }
+      if (obj == null || typeof obj !== 'object') return null;
+      const content = deepFindOfferContentNode(obj, 0);
+      if (!content) return null;
+      const tc = content.textContent || {};
+      const ma = content.mediaAssets || {};
+      const nav = content.navigation || {};
+      const imageUrl = pickHeroSourceUrlFromMediaAssets(ma);
+      let ctaHref = '';
+      const hi = ma.imageHighRes;
+      if (hi && typeof hi === 'object' && hi.destinationURL) ctaHref = String(hi.destinationURL).trim();
+      if (!ctaHref && nav.webUrl) ctaHref = String(nav.webUrl).trim();
+      if (!ctaHref && nav.internalUrl) ctaHref = String(nav.internalUrl).trim();
+      const bannerTitle = tc.bannerTitle != null ? String(tc.bannerTitle) : '';
+      const fullDescription =
+        tc.fullDescription != null
+          ? String(tc.fullDescription)
+          : tc.fullTitle != null
+            ? String(tc.fullTitle)
+            : '';
+      const bannerCTA =
+        tc.bannerCTA != null ? String(tc.bannerCTA) : tc.fullCTA != null ? String(tc.fullCTA) : 'Learn more';
+      if (!imageUrl && !bannerTitle && !fullDescription) return null;
+      return { imageUrl, bannerTitle, fullDescription, bannerCTA, ctaHref };
+    }
+
+    const CD_BANNER_LS = 'aep-cd-banner-editor';
+    const CD_BANNER_DEFAULTS = {
+      blockY: 'flex-end',
+      titleH: 'flex-start',
+      titleV: 'flex-start',
+      descH: 'flex-start',
+      descV: 'center',
+      ctaH: 'flex-start',
+      ctaV: 'flex-end',
+      titleColor: '#ffffff',
+      descColor: '#f5f5f5',
+      ctaBg: '#ffffff',
+      ctaText: '#2c2c2c',
+    };
+
+    function normalizeCdHex(s) {
+      let t = String(s == null ? '' : s).trim();
+      if (!t) return null;
+      if (t[0] !== '#') t = '#' + t;
+      if (/^#([0-9a-fA-F]{3})$/.test(t)) {
+        const h = t.slice(1);
+        t = '#' + h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      }
+      if (/^#([0-9a-fA-F]{6})$/.test(t)) return t.toLowerCase();
+      return null;
+    }
+
+    function loadCdBannerEditorFromStorage() {
+      try {
+        const raw = localStorage.getItem(CD_BANNER_LS);
+        if (!raw) return { ...CD_BANNER_DEFAULTS };
+        const o = JSON.parse(raw);
+        return Object.assign({}, CD_BANNER_DEFAULTS, o);
+      } catch (e) {
+        return { ...CD_BANNER_DEFAULTS };
+      }
+    }
+
+    function saveCdBannerEditorToStorage(state) {
+      try {
+        localStorage.setItem(CD_BANNER_LS, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function readCdBannerEditorForm() {
+      const g = function (id) {
+        const el = document.getElementById(id);
+        return el ? el.value : '';
+      };
+      return {
+        blockY: g('cdBlockY') || CD_BANNER_DEFAULTS.blockY,
+        titleH: g('cdTitleH') || CD_BANNER_DEFAULTS.titleH,
+        titleV: g('cdTitleV') || CD_BANNER_DEFAULTS.titleV,
+        descH: g('cdDescH') || CD_BANNER_DEFAULTS.descH,
+        descV: g('cdDescV') || CD_BANNER_DEFAULTS.descV,
+        ctaH: g('cdCtaH') || CD_BANNER_DEFAULTS.ctaH,
+        ctaV: g('cdCtaV') || CD_BANNER_DEFAULTS.ctaV,
+        titleColor: normalizeCdHex(g('cdTitleColorHex')) || CD_BANNER_DEFAULTS.titleColor,
+        descColor: normalizeCdHex(g('cdDescColorHex')) || CD_BANNER_DEFAULTS.descColor,
+        ctaBg: normalizeCdHex(g('cdCtaBgHex')) || CD_BANNER_DEFAULTS.ctaBg,
+        ctaText: normalizeCdHex(g('cdCtaTextHex')) || CD_BANNER_DEFAULTS.ctaText,
+      };
+    }
+
+    function writeCdBannerEditorForm(state) {
+      function set(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      }
+      set('cdBlockY', state.blockY);
+      set('cdTitleH', state.titleH);
+      set('cdTitleV', state.titleV);
+      set('cdDescH', state.descH);
+      set('cdDescV', state.descV);
+      set('cdCtaH', state.ctaH);
+      set('cdCtaV', state.ctaV);
+      set('cdTitleColorHex', state.titleColor);
+      set('cdTitleColorPick', state.titleColor);
+      set('cdDescColorHex', state.descColor);
+      set('cdDescColorPick', state.descColor);
+      set('cdCtaBgHex', state.ctaBg);
+      set('cdCtaBgPick', state.ctaBg);
+      set('cdCtaTextHex', state.ctaText);
+      set('cdCtaTextPick', state.ctaText);
+    }
+
+    function applyCdBannerEditorStyles() {
+      const wrap = document.getElementById('journeyContentDecisionBanner');
+      if (!wrap || wrap.hidden) return;
+      const st = readCdBannerEditorForm();
+      const banner = wrap.querySelector('.cd-banner');
+      if (banner) banner.style.setProperty('--cd-block-justify', st.blockY);
+      wrap.style.setProperty('--cd-title-color', st.titleColor);
+      wrap.style.setProperty('--cd-desc-color', st.descColor);
+      wrap.style.setProperty('--cd-cta-bg', st.ctaBg);
+      wrap.style.setProperty('--cd-cta-text', st.ctaText);
+      const titleSlot = wrap.querySelector('.cd-slot--title');
+      const descSlot = wrap.querySelector('.cd-slot--desc');
+      const ctaSlot = wrap.querySelector('.cd-slot--cta');
+      if (titleSlot) {
+        titleSlot.style.setProperty('--cd-slot-justify', st.titleH);
+        titleSlot.style.setProperty('--cd-slot-align', st.titleV);
+      }
+      if (descSlot) {
+        descSlot.style.setProperty('--cd-slot-justify', st.descH);
+        descSlot.style.setProperty('--cd-slot-align', st.descV);
+      }
+      if (ctaSlot) {
+        ctaSlot.style.setProperty('--cd-slot-justify', st.ctaH);
+        ctaSlot.style.setProperty('--cd-slot-align', st.ctaV);
+      }
+    }
+
+    function persistCdBannerEditorFromForm() {
+      const st = readCdBannerEditorForm();
+      saveCdBannerEditorToStorage(st);
+    }
+
+    function initCdBannerEditor() {
+      const editor = document.getElementById('journeyBannerEditor');
+      if (!editor) return;
+      writeCdBannerEditorForm(loadCdBannerEditorFromStorage());
+      const onChange = function () {
+        persistCdBannerEditorFromForm();
+        applyCdBannerEditorStyles();
+      };
+      ['cdBlockY', 'cdTitleH', 'cdTitleV', 'cdDescH', 'cdDescV', 'cdCtaH', 'cdCtaV'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', onChange);
+      });
+      function bindColorPair(pickId, hexId) {
+        const pick = document.getElementById(pickId);
+        const hex = document.getElementById(hexId);
+        if (!pick || !hex) return;
+        pick.addEventListener('input', function () {
+          hex.value = pick.value;
+          onChange();
+        });
+        hex.addEventListener('change', function () {
+          const n = normalizeCdHex(hex.value);
+          if (n) {
+            hex.value = n;
+            pick.value = n;
+          } else {
+            hex.value = pick.value;
+          }
+          onChange();
+        });
+      }
+      bindColorPair('cdTitleColorPick', 'cdTitleColorHex');
+      bindColorPair('cdDescColorPick', 'cdDescColorHex');
+      bindColorPair('cdCtaBgPick', 'cdCtaBgHex');
+      bindColorPair('cdCtaTextPick', 'cdCtaTextHex');
+      const resetBtn = document.getElementById('cdBannerResetStyles');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function () {
+          writeCdBannerEditorForm(CD_BANNER_DEFAULTS);
+          saveCdBannerEditorToStorage(CD_BANNER_DEFAULTS);
+          applyCdBannerEditorStyles();
+        });
+      }
+    }
+
+    function renderJourneyContentDecisionBanner(jd) {
+      const wrap = document.getElementById('journeyContentDecisionBanner');
+      const ph = document.getElementById('journeyBannerPlaceholder');
+      if (!wrap) return;
+      wrap.innerHTML = '';
+      if (!jd) {
+        wrap.hidden = true;
+        if (ph) ph.hidden = false;
+        return;
+      }
+      if (ph) ph.hidden = true;
+      wrap.hidden = false;
+      const banner = document.createElement('div');
+      banner.className = 'cd-banner';
+      const bg = document.createElement('div');
+      bg.className = 'cd-banner-bg';
+      if (jd.imageUrl) {
+        bg.style.backgroundImage = 'url(' + JSON.stringify(jd.imageUrl) + ')';
+      }
+      const scrim = document.createElement('div');
+      scrim.className = 'cd-banner-scrim';
+      const inner = document.createElement('div');
+      inner.className = 'cd-banner-inner';
+      if (jd.bannerTitle) {
+        const slot = document.createElement('div');
+        slot.className = 'cd-slot cd-slot--title';
+        const h = document.createElement('h2');
+        h.className = 'cd-banner-title';
+        h.textContent = jd.bannerTitle;
+        slot.appendChild(h);
+        inner.appendChild(slot);
+      }
+      if (jd.fullDescription) {
+        const slot = document.createElement('div');
+        slot.className = 'cd-slot cd-slot--desc';
+        const p = document.createElement('p');
+        p.className = 'cd-banner-desc';
+        p.textContent = jd.fullDescription;
+        slot.appendChild(p);
+        inner.appendChild(slot);
+      }
+      if (jd.bannerCTA) {
+        const slot = document.createElement('div');
+        slot.className = 'cd-slot cd-slot--cta';
+        if (jd.ctaHref) {
+          const a = document.createElement('a');
+          a.className = 'cd-banner-cta';
+          a.href = jd.ctaHref;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = jd.bannerCTA;
+          slot.appendChild(a);
+        } else {
+          const span = document.createElement('span');
+          span.className = 'cd-banner-cta cd-banner-cta--ghost';
+          span.textContent = jd.bannerCTA;
+          slot.appendChild(span);
+        }
+        inner.appendChild(slot);
+      }
+      banner.appendChild(bg);
+      banner.appendChild(scrim);
+      banner.appendChild(inner);
+      wrap.appendChild(banner);
+      applyCdBannerEditorStyles();
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function escapeHtmlWebhook(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    let webhookPollTimer = null;
+    let lastWebhookEntries = [];
+
+    /** Same default host the Python proxy allowlists (GET index JSON). */
+    const WEBHOOK_LISTENER_DIRECT_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
+
+    async function fetchWebhookListenerDirect() {
+      try {
+        const res = await fetch(WEBHOOK_LISTENER_DIRECT_URL, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'omit',
+          headers: { Accept: 'application/json' },
+        });
+        const text = await res.text();
+        let payload;
+        try {
+          payload = text ? JSON.parse(text) : {};
+        } catch (parseErr) {
+          return {
+            ok: false,
+            error: 'Listener returned non-JSON.',
+            detail: 'HTTP ' + res.status + ' — ' + (text || '').replace(/\s+/g, ' ').trim().slice(0, 200),
+          };
+        }
+        if (!res.ok) {
+          return {
+            ok: false,
+            error: 'Listener HTTP ' + res.status,
+            detail: typeof payload === 'object' && payload != null ? JSON.stringify(payload).slice(0, 300) : String(text).slice(0, 200),
+          };
+        }
+        return {
+          ok: true,
+          upstream_status: res.status,
+          listener_url: WEBHOOK_LISTENER_DIRECT_URL,
+          data: payload,
+          via_direct: true,
+        };
+      } catch (e) {
+        return {
+          ok: false,
+          error: 'Direct listener fetch failed (CORS or network).',
+          detail:
+            (e && e.message ? e.message : String(e)) +
+            ' — Use repo proxy on this origin, or enable CORS on the listener for your lab host.',
+        };
+      }
+    }
+
+    async function fetchWebhookListenerFeed() {
+      const origin = typeof location !== 'undefined' && location.origin ? location.origin : '';
+      let res;
+      try {
+        res = await fetch('/api/webhook-listener');
+      } catch (e) {
+        const direct = await fetchWebhookListenerDirect();
+        if (direct.ok) return direct;
+        return {
+          ok: false,
+          error: 'Network error calling /api/webhook-listener',
+          detail:
+            (e && e.message ? e.message : String(e)) +
+            (direct.detail ? ' ' + direct.detail : ''),
+        };
+      }
+      const text = await res.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (parseErr) {
+        const direct = await fetchWebhookListenerDirect();
+        if (direct.ok) return direct;
+        return {
+          ok: false,
+          error: 'Not JSON from /api/webhook-listener (usually HTML 404).',
+          detail:
+            'No proxy route on ' +
+            origin +
+            '. Run: PORT=' +
+            (location.port || '8765') +
+            ' python proxy_server.py from repo root, or rely on direct listener if CORS works. ' +
+            (direct.detail || ''),
+          http_status: res.status,
+          snippet: (text || '').replace(/\s+/g, ' ').trim().slice(0, 320),
+        };
+      }
+      if (data && typeof data === 'object' && data.ok === false) return data;
+      if (!res.ok) {
+        const direct = await fetchWebhookListenerDirect();
+        if (direct.ok) return direct;
+        return {
+          ok: false,
+          error: data && data.error != null ? String(data.error) : 'HTTP ' + res.status + ' from /api/webhook-listener',
+          detail: (data && data.detail != null ? String(data.detail) : '') + (direct.detail ? ' ' + direct.detail : ''),
+          listener_response: data,
+        };
+      }
+      return data;
+    }
+
+    function renderWebhookFeedList(envelope) {
+      const st = document.getElementById('webhookFeedStatus');
+      const ul = document.getElementById('webhookFeedList');
+      ul.innerHTML = '';
+      if (!envelope || envelope.ok === false) {
+        ul.hidden = true;
+        const err = (envelope && (envelope.error || envelope.message)) || 'Failed to load webhook feed.';
+        const det = envelope && envelope.detail ? String(envelope.detail) : '';
+        st.innerHTML = '';
+        const strong = document.createElement('strong');
+        strong.textContent = err;
+        st.appendChild(strong);
+        if (det) {
+          st.appendChild(document.createElement('br'));
+          const span = document.createElement('span');
+          span.className = 'hint';
+          span.style.cssText = 'display:inline-block;margin-top:6px;line-height:1.4;';
+          span.textContent = det;
+          st.appendChild(span);
+        }
+        st.className = 'status err';
+        if (envelope && envelope.snippet) {
+          console.warn('[webhook feed]', err, envelope.snippet);
+        }
+        return;
+      }
+      const data = envelope.data;
+      const allHooks = data && Array.isArray(data.webhooks) ? data.webhooks : [];
+      const hooks = allHooks.filter(function (h) {
+        return webhookPayloadHasCustomName(getWebhookPayloadObject(h), WEBHOOK_FILTER_CUSTOM_NAME);
+      });
+      lastWebhookEntries = hooks;
+      st.textContent =
+        'Listener HTTP ' +
+        (envelope.upstream_status != null ? envelope.upstream_status : '?') +
+        ' · ' +
+        hooks.length +
+        ' webhook(s) with customName "' +
+        WEBHOOK_FILTER_CUSTOM_NAME +
+        '" (of ' +
+        allHooks.length +
+        ' total). Showing up to 25.' +
+        (envelope.via_direct ? ' (browser → Cloud Run; no local proxy).' : '');
+      st.className = 'status ok';
+      if (!hooks.length) {
+        ul.hidden = true;
+        return;
+      }
+      ul.hidden = false;
+      hooks.slice(0, 25).forEach(function (h, idx) {
+        const li = document.createElement('li');
+        li.className = 'webhook-feed-item';
+        const raw = h && (h.body != null ? h.body : h);
+        const edgeLike = findEdgeLikePayloadFromObject(raw, 0);
+        const journeyVisual = extractJourneyContentDecision(raw);
+        const label =
+          (h.description != null && String(h.description).trim()) ||
+          (h.webhookType != null && String(h.webhookType)) ||
+          (h.method && h.timestamp ? h.method + ' · ' + h.timestamp : '') ||
+          'Entry ' + idx;
+        let ts = '';
+        if (h.timestamp != null) ts = String(h.timestamp);
+        else if (h.receivedAt && typeof h.receivedAt === 'object' && h.receivedAt._seconds != null)
+          ts = new Date(h.receivedAt._seconds * 1000).toISOString();
+        const jsonStr = JSON.stringify(raw, null, 2);
+        const truncated = jsonStr.length > 12000 ? jsonStr.slice(0, 12000) + '\n…' : jsonStr;
+        li.innerHTML =
+          '<header><strong>' +
+          escapeHtmlWebhook(label.slice(0, 160)) +
+          '</strong> <code>' +
+          escapeHtmlWebhook(ts) +
+          '</code></header>' +
+          '<p class="hint" style="margin:4px 0 0 0">' +
+          (edgeLike
+            ? 'Found <code>decisions[]</code> or <code>propositions[]</code> — can mirror Edge preview/DOM.'
+            : journeyVisual
+              ? 'Found journey <code>content.mediaAssets</code> + <code>textContent</code> — use <strong>Show content banner</strong> or Preview.'
+              : 'No Alloy-shaped <code>decisions</code>/<code>propositions</code> in payload (Preview shows raw JSON).') +
+          '</p>' +
+          '<div class="actions" style="margin-top:8px;">' +
+          '<button type="button" class="secondary webhook-preview-btn" data-idx="' +
+          idx +
+          '">Preview</button> ' +
+          '<button type="button" class="secondary webhook-show-banner-btn" data-idx="' +
+          idx +
+          '"' +
+          (journeyVisual ? '' : ' disabled title="No content.mediaAssets + textContent in payload"') +
+          '>Show content banner</button> ' +
+          '<button type="button" class="secondary webhook-apply-btn" data-idx="' +
+          idx +
+          '"' +
+          (edgeLike ? '' : ' disabled title="Map journey action body to include decisions or propositions arrays"') +
+          '>Apply to demo DOM</button>' +
+          '</div>' +
+          '<pre>' +
+          escapeHtmlWebhook(truncated) +
+          '</pre>';
+        ul.appendChild(li);
+      });
+      ul.querySelectorAll('.webhook-preview-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const i = parseInt(btn.getAttribute('data-idx'), 10);
+          const h = lastWebhookEntries[i];
+          const raw = h && (h.body != null ? h.body : h);
+          const edgeLike = findEdgeLikePayloadFromObject(raw, 0);
+          const journeyVisual = extractJourneyContentDecision(raw);
+          const empty = document.getElementById('contentPreviewEmpty');
+          const wrap = document.getElementById('contentPreview');
+          const body = document.getElementById('contentPreviewBody');
+          const titleEl = document.getElementById('contentPreviewTitle');
+          empty.hidden = true;
+          wrap.hidden = false;
+          if (journeyVisual) {
+            renderJourneyContentDecisionBanner(journeyVisual);
+          }
+          if (edgeLike) {
+            renderContentPreview(edgeLike);
+          } else if (journeyVisual) {
+            titleEl.textContent = 'Journey content decision (webhook)';
+            const parts = [];
+            if (journeyVisual.bannerTitle)
+              parts.push('<p><strong>Title</strong> — ' + escapeHtml(journeyVisual.bannerTitle) + '</p>');
+            if (journeyVisual.fullDescription)
+              parts.push('<p><strong>Description</strong> — ' + escapeHtml(journeyVisual.fullDescription) + '</p>');
+            if (journeyVisual.imageUrl)
+              parts.push(
+                '<p><strong>Hero image</strong> — <a href="' +
+                  escapeHtml(journeyVisual.imageUrl) +
+                  '" target="_blank" rel="noopener noreferrer">' +
+                  escapeHtml(journeyVisual.imageUrl) +
+                  '</a></p>'
+              );
+            if (journeyVisual.ctaHref)
+              parts.push(
+                '<p><strong>CTA link</strong> — <a href="' +
+                  escapeHtml(journeyVisual.ctaHref) +
+                  '" target="_blank" rel="noopener noreferrer">' +
+                  escapeHtml(journeyVisual.ctaHref) +
+                  '</a> · <em>' +
+                  escapeHtml(journeyVisual.bannerCTA) +
+                  '</em></p>'
+              );
+            const rawJson = JSON.stringify(raw, null, 2);
+            body.innerHTML =
+              '<div class="prop-block">' +
+              parts.join('') +
+              '</div><pre style="max-height:280px;overflow:auto;font-size:12px;margin-top:12px;">' +
+              escapeHtmlWebhook(rawJson.length > 10000 ? rawJson.slice(0, 10000) + '\n…' : rawJson) +
+              '</pre>';
+          } else {
+            titleEl.textContent = 'Webhook body (raw JSON)';
+            body.innerHTML =
+              '<pre style="max-height:380px;overflow:auto;font-size:12px;">' +
+              escapeHtmlWebhook(JSON.stringify(raw, null, 2)) +
+              '</pre>';
+          }
+        });
+      });
+      ul.querySelectorAll('.webhook-show-banner-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (btn.disabled) return;
+          const i = parseInt(btn.getAttribute('data-idx'), 10);
+          const h = lastWebhookEntries[i];
+          const raw = h && (h.body != null ? h.body : h);
+          const journeyVisual = extractJourneyContentDecision(raw);
+          if (journeyVisual) renderJourneyContentDecisionBanner(journeyVisual);
+        });
+      });
+      ul.querySelectorAll('.webhook-apply-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (btn.disabled) return;
+          const i = parseInt(btn.getAttribute('data-idx'), 10);
+          const h = lastWebhookEntries[i];
+          const raw = h && (h.body != null ? h.body : h);
+          const edgeLike = findEdgeLikePayloadFromObject(raw, 0);
+          if (!edgeLike) return;
+          renderContentPreview(edgeLike);
+          applyPersonalizationToDemoDom(edgeLike);
+          document.getElementById('contentPreviewEmpty').hidden = true;
+        });
+      });
+    }
+
+    /**
+     * Launch rule mapping (channel config in AJO: topRibbon, travel-hero-banner):
+     * html-content-item → .topRibbon
+     * json-content-item → .travel-hero-banner (title / image / h1)
+     */
+    const SCHEMA_HTML = 'https://ns.adobe.com/personalization/html-content-item';
+    const SCHEMA_JSON = 'https://ns.adobe.com/personalization/json-content-item';
+
+    /** UPS Access API can return 2xx with an AEP problem body — treat as no profile for gating Edge. */
+    function isUpsProfileSuccess(data) {
+      if (data == null || typeof data !== 'object') return false;
+      if (typeof data.status === 'number' && data.status >= 400) return false;
+      const t = data.type;
+      if (typeof t === 'string' && (t.includes('/errors/') || t.includes('problem'))) return false;
+      return true;
+    }
+
+    function clearDemoPersonalizationDom() {
+      const ribbon = document.querySelector('.topRibbon');
+      if (ribbon) ribbon.innerHTML = '';
+      const img = document.querySelector('.travel-hero-banner > div > img');
+      if (img) {
+        img.removeAttribute('src');
+        img.alt = '';
+      }
+      const p = document.querySelector('.travel-hero-banner > .banner__content > div > .title__content > p');
+      const h1 = document.querySelector('.travel-hero-banner > .banner__content > div > .title__content > h1');
+      if (p) p.textContent = '';
+      if (h1) h1.textContent = '';
+      const jBanner = document.getElementById('journeyContentDecisionBanner');
+      const jPh = document.getElementById('journeyBannerPlaceholder');
+      if (jBanner) {
+        jBanner.innerHTML = '';
+        jBanner.hidden = true;
+      }
+      if (jPh) jPh.hidden = false;
+    }
+
+    async function fetchProfileByIdentity(ns, id) {
+      const path = '/data/core/ups/access/entities';
+      const params = {
+        'schema.name': '_xdm.context.profile',
+        entityId: id,
+        entityIdNS: ns,
+      };
+      return aepCall({ method: 'GET', path, params });
+    }
+
+    function applyPersonalizationToDemoDom(edgeResult) {
+      const { payloads } = getPersonalizationPayloads(edgeResult);
+      payloads.forEach(function (payload) {
+        (payload.items || []).forEach(function (item) {
+          if (!item.data || item.data.content == null) return;
+          if (item.schema === SCHEMA_HTML) {
+            const el = document.querySelector('.topRibbon');
+            if (el) el.innerHTML = item.data.content;
+          }
+          if (item.schema === SCHEMA_JSON) {
+            const c = item.data.content;
+            const p = document.querySelector('.travel-hero-banner > .banner__content > div > .title__content > p');
+            const img = document.querySelector('.travel-hero-banner > div > img');
+            const h1 = document.querySelector('.travel-hero-banner > .banner__content > div > .title__content > h1');
+            if (p && c && c.title != null) p.innerText = c.title;
+            if (img && c && c.image) img.setAttribute('src', c.image);
+            if (h1 && c && c.text != null) h1.innerText = c.text;
+          }
+        });
+      });
+    }
+
+    function renderContentPreview(edgeResult) {
+      const wrap = document.getElementById('contentPreview');
+      const body = document.getElementById('contentPreviewBody');
+      const titleEl = document.getElementById('contentPreviewTitle');
+      const empty = document.getElementById('contentPreviewEmpty');
+      const { source, payloads } = getPersonalizationPayloads(edgeResult);
+      if (!payloads.length) {
+        wrap.hidden = true;
+        empty.hidden = false;
+        empty.textContent =
+          'No decisions[] or propositions[] in this response. Check spoof URL vs scope site id (e.g. apalmer-I018), identity, and eligibility. If the console shows a 502 / xdm.segmentation error, that is an Edge-side failure — retry later or switch sandbox.';
+        return;
+      }
+      empty.hidden = true;
+      wrap.hidden = false;
+      titleEl.textContent = source === 'decisions' ? 'decisions (Launch rule shape)' : 'propositions (Web SDK shape)';
+      body.innerHTML = '';
+      payloads.forEach((p, i) => {
+        const scope =
+          (p.scopeDetails && p.scopeDetails.name) ||
+          (p.scopeDetails && p.scopeDetails.decisionScope) ||
+          p.id ||
+          `${source} ${i + 1}`;
+        const div = document.createElement('div');
+        div.className = 'prop-block';
+        const items = p.items || [];
+        const parts = items.map((it, j) => {
+          const label = it.schema || it.id || `item ${j + 1}`;
+          let snippet = '';
+          try {
+            snippet = JSON.stringify(it.data !== undefined ? it.data : it, null, 2);
+          } catch (e) {
+            snippet = String(it);
+          }
+          return `<strong>${escapeHtml(label)}</strong><pre>${escapeHtml(snippet.slice(0, 4000))}${snippet.length > 4000 ? '…' : ''}</pre>`;
+        });
+        div.innerHTML = `<div class="scope">${escapeHtml(String(scope))}</div>${parts.join('') || '<em>No items</em>'}`;
+        body.appendChild(div);
+      });
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    /**
+     * @param {object} [opts]
+     * @param {object} [opts.upsClientData] Full proxy JSON from this profile request — preferred for identityMap
+     * @param {string} [opts.profileEcid] Fallback ECID if no UPS payload (debug / legacy)
+     */
+    async function runEdgePropositions(opts) {
+      opts = opts || {};
+      persistEdgeFields();
+      persistIdentityFields();
+      await waitForAlloy();
+      const edgeConfigId = document.getElementById('edgeConfigId').value.trim();
+      const forceCfg = document.getElementById('edgeForceConfigure').checked;
+      let decisionScopes = parseScopes();
+      const localLab = document.getElementById('localChannelPath').checked;
+      const spoofDsn = document.getElementById('spoofDsnWebContext').checked;
+      const spoofPageUrl = document.getElementById('spoofDsnPageUrl').value.trim() || DSN_SPOOF_DEFAULT_PAGE_URL;
+      if (localLab && !decisionScopes.length) {
+        decisionScopes = getLocalLabDecisionScopes();
+      } else if (spoofDsn && !decisionScopes.length) {
+        decisionScopes = DSN_SPOOF_DECISION_SCOPES.slice();
+      }
+      const email = document.getElementById('nsValue').value.trim();
+      const ecidRaw =
+        opts.profileEcid !== undefined && opts.profileEcid !== null
+          ? String(opts.profileEcid).trim()
+          : (lastProfileEcid || '').trim();
+      const ecid = ecidRaw;
+      lastIdentityMapSentForDebug = null;
+      updateSpoofUrlMismatchHint();
+      if (forceCfg && edgeConfigId) {
+        if (alloyConfiguredFor !== edgeConfigId) {
+          try {
+            await alloy('configure', { edgeConfigId });
+          } catch (e) {
+            const msg = e && e.message ? String(e.message) : String(e);
+            if (!/already been configured|only be configured once/i.test(msg)) throw e;
+          }
+          alloyConfiguredFor = edgeConfigId;
+        }
+      }
+      const pageUrl = localLab
+        ? getLocalLabPageUrl()
+        : spoofDsn && spoofPageUrl
+          ? spoofPageUrl
+          : typeof location !== 'undefined'
+            ? location.href
+            : '';
+      const xdm = {
+        eventType: 'web.webpagedetails.pageViews',
+        web: {
+          webPageDetails: {
+            URL: pageUrl,
+            name: localLab
+              ? 'AEP Decisioning lab (local channel path)'
+              : spoofDsn
+                ? 'DSN home (spoofed for lab)'
+                : 'AEP Decisioning lab',
+          },
+        },
+      };
+      const upsForIdentity =
+        opts.upsClientData !== undefined && opts.upsClientData !== null ? opts.upsClientData : lastUpsClientData;
+      let identityMapBuilt = null;
+      if (upsForIdentity) {
+        const ent = extractEntityFromUpsClientData(upsForIdentity);
+        if (ent) identityMapBuilt = buildIdentityMapFromUpsEntity(ent, email);
+      }
+      if (!identityMapBuilt && (email || ecid)) {
+        identityMapBuilt = {};
+        if (email) {
+          identityMapBuilt.email = [{ id: email, authenticatedState: 'ambiguous', primary: true }];
+        }
+        if (ecid) {
+          identityMapBuilt.ECID = [
+            { id: ecid, authenticatedState: 'ambiguous', primary: !email },
+          ];
+        }
+        if (identityMapBuilt.ECID && identityMapBuilt.email) {
+          identityMapBuilt.ECID[0].primary = true;
+          identityMapBuilt.email[0].primary = false;
+        }
+      }
+      if (identityMapBuilt && Object.keys(identityMapBuilt).length) {
+        xdm.identityMap = identityMapBuilt;
+        lastIdentityMapSentForDebug = identityMapBuilt;
+      }
+      const sendOpts = {
+        renderDecisions: false,
+        xdm,
+      };
+      if (decisionScopes.length) {
+        sendOpts.personalization = { decisionScopes };
+      }
+      const result = await alloy('sendEvent', sendOpts);
+      fireLaunchDirectCallAfterSendEvent(result);
+      return result;
+    }
+
+    function platformHeadersFor(path) {
+      const schemaId = document.getElementById('schemaId').value.trim();
+      if (!schemaId) return undefined;
+      if (path.includes('/offer-items')) return { 'x-schema-id': schemaId };
+      return undefined;
+    }
+
+    async function aepCall(payload) {
+      let res;
+      try {
+        res = await fetch('/api/aep', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch (e) {
+        const msg = e && e.message ? e.message : String(e);
+        return {
+          httpOk: false,
+          data: {
+            error: 'Network error calling /api/aep',
+            detail: msg + ' — Use http://127.0.0.1:<port>/… from python proxy_server.py (repo root), not file:// or a static-only server.',
+          },
+        };
+      }
+      const text = await res.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = {
+          error: 'Non-JSON response from server',
+          detail: (text || '').slice(0, 240),
+          hint: 'You may be on Live Server / CDN without POST /api/aep. Run: python proxy_server.py',
+        };
+      }
+      return { httpOk: res.ok, data };
+    }
+
+    function randomUuidV4() {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = (Math.random() * 16) | 0;
+        var v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
+
+    /**
+     * HTTP API streaming envelope (xdmEntityCreate) for DCS collection POST.
+     * Email is placed at xdmEntity[tenantKey].identification.core.email per your schema.
+     */
+    function buildXdmEntityCreateEnvelope(opts) {
+      var datasetId = (opts.datasetId || '').trim();
+      var imsOrgId = (opts.imsOrgId || '').trim();
+      var schemaId = (opts.schemaId || '').trim();
+      var contentType = (opts.schemaContentType || '').trim();
+      var email = (opts.email || '').trim();
+      var tenantKey = (opts.tenantKey || '_demoemea').trim() || '_demoemea';
+      var eventType = (opts.eventType || 'get.decisions').trim() || 'get.decisions';
+      var strictValidation = opts.strictValidation !== false;
+      var schemaRef = { id: schemaId, contentType: contentType };
+      var msgId = randomUuidV4();
+      var xactionId = randomUuidV4();
+      var entityId = randomUuidV4();
+      var xdmEntity = {
+        _id: entityId,
+        eventType: eventType,
+        timestamp: new Date().toISOString(),
+      };
+      xdmEntity[tenantKey] = {
+        identification: {
+          core: {
+            email: email,
+          },
+        },
+      };
+      return {
+        header: {
+          msgType: 'xdmEntityCreate',
+          msgId: msgId,
+          msgVersion: '1.0',
+          xactionId: xactionId,
+          datasetId: datasetId,
+          imsOrgId: imsOrgId,
+          schemaRef: schemaRef,
+          source: { name: 'Journeys' },
+          strictValidation: strictValidation,
+        },
+        body: {
+          xdmMeta: { schemaRef: schemaRef },
+          xdmEntity: xdmEntity,
+        },
+      };
+    }
+
+    async function streamingCollectCall(payload) {
+      var res;
+      try {
+        res = await fetch('/api/streaming-collect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch (e) {
+        var msg = e && e.message ? e.message : String(e);
+        return {
+          httpOk: false,
+          data: {
+            error: 'Network error calling /api/streaming-collect',
+            detail: msg + ' — Run python proxy_server.py from the repo root.',
+          },
+        };
+      }
+      var text = await res.text();
+      var data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (err) {
+        data = {
+          error: 'Non-JSON response from proxy',
+          detail: (text || '').slice(0, 240),
+        };
+      }
+      return { httpOk: res.ok, data };
+    }
+
+    /**
+     * Proxy success envelope: { status, platform_response, request_url }.
+     * Proxy failure: { error, detail? } or HTTP 4xx/5xx. Upstream reachability errors use HTTP 200 + { error } only.
+     */
+    function classifyAepProxyResult(httpOk, data) {
+      if (!httpOk) return { ok: false, message: formatAepFailureMessage(data, httpOk) };
+      if (!data || typeof data !== 'object') return { ok: true, message: '' };
+      if (data.error != null && data.platform_response === undefined && data.status === undefined) {
+        return { ok: false, message: formatAepFailureMessage(data, httpOk) };
+      }
+      if (typeof data.status === 'number' && data.status >= 400) {
+        return { ok: false, message: formatAepFailureMessage(data, httpOk) };
+      }
+      return { ok: true, message: '' };
+    }
+
+    function formatAepFailureMessage(data, httpOk) {
+      if (!data || typeof data !== 'object') {
+        return httpOk
+          ? 'Unexpected empty response. See Raw JSON.'
+          : 'HTTP error from proxy with no JSON body. Run python proxy_server.py from the repo root and open the lab from that origin.';
+      }
+      if (data.platform_response != null && typeof data.platform_response === 'object' && typeof data.status === 'number') {
+        const p = data.platform_response;
+        const title = p.title != null ? String(p.title) : '';
+        const typ = p.type != null ? String(p.type) : '';
+        const det = p.detail != null ? String(p.detail) : '';
+        const head = title || typ || 'Platform error';
+        return (
+          'Platform HTTP ' +
+          data.status +
+          ': ' +
+          head +
+          (det ? ' — ' + det : '') +
+          ' (see Raw JSON for full body).'
+        );
+      }
+      if (data.error != null) {
+        return String(data.error) + (data.detail != null ? ' — ' + String(data.detail) : '') + ' (see Raw JSON).';
+      }
+      if (!httpOk) {
+        return 'HTTP request failed. Use the same host/port as python proxy_server.py so POST /api/aep exists.';
+      }
+      return 'Request did not succeed. See Raw JSON.';
+    }
+
+    function clearRestSummary() {
+      const box = document.getElementById('restSummary');
+      const hint = document.getElementById('restSummaryHint');
+      box.hidden = true;
+      box.innerHTML = '';
+      hint.hidden = true;
+    }
+
+    /** Proxy wraps platform body as { status, platform_response, request_url }. */
+    function unwrapPlatformEnvelope(data) {
+      if (data && typeof data === 'object' && 'platform_response' in data) {
+        return {
+          httpStatus: data.status,
+          requestUrl: data.request_url,
+          body: data.platform_response,
+        };
+      }
+      return { httpStatus: undefined, requestUrl: undefined, body: data };
+    }
+
+    function extractDpsListItems(body) {
+      if (body == null) return [];
+      if (Array.isArray(body)) return body;
+      if (typeof body !== 'object') return [];
+      if (Array.isArray(body.children)) return body.children;
+      if (Array.isArray(body.items)) return body.items;
+      if (Array.isArray(body.results)) return body.results;
+      if (Array.isArray(body.data)) return body.data;
+      if (body._embedded && typeof body._embedded === 'object') {
+        const out = [];
+        for (const v of Object.values(body._embedded)) {
+          if (Array.isArray(v)) out.push.apply(out, v);
+        }
+        return out;
+      }
+      return [];
+    }
+
+    function getDecisioningDecisionItem(item) {
+      try {
+        const ex = item && item._experience;
+        const d = ex && ex.decisioning;
+        return (d && d.decisionitem) || null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function getDecisioningOfferItem(item) {
+      try {
+        const ex = item && item._experience;
+        const d = ex && ex.decisioning;
+        return (d && d.offeritem) || null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    /** Human-readable row for REST list summaries (offer-items use itemName under _experience.decisioning.decisionitem). */
+    function pickItemLine(item) {
+      if (item == null || typeof item !== 'object') return { title: String(item), id: '', detail: '' };
+      const decItem = getDecisioningDecisionItem(item);
+      const offerItem = getDecisioningOfferItem(item);
+      const itemName = decItem && decItem.itemName != null ? String(decItem.itemName).trim() : '';
+      const itemDesc =
+        decItem && decItem.itemDescription != null ? String(decItem.itemDescription).trim() : '';
+      const id =
+        item.id != null
+          ? String(item.id)
+          : decItem && decItem.itemID != null
+            ? String(decItem.itemID)
+            : item._id != null
+              ? String(item._id)
+              : item['@id'] != null
+                ? String(item['@id']).split('/').pop() || String(item['@id'])
+                : '';
+      const title =
+        itemName ||
+        (item.itemName != null ? String(item.itemName).trim() : '') ||
+        (item.name != null ? String(item.name) : '') ||
+        (item.title != null ? String(item.title) : '') ||
+        (item.displayName != null ? String(item.displayName) : '') ||
+        (itemDesc ? itemDesc.slice(0, 80) + (itemDesc.length > 80 ? '…' : '') : '') ||
+        id ||
+        '(no name)';
+      const detailParts = [];
+      if (decItem && decItem.itemPriority != null && decItem.itemPriority !== '')
+        detailParts.push('priority ' + decItem.itemPriority);
+      if (offerItem && offerItem.lifecycleStatus != null && String(offerItem.lifecycleStatus).trim())
+        detailParts.push(String(offerItem.lifecycleStatus).trim());
+      return { title, id, detail: detailParts.join(' · ') };
+    }
+
+    const REST_PRESET_LABELS = {
+      'offer-items': 'Offer items',
+      'item-collections': 'Item collections',
+      'selection-strategies': 'Selection strategies',
+    };
+
+    function renderRestSummary(presetKey, envelope) {
+      const box = document.getElementById('restSummary');
+      const hint = document.getElementById('restSummaryHint');
+      const label = REST_PRESET_LABELS[presetKey] || presetKey;
+      const { httpStatus, requestUrl, body } = unwrapPlatformEnvelope(envelope);
+
+      const parts = [];
+      const metaBits = ['<strong>' + label + '</strong>'];
+      if (httpStatus != null) metaBits.push('HTTP ' + httpStatus);
+      if (requestUrl) metaBits.push('<code style="font-size:11px">' + String(requestUrl).replace(/</g, '&lt;') + '</code>');
+
+      if (envelope && typeof envelope === 'object' && envelope.error != null) {
+        parts.push('<p class="rest-summary-problem">' + String(envelope.error).replace(/</g, '&lt;') + '</p>');
+        if (envelope.detail != null) {
+          parts.push('<p class="hint" style="margin:8px 0 0 0">' + String(envelope.detail).replace(/</g, '&lt;') + '</p>');
+        }
+        box.innerHTML =
+          '<p class="rest-summary-meta">' + metaBits.join(' · ') + '</p>' + parts.join('');
+        box.hidden = false;
+        hint.hidden = false;
+        return;
+      }
+
+      if (body && typeof body === 'object') {
+        const pType = body.type;
+        const pStatus = body.status;
+        const pTitle = body.title;
+        const pDetail = body.detail;
+        const statusNum = typeof pStatus === 'number' ? pStatus : parseInt(pStatus, 10);
+        if (
+          (typeof pType === 'string' &&
+            (pType.indexOf('problem') !== -1 || pType.indexOf('error') !== -1)) ||
+          (!isNaN(statusNum) && statusNum >= 400)
+        ) {
+          parts.push('<p class="rest-summary-problem">Platform error</p>');
+          parts.push('<dl class="rest-summary-dl">');
+          if (pTitle) parts.push('<dt>Title</dt><dd>' + String(pTitle).replace(/</g, '&lt;') + '</dd>');
+          if (pDetail) parts.push('<dt>Detail</dt><dd>' + String(pDetail).replace(/</g, '&lt;') + '</dd>');
+          if (pType) parts.push('<dt>Type</dt><dd><code>' + String(pType).replace(/</g, '&lt;') + '</code></dd>');
+          parts.push('</dl>');
+          box.innerHTML =
+            '<p class="rest-summary-meta">' + metaBits.join(' · ') + '</p>' + parts.join('');
+          box.hidden = false;
+          hint.hidden = false;
+          return;
+        }
+      }
+
+      const items = extractDpsListItems(body);
+      let totalHint = '';
+      if (body && typeof body === 'object') {
+        if (body._page && body._page.totalCount != null)
+          totalHint = ' (total ' + body._page.totalCount + ' reported by API)';
+        else if (body.total != null) totalHint = ' (total ' + body.total + ' reported by API)';
+      }
+
+      metaBits.push(items.length + ' row(s) in this page' + totalHint);
+      parts.push('<p class="rest-summary-meta">' + metaBits.join(' · ') + '</p>');
+
+      if (!items.length) {
+        parts.push(
+          '<p class="hint" style="margin:0">No list array found (children / items / results / _embedded). See raw JSON for shape.</p>'
+        );
+        box.innerHTML = parts.join('');
+        box.hidden = false;
+        hint.hidden = false;
+        return;
+      }
+
+      const max = 80;
+      const slice = items.slice(0, max);
+      parts.push('<ol class="rest-summary-list">');
+      slice.forEach(function (item) {
+        const { title, id, detail } = pickItemLine(item);
+        const idPart = id && id !== title ? ' <code style="font-size:11px">' + id.replace(/</g, '&lt;') + '</code>' : '';
+        const detailPart = detail
+          ? '<br><span style="font-size:12px;color:var(--text-secondary);font-weight:400">' +
+            detail.replace(/</g, '&lt;') +
+            '</span>'
+          : '';
+        parts.push(
+          '<li><strong>' + title.replace(/</g, '&lt;') + '</strong>' + idPart + detailPart + '</li>'
+        );
+      });
+      parts.push('</ol>');
+      if (items.length > max) {
+        parts.push(
+          '<p class="hint" style="margin:8px 0 0 0">Showing first ' + max + ' of ' + items.length + ' — full list in JSON below.</p>'
+        );
+      }
+
+      box.innerHTML = parts.join('');
+      box.hidden = false;
+      hint.hidden = false;
+    }
+
+    function showOut(obj) {
+      clearRestSummary();
+      document.getElementById('out').textContent = JSON.stringify(obj, null, 2);
+    }
+
+    document.getElementById('btnProfile').addEventListener('click', async () => {
+      const ns = document.getElementById('nsCode').value.trim();
+      const id = document.getElementById('nsValue').value.trim();
+      const st = document.getElementById('profileStatus');
+      st.textContent = 'Loading…';
+      st.className = 'status';
+      if (!ns || !id) {
+        st.textContent = 'Enter namespace and identity value.';
+        st.className = 'status err';
+        return;
+      }
+      persistIdentityFields();
+      const { httpOk, data } = await fetchProfileByIdentity(ns, id);
+      showOut(data);
+      const ok = httpOk && isUpsProfileSuccess(data);
+      st.textContent = ok
+        ? 'Profile returned (UPS).'
+        : httpOk
+          ? 'UPS responded but body looks like an error — Edge gated flow will not run.'
+          : 'Proxy or network error.';
+      st.className = 'status ' + (ok ? 'ok' : 'err');
+      if (ok) {
+        lastUpsClientData = data;
+        const ecid = recordEcidFromUpsProfile(data);
+        updateProfileEcidHint(ecid);
+      } else {
+        lastUpsClientData = null;
+        document.getElementById('profileEcidHint').textContent = '';
+      }
+    });
+
+    document.getElementById('btnEdge').addEventListener('click', async () => {
+      const st = document.getElementById('edgeStatus');
+      st.textContent = 'Loading Edge…';
+      st.className = 'status';
+      try {
+        const result = await runEdgePropositions();
+        const combined = { edge: result, profile: null };
+        if (lastIdentityMapSentForDebug) combined.identityMap_used_on_sendEvent = lastIdentityMapSentForDebug;
+        showOut(combined);
+        renderContentPreview(result);
+        applyPersonalizationToDemoDom(result);
+        st.textContent = 'Edge response received.';
+        st.className = 'status ok';
+      } catch (e) {
+        const msg = e && e.message ? e.message : String(e);
+        showOut({ edge_error: msg });
+        renderContentPreview({});
+        st.textContent = msg;
+        st.className = 'status err';
+      }
+    });
+
+    document.getElementById('btnProfileAndContent').addEventListener('click', async () => {
+      const stP = document.getElementById('profileStatus');
+      const stE = document.getElementById('edgeStatus');
+      stP.textContent = 'Loading profile…';
+      stE.textContent = 'Waiting for profile…';
+      stP.className = 'status';
+      stE.className = 'status';
+      const ns = document.getElementById('nsCode').value.trim();
+      const id = document.getElementById('nsValue').value.trim();
+      if (!ns || !id) {
+        stP.textContent = 'Enter namespace and identity value.';
+        stP.className = 'status err';
+        stE.textContent = '';
+        return;
+      }
+      persistIdentityFields();
+      const { httpOk, data: profileData } = await fetchProfileByIdentity(ns, id);
+      const profileOk = httpOk && isUpsProfileSuccess(profileData);
+
+      if (!profileOk) {
+        lastProfileEcid = '';
+        lastUpsClientData = null;
+        stP.textContent = httpOk
+          ? 'UPS error body or no entity — Edge skipped.'
+          : 'Profile request failed — Edge skipped.';
+        stP.className = 'status err';
+        stE.textContent = 'Skipped: personalization runs only after a successful profile response.';
+        stE.className = 'status err';
+        document.getElementById('profileEcidHint').textContent = '';
+        showOut({ profile: profileData, edge_skipped: 'UPS did not return a usable profile.' });
+        renderContentPreview({});
+        clearDemoPersonalizationDom();
+        return;
+      }
+
+      lastUpsClientData = profileData;
+      const ecidForEdge = recordEcidFromUpsProfile(profileData);
+      updateProfileEcidHint(ecidForEdge);
+
+      stP.textContent = 'Profile returned. Requesting Edge decisions…';
+      stP.className = 'status ok';
+      stE.textContent = 'Loading Edge…';
+      try {
+        const edgeResult = await runEdgePropositions({ upsClientData: profileData });
+        showOut({
+          profile: profileData,
+          edge: edgeResult,
+          identityMap_used_on_sendEvent: lastIdentityMapSentForDebug,
+          ecid_from_ups_hint: ecidForEdge || null,
+        });
+        renderContentPreview(edgeResult);
+        applyPersonalizationToDemoDom(edgeResult);
+        stE.textContent = 'Edge response applied (preview + channel DOM).';
+        stE.className = 'status ok';
+      } catch (e) {
+        const msg = e && e.message ? e.message : String(e);
+        showOut({ profile: profileData, edge_error: msg });
+        renderContentPreview({});
+        clearDemoPersonalizationDom();
+        stE.textContent = msg;
+        stE.className = 'status err';
+      }
+    });
+
+    document.getElementById('btnProfileAndDirectCall').addEventListener('click', async () => {
+      const stP = document.getElementById('profileStatus');
+      const stE = document.getElementById('edgeStatus');
+      const stDc = document.getElementById('profileDirectCallStatus');
+      stP.textContent = 'Loading profile…';
+      stDc.textContent = '';
+      stP.className = 'status';
+      stDc.className = 'status';
+      if (stE) stE.textContent = '';
+      const ns = document.getElementById('nsCode').value.trim();
+      const id = document.getElementById('nsValue').value.trim();
+      if (!ns || !id) {
+        stP.textContent = 'Enter namespace and identity value.';
+        stP.className = 'status err';
+        return;
+      }
+      persistIdentityFields();
+      persistEdgeFields();
+      const ruleId = document.getElementById('directCallRuleIdGetDecisions').value.trim();
+      if (!ruleId) {
+        stDc.textContent = 'Set the get.decisions Direct Call identifier in §3 first.';
+        stDc.className = 'status err';
+        stP.textContent = '';
+        return;
+      }
+      const { httpOk, data: profileData } = await fetchProfileByIdentity(ns, id);
+      const profileOk = httpOk && isUpsProfileSuccess(profileData);
+      if (!profileOk) {
+        lastProfileEcid = '';
+        lastUpsClientData = null;
+        stP.textContent = httpOk
+          ? 'UPS error body or no entity — Direct Call skipped.'
+          : 'Profile request failed — Direct Call skipped.';
+        stP.className = 'status err';
+        document.getElementById('profileEcidHint').textContent = '';
+        showOut({ profile: profileData, direct_call_skipped: 'UPS did not return a usable profile.' });
+        return;
+      }
+      lastUpsClientData = profileData;
+      const ecidForEdge = recordEcidFromUpsProfile(profileData);
+      updateProfileEcidHint(ecidForEdge);
+      stP.textContent = 'Profile returned.';
+      stP.className = 'status ok';
+      try {
+        await waitForSatellite();
+      } catch (e) {
+        const msg = e && e.message ? e.message : String(e);
+        stDc.textContent = msg;
+        stDc.className = 'status err';
+        showOut({ profile: profileData, direct_call_error: msg });
+        return;
+      }
+      const email = document.getElementById('nsValue').value.trim();
+      const ent = extractEntityFromUpsClientData(profileData);
+      let identityMapForRule = null;
+      if (ent) identityMapForRule = buildIdentityMapFromUpsEntity(ent, email);
+      if (identityMapForRule && Object.keys(identityMapForRule).length) {
+        lastIdentityMapSentForDebug = identityMapForRule;
+      }
+      const payload = {
+        eventType: 'get.decisions',
+        source: 'aep-decisioning-lab',
+        profile: profileData,
+      };
+      if (identityMapForRule && Object.keys(identityMapForRule).length) {
+        payload.identityMap = identityMapForRule;
+      }
+      const ok = launchDirectCallTrack(ruleId, payload);
+      if (!ok) {
+        stDc.textContent = 'Direct Call failed — see console (_satellite.track).';
+        stDc.className = 'status err';
+        showOut({ profile: profileData, direct_call_fired: false, direct_call_rule_id: ruleId, direct_call_payload: payload });
+        return;
+      }
+      stDc.textContent = 'Direct Call fired: ' + ruleId + ' (payload includes eventType get.decisions + UPS + identityMap).';
+      stDc.className = 'status ok';
+      showOut({
+        profile: profileData,
+        direct_call_fired: true,
+        direct_call_rule_id: ruleId,
+        direct_call_payload: payload,
+        ecid_from_ups_hint: ecidForEdge || null,
+      });
+    });
+
+    document.getElementById('btnProfileAndStreamingIngest').addEventListener('click', async () => {
+      const stP = document.getElementById('profileStatus');
+      const stE = document.getElementById('edgeStatus');
+      const stS = document.getElementById('profileStreamingIngestStatus');
+      stP.textContent = 'Loading profile…';
+      stS.textContent = '';
+      stP.className = 'status';
+      stS.className = 'status';
+      if (stE) stE.textContent = '';
+      const ns = document.getElementById('nsCode').value.trim();
+      const id = document.getElementById('nsValue').value.trim();
+      if (!ns || !id) {
+        stP.textContent = 'Enter namespace and identity value.';
+        stP.className = 'status err';
+        return;
+      }
+      persistIdentityFields();
+      persistStreamingFields();
+      const inletUrl = document.getElementById('streamingInletUrl').value.trim();
+      if (!inletUrl) {
+        stS.textContent = 'Paste your DCS streaming inlet URL (https://dcs.adobedc.net/collection/…).';
+        stS.className = 'status err';
+        stP.textContent = '';
+        return;
+      }
+      if (!/^https:\/\/[^/]+\.adobedc\.net\/collection\/.+/i.test(inletUrl)) {
+        stS.textContent = 'Inlet URL must look like https://dcs.adobedc.net/collection/{id} (or regional *.dcs.adobedc.net).';
+        stS.className = 'status err';
+        stP.textContent = '';
+        return;
+      }
+      const { httpOk, data: profileData } = await fetchProfileByIdentity(ns, id);
+      const profileOk = httpOk && isUpsProfileSuccess(profileData);
+      if (!profileOk) {
+        lastProfileEcid = '';
+        lastUpsClientData = null;
+        stP.textContent = httpOk
+          ? 'UPS error body or no entity — streaming ingest skipped.'
+          : 'Profile request failed — streaming ingest skipped.';
+        stP.className = 'status err';
+        document.getElementById('profileEcidHint').textContent = '';
+        showOut({ profile: profileData, streaming_ingest_skipped: 'UPS did not return a usable profile.' });
+        return;
+      }
+      lastUpsClientData = profileData;
+      const ecidForEdge = recordEcidFromUpsProfile(profileData);
+      updateProfileEcidHint(ecidForEdge);
+      stP.textContent = 'Profile returned. Posting xdmEntityCreate…';
+      stP.className = 'status ok';
+      const email = document.getElementById('nsValue').value.trim();
+      const envelope = buildXdmEntityCreateEnvelope({
+        datasetId: document.getElementById('streamingDatasetId').value,
+        imsOrgId: document.getElementById('streamingImsOrgId').value,
+        schemaId: document.getElementById('streamingSchemaId').value,
+        schemaContentType: document.getElementById('streamingSchemaContentType').value,
+        email: email,
+        tenantKey: document.getElementById('streamingTenantKey').value,
+        eventType: document.getElementById('streamingEventType').value,
+        strictValidation: document.getElementById('streamingStrictValidation').checked,
+      });
+      const { httpOk: stHttpOk, data: stData } = await streamingCollectCall({
+        url: inletUrl,
+        json: envelope,
+      });
+      const outcome = classifyAepProxyResult(stHttpOk, stData);
+      if (outcome.ok) {
+        stS.textContent =
+          'Streaming ingest accepted by proxy (check platform_response for DCS status / xactionId).';
+        stS.className = 'status ok';
+      } else {
+        stS.textContent = outcome.message;
+        stS.className = 'status err';
+      }
+      showOut({
+        profile: profileData,
+        streaming_ingest_url: inletUrl,
+        streaming_ingest_request: envelope,
+        streaming_ingest_proxy: stData,
+        ecid_from_ups_hint: ecidForEdge || null,
+      });
+    });
+
+    const presets = {
+      'offer-items': { path: '/data/core/dps/offer-items', params: { limit: 50 } },
+      'item-collections': { path: '/data/core/dps/item-collections', params: { limit: 50 } },
+      'selection-strategies': { path: '/data/core/dps/selection-strategies', params: { limit: 50 } },
+    };
+
+    document.getElementById('btnPreset').addEventListener('click', async () => {
+      const key = document.getElementById('preset').value;
+      const cfg = presets[key];
+      const st = document.getElementById('dpsStatus');
+      st.textContent = 'Loading…';
+      st.className = 'status';
+      const ph = platformHeadersFor(cfg.path);
+      const payload = { method: 'GET', path: cfg.path, params: cfg.params };
+      if (ph) payload.platform_headers = ph;
+      const { httpOk, data } = await aepCall(payload);
+      showOut(data);
+      renderRestSummary(key, data);
+      const outcome = classifyAepProxyResult(httpOk, data);
+      if (outcome.ok) {
+        st.textContent = 'Request completed (check platform status inside JSON).';
+        st.className = 'status ok';
+      } else {
+        let extra = '';
+        if (key === 'offer-items' && !document.getElementById('schemaId').value.trim()) {
+          extra = ' For offer-items, set x-schema-id (decision item schema) unless your org allows the call without it.';
+        }
+        st.textContent = outcome.message + extra;
+        st.className = 'status err';
+      }
+    });
+
+    const legacyPresets = {
+      placements: { path: '/data/core/dps/placements', params: { limit: 50 } },
+      'offers-pers': { path: '/data/core/dps/offers', params: { 'offer-type': 'personalized', limit: 50 } },
+      'offers-fb': { path: '/data/core/dps/offers', params: { 'offer-type': 'fallback', limit: 50 } },
+      rules: { path: '/data/core/dps/decision-rules', params: { limit: 50 } },
+      collections: { path: '/data/core/dps/collections', params: { limit: 50 } },
+    };
+
+    document.getElementById('btnLegacy').addEventListener('click', async () => {
+      const key = document.getElementById('legacyPreset').value;
+      const cfg = legacyPresets[key];
+      const st = document.getElementById('legacyStatus');
+      st.textContent = 'Loading…';
+      st.className = 'status';
+      const { httpOk, data } = await aepCall({ method: 'GET', path: cfg.path, params: cfg.params });
+      showOut(data);
+      const outcome = classifyAepProxyResult(httpOk, data);
+      st.textContent = outcome.ok ? 'Legacy request completed.' : outcome.message;
+      st.className = 'status ' + (outcome.ok ? 'ok' : 'err');
+    });
+
+    document.getElementById('btnWebhookFetch').addEventListener('click', async () => {
+      const st = document.getElementById('webhookFeedStatus');
+      st.textContent = 'Loading webhook index…';
+      st.className = 'status';
+      try {
+        const env = await fetchWebhookListenerFeed();
+        renderWebhookFeedList(env);
+      } catch (e) {
+        st.textContent = e && e.message ? e.message : String(e);
+        st.className = 'status err';
+        document.getElementById('webhookFeedList').hidden = true;
+      }
+    });
+
+    document.getElementById('webhookAutoPoll').addEventListener('change', function () {
+      if (webhookPollTimer) {
+        clearInterval(webhookPollTimer);
+        webhookPollTimer = null;
+      }
+      if (this.checked) {
+        document.getElementById('btnWebhookFetch').click();
+        webhookPollTimer = setInterval(function () {
+          document.getElementById('btnWebhookFetch').click();
+        }, 15000);
+      }
+    });
+
+    initCdBannerEditor();
+  </script>
+</body>
+</html>

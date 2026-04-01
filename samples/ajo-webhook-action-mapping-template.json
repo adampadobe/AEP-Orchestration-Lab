@@ -1,0 +1,448 @@
+{
+  "success": "boolean",
+  "data": [
+    {
+      "schema": "https://ns.adobe.com/demoemea/schemas/7fdc9de4101bde9186542920e0b021d164ef6602b8778e6a",
+      "id": {
+        "optionalMapping": true,
+        "toBeMapped": true,
+        "dataType": "string",
+        "label": "ID"
+      },
+      "config": {
+        "customName": {
+          "optionalMapping": true,
+          "toBeMapped": true,
+          "dataType": "string",
+          "label": "Custom Name"
+        }
+      },
+      "data": {
+        "_demoemea": {
+          "offerMetadata": {
+            "businessObjective": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "string",
+              "label": "Business Objective"
+            },
+            "category": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "string",
+              "label": "Category"
+            },
+            "commercialObjective": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "string",
+              "label": "Commercial objective"
+            },
+            "contentType": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "string",
+              "label": "Content Type"
+            },
+            "customerJourneyStage": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "string",
+              "label": "Customer Journey Stage"
+            },
+            "family": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "string",
+              "label": "Family"
+            },
+            "salesStage": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "string",
+              "label": "Sales Stage"
+            },
+            "subCategory": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "string",
+              "label": "Subcategory"
+            },
+            "targetSegment": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "string",
+              "label": "Target Segment"
+            }
+          },
+          "content": {
+            "mediaAssets": {
+              "videoAsset": {
+                "destinationURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Video \u2014 destinationURL"
+                },
+                "edgePath": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Video \u2014 edgePath"
+                },
+                "repository": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Video \u2014 repository"
+                },
+                "sourceURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Video \u2014 sourceURL"
+                },
+                "trackedURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Video \u2014 trackedURL"
+                },
+                "type": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Video \u2014 type"
+                }
+              },
+              "imageHighRes": {
+                "destinationURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (High Resolution) \u2014 destinationURL"
+                },
+                "edgePath": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (High Resolution) \u2014 edgePath"
+                },
+                "repository": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (High Resolution) \u2014 repository"
+                },
+                "sourceURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (High Resolution) \u2014 sourceURL"
+                },
+                "trackedURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (High Resolution) \u2014 trackedURL"
+                },
+                "type": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (High Resolution) \u2014 type"
+                }
+              },
+              "imageMediumRes": {
+                "destinationURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Medium Resolution) \u2014 destinationURL"
+                },
+                "edgePath": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Medium Resolution) \u2014 edgePath"
+                },
+                "repository": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Medium Resolution) \u2014 repository"
+                },
+                "sourceURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Medium Resolution) \u2014 sourceURL"
+                },
+                "trackedURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Medium Resolution) \u2014 trackedURL"
+                },
+                "type": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Medium Resolution) \u2014 type"
+                }
+              },
+              "imageSmallRes": {
+                "destinationURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Small Resolution) \u2014 destinationURL"
+                },
+                "edgePath": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Small Resolution) \u2014 edgePath"
+                },
+                "repository": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Small Resolution) \u2014 repository"
+                },
+                "sourceURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Small Resolution) \u2014 sourceURL"
+                },
+                "trackedURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Small Resolution) \u2014 trackedURL"
+                },
+                "type": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Image (Small Resolution) \u2014 type"
+                }
+              },
+              "thumbnail": {
+                "destinationURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Thumbnail \u2014 destinationURL"
+                },
+                "edgePath": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Thumbnail \u2014 edgePath"
+                },
+                "repository": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Thumbnail \u2014 repository"
+                },
+                "sourceURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Thumbnail \u2014 sourceURL"
+                },
+                "trackedURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Thumbnail \u2014 trackedURL"
+                },
+                "type": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "Thumbnail \u2014 type"
+                }
+              }
+            },
+            "navigation": {
+              "webUrl": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Web URL"
+              },
+              "referenceCode": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Reference Code"
+              },
+              "mobileDeepLink": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Mobile Deep Link"
+              },
+              "internalUrl": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Internal System URL"
+              }
+            },
+            "promoElements": {
+              "promoCode": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Promo Code"
+              },
+              "qrCodeContent": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "QR Code Content"
+              },
+              "qrImage": {
+                "destinationURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "QR Code Image \u2014 destinationURL"
+                },
+                "edgePath": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "QR Code Image \u2014 edgePath"
+                },
+                "repository": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "QR Code Image \u2014 repository"
+                },
+                "sourceURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "QR Code Image \u2014 sourceURL"
+                },
+                "trackedURL": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "QR Code Image \u2014 trackedURL"
+                },
+                "type": {
+                  "optionalMapping": true,
+                  "toBeMapped": true,
+                  "dataType": "string",
+                  "label": "QR Code Image \u2014 type"
+                }
+              }
+            },
+            "textContent": {
+              "briefMessage": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Brief Message"
+              },
+              "agentScript": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Agent Script"
+              },
+              "compactDescription": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Compact Description"
+              },
+              "compactSubtitle": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Compact Subtitle"
+              },
+              "compactTitle": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Compact Title"
+              },
+              "fullCTA": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Full Call To Action"
+              },
+              "fullDescription": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Full description"
+              },
+              "fullSubtitle": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Full Subtitle"
+              },
+              "fullTitle": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Full Title"
+              },
+              "bannerTitle": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Banner Title"
+              },
+              "bannerCTA": {
+                "optionalMapping": true,
+                "toBeMapped": true,
+                "dataType": "string",
+                "label": "Banner Call To Action"
+              }
+            }
+          },
+          "thresholds": {
+            "avgOrderSize": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "integer",
+              "label": "Average Order Size"
+            },
+            "loyaltyPoints": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "integer",
+              "label": "loyaltyPoints"
+            },
+            "propensityScore": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "integer",
+              "label": "propensityScore"
+            },
+            "churnPrediction": {
+              "optionalMapping": true,
+              "toBeMapped": true,
+              "dataType": "integer",
+              "label": "churnPrediction"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

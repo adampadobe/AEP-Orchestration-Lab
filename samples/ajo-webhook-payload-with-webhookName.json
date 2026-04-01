@@ -1,0 +1,98 @@
+{
+  "_readme": "Runtime example: mirrors samples/ajo-webhook-action-mapping-template.json paths. Each media asset + qrImage uses decisioning-asset fields (destinationURL, edgePath, repository, sourceURL, trackedURL, type) per schema UI. Mapping template nests the same six slots under each asset.",
+  "webhookName": "Replace with journey / custom action label",
+  "_demoemea": {
+    "content": {
+      "mediaAssets": {
+        "videoAsset": {
+          "destinationURL": "https://example.com/watch",
+          "edgePath": "/edge/track/video/1",
+          "repository": "web",
+          "sourceURL": "https://cdn.example.com/promo.mp4",
+          "trackedURL": "",
+          "type": "text"
+        },
+        "imageHighRes": {
+          "destinationURL": "https://example.com/offer",
+          "edgePath": "/edge/track/img/hi",
+          "repository": "web",
+          "sourceURL": "https://cdn.example.com/hero-2048.png",
+          "trackedURL": "https://edge.example.com/click/hi",
+          "type": "image"
+        },
+        "imageMediumRes": {
+          "destinationURL": "",
+          "edgePath": "/edge/track/img/med",
+          "repository": "web",
+          "sourceURL": "https://cdn.example.com/hero-1024.png",
+          "trackedURL": "",
+          "type": "image"
+        },
+        "imageSmallRes": {
+          "destinationURL": "",
+          "edgePath": "/edge/track/img/sm",
+          "repository": "web",
+          "sourceURL": "https://cdn.example.com/hero-512.png",
+          "trackedURL": "",
+          "type": "image"
+        },
+        "thumbnail": {
+          "destinationURL": "https://example.com/offer",
+          "edgePath": "/edge/track/thumb",
+          "repository": "web",
+          "sourceURL": "https://cdn.example.com/thumb.jpg",
+          "trackedURL": "",
+          "type": "image"
+        }
+      },
+      "navigation": {
+        "webUrl": "https://example.com/journey-landing",
+        "referenceCode": "OFFER-2026-04",
+        "mobileDeepLink": "myapp://offer/123",
+        "internalUrl": "https://internal.example.com/offers/123"
+      },
+      "promoElements": {
+        "promoCode": "SPRING20",
+        "qrCodeContent": "https://example.com/redeem/SPRING20",
+        "qrImage": {
+          "destinationURL": "https://example.com/redeem/SPRING20",
+          "edgePath": "/edge/track/qr",
+          "repository": "web",
+          "sourceURL": "https://cdn.example.com/qr.png",
+          "trackedURL": "",
+          "type": "image"
+        }
+      },
+      "textContent": {
+        "briefMessage": "Short SMS-style line",
+        "agentScript": "Say: highlight weekend package value.",
+        "compactDescription": "Compact body",
+        "compactSubtitle": "Compact sub",
+        "compactTitle": "Compact title",
+        "fullCTA": "Book now",
+        "fullDescription": "Short body copy for the offer.",
+        "fullSubtitle": "Limited time",
+        "fullTitle": "Your personalized offer",
+        "bannerTitle": "Banner headline",
+        "bannerCTA": "Learn more"
+      }
+    },
+    "offerMetadata": {
+      "businessObjective": "increaseRevenue",
+      "category": "Travel",
+      "commercialObjective": "retention",
+      "contentType": "promotional",
+      "customerJourneyStage": "consideration",
+      "family": "Package deals",
+      "salesStage": "post-sale",
+      "subCategory": "Weekend getaways",
+      "targetSegment": "existingCustomer"
+    },
+    "thresholds": {
+      "avgOrderSize": 450,
+      "loyaltyPoints": 1200,
+      "propensityScore": 72,
+      "churnPrediction": 15
+    }
+  }
+}
