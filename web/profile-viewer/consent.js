@@ -16,8 +16,24 @@ const updateConsentBtn = document.getElementById('updateConsentBtn');
 const previewDataBtn = document.getElementById('previewDataBtn');
 const step4Message = document.getElementById('step4Message');
 const preferredChannelSelect = document.getElementById('preferredChannel');
+const sandboxSelect = document.getElementById('sandboxSelect');
 
 const SAMPLE_EMAIL = 'kirkham+media-1@adobetest.com';
+
+function getSandboxParam() {
+  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
+    return window.AepGlobalSandbox.getSandboxParam();
+  }
+  const val = sandboxSelect?.value?.trim();
+  return val ? `&sandbox=${encodeURIComponent(val)}` : '';
+}
+
+async function loadConsentPageSandboxes() {
+  if (!sandboxSelect || !window.AepGlobalSandbox) return;
+  await window.AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
+  window.AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
+  window.AepGlobalSandbox.attachStorageSync(sandboxSelect);
+}
 
 /** Consent radios live under Step 2 so :checked is never read from another part of the page. */
 function consentFormRoot() {
@@ -195,7 +211,7 @@ async function queryProfile() {
   queryProfileBtn.disabled = true;
   showMessage(step1Message, 'Querying AEP for profile…', '');
   try {
-    const res = await fetch('/api/profile/consent?email=' + encodeURIComponent(email));
+    const res = await fetch('/api/profile/consent?email=' + encodeURIComponent(email) + getSandboxParam());
     const text = await res.text();
     let data;
     try {
@@ -311,6 +327,8 @@ function previewData() {
   );
   w.document.close();
 }
+
+loadConsentPageSandboxes().catch(() => {});
 
 queryProfileBtn.addEventListener('click', queryProfile);
 clearFormBtn.addEventListener('click', clearForm);

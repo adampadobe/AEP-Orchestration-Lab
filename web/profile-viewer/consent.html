@@ -100,6 +100,15 @@
     <section class="consent-panel" id="step1">
       <h2 class="panel-title"><span class="icon">🔍</span> Step 1: Query customer profile</h2>
       <p class="panel-desc">Enter the customer email and query Adobe Experience Platform. Profile ECID is filled when a profile is found.</p>
+      <div class="sandbox-config" style="margin-bottom: 1rem;">
+        <h3 class="sandbox-config-title" style="font-size: 0.95rem; margin-bottom: 0.35rem;">AEP sandbox</h3>
+        <div class="form-row">
+          <label for="sandboxSelect">Sandbox</label>
+          <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+            <option value="">Loading sandboxes…</option>
+          </select>
+        </div>
+      </div>
       <div class="consent-step1-row">
         <div class="consent-step1-field">
           <label for="customerEmail">Customer email address</label>
@@ -345,6 +354,7 @@
     })();
   </script>
   <script src="email-cache.js"></script>
+  <script src="aep-global-sandbox.js"></script>
   <script src="profile-streaming-shared.js"></script>
   <script src="consent.js"></script>
   <script defer src="aep-theme.js"></script>

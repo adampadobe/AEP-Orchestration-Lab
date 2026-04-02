@@ -96,6 +96,27 @@
           "functionId": "webhookListenerProxy",
           "region": "us-central1"
         }
+      },
+      {
+        "source": "/api/provisioning/tenant-schemas",
+        "function": {
+          "functionId": "provisioningTenantSchemas",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/provisioning/field-groups",
+        "function": {
+          "functionId": "provisioningFieldGroups",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/provisioning/tenant-schema/patch",
+        "function": {
+          "functionId": "provisioningTenantSchemaPatch",
+          "region": "us-central1"
+        }
       }
     ]
   }

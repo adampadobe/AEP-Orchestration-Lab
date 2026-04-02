@@ -168,10 +168,38 @@
     });
   }
 
+  /**
+   * Technical sandbox name: ?sandbox= in URL wins, then #sandboxSelect, then localStorage.
+   */
+  function getSandboxName() {
+    try {
+      var href = global.location && global.location.href;
+      if (href) {
+        var u = new URL(href);
+        var qs = u.searchParams.get('sandbox');
+        if (qs != null && String(qs).trim() !== '') return String(qs).trim();
+      }
+    } catch (e) {}
+    try {
+      var el = typeof document !== 'undefined' ? document.getElementById('sandboxSelect') : null;
+      var v = el && el.value != null ? String(el.value).trim() : '';
+      if (v) return v;
+    } catch (e2) {}
+    return getSelected().trim();
+  }
+
+  /** Query fragment for API calls, e.g. &sandbox=apalmer */
+  function getSandboxParam() {
+    var n = getSandboxName();
+    return n ? '&sandbox=' + encodeURIComponent(n) : '';
+  }
+
   global.AepGlobalSandbox = {
     LS_SANDBOX: LS_SANDBOX,
     getSelected: getSelected,
     setSelected: setSelected,
+    getSandboxName: getSandboxName,
+    getSandboxParam: getSandboxParam,
     loadSandboxesIntoSelect: loadSandboxesIntoSelect,
     fillSandboxSelect: fillSandboxSelect,
     onSandboxSelectChange: onSandboxSelectChange,
