@@ -247,8 +247,9 @@ Implementation: `functions/schemaRegistryService.js`, exports in `functions/inde
 | `/api/profile/update` | POST | Streams profile updates to DCS; body must include `streaming.url`, `streaming.flowId`, optional `streaming.datasetId` / `schemaId` / `xdmKey` for envelope mode, plus `email`, `ecid`, `updates` or `consent`. |
 | `/api/consent-connection` | GET | Returns Firestore doc for `?sandbox=` (or deploy default): `streaming` + `infra` IDs. |
 | `/api/consent-connection` | POST | Merges body `streaming` / `infra` into the same doc (Admin SDK). Collection `consentConnections`; client SDK denied by rules. |
+| `/api/consent-infra/flow-lookup` | GET | After the HTTP API dataflow exists in AEP, resolves **DCS collection URL** + **flow id** via Flow Service (`GET /flows` by name or `GET /flows/{flowId}`, then **sourceConnections** for `inletUrl`). Query: `sandbox`, optional `flowId`, optional `flowName`. |
 
-**HTTP API dataflow** (inlet URL + `x-adobe-flow-id`): **today** the user creates it in the **AEP UI** (or any client that calls Adobe’s Flow Service APIs directly). The Consent page stores URL + Flow ID in **localStorage** and syncs **streaming + infra IDs to Firestore** per sandbox. **Implementation target:** a Firebase handler (or worker) that executes **§15** and writes the same `streaming` fields, so step 4 of the wizard can call **apply** instead of paste-only.
+**HTTP API dataflow:** the user still **creates** the dataflow in **AEP** (or via full **§15** automation when implemented). **Lookup:** `flow-lookup` avoids manual copy/paste of URL and Flow ID. **Implementation target:** §15 **create** path so the dataflow itself is also API-driven.
 
 **Profile Viewer Consent** (`consent.html`): status + wizard steps, **Save connection**, **Update consent preferences** (hosted).
 

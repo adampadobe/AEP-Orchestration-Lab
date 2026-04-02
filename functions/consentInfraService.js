@@ -1092,7 +1092,7 @@ async function runConsentInfraStep(sandbox, token, clientId, orgId, stepName) {
         httpDataflow: CONSENT_HTTP_DATAFLOW_NAME,
       },
       nextSteps: manualFlowSteps(),
-      message: `Create HTTP API dataflow "${CONSENT_HTTP_DATAFLOW_NAME}" for dataset "${CONSENT_DATASET_NAME}". Never enable this schema or dataset for Real-Time Customer Profile in AEP (schema union is irreversible). Paste URL + Flow ID below.`,
+      message: `Create HTTP API dataflow "${CONSENT_HTTP_DATAFLOW_NAME}" for dataset "${CONSENT_DATASET_NAME}". Never enable this schema or dataset for Real-Time Customer Profile in AEP (schema union is irreversible). Then use “Fetch URL & Flow ID from AEP” on this page (Flow Service) or paste URL + Flow ID below.`,
     };
   } catch (e) {
     const msg = String(e.message || e);

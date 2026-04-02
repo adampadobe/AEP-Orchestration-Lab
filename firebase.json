@@ -144,6 +144,13 @@
         }
       },
       {
+        "source": "/api/consent-infra/flow-lookup",
+        "function": {
+          "functionId": "consentInfraFlowLookup",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/consent-connection",
         "function": {
           "functionId": "consentConnectionStore",

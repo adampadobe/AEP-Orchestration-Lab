@@ -42,6 +42,7 @@ const {
   CONSENT_DATASET_NAME,
   CONSENT_HTTP_DATAFLOW_NAME,
 } = require('./consentInfraService');
+const { lookupConsentHttpFlow } = require('./consentFlowLookup');
 const { getConsentConnection, saveConsentConnection } = require('./consentConnectionStore');
 const {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
@@ -624,6 +625,45 @@ exports.consentInfraEnsure = onRequest(profileFnOpts, async (req, res) => {
       '[consentInfra.http]',
       JSON.stringify({ route: 'ensure', sandbox, httpStatus: 500, outcome: 'exception', error: String(e.message || e) })
     );
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/**
+ * GET /api/consent-infra/flow-lookup?sandbox=&flowId=&flowName=
+ * Resolves DCS collection URL + flow UUID from Flow Service after the HTTP API dataflow exists in AEP.
+ */
+exports.consentInfraFlowLookup = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  const flowId = String(req.query.flowId || '').trim();
+  const flowName = String(req.query.flowName || '').trim();
+  console.log(
+    '[consentInfra.http]',
+    JSON.stringify({ route: 'GET /api/consent-infra/flow-lookup', sandbox, hasFlowId: !!flowId })
+  );
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await lookupConsentHttpFlow(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), {
+      flowId: flowId || undefined,
+      flowName: flowName || undefined,
+    });
+    res.status(200).json(payload);
+  } catch (e) {
     res.status(500).json({ error: String(e.message || e), sandbox });
   }
 });

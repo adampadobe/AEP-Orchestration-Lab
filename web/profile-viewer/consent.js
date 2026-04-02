@@ -24,6 +24,7 @@ const stepAttachFgBtn = document.getElementById('stepAttachFgBtn');
 const stepCreateDatasetBtn = document.getElementById('stepCreateDatasetBtn');
 const stepHttpFlowBtn = document.getElementById('stepHttpFlowBtn');
 const saveStreamBtn = document.getElementById('saveStreamBtn');
+const fetchFlowFromAepBtn = document.getElementById('fetchFlowFromAepBtn');
 
 const STREAM_LS_KEY = 'aepDecisioningConsentStream_v1';
 
@@ -104,6 +105,46 @@ function showInfraMessage(text, type) {
 function consentInfraQuerySuffix() {
   const sb = getSandboxNameForApi();
   return sb ? `?sandbox=${encodeURIComponent(sb)}` : '';
+}
+
+/** Query Flow Service for DCS URL + flow id once the HTTP API dataflow exists (matches dataflow name, or uses Flow ID field if set). */
+async function fetchConsentFlowFromAep() {
+  if (!fetchFlowFromAepBtn) return;
+  fetchFlowFromAepBtn.disabled = true;
+  showInfraMessage('Looking up dataflow in Flow Service…', '');
+  try {
+    const params = new URLSearchParams();
+    const sb = getSandboxNameForApi();
+    if (sb) params.set('sandbox', sb);
+    const flowField = document.getElementById('streamFlowId');
+    const existingFlowId = flowField && String(flowField.value || '').trim();
+    if (existingFlowId) params.set('flowId', existingFlowId);
+    const qs = params.toString();
+    const res = await fetch('/api/consent-infra/flow-lookup' + (qs ? `?${qs}` : ''));
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) {
+      showInfraMessage(data.error || 'Flow lookup failed', 'error');
+      return;
+    }
+    const u = document.getElementById('streamUrl');
+    const f = document.getElementById('streamFlowId');
+    if (u && data.url) u.value = String(data.url);
+    if (f && data.flowId) f.value = String(data.flowId);
+    saveStreamFieldsToStorage();
+    try {
+      await pushConsentConnectionToFirestore();
+    } catch (e) {
+      console.warn('[consent-connection] flow-lookup sync:', e && e.message);
+    }
+    showInfraMessage(
+      `Loaded collection URL and flow ID${data.flowName ? ` for “${data.flowName}”` : ''}.`,
+      'success',
+    );
+  } catch (e) {
+    showInfraMessage(e.message || 'Network error', 'error');
+  } finally {
+    fetchFlowFromAepBtn.disabled = false;
+  }
 }
 
 /** Apply Firestore `streaming` (+ infra fallbacks) to the HTTP API form fields. */
@@ -627,6 +668,7 @@ stepCreateDatasetBtn &&
   stepCreateDatasetBtn.addEventListener('click', () => runConsentInfraWizardStep('createDataset', stepCreateDatasetBtn));
 stepHttpFlowBtn &&
   stepHttpFlowBtn.addEventListener('click', () => runConsentInfraWizardStep('httpFlow', stepHttpFlowBtn));
+fetchFlowFromAepBtn && fetchFlowFromAepBtn.addEventListener('click', fetchConsentFlowFromAep);
 saveStreamBtn &&
   saveStreamBtn.addEventListener('click', async () => {
     saveStreamFieldsToStorage();
