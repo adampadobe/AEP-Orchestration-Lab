@@ -35,6 +35,23 @@ const {
   patchTenantSchema,
   listGlobalFieldGroups,
 } = require('./schemaRegistryService');
+const {
+  runConsentInfraEnsure,
+  runConsentInfraStatus,
+  CONSENT_DATASET_NAME,
+  CONSENT_HTTP_DATAFLOW_NAME,
+} = require('./consentInfraService');
+const {
+  PROFILE_STREAM_ROOT_PATH_PREFIXES,
+  setByPath,
+  normalizeProfileUpdateDateString,
+  buildConsentXdm,
+  buildProfileStreamPayload,
+  profileStreamingUseEnvelope,
+  buildProfileDcsStreamingHeaders,
+  redactedProfileDcsRequestHeaders,
+  parseStreamingCollectionResponse,
+} = require('./profileStreamingCore');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -46,6 +63,14 @@ const PROFILE_FN_SECRETS = [ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, ADOBE_IMS_ORG,
 function resolveSandboxFromQuery(req) {
   const q = String(req.query.sandbox || '').trim();
   return q || String(process.env.ADOBE_SANDBOX_NAME || DEFAULT_ADOBE_SANDBOX).trim();
+}
+
+/** Sandbox for profile streaming: JSON body.sandbox overrides query (matches Profile Viewer). */
+function resolveSandboxForProfileBody(req) {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const fromBody = String(body.sandbox || '').trim();
+  if (fromBody) return fromBody;
+  return resolveSandboxFromQuery(req);
 }
 
 let tokenCache = { accessToken: null, expiresAtMs: 0 };
@@ -451,6 +476,310 @@ exports.provisioningTenantSchemaPatch = onRequest(profileFnOpts, async (req, res
       adobe: e.body || null,
     });
   }
+});
+
+/** GET /api/consent-infra/status?sandbox= */
+exports.consentInfraStatus = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  console.log('[consentInfra.http]', JSON.stringify({ route: 'GET /api/consent-infra/status', sandbox }));
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    console.log('[consentInfra.http]', JSON.stringify({ route: 'status', sandbox, outcome: 'auth_failed' }));
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await runConsentInfraStatus(
+      sandbox,
+      accessToken,
+      ADOBE_CLIENT_ID.value(),
+      ADOBE_IMS_ORG.value()
+    );
+    console.log(
+      '[consentInfra.http]',
+      JSON.stringify({
+        route: 'status',
+        sandbox,
+        httpStatus: 200,
+        ok: payload.ok !== false,
+        ready: payload.ready,
+        error: payload.error || null,
+      })
+    );
+    res.status(200).json(payload);
+  } catch (e) {
+    console.log(
+      '[consentInfra.http]',
+      JSON.stringify({ route: 'status', sandbox, httpStatus: 500, outcome: 'exception', error: String(e.message || e) })
+    );
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/consent-infra/ensure — create schema, identity, dataset when missing (HTTP flow manual). Body: { dryRun?: boolean } */
+exports.consentInfraEnsure = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const dryRun = body.dryRun === true || body.dryRun === 'true';
+  console.log('[consentInfra.http]', JSON.stringify({ route: 'POST /api/consent-infra/ensure', sandbox, dryRun }));
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    console.log('[consentInfra.http]', JSON.stringify({ route: 'ensure', sandbox, outcome: 'auth_failed' }));
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await runConsentInfraEnsure(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), {
+      dryRun,
+    });
+    console.log(
+      '[consentInfra.http]',
+      JSON.stringify({
+        route: 'ensure',
+        sandbox,
+        httpStatus: 200,
+        ok: payload.ok,
+        ready: payload.ready,
+        dryRun: payload.dryRun,
+        profileCoreMixinMissing: payload.profileCoreMixinMissing || false,
+        error: payload.error || null,
+        schemaCreated: payload.manifest?.schemaCreated,
+        datasetCreated: payload.manifest?.datasetCreated,
+      })
+    );
+    res.status(200).json(payload);
+  } catch (e) {
+    console.log(
+      '[consentInfra.http]',
+      JSON.stringify({ route: 'ensure', sandbox, httpStatus: 500, outcome: 'exception', error: String(e.message || e) })
+    );
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/**
+ * POST /api/profile/update — profile record streaming (consent + attribute paths). Body.streaming must include url + flowId from HTTP API dataflow.
+ */
+exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const email = String(body.email || '').trim();
+  const ecid = body.ecid != null ? String(body.ecid).trim() : '';
+  const updates = Array.isArray(body.updates) ? body.updates : [];
+  const consentRaw = body.consent;
+  const hasConsent = consentRaw != null && typeof consentRaw === 'object' && !Array.isArray(consentRaw);
+  const sandbox = resolveSandboxForProfileBody(req);
+
+  if (!email) {
+    res.status(400).json({ error: 'Email is required.' });
+    return;
+  }
+  if (!ecid || ecid.length < 10) {
+    res.status(400).json({ error: 'ECID is required (load profile first).' });
+    return;
+  }
+  if (hasConsent && updates.length > 0) {
+    res.status(400).json({ error: 'Send either updates or consent, not both.' });
+    return;
+  }
+  if (!hasConsent && updates.length === 0) {
+    res.status(400).json({ error: 'No updates provided (updates[] or consent object).' });
+    return;
+  }
+
+  const streaming = body.streaming && typeof body.streaming === 'object' ? body.streaming : {};
+  const streamUrl = String(streaming.url || '').trim();
+  const flowId = String(streaming.flowId || '').trim();
+  const datasetId = String(streaming.datasetId || '').trim();
+  const schemaId = String(streaming.schemaId || '').trim();
+  const xdmKey = String(streaming.xdmKey || '_demoemea').trim();
+  const useEnvelope =
+    streaming.useEnvelope === true ||
+    streaming.useEnvelope === 'true' ||
+    profileStreamingUseEnvelope(process.env.AEP_PROFILE_STREAMING_ENVELOPE);
+
+  if (!streamUrl || !flowId) {
+    res.status(400).json({
+      error: `Missing streaming.url (DCS collection URL) and streaming.flowId. In AEP, create an HTTP API streaming dataflow named "${CONSENT_HTTP_DATAFLOW_NAME}" for dataset "${CONSENT_DATASET_NAME}", then save URL and Flow ID on the Consent page.`,
+    });
+    return;
+  }
+  if (useEnvelope && (!datasetId || !schemaId)) {
+    res.status(400).json({
+      error: 'Envelope mode requires streaming.datasetId and streaming.schemaId.',
+    });
+    return;
+  }
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  const clientId = ADOBE_CLIENT_ID.value();
+  const orgId = ADOBE_IMS_ORG.value();
+  const apiKey = String(streaming.apiKey || '').trim() || clientId;
+
+  let demoemea;
+  let applied = 0;
+  const skippedPaths = [];
+  const rootExtras = {};
+  let sourceLabel = 'Firebase profile update';
+  let successMessage;
+  /** @type {Array<{ sourcePath: string, relativePath: string, underRootMixin: boolean }> | null} */
+  let appliedPathsDetail = null;
+
+  if (hasConsent) {
+    const c = consentRaw;
+    const fragment = buildConsentXdm(email, {
+      marketingConsent: c.marketingConsent,
+      channelOptInOut: c.channelOptInOut,
+      channels: c.channels,
+      dataCollection: c.dataCollection,
+      dataSharing: c.dataSharing,
+      contentPersonalization: c.contentPersonalization,
+    });
+    demoemea = {
+      identification: {
+        core: {
+          ecid,
+          email,
+        },
+      },
+      consents: fragment._demoemea.consents,
+      optInOut: fragment._demoemea.optInOut,
+    };
+    applied = 1;
+    sourceLabel = 'Consent Manager update';
+    successMessage = 'Profile update accepted (consent). Re-query to see changes.';
+  } else {
+    demoemea = {
+      identification: {
+        core: {
+          ecid,
+          email,
+        },
+      },
+    };
+    appliedPathsDetail = [];
+    for (const u of updates) {
+      const rawPath = u?.path != null ? String(u.path).trim() : '';
+      let path = rawPath
+        .replace(/^(_demoemea\.|xdm:demoss\.)/i, '')
+        .replace(/^demoemea\./i, '');
+      if (!path) {
+        if (rawPath) skippedPaths.push(rawPath);
+        continue;
+      }
+      const val = u.value;
+      let out = val !== undefined && val !== null ? val : '';
+      if (typeof out === 'string') {
+        out = normalizeProfileUpdateDateString(path, out);
+      }
+      const top = path.split('.')[0];
+      const underRootMixin = PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top);
+      const target = underRootMixin ? rootExtras : demoemea;
+      if (typeof out === 'string' && out.trim() !== '' && /^\d+$/.test(out)) {
+        setByPath(target, path, parseInt(out, 10));
+      } else {
+        setByPath(target, path, out);
+      }
+      applied++;
+      appliedPathsDetail.push({ sourcePath: rawPath, relativePath: path, underRootMixin });
+    }
+    if (applied === 0) {
+      res.status(400).json({
+        error: 'No valid attribute paths after stripping tenant prefix.',
+        skippedPaths,
+      });
+      return;
+    }
+    successMessage = `Profile update accepted (${applied} field(s)).`;
+  }
+
+  const { payload, format: payloadFormat } = buildProfileStreamPayload(
+    demoemea,
+    email,
+    ecid,
+    xdmKey,
+    orgId,
+    sourceLabel,
+    rootExtras,
+    { useEnvelope, datasetId, schemaId }
+  );
+
+  const headers = buildProfileDcsStreamingHeaders(accessToken, sandbox, flowId, apiKey);
+
+  let streamRes;
+  let rawText;
+  try {
+    streamRes = await fetch(streamUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+    rawText = await streamRes.text();
+  } catch (e) {
+    res.status(502).json({ error: String(e.message || e) });
+    return;
+  }
+
+  const { parsed: data, streamErrors, streamWarnings } = parseStreamingCollectionResponse(streamRes.status, rawText);
+
+  if (!streamRes.ok || streamErrors.length > 0) {
+    res.status(502).json({
+      error: streamErrors.length ? streamErrors.join(' ') : 'Streaming failed',
+      streamingStatus: streamRes.status,
+      streamingResponse: data,
+      sentToAep: payload,
+      payloadFormat,
+      requestHeaders: redactedProfileDcsRequestHeaders(headers),
+    });
+    return;
+  }
+
+  res.status(200).json({
+    ok: true,
+    message: successMessage,
+    sentToAep: payload,
+    payloadFormat,
+    streamingResponse: data,
+    streamingWarning: streamWarnings.length ? streamWarnings.join(' ') : undefined,
+    requestHeaders: redactedProfileDcsRequestHeaders(headers),
+    ...(appliedPathsDetail && appliedPathsDetail.length ? { appliedPathsDetail } : {}),
+  });
 });
 
 /** GET /api/sandboxes */

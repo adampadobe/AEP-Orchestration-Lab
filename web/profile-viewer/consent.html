@@ -332,6 +332,48 @@
       </div>
     </section>
 
+    <!-- Sandbox prep + HTTP streaming (hosted Firebase) -->
+    <section class="consent-panel" id="stepInfra">
+      <h2 class="panel-title"><span class="icon">⚙</span> Sandbox &amp; streaming connection</h2>
+      <p class="panel-desc">
+        Prepare creates schema <strong>AEP Profile Viewer - Consent - Schema</strong>, dataset <strong>AEP Profile Viewer - Consent - Dataset</strong>
+        (not enabled for Profile), and primary identity on <code>_{tenant}.identification.core.email</code> using your tenant
+        <strong>Profile Core v2</strong> mixin. In AEP, create an <strong>HTTP API</strong> streaming dataflow named
+        <strong>AEP Profile Viewer - Consent - Dataflow</strong> for that dataset — do not enable the dataset for Profile — then paste the collection URL and Flow ID below (saved in this browser).
+      </p>
+      <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem;">
+        <button type="button" id="checkInfraBtn" class="btn btn-secondary">Check sandbox status</button>
+        <button type="button" id="prepareInfraBtn" class="btn btn-primary">Prepare sandbox (schema + dataset)</button>
+      </div>
+      <p id="infraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
+      <div class="sandbox-config" style="margin-top: 1rem;">
+        <h3 class="sandbox-config-title" style="font-size: 0.95rem;">HTTP API streaming (Sources → dataflow “AEP Profile Viewer - Consent - Dataflow”)</h3>
+        <div class="form-row">
+          <label for="streamUrl">Collection URL</label>
+          <input type="url" id="streamUrl" class="sandbox-select" style="width:100%;max-width:42rem;" placeholder="https://dcs.adobedc.net/collection/…" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label for="streamFlowId">Flow ID (x-adobe-flow-id)</label>
+          <input type="text" id="streamFlowId" class="sandbox-select" style="width:100%;max-width:42rem;" placeholder="UUID from the dataflow" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label for="streamDatasetId">Dataset ID</label>
+          <input type="text" id="streamDatasetId" class="sandbox-select" style="width:100%;max-width:28rem;" placeholder="Filled after Prepare, or from AEP" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label for="streamSchemaId">Schema $id</label>
+          <input type="text" id="streamSchemaId" class="sandbox-select" style="width:100%;max-width:42rem;" placeholder="https://ns.adobe.com/…/schemas/…" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label for="streamXdmKey">Tenant XDM key</label>
+          <input type="text" id="streamXdmKey" class="sandbox-select" style="width:10rem;" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="button-row">
+          <button type="button" id="saveStreamBtn" class="btn btn-secondary">Save connection to this browser</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Step 3: Save to AEP -->
     <section class="consent-panel" id="step4">
       <h2 class="panel-title"><span class="icon">🚀</span> Step 3: Save changes to Adobe Experience Platform</h2>

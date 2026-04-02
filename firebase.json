@@ -117,6 +117,27 @@
           "functionId": "provisioningTenantSchemaPatch",
           "region": "us-central1"
         }
+      },
+      {
+        "source": "/api/consent-infra/status",
+        "function": {
+          "functionId": "consentInfraStatus",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/consent-infra/ensure",
+        "function": {
+          "functionId": "consentInfraEnsure",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/profile/update",
+        "function": {
+          "functionId": "profileUpdateProxy",
+          "region": "us-central1"
+        }
       }
     ]
   }

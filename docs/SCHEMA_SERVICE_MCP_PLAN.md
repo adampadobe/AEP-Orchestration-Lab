@@ -230,3 +230,17 @@ Implementation: `functions/schemaRegistryService.js`, exports in `functions/inde
 **IMS scopes:** the OAuth client must be allowed to call Schema Registry for your org (same technical account as Profile / Catalog). If create returns 403, add the appropriate **Experience Platform** API and Schema Registry permissions to the product profile in Adobe Developer Console.
 
 **Security:** endpoints are currently `invoker: public` like other lab proxies — restrict with App Check / IAM before production use.
+
+---
+
+## 14. Consent sandbox automation (implemented)
+
+| Hosting path | Method | Purpose |
+|--------------|--------|---------|
+| `/api/consent-infra/status` | GET | Reports whether **Profile Core v2** mixin exists, schema **AEP Profile Viewer - Consent - Schema** (or legacy **AEP Decisioning — Profile + Consent**), **Email** primary-identity descriptor on `_{tenant}.identification/core/email`, and Catalog dataset **AEP Profile Viewer - Consent - Dataset**. |
+| `/api/consent-infra/ensure` | POST | Creates missing schema/dataset with those canonical names; dataset is **not** enabled for Profile. Adds **union** tag (best effort), **primary Email** descriptor. In AEP UI, name the HTTP streaming dataflow **AEP Profile Viewer - Consent - Dataflow**. Requires **Profile Core v2** in the sandbox. |
+| `/api/profile/update` | POST | Streams profile updates to DCS; body must include `streaming.url`, `streaming.flowId`, optional `streaming.datasetId` / `schemaId` / `xdmKey` for envelope mode, plus `email`, `ecid`, `updates` or `consent`. |
+
+**HTTP API dataflow** (inlet URL + `x-adobe-flow-id`) is still created in the **AEP UI** (or Sources API); the Consent page stores URL + Flow ID in **localStorage** per browser.
+
+**Profile Viewer Consent** (`consent.html`): **Check sandbox status**, **Prepare sandbox**, streaming fields, **Save connection**, then **Update consent preferences** (hosted).
