@@ -4,234 +4,519 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Content decision — profile &amp; webhook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
   <style>
+    /* Tokens aligned with AI Projects/cursor/Firebase Images/styles.css */
     :root {
-      --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
-      --bg: #f5f5f5;
-      --card: #fff;
-      --border: #e1e1e1;
-      --text: #2c2c2c;
-      --muted: #6e6e6e;
-      --blue: #0d66d0;
-      --green: #268e6c;
-      --red: #d7373f;
+      --font: "DM Sans", "Segoe UI", system-ui, sans-serif;
+      --bg: #1a1d23;
+      --bg-panel: #252830;
+      --bg-hover: #2d3139;
+      --border: #3d424d;
+      --text: #e6e9ef;
+      --muted: #8b909a;
+      --accent: #7c9fe6;
+      --accent-hover: #94b3f0;
+      --success: #7dd3a8;
+      --error: #e07d7d;
       --radius: 8px;
-    }
-    [data-theme="dark"] {
-      --bg: #1e1e1e;
-      --card: #2c2c2c;
-      --border: #444;
-      --text: #fff;
-      --muted: #b9b9b9;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px; max-width: 720px; margin: 0 auto; }
-    header { margin-bottom: 20px; }
-    h1 { font-size: 1.35rem; font-weight: 700; }
-    .sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
-    .sub a { color: var(--blue); }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; }
+    code { font-family: ui-monospace, monospace; font-size: 0.9em; background: var(--bg-hover); padding: 0.15em 0.4em; border-radius: 4px; }
+    /* Global <code> chip style must not apply inside buttons (unreadable dark-on-dark on .primary) */
+    button code {
+      font-family: ui-monospace, monospace;
+      font-size: 0.92em;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      border-radius: 0;
+      font-weight: inherit;
     }
-    .card h2 { font-size: 15px; margin-bottom: 10px; }
-    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-    input[type="email"], input[type="text"], input[type="url"], select, textarea {
-      width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius);
-      font-size: 14px; background: var(--card); color: var(--text); margin-bottom: 10px;
+
+    .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+    .header {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
+      padding: 1rem 1.5rem; background: var(--bg-panel); border-bottom: 1px solid var(--border);
     }
-    textarea { min-height: 88px; font-family: ui-monospace, monospace; font-size: 12px; }
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
-    button.primary {
-      background: var(--blue); color: #fff; border: none; border-radius: var(--radius);
-      padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--font);
+    .header h1 { font-size: 1.25rem; font-weight: 600; }
+    .header-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .header .sub { font-size: 0.875rem; color: var(--muted); }
+    .header .sub a { color: var(--accent); text-decoration: none; }
+    .header .sub a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+    .main--cd {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
     }
-    button.secondary {
-      background: var(--bg); color: var(--text); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 10px 14px; font-size: 14px; cursor: pointer; font-family: var(--font);
+
+    .hero-stage {
+      flex: 1 1 0;
+      min-height: 0;
+      padding: 1.25rem 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-    .status { font-size: 13px; margin-top: 8px; color: var(--muted); }
-    .status.ok { color: var(--green); }
-    .status.err { color: var(--red); }
-    .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
-    details { margin-top: 10px; }
-    details summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--muted); }
-    pre {
-      font-size: 11px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 10px; overflow: auto; max-height: 200px; margin-top: 8px;
+
+    .hero-placeholder {
+      width: 100%; max-width: 960px; border: 2px dashed var(--border); border-radius: var(--radius);
+      padding: 2.5rem 1.5rem; text-align: center; background: var(--bg-panel); color: var(--muted);
+      font-size: 0.875rem;
     }
-    label.chk { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text); margin-top: 8px; }
-    label.chk input { width: auto; margin: 2px 0 0 0; }
-    /* Banner + editor (aligned with main lab) */
+    .hero-placeholder strong { color: var(--text); font-weight: 500; }
+    .hero-placeholder[hidden] { display: none !important; }
+
     .cd-banner-wrap {
-      margin-top: 12px; border-radius: var(--radius); overflow: hidden;
-      border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      width: 100%; max-width: 960px; border-radius: var(--radius);
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .cd-banner-wrap.cd-banner-wrap--half-bridge {
+      overflow: visible;
     }
     .cd-banner-wrap[hidden] { display: none !important; }
+
     .cd-banner {
-      position: relative; min-height: 220px; display: flex; flex-direction: column;
-      align-items: stretch; justify-content: var(--cd-block-justify, flex-end); isolation: isolate;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel);
+      border-radius: var(--radius);
     }
-    @media (min-width: 640px) { .cd-banner { min-height: 280px; } }
-    .cd-banner-bg {
-      position: absolute; inset: 0; background-color: var(--bg); background-size: cover;
-      background-position: center; z-index: 0;
+
+    .cd-banner-figure {
+      background-color: var(--bg-hover);
+      background-repeat: no-repeat;
+      background-position: center top;
+      background-size: cover;
     }
     .cd-banner-scrim {
-      position: absolute; inset: 0; z-index: 1;
-      background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.2) 100%);
+      display: none;
       pointer-events: none;
     }
-    .cd-banner-inner {
-      position: relative; z-index: 2; padding: 20px; max-width: 100%; display: flex; flex-direction: column;
-      width: 100%; gap: 10px; min-height: 10.5rem;
+
+    /* —— Below image: stacked (copy under photo) —— */
+    .cd-banner--below {
+      overflow: hidden;
     }
-    .cd-slot { display: flex; width: 100%; justify-content: var(--cd-slot-justify, flex-start); align-items: var(--cd-slot-align, flex-start); }
-    .cd-slot--title { min-height: 2.5rem; flex: 0 0 auto; }
-    .cd-slot--desc { min-height: 4rem; flex: 1 1 auto; }
-    .cd-slot--cta { min-height: 2.75rem; flex: 0 0 auto; }
+    .cd-banner--below .cd-banner-figure {
+      min-height: min(42vh, 300px);
+      border-bottom: 1px solid var(--border);
+      flex: 0 0 auto;
+    }
+    .cd-banner--below .cd-banner-figure.cd-banner-figure--empty {
+      display: none;
+    }
+    .cd-banner--below .cd-banner-scrim {
+      display: none;
+    }
+    .cd-banner--below .cd-banner-copy {
+      position: relative;
+      z-index: 1;
+      padding: 1.25rem 1.5rem;
+      min-height: 6rem;
+      justify-content: var(--cd-block-justify, flex-start);
+    }
+
+    /* —— Full overlay: copy on top of image (controls = block + slot alignment) —— */
+    .cd-banner--overlay {
+      min-height: min(52vh, 400px);
+      overflow: hidden;
+    }
+    .cd-banner--overlay .cd-banner-figure {
+      position: absolute;
+      inset: 0;
+      min-height: 100%;
+    }
+    .cd-banner--overlay .cd-banner-figure.cd-banner-figure--empty {
+      display: block;
+      background-image: none !important;
+      background: linear-gradient(165deg, var(--bg-hover) 0%, var(--bg-panel) 100%);
+    }
+    .cd-banner--overlay .cd-banner-scrim {
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 45%, rgba(0, 0, 0, 0.15) 100%);
+    }
+    .cd-banner--overlay .cd-banner-copy {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      justify-content: var(--cd-block-justify, flex-end);
+      min-height: min(52vh, 400px);
+      padding: 1.35rem 1.5rem 1.5rem;
+    }
+    .cd-banner--overlay .cd-banner-title {
+      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.75);
+    }
+    .cd-banner--overlay .cd-banner-desc {
+      text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7);
+    }
+
+    /* —— Half overlaid: figure + copy share one grid cell; copy align-self:end sits on the seam (no fragile flex negative margin) —— */
+    .cd-banner--half {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: min(42vh, 300px);
+      overflow: visible;
+      align-content: start;
+    }
+    .cd-banner--half .cd-banner-figure {
+      grid-column: 1;
+      grid-row: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      align-self: stretch;
+      border: none;
+    }
+    .cd-banner--half .cd-banner-figure.cd-banner-figure--empty {
+      display: none;
+    }
+    .cd-banner--half .cd-banner-scrim {
+      display: none !important;
+    }
+    .cd-banner--half .cd-banner-copy {
+      grid-column: 1;
+      grid-row: 1;
+      align-self: end;
+      justify-self: stretch;
+      width: 100%;
+      position: relative;
+      z-index: 2;
+      margin: 0;
+      padding: 1.35rem 1.5rem 1.25rem;
+      background: var(--bg-panel);
+      border-radius: var(--radius) var(--radius) 0 0;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      justify-content: var(--cd-block-justify, flex-start);
+      min-height: 0;
+    }
+    /* No image (see cd-banner--no-image on banner in JS): single card, no bridge row */
+    .cd-banner--half.cd-banner--no-image {
+      grid-template-rows: auto;
+    }
+    .cd-banner--half.cd-banner--no-image .cd-banner-copy {
+      align-self: stretch;
+      border-radius: var(--radius);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .cd-banner-copy {
+      --cd-block-justify: flex-start;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      justify-content: var(--cd-block-justify);
+    }
+    .cd-slot {
+      display: flex; width: 100%;
+      justify-content: var(--cd-slot-justify, center);
+      align-items: var(--cd-slot-align, flex-start);
+    }
+    .cd-slot--title { min-height: 0; }
+    .cd-slot--desc { min-height: 0; }
+    .cd-slot--cta { min-height: 0; }
     .cd-banner-title {
-      margin: 0; font-size: clamp(1.2rem, 3vw, 1.65rem); font-weight: 700; line-height: 1.25;
-      color: var(--cd-title-color, #fff); text-shadow: 0 2px 12px rgba(0,0,0,0.65); max-width: 100%;
+      margin: 0; font-size: clamp(1.15rem, 2.8vw, 1.5rem); font-weight: 700; line-height: 1.25;
+      color: var(--cd-title-color, var(--text)); max-width: 40rem; text-align: center;
     }
     .cd-banner-desc {
-      margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--cd-desc-color, rgba(255,255,255,0.95));
-      text-shadow: 0 1px 8px rgba(0,0,0,0.6); max-width: 42em;
+      margin: 0; font-size: 0.9375rem; line-height: 1.55; color: var(--cd-desc-color, var(--muted));
+      max-width: 36rem; text-align: center;
     }
     .cd-banner-cta {
-      display: inline-block; padding: 10px 20px; font-size: 14px; font-weight: 600; font-family: var(--font);
-      color: var(--cd-cta-text, #2c2c2c); background: var(--cd-cta-bg, #fff); border-radius: var(--radius);
-      text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      display: inline-block; padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 600; font-family: var(--font);
+      color: var(--cd-cta-text, #1a1d23); background: var(--cd-cta-bg, var(--accent)); border-radius: var(--radius);
+      text-decoration: none; transition: background 0.15s;
     }
+    .cd-banner-cta:hover { filter: brightness(1.08); }
     .cd-banner-cta--ghost { cursor: default; opacity: 0.85; }
-    .cd-banner-editor {
-      margin-top: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px;
+
+    /*
+      Workflow drawer: explicit height + inner scroll (not flex on <details> — unreliable in WebKit/Chromium).
+      Opens upward by taking a fixed slice of the viewport; hero-stage shrinks (flex above). Scroll inside .workflow-drawer-scroll only.
+    */
+    .workflow-drawer {
+      border-top: 1px solid var(--border);
+      background: var(--bg-panel);
+      flex: 0 0 auto;
+      --wf-summary-h: 3.125rem;
     }
-    .cd-banner-editor summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
-    .cd-editor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .workflow-drawer[open] {
+      --wf-drawer-h: min(75vh, calc(100vh - 4.5rem));
+      display: block;
+      height: var(--wf-drawer-h);
+      max-height: var(--wf-drawer-h);
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    @supports (height: 100dvh) {
+      .workflow-drawer[open] {
+        --wf-drawer-h: min(75vh, calc(100dvh - 4.5rem));
+      }
+    }
+    .workflow-drawer > summary {
+      list-style: none; cursor: pointer; padding: 0.875rem 1.5rem; font-size: 0.75rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+      display: flex; align-items: center; justify-content: space-between; user-select: none;
+      border-bottom: 1px solid transparent;
+      box-sizing: border-box;
+      height: var(--wf-summary-h);
+      flex-shrink: 0;
+    }
+    .workflow-drawer > summary::-webkit-details-marker { display: none; }
+    .workflow-drawer > summary::after {
+      content: ''; width: 0.5rem; height: 0.5rem; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+      transform: rotate(45deg); transition: transform 0.2s; margin-left: 0.5rem;
+    }
+    .workflow-drawer[open] > summary { border-bottom-color: var(--border); }
+    .workflow-drawer[open] > summary::after { transform: rotate(-135deg); }
+    .workflow-drawer-scroll {
+      box-sizing: border-box;
+      padding: 1rem 1.5rem 1.5rem;
+    }
+    .workflow-drawer[open] .workflow-drawer-scroll {
+      height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
+      max-height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-gutter: stable;
+      touch-action: pan-y;
+    }
+
+    .panel {
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1rem 1.1rem; margin-bottom: 0.75rem;
+    }
+    .panel:last-child { margin-bottom: 0; }
+    .panel h2 {
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted); margin-bottom: 0.75rem;
+    }
+
+    label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.35rem; }
+    input[type="email"], input[type="text"], input[type="url"], select {
+      width: 100%; padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 0.875rem; background: var(--bg-panel); color: var(--text); margin-bottom: 0.65rem; font-family: var(--font);
+    }
+    input:focus, select:focus { outline: 1px solid var(--accent); outline-offset: 0; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+    @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+
+    button.primary {
+      background: var(--accent); color: #1a1d23; border: none; border-radius: var(--radius);
+      padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; font-family: var(--font);
+    }
+    button.primary:hover { background: var(--accent-hover); }
+    button.secondary {
+      background: var(--border); color: var(--text); border: none;
+      border-radius: var(--radius); padding: 0.5rem 0.9rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; font-family: var(--font);
+    }
+    button.secondary:hover { background: var(--bg-hover); }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.35rem; }
+    .status { font-size: 0.8125rem; margin-top: 0.5rem; color: var(--muted); }
+    .status.ok { color: var(--success); }
+    .status.err { color: var(--error); }
+    .hint { font-size: 0.75rem; color: var(--muted); margin-top: 0.35rem; }
+
+    .panel details { margin-top: 0.65rem; }
+    .panel details summary { cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--muted); }
+    pre {
+      font-size: 0.6875rem; background: var(--bg-hover); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 0.65rem; overflow: auto; max-height: 180px; margin-top: 0.5rem; color: var(--text);
+    }
+    label.chk { display: flex; align-items: flex-start; gap: 0.5rem; cursor: pointer; font-size: 0.8125rem; color: var(--text); margin-top: 0.5rem; }
+    label.chk input { width: auto; margin: 0.15rem 0 0 0; accent-color: var(--accent); }
+    .auto-webhook-row {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem;
+      margin-top: 0.5rem; font-size: 0.8125rem; color: var(--text);
+    }
+    .auto-webhook-row label.chk { margin-top: 0; cursor: pointer; }
+    .auto-webhook-delay {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+    }
+    .auto-webhook-delay input[type="number"] {
+      width: 3.5rem; margin-bottom: 0; padding: 0.35rem 0.45rem; text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .auto-webhook-delay .auto-webhook-delay-unit { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+
+    .cd-banner-editor.panel { margin-top: 0.75rem; margin-bottom: 0; }
+    .cd-banner-editor > summary { cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text); margin-bottom: 0.65rem; list-style: none; }
+    .cd-banner-editor > summary::-webkit-details-marker { display: none; }
+    .cd-editor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.65rem; }
     .cd-editor-block {
-      padding: 8px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 0.5rem; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius);
     }
-    .cd-editor-block strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px; }
-    .cd-editor-block label { font-size: 11px; margin-top: 6px; }
+    .cd-editor-block strong { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.35rem; }
+    .cd-editor-block label { font-size: 0.65rem; margin-top: 0.35rem; }
     .cd-editor-block label:first-of-type { margin-top: 0; }
-    .cd-editor-block select { margin-bottom: 0; padding: 6px 8px; font-size: 13px; }
-    .cd-color-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
-    .cd-color-row input[type='color'] { width: 40px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; margin-bottom: 0; }
-    .cd-color-row input[type='text'] { flex: 1; min-width: 0; margin-bottom: 0; padding: 6px 8px; font-family: ui-monospace, monospace; font-size: 12px; }
-    .cd-editor-actions { margin-top: 12px; }
+    .cd-editor-block select { margin-bottom: 0; }
+    .cd-color-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem; flex-wrap: wrap; }
+    .cd-color-row input[type='color'] { width: 36px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; margin-bottom: 0; }
+    .cd-color-row input[type='text'] { flex: 1; min-width: 0; margin-bottom: 0; padding: 0.35rem 0.5rem; font-family: ui-monospace, monospace; font-size: 0.75rem; }
+    .cd-editor-actions { margin-top: 0.65rem; }
+    .cd-editor-block--full { grid-column: 1 / -1; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Content decision — live</h1>
-    <p class="sub"><a href="/aep-decisioning-lab/content-decision-live.html">Lab path</a> · <a href="/content-decision-live.html">root</a> · <a href="/index.html">full lab</a></p>
-    <button type="button" class="secondary" id="themeBtn" style="margin-top:10px;font-size:12px;">Toggle theme</button>
-  </header>
-
-  <section class="card">
-    <h2>1. Profile &amp; <code>get.decisions</code></h2>
-    <label for="cdLiveEmail">Email (identity value)</label>
-    <input id="cdLiveEmail" type="email" autocomplete="email" placeholder="adamp.adobedemo+010426-4@gmail.com">
-    <div class="row2">
-      <div>
-        <label for="cdLiveNs">Namespace code</label>
-        <input id="cdLiveNs" type="text" value="Email" autocomplete="off">
+  <div class="app">
+    <header class="header">
+      <h1>Content decision</h1>
+      <div class="header-actions">
+        <p class="sub"><a href="/aep-decisioning-lab/content-decision-live.html">Lab path</a> · <a href="/content-decision-live.html">root</a> · <a href="/index.html">Full lab</a></p>
       </div>
-    </div>
-    <label for="firebaseEventUrl">Experience event endpoint (Cloud Run)</label>
-    <input id="firebaseEventUrl" type="url" autocomplete="off">
-    <div class="actions">
-      <button type="button" class="secondary" id="btnFetchProfile">Fetch profile only</button>
-      <button type="button" class="primary" id="btnProfileAndSendEvent">Fetch profile + send <code>get.decisions</code></button>
-    </div>
-    <p class="status" id="profileStatus"></p>
-    <p class="status" id="eventStatus" style="margin-top:4px;"></p>
-    <p class="hint" id="ecidHint"></p>
-    <label class="chk"><input type="checkbox" id="autoFetchWebhook" checked> <span>After a successful event send, fetch webhooks in ~2s</span></label>
-    <details>
-      <summary>Profile response (raw)</summary>
-      <pre id="profileRaw">{}</pre>
-    </details>
-  </section>
+    </header>
 
-  <section class="card">
-    <h2>2. Webhook</h2>
-    <div class="actions">
-      <button type="button" class="primary" id="btnFetchWebhook">Fetch webhooks</button>
-      <button type="button" class="secondary" id="btnShowBanner" disabled>Show content banner</button>
-    </div>
-    <p class="status" id="webhookStatus"></p>
-  </section>
+    <main class="main main--cd">
+      <section class="hero-stage" aria-label="Content decision preview">
+        <div id="cdHeroPlaceholder" class="hero-placeholder">
+          <strong>No preview yet.</strong><br>
+          Open <strong>Workflow &amp; controls</strong> below, run profile + <code>get.decisions</code>, then <strong>Show content banner</strong>.
+        </div>
+        <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Content decision banner"></div>
+      </section>
 
-  <section class="card">
-    <h2>3. Banner</h2>
-    <details class="cd-banner-editor" id="journeyBannerEditor" open>
-      <summary>Alignment &amp; colors</summary>
-      <div class="cd-editor-grid">
-        <div class="cd-editor-block">
-          <strong>Whole block</strong>
-          <label for="cdBlockY">Vertical on hero</label>
-          <select id="cdBlockY" data-cd-key="blockY">
-            <option value="flex-start">Top</option>
-            <option value="center">Middle</option>
-            <option value="flex-end" selected>Bottom</option>
-          </select>
-        </div>
-        <div class="cd-editor-block">
-          <strong>Title</strong>
-          <label for="cdTitleH">Horizontal</label>
-          <select id="cdTitleH"><option value="flex-start" selected>Left</option><option value="center">Center</option><option value="flex-end">Right</option></select>
-          <label for="cdTitleV">Vertical</label>
-          <select id="cdTitleV"><option value="flex-start" selected>Top</option><option value="center">Middle</option><option value="flex-end">Bottom</option></select>
-          <label>Text color</label>
-          <div class="cd-color-row">
-            <input type="color" id="cdTitleColorPick" value="#ffffff">
-            <input type="text" id="cdTitleColorHex" value="#ffffff" maxlength="9">
+      <details class="workflow-drawer" id="workflowDrawer">
+        <summary>Workflow &amp; controls</summary>
+        <div class="workflow-drawer-scroll">
+          <div class="panel">
+            <h2>Profile &amp; <code>get.decisions</code></h2>
+            <label for="cdLiveEmail">Email (identity value)</label>
+            <input id="cdLiveEmail" type="email" autocomplete="email" placeholder="adamp.adobedemo+010426-4@gmail.com">
+            <div class="row2">
+              <div>
+                <label for="cdLiveNs">Namespace code</label>
+                <input id="cdLiveNs" type="text" value="Email" autocomplete="off">
+              </div>
+            </div>
+            <label for="firebaseEventUrl">Experience event endpoint (Cloud Run)</label>
+            <input id="firebaseEventUrl" type="url" autocomplete="off">
+            <div class="actions">
+              <button type="button" class="secondary" id="btnFetchProfile">Fetch profile only</button>
+              <button type="button" class="primary" id="btnProfileAndSendEvent">Fetch profile + send <code>get.decisions</code></button>
+            </div>
+            <p class="status" id="profileStatus"></p>
+            <p class="status" id="eventStatus" style="margin-top:4px;"></p>
+            <p class="hint" id="ecidHint"></p>
+            <div class="auto-webhook-row">
+              <label class="chk"><input type="checkbox" id="autoFetchWebhook" checked> <span>After a successful event send, auto-fetch webhooks after</span></label>
+              <div class="auto-webhook-delay">
+                <input type="number" id="autoWebhookDelaySec" min="1" max="120" step="1" value="2" inputmode="numeric" aria-label="Seconds to wait before webhook fetch" title="Use the arrows or type 1–120">
+                <span class="auto-webhook-delay-unit">seconds</span>
+              </div>
+            </div>
+            <details>
+              <summary>Profile response (raw)</summary>
+              <pre id="profileRaw">{}</pre>
+            </details>
           </div>
-        </div>
-        <div class="cd-editor-block">
-          <strong>Description</strong>
-          <label for="cdDescH">Horizontal</label>
-          <select id="cdDescH"><option value="flex-start" selected>Left</option><option value="center">Center</option><option value="flex-end">Right</option></select>
-          <label for="cdDescV">Vertical</label>
-          <select id="cdDescV"><option value="flex-start">Top</option><option value="center" selected>Middle</option><option value="flex-end">Bottom</option></select>
-          <label>Text color</label>
-          <div class="cd-color-row">
-            <input type="color" id="cdDescColorPick" value="#f5f5f5">
-            <input type="text" id="cdDescColorHex" value="#f5f5f5" maxlength="9">
+
+          <div class="panel">
+            <h2>Webhook</h2>
+            <div class="actions">
+              <button type="button" class="primary" id="btnFetchWebhook">Fetch webhooks</button>
+              <button type="button" class="secondary" id="btnShowBanner" disabled>Show content banner</button>
+            </div>
+            <p class="status" id="webhookStatus"></p>
           </div>
+
+          <details class="cd-banner-editor panel" id="journeyBannerEditor" open>
+            <summary>Banner layout &amp; colors</summary>
+            <div class="cd-editor-grid">
+              <div class="cd-editor-block cd-editor-block--full">
+                <strong>Text vs image</strong>
+                <label for="cdLayoutMode">Placement</label>
+                <select id="cdLayoutMode">
+                  <option value="overlay" selected>On image (overlay)</option>
+                  <option value="half">Half overlaid (card on seam)</option>
+                  <option value="below">Below image</option>
+                </select>
+              </div>
+              <div class="cd-editor-block">
+                <strong>Copy block</strong>
+                <label for="cdBlockY">Vertical on banner</label>
+                <select id="cdBlockY" data-cd-key="blockY">
+                  <option value="flex-start">Top</option>
+                  <option value="center">Middle</option>
+                  <option value="flex-end" selected>Bottom</option>
+                </select>
+              </div>
+              <div class="cd-editor-block">
+                <strong>Title</strong>
+                <label for="cdTitleH">Horizontal</label>
+                <select id="cdTitleH"><option value="flex-start">Left</option><option value="center" selected>Center</option><option value="flex-end">Right</option></select>
+                <label for="cdTitleV">Vertical</label>
+                <select id="cdTitleV"><option value="flex-start" selected>Top</option><option value="center">Middle</option><option value="flex-end">Bottom</option></select>
+                <label>Text color</label>
+                <div class="cd-color-row">
+                  <input type="color" id="cdTitleColorPick" value="#e6e9ef">
+                  <input type="text" id="cdTitleColorHex" value="#e6e9ef" maxlength="9">
+                </div>
+              </div>
+              <div class="cd-editor-block">
+                <strong>Description</strong>
+                <label for="cdDescH">Horizontal</label>
+                <select id="cdDescH"><option value="flex-start">Left</option><option value="center" selected>Center</option><option value="flex-end">Right</option></select>
+                <label for="cdDescV">Vertical</label>
+                <select id="cdDescV"><option value="flex-start">Top</option><option value="center" selected>Middle</option><option value="flex-end">Bottom</option></select>
+                <label>Text color</label>
+                <div class="cd-color-row">
+                  <input type="color" id="cdDescColorPick" value="#c5c9d3">
+                  <input type="text" id="cdDescColorHex" value="#c5c9d3" maxlength="9">
+                </div>
+              </div>
+              <div class="cd-editor-block">
+                <strong>Button</strong>
+                <label for="cdCtaH">Horizontal</label>
+                <select id="cdCtaH"><option value="flex-start">Left</option><option value="center" selected>Center</option><option value="flex-end">Right</option></select>
+                <label for="cdCtaV">Vertical</label>
+                <select id="cdCtaV"><option value="flex-start">Top</option><option value="center">Middle</option><option value="flex-end" selected>Bottom</option></select>
+                <label>Background</label>
+                <div class="cd-color-row">
+                  <input type="color" id="cdCtaBgPick" value="#f0f2f6">
+                  <input type="text" id="cdCtaBgHex" value="#f0f2f6" maxlength="9">
+                </div>
+                <label>Button text</label>
+                <div class="cd-color-row">
+                  <input type="color" id="cdCtaTextPick" value="#1a1d23">
+                  <input type="text" id="cdCtaTextHex" value="#1a1d23" maxlength="9">
+                </div>
+              </div>
+            </div>
+            <div class="cd-editor-actions">
+              <button type="button" class="secondary" id="cdBannerResetStyles">Reset banner styles</button>
+            </div>
+          </details>
         </div>
-        <div class="cd-editor-block">
-          <strong>Button</strong>
-          <label for="cdCtaH">Horizontal</label>
-          <select id="cdCtaH"><option value="flex-start" selected>Left</option><option value="center">Center</option><option value="flex-end">Right</option></select>
-          <label for="cdCtaV">Vertical</label>
-          <select id="cdCtaV"><option value="flex-start">Top</option><option value="center">Middle</option><option value="flex-end" selected>Bottom</option></select>
-          <label>Background</label>
-          <div class="cd-color-row">
-            <input type="color" id="cdCtaBgPick" value="#ffffff">
-            <input type="text" id="cdCtaBgHex" value="#ffffff" maxlength="9">
-          </div>
-          <label>Button text</label>
-          <div class="cd-color-row">
-            <input type="color" id="cdCtaTextPick" value="#2c2c2c">
-            <input type="text" id="cdCtaTextHex" value="#2c2c2c" maxlength="9">
-          </div>
-        </div>
-      </div>
-      <div class="cd-editor-actions">
-        <button type="button" class="secondary" id="cdBannerResetStyles">Reset banner styles</button>
-      </div>
-    </details>
-    <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Content decision banner"></div>
-  </section>
+      </details>
+    </main>
+  </div>
 
   <script>
 (function () {
@@ -241,6 +526,8 @@
   const LS_EMAIL = 'aep-cd-live-email';
   const LS_NS = 'aep-cd-live-ns';
   const LS_FIREBASE_URL = 'aep-cd-live-firebase-event-url';
+  const LS_WEBHOOK_DELAY_SEC = 'aep-cd-live-webhook-delay-sec';
+  const DEFAULT_WEBHOOK_DELAY_SEC = 2;
   /** Same Cloud Run target as firebaseFunctions experience-events.html */
   const DEFAULT_EXPERIENCE_EVENT_POST_URL = 'https://createadobeprofile-pscg5c4cja-uc.a.run.app';
   /** Hidden defaults from experience-events.html (orgId, datasetId, schemaRef) */
@@ -258,25 +545,16 @@
   }
 
   const CD_BANNER_DEFAULTS = {
-    blockY: 'flex-end', titleH: 'flex-start', titleV: 'flex-start',
-    descH: 'flex-start', descV: 'center', ctaH: 'flex-start', ctaV: 'flex-end',
-    titleColor: '#ffffff', descColor: '#f5f5f5', ctaBg: '#ffffff', ctaText: '#2c2c2c',
+    layoutMode: 'overlay',
+    blockY: 'flex-end',
+    titleH: 'center', titleV: 'flex-start',
+    descH: 'center', descV: 'center',
+    ctaH: 'center', ctaV: 'flex-end',
+    titleColor: '#e6e9ef', descColor: '#c5c9d3', ctaBg: '#f0f2f6', ctaText: '#1a1d23',
   };
 
   let lastUpsPayload = null;
   let lastWebhookRaw = null;
-
-  document.getElementById('themeBtn').addEventListener('click', function () {
-    const d = document.documentElement;
-    d.dataset.theme = d.dataset.theme === 'dark' ? 'light' : 'dark';
-    try { localStorage.setItem('aep-cd-live-theme', d.dataset.theme); } catch (e) {}
-  });
-  (function () {
-    try {
-      const t = localStorage.getItem('aep-cd-live-theme');
-      if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
-    } catch (e) {}
-  })();
 
   function persistLiveIdentity() {
     const em = document.getElementById('cdLiveEmail').value.trim();
@@ -294,6 +572,25 @@
     } catch (e) {}
   }
 
+  function clampWebhookDelaySec(n) {
+    if (typeof n !== 'number' || isNaN(n)) n = DEFAULT_WEBHOOK_DELAY_SEC;
+    return Math.max(1, Math.min(120, Math.round(n)));
+  }
+
+  function persistWebhookDelay() {
+    var el = document.getElementById('autoWebhookDelaySec');
+    if (!el) return;
+    var n = clampWebhookDelaySec(parseInt(el.value, 10));
+    el.value = String(n);
+    try { localStorage.setItem(LS_WEBHOOK_DELAY_SEC, String(n)); } catch (e) {}
+  }
+
+  function getAutoWebhookDelayMs() {
+    var el = document.getElementById('autoWebhookDelaySec');
+    var n = el ? parseInt(el.value, 10) : DEFAULT_WEBHOOK_DELAY_SEC;
+    return clampWebhookDelaySec(n) * 1000;
+  }
+
   (function initFields() {
     try {
       var em = localStorage.getItem(LS_EMAIL);
@@ -302,7 +599,19 @@
       if (ns) document.getElementById('cdLiveNs').value = ns;
       var fu = localStorage.getItem(LS_FIREBASE_URL);
       document.getElementById('firebaseEventUrl').value = fu || DEFAULT_EXPERIENCE_EVENT_POST_URL;
+      var del = localStorage.getItem(LS_WEBHOOK_DELAY_SEC);
+      if (del != null) {
+        var ds = clampWebhookDelaySec(parseInt(del, 10));
+        document.getElementById('autoWebhookDelaySec').value = String(ds);
+      }
     } catch (e) {}
+  })();
+
+  (function initAutoWebhookDelayControls() {
+    var el = document.getElementById('autoWebhookDelaySec');
+    if (!el) return;
+    el.addEventListener('change', persistWebhookDelay);
+    el.addEventListener('blur', persistWebhookDelay);
   })();
 
   document.getElementById('cdLiveEmail').addEventListener('blur', persistLiveIdentity);
@@ -514,7 +823,10 @@
 
   function readCdBannerEditorForm() {
     function g(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+    var lm = g('cdLayoutMode');
+    if (lm !== 'overlay' && lm !== 'half' && lm !== 'below') lm = CD_BANNER_DEFAULTS.layoutMode;
     return {
+      layoutMode: lm,
       blockY: g('cdBlockY') || CD_BANNER_DEFAULTS.blockY,
       titleH: g('cdTitleH') || CD_BANNER_DEFAULTS.titleH,
       titleV: g('cdTitleV') || CD_BANNER_DEFAULTS.titleV,
@@ -531,6 +843,7 @@
 
   function writeCdBannerEditorForm(state) {
     function set(id, val) { var el = document.getElementById(id); if (el) el.value = val; }
+    set('cdLayoutMode', state.layoutMode || CD_BANNER_DEFAULTS.layoutMode);
     set('cdBlockY', state.blockY);
     set('cdTitleH', state.titleH); set('cdTitleV', state.titleV);
     set('cdDescH', state.descH); set('cdDescV', state.descV);
@@ -546,7 +859,15 @@
     if (!wrap || wrap.hidden) return;
     var st = readCdBannerEditorForm();
     var banner = wrap.querySelector('.cd-banner');
-    if (banner) banner.style.setProperty('--cd-block-justify', st.blockY);
+    if (banner) {
+      var mode = st.layoutMode;
+      if (mode !== 'overlay' && mode !== 'half' && mode !== 'below') mode = CD_BANNER_DEFAULTS.layoutMode;
+      banner.classList.remove('cd-banner--overlay', 'cd-banner--half', 'cd-banner--below');
+      banner.classList.add('cd-banner--' + mode);
+      wrap.classList.toggle('cd-banner-wrap--half-bridge', mode === 'half');
+    }
+    var copyEl = wrap.querySelector('.cd-banner-copy');
+    if (copyEl) copyEl.style.setProperty('--cd-block-justify', st.blockY);
     wrap.style.setProperty('--cd-title-color', st.titleColor);
     wrap.style.setProperty('--cd-desc-color', st.descColor);
     wrap.style.setProperty('--cd-cta-bg', st.ctaBg);
@@ -574,7 +895,7 @@
       saveCdBannerEditorToStorage(readCdBannerEditorForm());
       applyCdBannerEditorStyles();
     }
-    ['cdBlockY', 'cdTitleH', 'cdTitleV', 'cdDescH', 'cdDescV', 'cdCtaH', 'cdCtaV'].forEach(function (id) {
+    ['cdLayoutMode', 'cdBlockY', 'cdTitleH', 'cdTitleV', 'cdDescH', 'cdDescV', 'cdCtaH', 'cdCtaV'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.addEventListener('change', onChange);
     });
@@ -600,9 +921,20 @@
     });
   }
 
+  /** Fresh background-image fetch when user clicks Show banner (HTTP URLs only; skips data:/blob:). */
+  function withBannerImageCacheBust(jd) {
+    if (!jd || !jd.imageUrl) return jd;
+    var u = String(jd.imageUrl).trim();
+    if (!u) return jd;
+    var lower = u.slice(0, 5).toLowerCase();
+    if (lower === 'data:' || lower === 'blob:') return jd;
+    var sep = u.indexOf('?') >= 0 ? '&' : '?';
+    return Object.assign({}, jd, { imageUrl: u + sep + '_cdcb=' + Date.now() });
+  }
+
   function renderJourneyContentDecisionBanner(jd) {
     var wrap = document.getElementById('journeyContentDecisionBanner');
-    var ph = document.getElementById('journeyBannerPlaceholder');
+    var ph = document.getElementById('cdHeroPlaceholder');
     if (!wrap) return;
     wrap.innerHTML = '';
     if (!jd) {
@@ -615,14 +947,19 @@
     if (ph) ph.hidden = true;
     wrap.hidden = false;
     var banner = document.createElement('div');
-    banner.className = 'cd-banner';
-    var bg = document.createElement('div');
-    bg.className = 'cd-banner-bg';
-    if (jd.imageUrl) bg.style.backgroundImage = 'url(' + JSON.stringify(jd.imageUrl) + ')';
+    banner.className = 'cd-banner' + (jd.imageUrl ? '' : ' cd-banner--no-image');
+    var figure = document.createElement('div');
+    figure.className = 'cd-banner-figure' + (jd.imageUrl ? '' : ' cd-banner-figure--empty');
+    if (jd.imageUrl) {
+      figure.setAttribute('role', 'img');
+      figure.setAttribute('aria-label', jd.bannerTitle ? 'Hero: ' + jd.bannerTitle : 'Hero image');
+      figure.style.backgroundImage = 'url(' + JSON.stringify(jd.imageUrl) + ')';
+    }
     var scrim = document.createElement('div');
     scrim.className = 'cd-banner-scrim';
-    var inner = document.createElement('div');
-    inner.className = 'cd-banner-inner';
+    scrim.setAttribute('aria-hidden', 'true');
+    var copy = document.createElement('div');
+    copy.className = 'cd-banner-copy';
     if (jd.bannerTitle) {
       var st = document.createElement('div');
       st.className = 'cd-slot cd-slot--title';
@@ -630,7 +967,7 @@
       h.className = 'cd-banner-title';
       h.textContent = jd.bannerTitle;
       st.appendChild(h);
-      inner.appendChild(st);
+      copy.appendChild(st);
     }
     if (jd.fullDescription) {
       var sd = document.createElement('div');
@@ -639,7 +976,7 @@
       p.className = 'cd-banner-desc';
       p.textContent = jd.fullDescription;
       sd.appendChild(p);
-      inner.appendChild(sd);
+      copy.appendChild(sd);
     }
     if (jd.bannerCTA) {
       var sc = document.createElement('div');
@@ -658,11 +995,11 @@
         span.textContent = jd.bannerCTA;
         sc.appendChild(span);
       }
-      inner.appendChild(sc);
+      copy.appendChild(sc);
     }
-    banner.appendChild(bg);
+    banner.appendChild(figure);
     banner.appendChild(scrim);
-    banner.appendChild(inner);
+    banner.appendChild(copy);
     wrap.appendChild(banner);
     applyCdBannerEditorStyles();
   }
@@ -770,8 +1107,11 @@
       cdLog('Auto webhook fetch skipped (checkbox off)');
       return;
     }
-    cdLog('Auto webhook fetch scheduled in ~2s');
-    setTimeout(function () { runFetchWebhook(); }, 2000);
+    persistWebhookDelay();
+    var ms = getAutoWebhookDelayMs();
+    var sec = ms / 1000;
+    cdLog('Auto webhook fetch scheduled in ' + sec + 's');
+    setTimeout(function () { runFetchWebhook(); }, ms);
   }
 
   /**
@@ -901,7 +1241,8 @@
     }
     var jd = extractJourneyContentDecision(lastWebhookRaw);
     if (jd) {
-      cdLog('Show banner: rendering', { title: jd.bannerTitle && jd.bannerTitle.slice(0, 40) });
+      jd = withBannerImageCacheBust(jd);
+      cdLog('Show banner: rendering (hero image cache-bust)', { title: jd.bannerTitle && jd.bannerTitle.slice(0, 40) });
       renderJourneyContentDecisionBanner(jd);
     } else {
       cdLog('Show banner: no extractable content node');
