@@ -19,7 +19,10 @@ const preferredChannelSelect = document.getElementById('preferredChannel');
 const sandboxSelect = document.getElementById('sandboxSelect');
 const infraStatusMessage = document.getElementById('infraStatusMessage');
 const checkInfraBtn = document.getElementById('checkInfraBtn');
-const prepareInfraBtn = document.getElementById('prepareInfraBtn');
+const stepCreateSchemaBtn = document.getElementById('stepCreateSchemaBtn');
+const stepAttachFgBtn = document.getElementById('stepAttachFgBtn');
+const stepCreateDatasetBtn = document.getElementById('stepCreateDatasetBtn');
+const stepHttpFlowBtn = document.getElementById('stepHttpFlowBtn');
 const saveStreamBtn = document.getElementById('saveStreamBtn');
 
 const STREAM_LS_KEY = 'aepDecisioningConsentStream_v1';
@@ -103,6 +106,72 @@ function consentInfraQuerySuffix() {
   return sb ? `?sandbox=${encodeURIComponent(sb)}` : '';
 }
 
+/** Apply Firestore `streaming` (+ infra fallbacks) to the HTTP API form fields. */
+function applyFirestoreRecordToStreamingForm(record) {
+  if (!record || typeof record !== 'object') return;
+  const s = record.streaming && typeof record.streaming === 'object' ? record.streaming : {};
+  const inf = record.infra && typeof record.infra === 'object' ? record.infra : {};
+  const u = document.getElementById('streamUrl');
+  const f = document.getElementById('streamFlowId');
+  const d = document.getElementById('streamDatasetId');
+  const sch = document.getElementById('streamSchemaId');
+  const x = document.getElementById('streamXdmKey');
+  const setIf = (el, v) => {
+    if (!el || v == null || String(v).trim() === '') return;
+    el.value = String(v).trim();
+  };
+  setIf(u, s.url);
+  setIf(f, s.flowId);
+  setIf(d, s.datasetId || inf.datasetId);
+  setIf(sch, s.schemaId || inf.schemaId);
+  setIf(x, s.xdmKey);
+}
+
+async function pullConsentConnectionFromFirestore() {
+  try {
+    const res = await fetch('/api/consent-connection' + consentInfraQuerySuffix());
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false || !data.record) return;
+    applyFirestoreRecordToStreamingForm(data.record);
+    saveStreamFieldsToStorage();
+  } catch {
+    /* offline or Firestore not enabled */
+  }
+}
+
+/**
+ * Merge-save streaming form + optional infra metadata for the current sandbox.
+ * @param {Record<string, string>} [extraInfra]
+ */
+async function pushConsentConnectionToFirestore(extraInfra) {
+  const streaming = getStreamingPayload();
+  const res = await fetch('/api/consent-connection' + consentInfraQuerySuffix(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sandbox: getSandboxNameForApi() || undefined,
+      streaming,
+      infra: extraInfra && typeof extraInfra === 'object' ? extraInfra : undefined,
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) {
+    throw new Error(data.error || 'Firebase save failed');
+  }
+  return true;
+}
+
+function attachConsentFirestoreSandboxSync() {
+  const el = document.getElementById('sandboxSelect');
+  if (!el || el.dataset.consentFirestoreSync === '1') return;
+  el.dataset.consentFirestoreSync = '1';
+  const run = () => {
+    pullConsentConnectionFromFirestore().catch(() => {});
+  };
+  el.addEventListener('change', run);
+  window.addEventListener('aep-global-sandbox-change', run);
+}
+
 async function checkConsentInfra() {
   if (!checkInfraBtn) return;
   checkInfraBtn.disabled = true;
@@ -118,14 +187,35 @@ async function checkConsentInfra() {
       showInfraMessage(data.error || 'Status check failed (see server logs for [consentInfra]).', 'error');
       return;
     }
+    const ps = data.prepSteps || {};
     const parts = [
-      data.ready ? 'Ready for streaming (after URL + Flow ID set).' : 'Not fully ready.',
+      data.schemaInProfileUnion
+        ? 'Schema is in Real-Time Customer Profile union (not suitable for this lab).'
+        : data.ready
+          ? 'Ready for streaming (after URL + Flow ID set).'
+          : 'Not fully ready.',
       `Profile Core v2 mixin: ${data.profileCoreMixinFound ? 'yes' : 'no'}`,
       `Consent schema: ${data.schemaFound ? 'yes' : 'no'}`,
+      `Schema Profile union: ${data.schemaInProfileUnion ? 'yes (stop — irreversible)' : 'no'}`,
       `Primary email descriptor: ${data.primaryEmailDescriptor ? 'yes' : 'no'}`,
       `Dataset: ${data.datasetFound ? 'yes' : 'no'}`,
+      `Wizard: 1 schema ${ps.step1_schemaShell ? '✓' : '—'} · 2 field groups+ID ${ps.step2_fieldGroupsIdentity ? '✓' : '—'} · 3 dataset ${ps.step3_dataset ? '✓' : '—'} · 4 HTTP ${ps.step4_readyForManualHttpFlow ? 'ready' : '—'}`,
     ];
-    showInfraMessage(parts.join(' · '), data.ready ? 'success' : '');
+    if (Array.isArray(data.warnings) && data.warnings.length) {
+      parts.push(String(data.warnings[0]));
+    }
+    const msgType = data.schemaInProfileUnion ? 'error' : data.ready ? 'success' : '';
+    showInfraMessage(parts.join(' · '), msgType);
+    try {
+      const infra = {};
+      if (data.schemaId) infra.schemaId = data.schemaId;
+      if (data.schemaMetaAltId) infra.schemaMetaAltId = data.schemaMetaAltId;
+      if (data.datasetId) infra.datasetId = data.datasetId;
+      if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
+      if (Object.keys(infra).length) await pushConsentConnectionToFirestore(infra);
+    } catch (e) {
+      console.warn('[consent-connection] status sync:', e && e.message);
+    }
   } catch (e) {
     showInfraMessage(e.message || 'Network error', 'error');
   } finally {
@@ -133,51 +223,81 @@ async function checkConsentInfra() {
   }
 }
 
-async function prepareConsentInfra() {
-  if (!prepareInfraBtn) return;
-  prepareInfraBtn.disabled = true;
-  showInfraMessage('Preparing sandbox (Schema Registry + Catalog)…', '');
+function applyConsentStepResultToStreamFields(data) {
+  if (!data || typeof data !== 'object') return;
+  const d = document.getElementById('streamDatasetId');
+  const s = document.getElementById('streamSchemaId');
+  const x = document.getElementById('streamXdmKey');
+  if (d && data.datasetId) d.value = String(data.datasetId);
+  if (s && data.schemaId) s.value = String(data.schemaId);
+  if (x && data.xdmKey) x.value = String(data.xdmKey);
+  if (data.datasetId || data.schemaId || data.xdmKey) saveStreamFieldsToStorage();
+}
+
+/**
+ * @param {string} step - createSchema | attachFieldGroups | createDataset | httpFlow
+ * @param {HTMLButtonElement | null} btn
+ */
+async function runConsentInfraWizardStep(step, btn) {
+  const labels = {
+    createSchema: 'Creating schema…',
+    attachFieldGroups: 'Attaching field groups…',
+    createDataset: 'Creating dataset…',
+    httpFlow: 'Loading HTTP flow instructions…',
+  };
+  const busy = [stepCreateSchemaBtn, stepAttachFgBtn, stepCreateDatasetBtn, stepHttpFlowBtn].filter(Boolean);
+  busy.forEach((b) => {
+    b.disabled = true;
+  });
+  showInfraMessage(labels[step] || 'Working…', '');
   try {
-    const res = await fetch('/api/consent-infra/ensure' + consentInfraQuerySuffix(), {
+    const res = await fetch('/api/consent-infra/step' + consentInfraQuerySuffix(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: '{}',
+      body: JSON.stringify({ step }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok && !data.steps) {
-      showInfraMessage(data.error || 'Ensure failed', 'error');
+    if (!res.ok) {
+      showInfraMessage(data.error || 'Step request failed', 'error');
       return;
     }
-    if (data.profileCoreMixinMissing) {
+    if (data.ok === false) {
       showInfraMessage(
         data.error ||
-          'Import or create “Profile Core v2” in this sandbox first (same pattern as your working sandbox).',
+          (data.profileCoreMixinMissing
+            ? 'Import “Profile Core v2” in this sandbox first, then run step 2 again.'
+            : 'Step failed.'),
         'error',
       );
       return;
     }
-    if (data.manifest) {
-      const m = data.manifest;
-      const d = document.getElementById('streamDatasetId');
-      const s = document.getElementById('streamSchemaId');
-      const x = document.getElementById('streamXdmKey');
-      if (d && m.datasetId) d.value = m.datasetId;
-      if (s && m.schemaId) s.value = m.schemaId;
-      if (x && m.xdmKey) x.value = m.xdmKey;
-      saveStreamFieldsToStorage();
+    applyConsentStepResultToStreamFields(data);
+    try {
+      const infra = {};
+      if (data.schemaId) infra.schemaId = data.schemaId;
+      if (data.schemaMetaAltId) infra.schemaMetaAltId = data.schemaMetaAltId;
+      if (data.datasetId) infra.datasetId = data.datasetId;
+      if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
+      await pushConsentConnectionToFirestore(Object.keys(infra).length ? infra : undefined);
+    } catch (e) {
+      console.warn('[consent-connection] step sync:', e && e.message);
     }
     const msg =
-      data.ok === false
-        ? data.error || 'Could not complete preparation.'
-        : 'Schema, identity, and dataset are in place. Create the HTTP API dataflow in AEP, then paste URL + Flow ID above and save.';
-    showInfraMessage(msg, data.ok === false ? 'error' : 'success');
+      data.message ||
+      (data.manual && Array.isArray(data.nextSteps)
+        ? data.nextSteps.join(' ')
+        : 'Step completed.');
+    const badUnion = !!data.schemaInProfileUnion;
+    showInfraMessage(msg, badUnion ? 'error' : 'success');
     if (Array.isArray(data.nextSteps) && data.nextSteps.length) {
       console.info('[consent-infra] Next steps:', data.nextSteps.join('\n'));
     }
   } catch (e) {
     showInfraMessage(e.message || 'Network error', 'error');
   } finally {
-    prepareInfraBtn.disabled = false;
+    busy.forEach((b) => {
+      b.disabled = false;
+    });
   }
 }
 
@@ -489,17 +609,37 @@ function previewData() {
 loadConsentPageSandboxes()
   .then(() => {
     loadStreamFieldsFromStorage();
+    attachConsentFirestoreSandboxSync();
+    return pullConsentConnectionFromFirestore();
   })
   .catch(() => {
     loadStreamFieldsFromStorage();
+    attachConsentFirestoreSandboxSync();
+    pullConsentConnectionFromFirestore().catch(() => {});
   });
 
 checkInfraBtn && checkInfraBtn.addEventListener('click', checkConsentInfra);
-prepareInfraBtn && prepareInfraBtn.addEventListener('click', prepareConsentInfra);
-saveStreamBtn && saveStreamBtn.addEventListener('click', () => {
-  saveStreamFieldsToStorage();
-  showInfraMessage('Saved streaming fields to this browser.', 'success');
-});
+stepCreateSchemaBtn &&
+  stepCreateSchemaBtn.addEventListener('click', () => runConsentInfraWizardStep('createSchema', stepCreateSchemaBtn));
+stepAttachFgBtn &&
+  stepAttachFgBtn.addEventListener('click', () => runConsentInfraWizardStep('attachFieldGroups', stepAttachFgBtn));
+stepCreateDatasetBtn &&
+  stepCreateDatasetBtn.addEventListener('click', () => runConsentInfraWizardStep('createDataset', stepCreateDatasetBtn));
+stepHttpFlowBtn &&
+  stepHttpFlowBtn.addEventListener('click', () => runConsentInfraWizardStep('httpFlow', stepHttpFlowBtn));
+saveStreamBtn &&
+  saveStreamBtn.addEventListener('click', async () => {
+    saveStreamFieldsToStorage();
+    try {
+      await pushConsentConnectionToFirestore();
+      showInfraMessage('Saved streaming connection to this browser and Firebase (per sandbox).', 'success');
+    } catch (e) {
+      showInfraMessage(
+        (e && e.message) || 'Saved locally only — Firebase save failed (enable Firestore and deploy rules).',
+        'error',
+      );
+    }
+  });
 
 queryProfileBtn.addEventListener('click', queryProfile);
 clearFormBtn.addEventListener('click', clearForm);

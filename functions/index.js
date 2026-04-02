@@ -38,9 +38,11 @@ const {
 const {
   runConsentInfraEnsure,
   runConsentInfraStatus,
+  runConsentInfraStep,
   CONSENT_DATASET_NAME,
   CONSENT_HTTP_DATAFLOW_NAME,
 } = require('./consentInfraService');
+const { getConsentConnection, saveConsentConnection } = require('./consentConnectionStore');
 const {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
   setByPath,
@@ -58,6 +60,23 @@ const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.ru
 const REGION = 'us-central1';
 
 const PROFILE_FN_SECRETS = [ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, ADOBE_IMS_ORG, ADOBE_SCOPES];
+
+/** Firestore consent store — no Adobe secrets (same project Admin SDK). */
+const CONSENT_STORE_FN_OPTS = {
+  region: REGION,
+  invoker: 'public',
+  timeoutSeconds: 30,
+  memory: '256MiB',
+};
+
+function serializeConsentFirestoreRecord(doc) {
+  if (!doc || typeof doc !== 'object') return null;
+  const o = { ...doc };
+  if (o.updatedAt && typeof o.updatedAt.toDate === 'function') {
+    o.updatedAt = o.updatedAt.toDate().toISOString();
+  }
+  return o;
+}
 
 /** Selected sandbox from ?sandbox= or deploy default. */
 function resolveSandboxFromQuery(req) {
@@ -527,6 +546,36 @@ exports.consentInfraStatus = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
+/** POST /api/consent-infra/step — one wizard step. Body: { step: "createSchema"|"attachFieldGroups"|"createDataset"|"httpFlow" } */
+exports.consentInfraStep = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const step = String(body.step || '').trim();
+  console.log('[consentInfra.http]', JSON.stringify({ route: 'POST /api/consent-infra/step', sandbox, step }));
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await runConsentInfraStep(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), step);
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox, step });
+  }
+});
+
 /** POST /api/consent-infra/ensure — create schema, identity, dataset when missing (HTTP flow manual). Body: { dryRun?: boolean } */
 exports.consentInfraEnsure = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
@@ -577,6 +626,45 @@ exports.consentInfraEnsure = onRequest(profileFnOpts, async (req, res) => {
     );
     res.status(500).json({ error: String(e.message || e), sandbox });
   }
+});
+
+/**
+ * GET/POST /api/consent-connection?sandbox= — read or merge-save streaming + infra IDs per sandbox (Firestore).
+ * POST body: { sandbox?, streaming?: { url, flowId, datasetId, schemaId, xdmKey, apiKey }, infra?: { schemaMetaAltId, schemaId, datasetId, profileCoreMixinId, datasetName, imsOrg } }
+ */
+exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  const sandboxQ = resolveSandboxFromQuery(req);
+  if (req.method === 'GET') {
+    try {
+      const record = await getConsentConnection(sandboxQ);
+      res.status(200).json({ ok: true, sandbox: sandboxQ, record: serializeConsentFirestoreRecord(record) });
+    } catch (e) {
+      console.log('[consentConnection]', JSON.stringify({ route: 'GET', sandbox: sandboxQ, error: String(e.message || e) }));
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sandboxQ });
+    }
+    return;
+  }
+  if (req.method === 'POST') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sb = String(body.sandbox || sandboxQ).trim() || sandboxQ;
+    try {
+      const record = await saveConsentConnection(sb, {
+        streaming: body.streaming,
+        infra: body.infra,
+      });
+      res.status(200).json({ ok: true, sandbox: sb, record: serializeConsentFirestoreRecord(record) });
+    } catch (e) {
+      console.log('[consentConnection]', JSON.stringify({ route: 'POST', sandbox: sb, error: String(e.message || e) }));
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sb });
+    }
+    return;
+  }
+  res.status(405).json({ error: 'Method not allowed' });
 });
 
 /**

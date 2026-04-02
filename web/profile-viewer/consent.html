@@ -336,14 +336,19 @@
     <section class="consent-panel" id="stepInfra">
       <h2 class="panel-title"><span class="icon">⚙</span> Sandbox &amp; streaming connection</h2>
       <p class="panel-desc">
-        Prepare creates schema <strong>AEP Profile Viewer - Consent - Schema</strong>, dataset <strong>AEP Profile Viewer - Consent - Dataset</strong>
-        (not enabled for Profile), and primary identity on <code>_{tenant}.identification.core.email</code> using your tenant
-        <strong>Profile Core v2</strong> mixin. In AEP, create an <strong>HTTP API</strong> streaming dataflow named
-        <strong>AEP Profile Viewer - Consent - Dataflow</strong> for that dataset — do not enable the dataset for Profile — then paste the collection URL and Flow ID below (saved in this browser).
+        Run <strong>steps 1 → 4</strong> in order for this sandbox. <strong>Do not</strong> enable this schema or dataset for <strong>Real-Time Customer Profile</strong> in the AEP UI — enabling the schema adds an irreversible <strong>union</strong> tag; this app never adds it. Step 1 creates schema shell <strong>AEP Profile Viewer - Consent - Schema</strong>
+        (Profile <em>class</em> only, not Profile service). Step 2 attaches consent field groups + <strong>Profile Core v2</strong> and primary identity on
+        <code>_{tenant}.identification.core.email</code>. Step 3 creates dataset <strong>AEP Profile Viewer - Consent - Dataset</strong> (keep dataset out of Profile).
+        Step 4: HTTP API dataflow <strong>AEP Profile Viewer - Consent - Dataflow</strong>; paste collection URL and Flow ID below.
       </p>
-      <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem;">
+      <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem; align-items: center;">
         <button type="button" id="checkInfraBtn" class="btn btn-secondary">Check sandbox status</button>
-        <button type="button" id="prepareInfraBtn" class="btn btn-primary">Prepare sandbox (schema + dataset)</button>
+      </div>
+      <div class="button-row consent-infra-step-buttons" style="flex-wrap: wrap; gap: 0.5rem; margin-top: 0.65rem;">
+        <button type="button" id="stepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
+        <button type="button" id="stepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
+        <button type="button" id="stepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
+        <button type="button" id="stepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
       </div>
       <p id="infraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
       <div class="sandbox-config" style="margin-top: 1rem;">
@@ -368,8 +373,11 @@
           <label for="streamXdmKey">Tenant XDM key</label>
           <input type="text" id="streamXdmKey" class="sandbox-select" style="width:10rem;" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
         </div>
+        <p class="panel-desc" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.9;">
+          Connection fields are loaded from <strong>Firebase</strong> when you open this page or change sandbox, and updated after each wizard step or status check (IDs). Use Save to persist URL and Flow ID to Firebase too.
+        </p>
         <div class="button-row">
-          <button type="button" id="saveStreamBtn" class="btn btn-secondary">Save connection to this browser</button>
+          <button type="button" id="saveStreamBtn" class="btn btn-secondary">Save connection (browser &amp; Firebase)</button>
         </div>
       </div>
     </section>

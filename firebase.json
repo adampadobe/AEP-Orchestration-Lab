@@ -1,4 +1,8 @@
 {
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
   "functions": [
     {
       "source": "functions",
@@ -129,6 +133,20 @@
         "source": "/api/consent-infra/ensure",
         "function": {
           "functionId": "consentInfraEnsure",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/consent-infra/step",
+        "function": {
+          "functionId": "consentInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/consent-connection",
+        "function": {
+          "functionId": "consentConnectionStore",
           "region": "us-central1"
         }
       },

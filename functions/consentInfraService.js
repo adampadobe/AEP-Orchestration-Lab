@@ -1,6 +1,6 @@
 /**
- * Ensure Profile + Consent schema, primary Email identity on tenant identification.core.email,
- * dataset, and return manifest for streaming (HTTP flow still created in AEP UI or Sources API).
+ * Ensure Profile + Consent schema (not in Real-Time Customer Profile union), primary Email identity,
+ * dataset (not Profile-enabled), and streaming manifest (HTTP flow still created in AEP UI or Sources API).
  */
 
 const SCHEMA_REGISTRY = 'https://platform.adobe.io/data/foundation/schemaregistry';
@@ -14,6 +14,10 @@ const LEGACY_CONSENT_SCHEMA_TITLES = ['AEP Decisioning — Profile + Consent'];
 const CONSENT_DATASET_NAME = 'AEP Profile Viewer - Consent - Dataset';
 /** Recommended name when creating the HTTP API streaming dataflow in AEP UI. */
 const CONSENT_HTTP_DATAFLOW_NAME = 'AEP Profile Viewer - Consent - Dataflow';
+
+/** Shown when schema already has `union` in immutable tags (Profile-enabled); Adobe does not support turning this off. */
+const PROFILE_UNION_IRREVERSIBLE =
+  'This schema is enabled for Real-Time Customer Profile (it has the union tag). Adobe does not support disabling Profile for a schema after that — use another sandbox or a new schema if you need a non-Profile consent schema. This automation never adds the union tag.';
 
 const ACCEPT_XDM = 'application/vnd.adobe.xdm+json;version=1';
 const ACCEPT_XED = 'application/vnd.adobe.xed+json;version=1';
@@ -222,56 +226,195 @@ async function getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId) {
   return data;
 }
 
-async function createConsentSchema(token, clientId, orgId, sandbox, profileCoreMixinId) {
-  const allOf = [
-    { $ref: 'https://ns.adobe.com/xdm/context/profile' },
-    { $ref: 'https://ns.adobe.com/xdm/context/profile-person-details' },
-    { $ref: 'https://ns.adobe.com/xdm/mixins/profile-consents' },
-    { $ref: 'https://ns.adobe.com/xdm/context/profile-preferences-details' },
-    { $ref: profileCoreMixinId },
+/** Adobe POST /tenant/schemas expects Content-Type: application/json (not vnd.adobe.xdm) — otherwise 415 Unsupported Media Type. */
+async function postTenantSchemaCreate(token, clientId, orgId, sandbox, body) {
+  const url = `${SCHEMA_REGISTRY}/tenant/schemas`;
+  const baseHeaders = {
+    Authorization: `Bearer ${token}`,
+    'x-api-key': clientId,
+    'x-gw-ims-org-id': orgId,
+    'x-sandbox-name': sandbox,
+    'Content-Type': 'application/json',
+  };
+  const acceptOrder = [
+    'application/vnd.adobe.xed+json',
+    'application/vnd.adobe.xed+json;version=1',
+    ACCEPT_XED,
+    ACCEPT_XDM,
+    'application/json',
   ];
-  const body = {
+  let lastErr = 'Unknown';
+  for (const accept of acceptOrder) {
+    const { res, data } = await fetchJson(url, {
+      method: 'POST',
+      headers: { ...baseHeaders, Accept: accept },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      logConsentInfra(sandbox, 'postTenantSchema.ok', { acceptUsed: accept.slice(0, 48) });
+      return data;
+    }
+    lastErr = data.message || data.title || data.detail || res.statusText || String(res.status);
+    logConsentInfra(sandbox, 'postTenantSchema.try', {
+      httpStatus: res.status,
+      accept: accept.slice(0, 40),
+      err: String(lastErr).slice(0, 120),
+    });
+    const retry =
+      res.status === 415 ||
+      res.status === 406 ||
+      /unsupported media type|not acceptable/i.test(String(lastErr));
+    if (!retry) {
+      throw new Error(`Create schema failed: ${lastErr}`);
+    }
+  }
+  throw new Error(`Create schema failed: ${lastErr}`);
+}
+
+/** Step 1: minimal Profile schema shell (Profile class only). Field groups are attached in step 2 via PATCH. */
+function buildConsentSchemaShellBody() {
+  return {
     title: CONSENT_SCHEMA_TITLE,
     type: 'object',
     description:
-      'AEP Profile Viewer consent streaming schema. Email primary identity at tenant identification.core.email (Profile Core v2).',
-    allOf,
+      'AEP Profile Viewer consent streaming only — do NOT enable this schema for Real-Time Customer Profile in the UI (union cannot be reliably removed). Email primary identity at tenant identification.core.email (Profile Core v2).',
+    allOf: [{ $ref: 'https://ns.adobe.com/xdm/context/profile' }],
     'meta:class': 'https://ns.adobe.com/xdm/context/profile',
   };
-  const url = `${SCHEMA_REGISTRY}/tenant/schemas`;
-  const { res, data } = await fetchJson(url, {
-    method: 'POST',
-    headers: headersXdm(token, clientId, orgId, sandbox, true),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const msg = data.message || data.title || data.detail || res.statusText;
-    throw new Error(`Create schema failed: ${msg}`);
-  }
-  return data;
 }
 
-async function patchSchemaUnionTag(token, clientId, orgId, sandbox, metaAltId) {
-  try {
-    const enc = encodeURIComponent(metaAltId);
-    const url = `${SCHEMA_REGISTRY}/tenant/schemas/${enc}`;
-    const body = [{ op: 'add', path: '/meta:immutableTags', value: ['union'] }];
+/** `meta:immutableTags` containing `union` registers the schema with Real-Time Customer Profile (irreversible in practice). */
+function schemaHasProfileUnionTag(fullSchema) {
+  if (!fullSchema || typeof fullSchema !== 'object') return false;
+  const tags = fullSchema['meta:immutableTags'];
+  if (!Array.isArray(tags)) return false;
+  return tags.includes('union');
+}
+
+async function createConsentSchemaShell(token, clientId, orgId, sandbox) {
+  return postTenantSchemaCreate(token, clientId, orgId, sandbox, buildConsentSchemaShellBody());
+}
+
+function collectSchemaRefUris(schema) {
+  const set = new Set();
+  for (const x of schema.allOf || []) {
+    if (x && typeof x.$ref === 'string') set.add(x.$ref);
+  }
+  for (const u of schema['meta:extends'] || []) {
+    if (typeof u === 'string') set.add(u);
+  }
+  return set;
+}
+
+/** JSON Patch ops to add standard consent field groups + tenant Profile Core v2 (Adobe pattern: meta:extends + allOf). */
+function buildAttachFieldGroupPatchOps(fullSchema, profileCoreMixinId) {
+  const existing = collectSchemaRefUris(fullSchema);
+  const toAdd = [
+    'https://ns.adobe.com/xdm/context/profile-person-details',
+    'https://ns.adobe.com/xdm/mixins/profile-consents',
+    'https://ns.adobe.com/xdm/context/profile-preferences-details',
+    String(profileCoreMixinId),
+  ];
+  const ops = [];
+  for (const ref of toAdd) {
+    if (existing.has(ref)) continue;
+    ops.push({ op: 'add', path: '/meta:extends/-', value: ref });
+    ops.push({ op: 'add', path: '/allOf/-', value: { $ref: ref } });
+    existing.add(ref);
+  }
+  return ops;
+}
+
+async function patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, operations) {
+  if (!operations || operations.length === 0) return null;
+  const enc = encodeURIComponent(metaAltId);
+  const url = `${SCHEMA_REGISTRY}/tenant/schemas/${enc}`;
+  let ifMatch = '1';
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const full = await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId);
+    if (full && full.version != null) ifMatch = String(full.version);
     const { res, data } = await fetchJson(url, {
       method: 'PATCH',
       headers: {
         ...headersJson(token, clientId, orgId, sandbox),
         Accept: ACCEPT_JSON,
         'Content-Type': 'application/json',
+        'If-Match': ifMatch,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(operations),
     });
-    if (!res.ok) {
-      return { ok: false, detail: data.message || data.title || res.statusText };
+    if (res.ok) return data;
+    if (res.status === 412 || res.status === 428) {
+      logConsentInfra(sandbox, 'patchSchema.preconditionRetry', { attempt, status: res.status });
+      continue;
     }
-    return { ok: true, data };
-  } catch (e) {
-    return { ok: false, detail: String(e.message || e) };
+    const msg = data.message || data.title || data.detail || res.statusText;
+    throw new Error(`Schema PATCH failed: ${msg}`);
   }
+  throw new Error('Schema PATCH failed: version conflict after retries');
+}
+
+function consentFieldGroupsComplete(fullSchema, profileCoreMixinId) {
+  if (!fullSchema || !profileCoreMixinId) return false;
+  const refs = collectSchemaRefUris(fullSchema);
+  const need = [
+    'https://ns.adobe.com/xdm/context/profile',
+    'https://ns.adobe.com/xdm/context/profile-person-details',
+    'https://ns.adobe.com/xdm/mixins/profile-consents',
+    'https://ns.adobe.com/xdm/context/profile-preferences-details',
+    String(profileCoreMixinId),
+  ];
+  return need.every((r) => refs.has(r));
+}
+
+/**
+ * Apply field-group PATCHes and primary Email descriptor.
+ * Does not add the `union` immutable tag — that would register the schema with Real-Time Customer Profile.
+ * @returns {{ patchApplied: boolean, descriptorOk: boolean }}
+ */
+async function attachFieldGroupsAndDescriptor(
+  token,
+  clientId,
+  orgId,
+  sandbox,
+  tenantCtx,
+  profileCore,
+  schemaRow
+) {
+  const metaAltId = schemaRow['meta:altId'];
+  const schemaId = schemaRow.$id;
+  let full = (await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId)) || schemaRow;
+  const ops = buildAttachFieldGroupPatchOps(full, profileCore.$id);
+  let patchApplied = false;
+  if (ops.length) {
+    await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, ops);
+    patchApplied = true;
+    full = (await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId)) || full;
+  }
+  const sourceVersion = Number(full.version) || 1;
+  const existingDesc = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId);
+  const hasPrimaryEmail = existingDesc.some(
+    (d) =>
+      d['xdm:isPrimary'] === true &&
+      String(d['xdm:namespace'] || '').toLowerCase() === 'email' &&
+      String(d['xdm:sourceProperty'] || '').includes('identification/core/email')
+  );
+  let descriptorOk = hasPrimaryEmail;
+  if (!hasPrimaryEmail) {
+    try {
+      await createPrimaryEmailDescriptor(token, clientId, orgId, sandbox, schemaId, sourceVersion, tenantCtx.xdmKey);
+      descriptorOk = true;
+    } catch (e) {
+      const msg = String(e.message || e);
+      if (/409|already exists|duplicate/i.test(msg)) descriptorOk = true;
+      else throw e;
+    }
+  }
+  return {
+    patchApplied,
+    descriptorOk,
+    fullSchema: full,
+  };
 }
 
 async function listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId) {
@@ -303,16 +446,31 @@ async function createPrimaryEmailDescriptor(
     'xdm:isPrimary': true,
   };
   const url = `${SCHEMA_REGISTRY}/tenant/descriptors`;
-  const { res, data } = await fetchJson(url, {
-    method: 'POST',
-    headers: headersXdm(token, clientId, orgId, sandbox, true),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const msg = data.message || data.title || data.detail || res.statusText;
-    throw new Error(`Create identity descriptor failed: ${msg}`);
+  const base = {
+    Authorization: `Bearer ${token}`,
+    'x-api-key': clientId,
+    'x-gw-ims-org-id': orgId,
+    'x-sandbox-name': sandbox,
+  };
+  const attempts = [
+    { 'Content-Type': 'application/json', Accept: ACCEPT_XDM },
+    { 'Content-Type': 'application/json', Accept: ACCEPT_XED },
+    { ...headersXdm(token, clientId, orgId, sandbox, true) },
+  ];
+  let lastErr = '';
+  for (const h of attempts) {
+    const { res, data } = await fetchJson(url, {
+      method: 'POST',
+      headers: { ...base, ...h },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return data;
+    lastErr = data.message || data.title || data.detail || res.statusText;
+    if (res.status !== 415 && !/unsupported media type/i.test(String(lastErr))) {
+      throw new Error(`Create identity descriptor failed: ${lastErr}`);
+    }
   }
-  return data;
+  throw new Error(`Create identity descriptor failed: ${lastErr}`);
 }
 
 async function paginateDataSets(token, clientId, orgId, sandbox) {
@@ -443,10 +601,10 @@ async function runConsentInfraEnsure(sandbox, token, clientId, orgId, opts = {})
   });
 
   if (!schema && !dryRun) {
-    logConsentInfra(sandbox, 'ensure.schema.create', { profileCoreRef: profileCore.$id });
-    schema = await createConsentSchema(token, clientId, orgId, sandbox, profileCore.$id);
+    logConsentInfra(sandbox, 'ensure.schema.createShell', {});
+    schema = await createConsentSchemaShell(token, clientId, orgId, sandbox);
     schemaCreated = true;
-    steps.push({ step: 'createSchema', ok: true, schemaId: schema.$id, metaAltId: schema['meta:altId'] });
+    steps.push({ step: 'createSchemaShell', ok: true, schemaId: schema.$id, metaAltId: schema['meta:altId'] });
     logConsentInfra(sandbox, 'ensure.schema.created', {
       schemaIdSuffix: String(schema.$id || '').split('/').pop(),
       metaAltId: schema['meta:altId'] || null,
@@ -474,48 +632,49 @@ async function runConsentInfraEnsure(sandbox, token, clientId, orgId, opts = {})
 
   const schemaId = schema.$id;
   const metaAltId = schema['meta:altId'];
-  const fullSchema = (await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId)) || schema;
-  const sourceVersion = Number(fullSchema.version) || 1;
 
-  const unionRes = await patchSchemaUnionTag(token, clientId, orgId, sandbox, metaAltId);
-  steps.push({ step: 'patchUnionTag', ok: unionRes.ok !== false, detail: unionRes.detail });
-  logConsentInfra(sandbox, 'ensure.unionTag', { ok: unionRes.ok !== false, detail: unionRes.detail || null });
+  const fullUnionGuard = await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId);
+  if (fullUnionGuard && schemaHasProfileUnionTag(fullUnionGuard)) {
+    logConsentInfra(sandbox, 'ensure.abort.schemaInProfileUnion', { schemaIdSuffix: String(schemaId || '').split('/').pop() });
+    steps.push({ step: 'schemaProfileUnionCheck', ok: false, schemaInProfileUnion: true });
+    return {
+      ok: false,
+      ready: false,
+      sandbox,
+      tenantId: tenantCtx.tenantId,
+      xdmKey: tenantCtx.xdmKey,
+      schemaId,
+      schemaMetaAltId: metaAltId,
+      steps,
+      error: PROFILE_UNION_IRREVERSIBLE,
+      schemaInProfileUnion: true,
+      nextSteps: manualFlowSteps(),
+    };
+  }
 
-  const existingDesc = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId);
-  const hasPrimaryEmail = existingDesc.some(
-    (d) =>
-      d['xdm:isPrimary'] === true &&
-      String(d['xdm:namespace'] || '').toLowerCase() === 'email' &&
-      String(d['xdm:sourceProperty'] || '').includes('identification/core/email')
-  );
-
-  if (!hasPrimaryEmail && !dryRun) {
-    logConsentInfra(sandbox, 'ensure.descriptor.create', {
-      sourceVersion,
-      sourceProperty: `/_${String(tenantCtx.xdmKey || '').replace(/^_/, '')}/identification/core/email`,
-    });
-    try {
-      await createPrimaryEmailDescriptor(token, clientId, orgId, sandbox, schemaId, sourceVersion, tenantCtx.xdmKey);
-      steps.push({ step: 'createPrimaryEmailDescriptor', ok: true });
-      logConsentInfra(sandbox, 'ensure.descriptor.created', { namespace: 'Email', primary: true });
-    } catch (e) {
-      const msg = String(e.message || e);
-      if (/409|already exists|duplicate/i.test(msg)) {
-        steps.push({ step: 'createPrimaryEmailDescriptor', ok: true, note: 'Descriptor may already exist.' });
-        logConsentInfra(sandbox, 'ensure.descriptor.duplicateOk', { note: msg.slice(0, 120) });
-      } else {
-        logConsentInfra(sandbox, 'ensure.descriptor.error', { msg: msg.slice(0, 300) });
-        throw e;
-      }
-    }
-  } else {
+  if (!dryRun) {
+    const ar = await attachFieldGroupsAndDescriptor(
+      token,
+      clientId,
+      orgId,
+      sandbox,
+      tenantCtx,
+      profileCore,
+      schema
+    );
     steps.push({
-      step: 'primaryEmailDescriptor',
+      step: 'attachFieldGroupsAndDescriptor',
       ok: true,
-      skipped: hasPrimaryEmail,
-      alreadyExists: hasPrimaryEmail,
+      patchApplied: ar.patchApplied,
+      descriptorOk: ar.descriptorOk,
+      profileSchemaUnionTagSkipped: true,
     });
-    logConsentInfra(sandbox, 'ensure.descriptor.skip', { alreadyExists: hasPrimaryEmail, dryRun });
+    logConsentInfra(sandbox, 'ensure.attach.done', {
+      patchApplied: ar.patchApplied,
+      descriptorOk: ar.descriptorOk,
+    });
+  } else {
+    steps.push({ step: 'attachFieldGroupsAndDescriptor', ok: false, skipped: true, dryRun: true });
   }
 
   const pages = await paginateDataSets(token, clientId, orgId, sandbox);
@@ -562,7 +721,7 @@ async function runConsentInfraEnsure(sandbox, token, clientId, orgId, opts = {})
     },
     streaming: {
       configured: false,
-      hint: `In AEP: Sources → Streaming → HTTP API. Name the dataflow "${CONSENT_HTTP_DATAFLOW_NAME}" and target dataset "${CONSENT_DATASET_NAME}". Do not enable the dataset for Profile. Copy the collection URL and x-adobe-flow-id into the Profile Viewer Consent page.`,
+      hint: `Never enable this consent schema or dataset for Real-Time Customer Profile in AEP (irreversible for the schema). Sources → Streaming → HTTP API: dataflow "${CONSENT_HTTP_DATAFLOW_NAME}" → dataset "${CONSENT_DATASET_NAME}". Copy collection URL and x-adobe-flow-id into the Consent page.`,
     },
   };
 
@@ -587,8 +746,9 @@ async function runConsentInfraEnsure(sandbox, token, clientId, orgId, opts = {})
 
 function manualFlowSteps() {
   return [
+    'Schema (critical): In AEP → Schemas, never enable this schema for Real-Time Customer Profile (do not turn on Profile / add it to the union). That change is effectively permanent — Adobe does not support turning it off. This app never adds the union tag.',
+    'Dataset (critical): When creating the HTTP API dataflow or editing the dataset, do not enable the dataset for Real-Time Customer Profile — decline or skip if prompted.',
     `In AEP: Sources → Streaming → HTTP API — create a connection and dataflow named "${CONSENT_HTTP_DATAFLOW_NAME}" targeting dataset "${CONSENT_DATASET_NAME}".`,
-    'Do not enable the dataset for Real-Time Customer Profile (decline / skip if the UI prompts).',
     'Paste the collection URL (dcs.adobedc.net/...) and Flow ID into Profile Viewer Consent page under “Streaming connection”, then save.',
     'Use “Update consent preferences” to stream profile updates.',
   ];
@@ -686,10 +846,22 @@ async function runConsentInfraStatus(sandbox, token, clientId, orgId) {
     logConsentInfra(sandbox, 'status.descriptors.skip', { reason: 'no consent schema' });
   }
 
-  const ready = !!(profileCore && schema && dataset && hasDescriptor);
+  let fieldGroupsAttached = false;
+  let schemaInProfileUnion = false;
+  if (schema && schema['meta:altId']) {
+    const full = await getSchemaByAltId(token, clientId, orgId, sandbox, schema['meta:altId']);
+    if (full) {
+      schemaInProfileUnion = schemaHasProfileUnionTag(full);
+      if (profileCore) fieldGroupsAttached = consentFieldGroupsComplete(full, profileCore.$id);
+    }
+  }
+
+  const ready =
+    !!(profileCore && schema && dataset && hasDescriptor) && !schemaInProfileUnion;
 
   logConsentInfra(sandbox, 'status.complete', {
     ready,
+    schemaInProfileUnion,
     tenantId: tenantCtx.tenantId,
     checklist: {
       profileCore: !!profileCore,
@@ -703,6 +875,8 @@ async function runConsentInfraStatus(sandbox, token, clientId, orgId) {
     ok: true,
     sandbox,
     ready,
+    schemaInProfileUnion,
+    warnings: schemaInProfileUnion ? [PROFILE_UNION_IRREVERSIBLE] : [],
     tenantId: tenantCtx.tenantId,
     xdmKey: tenantCtx.xdmKey,
     profileCoreMixinFound: !!profileCore,
@@ -713,6 +887,13 @@ async function runConsentInfraStatus(sandbox, token, clientId, orgId) {
     primaryEmailDescriptor: hasDescriptor,
     datasetFound: !!dataset,
     datasetId: dataset?.id || null,
+    prepSteps: {
+      step1_schemaShell: !!schema,
+      step2_fieldGroupsIdentity: !!(schema && fieldGroupsAttached && hasDescriptor),
+      step3_dataset: !!dataset,
+      /** Dataset exists; create HTTP API flow in AEP and paste URL + Flow ID client-side (not detectable server-side). */
+      step4_readyForManualHttpFlow: !!dataset,
+    },
     naming: {
       schema: CONSENT_SCHEMA_TITLE,
       dataset: CONSENT_DATASET_NAME,
@@ -722,10 +903,210 @@ async function runConsentInfraStatus(sandbox, token, clientId, orgId) {
   };
 }
 
+const CONSENT_INFRA_STEP_NAMES = ['createSchema', 'attachFieldGroups', 'createDataset', 'httpFlow'];
+
+/**
+ * Run one consent-infra preparation step (UI wizard).
+ * @param {string} stepName - createSchema | attachFieldGroups | createDataset | httpFlow
+ */
+async function runConsentInfraStep(sandbox, token, clientId, orgId, stepName) {
+  const step = String(stepName || '').trim();
+  logConsentInfra(sandbox, 'wizard.step', { step });
+
+  if (!CONSENT_INFRA_STEP_NAMES.includes(step)) {
+    return {
+      ok: false,
+      sandbox,
+      error: `Invalid step "${step}". Use one of: ${CONSENT_INFRA_STEP_NAMES.join(', ')}.`,
+    };
+  }
+
+  try {
+    if (step === 'createSchema') {
+      const tenantCtx = await discoverTenantContext(token, clientId, orgId, sandbox);
+      const allSchemas = await listAllTenantSchemas(token, clientId, orgId, sandbox);
+      const existing = findConsentSchema(allSchemas);
+      if (existing) {
+        let schemaInProfileUnion = false;
+        const alt = existing['meta:altId'];
+        if (alt) {
+          const fullEx = await getSchemaByAltId(token, clientId, orgId, sandbox, alt);
+          if (fullEx) schemaInProfileUnion = schemaHasProfileUnionTag(fullEx);
+        }
+        return {
+          ok: true,
+          sandbox,
+          step,
+          skipped: true,
+          schemaInProfileUnion,
+          message: schemaInProfileUnion
+            ? `Schema "${CONSENT_SCHEMA_TITLE}" exists but is enabled for Real-Time Customer Profile (union tag). Adobe does not support turning that off — use another sandbox or schema. Do not run steps 2–3 for this lab.`
+            : `Schema "${CONSENT_SCHEMA_TITLE}" already exists (not in Profile union). Run step 2.`,
+          tenantId: tenantCtx.tenantId,
+          xdmKey: tenantCtx.xdmKey,
+          schemaId: existing.$id,
+          schemaMetaAltId: existing['meta:altId'],
+        };
+      }
+      const created = await createConsentSchemaShell(token, clientId, orgId, sandbox);
+      return {
+        ok: true,
+        sandbox,
+        step,
+        schemaCreated: true,
+        tenantId: tenantCtx.tenantId,
+        xdmKey: tenantCtx.xdmKey,
+        schemaId: created.$id,
+        schemaMetaAltId: created['meta:altId'],
+        message:
+          'Schema shell created (Profile class only). Run step 2 to attach field groups and primary Email identity (schema stays out of Profile union).',
+      };
+    }
+
+    if (step === 'attachFieldGroups') {
+      const tenantCtx = await discoverTenantContext(token, clientId, orgId, sandbox);
+      const mixins = await listTenantMixins(token, clientId, orgId, sandbox);
+      const profileCore = findProfileCoreV2Mixin(mixins);
+      if (!profileCore) {
+        return {
+          ok: false,
+          sandbox,
+          step,
+          profileCoreMixinMissing: true,
+          error:
+            'Profile Core v2 field group not found in this sandbox. Import it first, then run this step again.',
+        };
+      }
+      const allSchemas = await listAllTenantSchemas(token, clientId, orgId, sandbox);
+      const schema = findConsentSchema(allSchemas);
+      if (!schema) {
+        return {
+          ok: false,
+          sandbox,
+          step,
+          error: `No schema "${CONSENT_SCHEMA_TITLE}". Run step 1 (Create schema) first.`,
+        };
+      }
+      const fullPre = await getSchemaByAltId(token, clientId, orgId, sandbox, schema['meta:altId']);
+      if (fullPre && schemaHasProfileUnionTag(fullPre)) {
+        return {
+          ok: false,
+          sandbox,
+          step,
+          schemaInProfileUnion: true,
+          error: PROFILE_UNION_IRREVERSIBLE,
+        };
+      }
+      const ar = await attachFieldGroupsAndDescriptor(
+        token,
+        clientId,
+        orgId,
+        sandbox,
+        tenantCtx,
+        profileCore,
+        schema
+      );
+      return {
+        ok: true,
+        sandbox,
+        step,
+        tenantId: tenantCtx.tenantId,
+        xdmKey: tenantCtx.xdmKey,
+        schemaId: schema.$id,
+        schemaMetaAltId: schema['meta:altId'],
+        profileCoreMixinId: profileCore.$id,
+        patchApplied: ar.patchApplied,
+        descriptorOk: ar.descriptorOk,
+        schemaNotInProfileUnion: true,
+        message: ar.patchApplied
+          ? 'Field groups attached and primary Email identity set. Schema is not enabled for Real-Time Customer Profile (no union tag).'
+          : 'Field groups were already present; primary Email identity checked. Schema remains outside Profile union.',
+      };
+    }
+
+    if (step === 'createDataset') {
+      const tenantCtx = await discoverTenantContext(token, clientId, orgId, sandbox);
+      const allSchemas = await listAllTenantSchemas(token, clientId, orgId, sandbox);
+      const schema = findConsentSchema(allSchemas);
+      if (!schema) {
+        return {
+          ok: false,
+          sandbox,
+          step,
+          error: 'Consent schema not found. Complete steps 1 and 2 first.',
+        };
+      }
+      const fullDs = await getSchemaByAltId(token, clientId, orgId, sandbox, schema['meta:altId']);
+      if (fullDs && schemaHasProfileUnionTag(fullDs)) {
+        return {
+          ok: false,
+          sandbox,
+          step,
+          schemaInProfileUnion: true,
+          error: PROFILE_UNION_IRREVERSIBLE,
+        };
+      }
+      const schemaId = schema.$id;
+      const pages = await paginateDataSets(token, clientId, orgId, sandbox);
+      const datasets = flattenDatasets(pages);
+      let dataset = findDatasetForSchema(datasets, schemaId);
+      if (dataset) {
+        return {
+          ok: true,
+          sandbox,
+          step,
+          skipped: true,
+          message: `Dataset already exists for this schema (${dataset.name || CONSENT_DATASET_NAME}).`,
+          tenantId: tenantCtx.tenantId,
+          xdmKey: tenantCtx.xdmKey,
+          schemaId,
+          schemaMetaAltId: schema['meta:altId'],
+          datasetId: dataset.id,
+        };
+      }
+      const dsRes = await createDataset(token, clientId, orgId, sandbox, schemaId, CONSENT_DATASET_NAME);
+      dataset = { id: dsRes.id, name: CONSENT_DATASET_NAME, schemaRef: { id: schemaId } };
+      return {
+        ok: true,
+        sandbox,
+        step,
+        datasetCreated: true,
+        tenantId: tenantCtx.tenantId,
+        xdmKey: tenantCtx.xdmKey,
+        schemaId,
+        schemaMetaAltId: schema['meta:altId'],
+        datasetId: dataset.id,
+        message: `Dataset "${CONSENT_DATASET_NAME}" created (not enabled for Profile). Run step 4 for HTTP flow instructions.`,
+      };
+    }
+
+    // httpFlow — manual in AEP UI
+    return {
+      ok: true,
+      sandbox,
+      step: 'httpFlow',
+      manual: true,
+      naming: {
+        schema: CONSENT_SCHEMA_TITLE,
+        dataset: CONSENT_DATASET_NAME,
+        httpDataflow: CONSENT_HTTP_DATAFLOW_NAME,
+      },
+      nextSteps: manualFlowSteps(),
+      message: `Create HTTP API dataflow "${CONSENT_HTTP_DATAFLOW_NAME}" for dataset "${CONSENT_DATASET_NAME}". Never enable this schema or dataset for Real-Time Customer Profile in AEP (schema union is irreversible). Paste URL + Flow ID below.`,
+    };
+  } catch (e) {
+    const msg = String(e.message || e);
+    logConsentInfra(sandbox, 'wizard.step.error', { step, error: msg.slice(0, 400) });
+    return { ok: false, sandbox, step, error: msg };
+  }
+}
+
 module.exports = {
   runConsentInfraEnsure,
   runConsentInfraStatus,
+  runConsentInfraStep,
   CONSENT_SCHEMA_TITLE,
   CONSENT_DATASET_NAME,
   CONSENT_HTTP_DATAFLOW_NAME,
+  CONSENT_INFRA_STEP_NAMES,
 };
