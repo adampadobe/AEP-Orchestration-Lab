@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Race for Life (demo) - AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="race-for-life-demo.css">
+</head>
+<body class="race-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/race-for-life-demo.html">http://localhost:3333/race-for-life-demo.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item"><span class="dashboard-nav-ico" aria-hidden="true">⌂</span>Home</a>
+        <a href="index.html" class="dashboard-nav-item"><span class="dashboard-nav-ico" aria-hidden="true">👤</span>Profile Viewer</a>
+        <a href="schema-viewer.html" class="dashboard-nav-item"><span class="dashboard-nav-ico" aria-hidden="true">🌿</span>Data viewer</a>
+        <a href="audience-membership.html" class="dashboard-nav-item"><span class="dashboard-nav-ico" aria-hidden="true">👥</span>Audience</a>
+        <a href="profile-generation.html" class="dashboard-nav-item"><span class="dashboard-nav-ico" aria-hidden="true">➕</span>Profile generation</a>
+        <a href="consent.html" class="dashboard-nav-item"><span class="dashboard-nav-ico" aria-hidden="true">✓</span>Consent</a>
+        <a href="event-generator.html" class="dashboard-nav-item"><span class="dashboard-nav-ico" aria-hidden="true">📤</span>Event generator</a>
+        <a href="donate-demo.html" class="dashboard-nav-item"><span class="dashboard-nav-ico" aria-hidden="true">💝</span>Donate (demo)</a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item dashboard-nav-item--active"><span class="dashboard-nav-ico" aria-hidden="true">🏃</span>Race for Life (demo)</a>
+        <a href="events-trigger.html" class="dashboard-nav-item"><span class="dashboard-nav-ico" aria-hidden="true">⚡</span>Events trigger</a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item"><span class="dashboard-nav-ico" aria-hidden="true">🖼</span>Firebase images</a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+      </header>
+
+      <main class="dashboard-main">
+        <header class="donate-cruk-site-header">
+          <div class="donate-cruk-site-header-top">
+            <div class="donate-cruk-site-header-inner">
+              <a
+                class="donate-cruk-logo-link"
+                href="https://www.cancerresearchuk.org/"
+                target="_blank"
+                rel="noopener"
+                aria-label="Cancer Research UK (official site opens in new tab)"
+              >
+                <img
+                  class="donate-cruk-logo"
+                  src="images/race-for-life-logo.png"
+                  width="320"
+                  height="112"
+                  alt="Cancer Research UK Race for Life"
+                  decoding="async"
+                >
+              </a>
+              <button type="button" class="donate-cruk-search-btn" aria-label="Search (demo only, not connected)">Search</button>
+            </div>
+          </div>
+          <nav class="donate-cruk-nav" aria-label="Race for Life primary navigation (links to official site)">
+            <a href="https://raceforlife.cancerresearchuk.org/about-our-events" target="_blank" rel="noopener">About our events</a>
+            <a href="https://raceforlife.cancerresearchuk.org/find-an-event" target="_blank" rel="noopener">Find an event</a>
+            <a href="https://raceforlife.cancerresearchuk.org/prepare-for-your-event" target="_blank" rel="noopener">Prepare for your event</a>
+            <a href="https://raceforlife.cancerresearchuk.org/shop" target="_blank" rel="noopener">Shop</a>
+            <a href="https://raceforlife.cancerresearchuk.org/about-us" target="_blank" rel="noopener">About us</a>
+            <a href="https://raceforlife.cancerresearchuk.org/volunteer" target="_blank" rel="noopener">Volunteer</a>
+          </nav>
+        </header>
+
+        <section class="race-email-bar" aria-label="Customer identity">
+          <div class="race-email-inner">
+            <div class="form-row">
+              <label for="customerEmail">Customer email address</label>
+              <input type="email" id="customerEmail" placeholder="e.g. supporter@example.com" autocomplete="email" spellcheck="false">
+            </div>
+            <div class="race-email-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+              <span class="race-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+            </div>
+            <div class="race-advanced">
+              <label for="generatorTarget">Event destination</label>
+              <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+            </div>
+          </div>
+        </section>
+
+        <section class="race-hero" aria-label="Race for Life inspired hero">
+          <div class="race-content">
+            <figure class="race-cover" aria-hidden="true">
+              <img
+                src="https://raceforlife.cancerresearchuk.org/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Ffub10iisfoab%2FR2TeB8tcIsXQUy3mqJZHZ%2F6a9e624ddc35f329f96ed70cb3866f05%2F2025-06-07-CRUK-RaceForLife-4834__2___1_.jpg&w=3840&q=75"
+                alt=""
+                width="3840"
+                height="1730"
+                loading="lazy"
+                decoding="async"
+              >
+            </figure>
+            <div class="race-copy-card">
+              <h1>Race for Life</h1>
+              <p>Enter Cancer Research UK's Race for Life and raise money for life-saving cancer research.</p>
+            </div>
+            <section class="race-join">
+              <h2>Join Race for Life</h2>
+              <p>
+                There's a Race for everyone. Walk, jog or run and join events that raise funds for cancer research.
+              </p>
+            </section>
+          </div>
+        </section>
+
+        <section class="race-find" aria-labelledby="findEventHeading">
+          <div class="race-find-inner">
+            <h2 id="findEventHeading">Find an event</h2>
+            <form id="raceEventForm" class="race-form" novalidate>
+              <div class="race-field race-field--full">
+                <label for="eventLocation">Location</label>
+                <select id="eventLocation" required>
+                  <option value="">Choose location</option>
+                  <option value="Race for Life Heaton Park">Race for Life Heaton Park</option>
+                  <option value="Race for Life Manchester">Race for Life Manchester</option>
+                </select>
+              </div>
+
+              <div class="race-field">
+                <label for="eventType">Event type</label>
+                <select id="eventType">
+                  <option value="All types">All types</option>
+                  <option value="3k">3k</option>
+                  <option value="5k">5k</option>
+                  <option value="10k">10k</option>
+                  <option value="Pretty Muddy 5k">Pretty Muddy 5k</option>
+                  <option value="Pretty Muddy Kids">Pretty Muddy Kids</option>
+                </select>
+              </div>
+
+              <div class="race-field">
+                <label for="startDate">Start date</label>
+                <input type="date" id="startDate">
+              </div>
+
+              <div class="race-field">
+                <label for="endDate">End date</label>
+                <input type="date" id="endDate">
+              </div>
+
+              <div class="race-field race-field--submit">
+                <button type="submit" id="eventSubmitBtn" class="race-submit-btn">Submit</button>
+              </div>
+              <div class="race-field race-field--submit">
+                <button type="button" id="abandonedBasketBtn" class="race-submit-btn race-submit-btn--secondary">Abandoned basket</button>
+              </div>
+            </form>
+            <div id="raceMessage" class="race-message" role="status" aria-live="polite" hidden></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="race-for-life-demo.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

@@ -3,3 +3,12 @@ __pycache__/
 *.pyc
 .env
 *.env
+
+# Firebase (standalone deploy)
+functions/node_modules/
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Vendored colleague repo (npm)
+colleague-cursor/**/node_modules/

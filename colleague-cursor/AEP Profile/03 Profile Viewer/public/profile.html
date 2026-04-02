@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css">
+</head>
+<body class="search-tool-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app from the Profile Viewer server (localhost:3333).
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">Profile attributes</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingProfileTable">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingProfileTable" class="dashboard-hero-title">Inspect profile attributes</h2>
+              <p class="dashboard-hero-subtitle">
+                Review attribute paths and values for the profile you opened from search results.
+              </p>
+            </header>
+          </div>
+        </section>
+        <div class="search-legacy-inner">
+          <header>
+            <nav class="nav-links">
+              <a href="home.html">Home</a>
+              <a href="index.html">Look up by email</a>
+              <a href="search.html">Search profiles</a>
+              <a href="search-by-attribute.html">Search by attribute</a>
+              <a href="consent.html">Consent Manager</a>
+            </nav>
+            <h1>Profile attributes</h1>
+            <p class="subtitle" id="profileEmail"></p>
+          </header>
+
+          <section id="loading" class="status loading">Loading profile…</section>
+
+          <section id="error" class="error" hidden>
+            <h2>Error</h2>
+            <p id="errorMessage"></p>
+            <p><a href="search.html">Back to search</a></p>
+          </section>
+
+          <section id="tableSection" class="results" hidden>
+            <div class="table-wrap profile-table-wrap">
+              <table class="profile-attribute-table profile-attribute-table--resizable" aria-label="Profile attributes">
+                <colgroup>
+                  <col class="col-attr">
+                  <col class="col-display">
+                  <col class="col-value">
+                  <col class="col-path">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>ATTRIBUTE<span class="resize-handle" aria-hidden="true"></span></th>
+                    <th>DISPLAY NAME<span class="resize-handle" aria-hidden="true"></span></th>
+                    <th>VALUE<span class="resize-handle" aria-hidden="true"></span></th>
+                    <th class="path-col">PATH <span class="path-hint">↑</span><span class="resize-handle" aria-hidden="true"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="attributeTableBody"></tbody>
+              </table>
+            </div>
+            <p><a href="search.html">← Back to search</a></p>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var ok = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!ok) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="profile.js"></script>
+  <script src="table-resize.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

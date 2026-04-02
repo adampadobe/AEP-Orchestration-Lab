@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trigger journey events (AJO) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css">
+</head>
+<body class="consent-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/ajo-journey-events.html">http://localhost:3333/ajo-journey-events.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer · AJO journey</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/journey-optimizer/using/ajo-home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main consent-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingAjo">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingAjo" class="dashboard-hero-title">Trigger Journey Optimizer events</h2>
+              <p class="dashboard-hero-subtitle">
+                Send journey events for the selected profile to start or advance experiences in your sandbox.
+              </p>
+            </header>
+          </div>
+        </section>
+    <section class="consent-panel" id="eventPanel">
+      <h2 class="panel-title"><span class="icon">🎯</span> Journey event</h2>
+      <p class="panel-desc">Select an event type to trigger in Adobe Journey Optimizer. The event will be sent for the selected profile and can start or advance a journey.</p>
+      <div class="form-row">
+        <label for="eventOption">Event option</label>
+        <select id="eventOption">
+          <option value="">— Select event —</option>
+          <option value="mobileAppLaunch">mobileAppLaunch</option>
+          <option value="SecurFinancial_SendPreapproval">SecurFinancial_SendPreapproval</option>
+          <option value="SecurFinancial_WebFormAction">SecurFinancial_WebFormAction</option>
+          <option value="AddToCart">AddToCart</option>
+          <option value="CreditCardApplicationSubmitted">CreditCardApplicationSubmitted</option>
+          <option value="Subscribed">Subscribed</option>
+          <option value="LoyaltyChange_Copy">LoyaltyChange_Copy</option>
+          <option value="LoyaltyChange">LoyaltyChange</option>
+          <option value="DepositMade_Copy">DepositMade_Copy</option>
+          <option value="DepositMade">DepositMade</option>
+          <option value="orderDate">orderDate</option>
+          <option value="packageChange">packageChange</option>
+          <option value="transactionEventTest">transactionEventTest</option>
+          <option value="SendMessage">SendMessage</option>
+          <option value="WKNDFlyClubUpgrade">WKNDFlyClubUpgrade</option>
+          <option value="JoinWKNDFlyClub_Email">JoinWKNDFlyClub_Email</option>
+          <option value="FlightBooking_Email">FlightBooking_Email</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="profileEmail">Customer email (profile identity)</label>
+        <input type="email" id="profileEmail" placeholder="e.g. user@example.com" value="" autocomplete="email">
+      </div>
+      <div class="button-row">
+        <button type="button" id="triggerEventBtn" class="btn btn-primary">Trigger event</button>
+      </div>
+      <div id="eventMessage" class="consent-message" role="status" aria-live="polite" hidden></div>
+    </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="ajo-journey-events.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+{
+  "mentoring": [],
+  "product_sync": [],
+  "strategic_customer": [],
+  "innovation": [],
+  "community": [
+    {
+      "id": "202602090930",
+      "created_at": "2026-02-13T13:28:56.275724",
+      "date": "2026-02-09",
+      "time": "09:30",
+      "title": "Loyalty Challenge (AEP) - Team presentation",
+      "type": "presentation",
+      "audience_count": 7,
+      "topics": [
+        "Loyalty Challenge",
+        "AEP",
+        "upcoming product"
+      ],
+      "duration_minutes": 30,
+      "category": "TEAM CONTRIBUTION",
+      "evidence": "Presented new upcoming AEP product Loyalty Challenge to Expert SC team on Expert SC Team Call; demonstrates thought leadership and promoting own product area.",
+      "impact": "Team awareness of new AEP capability; supports Practice Lead bar for regularly speaking and presenting to promote product area.",
+      "sc_leveling_criteria": []
+    },
+    {
+      "id": "202601191200",
+      "created_at": "2026-02-13T15:49:33.554824",
+      "date": "2026-01-19",
+      "time": "12:00",
+      "title": "Riyadh AI Forum",
+      "type": "presentation",
+      "audience_count": 100,
+      "topics": [
+        "Riyadh AI Forum",
+        "stage presentation",
+        "Middle East customers"
+      ],
+      "duration_minutes": 30,
+      "category": "TEAM CONTRIBUTION",
+      "evidence": "Delivered a 30-minute presentation on stage at Riyadh AI Forum to close to 100 Middle East customers; demonstrates external presence and promoting product/team to a broad audience.",
+      "impact": "Reached ~100 customers in region; supports Practice Lead bar for regularly speaking at events to promote product area and team work.",
+      "sc_leveling_criteria": []
+    }
+  ],
+  "certifications": [],
+  "deals": [],
+  "metadata": {
+    "last_updated": "2026-02-13T15:49:33.554824",
+    "totals": {
+      "mentoring": 0,
+      "product_sync": 0,
+      "strategic_customer": 0,
+      "innovation": 0,
+      "community": 2,
+      "certifications": 0,
+      "deals": 0
+    },
+    "unique_mentees": 0,
+    "mentoring_hours": 0,
+    "sustained_relationships_count": 0
+  }
+}

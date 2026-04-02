@@ -1,0 +1,16 @@
+---
+description: Commit all project changes to git after each update batch.
+alwaysApply: true
+---
+
+# Git commits after updates
+
+Whenever you modify, add, or remove files in this project as part of the user’s request:
+
+1. **Stage** the relevant changes (`git add` for the files touched; never stage `.env` or other secrets).
+2. **Commit** with a clear message in **complete sentences** that state what changed and why.
+3. If there is nothing new to commit, say so briefly.
+
+Use conventional short subjects when helpful (e.g. `Add operational provisioning script for schema and dataset.`), still in normal prose.
+
+If git is unavailable or the user’s machine blocks commits, say what you would have committed.

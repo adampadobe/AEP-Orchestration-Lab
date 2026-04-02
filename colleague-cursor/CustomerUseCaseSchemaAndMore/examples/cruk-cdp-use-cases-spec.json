@@ -1,0 +1,102 @@
+{
+  "schemaTitle": "CRUK CDP — supporter intelligence (use case pack)",
+  "schemaDescription": "Derived from CR CDP use cases: omnichannel personalization, predictive offers (e.g. Race for Life), and predictive supporter modelling (NBA, churn, propensity). Custom attributes under tenant namespace; align identities with your existing profile setup.",
+  "xdmClass": "profile",
+  "fieldGroupTitle": "CRUK CDP — supporter intelligence field group",
+  "fieldGroupDescription": "Cancer Research UK supporter / info seeker attributes for personalization, offers, and model-driven scores.",
+  "tenantObjectKey": "crukSupporterIntelligence",
+  "tenantObjectDescription": "CRUK-specific supporter signals and model outputs supporting CDP use cases.",
+  "fields": {
+    "constituentRole": {
+      "type": "string",
+      "description": "Relationship to CRUK (supporter vs info seeker).",
+      "enum": ["supporter", "info_seeker", "unknown"],
+      "meta:enum": {
+        "supporter": "Supporter",
+        "info_seeker": "Info seeker",
+        "unknown": "Unknown"
+      }
+    },
+    "primaryEngagementChannel": {
+      "type": "string",
+      "description": "Preferred or dominant outbound / owned channel for personalization (email, sms, social, paid_media, web, etc.)."
+    },
+    "personalizationPriorityRank": {
+      "type": "integer",
+      "description": "Optional ranking from segmentation / orchestration for offer or journey prioritisation."
+    },
+    "raceForLifeInterestLevel": {
+      "type": "string",
+      "description": "Inferred or stated interest in Race for Life programmes.",
+      "enum": ["none", "low", "medium", "high"],
+      "meta:enum": {
+        "none": "None",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      }
+    },
+    "hasViewedRaceForLifeContent": {
+      "type": "boolean",
+      "description": "Has viewed Race for Life content (supports predictive offer use case)."
+    },
+    "hasCompletedRaceForLifeTransaction": {
+      "type": "boolean",
+      "description": "Completed a Race for Life–related transaction (e.g. registration); used to suppress irrelevant discount paths."
+    },
+    "lastOfferCampaignCode": {
+      "type": "string",
+      "description": "Code or ID of the last presented marketing offer campaign."
+    },
+    "lastOfferPresentedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last offer was presented."
+    },
+    "lastOfferAccepted": {
+      "type": "boolean",
+      "description": "Whether the last presented offer was accepted / converted."
+    },
+    "predictiveModelOutputs": {
+      "type": "object",
+      "description": "Scores and metadata for NBA, churn, propensity, and related models.",
+      "properties": {
+        "modelBundleVersion": {
+          "type": "string",
+          "description": "Version label for the packaged model outputs."
+        },
+        "nextBestActionRecommendation": {
+          "type": "string",
+          "description": "Recommended next best action key or label from modelling."
+        },
+        "nextBestActionScore": {
+          "type": "number",
+          "description": "Optional ranking score for the recommended action."
+        },
+        "churnRiskScore": {
+          "type": "number",
+          "description": "Churn risk score (use consistent scale 0–1 or document externally)."
+        },
+        "propensityToDonateScore": {
+          "type": "number",
+          "description": "Propensity to donate score (use consistent scale 0–1 or document externally)."
+        },
+        "scoresComputedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When predictive scores were last computed."
+        }
+      }
+    },
+    "personalizationSegmentCodes": {
+      "type": "array",
+      "description": "Segment or audience codes used for dynamic content and omnichannel personalization.",
+      "items": { "type": "string" }
+    },
+    "useCaseTags": {
+      "type": "array",
+      "description": "Which CR CDP capability areas this record supports (documentation / governance).",
+      "items": { "type": "string" }
+    }
+  }
+}

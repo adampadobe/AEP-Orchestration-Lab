@@ -1,0 +1,79 @@
+/**
+ * Adobe Spectrum 2 Design Tokens
+ * Based on Spectrum Design System – light theme, medium scale
+ * https://spectrum.adobe.com
+ */
+
+:root {
+  /* Gray scale */
+  --spectrum-gray-50: #ffffff;
+  --spectrum-gray-75: #fafafa;
+  --spectrum-gray-100: #f5f5f5;
+  --spectrum-gray-200: #e8e8e8;
+  --spectrum-gray-300: #d3d3d3;
+  --spectrum-gray-400: #b3b3b3;
+  --spectrum-gray-500: #8b8b8b;
+  --spectrum-gray-600: #6b6b6b;
+  --spectrum-gray-700: #4b4b4b;
+  --spectrum-gray-800: #323232;
+  --spectrum-gray-900: #1f1f1f;
+
+  /* Semantic colors */
+  --spectrum-blue-600: #2680eb;
+  --spectrum-blue-700: #1473e6;
+  --spectrum-blue-800: #0d66d0;
+  --spectrum-red-600: #e34850;
+  --spectrum-red-700: #d7373f;
+  --spectrum-green-600: #2d9d78;
+  --spectrum-orange-600: #e68619;
+
+  /* Component tokens */
+  --spectrum-background-color-default: var(--spectrum-gray-75);
+  --spectrum-background-color-subdued: var(--spectrum-gray-100);
+  --spectrum-background-color-muted: var(--spectrum-gray-200);
+  --spectrum-border-color-default: var(--spectrum-gray-300);
+  --spectrum-border-color-subtle: var(--spectrum-gray-200);
+  --spectrum-text-color-default: var(--spectrum-gray-900);
+  --spectrum-text-color-secondary: var(--spectrum-gray-700);
+  --spectrum-text-color-tertiary: var(--spectrum-gray-600);
+  --spectrum-text-color-disabled: var(--spectrum-gray-500);
+  --spectrum-accent-color: var(--spectrum-blue-600);
+  --spectrum-accent-color-hover: var(--spectrum-blue-700);
+  --spectrum-accent-color-down: var(--spectrum-blue-800);
+  --spectrum-focus-ring-color: var(--spectrum-blue-600);
+
+  /* Spacing (4px base) */
+  --spectrum-spacing-25: 2px;
+  --spectrum-spacing-50: 4px;
+  --spectrum-spacing-75: 6px;
+  --spectrum-spacing-100: 8px;
+  --spectrum-spacing-150: 12px;
+  --spectrum-spacing-200: 16px;
+  --spectrum-spacing-250: 20px;
+  --spectrum-spacing-300: 24px;
+  --spectrum-spacing-400: 32px;
+  --spectrum-spacing-500: 40px;
+
+  /* Typography */
+  --spectrum-font-family: 'Source Sans 3', adobe-clean, 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --spectrum-font-size-50: 11px;
+  --spectrum-font-size-75: 12px;
+  --spectrum-font-size-100: 14px;
+  --spectrum-font-size-200: 16px;
+  --spectrum-font-size-300: 18px;
+  --spectrum-font-size-400: 20px;
+  --spectrum-font-weight-regular: 400;
+  --spectrum-font-weight-medium: 500;
+  --spectrum-font-weight-bold: 700;
+
+  /* Border radius */
+  --spectrum-border-radius-50: 2px;
+  --spectrum-border-radius-100: 4px;
+  --spectrum-border-radius-200: 6px;
+  --spectrum-border-radius-300: 8px;
+
+  /* Shadows */
+  --spectrum-shadow-small: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --spectrum-shadow-medium: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --spectrum-shadow-large: 0 4px 16px rgba(0, 0, 0, 0.12);
+}

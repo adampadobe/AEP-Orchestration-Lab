@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Generator – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="profile-generation.css">
+  <link rel="stylesheet" href="event-generator.css">
+</head>
+<body class="event-generator-page profile-generation-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/event-generator.html">http://localhost:3333/event-generator.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item dashboard-nav-item--active">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-generation-main profile-gen-main event-generator-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingEventGen">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingEventGen" class="dashboard-hero-title">Stream experience events to AEP</h2>
+              <p class="dashboard-hero-subtitle">
+                Choose a delivery path and industry, load profile context, then define the event—same card layout as Profile generation.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="consent-panel" id="eventGeneratorPanel">
+          <div class="profile-gen-config">
+            <div class="config-row">
+              <div class="form-row">
+                <label for="generatorTarget">Destination</label>
+                <select id="generatorTarget" aria-label="Edge datastream or DCS collection"></select>
+              </div>
+              <div class="form-row">
+                <label for="industry">Industry</label>
+                <select id="industry" aria-label="Industry">
+                  <option value="">— Select industry —</option>
+                  <option value="retail">Retail</option>
+                  <option value="fsi">FSI</option>
+                  <option value="travel">Travel</option>
+                  <option value="media">Media</option>
+                  <option value="public">Public</option>
+                </select>
+              </div>
+              <div class="form-row event-gen-customer-email-row">
+                <label for="customerEmail">Customer email</label>
+                <input type="email" id="customerEmail" placeholder="e.g. kirkham+public-3@adobetest.com" value="" autocomplete="email" size="40">
+              </div>
+              <div class="form-row" hidden aria-hidden="true">
+                <label for="identityNamespace">Identity namespace</label>
+                <select id="identityNamespace" tabindex="-1">
+                  <option value="Email">Email</option>
+                </select>
+              </div>
+              <div class="form-row form-row--action profile-gen-actions">
+                <button type="button" id="queryProfileBtn" class="btn btn-secondary">Query profile</button>
+              </div>
+            </div>
+          </div>
+          <div id="profileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+
+          <div class="profile-gen-boxes">
+            <div class="profile-box profile-box--customer">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Customer information</h3>
+              <p class="field-hint event-gen-box-intro">Populated from <strong>Query profile</strong> (identity context for the event).</p>
+              <div class="profile-box-content">
+                <div class="info-grid event-gen-info-grid">
+                  <div class="info-row">
+                    <span class="info-label">Email</span>
+                    <span id="infoEmail" class="info-value">—</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">First name</span>
+                    <span id="infoFirstName" class="info-value">—</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Last name</span>
+                    <span id="infoLastName" class="info-value">—</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">ECID</span>
+                    <span id="infoEcid" class="info-value">—</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-box profile-box--event-def">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Event definition</h3>
+              <div class="profile-box-content">
+                <div class="form-row">
+                  <label for="orchestrationEventID">Orchestration event ID (optional)</label>
+                  <input type="text" id="orchestrationEventID" placeholder="Overrides journey / campaign eventID in XDM" autocomplete="off" spellcheck="false">
+                </div>
+                <div class="form-row">
+                  <label for="eventTimestampPreset">Event timestamp (optional)</label>
+                  <select id="eventTimestampPreset" aria-describedby="eventTimestampPresetHint">
+                    <option value="">Default (server time when sent)</option>
+                    <option value="now">Now</option>
+                    <option value="yesterday">Yesterday (24 hours ago)</option>
+                  </select>
+                  <span class="field-hint" id="eventTimestampPresetHint">When set, sends ISO-8601 UTC in XDM (e.g. <code>2026-03-31T21:16:15.041Z</code>).</span>
+                </div>
+                <div class="form-row">
+                  <label for="eventType">Event type</label>
+                  <input type="text" id="eventType" list="eventTypeList" placeholder="Type or select (e.g. donation.made)" value="" autocomplete="off">
+                  <datalist id="eventTypeList">
+                    <option value="form.formSubmit">
+                    <option value="commerce.productViews">
+                    <option value="commerce.order">
+                    <option value="commerce.productListAdds">
+                    <option value="commerce.productListViews">
+                    <option value="commerce.cartAbandons">
+                    <option value="event.registered">
+                    <option value="transaction">
+                  </datalist>
+                  <span class="field-hint" id="eventTypeHint">Suggestions load from schema when available.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-box profile-box--industry">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Industry context</h3>
+              <p class="field-hint event-gen-box-intro">Fields below reflect the <strong>Industry</strong> choice in the bar above.</p>
+              <div class="profile-box-content">
+                <div id="industryFields" class="industry-fields">
+                  <div id="industryRetail" class="industry-field-group" hidden>
+                    <div class="industry-section">
+                      <h4 class="industry-section-title">Retail</h4>
+                      <div class="industry-section-content">
+                        <div class="form-row">
+                          <label for="retailProductCategory">Product category</label>
+                          <input type="text" id="retailProductCategory" placeholder="e.g. Electronics">
+                        </div>
+                        <div class="form-row">
+                          <label for="retailStore">Store / channel</label>
+                          <input type="text" id="retailStore" placeholder="e.g. Online, Store #123">
+                        </div>
+                        <div class="form-row">
+                          <label for="retailCartValue">Cart value</label>
+                          <input type="text" id="retailCartValue" placeholder="e.g. 199.99">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="industryFsi" class="industry-field-group" hidden>
+                    <div class="industry-section">
+                      <h4 class="industry-section-title">FSI</h4>
+                      <div class="industry-section-content">
+                        <div class="form-row">
+                          <label for="fsiCreditCardType">Credit card type</label>
+                          <select id="fsiCreditCardType">
+                            <option value="">— Select —</option>
+                            <option value="rewards">Rewards</option>
+                            <option value="travel">Travel</option>
+                            <option value="cashback">Cashback</option>
+                            <option value="business">Business</option>
+                          </select>
+                        </div>
+                        <div class="form-row">
+                          <label for="fsiMortgage">Mortgage</label>
+                          <select id="fsiMortgage">
+                            <option value="">— Select —</option>
+                            <option value="none">None</option>
+                            <option value="first_time">First-time buyer</option>
+                            <option value="refinance">Refinance</option>
+                          </select>
+                        </div>
+                        <div class="form-row">
+                          <label for="fsiAccountType">Account type</label>
+                          <input type="text" id="fsiAccountType" placeholder="e.g. Checking, Savings">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="industryTravel" class="industry-field-group" hidden>
+                    <div class="industry-section">
+                      <h4 class="industry-section-title">Travel</h4>
+                      <div class="industry-section-content">
+                        <div class="form-row">
+                          <label for="travelDestination">Destination</label>
+                          <input type="text" id="travelDestination" placeholder="e.g. London, NYC">
+                        </div>
+                        <div class="form-row">
+                          <label for="travelClass">Travel class</label>
+                          <select id="travelClass">
+                            <option value="">— Select —</option>
+                            <option value="economy">Economy</option>
+                            <option value="premium_economy">Premium economy</option>
+                            <option value="business">Business</option>
+                            <option value="first">First</option>
+                          </select>
+                        </div>
+                        <div class="form-row">
+                          <label for="travelTripType">Trip type</label>
+                          <select id="travelTripType">
+                            <option value="">— Select —</option>
+                            <option value="leisure">Leisure</option>
+                            <option value="business">Business</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="industryMedia" class="industry-field-group" hidden>
+                    <div class="industry-section">
+                      <h4 class="industry-section-title">Media</h4>
+                      <div class="industry-section-content">
+                        <div class="form-row">
+                          <label for="mediaChannel">Channel</label>
+                          <input type="text" id="mediaChannel" placeholder="e.g. Web, App, OTT">
+                        </div>
+                        <div class="form-row">
+                          <label for="mediaContentType">Content type</label>
+                          <input type="text" id="mediaContentType" placeholder="e.g. Movie, Series, Live">
+                        </div>
+                        <div class="form-row">
+                          <label for="mediaViewingHours">Viewing hours</label>
+                          <input type="number" id="mediaViewingHours" placeholder="e.g. 2" min="0" step="0.5">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="industryPublic" class="industry-field-group" hidden>
+                    <div class="industry-section">
+                      <h4 class="industry-section-title">Public / nonprofit</h4>
+                      <div class="industry-section-content">
+                        <div class="form-row">
+                          <label for="publicDonationAmount">Donation amount</label>
+                          <input type="text" id="publicDonationAmount" inputmode="decimal" placeholder="e.g. 50 or 100.00" autocomplete="off">
+                        </div>
+                        <div class="form-row">
+                          <label for="publicEventRegistration">Event registered</label>
+                          <input type="text" id="publicEventRegistration" placeholder="e.g. Annual fundraiser" autocomplete="off">
+                        </div>
+                        <div class="form-row">
+                          <label for="publicDonationDate">Donation date</label>
+                          <input type="date" id="publicDonationDate" autocomplete="off">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-box profile-box--interaction">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Interaction details</h3>
+              <div class="profile-box-content">
+                <div class="form-row">
+                  <label for="viewName">View name</label>
+                  <input type="text" id="viewName" placeholder="e.g. Home">
+                </div>
+                <div class="form-row">
+                  <label for="viewUrl">URL</label>
+                  <input type="text" id="viewUrl" placeholder="e.g. https://example.com/page">
+                </div>
+                <div class="form-row">
+                  <label for="interactionChannel">Channel</label>
+                  <input type="text" id="interactionChannel" placeholder="e.g. Web, Email, App" autocomplete="off">
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-box profile-box--send">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Send to AEP</h3>
+              <div class="profile-box-content">
+                <div class="button-row event-gen-send-actions">
+                  <button type="button" id="sendEdgeBtn" class="btn btn-primary btn-save">Send event to AEP</button>
+                </div>
+                <div id="edgeMessage" class="consent-message" role="status" aria-live="polite" hidden></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="event-generator.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

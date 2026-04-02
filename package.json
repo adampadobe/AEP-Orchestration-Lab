@@ -1,0 +1,10 @@
+{
+  "name": "aep-decisioning",
+  "private": true,
+  "description": "Experience Decisioning lab + vendored colleague Profile Viewer",
+  "scripts": {
+    "profile-viewer": "cd \"colleague-cursor/AEP Profile/03 Profile Viewer\" && npm start",
+    "profile-viewer:install": "cd \"colleague-cursor/AEP Profile/00 Adobe Auth\" && npm install && cd \"../03 Profile Viewer\" && npm install",
+    "sync-profile-viewer-ui": "rsync -a --delete \"colleague-cursor/AEP Profile/03 Profile Viewer/public/\" \"web/profile-viewer/\""
+  }
+}

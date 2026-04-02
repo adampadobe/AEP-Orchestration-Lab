@@ -1,0 +1,17 @@
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+
+# Generated output
+profile-output.json
+
+# Backups
+*-backup-*/
+backup-*/

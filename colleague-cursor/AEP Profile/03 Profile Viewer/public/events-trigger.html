@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Events Trigger – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="event-generator.css">
+</head>
+<body class="event-generator-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/events-trigger.html">http://localhost:3333/events-trigger.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item dashboard-nav-item--active">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main event-generator-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingEventsTrigger">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingEventsTrigger" class="dashboard-hero-title">Fire configured trigger events</h2>
+              <p class="dashboard-hero-subtitle">
+                Send event-trigger payloads to test journeys and downstream processing in your sandbox.
+              </p>
+            </header>
+          </div>
+        </section>
+    <!-- Step 1: Select profile -->
+    <section class="consent-panel" id="profilePanel">
+      <h2 class="panel-title"><span class="icon">👤</span> Step 1: Select profile</h2>
+      <p class="panel-desc">Enter the customer's email address. The event will be sent against this profile identity. ECID from the profile is used in the event payload.</p>
+      <div class="form-row">
+        <label for="customerEmail">Customer email address</label>
+        <input type="email" id="customerEmail" placeholder="e.g. kirkham+media-1@adobetest.com" value="" autocomplete="email">
+      </div>
+      <div class="form-row">
+        <label for="identityNamespace">Identity namespace</label>
+        <select id="identityNamespace">
+          <option value="Email">Email</option>
+        </select>
+      </div>
+      <div class="button-row">
+        <button type="button" id="queryProfileBtn" class="btn btn-secondary">Query profile</button>
+      </div>
+      <div id="profileMessage" class="consent-message" role="status" aria-live="polite" hidden></div>
+    </section>
+
+    <!-- Step 2: Customer information -->
+    <section class="consent-panel" id="customerInfoPanel">
+      <h2 class="panel-title"><span class="icon">👤</span> Step 2: Customer information (Auto-populated from Profile Query)</h2>
+      <div class="info-grid">
+        <div class="info-row">
+          <span class="info-label">Email Address</span>
+          <span id="infoEmail" class="info-value">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">First Name</span>
+          <span id="infoFirstName" class="info-value">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Last Name</span>
+          <span id="infoLastName" class="info-value">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">ECID</span>
+          <span id="infoEcid" class="info-value">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Preferred Marketing Channel</span>
+          <span id="infoPreferredChannel" class="info-value">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Profile Last Updated</span>
+          <span id="infoLastUpdated" class="info-value">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 3: Event trigger -->
+    <section class="consent-panel" id="eventPanel">
+      <h2 class="panel-title"><span class="icon">📤</span> Step 3: Trigger event</h2>
+      <p class="panel-desc">Select an event type. Events with predefined payloads (e.g. deposit.made) use the configured JSON template with ECID from the profile. Add more event types in <code>event-triggers.json</code>.</p>
+
+      <div class="form-row">
+        <label for="eventType">Event type</label>
+        <select id="eventType" aria-label="Event type">
+          <option value="">— Select event type —</option>
+          <option value="deposit.made">deposit.made</option>
+        </select>
+        <span class="field-hint" id="eventTypeHint">Event types are loaded from event-triggers.json. Add more in the config file.</span>
+      </div>
+
+      <div class="consent-subsection">
+        <h3 class="subsection-title"><span class="icon">🌐</span> Send event</h3>
+        <p class="panel-desc">Sends the event payload for the selected type to AEP. The ECID from the profile above is injected into the payload.</p>
+        <div class="button-row">
+          <button type="button" id="sendTriggerBtn" class="btn btn-primary btn-save">Send event</button>
+        </div>
+        <div id="triggerMessage" class="consent-message" role="status" aria-live="polite" hidden></div>
+      </div>
+    </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="events-trigger.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

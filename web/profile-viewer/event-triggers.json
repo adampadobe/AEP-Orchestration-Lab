@@ -1,0 +1,134 @@
+{
+  "advertising.conversions": {
+    "description": "Advertising conversions event",
+    "datastreamId": "46677fd7-9db0-4f16-898c-b424d0245c38",
+    "eventID": "2900c60f5df133c99c73d7636ede89ae8ced247574b8b8f777e3b2c5cc92af8a",
+    "payload": {
+      "event": {
+        "xdm": {
+          "_demoemea": {
+            "identification": {
+              "core": {
+                "ecid": "{{ecid}}",
+                "email": "{{email}}"
+              }
+            },
+            "offersAndPromotions": {
+              "issueDate": "2025-10-07",
+              "promotionType": "Subscribed"
+            }
+          },
+          "_id": "{{_id}}",
+          "_experience": {
+            "campaign": {
+              "orchestration": {
+                "eventID": "2900c60f5df133c99c73d7636ede89ae8ced247574b8b8f777e3b2c5cc92af8a"
+              }
+            }
+          },
+          "eventType": "advertising.conversions",
+          "timestamp": "{{timestamp}}"
+        }
+      }
+    }
+  },
+  "deposit.made": {
+    "description": "Deposit made event for FSI journey",
+    "datastreamId": "46677fd7-9db0-4f16-898c-b424d0245c38",
+    "eventID": "3f75cf734139b9873fbef832911506aa513db824f0e0ed3f230185409522885e",
+    "payload": {
+      "event": {
+        "xdm": {
+          "_demoemea": {
+            "identification": {
+              "core": {
+                "ecid": "{{ecid}}",
+                "email": "{{email}}"
+              }
+            },
+            "offersAndPromotions": {
+              "issueDate": "2025-10-07",
+              "promotionType": "Subscribed"
+            }
+          },
+          "_id": "{{_id}}",
+          "_experience": {
+            "campaign": {
+              "orchestration": {
+                "eventID": "3f75cf734139b9873fbef832911506aa513db824f0e0ed3f230185409522885e"
+              }
+            }
+          },
+          "eventType": "deposit.made",
+          "timestamp": "{{timestamp}}"
+        }
+      }
+    }
+  },
+  "form.abandoned": {
+    "description": "Form abandoned event (journey / AJO orchestration)",
+    "datastreamId": "46677fd7-9db0-4f16-898c-b424d0245c38",
+    "eventID": "b4e8f2a91c3d5e7f608192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f",
+    "payload": {
+      "event": {
+        "xdm": {
+          "_demoemea": {
+            "identification": {
+              "core": {
+                "ecid": "{{ecid}}",
+                "email": "{{email}}"
+              }
+            },
+            "offersAndPromotions": {
+              "issueDate": "2025-10-07",
+              "promotionType": "Subscribed"
+            }
+          },
+          "_id": "{{_id}}",
+          "_experience": {
+            "campaign": {
+              "orchestration": {
+                "eventID": "b4e8f2a91c3d5e7f608192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f"
+              }
+            }
+          },
+          "eventType": "form.abandoned",
+          "timestamp": "{{timestamp}}"
+        }
+      }
+    }
+  },
+  "donation.made": {
+    "description": "Donation made event (public / nonprofit journey)",
+    "datastreamId": "46677fd7-9db0-4f16-898c-b424d0245c38",
+    "eventID": "c5f903ba2d4e6f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708",
+    "payload": {
+      "event": {
+        "xdm": {
+          "_demoemea": {
+            "identification": {
+              "core": {
+                "ecid": "{{ecid}}",
+                "email": "{{email}}"
+              }
+            },
+            "offersAndPromotions": {
+              "issueDate": "2025-10-07",
+              "promotionType": "Subscribed"
+            }
+          },
+          "_id": "{{_id}}",
+          "_experience": {
+            "campaign": {
+              "orchestration": {
+                "eventID": "c5f903ba2d4e6f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708"
+              }
+            }
+          },
+          "eventType": "donation.made",
+          "timestamp": "{{timestamp}}"
+        }
+      }
+    }
+  }
+}

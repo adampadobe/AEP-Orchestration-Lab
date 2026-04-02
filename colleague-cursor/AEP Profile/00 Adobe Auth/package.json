@@ -1,0 +1,21 @@
+{
+  "name": "adobe-auth",
+  "version": "1.0.0",
+  "description": "Reusable Adobe Experience Platform OAuth token provider with automatic refresh",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "token": "node src/cli.js",
+    "test-auth": "node src/cli.js --test"
+  },
+  "keywords": ["adobe", "aep", "oauth", "ims", "bearer"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  },
+  "optionalDependencies": {
+    "@azure/identity": "^4.0.0",
+    "@azure/keyvault-secrets": "^4.7.0"
+  }
+}

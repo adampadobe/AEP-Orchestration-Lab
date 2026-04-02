@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audience membership – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="profile-viewer.css">
+</head>
+<body class="profile-viewer-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/audience-membership.html">http://localhost:3333/audience-membership.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item dashboard-nav-item--active">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-viewer-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingAudience">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingAudience" class="dashboard-hero-title">See who qualifies for segments</h2>
+              <p class="dashboard-hero-subtitle">
+                Look up audience membership for a profile email using the same data as Profile Viewer.
+              </p>
+            </header>
+          </div>
+        </section>
+    <section class="consent-panel">
+      <h2 class="panel-title"><span class="icon">👥</span> Audience membership</h2>
+      <p class="panel-desc">Look up segment qualification for a profile by email (same data as the Profile Viewer <strong>Audience Membership</strong> tab). Uses the Platform Profile API via <code>GET /api/profile/audiences</code>.</p>
+
+      <div class="sandbox-config">
+        <h3 class="sandbox-config-title">AEP sandbox</h3>
+        <div class="form-row">
+          <label for="sandboxSelect">Sandbox</label>
+          <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+            <option value="">Loading sandboxes…</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="audienceEmail">Email address</label>
+        <input type="email" id="audienceEmail" placeholder="e.g. kirkham+retail-1@adobetest.com" autocomplete="email">
+      </div>
+      <div class="button-row">
+        <button type="button" id="audienceLookupBtn" class="btn btn-primary btn-query">Load audience membership</button>
+      </div>
+      <p id="audienceStatus" class="consent-message" role="status" aria-live="polite" hidden></p>
+    </section>
+
+    <section class="consent-panel profile-view-panel" id="audienceResults" hidden>
+      <h3 class="panel-title" style="font-size: 1.1rem;">Results</h3>
+      <div id="audienceLoading" class="events-loading" hidden>Loading audience membership…</div>
+      <div id="audienceError" class="events-error" role="alert" hidden></div>
+      <p id="audienceEmpty" class="events-empty" hidden>No audience membership found for this email.</p>
+      <div id="audienceList" class="profile-audience-list"></div>
+      <p class="panel-desc audience-page-footnote"><a href="index.html">Open Profile Viewer</a> to see full attributes, events, and membership in one place.</p>
+    </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var ok = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!ok) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="audience-membership.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

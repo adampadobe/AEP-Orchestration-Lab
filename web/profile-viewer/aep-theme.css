@@ -1,0 +1,244 @@
+/* Global dark theme for concierge dashboard (toggle: html[data-aep-theme="dark"]) */
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge {
+  --dash-bg: #0f1114;
+  --dash-surface: #181b21;
+  --dash-sidebar: #12151a;
+  --dash-border: #2a3038;
+  --dash-text: #e8eaed;
+  --dash-muted: #9aa0a8;
+  --dash-blue: #4b9fff;
+  --dash-hero-grad: linear-gradient(
+    105deg,
+    #1a1f32 0%,
+    #221a2e 38%,
+    #2a1c28 72%,
+    #2c2218 100%
+  );
+  --dash-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  --dash-shadow-hover: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-sidebar-mark {
+  background: var(--dash-blue);
+  color: #fff;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-item--active {
+  background: var(--dash-blue);
+  color: #fff;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-item--active:hover {
+  background: #3a8eef;
+  color: #fff;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-hero-inner {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-hero--page-banner .dashboard-hero-inner {
+  background: linear-gradient(
+    90deg,
+    #252038 0%,
+    #2a2438 38%,
+    #302428 72%,
+    #322820 100%
+  );
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-hero--page-banner .dashboard-hero-title {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-hero--page-banner .dashboard-hero-subtitle {
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-step-badge {
+  background: var(--dash-surface);
+  border-color: var(--dash-border);
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-step--current .dashboard-step-badge {
+  background: var(--dash-surface);
+  border-color: var(--dash-blue);
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-action-card {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-env-pill {
+  background: rgba(75, 159, 255, 0.15);
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-topbar-icon {
+  background: var(--dash-surface);
+  border-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-topbar-icon:hover {
+  background: #22262e;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-primary,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-query,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-save,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .schema-aep-btn--primary {
+  background: var(--dash-blue) !important;
+  border-color: var(--dash-blue) !important;
+  color: #fff !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-primary:hover,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-query:hover,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-save:hover,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .schema-aep-btn--primary:hover {
+  background: #3a8eef !important;
+  border-color: #3a8eef !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-secondary {
+  background: var(--dash-surface) !important;
+  color: var(--dash-text) !important;
+  border-color: var(--dash-border) !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .btn-secondary:hover {
+  background: #22262e !important;
+  border-color: #3d4450 !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .profile-tab--active,
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .profile-tab[aria-selected='true'] {
+  border-bottom-color: var(--dash-blue);
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .profile-tab:hover {
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .details-btn-text {
+  color: var(--dash-blue);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.home-page) .details-btn-text:hover {
+  color: #7eb8ff;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-btn-outline {
+  border-color: var(--dash-border);
+  color: var(--dash-text);
+  background: transparent;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--dash-muted);
+}
+
+/* Sidebar theme control */
+.aep-theme-sidebar-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--dash-border, #e6e4ea);
+}
+
+.aep-theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  cursor: pointer;
+  border: 1px solid var(--dash-border, #e6e4ea);
+  background: var(--dash-surface, #fff);
+  color: var(--dash-text, #2c2c2c);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.aep-theme-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .aep-theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.aep-theme-toggle-btn:focus-visible {
+  outline: 2px solid var(--dash-blue, #1473e6);
+  outline-offset: 2px;
+}
+
+/* Global settings page: secondary theme row */
+.aep-theme-global-row {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--dash-border, #e6e4ea);
+}
+
+/* Profile Viewer / generation tool cards */
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page .panel-title {
+  color: var(--dash-text) !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page .panel-desc {
+  color: var(--dash-muted) !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page .panel-desc code {
+  background: var(--dash-bg) !important;
+  color: var(--dash-text) !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page #lookupPanel .profile-identity,
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page #results.profile-view-panel {
+  background: var(--dash-surface) !important;
+  border-color: var(--dash-border) !important;
+  color: var(--dash-text) !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page #lookupPanel .sent-payload-details {
+  background: var(--dash-bg) !important;
+  border-color: var(--dash-border) !important;
+  color: var(--dash-muted) !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page input,
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page select,
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page textarea {
+  background: var(--dash-surface) !important;
+  color: var(--dash-text) !important;
+  border-color: var(--dash-border) !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page table {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page th {
+  background: var(--dash-bg) !important;
+  color: var(--dash-muted) !important;
+  border-color: var(--dash-border) !important;
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge.profile-viewer-page td {
+  border-color: var(--dash-border) !important;
+}

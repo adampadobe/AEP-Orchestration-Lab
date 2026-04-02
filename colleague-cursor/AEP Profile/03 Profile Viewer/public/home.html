@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css">
+</head>
+<body class="home-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/home.html">http://localhost:3333/home.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item dashboard-nav-item--active">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main">
+        <section class="dashboard-hero" aria-labelledby="dashboardHeroHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="dashboardHeroHeading" class="dashboard-hero-title">Let’s bring your profile workspace to life.</h2>
+              <p class="dashboard-hero-subtitle">Look up Real-Time Customer Profile, manage consent, stream events, and validate journeys in one place.</p>
+            </header>
+            <div class="dashboard-hero-split">
+              <ol class="dashboard-stepper" aria-label="Getting started steps">
+                <li class="dashboard-step dashboard-step--done">
+                  <span class="dashboard-step-badge" aria-hidden="true">✓</span>
+                  <div class="dashboard-step-body">
+                    <strong class="dashboard-step-label">Connect to Platform</strong>
+                    <span class="dashboard-step-desc">Run this app on localhost with your sandbox credentials.</span>
+                  </div>
+                </li>
+                <li class="dashboard-step dashboard-step--current">
+                  <span class="dashboard-step-badge">2</span>
+                  <div class="dashboard-step-body">
+                    <strong class="dashboard-step-label">Explore profiles</strong>
+                    <span class="dashboard-step-desc">Open Profile Viewer to inspect attributes, events, and audiences.</span>
+                  </div>
+                </li>
+                <li class="dashboard-step">
+                  <span class="dashboard-step-badge">3</span>
+                  <div class="dashboard-step-body">
+                    <strong class="dashboard-step-label">Act on your data</strong>
+                    <span class="dashboard-step-desc">Generate test profiles, send events, and trigger journey actions.</span>
+                  </div>
+                </li>
+              </ol>
+              <div class="dashboard-hero-cards">
+                <article class="dashboard-action-card">
+                  <div class="dashboard-action-card-icon dashboard-action-card-icon--violet" aria-hidden="true">◇</div>
+                  <h3 class="dashboard-action-card-title">Look up a profile</h3>
+                  <p class="dashboard-action-card-desc">Fetch unified profile attributes by email with full path editing.</p>
+                  <a href="index.html" class="dashboard-btn-primary">Get started</a>
+                </article>
+                <article class="dashboard-action-card">
+                  <div class="dashboard-action-card-icon dashboard-action-card-icon--sky" aria-hidden="true">✦</div>
+                  <h3 class="dashboard-action-card-title">Generate test data</h3>
+                  <p class="dashboard-action-card-desc">Create sandbox-friendly payloads aligned with your schema and data prep.</p>
+                  <a href="profile-generation.html" class="dashboard-btn-primary">Get started</a>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="dashboard-lower-grid">
+          <div class="dashboard-lower-col">
+            <section class="dashboard-panel">
+              <div class="dashboard-panel-head">
+                <h3 class="dashboard-panel-title">Workspace overview</h3>
+                <a href="index.html" class="dashboard-btn-quiet">
+                  <span aria-hidden="true">✎</span> Open viewer
+                </a>
+              </div>
+              <p class="dashboard-panel-lead">AEP Profile Viewer — local companion for Real-Time CDP profile inspection, consent, and journey tooling.</p>
+              <p class="dashboard-panel-text">Use the sidebar to jump between tools. Your server <code class="dashboard-code">localhost:3333</code> proxies AEP APIs using environment credentials.</p>
+            </section>
+            <section class="dashboard-panel">
+              <h3 class="dashboard-panel-title">Quick paths</h3>
+              <ul class="dashboard-link-list">
+                <li><a href="schema-viewer.html">Data viewer</a></li>
+                <li><a href="audience-membership.html">Audience membership</a></li>
+                <li><a href="consent.html">Consent manager</a></li>
+                <li><a href="event-generator.html">Event generator</a></li>
+                <li><a href="donate-demo.html">Donate (demo)</a></li>
+                <li><a href="events-trigger.html">Events trigger</a></li>
+                <li><a href="firebase-hosting.html">Firebase images</a></li>
+              </ul>
+            </section>
+          </div>
+          <div class="dashboard-lower-col">
+            <div class="dashboard-info-banner" role="note">
+              <span class="dashboard-info-icon" aria-hidden="true">ⓘ</span>
+              <p>Configure <strong>IMS credentials</strong>, sandbox name, and optional dataset IDs in your <code class="dashboard-code">.env</code> for full API access.</p>
+            </div>
+            <section class="dashboard-panel dashboard-dashed">
+              <div class="dashboard-dashed-row">
+                <div>
+                  <h3 class="dashboard-panel-title dashboard-panel-title--sm">Experience League</h3>
+                  <p class="dashboard-muted">Profile UI and API reference on Adobe’s docs.</p>
+                </div>
+                <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-btn-outline" target="_blank" rel="noopener">Open</a>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isFirebaseHost = /\.web\.app$/i.test(host) || /\.firebaseapp\.com$/i.test(host);
+      var isCorrect =
+        isFirebaseHost ||
+        ((host === 'localhost' || host === '127.0.0.1') && port === '3333');
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

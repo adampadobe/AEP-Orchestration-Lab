@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global values – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css">
+</head>
+<body class="home-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/global-settings.html">http://localhost:3333/global-settings.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">Global values</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Stored in this browser">Browser</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/sandbox/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Sandbox docs</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main">
+        <section class="dashboard-hero" style="max-width: 640px;">
+          <h2 class="dashboard-hero-title" style="font-size: 1.25rem;">Sandbox for all Profile Viewer pages</h2>
+          <p class="dashboard-hero-subtitle" style="margin-top: 8px;">
+            Loads <strong>active sandboxes</strong> from Adobe Experience Platform (same org as <code>/api/aep</code> on Firebase Hosting, or <code>/api/sandboxes</code> when you run the local Node server).
+            Your choice is saved in <code>localStorage</code> and applied to every page that has a sandbox dropdown (Profile Viewer, Data viewer, Audience, Profile generation).
+          </p>
+          <div class="dashboard-action-card" style="margin-top: 20px; text-align: left;">
+            <label for="globalSandboxSelect" class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Active sandbox</label>
+            <select id="globalSandboxSelect" class="sandbox-select schema-aep-sandbox-select" style="max-width: 100%; width: 100%; margin-bottom: 12px;" aria-label="Global AEP sandbox"></select>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+              <button type="button" class="dashboard-btn-outline" id="btnRefreshSandboxes">Refresh list</button>
+              <button type="button" class="dashboard-btn-outline" id="btnClearSandbox">Use server default</button>
+            </div>
+            <p id="globalSettingsStatus" class="dashboard-hero-subtitle" style="margin-top: 16px; font-size: 13px;"></p>
+            <div class="aep-theme-global-row">
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Appearance</label>
+              <button type="button" class="aep-theme-toggle-btn" aria-label="Toggle color theme">Dark mode</button>
+              <p class="dashboard-hero-subtitle" style="margin-top: 12px; font-size: 13px;">
+                Same as the sidebar control. Stored in this browser as <code>aepTheme</code> (<code>dark</code> or default light).
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isFirebaseHost = /\.web\.app$/i.test(host) || /\.firebaseapp\.com$/i.test(host);
+      var isCorrect = isFirebaseHost || ((host === 'localhost' || host === '127.0.0.1') && port === '3333');
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="aep-global-sandbox.js"></script>
+  <script>
+    (function () {
+      var sel = document.getElementById('globalSandboxSelect');
+      var statusEl = document.getElementById('globalSettingsStatus');
+
+      function showStatus() {
+        if (!statusEl || !window.AepGlobalSandbox) return;
+        var v = window.AepGlobalSandbox.getSelected();
+        statusEl.textContent = v
+          ? 'Saved sandbox: ' + v + ' (key: ' + window.AepGlobalSandbox.LS_SANDBOX + ')'
+          : 'Using server default (empty selection). IMS org comes from Adobe auth / Firebase secrets.';
+      }
+
+      async function init() {
+        if (!sel || !window.AepGlobalSandbox) return;
+        await window.AepGlobalSandbox.loadSandboxesIntoSelect(sel);
+        window.AepGlobalSandbox.onSandboxSelectChange(sel);
+        sel.addEventListener('change', showStatus);
+        showStatus();
+      }
+
+      document.getElementById('btnRefreshSandboxes').addEventListener('click', function () {
+        init().then(showStatus);
+      });
+      document.getElementById('btnClearSandbox').addEventListener('click', function () {
+        window.AepGlobalSandbox.setSelected('');
+        if (sel) sel.value = '';
+        showStatus();
+      });
+      window.addEventListener('aep-global-sandbox-change', showStatus);
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { init().then(showStatus); });
+      } else {
+        init().then(showStatus);
+      }
+    })();
+  </script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

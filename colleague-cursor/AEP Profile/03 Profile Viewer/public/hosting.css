@@ -1,0 +1,582 @@
+/* Firebase Hosting manager — scoped under .firebase-hosting-inner so dashboard shell (home.css) stays primary */
+
+.firebase-hosting-inner {
+  --fh-bg: #0f1218;
+  --fh-panel: #1a1f28;
+  --fh-border: #2a3140;
+  --fh-text: #e8eaef;
+  --fh-muted: #8b93a5;
+  --fh-accent: #7cb87c;
+  --fh-accent2: #6eb5f9;
+  --fh-error: #e07d7d;
+  --fh-radius: 10px;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--fh-text);
+  line-height: 1.5;
+}
+
+.firebase-hosting-inner * {
+  box-sizing: border-box;
+}
+
+.firebase-hosting-inner .firebase-hosting-app {
+  max-width: min(1680px, 100%);
+  margin-left: 0;
+  margin-right: auto;
+  padding: 0 0 2rem;
+}
+
+/* Left-align this page; top offset for the banner comes from home.css (.dashboard-hero--page-banner:first-child) */
+body.home-dashboard-concierge .dashboard-main.dashboard-main--firebase-hosting {
+  margin-left: 0;
+  margin-right: auto;
+  max-width: 100%;
+  width: 100%;
+  padding: 0 clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
+}
+
+.firebase-hosting-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, min(420px, 36vw)) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  justify-content: start;
+  width: 100%;
+}
+
+.firebase-hosting-main--with-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, min(24vw, 260px));
+  gap: 1rem;
+  align-items: start;
+  width: 100%;
+}
+
+.firebase-hosting-content {
+  min-width: 0;
+}
+
+.firebase-hosting-preview {
+  position: sticky;
+  top: 0.75rem;
+  align-self: start;
+  background: var(--fh-panel);
+  border: 1px solid var(--fh-border);
+  border-radius: var(--fh-radius);
+  padding: 1rem 1.1rem;
+  max-height: min(90vh, 900px);
+  display: flex;
+  flex-direction: column;
+}
+
+.firebase-hosting-preview__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fh-text);
+}
+
+.firebase-hosting-preview__hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--fh-muted);
+  line-height: 1.45;
+}
+
+.firebase-hosting-preview__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.firebase-hosting-preview__frame {
+  flex: 1;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fh-bg);
+  border-radius: 8px;
+  border: 1px solid var(--fh-border);
+  overflow: auto;
+}
+
+.firebase-hosting-preview__frame img {
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: min(65vh, 560px);
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.firebase-hosting-preview__caption {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--fh-muted);
+  word-break: break-all;
+  line-height: 1.35;
+}
+
+.firebase-hosting-inner .btn-preview-rename {
+  align-self: flex-start;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.88rem;
+  background: rgba(110, 181, 249, 0.15);
+  color: var(--fh-accent2);
+  border: 1px solid rgba(110, 181, 249, 0.35);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.firebase-hosting-inner .btn-preview-rename:hover {
+  background: rgba(110, 181, 249, 0.25);
+}
+
+.firebase-hosting-context-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 10rem;
+  padding: 0.35rem 0;
+  margin: 0;
+  background: var(--fh-panel);
+  border: 1px solid var(--fh-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.firebase-hosting-context-menu__item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.9rem;
+  border: none;
+  background: transparent;
+  color: var(--fh-text);
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.firebase-hosting-context-menu__item:hover,
+.firebase-hosting-context-menu__item:focus {
+  background: rgba(110, 181, 249, 0.15);
+  outline: none;
+}
+
+@media (max-width: 1100px) {
+  .firebase-hosting-main--with-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .firebase-hosting-preview {
+    position: relative;
+    top: auto;
+    max-height: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .firebase-hosting-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.firebase-hosting-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--fh-panel);
+  border: 1px solid var(--fh-border);
+  border-radius: var(--fh-radius);
+  padding: 0.75rem 0.65rem;
+}
+
+.firebase-hosting-tree .firebase-hosting-deploy-panel.panel {
+  margin: 0;
+  padding: 0.75rem 0.65rem;
+  flex-shrink: 0;
+}
+
+.firebase-hosting-deploy-panel h2 {
+  font-size: 0.95rem;
+  margin: 0 0 0.65rem;
+}
+
+.firebase-hosting-deploy-panel .btn-deploy {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+}
+
+.firebase-hosting-deploy-panel .deploy-out {
+  margin: 0.65rem 0 0;
+  max-height: 200px;
+  font-size: 0.7rem;
+}
+
+.firebase-hosting-tree__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fh-text);
+}
+
+/* Shown only when the folder tree cannot load (hidden when OK) */
+.firebase-hosting-tree__error {
+  margin: 0 0 0.65rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--fh-error);
+}
+
+.firebase-hosting-tree__scroll {
+  min-height: 120px;
+  max-height: min(48vh, 420px);
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.firebase-hosting-tree__node {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin: 0.1rem 0;
+  min-height: 1.75rem;
+}
+
+.firebase-hosting-tree__toggle {
+  flex: 0 0 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fh-muted);
+  font-size: 0.65rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.firebase-hosting-tree__toggle:hover {
+  color: var(--fh-text);
+  background: rgba(110, 181, 249, 0.12);
+}
+
+.firebase-hosting-tree__toggle--empty {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.firebase-hosting-tree__label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 0.2rem 0.4rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fh-text);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.firebase-hosting-tree__label:hover {
+  background: rgba(110, 181, 249, 0.1);
+}
+
+.firebase-hosting-tree__label--active {
+  background: rgba(110, 181, 249, 0.2);
+  font-weight: 600;
+}
+
+.firebase-hosting-tree__children {
+  margin: 0;
+  padding: 0 0 0 0.35rem;
+  border-left: 1px solid var(--fh-border);
+  margin-left: 0.6rem;
+}
+
+.firebase-hosting-inner .main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 0;
+}
+
+.firebase-hosting-images-panel .firebase-hosting-image-grid {
+  min-height: 100px;
+}
+
+.firebase-hosting-images-panel--large {
+  min-height: min(24vh, 220px);
+}
+
+.firebase-hosting-images-panel--large .firebase-hosting-image-grid {
+  min-height: min(20vh, 180px);
+}
+
+.firebase-hosting-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.firebase-hosting-image-grid--large {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .firebase-hosting-image-grid--large {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 400px) {
+  .firebase-hosting-image-grid--large {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.firebase-hosting-image-grid--large .firebase-hosting-thumb img {
+  height: min(160px, 22vh);
+  object-fit: contain;
+}
+
+.firebase-hosting-thumb {
+  margin: 0;
+  padding: 0 0 0.35rem;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--fh-bg);
+  border: 1px solid var(--fh-border);
+  cursor: pointer;
+  outline: none;
+}
+
+.firebase-hosting-thumb:focus-visible {
+  box-shadow: 0 0 0 2px rgba(110, 181, 249, 0.5);
+}
+
+.firebase-hosting-thumb--selected {
+  border-color: var(--fh-accent2);
+  box-shadow: 0 0 0 1px rgba(110, 181, 249, 0.35);
+}
+
+.firebase-hosting-thumb img {
+  display: block;
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  background: #0a0c10;
+}
+
+.firebase-hosting-thumb figcaption {
+  padding: 0.35rem 0.4rem 0;
+  font-size: 0.72rem;
+  color: var(--fh-muted);
+  word-break: break-all;
+  line-height: 1.25;
+}
+
+.firebase-hosting-inner .panel {
+  background: var(--fh-panel);
+  border: 1px solid var(--fh-border);
+  border-radius: var(--fh-radius);
+  padding: 1rem 1.15rem;
+}
+
+.firebase-hosting-inner .panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.firebase-hosting-inner .status-line {
+  margin: 0 0 0.75rem;
+  font-weight: 500;
+}
+
+.firebase-hosting-inner .status-line.ok {
+  color: var(--fh-accent);
+}
+
+.firebase-hosting-inner .status-line.bad {
+  color: var(--fh-error);
+}
+
+.firebase-hosting-inner .paths {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.firebase-hosting-inner .paths dt {
+  color: var(--fh-muted);
+  margin-top: 0.5rem;
+}
+
+.firebase-hosting-inner .paths dd {
+  margin: 0.15rem 0 0;
+  word-break: break-all;
+}
+
+.firebase-hosting-inner .paths code {
+  font-size: 0.8rem;
+  background: var(--fh-bg);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+.firebase-hosting-inner .hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--fh-muted);
+}
+
+.firebase-hosting-inner .field-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--fh-muted);
+}
+
+.firebase-hosting-inner .label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--fh-muted);
+}
+
+.firebase-hosting-inner .input {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--fh-border);
+  background: var(--fh-bg);
+  color: var(--fh-text);
+  font-size: 0.95rem;
+}
+
+.firebase-hosting-inner .input:focus {
+  outline: none;
+  border-color: var(--fh-accent2);
+  box-shadow: 0 0 0 2px rgba(110, 181, 249, 0.2);
+}
+
+.firebase-hosting-inner .radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.firebase-hosting-inner .radio {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.firebase-hosting-inner .radio input {
+  margin-top: 0.25rem;
+}
+
+.firebase-hosting-inner .drop-zone {
+  border: 2px dashed var(--fh-border);
+  border-radius: var(--fh-radius);
+  padding: 2rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.firebase-hosting-inner .drop-zone:hover,
+.firebase-hosting-inner .drop-zone:focus {
+  border-color: var(--fh-accent2);
+  background: rgba(110, 181, 249, 0.06);
+}
+
+.firebase-hosting-inner .drop-zone.dragover {
+  border-color: var(--fh-accent);
+  background: rgba(124, 184, 124, 0.1);
+}
+
+.firebase-hosting-inner .drop-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.firebase-hosting-inner .drop-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--fh-muted);
+}
+
+.firebase-hosting-inner .msg {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+.firebase-hosting-inner .msg.error {
+  color: var(--fh-error);
+}
+
+.firebase-hosting-inner .msg.ok {
+  color: var(--fh-accent);
+}
+
+.firebase-hosting-inner .file-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+  color: var(--fh-muted);
+}
+
+.firebase-hosting-inner .btn {
+  padding: 0.65rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.firebase-hosting-inner .btn-deploy {
+  background: linear-gradient(180deg, #ffa726 0%, #fb8c00 100%);
+  color: #1a1005;
+}
+
+.firebase-hosting-inner .btn-deploy:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.firebase-hosting-inner .btn-deploy:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.firebase-hosting-inner .deploy-out {
+  margin: 1rem 0 0;
+  padding: 0.75rem;
+  background: var(--fh-bg);
+  border: 1px solid var(--fh-border);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.firebase-hosting-inner code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.88em;
+}

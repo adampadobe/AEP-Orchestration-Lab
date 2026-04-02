@@ -1,0 +1,26 @@
+[
+  {
+    "id": "edge-46677-donation",
+    "label": "Edge — 46677fd7… (donation.made / minimal XDM)",
+    "transport": "edge",
+    "dataStreamId": "46677fd7-9db0-4f16-898c-b424d0245c38",
+    "edgeInteractBase": "https://server.adobedc.net/ee/v2/interact",
+    "xdmStyle": "minimal",
+    "defaultOrchestrationEventID": "b91c4d4c0de45c0fa2e19b39c7e6bb287f50e58d011546022d2c42ef737ae129"
+  },
+  {
+    "id": "edge-a7f9-default",
+    "label": "Edge — a7f9f0c6… (full XDM + identityMap)",
+    "transport": "edge",
+    "dataStreamId": "a7f9f0c6-5729-44dd-9f00-62c0da687b03",
+    "edgeInteractBase": "https://server.adobedc.net/ee/v2/interact",
+    "xdmStyle": "full"
+  },
+  {
+    "id": "dcs-d7824b",
+    "label": "DCS streaming — d7824b01… (envelope)",
+    "transport": "dcs",
+    "xdmStyle": "full",
+    "streamingUrl": "https://dcs.adobedc.net/collection/d7824b017e820f769cb6efe11330d650136377522b4e75515fdd14102a4a9449"
+  }
+]

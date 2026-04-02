@@ -1,0 +1,13 @@
+{
+  "name": "aep-profile-setup-docs",
+  "private": true,
+  "description": "One-off generator for AEP Profile Viewer setup guides (DOCX + PPTX)",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate-setup-guide.mjs"
+  },
+  "dependencies": {
+    "docx": "^9.2.0",
+    "pptxgenjs": "^3.12.0"
+  }
+}

@@ -1,0 +1,377 @@
+/**
+ * Adobe Spectrum 2 – Design overrides for Profile Viewer
+ * Applies when body has class .spectrum2-theme
+ */
+
+body.spectrum2-theme {
+  font-family: var(--spectrum-font-family);
+}
+
+/* Sidebar – Spectrum 2 gray scale */
+body.spectrum2-theme .dashboard-sidebar {
+  background: var(--spectrum-gray-100);
+  border-right-color: var(--spectrum-border-color-subtle);
+}
+
+body.spectrum2-theme .sidebar-logo {
+  color: var(--spectrum-text-color-default);
+}
+
+body.spectrum2-theme .sidebar-logo:hover {
+  color: var(--spectrum-accent-color);
+}
+
+body.spectrum2-theme .sidebar-workspace {
+  background: var(--spectrum-accent-color);
+  border-radius: var(--spectrum-border-radius-200);
+}
+
+body.spectrum2-theme .sidebar-search {
+  background: var(--spectrum-gray-50);
+  border-color: var(--spectrum-border-color-default);
+  border-radius: var(--spectrum-border-radius-200);
+}
+
+body.spectrum2-theme .nav-heading {
+  color: var(--spectrum-text-color-tertiary);
+}
+
+body.spectrum2-theme .nav-item {
+  color: var(--spectrum-text-color-secondary);
+}
+
+body.spectrum2-theme .nav-item:hover {
+  background: var(--spectrum-background-color-muted);
+}
+
+body.spectrum2-theme .nav-item--active {
+  background: var(--spectrum-background-color-muted);
+  color: var(--spectrum-accent-color);
+  font-weight: var(--spectrum-font-weight-medium);
+}
+
+body.spectrum2-theme .sidebar-cta {
+  background: var(--spectrum-gray-50);
+  border-color: var(--spectrum-border-color-default);
+  border-radius: var(--spectrum-border-radius-300);
+}
+
+body.spectrum2-theme .sidebar-cta-btn {
+  background: var(--spectrum-accent-color);
+  color: #fff;
+  border-radius: var(--spectrum-border-radius-100);
+}
+
+body.spectrum2-theme .sidebar-cta-btn:hover {
+  background: var(--spectrum-accent-color-hover);
+}
+
+body.spectrum2-theme .sidebar-user {
+  border-top-color: var(--spectrum-border-color-subtle);
+}
+
+body.spectrum2-theme .user-avatar {
+  background: var(--spectrum-accent-color);
+}
+
+body.spectrum2-theme .user-name {
+  color: var(--spectrum-text-color-default);
+}
+
+body.spectrum2-theme .user-email {
+  color: var(--spectrum-text-color-tertiary);
+}
+
+/* Main area */
+body.spectrum2-theme.dashboard-home {
+  background: var(--spectrum-background-color-default);
+  color: var(--spectrum-text-color-default);
+}
+
+body.spectrum2-theme.consent-page.with-sidebar .dashboard-main,
+body.spectrum2-theme.profile-viewer-page.consent-page.with-sidebar .dashboard-main {
+  background: var(--spectrum-gray-50);
+}
+
+body.spectrum2-theme.consent-page {
+  background: var(--spectrum-background-color-default);
+}
+
+body.spectrum2-theme .server-warning {
+  background: #fef3e2;
+  border-bottom-color: var(--spectrum-red-600);
+  color: #5c3d2e;
+}
+
+body.spectrum2-theme .server-warning a {
+  color: var(--spectrum-accent-color);
+}
+
+/* Panels */
+body.spectrum2-theme .consent-panel {
+  background: var(--spectrum-gray-50);
+  border-color: var(--spectrum-border-color-subtle);
+  border-radius: var(--spectrum-border-radius-300);
+  box-shadow: var(--spectrum-shadow-small);
+}
+
+body.spectrum2-theme .panel-title {
+  color: var(--spectrum-text-color-default);
+  font-size: var(--spectrum-font-size-300);
+  font-weight: var(--spectrum-font-weight-medium);
+}
+
+body.spectrum2-theme .panel-desc {
+  color: var(--spectrum-text-color-secondary);
+}
+
+/* Form inputs */
+body.spectrum2-theme .consent-panel label {
+  color: var(--spectrum-text-color-secondary);
+}
+
+body.spectrum2-theme .consent-panel input[type="email"] {
+  border-color: var(--spectrum-border-color-default);
+  border-radius: var(--spectrum-border-radius-100);
+}
+
+body.spectrum2-theme .consent-panel input[type="email"]:focus {
+  border-color: var(--spectrum-accent-color);
+  box-shadow: 0 0 0 2px rgba(38, 128, 235, 0.25);
+}
+
+/* Primary buttons – Spectrum blue */
+body.spectrum2-theme .btn-primary,
+body.spectrum2-theme .btn-query,
+body.spectrum2-theme .btn-save {
+  background: var(--spectrum-accent-color) !important;
+  color: #fff !important;
+  border-color: var(--spectrum-accent-color) !important;
+  border-radius: var(--spectrum-border-radius-100);
+}
+
+body.spectrum2-theme .btn-primary:hover,
+body.spectrum2-theme .btn-query:hover,
+body.spectrum2-theme .btn-save:hover {
+  background: var(--spectrum-accent-color-hover) !important;
+  border-color: var(--spectrum-accent-color-hover) !important;
+}
+
+body.spectrum2-theme .btn-secondary,
+body.spectrum2-theme .btn-view-json {
+  background: var(--spectrum-background-color-subdued) !important;
+  color: var(--spectrum-text-color-default) !important;
+  border: 1px solid var(--spectrum-border-color-default);
+  border-radius: var(--spectrum-border-radius-100);
+}
+
+body.spectrum2-theme .btn-secondary:hover,
+body.spectrum2-theme .btn-view-json:hover {
+  background: var(--spectrum-background-color-muted) !important;
+}
+
+/* Profile identity */
+body.spectrum2-theme .profile-identity {
+  background: var(--spectrum-background-color-subdued);
+  border-color: var(--spectrum-border-color-subtle);
+  border-radius: var(--spectrum-border-radius-200);
+}
+
+body.spectrum2-theme .profile-identity-label {
+  color: var(--spectrum-text-color-secondary);
+}
+
+body.spectrum2-theme .profile-identity-value {
+  color: var(--spectrum-text-color-default);
+}
+
+/* Tabs */
+body.spectrum2-theme .profile-tab {
+  color: var(--spectrum-text-color-secondary);
+}
+
+body.spectrum2-theme .profile-tab:hover {
+  color: var(--spectrum-text-color-default);
+}
+
+body.spectrum2-theme .profile-tab.profile-tab--active {
+  color: var(--spectrum-accent-color);
+  border-bottom-color: var(--spectrum-accent-color);
+}
+
+body.spectrum2-theme .profile-view-header {
+  border-bottom-color: var(--spectrum-border-color-subtle);
+}
+
+/* Search inputs */
+body.spectrum2-theme .attributes-search-input {
+  border-color: var(--spectrum-border-color-default);
+  border-radius: var(--spectrum-border-radius-100);
+}
+
+body.spectrum2-theme .attributes-search-input:focus {
+  border-color: var(--spectrum-accent-color);
+  outline: none;
+}
+
+/* Tables */
+body.spectrum2-theme .profile-attribute-table th {
+  background: var(--spectrum-background-color-subdued);
+  color: var(--spectrum-text-color-default);
+  border-color: var(--spectrum-border-color-subtle);
+  font-weight: var(--spectrum-font-weight-medium);
+}
+
+body.spectrum2-theme .profile-attribute-table td {
+  border-color: var(--spectrum-border-color-subtle);
+}
+
+body.spectrum2-theme .profile-events-summary-table th {
+  background: var(--spectrum-background-color-subdued);
+}
+
+body.spectrum2-theme .profile-events-summary-table tbody tr:hover {
+  background: var(--spectrum-background-color-subdued);
+}
+
+body.spectrum2-theme .profile-events-summary-table .event-type-icon {
+  background: rgba(38, 128, 235, 0.08);
+  border-color: rgba(38, 128, 235, 0.2);
+}
+
+body.spectrum2-theme .profile-events-summary-table tbody tr:hover .event-type-icon {
+  background: rgba(38, 128, 235, 0.12);
+  border-color: rgba(38, 128, 235, 0.3);
+}
+
+body.spectrum2-theme .profile-event-row:focus {
+  outline: 2px solid var(--spectrum-accent-color);
+}
+
+/* Modals */
+body.spectrum2-theme .profile-json-modal-content {
+  border-radius: var(--spectrum-border-radius-300);
+  box-shadow: var(--spectrum-shadow-large);
+}
+
+body.spectrum2-theme .profile-json-modal-header {
+  border-bottom-color: var(--spectrum-border-color-subtle);
+}
+
+body.spectrum2-theme .event-detail-modal .event-detail-title-icon {
+  background: rgba(38, 128, 235, 0.08);
+  border-color: rgba(38, 128, 235, 0.2);
+}
+
+body.spectrum2-theme .profile-json-modal-close:hover {
+  color: var(--spectrum-text-color-default);
+}
+
+/* Status messages */
+body.spectrum2-theme .profile-status.success {
+  background: rgba(45, 157, 120, 0.12);
+  border-color: var(--spectrum-green-600);
+  color: #1a6b4d;
+}
+
+body.spectrum2-theme .profile-status.error {
+  background: rgba(227, 72, 80, 0.12);
+  border-color: var(--spectrum-red-600);
+  color: #8b3a30;
+}
+
+body.spectrum2-theme .profile-status.loading {
+  background: rgba(38, 128, 235, 0.1);
+  border-color: var(--spectrum-accent-color);
+  color: var(--spectrum-accent-color);
+}
+
+body.spectrum2-theme .events-error {
+  background: rgba(227, 72, 80, 0.1);
+  border-color: var(--spectrum-red-600);
+  color: #8b3a30;
+}
+
+/* Events table heading */
+body.spectrum2-theme .events-table-heading {
+  color: var(--spectrum-text-color-secondary);
+}
+
+body.spectrum2-theme .events-empty {
+  color: var(--spectrum-text-color-secondary);
+}
+
+body.spectrum2-theme .audience-section-title {
+  color: var(--spectrum-text-color-default);
+}
+
+body.spectrum2-theme .audience-section-exited .audience-section-title {
+  color: var(--spectrum-text-color-secondary);
+}
+
+body.spectrum2-theme .audience-status-realized {
+  background: rgba(45, 157, 120, 0.15);
+  color: #1a6b4d;
+}
+
+body.spectrum2-theme .audience-status-exited {
+  background: rgba(139, 139, 139, 0.2);
+  color: var(--spectrum-text-color-tertiary);
+}
+
+/* Value input focus */
+body.spectrum2-theme .profile-value-input:focus {
+  border-color: var(--spectrum-accent-color);
+  box-shadow: 0 0 0 2px rgba(38, 128, 235, 0.25);
+}
+
+/* Quick action cards (home page) */
+body.spectrum2-theme .quick-action-card {
+  border-color: var(--spectrum-border-color-subtle);
+}
+
+body.spectrum2-theme .quick-action-card:hover .quick-action-btn {
+  background: var(--spectrum-accent-color);
+  border-color: var(--spectrum-accent-color);
+}
+
+/* Consent page – light theme to match Spectrum 2 */
+body.spectrum2-theme.consent-page .consent-panel {
+  background: var(--spectrum-gray-50);
+  color: var(--spectrum-text-color-default);
+}
+
+body.spectrum2-theme.consent-page .panel-title {
+  color: var(--spectrum-text-color-default);
+}
+
+body.spectrum2-theme.consent-page .panel-desc {
+  color: var(--spectrum-text-color-secondary);
+}
+
+body.spectrum2-theme.consent-page .consent-panel .form-row label {
+  color: var(--spectrum-text-color-secondary);
+}
+
+body.spectrum2-theme.consent-page .consent-panel input[type="text"],
+body.spectrum2-theme.consent-page .consent-panel select {
+  background: var(--spectrum-gray-50);
+  border-color: var(--spectrum-border-color-default);
+  color: var(--spectrum-text-color-default);
+}
+
+body.spectrum2-theme .btn-back {
+  background: var(--spectrum-red-600);
+}
+
+body.spectrum2-theme .btn-back:hover {
+  background: var(--spectrum-red-700);
+}
+
+body.spectrum2-theme .btn-logout {
+  background: var(--spectrum-green-600);
+}
+
+body.spectrum2-theme .btn-logout:hover {
+  background: #257a5f;
+}

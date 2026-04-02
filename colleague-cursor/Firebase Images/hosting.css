@@ -1,0 +1,247 @@
+/* Firebase Hosting manager */
+
+:root {
+  --bg: #0f1218;
+  --panel: #1a1f28;
+  --border: #2a3140;
+  --text: #e8eaef;
+  --muted: #8b93a5;
+  --accent: #7cb87c;
+  --accent2: #6eb5f9;
+  --error: #e07d7d;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.header h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.header-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem;
+}
+
+.panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.status-line {
+  margin: 0 0 0.75rem;
+  font-weight: 500;
+}
+
+.status-line.ok {
+  color: var(--accent);
+}
+
+.status-line.bad {
+  color: var(--error);
+}
+
+.paths {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.paths dt {
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+.paths dd {
+  margin: 0.15rem 0 0;
+  word-break: break-all;
+}
+
+.paths code {
+  font-size: 0.8rem;
+  background: #0f1218;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+.hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.field-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+}
+
+.input {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #0f1218;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 2px rgba(110, 181, 249, 0.2);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.radio {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.radio input {
+  margin-top: 0.25rem;
+}
+
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.drop-zone:hover,
+.drop-zone:focus {
+  border-color: var(--accent2);
+  background: rgba(110, 181, 249, 0.06);
+}
+
+.drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(124, 184, 124, 0.1);
+}
+
+.drop-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.drop-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.msg {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+.msg.error {
+  color: var(--error);
+}
+
+.msg.ok {
+  color: var(--accent);
+}
+
+.file-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.btn {
+  padding: 0.65rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-deploy {
+  background: linear-gradient(180deg, #ffa726 0%, #fb8c00 100%);
+  color: #1a1005;
+}
+
+.btn-deploy:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.btn-deploy:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.deploy-out {
+  margin: 1rem 0 0;
+  padding: 0.75rem;
+  background: #0f1218;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.88em;
+}

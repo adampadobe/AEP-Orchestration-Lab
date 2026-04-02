@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search by attribute – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css">
+</head>
+<body class="search-tool-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    This page must be opened from the Profile Viewer server so the API works.
+    <a href="http://localhost:3333/search-by-attribute.html" id="serverWarningLink">Open at http://localhost:3333/search-by-attribute.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">Search by attribute</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingSearchAttr">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingSearchAttr" class="dashboard-hero-title">Find profiles by attribute value</h2>
+              <p class="dashboard-hero-subtitle">
+                Query profiles where a field matches your criteria—exact match or contains—against Query Service.
+              </p>
+            </header>
+          </div>
+        </section>
+        <div class="search-legacy-inner">
+          <header>
+            <nav class="nav-links">
+              <a href="home.html">Home</a>
+              <a href="index.html">Look up by email</a>
+              <a href="search.html">Search by email</a>
+              <a href="search-by-attribute.html" class="active">Search by attribute</a>
+              <a href="consent.html">Consent Manager</a>
+            </nav>
+            <h1>Search by attribute</h1>
+            <p class="subtitle">Find AEP profiles where an attribute matches a value. Requires AEP_QUERY_PROFILE_DATASET_ID. Click a row to view full profile.</p>
+          </header>
+
+          <section class="lookup">
+            <label for="attrSelect">Attribute</label>
+            <div class="input-row">
+              <select id="attrSelect" aria-label="Attribute path">
+                <option value="loyalty.tier">loyalty.tier</option>
+                <option value="_demoemea.individualCharacteristics.core.industry">_demoemea.individualCharacteristics.core.industry</option>
+                <option value="_demoemea.individualCharacteristics.retail.favoriteColor">_demoemea.individualCharacteristics.retail.favoriteColor</option>
+                <option value="_demoemea.individualCharacteristics.core.favouriteCategory">_demoemea.individualCharacteristics.core.favouriteCategory</option>
+                <option value="_demoemea.individualCharacteristics.package">_demoemea.individualCharacteristics.package</option>
+                <option value="_demoemea.demoEnvironment.brandIndustry">_demoemea.demoEnvironment.brandIndustry</option>
+                <option value="_demoemea.individualCharacteristics.retail.favoriteStore">_demoemea.individualCharacteristics.retail.favoriteStore</option>
+                <option value="_demoemea.loyaltyDetails.level">_demoemea.loyaltyDetails.level</option>
+                <option value="_demoemea.individualCharacteristics.travel.primaryTravelerType">_demoemea.individualCharacteristics.travel.primaryTravelerType</option>
+                <option value="_demoemea.individualCharacteristics.core.occupation">_demoemea.individualCharacteristics.core.occupation</option>
+                <option value="_custom">Custom path…</option>
+              </select>
+              <input type="text" id="attrCustom" placeholder="e.g. loyalty.tier or _demoemea.identification.core.email" class="attr-custom-input" hidden aria-label="Custom attribute path">
+            </div>
+            <label for="valueInput">Value</label>
+            <div class="input-row">
+              <input type="text" id="valueInput" placeholder="e.g. Gold, Travel, blue" autocomplete="off">
+              <select id="matchSelect" aria-label="Match type">
+                <option value="exact">Exact match</option>
+                <option value="contains">Contains</option>
+              </select>
+              <label class="quick-search-label">
+                <input type="checkbox" id="quickMode" title="Skip profile lookup for faster results (emails only)">
+                Quick (emails only)
+              </label>
+              <button type="button" id="searchBtn">Search</button>
+            </div>
+            <p id="status" class="status" aria-live="polite"></p>
+            <p id="apiMessage" class="api-message" hidden aria-live="polite"></p>
+            <div id="sqlHelp" class="sql-help" hidden>
+              <p><strong>Test in Query Editor:</strong> Run this SQL in AEP → Data Management → Queries to verify the query and schema.</p>
+              <pre id="sqlPreview"></pre>
+              <button type="button" id="copySqlBtn" class="copy-btn">Copy SQL</button>
+            </div>
+          </section>
+
+          <section id="results" class="results search-results" hidden>
+            <h2>Profiles</h2>
+            <div class="table-wrap">
+              <table class="profile-list-table" aria-label="Profile search results">
+                <thead>
+                  <tr>
+                    <th>First name</th>
+                    <th>Last name</th>
+                    <th>Email address</th>
+                  </tr>
+                </thead>
+                <tbody id="profileListBody"></tbody>
+              </table>
+            </div>
+            <p id="noResults" class="no-results" hidden>No profiles match your search.</p>
+          </section>
+
+          <section id="error" class="error" hidden>
+            <h2>Error</h2>
+            <p id="errorMessage"></p>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrectServer = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrectServer) {
+        document.getElementById('serverWarning').hidden = false;
+      }
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="search-by-attribute.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

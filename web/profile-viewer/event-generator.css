@@ -1,0 +1,167 @@
+/* Event Generator – layout aligned with Profile generation (cards + config bar via profile-generation.css).
+   Page background: inherit concierge shell (--dash-bg #f0f0f2) like Profile generation; no extra lavender body gradient. */
+
+/* Wider email field in top config (fits addresses like kirkham+public-3@adobetest.com) */
+.event-generator-page.profile-generation-page .profile-gen-config .config-row .form-row.event-gen-customer-email-row {
+  flex: 2 1 22rem;
+  min-width: min(100%, 22rem);
+  max-width: none;
+}
+
+.event-generator-page.profile-generation-page .profile-gen-config .config-row .form-row.event-gen-customer-email-row input[type='email'] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.event-generator-page.profile-generation-page .consent-main,
+.event-generator-page.profile-generation-page.profile-gen-main {
+  max-width: 1600px;
+  width: 100%;
+}
+
+/* Primary actions match Profile generation */
+.event-generator-page.profile-generation-page .btn-primary,
+.event-generator-page.profile-generation-page .btn-save {
+  background: #6b5b95 !important;
+  color: #fff !important;
+  border-color: #6b5b95 !important;
+}
+
+.event-generator-page.profile-generation-page .btn-primary:hover,
+.event-generator-page.profile-generation-page .btn-save:hover {
+  background: #5a4a85 !important;
+  border-color: #5a4a85 !important;
+}
+
+/* Secondary = outline style (Query profile) */
+.event-generator-page.profile-generation-page .btn-secondary {
+  background: #fff !important;
+  color: #2c2c2c !important;
+  border: 1px solid #2c2c2c !important;
+}
+
+.event-generator-page.profile-generation-page .btn-secondary:hover {
+  background: #f5f5f5 !important;
+}
+
+.event-generator-page .server-warning {
+  background: #f5e6d3;
+  border-bottom: 1px solid #c95a4a;
+  color: #5c3d2e;
+}
+
+.event-generator-page .server-warning a {
+  color: #0d7ea2;
+}
+
+.event-generator-page.profile-generation-page .consent-panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.event-generator-page.profile-generation-page .consent-panel label {
+  color: #333;
+}
+
+.event-generator-page.profile-generation-page .consent-panel input[type='email'],
+.event-generator-page.profile-generation-page .consent-panel input[type='text'],
+.event-generator-page.profile-generation-page .consent-panel input[type='number'],
+.event-generator-page.profile-generation-page .consent-panel input[type='date'],
+.event-generator-page.profile-generation-page .consent-panel select {
+  background: #fff;
+  border: 1px solid #ddd;
+  color: #2c2c2c;
+}
+
+.event-generator-page.profile-generation-page .consent-panel input:focus,
+.event-generator-page.profile-generation-page .consent-panel select:focus {
+  border-color: #6b5b95;
+  box-shadow: 0 0 0 2px rgba(107, 91, 149, 0.2);
+}
+
+.event-generator-page .panel-title {
+  color: #2c2c2c;
+}
+
+.event-generator-page .panel-desc {
+  color: #555;
+}
+
+.event-generator-page .panel-desc code {
+  background: #f0f0f0;
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.event-generator-page .event-gen-box-intro {
+  margin: -0.35rem 0 0.5rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.event-generator-page .event-gen-info-grid {
+  margin: 0;
+}
+
+.event-generator-page .info-row .info-label {
+  color: #555;
+  min-width: 5.5rem;
+}
+
+.event-generator-page .info-row .info-value {
+  flex: 1 1 auto;
+  min-width: min(100%, 22rem);
+  max-width: 100%;
+  color: #2c2c2c;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.event-generator-page .consent-message.success {
+  background: rgba(45, 140, 111, 0.12);
+  border-color: #2d8c6f;
+  color: #1a6b4d;
+}
+
+.event-generator-page .consent-message.error {
+  background: rgba(201, 90, 74, 0.12);
+  border-color: #c95a4a;
+  color: #8b3a30;
+}
+
+/* Full-width cards in the grid */
+.event-generator-page .profile-gen-boxes .profile-box--industry,
+.event-generator-page .profile-gen-boxes .profile-box--interaction,
+.event-generator-page .profile-gen-boxes .profile-box--send {
+  grid-column: 1 / -1;
+}
+
+/* Industry box: single-column groups read cleaner for these short forms */
+.event-generator-page .profile-box--industry .industry-field-group {
+  grid-template-columns: 1fr;
+}
+
+.event-generator-page .profile-box--industry .industry-field-group[hidden] {
+  display: none;
+}
+
+.event-generator-page .event-gen-send-actions {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.event-generator-page .profile-box--send .consent-message {
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .event-generator-page .profile-gen-boxes .profile-box--customer,
+  .event-generator-page .profile-gen-boxes .profile-box--event-def {
+    grid-column: 1 / -1;
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ],
+  "hosting": {
+    "public": "web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "/profile-viewer/home.html",
+        "type": 302
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/aep",
+        "function": {
+          "functionId": "aepProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/profile/table",
+        "function": {
+          "functionId": "profileTableProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/sandboxes",
+        "function": {
+          "functionId": "sandboxesProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/profile/audiences",
+        "function": {
+          "functionId": "profileAudiencesProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/profile/consent",
+        "function": {
+          "functionId": "profileConsentProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/profile/events",
+        "function": {
+          "functionId": "profileEventsProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/decisioning/treatment-name",
+        "function": {
+          "functionId": "decisioningTreatmentNameProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/campaign-name",
+        "function": {
+          "functionId": "campaignNameProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/journey-name",
+        "function": {
+          "functionId": "journeyNameProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/webhook-listener",
+        "function": {
+          "functionId": "webhookListenerProxy",
+          "region": "us-central1"
+        }
+      }
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>(function(){try{var t=localStorage.getItem('aepTheme');if(t!=='dark'&&t!=='light')t=localStorage.getItem('aep-decisioning-theme');if(t==='dark')document.documentElement.setAttribute('data-aep-theme','dark');else document.documentElement.removeAttribute('data-aep-theme');}catch(e){}})();</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Content decision — profile &amp; webhook</title>
@@ -8,9 +9,24 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
   <style>
-    /* Tokens aligned with AI Projects/cursor/Firebase Images/styles.css */
+    /* Light default; dark when html[data-aep-theme="dark"] (synced with Profile Viewer aepTheme) */
     :root {
       --font: "DM Sans", "Segoe UI", system-ui, sans-serif;
+      --bg: #f5f6f8;
+      --bg-panel: #ffffff;
+      --bg-hover: #eef0f4;
+      --border: #d8dde6;
+      --text: #2c2c2c;
+      --muted: #6e6e6e;
+      --accent: #1473e6;
+      --accent-hover: #0d66d0;
+      --success: #268e6c;
+      --error: #d7373f;
+      --radius: 8px;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --cd-primary-btn-fg: #fff;
+    }
+    html[data-aep-theme='dark'] {
       --bg: #1a1d23;
       --bg-panel: #252830;
       --bg-hover: #2d3139;
@@ -21,8 +37,8 @@
       --accent-hover: #94b3f0;
       --success: #7dd3a8;
       --error: #e07d7d;
-      --radius: 8px;
       --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      --cd-primary-btn-fg: #1a1d23;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; }
@@ -44,11 +60,12 @@
       display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
       padding: 1rem 1.5rem; background: var(--bg-panel); border-bottom: 1px solid var(--border);
     }
+    .header-start {
+      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; min-width: 0;
+    }
     .header h1 { font-size: 1.25rem; font-weight: 600; }
+    .cd-back-btn { flex-shrink: 0; }
     .header-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-    .header .sub { font-size: 0.875rem; color: var(--muted); }
-    .header .sub a { color: var(--accent); text-decoration: none; }
-    .header .sub a:hover { color: var(--accent-hover); text-decoration: underline; }
 
     .main--cd {
       flex: 1;
@@ -66,6 +83,47 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+    }
+
+    .cd-hero-layout {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 1100px;
+    }
+    @media (max-width: 720px) {
+      .cd-hero-layout { flex-direction: column; align-items: stretch; }
+    }
+    .cd-hero-rail {
+      flex: 0 0 auto;
+      width: 11rem;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    @media (max-width: 720px) {
+      .cd-hero-rail { width: 100%; }
+    }
+    .cd-hero-rail .cd-run-full-btn {
+      width: 100%;
+      text-align: center;
+    }
+    .cd-hero-rail .hint {
+      font-size: 0.6875rem;
+      line-height: 1.4;
+      margin-top: 0;
+    }
+    .cd-hero-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
     }
 
     .hero-placeholder {
@@ -205,12 +263,15 @@
       border-radius: var(--radius) var(--radius) 0 0;
       border: 1px solid var(--border);
       border-bottom: none;
-      box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
       justify-content: var(--cd-block-justify, flex-start);
       min-height: 0;
+    }
+    html[data-aep-theme='dark'] .cd-banner--half .cd-banner-copy {
+      box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.5);
     }
     /* No image (see cd-banner--no-image on banner in JS): single card, no bridge row */
     .cd-banner--half.cd-banner--no-image {
@@ -328,7 +389,7 @@
     @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
 
     button.primary {
-      background: var(--accent); color: #1a1d23; border: none; border-radius: var(--radius);
+      background: var(--accent); color: var(--cd-primary-btn-fg); border: none; border-radius: var(--radius);
       padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; font-family: var(--font);
     }
     button.primary:hover { background: var(--accent-hover); }
@@ -387,19 +448,32 @@
 <body>
   <div class="app">
     <header class="header">
-      <h1>Content decision</h1>
+      <div class="header-start">
+        <button type="button" class="secondary cd-back-btn" id="cdBackBtn">← Back</button>
+        <h1>Content decision</h1>
+      </div>
       <div class="header-actions">
-        <p class="sub"><a href="/aep-decisioning-lab/content-decision-live.html">Lab path</a> · <a href="/content-decision-live.html">root</a> · <a href="/index.html">Full lab</a></p>
+        <button type="button" class="secondary" id="cdThemeBtn" aria-pressed="false" aria-label="Toggle color theme">Theme</button>
       </div>
     </header>
 
     <main class="main main--cd">
       <section class="hero-stage" aria-label="Content decision preview">
-        <div id="cdHeroPlaceholder" class="hero-placeholder">
-          <strong>No preview yet.</strong><br>
-          Open <strong>Workflow &amp; controls</strong> below, run profile + <code>get.decisions</code>, then <strong>Show content banner</strong>.
+        <div class="cd-hero-layout">
+          <aside class="cd-hero-rail" aria-label="Quick run">
+            <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Uses email, namespace, Cloud Run URL, wait (seconds), and banner layout from Workflow &amp; controls">
+              Run content decision
+            </button>
+            <p id="cdPipelineStatus" class="status" aria-live="polite"></p>
+          </aside>
+          <div class="cd-hero-main">
+            <div id="cdHeroPlaceholder" class="hero-placeholder">
+              <strong>No preview yet.</strong><br>
+              Use <strong>Run content decision</strong> (left) or open <strong>Workflow &amp; controls</strong> below.
+            </div>
+            <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Content decision banner"></div>
+          </div>
         </div>
-        <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Content decision banner"></div>
       </section>
 
       <details class="workflow-drawer" id="workflowDrawer">
@@ -415,6 +489,7 @@
                 <input id="cdLiveNs" type="text" value="Email" autocomplete="off">
               </div>
             </div>
+            <p class="hint">Platform sandbox (<code>x-sandbox-name</code>) is set on the server in <code>functions/index.js</code> (<code>DEFAULT_ADOBE_SANDBOX</code> / env <code>ADOBE_SANDBOX_NAME</code> at deploy).</p>
             <label for="firebaseEventUrl">Experience event endpoint (Cloud Run)</label>
             <input id="firebaseEventUrl" type="url" autocomplete="off">
             <div class="actions">
@@ -520,6 +595,54 @@
 
   <script>
 (function () {
+  function applyCdTheme(mode) {
+    var root = document.documentElement;
+    if (mode === 'dark') root.setAttribute('data-aep-theme', 'dark');
+    else root.removeAttribute('data-aep-theme');
+    try {
+      localStorage.setItem('aepTheme', mode);
+      localStorage.setItem('aep-decisioning-theme', mode);
+    } catch (e) {}
+    var btn = document.getElementById('cdThemeBtn');
+    if (btn) {
+      var dark = mode === 'dark';
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light mode' : 'Dark mode';
+    }
+  }
+  function getCdTheme() {
+    return document.documentElement.getAttribute('data-aep-theme') === 'dark' ? 'dark' : 'light';
+  }
+  var cdThemeBtn = document.getElementById('cdThemeBtn');
+  if (cdThemeBtn) {
+    cdThemeBtn.addEventListener('click', function () {
+      applyCdTheme(getCdTheme() === 'dark' ? 'light' : 'dark');
+    });
+    (function syncCdThemeBtnOnly() {
+      var btn = document.getElementById('cdThemeBtn');
+      if (!btn) return;
+      var dark = getCdTheme() === 'dark';
+      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+      btn.textContent = dark ? 'Light mode' : 'Dark mode';
+    })();
+  }
+  window.addEventListener('storage', function (e) {
+    if (e.key !== 'aepTheme' && e.key !== 'aep-decisioning-theme') return;
+    var v = e.newValue;
+    if (v === 'dark') applyCdTheme('dark');
+    else if (v === 'light') applyCdTheme('light');
+    else if (!v) applyCdTheme('light');
+  });
+  document.getElementById('cdBackBtn').addEventListener('click', function () {
+    try {
+      if (document.referrer && document.referrer.indexOf(location.origin) === 0) {
+        history.back();
+        return;
+      }
+    } catch (err) {}
+    location.href = '/profile-viewer/home.html';
+  });
+
   const WEBHOOK_FILTER_CUSTOM_NAME = 'Content Decision';
   const WEBHOOK_LISTENER_DIRECT_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
   const CD_BANNER_LS = 'aep-cd-banner-editor';
@@ -1068,8 +1191,13 @@
     });
   }
 
-  async function runFetchWebhook() {
-    cdLog('Fetch webhooks: start');
+  /**
+   * @param {{ showBanner?: boolean }} [fetchOpts] showBanner: also render hero preview (same as Show content banner).
+   */
+  async function runFetchWebhook(fetchOpts) {
+    fetchOpts = fetchOpts || {};
+    var showBanner = !!fetchOpts.showBanner;
+    cdLog('Fetch webhooks: start', showBanner ? '(+ show banner)' : '');
     var st = document.getElementById('webhookStatus');
     var btnBanner = document.getElementById('btnShowBanner');
     st.textContent = 'Loading…';
@@ -1097,9 +1225,13 @@
     lastWebhookRaw = getWebhookPayloadObject(first);
     var jd = extractJourneyContentDecision(lastWebhookRaw);
     cdLog('Fetch webhooks ✓ using first row; banner extract', jd ? { titleLen: (jd.bannerTitle || '').length, descLen: (jd.fullDescription || '').length, hasImage: !!jd.imageUrl, hasCtaHref: !!jd.ctaHref } : null);
-    st.textContent = 'Loaded first Content Decision row' + (env.via_direct ? ' (direct to listener).' : '.') + (jd ? ' Ready to show banner.' : ' Payload has no mediaAssets/textContent for banner.');
+    st.textContent = 'Loaded first Content Decision row' + (env.via_direct ? ' (direct to listener).' : '.') + (jd ? (showBanner ? ' Preview updated.' : ' Ready to show banner.') : ' Payload has no mediaAssets/textContent for banner.');
     st.className = 'status ok';
     btnBanner.disabled = !jd;
+    if (showBanner && jd) {
+      renderJourneyContentDecisionBanner(withBannerImageCacheBust(jd));
+      cdLog('Fetch webhooks: banner rendered (full pipeline)');
+    }
   }
 
   function scheduleAutoWebhook() {
@@ -1118,7 +1250,12 @@
    * Same request body as experience-events.html sendExperienceEvent():
    * fetch(url, { body: JSON.stringify({ payload, type: 'experience-event' }) })
    */
-  async function sendGetDecisionsViaCloudRun(email) {
+  /**
+   * @param {string} email
+   * @param {{ skipScheduleAutoWebhook?: boolean }} [opts] Set when a caller will fetch the webhook separately (e.g. Run content decision).
+   */
+  async function sendGetDecisionsViaCloudRun(email, opts) {
+    opts = opts || {};
     persistFirebaseEventUrl();
     var url = document.getElementById('firebaseEventUrl').value.trim() || DEFAULT_EXPERIENCE_EVENT_POST_URL;
     var evSt = document.getElementById('eventStatus');
@@ -1149,7 +1286,9 @@
         cdLog('Cloud Run ← success', { http: res.status, success: data.success });
         evSt.textContent = 'Cloud Run accepted event (get.decisions).';
         evSt.className = 'status ok';
-        scheduleAutoWebhook();
+        if (!opts.skipScheduleAutoWebhook) {
+          scheduleAutoWebhook();
+        }
         return true;
       }
       cdLog('Cloud Run ← rejected', { http: res.status, error: data.error, keys: Object.keys(data || {}) });
@@ -1161,6 +1300,83 @@
       evSt.textContent = 'Request failed (CORS/network?): ' + String(e.message || e);
       evSt.className = 'status err';
       return false;
+    }
+  }
+
+  /**
+   * Profile UPS + get.decisions via Cloud Run. Reused by drawer button and Run content decision.
+   * @param {{ skipScheduleAutoWebhook?: boolean }} [runOpts]
+   * @returns {Promise<boolean>} true if event accepted
+   */
+  async function runProfileAndSendGetDecisionsCore(runOpts) {
+    runOpts = runOpts || {};
+    persistLiveIdentity();
+    var email = document.getElementById('cdLiveEmail').value.trim();
+    var ns = document.getElementById('cdLiveNs').value.trim() || 'Email';
+    var st = document.getElementById('profileStatus');
+    var evSt = document.getElementById('eventStatus');
+    cdLog('Profile + get.decisions: start', { namespace: ns });
+    evSt.textContent = '';
+    evSt.className = 'status';
+    if (!email) {
+      cdLog('Profile + get.decisions ✗ missing email');
+      st.textContent = 'Enter an email.';
+      st.className = 'status err';
+      return false;
+    }
+    st.textContent = 'Fetching profile…';
+    st.className = 'status';
+    var r = await fetchProfileByIdentity(ns, email);
+    lastUpsPayload = r.data;
+    document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
+    if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
+      cdLog('Profile + get.decisions ✗ stopped: profile failed', { httpOk: r.httpOk });
+      st.textContent = 'Stop: profile failed — fix identity before sending event.';
+      st.className = 'status err';
+      return false;
+    }
+    var ecid = extractEcidFromUpsApiResponse(r.data);
+    document.getElementById('ecidHint').textContent = ecid ? 'ECID: ' + ecid : 'No ECID in payload.';
+    cdLog('Profile + get.decisions: profile OK', { ecidPrefix: ecid ? ecid.slice(0, 8) + '…' : null });
+    st.textContent = 'Profile OK — calling Event Generator Cloud Run…';
+    var ok = await sendGetDecisionsViaCloudRun(email, {
+      skipScheduleAutoWebhook: !!runOpts.skipScheduleAutoWebhook,
+    });
+    cdLog('Profile + get.decisions: done', { cloudRunOk: ok });
+    if (ok) st.textContent = 'Profile OK + get.decisions event sent via Cloud Run.';
+    st.className = ok ? 'status ok' : 'status err';
+    return ok;
+  }
+
+  async function runFullContentDecisionPipeline() {
+    var pipe = document.getElementById('cdPipelineStatus');
+    function setPipe(msg, cls) {
+      if (!pipe) return;
+      pipe.textContent = msg || '';
+      pipe.className = 'status' + (cls ? ' ' + cls : '');
+    }
+    setPipe('Starting…');
+    var ok = await runProfileAndSendGetDecisionsCore({ skipScheduleAutoWebhook: true });
+    if (!ok) {
+      setPipe('Stopped — check Profile / event status below.', 'err');
+      return;
+    }
+    persistWebhookDelay();
+    var sec = getAutoWebhookDelayMs() / 1000;
+    setPipe('Waiting ' + sec + 's (webhook delay)…');
+    cdLog('Full pipeline: delay', sec + 's');
+    await new Promise(function (resolve) {
+      setTimeout(resolve, getAutoWebhookDelayMs());
+    });
+    setPipe('Fetching webhook & updating preview…');
+    await runFetchWebhook({ showBanner: true });
+    var ws = document.getElementById('webhookStatus');
+    if (ws && ws.classList.contains('ok')) {
+      setPipe('Done.');
+    } else if (ws && ws.classList.contains('err')) {
+      setPipe(ws.textContent || 'Webhook step failed.', 'err');
+    } else {
+      setPipe('');
     }
   }
 
@@ -1197,42 +1413,30 @@
   });
 
   document.getElementById('btnProfileAndSendEvent').addEventListener('click', async function () {
-    persistLiveIdentity();
-    var email = document.getElementById('cdLiveEmail').value.trim();
-    var ns = document.getElementById('cdLiveNs').value.trim() || 'Email';
-    var st = document.getElementById('profileStatus');
-    var evSt = document.getElementById('eventStatus');
-    cdLog('Profile + get.decisions: start', { namespace: ns });
-    evSt.textContent = '';
-    evSt.className = 'status';
-    if (!email) {
-      cdLog('Profile + get.decisions ✗ missing email');
-      st.textContent = 'Enter an email.';
-      st.className = 'status err';
-      return;
-    }
-    st.textContent = 'Fetching profile…';
-    st.className = 'status';
-    var r = await fetchProfileByIdentity(ns, email);
-    lastUpsPayload = r.data;
-    document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
-    if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
-      cdLog('Profile + get.decisions ✗ stopped: profile failed', { httpOk: r.httpOk });
-      st.textContent = 'Stop: profile failed — fix identity before sending event.';
-      st.className = 'status err';
-      return;
-    }
-    var ecid = extractEcidFromUpsApiResponse(r.data);
-    document.getElementById('ecidHint').textContent = ecid ? 'ECID: ' + ecid : 'No ECID in payload.';
-    cdLog('Profile + get.decisions: profile OK', { ecidPrefix: ecid ? ecid.slice(0, 8) + '…' : null });
-    st.textContent = 'Profile OK — calling Event Generator Cloud Run…';
-    var ok = await sendGetDecisionsViaCloudRun(email);
-    cdLog('Profile + get.decisions: done', { cloudRunOk: ok });
-    if (ok) st.textContent = 'Profile OK + get.decisions event sent via Cloud Run.';
-    st.className = ok ? 'status ok' : 'status err';
+    await runProfileAndSendGetDecisionsCore({});
   });
 
-  document.getElementById('btnFetchWebhook').addEventListener('click', runFetchWebhook);
+  document.getElementById('btnRunFullContentDecision').addEventListener('click', async function () {
+    var btn = this;
+    if (btn.disabled) return;
+    btn.disabled = true;
+    try {
+      await runFullContentDecisionPipeline();
+    } catch (e) {
+      cdLog('Full pipeline ✗', String(e.message || e));
+      var p = document.getElementById('cdPipelineStatus');
+      if (p) {
+        p.textContent = String(e.message || e);
+        p.className = 'status err';
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('btnFetchWebhook').addEventListener('click', function () {
+    runFetchWebhook({});
+  });
 
   document.getElementById('btnShowBanner').addEventListener('click', function () {
     if (!lastWebhookRaw) {

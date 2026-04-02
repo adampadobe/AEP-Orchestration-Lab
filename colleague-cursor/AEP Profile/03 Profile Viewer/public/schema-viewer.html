@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data viewer – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="profile-viewer.css">
+  <link rel="stylesheet" href="schema-viewer.css">
+</head>
+<body class="profile-viewer-page schema-viewer-page schema-aep-browse-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/schema-viewer.html">http://localhost:3333/schema-viewer.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item dashboard-nav-item--active">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/xdm/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main schema-viewer-main schema-aep-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingSchema">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingSchema" class="dashboard-hero-title">Data viewer</h2>
+              <p class="dashboard-hero-subtitle">
+                Overview metrics, browse XDM schemas, inspect field structure, and explore Catalog datasets for your sandbox.
+              </p>
+            </header>
+          </div>
+        </section>
+    <div class="schema-aep-shell">
+      <div class="schema-aep-page-head">
+        <h1 class="schema-aep-title">Data</h1>
+        <div class="schema-aep-head-actions">
+          <button type="button" class="schema-aep-btn schema-aep-btn--ghost" disabled title="Use Experience Platform for this action">Apply Access and Data Governance Labels</button>
+          <button type="button" class="schema-aep-btn schema-aep-btn--primary" disabled title="Use Experience Platform to create schemas">+ Create schema</button>
+        </div>
+      </div>
+
+      <nav class="schema-aep-tabs" aria-label="Data sections">
+        <button type="button" class="schema-aep-tab schema-aep-tab--active" data-aep-tab="overview" aria-current="page">Overview</button>
+        <button type="button" class="schema-aep-tab" data-aep-tab="browse">Schemas</button>
+        <button type="button" class="schema-aep-tab" data-aep-tab="browse-v2">Schemas v2</button>
+        <button type="button" class="schema-aep-tab" data-aep-tab="datasets">Datasets</button>
+        <button type="button" class="schema-aep-tab" data-aep-tab="audiences">Audiences</button>
+        <span class="schema-aep-tab schema-aep-tab--static" title="Use Experience Platform for this section">Classes</span>
+        <span class="schema-aep-tab schema-aep-tab--static" title="Use Experience Platform for this section">Field groups</span>
+        <span class="schema-aep-tab schema-aep-tab--static" title="Use Experience Platform for this section">Data types</span>
+        <span class="schema-aep-tab schema-aep-tab--static" title="Use Experience Platform for this section">Relationships</span>
+      </nav>
+
+      <div class="schema-aep-toolbar" id="schemaAepToolbar">
+        <span class="schema-aep-filter-ic" aria-hidden="true" title="Filter list">▽</span>
+        <div id="dataViewerSearchWrap" class="schema-aep-search-wrap" hidden>
+          <label for="dataViewerSearch" class="visually-hidden">Search</label>
+          <input
+            type="search"
+            id="dataViewerSearch"
+            class="schema-aep-search"
+            placeholder="Search"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Filter list by name or ID"
+          />
+        </div>
+        <div id="schemasV2StartWrap" class="schema-aep-v2-start-wrap" hidden>
+          <label for="schemasV2StartInput" class="schema-aep-v2-start-label">Start</label>
+          <input
+            type="text"
+            id="schemasV2StartInput"
+            class="schema-aep-v2-start-input"
+            value="Clear"
+            placeholder="Clear or prefix (e.g. B2B)"
+            autocomplete="off"
+            spellcheck="false"
+            title="Default “Clear” loads all tenant schemas (no start filter). Any other value is sent as Postman start=…; press Enter or tab out to apply."
+            aria-label="Schema title start prefix for Schemas v2 list; Clear means full list"
+          />
+          <button type="button" id="schemasV2ReloadBtn" class="schema-aep-v2-reload-btn">Reload</button>
+        </div>
+        <div class="sandbox-config schema-aep-sandbox">
+          <label for="sandboxSelect" class="schema-aep-sandbox-label">Sandbox</label>
+          <select id="sandboxSelect" class="sandbox-select schema-aep-sandbox-select" aria-label="Select AEP sandbox">
+            <option value="">Loading sandboxes…</option>
+          </select>
+        </div>
+      </div>
+
+      <section id="schemaAepPanelOverview" class="schema-aep-panel schema-aep-panel--overview" aria-labelledby="overviewHeading">
+        <div class="schema-aep-overview-inner">
+          <div class="schema-aep-overview-copy">
+            <h2 id="overviewHeading" class="schema-aep-overview-h2">Getting started with data in this sandbox</h2>
+            <p class="schema-aep-overview-lead">
+              Schemas describe structure; datasets are backed by those schemas in the Catalog. Figures below are loaded live from Adobe Experience Platform for the selected sandbox (same sources as the Schemas and Datasets tabs).
+            </p>
+            <p id="overviewStatsStatus" class="schema-aep-overview-status" role="status"></p>
+          </div>
+          <div class="schema-aep-overview-cards" aria-live="polite">
+            <article class="schema-aep-stat-card">
+              <h3 class="schema-aep-stat-label">Schemas</h3>
+              <p class="schema-aep-stat-value" id="overviewStatSchemas">—</p>
+              <p class="schema-aep-stat-hint">Catalog-linked + tenant/global Schema Registry (adhoc XDM extends omitted)</p>
+            </article>
+            <article class="schema-aep-stat-card schema-aep-stat-card--split">
+              <h3 class="schema-aep-stat-label">By class</h3>
+              <dl class="schema-aep-stat-dl">
+                <div><dt>Profile-based</dt><dd id="overviewStatProfile">—</dd></div>
+                <div><dt>Event-based</dt><dd id="overviewStatEvent">—</dd></div>
+                <div><dt>Other</dt><dd id="overviewStatOther">—</dd></div>
+              </dl>
+            </article>
+            <article class="schema-aep-stat-card">
+              <h3 class="schema-aep-stat-label">Datasets</h3>
+              <p class="schema-aep-stat-value" id="overviewStatDatasets">—</p>
+              <p class="schema-aep-stat-hint">Catalog dataSets in this sandbox</p>
+            </article>
+          </div>
+          <div class="schema-aep-overview-actions">
+            <button type="button" class="schema-aep-overview-cta" id="overviewGoBrowse" data-aep-tab-jump="browse">Schemas</button>
+            <button type="button" class="schema-aep-overview-cta schema-aep-overview-cta--secondary" id="overviewGoDatasets" data-aep-tab-jump="datasets">View datasets</button>
+            <button type="button" class="schema-aep-overview-cta schema-aep-overview-cta--secondary" id="overviewGoAudiences" data-aep-tab-jump="audiences">View audiences</button>
+          </div>
+        </div>
+      </section>
+
+      <p id="schemaBrowseCount" class="schema-aep-meta-line" role="status" hidden></p>
+      <p id="schemaBrowseV2Count" class="schema-aep-meta-line" role="status" hidden></p>
+
+      <div id="schemaAepPanelBrowse" class="schema-aep-panel" hidden>
+      <div class="schema-aep-workspace">
+        <div class="schema-aep-table-panel">
+          <div id="schemaBrowseTableWrap" class="schema-aep-browse-table-wrap">
+          <div class="schema-aep-table-scroll">
+            <table class="schema-aep-table" id="schemaBrowseTable">
+              <thead>
+                <tr>
+                  <th class="schema-aep-th-name schema-aep-th--sortable" scope="col" data-sort="name" tabindex="0"><span class="schema-aep-th-label">Name</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort="datasets" tabindex="0"><span class="schema-aep-th-label">Datasets</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort="identities" tabindex="0"><span class="schema-aep-th-label">Identities</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort="relationships" tabindex="0"><span class="schema-aep-th-label">Relationships</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort="profile" tabindex="0"><span class="schema-aep-th-label">Enabled for Profile</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort="class" tabindex="0"><span class="schema-aep-th-label">Class</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort="type" tabindex="0"><span class="schema-aep-th-label">Type</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort="behavior" tabindex="0"><span class="schema-aep-th-label">Behavior</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort="lastModified" tabindex="0"><span class="schema-aep-th-label">Last modified</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                </tr>
+              </thead>
+              <tbody id="schemaTableBody"></tbody>
+            </table>
+          </div>
+          </div>
+          <div id="schemaBrowseV2TableWrap" class="schema-aep-browse-table-wrap" hidden>
+          <div class="schema-aep-table-scroll">
+            <table class="schema-aep-table" id="schemaBrowseV2Table">
+              <thead>
+                <tr>
+                  <th class="schema-aep-th-name schema-aep-th--sortable" scope="col" data-sort-v2="name" tabindex="0"><span class="schema-aep-th-label">Name</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="datasets" tabindex="0"><span class="schema-aep-th-label">Datasets</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="identities" tabindex="0"><span class="schema-aep-th-label">Identities</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="relationships" tabindex="0"><span class="schema-aep-th-label">Relationships</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="profile" tabindex="0"><span class="schema-aep-th-label">Enabled for Profile</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="class" tabindex="0"><span class="schema-aep-th-label">Class</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="type" tabindex="0"><span class="schema-aep-th-label">Type</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="behavior" tabindex="0"><span class="schema-aep-th-label">Behavior</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="lastModified" tabindex="0"><span class="schema-aep-th-label">Last modified</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                </tr>
+              </thead>
+              <tbody id="schemaTableV2Body"></tbody>
+            </table>
+          </div>
+          </div>
+        </div>
+
+        <aside id="schemaDetailAside" class="schema-aep-sidebar" aria-label="Schema details" hidden>
+          <div class="schema-aep-sidebar-head">
+            <h2 id="schemaDetailTitle" class="schema-aep-sidebar-title">—</h2>
+            <button type="button" id="schemaSidebarClose" class="schema-aep-sidebar-x" aria-label="Close details">×</button>
+          </div>
+
+          <ul class="schema-aep-action-list">
+            <li><button type="button" class="schema-aep-action schema-aep-action--disabled" disabled title="Use AEP UI">Delete</button></li>
+            <li><button type="button" class="schema-aep-action schema-aep-action--disabled" disabled title="Use AEP UI">Download sample file</button></li>
+            <li><button type="button" id="schemaCopyJsonBtn" class="schema-aep-action">Copy JSON structure</button></li>
+            <li><button type="button" class="schema-aep-action schema-aep-action--disabled" disabled title="Use AEP UI">Create dataset</button></li>
+            <li><button type="button" class="schema-aep-action schema-aep-action--disabled" disabled title="Use AEP UI">Add to package</button></li>
+          </ul>
+
+          <div class="schema-aep-sidebar-section">
+            <h3 class="schema-aep-sidebar-h">Details</h3>
+            <dl class="schema-aep-dl">
+              <dt>Name</dt><dd id="schemaDetailName">—</dd>
+              <dt>Description</dt><dd id="schemaDetailDescription">—</dd>
+              <dt>Class</dt><dd id="schemaDetailClass">—</dd>
+              <dt>Type</dt><dd id="schemaDetailType">—</dd>
+              <dt>Behavior</dt><dd id="schemaDetailBehavior">—</dd>
+              <dt>Enabled for Profile</dt><dd id="schemaDetailProfile">—</dd>
+            </dl>
+          </div>
+
+          <div class="schema-aep-sidebar-section">
+            <h3 class="schema-aep-sidebar-h">API usage</h3>
+            <label class="schema-aep-mono-label">Schema ID</label>
+            <div class="schema-aep-id-box">
+              <code id="schemaDetailId" class="schema-aep-id-code">—</code>
+              <button type="button" id="schemaCopyIdBtn" class="schema-aep-icon-btn" title="Copy schema ID">⎘</button>
+            </div>
+          </div>
+
+          <p class="schema-aep-sidebar-foot" id="schemaDetailTimestamps"></p>
+        </aside>
+      </div>
+
+      <details class="schema-aep-more">
+        <summary>Other sources &amp; options</summary>
+        <div class="schema-toolbar schema-aep-legacy-toolbar">
+          <div class="schema-field">
+            <label for="schemaSourceSelect">Source</label>
+            <select id="schemaSourceSelect" aria-label="Schema source">
+              <option value="sample">Operational profile (sample instance)</option>
+              <option value="paste">Paste JSON</option>
+              <option value="registry">Schema URI (manual)</option>
+            </select>
+          </div>
+          <div class="schema-field schema-field--grow" id="schemaRegistryRow" hidden>
+            <label for="schemaIdInput">Schema $id (URI)</label>
+            <input type="text" id="schemaIdInput" placeholder="https://ns.adobe.com/..." autocomplete="off" spellcheck="false">
+          </div>
+          <div class="schema-field">
+            <label for="schemaMaxDepth">Max depth</label>
+            <input type="number" id="schemaMaxDepth" value="8" min="1" max="24" aria-label="Max tree depth">
+          </div>
+          <div class="schema-field">
+            <label for="schemaMaxChildren">Max children / object</label>
+            <input type="number" id="schemaMaxChildren" value="32" min="1" max="200" aria-label="Max children per object">
+          </div>
+          <div class="schema-field">
+            <label>&nbsp;</label>
+            <button type="button" id="schemaLoadBtn" class="btn-load-schema">Refresh tree</button>
+          </div>
+        </div>
+        <div id="schemaPasteRow" class="schema-paste-wrap" hidden>
+          <label for="schemaPasteJson">JSON (instance or schema fragment)</label>
+          <textarea id="schemaPasteJson" placeholder='{ "_demoemea": { ... } }' spellcheck="false"></textarea>
+        </div>
+      </details>
+
+      <p id="schemaViewerStatus" class="schema-status schema-aep-status schema-aep-status--browse" role="status" aria-live="polite"></p>
+
+      <section class="schema-aep-tree-section" id="schemaAepTreeSection">
+        <h2 class="schema-aep-tree-heading">Field structure</h2>
+        <p class="schema-hint schema-aep-tree-hint">Click any dot to <strong>copy the field path</strong> (dot notation). <strong>Double-click</strong> a hollow (branch) dot to expand or collapse. Solid dots are leaves. Drag to pan; zoom buttons or scroll wheel to zoom. Large trees are truncated for performance; increase limits and reload.</p>
+        <div class="schema-tree-wrap">
+          <div class="schema-zoom-bar">
+            <button type="button" id="schemaZoomIn" class="schema-zoom-btn" title="Zoom in" aria-label="Zoom in">+</button>
+            <button type="button" id="schemaZoomOut" class="schema-zoom-btn" title="Zoom out" aria-label="Zoom out">−</button>
+            <button type="button" id="schemaZoomReset" class="schema-zoom-btn schema-zoom-btn--reset" title="Reset zoom" aria-label="Reset zoom">⊙</button>
+          </div>
+          <svg id="schemaTreeSvg" class="schema-tree-svg" height="720" aria-label="Schema tree diagram"></svg>
+        </div>
+      </section>
+      </div>
+
+      <section id="schemaAepPanelDatasets" class="schema-aep-panel" hidden aria-labelledby="datasetsHeading">
+        <h2 id="datasetsHeading" class="visually-hidden">Datasets</h2>
+        <p id="datasetBrowseCount" class="schema-aep-meta-line" role="status"></p>
+        <div class="schema-aep-workspace schema-aep-workspace--datasets schema-aep-workspace--datasets-full">
+          <div class="schema-aep-table-panel schema-aep-table-panel--datasets">
+            <div class="schema-aep-datasets-toolbar">
+              <span class="schema-aep-datasets-toolbar-spacer" aria-hidden="true"></span>
+              <button type="button" class="schema-aep-columns-btn" disabled title="Column layout is fixed in this local viewer" aria-hidden="true">▦</button>
+            </div>
+            <div class="schema-aep-table-scroll schema-aep-table-scroll--datasets">
+              <table class="schema-aep-table schema-aep-table--datasets" id="datasetBrowseTable">
+                <thead>
+                  <tr>
+                    <th class="schema-aep-th-cb" scope="col"><span class="visually-hidden">Select</span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-ds-sort="name" tabindex="0"><span class="schema-aep-th-label">Name</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                    <th class="schema-aep-th-actions" scope="col"><span class="visually-hidden">Actions</span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-ds-sort="created" tabindex="0"><span class="schema-aep-th-label">Created</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                    <th scope="col"><span class="schema-aep-th-label">Source</span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-ds-sort="schemaTitle" tabindex="0"><span class="schema-aep-th-label">Schema</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-ds-sort="updated" tabindex="0"><span class="schema-aep-th-label">Last updated</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="datasetTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="schemaAepPanelAudiences" class="schema-aep-panel" hidden aria-labelledby="audiencesHeading">
+        <h2 id="audiencesHeading" class="visually-hidden">Audiences</h2>
+        <p id="audienceBrowseCount" class="schema-aep-meta-line" role="status"></p>
+        <div class="schema-aep-workspace schema-aep-workspace--datasets schema-aep-workspace--datasets-full">
+          <div class="schema-aep-table-panel schema-aep-table-panel--datasets">
+            <div class="schema-aep-datasets-toolbar">
+              <span class="schema-aep-datasets-toolbar-spacer" aria-hidden="true"></span>
+              <button type="button" class="schema-aep-columns-btn" disabled title="Column layout is fixed in this local viewer" aria-hidden="true">▦</button>
+            </div>
+            <div id="audienceMembersPanel" class="schema-aep-audience-members" hidden>
+              <div class="schema-aep-audience-members__header">
+                <h3 id="audienceMembersTitle" class="schema-aep-audience-members__title">Audience members (sample)</h3>
+                <button type="button" id="audienceMembersClose" class="schema-aep-audience-members__close">Close</button>
+              </div>
+              <p id="audienceMembersMeta" class="schema-aep-audience-members__meta"></p>
+              <div id="audienceMembersBody" class="schema-aep-audience-members__body" role="region" aria-live="polite"></div>
+            </div>
+            <div class="schema-aep-table-scroll schema-aep-table-scroll--datasets schema-aep-table-scroll--audiences">
+              <table class="schema-aep-table schema-aep-table--datasets schema-aep-table--audiences" id="audienceBrowseTable">
+                <thead>
+                  <tr>
+                    <th class="schema-aep-th-cb" scope="col"><span class="visually-hidden">Select</span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-au-sort="name" tabindex="0"><span class="schema-aep-th-label">Name</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                    <th class="schema-aep-th-actions" scope="col"><span class="visually-hidden">Actions</span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-au-sort="profileCount" tabindex="0"><span class="schema-aep-th-label">Profile count</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-au-sort="originLabel" tabindex="0"><span class="schema-aep-th-label">Origin</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-au-sort="created" tabindex="0"><span class="schema-aep-th-label">Created</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-au-sort="updated" tabindex="0"><span class="schema-aep-th-label">Last updated</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-au-sort="id" tabindex="0"><span class="schema-aep-th-label">Audience ID</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                    <th class="schema-aep-th--sortable" scope="col" data-au-sort="tags" tabindex="0"><span class="schema-aep-th-label">Tags</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                    <th class="schema-aep-th--sortable schema-aep-th-breakdown" scope="col" data-au-sort="breakdown" tabindex="0"><span class="schema-aep-th-label">Breakdown</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="audienceTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="schema-viewer.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

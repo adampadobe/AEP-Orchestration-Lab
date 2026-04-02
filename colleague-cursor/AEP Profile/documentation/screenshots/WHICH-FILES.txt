@@ -1,0 +1,11 @@
+Drop PNG screenshots here and re-run: npm run generate
+(File names are suggestions; alt names in script are in parentheses.)
+
+00-setup-flow-overview.png       — Included diagram: end-to-end config flow (replace if you prefer your own)
+
+01-adobe-developer-console.png  — Developer Console OAuth / Service Account
+02-aep-sources-http-api.png     — AEP > Sources > HTTP API connection
+03-dataflow-api-usage.png       — Dataflow details / API Usage (flow ID, dataset)
+04-profile-viewer-localhost.png — Browser on http://localhost:3333 (or search.html)
+
+Placeholders in the exported DOCX/PPTX are replaced when these files exist and are non-trivial size.

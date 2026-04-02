@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donate (demo) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="donate-demo.css">
+</head>
+<body class="donate-demo-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/donate-demo.html">http://localhost:3333/donate-demo.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item dashboard-nav-item--active">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="event-generator.html" class="dashboard-topbar-link">Event generator</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main">
+        <header class="donate-cruk-site-header">
+          <div class="donate-cruk-site-header-top">
+            <div class="donate-cruk-site-header-inner">
+              <a
+                class="donate-cruk-logo-link"
+                href="https://www.cancerresearchuk.org/"
+                target="_blank"
+                rel="noopener"
+                aria-label="Cancer Research UK (official site opens in new tab)"
+              >
+                <img
+                  class="donate-cruk-logo"
+                  src="images/cruk-logo.svg"
+                  width="200"
+                  height="56"
+                  alt="Cancer Research UK"
+                  decoding="async"
+                />
+              </a>
+              <button type="button" class="donate-cruk-search-btn" aria-label="Search (demo only, not connected)">Search</button>
+            </div>
+          </div>
+          <nav class="donate-cruk-nav" aria-label="Cancer Research UK primary navigation (links to official site)">
+            <a href="https://www.cancerresearchuk.org/about-cancer" target="_blank" rel="noopener">About cancer</a>
+            <a href="https://www.cancerresearchuk.org/get-involved" target="_blank" rel="noopener">Get involved</a>
+            <a href="https://www.cancerresearchuk.org/our-research" target="_blank" rel="noopener">Our research</a>
+            <a href="https://www.cancerresearchuk.org/our-research/for-researchers" target="_blank" rel="noopener">For researchers</a>
+            <a href="https://shop.cancerresearchuk.org/" target="_blank" rel="noopener">Shop</a>
+            <a href="https://www.cancerresearchuk.org/about-us" target="_blank" rel="noopener">About us</a>
+          </nav>
+        </header>
+
+        <section class="donate-email-bar" aria-label="Customer identity">
+          <div class="donate-email-bar-inner">
+            <div class="form-row">
+              <label for="customerEmail">Customer email address</label>
+              <input type="email" id="customerEmail" placeholder="e.g. supporter@example.com" autocomplete="email" spellcheck="false">
+            </div>
+            <div class="donate-email-actions">
+              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+              <span class="donate-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+            </div>
+            <div class="donate-advanced">
+              <label for="generatorTarget">Event destination</label>
+              <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Same hero photo as cancerresearchuk.org/get-involved/donate (Next.js optimized asset). -->
+        <section class="donate-hero" aria-labelledby="donateHeroHeading">
+          <div
+            class="donate-hero-backdrop"
+            style="background-image: url('https://www.cancerresearchuk.org/_next/image?url=https%3A%2F%2Fdownloads.ctfassets.net%2Fu7vsjnoopqo5%2FrvcPK0YbxqEl9Gt41Azzq%2Fac926460962e2c75c0a0038ca8bfa45c%2F230613_CR_Trampoline187.jpg&w=2048&q=65');"
+            aria-hidden="true"
+          ></div>
+          <div class="donate-hero-inner">
+            <div class="donate-hero-panel">
+              <div class="donate-hero-copy">
+                <p class="donate-breadcrumb">Home › Get involved › Donate</p>
+                <h1 id="donateHeroHeading">You donate. We discover.</h1>
+                <p class="donate-lead donate-lead--marketing">Donate to help us prevent, detect and treat over 200 types of cancer.</p>
+                <div class="donate-hero-rule" aria-hidden="true"></div>
+              </div>
+              <div class="donate-card">
+              <div class="donate-tabs" role="tablist" aria-label="Donation frequency">
+                <button type="button" class="donate-tab" role="tab" id="tabMonthly" aria-selected="true" aria-controls="panelDonate" data-frequency="monthly">Monthly</button>
+                <button type="button" class="donate-tab" role="tab" id="tabSingle" aria-selected="false" aria-controls="panelDonate" data-frequency="single">Single</button>
+              </div>
+              <div id="panelDonate" role="tabpanel">
+                <div class="donate-presets" id="donatePresetsMonthly" data-preset-panel="monthly">
+                  <button type="button" class="donate-preset" data-amount="6">£6</button>
+                  <button type="button" class="donate-preset" data-amount="15">£15</button>
+                  <button type="button" class="donate-preset" data-amount="30">£30</button>
+                </div>
+                <div class="donate-presets" id="donatePresetsSingle" data-preset-panel="single" hidden>
+                  <button type="button" class="donate-preset" data-amount="10">£10</button>
+                  <button type="button" class="donate-preset" data-amount="20">£20</button>
+                  <button type="button" class="donate-preset" data-amount="30">£30</button>
+                </div>
+                <label class="donate-custom-label" for="donateAmount">Or enter another amount</label>
+                <div class="donate-currency-wrap">
+                  <span class="donate-currency" aria-hidden="true">£</span>
+                  <input type="text" id="donateAmount" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Donation amount in GBP">
+                </div>
+                <button type="button" class="donate-now-btn" id="donateNowBtn">Donate now</button>
+                <p class="donate-pay-strip" aria-hidden="true">Visa · PayPal · Mastercard · Maestro · Google Pay · Apple Pay</p>
+                <div id="donateMessage" class="donate-message" role="status" aria-live="polite" hidden></div>
+              </div>
+            </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="donate-pillars" aria-labelledby="pillarsHeading">
+          <div class="donate-pillars-inner">
+            <h2 id="pillarsHeading">Your donations fund our progress</h2>
+            <figure class="donate-pillars-photo">
+              <img
+                src="https://www.cancerresearchuk.org/_next/image?url=https%3A%2F%2Fdownloads.ctfassets.net%2Fu7vsjnoopqo5%2FrvcPK0YbxqEl9Gt41Azzq%2Fac926460962e2c75c0a0038ca8bfa45c%2F230613_CR_Trampoline187.jpg&w=2048&q=65"
+                alt=""
+                width="2048"
+                height="900"
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <div class="donate-pillar-grid">
+              <article class="donate-pillar">
+                <div class="donate-pillar-figure">
+                  <img
+                    src="https://images.ctfassets.net/u7vsjnoopqo5/6uvR1AnyLivuw4FgIvCIcw/d633484906952732a873c2d355d7aaff/Cervical_Cancer_HPV_Vaccine_2_RGB_400px.png?w=400&q=80"
+                    alt=""
+                    width="400"
+                    height="300"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <h3>Preventing Cancer</h3>
+                <p>
+                  Our research led to the development of the HPV vaccine which is expected to prevent almost 90% of cervical cancer cases in the UK<sup>1</sup>.
+                </p>
+              </article>
+              <article class="donate-pillar">
+                <div class="donate-pillar-figure donate-pillar-figure--icon">
+                  <img
+                    src="https://images.ctfassets.net/u7vsjnoopqo5/3vMd1m9QJUdgZ1jMpzgmoU/657e350658a59d5f37a8a8a6ab3e47e1/Icon_microscope_navy.png?w=200&q=75"
+                    alt=""
+                    width="128"
+                    height="128"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <h3>Detecting Cancer</h3>
+                <p>
+                  In the last 50 years, our work has helped double cancer survival in the UK. Finding new ways to detect cancer at an early stage has played an important role in this.
+                </p>
+              </article>
+              <article class="donate-pillar">
+                <div class="donate-pillar-figure donate-pillar-figure--photo">
+                  <img
+                    src="https://www.cancerresearchuk.org/_next/image?url=https%3A%2F%2Fdownloads.ctfassets.net%2Fu7vsjnoopqo5%2FrvcPK0YbxqEl9Gt41Azzq%2Fac926460962e2c75c0a0038ca8bfa45c%2F230613_CR_Trampoline187.jpg&w=1200&q=65"
+                    alt=""
+                    width="600"
+                    height="400"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <h3>Treating Cancer</h3>
+                <p>
+                  More than 8 in 10 people who receive cancer drugs in the UK receive a drug developed by us, or with us<sup>1</sup>. We are pioneering new treatments.
+                </p>
+              </article>
+            </div>
+            <p class="donate-pillars-ref">
+              <sup>1</sup> See references on the
+              <a href="https://www.cancerresearchuk.org/get-involved/donate" target="_blank" rel="noopener">official Cancer Research UK donate page</a>.
+            </p>
+          </div>
+        </section>
+
+        <footer class="donate-footer-note">
+          <strong>Disclaimer:</strong> This layout is a <em>local demo</em> inspired by common nonprofit donation UX (e.g.
+          <a href="https://www.cancerresearchuk.org/get-involved/donate" target="_blank" rel="noopener">Cancer Research UK — Donate</a>).
+          It is not affiliated with Cancer Research UK or any charity. No money is collected. For real donations, use official charity sites.
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <div class="donate-profile-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="donate-profile-drawer" id="profileDrawer" aria-label="Profile preview">
+    <div class="donate-profile-drawer-inner">
+      <div class="donate-profile-col donate-profile-col--split">
+        <div class="donate-profile-split">
+          <section class="donate-profile-block donate-profile-block--customer" aria-labelledby="profileDrawerCustomerHeading">
+            <h2 class="donate-profile-card-title" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+            <div class="donate-profile-avatar-ring">
+              <img
+                id="profileDrawerAvatar"
+                class="donate-profile-avatar"
+                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=320&q=80"
+                alt="Customer profile photo"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <div class="donate-profile-card-fields">
+              <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+              <p><strong>person.gender:</strong> <span id="profileDrawerGender">—</span></p>
+              <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+              <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+              <p><strong>Address:</strong> <span id="profileDrawerAddress">Unknown</span></p>
+              <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+            </div>
+            <div class="donate-profile-card-consent" aria-label="Customer preference flags">
+              <label><input type="checkbox" checked disabled> Marketing</label>
+              <label><input type="checkbox" checked disabled> Notifications</label>
+              <label><input type="checkbox" disabled> Newsletter</label>
+            </div>
+          </section>
+          <section class="donate-profile-block donate-profile-block--identity" aria-labelledby="profileDrawerIdentityHeading">
+            <h2 class="donate-profile-identity-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+            <div class="donate-profile-identity-fields">
+              <div class="donate-profile-identity-row">
+                <strong>Desktop ID</strong>
+                <span id="profileDrawerDesktopId">—</span>
+              </div>
+              <div class="donate-profile-identity-row">
+                <strong>Mobile ID</strong>
+                <span id="profileDrawerMobileId">Unknown</span>
+              </div>
+              <div class="donate-profile-identity-row">
+                <strong>Email Address</strong>
+                <span id="profileDrawerIdentityEmail">Unknown</span>
+              </div>
+              <div class="donate-profile-identity-row">
+                <strong>App UUID</strong>
+                <span id="profileDrawerAppUuid">Unknown</span>
+              </div>
+              <div class="donate-profile-identity-row">
+                <strong>CRM</strong>
+                <span id="profileDrawerCrm">Unknown</span>
+              </div>
+              <div class="donate-profile-identity-row">
+                <strong>Loyalty Status</strong>
+                <span id="profileDrawerLoyalty">Unknown</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+      <div class="donate-profile-col donate-profile-col--graph" aria-label="Identity graph">
+        <div class="donate-identity-graph-head">
+          <h2>Identity graph</h2>
+          <div class="donate-identity-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="donate-identity-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="donate-identity-zoom-btn" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="donate-identity-graph-viewport" id="identityGraphViewport">
+          <svg
+            class="donate-identity-graph-svg"
+            id="identityGraphSvg"
+            viewBox="0 0 320 320"
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden="true"
+          ></svg>
+        </div>
+      </div>
+      <div class="donate-profile-col">
+        <h2>Audiences</h2>
+        <ul class="donate-profile-audiences" id="profileDrawerAudiences">
+          <li>No audience membership loaded</li>
+        </ul>
+      </div>
+      <div class="donate-profile-col">
+        <h2>Last 5 events</h2>
+        <div class="donate-profile-events" id="profileDrawerEvents">
+          <p>No events loaded</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="donate-demo.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

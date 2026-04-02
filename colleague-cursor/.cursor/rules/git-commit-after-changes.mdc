@@ -1,0 +1,17 @@
+---
+description: After every modification in this repo, back up to Git—commit with a clear message and push to origin unless the user asked for a local-only commit.
+alwaysApply: true
+---
+
+# Back up to Git after every modification
+
+Treat **commit + push to `origin`** as the default way to finish any change (backup to GitHub). Human-oriented steps also live in `AEP Profile/BACKUP-TO-GITHUB.md`.
+
+Whenever you complete a task that modifies project files (code, HTML/CSS/JS, server, config, docs the user asked to change):
+
+1. Run `git status` and review what changed.
+2. Stage the relevant paths (`git add …`). Prefer focused commits; if the user’s request touched one area, avoid bundling unrelated dirty files unless they share one logical change.
+3. Commit with a **clear, imperative subject** and optional body (what changed and why, in plain language).
+4. Run **`git push origin main`** (or the current branch) after the commit so the remote stays backed up—**unless** the user explicitly asked for a local commit only, or push fails (e.g. network); if push fails, say so and what to run when online.
+
+Do not leave completed work uncommitted when wrapping up a change. If there is nothing to commit after verification, say so briefly.

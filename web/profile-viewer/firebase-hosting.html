@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase images – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="hosting.css">
+</head>
+<body class="home-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/firebase-hosting.html">http://localhost:3333/firebase-hosting.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item dashboard-nav-item--active">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://firebase.google.com/docs/hosting" class="dashboard-topbar-link" target="_blank" rel="noopener">Firebase Hosting docs</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="home.html" class="dashboard-topbar-icon" title="Home">⌂</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main dashboard-main--firebase-hosting">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingFirebaseHosting">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingFirebaseHosting" class="dashboard-hero-title">Firebase images</h2>
+              <p class="dashboard-hero-subtitle">
+                Browse local folders, preview uploads, and deploy image assets to Firebase Hosting from this workspace.
+              </p>
+            </header>
+          </div>
+        </section>
+        <div class="firebase-hosting-inner">
+          <div class="firebase-hosting-app">
+            <div class="firebase-hosting-layout">
+              <aside class="firebase-hosting-tree" aria-label="Local folders on this computer">
+                <h3 class="firebase-hosting-tree__title">Local folders</h3>
+                <p id="treeError" class="firebase-hosting-tree__error" hidden role="alert"></p>
+                <div id="folderTree" class="firebase-hosting-tree__scroll" role="tree"></div>
+                <section class="panel firebase-hosting-deploy-panel">
+                  <h2>Deploy</h2>
+                  <button type="button" id="btnDeploy" class="btn btn-deploy" disabled>Firebase deploy</button>
+                  <pre id="deployOut" class="deploy-out" hidden></pre>
+                </section>
+              </aside>
+
+              <div class="firebase-hosting-main firebase-hosting-main--with-preview">
+                <div class="firebase-hosting-content">
+                <main class="main">
+              <section class="panel firebase-hosting-images-panel firebase-hosting-images-panel--large">
+                <h2>Images</h2>
+                <p id="imageFolderHint" class="field-hint">Select a folder in the tree to preview images. Click an image to enlarge on the right; right-click for Rename.</p>
+                <div id="imageGrid" class="firebase-hosting-image-grid firebase-hosting-image-grid--large" role="region" aria-live="polite"></div>
+              </section>
+
+              <section class="panel">
+                <h2>Upload</h2>
+                <p id="uploadPanelHint" class="field-hint"></p>
+                <div id="dropZone" class="drop-zone" tabindex="0">
+                  <p id="dropZoneTitle" class="drop-title">Drop images here</p>
+                  <p id="dropZoneSub" class="drop-hint">or click to browse</p>
+                  <input type="file" id="fileInput" accept="image/*" multiple hidden />
+                </div>
+                <p id="uploadMsg" class="msg" role="status"></p>
+                <ul id="uploadList" class="file-list" hidden></ul>
+              </section>
+                </main>
+                </div>
+                <aside class="firebase-hosting-preview" id="imagePreviewAside" aria-label="Selected image preview">
+                  <h3 class="firebase-hosting-preview__title">Preview</h3>
+                  <p id="imagePreviewHint" class="firebase-hosting-preview__hint">Click an image in the grid to show it here.</p>
+                  <div id="imagePreviewBlock" class="firebase-hosting-preview__block" hidden>
+                    <div class="firebase-hosting-preview__frame">
+                      <img id="imagePreviewLarge" alt="" />
+                    </div>
+                    <p id="imagePreviewCaption" class="firebase-hosting-preview__caption"></p>
+                    <button type="button" id="btnPreviewRename" class="btn btn-preview-rename">Rename…</button>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="hostingContextMenu" class="firebase-hosting-context-menu" hidden role="menu" aria-label="Image actions">
+    <button type="button" role="menuitem" class="firebase-hosting-context-menu__item" id="hostingContextRename">Rename…</button>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="hosting-client.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

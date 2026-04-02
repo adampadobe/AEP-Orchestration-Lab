@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Firebase Storage Images</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>Firebase Storage Images</h1>
+      <div class="header-actions">
+        <button type="button" id="btn-refresh" class="btn btn-secondary" title="Refresh folder tree">Refresh</button>
+        <span id="auth-status" class="auth-status">Not connected</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <aside class="sidebar">
+        <h2 class="sidebar-title">Folders</h2>
+        <div id="folder-tree" class="folder-tree" role="tree">
+          <div id="tree-loading" class="tree-loading">Connect to load folders…</div>
+          <div id="tree-root" class="tree-root hidden"></div>
+        </div>
+      </aside>
+
+      <section class="content">
+        <div id="drop-zone" class="drop-zone" data-path="">
+          <p class="drop-zone-text">Drop images here or click to browse</p>
+          <p class="drop-zone-hint">Select a folder in the tree first</p>
+          <input type="file" id="file-input" accept="image/*" multiple hidden />
+        </div>
+
+        <div id="preview-area" class="preview-area hidden">
+          <h3 id="preview-title" class="preview-title"></h3>
+          <div id="preview-grid" class="preview-grid"></div>
+        </div>
+
+        <div id="upload-progress" class="upload-progress hidden">
+          <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+          <p id="progress-text" class="progress-text"></p>
+        </div>
+
+        <div id="toast" class="toast hidden" role="status"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+{
+  "byVersionId": {
+    "bbad9323-4e29-4fc6-9e21-118385ab26e3": "Loyalty Change to Silver Audience Qualification",
+    "1301d297-dc7d-4012-93f7-2cf2ca0c923e": "Loyalty Change to Silver Audience Qualification",
+    "a421a047-d677-44be-8fc3-2bf20b9c7a89": "Loyalty Change to Gold Audience Qualification",
+    "74e3e083-b7af-44dc-a352-7c590e8eb11a": "Loyalty Change to Gold Audience Qualification",
+    "097c1628-daea-44d9-8737-5afe807fcb59": "Marketing Actions demonstration",
+    "cab2a1e0-59f9-41bd-ab92-72e06e3a92c0-1744119813065": "kirkham - WKND Fly Tier change (Travel Demo)",
+    "53eb71ab-b384-435c-9cfc-852af7d84497": "Mobile Launch in app content card",
+    "352feac6-36af-4353-b600-dfe62c11ec97": "DepositTesting Live",
+    "894c2495-eaed-4d9d-aa3e-6357808fe0ce": "deposit-made-event",
+    "dff39913-5f4d-4971-a767-52423ef883f7": "deposit-made-event",
+    "11431440-6696-4db7-9aa4-966d0b4d3d5b": "Experimentation Continuous running - Emailsim plus path Exp",
+    "0ed29fa0-5dc9-4652-b971-d28ee22f0671": "Experimentation Continuous running - Emailsim plus path Exp",
+    "23794a4e-d1e6-4bd4-a0ac-50aa0322c280": "Experimentation Continuous running - Emailsim",
+    "c57deeeb-1aa0-4988-8153-c283da30adde": "Package Change",
+    "7236fcc3-1de3-4412-8e10-20db807f26fc": "Mobile Launch in app content card",
+    "e4c1482d-59f9-423f-aef3-53162bc0fd75": "Trial or Subscribed Push",
+    "309b4911-2cc2-4a12-9c6d-d94f818a2c2a": "Trial or Subscribed Push",
+    "870e4745-6d92-4dcb-b140-e37650d5ac5c": "Experimentation Continuous running - Emailsim",
+    "bbcdf543-5f29-435f-8498-4b459f703e48": "Loyalty Change to Gold Audience Qualification copy",
+    "132aae00-c337-485f-8386-075181af2094": "Package Change Test"
+  },
+  "byJourneyId": {
+    "6c1509ce-0b65-4be2-a234-9c054dc35cbb": "Loyalty Change to Silver Audience Qualification",
+    "d26c048d-76c5-4428-aff4-08f740c644dd": "Loyalty Change to Gold Audience Qualification",
+    "12bd0e16-ed44-48de-abf8-3127b7cd0e05": "Marketing Actions demonstration",
+    "0f712b15-c2e7-4081-9948-542c2f79ca3f-1744119813065": "kirkham - WKND Fly Tier change (Travel Demo)",
+    "def912f4-591c-4a51-8840-bee4d13d9e66": "Mobile Launch in app content card",
+    "bf547274-3eb3-4306-b942-7425328d9bdb": "DepositTesting Live",
+    "0fa9cc14-742a-444d-a7bb-fe93fc975b6d": "deposit-made-event",
+    "00e99672-2e1a-4a2a-bf5d-64755b8c4e28": "Experimentation Continuous running - Emailsim plus path Exp",
+    "2b7415dc-a010-456d-9609-597f507810ee": "Experimentation Continuous running - Emailsim",
+    "1a5315de-1821-440f-9cf7-470bdd25f80c": "Package Change",
+    "d2287cc7-8ad1-4b2d-b419-75071a4cac56": "Trial or Subscribed Push",
+    "8ad9f8dc-f0ce-49b1-bf12-1fad15fb08d2": "Loyalty Change to Gold Audience Qualification copy",
+    "447d1726-5d07-4bef-8f5b-cb486069d8f8": "Package Change Test"
+  },
+  "list": [
+    {
+      "journeyID": "6c1509ce-0b65-4be2-a234-9c054dc35cbb",
+      "journeyVersionID": "bbad9323-4e29-4fc6-9e21-118385ab26e3",
+      "name": "Loyalty Change to Silver Audience Qualification"
+    },
+    {
+      "journeyID": "6c1509ce-0b65-4be2-a234-9c054dc35cbb",
+      "journeyVersionID": "1301d297-dc7d-4012-93f7-2cf2ca0c923e",
+      "name": "Loyalty Change to Silver Audience Qualification"
+    },
+    {
+      "journeyID": "d26c048d-76c5-4428-aff4-08f740c644dd",
+      "journeyVersionID": "a421a047-d677-44be-8fc3-2bf20b9c7a89",
+      "name": "Loyalty Change to Gold Audience Qualification"
+    },
+    {
+      "journeyID": "d26c048d-76c5-4428-aff4-08f740c644dd",
+      "journeyVersionID": "74e3e083-b7af-44dc-a352-7c590e8eb11a",
+      "name": "Loyalty Change to Gold Audience Qualification"
+    },
+    {
+      "journeyID": "12bd0e16-ed44-48de-abf8-3127b7cd0e05",
+      "journeyVersionID": "097c1628-daea-44d9-8737-5afe807fcb59",
+      "name": "Marketing Actions demonstration"
+    },
+    {
+      "journeyID": "0f712b15-c2e7-4081-9948-542c2f79ca3f-1744119813065",
+      "journeyVersionID": "cab2a1e0-59f9-41bd-ab92-72e06e3a92c0-1744119813065",
+      "name": "kirkham - WKND Fly Tier change (Travel Demo)"
+    },
+    {
+      "journeyID": "def912f4-591c-4a51-8840-bee4d13d9e66",
+      "journeyVersionID": "53eb71ab-b384-435c-9cfc-852af7d84497",
+      "name": "Mobile Launch in app content card"
+    },
+    {
+      "journeyID": "bf547274-3eb3-4306-b942-7425328d9bdb",
+      "journeyVersionID": "352feac6-36af-4353-b600-dfe62c11ec97",
+      "name": "DepositTesting Live"
+    },
+    {
+      "journeyID": "0fa9cc14-742a-444d-a7bb-fe93fc975b6d",
+      "journeyVersionID": "894c2495-eaed-4d9d-aa3e-6357808fe0ce",
+      "name": "deposit-made-event"
+    },
+    {
+      "journeyID": "0fa9cc14-742a-444d-a7bb-fe93fc975b6d",
+      "journeyVersionID": "dff39913-5f4d-4971-a767-52423ef883f7",
+      "name": "deposit-made-event"
+    },
+    {
+      "journeyID": "00e99672-2e1a-4a2a-bf5d-64755b8c4e28",
+      "journeyVersionID": "11431440-6696-4db7-9aa4-966d0b4d3d5b",
+      "name": "Experimentation Continuous running - Emailsim plus path Exp"
+    },
+    {
+      "journeyID": "00e99672-2e1a-4a2a-bf5d-64755b8c4e28",
+      "journeyVersionID": "0ed29fa0-5dc9-4652-b971-d28ee22f0671",
+      "name": "Experimentation Continuous running - Emailsim plus path Exp"
+    },
+    {
+      "journeyID": "2b7415dc-a010-456d-9609-597f507810ee",
+      "journeyVersionID": "23794a4e-d1e6-4bd4-a0ac-50aa0322c280",
+      "name": "Experimentation Continuous running - Emailsim"
+    },
+    {
+      "journeyID": "1a5315de-1821-440f-9cf7-470bdd25f80c",
+      "journeyVersionID": "c57deeeb-1aa0-4988-8153-c283da30adde",
+      "name": "Package Change"
+    },
+    {
+      "journeyID": "def912f4-591c-4a51-8840-bee4d13d9e66",
+      "journeyVersionID": "7236fcc3-1de3-4412-8e10-20db807f26fc",
+      "name": "Mobile Launch in app content card"
+    },
+    {
+      "journeyID": "d2287cc7-8ad1-4b2d-b419-75071a4cac56",
+      "journeyVersionID": "e4c1482d-59f9-423f-aef3-53162bc0fd75",
+      "name": "Trial or Subscribed Push"
+    },
+    {
+      "journeyID": "d2287cc7-8ad1-4b2d-b419-75071a4cac56",
+      "journeyVersionID": "309b4911-2cc2-4a12-9c6d-d94f818a2c2a",
+      "name": "Trial or Subscribed Push"
+    },
+    {
+      "journeyID": "2b7415dc-a010-456d-9609-597f507810ee",
+      "journeyVersionID": "870e4745-6d92-4dcb-b140-e37650d5ac5c",
+      "name": "Experimentation Continuous running - Emailsim"
+    },
+    {
+      "journeyID": "8ad9f8dc-f0ce-49b1-bf12-1fad15fb08d2",
+      "journeyVersionID": "bbcdf543-5f29-435f-8498-4b459f703e48",
+      "name": "Loyalty Change to Gold Audience Qualification copy"
+    },
+    {
+      "journeyID": "447d1726-5d07-4bef-8f5b-cb486069d8f8",
+      "journeyVersionID": "132aae00-c337-485f-8386-075181af2094",
+      "name": "Package Change Test"
+    }
+  ],
+  "updated": "2026-03-11T12:25:04.503Z"
+}

@@ -1,0 +1,22 @@
+{
+  "schemaTitle": "Sample cart abandonment event — tooling demo 2026-03-27",
+  "schemaDescription": "Example spec — replace with fields from your pasted use case.",
+  "xdmClass": "experienceevent",
+  "tenantObjectKey": "cartAbandonment",
+  "tenantObjectDescription": "Cart abandonment attributes for testing schema tooling.",
+  "fields": {
+    "cartId": { "type": "string", "description": "Stable cart identifier" },
+    "abandonedAt": { "type": "string", "format": "date-time" },
+    "currency": { "type": "string", "description": "ISO currency code" },
+    "cartValue": { "type": "number" },
+    "channel": {
+      "type": "string",
+      "enum": ["web", "app", "store"],
+      "meta:enum": {
+        "web": "Web",
+        "app": "Mobile app",
+        "store": "Retail store"
+      }
+    }
+  }
+}

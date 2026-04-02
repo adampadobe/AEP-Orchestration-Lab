@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>(function(){try{var t=localStorage.getItem('aepTheme');if(t!=='dark'&&t!=='light')t=localStorage.getItem('aep-decisioning-theme');if(t==='dark')document.documentElement.dataset.theme='dark';else document.documentElement.dataset.theme='light';}catch(e){}})();</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Experience Decisioning lab</title>
@@ -546,10 +547,14 @@
     <div class="header-content">
       <div>
         <h1>Experience Decisioning lab <span class="badge new">DPS REST</span></h1>
-        <p class="subtitle">Profile (UPS) + DPS REST + Edge via Adobe Launch / Web SDK · <a href="content-decision-live.html">Content decision (simple)</a> · <a href="edge-test.html">standalone Edge page</a> · <a href="launch-direct-call-smoke.html">Direct Call smoke test</a></p>
+        <p class="subtitle">Profile (UPS) + DPS REST + Edge via Adobe Launch / Web SDK · <a href="content-decision-live.html">Content decision (simple)</a> · <a href="http://localhost:3333/home.html" target="_blank" rel="noopener">AEP Profile Viewer (local :3333)</a> · <a href="edge-test.html">standalone Edge page</a> · <a href="launch-direct-call-smoke.html">Direct Call smoke test</a></p>
+        <p class="hint">Profile Viewer: run <code>npm run profile-viewer</code> from repo root. Uses the same Adobe credentials as <code>proxy_server.py</code> (<code>~/.config/adobe-ims/credentials.env</code> or repo root <code>.env</code>); set <code>ADOBE_SANDBOX_NAME=apalmer</code> there. See <code>docs/COLLEAGUE_PROFILE_VIEWER.md</code>.</p>
         <p class="nav-links">Docs: <code>docs/DECISIONING_APIS.md</code> · <code>docs/EDGE_TESTING.md</code></p>
       </div>
-      <button type="button" class="theme-toggle" id="themeBtn" aria-label="Toggle theme">Theme</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <a href="/profile-viewer/home.html" class="theme-toggle" id="backToProfileLink" style="text-decoration:none;">← Profile Viewer</a>
+        <button type="button" class="theme-toggle" id="themeBtn" aria-label="Toggle theme">Theme</button>
+      </div>
     </div>
   </header>
   <main>
@@ -837,15 +842,27 @@
     const root = document.documentElement;
     function applyTheme(t) {
       root.dataset.theme = t;
-      localStorage.setItem('aep-decisioning-theme', t);
+      try {
+        localStorage.setItem('aep-decisioning-theme', t);
+        localStorage.setItem('aepTheme', t);
+      } catch (e) {}
     }
     themeBtn.addEventListener('click', () => {
       applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
     });
     (function initTheme() {
-      const saved = localStorage.getItem('aep-decisioning-theme');
+      let saved = localStorage.getItem('aepTheme');
+      if (saved !== 'dark' && saved !== 'light') {
+        saved = localStorage.getItem('aep-decisioning-theme');
+      }
       if (saved === 'dark' || saved === 'light') applyTheme(saved);
     })();
+    window.addEventListener('storage', (e) => {
+      if (e.key !== 'aepTheme' && e.key !== 'aep-decisioning-theme') return;
+      const v = e.newValue;
+      if (v === 'dark' || v === 'light') applyTheme(v);
+      else if (!v) applyTheme('light');
+    });
 
     const DEFAULT_EDGE_CONFIG_ID = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
     const ADOBE_LAUNCH_SRC = 'https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js';

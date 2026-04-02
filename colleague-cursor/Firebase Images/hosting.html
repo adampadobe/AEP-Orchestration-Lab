@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Firebase Hosting — upload &amp; deploy</title>
+  <link rel="stylesheet" href="hosting.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>Firebase Hosting</h1>
+      <p class="header-sub">Drop files into your local hosting folder, then deploy to Firebase.</p>
+    </header>
+
+    <main class="main">
+      <section class="panel panel--status" id="statusPanel">
+        <h2>Configuration</h2>
+        <p id="statusLine" class="status-line">Loading…</p>
+        <dl class="paths" id="pathsDl" hidden>
+          <dt>Project (firebase.json)</dt>
+          <dd><code id="pathProject">—</code></dd>
+          <dt>Hosting files folder</dt>
+          <dd><code id="pathHosting">—</code></dd>
+        </dl>
+        <p class="hint">
+          Set <code>FIREBASE_PROJECT_DIR</code> and optionally <code>FIREBASE_HOSTING_PUBLIC</code> in <code>.env</code>
+          (see <code>.env.example</code>). Restart the server after editing.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Target folder</h2>
+        <p class="field-hint">Relative path inside your hosting public folder (e.g. <code>images</code> or <code>blog/hero</code>). Files are written here and replace same-named files.</p>
+        <label class="label" for="targetFolder">Subfolder</label>
+        <input type="text" id="targetFolder" class="input" placeholder="e.g. images or assets/icons" autocomplete="off" />
+      </section>
+
+      <section class="panel">
+        <h2>Rename mode</h2>
+        <div class="radio-group">
+          <label class="radio">
+            <input type="radio" name="naming" value="keep" checked />
+            <span><strong>Keep names</strong> — use original filenames (sanitized); overwrites existing.</span>
+          </label>
+          <label class="radio">
+            <input type="radio" name="naming" value="folderPrefix" />
+            <span><strong>Folder prefix</strong> — <code>{folder-slug}-{original-name}.ext</code> (e.g. <code>blog-hero-banner.png</code>).</span>
+          </label>
+          <label class="radio">
+            <input type="radio" name="naming" value="folderOnly" />
+            <span><strong>Folder as basename</strong> — <code>{folder-slug}.ext</code> (one file), or <code>{slug}-1.ext</code>, <code>{slug}-2.ext</code> if multiple.</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Upload</h2>
+        <div id="dropZone" class="drop-zone" tabindex="0">
+          <p class="drop-title">Drop files here</p>
+          <p class="drop-hint">or click to browse</p>
+          <input type="file" id="fileInput" multiple hidden />
+        </div>
+        <p id="uploadMsg" class="msg" role="status"></p>
+        <ul id="uploadList" class="file-list" hidden></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Deploy</h2>
+        <p class="field-hint">Runs <code>firebase deploy --only hosting</code> in your project directory (same as your terminal).</p>
+        <button type="button" id="btnDeploy" class="btn btn-deploy" disabled>Firebase deploy</button>
+        <pre id="deployOut" class="deploy-out" hidden></pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="hosting-client.js"></script>
+</body>
+</html>

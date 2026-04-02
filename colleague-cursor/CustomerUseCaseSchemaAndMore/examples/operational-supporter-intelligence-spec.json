@@ -1,0 +1,101 @@
+{
+  "operationalUseCaseName": "supporter intelligence CDP pack",
+  "schemaDescription": "Operational profile extension for omnichannel personalization, predictive offers, and model outputs (supporter role, engagement channel, offer history, predictive scores). No client naming in AEP display titles.",
+  "xdmClass": "profile",
+  "fieldGroupDescription": "Operational mixin for supporter intelligence and personalization signals.",
+  "tenantObjectKey": "supporterIntelligence",
+  "tenantObjectDescription": "Supporter intelligence attributes: role, channels, offers, predictive model outputs.",
+  "fields": {
+    "constituentRole": {
+      "type": "string",
+      "description": "Relationship type: supporter vs info seeker.",
+      "enum": ["supporter", "info_seeker", "unknown"],
+      "meta:enum": {
+        "supporter": "Supporter",
+        "info_seeker": "Info seeker",
+        "unknown": "Unknown"
+      }
+    },
+    "primaryEngagementChannel": {
+      "type": "string",
+      "description": "Preferred or dominant channel for personalization (email, sms, social, paid_media, web, etc.)."
+    },
+    "personalizationPriorityRank": {
+      "type": "integer",
+      "description": "Optional ranking from segmentation / orchestration for offer or journey prioritisation."
+    },
+    "fundraisingEventInterestLevel": {
+      "type": "string",
+      "description": "Inferred or stated interest in flagship fundraising events.",
+      "enum": ["none", "low", "medium", "high"],
+      "meta:enum": {
+        "none": "None",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      }
+    },
+    "hasViewedFundraisingEventContent": {
+      "type": "boolean",
+      "description": "Has viewed fundraising event content (supports predictive offer use cases)."
+    },
+    "hasCompletedFundraisingEventTransaction": {
+      "type": "boolean",
+      "description": "Completed a related transaction; used to tune offer paths."
+    },
+    "lastOfferCampaignCode": {
+      "type": "string",
+      "description": "Code or ID of the last presented marketing offer campaign."
+    },
+    "lastOfferPresentedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last offer was presented."
+    },
+    "lastOfferAccepted": {
+      "type": "boolean",
+      "description": "Whether the last presented offer was accepted / converted."
+    },
+    "predictiveModelOutputs": {
+      "type": "object",
+      "description": "Scores and metadata for next-best-action, churn, propensity, and related models.",
+      "properties": {
+        "modelBundleVersion": {
+          "type": "string",
+          "description": "Version label for the packaged model outputs."
+        },
+        "nextBestActionRecommendation": {
+          "type": "string",
+          "description": "Recommended next best action key or label from modelling."
+        },
+        "nextBestActionScore": {
+          "type": "number",
+          "description": "Optional ranking score for the recommended action."
+        },
+        "churnRiskScore": {
+          "type": "number",
+          "description": "Churn risk score (document scale externally)."
+        },
+        "propensityToDonateScore": {
+          "type": "number",
+          "description": "Propensity score (document scale externally)."
+        },
+        "scoresComputedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When predictive scores were last computed."
+        }
+      }
+    },
+    "personalizationSegmentCodes": {
+      "type": "array",
+      "description": "Segment or audience codes for dynamic content.",
+      "items": { "type": "string" }
+    },
+    "useCaseCapabilityTags": {
+      "type": "array",
+      "description": "Capability tags for governance (e.g. personalization, predictive_offers, modeling).",
+      "items": { "type": "string" }
+    }
+  }
+}

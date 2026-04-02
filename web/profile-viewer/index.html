@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Viewer – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="profile-generation.css">
+  <link rel="stylesheet" href="profile-viewer.css">
+</head>
+<body class="profile-viewer-page profile-generation-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/index.html" id="serverWarningLink">http://localhost:3333</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item dashboard-nav-item--active">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-viewer-main profile-generation-main profile-gen-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingProfile">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingProfile" class="dashboard-hero-title">Look up and explore profiles</h2>
+              <p class="dashboard-hero-subtitle">
+                Search by email, view attributes, events, and audience membership in one workspace.
+              </p>
+            </header>
+          </div>
+        </section>
+    <!-- Look up profile -->
+    <section class="consent-panel" id="lookupPanel">
+      <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">✦</span> Query profile</h2>
+      <p class="panel-desc">Enter the customer's email address and click <strong>Get profile</strong> to load their Real-Time Customer Profile from Adobe Experience Platform.</p>
+      <div class="profile-gen-config">
+        <div class="config-row">
+          <div class="form-row profile-viewer-sandbox-row">
+            <label for="sandboxSelect">Sandbox</label>
+            <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+              <option value="">Loading sandboxes…</option>
+            </select>
+          </div>
+          <div class="form-row profile-viewer-email-row">
+            <label for="email">Email address</label>
+            <input type="email" id="email" placeholder="e.g. kirkham+public-3@adobetest.com" value="" autocomplete="email">
+          </div>
+          <div class="form-row form-row--action profile-gen-actions">
+            <button type="button" id="fetchBtn" class="btn btn-primary btn-query">Get profile</button>
+          </div>
+        </div>
+      </div>
+      <details id="sentPayloadDetails" class="sent-payload-details sent-payload-details--lookup" hidden>
+        <summary>Request and JSON sent to AEP</summary>
+        <div id="sentRequestInfo" class="sent-request-info" hidden>
+          <p><strong>POST</strong> <code id="sentRequestUrl"></code></p>
+          <p><strong>Headers:</strong></p>
+          <pre id="sentRequestHeaders"></pre>
+        </div>
+        <p><strong>Body (JSON and streaming target):</strong></p>
+        <pre id="sentPayloadPre"></pre>
+      </details>
+      <div id="profileIdentity" class="profile-identity" hidden>
+        <div class="profile-identity-row"><span class="profile-identity-label">Profile email</span><span id="profileEmailDisplay" class="profile-identity-value">—</span></div>
+        <div class="profile-identity-row"><span class="profile-identity-label">ECID</span><span id="profileEcidDisplay" class="profile-identity-value">—</span></div>
+      </div>
+      <div id="status" class="profile-status consent-message" role="status" aria-live="polite" hidden></div>
+    </section>
+
+    <!-- Results: tabbed profile view (same look as reference) -->
+    <section id="results" class="consent-panel profile-view-panel" hidden>
+      <div class="profile-view-header">
+        <nav class="profile-tabs" role="tablist" aria-label="Profile sections">
+          <button type="button" class="profile-tab" role="tab" id="tabDetails" aria-selected="false" aria-controls="panelDetails" data-tab="details">Details</button>
+          <button type="button" class="profile-tab profile-tab--active" role="tab" id="tabAttributes" aria-selected="true" aria-controls="panelAttributes" data-tab="attributes">Attributes</button>
+          <button type="button" class="profile-tab" role="tab" id="tabEvents" aria-selected="false" aria-controls="panelEvents" data-tab="events">Events</button>
+          <button type="button" class="profile-tab" role="tab" id="tabAudience" aria-selected="false" aria-controls="panelAudience" data-tab="audience">Audience Membership</button>
+        </nav>
+        <div class="profile-view-controls">
+          <button type="button" id="viewJsonBtn" class="btn btn-secondary btn-view-json">View JSON</button>
+        </div>
+      </div>
+      <div id="panelDetails" class="profile-tab-panel" role="tabpanel" aria-labelledby="tabDetails" hidden>
+        <div id="detailsInsightsPanel" class="details-insights-panel" hidden>
+          <div class="details-summary-bar" role="region" aria-label="Profile counts">
+            <div class="details-summary-item"><span class="details-summary-label">Audiences</span> <strong id="detailsSumAudiences">—</strong></div>
+            <div class="details-summary-item"><span class="details-summary-label">Attributes</span> <strong id="detailsSumAttributes">—</strong></div>
+            <div class="details-summary-item"><span class="details-summary-label">Identities</span> <strong id="detailsSumIdentities">—</strong></div>
+          </div>
+          <div class="details-kpi-bar" role="region" aria-label="Key performance indicators">
+            <div class="details-kpi-item"><span class="details-kpi-label">Lifetime value</span><span class="details-kpi-value" id="detailsKpiLtv">—</span></div>
+            <div class="details-kpi-divider" aria-hidden="true"></div>
+            <div class="details-kpi-item"><span class="details-kpi-label">Orders year to date</span><span class="details-kpi-value" id="detailsKpiOrdersYtd">—</span></div>
+            <div class="details-kpi-divider" aria-hidden="true"></div>
+            <div class="details-kpi-item"><span class="details-kpi-label">Average order size</span><span class="details-kpi-value" id="detailsKpiAvgOrder">—</span></div>
+            <div class="details-kpi-divider" aria-hidden="true"></div>
+            <div class="details-kpi-item"><span class="details-kpi-label">Points earned</span><span class="details-kpi-value" id="detailsKpiPointsEarned">—</span></div>
+            <div class="details-kpi-divider" aria-hidden="true"></div>
+            <div class="details-kpi-item"><span class="details-kpi-label">Points redeemed</span><span class="details-kpi-value" id="detailsKpiPointsRedeemed">—</span></div>
+          </div>
+          <section class="details-hero-card" aria-labelledby="detailsHeroHeading">
+            <h2 id="detailsHeroHeading" class="details-hero-title">Customer profile insights</h2>
+            <div class="details-hero-grid">
+              <div class="details-hero-col details-hero-profile">
+                <div class="details-avatar" aria-hidden="true">👤</div>
+                <p class="details-hero-name" id="detailsHeroName">—</p>
+                <div class="details-profile-id-row">
+                  <span class="details-profile-id-icon" aria-hidden="true">🔑</span>
+                  <div>
+                    <span class="details-profile-id-label">Profile ID</span>
+                    <div class="details-profile-id-value-wrap">
+                      <code id="detailsProfileId" class="details-profile-id-code">—</code>
+                      <button type="button" id="detailsCopyProfileIdBtn" class="details-icon-btn" title="Copy profile ID" aria-label="Copy profile ID">📋</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="details-hero-col details-hero-contact">
+                <ul class="details-contact-list" id="detailsContactList"></ul>
+              </div>
+              <div class="details-hero-col details-hero-side">
+                <div class="details-side-block">
+                  <div class="details-side-block-header">
+                    <h3 class="details-side-block-title">Identities</h3>
+                    <div class="details-side-actions">
+                      <button type="button" class="details-btn-text details-view-all-identities" id="detailsIdentitiesScrollBtn">View all</button>
+                      <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/ui/user-guide.html" target="_blank" rel="noopener" class="details-btn-text">Identity graph</a>
+                    </div>
+                  </div>
+                  <ul class="details-identity-types" id="detailsIdentityTypes"></ul>
+                </div>
+                <div class="details-side-block">
+                  <div class="details-side-block-header">
+                    <h3 class="details-side-block-title">5 most recent audience memberships</h3>
+                    <button type="button" class="details-btn-text" id="detailsAudiencesViewAllBtn">View all</button>
+                  </div>
+                  <ul class="details-audience-preview-list" id="detailsAudiencePreview"></ul>
+                </div>
+              </div>
+            </div>
+          </section>
+          <div class="details-category-grid" id="detailsCategoryGrid"></div>
+          <div class="details-subcards-grid">
+            <article class="details-subcard">
+              <h3 class="details-subcard-title"><span class="details-subcard-star" aria-hidden="true">✦</span> Customer profile</h3>
+              <div class="details-subcard-profile-mini">
+                <div class="details-avatar details-avatar--sm" aria-hidden="true">👤</div>
+                <div>
+                  <p class="details-subcard-name" id="detailsSubcardName">—</p>
+                  <p class="details-subcard-id"><span class="details-profile-id-label">Profile ID</span> <code id="detailsSubcardProfileId">—</code></p>
+                </div>
+              </div>
+            </article>
+            <article class="details-subcard">
+              <h3 class="details-subcard-title"><span class="details-subcard-star" aria-hidden="true">✦</span> Basic attributes</h3>
+              <dl class="details-dl" id="detailsBasicAttrs"></dl>
+            </article>
+            <article class="details-subcard">
+              <h3 class="details-subcard-title"><span class="details-subcard-star" aria-hidden="true">✦</span> Linked identities</h3>
+              <dl class="details-dl details-dl--compact" id="detailsLinkedIdentities"></dl>
+              <p class="details-subcard-footer"><a href="https://experienceleague.adobe.com/docs/experience-platform/profile/ui/user-guide.html" target="_blank" rel="noopener" class="details-btn-text">View identity graph</a></p>
+            </article>
+            <article class="details-subcard">
+              <h3 class="details-subcard-title"><span class="details-subcard-star" aria-hidden="true">✦</span> Channel preferences</h3>
+              <div id="detailsChannelPrefs" class="details-channel-prefs"></div>
+            </article>
+            <article class="details-subcard">
+              <h3 class="details-subcard-title"><span class="details-subcard-star" aria-hidden="true">✦</span> Predictive scores</h3>
+              <p class="details-predictive-empty" id="detailsPredictiveScores">No data available</p>
+            </article>
+          </div>
+        </div>
+        <div class="details-header">
+          <h3 class="details-title">Email Channel Engagement</h3>
+          <div class="details-toolbar">
+            <select id="detailsDateFilter" class="details-date-filter" aria-label="Filter events by date range">
+              <option value="24">Last 24 hours</option>
+              <option value="168">Last 7 days</option>
+              <option value="720">Last 30 days</option>
+            </select>
+            <button type="button" id="detailsFiltersBtn" class="details-btn-text">Filters</button>
+            <button type="button" id="detailsClearFiltersBtn" class="details-btn-text">Clear Filters</button>
+            <div class="details-toggle-wrap">
+              <label class="details-toggle-label"><input type="radio" name="detailsChangeMode" value="totals" checked> Show Change in Totals</label>
+              <label class="details-toggle-label"><input type="radio" name="detailsChangeMode" value="rates"> Show Change in Rates</label>
+            </div>
+          </div>
+        </div>
+        <p id="detailsLoadHint" class="details-hint" hidden>Load a profile and open the Details tab to see email engagement metrics.</p>
+        <div id="detailsMetricsGrid" class="details-metrics-grid">
+          <div class="details-metric-card">
+            <div class="details-metric-header"><span class="details-metric-name">Sends</span></div>
+            <div class="details-metric-value" id="detailsSends">—</div>
+            <div class="details-metric-sub" id="detailsSendsSub">—</div>
+          </div>
+          <div class="details-metric-card">
+            <div class="details-metric-header"><span class="details-metric-name">Delivery Rate</span></div>
+            <div class="details-metric-value" id="detailsDeliveryRate">—</div>
+            <div class="details-metric-sub" id="detailsDeliveryRateSub">—</div>
+          </div>
+          <div class="details-metric-card">
+            <div class="details-metric-header"><span class="details-metric-name">Bounce Rate</span></div>
+            <div class="details-metric-value" id="detailsBounceRate">—</div>
+            <div class="details-metric-sub" id="detailsBounceRateSub">—</div>
+          </div>
+          <div class="details-metric-card">
+            <div class="details-metric-header"><span class="details-metric-name">Unsubscribe Rate</span></div>
+            <div class="details-metric-value" id="detailsUnsubRate">—</div>
+            <div class="details-metric-sub" id="detailsUnsubRateSub">—</div>
+          </div>
+          <div class="details-metric-card">
+            <div class="details-metric-header"><span class="details-metric-name">Open Rate</span></div>
+            <div class="details-metric-value" id="detailsOpenRate">—</div>
+            <div class="details-metric-sub" id="detailsOpenRateSub">—</div>
+          </div>
+          <div class="details-metric-card">
+            <div class="details-metric-header"><span class="details-metric-name">Other Open Rate</span></div>
+            <div class="details-metric-value" id="detailsOtherOpenRate">—</div>
+            <div class="details-metric-sub" id="detailsOtherOpenRateSub">—</div>
+          </div>
+          <div class="details-metric-card">
+            <div class="details-metric-header"><span class="details-metric-name">Click Rate</span></div>
+            <div class="details-metric-value" id="detailsClickRate">—</div>
+            <div class="details-metric-sub" id="detailsClickRateSub">—</div>
+          </div>
+          <div class="details-metric-card">
+            <div class="details-metric-header"><span class="details-metric-name">Click-to-Open Rate</span></div>
+            <div class="details-metric-value" id="detailsClickToOpenRate">—</div>
+            <div class="details-metric-sub" id="detailsClickToOpenRateSub">—</div>
+          </div>
+        </div>
+        <div id="detailsChannelsSection" class="details-channels-section" hidden>
+          <h3 class="details-title details-title--sub details-stage-heading details-stage-heading--purple">Channels</h3>
+          <p id="detailsChannelsNote" class="details-journeys-note" hidden></p>
+          <p id="detailsChannelsEmpty" class="details-journeys-empty" hidden></p>
+          <div id="detailsChannelsWrap" class="table-wrap details-channels-wrap" hidden>
+            <table class="details-journeys-table details-channels-table" aria-label="Channel metrics from profile experience events">
+              <thead>
+                <tr>
+                  <th scope="col">Channel</th>
+                  <th scope="col">People <span class="details-channels-hdr-sub" id="detailsChannelsHdrPeople"></span><span class="details-channels-hdr-hint">(1 profile · % = share of channel-tagged events)</span></th>
+                  <th scope="col">CTR (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrCtr"></span></th>
+                  <th scope="col">Delivered (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrDelivered"></span></th>
+                  <th scope="col">Displays (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrDisplays"></span></th>
+                  <th scope="col">Clicks (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrClicks"></span></th>
+                </tr>
+              </thead>
+              <tbody id="detailsChannelsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="detailsJourneysSection" class="details-journeys-section" hidden>
+          <h3 class="details-title details-title--sub details-stage-heading details-stage-heading--orange">Journey activity</h3>
+          <p id="detailsJourneysNote" class="details-journeys-note" hidden></p>
+          <p id="detailsJourneysEmpty" class="details-journeys-empty" hidden></p>
+          <div id="detailsJourneysWrap" class="table-wrap details-journeys-wrap" hidden>
+            <table class="details-journeys-table" aria-label="Journeys linked from profile experience events">
+              <thead>
+                <tr>
+                  <th>Journey name</th>
+                  <th>Journey version ID</th>
+                  <th>Events in range</th>
+                  <th>Last activity</th>
+                </tr>
+              </thead>
+              <tbody id="detailsJourneysBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div id="panelAttributes" class="profile-tab-panel profile-tab-panel--active" role="tabpanel" aria-labelledby="tabAttributes">
+        <div class="attributes-toolbar" id="attributesPanelTop">
+          <div class="attributes-search-wrap">
+            <span class="search-icon" aria-hidden="true">🔍</span>
+            <input type="search" id="attributeSearch" placeholder="Search attributes..." class="attributes-search-input" aria-label="Search attributes">
+          </div>
+          <div class="button-row profile-update-row">
+            <div class="add-loyalty-attribute-wrap">
+              <label for="addLoyaltyIdSelect" class="add-loyalty-label"><span class="add-loyalty-path">_demoemea.identification.core.loyaltyId</span></label>
+              <select id="addLoyaltyIdSelect" class="add-loyalty-select" aria-label="Choose loyalty ID to add when updating profile">
+                <option value="">— None —</option>
+                <option value="LYL-TEST-ALPHA">LYL-TEST-ALPHA</option>
+                <option value="LYL-TEST-BETA">LYL-TEST-BETA</option>
+                <option value="LYL-100001">LYL-100001</option>
+                <option value="LYL-200002">LYL-200002</option>
+                <option value="LYL-300003">LYL-300003</option>
+                <option value="__random__">New random (LYL-…)</option>
+              </select>
+            </div>
+            <button type="button" id="updateProfileBtn" class="btn btn-primary btn-save">Update profile</button>
+            <span id="updateStatus" class="profile-update-status consent-message" role="status" aria-live="polite" hidden></span>
+          </div>
+        </div>
+        <p class="panel-desc attributes-meta" id="meta"></p>
+        <div class="table-wrap profile-table-wrap">
+          <table class="profile-attribute-table profile-attribute-table--resizable" aria-label="Profile attributes">
+            <colgroup>
+              <col class="col-attr">
+              <col class="col-display">
+              <col class="col-value">
+              <col class="col-path">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>ATTRIBUTE<span class="resize-handle" aria-hidden="true"></span></th>
+                <th>DISPLAY NAME<span class="resize-handle" aria-hidden="true"></span></th>
+                <th>VALUE<span class="resize-handle" aria-hidden="true"></span></th>
+                <th class="path-col">PATH <span class="path-hint">↑</span><span class="resize-handle" aria-hidden="true"></span></th>
+              </tr>
+            </thead>
+            <tbody id="attributeTableBody"></tbody>
+          </table>
+        </div>
+        <button type="button" id="attributesBackToTopBtn" class="attributes-back-to-top" hidden title="Back to top of attributes" aria-label="Back to top of attributes">
+          <span class="attributes-back-to-top-icon" aria-hidden="true">↑</span>
+          <span class="attributes-back-to-top-label">Top</span>
+        </button>
+      </div>
+      <div id="panelEvents" class="profile-tab-panel" role="tabpanel" aria-labelledby="tabEvents" hidden>
+        <div class="attributes-toolbar events-toolbar">
+          <label for="eventsDateFilter" class="details-filter-label">Date range:</label>
+          <select id="eventsDateFilter" class="details-date-filter" aria-label="Filter events by date range">
+            <option value="24">Last 24 hours</option>
+            <option value="168">Last 7 days</option>
+            <option value="720">Last 30 days</option>
+          </select>
+          <div class="attributes-search-wrap">
+            <span class="search-icon" aria-hidden="true">🔍</span>
+            <input type="search" id="eventsSearch" placeholder="Search events..." class="attributes-search-input" aria-label="Search events">
+          </div>
+        </div>
+        <div id="eventsLoading" class="events-loading" hidden>Loading events…</div>
+        <div id="eventsError" class="events-error" role="alert" hidden></div>
+        <div id="eventsList" class="profile-events-list"></div>
+        <p id="eventsEmpty" class="events-empty" hidden>No events found for this profile. Load a profile first, then open the Events tab.</p>
+      </div>
+      <div id="panelAudience" class="profile-tab-panel" role="tabpanel" aria-labelledby="tabAudience" hidden>
+        <div id="audienceLoading" class="events-loading" hidden>Loading audience membership…</div>
+        <div id="audienceError" class="events-error" role="alert" hidden></div>
+        <p id="audienceEmpty" class="events-empty" hidden>No audience membership found. Load a profile first, then open the Audience Membership tab.</p>
+        <div id="audienceList" class="profile-audience-list"></div>
+      </div>
+    </section>
+    <!-- View JSON modal – hidden until user clicks View JSON -->
+    <div id="viewJsonModal" class="profile-json-modal" hidden role="dialog" aria-modal="true" aria-labelledby="viewJsonModalTitle" aria-hidden="true">
+      <div class="profile-json-modal-content">
+        <div class="profile-json-modal-header">
+          <h2 id="viewJsonModalTitle" class="profile-json-modal-title">Profile JSON</h2>
+          <button type="button" id="viewJsonClose" class="profile-json-modal-close" aria-label="Close">×</button>
+        </div>
+        <pre id="viewJsonPre" class="profile-json-pre"></pre>
+      </div>
+    </div>
+
+    <!-- Event detail modal – shown when user clicks an event row -->
+    <div id="eventDetailModal" class="profile-json-modal event-detail-modal" hidden role="dialog" aria-modal="true" aria-labelledby="eventDetailModalTitle" aria-hidden="true">
+      <div class="profile-json-modal-content event-detail-modal-content">
+        <div class="profile-json-modal-header">
+          <h2 id="eventDetailModalTitle" class="profile-json-modal-title">Event</h2>
+          <button type="button" id="eventDetailClose" class="profile-json-modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="event-detail-body">
+          <div class="event-detail-primary-identity">
+            <h3 class="event-detail-section-title">Primary Identity <span class="event-detail-info-icon" aria-hidden="true">ℹ</span></h3>
+            <p class="event-detail-identity-desc">Identity namespace: Identity value</p>
+            <p class="event-detail-ecid"><strong>ECID:</strong> <span id="eventDetailEcid">—</span></p>
+          </div>
+          <div id="eventDetailCampaignWrap" class="event-detail-campaign-wrap" hidden>
+            <h3 class="event-detail-section-title">Campaign</h3>
+            <p class="event-detail-campaign"><strong>Campaign ID:</strong> <span id="eventDetailCampaignId">—</span></p>
+            <p class="event-detail-campaign-name"><strong>Campaign name:</strong> <span id="eventDetailCampaignName">—</span></p>
+          </div>
+          <div id="eventDetailJourneyWrap" class="event-detail-journey-wrap" hidden>
+            <h3 class="event-detail-section-title">Journey</h3>
+            <p class="event-detail-journey"><strong>Journey version ID:</strong> <span id="eventDetailJourneyVersionId">—</span></p>
+            <p class="event-detail-journey-name"><strong>Journey name:</strong> <span id="eventDetailJourneyName">—</span></p>
+          </div>
+          <div id="eventDetailPropositionsWrap" class="event-detail-propositions-wrap" hidden>
+            <h3 class="event-detail-section-title">Results</h3>
+            <table class="profile-events-summary-table event-detail-propositions-table" aria-label="Proposition treatments">
+              <thead><tr><th>Place</th><th>Items name</th><th>Treatment name</th></tr></thead>
+              <tbody id="eventDetailPropositionsBody"></tbody>
+            </table>
+          </div>
+          <div class="table-wrap event-detail-table-wrap">
+            <table class="profile-attribute-table event-detail-attributes" aria-label="Event attributes">
+              <thead><tr><th>ATTRIBUTE</th><th>DISPLAY NAME</th><th>VALUE</th><th class="path-col">PATH <span class="path-hint">↑</span></th></tr></thead>
+              <tbody id="eventDetailTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <section id="error" class="consent-panel profile-error-panel" hidden>
+      <h2 class="panel-title"><span class="icon">⚠️</span> Error</h2>
+      <p id="errorMessage" class="panel-desc"></p>
+    </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isFirebaseHost = /\.web\.app$/i.test(host) || /\.firebaseapp\.com$/i.test(host);
+      var isCorrectServer =
+        isFirebaseHost || ((host === 'localhost' || host === '127.0.0.1') && port === '3333');
+      if (!isCorrectServer) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="table-resize.js"></script>
+  <script src="profile-streaming-shared.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="app.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

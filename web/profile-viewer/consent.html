@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adobe Consent Manager – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css">
+</head>
+<body class="consent-page home-dashboard-concierge consent-manager-page">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/consent.html">http://localhost:3333/consent.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item dashboard-nav-item--active">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main consent-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingConsent">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingConsent" class="dashboard-hero-title">View and update consent preferences</h2>
+              <p class="dashboard-hero-subtitle">
+                Query a profile by email and manage marketing, channel, and personalization consents in one flow.
+              </p>
+            </header>
+          </div>
+        </section>
+    <!-- Step 1: Query Customer Profile -->
+    <section class="consent-panel" id="step1">
+      <h2 class="panel-title"><span class="icon">🔍</span> Step 1: Query customer profile</h2>
+      <p class="panel-desc">Enter the customer email and query Adobe Experience Platform. Profile ECID is filled when a profile is found.</p>
+      <div class="consent-step1-row">
+        <div class="consent-step1-field">
+          <label for="customerEmail">Customer email address</label>
+          <input type="text" id="customerEmail" placeholder="e.g. user@example.com" value="" autocomplete="email" spellcheck="false">
+        </div>
+        <div class="consent-step1-field consent-step1-field--ecid">
+          <label for="profileEcid">Profile ECID</label>
+          <input type="text" id="profileEcid" class="consent-ecid-input" readonly placeholder="—" aria-readonly="true" title="Populated after a successful profile query">
+        </div>
+      </div>
+      <div class="button-row consent-step1-button-toolbar">
+        <div class="consent-step1-toolbar-primary">
+          <button type="button" id="queryProfileBtn" class="btn btn-primary btn-query">🔍 Query Customer Profile</button>
+          <button type="button" id="clearFormBtn" class="btn btn-secondary">Clear Form</button>
+          <button type="button" id="sampleDataBtn" class="btn btn-sample">✓ Sample Data</button>
+        </div>
+        <div class="consent-step1-toolbar-quick" role="group" aria-label="Quick Actions (helper tools)">
+          <button type="button" id="enableAllBtn" class="btn btn-enable">✓ Enable All Consents</button>
+          <button type="button" id="disableAllBtn" class="btn btn-disable">⊘ Disable All Consents</button>
+          <button type="button" id="quickClearBtn" class="btn btn-secondary">🗑 Clear Form</button>
+        </div>
+      </div>
+      <div id="step1Message" class="consent-message" role="status" aria-live="polite" hidden></div>
+    </section>
+
+    <!-- Step 2: Consent Preferences -->
+    <section class="consent-panel" id="step3">
+      <h2 class="panel-title"><span class="icon">✅</span> Step 2: Consent preferences</h2>
+      <p class="panel-desc consent-prefs-intro">Choose <strong>Yes</strong>, <strong>No</strong>, or <strong>N/A</strong> for each item. Email and Push columns map to channel consent where applicable; merged rows apply one choice to both.</p>
+
+      <div class="consent-prefs-columns" id="consentPrefsColumns">
+        <div class="consent-prefs-block" id="generalConsents">
+          <h3 class="consent-prefs-heading">How we use your data</h3>
+          <p class="consent-prefs-lead">Core consent flags for this profile. Each row uses one choice across Email and Push.</p>
+          <div class="consent-prefs-table" role="table" aria-label="General consent preferences">
+            <div class="consent-prefs-row" role="row">
+              <div class="consent-prefs-copy" role="cell">
+                <strong class="consent-prefs-title">Data collection</strong>
+                <span class="consent-prefs-desc">Allow Experience Platform to collect profile and experience data for this identity.</span>
+              </div>
+              <div class="consent-prefs-merged-tickets" role="cell">
+                <div class="consent-tickets" role="radiogroup" aria-label="Data collection">
+                  <label class="consent-ticket"><input type="radio" name="dataCollection" value="y"><span class="consent-ticket-text">Yes</span></label>
+                  <label class="consent-ticket"><input type="radio" name="dataCollection" value="n" checked><span class="consent-ticket-text">No</span></label>
+                  <label class="consent-ticket"><input type="radio" name="dataCollection" value="na"><span class="consent-ticket-text">N/A</span></label>
+                </div>
+              </div>
+            </div>
+            <div class="consent-prefs-row" role="row">
+              <div class="consent-prefs-copy" role="cell">
+                <strong class="consent-prefs-title">Data sharing</strong>
+                <span class="consent-prefs-desc">Allow sharing of this profile with Adobe solutions and connected destinations per your policies.</span>
+              </div>
+              <div class="consent-prefs-merged-tickets" role="cell">
+                <div class="consent-tickets" role="radiogroup" aria-label="Data sharing">
+                  <label class="consent-ticket"><input type="radio" name="dataSharing" value="y"><span class="consent-ticket-text">Yes</span></label>
+                  <label class="consent-ticket"><input type="radio" name="dataSharing" value="n" checked><span class="consent-ticket-text">No</span></label>
+                  <label class="consent-ticket"><input type="radio" name="dataSharing" value="na"><span class="consent-ticket-text">N/A</span></label>
+                </div>
+              </div>
+            </div>
+            <div class="consent-prefs-row" role="row">
+              <div class="consent-prefs-copy" role="cell">
+                <strong class="consent-prefs-title">Content personalization</strong>
+                <span class="consent-prefs-desc">Use profile attributes to tailor content and offers you see across channels.</span>
+              </div>
+              <div class="consent-prefs-merged-tickets" role="cell">
+                <div class="consent-tickets" role="radiogroup" aria-label="Content personalization">
+                  <label class="consent-ticket"><input type="radio" name="contentPersonalization" value="y"><span class="consent-ticket-text">Yes</span></label>
+                  <label class="consent-ticket"><input type="radio" name="contentPersonalization" value="n" checked><span class="consent-ticket-text">No</span></label>
+                  <label class="consent-ticket"><input type="radio" name="contentPersonalization" value="na"><span class="consent-ticket-text">N/A</span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        <div class="consent-subsection consent-subsection--preferred consent-subsection--under-general">
+          <h3 class="subsection-title"><span class="icon">⭐</span> Preferred communication</h3>
+          <div class="form-row">
+            <label for="preferredChannel">Preferred Marketing Channel</label>
+            <select id="preferredChannel">
+              <option value="email">Email</option>
+              <option value="sms">SMS</option>
+              <option value="push">Push</option>
+              <option value="phone">Phone</option>
+              <option value="postal">Postal Mail</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="preferredLanguage">Preferred Language</label>
+            <select id="preferredLanguage">
+              <option value="en">English</option>
+              <option value="en-GB">English (UK)</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="es">Spanish</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="timezone">Timezone</label>
+            <select id="timezone">
+              <option value="Europe/London">Europe/London (GMT)</option>
+              <option value="America/New_York">America/New York (EST)</option>
+              <option value="America/Los_Angeles">America/Los Angeles (PST)</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </div>
+        </div>
+        </div>
+
+        <div class="consent-prefs-block" id="marketingConsents">
+          <h3 class="consent-prefs-heading">Marketing communications</h3>
+          <p class="consent-prefs-lead">Yes / No / N/A per channel where shown. Merged rows apply to both Email and Push.</p>
+          <div class="consent-prefs-table" role="table" aria-label="Marketing consent preferences">
+            <div class="consent-prefs-row" role="row">
+            <div class="consent-prefs-copy" role="cell">
+              <strong class="consent-prefs-title">Any marketing</strong>
+              <span class="consent-prefs-desc">Master switch for marketing use of this profile (consents.marketing.any).</span>
+            </div>
+            <div class="consent-prefs-merged-tickets" role="cell">
+              <div class="consent-tickets" role="radiogroup" aria-label="Any marketing">
+                <label class="consent-ticket"><input type="radio" name="marketingAny" value="y"><span class="consent-ticket-text">Yes</span></label>
+                <label class="consent-ticket"><input type="radio" name="marketingAny" value="n" checked><span class="consent-ticket-text">No</span></label>
+                <label class="consent-ticket"><input type="radio" name="marketingAny" value="na"><span class="consent-ticket-text">N/A</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="consent-prefs-row" role="row">
+            <div class="consent-prefs-copy" role="cell">
+              <strong class="consent-prefs-title">Email marketing (generic)</strong>
+              <span class="consent-prefs-desc">General promotional email for this identity.</span>
+            </div>
+            <div class="consent-prefs-actions" role="cell">
+              <div class="consent-tickets" role="radiogroup" aria-label="Email marketing generic">
+                <label class="consent-ticket"><input type="radio" name="emailGeneric" value="y"><span class="consent-ticket-text">Yes</span></label>
+                <label class="consent-ticket"><input type="radio" name="emailGeneric" value="n"><span class="consent-ticket-text">No</span></label>
+                <label class="consent-ticket"><input type="radio" name="emailGeneric" value="na" checked><span class="consent-ticket-text">N/A</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="consent-prefs-row" role="row">
+            <div class="consent-prefs-copy" role="cell">
+              <strong class="consent-prefs-title">Email marketing (A-specific)</strong>
+              <span class="consent-prefs-desc">Brand- or campaign-specific email consent tied to the same channel.</span>
+            </div>
+            <div class="consent-prefs-actions" role="cell">
+              <div class="consent-tickets" role="radiogroup" aria-label="Email marketing A-specific">
+                <label class="consent-ticket"><input type="radio" name="emailSpecific" value="y"><span class="consent-ticket-text">Yes</span></label>
+                <label class="consent-ticket"><input type="radio" name="emailSpecific" value="n"><span class="consent-ticket-text">No</span></label>
+                <label class="consent-ticket"><input type="radio" name="emailSpecific" value="na" checked><span class="consent-ticket-text">N/A</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="consent-prefs-row" role="row">
+            <div class="consent-prefs-copy" role="cell">
+              <strong class="consent-prefs-title">SMS marketing</strong>
+              <span class="consent-prefs-desc">Text messages about offers and service updates.</span>
+            </div>
+            <div class="consent-prefs-actions" role="cell">
+              <div class="consent-tickets" role="radiogroup" aria-label="SMS marketing">
+                <label class="consent-ticket"><input type="radio" name="smsMarketing" value="y"><span class="consent-ticket-text">Yes</span></label>
+                <label class="consent-ticket"><input type="radio" name="smsMarketing" value="n" checked><span class="consent-ticket-text">No</span></label>
+                <label class="consent-ticket"><input type="radio" name="smsMarketing" value="na"><span class="consent-ticket-text">N/A</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="consent-prefs-row" role="row">
+            <div class="consent-prefs-copy" role="cell">
+              <strong class="consent-prefs-title">Push notifications</strong>
+              <span class="consent-prefs-desc">Alerts and messages through mobile or web push.</span>
+            </div>
+            <div class="consent-prefs-actions" role="cell">
+              <div class="consent-tickets" role="radiogroup" aria-label="Push notifications">
+                <label class="consent-ticket"><input type="radio" name="pushMarketing" value="y"><span class="consent-ticket-text">Yes</span></label>
+                <label class="consent-ticket"><input type="radio" name="pushMarketing" value="n" checked><span class="consent-ticket-text">No</span></label>
+                <label class="consent-ticket"><input type="radio" name="pushMarketing" value="na"><span class="consent-ticket-text">N/A</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="consent-prefs-row" role="row">
+            <div class="consent-prefs-copy" role="cell">
+              <strong class="consent-prefs-title">Phone calls</strong>
+              <span class="consent-prefs-desc">Outbound calls for sales or service.</span>
+            </div>
+            <div class="consent-prefs-actions" role="cell">
+              <div class="consent-tickets" role="radiogroup" aria-label="Phone marketing">
+                <label class="consent-ticket"><input type="radio" name="phoneMarketing" value="y"><span class="consent-ticket-text">Yes</span></label>
+                <label class="consent-ticket"><input type="radio" name="phoneMarketing" value="n" checked><span class="consent-ticket-text">No</span></label>
+                <label class="consent-ticket"><input type="radio" name="phoneMarketing" value="na"><span class="consent-ticket-text">N/A</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="consent-prefs-row" role="row">
+            <div class="consent-prefs-copy" role="cell">
+              <strong class="consent-prefs-title">Postal mail</strong>
+              <span class="consent-prefs-desc">Printed offers and notices by mail.</span>
+            </div>
+            <div class="consent-prefs-actions" role="cell">
+              <div class="consent-tickets" role="radiogroup" aria-label="Postal mail marketing">
+                <label class="consent-ticket"><input type="radio" name="postalMarketing" value="y"><span class="consent-ticket-text">Yes</span></label>
+                <label class="consent-ticket"><input type="radio" name="postalMarketing" value="n" checked><span class="consent-ticket-text">No</span></label>
+                <label class="consent-ticket"><input type="radio" name="postalMarketing" value="na"><span class="consent-ticket-text">N/A</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="consent-prefs-row" role="row">
+            <div class="consent-prefs-copy" role="cell">
+              <strong class="consent-prefs-title">WhatsApp marketing</strong>
+              <span class="consent-prefs-desc">Messages sent via WhatsApp where supported.</span>
+            </div>
+            <div class="consent-prefs-actions" role="cell">
+              <div class="consent-tickets" role="radiogroup" aria-label="WhatsApp marketing">
+                <label class="consent-ticket"><input type="radio" name="whatsappMarketing" value="y"><span class="consent-ticket-text">Yes</span></label>
+                <label class="consent-ticket"><input type="radio" name="whatsappMarketing" value="n" checked><span class="consent-ticket-text">No</span></label>
+                <label class="consent-ticket"><input type="radio" name="whatsappMarketing" value="na"><span class="consent-ticket-text">N/A</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- Step 3: Save to AEP -->
+    <section class="consent-panel" id="step4">
+      <h2 class="panel-title"><span class="icon">🚀</span> Step 3: Save changes to Adobe Experience Platform</h2>
+      <div class="button-row">
+        <button type="button" id="updateConsentBtn" class="btn btn-save">Update Consent Preferences</button>
+        <button type="button" id="previewDataBtn" class="btn btn-secondary">Preview Data</button>
+      </div>
+      <div id="step4Message" class="consent-message" role="status" aria-live="polite" hidden></div>
+    </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="email-cache.js"></script>
+  <script src="profile-streaming-shared.js"></script>
+  <script src="consent.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>

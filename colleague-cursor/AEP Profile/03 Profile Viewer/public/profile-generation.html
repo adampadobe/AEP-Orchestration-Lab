@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generate Profiles – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="profile-generation.css">
+</head>
+<body class="profile-generation-page home-dashboard-concierge">
+  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
+    Open this app at <a href="http://localhost:3333/profile-generation.html">http://localhost:3333/profile-generation.html</a>
+  </div>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item dashboard-nav-item--active">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-generation-main profile-gen-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingProfileGen">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingProfileGen" class="dashboard-hero-title">Generate Profiles</h2>
+              <p class="dashboard-hero-subtitle">
+                Choose a sandbox and industry, tune identity and attributes, then stream a sample profile to Adobe Experience Platform for testing.
+              </p>
+            </header>
+          </div>
+        </section>
+    <section class="consent-panel" id="configPanel">
+      <h2 class="panel-title"><span class="icon">➕</span> Sandbox and options</h2>
+      <p class="panel-desc">Select your AEP sandbox, optional industry (for templated attributes and the kirkham+&lt;industry&gt;-&lt;x&gt; email pattern), and profile index. Use <strong>Fill random sample</strong> or edit fields below, then <strong>Generate profile</strong>.</p>
+
+      <div class="profile-gen-config">
+        <div class="config-row">
+          <div class="form-row">
+            <label for="sandboxSelect">Sandbox</label>
+            <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+              <option value="">Loading sandboxes…</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="industry">Industry</label>
+            <select id="industry" aria-label="Industry">
+              <option value="">— Select industry —</option>
+              <option value="retail">Retail</option>
+              <option value="fsi">FSI</option>
+              <option value="travel">Travel</option>
+              <option value="media">Media</option>
+              <option value="sports">Sports</option>
+              <option value="telecommunications">Telecommunications</option>
+              <option value="public">Public</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="profileIndex">Profile index (x)</label>
+            <input type="number" id="profileIndex" min="1" value="1" placeholder="e.g. 1">
+          </div>
+          <div class="form-row form-row--action profile-gen-actions">
+            <button type="button" id="fillRandomBtn" class="btn btn-secondary">Fill random sample</button>
+            <button type="button" id="generateBtn" class="btn btn-primary btn-save">Generate profile</button>
+          </div>
+        </div>
+        <div class="form-row profile-gen-merge-row">
+          <label class="profile-gen-merge-label">
+            <input type="checkbox" id="appendIfExisting" checked>
+            <span>Merge into existing profile when this email already exists (reuse ECID so the stream updates that profile instead of starting only a new identity).</span>
+          </label>
+        </div>
+      </div>
+      <div id="generateMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+      <details id="generateDebug" class="generate-debug" hidden>
+        <summary>Request &amp; response details</summary>
+        <div class="generate-debug-content">
+          <div class="generate-debug-section">
+            <strong>Client POST (to server):</strong>
+            <pre id="debugClientRequest"></pre>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Server POST (to DCS):</strong>
+            <pre id="debugServerRequest"></pre>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Payload sent to AEP:</strong>
+            <pre id="debugPayload"></pre>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Status:</strong> <span id="debugStatus"></span>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Response:</strong>
+            <pre id="debugResponse"></pre>
+          </div>
+        </div>
+      </details>
+
+      <div class="profile-gen-boxes">
+        <div class="profile-box profile-box--personal">
+          <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Personal details</h3>
+          <div class="profile-box-content">
+            <div class="form-row">
+              <label for="firstName">First name</label>
+              <input type="text" id="firstName" placeholder="e.g. John">
+            </div>
+            <div class="form-row">
+              <label for="lastName">Last name</label>
+              <input type="text" id="lastName" placeholder="e.g. Smith">
+            </div>
+            <div class="form-row">
+              <label for="age">Age</label>
+              <input type="number" id="age" min="1" max="120" placeholder="e.g. 35">
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-box profile-box--location">
+          <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Location details</h3>
+          <div class="profile-box-content">
+            <div class="form-row">
+              <label for="streetAddress">Street address</label>
+              <input type="text" id="streetAddress" placeholder="e.g. 123 Main St">
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" placeholder="e.g. San Jose">
+              </div>
+              <div class="form-group">
+                <label for="state">State / Region</label>
+                <input type="text" id="state" placeholder="e.g. CA">
+              </div>
+              <div class="form-group">
+                <label for="postalCode">Postal code</label>
+                <input type="text" id="postalCode" placeholder="e.g. 95101">
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="country">Country</label>
+              <input type="text" id="country" placeholder="e.g. US">
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-box profile-box--engagement">
+          <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Engagement</h3>
+          <div class="profile-box-content">
+            <div class="form-row">
+              <label for="emailDisplay">Personal email</label>
+              <input type="text" id="emailDisplay" placeholder="e.g. kirkham+retail-1@adobetest.com" autocomplete="email">
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="phoneCountryCode">Phone country code</label>
+                <input type="text" id="phoneCountryCode" placeholder="e.g. 1" maxlength="4">
+              </div>
+              <div class="form-group form-group--flex">
+                <label for="phoneNumber">Phone number</label>
+                <input type="text" id="phoneNumber" placeholder="e.g. 5551234567">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-box profile-box--scoring">
+          <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Propensity and Churn</h3>
+          <div class="profile-box-content">
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="scoringPropensityScore">Propensity Score</label>
+                <input type="number" id="scoringPropensityScore" min="0" max="100" step="any" placeholder="e.g. 72" autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label for="scoringChurnPrediction">Churn Prediction</label>
+                <input type="text" id="scoringChurnPrediction" placeholder="e.g. low, medium, 0.15" autocomplete="off">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-box profile-box--loyalty">
+          <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Loyalty</h3>
+          <p class="profile-loyalty-hint">Member identifier for streaming maps to <code>_demoemea.identification.core.loyaltyId</code> (string). The XDM <strong>loyalty</strong> mixin at the <strong>JSON root</strong> still carries program, tier, status, points, dates, <code>cardsDetails</code>, etc. Compact summary <code>level</code> and <code>points</code> sit under <code>_demoemea.loyaltyDetails</code>.</p>
+          <div class="profile-box-content">
+            <div class="industry-section">
+              <h4 class="industry-section-title">Loyalty summary</h4>
+              <div class="industry-section-content">
+                <p class="field-hint">Tenant only: <code>_demoemea.loyaltyDetails.level</code> and <code>.points</code> (not the root <code>loyalty</code> object).</p>
+                <div class="form-row form-row--inline">
+                  <div class="form-group">
+                    <label for="loyaltyDetailsLevel">Level</label>
+                    <input type="text" id="loyaltyDetailsLevel" placeholder="e.g. Gold" autocomplete="off">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyDetailsPoints">Points</label>
+                    <input type="number" id="loyaltyDetailsPoints" min="0" step="any" placeholder="e.g. 21082">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="industry-section">
+              <h4 class="industry-section-title">Program</h4>
+              <div class="industry-section-content">
+                <p class="field-hint">JSON root <code>loyalty.*</code> — sections Program through Card all post to the same root object, not under <code>_demoemea</code>.</p>
+                <div class="form-row form-row--inline">
+                  <div class="form-group">
+                    <label for="loyaltyProgram">Program</label>
+                    <input type="text" id="loyaltyProgram" placeholder="e.g. Rewards Plus" autocomplete="off">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyTier">Tier</label>
+                    <input type="text" id="loyaltyTier" placeholder="e.g. Gold" autocomplete="off">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyStatus">Status</label>
+                    <input type="text" id="loyaltyStatus" placeholder="e.g. active" autocomplete="off">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label for="loyaltyID">Loyalty ID (<code>_demoemea.identification.core.loyaltyId</code>)</label>
+                  <input type="text" id="loyaltyID" placeholder="e.g. LYL-10001" autocomplete="off">
+                </div>
+              </div>
+            </div>
+            <div class="industry-section">
+              <h4 class="industry-section-title">Points</h4>
+              <div class="industry-section-content">
+                <div class="form-row form-row--inline">
+                  <div class="form-group">
+                    <label for="loyaltyPoints">Points</label>
+                    <input type="number" id="loyaltyPoints" min="0" step="any" placeholder="e.g. 14111">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyLifetimePoints">Lifetime points</label>
+                    <input type="number" id="loyaltyLifetimePoints" min="0" step="any">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyAdjustedPoints">Adjusted points</label>
+                    <input type="number" id="loyaltyAdjustedPoints" step="any">
+                  </div>
+                </div>
+                <div class="form-row form-row--inline">
+                  <div class="form-group">
+                    <label for="loyaltyExpiredPoints">Expired points</label>
+                    <input type="number" id="loyaltyExpiredPoints" min="0" step="any">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyReturnedPoints">Returned points</label>
+                    <input type="number" id="loyaltyReturnedPoints" step="any">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyPromisedPoints">Promised points</label>
+                    <input type="number" id="loyaltyPromisedPoints" step="any">
+                  </div>
+                </div>
+                <div class="form-row form-row--inline">
+                  <div class="form-group">
+                    <label for="loyaltyPointsRedeemed">Points redeemed</label>
+                    <input type="number" id="loyaltyPointsRedeemed" min="0" step="any">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyLifetimePurchases">Lifetime purchases</label>
+                    <input type="number" id="loyaltyLifetimePurchases" min="0" step="any">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="industry-section">
+              <h4 class="industry-section-title">Dates</h4>
+              <div class="industry-section-content">
+                <div class="form-row form-row--inline">
+                  <div class="form-group">
+                    <label for="loyaltyJoinDate">Join date</label>
+                    <input type="date" id="loyaltyJoinDate">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyTierExpiryDate">Tier expiry</label>
+                    <input type="date" id="loyaltyTierExpiryDate">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyUpgradeDate">Upgrade date</label>
+                    <input type="text" id="loyaltyUpgradeDate" placeholder="e.g. 2018-11-12 or text">
+                  </div>
+                </div>
+                <div class="form-row form-row--inline">
+                  <div class="form-group">
+                    <label for="loyaltyPointsExpirationDate">Points exp. date</label>
+                    <input type="date" id="loyaltyPointsExpirationDate">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyPointsExpiring">Points expiring</label>
+                    <input type="number" id="loyaltyPointsExpiring" min="0" step="any" placeholder="e.g. 500">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="industry-section">
+              <h4 class="industry-section-title">Card</h4>
+              <div class="industry-section-content">
+                <p class="field-hint">Root <code>loyalty.cardsDetails[0]</code></p>
+                <div class="form-row form-row--inline">
+                  <div class="form-group">
+                    <label for="loyaltyCardNumber">Number</label>
+                    <input type="text" id="loyaltyCardNumber" placeholder="Card number" autocomplete="off">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyCardSeries">Series</label>
+                    <input type="text" id="loyaltyCardSeries" placeholder="Series" autocomplete="off">
+                  </div>
+                  <div class="form-group">
+                    <label for="loyaltyCardStatus">Status</label>
+                    <input type="text" id="loyaltyCardStatus" placeholder="e.g. active" autocomplete="off">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-box profile-box--industry">
+          <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Industry attributes</h3>
+          <div class="profile-box-content">
+            <p id="industryPlaceholder" class="industry-placeholder">Select an industry above to see attributes.</p>
+      <div id="industryFields" class="industry-fields">
+        <!-- Retail -->
+        <div id="industryRetail" class="industry-field-group" hidden>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Preferences</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="retailFavoriteColor">Favorite color</label>
+                  <input type="text" id="retailFavoriteColor" placeholder="e.g. blue">
+                </div>
+                <div class="form-group">
+                  <label for="retailFavoriteStore">Favorite store</label>
+                  <input type="text" id="retailFavoriteStore" placeholder="e.g. Nordstrom">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="retailFavoriteDesigner">Favorite designer</label>
+                  <input type="text" id="retailFavoriteDesigner" placeholder="e.g. Gucci">
+                </div>
+                <div class="form-group">
+                  <label for="retailFavoriteFashionBrand">Favorite fashion brand</label>
+                  <input type="text" id="retailFavoriteFashionBrand" placeholder="e.g. Zara" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="retailLinkedStores">Linked stores</label>
+                <input type="text" id="retailLinkedStores" placeholder="Comma-separated, e.g. Nordstrom Uptown, Target West" autocomplete="off">
+              </div>
+              <div class="form-row">
+                <label for="retailCobrandedCard">Co-branded credit card holder</label>
+                <select id="retailCobrandedCard" aria-label="Co-branded credit card holder">
+                  <option value="">— Select —</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Sizing</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="retailShirtSize">Shirt size</label>
+                  <select id="retailShirtSize">
+                    <option value="">— Select —</option>
+                    <option value="XS">XS</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="retailPantsSize">Pants size</label>
+                  <input type="text" id="retailPantsSize" placeholder="e.g. 32">
+                </div>
+                <div class="form-group">
+                  <label for="retailShoeSize">Shoe size</label>
+                  <input type="text" id="retailShoeSize" placeholder="e.g. 10">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- FSI -->
+        <div id="industryFsi" class="industry-field-group" hidden>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Relationship</h4>
+            <div class="industry-section-content">
+          <div class="form-row">
+            <label for="fsiCurrentTier">Current tier</label>
+            <select id="fsiCurrentTier">
+              <option value="">— Select —</option>
+              <option value="Basic">Basic</option>
+              <option value="Silver">Silver</option>
+              <option value="Gold">Gold</option>
+              <option value="Platinum">Platinum</option>
+              <option value="Elite">Elite</option>
+            </select>
+          </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Financial</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiCreditClassification">Credit classification</label>
+                  <select id="fsiCreditClassification">
+                    <option value="">— Select —</option>
+                    <option value="excellent">Excellent</option>
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="poor">Poor</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="fsiProductInterest">Product interest</label>
+                  <input type="text" id="fsiProductInterest" placeholder="e.g. mortgages, credit cards">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiCheckingAcct">Checking account</label>
+                  <select id="fsiCheckingAcct">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="fsiSavingsAcct">Savings account</label>
+                  <select id="fsiSavingsAcct">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">FSI profile</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiFinancialAdvisorTop">Financial advisor (profile)</label>
+                  <input type="text" id="fsiFinancialAdvisorTop" placeholder="Advisor name" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="fsiLinkedBranchTop">Linked branch</label>
+                  <input type="text" id="fsiLinkedBranchTop" placeholder="e.g. Downtown" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiHasAssignedBeneficiaryTop">Has assigned beneficiary</label>
+                  <select id="fsiHasAssignedBeneficiaryTop" aria-label="Has assigned beneficiary">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group form-group--flex">
+                  <label for="fsiAssignedBeneficiary">Assigned beneficiaries</label>
+                  <input type="text" id="fsiAssignedBeneficiary" placeholder="Comma-separated names or IDs" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiPolicyType">Policy types</label>
+                  <input type="text" id="fsiPolicyType" placeholder="Comma-separated, e.g. Term, Whole" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="fsiWatchList">Watch list</label>
+                  <input type="text" id="fsiWatchList" placeholder="Comma-separated tags" autocomplete="off">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Relationship detail</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiCsat">CSAT</label>
+                  <input type="number" id="fsiCsat" min="0" step="1" placeholder="e.g. 85">
+                </div>
+                <div class="form-group">
+                  <label for="fsiMembershipStartDate">Membership start</label>
+                  <input type="date" id="fsiMembershipStartDate">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiCrFinancialAdvisor">Financial advisor (relationship)</label>
+                  <input type="text" id="fsiCrFinancialAdvisor" placeholder="Advisor name" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="fsiFinancialAdvisorID">Financial advisor ID</label>
+                  <input type="text" id="fsiFinancialAdvisorID" placeholder="e.g. FA-10001" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiCrHasAssignedBeneficiary">CR has assigned beneficiary</label>
+                  <select id="fsiCrHasAssignedBeneficiary" aria-label="Customer relationship has assigned beneficiary">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="fsiCrLinkedBranch">CR linked branch</label>
+                  <input type="text" id="fsiCrLinkedBranch" placeholder="Branch" autocomplete="off">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Financial details</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiBalanceCheckingTotal">Balance checking total</label>
+                  <input type="number" id="fsiBalanceCheckingTotal" min="0" step="any" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label for="fsiBalanceCreditCardsTotal">Credit cards total</label>
+                  <input type="number" id="fsiBalanceCreditCardsTotal" min="0" step="any" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label for="fsiBalanceSavingsTotal">Savings total</label>
+                  <input type="number" id="fsiBalanceSavingsTotal" min="0" step="any" placeholder="0">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiCreditScore">Credit score</label>
+                  <input type="number" id="fsiCreditScore" min="0" step="any" placeholder="e.g. 720">
+                </div>
+                <div class="form-group">
+                  <label for="fsiHouseholdIncome">Household income</label>
+                  <input type="number" id="fsiHouseholdIncome" min="0" step="any" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label for="fsiNetWorth">Net worth</label>
+                  <input type="number" id="fsiNetWorth" min="0" step="any" placeholder="0">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiEmploymentStatus">Employment status</label>
+                  <input type="text" id="fsiEmploymentStatus" placeholder="e.g. employed" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="fsiIncomeClassification">Income classification</label>
+                  <input type="text" id="fsiIncomeClassification" placeholder="e.g. high" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="fsiNetWorthClassification">Net worth classification</label>
+                  <input type="text" id="fsiNetWorthClassification" placeholder="e.g. mass affluent" autocomplete="off">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Investing &amp; products</h4>
+            <div class="industry-section-content">
+              <div class="form-row">
+                <label for="fsiInvestingStyle">Investing style</label>
+                <input type="text" id="fsiInvestingStyle" placeholder="e.g. conservative, growth" autocomplete="off">
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiCheckingType">Checking type</label>
+                  <input type="text" id="fsiCheckingType" placeholder="e.g. high-yield" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="fsiCreditCardType">Credit card type</label>
+                  <input type="text" id="fsiCreditCardType" placeholder="e.g. rewards" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="fsiSavingsType">Savings type</label>
+                  <input type="text" id="fsiSavingsType" placeholder="e.g. money market" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiMortgageHolder">Mortgage holder</label>
+                  <select id="fsiMortgageHolder" aria-label="Mortgage holder">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="fsiHeloc">HELOC</label>
+                  <select id="fsiHeloc" aria-label="HELOC">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="fsiLoansAcct">Loans account</label>
+                  <select id="fsiLoansAcct" aria-label="Loans account">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="fsiCreditcardAcct">Credit card account</label>
+                  <select id="fsiCreditcardAcct" aria-label="Credit card account">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="fsiInvestmentAcct">Investment account</label>
+                  <select id="fsiInvestmentAcct" aria-label="Investment account">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="fsiInsuranceAcct">Insurance account</label>
+                  <select id="fsiInsuranceAcct" aria-label="Insurance account">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Travel -->
+        <div id="industryTravel" class="industry-field-group" hidden>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Travel preferences</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="travelFavouriteAirline">Favourite airline</label>
+                  <input type="text" id="travelFavouriteAirline" placeholder="e.g. Emirates">
+                </div>
+                <div class="form-group">
+                  <label for="travelPrimaryTravelClass">Primary travel class</label>
+                  <select id="travelPrimaryTravelClass">
+                    <option value="">— Select —</option>
+                    <option value="economy">Economy</option>
+                    <option value="premium_economy">Premium economy</option>
+                    <option value="business">Business</option>
+                    <option value="first">First</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="travelPrimaryTravelerType">Primary traveler type</label>
+                  <select id="travelPrimaryTravelerType">
+                    <option value="">— Select —</option>
+                    <option value="leisure">Leisure</option>
+                    <option value="business">Business</option>
+                    <option value="frequent">Frequent flyer</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="travelPrimaryTripPurpose">Primary trip purpose</label>
+                  <select id="travelPrimaryTripPurpose">
+                    <option value="">— Select —</option>
+                    <option value="leisure">Leisure</option>
+                    <option value="business">Business</option>
+                    <option value="family">Family</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Booking &amp; trip</h4>
+            <div class="industry-section-content">
+          <div class="form-row form-row--inline">
+            <div class="form-group">
+              <label for="travelAvgDaysBooking">Avg days booking before trip</label>
+              <input type="number" id="travelAvgDaysBooking" min="0" placeholder="e.g. 30">
+            </div>
+            <div class="form-group">
+              <label for="travelAvgTripLength">Avg trip length (days)</label>
+              <input type="number" id="travelAvgTripLength" min="0" step="any" placeholder="e.g. 7">
+            </div>
+          </div>
+          <div class="form-row form-row--inline">
+            <div class="form-group">
+              <label for="travelLastTravelCode">Last travel code</label>
+              <input type="text" id="travelLastTravelCode" placeholder="e.g. EU-2024" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="travelPropertyClassAffinity">Property class affinity</label>
+              <input type="text" id="travelPropertyClassAffinity" placeholder="e.g. luxury, resort" autocomplete="off">
+            </div>
+          </div>
+          <div class="form-row">
+            <label for="travelCobrandedCard">Co-branded credit card holder</label>
+            <select id="travelCobrandedCard" aria-label="Travel co-branded credit card">
+              <option value="">— Select —</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Hotel preferences</h4>
+            <div class="industry-section-content">
+              <div class="form-row">
+                <label for="travelPillowType">Pillow type</label>
+                <input type="text" id="travelPillowType" placeholder="e.g. firm, feather" autocomplete="off">
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="travelHearingAccessible">Hearing accessible room</label>
+                  <select id="travelHearingAccessible" aria-label="Hearing accessible">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="travelMobilityAccessible">Mobility accessible room</label>
+                  <select id="travelMobilityAccessible" aria-label="Mobility accessible">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="travelHighFloor">Prefer high floor</label>
+                  <select id="travelHighFloor" aria-label="High floor">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="travelLateCheckOut">Late check-out</label>
+                  <select id="travelLateCheckOut" aria-label="Late check-out">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="travelNearElevator">Near elevator</label>
+                  <select id="travelNearElevator" aria-label="Near elevator">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Recent stay</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="travelRecentHotelName">Hotel name</label>
+                  <input type="text" id="travelRecentHotelName" placeholder="e.g. Grand Plaza" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="travelRecentHotelRoomType">Room type</label>
+                  <input type="text" id="travelRecentHotelRoomType" placeholder="e.g. Suite" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="travelRecentHotelClass">Hotel class</label>
+                  <input type="text" id="travelRecentHotelClass" placeholder="e.g. 5-star" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="travelRecentHotelLengthDays">Length (days)</label>
+                  <input type="number" id="travelRecentHotelLengthDays" min="0" step="any" placeholder="e.g. 4">
+                </div>
+                <div class="form-group">
+                  <label for="travelRecentAmountDailyAvg">Amount daily avg</label>
+                  <input type="number" id="travelRecentAmountDailyAvg" min="0" step="any" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label for="travelRecentAmountTotal">Amount total</label>
+                  <input type="number" id="travelRecentAmountTotal" min="0" step="any" placeholder="0">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Media -->
+        <div id="industryMedia" class="industry-field-group" hidden>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Account</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="mediaAccountType">Account type</label>
+                  <select id="mediaAccountType">
+                    <option value="">— Select —</option>
+                    <option value="premium">Premium</option>
+                    <option value="standard">Standard</option>
+                    <option value="basic">Basic</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="mediaContractStatus">Contract status</label>
+                  <select id="mediaContractStatus">
+                    <option value="">— Select —</option>
+                    <option value="active">Active</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="trial">Trial</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="mediaAccountData">Account data</label>
+                  <input type="text" id="mediaAccountData" placeholder="e.g. bundle / lineup ref" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="mediaAccountDetails">Account details</label>
+                  <input type="text" id="mediaAccountDetails" placeholder="Free-text details" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="mediaDebtStatus">Debt status</label>
+                  <input type="text" id="mediaDebtStatus" placeholder="e.g. current, delinquent" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="mediaProductHolding">Product holding</label>
+                  <input type="text" id="mediaProductHolding" placeholder="e.g. broadband + TV" autocomplete="off">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="mediaServiceRAGStatus">Service RAG status</label>
+                  <input type="text" id="mediaServiceRAGStatus" placeholder="e.g. green, amber, red" autocomplete="off">
+                </div>
+                <div class="form-group">
+                  <label for="mediaPackages">Packages</label>
+                  <input type="text" id="mediaPackages" placeholder="Comma-separated package names" autocomplete="off">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Viewing</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group form-group--flex">
+                  <label for="mediaChannel">Viewing channel</label>
+                  <input type="text" id="mediaChannel" placeholder="e.g. Web, App, OTT">
+                </div>
+                <div class="form-group">
+                  <label for="mediaViewingHours">Viewing hours (weekly)</label>
+                  <input type="number" id="mediaViewingHours" min="0" step="0.5" placeholder="e.g. 10">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Sports -->
+        <div id="industrySports" class="industry-field-group" hidden>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Sports preferences</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="sportsFavouriteTeam">Favourite team</label>
+                  <input type="text" id="sportsFavouriteTeam" placeholder="e.g. Manchester United">
+                </div>
+                <div class="form-group">
+                  <label for="sportsPtSession">PT session</label>
+                  <input type="text" id="sportsPtSession" placeholder="e.g. weekly">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Telecommunications (telecomSubscription) -->
+        <div id="industryTelecommunications" class="industry-field-group" hidden>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Bundle</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="telecomBundleName">Bundle name</label>
+                  <input type="text" id="telecomBundleName" placeholder="e.g. Premium Bundle">
+                </div>
+                <div class="form-group">
+                  <label for="telecomPrimaryPartyID">Primary party ID</label>
+                  <input type="text" id="telecomPrimaryPartyID" placeholder="e.g. party-123">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Internet subscription</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="telecomConnectionType">Connection type</label>
+                  <select id="telecomConnectionType">
+                    <option value="">— Select —</option>
+                    <option value="cable">Cable</option>
+                    <option value="dsl">DSL</option>
+                    <option value="fiber">Fiber</option>
+                    <option value="wireless">Wireless</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="telecomDataCap">Data cap (GB)</label>
+                  <input type="number" id="telecomDataCap" min="0" placeholder="e.g. 1000">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="telecomDownloadSpeed">Download speed (Mbps)</label>
+                  <input type="number" id="telecomDownloadSpeed" min="0" placeholder="e.g. 100">
+                </div>
+                <div class="form-group">
+                  <label for="telecomUploadSpeed">Upload speed (Mbps)</label>
+                  <input type="number" id="telecomUploadSpeed" min="0" placeholder="e.g. 50">
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="telecomSelfSetup">Self setup</label>
+                  <select id="telecomSelfSetup">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group form-group--flex">
+                  <label for="telecomInternetPlanName">Internet plan name</label>
+                  <input type="text" id="telecomInternetPlanName" placeholder="e.g. Gigabit Pro">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Landline subscription</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="telecomLandlineMinutes">Minutes</label>
+                  <input type="number" id="telecomLandlineMinutes" min="0" placeholder="e.g. 500">
+                </div>
+                <div class="form-group">
+                  <label for="telecomCallBlocking">Call blocking</label>
+                  <select id="telecomCallBlocking">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="telecomCallForwarding">Call forwarding</label>
+                  <select id="telecomCallForwarding">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="telecomVoicemail">Voicemail</label>
+                  <select id="telecomVoicemail">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="telecomLandlinePlanName">Landline plan name</label>
+                <input type="text" id="telecomLandlinePlanName" placeholder="e.g. Basic Landline">
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Media subscription</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="telecomChannels">Number of channels</label>
+                  <input type="number" id="telecomChannels" min="0" placeholder="e.g. 200">
+                </div>
+                <div class="form-group form-group--flex">
+                  <label for="telecomStreamingService">Streaming service name</label>
+                  <input type="text" id="telecomStreamingService" placeholder="e.g. Netflix, HBO Max">
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="telecomMediaPlanName">Media plan name</label>
+                <input type="text" id="telecomMediaPlanName" placeholder="e.g. Entertainment Plus">
+              </div>
+            </div>
+          </div>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Mobile subscription</h4>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="telecomPlanLevel">Plan level</label>
+                  <input type="text" id="telecomPlanLevel" placeholder="e.g. Premium, Basic">
+                </div>
+                <div class="form-group">
+                  <label for="telecomEarlyUpgradeEnrollment">Early upgrade enrollment</label>
+                  <select id="telecomEarlyUpgradeEnrollment">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="telecomPortedNumber">Ported number</label>
+                  <select id="telecomPortedNumber">
+                    <option value="">— Select —</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div class="form-group form-group--flex">
+                  <label for="telecomMobilePlanName">Mobile plan name</label>
+                  <input type="text" id="telecomMobilePlanName" placeholder="e.g. Unlimited Plus">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Public — omnichannelCdpUseCasePack (Operational Profile schema sample) -->
+        <div id="industryPublic" class="industry-field-group" hidden>
+          <div class="industry-section">
+            <h4 class="industry-section-title">Omnichannel CDP use case pack</h4>
+            <p class="profile-gen-pack-hint"><code>_demoemea.omnichannelCdpUseCasePack</code> — <strong>donationDate</strong> uses ISO <strong>YYYY-MM-DD</strong> (XDM date; same as schema samples).</p>
+            <div class="industry-section-content">
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="publicDonatedAmount">Donated amount</label>
+                  <input type="number" id="publicDonatedAmount" min="0" step="0.01" placeholder="e.g. 50">
+                </div>
+                <div class="form-group">
+                  <label for="publicDonationDate">Donation date</label>
+                  <input type="text" id="publicDonationDate" placeholder="YYYY-MM-DD" autocomplete="off">
+                </div>
+                <div class="form-group form-group--flex">
+                  <label for="publicEventRegistered">Event registered</label>
+                  <input type="text" id="publicEventRegistered" placeholder="e.g. Race for Life London">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+          </div>
+        </div>
+      </div>
+    </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var port = String(window.location.port);
+      var host = window.location.hostname;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
+    })();
+  </script>
+  <script src="profile-streaming-shared.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="profile-generation.js"></script>
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
+</body>
+</html>
