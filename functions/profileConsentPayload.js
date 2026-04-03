@@ -106,6 +106,38 @@ function getPreferredMarketingChannel(entity) {
   return null;
 }
 
+/** BCP-47 style codes matching EMEA presales consent-manager preferred language list. */
+function getPreferredLanguage(entity) {
+  if (!entity || typeof entity !== 'object') return null;
+  const from = (obj) => {
+    if (!obj || typeof obj !== 'object') return null;
+    const root = obj.preferredLanguage;
+    if (typeof root === 'string' && root.trim()) return root.trim();
+    const pl = obj.consents?.marketing?.preferredLanguage;
+    if (typeof pl === 'string' && pl.trim()) return pl.trim();
+    return null;
+  };
+  let v = from(entity);
+  if (v) return v;
+  v = from(entity._demoemea);
+  if (v) return v;
+  if (entity.attributes && typeof entity.attributes === 'object') {
+    for (const att of Object.values(entity.attributes)) {
+      if (att && typeof att === 'object') {
+        v = from(att);
+        if (v) return v;
+      }
+    }
+  }
+  for (const val of Object.values(entity)) {
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      v = from(val);
+      if (v) return v;
+    }
+  }
+  return null;
+}
+
 function getChannelRawValue(entity, key) {
   const fromChannels = entity.optInOut?._channels?.[key];
   if (fromChannels != null && typeof fromChannels === 'string') return fromChannels;
@@ -431,6 +463,7 @@ function buildConsentGetPayload(email, response) {
     contentPersonalization,
   } = extracted;
   const preferredMarketingChannel = getPreferredMarketingChannel(entity);
+  const preferredLanguage = getPreferredLanguage(entity);
   const { firstName, lastName } = getProfileNames(entity);
   const gender = getProfileGender(entity);
   const profileEmail = getProfileEmail(entity);
@@ -468,6 +501,7 @@ function buildConsentGetPayload(email, response) {
     channelOptInOut: channelOptInOut ?? null,
     channels: channels && Object.keys(channels).length ? channels : null,
     preferredMarketingChannel: preferredMarketingChannel || null,
+    preferredLanguage: preferredLanguage || null,
     dataCollection: dataCollection || 'na',
     dataSharing: dataSharing || 'na',
     contentPersonalization: contentPersonalization || 'na',

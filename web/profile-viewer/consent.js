@@ -22,6 +22,7 @@ const updateConsentBtn = document.getElementById('updateConsentBtn');
 const previewDataBtn = document.getElementById('previewDataBtn');
 const step4Message = document.getElementById('step4Message');
 const preferredChannelSelect = document.getElementById('preferredChannel');
+const preferredLanguageSelect = document.getElementById('preferredLanguage');
 const sandboxSelect = document.getElementById('sandboxSelect');
 const infraStatusMessage = document.getElementById('infraStatusMessage');
 const checkInfraBtn = document.getElementById('checkInfraBtn');
@@ -481,6 +482,7 @@ function clearForm() {
   setTri('phoneMarketing', 'n');
   setTri('postalMarketing', 'n');
   setTri('whatsappMarketing', 'n');
+  if (preferredLanguageSelect) preferredLanguageSelect.value = 'en-US';
   consentFingerprintBaseline = null;
   step4Message.hidden = true;
 }
@@ -524,6 +526,12 @@ function applyProfileToForm(data) {
   if (preferredChannelSelect) {
     preferredChannelSelect.value = mapPreferredToSelect(data.preferredMarketingChannel ?? data.preferred);
   }
+  if (preferredLanguageSelect && data.preferredLanguage) {
+    const want = String(data.preferredLanguage).trim();
+    preferredLanguageSelect.value = [...preferredLanguageSelect.options].some((o) => o.value === want)
+      ? want
+      : 'en-US';
+  }
 
   setTri('dataCollection', ynFromProfile(data.dataCollection));
   setTri('dataSharing', ynFromProfile(data.dataSharing));
@@ -549,6 +557,7 @@ function consentStateFingerprint() {
   return JSON.stringify({
     radios: RADIO_CONSENT_NAMES.map((n) => [n, getTri(n)]),
     preferred: preferredChannelSelect ? preferredChannelSelect.value : 'email',
+    preferredLanguage: preferredLanguageSelect ? preferredLanguageSelect.value : 'en-US',
     channels: ch,
   });
 }
@@ -569,6 +578,7 @@ function consentFormToStreamingUpdates() {
   const ds = getTri('dataSharing');
   const cp = getTri('contentPersonalization');
   const preferred = preferredChannelSelect ? preferredChannelSelect.value : 'email';
+  const preferredLanguage = preferredLanguageSelect ? preferredLanguageSelect.value : 'en-US';
   const toYorN = (v) => (v === 'y' ? 'y' : 'n');
 
   const chReason = 'Profile streaming default';
@@ -588,6 +598,7 @@ function consentFormToStreamingUpdates() {
     { path: 'consents.marketing.any.reason', value: chReason },
     { path: 'consents.marketing.any.time', value: marketingNow },
     { path: 'consents.marketing.preferred', value: preferred },
+    { path: 'consents.marketing.preferredLanguage', value: preferredLanguage },
   ];
   for (const p of marketingChannelPaths) {
     updates.push(

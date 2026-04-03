@@ -356,13 +356,17 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid) {
   const c = (demoemea && demoemea.consents) || {};
   const m = c.marketing || {};
   const marketingAnyVal = operationalPickYn(m.any, 'y');
+  const preferredLanguage =
+    typeof m.preferredLanguage === 'string' && m.preferredLanguage.trim()
+      ? m.preferredLanguage.trim()
+      : 'en-US';
 
   const channels = ['email', 'sms', 'push', 'call', 'postalMail', 'whatsApp'];
   /** @type {Record<string, unknown>} */
   const marketingOut = {
     any: { time: operationalChannelTime(m, 'any', now), val: marketingAnyVal },
     preferred: typeof m.preferred === 'string' && m.preferred.trim() ? m.preferred.trim() : 'email',
-    preferredLanguage: 'en-US',
+    preferredLanguage,
   };
   for (const ch of channels) {
     marketingOut[ch] = {
@@ -413,7 +417,7 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid) {
     _demoemea: { identification: { core } },
     _id: randomUUID(),
     _repo: { createDate: now, modifyDate: now },
-    preferredLanguage: 'en-US',
+    preferredLanguage,
     consents: consentsOut,
     person: { name: { firstName: '', lastName: '', fullName: '' } },
     personID: em,
