@@ -198,6 +198,18 @@
       <div class="sandbox-config" style="margin-top: 1rem;">
         <h3 class="sandbox-config-title" style="font-size: 0.95rem;">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
         <div class="form-row">
+          <label for="streamSchemaId">Schema $id</label>
+          <input type="text" id="streamSchemaId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false" title="Full schema $id URI from AEP. Paste manually or filled by Prepare steps.">
+        </div>
+        <div class="form-row">
+          <label for="streamDatasetId">Dataset ID</label>
+          <input type="text" id="streamDatasetId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:28rem;" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false" title="Dataset ID from AEP. Paste manually or filled by Prepare steps.">
+        </div>
+        <div class="form-row">
+          <label for="streamXdmKey">Tenant XDM key</label>
+          <input type="text" id="streamXdmKey" class="sandbox-select consent-stream-field--editable" style="width:10rem;" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false" title="Tenant XDM key (e.g. _demoemea). Usually auto-detected.">
+        </div>
+        <div class="form-row">
           <label for="streamFlowId">Flow ID (x-adobe-flow-id)</label>
           <input type="text" id="streamFlowId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="Paste UUID from the dataflow in AEP" autocomplete="off" spellcheck="false" aria-describedby="streamFlowIdHint">
           <p id="streamFlowIdHint" class="field-hint consent-stream-flowid-hint">Paste the flow ID after you create the HTTP endpoint, then <strong>Fetch URL &amp; Flow ID from AEP</strong> to auto-fill the collection URL — or paste all fields manually and click <strong>Save connection</strong>.</p>
@@ -209,18 +221,6 @@
         <div class="form-row">
           <label for="streamUrl">Collection URL</label>
           <input type="url" id="streamUrl" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false" title="DCS collection URL from the HTTP API dataflow. Paste manually or use Fetch.">
-        </div>
-        <div class="form-row">
-          <label for="streamDatasetId">Dataset ID</label>
-          <input type="text" id="streamDatasetId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:28rem;" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false" title="Dataset ID from AEP. Paste manually or filled by Prepare steps.">
-        </div>
-        <div class="form-row">
-          <label for="streamSchemaId">Schema $id</label>
-          <input type="text" id="streamSchemaId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false" title="Full schema $id URI from AEP. Paste manually or filled by Prepare steps.">
-        </div>
-        <div class="form-row">
-          <label for="streamXdmKey">Tenant XDM key</label>
-          <input type="text" id="streamXdmKey" class="sandbox-select consent-stream-field--editable" style="width:10rem;" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false" title="Tenant XDM key (e.g. _demoemea). Usually auto-detected.">
         </div>
         <p class="panel-desc" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.9;">
           <strong>Save connection</strong> stores all fields above (URL, flow ID, schema, dataset, tenant key) to Firebase for this sandbox. You can paste values manually or use Fetch / Prepare to auto-fill.
