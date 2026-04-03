@@ -26,7 +26,8 @@ const OPTINOUT_CHANNELS = [
 ];
 
 const MARKETING_CHANNEL_ALIASES = {
-  directMail: ['directMail', 'direct_mail'],
+  phone: ['phone', 'call'],
+  directMail: ['directMail', 'direct_mail', 'postalMail', 'postal_mail'],
   mobileApp: ['mobileApp', 'mobile_app'],
   facebookFeed: ['facebookFeed', 'facebook_feed'],
   twitterFeed: ['twitterFeed', 'twitter_feed'],
