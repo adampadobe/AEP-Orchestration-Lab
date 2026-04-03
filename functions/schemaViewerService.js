@@ -29,6 +29,17 @@ function apiError(data, res) {
   );
 }
 
+function resolveNextPageUrl(data) {
+  const href =
+    data?._links?.next?.href ??
+    (typeof data?._links?.next === 'string' ? data._links.next : null) ??
+    (typeof data?._page?.next === 'string' ? data._page.next : null);
+  if (!href) return null;
+  return String(href).startsWith('http')
+    ? href
+    : `https://platform.adobe.io${href.startsWith('/') ? href : `/${href}`}`;
+}
+
 // ---------------------------------------------------------------------------
 // Schema Registry helpers
 // ---------------------------------------------------------------------------
@@ -99,9 +110,9 @@ async function paginateSchemaRegistryList(initialUrl, headers) {
     if (!res.ok) throw new Error(apiError(data, res) || `Schema list ${res.status}`);
     const batch = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
     aggregated.push(...batch);
-    const nextHref = data._links?.next?.href;
+    const nextHref = resolveNextPageUrl(data);
     if (!nextHref) break;
-    url = String(nextHref).startsWith('http') ? nextHref : `https://platform.adobe.io${nextHref}`;
+    url = nextHref;
   }
   return aggregated;
 }
@@ -125,9 +136,9 @@ async function fetchTenantSchemasPostmanList(token, clientId, orgId, sandbox, st
     if (!res.ok) throw new Error(apiError(data, res) || `Schema Registry tenant/schemas ${res.status}`);
     const batch = Array.isArray(data.results) ? data.results : [];
     aggregated.push(...batch);
-    const nextHref = data._links?.next?.href;
+    const nextHref = resolveNextPageUrl(data);
     if (!nextHref) break;
-    url = String(nextHref).startsWith('http') ? nextHref : `https://platform.adobe.io${nextHref}`;
+    url = nextHref;
   }
   return { sandboxName: sandbox, rawList: aggregated };
 }
@@ -400,13 +411,9 @@ async function paginateCatalogDataSets(token, clientId, orgId, sandbox, properti
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(apiError(data, res) || `Catalog dataSets ${res.status}`);
     pages.push(data);
-    const href = data._links?.next?.href;
-    const nextHref =
-      typeof href === 'string' ? href
-        : typeof data._links?.next === 'string' ? data._links.next
-          : typeof data._page?.next === 'string' ? data._page.next : null;
+    const nextHref = resolveNextPageUrl(data);
     if (!nextHref) break;
-    url = nextHref.startsWith('http') ? nextHref : `https://platform.adobe.io${nextHref.startsWith('/') ? nextHref : `/${nextHref}`}`;
+    url = nextHref;
   }
   return pages;
 }
