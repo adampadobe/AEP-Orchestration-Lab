@@ -32,9 +32,46 @@ const stepHttpFlowBtn = document.getElementById('stepHttpFlowBtn');
 const saveStreamBtn = document.getElementById('saveStreamBtn');
 const fetchFlowFromAepBtn = document.getElementById('fetchFlowFromAepBtn');
 
+/** Legacy key (pre per-sandbox); still read once to migrate into sandbox-specific keys. */
 const STREAM_LS_KEY = 'aepDecisioningConsentStream_v1';
 
 const SAMPLE_EMAIL = 'kirkham+media-1@adobetest.com';
+
+function streamStorageKey() {
+  const sb = getSandboxNameForApi().trim();
+  return sb ? `${STREAM_LS_KEY}__${sb}` : STREAM_LS_KEY;
+}
+
+/** Clear HTTP API / dataset fields when switching sandbox or when Firestore has no doc for this sandbox. */
+function clearStreamingFormFields(opts) {
+  const skipSave = opts && opts.skipSave;
+  const u = document.getElementById('streamUrl');
+  const f = document.getElementById('streamFlowId');
+  const n = document.getElementById('streamFlowName');
+  const d = document.getElementById('streamDatasetId');
+  const s = document.getElementById('streamSchemaId');
+  const x = document.getElementById('streamXdmKey');
+  if (u) u.value = '';
+  if (f) f.value = '';
+  if (n) n.value = '';
+  if (d) d.value = '';
+  if (s) s.value = '';
+  if (x) x.value = '_demoemea';
+  if (!skipSave) saveStreamFieldsToStorage();
+}
+
+/**
+ * Profile query results are sandbox-scoped. Clear cached streaming identity when the AEP sandbox changes
+ * so you re-query before updating consent in the new sandbox.
+ */
+function resetConsentProfileCacheForSandboxChange() {
+  consentStreamingEmail = '';
+  consentOptionalEcid = '';
+  if (profileResolvedEmailLine) profileResolvedEmailLine.hidden = true;
+  consentFingerprintBaseline = null;
+  step1Message.hidden = true;
+  step4Message.hidden = true;
+}
 
 function getSandboxParam() {
   if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
@@ -77,7 +114,18 @@ function getStreamingPayload() {
 
 function loadStreamFieldsFromStorage() {
   try {
-    const raw = localStorage.getItem(STREAM_LS_KEY);
+    const key = streamStorageKey();
+    let raw = localStorage.getItem(key);
+    if (!raw && key !== STREAM_LS_KEY) {
+      raw = localStorage.getItem(STREAM_LS_KEY);
+      if (raw) {
+        try {
+          localStorage.setItem(key, raw);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
     if (!raw) return;
     const o = JSON.parse(raw);
     const u = document.getElementById('streamUrl');
@@ -99,7 +147,7 @@ function loadStreamFieldsFromStorage() {
 
 function saveStreamFieldsToStorage() {
   try {
-    localStorage.setItem(STREAM_LS_KEY, JSON.stringify(getStreamingPayload()));
+    localStorage.setItem(streamStorageKey(), JSON.stringify(getStreamingPayload()));
   } catch {
     /* ignore */
   }
@@ -193,11 +241,20 @@ async function pullConsentConnectionFromFirestore() {
   try {
     const res = await fetch('/api/consent-connection' + consentInfraQuerySuffix());
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.ok === false || !data.record) return;
-    applyFirestoreRecordToStreamingForm(data.record);
+    if (!res.ok || data.ok === false) {
+      loadStreamFieldsFromStorage();
+      return;
+    }
+    if (data.record) {
+      applyFirestoreRecordToStreamingForm(data.record);
+      saveStreamFieldsToStorage();
+      return;
+    }
+    clearStreamingFormFields({ skipSave: true });
+    loadStreamFieldsFromStorage();
     saveStreamFieldsToStorage();
   } catch {
-    /* offline or Firestore not enabled */
+    loadStreamFieldsFromStorage();
   }
 }
 
@@ -228,6 +285,7 @@ function attachConsentFirestoreSandboxSync() {
   if (!el || el.dataset.consentFirestoreSync === '1') return;
   el.dataset.consentFirestoreSync = '1';
   const run = () => {
+    resetConsentProfileCacheForSandboxChange();
     pullConsentConnectionFromFirestore().catch(() => {});
   };
   el.addEventListener('change', run);
@@ -733,13 +791,12 @@ async function previewData() {
 
 loadConsentPageSandboxes()
   .then(() => {
-    loadStreamFieldsFromStorage();
     attachConsentFirestoreSandboxSync();
     return pullConsentConnectionFromFirestore();
   })
   .catch(() => {
-    loadStreamFieldsFromStorage();
     attachConsentFirestoreSandboxSync();
+    loadStreamFieldsFromStorage();
     pullConsentConnectionFromFirestore().catch(() => {});
   });
 
