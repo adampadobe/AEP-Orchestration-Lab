@@ -163,6 +163,13 @@
           "functionId": "profileUpdateProxy",
           "region": "us-central1"
         }
+      },
+      {
+        "source": "/api/consent/legacy-update",
+        "function": {
+          "functionId": "consentManagerLegacyUpdate",
+          "region": "us-central1"
+        }
       }
     ]
   }

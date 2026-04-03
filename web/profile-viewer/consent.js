@@ -519,10 +519,10 @@ function refreshProfileStreamingIdentityNote() {
   el.classList.remove('consent-streaming-identity-hint--warn');
   if (consentOptionalEcid && consentOptionalEcid.length >= 10) {
     el.textContent =
-      'ECID is present — it will be included in identityMap and tenant identification (optional; email-primary streaming still works without it).';
+      'ECID is present on the profile (optional). Step 3 uses the legacy Consent Manager streaming path — email-based payload, no ECID required.';
   } else {
     el.textContent =
-      'No ECID on this profile — updates still stream using email as primary identity (same pattern as the EMEA presales Consent Manager).';
+      'No ECID on this profile — Step 3 still works: legacy streaming uses email in tenant identification and idSpecific (same idea as the EMEA presales Consent Manager).';
   }
 }
 
@@ -704,6 +704,66 @@ function consentFormToStreamingUpdates() {
   return updates;
 }
 
+/** Map form radios to legacy Consent Manager yes/no (firebaseFunctions/adobe/consent-manager.js). */
+function triToLegacyYesNo(tri) {
+  return tri === 'y' ? 'yes' : 'no';
+}
+
+function consentFormToLegacyConsents() {
+  const preferredLanguage = preferredLanguageSelect ? preferredLanguageSelect.value : 'en-US';
+  return {
+    consentCollect: triToLegacyYesNo(getTri('dataCollection')),
+    consentShare: triToLegacyYesNo(getTri('dataSharing')),
+    consentPersonalize: triToLegacyYesNo(getTri('contentPersonalization')),
+    marketingAny: triToLegacyYesNo(getTri('marketingAny')),
+    marketingEmail: triToLegacyYesNo(getTri('emailGeneric')),
+    marketingEmailSpecific: triToLegacyYesNo(getTri('emailSpecific')),
+    marketingSms: triToLegacyYesNo(getTri('smsMarketing')),
+    marketingPush: triToLegacyYesNo(getTri('pushMarketing')),
+    marketingCall: triToLegacyYesNo(getTri('phoneMarketing')),
+    marketingMail: triToLegacyYesNo(getTri('postalMarketing')),
+    marketingWhatsapp: triToLegacyYesNo(getTri('whatsappMarketing')),
+    preferredChannel: preferredChannelSelect ? preferredChannelSelect.value : 'email',
+    preferredLanguage,
+  };
+}
+
+function legacyCustomerInfoFromStep1() {
+  const email = consentStreamingEmail || String(customerEmail.value || '').trim();
+  const pfn = document.getElementById('profileFirstName');
+  const pln = document.getElementById('profileLastName');
+  const firstName = pfn ? String(pfn.value || '').trim() : '';
+  const lastName = pln ? String(pln.value || '').trim() : '';
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  return { email, firstName, lastName, fullName };
+}
+
+/** POST /api/consent/legacy-update — same contract as emeapresales / AI Projects firebaseFunctions consent-manager. */
+async function postLegacyConsentUpdate(body) {
+  const payload =
+    body && typeof body === 'object' && !Array.isArray(body) ? { ...body } : {};
+  if (
+    (payload.sandbox == null || String(payload.sandbox).trim() === '') &&
+    typeof global.AepGlobalSandbox !== 'undefined' &&
+    typeof global.AepGlobalSandbox.getSandboxName === 'function'
+  ) {
+    const sn = global.AepGlobalSandbox.getSandboxName();
+    if (sn) payload.sandbox = sn;
+  }
+  const res = await fetch('/api/consent/legacy-update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  let data = {};
+  try {
+    data = await res.json();
+  } catch {
+    data = {};
+  }
+  return { ok: res.ok, res, data };
+}
+
 async function queryProfile() {
   const identifier = (customerEmail.value || '').trim();
   if (!identifier) {
@@ -784,7 +844,6 @@ async function updateConsent() {
     );
     return;
   }
-  const ecid = consentOptionalEcid || '';
   if (consentFingerprintBaseline != null && consentStateFingerprint() === consentFingerprintBaseline) {
     showMessage(
       step4Message,
@@ -803,14 +862,13 @@ async function updateConsent() {
     return;
   }
 
-  const updates = consentFormToStreamingUpdates();
   updateConsentBtn.disabled = true;
   showMessage(step4Message, 'Updating…', '');
   try {
-    const { ok, data } = await postProfileUpdate({
-      email,
-      ...(ecid && ecid.length >= 10 ? { ecid } : {}),
-      updates,
+    const { ok, data } = await postLegacyConsentUpdate({
+      entityId: email,
+      consents: consentFormToLegacyConsents(),
+      customerInfo: legacyCustomerInfoFromStep1(),
       sandbox: getSandboxNameForApi() || undefined,
       streaming: { ...streaming },
     });
@@ -868,7 +926,7 @@ function toggleConsentPreviewPanel() {
   setConsentPreviewMinimized(!consentPreviewPanel.classList.contains('consent-preview-panel--minimized'));
 }
 
-/** Dry-run DCS envelope — same Profile Viewer standard streaming shape as Update (identityMap + tenant mirror). */
+/** Dry-run DCS envelope — legacy Consent Manager shape (same as Update). */
 async function previewData() {
   const email = consentStreamingEmail || (customerEmail.value || '').trim();
   if (!email) {
@@ -888,10 +946,10 @@ async function previewData() {
   previewDataBtn.disabled = true;
   showMessage(step4Message, 'Building preview…', '');
   try {
-    const { ok, data } = await postProfileUpdate({
-      email,
-      ...(consentOptionalEcid && consentOptionalEcid.length >= 10 ? { ecid: consentOptionalEcid } : {}),
-      updates: consentFormToStreamingUpdates(),
+    const { ok, data } = await postLegacyConsentUpdate({
+      entityId: email,
+      consents: consentFormToLegacyConsents(),
+      customerInfo: legacyCustomerInfoFromStep1(),
       sandbox: getSandboxNameForApi() || undefined,
       streaming: { ...streaming },
       dryRun: true,
@@ -905,7 +963,7 @@ async function previewData() {
       setConsentPreviewMinimized(false);
       consentPreviewNote.textContent =
         data.note ||
-        'Dry-run envelope (header + body). Email-primary streaming; ECID included when the profile has one. Root consents/optInOut, _demoemea + demoemea, person.name.';
+        'Legacy Consent Manager envelope: slim tenant identification + root consents + idSpecific.Email (firebaseFunctions consent-manager.js shape). Dataset/schema from your saved connection.';
       consentPreviewPre.textContent = JSON.stringify(data.envelope, null, 2);
     }
     showMessage(step4Message, 'Payload preview loaded below — use Minimize or the header to collapse.', 'success');

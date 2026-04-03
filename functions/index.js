@@ -57,6 +57,11 @@ const {
   redactedProfileDcsRequestHeaders,
   parseStreamingCollectionResponse,
 } = require('./profileStreamingCore');
+const {
+  buildLegacyConsentManagerEnvelope,
+  buildLegacyConsentDcsHeaders,
+  redactLegacyConsentDcsHeaders,
+} = require('./consentManagerLegacy');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -972,6 +977,142 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     streamingWarning: streamWarnings.length ? streamWarnings.join(' ') : undefined,
     requestHeaders: redactedProfileDcsRequestHeaders(headers),
     ...(appliedPathsDetail && appliedPathsDetail.length ? { appliedPathsDetail } : {}),
+  });
+});
+
+/**
+ * POST /api/consent/legacy-update — emeapresales / firebaseFunctions consent-manager.js compatible streaming.
+ * Body: { entityId, consents, customerInfo?, sandbox?, dryRun?, streaming: { url, flowId?, datasetId, schemaId, xdmKey?, imsOrgId?, apiKey?, flowName? } }
+ */
+exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ ok: false, success: false, error: 'Method not allowed' });
+    return;
+  }
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const dryRun = body.dryRun === true || body.dryRun === 'true';
+  const entityId = String(body.entityId || '').trim();
+  const consents = body.consents;
+  const customerInfo = body.customerInfo && typeof body.customerInfo === 'object' ? body.customerInfo : {};
+  const streaming = body.streaming && typeof body.streaming === 'object' ? body.streaming : {};
+  const sandbox = resolveSandboxForProfileBody(req);
+
+  if (!entityId) {
+    res.status(400).json({ ok: false, success: false, error: 'entityId is required (email used for idSpecific and personID).' });
+    return;
+  }
+  if (!consents || typeof consents !== 'object' || Array.isArray(consents)) {
+    res.status(400).json({
+      ok: false,
+      success: false,
+      error: 'consents object is required (legacy yes/no fields: consentCollect, marketingAny, …).',
+    });
+    return;
+  }
+
+  const streamUrl = String(streaming.url || '').trim();
+  const flowId = String(streaming.flowId || '').trim();
+  const datasetId = String(streaming.datasetId || '').trim();
+  const schemaId = String(streaming.schemaId || '').trim();
+  const xdmKey = String(streaming.xdmKey || '_demoemea').trim();
+  const apiKey = String(streaming.apiKey || '').trim() || ADOBE_CLIENT_ID.value();
+  const orgFromStream = String(streaming.imsOrgId || '').trim();
+  const orgId = orgFromStream || ADOBE_IMS_ORG.value();
+  const sourceName =
+    String(streaming.flowName || streaming.sourceName || '').trim() || 'Consent Manager - Profile Update';
+
+  if (!datasetId || !schemaId) {
+    res.status(400).json({
+      ok: false,
+      success: false,
+      error: 'streaming.datasetId and streaming.schemaId are required.',
+    });
+    return;
+  }
+
+  const envelope = buildLegacyConsentManagerEnvelope(entityId, consents, customerInfo, {
+    schemaId,
+    datasetId,
+    imsOrgId: orgId,
+    sourceName,
+    tenantKey: xdmKey,
+  });
+
+  if (dryRun) {
+    res.status(200).json({
+      ok: true,
+      success: true,
+      dryRun: true,
+      envelope,
+      imsOrgId: orgId,
+      note:
+        'Legacy Consent Manager envelope (firebaseFunctions/adobe/consent-manager.js shape): slim tenant + root consents; no identityMap.',
+    });
+    return;
+  }
+
+  if (!streamUrl) {
+    res.status(400).json({
+      ok: false,
+      success: false,
+      error: 'streaming.url (DCS collection URL) is required for live update.',
+    });
+    return;
+  }
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ ok: false, success: false, error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+
+  const headers = buildLegacyConsentDcsHeaders(accessToken, sandbox, flowId, apiKey, orgId);
+
+  let streamRes;
+  let rawText;
+  try {
+    streamRes = await fetch(streamUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(envelope),
+    });
+    rawText = await streamRes.text();
+  } catch (e) {
+    res.status(502).json({ ok: false, success: false, error: String(e.message || e) });
+    return;
+  }
+
+  const { parsed: data, streamErrors, streamWarnings } = parseStreamingCollectionResponse(streamRes.status, rawText);
+
+  if (!streamRes.ok || streamErrors.length > 0) {
+    res.status(502).json({
+      ok: false,
+      success: false,
+      error: streamErrors.length ? streamErrors.join(' ') : 'Streaming failed',
+      streamingStatus: streamRes.status,
+      streamingResponse: data,
+      sentToAep: envelope,
+      requestHeaders: redactLegacyConsentDcsHeaders(headers),
+    });
+    return;
+  }
+
+  res.status(200).json({
+    ok: true,
+    success: true,
+    message: 'Consent update sent successfully.',
+    entityId,
+    sentToAep: envelope,
+    streamingResponse: data,
+    streamingWarning: streamWarnings.length ? streamWarnings.join(' ') : undefined,
+    requestHeaders: redactLegacyConsentDcsHeaders(headers),
   });
 });
 

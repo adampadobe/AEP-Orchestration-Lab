@@ -41,7 +41,26 @@ const schemaId = process.env.STREAM_SCHEMA_ID || '';
 const streamUrl = process.env.STREAM_URL || '';
 const streamFlowId = process.env.STREAM_FLOW_ID || '';
 
-/** Mirrors consent.js consentFormToStreamingUpdates() for a deterministic “toggle once” test. */
+/** Legacy Consent Manager yes/no shape (POST /api/consent/legacy-update). */
+function sampleLegacyConsents() {
+  return {
+    consentCollect: 'yes',
+    consentShare: 'yes',
+    consentPersonalize: 'yes',
+    marketingAny: 'yes',
+    marketingEmail: 'yes',
+    marketingEmailSpecific: 'yes',
+    marketingSms: 'yes',
+    marketingPush: 'yes',
+    marketingCall: 'yes',
+    marketingMail: 'yes',
+    marketingWhatsapp: 'yes',
+    preferredChannel: 'email',
+    preferredLanguage: 'en-GB',
+  };
+}
+
+/** Mirrors consent.js consentFormToStreamingUpdates() — only if USE_PROFILE_UPDATE=1 */
 function sampleUpdates() {
   const marketingNow = new Date().toISOString();
   const chReason = 'Profile streaming default';
@@ -137,24 +156,47 @@ async function main() {
     process.exit(1);
   }
 
-  const body = {
-    email,
-    ...(profile.ecid ? { ecid: profile.ecid } : {}),
-    updates: sampleUpdates(),
-    sandbox,
-    streaming: {
-      url: streamUrl,
-      flowId: streamFlowId,
-      datasetId,
-      schemaId,
-      xdmKey: '_demoemea',
-    },
-  };
+  const useProfileUpdate = process.env.USE_PROFILE_UPDATE === '1';
+  const body = useProfileUpdate
+    ? {
+        email,
+        ...(profile.ecid ? { ecid: profile.ecid } : {}),
+        updates: sampleUpdates(),
+        sandbox,
+        streaming: {
+          url: streamUrl,
+          flowId: streamFlowId,
+          datasetId,
+          schemaId,
+          xdmKey: '_demoemea',
+        },
+      }
+    : {
+        entityId: email,
+        consents: sampleLegacyConsents(),
+        customerInfo: {
+          email,
+          firstName: profile.firstName || 'Test',
+          lastName: profile.lastName || 'User',
+          fullName:
+            [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || `${email.split('@')[0]} User`,
+        },
+        sandbox,
+        streaming: {
+          url: streamUrl,
+          flowId: streamFlowId,
+          datasetId,
+          schemaId,
+          xdmKey: '_demoemea',
+        },
+      };
+
+  const updatePath = useProfileUpdate ? '/api/profile/update' : '/api/consent/legacy-update';
 
   if (doDry) {
     body.dryRun = true;
-    console.log('\n--- POST profile/update dryRun');
-    const r = await fetch(`${BASE}/api/profile/update`, {
+    console.log('\n--- POST', updatePath, 'dryRun', useProfileUpdate ? '(profile/update)' : '(legacy)');
+    const r = await fetch(`${BASE}${updatePath}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -165,9 +207,13 @@ async function main() {
       process.exit(1);
     }
     const ent = data.envelope?.body?.xdmEntity;
-    console.log('ok payloadFormat', data.payloadFormat, 'streamPayloadProfile', data.streamPayloadProfile);
+    console.log('ok', useProfileUpdate ? `payloadFormat ${data.payloadFormat}` : 'legacy envelope');
     console.log('xdmEntity keys:', ent && Object.keys(ent));
-    console.log('identityMap:', ent?.identityMap ? 'yes' : 'no', 'demoemea mirror:', ent?.demoemea ? 'yes' : 'no');
+    if (!useProfileUpdate) {
+      console.log('legacy: no root identityMap (expected)');
+    } else {
+      console.log('identityMap:', ent?.identityMap ? 'yes' : 'no', 'demoemea mirror:', ent?.demoemea ? 'yes' : 'no');
+    }
     console.log('envelope bytes:', JSON.stringify(data.envelope).length);
   }
 
@@ -177,8 +223,8 @@ async function main() {
       process.exit(1);
     }
     delete body.dryRun;
-    console.log('\n--- POST profile/update LIVE');
-    const r2 = await fetch(`${BASE}/api/profile/update`, {
+    console.log('\n--- POST', updatePath, 'LIVE');
+    const r2 = await fetch(`${BASE}${updatePath}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
