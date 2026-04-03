@@ -1010,6 +1010,11 @@ exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) =
     return;
   }
 
+  const orgId = ADOBE_IMS_ORG.value();
+  if (payload.header && (!payload.header.imsOrgId || String(payload.header.imsOrgId).trim() === '')) {
+    payload.header.imsOrgId = orgId;
+  }
+
   if (dryRun) {
     res.status(200).json({
       ok: true,
@@ -1041,7 +1046,6 @@ exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) =
 
   const flowId = String(body.flowId || '').trim();
   const apiKey = ADOBE_CLIENT_ID.value();
-  const orgId = ADOBE_IMS_ORG.value();
   const headers = buildLegacyConsentDcsHeaders(accessToken, sandbox, flowId, apiKey, orgId);
 
   let streamRes;
