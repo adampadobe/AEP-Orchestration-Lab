@@ -62,20 +62,14 @@ function buildLegacyConsentManagerEnvelope(entityId, consents, customerInfo, cfg
       time: currentTime,
       val: c.marketingMail === 'yes' ? 'y' : 'n',
     },
-    preferred: typeof c.preferredChannel === 'string' && c.preferredChannel.trim() ? c.preferredChannel.trim() : 'email',
-  };
-
-  if (c.marketingWhatsapp === 'yes' || c.marketingWhatsapp === 'no') {
-    marketing.whatsApp = {
+    whatsApp: {
       ...(c.marketingWhatsapp === 'no' ? { reason: 'User preference' } : {}),
       time: currentTime,
       val: c.marketingWhatsapp === 'yes' ? 'y' : 'n',
-    };
-  }
-
-  if (typeof c.preferredLanguage === 'string' && c.preferredLanguage.trim()) {
-    marketing.preferredLanguage = c.preferredLanguage.trim();
-  }
+    },
+    preferred: typeof c.preferredChannel === 'string' && c.preferredChannel.trim() ? c.preferredChannel.trim() : 'email',
+    preferredLanguage: typeof c.preferredLanguage === 'string' && c.preferredLanguage.trim() ? c.preferredLanguage.trim() : 'en-US',
+  };
 
   const firstName = ci.firstName != null ? String(ci.firstName) : '';
   const lastName = ci.lastName != null ? String(ci.lastName) : '';
@@ -95,6 +89,7 @@ function buildLegacyConsentManagerEnvelope(entityId, consents, customerInfo, cfg
       createDate: currentTime,
       modifyDate: currentTime,
     },
+    preferredLanguage: typeof c.preferredLanguage === 'string' && c.preferredLanguage.trim() ? c.preferredLanguage.trim() : 'en-US',
     consents: {
       collect: {
         val: c.consentCollect === 'yes' ? 'y' : 'n',
