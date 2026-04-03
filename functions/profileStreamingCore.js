@@ -76,18 +76,23 @@ function buildConsentXdm(email, opts) {
   const toYorN = (v) => (v != null && String(v).toLowerCase() === 'y' ? 'y' : 'n');
   const channelYn = defaultChannelVal === 'out' ? 'n' : 'y';
   const marketingNow = new Date().toISOString();
+  const channelConsent = (yn) => ({
+    val: yn,
+    reason: 'Profile streaming default',
+    time: marketingNow,
+  });
   const marketing = {
     val,
     any: { val, reason: 'Profile streaming default', time: marketingNow },
     preferred: 'email',
-    email: { val: channelYn },
-    sms: { val: channelYn },
-    push: { val: channelYn },
-    call: { val: channelYn },
-    whatsApp: { val: channelYn },
-    fax: { val: channelYn },
-    postalMail: { val: channelYn },
-    commercialEmail: { val: channelYn },
+    email: channelConsent(channelYn),
+    sms: channelConsent(channelYn),
+    push: channelConsent(channelYn),
+    call: channelConsent(channelYn),
+    whatsApp: channelConsent(channelYn),
+    fax: channelConsent(channelYn),
+    postalMail: channelConsent(channelYn),
+    commercialEmail: channelConsent(channelYn),
   };
   const _channels = {};
   if (channels && typeof channels === 'object' && Object.keys(channels).length > 0) {
@@ -113,11 +118,6 @@ function buildConsentXdm(email, opts) {
     consents,
     optInOut: { _channels },
     _demoemea: {
-      identification: { core: { email } },
-      consents,
-      optInOut: { _channels },
-    },
-    demoemea: {
       identification: { core: { email } },
       consents,
       optInOut: { _channels },
@@ -170,27 +170,28 @@ function buildProfileXdmEntityForStream(tenantPayload, email, ecid, xdmKey, root
     ...roots,
   };
   entity[key] = tenantPayload;
-  if (key === '_demoemea') {
-    entity.demoemea = tenantPayload;
-  }
+  // Do not mirror under lowercase `demoemea`: consent / Profile lab schemas compile only `_${tenantId}`;
+  // an extra root key fails DCVS-1057-400 schema validation on DCS.
   return entity;
 }
 
 function buildProfileStreamingEnvelope(xdmEntity, orgId, sourceLabel, datasetId, schemaId) {
+  const sid = String(schemaId || '').trim().replace(/\/+$/, '');
+  const did = String(datasetId || '').trim();
   return {
     header: {
       schemaRef: {
-        id: schemaId,
+        id: sid,
         contentType: PROFILE_STREAM_SCHEMA_CONTENT_TYPE,
       },
       imsOrgId: orgId,
-      datasetId,
+      datasetId: did,
       source: { name: sourceLabel || 'Profile Viewer' },
     },
     body: {
       xdmMeta: {
         schemaRef: {
-          id: schemaId,
+          id: sid,
           contentType: PROFILE_STREAM_SCHEMA_CONTENT_TYPE,
         },
       },

@@ -513,21 +513,31 @@ function consentFormToStreamingUpdates() {
   const preferred = preferredChannelSelect ? preferredChannelSelect.value : 'email';
   const toYorN = (v) => (v === 'y' ? 'y' : 'n');
 
+  const chReason = 'Profile streaming default';
+  const marketingChannelPaths = [
+    'email',
+    'sms',
+    'push',
+    'call',
+    'whatsApp',
+    'fax',
+    'postalMail',
+    'commercialEmail',
+  ];
   const updates = [
     { path: 'consents.marketing.val', value: val },
     { path: 'consents.marketing.any.val', value: val },
-    { path: 'consents.marketing.any.reason', value: 'Profile streaming default' },
+    { path: 'consents.marketing.any.reason', value: chReason },
     { path: 'consents.marketing.any.time', value: marketingNow },
     { path: 'consents.marketing.preferred', value: preferred },
-    { path: 'consents.marketing.email.val', value: channelYn },
-    { path: 'consents.marketing.sms.val', value: channelYn },
-    { path: 'consents.marketing.push.val', value: channelYn },
-    { path: 'consents.marketing.call.val', value: channelYn },
-    { path: 'consents.marketing.whatsApp.val', value: channelYn },
-    { path: 'consents.marketing.fax.val', value: channelYn },
-    { path: 'consents.marketing.postalMail.val', value: channelYn },
-    { path: 'consents.marketing.commercialEmail.val', value: channelYn },
   ];
+  for (const p of marketingChannelPaths) {
+    updates.push(
+      { path: `consents.marketing.${p}.val`, value: channelYn },
+      { path: `consents.marketing.${p}.reason`, value: chReason },
+      { path: `consents.marketing.${p}.time`, value: marketingNow },
+    );
+  }
   if (dc === 'y' || dc === 'n') updates.push({ path: 'consents.collect.val', value: toYorN(dc) });
   if (ds === 'y' || ds === 'n') updates.push({ path: 'consents.share.val', value: toYorN(ds) });
   if (cp === 'y' || cp === 'n') updates.push({ path: 'consents.personalize.content.val', value: toYorN(cp) });
