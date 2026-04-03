@@ -4,7 +4,7 @@
  *
  * 1) GET profile via deployed /api/profile/consent
  * 2) POST /api/profile/update with dryRun:true (needs dataset + schema in env)
- * 3) Optional live POST when STREAM_URL + STREAM_FLOW_ID are set and --send is passed
+ * 3) Optional live POST when STREAM_URL + STREAM_FLOW_ID + profile ECID and --send
  *
  * Usage:
  *   node scripts/consent-stream-uat.mjs \
@@ -142,13 +142,11 @@ async function main() {
     ...(profile.ecid ? { ecid: profile.ecid } : {}),
     updates: sampleUpdates(),
     sandbox,
-    streamPayloadProfile: 'operational',
     streaming: {
       url: streamUrl,
       flowId: streamFlowId,
       datasetId,
       schemaId,
-      streamPayloadProfile: 'operational',
       xdmKey: '_demoemea',
     },
   };
@@ -169,12 +167,15 @@ async function main() {
     const ent = data.envelope?.body?.xdmEntity;
     console.log('ok payloadFormat', data.payloadFormat, 'streamPayloadProfile', data.streamPayloadProfile);
     console.log('xdmEntity keys:', ent && Object.keys(ent));
-    const t = ent?._demoemea;
-    console.log('_demoemea.optInOut:', t?.optInOut ? 'yes' : 'no', '(root identityMap intentionally absent)');
+    console.log('identityMap:', ent?.identityMap ? 'yes' : 'no', 'demoemea mirror:', ent?.demoemea ? 'yes' : 'no');
     console.log('envelope bytes:', JSON.stringify(data.envelope).length);
   }
 
   if (doSend) {
+    if (!profile.ecid || String(profile.ecid).trim().length < 10) {
+      console.error('--send requires profile ECID from Step 1 / GET consent (Profile Viewer parity).');
+      process.exit(1);
+    }
     if (!streamUrl || !streamFlowId) {
       console.error('--send requires STREAM_URL and STREAM_FLOW_ID');
       process.exit(1);

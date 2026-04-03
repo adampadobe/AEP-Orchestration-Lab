@@ -172,8 +172,11 @@ function buildProfileXdmEntityForStream(tenantPayload, email, ecid, xdmKey, root
     ...roots,
   };
   entity[key] = tenantPayload;
-  // Do not mirror under lowercase `demoemea`: consent / Profile lab schemas compile only `_${tenantId}`;
-  // an extra root key fails DCVS-1057-400 schema validation on DCS.
+  // Match Profile Viewer server.js: mirror tenant under lowercase `demoemea` when using `_demoemea`
+  // (some Data Prep / HTTP flows expect this key; omit only if your schema rejects it).
+  if (key === '_demoemea') {
+    entity.demoemea = tenantPayload;
+  }
   return entity;
 }
 

@@ -371,6 +371,20 @@ body.consent-page:not(.home-dashboard-concierge) .consent-preview-panel__pre {
   color: #9ecbff;
 }
 
+.consent-streaming-identity-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.consent-streaming-identity-hint--warn {
+  color: #b45309;
+}
+
+body.consent-page:not(.home-dashboard-concierge) .consent-streaming-identity-hint--warn {
+  color: #f0ad4e;
+}
+
 .consent-step1-button-toolbar {
   display: flex;
   flex-wrap: wrap;

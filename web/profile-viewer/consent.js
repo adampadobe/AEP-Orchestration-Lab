@@ -8,7 +8,7 @@ const profileResolvedEmailLine = document.getElementById('profileResolvedEmailLi
 const profileResolvedEmailDisplay = document.getElementById('profileResolvedEmailDisplay');
 /** Email from the loaded profile; used as primary identity for consent streaming (not the lookup value when namespace ≠ email). */
 let consentStreamingEmail = '';
-/** Optional ECID from loaded profile; included in stream payload only when present. */
+/** ECID from loaded profile; required for live streaming (Profile Viewer parity). */
 let consentOptionalEcid = '';
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 const queryProfileBtn = document.getElementById('queryProfileBtn');
@@ -113,6 +113,7 @@ function resetConsentProfileCacheForSandboxChange() {
     if (consentPreviewNote) consentPreviewNote.textContent = '';
     setConsentPreviewMinimized(false);
   }
+  refreshProfileStreamingIdentityNote();
 }
 
 function getSandboxParam() {
@@ -505,6 +506,27 @@ function setAllRadios(value) {
   RADIO_CONSENT_NAMES.forEach((n) => setTri(n, value));
 }
 
+function refreshProfileStreamingIdentityNote() {
+  const el = document.getElementById('profileStreamingIdentityNote');
+  if (!el) return;
+  if (!consentStreamingEmail) {
+    el.hidden = true;
+    el.textContent = '';
+    el.classList.remove('consent-streaming-identity-hint--warn');
+    return;
+  }
+  el.hidden = false;
+  if (consentOptionalEcid && consentOptionalEcid.length >= 10) {
+    el.textContent =
+      'ECID is available — Step 3 uses the same streaming payload as Profile Viewer (identityMap, root consents/optInOut, _demoemea + demoemea).';
+    el.classList.remove('consent-streaming-identity-hint--warn');
+  } else {
+    el.textContent =
+      'No ECID on this profile. “Update Consent Preferences” requires ECID. Load a profile that has ECID in AEP or resolve identity first.';
+    el.classList.add('consent-streaming-identity-hint--warn');
+  }
+}
+
 function clearForm() {
   customerEmail.value = '';
   consentStreamingEmail = '';
@@ -527,6 +549,7 @@ function clearForm() {
   clearStep1ProfileMetaFields();
   consentFingerprintBaseline = null;
   step4Message.hidden = true;
+  refreshProfileStreamingIdentityNote();
 }
 
 function mapPreferredToSelect(value) {
@@ -601,6 +624,7 @@ function applyProfileToForm(data) {
   setTri('whatsappMarketing', ch.whatsapp != null ? channelToTri(ch.whatsapp) : 'na');
 
   consentFingerprintBaseline = consentStateFingerprint();
+  refreshProfileStreamingIdentityNote();
 }
 
 function consentStateFingerprint() {
@@ -714,6 +738,7 @@ async function queryProfile() {
       consentOptionalEcid = '';
       if (profileResolvedEmailLine) profileResolvedEmailLine.hidden = true;
       clearStep1ProfileMetaFields();
+      refreshProfileStreamingIdentityNote();
       showMessage(step1Message, 'No profile found for this identifier in Adobe Experience Platform.', 'error');
       return;
     }
@@ -761,6 +786,14 @@ async function updateConsent() {
     return;
   }
   const ecid = consentOptionalEcid || '';
+  if (!ecid || ecid.length < 10) {
+    showMessage(
+      step4Message,
+      'ECID is required to stream consent (same as Profile Viewer). Load a profile in Step 1 that includes an ECID, or use an identity that resolves to ECID in AEP.',
+      'error',
+    );
+    return;
+  }
   if (consentFingerprintBaseline != null && consentStateFingerprint() === consentFingerprintBaseline) {
     showMessage(
       step4Message,
@@ -785,11 +818,10 @@ async function updateConsent() {
   try {
     const { ok, data } = await postProfileUpdate({
       email,
-      ...(ecid ? { ecid } : {}),
+      ecid,
       updates,
       sandbox: getSandboxNameForApi() || undefined,
-      streamPayloadProfile: 'operational',
-      streaming: { ...streaming, streamPayloadProfile: 'operational' },
+      streaming: { ...streaming },
     });
     if (!ok) {
       showMessage(step4Message, formatProfileUpdateError(data), 'error');
@@ -845,7 +877,7 @@ function toggleConsentPreviewPanel() {
   setConsentPreviewMinimized(!consentPreviewPanel.classList.contains('consent-preview-panel--minimized'));
 }
 
-/** Exact DCS envelope the server would POST (operational-style xdmEntity, same as Update). */
+/** Dry-run DCS envelope — same Profile Viewer standard streaming shape as Update (identityMap + tenant mirror). */
 async function previewData() {
   const email = consentStreamingEmail || (customerEmail.value || '').trim();
   if (!email) {
@@ -867,11 +899,10 @@ async function previewData() {
   try {
     const { ok, data } = await postProfileUpdate({
       email,
-      ...(consentOptionalEcid ? { ecid: consentOptionalEcid } : {}),
+      ...(consentOptionalEcid && consentOptionalEcid.length >= 10 ? { ecid: consentOptionalEcid } : {}),
       updates: consentFormToStreamingUpdates(),
       sandbox: getSandboxNameForApi() || undefined,
-      streamPayloadProfile: 'operational',
-      streaming: { ...streaming, streamPayloadProfile: 'operational' },
+      streaming: { ...streaming },
       dryRun: true,
     });
     if (!ok || !data || !data.envelope) {
@@ -883,7 +914,7 @@ async function previewData() {
       setConsentPreviewMinimized(false);
       consentPreviewNote.textContent =
         data.note ||
-        'Dry-run JSON sent to DCS (header + body). Operational profile: idSpecific.Email, root consents, person.name.';
+        'Dry-run envelope (header + body). Matches Profile Viewer streaming: identityMap, root consents/optInOut, _demoemea + demoemea, person.name. Live update requires ECID.';
       consentPreviewPre.textContent = JSON.stringify(data.envelope, null, 2);
     }
     showMessage(step4Message, 'Payload preview loaded below — use Minimize or the header to collapse.', 'success');

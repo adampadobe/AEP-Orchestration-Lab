@@ -99,7 +99,7 @@
     <!-- Step 1: Query Customer Profile -->
     <section class="consent-panel" id="step1">
       <h2 class="panel-title"><span class="icon">🔍</span> Step 1: Query customer profile</h2>
-      <p class="panel-desc">Pick an <strong>identity namespace</strong> and enter the matching value (email, ECID, CRM ID, etc.). Experience Platform returns the profile; <strong>consent updates always stream using the profile’s email</strong> as the primary identity.</p>
+      <p class="panel-desc">Pick an <strong>identity namespace</strong> and enter the matching value (email, ECID, CRM ID, etc.). Experience Platform returns the profile; streaming uses the profile’s <strong>email</strong> as primary identity and requires an <strong>ECID</strong> on the record for Step 3 (same as Profile Viewer).</p>
       <div class="sandbox-config" style="margin-bottom: 1rem;">
         <h3 class="sandbox-config-title" style="font-size: 0.95rem; margin-bottom: 0.35rem;">AEP sandbox</h3>
         <div class="form-row">
@@ -129,6 +129,7 @@
         <span class="consent-resolved-email__label">Email used for consent streaming (primary identity):</span>
         <strong id="profileResolvedEmailDisplay"></strong>
       </p>
+      <p id="profileStreamingIdentityNote" class="field-hint consent-streaming-identity-hint" hidden role="status"></p>
       <p class="panel-desc consent-step1-profile-meta-desc" style="margin-top: 0.75rem; font-size: 0.9rem;">
         After a successful query, <strong>first name</strong> and <strong>last name</strong> load from the profile (you can edit before streaming). <strong>Profile last updated</strong> and <strong>source</strong> are read-only.
       </p>
@@ -465,7 +466,7 @@
     <section class="consent-panel" id="step4">
       <h2 class="panel-title"><span class="icon">🚀</span> Step 3: Save changes to Adobe Experience Platform</h2>
       <p class="panel-desc consent-save-desc">
-        Sends consent data to the <strong>DCS collection URL</strong> and <strong>flow</strong> you configured under Sandbox &amp; streaming connection, using the selected <strong>sandbox</strong> and tenant key (e.g. <code>_demoemea</code>). For <code>dcs.adobedc.net</code> inlets, the server sends the HTTP API <strong>envelope</strong> (<code>header</code> + <code>body.xdmEntity</code>) using your saved <strong>Dataset ID</strong> and <strong>Schema $id</strong> — same shape as your dataflow expects. The profile <strong>email from Step 1</strong> is the primary identity in <code>identityMap</code> and <code>identification.core.email</code> (ECID is added only when the loaded profile has one). Save URL, Flow ID, dataset, and schema before updating.
+        Sends consent data to the <strong>DCS collection URL</strong> and <strong>flow</strong> you configured under Sandbox &amp; streaming connection, using the selected <strong>sandbox</strong> and tenant key (e.g. <code>_demoemea</code>). For <code>dcs.adobedc.net</code> inlets, the server sends the HTTP API <strong>envelope</strong> (<code>header</code> + <code>body.xdmEntity</code>) using your saved <strong>Dataset ID</strong> and <strong>Schema $id</strong>. Payload matches <strong>Profile Viewer</strong> streaming: <code>identityMap</code> with <strong>Email + ECID</strong>, root <code>consents</code> / <code>optInOut</code>, <code>_demoemea</code> plus <code>demoemea</code> mirror, and <code>person.name</code> from Step 1. <strong>ECID is required</strong> for Update (load a profile that has ECID). Save URL, Flow ID, dataset, and schema before updating.
       </p>
       <div class="button-row">
         <button type="button" id="updateConsentBtn" class="btn btn-save">Update Consent Preferences</button>
