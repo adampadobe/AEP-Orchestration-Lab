@@ -902,8 +902,6 @@ async function queryProfile() {
       return;
     }
     if (typeof addEmail === 'function' && data.email) addEmail(data.email);
-    console.info('[consent-query] Server response:', JSON.stringify(data, null, 2));
-    if (data._debug) console.info('[consent-query] _debug:', data._debug);
     applyProfileToForm(data);
     const displayName = data.email || identifier;
     showMessage(step1Message, 'Profile loaded successfully for ' + displayName + '.', 'success');

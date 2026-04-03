@@ -507,12 +507,6 @@ function buildConsentGetPayload(email, response) {
     dataCollection: dataCollection || 'na',
     dataSharing: dataSharing || 'na',
     contentPersonalization: contentPersonalization || 'na',
-    _debug: {
-      rawConsents: entity?.consents ?? null,
-      rawOptInOut: entity?.optInOut ?? null,
-      profileConsentPath: profile?.consents ? 'profile.consents' : 'missing',
-      entityKeys: Object.keys(entity || {}),
-    },
   };
 }
 
