@@ -405,15 +405,19 @@ async function paginateCatalogDataSets(token, clientId, orgId, sandbox, properti
   const headers = platformHeaders(token, clientId, orgId, sandbox);
   const pages = [];
   const propsQ = encodeURIComponent(propertiesCsv);
-  let url = `${CATALOG_BASE}/dataSets?limit=100&properties=${propsQ}`;
+  const LIMIT = 100;
+  let offset = 0;
   for (let page = 0; page < 500; page++) {
+    const url = `${CATALOG_BASE}/dataSets?limit=${LIMIT}&start=${offset}&properties=${propsQ}`;
     const res = await fetch(url, { headers });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(apiError(data, res) || `Catalog dataSets ${res.status}`);
     pages.push(data);
     const nextHref = resolveNextPageUrl(data);
-    if (!nextHref) break;
-    url = nextHref;
+    if (nextHref) { offset = -1; break; }
+    const datasetKeys = Object.keys(data).filter((k) => !k.startsWith('_'));
+    if (datasetKeys.length < LIMIT) break;
+    offset += datasetKeys.length;
   }
   return pages;
 }
