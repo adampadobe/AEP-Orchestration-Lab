@@ -3,6 +3,7 @@
  * Mirrors proxy_server.py: POST /api/aep → platform.adobe.io, GET webhook index (allowlisted).
  */
 const { onRequest } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 
 const ADOBE_CLIENT_ID = defineSecret('ADOBE_CLIENT_ID');
@@ -29,6 +30,7 @@ const {
   getJourneyNameById,
 } = require('./joLookups');
 const schemaViewerService = require('./schemaViewerService');
+const svCache = require('./schemaViewerCache');
 const {
   listTenantSchemas,
   getTenantSchema,
@@ -1437,6 +1439,9 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
 
   const subPath = (req.path || req.url || '').replace(/^\/api\/schema-viewer\/?/, '').split('?')[0].replace(/\/$/, '');
   const sandbox = (req.query.sandbox || '').trim() || RESOLVED_ADOBE_SANDBOX;
+  const forceRefresh = req.query.refresh === 'true';
+  const CDN_TTL = 600; // 10 minutes
+  const CACHEABLE = ['overview-stats', 'tenant-schemas', 'datasets', 'audiences'];
 
   let accessToken;
   try { accessToken = await getAdobeAccessToken(); } catch (e) {
@@ -1447,6 +1452,7 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
   const orgId = ADOBE_IMS_ORG.value();
 
   try {
+    let result;
     switch (subPath) {
       case 'overview-stats': {
         const [composed, dsResult] = await Promise.all([
@@ -1465,8 +1471,8 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
           const kind = schemaViewerService.classifySchemaOverviewKind(s && s['meta:class']);
           if (kind === 'profile') profileCount++; else if (kind === 'event') eventCount++; else otherCount++;
         }
-        res.json({ sandbox: sandboxName, schemaCount: profileCount + eventCount + otherCount, profileSchemaCount: profileCount, eventSchemaCount: eventCount, otherSchemaCount: otherCount, datasetCount: dsResult.datasets.length, schemaListSource: schemaListSource || 'registry' });
-        return;
+        result = { sandbox: sandboxName, schemaCount: profileCount + eventCount + otherCount, profileSchemaCount: profileCount, eventSchemaCount: eventCount, otherSchemaCount: otherCount, datasetCount: dsResult.datasets.length, schemaListSource: schemaListSource || 'registry' };
+        break;
       }
 
       case 'tenant-schemas': {
@@ -1476,8 +1482,8 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
           await schemaViewerService.fetchComposedSchemasListForSandbox(accessToken, clientId, orgId, sandbox, catInfo);
         const datasetCounts = catInfo?.counts ?? null;
         const mapped = rawList.map((s) => schemaViewerService.mapSchemaToRow(s, datasetCounts)).filter((x) => x.id);
-        res.json({ sandbox: sandboxName, count: mapped.length, schemas: mapped, datasetCountsFromCatalog: datasetCounts != null, schemaListSource: schemaListSource || 'registry', catalogLightGetMisses, omittedByTitleNoiseFilter: 0 });
-        return;
+        result = { sandbox: sandboxName, count: mapped.length, schemas: mapped, datasetCountsFromCatalog: datasetCounts != null, schemaListSource: schemaListSource || 'registry', catalogLightGetMisses, omittedByTitleNoiseFilter: 0 };
+        break;
       }
 
       case 'registry': {
@@ -1493,15 +1499,15 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
         let enriched = datasets;
         try { enriched = await schemaViewerService.enrichDatasetsWithSchemaTitles(accessToken, clientId, orgId, sandboxName, datasets); } catch { enriched = datasets.map((d) => ({ ...d, schemaTitle: '' })); }
         const sorted = [...enriched].sort((a, b) => String(a.name || a.id || '').localeCompare(String(b.name || b.id || ''), undefined, { sensitivity: 'base' }));
-        res.json({ sandbox: sandboxName, count: sorted.length, datasets: sorted });
-        return;
+        result = { sandbox: sandboxName, count: sorted.length, datasets: sorted };
+        break;
       }
 
       case 'audiences': {
         const { sandboxName, audiences } = await schemaViewerService.fetchAudiencesList(accessToken, clientId, orgId, sandbox);
         const sorted = [...audiences].sort((a, b) => String(a.name || a.id || '').localeCompare(String(b.name || b.id || ''), undefined, { sensitivity: 'base' }));
-        res.json({ sandbox: sandboxName, count: sorted.length, audiences: sorted });
-        return;
+        result = { sandbox: sandboxName, count: sorted.length, audiences: sorted };
+        break;
       }
 
       case 'audience-members': {
@@ -1526,8 +1532,51 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
 
       default:
         res.status(404).json({ error: `Unknown schema-viewer sub-path: ${subPath}` });
+        return;
+    }
+
+    if (result && CACHEABLE.includes(subPath)) {
+      if (!forceRefresh) {
+        res.set('Cache-Control', `public, s-maxage=${CDN_TTL}, stale-while-revalidate=${CDN_TTL}`);
+      } else {
+        res.set('Cache-Control', 'no-store');
+      }
+      svCache.touchSandbox(sandbox).catch(() => {});
+      res.json({ ...result, _cache: forceRefresh ? 'refreshed' : 'miss' });
+    } else {
+      res.json(result);
     }
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
   }
 });
+
+// ---------------------------------------------------------------------------
+// Scheduled CDN pre-warm — hits Data Viewer endpoints to populate CDN cache
+// for recently-accessed sandboxes.
+// ---------------------------------------------------------------------------
+
+const HOSTING_ORIGIN = 'https://aep-decision-lab-adamp-2026.web.app';
+const WARM_ENDPOINTS = ['overview-stats', 'tenant-schemas', 'datasets', 'audiences'];
+
+exports.schemaViewerCacheWarm = onSchedule(
+  {
+    schedule: 'every 10 minutes',
+    region: REGION,
+    timeoutSeconds: 300,
+    memory: '256MiB',
+  },
+  async () => {
+    const sandboxes = await svCache.getRecentSandboxes();
+    if (sandboxes.length === 0) return;
+
+    for (const sandbox of sandboxes) {
+      const urls = WARM_ENDPOINTS.map(
+        (ep) => `${HOSTING_ORIGIN}/api/schema-viewer/${ep}?sandbox=${encodeURIComponent(sandbox)}`,
+      );
+      await Promise.allSettled(
+        urls.map((url) => fetch(url).catch(() => {})),
+      );
+    }
+  },
+);
