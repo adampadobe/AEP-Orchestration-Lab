@@ -28,6 +28,7 @@ const {
   getCampaignNameById,
   getJourneyNameById,
 } = require('./joLookups');
+const schemaViewerService = require('./schemaViewerService');
 const {
   listTenantSchemas,
   getTenantSchema,
@@ -1415,3 +1416,129 @@ exports.webhookListenerProxy = onRequest(
     });
   }
 );
+
+// ---------------------------------------------------------------------------
+// Schema Viewer / Data Viewer — serves /api/schema-viewer/** sub-paths
+// ---------------------------------------------------------------------------
+
+const schemaViewerFnOpts = {
+  region: REGION,
+  secrets: PROFILE_FN_SECRETS,
+  environmentVariables: { ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX },
+  invoker: 'public',
+  timeoutSeconds: 300,
+  memory: '512MiB',
+};
+
+exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'GET') { res.status(405).json({ error: 'Method not allowed' }); return; }
+
+  const subPath = (req.path || req.url || '').replace(/^\/api\/schema-viewer\/?/, '').split('?')[0].replace(/\/$/, '');
+  const sandbox = (req.query.sandbox || '').trim() || RESOLVED_ADOBE_SANDBOX;
+
+  let accessToken;
+  try { accessToken = await getAdobeAccessToken(); } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  const clientId = ADOBE_CLIENT_ID.value();
+  const orgId = ADOBE_IMS_ORG.value();
+
+  try {
+    switch (subPath) {
+      case 'overview-stats': {
+        const [composed, dsResult] = await Promise.all([
+          (async () => {
+            let catInfo = null;
+            try { catInfo = await schemaViewerService.fetchCatalogDatasetSchemaInfo(accessToken, clientId, orgId, sandbox); } catch { catInfo = null; }
+            return schemaViewerService.fetchComposedSchemasListForSandbox(accessToken, clientId, orgId, sandbox, catInfo);
+          })(),
+          schemaViewerService.fetchCatalogDatasetsList(accessToken, clientId, orgId, sandbox),
+        ]);
+        const { sandboxName, schemas: rawList, schemaListSource } = composed;
+        let profileCount = 0, eventCount = 0, otherCount = 0;
+        for (const s of rawList) {
+          const id = schemaViewerService.schemaSummaryKey(s);
+          if (!id) continue;
+          const kind = schemaViewerService.classifySchemaOverviewKind(s && s['meta:class']);
+          if (kind === 'profile') profileCount++; else if (kind === 'event') eventCount++; else otherCount++;
+        }
+        res.json({ sandbox: sandboxName, schemaCount: profileCount + eventCount + otherCount, profileSchemaCount: profileCount, eventSchemaCount: eventCount, otherSchemaCount: otherCount, datasetCount: dsResult.datasets.length, schemaListSource: schemaListSource || 'registry' });
+        return;
+      }
+
+      case 'tenant-schemas': {
+        let catInfo = null;
+        try { catInfo = await schemaViewerService.fetchCatalogDatasetSchemaInfo(accessToken, clientId, orgId, sandbox); } catch { catInfo = null; }
+        const { sandboxName, schemas: rawList, schemaListSource, catalogLightGetMisses = 0 } =
+          await schemaViewerService.fetchComposedSchemasListForSandbox(accessToken, clientId, orgId, sandbox, catInfo);
+        const datasetCounts = catInfo?.counts ?? null;
+        const mapped = rawList.map((s) => schemaViewerService.mapSchemaToRow(s, datasetCounts)).filter((x) => x.id);
+        res.json({ sandbox: sandboxName, count: mapped.length, schemas: mapped, datasetCountsFromCatalog: datasetCounts != null, schemaListSource: schemaListSource || 'registry', catalogLightGetMisses, omittedByTitleNoiseFilter: 0 });
+        return;
+      }
+
+      case 'tenant-schemas-v2': {
+        const start = (req.query.start || '').trim();
+        let catInfo = null;
+        try { catInfo = await schemaViewerService.fetchCatalogDatasetSchemaInfo(accessToken, clientId, orgId, sandbox); } catch { catInfo = null; }
+        const datasetCounts = catInfo?.counts ?? null;
+        const { sandboxName, rawList } = await schemaViewerService.fetchTenantSchemasPostmanList(accessToken, clientId, orgId, sandbox, start);
+        const mapped = rawList.map((s) => schemaViewerService.mapSchemaToRow(s, datasetCounts)).filter((x) => x.id);
+        res.json({ sandbox: sandboxName, count: mapped.length, schemas: mapped, datasetCountsFromCatalog: datasetCounts != null, schemaListSource: 'postman-tenant-schemas-xdm+json', start: start || null });
+        return;
+      }
+
+      case 'registry': {
+        const schemaId = (req.query.schemaId || req.query.schema_id || '').trim();
+        if (!schemaId) { res.status(400).json({ error: 'Missing schemaId (full schema URI).' }); return; }
+        const schema = await schemaViewerService.fetchSchemaById(accessToken, clientId, orgId, sandbox, schemaId);
+        res.json({ schemaId, schema });
+        return;
+      }
+
+      case 'datasets': {
+        const { sandboxName, datasets } = await schemaViewerService.fetchCatalogDatasetsList(accessToken, clientId, orgId, sandbox);
+        let enriched = datasets;
+        try { enriched = await schemaViewerService.enrichDatasetsWithSchemaTitles(accessToken, clientId, orgId, sandboxName, datasets); } catch { enriched = datasets.map((d) => ({ ...d, schemaTitle: '' })); }
+        const sorted = [...enriched].sort((a, b) => String(a.name || a.id || '').localeCompare(String(b.name || b.id || ''), undefined, { sensitivity: 'base' }));
+        res.json({ sandbox: sandboxName, count: sorted.length, datasets: sorted });
+        return;
+      }
+
+      case 'audiences': {
+        const { sandboxName, audiences } = await schemaViewerService.fetchAudiencesList(accessToken, clientId, orgId, sandbox);
+        const sorted = [...audiences].sort((a, b) => String(a.name || a.id || '').localeCompare(String(b.name || b.id || ''), undefined, { sensitivity: 'base' }));
+        res.json({ sandbox: sandboxName, count: sorted.length, audiences: sorted });
+        return;
+      }
+
+      case 'audience-members': {
+        const audienceId = (req.query.audienceId || '').trim();
+        if (!audienceId) { res.status(400).json({ error: 'Missing audienceId query parameter.', members: [] }); return; }
+        const payload = await schemaViewerService.runAudiencePreviewSample(accessToken, clientId, orgId, sandbox, audienceId);
+        res.json(payload);
+        return;
+      }
+
+      case 'operational-sample': {
+        try {
+          const { readFileSync, existsSync } = require('fs');
+          const { join } = require('path');
+          const samplePath = join(__dirname, 'operational-profile-schema-sample.json');
+          if (!existsSync(samplePath)) { res.status(404).json({ error: 'operational-profile-schema-sample.json not found' }); return; }
+          const raw = readFileSync(samplePath, 'utf8');
+          res.type('json').send(raw);
+        } catch (e) { res.status(500).json({ error: e.message || 'Failed to read sample' }); }
+        return;
+      }
+
+      default:
+        res.status(404).json({ error: `Unknown schema-viewer sub-path: ${subPath}` });
+    }
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
