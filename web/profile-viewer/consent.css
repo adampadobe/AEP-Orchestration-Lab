@@ -725,6 +725,26 @@ body.consent-page:not(.home-dashboard-concierge) .consent-panel--streaming-setup
   background: rgba(255, 255, 255, 0.04);
 }
 
+.consent-panel--streaming-setup .consent-stream-flowid-hint {
+  margin: 0.35rem 0 0;
+  max-width: 42rem;
+  line-height: 1.4;
+}
+
+body.home-dashboard-concierge.consent-page.consent-manager-page .consent-panel--streaming-setup input.consent-stream-field--locked {
+  background: #eceff1;
+  color: #4a5568;
+  cursor: not-allowed;
+  border-color: #d2d6dc;
+}
+
+body.consent-page:not(.home-dashboard-concierge) .consent-panel--streaming-setup input.consent-stream-field--locked {
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.72);
+  border-color: rgba(255, 255, 255, 0.14);
+  cursor: not-allowed;
+}
+
 @media (max-width: 640px) {
   .consent-prefs-row {
     grid-template-columns: 1fr;
