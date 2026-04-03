@@ -925,7 +925,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       imsOrgId: orgId,
       note:
         useOperational && payloadFormat === 'envelope'
-          ? 'Operational-style xdmEntity (idSpecific.Email, root consents, _demoemea.identification only) — matches common DCS consent dataflows.'
+          ? 'Operational xdmEntity: root consents + idSpecific.Email; _demoemea = identification.core + optInOut._channels (wizard schema shape; no root identityMap — avoids DCVS-1057-400).'
           : undefined,
     });
     return;

@@ -472,6 +472,30 @@
         <button type="button" id="previewDataBtn" class="btn btn-secondary">Preview Data</button>
       </div>
       <div id="step4Message" class="consent-message" role="status" aria-live="polite" hidden></div>
+
+      <div id="consentPreviewPanel" class="consent-preview-panel" hidden>
+        <div
+          class="consent-preview-panel__header"
+          id="consentPreviewHeader"
+          role="button"
+          tabindex="0"
+          aria-expanded="true"
+          aria-controls="consentPreviewCollapse"
+        >
+          <span class="consent-preview-panel__chevron" id="consentPreviewChevron" aria-hidden="true">▼</span>
+          <span class="consent-preview-panel__title" id="consentPreviewTitle">DCS payload preview</span>
+          <span class="consent-preview-panel__meta" id="consentPreviewMeta" aria-hidden="true"></span>
+          <div class="consent-preview-panel__header-actions">
+            <button type="button" id="consentPreviewMinimizeBtn" class="btn consent-preview-panel__min-btn" title="Minimize preview">
+              Minimize
+            </button>
+          </div>
+        </div>
+        <div id="consentPreviewCollapse" class="consent-preview-panel__collapse">
+          <p id="consentPreviewNote" class="consent-preview-panel__note"></p>
+          <pre id="consentPreviewPre" class="consent-preview-panel__pre" spellcheck="false"></pre>
+        </div>
+      </div>
     </section>
       </main>
     </div>

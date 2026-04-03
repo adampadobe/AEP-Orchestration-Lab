@@ -21,6 +21,13 @@ const quickClearBtn = document.getElementById('quickClearBtn');
 const updateConsentBtn = document.getElementById('updateConsentBtn');
 const previewDataBtn = document.getElementById('previewDataBtn');
 const step4Message = document.getElementById('step4Message');
+const consentPreviewPanel = document.getElementById('consentPreviewPanel');
+const consentPreviewHeader = document.getElementById('consentPreviewHeader');
+const consentPreviewNote = document.getElementById('consentPreviewNote');
+const consentPreviewPre = document.getElementById('consentPreviewPre');
+const consentPreviewMinimizeBtn = document.getElementById('consentPreviewMinimizeBtn');
+const consentPreviewTitle = document.getElementById('consentPreviewTitle');
+const consentPreviewMeta = document.getElementById('consentPreviewMeta');
 const preferredChannelSelect = document.getElementById('preferredChannel');
 const preferredLanguageSelect = document.getElementById('preferredLanguage');
 const sandboxSelect = document.getElementById('sandboxSelect');
@@ -100,6 +107,12 @@ function resetConsentProfileCacheForSandboxChange() {
   consentFingerprintBaseline = null;
   step1Message.hidden = true;
   step4Message.hidden = true;
+  if (consentPreviewPanel) {
+    consentPreviewPanel.hidden = true;
+    if (consentPreviewPre) consentPreviewPre.textContent = '';
+    if (consentPreviewNote) consentPreviewNote.textContent = '';
+    setConsentPreviewMinimized(false);
+  }
 }
 
 function getSandboxParam() {
@@ -792,11 +805,44 @@ async function updateConsent() {
   }
 }
 
-function escapeHtmlForPreview(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+function consentPreviewMetaRefresh() {
+  if (!consentPreviewMeta || !consentPreviewPre) return;
+  const json = consentPreviewPre.textContent || '';
+  if (!json.trim()) {
+    consentPreviewMeta.textContent = '';
+    return;
+  }
+  let bytes = json.length;
+  try {
+    bytes = new TextEncoder().encode(json).length;
+  } catch {
+    /* ignore */
+  }
+  const sz = bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} kB`;
+  consentPreviewMeta.textContent = `${sz} · expand for full JSON`;
+}
+
+function setConsentPreviewMinimized(min) {
+  if (!consentPreviewPanel) return;
+  consentPreviewPanel.classList.toggle('consent-preview-panel--minimized', min);
+  if (consentPreviewHeader) consentPreviewHeader.setAttribute('aria-expanded', String(!min));
+  if (consentPreviewMinimizeBtn) {
+    consentPreviewMinimizeBtn.textContent = min ? 'Expand' : 'Minimize';
+    consentPreviewMinimizeBtn.title = min ? 'Expand payload preview' : 'Collapse payload preview';
+  }
+  if (consentPreviewTitle) {
+    consentPreviewTitle.textContent = min ? 'DCS payload preview (collapsed)' : 'DCS payload preview';
+  }
+  if (consentPreviewMeta) {
+    consentPreviewMeta.setAttribute('aria-hidden', min ? 'false' : 'true');
+    if (min) consentPreviewMetaRefresh();
+    else consentPreviewMeta.textContent = '';
+  }
+}
+
+function toggleConsentPreviewPanel() {
+  if (!consentPreviewPanel || consentPreviewPanel.hidden) return;
+  setConsentPreviewMinimized(!consentPreviewPanel.classList.contains('consent-preview-panel--minimized'));
 }
 
 /** Exact DCS envelope the server would POST (operational-style xdmEntity, same as Update). */
@@ -832,20 +878,15 @@ async function previewData() {
       showMessage(step4Message, formatProfileUpdateError(data) || 'Preview failed', 'error');
       return;
     }
-    showMessage(step4Message, '', '');
-    const w = window.open('', '_blank');
-    const json = JSON.stringify(data.envelope, null, 2);
-    const note =
-      data.note ||
-      'This is the JSON body sent to DCS (header + body). Consent Manager uses streamPayloadProfile operational (idSpecific.Email, root consents).';
-    w.document.write(
-      '<p style="font-family:system-ui,sans-serif;padding:10px 14px;margin:0;background:#243044;color:#c8d0dc;font-size:13px;line-height:1.45;border-bottom:1px solid #3d4a5c;">' +
-        escapeHtmlForPreview(note) +
-        '</p><pre style="background:#1a1d23;color:#e6e8ec;padding:1rem;margin:0;font-family:ui-monospace,monospace;white-space:pre-wrap;font-size:12px;line-height:1.4;">' +
-        escapeHtmlForPreview(json) +
-        '</pre>',
-    );
-    w.document.close();
+    if (consentPreviewPanel && consentPreviewNote && consentPreviewPre) {
+      consentPreviewPanel.hidden = false;
+      setConsentPreviewMinimized(false);
+      consentPreviewNote.textContent =
+        data.note ||
+        'Dry-run JSON sent to DCS (header + body). Operational profile: idSpecific.Email, root consents, person.name.';
+      consentPreviewPre.textContent = JSON.stringify(data.envelope, null, 2);
+    }
+    showMessage(step4Message, 'Payload preview loaded below — use Minimize or the header to collapse.', 'success');
   } catch (err) {
     showMessage(step4Message, err.message || 'Preview failed', 'error');
   } finally {
@@ -904,3 +945,22 @@ disableAllBtn.addEventListener('click', () => {
 quickClearBtn.addEventListener('click', clearForm);
 updateConsentBtn.addEventListener('click', updateConsent);
 previewDataBtn.addEventListener('click', previewData);
+
+if (consentPreviewHeader) {
+  consentPreviewHeader.addEventListener('click', (e) => {
+    if (e.target.closest('#consentPreviewMinimizeBtn')) return;
+    toggleConsentPreviewPanel();
+  });
+  consentPreviewHeader.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    if (e.target.closest('#consentPreviewMinimizeBtn')) return;
+    e.preventDefault();
+    toggleConsentPreviewPanel();
+  });
+}
+if (consentPreviewMinimizeBtn) {
+  consentPreviewMinimizeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleConsentPreviewPanel();
+  });
+}

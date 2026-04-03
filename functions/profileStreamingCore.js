@@ -341,6 +341,17 @@ function operationalChannelTime(marketing, key, fallbackIso) {
   return fallbackIso;
 }
 
+/** One marketing channel object: time, val, optional reason (from consent form / streaming updates). */
+function operationalMarketingField(marketing, key, now, defaultYn = 'y') {
+  const o = marketing && marketing[key];
+  const val = operationalPickYn(typeof o === 'object' ? o : undefined, defaultYn);
+  const out = { time: operationalChannelTime(marketing, key, now), val };
+  if (o && typeof o === 'object' && o.reason != null && String(o.reason).trim() !== '') {
+    out.reason = String(o.reason).trim();
+  }
+  return out;
+}
+
 function buildOperationalPersonFromRootExtras(rootExtras) {
   const roots = rootExtras && typeof rootExtras === 'object' ? rootExtras : {};
   const nm = roots.person && typeof roots.person === 'object' ? roots.person.name : null;
@@ -360,9 +371,10 @@ function buildOperationalPersonFromRootExtras(rootExtras) {
 }
 
 /**
- * DCS envelope xdmEntity aligned with common “Operational Profile / Consent” HTTP streams:
- * _demoemea.identification.core only, root consents with idSpecific.Email[address].marketing.email,
- * person + personID, _id / _repo — no duplicate tenant consents, no root identityMap.
+ * DCS envelope xdmEntity for Consent Manager HTTP streams (tenant schema, no Profile union):
+ * _demoemea.identification.core + optional _demoemea.optInOut._channels (same pattern as buildConsentXdm).
+ * Root consents + idSpecific.Email[…].marketing.email (reason/time when present), person, personID, _id / _repo.
+ * Intentionally no root identityMap / root optInOut — those are not on the wizard schema and cause DCVS-1057-400.
  *
  * @param {object} demoemea - Tenant object after applying updates (consents.*, optInOut, identification)
  * @param {string} email
@@ -374,7 +386,6 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
   const em = String(email || '').trim();
   const c = (demoemea && demoemea.consents) || {};
   const m = c.marketing || {};
-  const marketingAnyVal = operationalPickYn(m.any, 'y');
   const preferredLanguage =
     typeof m.preferredLanguage === 'string' && m.preferredLanguage.trim()
       ? m.preferredLanguage.trim()
@@ -382,31 +393,19 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
 
   const channels = ['email', 'sms', 'push', 'call', 'postalMail', 'whatsApp'];
   /** @type {Record<string, unknown>} */
-  const marketingOut = {
-    any: { time: operationalChannelTime(m, 'any', now), val: marketingAnyVal },
-    preferred: typeof m.preferred === 'string' && m.preferred.trim() ? m.preferred.trim() : 'email',
-    preferredLanguage,
-  };
+  const marketingOut = {};
+  if (m.val != null && m.val !== '') {
+    marketingOut.val = operationalPickYn(m.val, 'y');
+  }
+  marketingOut.any = operationalMarketingField(m, 'any', now, 'y');
+  marketingOut.preferred = typeof m.preferred === 'string' && m.preferred.trim() ? m.preferred.trim() : 'email';
+  marketingOut.preferredLanguage = preferredLanguage;
   for (const ch of channels) {
-    marketingOut[ch] = {
-      time: operationalChannelTime(m, ch, now),
-      val: operationalPickYn(m[ch], 'y'),
-    };
+    marketingOut[ch] = operationalMarketingField(m, ch, now, 'y');
   }
-  if (m.fax && typeof m.fax === 'object') {
-    marketingOut.fax = {
-      time: operationalChannelTime(m, 'fax', now),
-      val: operationalPickYn(m.fax, 'y'),
-    };
-  }
-  if (m.commercialEmail && typeof m.commercialEmail === 'object') {
-    marketingOut.commercialEmail = {
-      time: operationalChannelTime(m, 'commercialEmail', now),
-      val: operationalPickYn(m.commercialEmail, 'y'),
-    };
-  }
+  marketingOut.fax = operationalMarketingField(m, 'fax', now, 'y');
+  marketingOut.commercialEmail = operationalMarketingField(m, 'commercialEmail', now, 'y');
 
-  const emailChannelVal = operationalPickYn(m.email, 'y');
   /** @type {Record<string, unknown>} */
   const consentsOut = {};
   if (c.collect && typeof c.collect === 'object' && c.collect.val != null) {
@@ -416,7 +415,7 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
     Email: {
       [em]: {
         marketing: {
-          email: { time: operationalChannelTime(m, 'email', now), val: emailChannelVal },
+          email: operationalMarketingField(m, 'email', now, 'y'),
         },
       },
     },
@@ -432,8 +431,19 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
   const core = { email: em };
   if (ecid != null && String(ecid).trim().length >= 10) core.ecid = String(ecid).trim();
 
-  return {
-    _demoemea: { identification: { core } },
+  /** @type {Record<string, unknown>} */
+  const tenantBlock = { identification: { core } };
+  const oo = demoemea && demoemea.optInOut;
+  if (oo && typeof oo === 'object' && !Array.isArray(oo)) {
+    const ch = oo._channels;
+    if (ch && typeof ch === 'object' && Object.keys(ch).length > 0) {
+      tenantBlock.optInOut = { _channels: { ...ch } };
+    }
+  }
+
+  /** @type {Record<string, unknown>} */
+  const entity = {
+    _demoemea: tenantBlock,
     _id: randomUUID(),
     _repo: { createDate: now, modifyDate: now },
     preferredLanguage,
@@ -442,6 +452,8 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
     personID: em,
     metadata: { time: now },
   };
+
+  return entity;
 }
 
 module.exports = {
