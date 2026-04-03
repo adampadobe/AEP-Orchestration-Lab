@@ -176,15 +176,19 @@
             <span class="icon" aria-hidden="true">⚙</span>
             Sandbox &amp; streaming connection
           </span>
-          <span class="consent-streaming-details__hint">Open to prepare the sandbox, HTTP flow, and connection — required before consent updates.</span>
+          <span class="consent-streaming-details__hint">Configure the streaming connection for this sandbox — required before sending consent updates. Fields are cleared when you switch sandboxes.</span>
         </summary>
         <div class="consent-streaming-details__body">
-      <p class="panel-desc">
-        Run <strong>steps 1 → 4</strong> in order for this sandbox. <strong>Do not</strong> enable this schema or dataset for <strong>Real-Time Customer Profile</strong> in the AEP UI — enabling the schema adds an irreversible <strong>union</strong> tag; this app never adds it. Step 1 creates schema shell <strong>AEP Profile Viewer - Consent - Schema</strong>
-        (Profile <em>class</em> only, not Profile service). Step 2 attaches consent field groups + <strong>Profile Core v2</strong> and primary identity on
-        <code>_{tenant}.identification.core.email</code>. Step 3 creates dataset <strong>AEP Profile Viewer - Consent - Dataset</strong> (keep dataset out of Profile).
-        Step 4: HTTP API dataflow <strong>AEP Profile Viewer - Consent - Dataflow</strong>; paste collection URL and Flow ID below.
-      </p>
+      <div class="consent-setup-instructions" style="background: var(--card-bg, #f5f5f5); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; border-left: 4px solid var(--accent, #1473e6);">
+        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Before you can use the Consent Manager on a new sandbox:</h4>
+        <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.9rem; line-height: 1.6;">
+          <li><strong>Create a Schema</strong> — In AEP, go to <em>Schemas</em> and create a new schema using the <strong>XDM Individual Profile</strong> class. Add the following field groups: <strong>Profile Identity v1</strong> (or your tenant identity group with <code>email</code>), <strong>Profile Consents</strong>, <strong>Profile Person Details</strong>, and <strong>Profile Preferences Details</strong>. Set the primary identity to <code>_{tenant}.identification.core.email</code> with namespace <strong>Email</strong>. Copy the <strong>Schema $id</strong>.</li>
+          <li><strong>Create a Dataset</strong> — In AEP, go to <em>Datasets</em> and create a new dataset from your schema. Enable it for <strong>Real-Time Customer Profile</strong> if you want consent updates to appear on the profile. Copy the <strong>Dataset ID</strong>.</li>
+          <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. Copy the <strong>Collection URL</strong> and <strong>Flow ID</strong>.</li>
+          <li><strong>Enter the details below</strong> — Paste Schema $id, Dataset ID, Flow ID, and Collection URL into the fields, then click <strong>Save connection</strong>. The connection is stored per sandbox in Firebase so you only need to do this once.</li>
+        </ol>
+        <p style="margin: 0.75rem 0 0 0; font-size: 0.85rem; opacity: 0.85;">If this sandbox already has a saved connection, click <strong>Load from Firebase</strong> to populate the fields.</p>
+      </div>
       <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem; align-items: center;">
         <button type="button" id="checkInfraBtn" class="btn btn-secondary">Check sandbox status</button>
       </div>
@@ -212,7 +216,7 @@
         <div class="form-row">
           <label for="streamFlowId">Flow ID (x-adobe-flow-id)</label>
           <input type="text" id="streamFlowId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="Paste UUID from the dataflow in AEP" autocomplete="off" spellcheck="false" aria-describedby="streamFlowIdHint">
-          <p id="streamFlowIdHint" class="field-hint consent-stream-flowid-hint">Paste the flow ID after you create the HTTP endpoint, then <strong>Fetch URL &amp; Flow ID from AEP</strong> to auto-fill the collection URL — or paste all fields manually and click <strong>Save connection</strong>.</p>
+          <p id="streamFlowIdHint" class="field-hint consent-stream-flowid-hint">Paste the flow ID from your HTTP API dataflow, or use <strong>Fetch URL &amp; Flow ID from AEP</strong> to look it up by name. Then click <strong>Save connection</strong>.</p>
         </div>
         <div class="form-row">
           <label for="streamFlowName">Dataflow name in AEP</label>
@@ -223,10 +227,12 @@
           <input type="url" id="streamUrl" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false" title="DCS collection URL from the HTTP API dataflow. Paste manually or use Fetch.">
         </div>
         <p class="panel-desc" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.9;">
-          <strong>Save connection</strong> stores all fields above (URL, flow ID, schema, dataset, tenant key) to Firebase for this sandbox. You can paste values manually or use Fetch / Prepare to auto-fill.
+          <strong>Load from Firebase</strong> pulls any previously saved connection for this sandbox.
+          <strong>Save connection</strong> stores all fields above to Firebase for this sandbox — you only need to do this once per sandbox.
         </p>
         <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem;">
-          <button type="button" id="fetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>
+          <button type="button" id="loadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
+          <button type="button" id="fetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
           <button type="button" id="saveStreamBtn" class="btn btn-secondary">Save connection (browser &amp; Firebase)</button>
         </div>
       </div>

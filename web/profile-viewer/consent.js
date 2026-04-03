@@ -286,18 +286,20 @@ async function pullConsentConnectionFromFirestore() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.ok === false) {
       loadStreamFieldsFromStorage();
-      return;
+      return false;
     }
     if (data.record) {
       applyFirestoreRecordToStreamingForm(data.record);
       saveStreamFieldsToStorage();
-      return;
+      return true;
     }
     clearStreamingFormFields({ skipSave: true });
     loadStreamFieldsFromStorage();
     saveStreamFieldsToStorage();
+    return false;
   } catch {
     loadStreamFieldsFromStorage();
+    return false;
   }
 }
 
@@ -327,9 +329,21 @@ function attachConsentFirestoreSandboxSync() {
   const el = document.getElementById('sandboxSelect');
   if (!el || el.dataset.consentFirestoreSync === '1') return;
   el.dataset.consentFirestoreSync = '1';
-  const run = () => {
+  const run = async () => {
     resetConsentProfileCacheForSandboxChange();
-    pullConsentConnectionFromFirestore().catch(() => {});
+    clearStreamingFormFields({ skipSave: true });
+    showInfraMessage('Loading streaming connection for this sandbox…', '');
+    const found = await pullConsentConnectionFromFirestore();
+    if (found) {
+      showInfraMessage('Streaming connection loaded from Firebase for this sandbox.', 'success');
+    } else {
+      showInfraMessage(
+        'No streaming connection saved for this sandbox. Create the schema, dataset and HTTP API dataflow in AEP, then enter the details below and click Save connection.',
+        'error',
+      );
+      const det = document.querySelector('#stepInfra details.consent-streaming-details');
+      if (det) det.open = true;
+    }
   };
   el.addEventListener('change', run);
   window.addEventListener('aep-global-sandbox-change', run);
@@ -1079,6 +1093,28 @@ stepCreateDatasetBtn &&
 stepHttpFlowBtn &&
   stepHttpFlowBtn.addEventListener('click', () => runConsentInfraWizardStep('httpFlow', stepHttpFlowBtn));
 fetchFlowFromAepBtn && fetchFlowFromAepBtn.addEventListener('click', fetchConsentFlowFromAep);
+const loadFromFirebaseBtn = document.getElementById('loadFromFirebaseBtn');
+loadFromFirebaseBtn &&
+  loadFromFirebaseBtn.addEventListener('click', async () => {
+    loadFromFirebaseBtn.disabled = true;
+    clearStreamingFormFields({ skipSave: true });
+    showInfraMessage('Loading streaming connection from Firebase…', '');
+    try {
+      const found = await pullConsentConnectionFromFirestore();
+      if (found) {
+        showInfraMessage('Streaming connection loaded from Firebase for this sandbox.', 'success');
+      } else {
+        showInfraMessage(
+          'No streaming connection found in Firebase for this sandbox. Create the required AEP resources first, then enter the details and Save connection.',
+          'error',
+        );
+      }
+    } catch {
+      showInfraMessage('Failed to load from Firebase.', 'error');
+    } finally {
+      loadFromFirebaseBtn.disabled = false;
+    }
+  });
 saveStreamBtn &&
   saveStreamBtn.addEventListener('click', async () => {
     saveStreamFieldsToStorage();
