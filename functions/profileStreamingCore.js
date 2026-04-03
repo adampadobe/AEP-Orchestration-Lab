@@ -142,9 +142,22 @@ function profileStreamingUseEnvelope(envFlag) {
   return v === '1' || v === 'true' || v === 'yes';
 }
 
+/** Root-level consents/optInOut: reuse tenant object when present so consent updates match the form (email-primary identity unchanged). */
+function resolveStreamingConsentsOptInOut(tenantPayload, email) {
+  const tenant = tenantPayload && typeof tenantPayload === 'object' ? tenantPayload : {};
+  if (tenant.consents != null && typeof tenant.consents === 'object') {
+    const optInOut =
+      tenant.optInOut != null && typeof tenant.optInOut === 'object'
+        ? tenant.optInOut
+        : buildDefaultProfileStreamingConsentFields(email).optInOut;
+    return { consents: tenant.consents, optInOut };
+  }
+  return buildDefaultProfileStreamingConsentFields(email);
+}
+
 function buildProfileXdmEntityForStream(tenantPayload, email, ecid, xdmKey, rootProfileFields) {
   const key = (xdmKey && String(xdmKey).trim()) || '_demoemea';
-  const { consents, optInOut } = buildDefaultProfileStreamingConsentFields(email);
+  const { consents, optInOut } = resolveStreamingConsentsOptInOut(tenantPayload, email);
   const roots = rootProfileFields && typeof rootProfileFields === 'object' ? rootProfileFields : {};
   const entity = {
     identityMap: {
@@ -186,6 +199,9 @@ function buildProfileStreamingEnvelope(xdmEntity, orgId, sourceLabel, datasetId,
 }
 
 /**
+ * Builds DCS HTTP API body. Identity: Email primary, ECID secondary (matches consent schema descriptor on tenant email).
+ * Bare format duplicates consents/optInOut at root only when tenant lacks them (attribute-only updates use defaults).
+ *
  * @returns {{ payload: object, format: 'envelope' | 'bare' }}
  */
 function buildProfileStreamPayload(
@@ -202,7 +218,7 @@ function buildProfileStreamPayload(
   const hasRoots = Object.keys(roots).length > 0;
   if (!useEnvelope) {
     const k = (xdmKey && String(xdmKey).trim()) || '_demoemea';
-    const { consents, optInOut } = buildDefaultProfileStreamingConsentFields(email);
+    const { consents, optInOut } = resolveStreamingConsentsOptInOut(demoemeaTenantObject, email);
     return {
       payload: {
         identityMap: {

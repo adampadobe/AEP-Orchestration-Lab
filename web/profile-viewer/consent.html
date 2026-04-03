@@ -401,6 +401,9 @@
     <!-- Step 3: Save to AEP -->
     <section class="consent-panel" id="step4">
       <h2 class="panel-title"><span class="icon">🚀</span> Step 3: Save changes to Adobe Experience Platform</h2>
+      <p class="panel-desc consent-save-desc">
+        Sends consent data to the <strong>DCS collection URL</strong> and <strong>flow</strong> you configured under Sandbox &amp; streaming connection, using the selected <strong>sandbox</strong> and tenant key (e.g. <code>_demoemea</code>). The payload uses <strong>email as the primary identity</strong> in <code>identityMap</code> and includes <strong>ECID</strong> from Step 1 together with <code>identification.core.email</code> under your tenant namespace — aligned with the consent schema’s primary Email descriptor. Ensure URL, Flow ID, and (if envelope mode is on) dataset and schema IDs are saved before updating.
+      </p>
       <div class="button-row">
         <button type="button" id="updateConsentBtn" class="btn btn-save">Update Consent Preferences</button>
         <button type="button" id="previewDataBtn" class="btn btn-secondary">Preview Data</button>

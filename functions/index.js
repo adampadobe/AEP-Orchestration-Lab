@@ -708,7 +708,8 @@ exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
 });
 
 /**
- * POST /api/profile/update — profile record streaming (consent + attribute paths). Body.streaming must include url + flowId from HTTP API dataflow.
+ * POST /api/profile/update — streams to the consent HTTP connection (body.streaming.url + flowId, sandbox header).
+ * Consent Manager sends updates[]; identity uses Email primary + ECID (Step 1) under body.streaming.xdmKey (e.g. _demoemea).
  */
 exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
