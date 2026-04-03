@@ -110,7 +110,6 @@
       <nav class="schema-aep-tabs" aria-label="Data sections">
         <button type="button" class="schema-aep-tab schema-aep-tab--active" data-aep-tab="overview" aria-current="page">Overview</button>
         <button type="button" class="schema-aep-tab" data-aep-tab="browse">Schemas</button>
-        <button type="button" class="schema-aep-tab" data-aep-tab="browse-v2">Schemas v2</button>
         <button type="button" class="schema-aep-tab" data-aep-tab="datasets">Datasets</button>
         <button type="button" class="schema-aep-tab" data-aep-tab="audiences">Audiences</button>
         <span class="schema-aep-tab schema-aep-tab--static" title="Use Experience Platform for this section">Classes</span>
@@ -133,20 +132,6 @@
             aria-label="Filter list by name or ID"
           />
         </div>
-        <div id="schemasV2StartWrap" class="schema-aep-v2-start-wrap" hidden>
-          <label for="schemasV2StartInput" class="schema-aep-v2-start-label">Start</label>
-          <input
-            type="text"
-            id="schemasV2StartInput"
-            class="schema-aep-v2-start-input"
-            value="Clear"
-            placeholder="Clear or prefix (e.g. B2B)"
-            autocomplete="off"
-            spellcheck="false"
-            title="Default “Clear” loads all tenant schemas (no start filter). Any other value is sent as Postman start=…; press Enter or tab out to apply."
-            aria-label="Schema title start prefix for Schemas v2 list; Clear means full list"
-          />
-          <button type="button" id="schemasV2ReloadBtn" class="schema-aep-v2-reload-btn">Reload</button>
         </div>
         <div class="sandbox-config schema-aep-sandbox">
           <label for="sandboxSelect" class="schema-aep-sandbox-label">Sandbox</label>
@@ -194,7 +179,6 @@
       </section>
 
       <p id="schemaBrowseCount" class="schema-aep-meta-line" role="status" hidden></p>
-      <p id="schemaBrowseV2Count" class="schema-aep-meta-line" role="status" hidden></p>
 
       <div id="schemaAepPanelBrowse" class="schema-aep-panel" hidden>
       <div class="schema-aep-workspace">
@@ -216,26 +200,6 @@
                 </tr>
               </thead>
               <tbody id="schemaTableBody"></tbody>
-            </table>
-          </div>
-          </div>
-          <div id="schemaBrowseV2TableWrap" class="schema-aep-browse-table-wrap" hidden>
-          <div class="schema-aep-table-scroll">
-            <table class="schema-aep-table" id="schemaBrowseV2Table">
-              <thead>
-                <tr>
-                  <th class="schema-aep-th-name schema-aep-th--sortable" scope="col" data-sort-v2="name" tabindex="0"><span class="schema-aep-th-label">Name</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
-                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="datasets" tabindex="0"><span class="schema-aep-th-label">Datasets</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
-                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="identities" tabindex="0"><span class="schema-aep-th-label">Identities</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
-                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="relationships" tabindex="0"><span class="schema-aep-th-label">Relationships</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
-                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="profile" tabindex="0"><span class="schema-aep-th-label">Enabled for Profile</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
-                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="class" tabindex="0"><span class="schema-aep-th-label">Class</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
-                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="type" tabindex="0"><span class="schema-aep-th-label">Type</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
-                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="behavior" tabindex="0"><span class="schema-aep-th-label">Behavior</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
-                  <th class="schema-aep-th--sortable" scope="col" data-sort-v2="lastModified" tabindex="0"><span class="schema-aep-th-label">Last modified</span><span class="schema-aep-sort-ind" aria-hidden="true"></span></th>
-                </tr>
-              </thead>
-              <tbody id="schemaTableV2Body"></tbody>
             </table>
           </div>
           </div>

@@ -1480,17 +1480,6 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
         return;
       }
 
-      case 'tenant-schemas-v2': {
-        const start = (req.query.start || '').trim();
-        let catInfo = null;
-        try { catInfo = await schemaViewerService.fetchCatalogDatasetSchemaInfo(accessToken, clientId, orgId, sandbox); } catch { catInfo = null; }
-        const datasetCounts = catInfo?.counts ?? null;
-        const { sandboxName, rawList } = await schemaViewerService.fetchTenantSchemasPostmanList(accessToken, clientId, orgId, sandbox, start);
-        const mapped = rawList.map((s) => schemaViewerService.mapSchemaToRow(s, datasetCounts)).filter((x) => x.id);
-        res.json({ sandbox: sandboxName, count: mapped.length, schemas: mapped, datasetCountsFromCatalog: datasetCounts != null, schemaListSource: 'postman-tenant-schemas-xdm+json', start: start || null });
-        return;
-      }
-
       case 'registry': {
         const schemaId = (req.query.schemaId || req.query.schema_id || '').trim();
         if (!schemaId) { res.status(400).json({ error: 'Missing schemaId (full schema URI).' }); return; }

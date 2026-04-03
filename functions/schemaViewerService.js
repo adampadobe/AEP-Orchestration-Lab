@@ -662,7 +662,6 @@ async function runAudiencePreviewSample(token, clientId, orgId, sandbox, audienc
 module.exports = {
   fetchSchemaById,
   fetchSchemaSummariesLightBatched,
-  fetchTenantSchemasPostmanList,
   fetchComposedSchemasListForSandbox,
   fetchCatalogDatasetSchemaInfo,
   fetchCatalogDatasetsList,
