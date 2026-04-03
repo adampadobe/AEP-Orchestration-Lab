@@ -1,9 +1,15 @@
 /**
- * Adobe Consent Manager – query profile, display ECID & consent, update AEP.
+ * Adobe Consent Manager – query profile by namespace, stream consent using profile email.
  */
 
 const customerEmail = document.getElementById('customerEmail');
-const profileEcid = document.getElementById('profileEcid');
+const identityNamespace = document.getElementById('identityNamespace');
+const profileResolvedEmailLine = document.getElementById('profileResolvedEmailLine');
+const profileResolvedEmailDisplay = document.getElementById('profileResolvedEmailDisplay');
+/** Email from the loaded profile; used as primary identity for consent streaming (not the lookup value when namespace ≠ email). */
+let consentStreamingEmail = '';
+/** Optional ECID from loaded profile; included in stream payload only when present. */
+let consentOptionalEcid = '';
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const clearFormBtn = document.getElementById('clearFormBtn');
@@ -401,10 +407,10 @@ function setAllRadios(value) {
 
 function clearForm() {
   customerEmail.value = '';
-  if (profileEcid) {
-    profileEcid.value = '';
-    profileEcid.placeholder = '—';
-  }
+  consentStreamingEmail = '';
+  consentOptionalEcid = '';
+  if (profileResolvedEmailLine) profileResolvedEmailLine.hidden = true;
+  if (identityNamespace) identityNamespace.value = 'email';
   step1Message.hidden = true;
   setTri('dataCollection', 'na');
   setTri('dataSharing', 'na');
@@ -445,9 +451,16 @@ function channelToTri(v) {
 }
 
 function applyProfileToForm(data) {
-  if (profileEcid) {
-    profileEcid.value = data.ecid ? String(data.ecid) : '';
-    profileEcid.placeholder = data.ecid ? '' : '—';
+  consentStreamingEmail = data.email ? String(data.email).trim() : '';
+  const rawEcid = data.ecid != null ? String(data.ecid).trim() : '';
+  consentOptionalEcid = rawEcid.length >= 10 ? rawEcid : '';
+  if (profileResolvedEmailDisplay && profileResolvedEmailLine) {
+    if (consentStreamingEmail) {
+      profileResolvedEmailDisplay.textContent = consentStreamingEmail;
+      profileResolvedEmailLine.hidden = false;
+    } else {
+      profileResolvedEmailLine.hidden = true;
+    }
   }
 
   if (preferredChannelSelect) {
@@ -525,15 +538,20 @@ function consentFormToStreamingUpdates() {
 }
 
 async function queryProfile() {
-  const email = (customerEmail.value || '').trim();
-  if (!email) {
-    showMessage(step1Message, 'Enter a customer email address.', 'error');
+  const identifier = (customerEmail.value || '').trim();
+  if (!identifier) {
+    showMessage(step1Message, 'Enter an identifier value that matches the selected namespace.', 'error');
     return;
   }
+  const ns = identityNamespace && identityNamespace.value ? identityNamespace.value : 'email';
   queryProfileBtn.disabled = true;
   showMessage(step1Message, 'Querying AEP for profile…', '');
   try {
-    const res = await fetch('/api/profile/consent?email=' + encodeURIComponent(email) + getSandboxParam());
+    const p = new URLSearchParams();
+    p.set('identifier', identifier);
+    p.set('namespace', ns);
+    if (ns === 'email') p.set('email', identifier);
+    const res = await fetch('/api/profile/consent?' + p.toString() + getSandboxParam());
     const text = await res.text();
     let data;
     try {
@@ -548,16 +566,16 @@ async function queryProfile() {
     }
     if (!data.found) {
       consentFingerprintBaseline = null;
-      if (profileEcid) {
-        profileEcid.value = '';
-        profileEcid.placeholder = '—';
-      }
-      showMessage(step1Message, 'No profile found for this email in Adobe Experience Platform.', 'error');
+      consentStreamingEmail = '';
+      consentOptionalEcid = '';
+      if (profileResolvedEmailLine) profileResolvedEmailLine.hidden = true;
+      showMessage(step1Message, 'No profile found for this identifier in Adobe Experience Platform.', 'error');
       return;
     }
-    if (typeof addEmail === 'function') addEmail(data.email || email);
+    if (typeof addEmail === 'function' && data.email) addEmail(data.email);
     applyProfileToForm(data);
-    showMessage(step1Message, 'Profile loaded successfully for ' + (data.email || email) + '.', 'success');
+    const displayName = data.email || identifier;
+    showMessage(step1Message, 'Profile loaded successfully for ' + displayName + '.', 'success');
   } catch (err) {
     showMessage(step1Message, err.message || 'Network error', 'error');
   } finally {
@@ -588,16 +606,16 @@ function buildChannelsFromForm() {
 }
 
 async function updateConsent() {
-  const email = (customerEmail.value || '').trim();
+  const email = consentStreamingEmail || (customerEmail.value || '').trim();
   if (!email) {
-    showMessage(step4Message, 'Query a profile first (Step 1).', 'error');
+    showMessage(
+      step4Message,
+      'Query a profile first (Step 1). Consent streaming requires the profile’s email as primary identity.',
+      'error',
+    );
     return;
   }
-  const ecid = profileEcid ? String(profileEcid.value || '').trim() : '';
-  if (!ecid || ecid.length < 10) {
-    showMessage(step4Message, 'Load a profile first (Step 1) to get ECID, or paste a valid ECID.', 'error');
-    return;
-  }
+  const ecid = consentOptionalEcid || '';
   if (consentFingerprintBaseline != null && consentStateFingerprint() === consentFingerprintBaseline) {
     showMessage(
       step4Message,
@@ -622,7 +640,7 @@ async function updateConsent() {
   try {
     const { ok, data } = await postProfileUpdate({
       email,
-      ecid,
+      ...(ecid ? { ecid } : {}),
       updates,
       sandbox: getSandboxNameForApi() || undefined,
       streaming,
@@ -642,11 +660,11 @@ async function updateConsent() {
 }
 
 function previewData() {
-  const email = (customerEmail.value || '').trim();
+  const email = consentStreamingEmail || (customerEmail.value || '').trim();
   const ma = getTri('marketingAny');
   const payload = {
     email,
-    ecid: profileEcid ? profileEcid.value.trim() || null : null,
+    ecid: consentOptionalEcid || null,
     marketingConsent: ma === 'y' ? 'Y' : ma === 'n' ? 'N' : null,
     dataCollection: getTri('dataCollection'),
     dataSharing: getTri('dataSharing'),
@@ -701,6 +719,7 @@ saveStreamBtn &&
 queryProfileBtn.addEventListener('click', queryProfile);
 clearFormBtn.addEventListener('click', clearForm);
 sampleDataBtn.addEventListener('click', () => {
+  if (identityNamespace) identityNamespace.value = 'email';
   customerEmail.value = SAMPLE_EMAIL;
   queryProfile();
 });

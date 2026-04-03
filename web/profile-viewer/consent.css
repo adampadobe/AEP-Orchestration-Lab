@@ -179,6 +179,39 @@ body.home-dashboard-concierge.consent-page .consent-message:not(.success):not(.e
   max-width: none;
 }
 
+.consent-step1-row select.sandbox-select {
+  width: 100%;
+  max-width: none;
+}
+
+.consent-resolved-email {
+  margin: 0.65rem 0 0.15rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #2a4a2a;
+  background: #eef6ee;
+  border: 1px solid #c5dcc5;
+  border-radius: 8px;
+}
+
+.consent-resolved-email__label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+  color: #1e3d1e;
+}
+
+body.consent-page:not(.home-dashboard-concierge) .consent-resolved-email {
+  color: #b8d4b8;
+  background: rgba(40, 60, 45, 0.45);
+  border-color: #4a6b52;
+}
+
+body.consent-page:not(.home-dashboard-concierge) .consent-resolved-email__label {
+  color: #d0e8d0;
+}
+
 @media (max-width: 640px) {
   .consent-step1-row {
     grid-template-columns: 1fr;

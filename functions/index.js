@@ -730,13 +730,10 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   const sandbox = resolveSandboxForProfileBody(req);
 
   if (!email) {
-    res.status(400).json({ error: 'Email is required.' });
+    res.status(400).json({ error: 'Email is required (primary identity for consent streaming).' });
     return;
   }
-  if (!ecid || ecid.length < 10) {
-    res.status(400).json({ error: 'ECID is required (load profile first).' });
-    return;
-  }
+  const ecidForPayload = ecid.length >= 10 ? ecid : '';
   if (hasConsent && updates.length > 0) {
     res.status(400).json({ error: 'Send either updates or consent, not both.' });
     return;
@@ -803,8 +800,8 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     demoemea = {
       identification: {
         core: {
-          ecid,
           email,
+          ...(ecidForPayload ? { ecid: ecidForPayload } : {}),
         },
       },
       consents: fragment._demoemea.consents,
@@ -817,8 +814,8 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     demoemea = {
       identification: {
         core: {
-          ecid,
           email,
+          ...(ecidForPayload ? { ecid: ecidForPayload } : {}),
         },
       },
     };
@@ -861,7 +858,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   const { payload, format: payloadFormat } = buildProfileStreamPayload(
     demoemea,
     email,
-    ecid,
+    ecidForPayload,
     xdmKey,
     orgId,
     sourceLabel,
@@ -986,10 +983,13 @@ exports.profileConsentProxy = onRequest(profileFnOpts, async (req, res) => {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
-  const email = String(req.query.email || '').trim();
   const sandbox = resolveSandboxFromQuery(req);
-  if (!email) {
-    res.status(400).json({ error: 'Missing email. Use ?email=user@example.com' });
+  const identifier = String(req.query.identifier || req.query.email || '').trim();
+  const namespace = String(req.query.namespace || 'email').trim().toLowerCase();
+  if (!identifier) {
+    res.status(400).json({
+      error: 'Missing identifier. Use ?email=… or ?identifier=…&namespace=email|ecid|crmId|loyaltyId|phone',
+    });
     return;
   }
   let accessToken;
@@ -1002,8 +1002,8 @@ exports.profileConsentProxy = onRequest(profileFnOpts, async (req, res) => {
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
   try {
-    const ups = await fetchUpsProfileEntities(email, sandbox, accessToken, clientId, orgId);
-    const payload = buildConsentGetPayload(email, ups);
+    const ups = await fetchUpsProfileEntities(identifier, sandbox, accessToken, clientId, orgId, namespace);
+    const payload = buildConsentGetPayload(identifier, ups);
     res.status(200).json(payload);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });

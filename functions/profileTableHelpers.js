@@ -296,9 +296,23 @@ function buildProfileTablePayload(email, response) {
 const UPS_ENTITIES = 'https://platform.adobe.io/data/core/ups/access/entities';
 
 /**
- * Fetch profile entities; tries email namespace then Email (sandbox variance).
+ * UI namespace key → UPS entityIdNS attempts (order matters; sandboxes vary casing).
+ * Unknown keys fall back to a single attempt using the key as entityIdNS (custom namespaces).
  */
-async function fetchUpsProfileEntities(email, sandboxName, token, clientId, orgId) {
+const PROFILE_LOOKUP_NAMESPACE_TRIES = {
+  email: ['email', 'Email'],
+  ecid: ['ECID', 'ecid'],
+  crmid: ['CRMId', 'crmId', 'CrmId', 'CRMid'],
+  loyaltyid: ['Loyalty', 'loyaltyId', 'LoyaltyId'],
+  phone: ['Phone', 'phone'],
+};
+
+/**
+ * Fetch profile by identity value and namespace (Consent Manager / Profile table).
+ * @param {string} identityValue - email, ECID, CRM ID, etc.
+ * @param {string} [namespaceKey='email'] - key from PROFILE_LOOKUP_NAMESPACE_TRIES or custom UPS namespace code
+ */
+async function fetchUpsProfileEntities(identityValue, sandboxName, token, clientId, orgId, namespaceKey = 'email') {
   const headers = {
     Authorization: `Bearer ${token}`,
     'x-api-key': clientId,
@@ -306,12 +320,16 @@ async function fetchUpsProfileEntities(email, sandboxName, token, clientId, orgI
     'x-sandbox-name': sandboxName,
     Accept: 'application/json',
   };
+  const rawKey = String(namespaceKey || 'email').trim();
+  const norm = rawKey.toLowerCase().replace(/[\s_-]+/g, '');
+  const entityIdNsList =
+    PROFILE_LOOKUP_NAMESPACE_TRIES[norm] || (rawKey && rawKey !== 'email' ? [rawKey] : PROFILE_LOOKUP_NAMESPACE_TRIES.email);
   let lastMessage = null;
   let sawOkEmpty = false;
-  for (const entityIdNS of ['email', 'Email']) {
+  for (const entityIdNS of entityIdNsList) {
     const qs = new URLSearchParams({
       'schema.name': '_xdm.context.profile',
-      entityId: email,
+      entityId: identityValue,
       entityIdNS,
     });
     const url = `${UPS_ENTITIES}?${qs}`;

@@ -159,10 +159,11 @@ function buildProfileXdmEntityForStream(tenantPayload, email, ecid, xdmKey, root
   const key = (xdmKey && String(xdmKey).trim()) || '_demoemea';
   const { consents, optInOut } = resolveStreamingConsentsOptInOut(tenantPayload, email);
   const roots = rootProfileFields && typeof rootProfileFields === 'object' ? rootProfileFields : {};
+  const hasEcid = ecid != null && String(ecid).trim().length >= 10;
   const entity = {
     identityMap: {
       Email: [{ id: email, primary: true }],
-      ECID: [{ id: String(ecid), primary: false }],
+      ...(hasEcid ? { ECID: [{ id: String(ecid).trim(), primary: false }] } : {}),
     },
     consents,
     optInOut,
@@ -199,7 +200,7 @@ function buildProfileStreamingEnvelope(xdmEntity, orgId, sourceLabel, datasetId,
 }
 
 /**
- * Builds DCS HTTP API body. Identity: Email primary, ECID secondary (matches consent schema descriptor on tenant email).
+ * Builds DCS HTTP API body. Identity: Email primary; ECID included only when a valid ECID is provided.
  * Bare format duplicates consents/optInOut at root only when tenant lacks them (attribute-only updates use defaults).
  *
  * @returns {{ payload: object, format: 'envelope' | 'bare' }}
@@ -219,11 +220,12 @@ function buildProfileStreamPayload(
   if (!useEnvelope) {
     const k = (xdmKey && String(xdmKey).trim()) || '_demoemea';
     const { consents, optInOut } = resolveStreamingConsentsOptInOut(demoemeaTenantObject, email);
+    const hasEcid = ecid != null && String(ecid).trim().length >= 10;
     return {
       payload: {
         identityMap: {
           Email: [{ id: email, primary: true }],
-          ECID: [{ id: String(ecid), primary: false }],
+          ...(hasEcid ? { ECID: [{ id: String(ecid).trim(), primary: false }] } : {}),
         },
         [k]: demoemeaTenantObject,
         consents,

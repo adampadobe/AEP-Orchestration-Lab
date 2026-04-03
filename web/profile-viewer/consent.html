@@ -99,7 +99,7 @@
     <!-- Step 1: Query Customer Profile -->
     <section class="consent-panel" id="step1">
       <h2 class="panel-title"><span class="icon">🔍</span> Step 1: Query customer profile</h2>
-      <p class="panel-desc">Enter the customer email and query Adobe Experience Platform. Profile ECID is filled when a profile is found.</p>
+      <p class="panel-desc">Pick an <strong>identity namespace</strong> and enter the matching value (email, ECID, CRM ID, etc.). Experience Platform returns the profile; <strong>consent updates always stream using the profile’s email</strong> as the primary identity.</p>
       <div class="sandbox-config" style="margin-bottom: 1rem;">
         <h3 class="sandbox-config-title" style="font-size: 0.95rem; margin-bottom: 0.35rem;">AEP sandbox</h3>
         <div class="form-row">
@@ -111,14 +111,24 @@
       </div>
       <div class="consent-step1-row">
         <div class="consent-step1-field">
-          <label for="customerEmail">Customer email address</label>
-          <input type="text" id="customerEmail" placeholder="e.g. user@example.com" value="" autocomplete="email" spellcheck="false">
+          <label for="identityNamespace">Identity namespace (Profile API)</label>
+          <select id="identityNamespace" class="sandbox-select" aria-label="Identity namespace for profile lookup">
+            <option value="email">Email</option>
+            <option value="ecid">ECID</option>
+            <option value="crmId">CRM ID</option>
+            <option value="loyaltyId">Loyalty ID</option>
+            <option value="phone">Phone</option>
+          </select>
         </div>
-        <div class="consent-step1-field consent-step1-field--ecid">
-          <label for="profileEcid">Profile ECID</label>
-          <input type="text" id="profileEcid" class="consent-ecid-input" readonly placeholder="—" aria-readonly="true" title="Populated after a successful profile query">
+        <div class="consent-step1-field">
+          <label for="customerEmail">Identifier value</label>
+          <input type="text" id="customerEmail" placeholder="Email, ECID, CRM ID, or phone (match namespace)" value="" autocomplete="off" spellcheck="false">
         </div>
       </div>
+      <p id="profileResolvedEmailLine" class="consent-resolved-email" hidden role="status">
+        <span class="consent-resolved-email__label">Email used for consent streaming (primary identity):</span>
+        <strong id="profileResolvedEmailDisplay"></strong>
+      </p>
       <div class="button-row consent-step1-button-toolbar">
         <div class="consent-step1-toolbar-primary">
           <button type="button" id="queryProfileBtn" class="btn btn-primary btn-query">🔍 Query Customer Profile</button>
@@ -402,7 +412,7 @@
     <section class="consent-panel" id="step4">
       <h2 class="panel-title"><span class="icon">🚀</span> Step 3: Save changes to Adobe Experience Platform</h2>
       <p class="panel-desc consent-save-desc">
-        Sends consent data to the <strong>DCS collection URL</strong> and <strong>flow</strong> you configured under Sandbox &amp; streaming connection, using the selected <strong>sandbox</strong> and tenant key (e.g. <code>_demoemea</code>). The payload uses <strong>email as the primary identity</strong> in <code>identityMap</code> and includes <strong>ECID</strong> from Step 1 together with <code>identification.core.email</code> under your tenant namespace — aligned with the consent schema’s primary Email descriptor. Ensure URL, Flow ID, and (if envelope mode is on) dataset and schema IDs are saved before updating.
+        Sends consent data to the <strong>DCS collection URL</strong> and <strong>flow</strong> you configured under Sandbox &amp; streaming connection, using the selected <strong>sandbox</strong> and tenant key (e.g. <code>_demoemea</code>). The payload uses the profile <strong>email from Step 1</strong> as the <strong>primary identity</strong> in <code>identityMap</code> and <code>identification.core.email</code> (ECID is included only when the loaded profile has one). Ensure URL, Flow ID, and (if envelope mode is on) dataset and schema IDs are saved before updating.
       </p>
       <div class="button-row">
         <button type="button" id="updateConsentBtn" class="btn btn-save">Update Consent Preferences</button>
