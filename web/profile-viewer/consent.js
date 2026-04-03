@@ -704,56 +704,157 @@ function consentFormToStreamingUpdates() {
   return updates;
 }
 
-/** Map form radios to legacy Consent Manager yes/no (firebaseFunctions/adobe/consent-manager.js). */
-function triToLegacyYesNo(tri) {
-  return tri === 'y' ? 'yes' : 'no';
-}
-
-function consentFormToLegacyConsents() {
-  const preferredLanguage = preferredLanguageSelect ? preferredLanguageSelect.value : 'en-US';
-  return {
-    consentCollect: triToLegacyYesNo(getTri('dataCollection')),
-    consentShare: triToLegacyYesNo(getTri('dataSharing')),
-    consentPersonalize: triToLegacyYesNo(getTri('contentPersonalization')),
-    marketingAny: triToLegacyYesNo(getTri('marketingAny')),
-    marketingEmail: triToLegacyYesNo(getTri('emailGeneric')),
-    marketingEmailSpecific: triToLegacyYesNo(getTri('emailSpecific')),
-    marketingSms: triToLegacyYesNo(getTri('smsMarketing')),
-    marketingPush: triToLegacyYesNo(getTri('pushMarketing')),
-    marketingCall: triToLegacyYesNo(getTri('phoneMarketing')),
-    marketingMail: triToLegacyYesNo(getTri('postalMarketing')),
-    marketingWhatsapp: triToLegacyYesNo(getTri('whatsappMarketing')),
-    preferredChannel: preferredChannelSelect ? preferredChannelSelect.value : 'email',
-    preferredLanguage,
-  };
-}
-
-function legacyCustomerInfoFromStep1() {
+/**
+ * Build the full DCS payload client-side — exact replica of the old Firebase consent-manager.html buildConsentPayload().
+ * The server just adds auth headers and forwards this to DCS.
+ */
+function buildConsentPayload() {
   const email = consentStreamingEmail || String(customerEmail.value || '').trim();
   const pfn = document.getElementById('profileFirstName');
   const pln = document.getElementById('profileLastName');
   const firstName = pfn ? String(pfn.value || '').trim() : '';
   const lastName = pln ? String(pln.value || '').trim() : '';
   const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
-  return { email, firstName, lastName, fullName };
+
+  const streaming = getStreamingPayload();
+  const schemaId = streaming.schemaId || '';
+  const datasetId = streaming.datasetId || '';
+  const xdmKey = streaming.xdmKey || '_demoemea';
+  const sourceName = streaming.flowName || 'Consent Manager - Profile Update';
+
+  const preferredChannel = preferredChannelSelect ? preferredChannelSelect.value : 'email';
+  const preferredLanguage = preferredLanguageSelect ? preferredLanguageSelect.value : 'en-US';
+  const currentTime = new Date().toISOString();
+
+  function triVal(name) { return getTri(name) === 'y' ? 'y' : 'n'; }
+  function triReason(name) { return getTri(name) === 'y' ? {} : { reason: 'User preference' }; }
+
+  const payload = {
+    header: {
+      schemaRef: {
+        id: schemaId,
+        contentType: 'application/vnd.adobe.xed-full+json;version=1.0',
+      },
+      imsOrgId: '',
+      datasetId: datasetId,
+      source: { name: sourceName },
+    },
+    body: {
+      xdmMeta: {
+        schemaRef: {
+          id: schemaId,
+          contentType: 'application/vnd.adobe.xed-full+json;version=1.0',
+        },
+      },
+      xdmEntity: {
+        [xdmKey]: {
+          identification: {
+            core: {
+              email: email,
+            },
+          },
+        },
+        _id: crypto.randomUUID(),
+        _repo: {
+          createDate: currentTime,
+          modifyDate: currentTime,
+        },
+        preferredLanguage: preferredLanguage,
+        consents: {
+          collect: {
+            val: triVal('dataCollection'),
+          },
+          idSpecific: {
+            Email: {
+              [email]: {
+                marketing: {
+                  email: {
+                    ...triReason('emailSpecific'),
+                    time: currentTime,
+                    val: triVal('emailSpecific'),
+                  },
+                },
+              },
+            },
+          },
+          marketing: {
+            any: {
+              ...triReason('marketingAny'),
+              time: currentTime,
+              val: triVal('marketingAny'),
+            },
+            email: {
+              ...triReason('emailGeneric'),
+              time: currentTime,
+              val: triVal('emailGeneric'),
+            },
+            sms: {
+              ...triReason('smsMarketing'),
+              time: currentTime,
+              val: triVal('smsMarketing'),
+            },
+            push: {
+              ...triReason('pushMarketing'),
+              time: currentTime,
+              val: triVal('pushMarketing'),
+            },
+            call: {
+              ...triReason('phoneMarketing'),
+              time: currentTime,
+              val: triVal('phoneMarketing'),
+            },
+            postalMail: {
+              ...triReason('postalMarketing'),
+              time: currentTime,
+              val: triVal('postalMarketing'),
+            },
+            whatsApp: {
+              ...triReason('whatsappMarketing'),
+              time: currentTime,
+              val: triVal('whatsappMarketing'),
+            },
+            preferred: preferredChannel,
+            preferredLanguage: preferredLanguage,
+          },
+          personalize: {
+            content: {
+              val: triVal('contentPersonalization'),
+            },
+          },
+          share: {
+            val: triVal('dataSharing'),
+          },
+        },
+        person: {
+          name: {
+            firstName: firstName,
+            lastName: lastName,
+            fullName: fullName,
+          },
+        },
+        personID: email,
+        metadata: {
+          time: currentTime,
+        },
+      },
+    },
+  };
+  return payload;
 }
 
-/** POST /api/consent/legacy-update — same contract as emeapresales / AI Projects firebaseFunctions consent-manager. */
-async function postLegacyConsentUpdate(body) {
-  const payload =
-    body && typeof body === 'object' && !Array.isArray(body) ? { ...body } : {};
-  if (
-    (payload.sandbox == null || String(payload.sandbox).trim() === '') &&
-    typeof global.AepGlobalSandbox !== 'undefined' &&
-    typeof global.AepGlobalSandbox.getSandboxName === 'function'
-  ) {
-    const sn = global.AepGlobalSandbox.getSandboxName();
-    if (sn) payload.sandbox = sn;
+/** POST /api/consent/legacy-update — sends the client-built payload; server just adds auth + forwards to DCS. */
+async function postLegacyConsentUpdate({ payload, collectionUrl, flowId, sandbox, dryRun }) {
+  const body = { payload, collectionUrl, flowId, dryRun };
+  if (sandbox) {
+    body.sandbox = sandbox;
+  } else if (typeof getSandboxNameForApi === 'function') {
+    const sn = getSandboxNameForApi();
+    if (sn) body.sandbox = sn;
   }
   const res = await fetch('/api/consent/legacy-update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
   let data = {};
   try {
@@ -865,12 +966,12 @@ async function updateConsent() {
   updateConsentBtn.disabled = true;
   showMessage(step4Message, 'Updating…', '');
   try {
+    const payload = buildConsentPayload();
     const { ok, data } = await postLegacyConsentUpdate({
-      entityId: email,
-      consents: consentFormToLegacyConsents(),
-      customerInfo: legacyCustomerInfoFromStep1(),
+      payload,
+      collectionUrl: streaming.url,
+      flowId: streaming.flowId,
       sandbox: getSandboxNameForApi() || undefined,
-      streaming: { ...streaming },
     });
     if (!ok) {
       showMessage(step4Message, formatProfileUpdateError(data), 'error');
@@ -926,7 +1027,7 @@ function toggleConsentPreviewPanel() {
   setConsentPreviewMinimized(!consentPreviewPanel.classList.contains('consent-preview-panel--minimized'));
 }
 
-/** Dry-run DCS envelope — legacy Consent Manager shape (same as Update). */
+/** Preview — builds the DCS payload client-side (no server round-trip needed). */
 async function previewData() {
   const email = consentStreamingEmail || (customerEmail.value || '').trim();
   if (!email) {
@@ -942,35 +1043,18 @@ async function previewData() {
     );
     return;
   }
-  if (!previewDataBtn) return;
-  previewDataBtn.disabled = true;
-  showMessage(step4Message, 'Building preview…', '');
   try {
-    const { ok, data } = await postLegacyConsentUpdate({
-      entityId: email,
-      consents: consentFormToLegacyConsents(),
-      customerInfo: legacyCustomerInfoFromStep1(),
-      sandbox: getSandboxNameForApi() || undefined,
-      streaming: { ...streaming },
-      dryRun: true,
-    });
-    if (!ok || !data || !data.envelope) {
-      showMessage(step4Message, formatProfileUpdateError(data) || 'Preview failed', 'error');
-      return;
-    }
+    const payload = buildConsentPayload();
     if (consentPreviewPanel && consentPreviewNote && consentPreviewPre) {
       consentPreviewPanel.hidden = false;
       setConsentPreviewMinimized(false);
       consentPreviewNote.textContent =
-        data.note ||
-        'Legacy Consent Manager envelope: slim tenant identification + root consents + idSpecific.Email (firebaseFunctions consent-manager.js shape). Dataset/schema from your saved connection.';
-      consentPreviewPre.textContent = JSON.stringify(data.envelope, null, 2);
+        'Client-built DCS payload — same shape as old Firebase consent-manager. This is exactly what will be sent to DCS.';
+      consentPreviewPre.textContent = JSON.stringify(payload, null, 2);
     }
     showMessage(step4Message, 'Payload preview loaded below — use Minimize or the header to collapse.', 'success');
   } catch (err) {
     showMessage(step4Message, err.message || 'Preview failed', 'error');
-  } finally {
-    previewDataBtn.disabled = false;
   }
 }
 

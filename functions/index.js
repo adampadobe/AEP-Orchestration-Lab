@@ -58,7 +58,6 @@ const {
   parseStreamingCollectionResponse,
 } = require('./profileStreamingCore');
 const {
-  buildLegacyConsentManagerEnvelope,
   buildLegacyConsentDcsHeaders,
   redactLegacyConsentDcsHeaders,
 } = require('./consentManagerLegacy');
@@ -981,8 +980,11 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
 });
 
 /**
- * POST /api/consent/legacy-update — emeapresales / firebaseFunctions consent-manager.js compatible streaming.
- * Body: { entityId, consents, customerInfo?, sandbox?, dryRun?, streaming: { url, flowId?, datasetId, schemaId, xdmKey?, imsOrgId?, apiKey?, flowName? } }
+ * POST /api/consent/legacy-update — mirrors the old firebaseFunctions consent-manager flow exactly.
+ * Client builds the full DCS payload (header + body + xdmEntity) and sends it here.
+ * This function only adds auth headers and forwards the payload to DCS — no server-side XDM building.
+ *
+ * Body: { payload: { header, body }, collectionUrl, flowId?, sandbox?, dryRun? }
  */
 exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
@@ -996,71 +998,35 @@ exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) =
   }
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const dryRun = body.dryRun === true || body.dryRun === 'true';
-  const entityId = String(body.entityId || '').trim();
-  const consents = body.consents;
-  const customerInfo = body.customerInfo && typeof body.customerInfo === 'object' ? body.customerInfo : {};
-  const streaming = body.streaming && typeof body.streaming === 'object' ? body.streaming : {};
   const sandbox = resolveSandboxForProfileBody(req);
 
-  if (!entityId) {
-    res.status(400).json({ ok: false, success: false, error: 'entityId is required (email used for idSpecific and personID).' });
-    return;
-  }
-  if (!consents || typeof consents !== 'object' || Array.isArray(consents)) {
+  const payload = body.payload;
+  if (!payload || typeof payload !== 'object' || !payload.header || !payload.body) {
     res.status(400).json({
       ok: false,
       success: false,
-      error: 'consents object is required (legacy yes/no fields: consentCollect, marketingAny, …).',
+      error: 'payload object with header + body is required (client-built DCS envelope).',
     });
     return;
   }
-
-  const streamUrl = String(streaming.url || '').trim();
-  const flowId = String(streaming.flowId || '').trim();
-  const datasetId = String(streaming.datasetId || '').trim();
-  const schemaId = String(streaming.schemaId || '').trim();
-  const xdmKey = String(streaming.xdmKey || '_demoemea').trim();
-  const apiKey = String(streaming.apiKey || '').trim() || ADOBE_CLIENT_ID.value();
-  const orgFromStream = String(streaming.imsOrgId || '').trim();
-  const orgId = orgFromStream || ADOBE_IMS_ORG.value();
-  const sourceName =
-    String(streaming.flowName || streaming.sourceName || '').trim() || 'Consent Manager - Profile Update';
-
-  if (!datasetId || !schemaId) {
-    res.status(400).json({
-      ok: false,
-      success: false,
-      error: 'streaming.datasetId and streaming.schemaId are required.',
-    });
-    return;
-  }
-
-  const envelope = buildLegacyConsentManagerEnvelope(entityId, consents, customerInfo, {
-    schemaId,
-    datasetId,
-    imsOrgId: orgId,
-    sourceName,
-    tenantKey: xdmKey,
-  });
 
   if (dryRun) {
     res.status(200).json({
       ok: true,
       success: true,
       dryRun: true,
-      envelope,
-      imsOrgId: orgId,
-      note:
-        'Legacy Consent Manager envelope (firebaseFunctions/adobe/consent-manager.js shape): slim tenant + root consents; no identityMap.',
+      payload,
+      note: 'Client-built DCS payload (same shape as old Firebase consent-manager). Ready to send.',
     });
     return;
   }
 
-  if (!streamUrl) {
+  const collectionUrl = String(body.collectionUrl || '').trim();
+  if (!collectionUrl) {
     res.status(400).json({
       ok: false,
       success: false,
-      error: 'streaming.url (DCS collection URL) is required for live update.',
+      error: 'collectionUrl (DCS collection URL) is required for live update.',
     });
     return;
   }
@@ -1073,15 +1039,18 @@ exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) =
     return;
   }
 
+  const flowId = String(body.flowId || '').trim();
+  const apiKey = ADOBE_CLIENT_ID.value();
+  const orgId = ADOBE_IMS_ORG.value();
   const headers = buildLegacyConsentDcsHeaders(accessToken, sandbox, flowId, apiKey, orgId);
 
   let streamRes;
   let rawText;
   try {
-    streamRes = await fetch(streamUrl, {
+    streamRes = await fetch(collectionUrl, {
       method: 'POST',
       headers,
-      body: JSON.stringify(envelope),
+      body: JSON.stringify(payload),
     });
     rawText = await streamRes.text();
   } catch (e) {
@@ -1098,7 +1067,7 @@ exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) =
       error: streamErrors.length ? streamErrors.join(' ') : 'Streaming failed',
       streamingStatus: streamRes.status,
       streamingResponse: data,
-      sentToAep: envelope,
+      sentToAep: payload,
       requestHeaders: redactLegacyConsentDcsHeaders(headers),
     });
     return;
@@ -1108,8 +1077,7 @@ exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) =
     ok: true,
     success: true,
     message: 'Consent update sent successfully.',
-    entityId,
-    sentToAep: envelope,
+    sentToAep: payload,
     streamingResponse: data,
     streamingWarning: streamWarnings.length ? streamWarnings.join(' ') : undefined,
     requestHeaders: redactLegacyConsentDcsHeaders(headers),
