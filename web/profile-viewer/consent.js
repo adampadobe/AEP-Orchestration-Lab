@@ -158,17 +158,7 @@ function getStreamingPayload() {
 function loadStreamFieldsFromStorage() {
   try {
     const key = streamStorageKey();
-    let raw = localStorage.getItem(key);
-    if (!raw && key !== STREAM_LS_KEY) {
-      raw = localStorage.getItem(STREAM_LS_KEY);
-      if (raw) {
-        try {
-          localStorage.setItem(key, raw);
-        } catch {
-          /* ignore */
-        }
-      }
-    }
+    const raw = localStorage.getItem(key);
     if (!raw) return;
     const o = JSON.parse(raw);
     const u = document.getElementById('streamUrl');
@@ -285,7 +275,6 @@ async function pullConsentConnectionFromFirestore() {
     const res = await fetch('/api/consent-connection' + consentInfraQuerySuffix());
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.ok === false) {
-      loadStreamFieldsFromStorage();
       return false;
     }
     if (data.record) {
@@ -293,12 +282,8 @@ async function pullConsentConnectionFromFirestore() {
       saveStreamFieldsToStorage();
       return true;
     }
-    clearStreamingFormFields({ skipSave: true });
-    loadStreamFieldsFromStorage();
-    saveStreamFieldsToStorage();
     return false;
   } catch {
-    loadStreamFieldsFromStorage();
     return false;
   }
 }
