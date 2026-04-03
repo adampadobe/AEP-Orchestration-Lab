@@ -182,7 +182,14 @@
       <div class="consent-setup-instructions" style="background: var(--card-bg, #f5f5f5); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; border-left: 4px solid var(--accent, #1473e6);">
         <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Before you can use the Consent Manager on a new sandbox:</h4>
         <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.9rem; line-height: 1.6;">
-          <li><strong>Create a Schema</strong> — In AEP, go to <em>Schemas</em> and create a new schema using the <strong>XDM Individual Profile</strong> class. Add the following field groups: <strong>Profile Identity v1</strong> (or your tenant identity group with <code>email</code>), <strong>Profile Consents</strong>, <strong>Profile Person Details</strong>, and <strong>Profile Preferences Details</strong>. Set the primary identity to <code>_{tenant}.identification.core.email</code> with namespace <strong>Email</strong>. Copy the <strong>Schema $id</strong>.</li>
+          <li><strong>Create a Schema</strong> — In AEP, go to <em>Schemas</em> and create a new schema using the <strong>XDM Individual Profile</strong> class. Add these four field groups:
+            <ul style="margin: 0.25rem 0 0.25rem 0; padding-left: 1.25rem;">
+              <li><strong>Profile Core v2</strong> — custom tenant identity fields (includes <code>email</code>)</li>
+              <li><strong>Preference Details</strong> — preferred language and communication preferences</li>
+              <li><strong>Consent and Preference Details</strong> — marketing consent flags (email, SMS, push, call, postal, etc.)</li>
+              <li><strong>Demographic Details</strong> — person name and demographic attributes</li>
+            </ul>
+            Set the primary identity to <code>_{tenant}.identification.core.email</code> with namespace <strong>Email</strong>. Copy the <strong>Schema $id</strong>.</li>
           <li><strong>Create a Dataset</strong> — In AEP, go to <em>Datasets</em> and create a new dataset from your schema. Enable it for <strong>Real-Time Customer Profile</strong> if you want consent updates to appear on the profile. Copy the <strong>Dataset ID</strong>.</li>
           <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. Copy the <strong>Collection URL</strong> and <strong>Flow ID</strong>.</li>
           <li><strong>Enter the details below</strong> — Paste Schema $id, Dataset ID, Flow ID, and Collection URL into the fields, then click <strong>Save connection</strong>. The connection is stored per sandbox in Firebase so you only need to do this once.</li>
