@@ -4,7 +4,7 @@
  *
  * 1) GET profile via deployed /api/profile/consent
  * 2) POST /api/profile/update with dryRun:true (needs dataset + schema in env)
- * 3) Optional live POST when STREAM_URL + STREAM_FLOW_ID + profile ECID and --send
+ * 3) Optional live POST when STREAM_URL + STREAM_FLOW_ID are set and --send (ECID optional in body)
  *
  * Usage:
  *   node scripts/consent-stream-uat.mjs \
@@ -172,10 +172,6 @@ async function main() {
   }
 
   if (doSend) {
-    if (!profile.ecid || String(profile.ecid).trim().length < 10) {
-      console.error('--send requires profile ECID from Step 1 / GET consent (Profile Viewer parity).');
-      process.exit(1);
-    }
     if (!streamUrl || !streamFlowId) {
       console.error('--send requires STREAM_URL and STREAM_FLOW_ID');
       process.exit(1);

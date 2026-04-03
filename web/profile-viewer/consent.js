@@ -8,7 +8,7 @@ const profileResolvedEmailLine = document.getElementById('profileResolvedEmailLi
 const profileResolvedEmailDisplay = document.getElementById('profileResolvedEmailDisplay');
 /** Email from the loaded profile; used as primary identity for consent streaming (not the lookup value when namespace ≠ email). */
 let consentStreamingEmail = '';
-/** ECID from loaded profile; required for live streaming (Profile Viewer parity). */
+/** Optional ECID from loaded profile; added to stream payload when present (email-primary flows work without it). */
 let consentOptionalEcid = '';
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 const queryProfileBtn = document.getElementById('queryProfileBtn');
@@ -516,14 +516,13 @@ function refreshProfileStreamingIdentityNote() {
     return;
   }
   el.hidden = false;
+  el.classList.remove('consent-streaming-identity-hint--warn');
   if (consentOptionalEcid && consentOptionalEcid.length >= 10) {
     el.textContent =
-      'ECID is available — Step 3 uses the same streaming payload as Profile Viewer (identityMap, root consents/optInOut, _demoemea + demoemea).';
-    el.classList.remove('consent-streaming-identity-hint--warn');
+      'ECID is present — it will be included in identityMap and tenant identification (optional; email-primary streaming still works without it).';
   } else {
     el.textContent =
-      'No ECID on this profile. “Update Consent Preferences” requires ECID. Load a profile that has ECID in AEP or resolve identity first.';
-    el.classList.add('consent-streaming-identity-hint--warn');
+      'No ECID on this profile — updates still stream using email as primary identity (same pattern as the EMEA presales Consent Manager).';
   }
 }
 
@@ -786,14 +785,6 @@ async function updateConsent() {
     return;
   }
   const ecid = consentOptionalEcid || '';
-  if (!ecid || ecid.length < 10) {
-    showMessage(
-      step4Message,
-      'ECID is required to stream consent (same as Profile Viewer). Load a profile in Step 1 that includes an ECID, or use an identity that resolves to ECID in AEP.',
-      'error',
-    );
-    return;
-  }
   if (consentFingerprintBaseline != null && consentStateFingerprint() === consentFingerprintBaseline) {
     showMessage(
       step4Message,
@@ -818,7 +809,7 @@ async function updateConsent() {
   try {
     const { ok, data } = await postProfileUpdate({
       email,
-      ecid,
+      ...(ecid && ecid.length >= 10 ? { ecid } : {}),
       updates,
       sandbox: getSandboxNameForApi() || undefined,
       streaming: { ...streaming },
@@ -914,7 +905,7 @@ async function previewData() {
       setConsentPreviewMinimized(false);
       consentPreviewNote.textContent =
         data.note ||
-        'Dry-run envelope (header + body). Matches Profile Viewer streaming: identityMap, root consents/optInOut, _demoemea + demoemea, person.name. Live update requires ECID.';
+        'Dry-run envelope (header + body). Email-primary streaming; ECID included when the profile has one. Root consents/optInOut, _demoemea + demoemea, person.name.';
       consentPreviewPre.textContent = JSON.stringify(data.envelope, null, 2);
     }
     showMessage(step4Message, 'Payload preview loaded below — use Minimize or the header to collapse.', 'success');

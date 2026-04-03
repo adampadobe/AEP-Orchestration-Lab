@@ -712,7 +712,7 @@ exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
 /**
  * POST /api/profile/update — streams to the consent HTTP connection (body.streaming.url + flowId, sandbox).
  * Default payload matches Profile Viewer: buildProfileStreamPayload (identityMap + root consents/optInOut + _demoemea + demoemea mirror).
- * Live POST requires body.ecid (≥10 chars). Optional streamPayloadProfile=operational for the slim experimental shape only.
+ * ECID optional: included in identityMap and identification.core when body.ecid is valid (matches EMEA presales Consent Manager). Optional streamPayloadProfile=operational for slim shape only.
  */
 exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
@@ -786,15 +786,6 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       error: isAdobeDcsCollection
         ? 'Adobe DCS expects a header/body envelope (schemaRef, imsOrgId, datasetId). Add Dataset ID and Schema $id from your HTTP API dataflow in Sandbox & streaming connection, run Prepare if needed, click Save connection, then try again.'
         : 'Envelope mode requires streaming.datasetId and streaming.schemaId.',
-    });
-    return;
-  }
-
-  /** Profile Viewer parity: live DCS POST requires ECID in identityMap (dryRun allowed without for preview). */
-  if (!dryRun && ecidForPayload.length < 10) {
-    res.status(400).json({
-      error:
-        'ECID is required for consent streaming (same as Profile Viewer). Load a profile in Step 1 that includes an ECID, or query an identity that resolves to a profile with ECID.',
     });
     return;
   }
@@ -936,7 +927,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       note: useOperational
         ? 'Operational payload (explicit streamPayloadProfile only).'
         : payloadFormat === 'envelope'
-          ? 'Profile Viewer–compatible streaming: identityMap (Email + ECID when body.ecid set), root consents/optInOut from merged tenant, _demoemea + demoemea mirror, root person.* from form. Live POST requires ECID.'
+          ? 'Standard streaming: identityMap (Email primary; ECID when body.ecid set), root consents/optInOut from merged tenant, _demoemea + demoemea mirror, root person.* from form.'
           : undefined,
     });
     return;
