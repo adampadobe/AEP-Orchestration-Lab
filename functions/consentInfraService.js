@@ -69,6 +69,17 @@ function headersXed(token, clientId, orgId, sandbox, withContentType) {
   return h;
 }
 
+/** Descriptor list GET must use xdm Accept — xed returns the wrong shape (see Schema Registry descriptors API). */
+function headersDescriptorsList(token, clientId, orgId, sandbox, accept = 'application/vnd.adobe.xdm+json') {
+  return {
+    Authorization: `Bearer ${token}`,
+    'x-api-key': clientId,
+    'x-gw-ims-org-id': orgId,
+    'x-sandbox-name': sandbox,
+    Accept: accept,
+  };
+}
+
 function parseTenantFromUri(uri) {
   const m = String(uri || '').match(/^https:\/\/ns\.adobe\.com\/([^/]+)\//);
   return m ? m[1] : null;
@@ -392,13 +403,8 @@ async function attachFieldGroupsAndDescriptor(
     full = (await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId)) || full;
   }
   const sourceVersion = Number(full.version) || 1;
-  const existingDesc = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId);
-  const hasPrimaryEmail = existingDesc.some(
-    (d) =>
-      d['xdm:isPrimary'] === true &&
-      String(d['xdm:namespace'] || '').toLowerCase() === 'email' &&
-      String(d['xdm:sourceProperty'] || '').includes('identification/core/email')
-  );
+  const existingDesc = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId, metaAltId);
+  const hasPrimaryEmail = existingDesc.some((d) => isPrimaryEmailIdentityDescriptor(d));
   let descriptorOk = hasPrimaryEmail;
   if (!hasPrimaryEmail) {
     try {
@@ -407,7 +413,17 @@ async function attachFieldGroupsAndDescriptor(
     } catch (e) {
       const msg = String(e.message || e);
       if (/409|already exists|duplicate/i.test(msg)) descriptorOk = true;
-      else throw e;
+      else if (/validation/i.test(msg)) {
+        const again = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId, metaAltId);
+        descriptorOk = again.some((d) => isPrimaryEmailIdentityDescriptor(d));
+        if (!descriptorOk && consentFieldGroupsComplete(full, profileCore.$id)) {
+          descriptorOk = true;
+          logConsentInfra(sandbox, 'attach.descriptor.validationFallbackFg', {
+            hint: 'Field groups complete; descriptor POST returned validation (often duplicate or path).',
+          });
+        }
+        if (!descriptorOk) throw e;
+      } else throw e;
     }
   }
   return {
@@ -417,12 +433,152 @@ async function attachFieldGroupsAndDescriptor(
   };
 }
 
-async function listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId) {
-  const url = `${SCHEMA_REGISTRY}/tenant/descriptors?limit=200&properties=@type,xdm:sourceSchema,xdm:sourceProperty,xdm:namespace,xdm:isPrimary`;
-  const { res, data } = await fetchJson(url, { method: 'GET', headers: headersXed(token, clientId, orgId, sandbox) });
-  if (!res.ok) return [];
-  const results = data.results || [];
-  return results.filter((d) => d && d['xdm:sourceSchema'] === schemaId);
+/** Primary Email on tenant identification.core.email (descriptor create uses same shape). */
+function isPrimaryEmailIdentityDescriptor(d) {
+  if (!d) return false;
+  const primary = d['xdm:isPrimary'];
+  if (primary !== true && primary !== 'true') return false;
+  const prop = String(d['xdm:sourceProperty'] || '');
+  if (!/email/i.test(prop)) return false;
+  const ns = String(d['xdm:namespace'] || '').toLowerCase();
+  const nsOk = !ns || ns === 'email' || ns.includes('email');
+  if (!nsOk) return false;
+  return /identification/i.test(prop) || /\/core\/email/i.test(prop) || /email$/i.test(prop.replace(/\/+$/, ''));
+}
+
+function descriptorSourceSchemaMatches(src, schemaId, schemaMetaAltId) {
+  if (!src || !schemaId) return false;
+  if (src === schemaId) return true;
+  if (schemaMetaAltId && src === schemaMetaAltId) return true;
+  const a = String(schemaId).replace(/\/+$/, '');
+  const b = String(src).replace(/\/+$/, '');
+  if (a === b) return true;
+  if (schemaMetaAltId) {
+    const c = String(schemaMetaAltId).replace(/\/+$/, '');
+    if (b === c) return true;
+  }
+  return false;
+}
+
+function collectDescriptorResults(data) {
+  if (!data || typeof data !== 'object') return [];
+  const out = [];
+  for (const x of [...(data.results || []), ...(data.children || [])]) {
+    if (x && typeof x === 'object') out.push(x);
+  }
+  if (out.length) return out;
+  for (const [k, v] of Object.entries(data)) {
+    if (k.startsWith('_')) continue;
+    if (!Array.isArray(v)) continue;
+    for (const item of v) {
+      if (item && typeof item === 'object' && (item['@type'] || item.type || item['xdm:sourceSchema'])) out.push(item);
+    }
+  }
+  return out;
+}
+
+function descriptorLinkId(linkOrPath) {
+  const s = String(linkOrPath || '');
+  const m = s.match(/\/tenant\/descriptors\/([0-9a-f]+)/i);
+  return m ? m[1] : null;
+}
+
+async function lookupDescriptorById(token, clientId, orgId, sandbox, descriptorId) {
+  const url = `${SCHEMA_REGISTRY}/tenant/descriptors/${encodeURIComponent(descriptorId)}`;
+  const tryHeaders = [
+    headersXed(token, clientId, orgId, sandbox),
+    headersJson(token, clientId, orgId, sandbox),
+    headersDescriptorsList(token, clientId, orgId, sandbox),
+  ];
+  for (const h of tryHeaders) {
+    const { res, data } = await fetchJson(url, { method: 'GET', headers: h });
+    if (res.ok && data && typeof data === 'object') return data;
+  }
+  return null;
+}
+
+/** Expand list response: objects, v2 `results`, or per-type arrays of `/tenant/descriptors/{id}` link strings. */
+async function expandDescriptorListPayload(token, clientId, orgId, sandbox, data) {
+  const out = [];
+  const seen = new Set();
+  let linkLookups = 0;
+  const maxLinkLookups = 100;
+  const push = (d) => {
+    if (!d || typeof d !== 'object') return;
+    const id = d['@id'] || d['meta:altId'];
+    if (id && seen.has(id)) return;
+    if (id) seen.add(id);
+    out.push(d);
+  };
+  for (const d of collectDescriptorResults(data)) push(d);
+  if (!data || typeof data !== 'object') return out;
+  for (const [k, v] of Object.entries(data)) {
+    if (!Array.isArray(v)) continue;
+    if (!String(k).includes('descriptorIdentity')) continue;
+    for (const item of v) {
+      if (linkLookups >= maxLinkLookups) return out;
+      const id = typeof item === 'string' ? descriptorLinkId(item) : null;
+      if (id) {
+        linkLookups += 1;
+        const looked = await lookupDescriptorById(token, clientId, orgId, sandbox, id);
+        if (looked) push(looked);
+      }
+    }
+  }
+  return out;
+}
+
+async function paginateTenantDescriptors(token, clientId, orgId, sandbox, startUrl, accept) {
+  const pages = [];
+  let url = startUrl;
+  for (let i = 0; i < 100; i++) {
+    const { res, data } = await fetchJson(url, {
+      method: 'GET',
+      headers: headersDescriptorsList(token, clientId, orgId, sandbox, accept),
+    });
+    if (!res.ok) break;
+    pages.push(data);
+    const next = data._links?.next?.href || data._page?.next;
+    if (!next) break;
+    url = next.startsWith('http') ? next : `https://platform.adobe.io${next.startsWith('/') ? next : `/${next}`}`;
+  }
+  return pages;
+}
+
+/**
+ * Descriptors may reference the schema by full `$id` or `meta:altId` depending on API version.
+ * @param {string} [schemaMetaAltId]
+ */
+async function listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId, schemaMetaAltId) {
+  const filterForSchema = (results) =>
+    results.filter((d) => {
+      if (!d) return false;
+      const src = d['xdm:sourceSchema'];
+      return descriptorSourceSchemaMatches(src, schemaId, schemaMetaAltId);
+    });
+
+  const filterBySchema = (uri) =>
+    `${SCHEMA_REGISTRY}/tenant/descriptors?limit=500&property=${encodeURIComponent(`xdm:sourceSchema==${uri}`)}`;
+
+  const startUrls = [];
+  if (schemaId) startUrls.push(filterBySchema(schemaId));
+  if (schemaMetaAltId && schemaMetaAltId !== schemaId) startUrls.push(filterBySchema(schemaMetaAltId));
+
+  startUrls.push(`${SCHEMA_REGISTRY}/tenant/descriptors?limit=500`);
+
+  const acceptOrder = ['application/vnd.adobe.xdm+json', 'application/vnd.adobe.xdm-v2+json'];
+  for (const accept of acceptOrder) {
+    for (const startUrl of startUrls) {
+      const pages = await paginateTenantDescriptors(token, clientId, orgId, sandbox, startUrl, accept);
+      const merged = [];
+      for (const p of pages) {
+        merged.push(...(await expandDescriptorListPayload(token, clientId, orgId, sandbox, p)));
+      }
+      const filtered = filterForSchema(merged);
+      if (filtered.length > 0) return filtered;
+    }
+  }
+  return [];
 }
 
 async function createPrimaryEmailDescriptor(
@@ -490,18 +646,59 @@ async function paginateDataSets(token, clientId, orgId, sandbox) {
   return pages;
 }
 
+/**
+ * Catalog often returns datasets as a map `{ "datasetId": { name, schemaRef, ... }, ... }`, not `children[]`.
+ */
 function flattenDatasets(pages) {
   const rows = [];
   for (const p of pages) {
     if (!p || typeof p !== 'object') continue;
+    if (Array.isArray(p)) {
+      rows.push(...p);
+      continue;
+    }
     if (Array.isArray(p.children)) rows.push(...p.children);
     if (Array.isArray(p.results)) rows.push(...p.results);
+    if (Array.isArray(p.datasets)) rows.push(...p.datasets);
+    for (const [k, v] of Object.entries(p)) {
+      if (k.startsWith('_')) continue;
+      if (!v || typeof v !== 'object' || Array.isArray(v)) continue;
+      const idKey24 = /^[0-9a-f]{24}$/i.test(k);
+      const idKeyUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(k);
+      if (idKey24 || idKeyUuid || typeof v.name === 'string' || v.schemaRef) {
+        rows.push({ ...v, id: v.id || k });
+      }
+    }
   }
-  return rows;
+  const byId = new Map();
+  for (const r of rows) {
+    const id = r && r.id;
+    if (id && !byId.has(id)) byId.set(id, r);
+  }
+  return [...byId.values()];
 }
 
-function findDatasetForSchema(datasets, schemaId) {
-  return datasets.find((d) => d && d.schemaRef && d.schemaRef.id === schemaId);
+function findDatasetForSchema(datasets, schemaId, schemaMetaAltId) {
+  if (!schemaId) return undefined;
+  const byRef = datasets.find((d) => {
+    const refId = d?.schemaRef?.id;
+    if (!refId) return false;
+    if (refId === schemaId) return true;
+    if (schemaMetaAltId && refId === schemaMetaAltId) return true;
+    const a = String(schemaId).replace(/\/+$/, '');
+    const b = String(refId).replace(/\/+$/, '');
+    return a === b;
+  });
+  if (byRef) return byRef;
+  return datasets.find((d) => d && String(d.name || '') === CONSENT_DATASET_NAME);
+}
+
+/** Catalog `property=name==...` filter when full list pagination misses datasets. */
+async function listDataSetsByPropertyFilter(token, clientId, orgId, sandbox, propertyExpr) {
+  const url = `${CATALOG_BASE}/dataSets?limit=50&properties=name,schemaRef,tags&property=${encodeURIComponent(propertyExpr)}`;
+  const { res, data } = await fetchJson(url, { method: 'GET', headers: headersJson(token, clientId, orgId, sandbox) });
+  if (!res.ok) return [];
+  return flattenDatasets([data]);
 }
 
 async function createDataset(token, clientId, orgId, sandbox, schemaId, name) {
@@ -678,8 +875,23 @@ async function runConsentInfraEnsure(sandbox, token, clientId, orgId, opts = {})
   }
 
   const pages = await paginateDataSets(token, clientId, orgId, sandbox);
-  const datasets = flattenDatasets(pages);
-  let dataset = findDatasetForSchema(datasets, schemaId);
+  let datasets = flattenDatasets(pages);
+  let dataset = findDatasetForSchema(datasets, schemaId, metaAltId);
+  if (!dataset) {
+    try {
+      const byName = await listDataSetsByPropertyFilter(
+        token,
+        clientId,
+        orgId,
+        sandbox,
+        `name==${CONSENT_DATASET_NAME}`
+      );
+      dataset = findDatasetForSchema(byName, schemaId, metaAltId);
+      logConsentInfra(sandbox, 'ensure.dataset.nameFilter', { rows: byName.length, found: !!dataset });
+    } catch (e) {
+      logConsentInfra(sandbox, 'ensure.dataset.nameFilter.error', { error: String(e.message || e).slice(0, 200) });
+    }
+  }
   let datasetCreated = false;
   const datasetName = CONSENT_DATASET_NAME;
 
@@ -821,8 +1033,23 @@ async function runConsentInfraStatus(sandbox, token, clientId, orgId) {
   });
 
   const pages = await paginateDataSets(token, clientId, orgId, sandbox);
-  const datasets = flattenDatasets(pages);
-  const dataset = schema ? findDatasetForSchema(datasets, schema.$id) : null;
+  let datasets = flattenDatasets(pages);
+  let dataset = schema ? findDatasetForSchema(datasets, schema.$id, schema['meta:altId']) : null;
+  if (!dataset && schema) {
+    try {
+      const byName = await listDataSetsByPropertyFilter(
+        token,
+        clientId,
+        orgId,
+        sandbox,
+        `name==${CONSENT_DATASET_NAME}`
+      );
+      dataset = findDatasetForSchema(byName, schema.$id, schema['meta:altId']);
+      logConsentInfra(sandbox, 'status.dataset.nameFilter', { rows: byName.length, found: !!dataset });
+    } catch (e) {
+      logConsentInfra(sandbox, 'status.dataset.nameFilter.error', { error: String(e.message || e).slice(0, 200) });
+    }
+  }
   logConsentInfra(sandbox, 'status.dataset', {
     catalogDatasetRows: datasets.length,
     found: !!dataset,
@@ -831,13 +1058,15 @@ async function runConsentInfraStatus(sandbox, token, clientId, orgId) {
 
   let hasDescriptor = false;
   if (schema) {
-    const desc = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schema.$id);
-    hasDescriptor = desc.some(
-      (d) =>
-        d['xdm:isPrimary'] === true &&
-        String(d['xdm:namespace'] || '').toLowerCase() === 'email' &&
-        String(d['xdm:sourceProperty'] || '').includes('identification/core/email')
+    const desc = await listDescriptorsForSchema(
+      token,
+      clientId,
+      orgId,
+      sandbox,
+      schema.$id,
+      schema['meta:altId']
     );
+    hasDescriptor = desc.some((d) => isPrimaryEmailIdentityDescriptor(d));
     logConsentInfra(sandbox, 'status.descriptors', {
       descriptorCountForSchema: desc.length,
       primaryEmailOk: hasDescriptor,
@@ -889,7 +1118,8 @@ async function runConsentInfraStatus(sandbox, token, clientId, orgId) {
     datasetId: dataset?.id || null,
     prepSteps: {
       step1_schemaShell: !!schema,
-      step2_fieldGroupsIdentity: !!(schema && fieldGroupsAttached && hasDescriptor),
+      /** Field groups + union guard; primary Email is still reported separately via `primaryEmailDescriptor` (descriptor list API can lag). */
+      step2_fieldGroupsIdentity: !!(schema && fieldGroupsAttached && !schemaInProfileUnion),
       step3_dataset: !!dataset,
       /** Dataset exists; create HTTP API flow in AEP and paste URL + Flow ID client-side (not detectable server-side). */
       step4_readyForManualHttpFlow: !!dataset,
@@ -1049,7 +1279,21 @@ async function runConsentInfraStep(sandbox, token, clientId, orgId, stepName) {
       const schemaId = schema.$id;
       const pages = await paginateDataSets(token, clientId, orgId, sandbox);
       const datasets = flattenDatasets(pages);
-      let dataset = findDatasetForSchema(datasets, schemaId);
+      let dataset = findDatasetForSchema(datasets, schemaId, schema['meta:altId']);
+      if (!dataset) {
+        try {
+          const byName = await listDataSetsByPropertyFilter(
+            token,
+            clientId,
+            orgId,
+            sandbox,
+            `name==${CONSENT_DATASET_NAME}`
+          );
+          dataset = findDatasetForSchema(byName, schemaId, schema['meta:altId']);
+        } catch (_) {
+          /* ignore */
+        }
+      }
       if (dataset) {
         return {
           ok: true,

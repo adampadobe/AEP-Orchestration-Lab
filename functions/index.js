@@ -631,7 +631,7 @@ exports.consentInfraEnsure = onRequest(profileFnOpts, async (req, res) => {
 
 /**
  * GET /api/consent-infra/flow-lookup?sandbox=&flowId=&flowName=
- * Resolves DCS collection URL + flow UUID from Flow Service after the HTTP API dataflow exists in AEP.
+ * Resolves DCS collection URL + flow UUID from Flow Service. Prefer flowId when set; else match dataflow by exact flowName (defaults to lab name if flowName omitted).
  */
 exports.consentInfraFlowLookup = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
@@ -670,7 +670,7 @@ exports.consentInfraFlowLookup = onRequest(profileFnOpts, async (req, res) => {
 
 /**
  * GET/POST /api/consent-connection?sandbox= — read or merge-save streaming + infra IDs per sandbox (Firestore).
- * POST body: { sandbox?, streaming?: { url, flowId, datasetId, schemaId, xdmKey, apiKey }, infra?: { schemaMetaAltId, schemaId, datasetId, profileCoreMixinId, datasetName, imsOrg } }
+ * POST body: { sandbox?, streaming?: { url, flowId, flowName, datasetId, schemaId, xdmKey, apiKey }, infra?: { schemaMetaAltId, schemaId, datasetId, profileCoreMixinId, datasetName, imsOrg } }
  */
 exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
   setCors(res, 'GET, POST, OPTIONS');

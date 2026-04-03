@@ -10,6 +10,7 @@ const COLLECTION = 'consentConnections';
 const MAX = {
   url: 4096,
   flowId: 256,
+  flowName: 256,
   datasetId: 128,
   schemaId: 512,
   xdmKey: 64,
@@ -80,6 +81,7 @@ async function saveConsentConnection(sandbox, patch) {
       const s = patch.streaming;
       if (s.url !== undefined) streaming.url = trimField(s.url, MAX.url);
       if (s.flowId !== undefined) streaming.flowId = trimField(s.flowId, MAX.flowId);
+      if (s.flowName !== undefined) streaming.flowName = trimField(s.flowName, MAX.flowName);
       if (s.datasetId !== undefined) streaming.datasetId = trimField(s.datasetId, MAX.datasetId);
       if (s.schemaId !== undefined) streaming.schemaId = trimField(s.schemaId, MAX.schemaId);
       if (s.xdmKey !== undefined) streaming.xdmKey = trimField(s.xdmKey, MAX.xdmKey);

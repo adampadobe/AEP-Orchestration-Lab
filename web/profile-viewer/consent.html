@@ -352,7 +352,11 @@
       </div>
       <p id="infraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
       <div class="sandbox-config" style="margin-top: 1rem;">
-        <h3 class="sandbox-config-title" style="font-size: 0.95rem;">HTTP API streaming (Sources → dataflow “AEP Profile Viewer - Consent - Dataflow”)</h3>
+        <h3 class="sandbox-config-title" style="font-size: 0.95rem;">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
+        <div class="form-row">
+          <label for="streamFlowName">Dataflow name in AEP</label>
+          <input type="text" id="streamFlowName" class="sandbox-select" style="width:100%;max-width:42rem;" value="AEP Profile Viewer - Consent - Dataflow" placeholder="Exact name as in Sources / Flow Service" autocomplete="off" spellcheck="false">
+        </div>
         <div class="form-row">
           <label for="streamUrl">Collection URL</label>
           <input type="url" id="streamUrl" class="sandbox-select" style="width:100%;max-width:42rem;" placeholder="https://dcs.adobedc.net/collection/…" autocomplete="off" spellcheck="false">
@@ -374,7 +378,7 @@
           <input type="text" id="streamXdmKey" class="sandbox-select" style="width:10rem;" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
         </div>
         <p class="panel-desc" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.9;">
-          Schema, dataset, and tenant key are filled after wizard steps or status check. After you create the HTTP API dataflow in AEP, use <strong>Fetch URL &amp; Flow ID from AEP</strong> to read the DCS collection URL and flow UUID from Flow Service (or paste them manually). Connection data syncs from <strong>Firebase</strong> per sandbox; <strong>Save</strong> persists edits.
+          Schema, dataset, and tenant key are filled after wizard steps or status check. Create the HTTP API dataflow in AEP (any name). Enter the <strong>exact dataflow name</strong> above, then <strong>Fetch URL &amp; Flow ID from AEP</strong> to fill the collection URL and flow UUID via Flow Service—no need to paste those unless lookup fails. Leave the default name if you used the lab name. <strong>Save</strong> syncs to Firebase per sandbox.
         </p>
         <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem;">
           <button type="button" id="fetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>

@@ -55,12 +55,14 @@ function getSandboxNameForApi() {
 function getStreamingPayload() {
   const urlEl = document.getElementById('streamUrl');
   const flowEl = document.getElementById('streamFlowId');
+  const nameEl = document.getElementById('streamFlowName');
   const dsEl = document.getElementById('streamDatasetId');
   const schEl = document.getElementById('streamSchemaId');
   const xdmEl = document.getElementById('streamXdmKey');
   return {
     url: urlEl ? String(urlEl.value || '').trim() : '',
     flowId: flowEl ? String(flowEl.value || '').trim() : '',
+    flowName: nameEl ? String(nameEl.value || '').trim() : '',
     datasetId: dsEl ? String(dsEl.value || '').trim() : '',
     schemaId: schEl ? String(schEl.value || '').trim() : '',
     xdmKey: xdmEl && String(xdmEl.value || '').trim() ? String(xdmEl.value || '').trim() : '_demoemea',
@@ -74,11 +76,13 @@ function loadStreamFieldsFromStorage() {
     const o = JSON.parse(raw);
     const u = document.getElementById('streamUrl');
     const f = document.getElementById('streamFlowId');
+    const n = document.getElementById('streamFlowName');
     const d = document.getElementById('streamDatasetId');
     const s = document.getElementById('streamSchemaId');
     const x = document.getElementById('streamXdmKey');
     if (u && o.url) u.value = o.url;
     if (f && o.flowId) f.value = o.flowId;
+    if (n && o.flowName) n.value = o.flowName;
     if (d && o.datasetId) d.value = o.datasetId;
     if (s && o.schemaId) s.value = o.schemaId;
     if (x && o.xdmKey) x.value = o.xdmKey;
@@ -119,6 +123,9 @@ async function fetchConsentFlowFromAep() {
     const flowField = document.getElementById('streamFlowId');
     const existingFlowId = flowField && String(flowField.value || '').trim();
     if (existingFlowId) params.set('flowId', existingFlowId);
+    const nameField = document.getElementById('streamFlowName');
+    const flowNameForLookup = nameField && String(nameField.value || '').trim();
+    if (!existingFlowId && flowNameForLookup) params.set('flowName', flowNameForLookup);
     const qs = params.toString();
     const res = await fetch('/api/consent-infra/flow-lookup' + (qs ? `?${qs}` : ''));
     const data = await res.json().catch(() => ({}));
@@ -128,8 +135,10 @@ async function fetchConsentFlowFromAep() {
     }
     const u = document.getElementById('streamUrl');
     const f = document.getElementById('streamFlowId');
+    const n = document.getElementById('streamFlowName');
     if (u && data.url) u.value = String(data.url);
     if (f && data.flowId) f.value = String(data.flowId);
+    if (n && data.flowName) n.value = String(data.flowName);
     saveStreamFieldsToStorage();
     try {
       await pushConsentConnectionToFirestore();
@@ -154,6 +163,7 @@ function applyFirestoreRecordToStreamingForm(record) {
   const inf = record.infra && typeof record.infra === 'object' ? record.infra : {};
   const u = document.getElementById('streamUrl');
   const f = document.getElementById('streamFlowId');
+  const n = document.getElementById('streamFlowName');
   const d = document.getElementById('streamDatasetId');
   const sch = document.getElementById('streamSchemaId');
   const x = document.getElementById('streamXdmKey');
@@ -163,6 +173,7 @@ function applyFirestoreRecordToStreamingForm(record) {
   };
   setIf(u, s.url);
   setIf(f, s.flowId);
+  setIf(n, s.flowName);
   setIf(d, s.datasetId || inf.datasetId);
   setIf(sch, s.schemaId || inf.schemaId);
   setIf(x, s.xdmKey);
