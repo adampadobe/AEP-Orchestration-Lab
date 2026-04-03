@@ -104,6 +104,10 @@ function showInfraMessage(text, type) {
   infraStatusMessage.textContent = text || '';
   infraStatusMessage.className = 'consent-message ' + (type || '');
   infraStatusMessage.hidden = !text;
+  if (text && type === 'error') {
+    const det = document.querySelector('#stepInfra details.consent-streaming-details');
+    if (det) det.open = true;
+  }
 }
 
 function consentInfraQuerySuffix() {
@@ -606,7 +610,7 @@ async function updateConsent() {
   if (!streaming.url || !streaming.flowId) {
     showMessage(
       step4Message,
-      'Add the HTTP API collection URL and Flow ID under “Sandbox & streaming connection”, click “Save connection to this browser”, then try again.',
+      'Open “Sandbox & streaming connection” (above), add the HTTP API collection URL and Flow ID, click “Save connection (browser & Firebase)”, then try again.',
       'error',
     );
     return;

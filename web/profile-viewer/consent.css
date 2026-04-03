@@ -636,6 +636,95 @@ body.consent-page:not(.home-dashboard-concierge) .consent-panel .profile-identit
   overflow-wrap: anywhere;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Sandbox & streaming — collapsible panel (default closed)                  */
+/* -------------------------------------------------------------------------- */
+
+.consent-panel--streaming-setup {
+  padding: 0;
+  overflow: hidden;
+}
+
+.consent-streaming-details {
+  border: none;
+  margin: 0;
+}
+
+.consent-streaming-details__summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  padding: 1rem 1.25rem;
+  margin: 0;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.consent-streaming-details__summary::-webkit-details-marker {
+  display: none;
+}
+
+.consent-streaming-details__summary::after {
+  content: '▸';
+  margin-left: auto;
+  font-size: 0.85rem;
+  opacity: 0.65;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.consent-streaming-details[open] .consent-streaming-details__summary::after {
+  transform: rotate(90deg);
+}
+
+.consent-streaming-details__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.consent-streaming-details__hint {
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.85;
+  flex: 1 1 100%;
+  margin: 0;
+  line-height: 1.35;
+}
+
+@media (min-width: 800px) {
+  .consent-streaming-details__hint {
+    flex: 1 1 12rem;
+    margin: 0;
+  }
+}
+
+.consent-streaming-details__body {
+  padding: 0 1.25rem 1.25rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.home-dashboard-concierge.consent-page .consent-panel--streaming-setup .consent-streaming-details__body {
+  border-top-color: #e8e8e8;
+}
+
+body.home-dashboard-concierge.consent-page .consent-panel--streaming-setup .consent-streaming-details__summary:hover {
+  background: #f3f5f7;
+}
+
+body.consent-page:not(.home-dashboard-concierge) .consent-panel--streaming-setup .consent-streaming-details__body {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+body.consent-page:not(.home-dashboard-concierge) .consent-panel--streaming-setup .consent-streaming-details__summary:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 @media (max-width: 640px) {
   .consent-prefs-row {
     grid-template-columns: 1fr;

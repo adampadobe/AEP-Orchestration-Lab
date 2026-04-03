@@ -134,6 +134,71 @@
       <div id="step1Message" class="consent-message" role="status" aria-live="polite" hidden></div>
     </section>
 
+    <!-- Sandbox prep + HTTP streaming: configure before editing or saving consent (starts collapsed) -->
+    <section class="consent-panel consent-panel--streaming-setup" id="stepInfra" aria-labelledby="streamingSetupHeading">
+      <details class="consent-streaming-details" aria-label="Sandbox preparation and HTTP streaming connection">
+        <summary class="consent-streaming-details__summary">
+          <span class="consent-streaming-details__title" id="streamingSetupHeading">
+            <span class="icon" aria-hidden="true">⚙</span>
+            Sandbox &amp; streaming connection
+          </span>
+          <span class="consent-streaming-details__hint">Open to prepare the sandbox, HTTP flow, and connection — required before consent updates.</span>
+        </summary>
+        <div class="consent-streaming-details__body">
+      <p class="panel-desc">
+        Run <strong>steps 1 → 4</strong> in order for this sandbox. <strong>Do not</strong> enable this schema or dataset for <strong>Real-Time Customer Profile</strong> in the AEP UI — enabling the schema adds an irreversible <strong>union</strong> tag; this app never adds it. Step 1 creates schema shell <strong>AEP Profile Viewer - Consent - Schema</strong>
+        (Profile <em>class</em> only, not Profile service). Step 2 attaches consent field groups + <strong>Profile Core v2</strong> and primary identity on
+        <code>_{tenant}.identification.core.email</code>. Step 3 creates dataset <strong>AEP Profile Viewer - Consent - Dataset</strong> (keep dataset out of Profile).
+        Step 4: HTTP API dataflow <strong>AEP Profile Viewer - Consent - Dataflow</strong>; paste collection URL and Flow ID below.
+      </p>
+      <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+        <button type="button" id="checkInfraBtn" class="btn btn-secondary">Check sandbox status</button>
+      </div>
+      <div class="button-row consent-infra-step-buttons" style="flex-wrap: wrap; gap: 0.5rem; margin-top: 0.65rem;">
+        <button type="button" id="stepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
+        <button type="button" id="stepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
+        <button type="button" id="stepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
+        <button type="button" id="stepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
+      </div>
+      <p id="infraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
+      <div class="sandbox-config" style="margin-top: 1rem;">
+        <h3 class="sandbox-config-title" style="font-size: 0.95rem;">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
+        <div class="form-row">
+          <label for="streamFlowName">Dataflow name in AEP</label>
+          <input type="text" id="streamFlowName" class="sandbox-select" style="width:100%;max-width:42rem;" value="AEP Profile Viewer - Consent - Dataflow" placeholder="Exact name as in Sources / Flow Service" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label for="streamUrl">Collection URL</label>
+          <input type="url" id="streamUrl" class="sandbox-select" style="width:100%;max-width:42rem;" placeholder="https://dcs.adobedc.net/collection/…" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label for="streamFlowId">Flow ID (x-adobe-flow-id)</label>
+          <input type="text" id="streamFlowId" class="sandbox-select" style="width:100%;max-width:42rem;" placeholder="UUID from the dataflow" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label for="streamDatasetId">Dataset ID</label>
+          <input type="text" id="streamDatasetId" class="sandbox-select" style="width:100%;max-width:28rem;" placeholder="Filled after Prepare, or from AEP" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label for="streamSchemaId">Schema $id</label>
+          <input type="text" id="streamSchemaId" class="sandbox-select" style="width:100%;max-width:42rem;" placeholder="https://ns.adobe.com/…/schemas/…" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-row">
+          <label for="streamXdmKey">Tenant XDM key</label>
+          <input type="text" id="streamXdmKey" class="sandbox-select" style="width:10rem;" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
+        </div>
+        <p class="panel-desc" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.9;">
+          Schema, dataset, and tenant key are filled after wizard steps or status check. Create the HTTP API dataflow in AEP (any name). Enter the <strong>exact dataflow name</strong> above, then <strong>Fetch URL &amp; Flow ID from AEP</strong> to fill the collection URL and flow UUID via Flow Service—no need to paste those unless lookup fails. Leave the default name if you used the lab name. <strong>Save</strong> syncs to Firebase per sandbox.
+        </p>
+        <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem;">
+          <button type="button" id="fetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>
+          <button type="button" id="saveStreamBtn" class="btn btn-secondary">Save connection (browser &amp; Firebase)</button>
+        </div>
+      </div>
+        </div>
+      </details>
+    </section>
+
     <!-- Step 2: Consent Preferences -->
     <section class="consent-panel" id="step3">
       <h2 class="panel-title"><span class="icon">✅</span> Step 2: Consent preferences</h2>
@@ -329,61 +394,6 @@
           </div>
         </div>
       </div>
-      </div>
-    </section>
-
-    <!-- Sandbox prep + HTTP streaming (hosted Firebase) -->
-    <section class="consent-panel" id="stepInfra">
-      <h2 class="panel-title"><span class="icon">⚙</span> Sandbox &amp; streaming connection</h2>
-      <p class="panel-desc">
-        Run <strong>steps 1 → 4</strong> in order for this sandbox. <strong>Do not</strong> enable this schema or dataset for <strong>Real-Time Customer Profile</strong> in the AEP UI — enabling the schema adds an irreversible <strong>union</strong> tag; this app never adds it. Step 1 creates schema shell <strong>AEP Profile Viewer - Consent - Schema</strong>
-        (Profile <em>class</em> only, not Profile service). Step 2 attaches consent field groups + <strong>Profile Core v2</strong> and primary identity on
-        <code>_{tenant}.identification.core.email</code>. Step 3 creates dataset <strong>AEP Profile Viewer - Consent - Dataset</strong> (keep dataset out of Profile).
-        Step 4: HTTP API dataflow <strong>AEP Profile Viewer - Consent - Dataflow</strong>; paste collection URL and Flow ID below.
-      </p>
-      <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem; align-items: center;">
-        <button type="button" id="checkInfraBtn" class="btn btn-secondary">Check sandbox status</button>
-      </div>
-      <div class="button-row consent-infra-step-buttons" style="flex-wrap: wrap; gap: 0.5rem; margin-top: 0.65rem;">
-        <button type="button" id="stepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
-        <button type="button" id="stepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
-        <button type="button" id="stepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
-        <button type="button" id="stepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
-      </div>
-      <p id="infraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
-      <div class="sandbox-config" style="margin-top: 1rem;">
-        <h3 class="sandbox-config-title" style="font-size: 0.95rem;">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
-        <div class="form-row">
-          <label for="streamFlowName">Dataflow name in AEP</label>
-          <input type="text" id="streamFlowName" class="sandbox-select" style="width:100%;max-width:42rem;" value="AEP Profile Viewer - Consent - Dataflow" placeholder="Exact name as in Sources / Flow Service" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="form-row">
-          <label for="streamUrl">Collection URL</label>
-          <input type="url" id="streamUrl" class="sandbox-select" style="width:100%;max-width:42rem;" placeholder="https://dcs.adobedc.net/collection/…" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="form-row">
-          <label for="streamFlowId">Flow ID (x-adobe-flow-id)</label>
-          <input type="text" id="streamFlowId" class="sandbox-select" style="width:100%;max-width:42rem;" placeholder="UUID from the dataflow" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="form-row">
-          <label for="streamDatasetId">Dataset ID</label>
-          <input type="text" id="streamDatasetId" class="sandbox-select" style="width:100%;max-width:28rem;" placeholder="Filled after Prepare, or from AEP" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="form-row">
-          <label for="streamSchemaId">Schema $id</label>
-          <input type="text" id="streamSchemaId" class="sandbox-select" style="width:100%;max-width:42rem;" placeholder="https://ns.adobe.com/…/schemas/…" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="form-row">
-          <label for="streamXdmKey">Tenant XDM key</label>
-          <input type="text" id="streamXdmKey" class="sandbox-select" style="width:10rem;" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
-        </div>
-        <p class="panel-desc" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.9;">
-          Schema, dataset, and tenant key are filled after wizard steps or status check. Create the HTTP API dataflow in AEP (any name). Enter the <strong>exact dataflow name</strong> above, then <strong>Fetch URL &amp; Flow ID from AEP</strong> to fill the collection URL and flow UUID via Flow Service—no need to paste those unless lookup fails. Leave the default name if you used the lab name. <strong>Save</strong> syncs to Firebase per sandbox.
-        </p>
-        <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem;">
-          <button type="button" id="fetchFlowFromAepBtn" class="btn btn-primary">Fetch URL &amp; Flow ID from AEP</button>
-          <button type="button" id="saveStreamBtn" class="btn btn-secondary">Save connection (browser &amp; Firebase)</button>
-        </div>
       </div>
     </section>
 
