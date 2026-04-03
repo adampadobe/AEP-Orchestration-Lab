@@ -2,6 +2,8 @@
  * Profile record streaming to DCS (HTTP API) — logic mirrored from Profile Viewer server.js.
  */
 
+const { randomUUID } = require('crypto');
+
 const OPTINOUT_CHANNELS = [
   'email',
   'sms',
@@ -323,6 +325,102 @@ function parseStreamingCollectionResponse(httpStatus, rawText) {
   return { parsed, streamErrors, streamWarnings };
 }
 
+/** Map consent field value to y/n for operational-style payloads. */
+function operationalPickYn(v, defaultY = 'y') {
+  if (v == null || v === '') return defaultY;
+  if (typeof v === 'object' && v !== null && v.val != null) return operationalPickYn(v.val, defaultY);
+  const s = String(v).toLowerCase();
+  if (s === 'n' || s === 'no' || s === 'out') return 'n';
+  if (s === 'y' || s === 'yes' || s === 'in') return 'y';
+  return defaultY;
+}
+
+function operationalChannelTime(marketing, key, fallbackIso) {
+  const o = marketing && marketing[key];
+  if (o && typeof o === 'object' && o.time != null && String(o.time).trim() !== '') return String(o.time);
+  return fallbackIso;
+}
+
+/**
+ * DCS envelope xdmEntity aligned with common “Operational Profile / Consent” HTTP streams:
+ * _demoemea.identification.core only, root consents with idSpecific.Email[address].marketing.email,
+ * person stub, personID, _id / _repo — no duplicate tenant consents, no root identityMap.
+ *
+ * @param {object} demoemea - Tenant object after applying updates (consents.*, optInOut, identification)
+ * @param {string} email
+ * @param {string} [ecid]
+ */
+function buildOperationalConsentXdmEntity(demoemea, email, ecid) {
+  const now = new Date().toISOString();
+  const em = String(email || '').trim();
+  const c = (demoemea && demoemea.consents) || {};
+  const m = c.marketing || {};
+  const marketingAnyVal = operationalPickYn(m.any, 'y');
+
+  const channels = ['email', 'sms', 'push', 'call', 'postalMail', 'whatsApp'];
+  /** @type {Record<string, unknown>} */
+  const marketingOut = {
+    any: { time: operationalChannelTime(m, 'any', now), val: marketingAnyVal },
+    preferred: typeof m.preferred === 'string' && m.preferred.trim() ? m.preferred.trim() : 'email',
+    preferredLanguage: 'en-US',
+  };
+  for (const ch of channels) {
+    marketingOut[ch] = {
+      time: operationalChannelTime(m, ch, now),
+      val: operationalPickYn(m[ch], 'y'),
+    };
+  }
+  if (m.fax && typeof m.fax === 'object') {
+    marketingOut.fax = {
+      time: operationalChannelTime(m, 'fax', now),
+      val: operationalPickYn(m.fax, 'y'),
+    };
+  }
+  if (m.commercialEmail && typeof m.commercialEmail === 'object') {
+    marketingOut.commercialEmail = {
+      time: operationalChannelTime(m, 'commercialEmail', now),
+      val: operationalPickYn(m.commercialEmail, 'y'),
+    };
+  }
+
+  const emailChannelVal = operationalPickYn(m.email, 'y');
+  /** @type {Record<string, unknown>} */
+  const consentsOut = {};
+  if (c.collect && typeof c.collect === 'object' && c.collect.val != null) {
+    consentsOut.collect = { val: operationalPickYn(c.collect.val, 'y') };
+  }
+  consentsOut.idSpecific = {
+    Email: {
+      [em]: {
+        marketing: {
+          email: { time: operationalChannelTime(m, 'email', now), val: emailChannelVal },
+        },
+      },
+    },
+  };
+  consentsOut.marketing = marketingOut;
+  if (c.personalize && c.personalize.content && c.personalize.content.val != null) {
+    consentsOut.personalize = { content: { val: operationalPickYn(c.personalize.content.val, 'y') } };
+  }
+  if (c.share && c.share.val != null) {
+    consentsOut.share = { val: operationalPickYn(c.share.val, 'y') };
+  }
+
+  const core = { email: em };
+  if (ecid != null && String(ecid).trim().length >= 10) core.ecid = String(ecid).trim();
+
+  return {
+    _demoemea: { identification: { core } },
+    _id: randomUUID(),
+    _repo: { createDate: now, modifyDate: now },
+    preferredLanguage: 'en-US',
+    consents: consentsOut,
+    person: { name: { firstName: '', lastName: '', fullName: '' } },
+    personID: em,
+    metadata: { time: now },
+  };
+}
+
 module.exports = {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
   setByPath,
@@ -331,6 +429,8 @@ module.exports = {
   buildDefaultProfileStreamingConsentFields,
   profileStreamingUseEnvelope,
   buildProfileStreamPayload,
+  buildProfileStreamingEnvelope,
+  buildOperationalConsentXdmEntity,
   buildProfileDcsStreamingHeaders,
   redactedProfileDcsRequestHeaders,
   parseStreamingCollectionResponse,

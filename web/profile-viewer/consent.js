@@ -653,7 +653,8 @@ async function updateConsent() {
       ...(ecid ? { ecid } : {}),
       updates,
       sandbox: getSandboxNameForApi() || undefined,
-      streaming,
+      streamPayloadProfile: 'operational',
+      streaming: { ...streaming, streamPayloadProfile: 'operational' },
     });
     if (!ok) {
       showMessage(step4Message, formatProfileUpdateError(data), 'error');
@@ -669,25 +670,65 @@ async function updateConsent() {
   }
 }
 
-function previewData() {
+function escapeHtmlForPreview(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/** Exact DCS envelope the server would POST (operational-style xdmEntity, same as Update). */
+async function previewData() {
   const email = consentStreamingEmail || (customerEmail.value || '').trim();
-  const ma = getTri('marketingAny');
-  const payload = {
-    email,
-    ecid: consentOptionalEcid || null,
-    marketingConsent: ma === 'y' ? 'Y' : ma === 'n' ? 'N' : null,
-    dataCollection: getTri('dataCollection'),
-    dataSharing: getTri('dataSharing'),
-    contentPersonalization: getTri('contentPersonalization'),
-    channels: buildChannelsFromForm(),
-  };
-  const w = window.open('', '_blank');
-  w.document.write(
-    '<pre style="background:#1a1d23;color:#e6e8ec;padding:1rem;font-family:monospace;white-space:pre-wrap;">' +
-      JSON.stringify(payload, null, 2) +
-      '</pre>',
-  );
-  w.document.close();
+  if (!email) {
+    showMessage(step4Message, 'Load a profile first (Step 1) so the streaming email is known.', 'error');
+    return;
+  }
+  const streaming = getStreamingPayload();
+  if (!streaming.datasetId || !streaming.schemaId) {
+    showMessage(
+      step4Message,
+      'Add Dataset ID and Schema $id under Sandbox & streaming connection, then save — preview needs the DCS envelope header.',
+      'error',
+    );
+    return;
+  }
+  if (!previewDataBtn) return;
+  previewDataBtn.disabled = true;
+  showMessage(step4Message, 'Building preview…', '');
+  try {
+    const { ok, data } = await postProfileUpdate({
+      email,
+      ...(consentOptionalEcid ? { ecid: consentOptionalEcid } : {}),
+      updates: consentFormToStreamingUpdates(),
+      sandbox: getSandboxNameForApi() || undefined,
+      streamPayloadProfile: 'operational',
+      streaming: { ...streaming, streamPayloadProfile: 'operational' },
+      dryRun: true,
+    });
+    if (!ok || !data || !data.envelope) {
+      showMessage(step4Message, formatProfileUpdateError(data) || 'Preview failed', 'error');
+      return;
+    }
+    showMessage(step4Message, '', '');
+    const w = window.open('', '_blank');
+    const json = JSON.stringify(data.envelope, null, 2);
+    const note =
+      data.note ||
+      'This is the JSON body sent to DCS (header + body). Consent Manager uses streamPayloadProfile operational (idSpecific.Email, root consents).';
+    w.document.write(
+      '<p style="font-family:system-ui,sans-serif;padding:10px 14px;margin:0;background:#243044;color:#c8d0dc;font-size:13px;line-height:1.45;border-bottom:1px solid #3d4a5c;">' +
+        escapeHtmlForPreview(note) +
+        '</p><pre style="background:#1a1d23;color:#e6e8ec;padding:1rem;margin:0;font-family:ui-monospace,monospace;white-space:pre-wrap;font-size:12px;line-height:1.4;">' +
+        escapeHtmlForPreview(json) +
+        '</pre>',
+    );
+    w.document.close();
+  } catch (err) {
+    showMessage(step4Message, err.message || 'Preview failed', 'error');
+  } finally {
+    previewDataBtn.disabled = false;
+  }
 }
 
 loadConsentPageSandboxes()

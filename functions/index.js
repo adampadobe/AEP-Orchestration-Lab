@@ -50,6 +50,8 @@ const {
   normalizeProfileUpdateDateString,
   buildConsentXdm,
   buildProfileStreamPayload,
+  buildProfileStreamingEnvelope,
+  buildOperationalConsentXdmEntity,
   profileStreamingUseEnvelope,
   buildProfileDcsStreamingHeaders,
   redactedProfileDcsRequestHeaders,
@@ -722,6 +724,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const dryRun = body.dryRun === true || body.dryRun === 'true';
   const email = String(body.email || '').trim();
   const ecid = body.ecid != null ? String(body.ecid).trim() : '';
   const updates = Array.isArray(body.updates) ? body.updates : [];
@@ -749,7 +752,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   const datasetId = String(streaming.datasetId || '').trim();
   const schemaId = String(streaming.schemaId || '').trim();
   const xdmKey = String(streaming.xdmKey || '_demoemea').trim();
-  const isAdobeDcsCollection = /dcs\.adobedc\.net/i.test(streamUrl);
+  const isAdobeDcsCollection = streamUrl ? /dcs\.adobedc\.net/i.test(streamUrl) : false;
   const hasDatasetAndSchema = Boolean(datasetId && schemaId);
   /** DCS HTTP API inlets require { header, body }; bare JSON returns 400 "header field is mandatory". */
   let useEnvelope =
@@ -760,10 +763,20 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   if (isAdobeDcsCollection) {
     useEnvelope = true;
   }
+  if (dryRun && hasDatasetAndSchema) {
+    useEnvelope = true;
+  }
 
-  if (!streamUrl || !flowId) {
+  if (!dryRun && (!streamUrl || !flowId)) {
     res.status(400).json({
       error: `Missing streaming.url (DCS collection URL) and streaming.flowId. In AEP, create an HTTP API streaming dataflow named "${CONSENT_HTTP_DATAFLOW_NAME}" for dataset "${CONSENT_DATASET_NAME}", then save URL and Flow ID on the Consent page.`,
+    });
+    return;
+  }
+  if (dryRun && !hasDatasetAndSchema) {
+    res.status(400).json({
+      error:
+        'Preview (dryRun) requires streaming.datasetId and streaming.schemaId. Save your HTTP API connection on the Consent page first.',
     });
     return;
   }
@@ -776,16 +789,19 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
 
-  let accessToken;
-  try {
-    accessToken = await getAdobeAccessToken();
-  } catch (e) {
-    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
-    return;
-  }
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
   const apiKey = String(streaming.apiKey || '').trim() || clientId;
+
+  let accessToken;
+  if (!dryRun) {
+    try {
+      accessToken = await getAdobeAccessToken();
+    } catch (e) {
+      res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+      return;
+    }
+  }
 
   let demoemea;
   let applied = 0;
@@ -864,16 +880,56 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     successMessage = `Profile update accepted (${applied} field(s)).`;
   }
 
-  const { payload, format: payloadFormat } = buildProfileStreamPayload(
-    demoemea,
-    email,
-    ecidForPayload,
-    xdmKey,
-    orgId,
-    sourceLabel,
-    rootExtras,
-    { useEnvelope, datasetId, schemaId }
-  );
+  const normPayloadProfile = String(
+    body.streamPayloadProfile || streaming.streamPayloadProfile || '',
+  )
+    .toLowerCase()
+    .replace(/[-_\s]/g, '');
+  const useOperational =
+    normPayloadProfile === 'operational' ||
+    normPayloadProfile === 'dcsoperational' ||
+    normPayloadProfile === 'operationalprofile';
+
+  const envelopeSourceName =
+    String(streaming.flowName || streaming.sourceName || '').trim() || sourceLabel;
+
+  /** @type {object} */
+  let payload;
+  let payloadFormat;
+  if (useOperational && useEnvelope) {
+    const xdmEntity = buildOperationalConsentXdmEntity(demoemea, email, ecidForPayload);
+    payload = buildProfileStreamingEnvelope(xdmEntity, orgId, envelopeSourceName, datasetId, schemaId);
+    payloadFormat = 'envelope';
+  } else {
+    const built = buildProfileStreamPayload(
+      demoemea,
+      email,
+      ecidForPayload,
+      xdmKey,
+      orgId,
+      sourceLabel,
+      rootExtras,
+      { useEnvelope, datasetId, schemaId },
+    );
+    payload = built.payload;
+    payloadFormat = built.format;
+  }
+
+  if (dryRun) {
+    res.status(200).json({
+      ok: true,
+      dryRun: true,
+      payloadFormat,
+      streamPayloadProfile: useOperational ? 'operational' : 'standard',
+      envelope: payload,
+      imsOrgId: orgId,
+      note:
+        useOperational && payloadFormat === 'envelope'
+          ? 'Operational-style xdmEntity (idSpecific.Email, root consents, _demoemea.identification only) — matches common DCS consent dataflows.'
+          : undefined,
+    });
+    return;
+  }
 
   const headers = buildProfileDcsStreamingHeaders(accessToken, sandbox, flowId, apiKey);
 
