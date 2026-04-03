@@ -749,10 +749,17 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   const datasetId = String(streaming.datasetId || '').trim();
   const schemaId = String(streaming.schemaId || '').trim();
   const xdmKey = String(streaming.xdmKey || '_demoemea').trim();
-  const useEnvelope =
+  const isAdobeDcsCollection = /dcs\.adobedc\.net/i.test(streamUrl);
+  const hasDatasetAndSchema = Boolean(datasetId && schemaId);
+  /** DCS HTTP API inlets require { header, body }; bare JSON returns 400 "header field is mandatory". */
+  let useEnvelope =
     streaming.useEnvelope === true ||
     streaming.useEnvelope === 'true' ||
+    hasDatasetAndSchema ||
     profileStreamingUseEnvelope(process.env.AEP_PROFILE_STREAMING_ENVELOPE);
+  if (isAdobeDcsCollection) {
+    useEnvelope = true;
+  }
 
   if (!streamUrl || !flowId) {
     res.status(400).json({
@@ -762,7 +769,9 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   }
   if (useEnvelope && (!datasetId || !schemaId)) {
     res.status(400).json({
-      error: 'Envelope mode requires streaming.datasetId and streaming.schemaId.',
+      error: isAdobeDcsCollection
+        ? 'Adobe DCS expects a header/body envelope (schemaRef, imsOrgId, datasetId). Add Dataset ID and Schema $id from your HTTP API dataflow in Sandbox & streaming connection, run Prepare if needed, click Save connection, then try again.'
+        : 'Envelope mode requires streaming.datasetId and streaming.schemaId.',
     });
     return;
   }

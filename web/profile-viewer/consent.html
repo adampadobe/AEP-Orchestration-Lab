@@ -412,7 +412,7 @@
     <section class="consent-panel" id="step4">
       <h2 class="panel-title"><span class="icon">🚀</span> Step 3: Save changes to Adobe Experience Platform</h2>
       <p class="panel-desc consent-save-desc">
-        Sends consent data to the <strong>DCS collection URL</strong> and <strong>flow</strong> you configured under Sandbox &amp; streaming connection, using the selected <strong>sandbox</strong> and tenant key (e.g. <code>_demoemea</code>). The payload uses the profile <strong>email from Step 1</strong> as the <strong>primary identity</strong> in <code>identityMap</code> and <code>identification.core.email</code> (ECID is included only when the loaded profile has one). Ensure URL, Flow ID, and (if envelope mode is on) dataset and schema IDs are saved before updating.
+        Sends consent data to the <strong>DCS collection URL</strong> and <strong>flow</strong> you configured under Sandbox &amp; streaming connection, using the selected <strong>sandbox</strong> and tenant key (e.g. <code>_demoemea</code>). For <code>dcs.adobedc.net</code> inlets, the server sends the HTTP API <strong>envelope</strong> (<code>header</code> + <code>body.xdmEntity</code>) using your saved <strong>Dataset ID</strong> and <strong>Schema $id</strong> — same shape as your dataflow expects. The profile <strong>email from Step 1</strong> is the primary identity in <code>identityMap</code> and <code>identification.core.email</code> (ECID is added only when the loaded profile has one). Save URL, Flow ID, dataset, and schema before updating.
       </p>
       <div class="button-row">
         <button type="button" id="updateConsentBtn" class="btn btn-save">Update Consent Preferences</button>
