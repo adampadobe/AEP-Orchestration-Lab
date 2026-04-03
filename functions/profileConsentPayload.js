@@ -140,18 +140,19 @@ function getPreferredLanguage(entity) {
 }
 
 function getChannelRawValue(entity, key) {
-  const fromChannels = entity.optInOut?._channels?.[key];
-  if (fromChannels != null && typeof fromChannels === 'string') return fromChannels;
   const marketing = entity.consents?.marketing;
-  if (!marketing || typeof marketing !== 'object') return null;
-  const keysToTry = MARKETING_CHANNEL_ALIASES[key] || [key];
-  for (const k of keysToTry) {
-    const ch = marketing[k];
-    if (ch != null) {
-      const val = typeof ch === 'object' ? (ch.val ?? ch.consentValue) : ch;
-      if (val != null && typeof val === 'string') return val;
+  if (marketing && typeof marketing === 'object') {
+    const keysToTry = MARKETING_CHANNEL_ALIASES[key] || [key];
+    for (const k of keysToTry) {
+      const ch = marketing[k];
+      if (ch != null) {
+        const val = typeof ch === 'object' ? (ch.val ?? ch.consentValue) : ch;
+        if (val != null && typeof val === 'string') return val;
+      }
     }
   }
+  const fromChannels = entity.optInOut?._channels?.[key];
+  if (fromChannels != null && typeof fromChannels === 'string') return fromChannels;
   return null;
 }
 
@@ -506,6 +507,12 @@ function buildConsentGetPayload(email, response) {
     dataCollection: dataCollection || 'na',
     dataSharing: dataSharing || 'na',
     contentPersonalization: contentPersonalization || 'na',
+    _debug: {
+      rawConsents: entity?.consents ?? null,
+      rawOptInOut: entity?.optInOut ?? null,
+      profileConsentPath: profile?.consents ? 'profile.consents' : 'missing',
+      entityKeys: Object.keys(entity || {}),
+    },
   };
 }
 
