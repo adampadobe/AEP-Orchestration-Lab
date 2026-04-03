@@ -129,6 +129,29 @@
         <span class="consent-resolved-email__label">Email used for consent streaming (primary identity):</span>
         <strong id="profileResolvedEmailDisplay"></strong>
       </p>
+      <p class="panel-desc consent-step1-profile-meta-desc" style="margin-top: 0.75rem; font-size: 0.9rem;">
+        After a successful query, <strong>first name</strong> and <strong>last name</strong> load from the profile (you can edit before streaming). <strong>Profile last updated</strong> and <strong>source</strong> are read-only.
+      </p>
+      <div class="consent-step1-row consent-step1-row--profile-meta">
+        <div class="consent-step1-field">
+          <label for="profileFirstName">First name</label>
+          <input type="text" id="profileFirstName" placeholder="—" autocomplete="given-name" spellcheck="false" aria-label="Profile first name">
+        </div>
+        <div class="consent-step1-field">
+          <label for="profileLastName">Last name</label>
+          <input type="text" id="profileLastName" placeholder="—" autocomplete="family-name" spellcheck="false" aria-label="Profile last name">
+        </div>
+      </div>
+      <div class="consent-step1-row consent-step1-row--profile-meta">
+        <div class="consent-step1-field">
+          <label for="profileLastUpdated">Profile last updated</label>
+          <input type="text" id="profileLastUpdated" class="consent-readonly-field" placeholder="—" readonly aria-readonly="true" title="From Experience Platform profile lastModifiedAt">
+        </div>
+        <div class="consent-step1-field">
+          <label for="profileSource">Profile source</label>
+          <input type="text" id="profileSource" class="consent-readonly-field" placeholder="—" readonly aria-readonly="true" title="Profile data source label">
+        </div>
+      </div>
       <div class="button-row consent-step1-button-toolbar">
         <div class="consent-step1-toolbar-primary">
           <button type="button" id="queryProfileBtn" class="btn btn-primary btn-query">🔍 Query Customer Profile</button>

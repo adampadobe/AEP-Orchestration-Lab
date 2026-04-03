@@ -179,6 +179,25 @@ body.home-dashboard-concierge.consent-page .consent-message:not(.success):not(.e
   max-width: none;
 }
 
+.consent-step1-row--profile-meta {
+  margin-top: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+input.consent-readonly-field {
+  width: 100%;
+  max-width: none;
+  background: #f0f2f5;
+  color: #3a3f46;
+  cursor: default;
+}
+
+body.consent-page:not(.home-dashboard-concierge) input.consent-readonly-field {
+  background: rgba(255, 255, 255, 0.06);
+  color: #aeb4bd;
+  border-color: #4d5562;
+}
+
 .consent-step1-row select.sandbox-select {
   width: 100%;
   max-width: none;

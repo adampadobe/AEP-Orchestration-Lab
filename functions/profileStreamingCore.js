@@ -341,16 +341,35 @@ function operationalChannelTime(marketing, key, fallbackIso) {
   return fallbackIso;
 }
 
+function buildOperationalPersonFromRootExtras(rootExtras) {
+  const roots = rootExtras && typeof rootExtras === 'object' ? rootExtras : {};
+  const nm = roots.person && typeof roots.person === 'object' ? roots.person.name : null;
+  const firstName = nm && nm.firstName != null ? String(nm.firstName) : '';
+  const lastName = nm && nm.lastName != null ? String(nm.lastName) : '';
+  let fullName = nm && nm.fullName != null ? String(nm.fullName).trim() : '';
+  if (!fullName) {
+    fullName = [firstName, lastName].map((s) => String(s).trim()).filter(Boolean).join(' ').trim();
+  }
+  return {
+    name: {
+      firstName,
+      lastName,
+      fullName,
+    },
+  };
+}
+
 /**
  * DCS envelope xdmEntity aligned with common “Operational Profile / Consent” HTTP streams:
  * _demoemea.identification.core only, root consents with idSpecific.Email[address].marketing.email,
- * person stub, personID, _id / _repo — no duplicate tenant consents, no root identityMap.
+ * person + personID, _id / _repo — no duplicate tenant consents, no root identityMap.
  *
  * @param {object} demoemea - Tenant object after applying updates (consents.*, optInOut, identification)
  * @param {string} email
  * @param {string} [ecid]
+ * @param {object} [rootExtras] - e.g. person.name from consent form (Profile person mixin paths)
  */
-function buildOperationalConsentXdmEntity(demoemea, email, ecid) {
+function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
   const now = new Date().toISOString();
   const em = String(email || '').trim();
   const c = (demoemea && demoemea.consents) || {};
@@ -419,7 +438,7 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid) {
     _repo: { createDate: now, modifyDate: now },
     preferredLanguage,
     consents: consentsOut,
-    person: { name: { firstName: '', lastName: '', fullName: '' } },
+    person: buildOperationalPersonFromRootExtras(rootExtras),
     personID: em,
     metadata: { time: now },
   };

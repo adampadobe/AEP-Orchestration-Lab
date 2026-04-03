@@ -61,6 +61,33 @@ function clearStreamingFormFields(opts) {
   if (!skipSave) saveStreamFieldsToStorage();
 }
 
+function formatConsentProfileTimestamp(iso) {
+  if (iso == null || iso === '') return '';
+  const d =
+    typeof iso === 'string' || typeof iso === 'number'
+      ? new Date(iso)
+      : iso instanceof Date
+        ? iso
+        : null;
+  if (!d || Number.isNaN(d.getTime())) return String(iso);
+  try {
+    return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  } catch {
+    return d.toISOString();
+  }
+}
+
+function clearStep1ProfileMetaFields() {
+  const fn = document.getElementById('profileFirstName');
+  const ln = document.getElementById('profileLastName');
+  const lu = document.getElementById('profileLastUpdated');
+  const src = document.getElementById('profileSource');
+  if (fn) fn.value = '';
+  if (ln) ln.value = '';
+  if (lu) lu.value = '';
+  if (src) src.value = '';
+}
+
 /**
  * Profile query results are sandbox-scoped. Clear cached streaming identity when the AEP sandbox changes
  * so you re-query before updating consent in the new sandbox.
@@ -69,6 +96,7 @@ function resetConsentProfileCacheForSandboxChange() {
   consentStreamingEmail = '';
   consentOptionalEcid = '';
   if (profileResolvedEmailLine) profileResolvedEmailLine.hidden = true;
+  clearStep1ProfileMetaFields();
   consentFingerprintBaseline = null;
   step1Message.hidden = true;
   step4Message.hidden = true;
@@ -483,6 +511,7 @@ function clearForm() {
   setTri('postalMarketing', 'n');
   setTri('whatsappMarketing', 'n');
   if (preferredLanguageSelect) preferredLanguageSelect.value = 'en-US';
+  clearStep1ProfileMetaFields();
   consentFingerprintBaseline = null;
   step4Message.hidden = true;
 }
@@ -533,6 +562,15 @@ function applyProfileToForm(data) {
       : 'en-US';
   }
 
+  const pfn = document.getElementById('profileFirstName');
+  const pln = document.getElementById('profileLastName');
+  const plu = document.getElementById('profileLastUpdated');
+  const psrc = document.getElementById('profileSource');
+  if (pfn) pfn.value = data.firstName != null ? String(data.firstName) : '';
+  if (pln) pln.value = data.lastName != null ? String(data.lastName) : '';
+  if (plu) plu.value = formatConsentProfileTimestamp(data.lastModifiedAt);
+  if (psrc) psrc.value = data.profileSource != null ? String(data.profileSource) : '';
+
   setTri('dataCollection', ynFromProfile(data.dataCollection));
   setTri('dataSharing', ynFromProfile(data.dataSharing));
   setTri('contentPersonalization', ynFromProfile(data.contentPersonalization));
@@ -554,10 +592,14 @@ function applyProfileToForm(data) {
 
 function consentStateFingerprint() {
   const ch = buildChannelsFromForm();
+  const pfn = document.getElementById('profileFirstName');
+  const pln = document.getElementById('profileLastName');
   return JSON.stringify({
     radios: RADIO_CONSENT_NAMES.map((n) => [n, getTri(n)]),
     preferred: preferredChannelSelect ? preferredChannelSelect.value : 'email',
     preferredLanguage: preferredLanguageSelect ? preferredLanguageSelect.value : 'en-US',
+    profileFirstName: pfn ? String(pfn.value || '').trim() : '',
+    profileLastName: pln ? String(pln.value || '').trim() : '',
     channels: ch,
   });
 }
@@ -600,6 +642,16 @@ function consentFormToStreamingUpdates() {
     { path: 'consents.marketing.preferred', value: preferred },
     { path: 'consents.marketing.preferredLanguage', value: preferredLanguage },
   ];
+  const pfn = document.getElementById('profileFirstName');
+  const pln = document.getElementById('profileLastName');
+  const pFirst = pfn ? String(pfn.value || '').trim() : '';
+  const pLast = pln ? String(pln.value || '').trim() : '';
+  const pFull = [pFirst, pLast].filter(Boolean).join(' ').trim();
+  updates.push(
+    { path: 'person.name.firstName', value: pFirst },
+    { path: 'person.name.lastName', value: pLast },
+    { path: 'person.name.fullName', value: pFull },
+  );
   for (const p of marketingChannelPaths) {
     updates.push(
       { path: `consents.marketing.${p}.val`, value: channelYn },
@@ -648,6 +700,7 @@ async function queryProfile() {
       consentStreamingEmail = '';
       consentOptionalEcid = '';
       if (profileResolvedEmailLine) profileResolvedEmailLine.hidden = true;
+      clearStep1ProfileMetaFields();
       showMessage(step1Message, 'No profile found for this identifier in Adobe Experience Platform.', 'error');
       return;
     }

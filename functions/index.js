@@ -897,7 +897,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   let payload;
   let payloadFormat;
   if (useOperational && useEnvelope) {
-    const xdmEntity = buildOperationalConsentXdmEntity(demoemea, email, ecidForPayload);
+    const xdmEntity = buildOperationalConsentXdmEntity(demoemea, email, ecidForPayload, rootExtras);
     payload = buildProfileStreamingEnvelope(xdmEntity, orgId, envelopeSourceName, datasetId, schemaId);
     payloadFormat = 'envelope';
   } else {
