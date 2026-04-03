@@ -783,37 +783,37 @@ function buildConsentPayload() {
               time: currentTime,
               val: triVal('marketingAny'),
             },
-            email: {
-              ...triReason('emailGeneric'),
-              time: currentTime,
-              val: triVal('emailGeneric'),
-            },
-            sms: {
-              ...triReason('smsMarketing'),
-              time: currentTime,
-              val: triVal('smsMarketing'),
-            },
-            push: {
-              ...triReason('pushMarketing'),
-              time: currentTime,
-              val: triVal('pushMarketing'),
-            },
             call: {
               ...triReason('phoneMarketing'),
               time: currentTime,
               val: triVal('phoneMarketing'),
+            },
+            email: {
+              ...triReason('emailGeneric'),
+              time: currentTime,
+              val: triVal('emailGeneric'),
             },
             postalMail: {
               ...triReason('postalMarketing'),
               time: currentTime,
               val: triVal('postalMarketing'),
             },
+            preferred: preferredChannel,
+            push: {
+              ...triReason('pushMarketing'),
+              time: currentTime,
+              val: triVal('pushMarketing'),
+            },
+            sms: {
+              ...triReason('smsMarketing'),
+              time: currentTime,
+              val: triVal('smsMarketing'),
+            },
             whatsApp: {
               ...triReason('whatsappMarketing'),
               time: currentTime,
               val: triVal('whatsappMarketing'),
             },
-            preferred: preferredChannel,
             preferredLanguage: preferredLanguage,
           },
           personalize: {
