@@ -54,7 +54,7 @@
         dl.href = href;
         dl.setAttribute('data-aep-decisioning-lab', '1');
         dl.className = 'dashboard-nav-item';
-        dl.title = 'Experience Decisioning lab (AEP-Decisioning repo)';
+        dl.title = 'Experience Orchestration lab (AEP-Orchestration-Lab repo)';
         dl.innerHTML =
           '<span class="dashboard-nav-ico" aria-hidden="true">◇</span>Decisioning lab';
         var profileLink = nav.querySelector('a[href="index.html"]');

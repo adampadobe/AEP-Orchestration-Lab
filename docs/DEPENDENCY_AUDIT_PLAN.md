@@ -1,6 +1,6 @@
 # Dependency audit plan — colleague config vs your sandbox
 
-This document is a **repeatable plan** to find everything in the AEP-Decisioning repo that assumes a **specific colleague setup** (schemas, datasets, DCS inlets, Cloud Run URLs, Launch property, DSN site, default sandbox). You share the **same IMS org** but use **different sandboxes**; many IDs are **sandbox-scoped** and will not work until recreated or retargeted in your sandbox.
+This document is a **repeatable plan** to find everything in the AEP-Orchestration-Lab repo that assumes a **specific colleague setup** (schemas, datasets, DCS inlets, Cloud Run URLs, Launch property, DSN site, default sandbox). You share the **same IMS org** but use **different sandboxes**; many IDs are **sandbox-scoped** and will not work until recreated or retargeted in your sandbox.
 
 ---
 
@@ -83,7 +83,7 @@ rg -n "@AdobeOrg|@adobeOrg" --glob '!**/node_modules/**'
 
 # Schema / dataset style IDs
 rg -n "ns\.adobe\.com/[a-z]+/schemas/" --glob '*.{html,js,py,json,md,env.example}'
-rg -n "\b[0-9a-f]{24}\b" web functions colleague-cursor --glob '*.{html,js}'
+rg -n "\b[0-9a-f]{24}\b" web functions aep-prototypes --glob '*.{html,js}'
 
 # Streaming / Edge
 rg -n "dcs\.adobedc\.net|server\.adobedc\.net|dataStreamId|datastream" --glob '*.{html,js,py}'
@@ -183,11 +183,11 @@ Then progressively **replace hardcoded defaults** in `web/` with reads from a ge
 | `WEBHOOK_LISTENER_ALLOWED_NETLOC` | Must match listener you actually call. |
 | Adobe auth | From `adobe_ims_auth` / env — sandbox in headers when calling Platform. |
 
-### 5.5 Profile Viewer (vendored `colleague-cursor/...` + synced `web/profile-viewer/`)
+### 5.5 Profile Viewer (vendored `aep-prototypes/...` + synced `web/profile-viewer/`)
 
 | Item | Action |
 |------|--------|
-| `server.js` + `.env` | Many `AEP_*` vars: streaming URLs, flow IDs, dataset IDs, Query profile dataset, Edge interact URL — **all sandbox/service specific**. See `colleague-cursor/AEP Profile/03 Profile Viewer/.env.example`. |
+| `server.js` + `.env` | Many `AEP_*` vars: streaming URLs, flow IDs, dataset IDs, Query profile dataset, Edge interact URL — **all sandbox/service specific**. See `aep-prototypes/AEP Profile/03 Profile Viewer/.env.example`. |
 | Default sandbox in JS | e.g. `kirkham` / `apalmer` fallbacks in sandbox dropdown loaders — cosmetic; global sandbox selector overrides when using hosted APIs. |
 | XDM paths | `_demoemea.*` throughout — align with **your** tenant namespace. |
 

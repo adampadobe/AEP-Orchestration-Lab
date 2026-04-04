@@ -1,6 +1,6 @@
 /**
  * Profile table JSON shape for GET /api/profile/table (mirrors Express server.js handler).
- * Kept in functions/ for Firebase Hosting rewrite — not imported from colleague-cursor server.
+ * Kept in functions/ for Firebase Hosting rewrite — not imported from aep-prototypes server.
  */
 
 const get = (obj, path) => path.split('.').reduce((o, k) => (o && o[k]), obj);

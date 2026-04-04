@@ -1,4 +1,4 @@
-# Schema service & MCP plan — sandbox provisioning for AEP-Decisioning
+# Schema service & MCP plan — sandbox provisioning for AEP-Orchestration-Lab
 
 This document describes how to add a **schema / field-group / HTTP-flow provisioning layer** so any **sandbox** can be checked and (when needed) brought up to the shape your **content service** and Profile tooling expect. It complements the inventory work in [`DEPENDENCY_AUDIT_PLAN.md`](./DEPENDENCY_AUDIT_PLAN.md).
 
@@ -208,8 +208,8 @@ MCP server configuration:
 |------|--------|
 | Profile / consent expectations | `functions/profileConsentPayload.js`, `functions/profileTableHelpers.js` |
 | Adobe proxy pattern | `functions/index.js` (`aepProxy`, secrets) |
-| Streaming / tenant paths | `colleague-cursor/.../server.js`, `web/profile-viewer/profile-streaming-shared.js` |
-| Flow Service (read reference; §15 automation TBD) | `colleague-cursor/AEP Profile/03 Profile Viewer/server.js` (`FLOW_SERVICE_BASE`, `GET /flows/{flowId}`) |
+| Streaming / tenant paths | `aep-prototypes/.../server.js`, `web/profile-viewer/profile-streaming-shared.js` |
+| Flow Service (read reference; §15 automation TBD) | `aep-prototypes/AEP Profile/03 Profile Viewer/server.js` (`FLOW_SERVICE_BASE`, `GET /flows/{flowId}`) |
 | DCS forward / envelope | `functions/index.js` (`profileUpdateProxy`), `proxy_server.py` |
 | Consent schema + dataset | `functions/consentInfraService.js` |
 | Dependency inventory | [`docs/DEPENDENCY_AUDIT_PLAN.md`](./DEPENDENCY_AUDIT_PLAN.md) |

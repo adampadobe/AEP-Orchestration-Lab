@@ -1,10 +1,10 @@
 {
-  "name": "aep-decisioning",
+  "name": "aep-orchestration-lab",
   "private": true,
-  "description": "Experience Decisioning lab + vendored colleague Profile Viewer",
+  "description": "AEP Orchestration Lab – decisioning, profile tools, and vendored prototypes",
   "scripts": {
-    "profile-viewer": "cd \"colleague-cursor/AEP Profile/03 Profile Viewer\" && npm start",
-    "profile-viewer:install": "cd \"colleague-cursor/AEP Profile/00 Adobe Auth\" && npm install && cd \"../03 Profile Viewer\" && npm install",
-    "sync-profile-viewer-ui": "rsync -a --delete \"colleague-cursor/AEP Profile/03 Profile Viewer/public/\" \"web/profile-viewer/\""
+    "profile-viewer": "cd \"aep-prototypes/AEP Profile/03 Profile Viewer\" && npm start",
+    "profile-viewer:install": "cd \"aep-prototypes/AEP Profile/00 Adobe Auth\" && npm install && cd \"../03 Profile Viewer\" && npm install",
+    "sync-profile-viewer-ui": "rsync -a --delete \"aep-prototypes/AEP Profile/03 Profile Viewer/public/\" \"web/profile-viewer/\""
   }
 }

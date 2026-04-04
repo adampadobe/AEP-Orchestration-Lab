@@ -2,7 +2,7 @@
 
 Cursor Projects – AEP tools, development plans, and utilities.
 
-**Vendored inside [AEP-Decisioning](..):** see repo root **`docs/COLLEAGUE_PROFILE_VIEWER.md`** for Adobe `.env` (`ADOBE_SANDBOX_NAME=apalmer`, etc.), `npm run profile-viewer`, and the **Decisioning lab** sidebar link (`public/aep-lab-nav.js`).
+**Vendored inside [AEP-Orchestration-Lab](..):** see repo root **`docs/COLLEAGUE_PROFILE_VIEWER.md`** for Adobe `.env` (`ADOBE_SANDBOX_NAME=apalmer`, etc.), `npm run profile-viewer`, and the **Orchestration lab** sidebar link (`public/aep-lab-nav.js`).
 
 ## Project structure
 

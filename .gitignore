@@ -10,5 +10,5 @@ functions/node_modules/
 firebase-debug.log
 firebase-debug.*.log
 
-# Vendored colleague repo (npm)
-colleague-cursor/**/node_modules/
+# Vendored prototypes (npm)
+aep-prototypes/**/node_modules/

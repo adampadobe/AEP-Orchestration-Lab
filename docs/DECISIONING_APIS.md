@@ -79,7 +79,7 @@ Only headers you list in `platform_headers` are added on top of IMS auth headers
 ## Run the local lab
 
 ```bash
-cd "/Users/apalmer/Library/CloudStorage/OneDrive-Adobe/AEP-Decisioning"
+cd "/Users/apalmer/Library/CloudStorage/OneDrive-Adobe/AEP-Orchestration-Lab"
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```

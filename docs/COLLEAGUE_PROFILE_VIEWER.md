@@ -1,10 +1,10 @@
 # Colleague Profile Viewer (kirkside-bit/cursor)
 
-The folder **`colleague-cursor/`** is a vendored copy of [kirkside-bit/cursor](https://github.com/kirkside-bit/cursor.git) (nested `.git` removed so you can commit it in **AEP-Decisioning**).
+The folder **`aep-prototypes/`** is a vendored copy of [kirkside-bit/cursor](https://github.com/kirkside-bit/cursor.git) (nested `.git` removed so you can commit it in **AEP-Orchestration-Lab**).
 
 The piece you run for **AEP Profile Viewer** is:
 
-**`colleague-cursor/AEP Profile/03 Profile Viewer/`**
+**`aep-prototypes/AEP Profile/03 Profile Viewer/`**
 
 It is a **Node.js + Express** app. It calls Adobe **directly** from the server using OAuth credentials (same pattern as Firebase **`aepProxy`**, but with many more routes than we expose in Cloud Functions). It does **not** use `POST /api/aep` today.
 
@@ -13,8 +13,8 @@ It is a **Node.js + Express** app. It calls Adobe **directly** from the server u
 The Profile Viewer’s Node **`00 Adobe Auth`** now loads credentials in the **same order of preference** as **`adobe_ims_auth`** / **`proxy_server.py`**:
 
 1. **`~/.config/adobe-ims/credentials.env`** (global default — recommended)
-2. **`.env`** at the **AEP-Decisioning repo root** (next to `colleague-cursor/`, `functions/`, `web/`)
-3. **`colleague-cursor/AEP Profile/00 Adobe Auth/.env`** (overrides root)
+2. **`.env`** at the **AEP-Orchestration-Lab repo root** (next to `aep-prototypes/`, `functions/`, `web/`)
+3. **`aep-prototypes/AEP Profile/00 Adobe Auth/.env`** (overrides root)
 4. **`.env`** in the **current working directory** when you start the server (e.g. `03 Profile Viewer/.env`)
 5. **`ADOBE_CREDENTIALS_FILE`** if set (path to a `KEY=value` file)
 
@@ -33,7 +33,7 @@ Copy **`00 Adobe Auth/.env.example`** → **`00 Adobe Auth/.env`** only when you
 ### Test auth
 
 ```bash
-cd colleague-cursor/AEP Profile/00 Adobe Auth
+cd aep-prototypes/AEP Profile/00 Adobe Auth
 npm run test-auth
 ```
 
@@ -48,7 +48,7 @@ npm run profile-viewer
 Or manually:
 
 ```bash
-cd colleague-cursor/AEP Profile/03 Profile Viewer
+cd aep-prototypes/AEP Profile/03 Profile Viewer
 npm install   # first time
 npm start
 ```
@@ -95,7 +95,7 @@ Putting the whole Express app inside **`firebase functions`** would be a large, 
 
 ```bash
 git clone https://github.com/kirkside-bit/cursor.git /tmp/cursor-upstream
-# Compare and merge selected paths into colleague-cursor/
+# Compare and merge selected paths into aep-prototypes/
 ```
 
 Re-apply **`aep-lab-nav.js`** and **`</body>` script tags** if you replace HTML from upstream.

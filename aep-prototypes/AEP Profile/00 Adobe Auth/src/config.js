@@ -16,7 +16,7 @@ const useVault = Boolean(process.env.AZURE_KEY_VAULT_NAME);
 
 /**
  * Merge credential files in the same spirit as Python adobe_ims_auth / this repo’s proxy:
- * global default → AEP-Decisioning repo root → this package → cwd → ADOBE_CREDENTIALS_FILE.
+ * global default → AEP-Orchestration-Lab repo root → this package → cwd → ADOBE_CREDENTIALS_FILE.
  * Later files override earlier keys (override: true).
  */
 function loadCredentialFiles() {
