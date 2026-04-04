@@ -155,13 +155,26 @@
   margin-bottom: 0.35rem;
 }
 
-.donate-email-bar input[type='email'] {
+.donate-email-bar input[type='email'],
+.donate-email-bar input[type='text'] {
   width: 100%;
   max-width: 360px;
   padding: 0.55rem 0.75rem;
   border: 1px solid rgba(10, 47, 115, 0.25);
   border-radius: 6px;
   font-size: 0.95rem;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+.donate-email-bar select {
+  max-width: 180px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(10, 47, 115, 0.25);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: #fff;
+  color: #1a1a1a;
 }
 
 .donate-email-actions {

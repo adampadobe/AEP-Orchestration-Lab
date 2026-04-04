@@ -564,4 +564,34 @@ input[type="text"]:focus {
   background: #4d5259;
 }
 
-/* Identity namespace picker – reuses consent-step1-row/consent-step1-field from consent.css */
+/* Dashboard light-mode overrides for identity namespace + identifier inputs */
+body.home-dashboard-concierge .consent-step1-row input[type='text'],
+body.home-dashboard-concierge .consent-step1-row select,
+body.home-dashboard-concierge .consent-panel input[type='text'],
+body.home-dashboard-concierge .consent-panel select,
+body.home-dashboard-concierge .profile-gen-config input[type='text'],
+body.home-dashboard-concierge .profile-gen-config select {
+  background: #fff;
+  color: #2c2c2c;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 1rem;
+}
+
+body.home-dashboard-concierge .consent-step1-row input[type='text']:focus,
+body.home-dashboard-concierge .consent-step1-row select:focus,
+body.home-dashboard-concierge .consent-panel input[type='text']:focus,
+body.home-dashboard-concierge .consent-panel select:focus,
+body.home-dashboard-concierge .profile-gen-config input[type='text']:focus,
+body.home-dashboard-concierge .profile-gen-config select:focus {
+  outline: none;
+  border-color: #6b5b95;
+  box-shadow: 0 0 0 2px rgba(107, 91, 149, 0.2);
+}
+
+body.home-dashboard-concierge .consent-step1-field label,
+body.home-dashboard-concierge .consent-panel label,
+body.home-dashboard-concierge .profile-gen-config label {
+  color: #333;
+}

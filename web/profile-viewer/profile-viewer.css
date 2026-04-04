@@ -200,12 +200,17 @@ body.profile-viewer-page.consent-page:not(.profile-generation-page).with-sidebar
   box-shadow: 0 0 0 2px rgba(107, 91, 149, 0.2);
 }
 
-/* Form labels and email input – light theme */
-.profile-viewer-page .consent-panel label {
+/* Form labels, inputs, selects – light theme for dashboard pages */
+.profile-viewer-page .consent-panel label,
+.profile-viewer-page .consent-step1-field label {
   color: #333;
 }
 
-.profile-viewer-page .consent-panel input[type="email"] {
+.profile-viewer-page .consent-panel input[type="text"],
+.profile-viewer-page .consent-panel input[type="email"],
+.profile-viewer-page .consent-panel select,
+.profile-viewer-page .consent-step1-row input[type="text"],
+.profile-viewer-page .consent-step1-row select {
   width: 100%;
   max-width: 400px;
   padding: 0.6rem 0.75rem;
@@ -216,7 +221,11 @@ body.profile-viewer-page.consent-page:not(.profile-generation-page).with-sidebar
   color: #2c2c2c;
 }
 
-.profile-viewer-page .consent-panel input[type="email"]:focus {
+.profile-viewer-page .consent-panel input[type="text"]:focus,
+.profile-viewer-page .consent-panel input[type="email"]:focus,
+.profile-viewer-page .consent-panel select:focus,
+.profile-viewer-page .consent-step1-row input[type="text"]:focus,
+.profile-viewer-page .consent-step1-row select:focus {
   outline: none;
   border-color: #6b5b95;
   box-shadow: 0 0 0 2px rgba(107, 91, 149, 0.2);

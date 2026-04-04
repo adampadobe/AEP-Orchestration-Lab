@@ -141,9 +141,20 @@
   font-weight: 600;
 }
 
-.race-email-inner input[type='email'] {
+.race-email-inner input[type='email'],
+.race-email-inner input[type='text'] {
   width: 100%;
   max-width: 420px;
+  padding: 0.65rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #94a3b8;
+  background: #232a3a;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.race-email-inner select {
+  max-width: 180px;
   padding: 0.65rem 0.8rem;
   border-radius: 8px;
   border: 1px solid #94a3b8;
