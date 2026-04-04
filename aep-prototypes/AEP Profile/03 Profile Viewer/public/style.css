@@ -564,9 +564,9 @@ input[type="text"]:focus {
   background: #4d5259;
 }
 
-/* Dashboard light-mode overrides – all selects and text inputs on dashboard pages */
-body.home-dashboard-concierge select,
-body.home-dashboard-concierge input[type='text'] {
+/* Dashboard light-mode overrides – only when dark mode is NOT active */
+html:not([data-aep-theme='dark']) body.home-dashboard-concierge select,
+html:not([data-aep-theme='dark']) body.home-dashboard-concierge input[type='text'] {
   background: #fff;
   color: #2c2c2c;
   border: 1px solid #ced4da;
@@ -575,13 +575,13 @@ body.home-dashboard-concierge input[type='text'] {
   font-size: 1rem;
 }
 
-body.home-dashboard-concierge select:focus,
-body.home-dashboard-concierge input[type='text']:focus {
+html:not([data-aep-theme='dark']) body.home-dashboard-concierge select:focus,
+html:not([data-aep-theme='dark']) body.home-dashboard-concierge input[type='text']:focus {
   outline: none;
   border-color: #6b5b95;
   box-shadow: 0 0 0 2px rgba(107, 91, 149, 0.2);
 }
 
-body.home-dashboard-concierge label {
+html:not([data-aep-theme='dark']) body.home-dashboard-concierge label {
   color: #333;
 }
