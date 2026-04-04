@@ -22,10 +22,10 @@ async function getAudienceNameById(id, sandboxName, token, clientId, orgId) {
 /**
  * @returns {Promise<{ email: string, realized: object[], exited: object[] }>}
  */
-async function buildAudiencesPayload(email, sandboxName, token, clientId, orgId) {
-  const response = await fetchUpsProfileEntities(email, sandboxName, token, clientId, orgId);
+async function buildAudiencesPayload(identifier, sandboxName, token, clientId, orgId, namespace = 'email') {
+  const response = await fetchUpsProfileEntities(identifier, sandboxName, token, clientId, orgId, namespace);
   const keys = Object.keys(response || {}).filter((k) => !k.startsWith('_'));
-  if (keys.length === 0) return { email, realized: [], exited: [] };
+  if (keys.length === 0) return { email: identifier, realized: [], exited: [] };
   const entityPayload = response[keys[0]];
   const entity = entityPayload?.entity ?? entityPayload;
   const segmentMembership = entity?.segmentMembership?.ups ?? entity?.segmentMembership ?? {};
@@ -48,7 +48,7 @@ async function buildAudiencesPayload(email, sandboxName, token, clientId, orgId)
   };
   realized.sort(sortByTime);
   exited.sort(sortByTime);
-  return { email, realized, exited };
+  return { email: identifier, realized, exited };
 }
 
 module.exports = { buildAudiencesPayload };

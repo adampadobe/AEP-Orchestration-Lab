@@ -114,14 +114,8 @@
                 </select>
               </div>
               <div class="form-row event-gen-customer-email-row">
-                <label for="customerEmail">Customer email</label>
-                <input type="email" id="customerEmail" placeholder="e.g. kirkham+public-3@adobetest.com" value="" autocomplete="email" size="40">
-              </div>
-              <div class="form-row" hidden aria-hidden="true">
-                <label for="identityNamespace">Identity namespace</label>
-                <select id="identityNamespace" tabindex="-1">
-                  <option value="Email">Email</option>
-                </select>
+                <label for="customerEmail">Identifier value</label>
+                <input type="text" id="customerEmail" placeholder="Enter email address" value="" autocomplete="off" size="40">
               </div>
               <div class="form-row form-row--action profile-gen-actions">
                 <button type="button" id="queryProfileBtn" class="btn btn-secondary">Query profile</button>
@@ -349,6 +343,7 @@
   </div>
 
   <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="event-generator.js"></script>
   <script defer src="aep-theme.js"></script>

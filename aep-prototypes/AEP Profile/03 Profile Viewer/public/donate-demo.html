@@ -116,8 +116,8 @@
         <section class="donate-email-bar" aria-label="Customer identity">
           <div class="donate-email-bar-inner">
             <div class="form-row">
-              <label for="customerEmail">Customer email address</label>
-              <input type="email" id="customerEmail" placeholder="e.g. supporter@example.com" autocomplete="email" spellcheck="false">
+              <label for="customerEmail">Identifier value</label>
+              <input type="text" id="customerEmail" placeholder="Enter email address" autocomplete="off" spellcheck="false">
             </div>
             <div class="donate-email-actions">
               <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
@@ -350,6 +350,7 @@
   </aside>
 
   <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="donate-demo.js"></script>
   <script defer src="aep-theme.js"></script>

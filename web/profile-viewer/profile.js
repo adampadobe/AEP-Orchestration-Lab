@@ -1,5 +1,6 @@
 const params = new URLSearchParams(window.location.search);
-const email = params.get('email');
+const email = params.get('identifier') || params.get('email');
+const namespace = params.get('namespace') || 'email';
 
 const loadingEl = document.getElementById('loading');
 const errorSection = document.getElementById('error');
@@ -18,13 +19,13 @@ function getSandboxParam() {
 if (!email) {
   loadingEl.hidden = true;
   errorSection.hidden = false;
-  errorMessageEl.textContent = 'Missing email. Open this page from the search results (e.g. profile.html?email=user@example.com).';
+  errorMessageEl.textContent = 'Missing identifier. Open this page from the search results (e.g. profile.html?identifier=user@example.com&namespace=email).';
 } else {
   profileEmailEl.textContent = email;
 
   (async () => {
     try {
-      const res = await fetch(`/api/profile/table?email=${encodeURIComponent(email)}${getSandboxParam()}`);
+      const res = await fetch(`/api/profile/table?identifier=${encodeURIComponent(email)}&namespace=${encodeURIComponent(namespace)}${getSandboxParam()}`);
       const data = await res.json();
 
       loadingEl.hidden = true;

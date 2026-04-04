@@ -4,6 +4,7 @@
 
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail');
 
 function getSandboxParam() {
   if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
@@ -452,7 +453,8 @@ function renderAudienceList(audiences) {
 async function fetchAudienceMembership(email) {
   if (!email) return null;
   try {
-    const res = await fetch('/api/profile/audiences?email=' + encodeURIComponent(email) + getSandboxParam());
+    const dNs = typeof AepIdentityPicker !== 'undefined' ? AepIdentityPicker.getNamespace('customerEmail') : 'email';
+    const res = await fetch('/api/profile/audiences?identifier=' + encodeURIComponent(email) + '&namespace=' + encodeURIComponent(dNs) + getSandboxParam());
     if (!res.ok) return null;
     const data = await res.json().catch(() => ({}));
     return data && typeof data === 'object' ? data : null;
@@ -559,7 +561,8 @@ function renderEventTimeline(events) {
 async function fetchRecentEvents(email) {
   if (!email) return [];
   try {
-    const res = await fetch('/api/profile/events?email=' + encodeURIComponent(email) + getSandboxParam());
+    const eNs = typeof AepIdentityPicker !== 'undefined' ? AepIdentityPicker.getNamespace('customerEmail') : 'email';
+    const res = await fetch('/api/profile/events?identifier=' + encodeURIComponent(email) + '&namespace=' + encodeURIComponent(eNs) + getSandboxParam());
     if (!res.ok) return [];
     const data = await res.json().catch(() => ({}));
     const events = Array.isArray(data.events) ? data.events : [];
@@ -586,7 +589,8 @@ async function loadProfileDataForDrawer(email, options) {
   if (!emailTrim) return false;
 
   try {
-    const res = await fetch('/api/profile/consent?email=' + encodeURIComponent(emailTrim) + getSandboxParam());
+    const cNs = typeof AepIdentityPicker !== 'undefined' ? AepIdentityPicker.getNamespace('customerEmail') : 'email';
+    const res = await fetch('/api/profile/consent?identifier=' + encodeURIComponent(emailTrim) + '&namespace=' + encodeURIComponent(cNs) + getSandboxParam());
     const data = await res.json();
     if (!res.ok) {
       if (opts.updateDonateMessage) setDonateMessage(data.error || 'Profile request failed.', 'error');
@@ -752,7 +756,7 @@ queryProfileBtn &&
   queryProfileBtn.addEventListener('click', async () => {
     const email = getEmail().trim();
     if (!email) {
-      setDonateMessage('Enter a customer email first.', 'error');
+      setDonateMessage('Enter a customer identifier first.', 'error');
       return;
     }
     setDonateMessage('Looking up profile…', '');
@@ -763,7 +767,7 @@ donateNowBtn &&
   donateNowBtn.addEventListener('click', async () => {
     const emailForEvent = getEmail().trim();
     if (!emailForEvent) {
-      setDonateMessage('Enter your customer email at the top before donating.', 'error');
+      setDonateMessage('Enter your customer identifier at the top before donating.', 'error');
       return;
     }
     const donationAmount = parseDonationAmountForPayload();

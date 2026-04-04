@@ -188,7 +188,15 @@ function extractExperienceEventsFromProfileResponse(response) {
   return out.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
 }
 
-async function getProfileWithExperienceEvents(email, limit, sandboxName, token, clientId, orgId) {
+const EVENTS_NAMESPACE_TRIES = {
+  email: ['email', 'Email'],
+  ecid: ['ECID', 'ecid'],
+  crmid: ['CRMId', 'crmId', 'CrmId', 'CRMid'],
+  loyaltyid: ['Loyalty', 'loyaltyId', 'LoyaltyId'],
+  phone: ['Phone', 'phone'],
+};
+
+async function getProfileWithExperienceEvents(identityValue, limit, sandboxName, token, clientId, orgId, namespaceKey = 'email') {
   const headers = {
     Authorization: `Bearer ${token}`,
     'x-api-key': clientId,
@@ -199,7 +207,7 @@ async function getProfileWithExperienceEvents(email, limit, sandboxName, token, 
   async function fetchOne(entityIdNS) {
     const params = new URLSearchParams({
       'schema.name': '_xdm.context.profile',
-      entityId: email,
+      entityId: identityValue,
       entityIdNS,
       relatedEntities: 'experienceEvents',
       limit: String(limit),
@@ -209,12 +217,16 @@ async function getProfileWithExperienceEvents(email, limit, sandboxName, token, 
     const data = await res.json().catch(() => ({}));
     return { res, data };
   }
-  let { res, data } = await fetchOne('email');
-  const keyCount = () => Object.keys(data).filter((k) => !k.startsWith('_')).length;
-  if (!res.ok || keyCount() === 0) {
-    const second = await fetchOne('Email');
-    res = second.res;
-    data = second.data;
+  const rawKey = String(namespaceKey || 'email').trim();
+  const norm = rawKey.toLowerCase().replace(/[\s_-]+/g, '');
+  const nsTries = EVENTS_NAMESPACE_TRIES[norm] || (rawKey && rawKey !== 'email' ? [rawKey] : EVENTS_NAMESPACE_TRIES.email);
+  let res, data;
+  for (const ns of nsTries) {
+    const result = await fetchOne(ns);
+    res = result.res;
+    data = result.data;
+    const keyCount = Object.keys(data).filter((k) => !k.startsWith('_')).length;
+    if (res.ok && keyCount > 0) return data;
   }
   if (!res.ok) {
     const msg = data.message || data.error_description || data.title || res.statusText;
@@ -254,20 +266,24 @@ async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sa
 /**
  * @returns {Promise<{ email: string, events: object[], source?: string }>}
  */
-async function buildEventsPayload(email, sandboxName, token, clientId, orgId) {
+async function buildEventsPayload(identityValue, namespace, sandboxName, token, clientId, orgId) {
+  const ns = String(namespace || 'email').trim().toLowerCase();
+  const isEmailLookup = ns === 'email' || !ns;
   const explicitDataset = process.env.AEP_QUERY_EVENTS_DATASET_ID;
-  try {
-    const rawRows = await getEventsFromQueryService(email, sandboxName, token, clientId, orgId);
-    const events = rawRows.map((row, i) => eventRowToEventPayload(row, i));
-    return { email, events, source: 'query_service' };
-  } catch (queryErr) {
-    if (explicitDataset !== undefined && explicitDataset !== '') {
-      throw queryErr;
+  if (isEmailLookup) {
+    try {
+      const rawRows = await getEventsFromQueryService(identityValue, sandboxName, token, clientId, orgId);
+      const events = rawRows.map((row, i) => eventRowToEventPayload(row, i));
+      return { email: identityValue, events, source: 'query_service' };
+    } catch (queryErr) {
+      if (explicitDataset !== undefined && explicitDataset !== '') {
+        throw queryErr;
+      }
     }
   }
 
   const limit = Math.min(parseInt(process.env.AEP_PROFILE_EVENTS_LIMIT || '50', 10) || 50, 100);
-  const profileWithEvents = await getProfileWithExperienceEvents(email, limit, sandboxName, token, clientId, orgId);
+  const profileWithEvents = await getProfileWithExperienceEvents(identityValue, limit, sandboxName, token, clientId, orgId, ns);
   let events = extractExperienceEventsFromProfileResponse(profileWithEvents);
   if (events.length === 0) {
     const entityId = Object.keys(profileWithEvents).filter((k) => !k.startsWith('_'))[0];
@@ -277,8 +293,8 @@ async function buildEventsPayload(email, sandboxName, token, clientId, orgId) {
       entity && (entity._demoemea?.identification?.core?.ecid ?? entity._demoemea?.identification?.core?.ECID != null)
         ? toEcidString(entity._demoemea.identification.core.ecid ?? entity._demoemea.identification.core.ECID)
         : null;
-    const relatedId = ecid && ecid.length >= 10 ? ecid : email;
-    const relatedNS = ecid && ecid.length >= 10 ? 'ECID' : 'email';
+    const relatedId = ecid && ecid.length >= 10 ? ecid : identityValue;
+    const relatedNS = ecid && ecid.length >= 10 ? 'ECID' : (isEmailLookup ? 'email' : ns);
     const raw = await getProfileExperienceEvents(relatedId, relatedNS, sandboxName, token, clientId, orgId);
     const children = raw.children || raw.results || [];
     events = children.map((child) => {
@@ -299,7 +315,7 @@ async function buildEventsPayload(email, sandboxName, token, clientId, orgId) {
     });
   }
 
-  return { email, events };
+  return { email: identityValue, events };
 }
 
 module.exports = { buildEventsPayload };

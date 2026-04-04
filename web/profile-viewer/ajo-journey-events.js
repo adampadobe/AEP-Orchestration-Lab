@@ -5,6 +5,7 @@
 const eventOption = document.getElementById('eventOption');
 const profileEmail = document.getElementById('profileEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('profileEmail');
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('profileEmail');
 const triggerEventBtn = document.getElementById('triggerEventBtn');
 const eventMessage = document.getElementById('eventMessage');
 
@@ -24,10 +25,11 @@ if (triggerEventBtn) {
       return;
     }
     if (!email) {
-      setMessage('Please enter a customer email.', 'error');
+      setMessage('Please enter an identifier value.', 'error');
       return;
     }
 
+    const ns = typeof AepIdentityPicker !== 'undefined' ? AepIdentityPicker.getNamespace('profileEmail') : 'email';
     triggerEventBtn.disabled = true;
     setMessage('Sending journey event to AJO…', '');
 
@@ -35,7 +37,7 @@ if (triggerEventBtn) {
       const res = await fetch('/api/events/ajo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventType, email }),
+        body: JSON.stringify({ eventType, email, namespace: ns }),
       });
       const data = await res.json().catch(() => ({}));
 

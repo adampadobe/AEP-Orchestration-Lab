@@ -5,6 +5,7 @@
 
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail');
 
 function getSandboxParam() {
   if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
@@ -56,12 +57,13 @@ function applyCustomerInfo(data) {
 queryProfileBtn.addEventListener('click', async () => {
   const email = getEmail();
   if (!email) {
-    setMessage(profileMessage, 'Please enter an email address.', 'error');
+    setMessage(profileMessage, 'Please enter an identifier value.', 'error');
     return;
   }
+  const ns = typeof AepIdentityPicker !== 'undefined' ? AepIdentityPicker.getNamespace('customerEmail') : 'email';
   setMessage(profileMessage, 'Loading…', '');
   try {
-    const res = await fetch('/api/profile/consent?email=' + encodeURIComponent(email) + getSandboxParam());
+    const res = await fetch('/api/profile/consent?identifier=' + encodeURIComponent(email) + '&namespace=' + encodeURIComponent(ns) + getSandboxParam());
     const data = await res.json();
     if (!res.ok) {
       setMessage(profileMessage, data.error || 'Request failed.', 'error');

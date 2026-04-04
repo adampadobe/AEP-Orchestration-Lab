@@ -6,6 +6,7 @@
 
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail');
 
 function getSandboxParam() {
   if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
@@ -97,12 +98,13 @@ queryProfileBtn &&
     clearAbandonBasketTimer();
     const email = getEmail().trim();
     if (!email) {
-      setRaceMessage('Enter a customer email first.', 'error');
+      setRaceMessage('Enter a customer identifier first.', 'error');
       return;
     }
     setRaceMessage('Looking up profile...', '');
     try {
-      const res = await fetch('/api/profile/consent?email=' + encodeURIComponent(email) + getSandboxParam());
+      const rNs = typeof AepIdentityPicker !== 'undefined' ? AepIdentityPicker.getNamespace('customerEmail') : 'email';
+      const res = await fetch('/api/profile/consent?identifier=' + encodeURIComponent(email) + '&namespace=' + encodeURIComponent(rNs) + getSandboxParam());
       const data = await res.json();
       if (!res.ok) {
         setRaceMessage(data.error || 'Profile request failed.', 'error');

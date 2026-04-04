@@ -292,10 +292,11 @@ exports.profileTableProxy = onRequest(
       res.status(405).json({ error: 'Method not allowed' });
       return;
     }
-    const email = String(req.query.email || '').trim();
+    const identifier = String(req.query.identifier || req.query.email || '').trim();
+    const namespace = String(req.query.namespace || 'email').trim().toLowerCase();
     const sandbox = resolveSandboxFromQuery(req);
-    if (!email) {
-      res.status(400).json({ error: 'Missing email. Use ?email=user@example.com' });
+    if (!identifier) {
+      res.status(400).json({ error: 'Missing identifier. Use ?identifier=…&namespace=email|ecid|crmId|loyaltyId|phone' });
       return;
     }
     let accessToken;
@@ -308,8 +309,8 @@ exports.profileTableProxy = onRequest(
     const clientId = ADOBE_CLIENT_ID.value();
     const orgId = ADOBE_IMS_ORG.value();
     try {
-      const ups = await fetchUpsProfileEntities(email, sandbox, accessToken, clientId, orgId);
-      const payload = buildProfileTablePayload(email, ups);
+      const ups = await fetchUpsProfileEntities(identifier, sandbox, accessToken, clientId, orgId, namespace);
+      const payload = buildProfileTablePayload(identifier, ups);
       res.status(200).json(payload);
     } catch (e) {
       res.status(500).json({ error: String(e.message || e) });
@@ -1132,10 +1133,11 @@ exports.profileAudiencesProxy = onRequest(profileFnOpts, async (req, res) => {
     res.status(405).json({ error: 'Method not allowed', realized: [], exited: [] });
     return;
   }
-  const email = String(req.query.email || '').trim();
+  const identifier = String(req.query.identifier || req.query.email || '').trim();
+  const namespace = String(req.query.namespace || 'email').trim().toLowerCase();
   const sandbox = resolveSandboxFromQuery(req);
-  if (!email) {
-    res.status(400).json({ error: 'Missing email. Use ?email=user@example.com', realized: [], exited: [] });
+  if (!identifier) {
+    res.status(400).json({ error: 'Missing identifier. Use ?identifier=…&namespace=email|ecid|crmId|loyaltyId|phone', realized: [], exited: [] });
     return;
   }
   let accessToken;
@@ -1148,7 +1150,7 @@ exports.profileAudiencesProxy = onRequest(profileFnOpts, async (req, res) => {
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
   try {
-    const payload = await buildAudiencesPayload(email, sandbox, accessToken, clientId, orgId);
+    const payload = await buildAudiencesPayload(identifier, sandbox, accessToken, clientId, orgId, namespace);
     res.status(200).json(payload);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), realized: [], exited: [] });
@@ -1204,10 +1206,11 @@ exports.profileEventsProxy = onRequest(profileFnOpts, async (req, res) => {
     res.status(405).json({ error: 'Method not allowed', events: [] });
     return;
   }
-  const email = String(req.query.email || '').trim();
+  const identifier = String(req.query.identifier || req.query.email || '').trim();
+  const namespace = String(req.query.namespace || 'email').trim().toLowerCase();
   const sandbox = resolveSandboxFromQuery(req);
-  if (!email) {
-    res.status(400).json({ error: 'Missing email. Use ?email=user@example.com', events: [] });
+  if (!identifier) {
+    res.status(400).json({ error: 'Missing identifier. Use ?identifier=…&namespace=email|ecid|crmId|loyaltyId|phone', events: [] });
     return;
   }
   let accessToken;
@@ -1220,7 +1223,7 @@ exports.profileEventsProxy = onRequest(profileFnOpts, async (req, res) => {
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
   try {
-    const payload = await buildEventsPayload(email, sandbox, accessToken, clientId, orgId);
+    const payload = await buildEventsPayload(identifier, namespace, sandbox, accessToken, clientId, orgId);
     res.status(200).json(payload);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), events: [] });

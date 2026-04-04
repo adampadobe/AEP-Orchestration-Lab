@@ -2,6 +2,14 @@ const emailInput = document.getElementById('email');
 const sandboxSelect = document.getElementById('sandboxSelect');
 const fetchBtn = document.getElementById('fetchBtn');
 
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('email');
+
+let lastLookupNamespace = 'email';
+
+function buildIdentityQS(identifierValue, ns) {
+  return `identifier=${encodeURIComponent(identifierValue)}&namespace=${encodeURIComponent(ns || lastLookupNamespace || 'email')}`;
+}
+
 /** Return URL query string for sandbox (?sandbox=, select, or localStorage). */
 function getSandboxParam() {
   if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
@@ -477,8 +485,8 @@ async function loadDetailsSupplementaryData() {
   const sb = getSandboxParam();
   try {
     const [aRes, cRes] = await Promise.all([
-      fetch(`/api/profile/audiences?email=${encodeURIComponent(email)}${sb}`),
-      fetch(`/api/profile/consent?email=${encodeURIComponent(email)}${sb}`),
+      fetch(`/api/profile/audiences?${buildIdentityQS(email)}${sb}`),
+      fetch(`/api/profile/consent?${buildIdentityQS(email)}${sb}`),
     ]);
     const aData = await aRes.json().catch(() => ({}));
     const cData = await cRes.json().catch(() => ({}));
@@ -629,16 +637,19 @@ function syncAttributesBackToTop() {
 fetchBtn.addEventListener('click', async () => {
   const email = emailInput.value.trim();
   if (!email) {
-    setStatus('Please enter an email address.', 'error');
+    setStatus('Please enter an identifier value.', 'error');
     return;
   }
+
+  const ns = typeof AepIdentityPicker !== 'undefined' ? AepIdentityPicker.getNamespace('email') : 'email';
+  lastLookupNamespace = ns;
 
   fetchBtn.disabled = true;
   setStatus('Loading…', 'loading');
   showError('');
 
   try {
-    const res = await fetch(`/api/profile/table?email=${encodeURIComponent(email)}${getSandboxParam()}`);
+    const res = await fetch(`/api/profile/table?${buildIdentityQS(email, ns)}${getSandboxParam()}`);
     const data = await res.json();
 
     if (!res.ok) {
@@ -1530,7 +1541,7 @@ async function loadEventsIfNeeded() {
   if (eventsEmptyEl) eventsEmptyEl.hidden = true;
   if (eventsListEl) eventsListEl.innerHTML = '';
   try {
-    const res = await fetch(`/api/profile/events?email=${encodeURIComponent(email)}${getSandboxParam()}`);
+    const res = await fetch(`/api/profile/events?${buildIdentityQS(email)}${getSandboxParam()}`);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       eventsLoadedForEmail = null;
@@ -1653,7 +1664,7 @@ async function loadAudiencesIfNeeded() {
   audienceEmptyEl.hidden = true;
   if (audienceListEl) audienceListEl.innerHTML = '';
   try {
-    const res = await fetch(`/api/profile/audiences?email=${encodeURIComponent(email)}${getSandboxParam()}`);
+    const res = await fetch(`/api/profile/audiences?${buildIdentityQS(email)}${getSandboxParam()}`);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       audiencesLoadedForEmail = null;

@@ -5,6 +5,8 @@
 const sandboxSelect = document.getElementById('sandboxSelect');
 const emailInput = document.getElementById('audienceEmail');
 const lookupBtn = document.getElementById('audienceLookupBtn');
+
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('audienceEmail');
 const resultsSection = document.getElementById('audienceResults');
 const statusEl = document.getElementById('audienceStatus');
 const audienceListEl = document.getElementById('audienceList');
@@ -148,7 +150,7 @@ async function loadAudiences() {
   const email = (emailInput?.value || '').trim();
   setStatus('');
   if (!email) {
-    setStatus('Enter an email address.', 'error');
+    setStatus('Enter an identifier value.', 'error');
     if (resultsSection) resultsSection.hidden = true;
     return;
   }
@@ -161,7 +163,8 @@ async function loadAudiences() {
 
   if (lookupBtn) lookupBtn.disabled = true;
   try {
-    const res = await fetch(`/api/profile/audiences?email=${encodeURIComponent(email)}${getSandboxParam()}`);
+    const ns = typeof AepIdentityPicker !== 'undefined' ? AepIdentityPicker.getNamespace('audienceEmail') : 'email';
+    const res = await fetch(`/api/profile/audiences?identifier=${encodeURIComponent(email)}&namespace=${encodeURIComponent(ns)}${getSandboxParam()}`);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (audienceErrorEl) {
