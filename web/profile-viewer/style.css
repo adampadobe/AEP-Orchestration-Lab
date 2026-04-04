@@ -564,24 +564,4 @@ input[type="text"]:focus {
   background: #4d5259;
 }
 
-/* Identity namespace picker */
-.identity-ns-wrap {
-  display: flex;
-  flex-direction: column;
-}
-
-.identity-ns-label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 0.35rem;
-  color: #1a1a1a;
-}
-
-[data-aep-theme="dark"] .identity-ns-label {
-  color: #c8ccd2;
-}
-
-.identity-ns-select {
-  max-width: 14rem;
-}
+/* Identity namespace picker – reuses consent-step1-row/consent-step1-field from consent.css */

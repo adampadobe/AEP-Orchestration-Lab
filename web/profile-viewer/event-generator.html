@@ -113,6 +113,16 @@
                   <option value="public">Public</option>
                 </select>
               </div>
+              <div class="form-row">
+                <label for="eventGenNs">Identity namespace</label>
+                <select id="eventGenNs" class="sandbox-select" aria-label="Identity namespace">
+                  <option value="email">Email</option>
+                  <option value="ecid">ECID</option>
+                  <option value="crmId">CRM ID</option>
+                  <option value="loyaltyId">Loyalty ID</option>
+                  <option value="phone">Phone</option>
+                </select>
+              </div>
               <div class="form-row event-gen-customer-email-row">
                 <label for="customerEmail">Identifier value</label>
                 <input type="text" id="customerEmail" placeholder="Enter email address" value="" autocomplete="off" size="40">

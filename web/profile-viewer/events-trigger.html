@@ -97,9 +97,21 @@
     <section class="consent-panel" id="profilePanel">
       <h2 class="panel-title"><span class="icon">👤</span> Step 1: Select profile</h2>
       <p class="panel-desc">Select an identity namespace and enter the identifier value. ECID from the profile is used in the event payload.</p>
-      <div class="form-row">
-        <label for="customerEmail">Identifier value</label>
-        <input type="text" id="customerEmail" placeholder="Enter email address" value="" autocomplete="off">
+      <div class="consent-step1-row">
+        <div class="consent-step1-field">
+          <label for="triggerNs">Identity namespace</label>
+          <select id="triggerNs" class="sandbox-select" aria-label="Identity namespace">
+            <option value="email">Email</option>
+            <option value="ecid">ECID</option>
+            <option value="crmId">CRM ID</option>
+            <option value="loyaltyId">Loyalty ID</option>
+            <option value="phone">Phone</option>
+          </select>
+        </div>
+        <div class="consent-step1-field">
+          <label for="customerEmail">Identifier value</label>
+          <input type="text" id="customerEmail" placeholder="Enter email address" value="" autocomplete="off">
+        </div>
       </div>
       <div class="button-row">
         <button type="button" id="queryProfileBtn" class="btn btn-secondary">Query profile</button>

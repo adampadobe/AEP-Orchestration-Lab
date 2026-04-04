@@ -5,7 +5,7 @@
 
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
-if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail');
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('customerEmail', 'triggerNs');
 
 function getSandboxParam() {
   if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {

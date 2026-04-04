@@ -118,9 +118,21 @@
           <option value="FlightBooking_Email">FlightBooking_Email</option>
         </select>
       </div>
-      <div class="form-row">
-        <label for="profileEmail">Identifier value</label>
-        <input type="text" id="profileEmail" placeholder="Enter email address" value="" autocomplete="off">
+      <div class="consent-step1-row">
+        <div class="consent-step1-field">
+          <label for="ajoNs">Identity namespace</label>
+          <select id="ajoNs" class="sandbox-select" aria-label="Identity namespace">
+            <option value="email">Email</option>
+            <option value="ecid">ECID</option>
+            <option value="crmId">CRM ID</option>
+            <option value="loyaltyId">Loyalty ID</option>
+            <option value="phone">Phone</option>
+          </select>
+        </div>
+        <div class="consent-step1-field">
+          <label for="profileEmail">Identifier value</label>
+          <input type="text" id="profileEmail" placeholder="Enter email address" value="" autocomplete="off">
+        </div>
       </div>
       <div class="button-row">
         <button type="button" id="triggerEventBtn" class="btn btn-primary">Trigger event</button>

@@ -106,9 +106,21 @@
           </select>
         </div>
       </div>
-      <div class="form-row">
-        <label for="audienceEmail">Identifier value</label>
-        <input type="text" id="audienceEmail" placeholder="Enter email address" autocomplete="off">
+      <div class="consent-step1-row">
+        <div class="consent-step1-field">
+          <label for="audienceNs">Identity namespace</label>
+          <select id="audienceNs" class="sandbox-select" aria-label="Identity namespace">
+            <option value="email">Email</option>
+            <option value="ecid">ECID</option>
+            <option value="crmId">CRM ID</option>
+            <option value="loyaltyId">Loyalty ID</option>
+            <option value="phone">Phone</option>
+          </select>
+        </div>
+        <div class="consent-step1-field">
+          <label for="audienceEmail">Identifier value</label>
+          <input type="text" id="audienceEmail" placeholder="Enter email address" autocomplete="off">
+        </div>
       </div>
       <div class="button-row">
         <button type="button" id="audienceLookupBtn" class="btn btn-primary btn-query">Load audience membership</button>

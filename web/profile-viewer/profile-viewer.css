@@ -61,29 +61,35 @@ body.profile-viewer-page.profile-generation-page.with-sidebar .dashboard-main {
 }
 
 .profile-viewer-page.profile-generation-page .profile-gen-config .config-row .form-row.profile-viewer-sandbox-row {
-  flex: 0 1 34rem;
-  min-width: min(100%, 18rem);
-  max-width: 34rem;
+  flex: 1 1 18rem;
+  min-width: min(100%, 14rem);
+  max-width: 22rem;
+}
+
+.profile-viewer-page.profile-generation-page .profile-gen-config .config-row .form-row.profile-viewer-ns-row {
+  flex: 0 1 12rem;
+  min-width: min(100%, 10rem);
+  max-width: 14rem;
 }
 
 .profile-viewer-page.profile-generation-page .profile-gen-config .config-row .form-row.profile-viewer-email-row {
-  flex: 0 1 34rem;
-  min-width: min(100%, 18rem);
-  max-width: 34rem;
+  flex: 1 1 18rem;
+  min-width: min(100%, 14rem);
+  max-width: 26rem;
 }
 
-.profile-viewer-page.profile-generation-page .profile-gen-config .config-row .form-row.profile-viewer-email-row input[type='email'] {
+.profile-viewer-page.profile-generation-page .profile-gen-config .config-row .form-row.profile-viewer-email-row input {
   width: 100%;
-  max-width: 34rem;
+  max-width: none;
   box-sizing: border-box;
 }
 
 .profile-viewer-page.profile-generation-page .profile-gen-config .sandbox-select {
   width: 100%;
-  max-width: 34rem;
+  max-width: none;
 }
 
-.profile-viewer-page.profile-generation-page .profile-gen-config input[type='email'] {
+.profile-viewer-page.profile-generation-page .profile-gen-config input[type='text'] {
   max-width: none;
 }
 

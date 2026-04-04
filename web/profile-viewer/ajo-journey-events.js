@@ -5,7 +5,7 @@
 const eventOption = document.getElementById('eventOption');
 const profileEmail = document.getElementById('profileEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('profileEmail');
-if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('profileEmail');
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('profileEmail', 'ajoNs');
 const triggerEventBtn = document.getElementById('triggerEventBtn');
 const eventMessage = document.getElementById('eventMessage');
 

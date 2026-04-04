@@ -2,7 +2,7 @@ const emailInput = document.getElementById('email');
 const sandboxSelect = document.getElementById('sandboxSelect');
 const fetchBtn = document.getElementById('fetchBtn');
 
-if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('email');
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('email', 'identityNs');
 
 let lastLookupNamespace = 'email';
 

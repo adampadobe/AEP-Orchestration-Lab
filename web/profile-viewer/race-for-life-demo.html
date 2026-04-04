@@ -78,6 +78,16 @@
         <section class="race-email-bar" aria-label="Customer identity">
           <div class="race-email-inner">
             <div class="form-row">
+              <label for="raceNs">Namespace</label>
+              <select id="raceNs" class="sandbox-select" aria-label="Identity namespace">
+                <option value="email">Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-row">
               <label for="customerEmail">Identifier value</label>
               <input type="text" id="customerEmail" placeholder="Enter email address" autocomplete="off" spellcheck="false">
             </div>

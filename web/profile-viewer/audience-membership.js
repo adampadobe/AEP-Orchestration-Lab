@@ -6,7 +6,7 @@ const sandboxSelect = document.getElementById('sandboxSelect');
 const emailInput = document.getElementById('audienceEmail');
 const lookupBtn = document.getElementById('audienceLookupBtn');
 
-if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('audienceEmail');
+if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('audienceEmail', 'audienceNs');
 const resultsSection = document.getElementById('audienceResults');
 const statusEl = document.getElementById('audienceStatus');
 const audienceListEl = document.getElementById('audienceList');
