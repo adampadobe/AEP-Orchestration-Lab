@@ -1481,6 +1481,7 @@
 
   function refreshBrowseFromApi(statusOpts, forceRefresh) {
     const q = buildQuery(forceRefresh ? { refresh: 'true' } : null);
+    const sandbox = getSandboxQuery();
     if (dataViewerSearch) dataViewerSearch.disabled = true;
     if (!statusOpts?.skipStatus) {
       setStatus(
