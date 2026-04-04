@@ -411,6 +411,9 @@ button.schema-aep-tab:focus-visible {
   gap: 0.375rem;
   align-items: center;
 }
+.schema-class-filter-wrap[hidden] {
+  display: none;
+}
 .schema-class-filter {
   padding: 0.3rem 0.7rem;
   font-size: 0.78rem;
