@@ -517,11 +517,9 @@ function refreshProfileStreamingIdentityNote() {
   el.hidden = false;
   el.classList.remove('consent-streaming-identity-hint--warn');
   if (consentOptionalEcid && consentOptionalEcid.length >= 10) {
-    el.textContent =
-      'ECID is present on the profile (optional). Step 3 uses the legacy Consent Manager streaming path — email-based payload, no ECID required.';
+    el.textContent = 'ECID is present on the profile (optional).';
   } else {
-    el.textContent =
-      'No ECID on this profile — Step 3 still works: legacy streaming uses email in tenant identification and idSpecific (same idea as the EMEA presales Consent Manager).';
+    el.textContent = 'No ECID on this profile.';
   }
 }
 

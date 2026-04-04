@@ -474,9 +474,6 @@
     <!-- Step 3: Save to AEP -->
     <section class="consent-panel" id="step4">
       <h2 class="panel-title"><span class="icon">🚀</span> Step 3: Save changes to Adobe Experience Platform</h2>
-      <p class="panel-desc consent-save-desc">
-        Sends consent data using the <strong>legacy Consent Manager</strong> streaming contract (same XDM shape as <code>firebaseFunctions/adobe/consent-manager.js</code> / EMEA presales tool): HTTP API <strong>envelope</strong> to your saved <strong>DCS collection URL</strong>, with <code>header.schemaRef</code>, <code>datasetId</code>, and <code>imsOrgId</code> from this project’s secrets or optional <code>streaming.imsOrgId</code>. Body uses your saved <strong>Schema $id</strong> and <strong>Dataset ID</strong>; slim <code>xdmEntity</code> (tenant <code>identification.core.email</code>, root <code>consents</code>, <code>idSpecific.Email</code>, <code>person.name</code>). DCS headers include <code>x-gw-ims-org-id</code> and optional <code>x-adobe-flow-id</code>. Save connection before updating.
-      </p>
       <div class="button-row">
         <button type="button" id="updateConsentBtn" class="btn btn-save">Update Consent Preferences</button>
         <button type="button" id="previewDataBtn" class="btn btn-secondary">Preview Data</button>
