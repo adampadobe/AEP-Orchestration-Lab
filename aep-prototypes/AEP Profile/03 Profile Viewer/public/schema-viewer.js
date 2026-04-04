@@ -20,14 +20,8 @@
   const zoomResetBtn = document.getElementById('schemaZoomReset');
 
   const browseCountEl = document.getElementById('schemaBrowseCount');
-  const browseV2CountEl = document.getElementById('schemaBrowseV2Count');
   const tableBody = document.getElementById('schemaTableBody');
-  const tableV2Body = document.getElementById('schemaTableV2Body');
   const schemaBrowseTableWrap = document.getElementById('schemaBrowseTableWrap');
-  const schemaBrowseV2TableWrap = document.getElementById('schemaBrowseV2TableWrap');
-  const schemasV2StartWrap = document.getElementById('schemasV2StartWrap');
-  const schemasV2StartInput = document.getElementById('schemasV2StartInput');
-  const schemasV2ReloadBtn = document.getElementById('schemasV2ReloadBtn');
   const detailAside = document.getElementById('schemaDetailAside');
   const schemaSidebarClose = document.getElementById('schemaSidebarClose');
   const schemaDetailTitle = document.getElementById('schemaDetailTitle');
@@ -52,11 +46,6 @@
   let browseSortKey = 'name';
   let browseSortDir = 'asc';
   let browseSortHeaderEls = null;
-  let browseV2Schemas = [];
-  let browseV2Meta = {};
-  let browseV2SortKey = 'name';
-  let browseV2SortDir = 'asc';
-  let browseV2SortHeaderEls = null;
   const fullSchemaJsonCache = new Map();
 
   const overviewPanel = document.getElementById('schemaAepPanelOverview');
@@ -92,7 +81,6 @@
   let audienceSortHeaderEls = null;
   /** Separate from shared #dataViewerSearch so a Datasets filter never hides Browse rows (and vice versa). */
   let browseFilterQuery = '';
-  let browseV2FilterQuery = '';
   let datasetsFilterQuery = '';
   let audiencesFilterQuery = '';
 
@@ -1092,7 +1080,7 @@
       }
     });
 
-    const onBrowseLike = tab === 'browse' || tab === 'browse-v2';
+    const onBrowseLike = tab === 'browse';
 
     if (overviewPanel) overviewPanel.hidden = tab !== 'overview';
     if (browsePanel) browsePanel.hidden = !onBrowseLike;
@@ -1103,18 +1091,7 @@
       if (tab === 'browse') browseCountEl.removeAttribute('hidden');
       else browseCountEl.setAttribute('hidden', '');
     }
-    if (browseV2CountEl) {
-      if (tab === 'browse-v2') browseV2CountEl.removeAttribute('hidden');
-      else browseV2CountEl.setAttribute('hidden', '');
-    }
-
     if (schemaBrowseTableWrap) schemaBrowseTableWrap.hidden = tab !== 'browse';
-    if (schemaBrowseV2TableWrap) schemaBrowseV2TableWrap.hidden = tab !== 'browse-v2';
-
-    if (schemasV2StartWrap) {
-      if (tab === 'browse-v2') schemasV2StartWrap.removeAttribute('hidden');
-      else schemasV2StartWrap.setAttribute('hidden', '');
-    }
 
     if (dataViewerSearchWrap) {
       dataViewerSearchWrap.hidden = !onBrowseLike && tab !== 'datasets' && tab !== 'audiences';
@@ -1122,7 +1099,6 @@
 
     if (dataViewerSearch) {
       if (tab === 'browse') dataViewerSearch.value = browseFilterQuery;
-      else if (tab === 'browse-v2') dataViewerSearch.value = browseV2FilterQuery;
       else if (tab === 'datasets') dataViewerSearch.value = datasetsFilterQuery;
       else if (tab === 'audiences') dataViewerSearch.value = audiencesFilterQuery;
     }
@@ -1132,18 +1108,6 @@
     } else if (tab === 'browse') {
       const openId = (opts && opts.openSchemaId && String(opts.openSchemaId).trim()) || '';
       refreshBrowseFromApi().then(() => {
-        syncSourceUI();
-        if (openId) {
-          loadRegistryById(openId);
-          return;
-        }
-        const v = sourceSelect?.value;
-        if (v === 'sample') loadOperationalSample();
-        else if (isSandboxSchemaValue(v)) loadRegistryById(v);
-      });
-    } else if (tab === 'browse-v2') {
-      const openId = (opts && opts.openSchemaId && String(opts.openSchemaId).trim()) || '';
-      refreshBrowseV2FromApi().then(() => {
         syncSourceUI();
         if (openId) {
           loadRegistryById(openId);
@@ -1385,241 +1349,6 @@
     });
   }
 
-  function getBrowseV2Filter() {
-    return browseV2FilterQuery.trim().toLowerCase();
-  }
-
-  function filteredBrowseV2Schemas() {
-    const q = getBrowseV2Filter();
-    if (!q) return browseV2Schemas;
-    return browseV2Schemas.filter((s) => {
-      const t = (s.title || '').toLowerCase();
-      const id = (s.id || '').toLowerCase();
-      const alt = (s.metaAltId || '').toLowerCase();
-      return t.includes(q) || id.includes(q) || alt.includes(q);
-    });
-  }
-
-  function getBrowseV2SortHeaders() {
-    if (!browseV2SortHeaderEls) {
-      const table = document.getElementById('schemaBrowseV2Table');
-      browseV2SortHeaderEls = table ? Array.from(table.querySelectorAll('thead th[data-sort-v2]')) : [];
-    }
-    return browseV2SortHeaderEls;
-  }
-
-  function browseV2SortValue(s, key) {
-    switch (key) {
-      case 'name':
-        return (s.title || s.id || '').toLowerCase();
-      case 'datasets':
-        if (browseV2Meta.datasetCountsFromCatalog && s.datasetCount != null) {
-          return Number(s.datasetCount);
-        }
-        return null;
-      case 'identities':
-      case 'relationships':
-      case 'profile':
-        return '';
-      case 'class':
-        return (s.classLabel || '').toLowerCase();
-      case 'type':
-        return (s.typeLabel || '').toLowerCase();
-      case 'behavior':
-        return (s.behavior || '').toLowerCase();
-      case 'lastModified':
-        return Number.isFinite(Number(s.lastModifiedMs)) ? Number(s.lastModifiedMs) : null;
-      default:
-        return '';
-    }
-  }
-
-  function compareBrowseV2Rows(a, b) {
-    const va = browseV2SortValue(a, browseV2SortKey);
-    const vb = browseV2SortValue(b, browseV2SortKey);
-    const aNull = va == null || (typeof va === 'number' && !Number.isFinite(va));
-    const bNull = vb == null || (typeof vb === 'number' && !Number.isFinite(vb));
-    if (aNull && bNull) return idCompareBrowse(a, b);
-    if (aNull) return 1;
-    if (bNull) return -1;
-
-    let c = 0;
-    if (typeof va === 'number' && typeof vb === 'number') c = va - vb;
-    else c = String(va).localeCompare(String(vb), undefined, { sensitivity: 'base' });
-    if (browseV2SortDir === 'desc') c = -c;
-    if (c !== 0) return c;
-    return idCompareBrowse(a, b);
-  }
-
-  function sortedFilteredBrowseV2Schemas() {
-    const rows = filteredBrowseV2Schemas();
-    const sorted = rows.slice();
-    sorted.sort(compareBrowseV2Rows);
-    return sorted;
-  }
-
-  function updateBrowseV2SortHeaders() {
-    getBrowseV2SortHeaders().forEach((th) => {
-      const key = th.getAttribute('data-sort-v2');
-      const ind = th.querySelector('.schema-aep-sort-ind');
-      if (key === browseV2SortKey) {
-        th.setAttribute('aria-sort', browseV2SortDir === 'asc' ? 'ascending' : 'descending');
-        if (ind) ind.textContent = browseV2SortDir === 'asc' ? '▲' : '▼';
-      } else {
-        th.setAttribute('aria-sort', 'none');
-        if (ind) ind.textContent = '';
-      }
-    });
-  }
-
-  function onBrowseV2SortHeaderActivate(th) {
-    const key = th.getAttribute('data-sort-v2');
-    if (!key) return;
-    if (browseV2SortKey === key) {
-      browseV2SortDir = browseV2SortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      browseV2SortKey = key;
-      browseV2SortDir = 'asc';
-    }
-    renderBrowseV2Table();
-  }
-
-  function initBrowseV2TableSort() {
-    getBrowseV2SortHeaders().forEach((th) => {
-      th.addEventListener('click', (e) => {
-        e.stopPropagation();
-        onBrowseV2SortHeaderActivate(th);
-      });
-      th.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onBrowseV2SortHeaderActivate(th);
-        }
-      });
-    });
-  }
-
-  function renderBrowseV2Table() {
-    if (!tableV2Body) return;
-    tableV2Body.innerHTML = '';
-    const rows = sortedFilteredBrowseV2Schemas();
-    updateBrowseV2SortHeaders();
-    if (browseV2CountEl) {
-      const total = browseV2Schemas.length;
-      const q = getBrowseV2Filter();
-      if (total === 0) browseV2CountEl.textContent = 'No schemas loaded.';
-      else if (q && rows.length !== total) {
-        browseV2CountEl.textContent = `Showing ${rows.length} of ${total} schema${total === 1 ? '' : 's'}`;
-      } else {
-        browseV2CountEl.textContent = `${total} schema${total === 1 ? '' : 's'} (Postman-style list)`;
-      }
-    }
-    rows.forEach((s) => {
-      const tr = document.createElement('tr');
-      tr.dataset.schemaId = s.id;
-      if (selectedBrowseId === s.id) tr.classList.add('schema-aep-row--selected');
-
-      const tdName = document.createElement('td');
-      const nameLink = document.createElement('button');
-      nameLink.type = 'button';
-      nameLink.className = 'schema-aep-name-link';
-      nameLink.style.cssText =
-        'background:none;border:none;padding:0;font:inherit;cursor:pointer;text-align:left;color:#1473e6;';
-      nameLink.textContent = s.title || s.id;
-      nameLink.title = s.id;
-      nameLink.addEventListener('click', () => selectBrowseRow(s));
-      tdName.appendChild(nameLink);
-      tr.appendChild(tdName);
-
-      tr.appendChild(formatDatasetCell(s, browseV2Meta));
-      tr.appendChild(dashCell());
-      tr.appendChild(dashCell());
-
-      const tdProf = document.createElement('td');
-      tdProf.textContent = '—';
-      tr.appendChild(tdProf);
-
-      const tdClass = document.createElement('td');
-      if (s.metaClass) {
-        const cl = document.createElement('a');
-        cl.href = s.metaClass;
-        cl.target = '_blank';
-        cl.rel = 'noopener noreferrer';
-        cl.className = 'schema-aep-class-link';
-        cl.textContent = s.classLabel || s.metaClass;
-        tdClass.appendChild(cl);
-      } else {
-        tdClass.textContent = s.classLabel || '—';
-      }
-      tr.appendChild(tdClass);
-
-      const tdType = document.createElement('td');
-      tdType.textContent = s.typeLabel || '—';
-      tr.appendChild(tdType);
-
-      const tdBeh = document.createElement('td');
-      tdBeh.textContent = s.behavior || '—';
-      tr.appendChild(tdBeh);
-
-      const tdLm = document.createElement('td');
-      tdLm.textContent = formatLastModified(s.lastModifiedMs);
-      tr.appendChild(tdLm);
-
-      tr.addEventListener('click', (e) => {
-        if (e.target.closest('a.schema-aep-class-link')) return;
-        selectBrowseRow(s);
-      });
-
-      tableV2Body.appendChild(tr);
-    });
-  }
-
-  function refreshBrowseV2FromApi(statusOpts) {
-    const sandbox = getSandboxQuery();
-    const params = new URLSearchParams();
-    if (sandbox) params.set('sandbox', sandbox);
-    const rawStart = schemasV2StartInput?.value?.trim() || '';
-    const start =
-      rawStart && rawStart.toLowerCase() !== 'clear' ? rawStart : '';
-    if (start) params.set('start', start);
-    const q = params.toString() ? `?${params.toString()}` : '';
-    if (dataViewerSearch) dataViewerSearch.disabled = true;
-    if (!statusOpts?.skipStatus) {
-      setStatus(
-        sandbox
-          ? `Loading schemas (v2) for sandbox “${sandbox}”…`
-          : 'Loading schemas (v2) for default sandbox…'
-      );
-    }
-    return fetch(`/api/schema-viewer/tenant-schemas-v2${q}`)
-      .then((r) => r.json().then((body) => ({ ok: r.ok, body })))
-      .then(({ ok, body }) => {
-        if (!ok) throw new Error(body.error || 'Failed to list schemas (v2)');
-        browseV2Schemas = body.schemas || [];
-        browseV2Meta = body;
-        fullSchemaJsonCache.clear();
-        if (!statusOpts?.skipStatus && body.count != null) {
-          const src = body.schemaListSource ? ` (${body.schemaListSource})` : '';
-          let msg = `Sandbox “${body.sandbox || 'default'}”: ${body.count} schema(s)${src}.`;
-          if (body.start) msg += ` start=${JSON.stringify(body.start)}`;
-          setStatus(msg);
-        }
-        closeBrowseDetail();
-        renderBrowseV2Table();
-      })
-      .catch((e) => {
-        browseV2Schemas = [];
-        browseV2Meta = {};
-        renderBrowseV2Table();
-        if (!statusOpts?.skipStatus) {
-          setStatus(e.message || 'Could not load schema list (v2)', true);
-        }
-      })
-      .finally(() => {
-        if (dataViewerSearch) dataViewerSearch.disabled = false;
-      });
-  }
-
   function renderBrowseTable() {
     if (!tableBody) return;
     tableBody.innerHTML = '';
@@ -1715,7 +1444,6 @@
     if (!s || !s.id) return;
     selectedBrowseId = s.id;
     renderBrowseTable();
-    renderBrowseV2Table();
     if (detailAside) detailAside.hidden = false;
     if (schemaDetailTitle) schemaDetailTitle.textContent = s.title || s.id;
     if (schemaDetailName) schemaDetailName.textContent = s.title || '—';
@@ -1737,7 +1465,6 @@
     selectedBrowseId = null;
     if (detailAside) detailAside.hidden = true;
     renderBrowseTable();
-    renderBrowseV2Table();
   }
 
   function refreshBrowseFromApi(statusOpts) {
@@ -1850,13 +1577,11 @@
 
   sandboxSelect?.addEventListener('change', () => {
     browseFilterQuery = '';
-    browseV2FilterQuery = '';
     datasetsFilterQuery = '';
     audiencesFilterQuery = '';
     if (dataViewerSearch) {
       if (
         currentAepTab === 'browse' ||
-        currentAepTab === 'browse-v2' ||
         currentAepTab === 'datasets' ||
         currentAepTab === 'audiences'
       ) {
@@ -1866,14 +1591,7 @@
     if (currentAepTab === 'overview') loadOverviewStats();
     else if (currentAepTab === 'datasets') loadDatasetsFromApi();
     else if (currentAepTab === 'audiences') loadAudiencesFromApi();
-    else if (currentAepTab === 'browse-v2') {
-      refreshBrowseV2FromApi().then(() => {
-        syncSourceUI();
-        const v = sourceSelect?.value;
-        if (v === 'sample') loadOperationalSample();
-        else if (isSandboxSchemaValue(v)) loadRegistryById(v);
-      });
-    } else {
+    else {
       refreshBrowseFromApi().then(() => {
         syncSourceUI();
         const v = sourceSelect?.value;
@@ -1891,9 +1609,6 @@
     if (currentAepTab === 'browse') {
       browseFilterQuery = dataViewerSearch.value;
       renderBrowseTable();
-    } else if (currentAepTab === 'browse-v2') {
-      browseV2FilterQuery = dataViewerSearch.value;
-      renderBrowseV2Table();
     } else if (currentAepTab === 'datasets') {
       datasetsFilterQuery = dataViewerSearch.value;
       renderDatasetTable();
@@ -1903,23 +1618,6 @@
     }
   });
 
-  function refreshBrowseV2IfOnTab() {
-    if (currentAepTab === 'browse-v2') refreshBrowseV2FromApi();
-  }
-
-  schemasV2ReloadBtn?.addEventListener('click', () => {
-    refreshBrowseV2FromApi();
-  });
-
-  schemasV2StartInput?.addEventListener('change', () => {
-    refreshBrowseV2IfOnTab();
-  });
-
-  schemasV2StartInput?.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    refreshBrowseV2IfOnTab();
-  });
   schemaSidebarClose?.addEventListener('click', () => closeBrowseDetail());
 
   async function copyTextToClipboard(text) {
@@ -1992,7 +1690,6 @@
 
   (async function init() {
     initBrowseTableSort();
-    initBrowseV2TableSort();
     initDatasetTableSort();
     initAudienceTableSort();
     initSourceSelectStatic();
