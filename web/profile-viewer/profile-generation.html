@@ -1161,8 +1161,8 @@
     (function () {
       var port = String(window.location.port);
       var host = window.location.hostname;
-      var onLocal = host === 'localhost' || host === '127.0.0.1';
-      if (onLocal && port !== '3333') document.getElementById('serverWarning').hidden = false;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
     })();
   </script>
   <script src="profile-streaming-shared.js"></script>

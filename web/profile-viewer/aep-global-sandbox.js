@@ -4,8 +4,6 @@
  */
 (function (global) {
   var LS_SANDBOX = 'aepGlobalSandboxName';
-  var LS_RECENT = 'aepRecentSandboxes';
-  var MAX_RECENT = 5;
 
   function getSelected() {
     try {
@@ -15,36 +13,12 @@
     }
   }
 
-  function getRecentSandboxes() {
-    try {
-      var raw = localStorage.getItem(LS_RECENT);
-      if (!raw) return [];
-      var arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr.filter(function (v) { return typeof v === 'string' && v; }) : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function pushRecent(name) {
-    if (!name) return;
-    var v = String(name).trim();
-    if (!v) return;
-    try {
-      var list = getRecentSandboxes().filter(function (x) { return x !== v; });
-      list.unshift(v);
-      if (list.length > MAX_RECENT) list = list.slice(0, MAX_RECENT);
-      localStorage.setItem(LS_RECENT, JSON.stringify(list));
-    } catch (e) {}
-  }
-
   function setSelected(name) {
     var v = name != null ? String(name) : '';
     try {
       if (v) localStorage.setItem(LS_SANDBOX, v);
       else localStorage.removeItem(LS_SANDBOX);
     } catch (e) {}
-    pushRecent(v);
     try {
       global.dispatchEvent(new CustomEvent('aep-global-sandbox-change', { detail: { name: v } }));
     } catch (e) {}
@@ -110,14 +84,6 @@
     return data.sandboxes || [];
   }
 
-  function makeOption(s) {
-    var opt = document.createElement('option');
-    opt.value = s.name;
-    var label = s.title ? s.title + ' (' + s.name + ')' : s.name;
-    opt.textContent = s.type ? label + ' - ' + s.type : label;
-    return opt;
-  }
-
   function fillSandboxSelect(sandboxSelect, sandboxes) {
     if (!sandboxSelect) return;
     sandboxSelect.innerHTML = '';
@@ -133,34 +99,25 @@
       sandboxSelect.appendChild(emptyOpt);
       return;
     }
-
-    var byName = {};
-    sandboxes.forEach(function (s) { byName[s.name] = s; });
-
-    var recentNames = getRecentSandboxes().filter(function (n) { return byName[n]; });
-    if (recentNames.length > 0) {
-      var recentGroup = document.createElement('optgroup');
-      recentGroup.label = 'Recent';
-      recentNames.forEach(function (n) { recentGroup.appendChild(makeOption(byName[n])); });
-      sandboxSelect.appendChild(recentGroup);
-    }
-
-    var sorted = sandboxes.slice().sort(function (a, b) {
-      var la = (a.title || a.name).toLowerCase();
-      var lb = (b.title || b.name).toLowerCase();
-      return la < lb ? -1 : la > lb ? 1 : 0;
+    sandboxes.forEach(function (s) {
+      var opt = document.createElement('option');
+      opt.value = s.name;
+      var label = s.title ? s.title + ' (' + s.name + ')' : s.name;
+      opt.textContent = s.type ? label + ' - ' + s.type : label;
+      sandboxSelect.appendChild(opt);
     });
-    var allGroup = document.createElement('optgroup');
-    allGroup.label = 'All sandboxes (A\u2013Z)';
-    sorted.forEach(function (s) { allGroup.appendChild(makeOption(s)); });
-    sandboxSelect.appendChild(allGroup);
-
     var saved = getSelected().trim();
-    if (saved && byName[saved]) {
+    if (saved && sandboxes.some(function (x) {
+      return x.name === saved;
+    })) {
       sandboxSelect.value = saved;
-    } else if (byName['apalmer']) {
+    } else if (sandboxes.some(function (s) {
+      return s.name === 'apalmer';
+    })) {
       sandboxSelect.value = 'apalmer';
-    } else if (byName['kirkham']) {
+    } else if (sandboxes.some(function (s) {
+      return s.name === 'kirkham';
+    })) {
       sandboxSelect.value = 'kirkham';
     }
   }
@@ -211,38 +168,10 @@
     });
   }
 
-  /**
-   * Technical sandbox name: ?sandbox= in URL wins, then #sandboxSelect, then localStorage.
-   */
-  function getSandboxName() {
-    try {
-      var href = global.location && global.location.href;
-      if (href) {
-        var u = new URL(href);
-        var qs = u.searchParams.get('sandbox');
-        if (qs != null && String(qs).trim() !== '') return String(qs).trim();
-      }
-    } catch (e) {}
-    try {
-      var el = typeof document !== 'undefined' ? document.getElementById('sandboxSelect') : null;
-      var v = el && el.value != null ? String(el.value).trim() : '';
-      if (v) return v;
-    } catch (e2) {}
-    return getSelected().trim();
-  }
-
-  /** Query fragment for API calls, e.g. &sandbox=apalmer */
-  function getSandboxParam() {
-    var n = getSandboxName();
-    return n ? '&sandbox=' + encodeURIComponent(n) : '';
-  }
-
   global.AepGlobalSandbox = {
     LS_SANDBOX: LS_SANDBOX,
     getSelected: getSelected,
     setSelected: setSelected,
-    getSandboxName: getSandboxName,
-    getSandboxParam: getSandboxParam,
     loadSandboxesIntoSelect: loadSandboxesIntoSelect,
     fillSandboxSelect: fillSandboxSelect,
     onSandboxSelectChange: onSandboxSelectChange,

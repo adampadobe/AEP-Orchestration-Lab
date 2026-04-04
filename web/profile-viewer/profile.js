@@ -8,13 +8,6 @@ const tableSection = document.getElementById('tableSection');
 const profileEmailEl = document.getElementById('profileEmail');
 const attributeTableBody = document.getElementById('attributeTableBody');
 
-function getSandboxParam() {
-  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
-    return window.AepGlobalSandbox.getSandboxParam();
-  }
-  return '';
-}
-
 if (!email) {
   loadingEl.hidden = true;
   errorSection.hidden = false;
@@ -24,7 +17,7 @@ if (!email) {
 
   (async () => {
     try {
-      const res = await fetch(`/api/profile/table?email=${encodeURIComponent(email)}${getSandboxParam()}`);
+      const res = await fetch(`/api/profile/table?email=${encodeURIComponent(email)}`);
       const data = await res.json();
 
       loadingEl.hidden = true;

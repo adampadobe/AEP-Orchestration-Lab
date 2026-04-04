@@ -2,11 +2,8 @@ const emailInput = document.getElementById('email');
 const sandboxSelect = document.getElementById('sandboxSelect');
 const fetchBtn = document.getElementById('fetchBtn');
 
-/** Return URL query string for sandbox (?sandbox=, select, or localStorage). */
+/** Return URL query string for sandbox when selected (e.g. '&sandbox=kirkham'). */
 function getSandboxParam() {
-  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
-    return window.AepGlobalSandbox.getSandboxParam();
-  }
   const val = sandboxSelect?.value?.trim();
   return val ? `&sandbox=${encodeURIComponent(val)}` : '';
 }

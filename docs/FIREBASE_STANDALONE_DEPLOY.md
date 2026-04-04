@@ -1,4 +1,4 @@
-# Standalone Firebase project (AEP Decisioning lab)
+# Standalone Firebase project (AEP Orchestration Lab)
 
 This repo can be deployed as its **own** Firebase project so it does not touch your other Firebase apps.
 

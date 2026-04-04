@@ -1556,7 +1556,7 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
 // for recently-accessed sandboxes.
 // ---------------------------------------------------------------------------
 
-const HOSTING_ORIGIN = 'https://aep-decision-lab-adamp-2026.web.app';
+const HOSTING_ORIGIN = 'https://aep-orchestration-lab.web.app';
 const WARM_ENDPOINTS = ['overview-stats', 'tenant-schemas', 'datasets', 'audiences'];
 
 exports.schemaViewerCacheWarm = onSchedule(

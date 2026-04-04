@@ -10,13 +10,6 @@ const noResultsEl = document.getElementById('noResults');
 const errorSection = document.getElementById('error');
 const errorMessageEl = document.getElementById('errorMessage');
 
-function getSandboxParam() {
-  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
-    return window.AepGlobalSandbox.getSandboxParam();
-  }
-  return '';
-}
-
 attrSelect.addEventListener('change', () => {
   const isCustom = attrSelect.value === '_custom';
   attrCustom.hidden = !isCustom;
@@ -78,7 +71,7 @@ async function doSearch() {
   const timeoutId = setTimeout(() => controller.abort(), 180000);
 
   try {
-    const res = await fetch(`/api/profile/search-by-attribute?${params}${getSandboxParam()}`, { signal: controller.signal });
+    const res = await fetch(`/api/profile/search-by-attribute?${params}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     const data = await res.json().catch(() => ({}));
 
@@ -164,9 +157,7 @@ async function showSqlHelp(attr, value, match) {
   const copyBtn = document.getElementById('copySqlBtn');
   if (!sqlHelp || !sqlPreview) return;
   try {
-    const res = await fetch(
-      `/api/profile/search-by-attribute/sql?attr=${encodeURIComponent(attr)}&value=${encodeURIComponent(value)}&match=${encodeURIComponent(match || 'exact')}${getSandboxParam()}`,
-    );
+    const res = await fetch(`/api/profile/search-by-attribute/sql?attr=${encodeURIComponent(attr)}&value=${encodeURIComponent(value)}&match=${encodeURIComponent(match || 'exact')}`);
     const data = await res.json().catch(() => ({}));
     if (data.sql) {
       sqlPreview.textContent = data.sql;

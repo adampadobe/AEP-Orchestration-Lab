@@ -13,7 +13,7 @@
  *     --dry-run
  *
  * Env (for dry-run / send):
- *   CONSENT_UAT_BASE_URL   default https://aep-decision-lab-adamp-2026.web.app
+ *   CONSENT_UAT_BASE_URL   default https://aep-orchestration-lab.web.app
  *   STREAM_DATASET_ID
  *   STREAM_SCHEMA_ID       full schema $id URI
  *   STREAM_URL             DCS collection URL — required for --send
@@ -23,7 +23,7 @@
  *        A line like "Live send (note)" without # is parsed as a subshell and errors near ).
  */
 
-const BASE = process.env.CONSENT_UAT_BASE_URL || 'https://aep-decision-lab-adamp-2026.web.app';
+const BASE = process.env.CONSENT_UAT_BASE_URL || 'https://aep-orchestration-lab.web.app';
 
 function arg(name, def = '') {
   const i = process.argv.indexOf(name);

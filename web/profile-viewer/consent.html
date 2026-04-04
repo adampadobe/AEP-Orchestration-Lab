@@ -99,58 +99,15 @@
     <!-- Step 1: Query Customer Profile -->
     <section class="consent-panel" id="step1">
       <h2 class="panel-title"><span class="icon">🔍</span> Step 1: Query customer profile</h2>
-      <p class="panel-desc">Pick an <strong>identity namespace</strong> and enter the matching value (email, ECID, CRM ID, etc.). Experience Platform returns the profile; consent streaming uses the profile’s <strong>email</strong> as primary identity.</p>
-      <div class="sandbox-config" style="margin-bottom: 1rem;">
-        <h3 class="sandbox-config-title" style="font-size: 0.95rem; margin-bottom: 0.35rem;">AEP sandbox</h3>
-        <div class="form-row">
-          <label for="sandboxSelect">Sandbox</label>
-          <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-            <option value="">Loading sandboxes…</option>
-          </select>
-        </div>
-      </div>
+      <p class="panel-desc">Enter the customer email and query Adobe Experience Platform. Profile ECID is filled when a profile is found.</p>
       <div class="consent-step1-row">
         <div class="consent-step1-field">
-          <label for="identityNamespace">Identity namespace (Profile API)</label>
-          <select id="identityNamespace" class="sandbox-select" aria-label="Identity namespace for profile lookup">
-            <option value="email">Email</option>
-            <option value="ecid">ECID</option>
-            <option value="crmId">CRM ID</option>
-            <option value="loyaltyId">Loyalty ID</option>
-            <option value="phone">Phone</option>
-          </select>
+          <label for="customerEmail">Customer email address</label>
+          <input type="text" id="customerEmail" placeholder="e.g. user@example.com" value="" autocomplete="email" spellcheck="false">
         </div>
-        <div class="consent-step1-field">
-          <label for="customerEmail">Identifier value</label>
-          <input type="text" id="customerEmail" placeholder="Email, ECID, CRM ID, or phone (match namespace)" value="" autocomplete="off" spellcheck="false">
-        </div>
-      </div>
-      <p id="profileResolvedEmailLine" class="consent-resolved-email" hidden role="status">
-        <span class="consent-resolved-email__label">Email used for consent streaming (primary identity):</span>
-        <strong id="profileResolvedEmailDisplay"></strong>
-      </p>
-      <p id="profileStreamingIdentityNote" class="field-hint consent-streaming-identity-hint" hidden role="status"></p>
-      <p class="panel-desc consent-step1-profile-meta-desc" style="margin-top: 0.75rem; font-size: 0.9rem;">
-        After a successful query, <strong>first name</strong> and <strong>last name</strong> load from the profile (you can edit before streaming). <strong>Profile last updated</strong> and <strong>source</strong> are read-only.
-      </p>
-      <div class="consent-step1-row consent-step1-row--profile-meta">
-        <div class="consent-step1-field">
-          <label for="profileFirstName">First name</label>
-          <input type="text" id="profileFirstName" placeholder="—" autocomplete="given-name" spellcheck="false" aria-label="Profile first name">
-        </div>
-        <div class="consent-step1-field">
-          <label for="profileLastName">Last name</label>
-          <input type="text" id="profileLastName" placeholder="—" autocomplete="family-name" spellcheck="false" aria-label="Profile last name">
-        </div>
-      </div>
-      <div class="consent-step1-row consent-step1-row--profile-meta">
-        <div class="consent-step1-field">
-          <label for="profileLastUpdated">Profile last updated</label>
-          <input type="text" id="profileLastUpdated" class="consent-readonly-field" placeholder="—" readonly aria-readonly="true" title="From Experience Platform profile lastModifiedAt">
-        </div>
-        <div class="consent-step1-field">
-          <label for="profileSource">Profile source</label>
-          <input type="text" id="profileSource" class="consent-readonly-field" placeholder="—" readonly aria-readonly="true" title="Profile data source label">
+        <div class="consent-step1-field consent-step1-field--ecid">
+          <label for="profileEcid">Profile ECID</label>
+          <input type="text" id="profileEcid" class="consent-ecid-input" readonly placeholder="—" aria-readonly="true" title="Populated after a successful profile query">
         </div>
       </div>
       <div class="button-row consent-step1-button-toolbar">
@@ -166,85 +123,6 @@
         </div>
       </div>
       <div id="step1Message" class="consent-message" role="status" aria-live="polite" hidden></div>
-    </section>
-
-    <!-- Sandbox prep + HTTP streaming: configure before editing or saving consent (starts collapsed) -->
-    <section class="consent-panel consent-panel--streaming-setup" id="stepInfra" aria-labelledby="streamingSetupHeading">
-      <details class="consent-streaming-details" aria-label="Sandbox preparation and HTTP streaming connection">
-        <summary class="consent-streaming-details__summary">
-          <span class="consent-streaming-details__title" id="streamingSetupHeading">
-            <span class="icon" aria-hidden="true">⚙</span>
-            Sandbox &amp; streaming connection
-          </span>
-          <span class="consent-streaming-details__hint">Configure the streaming connection for this sandbox — required before sending consent updates. Fields are cleared when you switch sandboxes.</span>
-        </summary>
-        <div class="consent-streaming-details__body">
-      <div class="consent-setup-instructions" style="background: var(--card-bg, #f5f5f5); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; border-left: 4px solid var(--accent, #1473e6);">
-        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Before you can use the Consent Manager on a new sandbox:</h4>
-        <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.9rem; line-height: 1.6;">
-          <li><strong>Create a Schema</strong> — In AEP, go to <em>Schemas</em> and create a new schema using the <strong>XDM Individual Profile</strong> class. Add these four field groups:
-            <ul style="margin: 0.25rem 0 0.25rem 0; padding-left: 1.25rem;">
-              <li><strong>Profile Core v2</strong> — custom tenant identity fields (includes <code>email</code>)</li>
-              <li><strong>Preference Details</strong> — preferred language and communication preferences</li>
-              <li><strong>Consent and Preference Details</strong> — marketing consent flags (email, SMS, push, call, postal, etc.)</li>
-              <li><strong>Demographic Details</strong> — person name and demographic attributes</li>
-            </ul>
-            Set the primary identity to <code>_{tenant}.identification.core.email</code> with namespace <strong>Email</strong>. Copy the <strong>Schema $id</strong>.</li>
-          <li><strong>Create a Dataset</strong> — In AEP, go to <em>Datasets</em> and create a new dataset from your schema. Enable it for <strong>Real-Time Customer Profile</strong> if you want consent updates to appear on the profile. Copy the <strong>Dataset ID</strong>.</li>
-          <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. Copy the <strong>Collection URL</strong> and <strong>Flow ID</strong>.</li>
-          <li><strong>Enter the details below</strong> — Paste Schema $id, Dataset ID, Flow ID, and Collection URL into the fields, then click <strong>Save connection</strong>. The connection is stored per sandbox in Firebase so you only need to do this once.</li>
-        </ol>
-        <p style="margin: 0.75rem 0 0 0; font-size: 0.85rem; opacity: 0.85;">If this sandbox already has a saved connection, click <strong>Load from Firebase</strong> to populate the fields.</p>
-      </div>
-      <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem; align-items: center;">
-        <button type="button" id="checkInfraBtn" class="btn btn-secondary">Check sandbox status</button>
-      </div>
-      <div class="button-row consent-infra-step-buttons" style="flex-wrap: wrap; gap: 0.5rem; margin-top: 0.65rem;">
-        <button type="button" id="stepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
-        <button type="button" id="stepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
-        <button type="button" id="stepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
-        <button type="button" id="stepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
-      </div>
-      <p id="infraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
-      <div class="sandbox-config" style="margin-top: 1rem;">
-        <h3 class="sandbox-config-title" style="font-size: 0.95rem;">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
-        <div class="form-row">
-          <label for="streamSchemaId">Schema $id</label>
-          <input type="text" id="streamSchemaId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false" title="Full schema $id URI from AEP. Paste manually or filled by Prepare steps.">
-        </div>
-        <div class="form-row">
-          <label for="streamDatasetId">Dataset ID</label>
-          <input type="text" id="streamDatasetId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:28rem;" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false" title="Dataset ID from AEP. Paste manually or filled by Prepare steps.">
-        </div>
-        <div class="form-row">
-          <label for="streamXdmKey">Tenant XDM key</label>
-          <input type="text" id="streamXdmKey" class="sandbox-select consent-stream-field--editable" style="width:10rem;" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false" title="Tenant XDM key (e.g. _demoemea). Usually auto-detected.">
-        </div>
-        <div class="form-row">
-          <label for="streamFlowId">Flow ID (x-adobe-flow-id)</label>
-          <input type="text" id="streamFlowId" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="Paste UUID from the dataflow in AEP" autocomplete="off" spellcheck="false" aria-describedby="streamFlowIdHint">
-          <p id="streamFlowIdHint" class="field-hint consent-stream-flowid-hint">Paste the flow ID from your HTTP API dataflow, or use <strong>Fetch URL &amp; Flow ID from AEP</strong> to look it up by name. Then click <strong>Save connection</strong>.</p>
-        </div>
-        <div class="form-row">
-          <label for="streamFlowName">Dataflow name in AEP</label>
-          <input type="text" id="streamFlowName" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" value="AEP Profile Viewer - Consent - Dataflow" placeholder="Dataflow name (used for lookup when Flow ID is empty)" autocomplete="off" spellcheck="false" title="Name of the HTTP API dataflow. Used for lookup when Flow ID is empty.">
-        </div>
-        <div class="form-row">
-          <label for="streamUrl">Collection URL</label>
-          <input type="url" id="streamUrl" class="sandbox-select consent-stream-field--editable" style="width:100%;max-width:42rem;" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false" title="DCS collection URL from the HTTP API dataflow. Paste manually or use Fetch.">
-        </div>
-        <p class="panel-desc" style="font-size:0.85rem;margin-top:0.5rem;opacity:0.9;">
-          <strong>Load from Firebase</strong> pulls any previously saved connection for this sandbox.
-          <strong>Save connection</strong> stores all fields above to Firebase for this sandbox — you only need to do this once per sandbox.
-        </p>
-        <div class="button-row" style="flex-wrap: wrap; gap: 0.5rem;">
-          <button type="button" id="loadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
-          <button type="button" id="fetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
-          <button type="button" id="saveStreamBtn" class="btn btn-secondary">Save connection (browser &amp; Firebase)</button>
-        </div>
-      </div>
-        </div>
-      </details>
     </section>
 
     <!-- Step 2: Consent Preferences -->
@@ -313,41 +191,11 @@
           <div class="form-row">
             <label for="preferredLanguage">Preferred Language</label>
             <select id="preferredLanguage">
-              <option value="en-US">English (United States)</option>
-              <option value="en-GB">English (United Kingdom)</option>
-              <option value="en-CA">English (Canada)</option>
-              <option value="en-AU">English (Australia)</option>
-              <option value="fr-FR">French (France)</option>
-              <option value="fr-CA">French (Canada)</option>
-              <option value="de-DE">German (Germany)</option>
-              <option value="de-AT">German (Austria)</option>
-              <option value="de-CH">German (Switzerland)</option>
-              <option value="es-ES">Spanish (Spain)</option>
-              <option value="es-MX">Spanish (Mexico)</option>
-              <option value="es-AR">Spanish (Argentina)</option>
-              <option value="it-IT">Italian (Italy)</option>
-              <option value="pt-PT">Portuguese (Portugal)</option>
-              <option value="pt-BR">Portuguese (Brazil)</option>
-              <option value="nl-NL">Dutch (Netherlands)</option>
-              <option value="nl-BE">Dutch (Belgium)</option>
-              <option value="da-DK">Danish (Denmark)</option>
-              <option value="sv-SE">Swedish (Sweden)</option>
-              <option value="no-NO">Norwegian (Norway)</option>
-              <option value="fi-FI">Finnish (Finland)</option>
-              <option value="pl-PL">Polish (Poland)</option>
-              <option value="ru-RU">Russian (Russia)</option>
-              <option value="zh-CN">Chinese (Simplified)</option>
-              <option value="zh-TW">Chinese (Traditional)</option>
-              <option value="ja-JP">Japanese (Japan)</option>
-              <option value="ko-KR">Korean (South Korea)</option>
-              <option value="ar-SA">Arabic (Saudi Arabia)</option>
-              <option value="ar-AE">Arabic (UAE)</option>
-              <option value="he-IL">Hebrew (Israel)</option>
-              <option value="tr-TR">Turkish (Turkey)</option>
-              <option value="hi-IN">Hindi (India)</option>
-              <option value="th-TH">Thai (Thailand)</option>
-              <option value="vi-VN">Vietnamese (Vietnam)</option>
-              <option value="unknown">Unknown</option>
+              <option value="en">English</option>
+              <option value="en-GB">English (UK)</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="es">Spanish</option>
             </select>
           </div>
           <div class="form-row">
@@ -478,38 +326,11 @@
     <!-- Step 3: Save to AEP -->
     <section class="consent-panel" id="step4">
       <h2 class="panel-title"><span class="icon">🚀</span> Step 3: Save changes to Adobe Experience Platform</h2>
-      <p class="panel-desc consent-save-desc">
-        Sends consent data using the <strong>legacy Consent Manager</strong> streaming contract (same XDM shape as <code>firebaseFunctions/adobe/consent-manager.js</code> / EMEA presales tool): HTTP API <strong>envelope</strong> to your saved <strong>DCS collection URL</strong>, with <code>header.schemaRef</code>, <code>datasetId</code>, and <code>imsOrgId</code> from this project’s secrets or optional <code>streaming.imsOrgId</code>. Body uses your saved <strong>Schema $id</strong> and <strong>Dataset ID</strong>; slim <code>xdmEntity</code> (tenant <code>identification.core.email</code>, root <code>consents</code>, <code>idSpecific.Email</code>, <code>person.name</code>). DCS headers include <code>x-gw-ims-org-id</code> and optional <code>x-adobe-flow-id</code>. Save connection before updating.
-      </p>
       <div class="button-row">
         <button type="button" id="updateConsentBtn" class="btn btn-save">Update Consent Preferences</button>
         <button type="button" id="previewDataBtn" class="btn btn-secondary">Preview Data</button>
       </div>
       <div id="step4Message" class="consent-message" role="status" aria-live="polite" hidden></div>
-
-      <div id="consentPreviewPanel" class="consent-preview-panel" hidden>
-        <div
-          class="consent-preview-panel__header"
-          id="consentPreviewHeader"
-          role="button"
-          tabindex="0"
-          aria-expanded="true"
-          aria-controls="consentPreviewCollapse"
-        >
-          <span class="consent-preview-panel__chevron" id="consentPreviewChevron" aria-hidden="true">▼</span>
-          <span class="consent-preview-panel__title" id="consentPreviewTitle">DCS payload preview</span>
-          <span class="consent-preview-panel__meta" id="consentPreviewMeta" aria-hidden="true"></span>
-          <div class="consent-preview-panel__header-actions">
-            <button type="button" id="consentPreviewMinimizeBtn" class="btn consent-preview-panel__min-btn" title="Minimize preview">
-              Minimize
-            </button>
-          </div>
-        </div>
-        <div id="consentPreviewCollapse" class="consent-preview-panel__collapse">
-          <p id="consentPreviewNote" class="consent-preview-panel__note"></p>
-          <pre id="consentPreviewPre" class="consent-preview-panel__pre" spellcheck="false"></pre>
-        </div>
-      </div>
     </section>
       </main>
     </div>
@@ -519,12 +340,11 @@
     (function () {
       var port = String(window.location.port);
       var host = window.location.hostname;
-      var onLocal = host === 'localhost' || host === '127.0.0.1';
-      if (onLocal && port !== '3333') document.getElementById('serverWarning').hidden = false;
+      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
+      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
     })();
   </script>
   <script src="email-cache.js"></script>
-  <script src="aep-global-sandbox.js"></script>
   <script src="profile-streaming-shared.js"></script>
   <script src="consent.js"></script>
   <script defer src="aep-theme.js"></script>

@@ -1,6 +1,6 @@
 {
-  "name": "aep-decisioning-functions",
-  "description": "Standalone AEP Decisioning lab — AEP proxy + webhook listener proxy for Hosting",
+  "name": "aep-orchestration-functions",
+  "description": "AEP Orchestration Lab — AEP proxy + webhook listener proxy for Hosting",
   "main": "index.js",
   "engines": {
     "node": "20"

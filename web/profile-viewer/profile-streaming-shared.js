@@ -76,20 +76,10 @@
    * @param {{ email: string, ecid: string, sandbox?: string, updates?: Array<{ path: string, value: unknown }>, consent?: Record<string, unknown> }} body
    */
   async function postProfileUpdate(body) {
-    const payload =
-      body && typeof body === 'object' && !Array.isArray(body) ? { ...body } : {};
-    if (
-      (payload.sandbox == null || String(payload.sandbox).trim() === '') &&
-      typeof global.AepGlobalSandbox !== 'undefined' &&
-      typeof global.AepGlobalSandbox.getSandboxName === 'function'
-    ) {
-      const sn = global.AepGlobalSandbox.getSandboxName();
-      if (sn) payload.sandbox = sn;
-    }
     const res = await fetch('/api/profile/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     });
     let data = {};
     try {

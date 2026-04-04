@@ -5,14 +5,6 @@
 
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
-
-function getSandboxParam() {
-  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
-    return window.AepGlobalSandbox.getSandboxParam();
-  }
-  return '';
-}
-
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const profileMessage = document.getElementById('profileMessage');
 
@@ -61,7 +53,7 @@ queryProfileBtn.addEventListener('click', async () => {
   }
   setMessage(profileMessage, 'Loading…', '');
   try {
-    const res = await fetch('/api/profile/consent?email=' + encodeURIComponent(email) + getSandboxParam());
+    const res = await fetch('/api/profile/consent?email=' + encodeURIComponent(email));
     const data = await res.json();
     if (!res.ok) {
       setMessage(profileMessage, data.error || 'Request failed.', 'error');

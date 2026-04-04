@@ -13,9 +13,6 @@ const audienceErrorEl = document.getElementById('audienceError');
 const audienceEmptyEl = document.getElementById('audienceEmpty');
 
 function getSandboxParam() {
-  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
-    return window.AepGlobalSandbox.getSandboxParam();
-  }
   const val = sandboxSelect?.value?.trim();
   return val ? `&sandbox=${encodeURIComponent(val)}` : '';
 }

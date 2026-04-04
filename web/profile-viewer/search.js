@@ -30,13 +30,6 @@ const noResultsEl = document.getElementById('noResults');
 const errorSection = document.getElementById('error');
 const errorMessageEl = document.getElementById('errorMessage');
 
-function getSandboxParam() {
-  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
-    return window.AepGlobalSandbox.getSandboxParam();
-  }
-  return '';
-}
-
 function setStatus(text, type = '') {
   statusEl.textContent = text;
   statusEl.className = 'status' + (type ? ' ' + type : '');
@@ -81,7 +74,7 @@ async function doSearch() {
   showError('');
 
   try {
-    const res = await fetch(`/api/profile/search?q=${encodeURIComponent(q)}${getSandboxParam()}`);
+    const res = await fetch(`/api/profile/search?q=${encodeURIComponent(q)}`);
     const text = await res.text();
     let data;
     try {
