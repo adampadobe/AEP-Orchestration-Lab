@@ -15,10 +15,6 @@
   <link rel="stylesheet" href="profile-viewer.css">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge">
-  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/index.html" id="serverWarningLink">http://localhost:3333</a>
-  </div>
-
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary">
       <div class="dashboard-sidebar-brand">
@@ -470,16 +466,6 @@
     </div>
   </div>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var isFirebaseHost = /\.web\.app$/i.test(host) || /\.firebaseapp\.com$/i.test(host);
-      var isCorrectServer =
-        isFirebaseHost || ((host === 'localhost' || host === '127.0.0.1') && port === '3333');
-      if (!isCorrectServer) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="email-cache.js"></script>
   <script src="table-resize.js"></script>
   <script src="profile-streaming-shared.js"></script>

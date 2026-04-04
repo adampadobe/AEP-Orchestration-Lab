@@ -15,10 +15,6 @@
   <link rel="stylesheet" href="event-generator.css">
 </head>
 <body class="event-generator-page profile-generation-page home-dashboard-concierge">
-  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/event-generator.html">http://localhost:3333/event-generator.html</a>
-  </div>
-
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary">
       <div class="dashboard-sidebar-brand">
@@ -352,14 +348,6 @@
     </div>
   </div>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
-      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="email-cache.js"></script>
   <script src="event-generator.js"></script>
   <script defer src="aep-theme.js"></script>

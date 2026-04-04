@@ -13,10 +13,6 @@
   <link rel="stylesheet" href="hosting.css">
 </head>
 <body class="home-page home-dashboard-concierge">
-  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/firebase-hosting.html">http://localhost:3333/firebase-hosting.html</a>
-  </div>
-
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary">
       <div class="dashboard-sidebar-brand">
@@ -155,14 +151,6 @@
     <button type="button" role="menuitem" class="firebase-hosting-context-menu__item" id="hostingContextRename">Rename…</button>
   </div>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
-      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="hosting-client.js"></script>
   <script defer src="aep-theme.js"></script>
   <script defer src="aep-lab-nav.js"></script>

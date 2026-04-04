@@ -15,10 +15,6 @@
   <link rel="stylesheet" href="schema-viewer.css">
 </head>
 <body class="profile-viewer-page schema-viewer-page schema-aep-browse-page home-dashboard-concierge">
-  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/schema-viewer.html">http://localhost:3333/schema-viewer.html</a>
-  </div>
-
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary">
       <div class="dashboard-sidebar-brand">
@@ -367,14 +363,6 @@
     </div>
   </div>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var onLocal = host === 'localhost' || host === '127.0.0.1';
-      if (onLocal && port !== '3333') document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="schema-viewer.js"></script>

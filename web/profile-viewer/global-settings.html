@@ -12,10 +12,6 @@
   <link rel="stylesheet" href="home.css">
 </head>
 <body class="home-page home-dashboard-concierge">
-  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/global-settings.html">http://localhost:3333/global-settings.html</a>
-  </div>
-
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary">
       <div class="dashboard-sidebar-brand">
@@ -110,15 +106,6 @@
     </div>
   </div>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var isFirebaseHost = /\.web\.app$/i.test(host) || /\.firebaseapp\.com$/i.test(host);
-      var isCorrect = isFirebaseHost || ((host === 'localhost' || host === '127.0.0.1') && port === '3333');
-      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="aep-global-sandbox.js"></script>
   <script>
     (function () {

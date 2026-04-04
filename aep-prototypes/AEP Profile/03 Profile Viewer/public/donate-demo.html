@@ -13,10 +13,6 @@
   <link rel="stylesheet" href="donate-demo.css">
 </head>
 <body class="donate-demo-page home-dashboard-concierge">
-  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/donate-demo.html">http://localhost:3333/donate-demo.html</a>
-  </div>
-
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary">
       <div class="dashboard-sidebar-brand">
@@ -353,14 +349,6 @@
     </div>
   </aside>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var isCorrect = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
-      if (!isCorrect) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="email-cache.js"></script>
   <script src="donate-demo.js"></script>
   <script defer src="aep-theme.js"></script>

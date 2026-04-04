@@ -14,10 +14,6 @@
   <link rel="stylesheet" href="profile-viewer.css">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge">
-  <div id="serverWarning" class="server-warning dashboard-server-warning" hidden>
-    Open this app at <a href="http://localhost:3333/audience-membership.html">http://localhost:3333/audience-membership.html</a>
-  </div>
-
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary">
       <div class="dashboard-sidebar-brand">
@@ -132,14 +128,6 @@
     </div>
   </div>
 
-  <script>
-    (function () {
-      var port = String(window.location.port);
-      var host = window.location.hostname;
-      var ok = (host === 'localhost' || host === '127.0.0.1') && port === '3333';
-      if (!ok) document.getElementById('serverWarning').hidden = false;
-    })();
-  </script>
   <script src="aep-global-sandbox.js"></script>
   <script src="audience-membership.js"></script>
   <script defer src="aep-theme.js"></script>
