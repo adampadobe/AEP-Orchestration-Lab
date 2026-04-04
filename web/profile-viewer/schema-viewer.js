@@ -81,6 +81,7 @@
   let audienceSortHeaderEls = null;
   /** Separate from shared #dataViewerSearch so a Datasets filter never hides Browse rows (and vice versa). */
   let browseFilterQuery = '';
+  let browseClassFilter = 'all';
   let datasetsFilterQuery = '';
   let audiencesFilterQuery = '';
 
@@ -1105,6 +1106,9 @@
     }
     if (schemaBrowseTableWrap) schemaBrowseTableWrap.hidden = tab !== 'browse';
 
+    const classFilterWrap = document.getElementById('schemaClassFilterWrap');
+    if (classFilterWrap) classFilterWrap.hidden = tab !== 'browse';
+
     if (dataViewerSearchWrap) {
       dataViewerSearchWrap.hidden = !onBrowseLike && tab !== 'datasets' && tab !== 'audiences';
     }
@@ -1247,10 +1251,18 @@
     return browseFilterQuery.trim().toLowerCase();
   }
 
+  function classifySchemaClass(s) {
+    const cl = (s.classLabel || '').toLowerCase();
+    if (cl.includes('individual profile')) return 'profile';
+    if (cl.includes('experienceevent')) return 'event';
+    return 'other';
+  }
+
   function filteredBrowseSchemas() {
     const q = getBrowseFilter();
-    if (!q) return browseSchemas;
     return browseSchemas.filter((s) => {
+      if (browseClassFilter !== 'all' && classifySchemaClass(s) !== browseClassFilter) return false;
+      if (!q) return true;
       const t = (s.title || '').toLowerCase();
       const id = (s.id || '').toLowerCase();
       const alt = (s.metaAltId || '').toLowerCase();
@@ -1368,14 +1380,15 @@
     updateBrowseSortHeaders();
     if (browseCountEl) {
       const total = browseSchemas.length;
-      const q = getBrowseFilter();
+      const isFiltered = getBrowseFilter() || browseClassFilter !== 'all';
       if (total === 0) browseCountEl.textContent = 'No schemas loaded.';
-      else if (q && rows.length !== total) {
+      else if (isFiltered && rows.length !== total) {
         browseCountEl.textContent = `Showing ${rows.length} of ${total} schema${total === 1 ? '' : 's'}`;
       } else {
         browseCountEl.textContent = `${total} schema${total === 1 ? '' : 's'} in this sandbox`;
       }
     }
+    updateClassFilterButtons();
     rows.forEach((s) => {
       const tr = document.createElement('tr');
       tr.dataset.schemaId = s.id;
@@ -1589,6 +1602,7 @@
 
   sandboxSelect?.addEventListener('change', () => {
     browseFilterQuery = '';
+    browseClassFilter = 'all';
     datasetsFilterQuery = '';
     audiencesFilterQuery = '';
     if (dataViewerSearch) {
@@ -1628,6 +1642,27 @@
       audiencesFilterQuery = dataViewerSearch.value;
       renderAudienceTable();
     }
+  });
+
+  function updateClassFilterButtons() {
+    const wrap = document.getElementById('schemaClassFilterWrap');
+    if (!wrap) return;
+    wrap.querySelectorAll('[data-class-filter]').forEach((btn) => {
+      const val = btn.getAttribute('data-class-filter');
+      btn.classList.toggle('schema-class-filter--active', val === browseClassFilter);
+      if (val !== 'all' && browseSchemas.length > 0) {
+        const count = browseSchemas.filter((s) => classifySchemaClass(s) === val).length;
+        const label = btn.getAttribute('data-label') || val;
+        btn.textContent = `${label} (${count})`;
+      }
+    });
+  }
+
+  document.getElementById('schemaClassFilterWrap')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-class-filter]');
+    if (!btn) return;
+    browseClassFilter = btn.getAttribute('data-class-filter') || 'all';
+    renderBrowseTable();
   });
 
   schemaSidebarClose?.addEventListener('click', () => closeBrowseDetail());

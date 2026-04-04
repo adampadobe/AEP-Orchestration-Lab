@@ -116,6 +116,12 @@
       </nav>
 
       <div class="schema-aep-toolbar" id="schemaAepToolbar">
+        <div id="schemaClassFilterWrap" class="schema-class-filter-wrap" hidden>
+          <button type="button" class="schema-class-filter schema-class-filter--active" data-class-filter="all" data-label="All">All</button>
+          <button type="button" class="schema-class-filter" data-class-filter="profile" data-label="Profile">Profile</button>
+          <button type="button" class="schema-class-filter" data-class-filter="event" data-label="Event">Event</button>
+          <button type="button" class="schema-class-filter" data-class-filter="other" data-label="Other">Other</button>
+        </div>
         <span class="schema-aep-filter-ic" aria-hidden="true" title="Filter list">▽</span>
         <div id="dataViewerSearchWrap" class="schema-aep-search-wrap" hidden>
           <label for="dataViewerSearch" class="visually-hidden">Search</label>

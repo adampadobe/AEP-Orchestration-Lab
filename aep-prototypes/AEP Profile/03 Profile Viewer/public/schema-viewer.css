@@ -406,6 +406,54 @@ button.schema-aep-tab:focus-visible {
   flex-shrink: 0;
 }
 
+.schema-class-filter-wrap {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+.schema-class-filter {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border: 1px solid #d0d0d0;
+  border-radius: 1rem;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.schema-class-filter:hover {
+  border-color: #1473e6;
+  color: #1473e6;
+  background: #f0f6ff;
+}
+.schema-class-filter--active {
+  background: #1473e6;
+  color: #fff;
+  border-color: #1473e6;
+}
+.schema-class-filter--active:hover {
+  background: #0d66d0;
+  border-color: #0d66d0;
+  color: #fff;
+}
+[data-aep-theme="dark"] .schema-class-filter {
+  background: #2a2a2a;
+  border-color: #555;
+  color: #bbb;
+}
+[data-aep-theme="dark"] .schema-class-filter:hover {
+  background: #1a3050;
+  border-color: #4a9eff;
+  color: #4a9eff;
+}
+[data-aep-theme="dark"] .schema-class-filter--active {
+  background: #1473e6;
+  color: #fff;
+  border-color: #1473e6;
+}
+
 .schema-aep-meta-line {
   margin: 0;
   padding: 0.5rem 1.5rem;
