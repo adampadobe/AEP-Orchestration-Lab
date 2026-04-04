@@ -11,6 +11,33 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="aep-theme.css">
+  <style>
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-panel,
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page section.consent-panel {
+      background: #181b21 !important;
+      border-color: #2a3038 !important;
+    }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-prefs-table { background: #181b21; border-color: #2a3038; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-prefs-row { background: #181b21; border-bottom-color: #2a3038; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-prefs-row:nth-child(odd) { background: #0f1114; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-prefs-title { color: #e8eaed; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-prefs-desc { color: #9aa0a8; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-prefs-heading { color: #e8eaed; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-prefs-lead { color: #9aa0a8; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-ticket-text { background: #0f1114; border-color: #3a4048; color: #c8ccd2; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-ticket input:checked + .consent-ticket-text { background: #4b9fff; border-color: #4b9fff; color: #fff; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-subsection--preferred { border-top-color: #2a3038; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .subsection-title { color: #e8eaed; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-step1-toolbar-quick { border-left-color: #2a3038; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page input.consent-readonly-field { background: rgba(255,255,255,.06) !important; color: #9aa0a8 !important; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-resolved-email { background: rgba(40,60,45,.45); border-color: #3a5a42; color: #b8d4b8; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-resolved-email__label { color: #d0e8d0; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-message.success { background: rgba(45,140,111,.25); border-color: #2d8c6f; color: #8fdfc2; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-message.error { background: rgba(201,90,74,.25); border-color: #c95a4a; color: #e8a89e; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-message:not(.success):not(.error) { background: #14161b; border-color: #2a3038; color: #c8ccd2; }
+    html[data-aep-theme='dark'] body.home-dashboard-concierge.consent-page .consent-setup-instructions { background: #14161b !important; border-left-color: #4b9fff !important; color: #c8ccd2; }
+  </style>
 </head>
 <body class="consent-page home-dashboard-concierge consent-manager-page">
   <div class="dashboard-shell">
