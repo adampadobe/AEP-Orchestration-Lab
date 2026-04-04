@@ -5,6 +5,13 @@
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
 
+function getSandboxParam() {
+  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
+    return window.AepGlobalSandbox.getSandboxParam();
+  }
+  return '';
+}
+
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const infoEcid = document.getElementById('infoEcid');
 const generatorTargetSelect = document.getElementById('generatorTarget');
@@ -445,7 +452,7 @@ function renderAudienceList(audiences) {
 async function fetchAudienceMembership(email) {
   if (!email) return null;
   try {
-    const res = await fetch('/api/profile/audiences?email=' + encodeURIComponent(email));
+    const res = await fetch('/api/profile/audiences?email=' + encodeURIComponent(email) + getSandboxParam());
     if (!res.ok) return null;
     const data = await res.json().catch(() => ({}));
     return data && typeof data === 'object' ? data : null;
@@ -552,7 +559,7 @@ function renderEventTimeline(events) {
 async function fetchRecentEvents(email) {
   if (!email) return [];
   try {
-    const res = await fetch('/api/profile/events?email=' + encodeURIComponent(email));
+    const res = await fetch('/api/profile/events?email=' + encodeURIComponent(email) + getSandboxParam());
     if (!res.ok) return [];
     const data = await res.json().catch(() => ({}));
     const events = Array.isArray(data.events) ? data.events : [];
@@ -579,7 +586,7 @@ async function loadProfileDataForDrawer(email, options) {
   if (!emailTrim) return false;
 
   try {
-    const res = await fetch('/api/profile/consent?email=' + encodeURIComponent(emailTrim));
+    const res = await fetch('/api/profile/consent?email=' + encodeURIComponent(emailTrim) + getSandboxParam());
     const data = await res.json();
     if (!res.ok) {
       if (opts.updateDonateMessage) setDonateMessage(data.error || 'Profile request failed.', 'error');

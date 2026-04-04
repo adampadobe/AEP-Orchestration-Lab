@@ -471,10 +471,24 @@
     overviewStatsStatus.classList.toggle('schema-status--error', !!isError);
   }
 
-  async function loadOverviewStats() {
-    if (!overviewStatSchemas) return;
+  function buildQuery(extra) {
     const sandbox = getSandboxQuery();
-    const q = sandbox ? `?sandbox=${encodeURIComponent(sandbox)}` : '';
+    const params = new URLSearchParams();
+    if (sandbox) params.set('sandbox', sandbox);
+    if (extra) Object.entries(extra).forEach(([k, v]) => { if (v != null) params.set(k, v); });
+    const s = params.toString();
+    return s ? `?${s}` : '';
+  }
+
+  function cacheLabel(res) {
+    const age = res.headers?.get?.('age');
+    if (age && Number(age) > 0) return ` (cached ${age}s ago)`;
+    return ' (live)';
+  }
+
+  async function loadOverviewStats(forceRefresh) {
+    if (!overviewStatSchemas) return;
+    const q = buildQuery(forceRefresh ? { refresh: 'true' } : null);
     setOverviewStatsMessage('Loading overview…');
     overviewStatSchemas.textContent = '…';
     overviewStatProfile.textContent = '…';
@@ -492,7 +506,7 @@
       overviewStatDatasets.textContent = String(body.datasetCount ?? 0);
       const src = body.schemaListSource ? ` · ${body.schemaListSource}` : '';
       setOverviewStatsMessage(
-        `Sandbox “${body.sandbox || 'default'}”${src}. Counts match Schemas / Datasets sources (live API).`,
+        `Sandbox “${body.sandbox || 'default'}”${src}${cacheLabel(r)}.`,
       );
     } catch (e) {
       setOverviewStatsMessage(e.message || 'Could not load overview', true);
@@ -692,10 +706,9 @@
     });
   }
 
-  async function loadDatasetsFromApi() {
+  async function loadDatasetsFromApi(forceRefresh) {
     if (!datasetTableBody) return;
-    const sandbox = getSandboxQuery();
-    const q = sandbox ? `?sandbox=${encodeURIComponent(sandbox)}` : '';
+    const q = buildQuery(forceRefresh ? { refresh: 'true' } : null);
     datasetTableBody.innerHTML = '';
     if (dataViewerSearch) dataViewerSearch.disabled = true;
     if (datasetBrowseCount) datasetBrowseCount.textContent = 'Loading datasets…';
@@ -1043,10 +1056,9 @@
     });
   }
 
-  async function loadAudiencesFromApi() {
+  async function loadAudiencesFromApi(forceRefresh) {
     if (!audienceTableBody) return;
-    const sandbox = getSandboxQuery();
-    const q = sandbox ? `?sandbox=${encodeURIComponent(sandbox)}` : '';
+    const q = buildQuery(forceRefresh ? { refresh: 'true' } : null);
     audienceTableBody.innerHTML = '';
     if (dataViewerSearch) dataViewerSearch.disabled = true;
     if (audienceBrowseCount) audienceBrowseCount.textContent = 'Loading audiences…';
@@ -1467,9 +1479,8 @@
     renderBrowseTable();
   }
 
-  function refreshBrowseFromApi(statusOpts) {
-    const sandbox = getSandboxQuery();
-    const q = sandbox ? `?sandbox=${encodeURIComponent(sandbox)}` : '';
+  function refreshBrowseFromApi(statusOpts, forceRefresh) {
+    const q = buildQuery(forceRefresh ? { refresh: 'true' } : null);
     if (dataViewerSearch) dataViewerSearch.disabled = true;
     if (!statusOpts?.skipStatus) {
       setStatus(
@@ -1477,8 +1488,8 @@
       );
     }
     return fetch(`/api/schema-viewer/tenant-schemas${q}`)
-      .then((r) => r.json().then((body) => ({ ok: r.ok, body })))
-      .then(({ ok, body }) => {
+      .then((r) => r.json().then((body) => ({ ok: r.ok, body, res: r })))
+      .then(({ ok, body, res }) => {
         if (!ok) throw new Error(body.error || 'Failed to list schemas');
         browseSchemas = body.schemas || [];
         browseMeta = body;
@@ -1686,6 +1697,23 @@
   zoomResetBtn?.addEventListener('click', () => {
     if (!zoomBehavior || !svgEl) return;
     d3.select(svgEl).transition().duration(200).call(zoomBehavior.transform, d3.zoomIdentity);
+  });
+
+  const refreshBtn = document.getElementById('dataViewerRefreshBtn');
+  refreshBtn?.addEventListener('click', () => {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = '↻ Refreshing…';
+    const tab = currentAepTab || 'overview';
+    const jobs = [];
+    if (tab === 'overview') jobs.push(loadOverviewStats(true));
+    if (tab === 'browse') jobs.push(refreshBrowseFromApi(null, true));
+    if (tab === 'datasets') jobs.push(loadDatasetsFromApi(true));
+    if (tab === 'audiences') jobs.push(loadAudiencesFromApi(true));
+    if (jobs.length === 0) jobs.push(loadOverviewStats(true));
+    Promise.allSettled(jobs).finally(() => {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = '↻ Refresh';
+    });
   });
 
   (async function init() {
