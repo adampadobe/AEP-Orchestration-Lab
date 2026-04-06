@@ -2,26 +2,12 @@
  * Injects sidebar links: Global values after Home; Decisioning lab after Profile Viewer (index.html).
  */
 (function () {
-  function decisioningHref() {
-    try {
-      var u = localStorage.getItem('aepDecisioningLabUrl');
-      if (u && String(u).trim()) return String(u).trim();
-    } catch (e) {}
-    var host = window.location.hostname;
-    var port = window.location.port;
-    if (host === 'localhost' || host === '127.0.0.1') {
-      if (port === '3333') {
-        return 'http://localhost:8765/content-decision-live.html';
-      }
-    }
-    return '/content-decision-live.html';
-  }
-
   function inject() {
     var navs = document.querySelectorAll('.dashboard-sidebar-nav');
     if (!navs.length) return;
     var path = window.location.pathname || '';
     var onGlobal = path.indexOf('global-settings.html') !== -1;
+    var onDecisioning = path.indexOf('content-decision-live.html') !== -1;
 
     navs.forEach(function (nav) {
       var home = nav.querySelector('a[href="home.html"]');
@@ -49,12 +35,12 @@
       }
 
       if (!nav.querySelector('[data-aep-decisioning-lab]')) {
-        var href = decisioningHref().replace(/"/g, '&quot;').replace(/</g, '');
         var dl = document.createElement('a');
-        dl.href = href;
+        dl.href = 'content-decision-live.html';
         dl.setAttribute('data-aep-decisioning-lab', '1');
-        dl.className = 'dashboard-nav-item';
-        dl.title = 'Experience Orchestration lab (AEP-Orchestration-Lab repo)';
+        dl.className =
+          'dashboard-nav-item' + (onDecisioning ? ' dashboard-nav-item--active' : '');
+        dl.title = 'Content Decision Lab — profile, webhook & banner preview';
         dl.innerHTML =
           '<span class="dashboard-nav-ico" aria-hidden="true">◇</span>Decisioning lab';
         var profileLink = nav.querySelector('a[href="index.html"]');

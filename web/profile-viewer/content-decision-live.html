@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>(function(){try{var t=localStorage.getItem('aepTheme');if(t!=='dark'&&t!=='light')t=localStorage.getItem('aep-decisioning-theme');if(t==='dark')document.documentElement.setAttribute('data-aep-theme','dark');else document.documentElement.removeAttribute('data-aep-theme');}catch(e){}})();</script>
   <meta charset="UTF-8">
+  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Content decision — profile &amp; webhook</title>
+  <title>Content Decision Lab – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="aep-theme.css">
   <style>
-    /* Light default; dark when html[data-aep-theme="dark"] (synced with Profile Viewer aepTheme) */
     :root {
       --font: "DM Sans", "Segoe UI", system-ui, sans-serif;
       --bg: #f5f6f8;
@@ -40,11 +42,28 @@
       --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       --cd-primary-btn-fg: #1a1d23;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; }
-    code { font-family: ui-monospace, monospace; font-size: 0.9em; background: var(--bg-hover); padding: 0.15em 0.4em; border-radius: 4px; }
-    /* Global <code> chip style must not apply inside buttons (unreadable dark-on-dark on .primary) */
-    button code {
+
+    body.cd-page .dashboard-main.cd-main {
+      padding: 0;
+      max-width: none;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .cd-content {
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .cd-content code { font-family: ui-monospace, monospace; font-size: 0.9em; background: var(--bg-hover); padding: 0.15em 0.4em; border-radius: 4px; }
+    .cd-content button code {
       font-family: ui-monospace, monospace;
       font-size: 0.92em;
       background: transparent;
@@ -54,26 +73,12 @@
       font-weight: inherit;
     }
 
-    .app { display: flex; flex-direction: column; min-height: 100vh; }
-
-    .header {
-      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
-      padding: 1rem 1.5rem; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+    .cd-content label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.35rem; }
+    .cd-content input[type="email"], .cd-content input[type="text"], .cd-content input[type="url"], .cd-content select {
+      width: 100%; padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 0.875rem; background: var(--bg-panel); color: var(--text); margin-bottom: 0.65rem; font-family: var(--font);
     }
-    .header-start {
-      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; min-width: 0;
-    }
-    .header h1 { font-size: 1.25rem; font-weight: 600; }
-    .cd-back-btn { flex-shrink: 0; }
-    .header-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-
-    .main--cd {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow: hidden;
-    }
+    .cd-content input:focus, .cd-content select:focus { outline: 1px solid var(--accent); outline-offset: 0; }
 
     .hero-stage {
       flex: 1 1 0;
@@ -379,25 +384,19 @@
       color: var(--muted); margin-bottom: 0.75rem;
     }
 
-    label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.35rem; }
-    input[type="email"], input[type="text"], input[type="url"], select {
-      width: 100%; padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius);
-      font-size: 0.875rem; background: var(--bg-panel); color: var(--text); margin-bottom: 0.65rem; font-family: var(--font);
-    }
-    input:focus, select:focus { outline: 1px solid var(--accent); outline-offset: 0; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
     @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
 
-    button.primary {
+    .cd-content button.primary {
       background: var(--accent); color: var(--cd-primary-btn-fg); border: none; border-radius: var(--radius);
       padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; cursor: pointer; font-family: var(--font);
     }
-    button.primary:hover { background: var(--accent-hover); }
-    button.secondary {
+    .cd-content button.primary:hover { background: var(--accent-hover); }
+    .cd-content button.secondary {
       background: var(--border); color: var(--text); border: none;
       border-radius: var(--radius); padding: 0.5rem 0.9rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; font-family: var(--font);
     }
-    button.secondary:hover { background: var(--bg-hover); }
+    .cd-content button.secondary:hover { background: var(--bg-hover); }
 
     .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.35rem; }
     .status { font-size: 0.8125rem; margin-top: 0.5rem; color: var(--muted); }
@@ -445,20 +444,75 @@
     .cd-editor-block--full { grid-column: 1 / -1; }
   </style>
 </head>
-<body>
-  <div class="app">
-    <header class="header">
-      <div class="header-start">
-        <button type="button" class="secondary cd-back-btn" id="cdBackBtn">← Back</button>
-        <h1>Content decision</h1>
+<body class="home-dashboard-concierge cd-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary">
+      <div class="dashboard-sidebar-brand">
+        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
+        <div class="dashboard-sidebar-titles">
+          <span class="dashboard-sidebar-name">AEP</span>
+          <span class="dashboard-sidebar-sub">Profile Viewer</span>
+        </div>
       </div>
-      <div class="header-actions">
-        <button type="button" class="secondary" id="cdThemeBtn" aria-pressed="false" aria-label="Toggle color theme">Theme</button>
-      </div>
-    </header>
+      <nav class="dashboard-sidebar-nav">
+        <a href="home.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
+          Home
+        </a>
+        <a href="index.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
+          Profile Viewer
+        </a>
+        <a href="schema-viewer.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
+          Data viewer
+        </a>
+        <a href="audience-membership.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
+          Audience
+        </a>
+        <a href="profile-generation.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
+          Profile generation
+        </a>
+        <a href="consent.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
+          Consent
+        </a>
+        <a href="event-generator.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
+          Event generator
+        </a>
+        <a href="donate-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
+          Donate (demo)
+        </a>
+        <a href="race-for-life-demo.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
+          Race for Life (demo)
+        </a>
+        <a href="events-trigger.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
+          Events trigger
+        </a>
+        <a href="firebase-hosting.html" class="dashboard-nav-item">
+          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
+          Firebase images
+        </a>
+      </nav>
+    </aside>
 
-    <main class="main main--cd">
-      <section class="hero-stage" aria-label="Content decision preview">
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+        </div>
+      </header>
+
+      <main class="dashboard-main cd-main">
+        <div class="cd-content">
+          <section class="hero-stage" aria-label="Content decision preview">
         <div class="cd-hero-layout">
           <aside class="cd-hero-rail" aria-label="Quick run">
             <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Uses email, namespace, Cloud Run URL, wait (seconds), and banner layout from Workflow &amp; controls">
@@ -590,58 +644,15 @@
           </details>
         </div>
       </details>
-    </main>
+        </div>
+      </main>
+    </div>
   </div>
 
+  <script defer src="aep-theme.js"></script>
+  <script defer src="aep-lab-nav.js"></script>
   <script>
 (function () {
-  function applyCdTheme(mode) {
-    var root = document.documentElement;
-    if (mode === 'dark') root.setAttribute('data-aep-theme', 'dark');
-    else root.removeAttribute('data-aep-theme');
-    try {
-      localStorage.setItem('aepTheme', mode);
-      localStorage.setItem('aep-decisioning-theme', mode);
-    } catch (e) {}
-    var btn = document.getElementById('cdThemeBtn');
-    if (btn) {
-      var dark = mode === 'dark';
-      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
-      btn.textContent = dark ? 'Light mode' : 'Dark mode';
-    }
-  }
-  function getCdTheme() {
-    return document.documentElement.getAttribute('data-aep-theme') === 'dark' ? 'dark' : 'light';
-  }
-  var cdThemeBtn = document.getElementById('cdThemeBtn');
-  if (cdThemeBtn) {
-    cdThemeBtn.addEventListener('click', function () {
-      applyCdTheme(getCdTheme() === 'dark' ? 'light' : 'dark');
-    });
-    (function syncCdThemeBtnOnly() {
-      var btn = document.getElementById('cdThemeBtn');
-      if (!btn) return;
-      var dark = getCdTheme() === 'dark';
-      btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
-      btn.textContent = dark ? 'Light mode' : 'Dark mode';
-    })();
-  }
-  window.addEventListener('storage', function (e) {
-    if (e.key !== 'aepTheme' && e.key !== 'aep-decisioning-theme') return;
-    var v = e.newValue;
-    if (v === 'dark') applyCdTheme('dark');
-    else if (v === 'light') applyCdTheme('light');
-    else if (!v) applyCdTheme('light');
-  });
-  document.getElementById('cdBackBtn').addEventListener('click', function () {
-    try {
-      if (document.referrer && document.referrer.indexOf(location.origin) === 0) {
-        history.back();
-        return;
-      }
-    } catch (err) {}
-    location.href = '/profile-viewer/home.html';
-  });
 
   const WEBHOOK_FILTER_CUSTOM_NAME = 'Content Decision';
   const WEBHOOK_LISTENER_DIRECT_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
