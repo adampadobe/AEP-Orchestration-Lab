@@ -95,6 +95,7 @@
     init: init,
     applyToDocument: applyToDocument,
     syncToggleLabels: syncToggleLabels,
+    bindToggleButtons: bindToggleButtons,
     injectSidebarToggle: injectSidebarToggle,
   };
 

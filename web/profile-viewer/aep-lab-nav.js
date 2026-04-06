@@ -214,10 +214,12 @@
     footer.appendChild(themeBtn);
     sidebar.appendChild(footer);
 
-    if (typeof AepTheme !== 'undefined') {
-      AepTheme.bindToggleButtons();
-      AepTheme.syncToggleLabels(AepTheme.getMode());
-    }
+    try {
+      if (typeof AepTheme !== 'undefined') {
+        if (AepTheme.bindToggleButtons) AepTheme.bindToggleButtons();
+        if (AepTheme.syncToggleLabels) AepTheme.syncToggleLabels(AepTheme.getMode());
+      }
+    } catch (e) { /* theme integration optional */ }
 
     /* Collapse toggle handler */
     toggleBtn.addEventListener('click', function () {
