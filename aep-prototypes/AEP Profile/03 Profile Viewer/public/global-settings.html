@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css">
   <link rel="stylesheet" href="aep-theme.css">
 </head>
-<body class="home-page home-dashboard-concierge">
+<body class="home-dashboard-concierge">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary">
       <div class="dashboard-sidebar-brand">
@@ -80,14 +80,20 @@
       </header>
 
       <main class="dashboard-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingGlobal">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingGlobal" class="dashboard-hero-title">Global values</h2>
+              <p class="dashboard-hero-subtitle">
+                Configure sandbox, appearance, and shared settings applied across all Profile Viewer pages.
+              </p>
+            </header>
+          </div>
+        </section>
         <section class="dashboard-hero" style="max-width: 640px;">
-          <h2 class="dashboard-hero-title" style="font-size: 1.25rem;">Sandbox for all Profile Viewer pages</h2>
-          <p class="dashboard-hero-subtitle" style="margin-top: 8px;">
-            Loads <strong>active sandboxes</strong> from Adobe Experience Platform (same org as <code>/api/aep</code> on Firebase Hosting, or <code>/api/sandboxes</code> when you run the local Node server).
-            Your choice is saved in <code>localStorage</code> and applied to every page that has a sandbox dropdown (Profile Viewer, Data viewer, Audience, Profile generation).
-          </p>
-          <div class="dashboard-action-card" style="margin-top: 20px; text-align: left;">
-            <label for="globalSandboxSelect" class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Active sandbox</label>
+          <div class="dashboard-action-card" style="text-align: left;">
+            <label for="globalSandboxSelect" class="schema-aep-sandbox-label" style="display:block;margin-bottom:4px;font-weight:600;">Active sandbox</label>
+            <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">Loads active sandboxes from your org. Saved in <code>localStorage</code> and applied across all pages.</p>
             <select id="globalSandboxSelect" class="sandbox-select schema-aep-sandbox-select" style="max-width: 100%; width: 100%; margin-bottom: 12px;" aria-label="Global AEP sandbox"></select>
             <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
               <button type="button" class="dashboard-btn-outline" id="btnRefreshSandboxes">Refresh list</button>
