@@ -28,6 +28,11 @@
         "source": "/",
         "destination": "/profile-viewer/home.html",
         "type": 302
+      },
+      {
+        "source": "/content-decision-live.html",
+        "destination": "/profile-viewer/content-decision-live.html",
+        "type": 301
       }
     ],
     "rewrites": [
