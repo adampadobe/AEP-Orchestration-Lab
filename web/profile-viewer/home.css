@@ -679,6 +679,8 @@ body.profile-generation-page.home-vodafone-style .generate-debug {
    -------------------------------------------------------------------------- */
 
 body.home-dashboard-concierge {
+  padding: 0;
+  margin: 0;
   --dash-bg: #f0f0f2;
   --dash-surface: #ffffff;
   --dash-surface-alt: #f8f9fa;
@@ -755,6 +757,9 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   gap: 0.5rem;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 /* ── Sidebar header (brand + collapse toggle) ── */
