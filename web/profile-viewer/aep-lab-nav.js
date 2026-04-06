@@ -28,6 +28,8 @@
         { label: 'Profile generation', href: 'profile-generation.html', ico: '\u2795' },
         { label: 'Consent', href: 'consent.html', ico: '\u2713' },
         { label: 'Event generator', href: 'event-generator.html', ico: '\uD83D\uDCE4' },
+        { label: 'Events trigger', href: 'events-trigger.html', ico: '\u26A1' },
+        { label: 'Firebase images', href: 'firebase-hosting.html', ico: '\uD83D\uDDBC' },
       ],
     },
     {
@@ -35,8 +37,6 @@
       items: [
         { label: 'Donate (demo)', href: 'donate-demo.html', ico: '\uD83D\uDC9D' },
         { label: 'Race for Life (demo)', href: 'race-for-life-demo.html', ico: '\uD83C\uDFC3' },
-        { label: 'Events trigger', href: 'events-trigger.html', ico: '\u26A1' },
-        { label: 'Firebase images', href: 'firebase-hosting.html', ico: '\uD83D\uDDBC' },
       ],
     },
   ];
