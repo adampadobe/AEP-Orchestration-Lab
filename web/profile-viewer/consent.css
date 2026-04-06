@@ -42,11 +42,6 @@ body.home-dashboard-concierge.consent-page {
   color: var(--dash-text);
 }
 
-body.home-dashboard-concierge.consent-page.consent-manager-page .consent-main {
-  max-width: min(1400px, 100%);
-  margin: 0 auto;
-}
-
 body.home-dashboard-concierge.consent-page .consent-panel {
   background: var(--dash-surface);
   border: 1px solid var(--dash-border);

@@ -1432,13 +1432,6 @@ body.home-dashboard-concierge.search-tool-page .dashboard-main {
   box-sizing: border-box;
 }
 
-/* Consent manager only (AJO journey page also uses consent-page + consent.css) */
-body.home-dashboard-concierge.consent-page.consent-manager-page:not(.home-page) .dashboard-main.consent-main {
-  max-width: min(1400px, 100%);
-  margin-left: auto;
-  margin-right: auto;
-}
-
 body.home-dashboard-concierge.schema-viewer-page .dashboard-main.schema-viewer-main.schema-aep-main {
   max-width: none;
   margin: 0;
