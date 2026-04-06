@@ -1418,7 +1418,7 @@ body.home-dashboard-concierge:not(.home-page) {
   min-height: 100vh;
 }
 
-/* Same horizontal gutter as Firebase images / default shell (gap between sidebar and banner) */
+/* Uniform tool-page container: consistent top gutter + side/bottom gutters */
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.profile-viewer-main,
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.event-generator-main,
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.profile-generation-main,
@@ -1428,7 +1428,7 @@ body.home-dashboard-concierge.search-tool-page .dashboard-main {
   max-width: none;
   width: 100%;
   margin: 0;
-  padding: 0 clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
+  padding: 1rem clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
   box-sizing: border-box;
 }
 
@@ -1442,7 +1442,7 @@ body.home-dashboard-concierge.consent-page.consent-manager-page:not(.home-page) 
 body.home-dashboard-concierge.schema-viewer-page .dashboard-main.schema-viewer-main.schema-aep-main {
   max-width: none;
   margin: 0;
-  padding: 0 clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
+  padding: 1rem clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
 }
 
 /* Primary actions match home (black), links use dash blue */
