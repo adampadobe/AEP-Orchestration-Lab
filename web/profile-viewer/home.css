@@ -701,9 +701,9 @@ body.home-dashboard-concierge {
   --dash-warning-bg: rgba(180, 130, 40, 0.14);
   --dash-warning-border: #b8860b;
   --dash-warning-text: #5c4300;
-  --dash-info-bg: #f5f5f5;
-  --dash-info-border: #e0e0e0;
-  --dash-info-text: #424242;
+  --dash-info-bg: #e6f1ff;
+  --dash-info-border: #cce0ff;
+  --dash-info-text: #2c4a6d;
   --dash-hero-grad: linear-gradient(
     105deg,
     #e4e8ff 0%,
@@ -1209,7 +1209,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
   padding: 0.4rem 0.75rem;
   border-radius: 10px;
   border: 1px solid var(--dash-border);
-  background: #f6f6f8;
+  background: var(--dash-surface-alt);
   color: var(--dash-text);
   font-size: 0.78rem;
   font-weight: 600;
@@ -1218,7 +1218,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
 }
 
 .dashboard-btn-quiet:hover {
-  background: #eeeef2;
+  background: var(--dash-hover);
 }
 
 .dashboard-panel-lead {
@@ -1239,8 +1239,8 @@ body.home-dashboard-concierge.home-page .dashboard-main {
   font-size: 0.8em;
   padding: 0.12em 0.4em;
   border-radius: 6px;
-  background: #f0f0f3;
-  color: #333;
+  background: var(--dash-code-bg);
+  color: var(--dash-text);
 }
 
 .dashboard-link-list {
@@ -1274,27 +1274,27 @@ body.home-dashboard-concierge.home-page .dashboard-main {
   align-items: flex-start;
   padding: 0.85rem 1rem;
   border-radius: var(--dash-radius-sm);
-  background: #e6f1ff;
-  border: 1px solid #cce0ff;
+  background: var(--dash-info-bg);
+  border: 1px solid var(--dash-info-border);
   font-size: 0.84rem;
   line-height: 1.5;
 }
 
 .dashboard-info-banner p {
   margin: 0;
-  color: #2c4a6d;
+  color: var(--dash-info-text);
 }
 
 .dashboard-info-icon {
   flex-shrink: 0;
   font-weight: 700;
-  color: #0d66d0;
+  color: var(--dash-blue);
 }
 
 .dashboard-dashed {
   border-style: dashed;
-  border-color: #c8c5d0;
-  background: #faf9fc;
+  border-color: var(--dash-border);
+  background: var(--dash-surface-alt);
 }
 
 .dashboard-dashed-row {
@@ -1317,8 +1317,8 @@ body.home-dashboard-concierge.home-page .dashboard-main {
 }
 
 .dashboard-btn-outline:hover {
-  border-color: #b8b5c0;
-  background: #fff;
+  border-color: var(--dash-muted);
+  background: var(--dash-hover);
 }
 
 @media (max-width: 992px) {

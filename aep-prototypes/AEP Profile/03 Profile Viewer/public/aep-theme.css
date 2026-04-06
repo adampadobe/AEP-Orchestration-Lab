@@ -29,9 +29,9 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge {
   --dash-warning-bg: rgba(180, 130, 40, 0.2);
   --dash-warning-border: #b8860b;
   --dash-warning-text: #f0d080;
-  --dash-info-bg: #14161b;
-  --dash-info-border: #2a3038;
-  --dash-info-text: #c8ccd2;
+  --dash-info-bg: rgba(75, 159, 255, 0.1);
+  --dash-info-border: rgba(75, 159, 255, 0.25);
+  --dash-info-text: #a8c8e8;
   --dash-hero-grad: linear-gradient(
     105deg,
     #1a1f32 0%,
