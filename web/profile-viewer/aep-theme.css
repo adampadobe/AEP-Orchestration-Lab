@@ -212,6 +212,13 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge .consent-step1-field l
   color: var(--dash-text) !important;
 }
 
+html[data-aep-theme='dark'] body.home-dashboard-concierge:not(.profile-generation-page) .consent-panel {
+  background: var(--dash-surface) !important;
+  border-color: var(--dash-border) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .profile-view-panel,
 html[data-aep-theme='dark'] body.home-dashboard-concierge #lookupPanel .profile-identity,
 html[data-aep-theme='dark'] body.home-dashboard-concierge #results.profile-view-panel {
   background: var(--dash-surface) !important;
