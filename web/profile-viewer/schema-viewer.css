@@ -1288,6 +1288,7 @@ html[data-aep-theme='dark'] .schema-aep-toolbar .schema-aep-sandbox-label {
 html[data-aep-theme='dark'] .schema-aep-panel--overview {
   background: var(--dash-surface, #181b21);
   border-color: var(--dash-border, #2a3038);
+  box-shadow: none;
   color: var(--dash-text, #e8eaed);
 }
 
@@ -1428,6 +1429,7 @@ html[data-aep-theme='dark'] .schema-aep-audience-name {
 html[data-aep-theme='dark'] .schema-aep-workspace {
   background: var(--dash-surface, #181b21);
   border-color: var(--dash-border, #2a3038);
+  box-shadow: none;
 }
 
 html[data-aep-theme='dark'] .schema-aep-sidebar {
