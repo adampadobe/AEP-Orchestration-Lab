@@ -23,7 +23,7 @@
 .schema-viewer-page .schema-field label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #444;
+  color: var(--dash-text-secondary, #444);
 }
 
 .schema-viewer-page .schema-field select,
@@ -31,7 +31,7 @@
 .schema-viewer-page .schema-field input[type='number'] {
   min-width: 12rem;
   padding: 0.45rem 0.65rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--dash-input-border, #ddd);
   border-radius: 8px;
   font-size: 0.9rem;
 }
@@ -77,7 +77,7 @@
   font-family: ui-monospace, monospace;
   font-size: 0.8rem;
   padding: 0.65rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--dash-input-border, #ddd);
   border-radius: 8px;
   resize: vertical;
 }
@@ -85,7 +85,7 @@
 .schema-viewer-page .schema-status {
   margin: 0.75rem 0;
   font-size: 0.9rem;
-  color: #555;
+  color: var(--dash-text-secondary, #555);
 }
 
 .schema-viewer-page .schema-status.schema-status--error {
@@ -94,12 +94,12 @@
 
 .schema-viewer-page .schema-tree-wrap {
   position: relative;
-  background: #fff;
-  border: 1px solid var(--vodafone-card-border, #e8e8e8);
+  background: var(--dash-surface, #fff);
+  border: 1px solid var(--dash-border, #e8e8e8);
   border-radius: 12px;
   min-height: 480px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--dash-shadow, 0 1px 3px rgba(0, 0, 0, 0.06));
 }
 
 .schema-viewer-page .schema-zoom-bar {
@@ -173,7 +173,7 @@
 .schema-viewer-page .schema-hint {
   margin: 0 0 1rem;
   font-size: 0.85rem;
-  color: #666;
+  color: var(--dash-muted, #666);
 }
 
 /* —— AEP Schemas browse layout (master + detail) —— */

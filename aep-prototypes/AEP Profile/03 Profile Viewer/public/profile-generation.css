@@ -1,8 +1,8 @@
 /* Profile Generation – widened view with boxed sections */
 
 body.profile-generation-page.consent-page {
-  background: linear-gradient(135deg, #e8e4f0 0%, #f0ecf5 50%, #e8e4f0 100%);
-  color: #2c2c2c;
+  background: var(--dash-bg, linear-gradient(135deg, #e8e4f0 0%, #f0ecf5 50%, #e8e4f0 100%));
+  color: var(--dash-text);
 }
 
 body.profile-generation-page.consent-page.with-sidebar .dashboard-main {
@@ -19,13 +19,13 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 }
 
 .profile-generation-page .server-warning {
-  background: #f5e6d3;
-  border-bottom: 1px solid #c95a4a;
-  color: #5c3d2e;
+  background: var(--dash-warning-bg, #f5e6d3);
+  border-bottom: 1px solid var(--dash-error-border, #c95a4a);
+  color: var(--dash-warning-text, #5c3d2e);
 }
 
 .profile-generation-page .server-warning a {
-  color: #0d7ea2;
+  color: var(--dash-blue, #0d7ea2);
 }
 
 .profile-generation-page .consent-panel {
@@ -35,15 +35,15 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 }
 
 .profile-generation-page .panel-title {
-  color: #2c2c2c;
+  color: var(--dash-text);
 }
 
 .profile-generation-page .panel-desc {
-  color: #555;
+  color: var(--dash-text-secondary);
 }
 
 .profile-generation-page .panel-desc code {
-  background: #f0f0f0;
+  background: var(--dash-code-bg);
   padding: 0.1em 0.4em;
   border-radius: 4px;
   font-size: 0.9em;
@@ -52,18 +52,18 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 .profile-generation-page .profile-gen-pack-hint {
   margin: 0 0 0.75rem;
   font-size: 0.88rem;
-  color: #555;
+  color: var(--dash-text-secondary);
 }
 
 .profile-generation-page .profile-gen-pack-hint code {
-  background: #f0f0f0;
+  background: var(--dash-code-bg);
   padding: 0.1em 0.35em;
   border-radius: 4px;
   font-size: 0.9em;
 }
 
 .profile-generation-page .consent-panel label {
-  color: #333;
+  color: var(--dash-text);
 }
 
 .profile-generation-page .consent-panel input[type="email"],
@@ -71,14 +71,14 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 .profile-generation-page .consent-panel input[type="number"],
 .profile-generation-page .consent-panel input[readonly],
 .profile-generation-page .consent-panel select {
-  background: #fff;
-  border: 1px solid #ddd;
-  color: #2c2c2c;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border, #ddd);
+  color: var(--dash-text);
 }
 
 .profile-generation-page .consent-panel input[readonly] {
-  background: #f8f8f8;
-  color: #666;
+  background: var(--dash-surface-alt);
+  color: var(--dash-muted);
 }
 
 .profile-generation-page .consent-panel input:focus,
@@ -101,32 +101,32 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 }
 
 .profile-generation-page .subsection-title {
-  color: #2c2c2c;
+  color: var(--dash-text);
 }
 
 .profile-generation-page .sub-subsection-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #555;
+  color: var(--dash-text-secondary);
   margin: 1rem 0 0.5rem;
 }
 
 .profile-generation-page .consent-message.success {
-  background: rgba(45, 140, 111, 0.12);
-  border-color: #2d8c6f;
-  color: #1a6b4d;
+  background: var(--dash-success-bg);
+  border-color: var(--dash-success-border);
+  color: var(--dash-success-text);
 }
 
 .profile-generation-page .consent-message.error {
-  background: rgba(201, 90, 74, 0.12);
-  border-color: #c95a4a;
-  color: #8b3a30;
+  background: var(--dash-error-bg);
+  border-color: var(--dash-error-border);
+  color: var(--dash-error-text);
 }
 
 .profile-generation-page .consent-message.warning {
-  background: rgba(180, 130, 40, 0.14);
-  border: 1px solid #b8860b;
-  color: #5c4300;
+  background: var(--dash-warning-bg);
+  border: 1px solid var(--dash-warning-border);
+  color: var(--dash-warning-text);
 }
 
 .profile-generation-page .standard-fields {
@@ -157,7 +157,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 .profile-generation-page .form-group label {
   display: block;
   margin-bottom: 0.25rem;
-  color: #333;
+  color: var(--dash-text);
 }
 
 .profile-generation-page .form-group input,
@@ -177,7 +177,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 .profile-generation-page .field-hint {
   display: block;
   font-size: 0.85rem;
-  color: #777;
+  color: var(--dash-muted);
   margin-top: 0.25rem;
 }
 
@@ -230,7 +230,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   gap: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #444;
+  color: var(--dash-text-secondary);
   cursor: pointer;
   max-width: 52rem;
   line-height: 1.45;
@@ -244,7 +244,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 .profile-generation-page .profile-loyalty-hint {
   margin: -0.25rem 0 0.75rem;
   font-size: 0.8rem;
-  color: #555;
+  color: var(--dash-text-secondary);
 }
 
 .profile-generation-page .profile-box--loyalty .field-hint {
@@ -276,8 +276,8 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   margin-top: 1rem;
   margin-bottom: 1.5rem;
   padding: 1rem;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
   border-radius: 8px;
   font-size: 0.875rem;
 }
@@ -285,7 +285,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 .profile-generation-page .generate-debug summary {
   cursor: pointer;
   font-weight: 600;
-  color: #495057;
+  color: var(--dash-text-secondary);
 }
 
 .profile-generation-page .generate-debug-content {
@@ -303,8 +303,8 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 .profile-generation-page .generate-debug pre {
   margin: 0.5rem 0 0;
   padding: 0.75rem;
-  background: #fff;
-  border: 1px solid #e9ecef;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
   border-radius: 4px;
   overflow-x: auto;
   max-height: 300px;
@@ -322,11 +322,11 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 }
 
 .profile-generation-page .profile-box {
-  background: #fff;
+  background: var(--dash-surface);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--dash-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
   padding: 1.25rem 1.5rem;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.06));
 }
 
 .profile-generation-page .profile-box-title {
@@ -335,14 +335,14 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   gap: 0.4rem;
   font-size: 1rem;
   font-weight: 600;
-  color: #2c2c2c;
+  color: var(--dash-text);
   margin: 0 0 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--dash-border, #eee);
 }
 
 .profile-generation-page .profile-box-icon {
-  color: #4a90d9;
+  color: var(--dash-blue, #4a90d9);
   font-size: 1.1em;
 }
 
@@ -396,7 +396,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   display: none;
 }
 
-/* Industry attribute sections – two columns like Personal | Location profile boxes */
+/* Industry attribute sections */
 .profile-generation-page .profile-box--industry .industry-field-group {
   margin-top: 0;
   display: grid;
@@ -415,14 +415,14 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   min-width: 0;
 }
 
-/* Single subsection (e.g. Sports) — use full width instead of half a 2-col row */
+/* Single subsection — use full width */
 .profile-generation-page .profile-box--industry .industry-field-group:has(> .industry-section:only-child) {
   grid-template-columns: 1fr;
 }
 
 .profile-generation-page .industry-section {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
   border-radius: 8px;
   padding: 1rem 1.25rem;
   margin-bottom: 0;
@@ -431,10 +431,10 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 .profile-generation-page .industry-section-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #495057;
+  color: var(--dash-text-secondary);
   margin: 0 0 0.75rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--dash-border);
 }
 
 .profile-generation-page .industry-section-content {
@@ -448,7 +448,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 }
 
 .profile-generation-page .industry-placeholder {
-  color: #888;
+  color: var(--dash-muted);
   font-size: 0.95rem;
   margin: 0;
 }

@@ -681,11 +681,29 @@ body.profile-generation-page.home-vodafone-style .generate-debug {
 body.home-dashboard-concierge {
   --dash-bg: #f0f0f2;
   --dash-surface: #ffffff;
+  --dash-surface-alt: #f8f9fa;
   --dash-sidebar: #eae8ee;
   --dash-border: #e6e4ea;
   --dash-text: #2c2c2c;
+  --dash-text-secondary: #555;
   --dash-muted: #6e6e73;
   --dash-blue: #1473e6;
+  --dash-input-bg: #fff;
+  --dash-input-border: #ced4da;
+  --dash-hover: #f3f5f7;
+  --dash-code-bg: #f0f0f0;
+  --dash-success-bg: rgba(45, 140, 111, 0.12);
+  --dash-success-border: #2d8c6f;
+  --dash-success-text: #1a6b4d;
+  --dash-error-bg: rgba(201, 90, 74, 0.12);
+  --dash-error-border: #c95a4a;
+  --dash-error-text: #8b3a30;
+  --dash-warning-bg: rgba(180, 130, 40, 0.14);
+  --dash-warning-border: #b8860b;
+  --dash-warning-text: #5c4300;
+  --dash-info-bg: #f5f5f5;
+  --dash-info-border: #e0e0e0;
+  --dash-info-text: #424242;
   --dash-hero-grad: linear-gradient(
     105deg,
     #e4e8ff 0%,
@@ -1432,52 +1450,52 @@ body.home-dashboard-concierge:not(.home-page) .btn-primary,
 body.home-dashboard-concierge:not(.home-page) .btn-query,
 body.home-dashboard-concierge:not(.home-page) .btn-save,
 body.home-dashboard-concierge:not(.home-page) .schema-aep-btn--primary {
-  background: #1a1a1a !important;
-  border-color: #1a1a1a !important;
-  color: #fff !important;
+  background: var(--dash-text) !important;
+  border-color: var(--dash-text) !important;
+  color: var(--dash-surface) !important;
 }
 
 body.home-dashboard-concierge:not(.home-page) .btn-primary:hover,
 body.home-dashboard-concierge:not(.home-page) .btn-query:hover,
 body.home-dashboard-concierge:not(.home-page) .btn-save:hover,
 body.home-dashboard-concierge:not(.home-page) .schema-aep-btn--primary:hover {
-  background: #333 !important;
-  border-color: #333 !important;
-  color: #fff !important;
+  background: var(--dash-text-secondary) !important;
+  border-color: var(--dash-text-secondary) !important;
+  color: var(--dash-surface) !important;
 }
 
 body.home-dashboard-concierge:not(.home-page) .profile-tab--active,
 body.home-dashboard-concierge:not(.home-page) .profile-tab[aria-selected='true'] {
-  border-bottom-color: #1473e6;
-  color: #1473e6;
+  border-bottom-color: var(--dash-blue);
+  color: var(--dash-blue);
 }
 
 body.home-dashboard-concierge:not(.home-page) .profile-tab:hover {
-  color: #1473e6;
+  color: var(--dash-blue);
 }
 
 body.home-dashboard-concierge:not(.home-page) .details-btn-text {
-  color: #1473e6;
+  color: var(--dash-blue);
 }
 
 body.home-dashboard-concierge:not(.home-page) .details-btn-text:hover {
-  color: #0d66d0;
+  color: var(--dash-blue);
 }
 
 body.home-dashboard-concierge.profile-generation-page .profile-box-icon {
-  color: #1473e6;
+  color: var(--dash-blue);
 }
 
 /* Secondary buttons on light panels */
 body.home-dashboard-concierge:not(.home-page) .btn-secondary {
-  background: #fff !important;
-  color: #1a1a1a !important;
-  border: 2px solid #ced4da !important;
+  background: var(--dash-surface) !important;
+  color: var(--dash-text) !important;
+  border: 2px solid var(--dash-input-border) !important;
 }
 
 body.home-dashboard-concierge:not(.home-page) .btn-secondary:hover {
-  background: #f8f9fa !important;
-  border-color: #adb5bd !important;
+  background: var(--dash-surface-alt) !important;
+  border-color: var(--dash-muted) !important;
 }
 
 /* Consent page: align with dashboard server warning */
@@ -1488,7 +1506,7 @@ body.home-dashboard-concierge.consent-page .server-warning {
 }
 
 body.home-dashboard-concierge.consent-page .server-warning a {
-  color: #1473e6;
+  color: var(--dash-blue);
 }
 
 /* Legacy search / profile helper pages (search.html, search-by-attribute.html, profile.html) */
@@ -1512,7 +1530,7 @@ body.search-tool-page.home-dashboard-concierge .search-legacy-inner .subtitle {
 }
 
 body.search-tool-page.home-dashboard-concierge .search-legacy-inner .nav-links a {
-  color: #1473e6;
+  color: var(--dash-blue);
   text-decoration: none;
   font-weight: 500;
   margin-right: 1rem;
@@ -1524,17 +1542,17 @@ body.search-tool-page.home-dashboard-concierge .search-legacy-inner .nav-links a
 
 body.search-tool-page.home-dashboard-concierge .search-legacy-inner .nav-links a.active {
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--dash-text);
 }
 
 body.search-tool-page.home-dashboard-concierge .search-legacy-inner input[type='text'],
 body.search-tool-page.home-dashboard-concierge .search-legacy-inner input[type='email'],
 body.search-tool-page.home-dashboard-concierge .search-legacy-inner select {
   padding: 0.55rem 0.75rem;
-  border: 1px solid #d0d0d8;
+  border: 1px solid var(--dash-input-border);
   border-radius: 8px;
-  background: #fff;
-  color: #1a1a1a;
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
   font-size: 1rem;
 }
 

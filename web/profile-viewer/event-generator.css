@@ -37,23 +37,23 @@
 
 /* Secondary = outline style (Query profile) */
 .event-generator-page.profile-generation-page .btn-secondary {
-  background: #fff !important;
-  color: #2c2c2c !important;
-  border: 1px solid #2c2c2c !important;
+  background: var(--dash-surface) !important;
+  color: var(--dash-text) !important;
+  border: 1px solid var(--dash-text) !important;
 }
 
 .event-generator-page.profile-generation-page .btn-secondary:hover {
-  background: #f5f5f5 !important;
+  background: var(--dash-surface-alt) !important;
 }
 
 .event-generator-page .server-warning {
-  background: #f5e6d3;
-  border-bottom: 1px solid #c95a4a;
-  color: #5c3d2e;
+  background: var(--dash-warning-bg, #f5e6d3);
+  border-bottom: 1px solid var(--dash-error-border, #c95a4a);
+  color: var(--dash-warning-text, #5c3d2e);
 }
 
 .event-generator-page .server-warning a {
-  color: #0d7ea2;
+  color: var(--dash-blue, #0d7ea2);
 }
 
 .event-generator-page.profile-generation-page .consent-panel {
@@ -63,7 +63,7 @@
 }
 
 .event-generator-page.profile-generation-page .consent-panel label {
-  color: #333;
+  color: var(--dash-text);
 }
 
 .event-generator-page.profile-generation-page .consent-panel input[type='email'],
@@ -71,9 +71,9 @@
 .event-generator-page.profile-generation-page .consent-panel input[type='number'],
 .event-generator-page.profile-generation-page .consent-panel input[type='date'],
 .event-generator-page.profile-generation-page .consent-panel select {
-  background: #fff;
-  border: 1px solid #ddd;
-  color: #2c2c2c;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border, #ddd);
+  color: var(--dash-text);
 }
 
 .event-generator-page.profile-generation-page .consent-panel input:focus,
@@ -83,15 +83,15 @@
 }
 
 .event-generator-page .panel-title {
-  color: #2c2c2c;
+  color: var(--dash-text);
 }
 
 .event-generator-page .panel-desc {
-  color: #555;
+  color: var(--dash-text-secondary);
 }
 
 .event-generator-page .panel-desc code {
-  background: #f0f0f0;
+  background: var(--dash-code-bg);
   padding: 0.1em 0.4em;
   border-radius: 4px;
   font-size: 0.9em;
@@ -100,7 +100,7 @@
 .event-generator-page .event-gen-box-intro {
   margin: -0.35rem 0 0.5rem;
   font-size: 0.85rem;
-  color: #666;
+  color: var(--dash-muted);
 }
 
 .event-generator-page .event-gen-info-grid {
@@ -108,7 +108,7 @@
 }
 
 .event-generator-page .info-row .info-label {
-  color: #555;
+  color: var(--dash-text-secondary);
   min-width: 5.5rem;
 }
 
@@ -116,21 +116,21 @@
   flex: 1 1 auto;
   min-width: min(100%, 22rem);
   max-width: 100%;
-  color: #2c2c2c;
+  color: var(--dash-text);
   word-break: break-word;
   overflow-wrap: anywhere;
 }
 
 .event-generator-page .consent-message.success {
-  background: rgba(45, 140, 111, 0.12);
-  border-color: #2d8c6f;
-  color: #1a6b4d;
+  background: var(--dash-success-bg);
+  border-color: var(--dash-success-border);
+  color: var(--dash-success-text);
 }
 
 .event-generator-page .consent-message.error {
-  background: rgba(201, 90, 74, 0.12);
-  border-color: #c95a4a;
-  color: #8b3a30;
+  background: var(--dash-error-bg);
+  border-color: var(--dash-error-border);
+  color: var(--dash-error-text);
 }
 
 /* Full-width cards in the grid */
