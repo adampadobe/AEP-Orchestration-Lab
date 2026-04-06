@@ -25,7 +25,11 @@
     global.document.querySelectorAll('.aep-theme-toggle-btn').forEach(function (btn) {
       btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
       btn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
-      btn.textContent = dark ? 'Light mode' : 'Dark mode';
+      var txtEl = btn.querySelector('.aep-theme-toggle-text');
+      var icoEl = btn.querySelector('.aep-theme-toggle-ico');
+      if (txtEl) txtEl.textContent = dark ? 'Light mode' : 'Dark mode';
+      if (icoEl) icoEl.textContent = dark ? '\u2600' : '\u25D1';
+      if (!txtEl && !icoEl) btn.textContent = dark ? 'Light mode' : 'Dark mode';
     });
   }
 

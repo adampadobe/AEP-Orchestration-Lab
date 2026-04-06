@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Firebase images – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,61 +15,7 @@
 </head>
 <body class="home-page home-dashboard-concierge">
   <div class="dashboard-shell">
-    <aside class="dashboard-sidebar" aria-label="Primary">
-      <div class="dashboard-sidebar-brand">
-        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
-        <div class="dashboard-sidebar-titles">
-          <span class="dashboard-sidebar-name">AEP</span>
-          <span class="dashboard-sidebar-sub">Profile Viewer</span>
-        </div>
-      </div>
-      <nav class="dashboard-sidebar-nav">
-        <a href="home.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
-          Home
-        </a>
-        <a href="index.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
-          Profile Viewer
-        </a>
-        <a href="schema-viewer.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
-          Data viewer
-        </a>
-        <a href="audience-membership.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
-          Audience
-        </a>
-        <a href="profile-generation.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
-          Profile generation
-        </a>
-        <a href="consent.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
-          Consent
-        </a>
-        <a href="event-generator.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
-          Event generator
-        </a>
-        <a href="donate-demo.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
-          Donate (demo)
-        </a>
-        <a href="race-for-life-demo.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
-          Race for Life (demo)
-        </a>
-        <a href="events-trigger.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
-          Events trigger
-        </a>
-        <a href="firebase-hosting.html" class="dashboard-nav-item dashboard-nav-item--active">
-          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
-          Firebase images
-        </a>
-      </nav>
-    </aside>
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
     <div class="dashboard-main-wrap">
       <header class="dashboard-topbar">
@@ -154,6 +100,6 @@
 
   <script src="hosting-client.js"></script>
   <script defer src="aep-theme.js"></script>
-  <script defer src="aep-lab-nav.js?v=20260404"></script>
+  <script defer src="aep-lab-nav.js?v=20260405"></script>
 </body>
 </html>
