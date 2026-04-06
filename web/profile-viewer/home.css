@@ -955,7 +955,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
 }
 
 .dashboard-hero--page-banner .dashboard-hero-title {
-  color: #1a1a1a;
+  color: var(--dash-text);
   font-size: clamp(1.5rem, 2.5vw, 1.9rem);
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -964,7 +964,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
 }
 
 .dashboard-hero--page-banner .dashboard-hero-subtitle {
-  color: #5a5a5f;
+  color: var(--dash-muted);
   font-size: 0.98rem;
   line-height: 1.6;
   max-width: 36rem;
