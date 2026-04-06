@@ -35,6 +35,7 @@ const CATALOG_BASE = 'https://platform.adobe.io/data/foundation/catalog';
 const SANDBOX_MANAGEMENT_BASE = 'https://platform.adobe.io/data/foundation/sandbox-management';
 const SCHEMA_REGISTRY_BASE = 'https://platform.adobe.io/data/foundation/schemaregistry';
 const AUDIENCES_BASE = 'https://platform.adobe.io/data/core/ups/audiences';
+const SEGMENT_JOBS_BASE = 'https://platform.adobe.io/data/core/ups/segment/jobs';
 const SEGMENTATION_PREVIEW_BASE = 'https://platform.adobe.io/data/core/ups/preview';
 
 /** Default schema for eventType enum lookup (demoemea events). */
@@ -980,7 +981,42 @@ function mapAudienceApiRow(raw) {
 }
 
 /**
+ * Fetch profile counts from the latest successful segment job.
+ * Returns a map of segmentId → profileCount.
+ */
+async function fetchSegmentJobCounts(headers) {
+  try {
+    const url = `${SEGMENT_JOBS_BASE}?limit=1&status=SUCCEEDED&sort=updateTime:desc`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) return {};
+    const data = await res.json().catch(() => ({}));
+    const children = Array.isArray(data.children) ? data.children : [];
+    if (children.length === 0) return {};
+    const job = children[0];
+    const counters = (job.metrics && (job.metrics.segmentedProfileCounter || job.metrics.segmentProfileCounter)) || {};
+    const statusCounters = (job.metrics && (job.metrics.segmentedProfileByStatusCounter || job.metrics.segmentProfileByStatusCounter)) || {};
+    const map = {};
+    for (const [segId, val] of Object.entries(counters)) {
+      if (val != null && Number.isFinite(Number(val))) {
+        map[segId] = Number(val);
+      }
+    }
+    for (const [segId, statusObj] of Object.entries(statusCounters)) {
+      if (map[segId] != null) continue;
+      if (statusObj && typeof statusObj === 'object') {
+        const realized = Number(statusObj.realized || statusObj.existing || 0);
+        if (Number.isFinite(realized) && realized > 0) map[segId] = realized;
+      }
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Paginated GET /audiences (Segmentation Service) for the selected sandbox.
+ * After fetching the list, enriches rows with profile counts from the latest segment job.
  */
 async function fetchAudiencesList(sandboxOverride) {
   const { token, config, cfg } = await getAuthForSandbox(sandboxOverride);
@@ -1029,6 +1065,12 @@ async function fetchAudiencesList(sandboxOverride) {
       break;
     } else {
       page += 1;
+    }
+  }
+  const jobCounts = await fetchSegmentJobCounts(headers);
+  for (const row of all) {
+    if (row.profileCount == null && row.id && jobCounts[row.id] != null) {
+      row.profileCount = jobCounts[row.id];
     }
   }
   return { sandboxName, audiences: all };
