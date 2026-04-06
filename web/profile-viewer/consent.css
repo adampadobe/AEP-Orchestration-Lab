@@ -38,7 +38,7 @@ body.consent-page:not(.home-dashboard-concierge) .consent-main {
 /* -------------------------------------------------------------------------- */
 
 body.home-dashboard-concierge.consent-page {
-  background: transparent;
+  background: var(--dash-bg);
   color: var(--dash-text);
 }
 
