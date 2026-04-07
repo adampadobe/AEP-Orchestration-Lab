@@ -908,6 +908,14 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   font-size: 1rem;
   opacity: 0.92;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dashboard-nav-ico svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
 }
 
 .dashboard-nav-label {
