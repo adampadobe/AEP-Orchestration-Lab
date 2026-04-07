@@ -1744,8 +1744,12 @@ exports.eventDatastreamsProxy = onRequest(
     catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
 
     try {
-      const all = await listDatastreams(accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value());
-      res.status(200).json({ ok: true, datastreams: all });
+      const result = await listDatastreams(accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value());
+      if (result && result.errors) {
+        res.status(200).json({ ok: false, datastreams: [], discoveryErrors: result.errors, note: 'Auto-discovery failed. Use manual datastream ID input.' });
+      } else {
+        res.status(200).json({ ok: true, datastreams: Array.isArray(result) ? result : [] });
+      }
     } catch (e) {
       res.status(500).json({ error: String(e.message || e), datastreams: [] });
     }

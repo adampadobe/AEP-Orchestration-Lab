@@ -86,8 +86,13 @@
       if (datastreams.length === 0) {
         const opt = document.createElement('option');
         opt.value = '';
-        opt.textContent = '— No datastreams found (use Manual) —';
+        opt.textContent = '— No datastreams found (use Manual input) —';
         dom.dsSelect.appendChild(opt);
+        dom.manualToggle.checked = true;
+        dom.manualRow.hidden = false;
+        if (data.discoveryErrors) {
+          setMsg(dom.connectionMsg, 'Datastream auto-discovery unavailable — enter a datastream ID manually.', '');
+        }
         return;
       }
       const blank = document.createElement('option');
@@ -103,6 +108,8 @@
       });
     } catch {
       dom.dsSelect.innerHTML = '<option value="">Failed to load datastreams</option>';
+      dom.manualToggle.checked = true;
+      dom.manualRow.hidden = false;
     }
   }
 

@@ -4,7 +4,11 @@
  */
 
 const EDGE_INTERACT_BASE = 'https://server.adobedc.net/ee/v2/interact';
-const EDGE_DATASTREAMS_API = 'https://edge.adobe.io/datastreams';
+const EDGE_DATASTREAMS_PATHS = [
+  'https://edge.adobe.io/ee/v2/datastreamConfigs',
+  'https://edge.adobe.io/ee/v1/edgeConfigs',
+  'https://edge.adobe.io/datastreams',
+];
 
 /* ── XDM helpers ── */
 
@@ -141,6 +145,22 @@ async function sendEdgeEvent(token, clientId, orgId, datastreamId, payload) {
   return { ok: true, requestId: data.requestId || null };
 }
 
+function extractDatastreamItems(data) {
+  if (!data || typeof data !== 'object') return [];
+  const candidates = [
+    data._embedded?.datastreamItems,
+    data._embedded?.edgeConfigItems,
+    data.items,
+    data.datastreams,
+    data.results,
+  ];
+  for (const c of candidates) {
+    if (Array.isArray(c) && c.length > 0) return c;
+  }
+  if (Array.isArray(data) && data.length > 0) return data;
+  return [];
+}
+
 async function listDatastreams(token, clientId, orgId) {
   const headers = {
     Accept: 'application/json',
@@ -148,21 +168,36 @@ async function listDatastreams(token, clientId, orgId) {
     'x-api-key': clientId,
     'x-gw-ims-org-id': orgId,
   };
-  try {
-    const resp = await fetch(EDGE_DATASTREAMS_API, { method: 'GET', headers });
-    if (!resp.ok) return [];
-    const data = await resp.json().catch(() => ({}));
-    const items = data._embedded?.datastreamItems || data.items || data.datastreams || [];
-    if (!Array.isArray(items)) return [];
-    return items.map((d) => ({
-      id: d.datastreamId || d.id || '',
-      title: d.title || d.name || d.datastreamId || d.id || '',
-      sandbox: d.sandboxName || d.sandbox || '',
-      enabled: d.enabled !== false,
-    })).filter((d) => d.id);
-  } catch {
-    return [];
+  const errors = [];
+  for (const url of EDGE_DATASTREAMS_PATHS) {
+    try {
+      const resp = await fetch(url, { method: 'GET', headers });
+      console.log(`[listDatastreams] ${url} → ${resp.status}`);
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => '');
+        errors.push(`${url} → ${resp.status}: ${errText.slice(0, 200)}`);
+        continue;
+      }
+      const data = await resp.json().catch(() => ({}));
+      const items = extractDatastreamItems(data);
+      if (items.length === 0) {
+        console.log(`[listDatastreams] ${url} returned OK but 0 items. Keys: ${Object.keys(data).join(', ')}`);
+        errors.push(`${url} → 200 but 0 items (keys: ${Object.keys(data).join(', ')})`);
+        continue;
+      }
+      console.log(`[listDatastreams] ${url} returned ${items.length} items`);
+      return items.map((d) => ({
+        id: d.datastreamId || d.id || '',
+        title: d.title || d.name || d.datastreamId || d.id || '',
+        sandbox: d.sandboxName || d.sandbox || '',
+        enabled: d.enabled !== false,
+      })).filter((d) => d.id);
+    } catch (e) {
+      errors.push(`${url} → exception: ${e.message}`);
+    }
   }
+  console.log('[listDatastreams] All paths failed:', JSON.stringify(errors));
+  return { items: [], errors };
 }
 
 module.exports = { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams };
