@@ -1,16 +1,14 @@
 /**
- * Event Tool — unified Edge event sender with datastream config persistence
- * per sandbox, profile query, and quick trigger / custom modes.
+ * Event Tool — unified Edge event sender.
+ * User pastes a datastream ID, saves it per sandbox (Firestore),
+ * queries a profile for ECID, then sends quick trigger or custom events.
  */
 (function () {
   'use strict';
 
   /* ── DOM refs ── */
   const dom = {
-    dsSelect:      document.getElementById('etDatastreamSelect'),
-    dsRefresh:     document.getElementById('etDsRefreshBtn'),
-    dropdownRow:   document.getElementById('etDropdownRow'),
-    manualDs:      document.getElementById('etManualDs'),
+    dsInput:       document.getElementById('etManualDs'),
     saveConfigBtn: document.getElementById('etSaveConfigBtn'),
     connectionMsg: document.getElementById('etConnectionMsg'),
 
@@ -39,7 +37,6 @@
   };
 
   /* ── State ── */
-  let datastreams = [];
   let triggerTemplates = {};
   let resolvedEcid = '';
   let resolvedEmail = '';
@@ -72,94 +69,34 @@
   if (typeof attachEmailDatalist === 'function') attachEmailDatalist('etIdentifier');
   if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('etIdentifier', 'etNamespace');
 
-  /* ═══════════ Connection ═══════════ */
-
-  async function loadDatastreams() {
-    if (!dom.dsSelect) return;
-    dom.dsSelect.innerHTML = '<option value="">Loading…</option>';
-    try {
-      const res = await fetch('/api/events/datastreams' + getSandboxParam());
-      const data = await res.json().catch(() => ({}));
-      datastreams = Array.isArray(data.datastreams) ? data.datastreams : [];
-
-      dom.dsSelect.innerHTML = '';
-      if (datastreams.length === 0) {
-        dom.dropdownRow.hidden = true;
-        return;
-      }
-      dom.dropdownRow.hidden = false;
-      const blank = document.createElement('option');
-      blank.value = '';
-      blank.textContent = '— Select a datastream —';
-      dom.dsSelect.appendChild(blank);
-
-      datastreams.forEach((ds) => {
-        const opt = document.createElement('option');
-        opt.value = ds.id;
-        opt.textContent = ds.title ? ds.title + ' (' + ds.id.slice(0, 8) + '…)' : ds.id;
-        dom.dsSelect.appendChild(opt);
-      });
-    } catch {
-      dom.dropdownRow.hidden = true;
-    }
-  }
+  /* ═══════════ Connection — Firestore config per sandbox ═══════════ */
 
   async function loadSavedConfig() {
     try {
       const res = await fetch('/api/events/config' + getSandboxParam());
       const data = await res.json().catch(() => ({}));
       if (data.ok && data.record && data.record.datastreamId) {
-        const dsId = data.record.datastreamId;
-        dom.manualDs.value = dsId;
-        if (dom.dsSelect && datastreams.length > 0) {
-          const exists = Array.from(dom.dsSelect.options).some((o) => o.value === dsId);
-          if (exists) dom.dsSelect.value = dsId;
-        }
-        setMsg(dom.connectionMsg, 'Loaded saved config: ' + (data.record.datastreamTitle || dsId), 'success');
+        dom.dsInput.value = data.record.datastreamId;
+        setMsg(dom.connectionMsg, 'Loaded saved datastream for this sandbox.', 'success');
       }
     } catch { /* no saved config */ }
   }
 
-  function getSelectedDatastreamId() {
-    const manual = (dom.manualDs.value || '').trim();
-    if (manual) return manual;
-    if (dom.dsSelect && dom.dsSelect.value) return dom.dsSelect.value;
-    return '';
-  }
-
-  function getSelectedDatastreamTitle() {
-    const dsId = getSelectedDatastreamId();
-    const ds = datastreams.find((d) => d.id === dsId);
-    return ds ? ds.title || '' : '';
-  }
-
-  if (dom.dsSelect) {
-    dom.dsSelect.addEventListener('change', () => {
-      if (dom.dsSelect.value) dom.manualDs.value = dom.dsSelect.value;
-    });
-  }
-
-  if (dom.dsRefresh) dom.dsRefresh.addEventListener('click', () => loadDatastreams());
-
   dom.saveConfigBtn.addEventListener('click', async () => {
-    const dsId = getSelectedDatastreamId();
-    if (!dsId) { setMsg(dom.connectionMsg, 'Enter a datastream ID first.', 'error'); return; }
+    const dsId = (dom.dsInput.value || '').trim();
+    if (!dsId) { setMsg(dom.connectionMsg, 'Paste a datastream ID first.', 'error'); return; }
     const sandbox = getSandboxName();
-    if (!sandbox) { setMsg(dom.connectionMsg, 'No sandbox selected.', 'error'); return; }
+    if (!sandbox) { setMsg(dom.connectionMsg, 'No sandbox selected — check Global values.', 'error'); return; }
     setMsg(dom.connectionMsg, 'Saving…', '');
     try {
       const res = await fetch('/api/events/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sandbox,
-          datastreamId: dsId,
-          datastreamTitle: getSelectedDatastreamTitle(),
-        }),
+        body: JSON.stringify({ sandbox, datastreamId: dsId }),
       });
       const data = await res.json().catch(() => ({}));
       if (data.ok) {
-        setMsg(dom.connectionMsg, 'Saved for sandbox: ' + sandbox, 'success');
+        setMsg(dom.connectionMsg, 'Saved for sandbox "' + sandbox + '".', 'success');
       } else {
         setMsg(dom.connectionMsg, data.error || 'Save failed.', 'error');
       }
@@ -173,11 +110,16 @@
   dom.queryBtn.addEventListener('click', async () => {
     const id = (dom.identifier.value || '').trim();
     if (!id) { setMsg(dom.profileMsg, 'Enter an identifier.', 'error'); return; }
-    const ns = typeof AepIdentityPicker !== 'undefined' ? AepIdentityPicker.getNamespace('etIdentifier') : (dom.namespace.value || 'email');
+    const ns = typeof AepIdentityPicker !== 'undefined'
+      ? AepIdentityPicker.getNamespace('etIdentifier')
+      : (dom.namespace.value || 'email');
     setMsg(dom.profileMsg, 'Loading…', '');
     dom.profileInfo.hidden = true;
     try {
-      const res = await fetch('/api/profile/consent?identifier=' + encodeURIComponent(id) + '&namespace=' + encodeURIComponent(ns) + getSandboxParam());
+      const res = await fetch(
+        '/api/profile/consent?identifier=' + encodeURIComponent(id) +
+        '&namespace=' + encodeURIComponent(ns) + getSandboxParam()
+      );
       const data = await res.json();
       if (!res.ok) { setMsg(dom.profileMsg, data.error || 'Request failed.', 'error'); return; }
       if (typeof addEmail === 'function') addEmail(id);
@@ -214,7 +156,9 @@
       const mode = btn.dataset.mode;
       if (mode === activeMode) return;
       activeMode = mode;
-      document.querySelectorAll('.et-mode-btn').forEach((b) => b.classList.toggle('et-mode-btn--active', b.dataset.mode === mode));
+      document.querySelectorAll('.et-mode-btn').forEach((b) =>
+        b.classList.toggle('et-mode-btn--active', b.dataset.mode === mode)
+      );
       dom.triggerMode.hidden = mode !== 'trigger';
       dom.customMode.hidden = mode !== 'custom';
     });
@@ -230,7 +174,9 @@
       triggerTemplates = {};
     }
 
-    const keys = Object.keys(triggerTemplates).filter((k) => typeof triggerTemplates[k] === 'object' && triggerTemplates[k].payload);
+    const keys = Object.keys(triggerTemplates).filter(
+      (k) => typeof triggerTemplates[k] === 'object' && triggerTemplates[k].payload
+    );
     dom.triggerType.innerHTML = '';
     if (keys.length === 0) {
       const opt = document.createElement('option');
@@ -259,8 +205,8 @@
   /* ═══════════ Send event ═══════════ */
 
   dom.sendBtn.addEventListener('click', async () => {
-    const dsId = getSelectedDatastreamId();
-    if (!dsId) { setMsg(dom.sendMsg, 'Enter a datastream ID first.', 'error'); return; }
+    const dsId = (dom.dsInput.value || '').trim();
+    if (!dsId) { setMsg(dom.sendMsg, 'Enter a datastream ID in the Connection section first.', 'error'); return; }
     const email = resolvedEmail || (dom.identifier.value || '').trim();
     if (!email) { setMsg(dom.sendMsg, 'Enter an identifier first.', 'error'); return; }
 
@@ -299,8 +245,7 @@
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok || !data.ok) {
-        const errMsg = data.error || 'Request failed.';
-        setMsg(dom.sendMsg, errMsg, 'error');
+        setMsg(dom.sendMsg, data.error || 'Request failed.', 'error');
       } else {
         let idPart = '';
         if (data.requestId) idPart = ' — requestId: ' + data.requestId;
@@ -318,12 +263,12 @@
   function onSandboxChange() {
     resolvedEcid = '';
     resolvedEmail = '';
+    dom.dsInput.value = '';
     dom.profileInfo.hidden = true;
-    dom.manualDs.value = '';
     setMsg(dom.profileMsg, '', '');
     setMsg(dom.connectionMsg, '', '');
     setMsg(dom.sendMsg, '', '');
-    loadDatastreams().then(() => loadSavedConfig());
+    loadSavedConfig();
   }
 
   if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.onChange === 'function') {
@@ -334,7 +279,7 @@
 
   function init() {
     loadTriggerTemplates();
-    loadDatastreams().then(() => loadSavedConfig());
+    loadSavedConfig();
   }
 
   if (document.readyState === 'loading') {

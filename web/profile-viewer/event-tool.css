@@ -2,6 +2,35 @@
 
 [hidden] { display: none !important; }
 
+/* Help / instructions accordion */
+.et-help-details {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary, #666);
+}
+
+.et-help-details summary {
+  cursor: pointer;
+  color: var(--dash-blue, #0d7ea2);
+  font-weight: 500;
+  user-select: none;
+}
+
+.et-help-details summary:hover { text-decoration: underline; }
+
+.et-help-steps {
+  margin: 0.5rem 0 0 1.25rem;
+  padding: 0;
+  line-height: 1.7;
+}
+
+.et-help-steps a {
+  color: var(--dash-blue, #0d7ea2);
+  text-decoration: none;
+}
+
+.et-help-steps a:hover { text-decoration: underline; }
+
 /* Connection grid */
 .et-connection-grid {
   display: flex;
@@ -11,43 +40,8 @@
 }
 
 .et-connection-grid .form-row { flex: 1 1 14rem; min-width: 0; }
-.et-connection-grid .form-row.et-manual-row { flex-basis: 100%; }
+.et-connection-grid .form-row.et-ds-id-row { flex: 2 1 22rem; }
 .et-connection-grid .et-connection-actions { flex: 0 0 auto; display: flex; gap: 0.75rem; align-items: center; }
-
-.et-ds-row {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-
-.et-ds-row select { flex: 1 1 0; min-width: 0; }
-
-.btn-icon {
-  background: var(--dash-surface-alt, #f5f5f5);
-  border: 1px solid var(--dash-input-border, #ddd);
-  border-radius: 6px;
-  width: 2.2rem;
-  height: 2.2rem;
-  font-size: 1.1rem;
-  cursor: pointer;
-  color: var(--dash-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s;
-}
-
-.btn-icon:hover { background: var(--dash-surface, #fff); }
-
-.et-manual-toggle {
-  font-size: 0.85rem;
-  color: var(--dash-text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
 
 /* Full-width cards */
 .et-full-width { grid-column: 1 / -1 !important; }
@@ -84,13 +78,11 @@
 }
 
 /* Dark mode overrides */
-[data-aep-theme="dark"] .btn-icon {
-  background: var(--dash-surface-alt, #333);
-  border-color: var(--dash-input-border, #555);
-  color: var(--dash-text, #eee);
+[data-aep-theme="dark"] .et-help-details {
+  color: var(--dash-text-secondary, #aaa);
 }
-[data-aep-theme="dark"] .btn-icon:hover {
-  background: var(--dash-surface, #444);
+[data-aep-theme="dark"] .et-help-details summary {
+  color: var(--dash-blue, #5eb8ff);
 }
 
 [data-aep-theme="dark"] .et-mode-btn {
