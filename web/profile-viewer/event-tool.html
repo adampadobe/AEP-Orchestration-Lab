@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Tool – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css?v=20260407">
+  <link rel="stylesheet" href="profile-generation.css">
+  <link rel="stylesheet" href="event-generator.css">
+  <link rel="stylesheet" href="event-tool.css?v=20260407">
+  <link rel="stylesheet" href="aep-theme.css?v=20260407">
+</head>
+<body class="event-generator-page profile-generation-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Edge Network event tool">Edge</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/edge/fundamentals/interacting.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Docs</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-generation-main profile-gen-main event-generator-main event-tool-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingEventTool">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingEventTool" class="dashboard-hero-title">Send experience events via Edge Network</h2>
+              <p class="dashboard-hero-subtitle">
+                Connect a datastream, identify the profile, then fire custom or predefined events — all through a single page.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="consent-panel" id="eventToolPanel">
+          <!-- ═══════════ Section 1 — Connection ═══════════ -->
+          <div class="profile-gen-boxes">
+            <div class="profile-box profile-box--connection et-full-width">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Connection</h3>
+              <p class="field-hint event-gen-box-intro">Select a datastream for the active sandbox. The selection is saved per sandbox.</p>
+              <div class="profile-box-content">
+                <div class="et-connection-grid">
+                  <div class="form-row">
+                    <label for="etDatastreamSelect">Datastream</label>
+                    <div class="et-ds-row">
+                      <select id="etDatastreamSelect" aria-label="Datastream">
+                        <option value="">Loading datastreams…</option>
+                      </select>
+                      <button type="button" id="etDsRefreshBtn" class="btn btn-icon" title="Refresh datastreams" aria-label="Refresh datastreams">↻</button>
+                    </div>
+                  </div>
+                  <div class="form-row et-manual-row" id="etManualRow" hidden>
+                    <label for="etManualDs">Manual datastream ID</label>
+                    <input type="text" id="etManualDs" placeholder="Paste a datastream ID" autocomplete="off" spellcheck="false">
+                  </div>
+                  <div class="form-row form-row--action et-connection-actions">
+                    <label class="et-manual-toggle">
+                      <input type="checkbox" id="etManualToggle"> Manual input
+                    </label>
+                    <button type="button" id="etSaveConfigBtn" class="btn btn-secondary">Save</button>
+                  </div>
+                </div>
+                <div id="etConnectionMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+              </div>
+            </div>
+
+            <!-- ═══════════ Section 2 — Identity ═══════════ -->
+            <div class="profile-box profile-box--customer">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Identity</h3>
+              <p class="field-hint event-gen-box-intro">Enter an identifier to resolve the profile's ECID for the event.</p>
+              <div class="profile-box-content">
+                <div class="config-row">
+                  <div class="form-row">
+                    <label for="etNamespace">Namespace</label>
+                    <select id="etNamespace" class="sandbox-select" aria-label="Identity namespace">
+                      <option value="email">Email</option>
+                      <option value="ecid">ECID</option>
+                      <option value="crmId">CRM ID</option>
+                      <option value="loyaltyId">Loyalty ID</option>
+                      <option value="phone">Phone</option>
+                    </select>
+                  </div>
+                  <div class="form-row event-gen-customer-email-row">
+                    <label for="etIdentifier">Identifier</label>
+                    <input type="text" id="etIdentifier" placeholder="Enter email address" autocomplete="off" size="40">
+                  </div>
+                  <div class="form-row form-row--action profile-gen-actions">
+                    <button type="button" id="etQueryBtn" class="btn btn-secondary">Query profile</button>
+                  </div>
+                </div>
+                <div id="etProfileMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+                <div class="info-grid event-gen-info-grid" id="etProfileInfo" hidden>
+                  <div class="info-row"><span class="info-label">Email</span><span id="etInfoEmail" class="info-value">—</span></div>
+                  <div class="info-row"><span class="info-label">First name</span><span id="etInfoFirst" class="info-value">—</span></div>
+                  <div class="info-row"><span class="info-label">Last name</span><span id="etInfoLast" class="info-value">—</span></div>
+                  <div class="info-row"><span class="info-label">ECID</span><span id="etInfoEcid" class="info-value">—</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ═══════════ Section 3 — Event ═══════════ -->
+            <div class="profile-box profile-box--event-def et-full-width">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Event</h3>
+              <div class="profile-box-content">
+                <div class="et-mode-toggle">
+                  <button type="button" class="et-mode-btn et-mode-btn--active" data-mode="trigger">Quick trigger</button>
+                  <button type="button" class="et-mode-btn" data-mode="custom">Custom event</button>
+                </div>
+
+                <!-- Quick Trigger mode -->
+                <div id="etTriggerMode" class="et-mode-panel">
+                  <div class="form-row">
+                    <label for="etTriggerType">Event type</label>
+                    <select id="etTriggerType" aria-label="Predefined event type">
+                      <option value="">Loading templates…</option>
+                    </select>
+                  </div>
+                  <div id="etTriggerDesc" class="field-hint" style="margin-bottom:0.75rem;"></div>
+                </div>
+
+                <!-- Custom Event mode -->
+                <div id="etCustomMode" class="et-mode-panel" hidden>
+                  <div class="form-row">
+                    <label for="etEventType">Event type</label>
+                    <input type="text" id="etEventType" list="etEventTypeList" placeholder="e.g. donation.made" autocomplete="off">
+                    <datalist id="etEventTypeList">
+                      <option value="form.formSubmit">
+                      <option value="commerce.productViews">
+                      <option value="commerce.order">
+                      <option value="transaction">
+                      <option value="donation.made">
+                      <option value="event.registered">
+                      <option value="form.abandoned">
+                    </datalist>
+                  </div>
+                  <div class="form-row">
+                    <label for="etOrchId">Orchestration event ID <span class="field-hint">(optional)</span></label>
+                    <input type="text" id="etOrchId" placeholder="Overrides journey / campaign eventID in XDM" autocomplete="off" spellcheck="false">
+                  </div>
+                  <div class="form-row">
+                    <label for="etViewName">View name <span class="field-hint">(optional)</span></label>
+                    <input type="text" id="etViewName" placeholder="e.g. Home">
+                  </div>
+                  <div class="form-row">
+                    <label for="etViewUrl">URL <span class="field-hint">(optional)</span></label>
+                    <input type="text" id="etViewUrl" placeholder="e.g. https://example.com/page">
+                  </div>
+                  <div class="form-row">
+                    <label for="etChannel">Channel <span class="field-hint">(optional)</span></label>
+                    <input type="text" id="etChannel" placeholder="e.g. Web, Email, App" autocomplete="off">
+                  </div>
+                </div>
+
+                <div class="button-row event-gen-send-actions">
+                  <button type="button" id="etSendBtn" class="btn btn-primary btn-save">Send event</button>
+                </div>
+                <div id="etSendMsg" class="consent-message" role="status" aria-live="polite" hidden></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="event-tool.js?v=20260407"></script>
+  <script defer src="aep-theme.js?v=20260407"></script>
+  <script defer src="aep-lab-nav.js?v=20260407"></script>
+</body>
+</html>

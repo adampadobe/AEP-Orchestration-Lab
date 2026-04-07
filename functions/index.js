@@ -48,6 +48,8 @@ const {
 } = require('./consentInfraService');
 const { lookupConsentHttpFlow } = require('./consentFlowLookup');
 const { getConsentConnection, saveConsentConnection } = require('./consentConnectionStore');
+const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = require('./eventEdgeService');
+const { getEventConfig, saveEventConfig } = require('./eventConfigStore');
 const {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
   setByPath,
@@ -1615,6 +1617,137 @@ exports.auditEventsProxy = onRequest(
       res.status(200).json({ success: true, ...result });
     } catch (e) {
       res.status(500).json({ error: String(e.message || e) });
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Edge Event Tool — send events via Edge Network interact, config per sandbox
+// ---------------------------------------------------------------------------
+
+function serializeEventConfigRecord(doc) {
+  if (!doc || typeof doc !== 'object') return null;
+  const o = { ...doc };
+  if (o.updatedAt && typeof o.updatedAt.toDate === 'function') {
+    o.updatedAt = o.updatedAt.toDate().toISOString();
+  }
+  return o;
+}
+
+/** POST /api/events/edge — build XDM, send to Edge Network */
+exports.eventEdgeProxy = onRequest(
+  {
+    region: REGION,
+    secrets: PROFILE_FN_SECRETS,
+    environmentVariables: { ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX },
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res);
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+    let body;
+    try {
+      body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+    } catch {
+      res.status(400).json({ error: 'Invalid JSON body' }); return;
+    }
+
+    const datastreamId = String(body.datastreamId || '').trim();
+    if (!datastreamId) {
+      res.status(400).json({ error: 'datastreamId is required' }); return;
+    }
+
+    let accessToken;
+    try { accessToken = await getAdobeAccessToken(); }
+    catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
+
+    const clientId = ADOBE_CLIENT_ID.value();
+    const orgId = ADOBE_IMS_ORG.value();
+
+    try {
+      let payload;
+      if (body.triggerTemplate && typeof body.triggerTemplate === 'object') {
+        payload = buildTriggerPayload(
+          body.triggerTemplate,
+          body.ecid || '',
+          body.email || '',
+          body.eventType || body.triggerTemplate.event?.xdm?.eventType || ''
+        );
+      } else {
+        const xdm = buildXdm(body);
+        payload = { event: { xdm } };
+      }
+
+      const result = await sendEdgeEvent(accessToken, clientId, orgId, datastreamId, payload);
+      res.status(200).json({ ok: true, ...result, sentPayload: payload });
+    } catch (e) {
+      res.status(502).json({ error: String(e.message || e) });
+    }
+  },
+);
+
+/** GET/POST /api/events/config — per-sandbox Edge config (Firestore) */
+exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+  const sandbox = (req.method === 'POST' && req.body?.sandbox)
+    ? String(req.body.sandbox).trim()
+    : resolveSandboxFromQuery(req);
+
+  if (req.method === 'GET') {
+    try {
+      const record = await getEventConfig(sandbox);
+      res.status(200).json({ ok: true, sandbox, record: serializeEventConfigRecord(record) });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+    return;
+  }
+  if (req.method === 'POST') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    try {
+      const record = await saveEventConfig(sandbox, {
+        datastreamId: body.datastreamId,
+        datastreamTitle: body.datastreamTitle,
+      });
+      res.status(200).json({ ok: true, sandbox, record: serializeEventConfigRecord(record) });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+    return;
+  }
+  res.status(405).json({ error: 'Method not allowed' });
+});
+
+/** GET /api/events/datastreams — list datastreams from Edge API */
+exports.eventDatastreamsProxy = onRequest(
+  {
+    region: REGION,
+    secrets: PROFILE_FN_SECRETS,
+    environmentVariables: { ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX },
+    invoker: 'public',
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res);
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'GET') { res.status(405).json({ error: 'GET only' }); return; }
+
+    let accessToken;
+    try { accessToken = await getAdobeAccessToken(); }
+    catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
+
+    try {
+      const all = await listDatastreams(accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value());
+      res.status(200).json({ ok: true, datastreams: all });
+    } catch (e) {
+      res.status(500).json({ error: String(e.message || e), datastreams: [] });
     }
   },
 );

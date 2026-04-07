@@ -184,6 +184,27 @@
         }
       },
       {
+        "source": "/api/events/edge",
+        "function": {
+          "functionId": "eventEdgeProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/events/config",
+        "function": {
+          "functionId": "eventConfigStore",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/events/datastreams",
+        "function": {
+          "functionId": "eventDatastreamsProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/schema-viewer/**",
         "function": {
           "functionId": "schemaViewerProxy",
