@@ -1,46 +1,51 @@
 /**
  * Event Tool — unified Edge event sender.
- * User pastes a datastream ID, saves it per sandbox (Firestore),
- * queries a profile for ECID, then sends quick trigger or custom events.
+ * Sandbox selector shown inline, identity query first,
+ * collapsible config section (schema → dataset → datastream).
  */
 (function () {
   'use strict';
 
   /* ── DOM refs ── */
   const dom = {
-    dsInput:       document.getElementById('etManualDs'),
-    saveConfigBtn: document.getElementById('etSaveConfigBtn'),
-    connectionMsg: document.getElementById('etConnectionMsg'),
+    sandboxSelect:    document.getElementById('sandboxSelect'),
 
+    namespace:        document.getElementById('etNamespace'),
+    identifier:       document.getElementById('etIdentifier'),
+    queryBtn:         document.getElementById('etQueryBtn'),
+    profileMsg:       document.getElementById('etProfileMsg'),
+    profileInfo:      document.getElementById('etProfileInfo'),
+    infoEmail:        document.getElementById('etInfoEmail'),
+    infoFirst:        document.getElementById('etInfoFirst'),
+    infoLast:         document.getElementById('etInfoLast'),
+    infoEcid:         document.getElementById('etInfoEcid'),
+
+    configDetails:    document.getElementById('etConfigDetails'),
+    configBadge:      document.getElementById('etConfigBadge'),
     schemaTitle:      document.getElementById('etSchemaTitle'),
-    datasetName:      document.getElementById('etDatasetName'),
-    checkInfraBtn:    document.getElementById('etCheckInfraBtn'),
     createSchemaBtn:  document.getElementById('etCreateSchemaBtn'),
+    schemaMsg:        document.getElementById('etSchemaMsg'),
+    datasetName:      document.getElementById('etDatasetName'),
     createDatasetBtn: document.getElementById('etCreateDatasetBtn'),
+    datasetMsg:       document.getElementById('etDatasetMsg'),
+    dsInput:          document.getElementById('etManualDs'),
+    saveConfigBtn:    document.getElementById('etSaveConfigBtn'),
+    connectionMsg:    document.getElementById('etConnectionMsg'),
+    checkInfraBtn:    document.getElementById('etCheckInfraBtn'),
     infraMsg:         document.getElementById('etInfraMsg'),
 
-    namespace:     document.getElementById('etNamespace'),
-    identifier:    document.getElementById('etIdentifier'),
-    queryBtn:      document.getElementById('etQueryBtn'),
-    profileMsg:    document.getElementById('etProfileMsg'),
-    profileInfo:   document.getElementById('etProfileInfo'),
-    infoEmail:     document.getElementById('etInfoEmail'),
-    infoFirst:     document.getElementById('etInfoFirst'),
-    infoLast:      document.getElementById('etInfoLast'),
-    infoEcid:      document.getElementById('etInfoEcid'),
+    triggerMode:      document.getElementById('etTriggerMode'),
+    customMode:       document.getElementById('etCustomMode'),
+    triggerType:      document.getElementById('etTriggerType'),
+    triggerDesc:      document.getElementById('etTriggerDesc'),
+    eventType:        document.getElementById('etEventType'),
+    orchId:           document.getElementById('etOrchId'),
+    viewName:         document.getElementById('etViewName'),
+    viewUrl:          document.getElementById('etViewUrl'),
+    channel:          document.getElementById('etChannel'),
 
-    triggerMode:   document.getElementById('etTriggerMode'),
-    customMode:    document.getElementById('etCustomMode'),
-    triggerType:   document.getElementById('etTriggerType'),
-    triggerDesc:   document.getElementById('etTriggerDesc'),
-    eventType:     document.getElementById('etEventType'),
-    orchId:        document.getElementById('etOrchId'),
-    viewName:      document.getElementById('etViewName'),
-    viewUrl:       document.getElementById('etViewUrl'),
-    channel:       document.getElementById('etChannel'),
-
-    sendBtn:       document.getElementById('etSendBtn'),
-    sendMsg:       document.getElementById('etSendMsg'),
+    sendBtn:          document.getElementById('etSendBtn'),
+    sendMsg:          document.getElementById('etSendMsg'),
   };
 
   /* ── State ── */
@@ -49,19 +54,23 @@
   let resolvedEmail = '';
   let activeMode = 'trigger';
 
-  /* ── Sandbox helper ── */
-  function getSandboxParam() {
-    if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxParam === 'function') {
-      return window.AepGlobalSandbox.getSandboxParam();
-    }
-    return '';
-  }
-
+  /* ── Sandbox helper (uses inline select on this page) ── */
   function getSandboxName() {
+    if (dom.sandboxSelect && dom.sandboxSelect.value) return dom.sandboxSelect.value;
     if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandbox === 'function') {
       return window.AepGlobalSandbox.getSandbox() || '';
     }
     return '';
+  }
+
+  function sandboxQs() {
+    const n = getSandboxName();
+    return n ? '?sandbox=' + encodeURIComponent(n) : '';
+  }
+
+  function sandboxQsAmp() {
+    const n = getSandboxName();
+    return n ? '&sandbox=' + encodeURIComponent(n) : '';
   }
 
   /* ── Message helper ── */
@@ -76,24 +85,106 @@
   if (typeof attachEmailDatalist === 'function') attachEmailDatalist('etIdentifier');
   if (typeof AepIdentityPicker !== 'undefined') AepIdentityPicker.init('etIdentifier', 'etNamespace');
 
-  /* ═══════════ Connection — Firestore config per sandbox ═══════════ */
+  /* ═══════════ Sandbox selector ═══════════ */
+
+  function initSandboxSelect() {
+    if (!dom.sandboxSelect) return;
+    if (typeof window.AepGlobalSandbox !== 'undefined') {
+      window.AepGlobalSandbox.loadSandboxesIntoSelect(dom.sandboxSelect);
+      window.AepGlobalSandbox.onSandboxSelectChange(dom.sandboxSelect);
+      window.AepGlobalSandbox.attachStorageSync(dom.sandboxSelect);
+    }
+    dom.sandboxSelect.addEventListener('change', onSandboxChange);
+  }
+
+  /* ═══════════ Config — Firestore per sandbox ═══════════ */
 
   async function loadSavedConfig() {
+    const qs = sandboxQs();
+    if (!qs) return;
     try {
-      const res = await fetch('/api/events/config' + getSandboxParam());
+      const res = await fetch('/api/events/config' + qs);
       const data = await res.json().catch(() => ({}));
       if (data.ok && data.record && data.record.datastreamId) {
         dom.dsInput.value = data.record.datastreamId;
-        setMsg(dom.connectionMsg, 'Loaded saved datastream for this sandbox.', 'success');
+        collapseConfig();
+      } else {
+        expandConfig();
       }
-    } catch { /* no saved config */ }
+    } catch {
+      expandConfig();
+    }
   }
+
+  function collapseConfig() {
+    if (dom.configDetails) dom.configDetails.removeAttribute('open');
+    if (dom.configBadge) dom.configBadge.hidden = false;
+  }
+
+  function expandConfig() {
+    if (dom.configDetails) dom.configDetails.setAttribute('open', '');
+    if (dom.configBadge) dom.configBadge.hidden = true;
+  }
+
+  /* ═══════════ Step 1 — Create Schema ═══════════ */
+
+  dom.createSchemaBtn.addEventListener('click', async () => {
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    if (!schemaTitle) { setMsg(dom.schemaMsg, 'Enter a schema name.', 'error'); return; }
+    const sandbox = getSandboxName();
+    if (!sandbox) { setMsg(dom.schemaMsg, 'Select a sandbox first.', 'error'); return; }
+    dom.createSchemaBtn.disabled = true;
+    setMsg(dom.schemaMsg, 'Creating schema…', '');
+    try {
+      const res = await fetch('/api/events/infra/step' + sandboxQs(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 'createSchema', schemaTitle }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) { setMsg(dom.schemaMsg, data.error || 'Failed.', 'error'); return; }
+      setMsg(dom.schemaMsg, data.message || 'Schema created.', 'success');
+    } catch (e) {
+      setMsg(dom.schemaMsg, e.message || 'Network error', 'error');
+    } finally {
+      dom.createSchemaBtn.disabled = false;
+    }
+  });
+
+  /* ═══════════ Step 2 — Create Dataset ═══════════ */
+
+  dom.createDatasetBtn.addEventListener('click', async () => {
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    if (!schemaTitle) { setMsg(dom.datasetMsg, 'Enter the schema name first — the dataset links to it.', 'error'); return; }
+    const datasetName = (dom.datasetName.value || '').trim();
+    if (!datasetName) { setMsg(dom.datasetMsg, 'Enter a dataset name.', 'error'); return; }
+    const sandbox = getSandboxName();
+    if (!sandbox) { setMsg(dom.datasetMsg, 'Select a sandbox first.', 'error'); return; }
+    dom.createDatasetBtn.disabled = true;
+    setMsg(dom.datasetMsg, 'Creating dataset…', '');
+    try {
+      const res = await fetch('/api/events/infra/step' + sandboxQs(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 'createDataset', schemaTitle, datasetName }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) { setMsg(dom.datasetMsg, data.error || 'Failed.', 'error'); return; }
+      setMsg(dom.datasetMsg, data.message || 'Dataset created.', 'success');
+    } catch (e) {
+      setMsg(dom.datasetMsg, e.message || 'Network error', 'error');
+    } finally {
+      dom.createDatasetBtn.disabled = false;
+    }
+  });
+
+  /* ═══════════ Step 3 — Save Datastream ID ═══════════ */
 
   dom.saveConfigBtn.addEventListener('click', async () => {
     const dsId = (dom.dsInput.value || '').trim();
-    if (!dsId) { setMsg(dom.connectionMsg, 'Paste a datastream ID first.', 'error'); return; }
+    if (!dsId) { setMsg(dom.connectionMsg, 'Paste a datastream ID.', 'error'); return; }
     const sandbox = getSandboxName();
-    if (!sandbox) { setMsg(dom.connectionMsg, 'No sandbox selected — check Global values.', 'error'); return; }
+    if (!sandbox) { setMsg(dom.connectionMsg, 'Select a sandbox first.', 'error'); return; }
     setMsg(dom.connectionMsg, 'Saving…', '');
     try {
       const res = await fetch('/api/events/config', {
@@ -104,6 +195,7 @@
       const data = await res.json().catch(() => ({}));
       if (data.ok) {
         setMsg(dom.connectionMsg, 'Saved for sandbox "' + sandbox + '".', 'success');
+        collapseConfig();
       } else {
         setMsg(dom.connectionMsg, data.error || 'Save failed.', 'error');
       }
@@ -112,76 +204,30 @@
     }
   });
 
-  /* ═══════════ Schema & Dataset Setup ═══════════ */
+  /* ═══════════ Check Status ═══════════ */
 
   dom.checkInfraBtn.addEventListener('click', async () => {
     const schemaTitle = (dom.schemaTitle.value || '').trim();
-    if (!schemaTitle) { setMsg(dom.infraMsg, 'Enter a schema name first.', 'error'); return; }
     const datasetName = (dom.datasetName.value || '').trim();
     const sandbox = getSandboxName();
-    if (!sandbox) { setMsg(dom.infraMsg, 'No sandbox selected.', 'error'); return; }
+    if (!sandbox) { setMsg(dom.infraMsg, 'Select a sandbox first.', 'error'); return; }
+    if (!schemaTitle) { setMsg(dom.infraMsg, 'Enter a schema name to check.', 'error'); return; }
     setMsg(dom.infraMsg, 'Checking…', '');
     try {
-      const qs = getSandboxParam() + '&schemaTitle=' + encodeURIComponent(schemaTitle) +
-        (datasetName ? '&datasetName=' + encodeURIComponent(datasetName) : '');
+      let qs = sandboxQs() + '&schemaTitle=' + encodeURIComponent(schemaTitle);
+      if (datasetName) qs += '&datasetName=' + encodeURIComponent(datasetName);
       const res = await fetch('/api/events/infra/status' + qs);
       const data = await res.json().catch(() => ({}));
-      if (!data.ok) { setMsg(dom.infraMsg, data.error || 'Status check failed.', 'error'); return; }
+      if (!data.ok) { setMsg(dom.infraMsg, data.error || 'Check failed.', 'error'); return; }
       const parts = [];
-      parts.push('Schema: ' + (data.schemaFound ? 'found ✓' : 'not found'));
-      if (datasetName) parts.push('Dataset: ' + (data.datasetFound ? 'found ✓' : 'not found'));
-      const allOk = data.schemaFound && (!datasetName || data.datasetFound);
-      setMsg(dom.infraMsg, parts.join(' · '), allOk ? 'success' : '');
+      parts.push('Schema: ' + (data.schemaFound ? '✓ found' : '✗ not found'));
+      if (datasetName) parts.push('Dataset: ' + (data.datasetFound ? '✓ found' : '✗ not found'));
+      const dsId = (dom.dsInput.value || '').trim();
+      parts.push('Datastream ID: ' + (dsId ? '✓ set' : '✗ not set'));
+      const allOk = data.schemaFound && (!datasetName || data.datasetFound) && dsId;
+      setMsg(dom.infraMsg, parts.join('  ·  '), allOk ? 'success' : '');
     } catch (e) {
       setMsg(dom.infraMsg, e.message || 'Network error', 'error');
-    }
-  });
-
-  dom.createSchemaBtn.addEventListener('click', async () => {
-    const schemaTitle = (dom.schemaTitle.value || '').trim();
-    if (!schemaTitle) { setMsg(dom.infraMsg, 'Enter a schema name first.', 'error'); return; }
-    const sandbox = getSandboxName();
-    if (!sandbox) { setMsg(dom.infraMsg, 'No sandbox selected.', 'error'); return; }
-    dom.createSchemaBtn.disabled = true;
-    setMsg(dom.infraMsg, 'Creating schema…', '');
-    try {
-      const res = await fetch('/api/events/infra/step' + getSandboxParam(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: 'createSchema', schemaTitle }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!data.ok) { setMsg(dom.infraMsg, data.error || 'Create schema failed.', 'error'); return; }
-      setMsg(dom.infraMsg, data.message || 'Schema created.', 'success');
-    } catch (e) {
-      setMsg(dom.infraMsg, e.message || 'Network error', 'error');
-    } finally {
-      dom.createSchemaBtn.disabled = false;
-    }
-  });
-
-  dom.createDatasetBtn.addEventListener('click', async () => {
-    const schemaTitle = (dom.schemaTitle.value || '').trim();
-    if (!schemaTitle) { setMsg(dom.infraMsg, 'Enter a schema name — the dataset links to this schema.', 'error'); return; }
-    const datasetName = (dom.datasetName.value || '').trim();
-    if (!datasetName) { setMsg(dom.infraMsg, 'Enter a dataset name.', 'error'); return; }
-    const sandbox = getSandboxName();
-    if (!sandbox) { setMsg(dom.infraMsg, 'No sandbox selected.', 'error'); return; }
-    dom.createDatasetBtn.disabled = true;
-    setMsg(dom.infraMsg, 'Creating dataset…', '');
-    try {
-      const res = await fetch('/api/events/infra/step' + getSandboxParam(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: 'createDataset', schemaTitle, datasetName }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!data.ok) { setMsg(dom.infraMsg, data.error || 'Create dataset failed.', 'error'); return; }
-      setMsg(dom.infraMsg, data.message || 'Dataset created.', 'success');
-    } catch (e) {
-      setMsg(dom.infraMsg, e.message || 'Network error', 'error');
-    } finally {
-      dom.createDatasetBtn.disabled = false;
     }
   });
 
@@ -198,7 +244,7 @@
     try {
       const res = await fetch(
         '/api/profile/consent?identifier=' + encodeURIComponent(id) +
-        '&namespace=' + encodeURIComponent(ns) + getSandboxParam()
+        '&namespace=' + encodeURIComponent(ns) + sandboxQsAmp()
       );
       const data = await res.json();
       if (!res.ok) { setMsg(dom.profileMsg, data.error || 'Request failed.', 'error'); return; }
@@ -286,7 +332,7 @@
 
   dom.sendBtn.addEventListener('click', async () => {
     const dsId = (dom.dsInput.value || '').trim();
-    if (!dsId) { setMsg(dom.sendMsg, 'Enter a datastream ID in the Connection section first.', 'error'); return; }
+    if (!dsId) { setMsg(dom.sendMsg, 'Set a Datastream ID in Configuration first.', 'error'); return; }
     const email = resolvedEmail || (dom.identifier.value || '').trim();
     if (!email) { setMsg(dom.sendMsg, 'Enter an identifier first.', 'error'); return; }
 
@@ -347,8 +393,11 @@
     dom.profileInfo.hidden = true;
     setMsg(dom.profileMsg, '', '');
     setMsg(dom.connectionMsg, '', '');
+    setMsg(dom.schemaMsg, '', '');
+    setMsg(dom.datasetMsg, '', '');
     setMsg(dom.infraMsg, '', '');
     setMsg(dom.sendMsg, '', '');
+    if (dom.configBadge) dom.configBadge.hidden = true;
     loadSavedConfig();
   }
 
@@ -359,6 +408,7 @@
   /* ═══════════ Init ═══════════ */
 
   function init() {
+    initSandboxSelect();
     loadTriggerTemplates();
     loadSavedConfig();
   }

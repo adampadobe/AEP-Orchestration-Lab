@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260407">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260407e">
+  <link rel="stylesheet" href="event-tool.css?v=20260407f">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="event-generator-page profile-generation-page home-dashboard-concierge">
@@ -37,72 +37,29 @@
             <header class="dashboard-hero-header">
               <h2 id="bannerHeadingEventTool" class="dashboard-hero-title">Send experience events via Edge Network</h2>
               <p class="dashboard-hero-subtitle">
-                Connect a datastream, identify the profile, then fire custom or predefined events — all through a single page.
+                Select a sandbox, identify the profile, then fire custom or predefined events — all through a single page.
               </p>
             </header>
           </div>
         </section>
 
         <section class="consent-panel" id="eventToolPanel">
-          <!-- ═══════════ Section 1 — Connection ═══════════ -->
           <div class="profile-gen-boxes">
-            <div class="profile-box profile-box--connection et-full-width">
-              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Connection</h3>
-              <p class="field-hint event-gen-box-intro">
-                Paste your Edge datastream ID and click <strong>Save</strong> — it will be remembered for this sandbox.
-              </p>
-              <details class="et-help-details">
-                <summary>How to find or create a datastream</summary>
-                <ol class="et-help-steps">
-                  <li>Open <a href="https://experience.adobe.com/#/data-collection/datastreams" target="_blank" rel="noopener">AEP Data Collection &rarr; Datastreams</a></li>
-                  <li>Click <strong>New Datastream</strong> (or select an existing one)</li>
-                  <li>Give it a name, select your XDM Event Schema, and enable <strong>Adobe Experience Platform</strong> with an Event Dataset</li>
-                  <li>Copy the <strong>Datastream ID</strong> (UUID) from the overview page</li>
-                  <li>Paste it below and click <strong>Save</strong></li>
-                </ol>
-              </details>
+
+            <!-- ═══════════ Sandbox ═══════════ -->
+            <div class="profile-box et-full-width">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Sandbox</h3>
               <div class="profile-box-content">
-                <div class="et-connection-grid">
-                  <div class="form-row et-ds-id-row">
-                    <label for="etManualDs">Datastream ID</label>
-                    <input type="text" id="etManualDs" placeholder="e.g. 46677fd7-9db0-4f16-898c-b424d0245c38" autocomplete="off" spellcheck="false">
-                  </div>
-                  <div class="form-row form-row--action et-connection-actions">
-                    <button type="button" id="etSaveConfigBtn" class="btn btn-secondary">Save</button>
-                  </div>
+                <div class="form-row et-sandbox-row">
+                  <label for="sandboxSelect">Active sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
                 </div>
-                <div id="etConnectionMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
               </div>
             </div>
 
-            <!-- ═══════════ Section 2 — Schema & Dataset Setup ═══════════ -->
-            <div class="profile-box profile-box--setup et-full-width">
-              <h3 class="profile-box-title"><span class="profile-box-icon">⚙</span> Schema &amp; Dataset Setup</h3>
-              <p class="field-hint event-gen-box-intro">
-                Create an XDM ExperienceEvent schema and dataset in the selected sandbox — required before your datastream can route events.
-                The schema is <strong>not</strong> enabled for Real-Time Customer Profile.
-              </p>
-              <div class="profile-box-content">
-                <div class="et-setup-grid">
-                  <div class="form-row et-schema-name-row">
-                    <label for="etSchemaTitle">Schema name</label>
-                    <input type="text" id="etSchemaTitle" placeholder="e.g. AEP Lab - Edge Events" autocomplete="off" spellcheck="false">
-                  </div>
-                  <div class="form-row et-dataset-name-row">
-                    <label for="etDatasetName">Dataset name</label>
-                    <input type="text" id="etDatasetName" placeholder="e.g. AEP Lab - Edge Events Dataset" autocomplete="off" spellcheck="false">
-                  </div>
-                </div>
-                <div class="button-row et-infra-step-buttons">
-                  <button type="button" id="etCheckInfraBtn" class="btn btn-secondary">Check status</button>
-                  <button type="button" id="etCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
-                  <button type="button" id="etCreateDatasetBtn" class="btn btn-secondary">2 · Create dataset</button>
-                </div>
-                <div id="etInfraMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
-              </div>
-            </div>
-
-            <!-- ═══════════ Section 3 — Identity ═══════════ -->
+            <!-- ═══════════ Identity ═══════════ -->
             <div class="profile-box profile-box--customer">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Identity</h3>
               <p class="field-hint event-gen-box-intro">Enter an identifier to resolve the profile's ECID for the event.</p>
@@ -136,7 +93,76 @@
               </div>
             </div>
 
-            <!-- ═══════════ Section 4 — Event ═══════════ -->
+            <!-- ═══════════ Configuration (collapsible) ═══════════ -->
+            <details class="profile-box et-full-width et-config-details" id="etConfigDetails" open>
+              <summary class="profile-box-title et-config-summary">
+                <span class="profile-box-icon">⚙</span> Configuration
+                <span class="et-config-badge" id="etConfigBadge" hidden>Saved</span>
+              </summary>
+              <div class="profile-box-content">
+                <p class="field-hint event-gen-box-intro">
+                  Follow these steps in order to set up the sandbox for Edge events. Once saved, this section collapses automatically.
+                </p>
+
+                <!-- Step 1 — Schema -->
+                <div class="et-config-step">
+                  <h4 class="et-config-step-title">Step 1 — Create an XDM ExperienceEvent schema</h4>
+                  <p class="field-hint">Creates a minimal ExperienceEvent schema (not Profile-enabled) in the selected sandbox.</p>
+                  <div class="et-config-step-row">
+                    <div class="form-row et-schema-name-row">
+                      <label for="etSchemaTitle">Schema name</label>
+                      <input type="text" id="etSchemaTitle" placeholder="e.g. AEP Lab - Edge Events" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="form-row form-row--action">
+                      <button type="button" id="etCreateSchemaBtn" class="btn btn-primary">Create schema</button>
+                    </div>
+                  </div>
+                  <div id="etSchemaMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+                </div>
+
+                <!-- Step 2 — Dataset -->
+                <div class="et-config-step">
+                  <h4 class="et-config-step-title">Step 2 — Create a dataset</h4>
+                  <p class="field-hint">Creates a dataset linked to the schema above. Not Profile-enabled.</p>
+                  <div class="et-config-step-row">
+                    <div class="form-row et-dataset-name-row">
+                      <label for="etDatasetName">Dataset name</label>
+                      <input type="text" id="etDatasetName" placeholder="e.g. AEP Lab - Edge Events Dataset" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="form-row form-row--action">
+                      <button type="button" id="etCreateDatasetBtn" class="btn btn-secondary">Create dataset</button>
+                    </div>
+                  </div>
+                  <div id="etDatasetMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+                </div>
+
+                <!-- Step 3 — Datastream -->
+                <div class="et-config-step">
+                  <h4 class="et-config-step-title">Step 3 — Set the Datastream ID</h4>
+                  <p class="field-hint">
+                    In <a href="https://experience.adobe.com/#/data-collection/datastreams" target="_blank" rel="noopener">AEP Data Collection → Datastreams</a>,
+                    create a datastream using the schema above, enable <strong>Adobe Experience Platform</strong> with the dataset, then paste the Datastream ID here.
+                  </p>
+                  <div class="et-config-step-row">
+                    <div class="form-row et-ds-id-row">
+                      <label for="etManualDs">Datastream ID</label>
+                      <input type="text" id="etManualDs" placeholder="e.g. 46677fd7-9db0-4f16-898c-b424d0245c38" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="form-row form-row--action">
+                      <button type="button" id="etSaveConfigBtn" class="btn btn-secondary">Save</button>
+                    </div>
+                  </div>
+                  <div id="etConnectionMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+                </div>
+
+                <div class="button-row" style="margin-top:0.5rem;">
+                  <button type="button" id="etCheckInfraBtn" class="btn btn-secondary btn-sm">Check sandbox status</button>
+                </div>
+                <div id="etInfraMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+              </div>
+            </details>
+
+            <!-- ═══════════ Event ═══════════ -->
             <div class="profile-box profile-box--event-def et-full-width">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Event</h3>
               <div class="profile-box-content">
@@ -204,7 +230,7 @@
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="event-tool.js?v=20260407e"></script>
+  <script src="event-tool.js?v=20260407f"></script>
   <script defer src="aep-theme.js?v=20260407"></script>
   <script defer src="aep-lab-nav.js?v=20260407"></script>
 </body>
