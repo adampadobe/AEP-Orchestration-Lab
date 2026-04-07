@@ -103,6 +103,7 @@
   async function loadSavedConfig() {
     const qs = sandboxQs();
     if (!qs) return;
+    setMsg(dom.infraMsg, 'Loading saved configuration from Firebase…', '');
     try {
       const res = await fetch('/api/events/config' + qs);
       const data = await res.json().catch(() => ({}));
@@ -112,16 +113,32 @@
         if (data.record.datasetName) dom.datasetName.value = data.record.datasetName;
         if (data.record.datastreamId) {
           collapseConfig();
+          setMsg(dom.infraMsg, 'Configuration loaded from Firebase.', 'success');
         } else {
           expandConfig();
+          setMsg(dom.infraMsg, 'No datastream saved for this sandbox yet. Complete the steps below, then click Save.', '');
         }
         if (data.record.schemaTitle) loadSchemaEventTypes(data.record.schemaTitle);
       } else {
         expandConfig();
+        setMsg(dom.infraMsg, 'No configuration found for this sandbox. Complete the steps below to get started.', '');
       }
     } catch {
       expandConfig();
+      setMsg(dom.infraMsg, '', '');
     }
+  }
+
+  async function saveConfigField(patch) {
+    const sandbox = getSandboxName();
+    if (!sandbox) return;
+    try {
+      await fetch('/api/events/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox, ...patch }),
+      });
+    } catch { /* silent — best-effort persist */ }
   }
 
   function collapseConfig() {
@@ -194,6 +211,7 @@
       const data = await res.json().catch(() => ({}));
       if (!data.ok) { setMsg(dom.schemaMsg, data.error || 'Failed.', 'error'); return; }
       setMsg(dom.schemaMsg, data.message || 'Schema created.', 'success');
+      saveConfigField({ schemaTitle });
       loadSchemaEventTypes(schemaTitle);
     } catch (e) {
       setMsg(dom.schemaMsg, e.message || 'Network error', 'error');
@@ -222,6 +240,7 @@
       const data = await res.json().catch(() => ({}));
       if (!data.ok) { setMsg(dom.datasetMsg, data.error || 'Failed.', 'error'); return; }
       setMsg(dom.datasetMsg, data.message || 'Dataset created.', 'success');
+      saveConfigField({ schemaTitle, datasetName });
     } catch (e) {
       setMsg(dom.datasetMsg, e.message || 'Network error', 'error');
     } finally {
@@ -236,7 +255,7 @@
     if (!dsId) { setMsg(dom.connectionMsg, 'Paste a datastream ID.', 'error'); return; }
     const sandbox = getSandboxName();
     if (!sandbox) { setMsg(dom.connectionMsg, 'Select a sandbox first.', 'error'); return; }
-    setMsg(dom.connectionMsg, 'Saving…', '');
+    setMsg(dom.connectionMsg, 'Saving to Firebase…', '');
     const schemaTitle = (dom.schemaTitle.value || '').trim();
     const datasetName = (dom.datasetName.value || '').trim();
     try {
@@ -247,7 +266,8 @@
       });
       const data = await res.json().catch(() => ({}));
       if (data.ok) {
-        setMsg(dom.connectionMsg, 'Saved for sandbox "' + sandbox + '".', 'success');
+        setMsg(dom.connectionMsg, 'Saved to Firebase for sandbox "' + sandbox + '".', 'success');
+        setMsg(dom.infraMsg, 'Configuration loaded from Firebase.', 'success');
         collapseConfig();
         if (schemaTitle) loadSchemaEventTypes(schemaTitle);
       } else {
