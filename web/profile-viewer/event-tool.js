@@ -97,10 +97,10 @@
 
   /* ═══════════ Sandbox selector ═══════════ */
 
-  function initSandboxSelect() {
+  async function initSandboxSelect() {
     if (!dom.sandboxSelect) return;
     if (typeof window.AepGlobalSandbox !== 'undefined') {
-      window.AepGlobalSandbox.loadSandboxesIntoSelect(dom.sandboxSelect);
+      await window.AepGlobalSandbox.loadSandboxesIntoSelect(dom.sandboxSelect);
       window.AepGlobalSandbox.onSandboxSelectChange(dom.sandboxSelect);
       window.AepGlobalSandbox.attachStorageSync(dom.sandboxSelect);
     }
@@ -663,8 +663,8 @@
 
   /* ═══════════ Init ═══════════ */
 
-  function init() {
-    initSandboxSelect();
+  async function init() {
+    await initSandboxSelect();
     loadTriggerTemplates();
     loadSavedConfig();
   }
