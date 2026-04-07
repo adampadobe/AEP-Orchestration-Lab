@@ -259,8 +259,11 @@
       renderPage();
     });
 
-    if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.loadSandboxesIntoSelect) {
-      AepGlobalSandbox.loadSandboxesIntoSelect();
+    var sandboxSelect = $('sandboxSelect');
+    if (sandboxSelect && typeof AepGlobalSandbox !== 'undefined') {
+      AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
+      AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
+      AepGlobalSandbox.attachStorageSync(sandboxSelect);
     }
   });
 })();
