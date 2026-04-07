@@ -157,16 +157,20 @@
     if (!schemaTitle) return;
     const qs = sandboxQs();
     if (!qs) return;
+    const hint = document.getElementById('etEventTypeHint');
+    if (hint) { hint.textContent = 'Loading event types from schema…'; hint.hidden = false; }
     try {
       const res = await fetch('/api/events/infra/event-types' + qs + '&schemaTitle=' + encodeURIComponent(schemaTitle));
       const data = await res.json().catch(() => ({}));
-      if (data.ok && Array.isArray(data.eventTypes)) {
+      if (data.ok && Array.isArray(data.eventTypes) && data.eventTypes.length > 0) {
         schemaEventTypes = data.eventTypes;
       } else {
         schemaEventTypes = [];
+        if (hint) { hint.textContent = data.error || 'No event types found in schema — type any value.'; hint.hidden = false; }
       }
-    } catch {
+    } catch (e) {
       schemaEventTypes = [];
+      if (hint) { hint.textContent = 'Could not load event types: ' + (e.message || 'network error'); hint.hidden = false; }
     }
     populateEventTypeDatalist();
   }
@@ -182,14 +186,9 @@
       dl.appendChild(opt);
     });
     const hint = document.getElementById('etEventTypeHint');
-    if (hint) {
-      if (schemaEventTypes.length > 0) {
-        hint.textContent = schemaEventTypes.length + ' event types loaded from schema — select or type your own.';
-        hint.hidden = false;
-      } else {
-        hint.textContent = '';
-        hint.hidden = true;
-      }
+    if (hint && schemaEventTypes.length > 0) {
+      hint.textContent = schemaEventTypes.length + ' event types loaded from schema — select or type your own.';
+      hint.hidden = false;
     }
   }
 

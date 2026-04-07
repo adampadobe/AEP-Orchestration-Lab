@@ -224,52 +224,85 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
 
 /* ── Fetch eventType enum from schema ── */
 
-async function fetchFullSchema(token, clientId, orgId, sandbox, metaAltId) {
-  const enc = encodeURIComponent(metaAltId);
+async function fetchSchemaById(token, clientId, orgId, sandbox, schemaId, accept) {
+  const h = headers(token, clientId, orgId, sandbox, { Accept: accept });
+  const enc = encodeURIComponent(schemaId);
+  return fetchJson(`${SCHEMA_REGISTRY}/tenant/schemas/${enc}`, { method: 'GET', headers: h });
+}
+
+async function fetchFullSchema(token, clientId, orgId, sandbox, schema) {
+  const ids = [schema['meta:altId'], schema.$id].filter(Boolean);
   const acceptOrder = [
     'application/vnd.adobe.xed-full+json;version=1',
     'application/vnd.adobe.xed+json;version=1',
     'application/json',
   ];
-  for (const accept of acceptOrder) {
-    const h = headers(token, clientId, orgId, sandbox, { Accept: accept });
-    const { res, data } = await fetchJson(`${SCHEMA_REGISTRY}/tenant/schemas/${enc}`, { method: 'GET', headers: h });
-    if (res.ok && data && typeof data === 'object') return data;
+  for (const id of ids) {
+    for (const accept of acceptOrder) {
+      const { res, data } = await fetchSchemaById(token, clientId, orgId, sandbox, id, accept);
+      log(sandbox, 'fetchFull.try', { id: String(id).slice(0, 60), accept, status: res.status, hasProps: !!(data && data.properties) });
+      if (res.ok && data && typeof data === 'object') return data;
+    }
   }
   return null;
+}
+
+async function fetchGlobalEventTypes(token, clientId, orgId, sandbox) {
+  const classId = 'https://ns.adobe.com/xdm/context/experienceevent';
+  const accepts = [
+    'application/vnd.adobe.xed-full+json;version=1',
+    'application/vnd.adobe.xed+json;version=1',
+  ];
+  for (const accept of accepts) {
+    const h = headers(token, clientId, orgId, sandbox, { Accept: accept });
+    const enc = encodeURIComponent(classId);
+    const { res, data } = await fetchJson(`${SCHEMA_REGISTRY}/global/classes/${enc}`, { method: 'GET', headers: h });
+    log(sandbox, 'fetchGlobalClass', { status: res.status, accept, hasProps: !!(data && data.properties) });
+    if (res.ok && data) {
+      const types = extractEventTypes(data);
+      if (types.length > 0) return types;
+    }
+  }
+  return [];
 }
 
 function extractEventTypes(schema) {
   if (!schema || typeof schema !== 'object') return [];
 
   const found = new Map();
+  const visited = new WeakSet();
 
   function walk(obj) {
     if (!obj || typeof obj !== 'object') return;
-    if (obj.eventType && typeof obj.eventType === 'object') {
-      const et = obj.eventType;
-      const metaEnum = et['meta:enum'];
-      if (metaEnum && typeof metaEnum === 'object') {
-        for (const [key, label] of Object.entries(metaEnum)) {
-          if (key && typeof key === 'string') found.set(key, String(label || key));
+    if (visited.has(obj)) return;
+    visited.add(obj);
+
+    for (const [key, val] of Object.entries(obj)) {
+      if (!val || typeof val !== 'object') continue;
+
+      if (key === 'eventType') {
+        const metaEnum = val['meta:enum'];
+        if (metaEnum && typeof metaEnum === 'object') {
+          for (const [k, label] of Object.entries(metaEnum)) {
+            if (k && typeof k === 'string') found.set(k, String(label || k));
+          }
+        }
+        if (Array.isArray(val.enum)) {
+          for (const v of val.enum) {
+            if (typeof v === 'string' && v && !found.has(v)) found.set(v, v);
+          }
         }
       }
-      if (Array.isArray(et.enum)) {
-        for (const v of et.enum) {
-          if (typeof v === 'string' && v && !found.has(v)) found.set(v, v);
-        }
+
+      if (Array.isArray(val)) {
+        val.forEach(walk);
+      } else {
+        walk(val);
       }
-    }
-    if (Array.isArray(obj)) { obj.forEach(walk); return; }
-    for (const v of Object.values(obj)) {
-      if (v && typeof v === 'object') walk(v);
     }
   }
 
-  walk(schema.properties || schema);
-  if (found.size === 0 && Array.isArray(schema.allOf)) {
-    for (const ref of schema.allOf) walk(ref);
-  }
+  walk(schema);
 
   return Array.from(found.entries())
     .map(([value, label]) => ({ value, label }))
@@ -281,14 +314,22 @@ async function fetchSchemaEventTypes(sandbox, token, clientId, orgId, schemaTitl
   const schema = await findSchemaByTitle(token, clientId, orgId, sandbox, schemaTitle);
   if (!schema) return { ok: false, error: `Schema "${schemaTitle}" not found.`, eventTypes: [] };
 
-  const altId = schema['meta:altId'];
-  if (!altId) return { ok: false, error: 'Schema has no meta:altId.', eventTypes: [] };
+  const full = await fetchFullSchema(token, clientId, orgId, sandbox, schema);
+  let eventTypes = [];
 
-  const full = await fetchFullSchema(token, clientId, orgId, sandbox, altId);
-  if (!full) return { ok: false, error: 'Could not fetch full schema.', eventTypes: [] };
+  if (full) {
+    eventTypes = extractEventTypes(full);
+    log(sandbox, 'eventTypes.fromSchema', { count: eventTypes.length, topKeys: full ? Object.keys(full).slice(0, 10) : [] });
+  } else {
+    log(sandbox, 'eventTypes.fullSchemaFailed');
+  }
 
-  const eventTypes = extractEventTypes(full);
-  log(sandbox, 'eventTypes.done', { count: eventTypes.length });
+  if (eventTypes.length === 0) {
+    log(sandbox, 'eventTypes.fallingBackToGlobal');
+    eventTypes = await fetchGlobalEventTypes(token, clientId, orgId, sandbox);
+    log(sandbox, 'eventTypes.fromGlobal', { count: eventTypes.length });
+  }
+
   return { ok: true, schemaTitle, schemaId: schema.$id, eventTypes };
 }
 
