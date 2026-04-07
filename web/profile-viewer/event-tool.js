@@ -178,19 +178,43 @@
 
   function populateEventTypeDatalist() {
     const dl = document.getElementById('etEventTypeList');
-    if (!dl) return;
-    dl.innerHTML = '';
-    schemaEventTypes.forEach(function (et) {
-      const opt = document.createElement('option');
-      opt.value = et.value;
-      if (et.label && et.label !== et.value) opt.label = et.label;
-      dl.appendChild(opt);
-    });
+    if (dl) {
+      dl.innerHTML = '';
+      schemaEventTypes.forEach(function (et) {
+        const opt = document.createElement('option');
+        opt.value = et.value;
+        if (et.label && et.label !== et.value) opt.label = et.label;
+        dl.appendChild(opt);
+      });
+    }
     const hint = document.getElementById('etEventTypeHint');
     if (hint && schemaEventTypes.length > 0) {
       hint.textContent = schemaEventTypes.length + ' event types loaded from schema — select or type your own.';
       hint.hidden = false;
     }
+    populateTriggerSelectWithSchema();
+  }
+
+  function populateTriggerSelectWithSchema() {
+    if (!dom.triggerType) return;
+    const existing = dom.triggerType.querySelector('optgroup[data-schema]');
+    if (existing) existing.remove();
+    if (schemaEventTypes.length === 0) return;
+
+    const templateKeys = new Set(Object.keys(triggerTemplates));
+    const schemaOnly = schemaEventTypes.filter(function (et) { return !templateKeys.has(et.value); });
+    if (schemaOnly.length === 0) return;
+
+    const group = document.createElement('optgroup');
+    group.label = 'From schema';
+    group.dataset.schema = '1';
+    schemaOnly.forEach(function (et) {
+      const opt = document.createElement('option');
+      opt.value = et.value;
+      opt.textContent = et.label && et.label !== et.value ? et.value + ' — ' + et.label : et.value;
+      group.appendChild(opt);
+    });
+    dom.triggerType.appendChild(group);
   }
 
   /* ═══════════ Step 1 — Create Schema ═══════════ */
@@ -429,7 +453,12 @@
   function updateTriggerDesc() {
     const key = dom.triggerType.value;
     const tpl = triggerTemplates[key];
-    dom.triggerDesc.textContent = tpl ? (tpl.description || '') : '';
+    if (tpl) {
+      dom.triggerDesc.textContent = tpl.description || '';
+    } else {
+      const et = schemaEventTypes.find(function (e) { return e.value === key; });
+      dom.triggerDesc.textContent = et && et.label && et.label !== et.value ? et.label : 'Schema event type — sends a generic XDM event.';
+    }
   }
 
   dom.triggerType.addEventListener('change', updateTriggerDesc);
@@ -453,9 +482,11 @@
 
       if (activeMode === 'trigger') {
         const key = dom.triggerType.value;
+        if (!key) { setMsg(dom.sendMsg, 'Select an event type.', 'error'); return; }
         const tpl = triggerTemplates[key];
-        if (!tpl || !tpl.payload) { setMsg(dom.sendMsg, 'Select a valid event template.', 'error'); return; }
-        body.triggerTemplate = tpl.payload;
+        if (tpl && tpl.payload) {
+          body.triggerTemplate = tpl.payload;
+        }
         body.eventType = key;
       } else {
         body.eventType = (dom.eventType.value || '').trim() || 'transaction';
