@@ -1,5 +1,7 @@
 /* ── Audit Events page ── */
 
+[hidden] { display: none !important; }
+
 .audit-main {
   padding: 0 0 2rem;
 }
