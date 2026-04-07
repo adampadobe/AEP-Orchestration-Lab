@@ -42,12 +42,28 @@ async function getCachedEvents(sandbox, startISO, endISO) {
   }
 }
 
+function slimEvent(ev) {
+  return {
+    id: ev.id || '',
+    action: ev.action || '',
+    timestamp: ev.timestamp || ev.created || '',
+    userEmail: ev.userEmail || ev.user || ev.userId || '',
+    assetType: ev.assetType || ev.permissionResource || '',
+    assetName: ev.assetName || '',
+    status: ev.status || '',
+    permissionType: ev.permissionType || '',
+  };
+}
+
 async function setCachedEvents(sandbox, startISO, endISO, events, total) {
   try {
     const docId = cacheDocId(sandbox, startISO, endISO);
     const ttlMs = ttlForRange(endISO);
+    const slim = events.map(slimEvent);
+    const payload = JSON.stringify(slim);
+    if (payload.length > 900000) return;
     await getDb().collection(COLLECTION).doc(docId).set({
-      events,
+      events: slim,
       total,
       fetchedAtMs: Date.now(),
       fetchedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -86,11 +102,13 @@ async function fetchAllAuditEvents({ token, clientId, orgId, sandbox, startISO, 
   let offset = 0;
   let pageNum = 0;
   let capped = false;
+  let queryId = null;
 
   for (; pageNum < MAX_PAGES; pageNum++) {
     const params = new URLSearchParams();
     params.set('limit', String(PAGE_LIMIT));
     params.set('start', String(offset));
+    if (queryId) params.set('queryId', queryId);
     if (startISO) params.append('property', `timestamp>=${startISO}`);
     if (endISO) params.append('property', `timestamp<=${endISO}`);
     if (action) params.append('property', `action==${action}`);
@@ -104,13 +122,18 @@ async function fetchAllAuditEvents({ token, clientId, orgId, sandbox, startISO, 
       throw new Error(`Audit API ${resp.status}: ${msg}`);
     }
 
+    if (data.queryId) queryId = data.queryId;
+
     const embedded = data._embedded || data;
     const batch = embedded.events || [];
     allEvents.push(...batch);
 
     if (onPage) onPage(pageNum + 1, allEvents.length);
 
+    const pageInfo = data.page || {};
+    const totalElements = pageInfo.totalElements;
     if (batch.length < PAGE_LIMIT) break;
+    if (totalElements && allEvents.length >= totalElements) break;
     offset += PAGE_LIMIT;
   }
 
