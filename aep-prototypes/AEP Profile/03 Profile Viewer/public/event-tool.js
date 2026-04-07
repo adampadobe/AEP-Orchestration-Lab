@@ -12,6 +12,13 @@
     saveConfigBtn: document.getElementById('etSaveConfigBtn'),
     connectionMsg: document.getElementById('etConnectionMsg'),
 
+    schemaTitle:      document.getElementById('etSchemaTitle'),
+    datasetName:      document.getElementById('etDatasetName'),
+    checkInfraBtn:    document.getElementById('etCheckInfraBtn'),
+    createSchemaBtn:  document.getElementById('etCreateSchemaBtn'),
+    createDatasetBtn: document.getElementById('etCreateDatasetBtn'),
+    infraMsg:         document.getElementById('etInfraMsg'),
+
     namespace:     document.getElementById('etNamespace'),
     identifier:    document.getElementById('etIdentifier'),
     queryBtn:      document.getElementById('etQueryBtn'),
@@ -102,6 +109,79 @@
       }
     } catch (e) {
       setMsg(dom.connectionMsg, e.message || 'Network error', 'error');
+    }
+  });
+
+  /* ═══════════ Schema & Dataset Setup ═══════════ */
+
+  dom.checkInfraBtn.addEventListener('click', async () => {
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    if (!schemaTitle) { setMsg(dom.infraMsg, 'Enter a schema name first.', 'error'); return; }
+    const datasetName = (dom.datasetName.value || '').trim();
+    const sandbox = getSandboxName();
+    if (!sandbox) { setMsg(dom.infraMsg, 'No sandbox selected.', 'error'); return; }
+    setMsg(dom.infraMsg, 'Checking…', '');
+    try {
+      const qs = getSandboxParam() + '&schemaTitle=' + encodeURIComponent(schemaTitle) +
+        (datasetName ? '&datasetName=' + encodeURIComponent(datasetName) : '');
+      const res = await fetch('/api/events/infra/status' + qs);
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) { setMsg(dom.infraMsg, data.error || 'Status check failed.', 'error'); return; }
+      const parts = [];
+      parts.push('Schema: ' + (data.schemaFound ? 'found ✓' : 'not found'));
+      if (datasetName) parts.push('Dataset: ' + (data.datasetFound ? 'found ✓' : 'not found'));
+      const allOk = data.schemaFound && (!datasetName || data.datasetFound);
+      setMsg(dom.infraMsg, parts.join(' · '), allOk ? 'success' : '');
+    } catch (e) {
+      setMsg(dom.infraMsg, e.message || 'Network error', 'error');
+    }
+  });
+
+  dom.createSchemaBtn.addEventListener('click', async () => {
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    if (!schemaTitle) { setMsg(dom.infraMsg, 'Enter a schema name first.', 'error'); return; }
+    const sandbox = getSandboxName();
+    if (!sandbox) { setMsg(dom.infraMsg, 'No sandbox selected.', 'error'); return; }
+    dom.createSchemaBtn.disabled = true;
+    setMsg(dom.infraMsg, 'Creating schema…', '');
+    try {
+      const res = await fetch('/api/events/infra/step' + getSandboxParam(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 'createSchema', schemaTitle }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) { setMsg(dom.infraMsg, data.error || 'Create schema failed.', 'error'); return; }
+      setMsg(dom.infraMsg, data.message || 'Schema created.', 'success');
+    } catch (e) {
+      setMsg(dom.infraMsg, e.message || 'Network error', 'error');
+    } finally {
+      dom.createSchemaBtn.disabled = false;
+    }
+  });
+
+  dom.createDatasetBtn.addEventListener('click', async () => {
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    if (!schemaTitle) { setMsg(dom.infraMsg, 'Enter a schema name — the dataset links to this schema.', 'error'); return; }
+    const datasetName = (dom.datasetName.value || '').trim();
+    if (!datasetName) { setMsg(dom.infraMsg, 'Enter a dataset name.', 'error'); return; }
+    const sandbox = getSandboxName();
+    if (!sandbox) { setMsg(dom.infraMsg, 'No sandbox selected.', 'error'); return; }
+    dom.createDatasetBtn.disabled = true;
+    setMsg(dom.infraMsg, 'Creating dataset…', '');
+    try {
+      const res = await fetch('/api/events/infra/step' + getSandboxParam(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 'createDataset', schemaTitle, datasetName }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) { setMsg(dom.infraMsg, data.error || 'Create dataset failed.', 'error'); return; }
+      setMsg(dom.infraMsg, data.message || 'Dataset created.', 'success');
+    } catch (e) {
+      setMsg(dom.infraMsg, e.message || 'Network error', 'error');
+    } finally {
+      dom.createDatasetBtn.disabled = false;
     }
   });
 
@@ -267,6 +347,7 @@
     dom.profileInfo.hidden = true;
     setMsg(dom.profileMsg, '', '');
     setMsg(dom.connectionMsg, '', '');
+    setMsg(dom.infraMsg, '', '');
     setMsg(dom.sendMsg, '', '');
     loadSavedConfig();
   }

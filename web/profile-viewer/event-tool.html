@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260407">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260407d">
+  <link rel="stylesheet" href="event-tool.css?v=20260407e">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="event-generator-page profile-generation-page home-dashboard-concierge">
@@ -75,7 +75,34 @@
               </div>
             </div>
 
-            <!-- ═══════════ Section 2 — Identity ═══════════ -->
+            <!-- ═══════════ Section 2 — Schema & Dataset Setup ═══════════ -->
+            <div class="profile-box profile-box--setup et-full-width">
+              <h3 class="profile-box-title"><span class="profile-box-icon">⚙</span> Schema &amp; Dataset Setup</h3>
+              <p class="field-hint event-gen-box-intro">
+                Create an XDM ExperienceEvent schema and dataset in the selected sandbox — required before your datastream can route events.
+                The schema is <strong>not</strong> enabled for Real-Time Customer Profile.
+              </p>
+              <div class="profile-box-content">
+                <div class="et-setup-grid">
+                  <div class="form-row et-schema-name-row">
+                    <label for="etSchemaTitle">Schema name</label>
+                    <input type="text" id="etSchemaTitle" placeholder="e.g. AEP Lab - Edge Events" autocomplete="off" spellcheck="false">
+                  </div>
+                  <div class="form-row et-dataset-name-row">
+                    <label for="etDatasetName">Dataset name</label>
+                    <input type="text" id="etDatasetName" placeholder="e.g. AEP Lab - Edge Events Dataset" autocomplete="off" spellcheck="false">
+                  </div>
+                </div>
+                <div class="button-row et-infra-step-buttons">
+                  <button type="button" id="etCheckInfraBtn" class="btn btn-secondary">Check status</button>
+                  <button type="button" id="etCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
+                  <button type="button" id="etCreateDatasetBtn" class="btn btn-secondary">2 · Create dataset</button>
+                </div>
+                <div id="etInfraMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+              </div>
+            </div>
+
+            <!-- ═══════════ Section 3 — Identity ═══════════ -->
             <div class="profile-box profile-box--customer">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Identity</h3>
               <p class="field-hint event-gen-box-intro">Enter an identifier to resolve the profile's ECID for the event.</p>
@@ -109,7 +136,7 @@
               </div>
             </div>
 
-            <!-- ═══════════ Section 3 — Event ═══════════ -->
+            <!-- ═══════════ Section 4 — Event ═══════════ -->
             <div class="profile-box profile-box--event-def et-full-width">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Event</h3>
               <div class="profile-box-content">
@@ -177,7 +204,7 @@
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="event-tool.js?v=20260407d"></script>
+  <script src="event-tool.js?v=20260407e"></script>
   <script defer src="aep-theme.js?v=20260407"></script>
   <script defer src="aep-lab-nav.js?v=20260407"></script>
 </body>

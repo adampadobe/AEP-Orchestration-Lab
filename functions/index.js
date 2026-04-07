@@ -50,6 +50,7 @@ const { lookupConsentHttpFlow } = require('./consentFlowLookup');
 const { getConsentConnection, saveConsentConnection } = require('./consentConnectionStore');
 const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = require('./eventEdgeService');
 const { getEventConfig, saveEventConfig } = require('./eventConfigStore');
+const { runEventInfraStatus, runEventInfraStep } = require('./eventInfraService');
 const {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
   setByPath,
@@ -1755,6 +1756,52 @@ exports.eventDatastreamsProxy = onRequest(
     }
   },
 );
+
+// ---------------------------------------------------------------------------
+// Event Infrastructure — create ExperienceEvent schema + dataset per sandbox
+// ---------------------------------------------------------------------------
+
+/** GET /api/events/infra/status?sandbox=&schemaTitle=&datasetName= */
+exports.eventInfraStatus = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'GET') { res.status(405).json({ error: 'GET only' }); return; }
+  const sandbox = resolveSandboxFromQuery(req);
+  const schemaTitle = String(req.query.schemaTitle || '').trim();
+  const datasetName = String(req.query.datasetName || '').trim();
+  if (!schemaTitle) { res.status(400).json({ error: 'schemaTitle query param is required' }); return; }
+  let accessToken;
+  try { accessToken = await getAdobeAccessToken(); }
+  catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
+  try {
+    const result = await runEventInfraStatus(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), schemaTitle, datasetName);
+    res.status(200).json(result);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/** POST /api/events/infra/step — { step: "createSchema"|"createDataset", schemaTitle, datasetName? } */
+exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+  const sandbox = resolveSandboxFromQuery(req);
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const step = String(body.step || '').trim();
+  let accessToken;
+  try { accessToken = await getAdobeAccessToken(); }
+  catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
+  try {
+    const result = await runEventInfraStep(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), step, {
+      schemaTitle: body.schemaTitle,
+      datasetName: body.datasetName,
+    });
+    res.status(200).json(result);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox, step });
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Scheduled CDN pre-warm — hits Data Viewer endpoints to populate CDN cache
