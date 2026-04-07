@@ -524,7 +524,7 @@ async function loadDetailsSupplementaryData() {
       const ch = cData.channels || {};
       const rows = [
         ['email', 'Email', '📧'],
-        ['push', 'Push', '🔔'],
+        ['push', 'Push', '<svg style="width:1em;height:1em;vertical-align:-0.125em" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="1" width="10" height="18" rx="2"/><line x1="8" y1="16" x2="12" y2="16"/><circle cx="14" cy="4" r="3" fill="#e04444" stroke="#e04444" stroke-width="1"/></svg>'],
         ['sms', 'SMS', '💬'],
         ['phone', 'Phone', '📞'],
         ['directMail', 'Direct mail', '✉️'],
