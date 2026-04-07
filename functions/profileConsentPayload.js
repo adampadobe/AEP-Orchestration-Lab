@@ -445,6 +445,147 @@ function collectIdentitiesForGraph(entity, flatRows) {
   return [...map.values()].slice(0, 40);
 }
 
+function stringifyConsentScalar(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'string') return v.trim() || null;
+  if (typeof v === 'number' && Number.isFinite(v)) return String(v);
+  return null;
+}
+
+function collectProfileRootCandidates(response) {
+  const roots = [];
+  if (!response || typeof response !== 'object') return roots;
+  const keys = Object.keys(response).filter((k) => !k.startsWith('_'));
+  for (const k of keys) {
+    const v = response[k];
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      roots.push(v);
+      if (v.entity && typeof v.entity === 'object') roots.push(v.entity);
+    }
+  }
+  return roots;
+}
+
+function getDemoemeaScoringForConsent(entity, response) {
+  let propensityScore = null;
+  let churnPrediction = null;
+  const roots = [];
+  if (entity && typeof entity === 'object') roots.push(entity);
+  for (const r of collectProfileRootCandidates(response)) {
+    if (r && !roots.includes(r)) roots.push(r);
+  }
+  for (const root of roots) {
+    if (propensityScore == null) {
+      const v =
+        get(root, '_demoemea.scoring.core.propensityScore') ??
+        root?._demoemea?.scoring?.core?.propensityScore;
+      propensityScore = stringifyConsentScalar(v);
+    }
+    if (churnPrediction == null) {
+      const v =
+        get(root, '_demoemea.scoring.churn.churnPrediction') ??
+        root?._demoemea?.scoring?.churn?.churnPrediction;
+      churnPrediction = stringifyConsentScalar(v);
+    }
+    if (propensityScore != null && churnPrediction != null) break;
+  }
+  if (propensityScore == null || churnPrediction == null) {
+    try {
+      const rows = flattenEntityToTableRows(entity);
+      for (const row of rows || []) {
+        const p = String(row.path || '').toLowerCase();
+        if (propensityScore == null && p.includes('propensityscore')) {
+          propensityScore = stringifyConsentScalar(row.value);
+        }
+        if (churnPrediction == null && p.includes('churnprediction')) {
+          churnPrediction = stringifyConsentScalar(row.value);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  return { propensityScore, churnPrediction };
+}
+
+function getDemoemeaLoyaltyLevelForConsent(entity, response) {
+  let level = null;
+  const roots = [];
+  if (entity && typeof entity === 'object') roots.push(entity);
+  for (const r of collectProfileRootCandidates(response)) {
+    if (r && !roots.includes(r)) roots.push(r);
+  }
+  for (const root of roots) {
+    const v =
+      get(root, '_demoemea.loyaltyDetails.level') ?? root?._demoemea?.loyaltyDetails?.level;
+    const s = stringifyConsentScalar(v);
+    if (s) { level = s; break; }
+  }
+  if (level == null) {
+    try {
+      const rows = flattenEntityToTableRows(entity);
+      for (const row of rows || []) {
+        const p = String(row.path || '').toLowerCase();
+        if (p.includes('loyaltydetails') && p.endsWith('.level')) {
+          level = stringifyConsentScalar(row.value);
+          if (level) break;
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  return level;
+}
+
+function getProfileAgeAndHomeCityForConsent(entity, response) {
+  let age = null;
+  let city = null;
+  const roots = [];
+  if (entity && typeof entity === 'object') roots.push(entity);
+  for (const r of collectProfileRootCandidates(response)) {
+    if (r && !roots.includes(r)) roots.push(r);
+  }
+  for (const root of roots) {
+    if (age == null) {
+      const v =
+        get(root, 'individualCharacteristics.core.age') ??
+        root?.individualCharacteristics?.core?.age ??
+        get(root, 'person.age') ??
+        get(root, '_demoemea.individualCharacteristics.core.age');
+      if (v != null && v !== '') {
+        const s = stringifyConsentScalar(typeof v === 'number' ? v : v);
+        if (s) age = s;
+      }
+    }
+    if (city == null) {
+      const v = get(root, 'homeAddress.city') ?? root?.homeAddress?.city;
+      const s = stringifyConsentScalar(v);
+      if (s) city = s;
+    }
+    if (age != null && city != null) break;
+  }
+  if (age == null || city == null) {
+    try {
+      const rows = flattenEntityToTableRows(entity);
+      for (const row of rows || []) {
+        const p = String(row.path || '').toLowerCase();
+        if (
+          age == null &&
+          (p.endsWith('.age') || (p.includes('individualcharacteristics') && p.includes('age'))) &&
+          !p.includes('average') && !p.includes('passenger') && !p.includes('message')
+        ) {
+          const s = stringifyConsentScalar(row.value);
+          if (s) {
+            const n = Number(String(s).replace(/,/g, ''));
+            if (Number.isFinite(n) && n >= 0 && n <= 130) age = String(Math.round(n));
+          }
+        }
+        if (city == null && p.includes('homeaddress') && p.endsWith('.city')) {
+          city = stringifyConsentScalar(row.value);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  return { age, city };
+}
+
 /**
  * @param {string} email
  * @param {object} response - raw UPS profile response
@@ -488,6 +629,9 @@ function buildConsentGetPayload(email, response) {
   }
   ecid = ensureSingleEcid(ecid);
   const identities = collectIdentitiesForGraph(entity, flatRows);
+  const { propensityScore, churnPrediction } = getDemoemeaScoringForConsent(entity, response);
+  const loyaltyStatus = getDemoemeaLoyaltyLevelForConsent(entity, response);
+  const { age: profileAge, city: homeCity } = getProfileAgeAndHomeCityForConsent(entity, response);
   const lastModifiedAt = entity?.lastModifiedAt ?? payload?.lastModifiedAt ?? response?.lastModifiedAt ?? null;
   return {
     found: true,
@@ -495,6 +639,11 @@ function buildConsentGetPayload(email, response) {
     firstName: firstName || null,
     lastName: lastName || null,
     gender: gender || null,
+    age: profileAge ?? null,
+    city: homeCity ?? null,
+    propensityScore: propensityScore ?? null,
+    churnPrediction: churnPrediction ?? null,
+    loyaltyStatus: loyaltyStatus ?? null,
     lastModifiedAt: lastModifiedAt ?? null,
     profileSource: 'Adobe Experience Platform',
     ecid: ecid || null,

@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260406">
   <link rel="stylesheet" href="donate-demo.css">
+  <link rel="stylesheet" href="demo-profile-drawer.css">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
 </head>
 <body class="donate-demo-page home-dashboard-concierge">
@@ -230,9 +231,11 @@
             </div>
             <div class="donate-profile-card-fields">
               <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
-              <p><strong>person.gender:</strong> <span id="profileDrawerGender">—</span></p>
+              <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+              <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
               <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
               <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+              <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
               <p><strong>Address:</strong> <span id="profileDrawerAddress">Unknown</span></p>
               <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
             </div>
@@ -246,24 +249,16 @@
             <h2 class="donate-profile-identity-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
             <div class="donate-profile-identity-fields">
               <div class="donate-profile-identity-row">
-                <strong>Desktop ID</strong>
+                <strong>ECID</strong>
                 <span id="profileDrawerDesktopId">—</span>
               </div>
               <div class="donate-profile-identity-row">
-                <strong>Mobile ID</strong>
-                <span id="profileDrawerMobileId">Unknown</span>
+                <strong title="_demoemea.scoring.core.propensityScore">Propensity Score</strong>
+                <span id="profileDrawerPropensityScore">—</span>
               </div>
               <div class="donate-profile-identity-row">
-                <strong>Email Address</strong>
-                <span id="profileDrawerIdentityEmail">Unknown</span>
-              </div>
-              <div class="donate-profile-identity-row">
-                <strong>App UUID</strong>
-                <span id="profileDrawerAppUuid">Unknown</span>
-              </div>
-              <div class="donate-profile-identity-row">
-                <strong>CRM</strong>
-                <span id="profileDrawerCrm">Unknown</span>
+                <strong title="_demoemea.scoring.churn.churnPrediction">Churn Score</strong>
+                <span id="profileDrawerChurnScore">—</span>
               </div>
               <div class="donate-profile-identity-row">
                 <strong>Loyalty Status</strong>
@@ -271,6 +266,34 @@
               </div>
             </div>
           </section>
+        </div>
+      </div>
+      <div class="donate-profile-col donate-profile-col--stacked-panel">
+        <h2>AUDIENCES</h2>
+        <ul class="donate-profile-audiences" id="profileDrawerAudiences">
+          <li>No audience membership loaded</li>
+        </ul>
+      </div>
+      <div class="donate-profile-col donate-profile-col--stacked-panel">
+        <div class="donate-profile-message-sent-heading-row">
+          <h2>MESSAGES SENT</h2>
+          <p class="donate-profile-email-sends-subheading">(last 24 hours)</p>
+        </div>
+        <div class="donate-profile-email-sends-body">
+          <p class="donate-profile-email-sends-count-row" aria-live="polite">
+            <span class="donate-profile-email-sends-count" id="profileDrawerMessageSentValue">—</span>
+            <span class="donate-profile-email-sends-unit" id="profileDrawerMessageSentUnit"></span>
+          </p>
+          <p class="donate-profile-email-sends-count-row donate-profile-push-sends-row" id="profileDrawerPushSendsRow" hidden aria-live="polite">
+            <span class="donate-profile-email-sends-count" id="profileDrawerPushSentValue"></span>
+            <span class="donate-profile-email-sends-unit" id="profileDrawerPushSentUnit"></span>
+          </p>
+        </div>
+      </div>
+      <div class="donate-profile-col">
+        <h2>LAST 5 EVENTS</h2>
+        <div class="donate-profile-events" id="profileDrawerEvents">
+          <p>No events loaded</p>
         </div>
       </div>
       <div class="donate-profile-col donate-profile-col--graph" aria-label="Identity graph">
@@ -291,24 +314,14 @@
           ></svg>
         </div>
       </div>
-      <div class="donate-profile-col">
-        <h2>Audiences</h2>
-        <ul class="donate-profile-audiences" id="profileDrawerAudiences">
-          <li>No audience membership loaded</li>
-        </ul>
-      </div>
-      <div class="donate-profile-col">
-        <h2>Last 5 events</h2>
-        <div class="donate-profile-events" id="profileDrawerEvents">
-          <p>No events loaded</p>
-        </div>
-      </div>
     </div>
   </aside>
 
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="demo-profile-drawer.js"></script>
   <script src="donate-demo.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260406"></script>

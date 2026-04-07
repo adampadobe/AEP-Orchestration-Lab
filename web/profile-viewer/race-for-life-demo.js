@@ -102,26 +102,8 @@ queryProfileBtn &&
       return;
     }
     setRaceMessage('Looking up profile...', '');
-    try {
-      const rNs = typeof AepIdentityPicker !== 'undefined' ? AepIdentityPicker.getNamespace('customerEmail') : 'email';
-      const res = await fetch('/api/profile/consent?identifier=' + encodeURIComponent(email) + '&namespace=' + encodeURIComponent(rNs) + getSandboxParam());
-      const data = await res.json();
-      if (!res.ok) {
-        setRaceMessage(data.error || 'Profile request failed.', 'error');
-        return;
-      }
-      if (typeof addEmail === 'function') addEmail(email);
-      const ecidVal =
-        data.ecid == null ? '' : Array.isArray(data.ecid) ? (data.ecid[0] != null ? String(data.ecid[0]) : '') : String(data.ecid);
-      if (infoEcid) infoEcid.textContent = ecidVal && ecidVal.length >= 10 ? ecidVal : '-';
-      setRaceMessage(
-        data.found ? 'Profile found. ECID will be sent with the event if valid.' : 'No profile found; event can still be sent (no ECID).',
-        'success',
-      );
-      scheduleAutoAbandonAfterLookup();
-    } catch (err) {
-      setRaceMessage(err.message || 'Network error', 'error');
-    }
+    await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    scheduleAutoAbandonAfterLookup();
   });
 
 /** @returns {Promise<boolean>} true if the event was accepted by the generator API */
@@ -275,3 +257,12 @@ loadGeneratorTargets();
   });
   setFlyoutOpen(false);
 })();
+
+DemoProfileDrawer.init({
+  emailInputId: 'customerEmail',
+  profileOpenClass: 'race-page--profile-open',
+  viewName: 'Race for Life',
+  emailGetter: getEmail,
+  messageSetter: setRaceMessage,
+  getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+});
