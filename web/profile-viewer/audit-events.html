@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Events – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260406">
+  <link rel="stylesheet" href="audit-events.css?v=20260407">
+  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+</head>
+<body class="audit-events-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Adobe Experience Platform Audit API">AEP Audit</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/audits/overview.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main audit-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingAudit">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingAudit" class="dashboard-hero-title">Audit Events</h2>
+              <p class="dashboard-hero-subtitle">
+                Monitor and analyse audit logs from Adobe Experience Platform. Filter by action type, date range, and sandbox.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="audit-panel">
+          <div class="audit-controls">
+            <div class="audit-controls-row">
+              <div class="audit-field">
+                <label for="sandboxSelect">Sandbox</label>
+                <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox"></select>
+              </div>
+              <div class="audit-field">
+                <label for="actionFilter">Action type</label>
+                <select id="actionFilter">
+                  <option value="">All actions</option>
+                  <option value="Create">Create</option>
+                  <option value="Update">Update</option>
+                  <option value="Delete">Delete</option>
+                  <option value="Read">Read</option>
+                </select>
+              </div>
+              <div class="audit-field">
+                <label for="startTime">Start time</label>
+                <input type="datetime-local" id="startTime">
+              </div>
+              <div class="audit-field">
+                <label for="endTime">End time</label>
+                <input type="datetime-local" id="endTime">
+              </div>
+              <div class="audit-field audit-field--btn">
+                <button type="button" id="fetchBtn" class="audit-btn audit-btn--primary">Fetch events</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="audit-config">
+            <div class="audit-config-row">
+              <div class="audit-field audit-field--slider">
+                <label for="limitSlider">API limit: <strong id="limitValue">50</strong> events</label>
+                <input type="range" id="limitSlider" min="1" max="1000" value="50" class="audit-slider">
+                <div class="audit-slider-labels"><span>1</span><span>1000</span></div>
+              </div>
+              <div class="audit-field">
+                <label for="eventsPerPage">Events per page</label>
+                <select id="eventsPerPage">
+                  <option value="25">25</option>
+                  <option value="50" selected>50</option>
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="audit-status-bar">
+            <div class="audit-status-item">
+              <span class="audit-status-dot" id="apiStatus"></span>
+              <span>API</span>
+            </div>
+            <span class="audit-status-text" id="lastFetch">Not fetched yet</span>
+            <span class="audit-status-text" id="eventCount">0 events</span>
+          </div>
+
+          <div class="audit-results">
+            <div class="audit-results-header">
+              <h3 class="audit-results-title">Audit Events</h3>
+              <div class="audit-pagination" id="pagination" hidden>
+                <button type="button" id="prevBtn" disabled>&laquo; Previous</button>
+                <span id="pageInfo">Page 1 of 1</span>
+                <button type="button" id="nextBtn" disabled>Next &raquo;</button>
+              </div>
+            </div>
+            <div id="loadingIndicator" class="audit-loading" hidden>
+              <span class="audit-spinner"></span> Fetching audit events…
+            </div>
+            <div id="errorBox" class="audit-error" hidden></div>
+            <div id="noEventsBox" class="audit-no-events" hidden>No audit events found for this query.</div>
+            <table class="audit-table" id="eventsTable" hidden>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Timestamp</th>
+                  <th>User</th>
+                  <th>Resource</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody id="eventsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="aep-global-sandbox.js"></script>
+  <script src="audit-events.js?v=20260407"></script>
+  <script defer src="aep-theme.js?v=20260406"></script>
+  <script defer src="aep-lab-nav.js?v=20260407"></script>
+</body>
+</html>
