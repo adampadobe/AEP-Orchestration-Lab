@@ -2,13 +2,8 @@
 
 [hidden] { display: none !important; }
 
-.audit-main {
-  padding: 0 0 2rem;
-}
-
-/* Controls strip */
 .audit-panel {
-  padding: 0 2rem;
+  padding: 0;
 }
 
 .audit-controls,
