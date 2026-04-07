@@ -3,7 +3,7 @@ const admin = require('firebase-admin');
 const AUDIT_API_BASE = 'https://platform.adobe.io/data/foundation/audit/events';
 const COLLECTION = 'auditEventsCache';
 const PAGE_LIMIT = 100;
-const MAX_PAGES = 50;
+const MAX_PAGES = 10;
 
 let db;
 function getDb() {
@@ -14,29 +14,25 @@ function getDb() {
   return db;
 }
 
-function cacheDocId(sandbox, startISO, endISO) {
-  const raw = `${sandbox || 'default'}_${startISO}_${endISO}`;
-  return raw.replace(/[\/\*\~\[\]]/g, '_').slice(0, 1500);
+function dayDocId(sandbox, dayISO) {
+  return `${sandbox || 'default'}_day_${dayISO}`.replace(/[\/\*\~\[\]]/g, '_').slice(0, 1500);
 }
 
-function ttlForRange(endISO) {
-  const endDate = new Date(endISO);
-  const now = new Date();
-  const endDay = endDate.toISOString().slice(0, 10);
-  const today = now.toISOString().slice(0, 10);
-  if (endDay >= today) return 5 * 60 * 1000;
+function ttlForDay(dayISO) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (dayISO >= today) return 5 * 60 * 1000;
   return 60 * 60 * 1000;
 }
 
-async function getCachedEvents(sandbox, startISO, endISO) {
+async function getCachedDay(sandbox, dayISO) {
   try {
-    const docId = cacheDocId(sandbox, startISO, endISO);
+    const docId = dayDocId(sandbox, dayISO);
     const snap = await getDb().collection(COLLECTION).doc(docId).get();
     if (!snap.exists) return null;
     const data = snap.data();
     const age = Date.now() - (data.fetchedAtMs || 0);
     if (age > (data.ttlMs || 0)) return null;
-    return data;
+    return data.events || [];
   } catch {
     return null;
   }
@@ -55,62 +51,39 @@ function slimEvent(ev) {
   };
 }
 
-async function setCachedEvents(sandbox, startISO, endISO, events, total) {
+async function setCachedDay(sandbox, dayISO, events) {
   try {
-    const docId = cacheDocId(sandbox, startISO, endISO);
-    const ttlMs = ttlForRange(endISO);
+    const docId = dayDocId(sandbox, dayISO);
     const slim = events.map(slimEvent);
     const payload = JSON.stringify(slim);
     if (payload.length > 900000) return;
     await getDb().collection(COLLECTION).doc(docId).set({
       events: slim,
-      total,
+      total: slim.length,
       fetchedAtMs: Date.now(),
       fetchedAt: admin.firestore.FieldValue.serverTimestamp(),
-      ttlMs,
+      ttlMs: ttlForDay(dayISO),
       sandbox: sandbox || 'default',
-      startISO,
-      endISO,
+      dayISO,
     });
   } catch { /* non-fatal */ }
 }
 
 /**
- * Paginate through the AEP Audit Events API and return all events in the range.
- *
- * @param {object} opts
- * @param {string} opts.token    - Adobe access token
- * @param {string} opts.clientId - x-api-key
- * @param {string} opts.orgId   - x-gw-ims-org-id
- * @param {string} opts.sandbox - x-sandbox-name
- * @param {string} opts.startISO - ISO start timestamp
- * @param {string} opts.endISO   - ISO end timestamp
- * @param {string} [opts.action] - optional action filter
- * @param {function} [opts.onPage] - optional callback(pageNum, eventsSoFar) for progress
- * @returns {Promise<{ events: Array, total: number, pages: number, capped: boolean }>}
+ * Paginate through ALL events for a single day (bypasses the 1000 per-query cap).
  */
-async function fetchAllAuditEvents({ token, clientId, orgId, sandbox, startISO, endISO, action, onPage }) {
-  const headers = {
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-    'x-api-key': clientId,
-    'x-gw-ims-org-id': orgId,
-    'x-sandbox-name': sandbox || 'prod',
-  };
-
+async function fetchDayEvents(headers, dayStart, dayEnd, action) {
   const allEvents = [];
   let offset = 0;
-  let pageNum = 0;
-  let capped = false;
   let queryId = null;
 
-  for (; pageNum < MAX_PAGES; pageNum++) {
+  for (let page = 0; page < MAX_PAGES; page++) {
     const params = new URLSearchParams();
     params.set('limit', String(PAGE_LIMIT));
     params.set('start', String(offset));
     if (queryId) params.set('queryId', queryId);
-    if (startISO) params.append('property', `timestamp>=${startISO}`);
-    if (endISO) params.append('property', `timestamp<=${endISO}`);
+    params.append('property', `timestamp>=${dayStart}`);
+    params.append('property', `timestamp<=${dayEnd}`);
     if (action) params.append('property', `action==${action}`);
 
     const url = `${AUDIT_API_BASE}?${params.toString()}`;
@@ -124,56 +97,88 @@ async function fetchAllAuditEvents({ token, clientId, orgId, sandbox, startISO, 
 
     if (data.queryId) queryId = data.queryId;
 
-    const embedded = data._embedded || data;
-    const batch = embedded.events || [];
+    const batch = (data._embedded || data).events || [];
     allEvents.push(...batch);
 
-    if (onPage) onPage(pageNum + 1, allEvents.length);
-
-    const pageInfo = data.page || {};
-    const totalElements = pageInfo.totalElements;
+    const totalElements = (data.page || {}).totalElements;
     if (batch.length < PAGE_LIMIT) break;
     if (totalElements && allEvents.length >= totalElements) break;
     offset += PAGE_LIMIT;
   }
 
-  if (pageNum >= MAX_PAGES) capped = true;
-
-  return { events: allEvents, total: allEvents.length, pages: pageNum + 1, capped };
+  return allEvents;
 }
 
 /**
- * Main entry point: check cache, paginate if needed, cache result.
+ * Split the overall date range into individual calendar days.
+ */
+function dayChunks(startISO, endISO) {
+  const chunks = [];
+  const end = new Date(endISO);
+  let cursor = new Date(startISO);
+  cursor.setUTCHours(0, 0, 0, 0);
+
+  while (cursor <= end) {
+    const dayISO = cursor.toISOString().slice(0, 10);
+    const dayStart = dayISO + 'T00:00:00.000Z';
+    const dayEnd = dayISO + 'T23:59:59.999Z';
+    chunks.push({ dayISO, dayStart, dayEnd: dayEnd < endISO ? dayEnd : endISO });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return chunks;
+}
+
+/**
+ * Main entry point: fetch all events across the full date range by
+ * chunking into daily windows, with per-day caching.
  */
 async function getAuditEvents({ token, clientId, orgId, sandbox, startISO, endISO, action, skipCache }) {
-  if (!skipCache && !action) {
-    const cached = await getCachedEvents(sandbox, startISO, endISO);
-    if (cached) {
-      return {
-        events: cached.events || [],
-        total: cached.total || 0,
-        fetchedAt: new Date(cached.fetchedAtMs).toISOString(),
-        cached: true,
-        pages: 0,
-        capped: false,
-      };
+  const headers = {
+    Accept: 'application/json',
+    Authorization: `Bearer ${token}`,
+    'x-api-key': clientId,
+    'x-gw-ims-org-id': orgId,
+    'x-sandbox-name': sandbox || 'prod',
+  };
+
+  const days = dayChunks(startISO, endISO);
+  const allEvents = [];
+  let totalPages = 0;
+  let daysCached = 0;
+  let daysFetched = 0;
+
+  for (const { dayISO, dayStart, dayEnd } of days) {
+    if (!skipCache && !action) {
+      const cached = await getCachedDay(sandbox, dayISO);
+      if (cached) {
+        allEvents.push(...cached);
+        daysCached++;
+        continue;
+      }
+    }
+
+    const dayEvents = await fetchDayEvents(headers, dayStart, dayEnd, action);
+    allEvents.push(...dayEvents);
+    daysFetched++;
+    totalPages++;
+
+    if (!action) {
+      setCachedDay(sandbox, dayISO, dayEvents).catch(() => {});
     }
   }
 
-  const result = await fetchAllAuditEvents({ token, clientId, orgId, sandbox, startISO, endISO, action });
-
-  if (!action) {
-    setCachedEvents(sandbox, startISO, endISO, result.events, result.total).catch(() => {});
-  }
-
   return {
-    events: result.events,
-    total: result.total,
+    events: allEvents,
+    total: allEvents.length,
     fetchedAt: new Date().toISOString(),
-    cached: false,
-    pages: result.pages,
-    capped: result.capped,
+    cached: daysFetched === 0 && daysCached > 0,
+    pages: totalPages,
+    days: days.length,
+    daysCached,
+    daysFetched,
+    capped: false,
   };
 }
 
-module.exports = { getAuditEvents, fetchAllAuditEvents };
+module.exports = { getAuditEvents };

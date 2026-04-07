@@ -219,8 +219,11 @@
   function updateStatus(json) {
     dom.eventCount.textContent = allEvents.length + ' event' + (allEvents.length !== 1 ? 's' : '');
     var timeStr = json.fetchedAt ? new Date(json.fetchedAt).toLocaleTimeString() : new Date().toLocaleTimeString();
-    var pagesStr = json.pages ? ' (' + json.pages + ' page' + (json.pages !== 1 ? 's' : '') + ')' : '';
-    dom.lastFetch.textContent = 'Fetched ' + timeStr + pagesStr;
+    var parts = [];
+    if (json.days) parts.push(json.days + ' day' + (json.days !== 1 ? 's' : ''));
+    if (json.daysCached) parts.push(json.daysCached + ' cached');
+    var detail = parts.length ? ' (' + parts.join(', ') + ')' : '';
+    dom.lastFetch.textContent = 'Fetched ' + timeStr + detail;
     dom.cachedBadge.hidden = !json.cached;
     dom.cappedBadge.hidden = !json.capped;
   }
