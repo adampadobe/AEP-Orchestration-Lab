@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260407">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260407f">
+  <link rel="stylesheet" href="event-tool.css?v=20260407g">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="event-generator-page profile-generation-page home-dashboard-concierge">
@@ -43,55 +43,48 @@
           </div>
         </section>
 
+        <!-- ═══════════ Query profile (sandbox + identity) ═══════════ -->
+        <section class="consent-panel" id="lookupPanel">
+          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">✦</span> Query profile</h2>
+          <p class="panel-desc">Select a <strong>sandbox</strong> and <strong>identity namespace</strong>, enter the identifier, then click <strong>Query profile</strong> to resolve the ECID for event sending.</p>
+          <div class="profile-gen-config">
+            <div class="config-row">
+              <div class="form-row profile-viewer-sandbox-row">
+                <label for="sandboxSelect">Sandbox</label>
+                <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox">
+                  <option value="">Loading sandboxes…</option>
+                </select>
+              </div>
+              <div class="form-row profile-viewer-ns-row">
+                <label for="etNamespace">Namespace</label>
+                <select id="etNamespace" class="sandbox-select" aria-label="Identity namespace">
+                  <option value="email">Email</option>
+                  <option value="ecid">ECID</option>
+                  <option value="crmId">CRM ID</option>
+                  <option value="loyaltyId">Loyalty ID</option>
+                  <option value="phone">Phone</option>
+                </select>
+              </div>
+              <div class="form-row profile-viewer-email-row">
+                <label for="etIdentifier">Identifier value</label>
+                <input type="text" id="etIdentifier" placeholder="Enter email address" autocomplete="off">
+              </div>
+              <div class="form-row form-row--action profile-gen-actions">
+                <button type="button" id="etQueryBtn" class="btn btn-primary btn-query">Query profile</button>
+              </div>
+            </div>
+          </div>
+          <div id="etProfileMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+          <div class="info-grid event-gen-info-grid" id="etProfileInfo" hidden>
+            <div class="info-row"><span class="info-label">Email</span><span id="etInfoEmail" class="info-value">—</span></div>
+            <div class="info-row"><span class="info-label">First name</span><span id="etInfoFirst" class="info-value">—</span></div>
+            <div class="info-row"><span class="info-label">Last name</span><span id="etInfoLast" class="info-value">—</span></div>
+            <div class="info-row"><span class="info-label">ECID</span><span id="etInfoEcid" class="info-value">—</span></div>
+          </div>
+        </section>
+
         <section class="consent-panel" id="eventToolPanel">
           <div class="profile-gen-boxes">
-
-            <!-- ═══════════ Sandbox ═══════════ -->
-            <div class="profile-box et-full-width">
-              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Sandbox</h3>
-              <div class="profile-box-content">
-                <div class="form-row et-sandbox-row">
-                  <label for="sandboxSelect">Active sandbox</label>
-                  <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox">
-                    <option value="">Loading sandboxes…</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <!-- ═══════════ Identity ═══════════ -->
-            <div class="profile-box profile-box--customer">
-              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Identity</h3>
-              <p class="field-hint event-gen-box-intro">Enter an identifier to resolve the profile's ECID for the event.</p>
-              <div class="profile-box-content">
-                <div class="config-row">
-                  <div class="form-row">
-                    <label for="etNamespace">Namespace</label>
-                    <select id="etNamespace" class="sandbox-select" aria-label="Identity namespace">
-                      <option value="email">Email</option>
-                      <option value="ecid">ECID</option>
-                      <option value="crmId">CRM ID</option>
-                      <option value="loyaltyId">Loyalty ID</option>
-                      <option value="phone">Phone</option>
-                    </select>
-                  </div>
-                  <div class="form-row event-gen-customer-email-row">
-                    <label for="etIdentifier">Identifier</label>
-                    <input type="text" id="etIdentifier" placeholder="Enter email address" autocomplete="off" size="40">
-                  </div>
-                  <div class="form-row form-row--action profile-gen-actions">
-                    <button type="button" id="etQueryBtn" class="btn btn-secondary">Query profile</button>
-                  </div>
-                </div>
-                <div id="etProfileMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
-                <div class="info-grid event-gen-info-grid" id="etProfileInfo" hidden>
-                  <div class="info-row"><span class="info-label">Email</span><span id="etInfoEmail" class="info-value">—</span></div>
-                  <div class="info-row"><span class="info-label">First name</span><span id="etInfoFirst" class="info-value">—</span></div>
-                  <div class="info-row"><span class="info-label">Last name</span><span id="etInfoLast" class="info-value">—</span></div>
-                  <div class="info-row"><span class="info-label">ECID</span><span id="etInfoEcid" class="info-value">—</span></div>
-                </div>
-              </div>
-            </div>
 
             <!-- ═══════════ Configuration (collapsible) ═══════════ -->
             <details class="profile-box et-full-width et-config-details" id="etConfigDetails" open>
@@ -230,7 +223,7 @@
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="event-tool.js?v=20260407f"></script>
+  <script src="event-tool.js?v=20260407g"></script>
   <script defer src="aep-theme.js?v=20260407"></script>
   <script defer src="aep-lab-nav.js?v=20260407"></script>
 </body>

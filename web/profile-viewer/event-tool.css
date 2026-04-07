@@ -2,9 +2,6 @@
 
 [hidden] { display: none !important; }
 
-/* ── Sandbox row ── */
-.et-sandbox-row { max-width: 28rem; }
-
 /* ── Collapsible config panel ── */
 .et-config-details {
   border-radius: var(--card-radius, 12px);
