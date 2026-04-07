@@ -46,7 +46,15 @@
     channel:          document.getElementById('etChannel'),
 
     sendBtn:          document.getElementById('etSendBtn'),
+    previewBtn:       document.getElementById('etPreviewBtn'),
     sendMsg:          document.getElementById('etSendMsg'),
+    previewPanel:     document.getElementById('etPreviewPanel'),
+    previewHeader:    document.getElementById('etPreviewHeader'),
+    previewTitle:     document.getElementById('etPreviewTitle'),
+    previewMeta:      document.getElementById('etPreviewMeta'),
+    previewMinBtn:    document.getElementById('etPreviewMinBtn'),
+    previewNote:      document.getElementById('etPreviewNote'),
+    previewPre:       document.getElementById('etPreviewPre'),
   };
 
   /* ── State ── */
@@ -463,43 +471,154 @@
 
   dom.triggerType.addEventListener('change', updateTriggerDesc);
 
+  /* ═══════════ Build request body ═══════════ */
+
+  function buildRequestBody() {
+    const dsId = (dom.dsInput.value || '').trim();
+    if (!dsId) return { error: 'Set a Datastream ID in Configuration first.' };
+    const email = resolvedEmail || (dom.identifier.value || '').trim();
+    if (!email) return { error: 'Enter an identifier first.' };
+
+    const body = { datastreamId: dsId, email };
+    if (resolvedEcid && resolvedEcid !== '—' && /^\d+$/.test(resolvedEcid) && resolvedEcid.length >= 10) {
+      body.ecid = resolvedEcid;
+    }
+
+    if (activeMode === 'trigger') {
+      const key = dom.triggerType.value;
+      if (!key) return { error: 'Select an event type.' };
+      const tpl = triggerTemplates[key];
+      if (tpl && tpl.payload) {
+        body.triggerTemplate = tpl.payload;
+      }
+      body.eventType = key;
+    } else {
+      body.eventType = (dom.eventType.value || '').trim() || 'transaction';
+      const orchId = (dom.orchId.value || '').trim();
+      if (orchId) body.eventID = orchId;
+      const vn = (dom.viewName.value || '').trim();
+      const vu = (dom.viewUrl.value || '').trim();
+      if (vn) body.viewName = vn;
+      if (vu) body.viewUrl = vu;
+      const ch = (dom.channel.value || '').trim();
+      if (ch) body.channel = ch;
+    }
+    return { body };
+  }
+
+  function buildPreviewXdm(body) {
+    var now = new Date().toISOString();
+    var _id = String(Date.now());
+    var eventType = body.eventType || 'transaction';
+    var email = body.email || '';
+    var ecid = body.ecid || '';
+
+    if (body.triggerTemplate) {
+      var tpl = JSON.parse(JSON.stringify(body.triggerTemplate));
+      var replacements = { ecid: ecid, email: email, _id: 'trigger-' + Date.now(), timestamp: now, eventType: eventType };
+      (function replace(obj) {
+        if (!obj || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) { obj.forEach(function (v, i) { obj[i] = replace(v); }); return obj; }
+        for (var k of Object.keys(obj)) {
+          if (typeof obj[k] === 'string') {
+            for (var rk in replacements) { obj[k] = obj[k].replace(new RegExp('\\{\\{' + rk + '\\}\\}', 'g'), String(replacements[rk])); }
+          } else if (typeof obj[k] === 'object') { replace(obj[k]); }
+        }
+        return obj;
+      })(tpl);
+      if (tpl.event && tpl.event.xdm) {
+        tpl.event.xdm.identityMap = {};
+        if (ecid) tpl.event.xdm.identityMap.ECID = [{ id: ecid, primary: true }];
+        if (email) tpl.event.xdm.identityMap.Email = [{ id: email, primary: !ecid }];
+      }
+      return { endpoint: 'POST https://server.adobedc.net/ee/v2/interact?dataStreamId=' + body.datastreamId, payload: tpl };
+    }
+
+    var identityMap = {};
+    if (ecid) identityMap.ECID = [{ id: ecid, primary: true }];
+    if (email) identityMap.Email = [{ id: email, primary: !ecid }];
+
+    var xdm = {
+      identityMap: identityMap,
+      _id: _id,
+      eventType: eventType,
+      timestamp: now,
+      _experience: { campaign: { orchestration: { eventID: body.eventID || '' } } },
+    };
+    if (body.viewName || body.viewUrl) {
+      xdm.web = { webPageDetails: { URL: body.viewUrl || '', name: body.viewName || '', viewName: body.viewName || '' } };
+    }
+
+    return {
+      endpoint: 'POST https://server.adobedc.net/ee/v2/interact?dataStreamId=' + body.datastreamId,
+      payload: { event: { xdm: xdm } },
+    };
+  }
+
+  /* ═══════════ Preview payload ═══════════ */
+
+  function setPreviewMinimized(min) {
+    if (!dom.previewPanel) return;
+    dom.previewPanel.classList.toggle('consent-preview-panel--minimized', min);
+    if (dom.previewHeader) dom.previewHeader.setAttribute('aria-expanded', String(!min));
+    if (dom.previewMinBtn) {
+      dom.previewMinBtn.textContent = min ? 'Expand' : 'Minimize';
+      dom.previewMinBtn.title = min ? 'Expand payload preview' : 'Collapse payload preview';
+    }
+    if (dom.previewTitle) dom.previewTitle.textContent = min ? 'Edge payload preview (collapsed)' : 'Edge payload preview';
+    if (dom.previewMeta) {
+      dom.previewMeta.setAttribute('aria-hidden', min ? 'false' : 'true');
+      if (min) {
+        var json = (dom.previewPre && dom.previewPre.textContent) || '';
+        var bytes = json.length;
+        try { bytes = new TextEncoder().encode(json).length; } catch {}
+        dom.previewMeta.textContent = (bytes / 1024).toFixed(1) + ' KB';
+      } else {
+        dom.previewMeta.textContent = '';
+      }
+    }
+  }
+
+  function togglePreview() {
+    if (!dom.previewPanel || dom.previewPanel.hidden) return;
+    setPreviewMinimized(!dom.previewPanel.classList.contains('consent-preview-panel--minimized'));
+  }
+
+  if (dom.previewHeader) {
+    dom.previewHeader.addEventListener('click', function (e) { if (!e.target.closest('#etPreviewMinBtn')) togglePreview(); });
+    dom.previewHeader.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (e.target.closest('#etPreviewMinBtn')) return;
+      e.preventDefault();
+      togglePreview();
+    });
+  }
+  if (dom.previewMinBtn) dom.previewMinBtn.addEventListener('click', function (e) { e.stopPropagation(); togglePreview(); });
+
+  dom.previewBtn.addEventListener('click', function () {
+    var result = buildRequestBody();
+    if (result.error) { setMsg(dom.sendMsg, result.error, 'error'); return; }
+    var preview = buildPreviewXdm(result.body);
+    if (dom.previewPanel && dom.previewNote && dom.previewPre) {
+      dom.previewPanel.hidden = false;
+      setPreviewMinimized(false);
+      dom.previewNote.textContent = preview.endpoint;
+      dom.previewPre.textContent = JSON.stringify(preview.payload, null, 2);
+    }
+    setMsg(dom.sendMsg, 'Payload preview loaded below — this is what will be sent to the Edge Network.', 'success');
+  });
+
   /* ═══════════ Send event ═══════════ */
 
   dom.sendBtn.addEventListener('click', async () => {
-    const dsId = (dom.dsInput.value || '').trim();
-    if (!dsId) { setMsg(dom.sendMsg, 'Set a Datastream ID in Configuration first.', 'error'); return; }
-    const email = resolvedEmail || (dom.identifier.value || '').trim();
-    if (!email) { setMsg(dom.sendMsg, 'Enter an identifier first.', 'error'); return; }
+    var result = buildRequestBody();
+    if (result.error) { setMsg(dom.sendMsg, result.error, 'error'); return; }
+    var body = result.body;
 
     dom.sendBtn.disabled = true;
     setMsg(dom.sendMsg, 'Sending…', '');
 
     try {
-      const body = { datastreamId: dsId, email };
-      if (resolvedEcid && resolvedEcid !== '—' && /^\d+$/.test(resolvedEcid) && resolvedEcid.length >= 10) {
-        body.ecid = resolvedEcid;
-      }
-
-      if (activeMode === 'trigger') {
-        const key = dom.triggerType.value;
-        if (!key) { setMsg(dom.sendMsg, 'Select an event type.', 'error'); return; }
-        const tpl = triggerTemplates[key];
-        if (tpl && tpl.payload) {
-          body.triggerTemplate = tpl.payload;
-        }
-        body.eventType = key;
-      } else {
-        body.eventType = (dom.eventType.value || '').trim() || 'transaction';
-        const orchId = (dom.orchId.value || '').trim();
-        if (orchId) body.eventID = orchId;
-        const vn = (dom.viewName.value || '').trim();
-        const vu = (dom.viewUrl.value || '').trim();
-        if (vn) body.viewName = vn;
-        if (vu) body.viewUrl = vu;
-        const ch = (dom.channel.value || '').trim();
-        if (ch) body.channel = ch;
-      }
-
       const res = await fetch('/api/events/edge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

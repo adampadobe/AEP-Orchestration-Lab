@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260407">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260407n">
+  <link rel="stylesheet" href="event-tool.css?v=20260407p">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="event-generator-page profile-generation-page home-dashboard-concierge">
@@ -204,8 +204,24 @@
 
                 <div class="button-row event-gen-send-actions">
                   <button type="button" id="etSendBtn" class="btn btn-primary btn-save">Send event</button>
+                  <button type="button" id="etPreviewBtn" class="btn btn-secondary">Preview payload</button>
                 </div>
                 <div id="etSendMsg" class="consent-message" role="status" aria-live="polite" hidden></div>
+
+                <div id="etPreviewPanel" class="consent-preview-panel" hidden>
+                  <div class="consent-preview-panel__header" id="etPreviewHeader" role="button" tabindex="0" aria-expanded="true" aria-controls="etPreviewCollapse">
+                    <span class="consent-preview-panel__chevron" id="etPreviewChevron" aria-hidden="true">▼</span>
+                    <span class="consent-preview-panel__title" id="etPreviewTitle">Edge payload preview</span>
+                    <span class="consent-preview-panel__meta" id="etPreviewMeta" aria-hidden="true"></span>
+                    <div class="consent-preview-panel__header-actions">
+                      <button type="button" id="etPreviewMinBtn" class="btn consent-preview-panel__min-btn" title="Minimize preview">Minimize</button>
+                    </div>
+                  </div>
+                  <div id="etPreviewCollapse" class="consent-preview-panel__collapse">
+                    <p id="etPreviewNote" class="consent-preview-panel__note"></p>
+                    <pre id="etPreviewPre" class="consent-preview-panel__pre" spellcheck="false"></pre>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -217,7 +233,7 @@
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="event-tool.js?v=20260407n"></script>
+  <script src="event-tool.js?v=20260407p"></script>
   <script defer src="aep-theme.js?v=20260407"></script>
   <script defer src="aep-lab-nav.js?v=20260407"></script>
 </body>
