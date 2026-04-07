@@ -39,6 +39,10 @@
     customMode:       document.getElementById('etCustomMode'),
     triggerType:      document.getElementById('etTriggerType'),
     triggerDesc:      document.getElementById('etTriggerDesc'),
+    removeTriggerBtn: document.getElementById('etRemoveTriggerBtn'),
+    schemaTypesPanel: document.getElementById('etSchemaTypesPanel'),
+    schemaTypesCount: document.getElementById('etSchemaTypesCount'),
+    schemaTypesList:  document.getElementById('etSchemaTypesList'),
     eventType:        document.getElementById('etEventType'),
     orchId:           document.getElementById('etOrchId'),
     viewName:         document.getElementById('etViewName'),
@@ -60,6 +64,7 @@
   /* ── State ── */
   let triggerTemplates = {};
   let schemaEventTypes = [];
+  let customTriggers = [];
   let resolvedEcid = '';
   let resolvedEmail = '';
   let activeMode = 'trigger';
@@ -120,6 +125,8 @@
         if (data.record.datastreamId) dom.dsInput.value = data.record.datastreamId;
         if (data.record.schemaTitle) dom.schemaTitle.value = data.record.schemaTitle;
         if (data.record.datasetName) dom.datasetName.value = data.record.datasetName;
+        customTriggers = Array.isArray(data.record.customTriggers) ? data.record.customTriggers : [];
+        rebuildTriggerSelect();
         if (data.record.datastreamId) {
           collapseConfig();
           setMsg(dom.infraMsg, 'Configuration loaded from Firebase.', 'success');
@@ -200,29 +207,132 @@
       hint.textContent = schemaEventTypes.length + ' event types loaded from schema — select or type your own.';
       hint.hidden = false;
     }
-    populateTriggerSelectWithSchema();
+    rebuildTriggerSelect();
   }
 
-  function populateTriggerSelectWithSchema() {
+  function rebuildTriggerSelect() {
     if (!dom.triggerType) return;
-    const existing = dom.triggerType.querySelector('optgroup[data-schema]');
-    if (existing) existing.remove();
-    if (schemaEventTypes.length === 0) return;
+    var prev = dom.triggerType.value;
+    dom.triggerType.innerHTML = '';
 
-    const templateKeys = new Set(Object.keys(triggerTemplates));
-    const schemaOnly = schemaEventTypes.filter(function (et) { return !templateKeys.has(et.value); });
-    if (schemaOnly.length === 0) return;
-
-    const group = document.createElement('optgroup');
-    group.label = 'From schema';
-    group.dataset.schema = '1';
-    schemaOnly.forEach(function (et) {
-      const opt = document.createElement('option');
-      opt.value = et.value;
-      opt.textContent = et.label && et.label !== et.value ? et.value + ' — ' + et.label : et.value;
-      group.appendChild(opt);
+    var templateKeys = Object.keys(triggerTemplates).filter(function (k) {
+      return typeof triggerTemplates[k] === 'object' && triggerTemplates[k].payload;
     });
-    dom.triggerType.appendChild(group);
+
+    if (templateKeys.length > 0) {
+      var tplGroup = document.createElement('optgroup');
+      tplGroup.label = 'Templates';
+      templateKeys.forEach(function (k) {
+        var opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = k;
+        tplGroup.appendChild(opt);
+      });
+      dom.triggerType.appendChild(tplGroup);
+    }
+
+    if (customTriggers.length > 0) {
+      var custGroup = document.createElement('optgroup');
+      custGroup.label = 'My triggers';
+      customTriggers.forEach(function (t) {
+        var val = typeof t === 'string' ? t : (t.value || t.eventType || '');
+        if (!val) return;
+        var opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        custGroup.appendChild(opt);
+      });
+      dom.triggerType.appendChild(custGroup);
+    }
+
+    if (dom.triggerType.options.length === 0) {
+      var empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = '— No triggers — add from schema below';
+      dom.triggerType.appendChild(empty);
+    }
+
+    if (prev && dom.triggerType.querySelector('option[value="' + CSS.escape(prev) + '"]')) {
+      dom.triggerType.value = prev;
+    }
+    updateTriggerDesc();
+    updateRemoveBtn();
+    populateSchemaTypesPanel();
+  }
+
+  function updateRemoveBtn() {
+    if (!dom.removeTriggerBtn) return;
+    var key = dom.triggerType.value;
+    var isCustom = customTriggers.some(function (t) { return (typeof t === 'string' ? t : t.value) === key; });
+    dom.removeTriggerBtn.hidden = !isCustom;
+  }
+
+  function populateSchemaTypesPanel() {
+    if (!dom.schemaTypesList) return;
+    dom.schemaTypesList.innerHTML = '';
+
+    var inSelect = new Set();
+    Object.keys(triggerTemplates).forEach(function (k) { inSelect.add(k); });
+    customTriggers.forEach(function (t) { inSelect.add(typeof t === 'string' ? t : t.value); });
+
+    var available = schemaEventTypes.filter(function (et) { return !inSelect.has(et.value); });
+
+    if (dom.schemaTypesCount) {
+      dom.schemaTypesCount.textContent = schemaEventTypes.length > 0
+        ? '(' + available.length + ' available of ' + schemaEventTypes.length + ')'
+        : '';
+    }
+
+    if (schemaEventTypes.length === 0) {
+      dom.schemaTypesList.innerHTML = '<p class="field-hint">No schema event types loaded yet. Save a schema name in Configuration and fetch config.</p>';
+      return;
+    }
+    if (available.length === 0) {
+      dom.schemaTypesList.innerHTML = '<p class="field-hint">All schema event types have been added to your triggers.</p>';
+      return;
+    }
+
+    available.forEach(function (et) {
+      var row = document.createElement('div');
+      row.className = 'et-schema-type-row';
+
+      var name = document.createElement('span');
+      name.className = 'et-schema-type-name';
+      name.textContent = et.value;
+      row.appendChild(name);
+
+      if (et.label && et.label !== et.value) {
+        var lbl = document.createElement('span');
+        lbl.className = 'et-schema-type-label';
+        lbl.textContent = et.label;
+        row.appendChild(lbl);
+      }
+
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'et-schema-type-add';
+      addBtn.textContent = '+ Add';
+      addBtn.addEventListener('click', function () { addCustomTrigger(et.value); });
+      row.appendChild(addBtn);
+
+      dom.schemaTypesList.appendChild(row);
+    });
+  }
+
+  function addCustomTrigger(eventType) {
+    if (customTriggers.some(function (t) { return (typeof t === 'string' ? t : t.value) === eventType; })) return;
+    customTriggers.push(eventType);
+    rebuildTriggerSelect();
+    dom.triggerType.value = eventType;
+    updateTriggerDesc();
+    updateRemoveBtn();
+    saveConfigField({ customTriggers: customTriggers });
+  }
+
+  function removeCustomTrigger(eventType) {
+    customTriggers = customTriggers.filter(function (t) { return (typeof t === 'string' ? t : t.value) !== eventType; });
+    rebuildTriggerSelect();
+    saveConfigField({ customTriggers: customTriggers });
   }
 
   /* ═══════════ Step 1 — Create Schema ═══════════ */
@@ -326,6 +436,8 @@
         if (r.schemaTitle) { dom.schemaTitle.value = r.schemaTitle; parts.push('Schema: ' + r.schemaTitle); }
         if (r.datasetName) { dom.datasetName.value = r.datasetName; parts.push('Dataset: ' + r.datasetName); }
         if (r.datastreamId) { dom.dsInput.value = r.datastreamId; parts.push('Datastream: ' + r.datastreamId); }
+        customTriggers = Array.isArray(r.customTriggers) ? r.customTriggers : [];
+        rebuildTriggerSelect();
         if (parts.length > 0) {
           setMsg(dom.infraMsg, 'Loaded from Firebase — ' + parts.join('  ·  '), 'success');
           if (r.schemaTitle) loadSchemaEventTypes(r.schemaTitle);
@@ -437,25 +549,7 @@
     } catch {
       triggerTemplates = {};
     }
-
-    const keys = Object.keys(triggerTemplates).filter(
-      (k) => typeof triggerTemplates[k] === 'object' && triggerTemplates[k].payload
-    );
-    dom.triggerType.innerHTML = '';
-    if (keys.length === 0) {
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = '— No templates —';
-      dom.triggerType.appendChild(opt);
-      return;
-    }
-    keys.forEach((k) => {
-      const opt = document.createElement('option');
-      opt.value = k;
-      opt.textContent = k;
-      dom.triggerType.appendChild(opt);
-    });
-    updateTriggerDesc();
+    rebuildTriggerSelect();
   }
 
   function updateTriggerDesc() {
@@ -463,13 +557,24 @@
     const tpl = triggerTemplates[key];
     if (tpl) {
       dom.triggerDesc.textContent = tpl.description || '';
-    } else {
+    } else if (key) {
       const et = schemaEventTypes.find(function (e) { return e.value === key; });
-      dom.triggerDesc.textContent = et && et.label && et.label !== et.value ? et.label : 'Schema event type — sends a generic XDM event.';
+      dom.triggerDesc.textContent = et && et.label && et.label !== et.value ? et.label : 'Sends a generic XDM event with this eventType.';
+    } else {
+      dom.triggerDesc.textContent = '';
     }
+    updateRemoveBtn();
   }
 
   dom.triggerType.addEventListener('change', updateTriggerDesc);
+
+  if (dom.removeTriggerBtn) {
+    dom.removeTriggerBtn.addEventListener('click', function () {
+      var key = dom.triggerType.value;
+      if (!key) return;
+      removeCustomTrigger(key);
+    });
+  }
 
   /* ═══════════ Build request body ═══════════ */
 
@@ -645,6 +750,8 @@
   function onSandboxChange() {
     resolvedEcid = '';
     resolvedEmail = '';
+    customTriggers = [];
+    schemaEventTypes = [];
     dom.dsInput.value = '';
     dom.profileInfo.hidden = true;
     setMsg(dom.profileMsg, '', '');
@@ -654,6 +761,7 @@
     setMsg(dom.infraMsg, '', '');
     setMsg(dom.sendMsg, '', '');
     if (dom.configBadge) dom.configBadge.hidden = true;
+    rebuildTriggerSelect();
     loadSavedConfig();
   }
 

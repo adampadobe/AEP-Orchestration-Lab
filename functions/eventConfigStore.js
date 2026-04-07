@@ -45,6 +45,10 @@ async function saveEventConfig(sandbox, patch) {
     const snap = await tx.get(ref);
     const prev = snap.exists && snap.data() ? snap.data() : {};
 
+    const customTriggers = patch.customTriggers !== undefined
+      ? (Array.isArray(patch.customTriggers) ? patch.customTriggers.slice(0, 200) : [])
+      : (Array.isArray(prev.customTriggers) ? prev.customTriggers : []);
+
     const merged = {
       sandbox: name,
       datastreamId: trim(
@@ -63,6 +67,7 @@ async function saveEventConfig(sandbox, patch) {
         patch.datasetName !== undefined ? patch.datasetName : prev.datasetName,
         256
       ),
+      customTriggers,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 

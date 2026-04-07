@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260407">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260407p">
+  <link rel="stylesheet" href="event-tool.css?v=20260407r">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="event-generator-page profile-generation-page home-dashboard-concierge">
@@ -172,8 +172,17 @@
                     <select id="etTriggerType" aria-label="Predefined event type">
                       <option value="">Loading templates…</option>
                     </select>
+                    <button type="button" id="etRemoveTriggerBtn" class="btn-icon btn-icon--remove" title="Remove selected trigger" hidden aria-label="Remove selected trigger">✕</button>
                   </div>
                   <div id="etTriggerDesc" class="field-hint" style="margin-bottom:0.75rem;"></div>
+
+                  <details id="etSchemaTypesPanel" class="et-schema-types-panel">
+                    <summary class="et-schema-types-summary">Schema event types <span id="etSchemaTypesCount" class="et-schema-types-count"></span></summary>
+                    <div class="et-schema-types-body">
+                      <p class="field-hint">Click <strong>+</strong> to add an event type to your quick triggers. Changes are saved to Firebase.</p>
+                      <div id="etSchemaTypesList" class="et-schema-types-list"></div>
+                    </div>
+                  </details>
                 </div>
 
                 <!-- Custom Event mode -->
@@ -233,7 +242,7 @@
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="event-tool.js?v=20260407q"></script>
+  <script src="event-tool.js?v=20260407r"></script>
   <script defer src="aep-theme.js?v=20260407"></script>
   <script defer src="aep-lab-nav.js?v=20260407"></script>
 </body>
