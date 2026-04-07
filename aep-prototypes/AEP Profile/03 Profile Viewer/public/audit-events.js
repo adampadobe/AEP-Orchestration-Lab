@@ -67,11 +67,11 @@
   }
 
   function showLoading(on) {
-    dom.loading.hidden  = !on;
-    dom.table.hidden    = on || true;
-    dom.noEvents.hidden = true;
+    dom.loading.hidden = !on;
     dom.errorBox.hidden = true;
     if (on) {
+      dom.table.hidden = true;
+      dom.noEvents.hidden = true;
       dom.apiStatus.className = 'audit-status-dot loading';
     }
   }
