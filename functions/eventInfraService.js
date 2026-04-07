@@ -222,4 +222,74 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
   return { ok: false, error: `Unknown step: ${step}. Use createSchema or createDataset.` };
 }
 
-module.exports = { runEventInfraStatus, runEventInfraStep };
+/* ── Fetch eventType enum from schema ── */
+
+async function fetchFullSchema(token, clientId, orgId, sandbox, metaAltId) {
+  const enc = encodeURIComponent(metaAltId);
+  const acceptOrder = [
+    'application/vnd.adobe.xed-full+json;version=1',
+    'application/vnd.adobe.xed+json;version=1',
+    'application/json',
+  ];
+  for (const accept of acceptOrder) {
+    const h = headers(token, clientId, orgId, sandbox, { Accept: accept });
+    const { res, data } = await fetchJson(`${SCHEMA_REGISTRY}/tenant/schemas/${enc}`, { method: 'GET', headers: h });
+    if (res.ok && data && typeof data === 'object') return data;
+  }
+  return null;
+}
+
+function extractEventTypes(schema) {
+  if (!schema || typeof schema !== 'object') return [];
+
+  const found = new Map();
+
+  function walk(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    if (obj.eventType && typeof obj.eventType === 'object') {
+      const et = obj.eventType;
+      const metaEnum = et['meta:enum'];
+      if (metaEnum && typeof metaEnum === 'object') {
+        for (const [key, label] of Object.entries(metaEnum)) {
+          if (key && typeof key === 'string') found.set(key, String(label || key));
+        }
+      }
+      if (Array.isArray(et.enum)) {
+        for (const v of et.enum) {
+          if (typeof v === 'string' && v && !found.has(v)) found.set(v, v);
+        }
+      }
+    }
+    if (Array.isArray(obj)) { obj.forEach(walk); return; }
+    for (const v of Object.values(obj)) {
+      if (v && typeof v === 'object') walk(v);
+    }
+  }
+
+  walk(schema.properties || schema);
+  if (found.size === 0 && Array.isArray(schema.allOf)) {
+    for (const ref of schema.allOf) walk(ref);
+  }
+
+  return Array.from(found.entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.value.localeCompare(b.value));
+}
+
+async function fetchSchemaEventTypes(sandbox, token, clientId, orgId, schemaTitle) {
+  log(sandbox, 'eventTypes.start', { schemaTitle });
+  const schema = await findSchemaByTitle(token, clientId, orgId, sandbox, schemaTitle);
+  if (!schema) return { ok: false, error: `Schema "${schemaTitle}" not found.`, eventTypes: [] };
+
+  const altId = schema['meta:altId'];
+  if (!altId) return { ok: false, error: 'Schema has no meta:altId.', eventTypes: [] };
+
+  const full = await fetchFullSchema(token, clientId, orgId, sandbox, altId);
+  if (!full) return { ok: false, error: 'Could not fetch full schema.', eventTypes: [] };
+
+  const eventTypes = extractEventTypes(full);
+  log(sandbox, 'eventTypes.done', { count: eventTypes.length });
+  return { ok: true, schemaTitle, schemaId: schema.$id, eventTypes };
+}
+
+module.exports = { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes };

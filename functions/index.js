@@ -50,7 +50,7 @@ const { lookupConsentHttpFlow } = require('./consentFlowLookup');
 const { getConsentConnection, saveConsentConnection } = require('./consentConnectionStore');
 const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = require('./eventEdgeService');
 const { getEventConfig, saveEventConfig } = require('./eventConfigStore');
-const { runEventInfraStatus, runEventInfraStep } = require('./eventInfraService');
+const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
 const {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
   setByPath,
@@ -1715,6 +1715,8 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
       const record = await saveEventConfig(sandbox, {
         datastreamId: body.datastreamId,
         datastreamTitle: body.datastreamTitle,
+        schemaTitle: body.schemaTitle,
+        datasetName: body.datasetName,
       });
       res.status(200).json({ ok: true, sandbox, record: serializeEventConfigRecord(record) });
     } catch (e) {
@@ -1800,6 +1802,25 @@ exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
     res.status(200).json(result);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), sandbox, step });
+  }
+});
+
+/** GET /api/events/infra/event-types?sandbox=&schemaTitle= — extract eventType enum from schema */
+exports.eventInfraEventTypes = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'GET') { res.status(405).json({ error: 'GET only' }); return; }
+  const sandbox = resolveSandboxFromQuery(req);
+  const schemaTitle = String(req.query.schemaTitle || '').trim();
+  if (!schemaTitle) { res.status(400).json({ error: 'schemaTitle query param required', eventTypes: [] }); return; }
+  let accessToken;
+  try { accessToken = await getAdobeAccessToken(); }
+  catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e), eventTypes: [] }); return; }
+  try {
+    const result = await fetchSchemaEventTypes(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), schemaTitle);
+    res.status(200).json(result);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), eventTypes: [] });
   }
 });
 

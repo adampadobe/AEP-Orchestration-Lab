@@ -50,6 +50,7 @@
 
   /* ── State ── */
   let triggerTemplates = {};
+  let schemaEventTypes = [];
   let resolvedEcid = '';
   let resolvedEmail = '';
   let activeMode = 'trigger';
@@ -105,9 +106,16 @@
     try {
       const res = await fetch('/api/events/config' + qs);
       const data = await res.json().catch(() => ({}));
-      if (data.ok && data.record && data.record.datastreamId) {
-        dom.dsInput.value = data.record.datastreamId;
-        collapseConfig();
+      if (data.ok && data.record) {
+        if (data.record.datastreamId) dom.dsInput.value = data.record.datastreamId;
+        if (data.record.schemaTitle) dom.schemaTitle.value = data.record.schemaTitle;
+        if (data.record.datasetName) dom.datasetName.value = data.record.datasetName;
+        if (data.record.datastreamId) {
+          collapseConfig();
+        } else {
+          expandConfig();
+        }
+        if (data.record.schemaTitle) loadSchemaEventTypes(data.record.schemaTitle);
       } else {
         expandConfig();
       }
@@ -124,6 +132,48 @@
   function expandConfig() {
     if (dom.configDetails) dom.configDetails.setAttribute('open', '');
     if (dom.configBadge) dom.configBadge.hidden = true;
+  }
+
+  /* ═══════════ Event types from schema ═══════════ */
+
+  async function loadSchemaEventTypes(schemaTitle) {
+    if (!schemaTitle) return;
+    const qs = sandboxQs();
+    if (!qs) return;
+    try {
+      const res = await fetch('/api/events/infra/event-types' + qs + '&schemaTitle=' + encodeURIComponent(schemaTitle));
+      const data = await res.json().catch(() => ({}));
+      if (data.ok && Array.isArray(data.eventTypes)) {
+        schemaEventTypes = data.eventTypes;
+      } else {
+        schemaEventTypes = [];
+      }
+    } catch {
+      schemaEventTypes = [];
+    }
+    populateEventTypeDatalist();
+  }
+
+  function populateEventTypeDatalist() {
+    const dl = document.getElementById('etEventTypeList');
+    if (!dl) return;
+    dl.innerHTML = '';
+    schemaEventTypes.forEach(function (et) {
+      const opt = document.createElement('option');
+      opt.value = et.value;
+      if (et.label && et.label !== et.value) opt.label = et.label;
+      dl.appendChild(opt);
+    });
+    const hint = document.getElementById('etEventTypeHint');
+    if (hint) {
+      if (schemaEventTypes.length > 0) {
+        hint.textContent = schemaEventTypes.length + ' event types loaded from schema — select or type your own.';
+        hint.hidden = false;
+      } else {
+        hint.textContent = '';
+        hint.hidden = true;
+      }
+    }
   }
 
   /* ═══════════ Step 1 — Create Schema ═══════════ */
@@ -144,6 +194,7 @@
       const data = await res.json().catch(() => ({}));
       if (!data.ok) { setMsg(dom.schemaMsg, data.error || 'Failed.', 'error'); return; }
       setMsg(dom.schemaMsg, data.message || 'Schema created.', 'success');
+      loadSchemaEventTypes(schemaTitle);
     } catch (e) {
       setMsg(dom.schemaMsg, e.message || 'Network error', 'error');
     } finally {
@@ -186,16 +237,19 @@
     const sandbox = getSandboxName();
     if (!sandbox) { setMsg(dom.connectionMsg, 'Select a sandbox first.', 'error'); return; }
     setMsg(dom.connectionMsg, 'Saving…', '');
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    const datasetName = (dom.datasetName.value || '').trim();
     try {
       const res = await fetch('/api/events/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sandbox, datastreamId: dsId }),
+        body: JSON.stringify({ sandbox, datastreamId: dsId, schemaTitle, datasetName }),
       });
       const data = await res.json().catch(() => ({}));
       if (data.ok) {
         setMsg(dom.connectionMsg, 'Saved for sandbox "' + sandbox + '".', 'success');
         collapseConfig();
+        if (schemaTitle) loadSchemaEventTypes(schemaTitle);
       } else {
         setMsg(dom.connectionMsg, data.error || 'Save failed.', 'error');
       }

@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260407">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260407h">
+  <link rel="stylesheet" href="event-tool.css?v=20260407i">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="event-generator-page profile-generation-page home-dashboard-concierge">
@@ -179,16 +179,9 @@
                 <div id="etCustomMode" class="et-mode-panel" hidden>
                   <div class="form-row">
                     <label for="etEventType">Event type</label>
-                    <input type="text" id="etEventType" list="etEventTypeList" placeholder="e.g. donation.made" autocomplete="off">
-                    <datalist id="etEventTypeList">
-                      <option value="form.formSubmit">
-                      <option value="commerce.productViews">
-                      <option value="commerce.order">
-                      <option value="transaction">
-                      <option value="donation.made">
-                      <option value="event.registered">
-                      <option value="form.abandoned">
-                    </datalist>
+                    <input type="text" id="etEventType" list="etEventTypeList" placeholder="e.g. commerce.productViews" autocomplete="off">
+                    <datalist id="etEventTypeList"></datalist>
+                    <span id="etEventTypeHint" class="field-hint" hidden></span>
                   </div>
                   <div class="form-row">
                     <label for="etOrchId">Orchestration event ID <span class="field-hint">(optional)</span></label>
@@ -223,7 +216,7 @@
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="event-tool.js?v=20260407h"></script>
+  <script src="event-tool.js?v=20260407i"></script>
   <script defer src="aep-theme.js?v=20260407"></script>
   <script defer src="aep-lab-nav.js?v=20260407"></script>
 </body>

@@ -219,6 +219,13 @@
         }
       },
       {
+        "source": "/api/events/infra/event-types",
+        "function": {
+          "functionId": "eventInfraEventTypes",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/schema-viewer/**",
         "function": {
           "functionId": "schemaViewerProxy",

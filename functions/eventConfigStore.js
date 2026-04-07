@@ -55,6 +55,14 @@ async function saveEventConfig(sandbox, patch) {
         patch.datastreamTitle !== undefined ? patch.datastreamTitle : prev.datastreamTitle,
         256
       ),
+      schemaTitle: trim(
+        patch.schemaTitle !== undefined ? patch.schemaTitle : prev.schemaTitle,
+        256
+      ),
+      datasetName: trim(
+        patch.datasetName !== undefined ? patch.datasetName : prev.datasetName,
+        256
+      ),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
