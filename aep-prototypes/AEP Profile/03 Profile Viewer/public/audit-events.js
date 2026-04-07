@@ -15,6 +15,8 @@
   var activePreset = '24h';
   var resourceChartInst = null;
   var actionChartInst = null;
+  var sortCol = 'timestamp';
+  var sortDir = 'desc';
 
   var dom = {};
 
@@ -183,6 +185,8 @@
       page = 1;
       perPage = parseInt(dom.eventsPerPage.value, 10) || 50;
 
+      sortEvents();
+      applySortUI();
       renderPage();
       renderAnalytics();
       updateStatus(json);
@@ -357,6 +361,51 @@
     dom.breakdownTable.innerHTML = html;
   }
 
+  /* ── Sorting ── */
+
+  function sortEvents() {
+    var col = sortCol;
+    var dir = sortDir === 'asc' ? 1 : -1;
+
+    allEvents.sort(function (a, b) {
+      var va = (a[col] || '').toLowerCase();
+      var vb = (b[col] || '').toLowerCase();
+      if (col === 'timestamp') {
+        va = a.timestamp || '';
+        vb = b.timestamp || '';
+      }
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }
+
+  function applySortUI() {
+    var ths = dom.table.querySelectorAll('th.audit-sortable');
+    ths.forEach(function (th) {
+      var col = th.getAttribute('data-sort');
+      th.classList.toggle('audit-sorted', col === sortCol);
+      th.classList.toggle('audit-sorted--asc', col === sortCol && sortDir === 'asc');
+      th.classList.toggle('audit-sorted--desc', col === sortCol && sortDir === 'desc');
+    });
+  }
+
+  function onSortClick(e) {
+    var th = e.target.closest('th.audit-sortable');
+    if (!th) return;
+    var col = th.getAttribute('data-sort');
+    if (col === sortCol) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortCol = col;
+      sortDir = col === 'timestamp' ? 'desc' : 'asc';
+    }
+    sortEvents();
+    page = 1;
+    applySortUI();
+    renderPage();
+  }
+
   /* ── Table rendering ── */
 
   function renderPage() {
@@ -465,6 +514,8 @@
       page = 1;
       renderPage();
     });
+
+    dom.table.querySelector('thead').addEventListener('click', onSortClick);
 
     var sandboxSelect = $('sandboxSelect');
     if (sandboxSelect && typeof AepGlobalSandbox !== 'undefined') {

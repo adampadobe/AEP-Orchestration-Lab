@@ -550,6 +550,50 @@ html[data-aep-theme='dark'] .audit-breakdown th {
   z-index: 1;
 }
 
+/* Sortable column headers */
+.audit-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.audit-sortable:hover {
+  color: var(--dash-accent, #1473e6);
+}
+
+.audit-sort-icon {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+  font-size: 0.65rem;
+  vertical-align: middle;
+  margin-left: 0.2rem;
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+
+.audit-sortable:hover .audit-sort-icon {
+  opacity: 0.6;
+}
+
+.audit-sort-icon::after {
+  content: '\2195';
+}
+
+.audit-sorted .audit-sort-icon {
+  opacity: 1;
+  color: var(--dash-accent, #1473e6);
+}
+
+.audit-sorted--asc .audit-sort-icon::after {
+  content: '\2191';
+}
+
+.audit-sorted--desc .audit-sort-icon::after {
+  content: '\2193';
+}
+
 .audit-table tbody tr {
   cursor: pointer;
   transition: background 0.15s;

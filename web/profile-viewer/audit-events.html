@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260406">
-  <link rel="stylesheet" href="audit-events.css?v=20260407d">
+  <link rel="stylesheet" href="audit-events.css?v=20260407f">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
@@ -159,11 +159,11 @@
             <table class="audit-table" id="eventsTable" hidden>
               <thead>
                 <tr>
-                  <th>Action</th>
-                  <th>Timestamp</th>
-                  <th>User</th>
-                  <th>Resource</th>
-                  <th>Status</th>
+                  <th class="audit-sortable" data-sort="action">Action <span class="audit-sort-icon"></span></th>
+                  <th class="audit-sortable audit-sorted audit-sorted--desc" data-sort="timestamp">Timestamp <span class="audit-sort-icon"></span></th>
+                  <th class="audit-sortable" data-sort="user">User <span class="audit-sort-icon"></span></th>
+                  <th class="audit-sortable" data-sort="resource">Resource <span class="audit-sort-icon"></span></th>
+                  <th class="audit-sortable" data-sort="status">Status <span class="audit-sort-icon"></span></th>
                   <th>Details</th>
                 </tr>
               </thead>
@@ -176,7 +176,7 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="audit-events.js?v=20260407e"></script>
+  <script src="audit-events.js?v=20260407f"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260407"></script>
 </body>
