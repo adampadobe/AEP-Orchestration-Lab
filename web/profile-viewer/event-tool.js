@@ -31,6 +31,7 @@
     dsInput:          document.getElementById('etManualDs'),
     saveConfigBtn:    document.getElementById('etSaveConfigBtn'),
     connectionMsg:    document.getElementById('etConnectionMsg'),
+    fetchConfigBtn:   document.getElementById('etFetchConfigBtn'),
     checkInfraBtn:    document.getElementById('etCheckInfraBtn'),
     infraMsg:         document.getElementById('etInfraMsg'),
 
@@ -274,6 +275,38 @@
       }
     } catch (e) {
       setMsg(dom.connectionMsg, e.message || 'Network error', 'error');
+    }
+  });
+
+  /* ═══════════ Fetch Config from Firebase ═══════════ */
+
+  dom.fetchConfigBtn.addEventListener('click', async () => {
+    const sandbox = getSandboxName();
+    if (!sandbox) { setMsg(dom.infraMsg, 'Select a sandbox first.', 'error'); return; }
+    dom.fetchConfigBtn.disabled = true;
+    setMsg(dom.infraMsg, 'Fetching configuration from Firebase…', '');
+    try {
+      const res = await fetch('/api/events/config' + sandboxQs());
+      const data = await res.json().catch(() => ({}));
+      if (data.ok && data.record) {
+        const r = data.record;
+        const parts = [];
+        if (r.schemaTitle) { dom.schemaTitle.value = r.schemaTitle; parts.push('Schema: ' + r.schemaTitle); }
+        if (r.datasetName) { dom.datasetName.value = r.datasetName; parts.push('Dataset: ' + r.datasetName); }
+        if (r.datastreamId) { dom.dsInput.value = r.datastreamId; parts.push('Datastream: ' + r.datastreamId); }
+        if (parts.length > 0) {
+          setMsg(dom.infraMsg, 'Loaded from Firebase — ' + parts.join('  ·  '), 'success');
+          if (r.schemaTitle) loadSchemaEventTypes(r.schemaTitle);
+        } else {
+          setMsg(dom.infraMsg, 'No saved configuration found for sandbox "' + sandbox + '".', 'error');
+        }
+      } else {
+        setMsg(dom.infraMsg, 'No saved configuration found for sandbox "' + sandbox + '".', 'error');
+      }
+    } catch (e) {
+      setMsg(dom.infraMsg, e.message || 'Network error', 'error');
+    } finally {
+      dom.fetchConfigBtn.disabled = false;
     }
   });
 
