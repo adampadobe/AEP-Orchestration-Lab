@@ -31,6 +31,7 @@ const {
 } = require('./joLookups');
 const schemaViewerService = require('./schemaViewerService');
 const svCache = require('./schemaViewerCache');
+const { getAuditEvents } = require('./auditEventsService');
 const {
   listTenantSchemas,
   getTenantSchema,
@@ -1553,6 +1554,70 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
     res.status(500).json({ error: String(e.message || e) });
   }
 });
+
+// ---------------------------------------------------------------------------
+// Audit Events — paginated fetch with Firestore cache
+// ---------------------------------------------------------------------------
+
+exports.auditEventsProxy = onRequest(
+  {
+    region: REGION,
+    secrets: PROFILE_FN_SECRETS,
+    environmentVariables: { ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX },
+    invoker: 'public',
+    timeoutSeconds: 300,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res);
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+    let body;
+    try {
+      body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+    } catch {
+      res.status(400).json({ error: 'Invalid JSON body' });
+      return;
+    }
+
+    const sandbox = String(body.sandbox || '').trim() ||
+      String(process.env.ADOBE_SANDBOX_NAME || DEFAULT_ADOBE_SANDBOX).trim();
+    const startISO = body.startDate || '';
+    const endISO = body.endDate || '';
+    const action = body.action || '';
+    const skipCache = !!body.skipCache;
+
+    if (!startISO || !endISO) {
+      res.status(400).json({ error: 'startDate and endDate are required (ISO strings)' });
+      return;
+    }
+
+    let accessToken;
+    try {
+      accessToken = await getAdobeAccessToken();
+    } catch (e) {
+      res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+      return;
+    }
+
+    try {
+      const result = await getAuditEvents({
+        token: accessToken,
+        clientId: ADOBE_CLIENT_ID.value(),
+        orgId: ADOBE_IMS_ORG.value(),
+        sandbox,
+        startISO,
+        endISO,
+        action,
+        skipCache,
+      });
+      res.status(200).json({ success: true, ...result });
+    } catch (e) {
+      res.status(500).json({ error: String(e.message || e) });
+    }
+  },
+);
 
 // ---------------------------------------------------------------------------
 // Scheduled CDN pre-warm — hits Data Viewer endpoints to populate CDN cache

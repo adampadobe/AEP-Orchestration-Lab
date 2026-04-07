@@ -177,6 +177,13 @@
         }
       },
       {
+        "source": "/api/audit-events",
+        "function": {
+          "functionId": "auditEventsProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/schema-viewer/**",
         "function": {
           "functionId": "schemaViewerProxy",

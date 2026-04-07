@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260406">
-  <link rel="stylesheet" href="audit-events.css?v=20260407c">
+  <link rel="stylesheet" href="audit-events.css?v=20260407d">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
@@ -70,15 +70,19 @@
             </div>
           </div>
 
-          <div class="audit-config">
-            <div class="audit-config-row">
-              <div class="audit-field audit-field--slider">
-                <label for="limitSlider">API limit: <strong id="limitValue">50</strong> events</label>
-                <input type="range" id="limitSlider" min="1" max="1000" value="50" class="audit-slider">
-                <div class="audit-slider-labels"><span>1</span><span>1000</span></div>
+          <div class="audit-presets">
+            <div class="audit-presets-row">
+              <span class="audit-presets-label">Quick range</span>
+              <div class="audit-preset-group" id="presetGroup">
+                <button type="button" class="audit-preset-btn audit-preset-btn--active" data-preset="24h">Last 24 hrs</button>
+                <button type="button" class="audit-preset-btn" data-preset="yesterday">Yesterday</button>
+                <button type="button" class="audit-preset-btn" data-preset="7d">Last 7 days</button>
+                <button type="button" class="audit-preset-btn" data-preset="30d">Last 30 days</button>
+                <button type="button" class="audit-preset-btn" data-preset="custom">Custom</button>
               </div>
-              <div class="audit-field">
-                <label for="eventsPerPage">Events per page</label>
+              <div class="audit-presets-spacer"></div>
+              <div class="audit-field audit-field--perpage">
+                <label for="eventsPerPage">Per page</label>
                 <select id="eventsPerPage">
                   <option value="25">25</option>
                   <option value="50" selected>50</option>
@@ -96,6 +100,8 @@
             </div>
             <span class="audit-status-text" id="lastFetch">Not fetched yet</span>
             <span class="audit-status-text" id="eventCount">0 events</span>
+            <span class="audit-status-text audit-cached-badge" id="cachedBadge" hidden>cached</span>
+            <span class="audit-status-text audit-capped-badge" id="cappedBadge" hidden>result capped at 5000</span>
           </div>
 
           <div class="audit-analytics" id="analyticsPanel" hidden>
@@ -145,7 +151,8 @@
               </div>
             </div>
             <div id="loadingIndicator" class="audit-loading" hidden>
-              <span class="audit-spinner"></span> Fetching audit events…
+              <span class="audit-spinner"></span>
+              <span id="loadingText">Fetching all audit events…</span>
             </div>
             <div id="errorBox" class="audit-error" hidden></div>
             <div id="noEventsBox" class="audit-no-events" hidden>No audit events found for this query.</div>
@@ -169,7 +176,7 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="audit-events.js?v=20260407c"></script>
+  <script src="audit-events.js?v=20260407d"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260407"></script>
 </body>

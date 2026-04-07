@@ -1,8 +1,7 @@
 (function () {
   'use strict';
 
-  var AEP_AUDIT_PATH = '/data/foundation/audit/events';
-  var PROXY_URL = '/api/aep';
+  var AUDIT_URL = '/api/audit-events';
 
   var CHART_PALETTE = [
     '#1473e6', '#e68619', '#12805c', '#c9252d', '#7c4dff',
@@ -13,6 +12,7 @@
   var allEvents = [];
   var perPage = 50;
   var page = 1;
+  var activePreset = '24h';
   var resourceChartInst = null;
   var actionChartInst = null;
 
@@ -25,13 +25,14 @@
     dom.actionFilter   = $('actionFilter');
     dom.startTime      = $('startTime');
     dom.endTime        = $('endTime');
-    dom.limitSlider    = $('limitSlider');
-    dom.limitValue     = $('limitValue');
     dom.eventsPerPage  = $('eventsPerPage');
     dom.apiStatus      = $('apiStatus');
     dom.lastFetch      = $('lastFetch');
     dom.eventCount     = $('eventCount');
+    dom.cachedBadge    = $('cachedBadge');
+    dom.cappedBadge    = $('cappedBadge');
     dom.loading        = $('loadingIndicator');
+    dom.loadingText    = $('loadingText');
     dom.errorBox       = $('errorBox');
     dom.noEvents       = $('noEventsBox');
     dom.table          = $('eventsTable');
@@ -48,13 +49,60 @@
     dom.resourceLegend = $('resourceLegend');
     dom.actionLegend   = $('actionLegend');
     dom.breakdownTable = $('breakdownTable');
+    dom.presetGroup    = $('presetGroup');
   }
 
-  function setDefaultDates() {
+  /* ── Date presets ── */
+
+  function startOfDay(d) {
+    var r = new Date(d);
+    r.setHours(0, 0, 0, 0);
+    return r;
+  }
+
+  function endOfDay(d) {
+    var r = new Date(d);
+    r.setHours(23, 59, 59, 999);
+    return r;
+  }
+
+  function presetRange(preset) {
     var now = new Date();
-    var yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    dom.endTime.value = toLocalISO(now);
-    dom.startTime.value = toLocalISO(yesterday);
+    var today = startOfDay(now);
+    switch (preset) {
+      case '24h':
+        return { start: new Date(now.getTime() - 24 * 60 * 60 * 1000), end: now };
+      case 'yesterday': {
+        var y = new Date(today.getTime() - 86400000);
+        return { start: y, end: endOfDay(y) };
+      }
+      case '7d':
+        return { start: new Date(today.getTime() - 7 * 86400000), end: now };
+      case '30d':
+        return { start: new Date(today.getTime() - 30 * 86400000), end: now };
+      default:
+        return null;
+    }
+  }
+
+  function applyPreset(preset) {
+    activePreset = preset;
+    var btns = dom.presetGroup.querySelectorAll('.audit-preset-btn');
+    btns.forEach(function (b) {
+      b.classList.toggle('audit-preset-btn--active', b.getAttribute('data-preset') === preset);
+    });
+
+    var isCustom = preset === 'custom';
+    dom.startTime.closest('.audit-field').style.display = isCustom ? '' : 'none';
+    dom.endTime.closest('.audit-field').style.display = isCustom ? '' : 'none';
+
+    if (!isCustom) {
+      var range = presetRange(preset);
+      if (range) {
+        dom.startTime.value = toLocalISO(range.start);
+        dom.endTime.value = toLocalISO(range.end);
+      }
+    }
   }
 
   function toLocalISO(d) {
@@ -70,21 +118,12 @@
     return '';
   }
 
-  function buildPropertyFilters() {
-    var props = [];
-    var action = dom.actionFilter.value;
-    if (action) props.push('action==' + action);
+  /* ── Loading / Error ── */
 
-    var startISO = dom.startTime.value ? new Date(dom.startTime.value).toISOString() : '';
-    var endISO   = dom.endTime.value   ? new Date(dom.endTime.value).toISOString()   : '';
-    if (startISO) props.push('timestamp>=' + startISO);
-    if (endISO)   props.push('timestamp<=' + endISO);
-    return props;
-  }
-
-  function showLoading(on) {
+  function showLoading(on, text) {
     dom.loading.hidden = !on;
     dom.errorBox.hidden = true;
+    if (text && dom.loadingText) dom.loadingText.textContent = text;
     if (on) {
       dom.table.hidden = true;
       dom.noEvents.hidden = true;
@@ -98,55 +137,55 @@
     dom.apiStatus.className = 'audit-status-dot';
   }
 
+  /* ── Fetch ── */
+
   async function fetchAuditEvents() {
-    showLoading(true);
+    showLoading(true, 'Fetching all audit events…');
     dom.fetchBtn.disabled = true;
+    dom.cachedBadge.hidden = true;
+    dom.cappedBadge.hidden = true;
 
-    var limit = parseInt(dom.limitSlider.value, 10) || 50;
     var sandbox = getSandbox();
+    var startISO = dom.startTime.value ? new Date(dom.startTime.value).toISOString() : '';
+    var endISO = dom.endTime.value ? new Date(dom.endTime.value).toISOString() : '';
+    var action = dom.actionFilter.value;
 
-    var params = { limit: limit };
-
-    var props = buildPropertyFilters();
-    if (props.length) params.property = props;
-
-    var body = {
-      method: 'GET',
-      path: AEP_AUDIT_PATH,
-      params: params,
-    };
-    if (sandbox) {
-      body.platform_headers = { 'x-sandbox-name': sandbox };
+    if (!startISO || !endISO) {
+      showError('Please select a date range.');
+      showLoading(false);
+      dom.fetchBtn.disabled = false;
+      return;
     }
 
+    var body = {
+      sandbox: sandbox,
+      startDate: startISO,
+      endDate: endISO,
+    };
+    if (action) body.action = action;
+
     try {
-      var resp = await fetch(PROXY_URL, {
+      var resp = await fetch(AUDIT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
 
-      if (!resp.ok) throw new Error('Proxy error: HTTP ' + resp.status);
-
-      var json = await resp.json();
-      if (json.status && json.status >= 400) {
-        throw new Error('AEP error ' + json.status + ': ' +
-          (json.platform_response && json.platform_response.detail
-            ? json.platform_response.detail
-            : JSON.stringify(json.platform_response).slice(0, 200)));
+      if (!resp.ok) {
+        var errData = await resp.json().catch(function () { return {}; });
+        throw new Error(errData.error || 'HTTP ' + resp.status);
       }
 
-      var pr = json.platform_response || {};
-      var embedded = pr._embedded || pr;
-      var rawEvents = embedded.events || embedded.children || pr.children || [];
+      var json = await resp.json();
+      if (!json.success) throw new Error(json.error || 'Unknown error');
 
-      allEvents = normaliseEvents(rawEvents);
+      allEvents = normaliseEvents(json.events || []);
       page = 1;
       perPage = parseInt(dom.eventsPerPage.value, 10) || 50;
 
       renderPage();
       renderAnalytics();
-      updateStatus();
+      updateStatus(json);
       dom.apiStatus.className = 'audit-status-dot connected';
     } catch (e) {
       showError(e.message || 'Unknown error');
@@ -177,6 +216,15 @@
     });
   }
 
+  function updateStatus(json) {
+    dom.eventCount.textContent = allEvents.length + ' event' + (allEvents.length !== 1 ? 's' : '');
+    var timeStr = json.fetchedAt ? new Date(json.fetchedAt).toLocaleTimeString() : new Date().toLocaleTimeString();
+    var pagesStr = json.pages ? ' (' + json.pages + ' page' + (json.pages !== 1 ? 's' : '') + ')' : '';
+    dom.lastFetch.textContent = 'Fetched ' + timeStr + pagesStr;
+    dom.cachedBadge.hidden = !json.cached;
+    dom.cappedBadge.hidden = !json.capped;
+  }
+
   /* ── Analytics ── */
 
   function countBy(arr, key) {
@@ -190,15 +238,10 @@
       .map(function (e) { return { label: e[0], count: e[1] }; });
   }
 
-  function topEntry(sorted) {
-    return sorted.length ? sorted[0].label : '—';
-  }
+  function topEntry(sorted) { return sorted.length ? sorted[0].label : '—'; }
 
   function renderAnalytics() {
-    if (!allEvents.length) {
-      dom.analytics.hidden = true;
-      return;
-    }
+    if (!allEvents.length) { dom.analytics.hidden = true; return; }
     dom.analytics.hidden = false;
 
     var resourceCounts = countBy(allEvents, 'resourceType');
@@ -215,7 +258,7 @@
     renderDonut('actionChart', actionCounts, actionChartInst, function (c) { actionChartInst = c; });
     renderLegend(dom.resourceLegend, resourceCounts);
     renderLegend(dom.actionLegend, actionCounts);
-    renderBreakdown(resourceCounts, actionCounts);
+    renderBreakdown(resourceCounts);
   }
 
   function isDark() {
@@ -224,24 +267,17 @@
 
   function renderDonut(canvasId, data, existing, save) {
     if (existing) existing.destroy();
-
     var canvas = $(canvasId);
     if (!canvas) return;
     var labels = data.map(function (d) { return d.label; });
     var values = data.map(function (d) { return d.count; });
     var colors = data.map(function (_, i) { return CHART_PALETTE[i % CHART_PALETTE.length]; });
-    var textColor = isDark() ? '#ccc' : '#555';
 
     var chart = new Chart(canvas, {
       type: 'doughnut',
       data: {
         labels: labels,
-        datasets: [{
-          data: values,
-          backgroundColor: colors,
-          borderWidth: 0,
-          hoverOffset: 6,
-        }],
+        datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }],
       },
       options: {
         responsive: true,
@@ -292,13 +328,6 @@
       var a = ev.action || 'Unknown';
       if (!crossTab[r]) crossTab[r] = {};
       crossTab[r][a] = (crossTab[r][a] || 0) + 1;
-    });
-
-    var allActions = [];
-    var seen = {};
-    allEvents.forEach(function (ev) {
-      var a = ev.action || 'Unknown';
-      if (!seen[a]) { seen[a] = true; allActions.push(a); }
     });
 
     var maxCount = 0;
@@ -378,11 +407,6 @@
     dom.pagination.hidden = totalPages <= 1;
   }
 
-  function updateStatus() {
-    dom.eventCount.textContent = allEvents.length + ' event' + (allEvents.length !== 1 ? 's' : '');
-    dom.lastFetch.textContent = 'Fetched ' + new Date().toLocaleTimeString();
-  }
-
   function badgeClass(action) {
     if (!action) return 'unknown';
     var a = action.toLowerCase();
@@ -406,15 +430,24 @@
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  /* ── Init ── */
+
   document.addEventListener('DOMContentLoaded', function () {
     cacheDom();
-    setDefaultDates();
 
-    dom.limitSlider.addEventListener('input', function () {
-      dom.limitValue.textContent = this.value;
+    applyPreset('24h');
+
+    dom.presetGroup.addEventListener('click', function (e) {
+      var btn = e.target.closest('.audit-preset-btn');
+      if (!btn) return;
+      var preset = btn.getAttribute('data-preset');
+      applyPreset(preset);
     });
 
-    dom.fetchBtn.addEventListener('click', fetchAuditEvents);
+    dom.fetchBtn.addEventListener('click', function () {
+      if (activePreset !== 'custom') applyPreset(activePreset);
+      fetchAuditEvents();
+    });
 
     dom.prevBtn.addEventListener('click', function () {
       if (page > 1) { page--; renderPage(); }
