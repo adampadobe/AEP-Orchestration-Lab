@@ -12,7 +12,7 @@
   var allEvents = [];
   var perPage = 50;
   var page = 1;
-  var activePreset = '24h';
+  var activePreset = 'today';
   var resourceChartInst = null;
   var actionChartInst = null;
   var sortCol = 'timestamp';
@@ -72,6 +72,8 @@
     var now = new Date();
     var today = startOfDay(now);
     switch (preset) {
+      case 'today':
+        return { start: today, end: now };
       case '24h':
         return { start: new Date(now.getTime() - 24 * 60 * 60 * 1000), end: now };
       case 'yesterday': {
@@ -487,7 +489,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     cacheDom();
 
-    applyPreset('24h');
+    applyPreset('today');
 
     dom.presetGroup.addEventListener('click', function (e) {
       var btn = e.target.closest('.audit-preset-btn');
