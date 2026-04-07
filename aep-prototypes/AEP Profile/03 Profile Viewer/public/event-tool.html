@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260407">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260407b">
+  <link rel="stylesheet" href="event-tool.css?v=20260407c">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="event-generator-page profile-generation-page home-dashboard-concierge">
@@ -51,23 +51,20 @@
               <p class="field-hint event-gen-box-intro">Select a datastream for the active sandbox. The selection is saved per sandbox.</p>
               <div class="profile-box-content">
                 <div class="et-connection-grid">
-                  <div class="form-row">
-                    <label for="etDatastreamSelect">Datastream</label>
+                  <div class="form-row" id="etManualRow">
+                    <label for="etManualDs">Datastream ID</label>
+                    <input type="text" id="etManualDs" placeholder="Paste your Edge datastream ID" autocomplete="off" spellcheck="false">
+                  </div>
+                  <div class="form-row et-dropdown-row" id="etDropdownRow" hidden>
+                    <label for="etDatastreamSelect">Or select from list</label>
                     <div class="et-ds-row">
                       <select id="etDatastreamSelect" aria-label="Datastream">
-                        <option value="">Loading datastreams…</option>
+                        <option value="">Loading…</option>
                       </select>
                       <button type="button" id="etDsRefreshBtn" class="btn btn-icon" title="Refresh datastreams" aria-label="Refresh datastreams">↻</button>
                     </div>
                   </div>
-                  <div class="form-row et-manual-row" id="etManualRow" hidden>
-                    <label for="etManualDs">Manual datastream ID</label>
-                    <input type="text" id="etManualDs" placeholder="Paste a datastream ID" autocomplete="off" spellcheck="false">
-                  </div>
                   <div class="form-row form-row--action et-connection-actions">
-                    <label class="et-manual-toggle">
-                      <input type="checkbox" id="etManualToggle"> Manual input
-                    </label>
                     <button type="button" id="etSaveConfigBtn" class="btn btn-secondary">Save</button>
                   </div>
                 </div>
@@ -177,7 +174,7 @@
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="event-tool.js?v=20260407b"></script>
+  <script src="event-tool.js?v=20260407c"></script>
   <script defer src="aep-theme.js?v=20260407"></script>
   <script defer src="aep-lab-nav.js?v=20260407"></script>
 </body>

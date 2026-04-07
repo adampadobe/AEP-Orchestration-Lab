@@ -1,6 +1,6 @@
 /**
- * Event Tool — unified Edge event sender with datastream discovery,
- * config persistence per sandbox, profile query, and quick trigger / custom modes.
+ * Event Tool — unified Edge event sender with datastream config persistence
+ * per sandbox, profile query, and quick trigger / custom modes.
  */
 (function () {
   'use strict';
@@ -9,9 +9,8 @@
   const dom = {
     dsSelect:      document.getElementById('etDatastreamSelect'),
     dsRefresh:     document.getElementById('etDsRefreshBtn'),
-    manualRow:     document.getElementById('etManualRow'),
+    dropdownRow:   document.getElementById('etDropdownRow'),
     manualDs:      document.getElementById('etManualDs'),
-    manualToggle:  document.getElementById('etManualToggle'),
     saveConfigBtn: document.getElementById('etSaveConfigBtn'),
     connectionMsg: document.getElementById('etConnectionMsg'),
 
@@ -76,6 +75,7 @@
   /* ═══════════ Connection ═══════════ */
 
   async function loadDatastreams() {
+    if (!dom.dsSelect) return;
     dom.dsSelect.innerHTML = '<option value="">Loading…</option>';
     try {
       const res = await fetch('/api/events/datastreams' + getSandboxParam());
@@ -84,17 +84,10 @@
 
       dom.dsSelect.innerHTML = '';
       if (datastreams.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = '— No datastreams found (use Manual input) —';
-        dom.dsSelect.appendChild(opt);
-        dom.manualToggle.checked = true;
-        dom.manualRow.hidden = false;
-        if (data.discoveryErrors) {
-          setMsg(dom.connectionMsg, 'Datastream auto-discovery unavailable — enter a datastream ID manually.', '');
-        }
+        dom.dropdownRow.hidden = true;
         return;
       }
+      dom.dropdownRow.hidden = false;
       const blank = document.createElement('option');
       blank.value = '';
       blank.textContent = '— Select a datastream —';
@@ -107,9 +100,7 @@
         dom.dsSelect.appendChild(opt);
       });
     } catch {
-      dom.dsSelect.innerHTML = '<option value="">Failed to load datastreams</option>';
-      dom.manualToggle.checked = true;
-      dom.manualRow.hidden = false;
+      dom.dropdownRow.hidden = true;
     }
   }
 
@@ -119,15 +110,10 @@
       const data = await res.json().catch(() => ({}));
       if (data.ok && data.record && data.record.datastreamId) {
         const dsId = data.record.datastreamId;
-        if (dom.dsSelect) {
+        dom.manualDs.value = dsId;
+        if (dom.dsSelect && datastreams.length > 0) {
           const exists = Array.from(dom.dsSelect.options).some((o) => o.value === dsId);
-          if (exists) {
-            dom.dsSelect.value = dsId;
-          } else {
-            dom.manualToggle.checked = true;
-            dom.manualRow.hidden = false;
-            dom.manualDs.value = dsId;
-          }
+          if (exists) dom.dsSelect.value = dsId;
         }
         setMsg(dom.connectionMsg, 'Loaded saved config: ' + (data.record.datastreamTitle || dsId), 'success');
       }
@@ -135,28 +121,29 @@
   }
 
   function getSelectedDatastreamId() {
-    if (dom.manualToggle.checked && dom.manualDs.value.trim()) {
-      return dom.manualDs.value.trim();
-    }
-    return (dom.dsSelect && dom.dsSelect.value) || '';
+    const manual = (dom.manualDs.value || '').trim();
+    if (manual) return manual;
+    if (dom.dsSelect && dom.dsSelect.value) return dom.dsSelect.value;
+    return '';
   }
 
   function getSelectedDatastreamTitle() {
     const dsId = getSelectedDatastreamId();
-    if (dom.manualToggle.checked) return '';
     const ds = datastreams.find((d) => d.id === dsId);
     return ds ? ds.title || '' : '';
   }
 
-  dom.manualToggle.addEventListener('change', () => {
-    dom.manualRow.hidden = !dom.manualToggle.checked;
-  });
+  if (dom.dsSelect) {
+    dom.dsSelect.addEventListener('change', () => {
+      if (dom.dsSelect.value) dom.manualDs.value = dom.dsSelect.value;
+    });
+  }
 
-  dom.dsRefresh.addEventListener('click', () => loadDatastreams());
+  if (dom.dsRefresh) dom.dsRefresh.addEventListener('click', () => loadDatastreams());
 
   dom.saveConfigBtn.addEventListener('click', async () => {
     const dsId = getSelectedDatastreamId();
-    if (!dsId) { setMsg(dom.connectionMsg, 'Select or enter a datastream first.', 'error'); return; }
+    if (!dsId) { setMsg(dom.connectionMsg, 'Enter a datastream ID first.', 'error'); return; }
     const sandbox = getSandboxName();
     if (!sandbox) { setMsg(dom.connectionMsg, 'No sandbox selected.', 'error'); return; }
     setMsg(dom.connectionMsg, 'Saving…', '');
@@ -273,7 +260,7 @@
 
   dom.sendBtn.addEventListener('click', async () => {
     const dsId = getSelectedDatastreamId();
-    if (!dsId) { setMsg(dom.sendMsg, 'Select a datastream first.', 'error'); return; }
+    if (!dsId) { setMsg(dom.sendMsg, 'Enter a datastream ID first.', 'error'); return; }
     const email = resolvedEmail || (dom.identifier.value || '').trim();
     if (!email) { setMsg(dom.sendMsg, 'Enter an identifier first.', 'error'); return; }
 
@@ -292,7 +279,6 @@
         if (!tpl || !tpl.payload) { setMsg(dom.sendMsg, 'Select a valid event template.', 'error'); return; }
         body.triggerTemplate = tpl.payload;
         body.eventType = key;
-        if (tpl.datastreamId) body.datastreamId = tpl.datastreamId;
       } else {
         body.eventType = (dom.eventType.value || '').trim() || 'transaction';
         const orchId = (dom.orchId.value || '').trim();
@@ -333,6 +319,7 @@
     resolvedEcid = '';
     resolvedEmail = '';
     dom.profileInfo.hidden = true;
+    dom.manualDs.value = '';
     setMsg(dom.profileMsg, '', '');
     setMsg(dom.connectionMsg, '', '');
     setMsg(dom.sendMsg, '', '');
