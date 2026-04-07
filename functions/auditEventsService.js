@@ -148,8 +148,12 @@ async function getAuditEvents({ token, clientId, orgId, sandbox, startISO, endIS
   let daysCached = 0;
   let daysFetched = 0;
 
+  const todayISO = new Date().toISOString().slice(0, 10);
+
   for (const { dayISO, dayStart, dayEnd } of days) {
-    if (!skipCache && !action) {
+    const isToday = dayISO >= todayISO;
+
+    if (!skipCache && !action && !isToday) {
       const cached = await getCachedDay(sandbox, dayISO);
       if (cached) {
         allEvents.push(...cached);
@@ -163,7 +167,7 @@ async function getAuditEvents({ token, clientId, orgId, sandbox, startISO, endIS
     daysFetched++;
     totalPages++;
 
-    if (!action) {
+    if (!action && !isToday) {
       setCachedDay(sandbox, dayISO, dayEvents).catch(() => {});
     }
   }
