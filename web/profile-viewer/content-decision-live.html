@@ -429,6 +429,11 @@
     .auto-webhook-delay .auto-webhook-delay-unit { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
 
     /* ── Catalog explorer ── */
+    .cd-catalog-sandbox-row {
+      display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;
+    }
+    .cd-catalog-sandbox-row label { margin-bottom: 0; flex-shrink: 0; font-weight: 600; font-size: 0.85rem; }
+    .cd-catalog-sandbox-row select { flex: 1; max-width: 24rem; }
     .cd-catalog-tabs {
       display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 0.85rem;
     }
@@ -691,6 +696,12 @@
 
           <div class="panel">
             <h2>Decisioning catalog</h2>
+            <div class="cd-catalog-sandbox-row">
+              <label for="sandboxSelect">Sandbox</label>
+              <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                <option value="">Loading sandboxes…</option>
+              </select>
+            </div>
             <div class="cd-catalog-tabs" role="tablist">
               <button class="cd-catalog-tab" role="tab" aria-selected="true" data-catalog="offer-items">Offer items</button>
               <button class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="item-collections">Item collections</button>
@@ -722,6 +733,7 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260406"></script>
+  <script src="aep-global-sandbox.js?v=20260408"></script>
   <script>
 (function () {
 
@@ -1548,6 +1560,14 @@
     var activeCatalog = 'offer-items';
     var lastCatalogRaw = null;
 
+    /* ── Sandbox selector init ── */
+    var catalogSandboxSelect = document.getElementById('sandboxSelect');
+    if (typeof window.AepGlobalSandbox !== 'undefined' && catalogSandboxSelect) {
+      window.AepGlobalSandbox.loadSandboxesIntoSelect(catalogSandboxSelect);
+      window.AepGlobalSandbox.onSandboxSelectChange(catalogSandboxSelect);
+      window.AepGlobalSandbox.attachStorageSync(catalogSandboxSelect);
+    }
+
     var tabs = document.querySelectorAll('.cd-catalog-tab');
     var schemaDetails = document.getElementById('catalogSchemaDetails');
     var schemaBadge = document.getElementById('catalogSchemaBadge');
@@ -1568,9 +1588,10 @@
     }
 
     function getCatalogSandbox() {
-      var sel = document.getElementById('sandboxSelect');
-      if (sel && sel.value) return sel.value;
-      try { return localStorage.getItem('aep-sandbox') || ''; } catch (e) { return ''; }
+      if (catalogSandboxSelect && catalogSandboxSelect.value) return catalogSandboxSelect.value;
+      try {
+        return localStorage.getItem('aepGlobalSandboxName') || localStorage.getItem('aep-sandbox') || '';
+      } catch (e) { return ''; }
     }
 
     async function loadSchemaFromFirebase() {
@@ -1613,15 +1634,24 @@
 
     loadSchemaFromFirebase();
 
-    var sbSelect = document.getElementById('sandboxSelect');
-    if (sbSelect) {
-      sbSelect.addEventListener('change', function () {
+    if (catalogSandboxSelect) {
+      catalogSandboxSelect.addEventListener('change', function () {
         tagNameMap = {};
+        rankingFunctionMap = {};
+        segmentNameMap = {};
+        resultsEl.innerHTML = '';
+        countEl.textContent = '';
+        statusEl.textContent = '';
         loadSchemaFromFirebase();
       });
     }
     window.addEventListener('aep-global-sandbox-change', function () {
       tagNameMap = {};
+      rankingFunctionMap = {};
+      segmentNameMap = {};
+      resultsEl.innerHTML = '';
+      countEl.textContent = '';
+      statusEl.textContent = '';
       loadSchemaFromFirebase();
     });
 
