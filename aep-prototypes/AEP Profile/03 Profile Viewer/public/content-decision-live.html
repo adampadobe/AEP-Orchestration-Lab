@@ -1667,13 +1667,6 @@
       });
     }
 
-    function sortArrow(col) {
-      if (col !== offerSortCol) return ' <span class="cd-sort-arrow cd-sort-none">⇅</span>';
-      return offerSortAsc
-        ? ' <span class="cd-sort-arrow">▲</span>'
-        : ' <span class="cd-sort-arrow">▼</span>';
-    }
-
     function buildOfferTableHtml(items) {
       var cols = [
         { key: 'name', label: 'Name' },
@@ -1685,8 +1678,8 @@
       ];
       var html = '<table class="cd-catalog-table"><thead><tr>';
       for (var c = 0; c < cols.length; c++) {
-        html += '<th class="cd-sortable-th" data-sort-col="' + cols[c].key + '">' +
-          escHtml(cols[c].label) + sortArrow(cols[c].key) + '</th>';
+        html += '<th class="cd-sortable-th" data-sort-type="offer" data-sort-col="' + cols[c].key + '">' +
+          escHtml(cols[c].label) + sortArrowFor(cols[c].key, offerSortCol, offerSortAsc) + '</th>';
       }
       html += '</tr></thead><tbody>';
       var sorted = sortOfferItems(items, offerSortCol, offerSortAsc);
@@ -1717,38 +1710,279 @@
       return html;
     }
 
-    function renderOfferTable(items) {
-      lastOfferItems = items;
-      var html = buildOfferTableHtml(items);
+    /* ── Item Collections table ── */
+
+    var collSortCol = 'name';
+    var collSortAsc = true;
+    var lastCollItems = [];
+
+    var COLL_COLS = [
+      { key: 'name', label: 'Name' },
+      { key: 'description', label: 'Description' },
+      { key: 'constraints', label: 'Filters' },
+      { key: 'created', label: 'Created' },
+      { key: 'modified', label: 'Modified' },
+    ];
+
+    function collSortVal(it, col) {
+      switch (col) {
+        case 'name':        return (it.name || '').toLowerCase();
+        case 'description': return (it.description || '').toLowerCase();
+        case 'constraints':  return Array.isArray(it.constraints) ? it.constraints.length : 0;
+        case 'created':     return it.created || '';
+        case 'modified':    return it.modified || '';
+        default:            return '';
+      }
+    }
+
+    function buildCollTableHtml(items) {
+      var html = '<table class="cd-catalog-table"><thead><tr>';
+      for (var c = 0; c < COLL_COLS.length; c++) {
+        html += '<th class="cd-sortable-th" data-sort-type="coll" data-sort-col="' + COLL_COLS[c].key + '">' +
+          escHtml(COLL_COLS[c].label) + sortArrowFor(COLL_COLS[c].key, collSortCol, collSortAsc) + '</th>';
+      }
+      html += '</tr></thead><tbody>';
+      var sorted = genericSort(items, collSortVal, collSortCol, collSortAsc);
+      for (var i = 0; i < sorted.length; i++) {
+        var it = sorted[i];
+        var filterCount = Array.isArray(it.constraints) ? it.constraints.length : 0;
+        html += '<tr>' +
+          '<td class="cd-offer-name">' + escHtml(it.name || '(unnamed)') + '</td>' +
+          '<td>' + escHtml(it.description || '—') + '</td>' +
+          '<td class="cd-offer-priority">' + filterCount + '</td>' +
+          '<td>' + escHtml(formatDate(it.created)) + '</td>' +
+          '<td>' + escHtml(formatDate(it.modified)) + '</td>' +
+          '</tr>';
+      }
+      html += '</tbody></table>';
       return html;
     }
 
-    function attachOfferSortListeners() {
-      var ths = resultsEl.querySelectorAll('.cd-sortable-th');
-      ths.forEach(function (th) {
+    /* ── Selection Strategies table ── */
+
+    var stratSortCol = 'name';
+    var stratSortAsc = true;
+    var lastStratItems = [];
+
+    var STRAT_COLS = [
+      { key: 'name', label: 'Name' },
+      { key: 'priority', label: 'Priority' },
+      { key: 'ranking', label: 'Ranking method' },
+      { key: 'constraint', label: 'Profile constraint' },
+      { key: 'collection', label: 'Item collection' },
+      { key: 'version', label: 'Ver.' },
+      { key: 'created', label: 'Created' },
+      { key: 'modified', label: 'Modified' },
+    ];
+
+    var RANK_LABELS = {
+      'static': 'Offer priority',
+      'scoringFunction': 'Formula',
+      'rankingStrategy': 'AI model',
+    };
+
+    var rankingFunctionMap = {};
+    var segmentNameMap = {};
+
+    async function loadRankingFunctions() {
+      try {
+        var result = await aepCall({ method: 'GET', path: '/data/core/dps/ranking-formulas', params: { limit: 100 } });
+        if (result.httpOk) {
+          var items = extractItems(result.data);
+          items.forEach(function (fn) {
+            if (fn.id) rankingFunctionMap[fn.id] = fn;
+          });
+          cdLog('Ranking functions loaded:', Object.keys(rankingFunctionMap).length);
+        }
+      } catch (e) {
+        cdLog('Ranking functions load failed:', e);
+      }
+    }
+
+    async function resolveSegmentNames(strategies) {
+      var ids = {};
+      strategies.forEach(function (s) {
+        var pc = s.profileConstraint;
+        if (pc && (pc.profileConstraintType === 'allSegments' || pc.profileConstraintType === 'anySegments')) {
+          (pc.segmentIdentities || []).forEach(function (seg) {
+            if (seg.id && !segmentNameMap[seg.id]) ids[seg.id] = true;
+          });
+        }
+      });
+      var uniqueIds = Object.keys(ids);
+      if (!uniqueIds.length) return;
+      cdLog('Resolving', uniqueIds.length, 'segment name(s)…');
+      await Promise.all(uniqueIds.map(async function (id) {
+        try {
+          var result = await aepCall({ method: 'GET', path: '/data/core/ups/segment/definitions/' + id });
+          if (result.httpOk) {
+            var pr = result.data.platform_response || result.data;
+            if (pr.name) segmentNameMap[id] = pr.name;
+          }
+        } catch (e) { /* skip */ }
+      }));
+      cdLog('Segment names resolved:', Object.keys(segmentNameMap).length);
+    }
+
+    function formatRanking(rank) {
+      if (!rank || !rank.order) return '—';
+      var type = rank.order.orderEvaluationType || '';
+      var label = RANK_LABELS[type] || type;
+      var fnId = rank.order.function || '';
+      var badgeColor = type === 'static' ? 'var(--muted)' : 'var(--dash-blue,#1473e6)';
+      var html = '<span class="cd-offer-tag" style="background:' + badgeColor + ';color:#fff;border:none">' + escHtml(label) + '</span>';
+      if (fnId) {
+        var fnObj = rankingFunctionMap[fnId];
+        if (fnObj && fnObj.name) {
+          html += ' ' + escHtml(fnObj.name);
+        } else {
+          html += ' <code style="font-size:0.65rem;color:var(--muted)">' + escHtml(fnId) + '</code>';
+        }
+      }
+      return html;
+    }
+
+    function formatProfileConstraint(pc) {
+      if (!pc) return '—';
+      var type = pc.profileConstraintType || 'none';
+      if (type === 'none') return '<span style="color:var(--muted)">All visitors</span>';
+      if (type === 'eligibilityRule') {
+        var name = pc.eligibilityRuleName || '';
+        var id = pc.eligibilityRule || '';
+        var parts = '<span class="cd-offer-tag" style="background:var(--dash-blue,#1473e6);color:#fff;border:none">Decision rule</span> ';
+        parts += name ? escHtml(name) : '<code style="font-size:0.7rem">' + escHtml(id) + '</code>';
+        return parts;
+      }
+      if (type === 'allSegments' || type === 'anySegments') {
+        var label = 'Audiences';
+        var segs = pc.segmentIdentities || [];
+        var parts = '<span class="cd-offer-tag" style="background:#e68619;color:#fff;border:none">' + escHtml(label) + '</span> ';
+        if (segs.length) {
+          parts += segs.map(function (s) {
+            var resolved = segmentNameMap[s.id];
+            return resolved
+              ? escHtml(resolved)
+              : '<code style="font-size:0.7rem">' + escHtml(s.id || '') + '</code>';
+          }).join(', ');
+        }
+        return parts;
+      }
+      return escHtml(type);
+    }
+
+    function constraintSortText(pc) {
+      if (!pc) return '';
+      var type = pc.profileConstraintType || 'none';
+      if (type === 'eligibilityRule') return (pc.eligibilityRuleName || pc.eligibilityRule || '').toLowerCase();
+      if (type === 'allSegments' || type === 'anySegments') {
+        var segs = pc.segmentIdentities || [];
+        var names = segs.map(function (s) { return (segmentNameMap[s.id] || s.id || '').toLowerCase(); });
+        return type + ' ' + names.join(' ');
+      }
+      return type;
+    }
+
+    function stratSortVal(it, col) {
+      switch (col) {
+        case 'name':        return (it.name || '').toLowerCase();
+        case 'priority':    return (it.rank && it.rank.priority != null) ? it.rank.priority : 0;
+        case 'ranking': {
+          var rtype = (it.rank && it.rank.order && it.rank.order.orderEvaluationType) || '';
+          var rfn = (it.rank && it.rank.order && it.rank.order.function) || '';
+          var robj = rankingFunctionMap[rfn];
+          return rtype + ' ' + ((robj && robj.name) || rfn);
+        }
+        case 'constraint':  return constraintSortText(it.profileConstraint);
+        case 'collection':  return (it.optionSelection && it.optionSelection.filterName) || '';
+        case 'version':     return it.etag || 0;
+        case 'created':     return it.created || '';
+        case 'modified':    return it.modified || '';
+        default:            return '';
+      }
+    }
+
+    function buildStratTableHtml(items) {
+      var html = '<table class="cd-catalog-table"><thead><tr>';
+      for (var c = 0; c < STRAT_COLS.length; c++) {
+        html += '<th class="cd-sortable-th" data-sort-type="strat" data-sort-col="' + STRAT_COLS[c].key + '">' +
+          escHtml(STRAT_COLS[c].label) + sortArrowFor(STRAT_COLS[c].key, stratSortCol, stratSortAsc) + '</th>';
+      }
+      html += '</tr></thead><tbody>';
+      var sorted = genericSort(items, stratSortVal, stratSortCol, stratSortAsc);
+      for (var i = 0; i < sorted.length; i++) {
+        var it = sorted[i];
+        var priority = (it.rank && it.rank.priority != null) ? it.rank.priority : '—';
+        var collection = (it.optionSelection && it.optionSelection.filterName) || '—';
+        var version = it.etag || 1;
+        html += '<tr>' +
+          '<td class="cd-offer-name">' + escHtml(it.name || '(unnamed)') + '</td>' +
+          '<td class="cd-offer-priority">' + escHtml(String(priority)) + '</td>' +
+          '<td>' + formatRanking(it.rank) + '</td>' +
+          '<td>' + formatProfileConstraint(it.profileConstraint) + '</td>' +
+          '<td>' + escHtml(collection) + '</td>' +
+          '<td class="cd-offer-priority">' + version + '</td>' +
+          '<td>' + escHtml(formatDate(it.created)) + '</td>' +
+          '<td>' + escHtml(formatDate(it.modified)) + '</td>' +
+          '</tr>';
+      }
+      html += '</tbody></table>';
+      return html;
+    }
+
+    /* ── Shared sort helpers ── */
+
+    function sortArrowFor(col, activeCol, asc) {
+      if (col !== activeCol) return ' <span class="cd-sort-arrow cd-sort-none">⇅</span>';
+      return asc ? ' <span class="cd-sort-arrow">▲</span>' : ' <span class="cd-sort-arrow">▼</span>';
+    }
+
+    function genericSort(items, valFn, col, asc) {
+      return items.slice().sort(function (a, b) {
+        var va = valFn(a, col);
+        var vb = valFn(b, col);
+        var cmp = (typeof va === 'number' && typeof vb === 'number') ? va - vb : String(va).localeCompare(String(vb));
+        return asc ? cmp : -cmp;
+      });
+    }
+
+    function attachCatalogSortListeners(catalogKey) {
+      resultsEl.querySelectorAll('.cd-sortable-th').forEach(function (th) {
         th.addEventListener('click', function () {
           var col = th.getAttribute('data-sort-col');
-          if (offerSortCol === col) {
-            offerSortAsc = !offerSortAsc;
-          } else {
-            offerSortCol = col;
-            offerSortAsc = true;
+          var type = th.getAttribute('data-sort-type');
+
+          if (type === 'offer') {
+            if (offerSortCol === col) offerSortAsc = !offerSortAsc;
+            else { offerSortCol = col; offerSortAsc = true; }
+          } else if (type === 'coll') {
+            if (collSortCol === col) collSortAsc = !collSortAsc;
+            else { collSortCol = col; collSortAsc = true; }
+          } else if (type === 'strat') {
+            if (stratSortCol === col) stratSortAsc = !stratSortAsc;
+            else { stratSortCol = col; stratSortAsc = true; }
           }
-          var tableHtml = buildOfferTableHtml(lastOfferItems);
-          var rawToggle = resultsEl.querySelector('.cd-catalog-raw-toggle');
-          var rawPre = resultsEl.querySelector('#catalogRawPre');
-          var rawState = rawPre && !rawPre.hidden;
-          resultsEl.innerHTML = tableHtml +
-            '<button type="button" class="cd-catalog-raw-toggle" id="catalogRawToggle">' + (rawState ? 'Hide raw JSON' : 'Show raw JSON') + '</button>' +
-            '<pre id="catalogRawPre"' + (rawState ? '' : ' hidden') + '>' + escHtml(JSON.stringify(lastCatalogRaw, null, 2)) + '</pre>';
-          attachOfferSortListeners();
-          document.getElementById('catalogRawToggle').addEventListener('click', function () {
-            var pre = document.getElementById('catalogRawPre');
-            var showing = !pre.hidden;
-            pre.hidden = showing;
-            this.textContent = showing ? 'Show raw JSON' : 'Hide raw JSON';
-          });
+          rerenderCatalogTable(catalogKey);
         });
+      });
+    }
+
+    function rerenderCatalogTable(catalogKey) {
+      var tableHtml;
+      if (catalogKey === 'offer-items') tableHtml = buildOfferTableHtml(lastOfferItems);
+      else if (catalogKey === 'item-collections') tableHtml = buildCollTableHtml(lastCollItems);
+      else if (catalogKey === 'selection-strategies') tableHtml = buildStratTableHtml(lastStratItems);
+      else return;
+      var rawPre = resultsEl.querySelector('#catalogRawPre');
+      var rawState = rawPre && !rawPre.hidden;
+      resultsEl.innerHTML = tableHtml +
+        '<button type="button" class="cd-catalog-raw-toggle" id="catalogRawToggle">' + (rawState ? 'Hide raw JSON' : 'Show raw JSON') + '</button>' +
+        '<pre id="catalogRawPre"' + (rawState ? '' : ' hidden') + '>' + escHtml(JSON.stringify(lastCatalogRaw, null, 2)) + '</pre>';
+      attachCatalogSortListeners(catalogKey);
+      document.getElementById('catalogRawToggle').addEventListener('click', function () {
+        var pre = document.getElementById('catalogRawPre');
+        var showing = !pre.hidden;
+        pre.hidden = showing;
+        this.textContent = showing ? 'Show raw JSON' : 'Hide raw JSON';
       });
     }
 
@@ -1760,31 +1994,20 @@
 
       var html;
       if (catalogKey === 'offer-items') {
-        html = renderOfferTable(items);
-      } else {
-        html = '<div class="cd-catalog-cards">';
-        for (var i = 0; i < items.length; i++) {
-          var it = items[i];
-          var name = escHtml(itemName(it));
-          var desc = itemDescription(it);
-          var id = it.id || it['@id'] || '';
-          var status = it.status || (it._instance && it._instance.status) || '';
-          var meta = [];
-          if (id) meta.push('<code>' + escHtml(id) + '</code>');
-          if (status) meta.push(escHtml(status));
-          html += '<div class="cd-catalog-card">' +
-            '<div class="cd-catalog-card-name">' + name + '</div>' +
-            (desc ? '<div style="color:var(--muted);font-size:0.8rem;margin-bottom:0.15rem;">' + escHtml(desc) + '</div>' : '') +
-            (meta.length ? '<div class="cd-catalog-card-meta">' + meta.join(' &middot; ') + '</div>' : '') +
-            '</div>';
-        }
-        html += '</div>';
+        lastOfferItems = items;
+        html = buildOfferTableHtml(items);
+      } else if (catalogKey === 'item-collections') {
+        lastCollItems = items;
+        html = buildCollTableHtml(items);
+      } else if (catalogKey === 'selection-strategies') {
+        lastStratItems = items;
+        html = buildStratTableHtml(items);
       }
 
       html += '<button type="button" class="cd-catalog-raw-toggle" id="catalogRawToggle">Show raw JSON</button>';
       html += '<pre id="catalogRawPre" hidden>' + escHtml(JSON.stringify(lastCatalogRaw, null, 2)) + '</pre>';
       resultsEl.innerHTML = html;
-      if (catalogKey === 'offer-items') attachOfferSortListeners();
+      attachCatalogSortListeners(catalogKey);
       document.getElementById('catalogRawToggle').addEventListener('click', function () {
         var pre = document.getElementById('catalogRawPre');
         var showing = !pre.hidden;
@@ -1831,6 +2054,14 @@
 
       var items = extractItems(result.data);
       cdLog('Catalog ✓', activeCatalog, items.length + ' items');
+
+      if (activeCatalog === 'selection-strategies') {
+        await Promise.all([
+          Object.keys(rankingFunctionMap).length ? Promise.resolve() : loadRankingFunctions(),
+          resolveSegmentNames(items),
+        ]);
+      }
+
       countEl.textContent = items.length + ' item' + (items.length !== 1 ? 's' : '');
       statusEl.textContent = 'Loaded.';
       statusEl.className = 'status ok';
