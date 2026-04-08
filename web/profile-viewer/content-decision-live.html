@@ -498,6 +498,14 @@
       border: 1px solid var(--border); border-radius: 3px; color: var(--text);
       background: var(--bg); margin: 0.1rem 0.15rem;
     }
+    .cd-sortable-th {
+      cursor: pointer; user-select: none; transition: color 0.15s;
+    }
+    .cd-sortable-th:hover { color: var(--text); }
+    .cd-sort-arrow {
+      font-size: 0.6rem; vertical-align: middle; margin-left: 0.2rem;
+    }
+    .cd-sort-none { opacity: 0.35; }
 
     .cd-banner-editor.panel { margin-top: 0.75rem; margin-bottom: 0; }
     .cd-banner-editor > summary { cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text); margin-bottom: 0.65rem; list-style: none; }
@@ -1627,12 +1635,63 @@
       return [];
     }
 
-    function renderOfferTable(items) {
-      var html = '<table class="cd-catalog-table"><thead><tr>' +
-        '<th>Name</th><th>Priority</th><th>Start date</th><th>End date</th><th>Status</th><th>Tags</th>' +
-        '</tr></thead><tbody>';
-      for (var i = 0; i < items.length; i++) {
-        var it = items[i];
+    var offerSortCol = 'name';
+    var offerSortAsc = true;
+    var lastOfferItems = [];
+
+    function offerSortVal(it, col) {
+      var di = getDecisionItem(it);
+      var cal = di.itemCalendarConstraints || {};
+      switch (col) {
+        case 'name':     return (di.itemName || itemName(it)).toLowerCase();
+        case 'priority': return di.itemPriority != null ? di.itemPriority : -1;
+        case 'start':    return cal.startDate || '';
+        case 'end':      return cal.endDate || '';
+        case 'status':   return dateStatusLabel(cal.startDate || '', cal.endDate || '');
+        case 'tags':     return getTagNames(di).join(',').toLowerCase();
+        default:         return '';
+      }
+    }
+
+    function sortOfferItems(items, col, asc) {
+      return items.slice().sort(function (a, b) {
+        var va = offerSortVal(a, col);
+        var vb = offerSortVal(b, col);
+        var cmp = 0;
+        if (typeof va === 'number' && typeof vb === 'number') {
+          cmp = va - vb;
+        } else {
+          cmp = String(va).localeCompare(String(vb));
+        }
+        return asc ? cmp : -cmp;
+      });
+    }
+
+    function sortArrow(col) {
+      if (col !== offerSortCol) return ' <span class="cd-sort-arrow cd-sort-none">⇅</span>';
+      return offerSortAsc
+        ? ' <span class="cd-sort-arrow">▲</span>'
+        : ' <span class="cd-sort-arrow">▼</span>';
+    }
+
+    function buildOfferTableHtml(items) {
+      var cols = [
+        { key: 'name', label: 'Name' },
+        { key: 'priority', label: 'Priority' },
+        { key: 'start', label: 'Start date' },
+        { key: 'end', label: 'End date' },
+        { key: 'status', label: 'Status' },
+        { key: 'tags', label: 'Tags' },
+      ];
+      var html = '<table class="cd-catalog-table"><thead><tr>';
+      for (var c = 0; c < cols.length; c++) {
+        html += '<th class="cd-sortable-th" data-sort-col="' + cols[c].key + '">' +
+          escHtml(cols[c].label) + sortArrow(cols[c].key) + '</th>';
+      }
+      html += '</tr></thead><tbody>';
+      var sorted = sortOfferItems(items, offerSortCol, offerSortAsc);
+      for (var i = 0; i < sorted.length; i++) {
+        var it = sorted[i];
         var di = getDecisionItem(it);
         var name = di.itemName || itemName(it);
         var priority = di.itemPriority != null ? di.itemPriority : '—';
@@ -1656,6 +1715,41 @@
       }
       html += '</tbody></table>';
       return html;
+    }
+
+    function renderOfferTable(items) {
+      lastOfferItems = items;
+      var html = buildOfferTableHtml(items);
+      return html;
+    }
+
+    function attachOfferSortListeners() {
+      var ths = resultsEl.querySelectorAll('.cd-sortable-th');
+      ths.forEach(function (th) {
+        th.addEventListener('click', function () {
+          var col = th.getAttribute('data-sort-col');
+          if (offerSortCol === col) {
+            offerSortAsc = !offerSortAsc;
+          } else {
+            offerSortCol = col;
+            offerSortAsc = true;
+          }
+          var tableHtml = buildOfferTableHtml(lastOfferItems);
+          var rawToggle = resultsEl.querySelector('.cd-catalog-raw-toggle');
+          var rawPre = resultsEl.querySelector('#catalogRawPre');
+          var rawState = rawPre && !rawPre.hidden;
+          resultsEl.innerHTML = tableHtml +
+            '<button type="button" class="cd-catalog-raw-toggle" id="catalogRawToggle">' + (rawState ? 'Hide raw JSON' : 'Show raw JSON') + '</button>' +
+            '<pre id="catalogRawPre"' + (rawState ? '' : ' hidden') + '>' + escHtml(JSON.stringify(lastCatalogRaw, null, 2)) + '</pre>';
+          attachOfferSortListeners();
+          document.getElementById('catalogRawToggle').addEventListener('click', function () {
+            var pre = document.getElementById('catalogRawPre');
+            var showing = !pre.hidden;
+            pre.hidden = showing;
+            this.textContent = showing ? 'Show raw JSON' : 'Hide raw JSON';
+          });
+        });
+      });
     }
 
     function renderCards(items, catalogKey) {
@@ -1690,6 +1784,7 @@
       html += '<button type="button" class="cd-catalog-raw-toggle" id="catalogRawToggle">Show raw JSON</button>';
       html += '<pre id="catalogRawPre" hidden>' + escHtml(JSON.stringify(lastCatalogRaw, null, 2)) + '</pre>';
       resultsEl.innerHTML = html;
+      if (catalogKey === 'offer-items') attachOfferSortListeners();
       document.getElementById('catalogRawToggle').addEventListener('click', function () {
         var pre = document.getElementById('catalogRawPre');
         var showing = !pre.hidden;
