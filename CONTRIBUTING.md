@@ -400,6 +400,21 @@ See `docs/COLLEAGUE_PROFILE_VIEWER.md` for full setup instructions.
 
 ---
 
+## Change workflow (mandatory)
+
+Every change **must** follow these four steps in order. Do not skip any step.
+
+| Step | Command / action | Why |
+|------|-----------------|-----|
+| 1. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
+| 2. **Sync prototypes** | `cp web/profile-viewer/<file> "aep-prototypes/AEP Profile/03 Profile Viewer/public/<file>"` | Keep prototype folder in sync |
+| 3. **Deploy** | `firebase deploy --only hosting` and/or `firebase deploy --only functions` | Push to live |
+| 4. **Commit & push** | `git add -A && git commit -m "..." && git push` | Track changes in version control |
+
+> **Never** deploy without committing. Every deployed change must be tracked in git.
+
+---
+
 ## Deployment
 
 ### Pre-deploy
