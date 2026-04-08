@@ -52,6 +52,7 @@ const { getConsentConnection, saveConsentConnection } = require('./consentConnec
 const { getCachedJourneyName, setCachedJourneyName } = require('./journeyNameStore');
 const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = require('./eventEdgeService');
 const { getEventConfig, saveEventConfig } = require('./eventConfigStore');
+const { getCatalogConfig, saveCatalogConfig } = require('./catalogConfigStore');
 const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
 const {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
@@ -1749,6 +1750,39 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
         customTriggers: body.customTriggers,
       });
       res.status(200).json({ ok: true, sandbox, record: serializeEventConfigRecord(record) });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+    return;
+  }
+  res.status(405).json({ error: 'Method not allowed' });
+});
+
+/** GET/POST /api/catalog/config — per-sandbox catalog schema ID (Firestore) */
+exports.catalogConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+  const sandbox = (req.method === 'POST' && req.body?.sandbox)
+    ? String(req.body.sandbox).trim()
+    : resolveSandboxFromQuery(req);
+
+  if (req.method === 'GET') {
+    try {
+      const record = await getCatalogConfig(sandbox);
+      res.status(200).json({ ok: true, sandbox, record });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+    return;
+  }
+  if (req.method === 'POST') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    try {
+      const record = await saveCatalogConfig(sandbox, {
+        schemaId: body.schemaId,
+      });
+      res.status(200).json({ ok: true, sandbox, record });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
     }

@@ -439,11 +439,28 @@
     }
     .cd-catalog-tab:hover { color: var(--text); }
     .cd-catalog-tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
-    .cd-catalog-schema-row {
-      display: flex; gap: 0.5rem; align-items: flex-end; margin-bottom: 0.75rem;
+    .cd-schema-config {
+      border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden;
     }
-    .cd-catalog-schema-row label { margin-bottom: 0; flex-shrink: 0; }
-    .cd-catalog-schema-row input { flex: 1; margin-bottom: 0; }
+    .cd-schema-config-summary {
+      cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center;
+      gap: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.8rem; font-weight: 600; color: var(--muted);
+    }
+    .cd-schema-config-summary::-webkit-details-marker { display: none; }
+    .cd-schema-config-summary::after {
+      content: '▾'; margin-left: auto; font-size: 0.75rem; color: var(--muted); transition: transform 0.2s;
+    }
+    .cd-schema-config[open] > .cd-schema-config-summary::after { transform: rotate(180deg); }
+    .cd-schema-badge {
+      font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+      padding: 0.1rem 0.4rem; border-radius: 999px; background: #e6f4ea; color: #1a7f37;
+    }
+    html[data-theme='dark'] .cd-schema-badge { background: #1a3a2a; color: #6fdd8b; }
+    .cd-schema-config-body {
+      display: flex; gap: 0.5rem; align-items: center; padding: 0 0.75rem 0.65rem;
+    }
+    .cd-schema-config-body input { flex: 1; margin-bottom: 0; }
+    .cd-schema-config-body .btn { flex-shrink: 0; }
     .cd-catalog-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
     .cd-catalog-count {
       font-size: 0.75rem; color: var(--muted); margin-left: auto;
@@ -679,10 +696,16 @@
               <button class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="item-collections">Item collections</button>
               <button class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="selection-strategies">Selection strategies</button>
             </div>
-            <div class="cd-catalog-schema-row" id="catalogSchemaRow">
-              <label for="catalogSchemaId">x-schema-id</label>
-              <input id="catalogSchemaId" type="text" placeholder="Decision item schema (required for offer-items on some orgs)" autocomplete="off">
-            </div>
+            <details class="cd-schema-config" id="catalogSchemaDetails">
+              <summary class="cd-schema-config-summary">
+                <span>x-schema-id</span>
+                <span class="cd-schema-badge" id="catalogSchemaBadge" hidden>Saved</span>
+              </summary>
+              <div class="cd-schema-config-body" id="catalogSchemaRow">
+                <input id="catalogSchemaId" type="text" placeholder="Decision item schema (required for offer-items on some orgs)" autocomplete="off">
+                <button type="button" class="btn btn-secondary" id="btnSchemaSave">Save</button>
+              </div>
+            </details>
             <div class="cd-catalog-actions">
               <button type="button" class="primary" id="btnCatalogFetch">Fetch</button>
               <p class="status" id="catalogStatus" style="margin:0;"></p>
@@ -1522,37 +1545,97 @@
       'selection-strategies':  { path: '/data/core/dps/selection-strategies', params: { limit: 50 } },
     };
 
-    var LS_SCHEMA_ID = 'aep-cd-catalog-schema-id';
     var activeCatalog = 'offer-items';
     var lastCatalogRaw = null;
 
     var tabs = document.querySelectorAll('.cd-catalog-tab');
-    var schemaRow = document.getElementById('catalogSchemaRow');
+    var schemaDetails = document.getElementById('catalogSchemaDetails');
+    var schemaBadge = document.getElementById('catalogSchemaBadge');
     var schemaInput = document.getElementById('catalogSchemaId');
+    var btnSchemaSave = document.getElementById('btnSchemaSave');
     var btnFetch = document.getElementById('btnCatalogFetch');
     var statusEl = document.getElementById('catalogStatus');
     var countEl = document.getElementById('catalogCount');
     var resultsEl = document.getElementById('catalogResults');
 
-    try {
-      var saved = localStorage.getItem(LS_SCHEMA_ID);
-      if (saved) schemaInput.value = saved;
-    } catch (e) {}
-    schemaInput.addEventListener('blur', function () {
-      try { localStorage.setItem(LS_SCHEMA_ID, schemaInput.value.trim()); } catch (e) {}
+    function collapseSchema() {
+      if (schemaDetails) schemaDetails.removeAttribute('open');
+      if (schemaBadge) schemaBadge.hidden = false;
+    }
+    function expandSchema() {
+      if (schemaDetails) schemaDetails.setAttribute('open', '');
+      if (schemaBadge) schemaBadge.hidden = true;
+    }
+
+    function getCatalogSandbox() {
+      var sel = document.getElementById('sandboxSelect');
+      if (sel && sel.value) return sel.value;
+      try { return localStorage.getItem('aep-sandbox') || ''; } catch (e) { return ''; }
+    }
+
+    async function loadSchemaFromFirebase() {
+      var sandbox = getCatalogSandbox();
+      if (!sandbox) return;
+      try {
+        var res = await fetch('/api/catalog/config?sandbox=' + encodeURIComponent(sandbox));
+        var data = await res.json().catch(function () { return {}; });
+        if (data.ok && data.record && data.record.schemaId) {
+          schemaInput.value = data.record.schemaId;
+          collapseSchema();
+        } else {
+          expandSchema();
+        }
+      } catch (e) {
+        cdLog('Catalog config load error:', e);
+      }
+    }
+
+    async function saveSchemaToFirebase() {
+      var sandbox = getCatalogSandbox();
+      var val = schemaInput.value.trim();
+      if (!sandbox) return;
+      try {
+        await fetch('/api/catalog/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sandbox: sandbox, schemaId: val }),
+        });
+        if (val) collapseSchema();
+        cdLog('Schema ID saved to Firebase:', val);
+      } catch (e) {
+        cdLog('Schema save error:', e);
+      }
+    }
+
+    if (btnSchemaSave) {
+      btnSchemaSave.addEventListener('click', saveSchemaToFirebase);
+    }
+
+    loadSchemaFromFirebase();
+
+    var sbSelect = document.getElementById('sandboxSelect');
+    if (sbSelect) {
+      sbSelect.addEventListener('change', function () {
+        tagNameMap = {};
+        loadSchemaFromFirebase();
+      });
+    }
+    window.addEventListener('aep-global-sandbox-change', function () {
+      tagNameMap = {};
+      loadSchemaFromFirebase();
     });
 
-    function updateSchemaRowVisibility() {
-      schemaRow.style.display = activeCatalog === 'offer-items' ? '' : 'none';
+    function updateSchemaVisibility() {
+      if (schemaDetails) schemaDetails.style.display = activeCatalog === 'offer-items' ? '' : 'none';
     }
-    updateSchemaRowVisibility();
+    updateSchemaVisibility();
 
     tabs.forEach(function (tab) {
       tab.addEventListener('click', function () {
         tabs.forEach(function (t) { t.setAttribute('aria-selected', 'false'); });
         tab.setAttribute('aria-selected', 'true');
         activeCatalog = tab.getAttribute('data-catalog');
-        updateSchemaRowVisibility();
+        updateSchemaVisibility();
       });
     });
 

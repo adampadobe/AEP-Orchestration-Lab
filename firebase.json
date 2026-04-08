@@ -198,6 +198,13 @@
         }
       },
       {
+        "source": "/api/catalog/config",
+        "function": {
+          "functionId": "catalogConfigStore",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/events/datastreams",
         "function": {
           "functionId": "eventDatastreamsProxy",
