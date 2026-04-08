@@ -1594,19 +1594,26 @@
       } catch (e) { return ''; }
     }
 
+    function catalogAepCall(payload) {
+      var sandbox = getCatalogSandbox();
+      if (sandbox) {
+        var ph = payload.platform_headers || {};
+        ph['x-sandbox-name'] = sandbox;
+        payload.platform_headers = ph;
+      }
+      return aepCall(payload);
+    }
+
     var OFFER_SCHEMA_TITLE = 'Personalized Offer Items - Experience Decisioning';
 
     async function autoDetectSchemaId() {
-      var sandbox = getCatalogSandbox();
-      cdLog('Auto-detecting offer items schema in sandbox:', sandbox);
+      cdLog('Auto-detecting offer items schema in sandbox:', getCatalogSandbox());
       try {
-        var ph = { accept: 'application/vnd.adobe.xed-id+json' };
-        if (sandbox) ph['x-sandbox-name'] = sandbox;
-        var result = await aepCall({
+        var result = await catalogAepCall({
           method: 'GET',
           path: '/data/foundation/schemaregistry/tenant/schemas',
           params: { limit: 100, orderby: 'title', property: 'title==' + OFFER_SCHEMA_TITLE },
-          platform_headers: ph,
+          platform_headers: { accept: 'application/vnd.adobe.xed-id+json' },
         });
         if (!result.httpOk) {
           cdLog('Schema search failed:', result.data);
@@ -1887,13 +1894,13 @@
 
       for (var i = 0; i < ids.length; i++) {
         try {
-          var catResult = await aepCall({ method: 'GET', path: '/data/core/dps/decision-catalogs/' + ids[i] });
+          var catResult = await catalogAepCall({ method: 'GET', path: '/data/core/dps/decision-catalogs/' + ids[i] });
           if (!catResult.httpOk) continue;
           var catData = catResult.data.platform_response || catResult.data;
           var schemaId = catData.schema;
           if (!schemaId) continue;
 
-          var itemResult = await aepCall({
+          var itemResult = await catalogAepCall({
             method: 'GET',
             path: '/data/core/dps/offer-items',
             params: { limit: 100 },
@@ -2065,7 +2072,7 @@
 
     async function loadRankingFunctions() {
       try {
-        var result = await aepCall({ method: 'GET', path: '/data/core/dps/ranking-formulas', params: { limit: 100 } });
+        var result = await catalogAepCall({ method: 'GET', path: '/data/core/dps/ranking-formulas', params: { limit: 100 } });
         if (result.httpOk) {
           var items = extractItems(result.data);
           items.forEach(function (fn) {
@@ -2093,7 +2100,7 @@
       cdLog('Resolving', uniqueIds.length, 'segment name(s)…');
       await Promise.all(uniqueIds.map(async function (id) {
         try {
-          var result = await aepCall({ method: 'GET', path: '/data/core/ups/segment/definitions/' + id });
+          var result = await catalogAepCall({ method: 'GET', path: '/data/core/ups/segment/definitions/' + id });
           if (result.httpOk) {
             var pr = result.data.platform_response || result.data;
             if (pr.name) segmentNameMap[id] = pr.name;
@@ -2310,8 +2317,8 @@
         if (sid) payload.platform_headers = { 'x-schema-id': sid };
       }
 
-      cdLog('Catalog →', activeCatalog, payload.path);
-      var result = await aepCall(payload);
+      cdLog('Catalog →', activeCatalog, payload.path, 'sandbox:', getCatalogSandbox());
+      var result = await catalogAepCall(payload);
       lastCatalogRaw = result.data;
 
       if (!result.httpOk) {
