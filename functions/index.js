@@ -163,7 +163,13 @@ function aepHeaders(accessToken, extra) {
   if (extra && typeof extra === 'object') {
     for (const [k, v] of Object.entries(extra)) {
       if (v == null || String(v).trim() === '') continue;
-      if (allowed.has(k.toLowerCase())) headers[k] = String(v);
+      if (!allowed.has(k.toLowerCase())) continue;
+      if (k.toLowerCase() === 'accept') {
+        delete headers.Accept;
+        headers.Accept = String(v);
+      } else {
+        headers[k] = String(v);
+      }
     }
   }
   return headers;

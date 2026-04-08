@@ -1594,7 +1594,44 @@
       } catch (e) { return ''; }
     }
 
-    async function loadSchemaFromFirebase() {
+    var OFFER_SCHEMA_TITLE = 'Personalized Offer Items - Experience Decisioning';
+
+    async function autoDetectSchemaId() {
+      var sandbox = getCatalogSandbox();
+      cdLog('Auto-detecting offer items schema in sandbox:', sandbox);
+      try {
+        var ph = { accept: 'application/vnd.adobe.xed-id+json' };
+        if (sandbox) ph['x-sandbox-name'] = sandbox;
+        var result = await aepCall({
+          method: 'GET',
+          path: '/data/foundation/schemaregistry/tenant/schemas',
+          params: { limit: 100, orderby: 'title', property: 'title==' + OFFER_SCHEMA_TITLE },
+          platform_headers: ph,
+        });
+        if (!result.httpOk) {
+          cdLog('Schema search failed:', result.data);
+          return null;
+        }
+        var pr = result.data.platform_response || result.data;
+        var schemas = pr.results || [];
+        if (!schemas.length && pr.length) schemas = pr;
+        for (var i = 0; i < schemas.length; i++) {
+          var s = schemas[i];
+          if (s.title === OFFER_SCHEMA_TITLE) {
+            var schemaId = s['$id'] || s['meta:altId'] || '';
+            cdLog('Schema auto-detected:', schemaId);
+            return schemaId;
+          }
+        }
+        cdLog('Schema "' + OFFER_SCHEMA_TITLE + '" not found in this sandbox');
+        return null;
+      } catch (e) {
+        cdLog('Schema auto-detect error:', e);
+        return null;
+      }
+    }
+
+    async function loadSchemaConfig() {
       var sandbox = getCatalogSandbox();
       if (!sandbox) return;
       try {
@@ -1603,11 +1640,19 @@
         if (data.ok && data.record && data.record.schemaId) {
           schemaInput.value = data.record.schemaId;
           collapseSchema();
-        } else {
-          expandSchema();
+          return;
         }
       } catch (e) {
         cdLog('Catalog config load error:', e);
+      }
+
+      var detected = await autoDetectSchemaId();
+      if (detected) {
+        schemaInput.value = detected;
+        await saveSchemaToFirebase();
+        collapseSchema();
+      } else {
+        expandSchema();
       }
     }
 
@@ -1632,7 +1677,7 @@
       btnSchemaSave.addEventListener('click', saveSchemaToFirebase);
     }
 
-    loadSchemaFromFirebase();
+    loadSchemaConfig();
 
     if (catalogSandboxSelect) {
       catalogSandboxSelect.addEventListener('change', function () {
@@ -1642,7 +1687,7 @@
         resultsEl.innerHTML = '';
         countEl.textContent = '';
         statusEl.textContent = '';
-        loadSchemaFromFirebase();
+        loadSchemaConfig();
       });
     }
     window.addEventListener('aep-global-sandbox-change', function () {
@@ -1652,7 +1697,7 @@
       resultsEl.innerHTML = '';
       countEl.textContent = '';
       statusEl.textContent = '';
-      loadSchemaFromFirebase();
+      loadSchemaConfig();
     });
 
     function updateSchemaVisibility() {
