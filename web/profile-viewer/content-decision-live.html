@@ -1715,6 +1715,48 @@
     var collSortCol = 'name';
     var collSortAsc = true;
     var lastCollItems = [];
+    var tagNameMap = {};
+
+    async function resolveTagNames(collections) {
+      var catalogIds = {};
+      collections.forEach(function (c) {
+        (c.constraints || []).forEach(function (con) {
+          if (con.itemCatalogId) catalogIds[con.itemCatalogId] = true;
+        });
+      });
+      var ids = Object.keys(catalogIds);
+      if (!ids.length) return;
+
+      for (var i = 0; i < ids.length; i++) {
+        try {
+          var catResult = await aepCall({ method: 'GET', path: '/data/core/dps/decision-catalogs/' + ids[i] });
+          if (!catResult.httpOk) continue;
+          var catData = catResult.data.platform_response || catResult.data;
+          var schemaId = catData.schema;
+          if (!schemaId) continue;
+
+          var itemResult = await aepCall({
+            method: 'GET',
+            path: '/data/core/dps/offer-items',
+            params: { limit: 100 },
+            platform_headers: { 'x-schema-id': schemaId },
+          });
+          if (!itemResult.httpOk) continue;
+          var items = extractItems(itemResult.data);
+          items.forEach(function (it) {
+            var di = (it._experience && it._experience.decisioning && it._experience.decisioning.decisionitem) || {};
+            (di.itemTagDetails || []).forEach(function (td) {
+              var tid = td.tagId || td.id || '';
+              var tname = td.tagName || td.name || '';
+              if (tid && tname) tagNameMap[tid] = tname;
+            });
+          });
+        } catch (e) {
+          cdLog('Tag resolve error:', e);
+        }
+      }
+      cdLog('Tag names resolved:', Object.keys(tagNameMap).length);
+    }
 
     var COLL_COLS = [
       { key: 'name', label: 'Name' },
@@ -1766,7 +1808,8 @@
       var rightText = '';
       if (Array.isArray(right)) {
         if (fieldType === 'tag') {
-          rightText = right.length + ' tag' + (right.length !== 1 ? 's' : '');
+          var resolved = right.map(function (uuid) { return tagNameMap[uuid] || uuid; });
+          rightText = resolved.join(', ');
         } else {
           rightText = right.map(function (v) { return String(v); }).join(', ');
         }
@@ -2135,6 +2178,11 @@
           Object.keys(rankingFunctionMap).length ? Promise.resolve() : loadRankingFunctions(),
           resolveSegmentNames(items),
         ]);
+      }
+
+      if (activeCatalog === 'item-collections' && !Object.keys(tagNameMap).length) {
+        statusEl.textContent = 'Resolving tag names…';
+        await resolveTagNames(items);
       }
 
       countEl.textContent = items.length + ' item' + (items.length !== 1 ? 's' : '');
