@@ -471,6 +471,29 @@
     }
     .cd-catalog-raw-toggle:hover { color: var(--text); }
 
+    .cd-catalog-table {
+      width: 100%; border-collapse: collapse; margin-top: 0.85rem; font-size: 0.8125rem;
+    }
+    .cd-catalog-table th {
+      text-align: left; font-weight: 600; font-size: 0.7rem; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--muted); padding: 0.5rem 0.65rem;
+      border-bottom: 2px solid var(--border); white-space: nowrap;
+    }
+    .cd-catalog-table td {
+      padding: 0.55rem 0.65rem; border-bottom: 1px solid var(--border);
+      vertical-align: middle; color: var(--text);
+    }
+    .cd-catalog-table tr:last-child td { border-bottom: none; }
+    .cd-catalog-table .cd-offer-name { font-weight: 600; }
+    .cd-catalog-table .cd-offer-priority { text-align: center; }
+    .cd-catalog-table .cd-offer-status { font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .cd-offer-active { color: #12805c; }
+    .cd-offer-expired { color: #d1344b; }
+    .cd-offer-scheduled { color: #e68619; }
+    html[data-aep-theme='dark'] .cd-offer-active { color: #36b37e; }
+    html[data-aep-theme='dark'] .cd-offer-expired { color: #ff6b6b; }
+    html[data-aep-theme='dark'] .cd-offer-scheduled { color: #ffab00; }
+
     .cd-banner-editor.panel { margin-top: 0.75rem; margin-bottom: 0; }
     .cd-banner-editor > summary { cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text); margin-bottom: 0.65rem; list-style: none; }
     .cd-banner-editor > summary::-webkit-details-marker { display: none; }
@@ -1551,28 +1574,101 @@
       return item.description || (item._instance && item._instance['repo:name']) || '';
     }
 
+    function getDecisionItem(it) {
+      return (it._experience && it._experience.decisioning && it._experience.decisioning.decisionitem) || {};
+    }
+
+    function getOfferStatus(it) {
+      var oi = it._experience && it._experience.decisioning && it._experience.decisioning.offeritem;
+      return (oi && oi.lifecycleStatus) || it.status || '';
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      try { var d = new Date(iso); return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return iso; }
+    }
+
+    function dateStatusClass(startIso, endIso) {
+      var now = new Date();
+      if (endIso) {
+        var end = new Date(endIso);
+        if (end < now) return 'cd-offer-expired';
+      }
+      if (startIso) {
+        var start = new Date(startIso);
+        if (start > now) return 'cd-offer-scheduled';
+      }
+      return 'cd-offer-active';
+    }
+
+    function dateStatusLabel(startIso, endIso) {
+      var now = new Date();
+      if (endIso) {
+        var end = new Date(endIso);
+        if (end < now) return 'Expired';
+      }
+      if (startIso) {
+        var start = new Date(startIso);
+        if (start > now) return 'Scheduled';
+      }
+      return 'Active';
+    }
+
+    function renderOfferTable(items) {
+      var html = '<table class="cd-catalog-table"><thead><tr>' +
+        '<th>Name</th><th>Priority</th><th>Start date</th><th>End date</th><th>Status</th>' +
+        '</tr></thead><tbody>';
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var di = getDecisionItem(it);
+        var name = di.itemName || itemName(it);
+        var priority = di.itemPriority != null ? di.itemPriority : '—';
+        var cal = di.itemCalendarConstraints || {};
+        var startDate = cal.startDate || '';
+        var endDate = cal.endDate || '';
+        var cls = dateStatusClass(startDate, endDate);
+        var label = dateStatusLabel(startDate, endDate);
+        html += '<tr>' +
+          '<td class="cd-offer-name">' + escHtml(name) + '</td>' +
+          '<td class="cd-offer-priority">' + escHtml(String(priority)) + '</td>' +
+          '<td>' + escHtml(formatDate(startDate)) + '</td>' +
+          '<td class="' + cls + '">' + escHtml(formatDate(endDate)) + '</td>' +
+          '<td class="cd-offer-status ' + cls + '">' + escHtml(label) + '</td>' +
+          '</tr>';
+      }
+      html += '</tbody></table>';
+      return html;
+    }
+
     function renderCards(items, catalogKey) {
       if (!items.length) {
         resultsEl.innerHTML = '<div class="cd-catalog-empty">No ' + escHtml(catalogKey.replace(/-/g, ' ')) + ' found in this sandbox.</div>';
         return;
       }
-      var html = '<div class="cd-catalog-cards">';
-      for (var i = 0; i < items.length; i++) {
-        var it = items[i];
-        var name = escHtml(itemName(it));
-        var desc = itemDescription(it);
-        var id = it.id || it['@id'] || '';
-        var status = it.status || (it._instance && it._instance.status) || '';
-        var meta = [];
-        if (id) meta.push('<code>' + escHtml(id) + '</code>');
-        if (status) meta.push(escHtml(status));
-        html += '<div class="cd-catalog-card">' +
-          '<div class="cd-catalog-card-name">' + name + '</div>' +
-          (desc ? '<div style="color:var(--muted);font-size:0.8rem;margin-bottom:0.15rem;">' + escHtml(desc) + '</div>' : '') +
-          (meta.length ? '<div class="cd-catalog-card-meta">' + meta.join(' &middot; ') + '</div>' : '') +
-          '</div>';
+
+      var html;
+      if (catalogKey === 'offer-items') {
+        html = renderOfferTable(items);
+      } else {
+        html = '<div class="cd-catalog-cards">';
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          var name = escHtml(itemName(it));
+          var desc = itemDescription(it);
+          var id = it.id || it['@id'] || '';
+          var status = it.status || (it._instance && it._instance.status) || '';
+          var meta = [];
+          if (id) meta.push('<code>' + escHtml(id) + '</code>');
+          if (status) meta.push(escHtml(status));
+          html += '<div class="cd-catalog-card">' +
+            '<div class="cd-catalog-card-name">' + name + '</div>' +
+            (desc ? '<div style="color:var(--muted);font-size:0.8rem;margin-bottom:0.15rem;">' + escHtml(desc) + '</div>' : '') +
+            (meta.length ? '<div class="cd-catalog-card-meta">' + meta.join(' &middot; ') + '</div>' : '') +
+            '</div>';
+        }
+        html += '</div>';
       }
-      html += '</div>';
+
       html += '<button type="button" class="cd-catalog-raw-toggle" id="catalogRawToggle">Show raw JSON</button>';
       html += '<pre id="catalogRawPre" hidden>' + escHtml(JSON.stringify(lastCatalogRaw, null, 2)) + '</pre>';
       resultsEl.innerHTML = html;
