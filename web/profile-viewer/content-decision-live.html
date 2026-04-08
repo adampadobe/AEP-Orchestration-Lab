@@ -493,6 +493,11 @@
     html[data-theme='dark'] .cd-catalog-table td.cd-offer-active { color: #36b37e; }
     html[data-theme='dark'] .cd-catalog-table td.cd-offer-expired { color: #ff6b6b; }
     html[data-theme='dark'] .cd-catalog-table td.cd-offer-scheduled { color: #ffab00; }
+    .cd-offer-tag {
+      display: inline-block; font-size: 0.7rem; padding: 0.15rem 0.45rem;
+      border: 1px solid var(--border); border-radius: 3px; color: var(--text);
+      background: var(--bg); margin: 0.1rem 0.15rem;
+    }
 
     .cd-banner-editor.panel { margin-top: 0.75rem; margin-bottom: 0; }
     .cd-banner-editor > summary { cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text); margin-bottom: 0.65rem; list-style: none; }
@@ -1614,9 +1619,17 @@
       return 'Active';
     }
 
+    function getTagNames(di) {
+      var details = di.itemTagDetails;
+      if (Array.isArray(details) && details.length) {
+        return details.map(function (t) { return t.name || t.id || ''; }).filter(Boolean);
+      }
+      return [];
+    }
+
     function renderOfferTable(items) {
       var html = '<table class="cd-catalog-table"><thead><tr>' +
-        '<th>Name</th><th>Priority</th><th>Start date</th><th>End date</th><th>Status</th>' +
+        '<th>Name</th><th>Priority</th><th>Start date</th><th>End date</th><th>Status</th><th>Tags</th>' +
         '</tr></thead><tbody>';
       for (var i = 0; i < items.length; i++) {
         var it = items[i];
@@ -1628,12 +1641,17 @@
         var endDate = cal.endDate || '';
         var cls = dateStatusClass(startDate, endDate);
         var label = dateStatusLabel(startDate, endDate);
+        var tags = getTagNames(di);
+        var tagsHtml = tags.length
+          ? tags.map(function (t) { return '<span class="cd-offer-tag">' + escHtml(t) + '</span>'; }).join(' ')
+          : '<span style="color:var(--muted)">—</span>';
         html += '<tr>' +
           '<td class="cd-offer-name">' + escHtml(name) + '</td>' +
           '<td class="cd-offer-priority">' + escHtml(String(priority)) + '</td>' +
           '<td>' + escHtml(formatDate(startDate)) + '</td>' +
           '<td class="' + cls + '">' + escHtml(formatDate(endDate)) + '</td>' +
           '<td class="cd-offer-status ' + cls + '">' + escHtml(label) + '</td>' +
+          '<td>' + tagsHtml + '</td>' +
           '</tr>';
       }
       html += '</tbody></table>';
