@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>(function(){try{if(localStorage.getItem('aepTheme')==='dark')document.documentElement.setAttribute('data-aep-theme','dark');}catch(e){}})();</script>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile Viewer – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,68 +10,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
-  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="home.css?v=20260406">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="aep-theme.css">
+  <link rel="stylesheet" href="aep-theme.css?v=20260406">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge">
   <div class="dashboard-shell">
-    <aside class="dashboard-sidebar" aria-label="Primary">
-      <div class="dashboard-sidebar-brand">
-        <span class="dashboard-sidebar-mark" aria-hidden="true">◆</span>
-        <div class="dashboard-sidebar-titles">
-          <span class="dashboard-sidebar-name">AEP</span>
-          <span class="dashboard-sidebar-sub">Profile Viewer</span>
-        </div>
-      </div>
-      <nav class="dashboard-sidebar-nav">
-        <a href="home.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">⌂</span>
-          Home
-        </a>
-        <a href="index.html" class="dashboard-nav-item dashboard-nav-item--active">
-          <span class="dashboard-nav-ico" aria-hidden="true">👤</span>
-          Profile Viewer
-        </a>
-        <a href="schema-viewer.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">🌿</span>
-          Data viewer
-        </a>
-        <a href="audience-membership.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">👥</span>
-          Audience
-        </a>
-        <a href="profile-generation.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">➕</span>
-          Profile generation
-        </a>
-        <a href="consent.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">✓</span>
-          Consent
-        </a>
-        <a href="event-generator.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">📤</span>
-          Event generator
-        </a>
-        <a href="donate-demo.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">💝</span>
-          Donate (demo)
-        </a>
-        <a href="race-for-life-demo.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">🏃</span>
-          Race for Life (demo)
-        </a>
-        <a href="events-trigger.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">⚡</span>
-          Events trigger
-        </a>
-        <a href="firebase-hosting.html" class="dashboard-nav-item">
-          <span class="dashboard-nav-ico" aria-hidden="true">🖼</span>
-          Firebase images
-        </a>
-      </nav>
-    </aside>
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
     <div class="dashboard-main-wrap">
       <header class="dashboard-topbar">
@@ -247,7 +193,7 @@
           </div>
         </div>
         <div class="details-header">
-          <h3 class="details-title">Email Channel Engagement</h3>
+          <h3 class="details-title">Channel Engagement</h3>
           <div class="details-toolbar">
             <select id="detailsDateFilter" class="details-date-filter" aria-label="Filter events by date range">
               <option value="24">Last 24 hours</option>
@@ -262,7 +208,11 @@
             </div>
           </div>
         </div>
-        <p id="detailsLoadHint" class="details-hint" hidden>Load a profile and open the Details tab to see email engagement metrics.</p>
+        <div class="details-channel-tabs" id="detailsChannelTabs" role="tablist" aria-label="Filter metrics by channel">
+          <button class="details-channel-tab details-channel-tab--active" role="tab" aria-selected="true" data-channel="all">All</button>
+        </div>
+        <p class="details-channel-summary" id="detailsChannelSummary" hidden></p>
+        <p id="detailsLoadHint" class="details-hint" hidden>Load a profile and open the Details tab to see channel engagement metrics.</p>
         <div id="detailsMetricsGrid" class="details-metrics-grid">
           <div class="details-metric-card">
             <div class="details-metric-header"><span class="details-metric-name">Sends</span></div>
@@ -483,7 +433,7 @@
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="app.js"></script>
-  <script defer src="aep-theme.js"></script>
-  <script defer src="aep-lab-nav.js"></script>
+  <script defer src="aep-theme.js?v=20260406"></script>
+  <script defer src="aep-lab-nav.js?v=20260406"></script>
 </body>
 </html>

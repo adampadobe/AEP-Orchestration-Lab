@@ -60,6 +60,33 @@ async function loadSandboxes() {
 }
 if (sandboxSelect) loadSandboxes();
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('email');
+
+/** Track last sandbox used for data fetches so we invalidate on change. */
+let lastFetchedSandbox = null;
+function getCurrentSandbox() {
+  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+    return window.AepGlobalSandbox.getSandboxName() || '';
+  }
+  return sandboxSelect?.value?.trim() || '';
+}
+
+function handleSandboxSwitch() {
+  const newSandbox = getCurrentSandbox();
+  if (lastFetchedSandbox != null && newSandbox !== lastFetchedSandbox) {
+    eventsLoadedForEmail = null;
+    eventsData = [];
+    audiencesLoadedForEmail = null;
+    activeChannelTab = 'all';
+    if (lastProfileData && emailInput?.value?.trim()) {
+      fetchBtn.click();
+    }
+  }
+}
+
+window.addEventListener('aep-global-sandbox-change', handleSandboxSwitch);
+if (sandboxSelect) {
+  sandboxSelect.addEventListener('change', handleSandboxSwitch);
+}
 const statusEl = document.getElementById('status');
 const resultsSection = document.getElementById('results');
 const metaEl = document.getElementById('meta');
@@ -524,11 +551,11 @@ async function loadDetailsSupplementaryData() {
       const ch = cData.channels || {};
       const rows = [
         ['email', 'Email', '📧'],
-        ['push', 'Push', '🔔'],
+        ['push', 'Push', '<svg style="width:1em;height:1em;vertical-align:-0.125em" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="1" width="10" height="18" rx="2"/><line x1="8" y1="16" x2="12" y2="16"/><circle cx="14" cy="4" r="3" fill="#e04444" stroke="#e04444" stroke-width="1"/></svg>'],
         ['sms', 'SMS', '💬'],
         ['phone', 'Phone', '📞'],
         ['directMail', 'Direct mail', '✉️'],
-        ['whatsapp', 'WhatsApp', '💚'],
+        ['whatsapp', 'WhatsApp', '<svg style="width:1em;height:1em;vertical-align:-0.125em" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.019-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>'],
       ];
       if (!cRes.ok) {
         chEl.innerHTML = '<p class="details-journeys-note" style="margin:0">Could not load channel preferences.</p>';
@@ -659,14 +686,13 @@ fetchBtn.addEventListener('click', async () => {
       return;
     }
 
+    lastFetchedSandbox = getCurrentSandbox();
     showResults(data);
     if (typeof addEmail === 'function') addEmail(email);
     setStatus(`Profile loaded for ${email}.`);
-    // Refresh Events and Audience tabs if they're visible
-    const panelEvents = document.getElementById('panelEvents');
-    const panelAudience = document.getElementById('panelAudience');
-    if (panelEvents && !panelEvents.hidden) loadEventsIfNeeded();
-    if (panelAudience && !panelAudience.hidden) loadAudiencesIfNeeded();
+    // Force-refresh all data tabs regardless of visibility
+    loadEventsIfNeeded();
+    loadAudiencesIfNeeded();
   } catch (err) {
     showError(err.message || 'Network error');
     setStatus('', 'error');
@@ -705,7 +731,91 @@ function filterEventsByDateRange(events, hoursBack) {
   });
 }
 
-/** Count email engagement metrics from filtered events (email namespace, date range). */
+/** Filter events by date range and a specific channel key (email, push, sms, etc.). */
+function filterEventsByChannelAndDateRange(events, channelKey, hoursBack) {
+  if (!events || !events.length) return [];
+  const now = Date.now();
+  const cutoff = now - hoursBack * 60 * 60 * 1000;
+  return events.filter((ev) => {
+    const ts = ev.timestamp != null ? (typeof ev.timestamp === 'number' ? ev.timestamp : parseInt(ev.timestamp, 10)) : 0;
+    if (ts < cutoff) return false;
+    const evChannel = getMessageChannelKeyForDetails(ev);
+    return evChannel === channelKey;
+  });
+}
+
+/** Detect all channels present in date-filtered events. Returns sorted array of { key, count }. */
+function detectChannelsInEvents(events) {
+  const bucket = new Map();
+  (events || []).forEach((ev) => {
+    const key = getMessageChannelKeyForDetails(ev);
+    if (!key) return;
+    bucket.set(key, (bucket.get(key) || 0) + 1);
+  });
+  return Array.from(bucket.entries())
+    .map(([key, count]) => ({ key, count }))
+    .sort((a, b) => detailsChannelSortIndex(a.key) - detailsChannelSortIndex(b.key) || a.key.localeCompare(b.key));
+}
+
+var activeChannelTab = 'all';
+var LS_CHANNEL_TAB = 'aepDetailsChannelTab';
+try { var saved = localStorage.getItem(LS_CHANNEL_TAB); if (saved) activeChannelTab = saved; } catch (e) {}
+
+function buildChannelTabs(detectedChannels) {
+  var container = document.getElementById('detailsChannelTabs');
+  if (!container) return;
+  container.innerHTML = '';
+  var allBtn = document.createElement('button');
+  allBtn.className = 'details-channel-tab' + (activeChannelTab === 'all' ? ' details-channel-tab--active' : '');
+  allBtn.setAttribute('role', 'tab');
+  allBtn.setAttribute('aria-selected', activeChannelTab === 'all' ? 'true' : 'false');
+  allBtn.setAttribute('data-channel', 'all');
+  allBtn.textContent = 'All';
+  allBtn.addEventListener('click', function () { setActiveChannelTab('all'); });
+  container.appendChild(allBtn);
+
+  detectedChannels.forEach(function (ch) {
+    var btn = document.createElement('button');
+    btn.className = 'details-channel-tab' + (activeChannelTab === ch.key ? ' details-channel-tab--active' : '');
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', activeChannelTab === ch.key ? 'true' : 'false');
+    btn.setAttribute('data-channel', ch.key);
+    btn.textContent = formatChannelLabelForDetails(ch.key);
+    btn.addEventListener('click', function () { setActiveChannelTab(ch.key); });
+    container.appendChild(btn);
+  });
+}
+
+function setActiveChannelTab(key) {
+  activeChannelTab = key;
+  try { localStorage.setItem(LS_CHANNEL_TAB, key); } catch (e) {}
+  var container = document.getElementById('detailsChannelTabs');
+  if (container) {
+    container.querySelectorAll('.details-channel-tab').forEach(function (btn) {
+      var isActive = btn.getAttribute('data-channel') === key;
+      btn.classList.toggle('details-channel-tab--active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  }
+  updateDetailsPanel();
+}
+
+function updateChannelSummary(detectedChannels) {
+  var el = document.getElementById('detailsChannelSummary');
+  if (!el) return;
+  if (!detectedChannels.length) {
+    el.hidden = true;
+    return;
+  }
+  var total = detectedChannels.reduce(function (s, c) { return s + c.count; }, 0);
+  var parts = detectedChannels.map(function (c) {
+    return formatChannelLabelForDetails(c.key) + ' (' + c.count + ')';
+  });
+  el.textContent = detectedChannels.length + ' channel' + (detectedChannels.length !== 1 ? 's' : '') + ' detected \u00b7 ' + total + ' events: ' + parts.join(', ');
+  el.hidden = false;
+}
+
+/** Count engagement metrics from filtered events. Works for any channel. */
 function computeEmailEngagementMetrics(filtered, allDateFiltered) {
   const evName = (ev) => String(ev.eventName || '').toLowerCase();
   const fb = (ev) => String(getEventFeedbackStatus(ev)).toLowerCase();
@@ -751,11 +861,14 @@ function updateDetailsPanel() {
 
   const journeysSectionEl = document.getElementById('detailsJourneysSection');
   const channelsSectionEl = document.getElementById('detailsChannelsSection');
+  const summaryEl = document.getElementById('detailsChannelSummary');
   if (eventsData.length === 0) {
-    if (hintEl) { hintEl.hidden = false; hintEl.textContent = 'Load a profile and open the Details tab to see email engagement metrics.'; }
+    if (hintEl) { hintEl.hidden = false; hintEl.textContent = 'Load a profile and open the Details tab to see channel engagement metrics.'; }
     if (gridEl) gridEl.hidden = true;
     if (journeysSectionEl) journeysSectionEl.hidden = true;
     if (channelsSectionEl) channelsSectionEl.hidden = true;
+    if (summaryEl) summaryEl.hidden = true;
+    buildChannelTabs([]);
     ['detailsSends', 'detailsDeliveryRate', 'detailsBounceRate', 'detailsUnsubRate', 'detailsOpenRate', 'detailsOtherOpenRate', 'detailsClickRate', 'detailsClickToOpenRate'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.textContent = '—';
@@ -770,10 +883,24 @@ function updateDetailsPanel() {
   if (hintEl) hintEl.hidden = true;
   if (gridEl) gridEl.hidden = false;
 
-  const filtered = filterEmailEventsByDateRange(eventsData, hoursBack);
   const allDateFiltered = filterEventsByDateRange(eventsData, hoursBack);
-  const m = computeEmailEngagementMetrics(filtered, allDateFiltered);
+  const detectedChannels = detectChannelsInEvents(allDateFiltered);
+  buildChannelTabs(detectedChannels);
+  updateChannelSummary(detectedChannels);
 
+  var filtered;
+  var channelFiltered;
+  if (activeChannelTab === 'all') {
+    var allChannelEvents = allDateFiltered.filter(function (ev) { return !!getMessageChannelKeyForDetails(ev); });
+    filtered = allChannelEvents;
+    channelFiltered = allChannelEvents;
+  } else {
+    filtered = filterEventsByChannelAndDateRange(eventsData, activeChannelTab, hoursBack);
+    channelFiltered = filtered;
+  }
+  const m = computeEmailEngagementMetrics(channelFiltered, filtered);
+
+  const channelLabel = activeChannelTab === 'all' ? 'Messages' : formatChannelLabelForDetails(activeChannelTab);
   const days = hoursBack / 24;
   const avgPerDay = days > 0 ? (m.sends / days).toFixed(1) : '—';
 
@@ -781,9 +908,9 @@ function updateDetailsPanel() {
   set('detailsSends', m.sends.toLocaleString());
   set('detailsSendsSub', `Average Per Day: ${avgPerDay}`);
   set('detailsDeliveryRate', m.deliveryRate != null ? `${m.deliveryRate}%` : '—');
-  set('detailsDeliveryRateSub', `${m.delivered.toLocaleString()} Emails Delivered`);
+  set('detailsDeliveryRateSub', `${m.delivered.toLocaleString()} Delivered`);
   set('detailsBounceRate', m.bounceRate != null ? `${m.bounceRate}%` : '—');
-  set('detailsBounceRateSub', `${m.bounced.toLocaleString()} Emails Bounced`);
+  set('detailsBounceRateSub', `${m.bounced.toLocaleString()} Bounced`);
   set('detailsUnsubRate', m.unsubRate != null ? `${m.unsubRate}%` : '—');
   set('detailsUnsubRateSub', `${m.unsubscribed.toLocaleString()} Unsubscribes`);
   set('detailsOpenRate', m.openRate != null ? `${m.openRate}%` : '—');
@@ -1547,16 +1674,16 @@ async function loadEventsIfNeeded() {
       eventsLoadedForEmail = null;
       if (eventsErrorEl) { eventsErrorEl.textContent = data.error || res.statusText || 'Failed to load events.'; eventsErrorEl.hidden = false; }
       renderEvents([]);
-      if (document.getElementById('panelDetails') && !document.getElementById('panelDetails').hidden) updateDetailsPanel();
+      updateDetailsPanel();
       return;
     }
     renderEvents(data.events || []);
-    if (document.getElementById('panelDetails') && !document.getElementById('panelDetails').hidden) updateDetailsPanel();
+    updateDetailsPanel();
   } catch (err) {
     eventsLoadedForEmail = null;
     if (eventsErrorEl) { eventsErrorEl.textContent = err.message || 'Network error'; eventsErrorEl.hidden = false; }
     renderEvents([]);
-    if (document.getElementById('panelDetails') && !document.getElementById('panelDetails').hidden) updateDetailsPanel();
+    updateDetailsPanel();
   }
 }
 

@@ -28,6 +28,7 @@ const {
   getTreatmentNameById,
   getCampaignNameById,
   getJourneyNameById,
+  listJourneyVersionMap,
 } = require('./joLookups');
 const schemaViewerService = require('./schemaViewerService');
 const svCache = require('./schemaViewerCache');
@@ -48,6 +49,7 @@ const {
 } = require('./consentInfraService');
 const { lookupConsentHttpFlow } = require('./consentFlowLookup');
 const { getConsentConnection, saveConsentConnection } = require('./consentConnectionStore');
+const { getCachedJourneyName, setCachedJourneyName } = require('./journeyNameStore');
 const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = require('./eventEdgeService');
 const { getEventConfig, saveEventConfig } = require('./eventConfigStore');
 const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
@@ -1327,6 +1329,15 @@ exports.journeyNameProxy = onRequest(profileFnOpts, async (req, res) => {
     res.status(400).json({ error: 'Missing id. Use ?id=...', name: null });
     return;
   }
+  try {
+    const cached = await getCachedJourneyName(sandbox, id);
+    if (cached) {
+      res.status(200).json({ id, name: cached, source: 'cache' });
+      return;
+    }
+  } catch (e) {
+    console.log('[journeyNameProxy] cache read failed, falling through to API', String(e.message || e));
+  }
   let accessToken;
   try {
     accessToken = await getAdobeAccessToken();
@@ -1342,7 +1353,25 @@ exports.journeyNameProxy = onRequest(profileFnOpts, async (req, res) => {
       ADOBE_CLIENT_ID.value(),
       ADOBE_IMS_ORG.value()
     );
-    res.status(200).json({ id, name });
+    // Bulk-cache all discovered journey names from the version map
+    try {
+      const vmap = await listJourneyVersionMap(
+        sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value()
+      );
+      const writes = [];
+      for (const [vid, vname] of vmap) {
+        if (vname) writes.push(setCachedJourneyName(sandbox, vid, vname));
+      }
+      if (name && !vmap.has(id)) {
+        writes.push(setCachedJourneyName(sandbox, id, name));
+      }
+      await Promise.allSettled(writes);
+    } catch (bulkErr) {
+      if (name) {
+        await setCachedJourneyName(sandbox, id, name).catch(() => {});
+      }
+    }
+    res.status(200).json({ id, name, source: 'api' });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), name: null });
   }

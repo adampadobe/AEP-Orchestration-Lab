@@ -193,7 +193,7 @@
           </div>
         </div>
         <div class="details-header">
-          <h3 class="details-title">Email Channel Engagement</h3>
+          <h3 class="details-title">Channel Engagement</h3>
           <div class="details-toolbar">
             <select id="detailsDateFilter" class="details-date-filter" aria-label="Filter events by date range">
               <option value="24">Last 24 hours</option>
@@ -208,7 +208,11 @@
             </div>
           </div>
         </div>
-        <p id="detailsLoadHint" class="details-hint" hidden>Load a profile and open the Details tab to see email engagement metrics.</p>
+        <div class="details-channel-tabs" id="detailsChannelTabs" role="tablist" aria-label="Filter metrics by channel">
+          <button class="details-channel-tab details-channel-tab--active" role="tab" aria-selected="true" data-channel="all">All</button>
+        </div>
+        <p class="details-channel-summary" id="detailsChannelSummary" hidden></p>
+        <p id="detailsLoadHint" class="details-hint" hidden>Load a profile and open the Details tab to see channel engagement metrics.</p>
         <div id="detailsMetricsGrid" class="details-metrics-grid">
           <div class="details-metric-card">
             <div class="details-metric-header"><span class="details-metric-name">Sends</span></div>

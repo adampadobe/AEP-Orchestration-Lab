@@ -591,6 +591,47 @@ body.profile-viewer-page.consent-page:not(.profile-generation-page).with-sidebar
   cursor: pointer;
 }
 
+.profile-viewer-page .details-channel-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--dash-border);
+  margin-bottom: 0.75rem;
+}
+
+.profile-viewer-page .details-channel-tab {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 0.85rem;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.profile-viewer-page .details-channel-tab:hover {
+  color: var(--dash-text);
+}
+
+.profile-viewer-page .details-channel-tab--active {
+  color: var(--dash-blue);
+  border-bottom-color: var(--dash-blue);
+}
+
+.profile-viewer-page .details-channel-summary {
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+  margin: 0 0 0.85rem;
+  line-height: 1.5;
+}
+
+.profile-viewer-page .details-channel-summary[hidden] {
+  display: none;
+}
+
 .profile-viewer-page .details-hint {
   font-size: 0.9rem;
   color: var(--dash-muted);

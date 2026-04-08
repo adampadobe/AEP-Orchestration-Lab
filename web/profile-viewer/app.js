@@ -60,6 +60,33 @@ async function loadSandboxes() {
 }
 if (sandboxSelect) loadSandboxes();
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('email');
+
+/** Track last sandbox used for data fetches so we invalidate on change. */
+let lastFetchedSandbox = null;
+function getCurrentSandbox() {
+  if (typeof window.AepGlobalSandbox !== 'undefined' && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+    return window.AepGlobalSandbox.getSandboxName() || '';
+  }
+  return sandboxSelect?.value?.trim() || '';
+}
+
+function handleSandboxSwitch() {
+  const newSandbox = getCurrentSandbox();
+  if (lastFetchedSandbox != null && newSandbox !== lastFetchedSandbox) {
+    eventsLoadedForEmail = null;
+    eventsData = [];
+    audiencesLoadedForEmail = null;
+    activeChannelTab = 'all';
+    if (lastProfileData && emailInput?.value?.trim()) {
+      fetchBtn.click();
+    }
+  }
+}
+
+window.addEventListener('aep-global-sandbox-change', handleSandboxSwitch);
+if (sandboxSelect) {
+  sandboxSelect.addEventListener('change', handleSandboxSwitch);
+}
 const statusEl = document.getElementById('status');
 const resultsSection = document.getElementById('results');
 const metaEl = document.getElementById('meta');
@@ -659,14 +686,13 @@ fetchBtn.addEventListener('click', async () => {
       return;
     }
 
+    lastFetchedSandbox = getCurrentSandbox();
     showResults(data);
     if (typeof addEmail === 'function') addEmail(email);
     setStatus(`Profile loaded for ${email}.`);
-    // Refresh Events and Audience tabs if they're visible
-    const panelEvents = document.getElementById('panelEvents');
-    const panelAudience = document.getElementById('panelAudience');
-    if (panelEvents && !panelEvents.hidden) loadEventsIfNeeded();
-    if (panelAudience && !panelAudience.hidden) loadAudiencesIfNeeded();
+    // Force-refresh all data tabs regardless of visibility
+    loadEventsIfNeeded();
+    loadAudiencesIfNeeded();
   } catch (err) {
     showError(err.message || 'Network error');
     setStatus('', 'error');
@@ -705,7 +731,91 @@ function filterEventsByDateRange(events, hoursBack) {
   });
 }
 
-/** Count email engagement metrics from filtered events (email namespace, date range). */
+/** Filter events by date range and a specific channel key (email, push, sms, etc.). */
+function filterEventsByChannelAndDateRange(events, channelKey, hoursBack) {
+  if (!events || !events.length) return [];
+  const now = Date.now();
+  const cutoff = now - hoursBack * 60 * 60 * 1000;
+  return events.filter((ev) => {
+    const ts = ev.timestamp != null ? (typeof ev.timestamp === 'number' ? ev.timestamp : parseInt(ev.timestamp, 10)) : 0;
+    if (ts < cutoff) return false;
+    const evChannel = getMessageChannelKeyForDetails(ev);
+    return evChannel === channelKey;
+  });
+}
+
+/** Detect all channels present in date-filtered events. Returns sorted array of { key, count }. */
+function detectChannelsInEvents(events) {
+  const bucket = new Map();
+  (events || []).forEach((ev) => {
+    const key = getMessageChannelKeyForDetails(ev);
+    if (!key) return;
+    bucket.set(key, (bucket.get(key) || 0) + 1);
+  });
+  return Array.from(bucket.entries())
+    .map(([key, count]) => ({ key, count }))
+    .sort((a, b) => detailsChannelSortIndex(a.key) - detailsChannelSortIndex(b.key) || a.key.localeCompare(b.key));
+}
+
+var activeChannelTab = 'all';
+var LS_CHANNEL_TAB = 'aepDetailsChannelTab';
+try { var saved = localStorage.getItem(LS_CHANNEL_TAB); if (saved) activeChannelTab = saved; } catch (e) {}
+
+function buildChannelTabs(detectedChannels) {
+  var container = document.getElementById('detailsChannelTabs');
+  if (!container) return;
+  container.innerHTML = '';
+  var allBtn = document.createElement('button');
+  allBtn.className = 'details-channel-tab' + (activeChannelTab === 'all' ? ' details-channel-tab--active' : '');
+  allBtn.setAttribute('role', 'tab');
+  allBtn.setAttribute('aria-selected', activeChannelTab === 'all' ? 'true' : 'false');
+  allBtn.setAttribute('data-channel', 'all');
+  allBtn.textContent = 'All';
+  allBtn.addEventListener('click', function () { setActiveChannelTab('all'); });
+  container.appendChild(allBtn);
+
+  detectedChannels.forEach(function (ch) {
+    var btn = document.createElement('button');
+    btn.className = 'details-channel-tab' + (activeChannelTab === ch.key ? ' details-channel-tab--active' : '');
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', activeChannelTab === ch.key ? 'true' : 'false');
+    btn.setAttribute('data-channel', ch.key);
+    btn.textContent = formatChannelLabelForDetails(ch.key);
+    btn.addEventListener('click', function () { setActiveChannelTab(ch.key); });
+    container.appendChild(btn);
+  });
+}
+
+function setActiveChannelTab(key) {
+  activeChannelTab = key;
+  try { localStorage.setItem(LS_CHANNEL_TAB, key); } catch (e) {}
+  var container = document.getElementById('detailsChannelTabs');
+  if (container) {
+    container.querySelectorAll('.details-channel-tab').forEach(function (btn) {
+      var isActive = btn.getAttribute('data-channel') === key;
+      btn.classList.toggle('details-channel-tab--active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  }
+  updateDetailsPanel();
+}
+
+function updateChannelSummary(detectedChannels) {
+  var el = document.getElementById('detailsChannelSummary');
+  if (!el) return;
+  if (!detectedChannels.length) {
+    el.hidden = true;
+    return;
+  }
+  var total = detectedChannels.reduce(function (s, c) { return s + c.count; }, 0);
+  var parts = detectedChannels.map(function (c) {
+    return formatChannelLabelForDetails(c.key) + ' (' + c.count + ')';
+  });
+  el.textContent = detectedChannels.length + ' channel' + (detectedChannels.length !== 1 ? 's' : '') + ' detected \u00b7 ' + total + ' events: ' + parts.join(', ');
+  el.hidden = false;
+}
+
+/** Count engagement metrics from filtered events. Works for any channel. */
 function computeEmailEngagementMetrics(filtered, allDateFiltered) {
   const evName = (ev) => String(ev.eventName || '').toLowerCase();
   const fb = (ev) => String(getEventFeedbackStatus(ev)).toLowerCase();
@@ -751,11 +861,14 @@ function updateDetailsPanel() {
 
   const journeysSectionEl = document.getElementById('detailsJourneysSection');
   const channelsSectionEl = document.getElementById('detailsChannelsSection');
+  const summaryEl = document.getElementById('detailsChannelSummary');
   if (eventsData.length === 0) {
-    if (hintEl) { hintEl.hidden = false; hintEl.textContent = 'Load a profile and open the Details tab to see email engagement metrics.'; }
+    if (hintEl) { hintEl.hidden = false; hintEl.textContent = 'Load a profile and open the Details tab to see channel engagement metrics.'; }
     if (gridEl) gridEl.hidden = true;
     if (journeysSectionEl) journeysSectionEl.hidden = true;
     if (channelsSectionEl) channelsSectionEl.hidden = true;
+    if (summaryEl) summaryEl.hidden = true;
+    buildChannelTabs([]);
     ['detailsSends', 'detailsDeliveryRate', 'detailsBounceRate', 'detailsUnsubRate', 'detailsOpenRate', 'detailsOtherOpenRate', 'detailsClickRate', 'detailsClickToOpenRate'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.textContent = '—';
@@ -770,10 +883,24 @@ function updateDetailsPanel() {
   if (hintEl) hintEl.hidden = true;
   if (gridEl) gridEl.hidden = false;
 
-  const filtered = filterEmailEventsByDateRange(eventsData, hoursBack);
   const allDateFiltered = filterEventsByDateRange(eventsData, hoursBack);
-  const m = computeEmailEngagementMetrics(filtered, allDateFiltered);
+  const detectedChannels = detectChannelsInEvents(allDateFiltered);
+  buildChannelTabs(detectedChannels);
+  updateChannelSummary(detectedChannels);
 
+  var filtered;
+  var channelFiltered;
+  if (activeChannelTab === 'all') {
+    var allChannelEvents = allDateFiltered.filter(function (ev) { return !!getMessageChannelKeyForDetails(ev); });
+    filtered = allChannelEvents;
+    channelFiltered = allChannelEvents;
+  } else {
+    filtered = filterEventsByChannelAndDateRange(eventsData, activeChannelTab, hoursBack);
+    channelFiltered = filtered;
+  }
+  const m = computeEmailEngagementMetrics(channelFiltered, filtered);
+
+  const channelLabel = activeChannelTab === 'all' ? 'Messages' : formatChannelLabelForDetails(activeChannelTab);
   const days = hoursBack / 24;
   const avgPerDay = days > 0 ? (m.sends / days).toFixed(1) : '—';
 
@@ -781,9 +908,9 @@ function updateDetailsPanel() {
   set('detailsSends', m.sends.toLocaleString());
   set('detailsSendsSub', `Average Per Day: ${avgPerDay}`);
   set('detailsDeliveryRate', m.deliveryRate != null ? `${m.deliveryRate}%` : '—');
-  set('detailsDeliveryRateSub', `${m.delivered.toLocaleString()} Emails Delivered`);
+  set('detailsDeliveryRateSub', `${m.delivered.toLocaleString()} Delivered`);
   set('detailsBounceRate', m.bounceRate != null ? `${m.bounceRate}%` : '—');
-  set('detailsBounceRateSub', `${m.bounced.toLocaleString()} Emails Bounced`);
+  set('detailsBounceRateSub', `${m.bounced.toLocaleString()} Bounced`);
   set('detailsUnsubRate', m.unsubRate != null ? `${m.unsubRate}%` : '—');
   set('detailsUnsubRateSub', `${m.unsubscribed.toLocaleString()} Unsubscribes`);
   set('detailsOpenRate', m.openRate != null ? `${m.openRate}%` : '—');
@@ -1547,16 +1674,16 @@ async function loadEventsIfNeeded() {
       eventsLoadedForEmail = null;
       if (eventsErrorEl) { eventsErrorEl.textContent = data.error || res.statusText || 'Failed to load events.'; eventsErrorEl.hidden = false; }
       renderEvents([]);
-      if (document.getElementById('panelDetails') && !document.getElementById('panelDetails').hidden) updateDetailsPanel();
+      updateDetailsPanel();
       return;
     }
     renderEvents(data.events || []);
-    if (document.getElementById('panelDetails') && !document.getElementById('panelDetails').hidden) updateDetailsPanel();
+    updateDetailsPanel();
   } catch (err) {
     eventsLoadedForEmail = null;
     if (eventsErrorEl) { eventsErrorEl.textContent = err.message || 'Network error'; eventsErrorEl.hidden = false; }
     renderEvents([]);
-    if (document.getElementById('panelDetails') && !document.getElementById('panelDetails').hidden) updateDetailsPanel();
+    updateDetailsPanel();
   }
 }
 
