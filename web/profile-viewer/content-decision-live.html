@@ -429,15 +429,6 @@
     .auto-webhook-delay .auto-webhook-delay-unit { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
 
     /* ── Catalog explorer ── */
-    .cd-catalog-explorer {
-      width: 100%; max-width: 960px; margin-top: 1.25rem;
-      background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius);
-      box-shadow: var(--shadow); padding: 1.25rem 1.35rem; box-sizing: border-box;
-    }
-    .cd-catalog-explorer h3 {
-      font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
-      color: var(--muted); margin: 0 0 0.85rem;
-    }
     .cd-catalog-tabs {
       display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 0.85rem;
     }
@@ -528,25 +519,6 @@
               Use <strong>Run content decision</strong> (left) or open <strong>Workflow &amp; controls</strong> below.
             </div>
             <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Content decision banner"></div>
-
-            <section class="cd-catalog-explorer" aria-labelledby="catalogExplorerHeading">
-              <h3 id="catalogExplorerHeading">Decisioning catalog</h3>
-              <div class="cd-catalog-tabs" role="tablist">
-                <button class="cd-catalog-tab" role="tab" aria-selected="true" data-catalog="offer-items">Offer items</button>
-                <button class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="item-collections">Item collections</button>
-                <button class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="selection-strategies">Selection strategies</button>
-              </div>
-              <div class="cd-catalog-schema-row" id="catalogSchemaRow">
-                <label for="catalogSchemaId">x-schema-id</label>
-                <input id="catalogSchemaId" type="text" placeholder="Decision item schema (required for offer-items on some orgs)" autocomplete="off">
-              </div>
-              <div class="cd-catalog-actions">
-                <button type="button" class="primary" id="btnCatalogFetch">Fetch</button>
-                <p class="status" id="catalogStatus" style="margin:0;"></p>
-                <span class="cd-catalog-count" id="catalogCount"></span>
-              </div>
-              <div id="catalogResults"></div>
-            </section>
           </div>
         </div>
       </section>
@@ -663,6 +635,25 @@
               <button type="button" class="secondary" id="cdBannerResetStyles">Reset banner styles</button>
             </div>
           </details>
+
+          <div class="panel">
+            <h2>Decisioning catalog</h2>
+            <div class="cd-catalog-tabs" role="tablist">
+              <button class="cd-catalog-tab" role="tab" aria-selected="true" data-catalog="offer-items">Offer items</button>
+              <button class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="item-collections">Item collections</button>
+              <button class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="selection-strategies">Selection strategies</button>
+            </div>
+            <div class="cd-catalog-schema-row" id="catalogSchemaRow">
+              <label for="catalogSchemaId">x-schema-id</label>
+              <input id="catalogSchemaId" type="text" placeholder="Decision item schema (required for offer-items on some orgs)" autocomplete="off">
+            </div>
+            <div class="cd-catalog-actions">
+              <button type="button" class="primary" id="btnCatalogFetch">Fetch</button>
+              <p class="status" id="catalogStatus" style="margin:0;"></p>
+              <span class="cd-catalog-count" id="catalogCount"></span>
+            </div>
+            <div id="catalogResults"></div>
+          </div>
         </div>
       </details>
         </div>
