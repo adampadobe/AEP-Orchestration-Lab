@@ -1719,16 +1719,90 @@
     var COLL_COLS = [
       { key: 'name', label: 'Name' },
       { key: 'description', label: 'Description' },
-      { key: 'constraints', label: 'Filters' },
+      { key: 'rule', label: 'Collection rules' },
+      { key: 'version', label: 'Ver.' },
       { key: 'created', label: 'Created' },
       { key: 'modified', label: 'Modified' },
     ];
+
+    var OPERATOR_LABELS = {
+      'in': 'Contains',
+      'equals': 'Equals',
+      'notEquals': 'Not equals',
+      'greaterThan': 'Greater than',
+      'greaterThanOrEquals': 'Greater than or equals',
+      'lessThan': 'Less than',
+      'lessThanOrEquals': 'Less than or equals',
+      'contains': 'Contains',
+      'startsWith': 'Starts with',
+      'endsWith': 'Ends with',
+      'and': 'All of',
+      'or': 'Any of',
+    };
+
+    function parseCollectionRule(constraint) {
+      if (!constraint || !constraint.uiModel) return null;
+      try {
+        var model = JSON.parse(constraint.uiModel);
+        return formatUiModel(model);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function formatUiModel(model) {
+      if (!model || !model.operator) return null;
+      var op = model.operator;
+      if (op === 'and' || op === 'or') {
+        var children = Array.isArray(model.value) ? model.value : [];
+        var parts = children.map(function (child) { return formatUiModel(child); }).filter(Boolean);
+        return parts.length ? parts.join(op === 'and' ? ' AND ' : ' OR ') : null;
+      }
+      var val = model.value || {};
+      var fieldTitle = (val.meta && val.meta.left && val.meta.left.title) || '';
+      var fieldType = (val.meta && val.meta.left && val.meta.left.type) || '';
+      var opLabel = OPERATOR_LABELS[op] || op;
+      var right = val.right;
+      var rightText = '';
+      if (Array.isArray(right)) {
+        if (fieldType === 'tag') {
+          rightText = right.length + ' tag' + (right.length !== 1 ? 's' : '');
+        } else {
+          rightText = right.map(function (v) { return String(v); }).join(', ');
+        }
+      } else if (right != null) {
+        rightText = String(right);
+      }
+      return (fieldTitle || 'Field') + ' ' + opLabel.toLowerCase() + ' ' + rightText;
+    }
+
+    function formatCollectionRules(constraints) {
+      if (!Array.isArray(constraints) || !constraints.length) {
+        return '<span style="color:var(--muted)">No rules</span>';
+      }
+      var parts = constraints.map(function (c) {
+        var parsed = parseCollectionRule(c);
+        if (parsed) {
+          return '<span class="cd-offer-tag" style="background:var(--dash-blue,#1473e6);color:#fff;border:none">Rule</span> ' + escHtml(parsed);
+        }
+        return '<span style="color:var(--muted)">Custom filter</span>';
+      });
+      return parts.join('<br>');
+    }
+
+    function collectionRuleSortText(constraints) {
+      if (!Array.isArray(constraints) || !constraints.length) return '';
+      return constraints.map(function (c) {
+        return parseCollectionRule(c) || '';
+      }).join(' ').toLowerCase();
+    }
 
     function collSortVal(it, col) {
       switch (col) {
         case 'name':        return (it.name || '').toLowerCase();
         case 'description': return (it.description || '').toLowerCase();
-        case 'constraints':  return Array.isArray(it.constraints) ? it.constraints.length : 0;
+        case 'rule':         return collectionRuleSortText(it.constraints);
+        case 'version':     return it.etag || 0;
         case 'created':     return it.created || '';
         case 'modified':    return it.modified || '';
         default:            return '';
@@ -1745,11 +1819,12 @@
       var sorted = genericSort(items, collSortVal, collSortCol, collSortAsc);
       for (var i = 0; i < sorted.length; i++) {
         var it = sorted[i];
-        var filterCount = Array.isArray(it.constraints) ? it.constraints.length : 0;
+        var version = it.etag || 1;
         html += '<tr>' +
           '<td class="cd-offer-name">' + escHtml(it.name || '(unnamed)') + '</td>' +
           '<td>' + escHtml(it.description || '—') + '</td>' +
-          '<td class="cd-offer-priority">' + filterCount + '</td>' +
+          '<td>' + formatCollectionRules(it.constraints) + '</td>' +
+          '<td class="cd-offer-priority">' + version + '</td>' +
           '<td>' + escHtml(formatDate(it.created)) + '</td>' +
           '<td>' + escHtml(formatDate(it.modified)) + '</td>' +
           '</tr>';
