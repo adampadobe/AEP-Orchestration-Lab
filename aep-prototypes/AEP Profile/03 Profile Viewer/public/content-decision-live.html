@@ -1803,18 +1803,21 @@
       var val = model.value || {};
       var fieldTitle = (val.meta && val.meta.left && val.meta.left.title) || '';
       var fieldType = (val.meta && val.meta.left && val.meta.left.type) || '';
+      var leftPath = val.left || '';
+      var isTagField = fieldType === 'tag' || leftPath.indexOf('itemTags') !== -1;
+      if (!fieldTitle && isTagField) fieldTitle = 'Tags';
       var opLabel = OPERATOR_LABELS[op] || op;
       var right = val.right;
       var rightText = '';
       if (Array.isArray(right)) {
-        if (fieldType === 'tag') {
-          var resolved = right.map(function (uuid) { return tagNameMap[uuid] || uuid; });
-          rightText = resolved.join(', ');
-        } else {
-          rightText = right.map(function (v) { return String(v); }).join(', ');
-        }
+        var resolved = right.map(function (v) {
+          var s = String(v);
+          return (isTagField && tagNameMap[s]) ? tagNameMap[s] : s;
+        });
+        rightText = resolved.join(', ');
       } else if (right != null) {
-        rightText = String(right);
+        var s = String(right);
+        rightText = (isTagField && tagNameMap[s]) ? tagNameMap[s] : s;
       }
       return (fieldTitle || 'Field') + ' ' + opLabel.toLowerCase() + ' ' + rightText;
     }
