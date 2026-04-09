@@ -583,6 +583,7 @@ function showResults(data) {
   lastProfileData = data;
   eventsLoadedForEmail = null;
   audiencesLoadedForEmail = null;
+  setText('detailsSumEvents', '…');
 
   const rowCount = (data.rows && data.rows.length) || 0;
   metaEl.textContent = data.found
@@ -1525,6 +1526,7 @@ function renderEvents(events) {
   eventsEmptyEl.hidden = true;
 
   eventsData = events;
+  setText('detailsSumEvents', String(events.length));
   const hoursBack = eventsDateFilterEl ? parseInt(eventsDateFilterEl.value, 10) || 168 : 168;
   const dateFiltered = filterEventsByDateRange(events, hoursBack);
   const query = eventsSearchEl ? eventsSearchEl.value : '';
