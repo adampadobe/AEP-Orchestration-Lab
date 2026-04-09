@@ -50,11 +50,12 @@
   function normalizeStatus(s) {
     if (!s) return 'unknown';
     var low = String(s).toLowerCase().trim();
-    if (low === 'live' || low === 'running' || low === 'active') return 'live';
-    if (low === 'draft' || low === 'authoring') return 'draft';
+    if (low === 'live' || low === 'running' || low === 'active' || low === 'deployed' || low === 'redeployed') return 'live';
+    if (low === 'draft' || low === 'authoring' || low === 'created') return 'draft';
     if (low === 'stopped' || low === 'paused') return 'stopped';
     if (low === 'closed' || low === 'archived') return 'closed';
     if (low === 'finished' || low === 'completed') return 'finished';
+    if (low === 'updated') return 'live';
     return low;
   }
 
