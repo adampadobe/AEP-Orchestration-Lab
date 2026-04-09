@@ -1527,6 +1527,21 @@ body.home-dashboard-concierge.home-page .dashboard-main {
   text-underline-offset: 2px;
 }
 
+.dashboard-link-list-heading {
+  list-style: none;
+  margin-left: -1.15rem;
+  padding: 0.65rem 0 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+}
+
+.dashboard-link-list-heading:first-child {
+  padding-top: 0;
+}
+
 .dashboard-muted {
   margin: 0;
   font-size: 0.84rem;
