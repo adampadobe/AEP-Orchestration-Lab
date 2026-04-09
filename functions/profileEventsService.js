@@ -277,10 +277,18 @@ async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sa
     const children = data.children || data.results || [];
     allChildren = allChildren.concat(children);
 
+    if (children.length < PAGE_SIZE) break;
+
     const links = data._links || data.links || {};
     const nextLink = links.next || links.nextPage;
     if (nextLink && nextLink.href) {
-      nextUrl = nextLink.href.startsWith('http') ? nextLink.href : `${ACCESS_ENTITIES_ENDPOINT}${nextLink.href}`;
+      const href = nextLink.href;
+      if (href.startsWith('http')) {
+        nextUrl = href;
+      } else {
+        const base = ACCESS_ENTITIES_ENDPOINT.replace(/\/entities\/?$/, '');
+        nextUrl = base + href;
+      }
     } else {
       break;
     }
@@ -308,38 +316,37 @@ async function buildEventsPayload(identityValue, namespace, sandboxName, token, 
     }
   }
 
-  const limit = Math.min(parseInt(process.env.AEP_PROFILE_EVENTS_LIMIT || '100', 10) || 100, 1000);
-  const profileWithEvents = await getProfileWithExperienceEvents(identityValue, limit, sandboxName, token, clientId, orgId, ns);
-  let events = extractExperienceEventsFromProfileResponse(profileWithEvents);
-  if (events.length === 0) {
-    const entityId = Object.keys(profileWithEvents).filter((k) => !k.startsWith('_'))[0];
-    const entityPayload = entityId ? profileWithEvents[entityId] : null;
-    const entity = entityPayload?.entity ?? entityPayload;
-    const ecid =
-      entity && (entity._demoemea?.identification?.core?.ecid ?? entity._demoemea?.identification?.core?.ECID != null)
-        ? toEcidString(entity._demoemea.identification.core.ecid ?? entity._demoemea.identification.core.ECID)
-        : null;
-    const relatedId = ecid && ecid.length >= 10 ? ecid : identityValue;
-    const relatedNS = ecid && ecid.length >= 10 ? 'ECID' : (isEmailLookup ? 'email' : ns);
-    const raw = await getProfileExperienceEvents(relatedId, relatedNS, sandboxName, token, clientId, orgId);
-    const children = raw.children || raw.results || [];
-    events = children.map((child) => {
-      const eventEntity = child.entity || child;
-      const ts =
-        child.timestamp != null
-          ? child.timestamp
-          : eventEntity.timestamp
-            ? new Date(eventEntity.timestamp).getTime()
-            : null;
-      const rows = flattenEntityToTableRows(eventEntity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
-      return {
-        entityId: child.entityId || child.id || '',
-        timestamp: ts,
-        eventName: deriveEventName(eventEntity),
-        rows,
-      };
-    });
-  }
+  // Fetch profile first to resolve ECID for the events lookup
+  const profileWithEvents = await getProfileWithExperienceEvents(identityValue, 1, sandboxName, token, clientId, orgId, ns);
+  const entityId = Object.keys(profileWithEvents).filter((k) => !k.startsWith('_'))[0];
+  const entityPayload = entityId ? profileWithEvents[entityId] : null;
+  const entity = entityPayload?.entity ?? entityPayload;
+  const ecid =
+    entity && (entity._demoemea?.identification?.core?.ecid ?? entity._demoemea?.identification?.core?.ECID != null)
+      ? toEcidString(entity._demoemea.identification.core.ecid ?? entity._demoemea.identification.core.ECID)
+      : null;
+  const relatedId = ecid && ecid.length >= 10 ? ecid : identityValue;
+  const relatedNS = ecid && ecid.length >= 10 ? 'ECID' : (isEmailLookup ? 'email' : ns);
+
+  // Always use the paginating experience events endpoint
+  const raw = await getProfileExperienceEvents(relatedId, relatedNS, sandboxName, token, clientId, orgId);
+  const children = raw.children || raw.results || [];
+  const events = children.map((child) => {
+    const eventEntity = child.entity || child;
+    const ts =
+      child.timestamp != null
+        ? child.timestamp
+        : eventEntity.timestamp
+          ? new Date(eventEntity.timestamp).getTime()
+          : null;
+    const rows = flattenEntityToTableRows(eventEntity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
+    return {
+      entityId: child.entityId || child.id || '',
+      timestamp: ts,
+      eventName: deriveEventName(eventEntity),
+      rows,
+    };
+  });
 
   return { email: identityValue, events };
 }
