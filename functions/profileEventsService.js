@@ -96,7 +96,7 @@ async function getEventsFromQueryService(email, sandboxName, token, clientId, or
   const tableRef = await getTableRef(datasetId, token, clientId, orgId, sandboxName);
   const emailColQuoted = emailCol.includes('.') ? `"${emailCol.replace(/"/g, '""')}"` : emailCol;
   const tsColQuoted = tsCol.includes('.') ? `"${tsCol.replace(/"/g, '""')}"` : tsCol;
-  const sql = `SELECT * FROM ${tableRef} WHERE LOWER(CAST(${emailColQuoted} AS STRING)) = LOWER($email) ORDER BY ${tsColQuoted} DESC NULLS LAST LIMIT 50`;
+  const sql = `SELECT * FROM ${tableRef} WHERE LOWER(CAST(${emailColQuoted} AS STRING)) = LOWER($email) ORDER BY ${tsColQuoted} DESC NULLS LAST LIMIT 500`;
   const result = await runQueryService(sql, { email }, sandboxName, token, clientId, orgId);
   if (result.state !== 'SUCCESS') {
     const errMsg = result.errors && result.errors[0] ? result.errors[0].message || String(result.errors[0]) : result.state;
@@ -236,31 +236,57 @@ async function getProfileWithExperienceEvents(identityValue, limit, sandboxName,
 }
 
 async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sandboxName, token, clientId, orgId) {
-  const params = new URLSearchParams({
-    'schema.name': '_xdm.context.experienceevent',
-    'relatedSchema.name': '_xdm.context.profile',
-    relatedEntityId: String(relatedEntityId),
-    relatedEntityIdNS: String(relatedEntityIdNS),
-    orderby: '-timestamp',
-    limit: '50',
-  });
-  const url = `${ACCESS_ENTITIES_ENDPOINT}?${params.toString()}`;
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'x-api-key': clientId,
-      'x-gw-ims-org-id': orgId,
-      'x-sandbox-name': sandboxName,
-      Accept: 'application/json',
-    },
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = data.message || data.error_description || data.title || res.statusText;
-    throw new Error(msg || `Profile API (events) ${res.status}`);
+  const PAGE_SIZE = 100;
+  const MAX_PAGES = 10;
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'x-api-key': clientId,
+    'x-gw-ims-org-id': orgId,
+    'x-sandbox-name': sandboxName,
+    Accept: 'application/json',
+  };
+
+  let allChildren = [];
+  let nextUrl = null;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    let url;
+    if (page === 0) {
+      const params = new URLSearchParams({
+        'schema.name': '_xdm.context.experienceevent',
+        'relatedSchema.name': '_xdm.context.profile',
+        relatedEntityId: String(relatedEntityId),
+        relatedEntityIdNS: String(relatedEntityIdNS),
+        orderby: '-timestamp',
+        limit: String(PAGE_SIZE),
+      });
+      url = `${ACCESS_ENTITIES_ENDPOINT}?${params.toString()}`;
+    } else {
+      url = nextUrl;
+    }
+
+    const res = await fetch(url, { method: 'GET', headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (page === 0) {
+        const msg = data.message || data.error_description || data.title || res.statusText;
+        throw new Error(msg || `Profile API (events) ${res.status}`);
+      }
+      break;
+    }
+
+    const children = data.children || data.results || [];
+    allChildren = allChildren.concat(children);
+
+    const links = data._links || data.links || {};
+    const nextLink = links.next || links.nextPage;
+    if (nextLink && nextLink.href) {
+      nextUrl = nextLink.href.startsWith('http') ? nextLink.href : `${ACCESS_ENTITIES_ENDPOINT}${nextLink.href}`;
+    } else {
+      break;
+    }
   }
-  return data;
+
+  return { children: allChildren };
 }
 
 /**
@@ -282,7 +308,7 @@ async function buildEventsPayload(identityValue, namespace, sandboxName, token, 
     }
   }
 
-  const limit = Math.min(parseInt(process.env.AEP_PROFILE_EVENTS_LIMIT || '50', 10) || 50, 100);
+  const limit = Math.min(parseInt(process.env.AEP_PROFILE_EVENTS_LIMIT || '100', 10) || 100, 1000);
   const profileWithEvents = await getProfileWithExperienceEvents(identityValue, limit, sandboxName, token, clientId, orgId, ns);
   let events = extractExperienceEventsFromProfileResponse(profileWithEvents);
   if (events.length === 0) {
