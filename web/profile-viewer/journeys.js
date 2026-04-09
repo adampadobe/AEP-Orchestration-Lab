@@ -130,7 +130,7 @@
     if (va == null && vb == null) return 0;
     if (va == null) return 1;
     if (vb == null) return -1;
-    if (sortCol === 'entryTotal') {
+    if (sortCol === 'entryTotal' || sortCol === 'version') {
       return sortDir === 'asc' ? va - vb : vb - va;
     }
     if (sortCol === 'createdAt' || sortCol === 'updatedAt' || sortCol === 'publishedAt') {
@@ -150,7 +150,7 @@
     footerDiv.textContent = 'Showing ' + rows.length + ' of ' + allJourneys.length;
 
     if (rows.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="10" class="jrn-empty">No journeys found.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="11" class="jrn-empty">No journeys found.</td></tr>';
       return;
     }
 
@@ -166,6 +166,7 @@
       }
       html += '<tr>' +
         '<td class="jrn-name-cell">' + esc(j.name || '(untitled)') + '</td>' +
+        '<td class="jrn-num">' + (j.version != null ? j.version.toFixed(1) : '—') + '</td>' +
         '<td><span class="jrn-status-dot ' + statusClass(j.status) + '"></span> ' + esc(statusLabel(j.status)) + '</td>' +
         '<td class="jrn-tags-cell">' + tagHtml + '</td>' +
         '<td class="jrn-num">' + fmtNumber(j.entryTotal) + '</td>' +
