@@ -463,23 +463,13 @@ body.profile-viewer-page.consent-page:not(.profile-generation-page).with-sidebar
   margin-top: 1.5rem;
 }
 
-.profile-viewer-page .details-eventtype-chart-header {
-  display: flex;
-  align-items: stretch;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-}
-
-.profile-viewer-page .details-eventtype-chart-header .details-stage-heading {
-  flex: 1;
-}
-
 .profile-viewer-page .details-eventtype-toggle {
   display: inline-flex;
-  align-self: center;
+  float: right;
   border: 1px solid var(--dash-border);
   border-radius: 4px;
   overflow: hidden;
+  margin-bottom: 0.5rem;
 }
 
 .profile-viewer-page .details-eventtype-toggle-btn {
