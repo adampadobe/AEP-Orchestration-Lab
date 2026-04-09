@@ -19,6 +19,7 @@
         { label: 'Profile Viewer', href: 'index.html', ico: '\uD83D\uDC64' },
         { label: 'Data viewer', href: 'schema-viewer.html', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="4.5" rx="6" ry="2.5"/><path d="M2 4.5v4c0 1.38 2.69 2.5 6 2.5.7 0 1.37-.04 2-.13"/><path d="M14 4.5v4c0 .47-.3.9-.8 1.27"/><path d="M2 8.5v4c0 1.38 2.69 2.5 6 2.5.7 0 1.37-.04 2-.13"/><path d="M14 8.5v1"/><circle cx="15" cy="14" r="2.5"/><path d="M17 16l1.5 1.5"/></svg>' },
         { label: 'Audience', href: 'audience-membership.html', ico: '\uD83D\uDC65' },
+        { label: 'Consent', href: 'consent.html', ico: '\u2713' },
       ],
     },
     {
@@ -27,7 +28,6 @@
         { label: 'Journeys', href: 'journeys.html', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h4l3 6-3 6H3"/><path d="M10 4h4l3 6-3 6h-4"/></svg>' },
         { label: 'Decisioning lab', href: 'content-decision-live.html', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="5" height="4" rx="1"/><rect x="1" y="13" width="5" height="4" rx="1"/><rect x="14" y="8" width="5" height="4" rx="1"/><path d="M6 5h3l3 5.5"/><path d="M6 15h3l3-5"/><path d="M12 10.5h2"/><path d="M10.5 1l.5 1.2.5-1.2M11.7 1.5l-1.2.5 1.2.5" stroke-width="1.1"/></svg>' },
         { label: 'Profile generation', href: 'profile-generation.html', ico: '\u2795' },
-        { label: 'Consent', href: 'consent.html', ico: '\u2713' },
         { label: 'Event tool', href: 'event-tool.html', ico: '\uD83D\uDCE4' },
         { label: 'Firebase images', href: 'firebase-hosting.html', ico: '\uD83D\uDDBC' },
         { label: 'Audit events', href: 'audit-events.html', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2h8l4 4v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M12 2v4h4"/><path d="M7 10h6M7 13h4"/></svg>' },
