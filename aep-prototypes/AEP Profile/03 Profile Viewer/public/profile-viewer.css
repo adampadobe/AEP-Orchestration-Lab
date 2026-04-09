@@ -476,20 +476,22 @@ body.profile-viewer-page.consent-page:not(.profile-generation-page).with-sidebar
 
 .profile-viewer-page .details-eventtype-toggle {
   display: inline-flex;
+  align-self: center;
   border: 1px solid var(--dash-border);
-  border-radius: 6px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
 .profile-viewer-page .details-eventtype-toggle-btn {
-  padding: 0.3rem 0.85rem;
-  font-size: 0.8rem;
-  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 500;
   border: none;
   background: var(--dash-surface);
   color: var(--dash-text-secondary);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  line-height: 1.4;
 }
 
 .profile-viewer-page .details-eventtype-toggle-btn + .details-eventtype-toggle-btn {
