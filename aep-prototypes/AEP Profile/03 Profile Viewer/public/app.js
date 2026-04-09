@@ -1356,7 +1356,7 @@ const EVENT_TYPE_CHART_PALETTE = [
   '#00838f', '#ad1457', '#558b2f', '#ef6c00', '#6a1b9a',
 ];
 let eventTypeChartInst = null;
-let eventTypeChartMode = 'bar';
+let eventTypeChartMode = 'bar-v';
 
 function renderEventTypeChart(dateFilteredEvents) {
   const sectionEl = document.getElementById('detailsEventTypeChartSection');
@@ -1387,6 +1387,7 @@ function renderEventTypeChart(dateFilteredEvents) {
   }
 
   const isDoughnut = eventTypeChartMode === 'doughnut';
+  const isHorizontal = eventTypeChartMode === 'bar-h';
   const isDark = document.documentElement.getAttribute('data-aep-theme') === 'dark';
   const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   const tickColor = isDark ? '#b0b0b0' : '#555';
@@ -1416,7 +1417,7 @@ function renderEventTypeChart(dateFilteredEvents) {
         },
       },
       ...(isDoughnut ? { cutout: '55%' } : {
-        indexAxis: labels.length > 8 ? 'y' : 'x',
+        indexAxis: isHorizontal ? 'y' : 'x',
         scales: {
           x: { grid: { color: gridColor }, ticks: { color: tickColor } },
           y: { grid: { color: gridColor }, ticks: { color: tickColor }, beginAtZero: true },
