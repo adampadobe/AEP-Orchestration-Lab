@@ -465,11 +465,13 @@ body.profile-viewer-page.consent-page:not(.profile-generation-page).with-sidebar
 
 .profile-viewer-page .details-eventtype-chart-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: stretch;
   gap: 1rem;
-  flex-wrap: wrap;
   margin-bottom: 0.75rem;
+}
+
+.profile-viewer-page .details-eventtype-chart-header .details-stage-heading {
+  flex: 1;
 }
 
 .profile-viewer-page .details-eventtype-toggle {
