@@ -930,6 +930,7 @@ function updateDetailsPanel() {
 
   if (channelsSectionEl) channelsSectionEl.hidden = false;
   if (journeysSectionEl) journeysSectionEl.hidden = false;
+  renderEventTypeChart(allDateFiltered);
   renderDetailsChannelsSection(allDateFiltered, hoursBack);
   renderDetailsJourneysSection(allDateFiltered, hoursBack);
 }
@@ -1346,6 +1347,103 @@ function renderDetailsJourneysSection(dateFilteredEvents, hoursBack) {
     });
   });
 }
+
+/* ── Event type chart ── */
+const EVENT_TYPE_CHART_PALETTE = [
+  '#1473e6', '#e68619', '#12805c', '#c9252d', '#7c4dff',
+  '#0d66d0', '#d7373f', '#2d9d78', '#e8a735', '#5c6bc0',
+  '#00838f', '#ad1457', '#558b2f', '#ef6c00', '#6a1b9a',
+];
+let eventTypeChartInst = null;
+let eventTypeChartMode = 'bar';
+
+function renderEventTypeChart(dateFilteredEvents) {
+  const sectionEl = document.getElementById('detailsEventTypeChartSection');
+  const canvas = document.getElementById('eventTypeChart');
+  const legendEl = document.getElementById('eventTypeLegend');
+  if (!sectionEl || !canvas) return;
+
+  const counts = {};
+  dateFilteredEvents.forEach((ev) => {
+    const t = ev.eventName || 'unknown';
+    counts[t] = (counts[t] || 0) + 1;
+  });
+
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  if (!sorted.length) {
+    sectionEl.hidden = true;
+    return;
+  }
+  sectionEl.hidden = false;
+
+  const labels = sorted.map((e) => e[0]);
+  const data = sorted.map((e) => e[1]);
+  const colors = sorted.map((_, i) => EVENT_TYPE_CHART_PALETTE[i % EVENT_TYPE_CHART_PALETTE.length]);
+
+  if (eventTypeChartInst) {
+    eventTypeChartInst.destroy();
+    eventTypeChartInst = null;
+  }
+
+  const isDoughnut = eventTypeChartMode === 'doughnut';
+  const isDark = document.documentElement.getAttribute('data-aep-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const tickColor = isDark ? '#b0b0b0' : '#555';
+
+  eventTypeChartInst = new Chart(canvas, {
+    type: isDoughnut ? 'doughnut' : 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Events',
+        data,
+        backgroundColor: colors,
+        borderWidth: isDoughnut ? 2 : 0,
+        borderColor: isDark ? '#1e1e1e' : '#fff',
+        borderRadius: isDoughnut ? 0 : 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.label}: ${ctx.parsed ?? ctx.raw} events`,
+          },
+        },
+      },
+      ...(isDoughnut ? { cutout: '55%' } : {
+        indexAxis: labels.length > 8 ? 'y' : 'x',
+        scales: {
+          x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+          y: { grid: { color: gridColor }, ticks: { color: tickColor }, beginAtZero: true },
+        },
+      }),
+    },
+  });
+
+  if (legendEl) {
+    legendEl.innerHTML = sorted.map((e, i) =>
+      `<span class="details-eventtype-legend-item"><span class="details-eventtype-legend-swatch" style="background:${colors[i]}"></span>${escapeHtml(e[0])} (${e[1]})</span>`
+    ).join('');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.details-eventtype-toggle-btn');
+  if (!btn) return;
+  const type = btn.getAttribute('data-chart-type');
+  if (type === eventTypeChartMode) return;
+  eventTypeChartMode = type;
+  btn.parentElement.querySelectorAll('.details-eventtype-toggle-btn').forEach((b) => {
+    const active = b === btn;
+    b.classList.toggle('details-eventtype-toggle-btn--active', active);
+    b.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  updateDetailsPanel();
+});
 
 /** Icon for each event type – visually distinct, category-based fallbacks */
 const EVENT_TYPE_ICONS = {
