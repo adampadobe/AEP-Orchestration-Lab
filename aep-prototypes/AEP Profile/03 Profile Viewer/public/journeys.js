@@ -7,6 +7,7 @@
   var allJourneys = [];
   var sortCol = 'updatedAt';
   var sortDir = 'desc';
+  var fetchGen = 0;
 
   /* ── DOM refs ── */
   var sandboxSelect = document.getElementById('sandboxSelect');
@@ -75,21 +76,36 @@
 
   /* ── Fetch ── */
 
-  function fetchJourneys() {
+  function formatCacheAge(ms) {
+    if (ms == null || !isFinite(ms)) return '';
+    var m = Math.floor(ms / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + ' min ago';
+    var h = Math.floor(m / 60);
+    return h + ' h ago';
+  }
+
+  /** @param {boolean} [forceRefresh] true = bypass Firestore cache (live AJO fetch) */
+  function fetchJourneys(forceRefresh) {
     var sandbox = getSandbox();
     if (!sandbox) {
       showStatus('Select a sandbox to load journeys.', 'info');
       return;
     }
-    showStatus('Loading journeys…', 'loading');
+    var gen = ++fetchGen;
+    showStatus(forceRefresh ? 'Refreshing from Adobe…' : 'Loading journeys…', 'loading');
     tableBody.innerHTML = '';
     footerDiv.textContent = '';
 
     var url = '/api/journeys/browse?sandbox=' + encodeURIComponent(sandbox) + '&limit=500';
+    if (forceRefresh) {
+      url += '&refresh=1';
+    }
 
     fetch(url)
       .then(function (r) { return r.json(); })
       .then(function (data) {
+        if (gen !== fetchGen) return;
         if (!data.ok && data.error) {
           showStatus('Error: ' + data.error, 'error');
           allJourneys = [];
@@ -97,10 +113,21 @@
           return;
         }
         allJourneys = Array.isArray(data.journeys) ? data.journeys : [];
-        showStatus(allJourneys.length + ' journey' + (allJourneys.length !== 1 ? 's' : '') + ' loaded (' + (data.source || 'api') + ')', 'ok');
+        var src = data.source || 'api';
+        var line = allJourneys.length + ' journey' + (allJourneys.length !== 1 ? 's' : '') + ' loaded (' + src + ')';
+        if (data.fromCache) {
+          line += ' · cached ' + formatCacheAge(data.cacheAgeMs);
+          if (data.cacheTtlMs) {
+            line += ' (refreshes every ~' + Math.round(data.cacheTtlMs / 3600000) + ' h)';
+          }
+        } else if (forceRefresh) {
+          line += ' · live refresh';
+        }
+        showStatus(line, 'ok');
         render();
       })
       .catch(function (err) {
+        if (gen !== fetchGen) return;
         showStatus('Fetch failed: ' + err.message, 'error');
         allJourneys = [];
         render();
@@ -213,7 +240,7 @@
 
   searchInput.addEventListener('input', function () { render(); });
   statusFilter.addEventListener('change', function () { render(); });
-  refreshBtn.addEventListener('click', function () { fetchJourneys(); });
+  refreshBtn.addEventListener('click', function () { fetchJourneys(true); });
 
   window.addEventListener('aep-global-sandbox-change', function () {
     fetchJourneys();

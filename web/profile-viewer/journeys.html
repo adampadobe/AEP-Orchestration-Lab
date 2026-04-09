@@ -36,6 +36,7 @@
               <h2 id="bannerHeadingJourneys" class="dashboard-hero-title">Journey Orchestration</h2>
               <p class="dashboard-hero-subtitle">
                 Browse journeys from Adobe Journey Optimizer. View status, tags, entry metrics, and publication details across sandboxes.
+                Lists are cached per sandbox in Firestore for about an hour so switching sandboxes stays fast; use Refresh for a live pull from Adobe.
               </p>
             </header>
           </div>
@@ -63,7 +64,7 @@
                 <option value="closed">Closed</option>
                 <option value="finished">Finished</option>
               </select>
-              <button id="jrnRefresh" class="jrn-refresh-btn" title="Refresh journeys">↻ Refresh</button>
+              <button id="jrnRefresh" class="jrn-refresh-btn" title="Fetch live from Adobe (bypass cache)">↻ Refresh</button>
             </div>
           </div>
 
@@ -99,6 +100,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-theme.js"></script>
   <script src="aep-lab-nav.js"></script>
-  <script src="journeys.js?v=20260409c"></script>
+  <script src="journeys.js?v=20260410a"></script>
 </body>
 </html>

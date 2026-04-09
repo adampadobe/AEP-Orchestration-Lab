@@ -54,6 +54,7 @@ const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = requir
 const { getEventConfig, saveEventConfig } = require('./eventConfigStore');
 const { getCatalogConfig, saveCatalogConfig } = require('./catalogConfigStore');
 const { buildBrowseResponse: buildJourneysBrowseResponse } = require('./journeysBrowse');
+const journeyBrowseCache = require('./journeyBrowseCacheStore');
 const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
 const {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
@@ -1906,6 +1907,35 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
   const sandbox = resolveSandboxFromQuery(req);
   const start = Math.max(0, parseInt(req.query.start, 10) || 0);
   const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 200));
+  const forceRefresh =
+    req.query.refresh === '1'
+    || String(req.query.force || '').toLowerCase() === '1'
+    || String(req.query.force || '').toLowerCase() === 'true';
+
+  if (!forceRefresh) {
+    try {
+      const cached = await journeyBrowseCache.getCachedDoc(sandbox);
+      if (cached && journeyBrowseCache.isFresh(cached)) {
+        const base = journeyBrowseCache.toApiPayload(cached);
+        const ageMs = Date.now() - (cached.cachedAt && cached.cachedAt.toDate
+          ? cached.cachedAt.toDate().getTime()
+          : 0);
+        res.status(200).json({
+          ...base,
+          fromCache: true,
+          cacheAgeMs: Math.max(0, Math.round(ageMs)),
+          cachedAt: cached.cachedAt && cached.cachedAt.toDate
+            ? cached.cachedAt.toDate().toISOString()
+            : null,
+          cacheTtlMs: journeyBrowseCache.cacheTtlMs(),
+        });
+        return;
+      }
+    } catch (e) {
+      /* fall through to live fetch */
+    }
+  }
+
   let accessToken;
   try { accessToken = await getAdobeAccessToken(); } catch (e) {
     res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return;
@@ -1914,11 +1944,76 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
   const orgId = ADOBE_IMS_ORG.value();
   try {
     const payload = await buildJourneysBrowseResponse(sandbox, accessToken, clientId, orgId, start, limit);
-    res.status(payload.ok ? 200 : 502).json(payload);
+    if (payload.ok) {
+      try {
+        await journeyBrowseCache.saveJourneyBrowseCache(sandbox, payload);
+      } catch (e) {
+        /* cache write failure should not fail the request */
+      }
+    }
+    res.status(payload.ok ? 200 : 502).json({
+      ...payload,
+      fromCache: false,
+      cacheTtlMs: journeyBrowseCache.cacheTtlMs(),
+    });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), journeys: [] });
   }
 });
+
+/** Hourly refresh of Firestore journey browse cache for sandboxes that were loaded at least once. */
+exports.journeyBrowseCacheRefresh = onSchedule(
+  {
+    schedule: 'every 60 minutes',
+    region: REGION,
+    secrets: PROFILE_FN_SECRETS,
+    timeoutSeconds: 540,
+    memory: '512MiB',
+  },
+  async () => {
+    let sandboxes;
+    try {
+      sandboxes = await journeyBrowseCache.listCachedSandboxNames();
+    } catch (e) {
+      console.error('[journeyBrowseCacheRefresh] list failed', e);
+      return;
+    }
+    if (sandboxes.length === 0) {
+      console.log('[journeyBrowseCacheRefresh] no sandboxes in cache yet');
+      return;
+    }
+    let accessToken;
+    try {
+      accessToken = await getAdobeAccessToken();
+    } catch (e) {
+      console.error('[journeyBrowseCacheRefresh] auth failed', e);
+      return;
+    }
+    const clientId = ADOBE_CLIENT_ID.value();
+    const orgId = ADOBE_IMS_ORG.value();
+    const refreshLimit = 500;
+    for (let i = 0; i < sandboxes.length; i++) {
+      const sb = sandboxes[i];
+      try {
+        const payload = await buildJourneysBrowseResponse(
+          sb,
+          accessToken,
+          clientId,
+          orgId,
+          0,
+          refreshLimit,
+        );
+        if (payload.ok) {
+          await journeyBrowseCache.saveJourneyBrowseCache(sb, payload);
+        }
+      } catch (e) {
+        console.error('[journeyBrowseCacheRefresh] sandbox', sb, e.message || e);
+      }
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    console.log('[journeyBrowseCacheRefresh] refreshed', sandboxes.length, 'sandbox(es)');
+  },
+);
 
 // ---------------------------------------------------------------------------
 // Scheduled CDN pre-warm — hits Data Viewer endpoints to populate CDN cache
