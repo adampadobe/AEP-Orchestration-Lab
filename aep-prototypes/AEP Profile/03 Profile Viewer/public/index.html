@@ -257,19 +257,6 @@
             <div class="details-metric-sub" id="detailsClickToOpenRateSub">—</div>
           </div>
         </div>
-        <div id="detailsEventTypeChartSection" class="details-eventtype-chart-section" hidden>
-          <div class="details-eventtype-chart-header">
-            <h3 class="details-title details-title--sub details-stage-heading details-stage-heading--blue">Event activity</h3>
-            <div class="details-eventtype-toggle">
-              <button type="button" class="details-eventtype-toggle-btn details-eventtype-toggle-btn--active" data-chart-type="bar" aria-pressed="true">Bar</button>
-              <button type="button" class="details-eventtype-toggle-btn" data-chart-type="doughnut" aria-pressed="false">Doughnut</button>
-            </div>
-          </div>
-          <div class="details-eventtype-chart-wrap">
-            <canvas id="eventTypeChart"></canvas>
-          </div>
-          <div class="details-eventtype-legend" id="eventTypeLegend"></div>
-        </div>
         <div id="detailsChannelsSection" class="details-channels-section" hidden>
           <h3 class="details-title details-title--sub details-stage-heading details-stage-heading--purple">Channels</h3>
           <p id="detailsChannelsNote" class="details-journeys-note" hidden></p>
@@ -306,6 +293,21 @@
               </thead>
               <tbody id="detailsJourneysBody"></tbody>
             </table>
+          </div>
+        </div>
+        <div id="detailsEventTypeChartSection" class="details-eventtype-chart-section" hidden>
+          <div class="details-eventtype-chart-header">
+            <h3 class="details-title details-title--sub details-stage-heading details-stage-heading--blue">Event activity</h3>
+            <div class="details-eventtype-toggle">
+              <button type="button" class="details-eventtype-toggle-btn details-eventtype-toggle-btn--active" data-chart-type="bar" aria-pressed="true">Bar</button>
+              <button type="button" class="details-eventtype-toggle-btn" data-chart-type="doughnut" aria-pressed="false">Doughnut</button>
+            </div>
+          </div>
+          <div class="details-eventtype-chart-card">
+            <div class="details-eventtype-chart-wrap">
+              <canvas id="eventTypeChart"></canvas>
+            </div>
+            <div class="details-eventtype-legend" id="eventTypeLegend"></div>
           </div>
         </div>
       </div>

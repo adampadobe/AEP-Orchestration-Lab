@@ -490,6 +490,13 @@ body.profile-viewer-page.consent-page:not(.profile-generation-page).with-sidebar
   color: #fff;
 }
 
+.profile-viewer-page .details-eventtype-chart-card {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
 .profile-viewer-page .details-eventtype-chart-wrap {
   position: relative;
   max-width: 700px;
