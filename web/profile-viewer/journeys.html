@@ -12,9 +12,10 @@
   <link rel="stylesheet" href="home.css?v=20260406">
   <link rel="stylesheet" href="profile-viewer.css">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="journeys.css?v=20260409">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="journeys.css?v=20260409b">
 </head>
-<body class="profile-viewer-page home-dashboard-concierge">
+<body class="profile-viewer-page home-dashboard-concierge journeys-page">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -35,63 +36,216 @@
             <header class="dashboard-hero-header">
               <h2 id="bannerHeadingJourneys" class="dashboard-hero-title">Journey Orchestration</h2>
               <p class="dashboard-hero-subtitle">
-                Browse journeys from Adobe Journey Optimizer. View status, tags, entry metrics, and publication details across sandboxes.
-                Lists are cached per sandbox in Firestore for about an hour so switching sandboxes stays fast; use Refresh for a live pull from Adobe.
+                Browse journeys from Adobe Journey Optimizer. Optional CJA metrics (Enters, a second metric, Delivered, Displays, Clicks) come from Customer Journey Analytics when the Cloud Function is configured with
+                <code>CJA_DATAVIEW_ID</code> or data-view lookup env vars. Journey lists are cached per sandbox in Firestore for about an hour; use Refresh for a live AJO pull.
               </p>
             </header>
           </div>
         </section>
 
-        <section class="jrn-panel">
-          <div class="jrn-toolbar">
-            <div class="jrn-toolbar-left">
-              <div class="sandbox-config">
-                <div class="form-row">
-                  <label for="sandboxSelect">Sandbox</label>
-                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                    <option value="">Loading sandboxes…</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="jrn-toolbar-right">
-              <input type="text" id="jrnSearch" class="jrn-search" placeholder="Search journeys…" autocomplete="off">
-              <select id="jrnStatusFilter" class="jrn-status-filter" aria-label="Filter by status">
-                <option value="">All statuses</option>
-                <option value="live">Live</option>
-                <option value="draft">Draft</option>
-                <option value="stopped">Stopped</option>
-                <option value="closed">Closed</option>
-                <option value="finished">Finished</option>
+        <div class="journeys-tabs" role="tablist" aria-label="Journey views">
+          <span class="journeys-tab" role="tab" aria-selected="false">Overview</span>
+          <span class="journeys-tab journeys-tab--active" role="tab" aria-selected="true">Browse</span>
+        </div>
+
+        <div class="journeys-sandbox-toolbar">
+          <div class="sandbox-config">
+            <div class="form-row">
+              <label for="sandboxSelect">Sandbox</label>
+              <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                <option value="">Loading sandboxes…</option>
               </select>
-              <button id="jrnRefresh" class="jrn-refresh-btn" title="Fetch live from Adobe (bypass cache)">↻ Refresh</button>
             </div>
           </div>
+          <button type="button" id="jrnRefresh" class="jrn-refresh-btn" title="Fetch live from Adobe (bypass cache)">↻ Refresh</button>
+        </div>
 
-          <div id="jrnStatus" class="jrn-status" aria-live="polite"></div>
+        <div class="journeys-toolbar">
+          <span class="journeys-toolbar-ico" title="Filter" aria-hidden="true">⏷</span>
+          <div class="journeys-search-wrap">
+            <label for="journeysSearch" class="visually-hidden">Search journeys</label>
+            <input type="search" id="journeysSearch" class="journeys-search" placeholder="Search" autocomplete="off" />
+            <span id="journeysCount" class="journeys-count">0 of 0</span>
+          </div>
+          <div class="journeys-status-filter-wrap">
+            <label for="journeysStatusFilter" class="journeys-status-filter-label">Status</label>
+            <select id="journeysStatusFilter" class="journeys-status-filter" aria-label="Filter by status">
+              <option value="">All statuses</option>
+            </select>
+          </div>
+          <div class="journeys-view-toggles" aria-hidden="true">
+            <span class="journeys-toolbar-ico" title="List view">☰</span>
+            <span class="journeys-toolbar-ico" title="Grid view">▦</span>
+          </div>
+        </div>
 
-          <div class="jrn-table-wrap">
-            <table class="jrn-table" id="jrnTable">
-              <thead>
+        <p id="journeysError" class="journeys-error" role="alert" hidden></p>
+        <p id="journeysStatus" class="consent-message" role="status" aria-live="polite"></p>
+
+        <section class="journeys-panel" aria-labelledby="journeysTableHeading">
+          <h3 id="journeysTableHeading" class="visually-hidden">Journey list</h3>
+          <div class="journeys-table-wrap">
+            <table class="journeys-table" id="journeysTable">
+              <colgroup>
+                <col class="journeys-col-check" style="width: 2.75rem" />
+                <col class="journeys-col-name" span="1" />
+                <col class="journeys-col-version" style="width: min(14rem, 26vw)" />
+                <col span="13" />
+              </colgroup>
+              <thead id="journeysThead">
                 <tr>
-                  <th data-col="name" class="jrn-sortable">Name</th>
-                  <th data-col="version" class="jrn-sortable jrn-num">Version</th>
-                  <th data-col="status" class="jrn-sortable">Status</th>
-                  <th data-col="tags">Tags</th>
-                  <th data-col="entryTotal" class="jrn-sortable jrn-num" title="Profiles that entered the journey">Entries</th>
-                  <th data-col="createdAt" class="jrn-sortable">Creation date</th>
-                  <th data-col="createdBy" class="jrn-sortable">Created by</th>
-                  <th data-col="updatedAt" class="jrn-sortable">Last update</th>
-                  <th data-col="updatedBy" class="jrn-sortable">Last update by</th>
-                  <th data-col="publishedAt" class="jrn-sortable">Published</th>
-                  <th data-col="publishedBy" class="jrn-sortable">Published by</th>
+                  <th scope="col" class="journeys-th-check"><input type="checkbox" disabled aria-label="Select all" /></th>
+                  <th scope="col" class="journeys-th-name journeys-col-name journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-name-inner">
+                      <div class="journeys-th-stack">
+                        <button type="button" class="journeys-th-sort" data-sort-key="name">
+                          <span class="journeys-th-sort-label">Name</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                        </button>
+                        <div class="journeys-th-spark" aria-hidden="true"></div>
+                        <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="journeys-col-resize-handle"
+                      id="journeysNameResize"
+                      aria-label="Drag to resize Name column"
+                      title="Drag to widen or narrow"
+                    ></button>
+                  </th>
+                  <th scope="col" class="journeys-col-version journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack">
+                      <button type="button" class="journeys-th-sort" data-sort-key="journeyVersion">
+                        <span class="journeys-th-sort-label">Version</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-spark" aria-hidden="true"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack">
+                      <button type="button" class="journeys-th-sort" data-sort-key="status">
+                        <span class="journeys-th-sort-label">Status</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-spark" aria-hidden="true"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack">
+                      <button type="button" class="journeys-th-sort" data-sort-key="tags">
+                        <span class="journeys-th-sort-label">Tags</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-spark" aria-hidden="true"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-col-metric journeys-th-metric journeys-th-metric--enters journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack journeys-th-stack--metric">
+                      <button type="button" class="journeys-th-sort" data-sort-key="enters" title="CJA metric adobe_reserved_label.ajo_journeyEnters (Journey Enters); else authoring entry count">
+                        <span class="journeys-th-sort-label">Enters</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-total" id="journeysThTotalEnters" aria-live="polite"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-col-metric journeys-th-metric journeys-th-metric--exits journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack journeys-th-stack--metric">
+                      <button type="button" class="journeys-th-sort" data-sort-key="exits" title="Second CJA metric (e.g. exits); configure CJA_METRIC_JOURNEY_ENGAGEMENT. % = exits ÷ enters when both available.">
+                        <span class="journeys-th-sort-label">Exits</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-total" id="journeysThTotalExits" aria-live="polite"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-col-metric journeys-th-metric journeys-th-metric--delivered journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack journeys-th-stack--metric">
+                      <button type="button" class="journeys-th-sort" data-sort-key="delivered" title="CJA metric (e.g. adobe_reserved_label.ajo_delivered); set CJA_METRIC_DELIVERED to override">
+                        <span class="journeys-th-sort-label">Delivered</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-total" id="journeysThTotalDelivered" aria-live="polite"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-col-metric journeys-th-metric journeys-th-metric--displays journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack journeys-th-stack--metric">
+                      <button type="button" class="journeys-th-sort" data-sort-key="displays" title="CJA metric adobe_reserved_label.ajo_displays (set CJA_METRIC_DISPLAYS to override)">
+                        <span class="journeys-th-sort-label">Displays</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-total" id="journeysThTotalDisplays" aria-live="polite"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-col-metric journeys-th-metric journeys-th-metric--clicks journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack journeys-th-stack--metric">
+                      <button type="button" class="journeys-th-sort" data-sort-key="clicks" title="CJA metric adobe_reserved_label.ajo_clicks (set CJA_METRIC_CLICKS to override)">
+                        <span class="journeys-th-sort-label">Clicks</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-total" id="journeysThTotalClicks" aria-live="polite"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack">
+                      <button type="button" class="journeys-th-sort" data-sort-key="createdAt">
+                        <span class="journeys-th-sort-label">Creation date</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-spark" aria-hidden="true"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack">
+                      <button type="button" class="journeys-th-sort" data-sort-key="createdBy">
+                        <span class="journeys-th-sort-label">Created by</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-spark" aria-hidden="true"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack">
+                      <button type="button" class="journeys-th-sort" data-sort-key="updatedAt">
+                        <span class="journeys-th-sort-label">Last update</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-spark" aria-hidden="true"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack">
+                      <button type="button" class="journeys-th-sort" data-sort-key="updatedBy">
+                        <span class="journeys-th-sort-label">Last update by</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-spark" aria-hidden="true"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack">
+                      <button type="button" class="journeys-th-sort" data-sort-key="publishedAt">
+                        <span class="journeys-th-sort-label">Published</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-spark" aria-hidden="true"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
+                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                    <div class="journeys-th-stack">
+                      <button type="button" class="journeys-th-sort" data-sort-key="publishedBy">
+                        <span class="journeys-th-sort-label">Published by</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
+                      </button>
+                      <div class="journeys-th-spark" aria-hidden="true"></div>
+                      <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
+                    </div>
+                  </th>
                 </tr>
               </thead>
-              <tbody id="jrnBody"></tbody>
+              <tbody id="journeysTbody">
+                <tr><td colspan="16" class="journeys-loading">Loading…</td></tr>
+              </tbody>
             </table>
           </div>
-
-          <div id="jrnFooter" class="jrn-footer"></div>
         </section>
       </main>
     </div>
@@ -100,6 +254,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-theme.js"></script>
   <script src="aep-lab-nav.js"></script>
-  <script src="journeys.js?v=20260410a"></script>
+  <script src="journeys.js?v=20260409c"></script>
 </body>
 </html>

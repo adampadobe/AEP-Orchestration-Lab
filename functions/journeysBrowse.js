@@ -4,6 +4,8 @@
  * enrichment for entry counts, dates, and author info.
  */
 
+const { enrichJourneyRowsWithCja } = require('./cjaJourneyMetrics');
+
 const CJM_JOURNEY_BASE =
   process.env.CJM_JOURNEY_BASE || 'https://journey.adobe.io/authoring/journeys';
 const PLATFORM_AJO_JOURNEY_BASE =
@@ -299,6 +301,13 @@ async function buildBrowseResponse(sandbox, token, clientId, orgId, start, limit
 
   await enrichFromDetailApi(rows, authHdrs, platHdrs);
 
+  let cjaMeta = { applied: false };
+  try {
+    cjaMeta = await enrichJourneyRowsWithCja(rows, token, { clientId }, { orgId });
+  } catch (e) {
+    cjaMeta = { applied: false, message: e?.message || String(e) };
+  }
+
   let total = rows.length;
   const meta = result.meta;
   if (meta && typeof meta === 'object' && meta.pages != null && meta.limit != null) {
@@ -312,6 +321,7 @@ async function buildBrowseResponse(sandbox, token, clientId, orgId, start, limit
     limit,
     total: Number.isFinite(total) ? total : rows.length,
     source: result.source,
+    cja: cjaMeta,
   };
 }
 

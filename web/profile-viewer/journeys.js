@@ -1,252 +1,660 @@
-/**
- * Journeys browse — client logic for the AJO Journeys table.
- */
 (function () {
-  'use strict';
+  const JOURNEYS_TABLE_COLSPAN = 16;
+  const statusEl = document.getElementById('journeysStatus');
+  const tbody = document.getElementById('journeysTbody');
+  const searchInput = document.getElementById('journeysSearch');
+  const countEl = document.getElementById('journeysCount');
+  const errorEl = document.getElementById('journeysError');
+  const statusFilterEl = document.getElementById('journeysStatusFilter');
+  const sandboxSelect = document.getElementById('sandboxSelect');
+  const refreshBtn = document.getElementById('jrnRefresh');
 
-  var allJourneys = [];
-  var sortCol = 'updatedAt';
-  var sortDir = 'desc';
-  var fetchGen = 0;
-
-  /* ── DOM refs ── */
-  var sandboxSelect = document.getElementById('sandboxSelect');
-  var searchInput   = document.getElementById('jrnSearch');
-  var statusFilter  = document.getElementById('jrnStatusFilter');
-  var refreshBtn    = document.getElementById('jrnRefresh');
-  var statusDiv     = document.getElementById('jrnStatus');
-  var tableBody     = document.getElementById('jrnBody');
-  var footerDiv     = document.getElementById('jrnFooter');
-  var tableEl       = document.getElementById('jrnTable');
-
-  /* ── Helpers ── */
+  let allRows = [];
+  let sortKey = 'name';
+  let sortDir = 'asc';
+  let loadGen = 0;
 
   function getSandbox() {
     if (window.AepGlobalSandbox) return window.AepGlobalSandbox.getSandboxName() || '';
     return (sandboxSelect && sandboxSelect.value) || '';
   }
 
-  function esc(s) {
+  function formatUsDateTime(iso) {
+    if (iso == null || iso === '') return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso);
+    return d.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+
+  function formatEntryTotal(n) {
+    if (n == null || n === '') return '—';
+    const num = Number(n);
+    if (!Number.isFinite(num)) return '—';
+    return num.toLocaleString('en-US');
+  }
+
+  function formatUsDateOnly(iso) {
+    if (iso == null || iso === '') return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  function statusClassAndLabel(raw) {
+    const compact = String(raw ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '');
+    if (compact === 'deployed') {
+      return { cls: 'journeys-status--live', label: 'Live' };
+    }
+    if (compact === 'created' || compact === 'updated') {
+      return { cls: 'journeys-status--draft', label: 'Draft' };
+    }
+    if (compact === 'finishedempty' || compact === 'finished_empty') {
+      return { cls: 'journeys-status--finished', label: 'Finished' };
+    }
+    if (compact === 'finished') {
+      return { cls: 'journeys-status--finished', label: 'Finished' };
+    }
+    const s = (raw || '').toLowerCase();
+    if (s.includes('live') || compact === 'published' || compact === 'active') {
+      return { cls: 'journeys-status--live', label: 'Live' };
+    }
+    if (s.includes('stop')) {
+      return { cls: 'journeys-status--stopped', label: raw || 'Stopped' };
+    }
+    if (s.includes('draft')) {
+      return { cls: 'journeys-status--draft', label: 'Draft' };
+    }
+    if (s.includes('close')) {
+      return { cls: 'journeys-status--closed', label: 'Closed' };
+    }
+    return { cls: 'journeys-status--other', label: raw || '—' };
+  }
+
+  function escapeHtml(s) {
     if (s == null) return '';
-    var d = document.createElement('div');
-    d.textContent = String(s);
-    return d.innerHTML;
+    const div = document.createElement('div');
+    div.textContent = String(s);
+    return div.innerHTML;
   }
 
-  function fmtDate(iso) {
-    if (!iso) return '—';
-    try {
-      var d = new Date(iso);
-      if (isNaN(d.getTime())) return String(iso);
-      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
-        ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    } catch (e) { return String(iso); }
+  function escapeHtmlAttr(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  function fmtNumber(n) {
-    if (n == null) return '—';
-    return Number(n).toLocaleString();
+  /** Semantic version when present; otherwise journey version UUID for display. */
+  function journeyVersionDisplay(row) {
+    if (row.journeyVersion != null && String(row.journeyVersion).trim()) {
+      return String(row.journeyVersion).trim();
+    }
+    if (row.journeyVersionID != null && String(row.journeyVersionID).trim()) {
+      return String(row.journeyVersionID).trim();
+    }
+    return '—';
   }
 
-  function normalizeStatus(s) {
-    if (!s) return 'unknown';
-    var low = String(s).toLowerCase().trim();
-    if (low === 'live' || low === 'running' || low === 'active' || low === 'deployed' || low === 'redeployed') return 'live';
-    if (low === 'draft' || low === 'authoring' || low === 'created') return 'draft';
-    if (low === 'stopped' || low === 'paused') return 'stopped';
-    if (low === 'closed' || low === 'archived') return 'closed';
-    if (low === 'finished' || low === 'completed') return 'finished';
-    if (low === 'updated') return 'live';
-    return low;
+  function journeyVersionTitle(row) {
+    const id = row.journeyVersionID != null ? String(row.journeyVersionID).trim() : '';
+    const sem = row.journeyVersion != null ? String(row.journeyVersion).trim() : '';
+    if (sem && id && sem !== id) return `${sem} (id: ${id})`;
+    if (id) return id;
+    return '';
   }
 
-  function statusLabel(raw) {
-    var n = normalizeStatus(raw);
-    return n.charAt(0).toUpperCase() + n.slice(1);
+  /** Numeric enters for sort and exit % denominator (CJA enters, else authoring count). */
+  function entersSortValue(row) {
+    if (row.cjaJourneyEnters != null && Number.isFinite(Number(row.cjaJourneyEnters))) {
+      return Number(row.cjaJourneyEnters);
+    }
+    if (row.entryTotal != null && Number.isFinite(Number(row.entryTotal))) {
+      return Number(row.entryTotal);
+    }
+    return null;
   }
 
-  function statusClass(raw) {
-    return 'jrn-status-' + normalizeStatus(raw);
+  function exitsSortValue(row) {
+    if (row.cjaMessagesSent != null && Number.isFinite(Number(row.cjaMessagesSent))) {
+      return Number(row.cjaMessagesSent);
+    }
+    return null;
   }
 
-  function showStatus(msg, cls) {
-    statusDiv.className = 'jrn-status' + (cls ? ' jrn-status--' + cls : '');
-    statusDiv.textContent = msg;
+  function cjaFieldSortValue(row, key) {
+    const v = row[key];
+    if (v != null && Number.isFinite(Number(v))) return Number(v);
+    return null;
   }
 
-  /* ── Fetch ── */
-
-  function formatCacheAge(ms) {
-    if (ms == null || !isFinite(ms)) return '';
-    var m = Math.floor(ms / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return m + ' min ago';
-    var h = Math.floor(m / 60);
-    return h + ' h ago';
+  function formatCjaShareMetricHtml(row, fieldKey, sum, barClass, emptyTip, valueTip) {
+    const n = cjaFieldSortValue(row, fieldKey);
+    if (n == null) {
+      return `<div class="journeys-bar-cell journeys-bar-cell--empty" title="${escapeHtmlAttr(emptyTip)}"><span class="journeys-bar-cell__dash">—</span></div>`;
+    }
+    const share = sum > 0 ? (100 * n) / sum : 0;
+    const w = Math.min(100, Math.max(0, share));
+    const pctStr = `${share.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    let tip = valueTip;
+    if (!tip) tip = '% is share of listed journeys.';
+    return `<div class="journeys-bar-cell ${barClass}" title="${escapeHtmlAttr(tip)}">
+      <div class="journeys-bar-cell__track" aria-hidden="true"><div class="journeys-bar-cell__fill" style="width:${w}%"></div></div>
+      <div class="journeys-bar-cell__text"><span class="journeys-bar-cell__num">${escapeHtml(formatEntryTotal(n))}</span><span class="journeys-bar-cell__pct">${escapeHtml(pctStr)}</span></div>
+    </div>`;
   }
 
-  /** @param {boolean} [forceRefresh] true = bypass Firestore cache (live AJO fetch) */
-  function fetchJourneys(forceRefresh) {
-    var sandbox = getSandbox();
-    if (!sandbox) {
-      showStatus('Select a sandbox to load journeys.', 'info');
+  function formatEntersMetricHtml(row, sumEnters) {
+    const n = entersSortValue(row);
+    if (n == null) {
+      return '<div class="journeys-bar-cell journeys-bar-cell--empty" title="CJA Journey Enters when available; else authoring entry count"><span class="journeys-bar-cell__dash">—</span></div>';
+    }
+    const share = sumEnters > 0 ? (100 * n) / sumEnters : 0;
+    const w = Math.min(100, Math.max(0, share));
+    const pctStr = `${share.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    const title = 'CJA Journey Enters when available; else authoring entry count. % is share of listed journeys.';
+    return `<div class="journeys-bar-cell journeys-bar-cell--enters" title="${escapeHtmlAttr(title)}">
+      <div class="journeys-bar-cell__track" aria-hidden="true"><div class="journeys-bar-cell__fill" style="width:${w}%"></div></div>
+      <div class="journeys-bar-cell__text"><span class="journeys-bar-cell__num">${escapeHtml(formatEntryTotal(n))}</span><span class="journeys-bar-cell__pct">${escapeHtml(pctStr)}</span></div>
+    </div>`;
+  }
+
+  function formatExitsMetricHtml(row, sumExits) {
+    const exits = exitsSortValue(row);
+    if (exits == null) {
+      return '<div class="journeys-bar-cell journeys-bar-cell--empty" title="Second CJA metric (exits-related when configured)"><span class="journeys-bar-cell__dash">—</span></div>';
+    }
+    const enters = entersSortValue(row);
+    const share = sumExits > 0 ? (100 * exits) / sumExits : 0;
+    const w = Math.min(100, Math.max(0, share));
+    const pctStr = `${share.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    let tip = 'Second CJA metric; % is share of listed journeys.';
+    if (enters != null && enters > 0) {
+      tip += ` Exits ÷ enters for this row: ${((100 * exits) / enters).toFixed(1)}%.`;
+    }
+    return `<div class="journeys-bar-cell journeys-bar-cell--exits" title="${escapeHtmlAttr(tip)}">
+      <div class="journeys-bar-cell__track" aria-hidden="true"><div class="journeys-bar-cell__fill" style="width:${w}%"></div></div>
+      <div class="journeys-bar-cell__text"><span class="journeys-bar-cell__num">${escapeHtml(formatEntryTotal(exits))}</span><span class="journeys-bar-cell__pct">${escapeHtml(pctStr)}</span></div>
+    </div>`;
+  }
+
+  function dateSortValue(iso) {
+    if (iso == null || iso === '') return null;
+    const t = new Date(iso).getTime();
+    return Number.isNaN(t) ? null : t;
+  }
+
+  function compareNumbersAsc(va, vb) {
+    const aMiss = va == null || !Number.isFinite(va);
+    const bMiss = vb == null || !Number.isFinite(vb);
+    if (aMiss && bMiss) return 0;
+    if (aMiss) return 1;
+    if (bMiss) return -1;
+    if (va < vb) return -1;
+    if (va > vb) return 1;
+    return 0;
+  }
+
+  function compareDatesAsc(ta, tb) {
+    if (ta == null && tb == null) return 0;
+    if (ta == null) return 1;
+    if (tb == null) return -1;
+    if (ta < tb) return -1;
+    if (ta > tb) return 1;
+    return 0;
+  }
+
+  function compareRowsAsc(a, b, key) {
+    let cmp = 0;
+    switch (key) {
+      case 'name': {
+        const sa = (a.name || a.journeyVersionID || a.journeyID || '').toLowerCase();
+        const sb = (b.name || b.journeyVersionID || b.journeyID || '').toLowerCase();
+        cmp = sa.localeCompare(sb, undefined, { numeric: true, sensitivity: 'base' });
+        break;
+      }
+      case 'journeyVersion': {
+        const sa = (a.journeyVersion || a.journeyVersionID || '').toLowerCase();
+        const sb = (b.journeyVersion || b.journeyVersionID || '').toLowerCase();
+        cmp = sa.localeCompare(sb, undefined, { numeric: true, sensitivity: 'base' });
+        break;
+      }
+      case 'status': {
+        const sa = (a.status || '').toLowerCase();
+        const sb = (b.status || '').toLowerCase();
+        cmp = sa.localeCompare(sb, undefined, { sensitivity: 'base' });
+        break;
+      }
+      case 'tags': {
+        const sa = (a.tags || []).join(' ').toLowerCase();
+        const sb = (b.tags || []).join(' ').toLowerCase();
+        cmp = sa.localeCompare(sb, undefined, { sensitivity: 'base' });
+        break;
+      }
+      case 'enters':
+        cmp = compareNumbersAsc(entersSortValue(a), entersSortValue(b));
+        break;
+      case 'exits':
+        cmp = compareNumbersAsc(exitsSortValue(a), exitsSortValue(b));
+        break;
+      case 'delivered':
+        cmp = compareNumbersAsc(cjaFieldSortValue(a, 'cjaDelivered'), cjaFieldSortValue(b, 'cjaDelivered'));
+        break;
+      case 'displays':
+        cmp = compareNumbersAsc(cjaFieldSortValue(a, 'cjaDisplays'), cjaFieldSortValue(b, 'cjaDisplays'));
+        break;
+      case 'clicks':
+        cmp = compareNumbersAsc(cjaFieldSortValue(a, 'cjaClicks'), cjaFieldSortValue(b, 'cjaClicks'));
+        break;
+      case 'createdAt':
+      case 'updatedAt':
+      case 'publishedAt':
+        cmp = compareDatesAsc(dateSortValue(a[key]), dateSortValue(b[key]));
+        break;
+      case 'createdBy':
+      case 'updatedBy':
+      case 'publishedBy': {
+        const sa = (a[key] || '').toLowerCase();
+        const sb = (b[key] || '').toLowerCase();
+        cmp = sa.localeCompare(sb, undefined, { sensitivity: 'base' });
+        break;
+      }
+      default:
+        return 0;
+    }
+    if (cmp !== 0) return cmp;
+    const ida = String(a.journeyVersionID || a.journeyID || '');
+    const idb = String(b.journeyVersionID || b.journeyID || '');
+    return ida.localeCompare(idb, undefined, { numeric: true, sensitivity: 'base' });
+  }
+
+  function sortRows(rows, key, dir) {
+    const mult = dir === 'asc' ? 1 : -1;
+    return rows.slice().sort((a, b) => {
+      const c = compareRowsAsc(a, b, key);
+      if (c !== 0) return c * mult;
+      return 0;
+    });
+  }
+
+  function updateSortIndicators() {
+    document.querySelectorAll('.journeys-th-sort[data-sort-key]').forEach((btn) => {
+      const key = btn.dataset.sortKey;
+      const ind = btn.querySelector('.journeys-sort-indicator');
+      const active = key === sortKey;
+      const label = (btn.querySelector('.journeys-th-sort-label')?.textContent || key || '').trim();
+      btn.classList.toggle('journeys-th-sort--active', active);
+      if (ind) {
+        ind.textContent = active ? (sortDir === 'asc' ? '↑' : '↓') : '⇅';
+      }
+      if (active) {
+        btn.setAttribute('aria-sort', sortDir === 'asc' ? 'ascending' : 'descending');
+        btn.setAttribute(
+          'aria-label',
+          `${label}, sorted ${sortDir === 'asc' ? 'ascending' : 'descending'}, click to reverse`,
+        );
+      } else {
+        btn.removeAttribute('aria-sort');
+        btn.setAttribute('aria-label', `Sort by ${label}`);
+      }
+    });
+  }
+
+  function updateJourneysMetricHeaders(
+    sumEnters,
+    sumExits,
+    sumDelivered,
+    sumDisplays,
+    sumClicks,
+    hasVisibleRows,
+  ) {
+    const elE = document.getElementById('journeysThTotalEnters');
+    const elX = document.getElementById('journeysThTotalExits');
+    const elD = document.getElementById('journeysThTotalDelivered');
+    const elP = document.getElementById('journeysThTotalDisplays');
+    const elK = document.getElementById('journeysThTotalClicks');
+    if (!elE || !elX || !elD || !elP || !elK) return;
+    if (!hasVisibleRows) {
+      elE.textContent = '—';
+      elX.textContent = '—';
+      elD.textContent = '—';
+      elP.textContent = '—';
+      elK.textContent = '—';
       return;
     }
-    var gen = ++fetchGen;
-    showStatus(forceRefresh ? 'Refreshing from Adobe…' : 'Loading journeys…', 'loading');
-    tableBody.innerHTML = '';
-    footerDiv.textContent = '';
+    elE.textContent = formatEntryTotal(sumEnters);
+    elX.textContent = formatEntryTotal(sumExits);
+    elD.textContent = formatEntryTotal(sumDelivered);
+    elP.textContent = formatEntryTotal(sumDisplays);
+    elK.textContent = formatEntryTotal(sumClicks);
+  }
 
-    var url = '/api/journeys/browse?sandbox=' + encodeURIComponent(sandbox) + '&limit=500';
-    if (forceRefresh) {
-      url += '&refresh=1';
+  function statusDisplayLabel(row) {
+    return statusClassAndLabel(row.status).label;
+  }
+
+  function rowMatchesStatusFilter(row) {
+    const sel = statusFilterEl && statusFilterEl.value != null ? String(statusFilterEl.value).trim() : '';
+    if (!sel) return true;
+    return statusDisplayLabel(row) === sel;
+  }
+
+  /** Rebuild Status dropdown from loaded rows; keeps selection when still valid. */
+  function populateStatusFilterOptions(rows) {
+    if (!statusFilterEl) return;
+    const previous = statusFilterEl.value;
+    const labels = new Set();
+    for (const r of rows || []) {
+      const lb = statusDisplayLabel(r);
+      if (lb && lb !== '—') labels.add(lb);
     }
+    const preferred = ['Live', 'Draft', 'Stopped', 'Finished', 'Closed'];
+    const rest = [...labels]
+      .filter((x) => !preferred.includes(x))
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    const ordered = [...preferred.filter((x) => labels.has(x)), ...rest];
+    statusFilterEl.innerHTML = '';
+    const optAll = document.createElement('option');
+    optAll.value = '';
+    optAll.textContent = 'All statuses';
+    statusFilterEl.appendChild(optAll);
+    for (const lb of ordered) {
+      const o = document.createElement('option');
+      o.value = lb;
+      o.textContent = lb;
+      statusFilterEl.appendChild(o);
+    }
+    const ok = previous && [...statusFilterEl.options].some((o) => o.value === previous);
+    statusFilterEl.value = ok ? previous : '';
+  }
 
-    fetch(url)
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (gen !== fetchGen) return;
-        if (!data.ok && data.error) {
-          showStatus('Error: ' + data.error, 'error');
-          allJourneys = [];
-          render();
-          return;
-        }
-        allJourneys = Array.isArray(data.journeys) ? data.journeys : [];
-        var src = data.source || 'api';
-        var line = allJourneys.length + ' journey' + (allJourneys.length !== 1 ? 's' : '') + ' loaded (' + src + ')';
+  function rowMatchesSearch(row, q) {
+    if (!q) return true;
+    const hay = [
+      row.name,
+      row.journeyID,
+      row.journeyUid,
+      row.journeyVersion,
+      row.journeyVersionID,
+      row.status,
+      ...(row.tags || []),
+      row.createdBy,
+      row.updatedBy,
+      row.publishedBy,
+      row.entryTotal != null ? String(row.entryTotal) : '',
+      row.cjaJourneyEnters != null ? String(row.cjaJourneyEnters) : '',
+      row.cjaMessagesSent != null ? String(row.cjaMessagesSent) : '',
+      row.cjaDelivered != null ? String(row.cjaDelivered) : '',
+      row.cjaDisplays != null ? String(row.cjaDisplays) : '',
+      row.cjaClicks != null ? String(row.cjaClicks) : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return hay.includes(q);
+  }
+
+  function render(rows) {
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    const q = (searchInput?.value || '').trim().toLowerCase();
+    let filtered = q ? rows.filter((r) => rowMatchesSearch(r, q)) : rows.slice();
+    filtered = filtered.filter((r) => rowMatchesStatusFilter(r));
+    const sorted = sortKey ? sortRows(filtered, sortKey, sortDir) : filtered;
+    if (countEl) {
+      countEl.textContent = `${filtered.length} of ${rows.length}`;
+    }
+    if (filtered.length === 0) {
+      tbody.innerHTML =
+        `<tr><td colspan="${JOURNEYS_TABLE_COLSPAN}" class="journeys-empty">No journeys match your search or status filter, or the list is empty.</td></tr>`;
+      updateJourneysMetricHeaders(0, 0, 0, 0, 0, false);
+      updateSortIndicators();
+      return;
+    }
+    let sumEnters = 0;
+    let sumExits = 0;
+    let sumDelivered = 0;
+    let sumDisplays = 0;
+    let sumClicks = 0;
+    for (const r of sorted) {
+      const ev = entersSortValue(r);
+      if (ev != null) sumEnters += ev;
+      const xv = exitsSortValue(r);
+      if (xv != null) sumExits += xv;
+      const dv = cjaFieldSortValue(r, 'cjaDelivered');
+      if (dv != null) sumDelivered += dv;
+      const pv = cjaFieldSortValue(r, 'cjaDisplays');
+      if (pv != null) sumDisplays += pv;
+      const kv = cjaFieldSortValue(r, 'cjaClicks');
+      if (kv != null) sumClicks += kv;
+    }
+    updateJourneysMetricHeaders(sumEnters, sumExits, sumDelivered, sumDisplays, sumClicks, true);
+    for (const row of sorted) {
+      const st = statusClassAndLabel(row.status);
+      const name = row.name || row.journeyVersionID || row.journeyID || '—';
+      const tags = (row.tags || [])
+        .slice(0, 6)
+        .map((t) => `<span class="journeys-tag-pill">${escapeHtml(t)}</span>`)
+        .join('');
+      const tr = document.createElement('tr');
+      if (row.journeyID) tr.dataset.journeyId = row.journeyID;
+      if (row.journeyVersionID) tr.dataset.journeyVersionId = row.journeyVersionID;
+      const verDisp = journeyVersionDisplay(row);
+      const verTitle = journeyVersionTitle(row);
+      tr.innerHTML = `
+        <td><input type="checkbox" disabled aria-label="Select row" /></td>
+        <td class="journeys-col-name">
+          <div class="journeys-name-cell">
+            <a href="#" class="journeys-name-link" title="${escapeHtmlAttr(name)}">${escapeHtml(name)}</a>
+            <span class="journeys-row-actions" title="More actions">⋯</span>
+          </div>
+        </td>
+        <td class="journeys-col-version" title="${escapeHtmlAttr(verTitle || verDisp)}">${escapeHtml(verDisp)}</td>
+        <td>
+          <span class="journeys-status ${st.cls}">
+            <span class="journeys-status-dot" aria-hidden="true"></span>
+            <span class="journeys-status-label">${escapeHtml(st.label)}</span>
+          </span>
+        </td>
+        <td>${tags || '<span class="journeys-empty" style="padding:0">—</span>'}</td>
+        <td class="journeys-col-metric">${formatEntersMetricHtml(row, sumEnters)}</td>
+        <td class="journeys-col-metric">${formatExitsMetricHtml(row, sumExits)}</td>
+        <td class="journeys-col-metric">${formatCjaShareMetricHtml(
+          row,
+          'cjaDelivered',
+          sumDelivered,
+          'journeys-bar-cell--delivered',
+          'CJA Delivered metric when available',
+          'CJA Delivered; % is share of listed journeys.',
+        )}</td>
+        <td class="journeys-col-metric">${formatCjaShareMetricHtml(
+          row,
+          'cjaDisplays',
+          sumDisplays,
+          'journeys-bar-cell--displays',
+          'CJA adobe_reserved_label.ajo_displays when available',
+          'CJA Displays; % is share of listed journeys.',
+        )}</td>
+        <td class="journeys-col-metric">${formatCjaShareMetricHtml(
+          row,
+          'cjaClicks',
+          sumClicks,
+          'journeys-bar-cell--clicks',
+          'CJA adobe_reserved_label.ajo_clicks when available',
+          'CJA Clicks; % is share of listed journeys.',
+        )}</td>
+        <td>${escapeHtml(formatUsDateTime(row.createdAt))}</td>
+        <td>${escapeHtml(row.createdBy || '—')}</td>
+        <td>${escapeHtml(formatUsDateTime(row.updatedAt))}</td>
+        <td>${escapeHtml(row.updatedBy || '—')}</td>
+        <td>${escapeHtml(formatUsDateOnly(row.publishedAt))}</td>
+        <td>${escapeHtml(row.publishedBy || '—')}</td>
+      `;
+      const link = tr.querySelector('.journeys-name-link');
+      if (link) {
+        link.addEventListener('click', (e) => e.preventDefault());
+      }
+      tbody.appendChild(tr);
+    }
+    updateSortIndicators();
+  }
+
+  async function load(forceRefresh) {
+    const sandbox = getSandbox();
+    const gen = ++loadGen;
+    if (errorEl) errorEl.hidden = true;
+    if (!sandbox) {
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.textContent = 'Select a sandbox to load journeys.';
+      }
+      allRows = [];
+      populateStatusFilterOptions([]);
+      render([]);
+      return;
+    }
+    if (statusEl) {
+      statusEl.hidden = false;
+      statusEl.textContent = forceRefresh ? 'Refreshing from Adobe…' : 'Loading journeys…';
+    }
+    try {
+      let url = `/api/journeys/browse?sandbox=${encodeURIComponent(sandbox)}&start=0&limit=500`;
+      if (forceRefresh) url += '&refresh=1';
+      const res = await fetch(url);
+      const data = await res.json().catch(() => ({}));
+      if (gen !== loadGen) return;
+      if (data.ok === false && data.error) {
+        throw new Error(data.error);
+      }
+      if (!res.ok && !data.journeys) {
+        throw new Error(data.error || res.statusText || 'Request failed');
+      }
+      allRows = Array.isArray(data.journeys) ? data.journeys : [];
+      if (statusEl) {
+        let line =
+          allRows.length === 0
+            ? 'No journeys returned. Check API permissions and sandbox.'
+            : `Loaded ${allRows.length} journey(s) (${data.source || 'api'})`;
         if (data.fromCache) {
-          line += ' · cached ' + formatCacheAge(data.cacheAgeMs);
+          line += ` · cached ${formatCacheAge(data.cacheAgeMs)}`;
           if (data.cacheTtlMs) {
-            line += ' (refreshes every ~' + Math.round(data.cacheTtlMs / 3600000) + ' h)';
+            line += ` (refreshes every ~${Math.round(data.cacheTtlMs / 3600000)} h)`;
           }
         } else if (forceRefresh) {
           line += ' · live refresh';
         }
-        showStatus(line, 'ok');
-        render();
-      })
-      .catch(function (err) {
-        if (gen !== fetchGen) return;
-        showStatus('Fetch failed: ' + err.message, 'error');
-        allJourneys = [];
-        render();
-      });
+        const cja = data.cja;
+        if (cja && cja.applied) {
+          line += ` · CJA metrics (${cja.dateRangeId || 'range'}).`;
+          if (cja.messagesSentSkipped) {
+            line += ' Second metric and Delivered/Displays/Clicks omitted (CJA returned Journey Enters only).';
+          } else if (cja.ajoChannelMetricsSkipped) {
+            line += ' Delivered, Displays, and Clicks omitted (CJA limited report to Enters and second metric).';
+          }
+        } else if (cja && cja.message) {
+          line += ` · CJA: ${cja.message}`;
+        }
+        statusEl.textContent = line;
+      }
+      populateStatusFilterOptions(allRows);
+      render(allRows);
+    } catch (e) {
+      if (gen !== loadGen) return;
+      if (errorEl) {
+        errorEl.hidden = false;
+        errorEl.textContent = e.message || String(e);
+      }
+      if (statusEl) statusEl.textContent = '';
+      allRows = [];
+      populateStatusFilterOptions([]);
+      render([]);
+    }
   }
 
-  /* ── Render ── */
+  function formatCacheAge(ms) {
+    if (ms == null || !Number.isFinite(ms)) return '';
+    const m = Math.floor(ms / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m} min ago`;
+    const h = Math.floor(m / 60);
+    return `${h} h ago`;
+  }
 
-  function getFiltered() {
-    var q = (searchInput.value || '').trim().toLowerCase();
-    var sf = (statusFilter.value || '').toLowerCase();
-    return allJourneys.filter(function (j) {
-      if (sf && normalizeStatus(j.status) !== sf) return false;
-      if (q) {
-        var hay = [j.name, j.status, j.createdBy, j.updatedBy, j.publishedBy]
-          .concat(j.tags || [])
-          .filter(Boolean).join(' ').toLowerCase();
-        if (hay.indexOf(q) === -1) return false;
+  if (searchInput) {
+    searchInput.addEventListener('input', () => render(allRows));
+  }
+
+  if (statusFilterEl) {
+    statusFilterEl.addEventListener('change', () => render(allRows));
+  }
+
+  const journeysThead = document.getElementById('journeysThead');
+  if (journeysThead) {
+    journeysThead.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest && e.target.closest('.journeys-th-sort[data-sort-key]');
+      if (!btn || !journeysThead.contains(btn)) return;
+      const key = btn.dataset.sortKey;
+      if (!key) return;
+      if (key === sortKey) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortKey = key;
+        sortDir = 'asc';
       }
-      return true;
+      render(allRows);
     });
   }
 
-  function compareRows(a, b) {
-    var va = a[sortCol];
-    var vb = b[sortCol];
-    if (va == null && vb == null) return 0;
-    if (va == null) return 1;
-    if (vb == null) return -1;
-    if (sortCol === 'entryTotal' || sortCol === 'version') {
-      return sortDir === 'asc' ? va - vb : vb - va;
-    }
-    if (sortCol === 'createdAt' || sortCol === 'updatedAt' || sortCol === 'publishedAt') {
-      var da = new Date(va).getTime() || 0;
-      var db = new Date(vb).getTime() || 0;
-      return sortDir === 'asc' ? da - db : db - da;
-    }
-    var sa = String(va).toLowerCase();
-    var sb = String(vb).toLowerCase();
-    var cmp = sa < sb ? -1 : sa > sb ? 1 : 0;
-    return sortDir === 'asc' ? cmp : -cmp;
-  }
-
-  function render() {
-    var rows = getFiltered();
-    rows.sort(compareRows);
-    footerDiv.textContent = 'Showing ' + rows.length + ' of ' + allJourneys.length;
-
-    if (rows.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="11" class="jrn-empty">No journeys found.</td></tr>';
-      return;
-    }
-
-    var html = '';
-    for (var i = 0; i < rows.length; i++) {
-      var j = rows[i];
-      var ns = normalizeStatus(j.status);
-      var tagHtml = '';
-      if (j.tags && j.tags.length) {
-        for (var t = 0; t < j.tags.length; t++) {
-          tagHtml += '<span class="jrn-tag">' + esc(j.tags[t]) + '</span>';
-        }
-      }
-      html += '<tr>' +
-        '<td class="jrn-name-cell">' + esc(j.name || '(untitled)') + '</td>' +
-        '<td class="jrn-num">' + (j.version != null ? j.version.toFixed(1) : '—') + '</td>' +
-        '<td><span class="jrn-status-dot ' + statusClass(j.status) + '"></span> ' + esc(statusLabel(j.status)) + '</td>' +
-        '<td class="jrn-tags-cell">' + tagHtml + '</td>' +
-        '<td class="jrn-num">' + fmtNumber(j.entryTotal) + '</td>' +
-        '<td>' + fmtDate(j.createdAt) + '</td>' +
-        '<td>' + esc(j.createdBy || '—') + '</td>' +
-        '<td>' + fmtDate(j.updatedAt) + '</td>' +
-        '<td>' + esc(j.updatedBy || '—') + '</td>' +
-        '<td>' + fmtDate(j.publishedAt) + '</td>' +
-        '<td>' + esc(j.publishedBy || '—') + '</td>' +
-        '</tr>';
-    }
-    tableBody.innerHTML = html;
-  }
-
-  /* ── Sort ── */
-
-  function onHeaderClick(e) {
-    var th = e.target.closest('th[data-col]');
-    if (!th || !th.classList.contains('jrn-sortable')) return;
-    var col = th.getAttribute('data-col');
-    if (sortCol === col) {
-      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      sortCol = col;
-      sortDir = col === 'name' || col === 'status' || col === 'createdBy' || col === 'updatedBy' || col === 'publishedBy' ? 'asc' : 'desc';
-    }
-    updateSortIndicators();
-    render();
-  }
-
-  function updateSortIndicators() {
-    var ths = tableEl.querySelectorAll('th[data-col]');
-    for (var i = 0; i < ths.length; i++) {
-      ths[i].classList.remove('jrn-sort-asc', 'jrn-sort-desc');
-      if (ths[i].getAttribute('data-col') === sortCol) {
-        ths[i].classList.add(sortDir === 'asc' ? 'jrn-sort-asc' : 'jrn-sort-desc');
-      }
+  const JOURNEYS_NAME_WIDTH_KEY = 'journeysNameColWidthPx';
+  function applyJourneysNameColumnWidth() {
+    const root = document.body?.classList?.contains('journeys-page') ? document.body : document.querySelector('.journeys-page');
+    if (!root || !root.style) return;
+    const saved = localStorage.getItem(JOURNEYS_NAME_WIDTH_KEY);
+    if (saved != null && !Number.isNaN(Number(saved))) {
+      const n = Math.max(160, Math.min(960, Number(saved)));
+      root.style.setProperty('--journeys-name-col-width', `${n}px`);
     }
   }
+  applyJourneysNameColumnWidth();
 
-  /* ── Events ── */
+  const nameResizeEl = document.getElementById('journeysNameResize');
+  if (nameResizeEl) {
+    nameResizeEl.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const root = document.body?.classList?.contains('journeys-page') ? document.body : document.querySelector('.journeys-page');
+      if (!root) return;
+      const col = document.querySelector('col.journeys-col-name');
+      const startX = e.clientX;
+      const startW = col ? col.getBoundingClientRect().width : 280;
+      let lastW = Math.round(startW);
+      const onMove = (ev) => {
+        const dx = ev.clientX - startX;
+        lastW = Math.round(Math.max(160, Math.min(960, startW + dx)));
+        root.style.setProperty('--journeys-name-col-width', `${lastW}px`);
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        localStorage.setItem(JOURNEYS_NAME_WIDTH_KEY, String(lastW));
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
 
-  tableEl.querySelector('thead').addEventListener('click', onHeaderClick);
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => load(true));
+  }
 
-  searchInput.addEventListener('input', function () { render(); });
-  statusFilter.addEventListener('change', function () { render(); });
-  refreshBtn.addEventListener('click', function () { fetchJourneys(true); });
-
-  window.addEventListener('aep-global-sandbox-change', function () {
-    fetchJourneys();
-  });
-
-  /* ── Init ── */
+  window.addEventListener('aep-global-sandbox-change', () => load());
 
   async function initSandboxAndLoad() {
     if (window.AepGlobalSandbox && sandboxSelect) {
@@ -254,7 +662,7 @@
       window.AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
       window.AepGlobalSandbox.attachStorageSync(sandboxSelect);
     }
-    fetchJourneys();
+    load();
   }
 
   initSandboxAndLoad();

@@ -54,6 +54,7 @@ const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = requir
 const { getEventConfig, saveEventConfig } = require('./eventConfigStore');
 const { getCatalogConfig, saveCatalogConfig } = require('./catalogConfigStore');
 const { buildBrowseResponse: buildJourneysBrowseResponse } = require('./journeysBrowse');
+const { enrichJourneyRowsWithCja } = require('./cjaJourneyMetrics');
 const journeyBrowseCache = require('./journeyBrowseCacheStore');
 const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
 const {
@@ -1920,8 +1921,28 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
         const ageMs = Date.now() - (cached.cachedAt && cached.cachedAt.toDate
           ? cached.cachedAt.toDate().getTime()
           : 0);
+        let journeysOut = Array.isArray(base.journeys) ? base.journeys.map((r) => ({ ...r })) : [];
+        let cjaMeta = { applied: false };
+        const cjaDisabled = process.env.CJA_ENABLE_METRICS === '0' || process.env.CJA_ENABLE_METRICS === 'false';
+        if (!cjaDisabled && journeysOut.length > 0) {
+          try {
+            const cjaToken = await getAdobeAccessToken();
+            cjaMeta = await enrichJourneyRowsWithCja(
+              journeysOut,
+              cjaToken,
+              { clientId: ADOBE_CLIENT_ID.value() },
+              { orgId: ADOBE_IMS_ORG.value() },
+            );
+          } catch (cjaErr) {
+            cjaMeta = { applied: false, message: cjaErr?.message || String(cjaErr) };
+          }
+        } else if (cjaDisabled) {
+          cjaMeta = { applied: false, message: 'CJA metrics disabled (CJA_ENABLE_METRICS).' };
+        }
         res.status(200).json({
           ...base,
+          journeys: journeysOut,
+          cja: cjaMeta,
           fromCache: true,
           cacheAgeMs: Math.max(0, Math.round(ageMs)),
           cachedAt: cached.cachedAt && cached.cachedAt.toDate
