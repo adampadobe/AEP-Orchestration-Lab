@@ -53,6 +53,7 @@ const { getCachedJourneyName, setCachedJourneyName } = require('./journeyNameSto
 const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = require('./eventEdgeService');
 const { getEventConfig, saveEventConfig } = require('./eventConfigStore');
 const { getCatalogConfig, saveCatalogConfig } = require('./catalogConfigStore');
+const { buildBrowseResponse: buildJourneysBrowseResponse } = require('./journeysBrowse');
 const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
 const {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
@@ -1891,6 +1892,31 @@ exports.eventInfraEventTypes = onRequest(profileFnOpts, async (req, res) => {
     res.status(200).json(result);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), eventTypes: [] });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Journey browse — list AJO journeys for the browse table
+// ---------------------------------------------------------------------------
+
+exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'GET') { res.status(405).json({ error: 'Method not allowed' }); return; }
+  const sandbox = resolveSandboxFromQuery(req);
+  const start = Math.max(0, parseInt(req.query.start, 10) || 0);
+  const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 200));
+  let accessToken;
+  try { accessToken = await getAdobeAccessToken(); } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return;
+  }
+  const clientId = ADOBE_CLIENT_ID.value();
+  const orgId = ADOBE_IMS_ORG.value();
+  try {
+    const payload = await buildJourneysBrowseResponse(sandbox, accessToken, clientId, orgId, start, limit);
+    res.status(payload.ok ? 200 : 502).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), journeys: [] });
   }
 });
 

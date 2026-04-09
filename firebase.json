@@ -233,6 +233,13 @@
         }
       },
       {
+        "source": "/api/journeys/browse",
+        "function": {
+          "functionId": "journeysBrowse",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/schema-viewer/**",
         "function": {
           "functionId": "schemaViewerProxy",

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journeys – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260406">
+  <link rel="stylesheet" href="profile-viewer.css">
+  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="journeys.css?v=20260409">
+</head>
+<body class="profile-viewer-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-viewer-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingJourneys">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingJourneys" class="dashboard-hero-title">Journey Orchestration</h2>
+              <p class="dashboard-hero-subtitle">
+                Browse journeys from Adobe Journey Optimizer. View status, tags, entry metrics, and publication details across sandboxes.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="jrn-panel">
+          <div class="jrn-toolbar">
+            <div class="jrn-toolbar-left">
+              <div class="sandbox-config">
+                <div class="form-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="jrn-toolbar-right">
+              <input type="text" id="jrnSearch" class="jrn-search" placeholder="Search journeys…" autocomplete="off">
+              <select id="jrnStatusFilter" class="jrn-status-filter" aria-label="Filter by status">
+                <option value="">All statuses</option>
+                <option value="live">Live</option>
+                <option value="draft">Draft</option>
+                <option value="stopped">Stopped</option>
+                <option value="closed">Closed</option>
+                <option value="finished">Finished</option>
+              </select>
+              <button id="jrnRefresh" class="jrn-refresh-btn" title="Refresh journeys">↻ Refresh</button>
+            </div>
+          </div>
+
+          <div id="jrnStatus" class="jrn-status" aria-live="polite"></div>
+
+          <div class="jrn-table-wrap">
+            <table class="jrn-table" id="jrnTable">
+              <thead>
+                <tr>
+                  <th data-col="name" class="jrn-sortable">Name</th>
+                  <th data-col="status" class="jrn-sortable">Status</th>
+                  <th data-col="tags">Tags</th>
+                  <th data-col="entryTotal" class="jrn-sortable jrn-num">Entries</th>
+                  <th data-col="createdAt" class="jrn-sortable">Created</th>
+                  <th data-col="createdBy" class="jrn-sortable">Created by</th>
+                  <th data-col="updatedAt" class="jrn-sortable">Last update</th>
+                  <th data-col="updatedBy" class="jrn-sortable">Updated by</th>
+                  <th data-col="publishedAt" class="jrn-sortable">Published</th>
+                  <th data-col="publishedBy" class="jrn-sortable">Published by</th>
+                </tr>
+              </thead>
+              <tbody id="jrnBody"></tbody>
+            </table>
+          </div>
+
+          <div id="jrnFooter" class="jrn-footer"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-theme.js"></script>
+  <script src="aep-lab-nav.js"></script>
+  <script src="journeys.js?v=20260409"></script>
+</body>
+</html>
