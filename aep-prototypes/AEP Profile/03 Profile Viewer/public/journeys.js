@@ -21,7 +21,7 @@
   /* ── Helpers ── */
 
   function getSandbox() {
-    if (window.AEPGlobalSandbox) return window.AEPGlobalSandbox.getSelected() || '';
+    if (window.AepGlobalSandbox) return window.AepGlobalSandbox.getSandboxName() || '';
     return (sandboxSelect && sandboxSelect.value) || '';
   }
 
@@ -219,11 +219,14 @@
 
   /* ── Init ── */
 
-  if (window.AEPGlobalSandbox) {
-    window.AEPGlobalSandbox.initSelect(sandboxSelect, function () {
-      fetchJourneys();
-    });
-  } else {
+  async function initSandboxAndLoad() {
+    if (window.AepGlobalSandbox && sandboxSelect) {
+      await window.AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
+      window.AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
+      window.AepGlobalSandbox.attachStorageSync(sandboxSelect);
+    }
     fetchJourneys();
   }
+
+  initSandboxAndLoad();
 })();
