@@ -707,6 +707,12 @@ emailInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') fetchBtn.click();
 });
 
+function hoursToRangeLabel(h) {
+  if (h <= 24) return '24 hours';
+  const d = Math.round(h / 24);
+  return d + ' days';
+}
+
 /** Filter events by date range and email namespace. Returns filtered array. */
 function filterEmailEventsByDateRange(events, hoursBack) {
   if (!events || !events.length) return [];
@@ -857,7 +863,7 @@ function updateDetailsPanel() {
   const gridEl = document.getElementById('detailsMetricsGrid');
 
   const hoursBack = filterEl ? parseInt(filterEl.value, 10) || 168 : 168;
-  const rangeLabel = hoursBack === 24 ? '24 hours' : hoursBack === 168 ? '7 days' : '30 days';
+  const rangeLabel = hoursToRangeLabel(hoursBack);
 
   const journeysSectionEl = document.getElementById('detailsJourneysSection');
   const channelsSectionEl = document.getElementById('detailsChannelsSection');
@@ -1165,7 +1171,7 @@ function renderDetailsChannelsSection(dateFilteredEvents, hoursBack) {
   const hdrClicks = document.getElementById('detailsChannelsHdrClicks');
   if (!sectionEl || !tbody || !wrapEl || !emptyEl || !noteEl) return;
 
-  const rangePhrase = hoursBack === 24 ? 'last 24 hours' : hoursBack === 168 ? 'last 7 days' : 'last 30 days';
+  const rangePhrase = 'last ' + hoursToRangeLabel(hoursBack);
   noteEl.textContent = `Grouped by Adobe Journey Optimizer–style channel context when present (paths such as …emailchannelcontext.namespace, …pushchannelcontext.namespace, …smschannelcontext.namespace, or equivalent), then the Events-tab email namespace, then the event channel field. Metrics use the same delivery and interaction signals as the email cards above. ${rangePhrase}. Per-profile counts—not org-wide AJO reporting.`;
   noteEl.hidden = false;
 
@@ -1309,7 +1315,7 @@ function renderDetailsJourneysSection(dateFilteredEvents, hoursBack) {
   if (!tbody || !wrapEl || !emptyEl || !noteEl) return;
 
   const rows = aggregateJourneyActivity(dateFilteredEvents);
-  const rangePhrase = hoursBack === 24 ? 'last 24 hours' : hoursBack === 168 ? 'last 7 days' : 'last 30 days';
+  const rangePhrase = 'last ' + hoursToRangeLabel(hoursBack);
   noteEl.textContent = `Journeys are inferred from experience events that include message execution / journey version ID (same source as the Events tab detail view). Date range: ${rangePhrase}. This is per-profile activity, not the all-profiles Journey Optimizer reporting totals.`;
   noteEl.hidden = false;
 
