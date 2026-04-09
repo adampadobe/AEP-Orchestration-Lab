@@ -449,6 +449,15 @@ body.profile-viewer-page.consent-page:not(.profile-generation-page).with-sidebar
   border-left-color: #1473e6;
 }
 
+/* Shared card container for Channels, Journey activity, Event activity */
+.profile-viewer-page .details-section-card {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-top: 0.5rem;
+}
+
 /* Event type chart */
 .profile-viewer-page .details-eventtype-chart-section {
   margin-top: 1.5rem;
@@ -488,13 +497,6 @@ body.profile-viewer-page.consent-page:not(.profile-generation-page).with-sidebar
 .profile-viewer-page .details-eventtype-toggle-btn--active {
   background: var(--dash-accent, #1473e6);
   color: #fff;
-}
-
-.profile-viewer-page .details-eventtype-chart-card {
-  background: var(--dash-surface);
-  border: 1px solid var(--dash-border);
-  border-radius: 10px;
-  padding: 1.25rem;
 }
 
 .profile-viewer-page .details-eventtype-chart-wrap {

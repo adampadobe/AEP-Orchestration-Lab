@@ -260,40 +260,44 @@
         </div>
         <div id="detailsChannelsSection" class="details-channels-section" hidden>
           <h3 class="details-title details-title--sub details-stage-heading details-stage-heading--purple">Channels</h3>
-          <p id="detailsChannelsNote" class="details-journeys-note" hidden></p>
-          <p id="detailsChannelsEmpty" class="details-journeys-empty" hidden></p>
-          <div id="detailsChannelsWrap" class="table-wrap details-channels-wrap" hidden>
-            <table class="details-journeys-table details-channels-table" aria-label="Channel metrics from profile experience events">
-              <thead>
-                <tr>
-                  <th scope="col">Channel</th>
-                  <th scope="col">People <span class="details-channels-hdr-sub" id="detailsChannelsHdrPeople"></span><span class="details-channels-hdr-hint">(1 profile · % = share of channel-tagged events)</span></th>
-                  <th scope="col">CTR (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrCtr"></span></th>
-                  <th scope="col">Delivered (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrDelivered"></span></th>
-                  <th scope="col">Displays (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrDisplays"></span></th>
-                  <th scope="col">Clicks (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrClicks"></span></th>
-                </tr>
-              </thead>
-              <tbody id="detailsChannelsBody"></tbody>
-            </table>
+          <div class="details-section-card">
+            <p id="detailsChannelsNote" class="details-journeys-note" hidden></p>
+            <p id="detailsChannelsEmpty" class="details-journeys-empty" hidden></p>
+            <div id="detailsChannelsWrap" class="table-wrap details-channels-wrap" hidden>
+              <table class="details-journeys-table details-channels-table" aria-label="Channel metrics from profile experience events">
+                <thead>
+                  <tr>
+                    <th scope="col">Channel</th>
+                    <th scope="col">People <span class="details-channels-hdr-sub" id="detailsChannelsHdrPeople"></span><span class="details-channels-hdr-hint">(1 profile · % = share of channel-tagged events)</span></th>
+                    <th scope="col">CTR (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrCtr"></span></th>
+                    <th scope="col">Delivered (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrDelivered"></span></th>
+                    <th scope="col">Displays (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrDisplays"></span></th>
+                    <th scope="col">Clicks (AJO) <span class="details-channels-hdr-sub" id="detailsChannelsHdrClicks"></span></th>
+                  </tr>
+                </thead>
+                <tbody id="detailsChannelsBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
         <div id="detailsJourneysSection" class="details-journeys-section" hidden>
           <h3 class="details-title details-title--sub details-stage-heading details-stage-heading--orange">Journey activity</h3>
-          <p id="detailsJourneysNote" class="details-journeys-note" hidden></p>
-          <p id="detailsJourneysEmpty" class="details-journeys-empty" hidden></p>
-          <div id="detailsJourneysWrap" class="table-wrap details-journeys-wrap" hidden>
-            <table class="details-journeys-table" aria-label="Journeys linked from profile experience events">
-              <thead>
-                <tr>
-                  <th>Journey name</th>
-                  <th>Journey version ID</th>
-                  <th>Events in range</th>
-                  <th>Last activity</th>
-                </tr>
-              </thead>
-              <tbody id="detailsJourneysBody"></tbody>
-            </table>
+          <div class="details-section-card">
+            <p id="detailsJourneysNote" class="details-journeys-note" hidden></p>
+            <p id="detailsJourneysEmpty" class="details-journeys-empty" hidden></p>
+            <div id="detailsJourneysWrap" class="table-wrap details-journeys-wrap" hidden>
+              <table class="details-journeys-table" aria-label="Journeys linked from profile experience events">
+                <thead>
+                  <tr>
+                    <th>Journey name</th>
+                    <th>Journey version ID</th>
+                    <th>Events in range</th>
+                    <th>Last activity</th>
+                  </tr>
+                </thead>
+                <tbody id="detailsJourneysBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
         <div id="detailsEventTypeChartSection" class="details-eventtype-chart-section" hidden>
@@ -304,7 +308,7 @@
               <button type="button" class="details-eventtype-toggle-btn" data-chart-type="doughnut" aria-pressed="false">Doughnut</button>
             </div>
           </div>
-          <div class="details-eventtype-chart-card">
+          <div class="details-section-card">
             <div class="details-eventtype-chart-wrap">
               <canvas id="eventTypeChart"></canvas>
             </div>
