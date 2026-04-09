@@ -1032,7 +1032,38 @@ function getEventEcid(ev) {
   return ecidRow ? String(ecidRow.value) : '—';
 }
 
+function getPushChannelPlatform(ev) {
+  const rows = ev.rows || [];
+  const row = rows.find((r) => {
+    const p = (r.path || '').toLowerCase().replace(/_/g, '.');
+    return (
+      p.endsWith('pushchannelcontext.platform') ||
+      (p.includes('pushchannelcontext') && (p.endsWith('.platform') || p.endsWith('_platform')))
+    );
+  });
+  if (!row || row.value == null) return '';
+  return String(row.value).trim();
+}
+
+function eventChannelContextNamespaceIsEmail(ev) {
+  const rows = ev.rows || [];
+  for (const r of rows) {
+    const p = (r.path || '').toLowerCase().replace(/_/g, '.');
+    if (!p.includes('channelcontext')) continue;
+    if (!(p.endsWith('.namespace') || p.endsWith('_namespace'))) continue;
+    if (r.value == null || !String(r.value).trim()) continue;
+    if (String(r.value).trim().toLowerCase() === 'email') return true;
+  }
+  return false;
+}
+
 function getEventChannel(ev) {
+  const platformRaw = getPushChannelPlatform(ev);
+  if (platformRaw && platformRaw.toLowerCase() === 'fcm') return 'Android Push';
+  if (platformRaw && platformRaw.toLowerCase() === 'apns') return 'iOS Push';
+
+  if (eventChannelContextNamespaceIsEmail(ev)) return 'email';
+
   if (ev.channel != null && String(ev.channel).trim()) return String(ev.channel).trim();
   const rows = ev.rows || [];
   const channelRow = rows.find((r) => {
@@ -1041,6 +1072,15 @@ function getEventChannel(ev) {
     return ((p === 'channel' || p.endsWith('.channel') || p === '_experiencechannel' || a === 'channel') && r.value != null && String(r.value).trim());
   });
   return channelRow ? String(channelRow.value).trim() : '—';
+}
+
+function formatEventChannelForDisplay(raw) {
+  const s = String(raw ?? '').trim();
+  if (!s || s === '—') return s;
+  const lower = s.toLowerCase();
+  if (lower === 'email') return 'Email';
+  if (lower === 'mobile') return 'Mobile';
+  return s;
 }
 
 function getEventNamespaceValue(ev) {
@@ -1062,6 +1102,8 @@ function normalizeMarketingChannelKeyForDetails(raw) {
   const compact = v.replace(/[\s_-]+/g, '');
   if (compact === 'email' || v.includes('email')) return 'email';
   if (compact === 'sms' || v === 'text' || v.includes('sms')) return 'sms';
+  if (compact === 'androidpush' || v === 'android push') return 'pushAndroid';
+  if (compact === 'iospush' || v === 'ios push') return 'pushIos';
   if (v.includes('push')) return 'push';
   if (v.includes('in-app') || compact === 'inapp') return 'inApp';
   if (v.includes('whatsapp')) return 'whatsapp';
@@ -1076,6 +1118,8 @@ function formatChannelLabelForDetails(key) {
   const labels = {
     email: 'email',
     sms: 'sms',
+    pushAndroid: 'Android Push',
+    pushIos: 'iOS Push',
     push: 'push',
     inApp: 'in-app',
     web: 'web',
@@ -1090,8 +1134,13 @@ function formatChannelLabelForDetails(key) {
 /**
  * Channel for Details / Channels table: any *channelcontext*.namespace (email, push, sms, …),
  * then legacy email-only namespace helper, then top-level channel on the event.
+ * Push platform (FCM / APNS) matches Events tab: Android Push vs iOS Push.
  */
 function getMessageChannelKeyForDetails(ev) {
+  const platformRaw = getPushChannelPlatform(ev);
+  if (platformRaw && platformRaw.toLowerCase() === 'fcm') return 'pushAndroid';
+  if (platformRaw && platformRaw.toLowerCase() === 'apns') return 'pushIos';
+
   const rows = ev.rows || [];
   for (const r of rows) {
     const p = (r.path || '').toLowerCase().replace(/_/g, '.');
@@ -1114,7 +1163,10 @@ function getMessageChannelKeyForDetails(ev) {
   return '';
 }
 
-const DETAILS_CHANNEL_SORT_ORDER = ['email', 'sms', 'push', 'inApp', 'web', 'whatsapp', 'line', 'directMail', 'phone'];
+const DETAILS_CHANNEL_SORT_ORDER = [
+  'email', 'sms', 'pushAndroid', 'pushIos', 'push',
+  'inApp', 'web', 'whatsapp', 'line', 'directMail', 'phone',
+];
 
 function detailsChannelSortIndex(key) {
   const i = DETAILS_CHANNEL_SORT_ORDER.indexOf(key);
@@ -1174,7 +1226,7 @@ function renderDetailsChannelsSection(dateFilteredEvents, hoursBack) {
   if (!sectionEl || !tbody || !wrapEl || !emptyEl || !noteEl) return;
 
   const rangePhrase = 'last ' + hoursToRangeLabel(hoursBack);
-  noteEl.textContent = `Grouped by Adobe Journey Optimizer–style channel context when present (paths such as …emailchannelcontext.namespace, …pushchannelcontext.namespace, …smschannelcontext.namespace, or equivalent), then the Events-tab email namespace, then the event channel field. Metrics use the same delivery and interaction signals as the email cards above. ${rangePhrase}. Per-profile counts—not org-wide AJO reporting.`;
+  noteEl.textContent = `Grouped by Adobe Journey Optimizer–style channel context when present (paths such as …emailchannelcontext.namespace, …pushchannelcontext.namespace, …smschannelcontext.namespace, or equivalent). When …pushchannelcontext.platform is present, FCM maps to Android Push and APNS to iOS Push (same as the Events tab). Otherwise the Events-tab email namespace, then the event channel field. Metrics use the same delivery and interaction signals as the email cards above. ${rangePhrase}. Per-profile counts—not org-wide AJO reporting.`;
   noteEl.hidden = false;
 
   const bucket = new Map();
@@ -1553,7 +1605,6 @@ function renderEvents(events) {
   const countDateTime = displayEvents.filter((ev) => ev.timestamp != null && !isNaN(new Date(ev.timestamp).getTime())).length;
   const countEventType = displayEvents.filter((ev) => hasVal(ev.eventName)).length;
   const countChannel = displayEvents.filter((ev) => hasVal(getEventChannel(ev))).length;
-  const countNamespace = displayEvents.filter((ev) => hasVal(getEventNamespaceValue(ev))).length;
   const countFeedbackStatus = displayEvents.filter((ev) => hasVal(getEventFeedbackStatus(ev))).length;
   const countInteractionType = displayEvents.filter((ev) => hasVal(getEventInteractionType(ev))).length;
   const countEntityId = displayEvents.filter((ev) => hasVal(ev.entityId)).length;
@@ -1564,11 +1615,10 @@ function renderEvents(events) {
     const eventType = escapeHtml(ev.eventName || 'Experience event');
     const icon = getEventTypeIcon(ev.eventName);
     const entityId = escapeHtml(String(ev.entityId ?? ''));
-    const channel = escapeHtml(getEventChannel(ev));
-    const namespace = escapeHtml(getEventNamespaceValue(ev));
+    const channel = escapeHtml(formatEventChannelForDisplay(getEventChannel(ev)));
     const feedbackStatus = escapeHtml(getEventFeedbackStatus(ev));
     const interactionType = escapeHtml(getEventInteractionType(ev) || '—');
-    return `<tr class="profile-event-row" data-event-index="${idx}" role="button" tabindex="0"><td>${dateTimeReceived}</td><td class="event-type-cell"><span class="event-type-icon" aria-hidden="true">${icon}</span>${eventType}</td><td class="event-channel-cell">${channel}</td><td class="event-namespace-cell">${namespace}</td><td class="event-feedback-status-cell">${feedbackStatus}</td><td class="event-interaction-type-cell">${interactionType}</td><td class="entity-id-cell">${entityId}</td></tr>`;
+    return `<tr class="profile-event-row" data-event-index="${idx}" role="button" tabindex="0"><td>${dateTimeReceived}</td><td class="event-type-cell"><span class="event-type-icon" aria-hidden="true">${icon}</span>${eventType}</td><td class="event-channel-cell">${channel}</td><td class="event-feedback-status-cell">${feedbackStatus}</td><td class="event-interaction-type-cell">${interactionType}</td><td class="entity-id-cell">${entityId}</td></tr>`;
   }).join('');
   table.innerHTML = `
     <thead>
@@ -1576,7 +1626,6 @@ function renderEvents(events) {
         <th>DateTime Received (${countDateTime})</th>
         <th>Event Type (${countEventType})</th>
         <th>Channel (${countChannel})</th>
-        <th>Namespace (${countNamespace})</th>
         <th>Feedback Status (${countFeedbackStatus})</th>
         <th>Interaction Type (${countInteractionType})</th>
         <th>Entity ID (${countEntityId})</th>
