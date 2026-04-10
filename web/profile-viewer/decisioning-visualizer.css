@@ -33,35 +33,7 @@
   margin-top: 1.5rem;
 }
 
-  /* ── HERO ── */
-  .decisioning-catalog-page .dce-viz-scope .hero {
-    position: relative;
-    background: var(--ink);
-    color: white;
-    padding: 80px 60px 60px;
-    overflow: hidden;
-  }
-
-  .decisioning-catalog-page .dce-viz-scope .hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 79px,
-      rgba(255,255,255,0.03) 79px,
-      rgba(255,255,255,0.03) 80px
-    ),
-    repeating-linear-gradient(
-      180deg,
-      transparent,
-      transparent 79px,
-      rgba(255,255,255,0.03) 79px,
-      rgba(255,255,255,0.03) 80px
-    );
-  }
-
+  /* Eyebrow label (e.g. overview intro — not the removed top hero strip) */
   .decisioning-catalog-page .dce-viz-scope .hero-eyebrow {
     font-family: 'DM Mono', monospace;
     font-size: 11px;
@@ -70,50 +42,6 @@
     color: var(--red-light);
     margin-bottom: 20px;
     position: relative;
-  }
-
-  .decisioning-catalog-page .dce-viz-scope .hero h1 {
-    font-family: 'DM Serif Display', serif;
-    font-size: clamp(42px, 6vw, 78px);
-    line-height: 1.05;
-    position: relative;
-    max-width: 800px;
-  }
-
-  .decisioning-catalog-page .dce-viz-scope .hero h1 em {
-    font-style: italic;
-    color: #d4cfc9;
-  }
-
-  .decisioning-catalog-page .dce-viz-scope .hero-sub {
-    font-size: 17px;
-    font-weight: 300;
-    color: #a09a94;
-    margin-top: 20px;
-    max-width: 520px;
-    line-height: 1.6;
-    position: relative;
-  }
-
-  .decisioning-catalog-page .dce-viz-scope .hero-badge {
-    position: absolute;
-    top: 60px;
-    right: 60px;
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(255,255,255,0.15);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    color: rgba(255,255,255,0.4);
-    text-transform: uppercase;
-    line-height: 1.8;
-    text-align: center;
   }
 
   /* ── NAV TABS ── */
