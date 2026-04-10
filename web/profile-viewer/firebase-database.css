@@ -377,6 +377,42 @@ html[data-aep-theme='dark'] body.firebase-database-page {
   background: var(--dash-surface-alt);
 }
 
+.firebase-database-page .fb-db-ajo-flow {
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.firebase-database-page .fb-db-instructions-confirm {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--dash-text);
+}
+
+.firebase-database-page .fb-db-steps {
+  margin: 0 0 0.65rem;
+  padding-left: 1.2rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--dash-text);
+}
+
+.firebase-database-page .fb-db-steps li {
+  margin-bottom: 0.45rem;
+}
+
+.firebase-database-page .fb-db-steps li:last-child {
+  margin-bottom: 0;
+}
+
+.firebase-database-page .fb-db-instructions-note {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: var(--dash-muted);
+}
+
 .firebase-database-page .fb-db-api-block-header {
   display: flex;
   flex-wrap: wrap;

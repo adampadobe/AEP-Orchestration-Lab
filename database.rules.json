@@ -19,6 +19,12 @@
         ".read": "auth != null && (auth.uid === $wid || root.child('workspaceClaims').child($wid).val() === auth.uid)",
         ".write": "auth != null && (auth.uid === $wid || root.child('workspaceClaims').child($wid).val() === auth.uid)"
       }
+    },
+    "ajoLookups": {
+      "$wid": {
+        ".read": true,
+        ".write": "auth != null && (auth.uid === $wid || root.child('workspaceClaims').child($wid).val() === auth.uid)"
+      }
     }
   }
 }

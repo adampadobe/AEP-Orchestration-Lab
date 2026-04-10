@@ -304,6 +304,16 @@
     return root + '/userWorkspaces/' + encodeURIComponent(slug) + '.json';
   }
 
+  /** Public read mirror for AJO custom actions (GET, no auth) — …/ajoLookups/&lt;slug&gt;.json */
+  function workspaceAjoRestApiUrlFromSlug(slug) {
+    if (!slug) return '';
+    var cfg = getCfg();
+    var root = cfg && cfg.databaseURL ? String(cfg.databaseURL).trim() : '';
+    if (!root) return '';
+    if (root.endsWith('/')) root = root.slice(0, -1);
+    return root + '/ajoLookups/' + encodeURIComponent(slug) + '.json';
+  }
+
   function syncRestApiPendingHint() {
     var hint = document.getElementById('fbDbRestApiPendingHint');
     if (!hint || !auth || !auth.currentUser) {
@@ -318,13 +328,16 @@
   function updateRestApiLink(user) {
     var block = document.getElementById('fbDbApiBlock');
     var urlEl = document.getElementById('fbDbRestUrl');
+    var ajoEl = document.getElementById('fbDbAjoUrl');
     if (!block || !urlEl) return;
     if (user && user.uid && workspaceSlug) {
       var url = workspaceRestApiUrlFromSlug(workspaceSlug);
       urlEl.textContent = url;
+      if (ajoEl) ajoEl.textContent = workspaceAjoRestApiUrlFromSlug(workspaceSlug);
       block.hidden = !url;
     } else {
       urlEl.textContent = '';
+      if (ajoEl) ajoEl.textContent = '';
       block.hidden = true;
     }
     syncRestApiPendingHint();
@@ -334,6 +347,7 @@
     workspaceclaims: true,
     userworkspaceowners: true,
     userworkspaces: true,
+    ajolookups: true,
   };
 
   function sanitizeWorkspaceSlug(raw) {
@@ -499,6 +513,31 @@
       );
     } else {
       fallbackCopyText(text, 'REST API URL copied to clipboard.');
+    }
+  }
+
+  function copyAjoRestApiUrl() {
+    var urlEl = document.getElementById('fbDbAjoUrl');
+    if (!urlEl || !urlEl.textContent) {
+      if (auth && auth.currentUser && !workspaceSlug) {
+        showMsg('Set your LDAP workspace name first to get the AJO URL.', 'err');
+      } else {
+        showMsg('Sign in to get an API URL.', 'err');
+      }
+      return;
+    }
+    var text = urlEl.textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () {
+          showMsg('AJO personalization URL copied to clipboard.', 'ok');
+        },
+        function () {
+          fallbackCopyText(text, 'AJO personalization URL copied to clipboard.');
+        },
+      );
+    } else {
+      fallbackCopyText(text, 'AJO personalization URL copied to clipboard.');
     }
   }
 
@@ -669,6 +708,26 @@
       });
   }
 
+  /** Keeps ajoLookups/&lt;slug&gt; in sync with userWorkspaces/&lt;slug&gt; for anonymous GET (AJO). */
+  function mirrorWorkspaceToAjoLookups() {
+    if (!database || !workspaceSlug || basePath !== 'userWorkspaces/' + workspaceSlug) {
+      return Promise.resolve();
+    }
+    return database
+      .ref('userWorkspaces/' + workspaceSlug)
+      .once('value')
+      .then(function (snap) {
+        var val = snap.val();
+        if (val === null || val === undefined) {
+          return database.ref('ajoLookups/' + workspaceSlug).remove();
+        }
+        return database.ref('ajoLookups/' + workspaceSlug).set(val);
+      })
+      .catch(function () {
+        /* mirror is best-effort; primary workspace load already succeeded */
+      });
+  }
+
   function refreshDatabase() {
     if (!database) {
       showMsg('Firebase not ready.', 'err');
@@ -691,6 +750,9 @@
         viewRootRel = '';
         renderTree();
         showMsg('Data loaded.', 'ok');
+      })
+      .then(function () {
+        return mirrorWorkspaceToAjoLookups();
       })
       .catch(function (e) {
         showMsg(String(e.message || e), 'err');
@@ -997,6 +1059,8 @@
     document.getElementById('fbDbResetPassword').addEventListener('click', sendPasswordReset);
   document.getElementById('fbDbCopyRestUrl') &&
     document.getElementById('fbDbCopyRestUrl').addEventListener('click', copyRestApiUrl);
+  document.getElementById('fbDbCopyAjoUrl') &&
+    document.getElementById('fbDbCopyAjoUrl').addEventListener('click', copyAjoRestApiUrl);
   document.getElementById('fbDbViewTree') &&
     document.getElementById('fbDbViewTree').addEventListener('click', function () {
       setDataViewMode('tree');

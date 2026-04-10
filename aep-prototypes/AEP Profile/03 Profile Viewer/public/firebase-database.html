@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260410">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="firebase-database.css?v=20260419">
+  <link rel="stylesheet" href="firebase-database.css?v=20260409b">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge firebase-database-page">
   <div class="dashboard-shell">
@@ -34,7 +34,7 @@
             <header class="dashboard-hero-header">
               <h2 id="bannerHeadingFbDb" class="dashboard-hero-title">Firebase Realtime Database</h2>
               <p class="dashboard-hero-subtitle">
-                Use one shared Realtime Database: after sign-in you choose a workspace name (for example your LDAP id). Data is stored under <code class="dashboard-code">userWorkspaces/&lt;workspace-name&gt;</code> so it is easy to recognise in the console.
+                Sign in to Firebase on this page, choose a workspace name (for example your LDAP id), then copy the <strong>AJO personalization URL</strong> into Adobe Journey Optimizer. That URL is a simple <strong>GET</strong> with <strong>no authentication in Adobe</strong> — Firebase sign-in is only for editing your data here, not for the Adobe action.
               </p>
             </header>
           </div>
@@ -60,7 +60,9 @@
                 <span class="fb-db-account-chevron" aria-hidden="true">▼</span>
               </button>
               <div class="fb-db-account-body" id="fbDbAccountBody" role="region">
-                <p class="fb-db-auth-lead">Create an account or sign in. You will choose a workspace name (for example LDAP) for your data folder.</p>
+                <p class="fb-db-auth-lead">
+                  Create an account or sign in. You need this <strong>only to edit data on this page</strong>. Adobe does not use your Firebase password — you will paste a separate URL into Journey Optimizer that works with <strong>GET</strong> and <strong>no auth in Adobe</strong>.
+                </p>
                 <div class="fb-db-field">
                   <label for="fbDbEmail">Email</label>
                   <input type="email" id="fbDbEmail" autocomplete="username" placeholder="you@example.com" />
@@ -101,25 +103,41 @@
 
             <div id="fbDbWorkspaceDeferred" class="fb-db-workspace-deferred">
             <p id="fbDbRestApiPendingHint" class="fb-db-api-pending-hint" hidden>
-              The REST API URL below appears only after you save your LDAP workspace name. It always uses
-              <code class="dashboard-code">userWorkspaces/&lt;ldap&gt;.json</code>, not your Firebase user id. If you still have a legacy folder under your uid, set a name here to copy data and unlock the URL.
+              Save your workspace name below first. If you still use a legacy folder keyed by your Firebase user id, set a name here to copy data and unlock the URLs.
             </p>
             <div id="fbDbApiBlock" class="fb-db-api-block" hidden>
+              <div class="fb-db-ajo-flow" aria-label="Adobe Journey Optimizer setup">
+                <p class="fb-db-instructions-confirm">
+                  <strong>Confirmed flow.</strong> You sign in here to manage data. For Adobe, you copy one URL — <strong>no API key and no Firebase login inside Journey Optimizer</strong>.
+                </p>
+                <ol class="fb-db-steps">
+                  <li><strong>Create or use a Firebase account</strong> on this page (email/password or guest).</li>
+                  <li>
+                    <strong>Enter your workspace name</strong> (for example LDAP), then click <strong>Save workspace name</strong>. This names your folder; it is not your Adobe password.
+                  </li>
+                  <li>
+                    Click <strong>Refresh data</strong> at least once so your workspace is copied to the endpoint Adobe will call.
+                  </li>
+                  <li>
+                    <strong>Copy the AJO personalization URL</strong> below. In Journey Optimizer, add a <strong>custom action</strong>, paste that URL as the endpoint, set <strong>Method</strong> to <strong>GET</strong>, and leave <strong>authentication / headers for auth empty</strong>.
+                  </li>
+                </ol>
+                <p class="fb-db-instructions-note">
+                  Reads for that URL are intentionally open to anyone with the link (for personalization only). Do not put secrets or private data in your workspace if you use this URL.
+                </p>
+              </div>
               <div class="fb-db-api-block-header">
-                <h4 class="fb-db-api-title">REST API URL</h4>
+                <h4 class="fb-db-api-title">URLs for Adobe and other tools</h4>
                 <details class="fb-db-ajo-help">
                   <summary class="fb-db-ajo-help-summary">Using this URL in Journey Optimizer (AJO)</summary>
                   <div class="fb-db-ajo-help-inner">
                     <p>
-                      In <strong>Adobe Journey Optimizer</strong>, create a <strong>Custom action</strong> under
-                      <strong>Administration</strong> → <strong>Configurations</strong> → <strong>Actions</strong> → <strong>Create Action</strong>.
-                      Paste this HTTPS URL as the endpoint, set <strong>Method</strong> (for example <code class="dashboard-code">GET</code> to read data),
-                      and add <strong>Headers</strong> or <strong>Authentication</strong> if your Realtime Database rules require a token.
-                      Pick the <strong>sandbox</strong> that matches the journeys where you will use the action.
+                      In <strong>Journey Optimizer</strong>: <strong>Administration</strong> → <strong>Configurations</strong> → <strong>Actions</strong> → <strong>Create Action</strong>.
+                      Use the <strong>AJO personalization URL</strong> from this page, method <code class="dashboard-code">GET</code>, no authentication.
+                      Choose the <strong>sandbox</strong> that matches your journeys.
                     </p>
                     <p class="fb-db-ajo-help-note">
-                      Adobe does not document a public API to auto-create these actions; configuration is done in the UI or via supported deployment patterns.
-                      For sensitive credentials, prefer a small HTTPS proxy that calls Firebase with server-side keys instead of embedding secrets in the action.
+                      The <code class="dashboard-code">ajoLookups</code> endpoint is public-read by design. The <code class="dashboard-code">userWorkspaces</code> URL below is for integrations that pass a Firebase ID token.
                     </p>
                     <p class="fb-db-ajo-help-docs">Experience League</p>
                     <ul class="fb-db-ajo-help-links">
@@ -137,8 +155,14 @@
                 </details>
               </div>
               <p class="fb-db-api-hint">
-                Standard Firebase RTDB HTTPS endpoint for your workspace root. From other systems, add
-                <code class="dashboard-code">?auth=&lt;ID_TOKEN&gt;</code> (or use the Admin SDK) so rules allow access.
+                <strong>Paste this into Adobe (GET — no authentication):</strong> updated whenever you click <strong>Refresh data</strong>. This is the only URL most people need for Journey Optimizer.
+              </p>
+              <div class="fb-db-api-row">
+                <code id="fbDbAjoUrl" class="fb-db-code-url" translate="no"></code>
+                <button type="button" class="fb-db-btn fb-db-copy-btn" id="fbDbCopyAjoUrl">Copy</button>
+              </div>
+              <p class="fb-db-api-hint">
+                <strong>Advanced — authenticated REST</strong> (same data, stricter rules): only for tools that can send a Firebase ID token. Not required for Adobe if you use the URL above.
               </p>
               <div class="fb-db-api-row">
                 <code id="fbDbRestUrl" class="fb-db-code-url" translate="no"></code>
