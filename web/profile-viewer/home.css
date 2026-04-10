@@ -797,6 +797,13 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   flex-shrink: 0;
 }
 
+.dashboard-sidebar-mark-svg {
+  display: block;
+  width: 22px;
+  height: auto;
+  flex-shrink: 0;
+}
+
 .dashboard-sidebar-titles {
   display: flex;
   flex-direction: column;
