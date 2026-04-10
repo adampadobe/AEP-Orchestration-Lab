@@ -1,7 +1,8 @@
 /**
  * POST /api/easter-egg-found — records Marauder's Map "register" signings and optionally emails lab owners.
- * Optional Mailgun: secrets EASTER_EGG_MAILGUN_API_KEY + EASTER_EGG_MAILGUN_DOMAIN (use "skip" to disable mail).
- * Env EASTER_EGG_MAIL_FROM must be an address on that Mailgun domain; EASTER_EGG_MAILGUN_REGION = '' (US) or 'eu'.
+ * Mailgun: secrets EASTER_EGG_MAILGUN_API_KEY + EASTER_EGG_MAILGUN_DOMAIN (use "skip" to disable mail).
+ * Env EASTER_EGG_MAIL_FROM = sender on that Mailgun domain (e.g. lab@mail.apalmer-consulting.com).
+ * Env EASTER_EGG_MAILGUN_REGION: '' = US (api.mailgun.net), 'eu' = EU (api.eu.mailgun.net).
  */
 const admin = require('firebase-admin');
 
@@ -43,8 +44,7 @@ async function sendMailgunEmail({ apiKey, domain, region, fromEmail, subject, te
     String(region || '').toLowerCase() === 'eu' ? 'https://api.eu.mailgun.net' : 'https://api.mailgun.net';
   const url = `${base}/v3/${encodeURIComponent(String(domain).trim())}/messages`;
   const params = new URLSearchParams();
-  const from = `AEP Orchestration Lab <${String(fromEmail).trim()}>`;
-  params.append('from', from);
+  params.append('from', `AEP Orchestration Lab <${String(fromEmail).trim()}>`);
   recipients.forEach((to) => params.append('to', to));
   params.append('subject', subject);
   params.append('text', text);
@@ -65,12 +65,7 @@ async function sendMailgunEmail({ apiKey, domain, region, fromEmail, subject, te
 }
 
 async function handleEasterEggNotify(req, res, deps) {
-  const {
-    mailgunKey,
-    mailgunDomain,
-    mailFrom,
-    mailgunRegion,
-  } = deps;
+  const { mailgunKey, mailgunDomain, mailFrom, mailgunRegion } = deps;
   let body;
   try {
     body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');

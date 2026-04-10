@@ -2030,7 +2030,7 @@ exports.easterEggNotify = onRequest(
     timeoutSeconds: 30,
     memory: '256MiB',
     secrets: [EASTER_EGG_MAILGUN_API_KEY, EASTER_EGG_MAILGUN_DOMAIN],
-    /** MAIL_FROM: address on your Mailgun domain. MAILGUN_REGION: '' (US) or 'eu'. */
+    /** MAIL_FROM on your Mailgun domain; MAILGUN_REGION '' = US, 'eu' = EU API host. */
     environmentVariables: {
       EASTER_EGG_MAIL_FROM: '',
       EASTER_EGG_MAILGUN_REGION: '',
