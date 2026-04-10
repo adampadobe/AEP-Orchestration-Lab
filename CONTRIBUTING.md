@@ -10,15 +10,61 @@ Read this fully before making your first change.
 
 ## Table of contents
 
-1. [Architecture overview](#architecture-overview)
-2. [Directory map](#directory-map)
-3. [Light / dark theming system (critical)](#light--dark-theming-system)
-4. [Adding a new page](#adding-a-new-page)
-5. [CSS rules and conventions](#css-rules-and-conventions)
-6. [Cloud Functions patterns](#cloud-functions-patterns)
-7. [Credentials, secrets and .env files](#credentials-secrets-and-env-files)
-8. [Deployment](#deployment)
-9. [Things you must never do](#things-you-must-never-do)
+1. [Collaboration, Git, and environment](#collaboration-git-and-environment)
+2. [Architecture overview](#architecture-overview)
+3. [Directory map](#directory-map)
+4. [Light / dark theming system (critical)](#light--dark-theming-system)
+5. [Adding a new page](#adding-a-new-page)
+6. [CSS rules and conventions](#css-rules-and-conventions)
+7. [Cloud Functions patterns](#cloud-functions-patterns)
+8. [Credentials, secrets and .env files](#credentials-secrets-and-env-files)
+9. [Change workflow (mandatory)](#change-workflow-mandatory)
+10. [Deployment](#deployment)
+11. [Things you must never do](#things-you-must-never-do)
+
+---
+
+## Collaboration, Git, and environment
+
+Upstream is **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (`origin`). Treat GitHub as the source of truth. Use **Phase A** at the start of a substantive work session and **Phase B** immediately before every `git push`, so you do not build or deploy on stale `main` and you reduce surprise conflicts when others have merged.
+
+### Phase A — start of session (before substantive edits)
+
+1. `git fetch origin`
+2. `git status` — if you are **behind** `origin/main`, update before continuing.
+3. On **`main`**: `git pull --ff-only origin main`. If Git refuses because of local changes: `git stash push -m "wip"`, pull, then `git stash pop`.
+4. On a **feature branch**: merge or rebase **`origin/main`** so your branch includes the latest shared commits.
+
+**Cursor:** **`.cursor/skills/sync-with-origin-main/SKILL.md`** encodes this workflow for agents. **`.cursor/rules/sync-origin-main.mdc`** is the short workspace reminder.
+
+### Phase B — immediately before `git push`
+
+Someone else may have merged while you were working.
+
+1. `git fetch origin` again.
+2. If you are behind `origin/main`, integrate (`git pull --ff-only origin main` on `main`, or rebase/merge your branch onto current `origin/main`) and resolve conflicts **before** `git push`.
+
+If **`git push` is rejected**, do **not** force-push to **`main`**. Pull or rebase from `origin`, fix conflicts, then push. For other repositories, the **github-git-workflow** Cursor skill describes the same habits.
+
+### Node.js
+
+| Location | Version |
+|----------|---------|
+| **Target / CI** | **Node.js 22** (LTS), pinned in **`.nvmrc`** |
+| **`functions/package.json`** | `"engines": { "node": "22" }` — matches **Firebase Cloud Functions** (2nd gen) on deploy |
+| **Root `package.json`** | `"engines": { "node": ">=22 <26", "npm": ">=10" }` — keep local Node in this range |
+
+Install [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) (or another tool that reads `.nvmrc`). In the repo root run `nvm install` / `nvm use` (or `fnm install` / `fnm use`). Confirm **`node -v`** reports **`v22.x.x`**.
+
+If `npm install` prints **`EBADENGINE`** under **`functions/`** because your global Node is too new, switch to **22** before **`npm ci`**, **`npm install`**, or **`firebase deploy --only functions`**.
+
+### Continuous integration
+
+The **Validate** workflow (`.github/workflows/validate.yml`) installs Node from **`.nvmrc`** and runs **`npm ci`** in **`functions/`** on pull requests so dependencies install cleanly on the pinned version.
+
+### Profile Viewer UI — canonical path
+
+Firebase Hosting serves static files from **`web/`**. The lab nav, themes, and assets under **`web/profile-viewer/`** are **canonical**. The Express prototype at **`aep-prototypes/AEP Profile/03 Profile Viewer/public/`** is a **mirror**: after you edit **`web/profile-viewer/`**, run **`npm run sync-profile-viewer-ui`** (see [Sync between prototypes and hosting](#sync-between-prototypes-and-hosting)). Running sync **from prototype → `web/`** in the wrong direction has overwritten Hosting in the past.
 
 ---
 
@@ -37,7 +83,7 @@ Browser ──▶ Firebase Hosting (web/)
 | Layer | Tech | Location |
 |-------|------|----------|
 | Static UI | Vanilla HTML / CSS / JS (no framework, no bundler) | `web/` |
-| Cloud Functions | Node 20, Firebase Functions v2 (`onRequest`) | `functions/` |
+| Cloud Functions | Node 22, Firebase Functions v2 (`onRequest`) | `functions/` |
 | Firestore | Admin SDK only — client rules deny all | `firestore.rules` |
 | Local dev server | Express (vendored) | `aep-prototypes/AEP Profile/03 Profile Viewer/` |
 | Python lab / proxy | Flask-style proxy | `proxy_server.py`, `scripts/` |
@@ -67,7 +113,7 @@ The root `/` redirects 302 to `/profile-viewer/home.html`.
 │   ├── index.html                ← Decisioning lab (self-contained theme)
 │   └── edge-test.html            ← Edge testing page
 │
-├── functions/                    ← Firebase Cloud Functions (Node 20)
+├── functions/                    ← Firebase Cloud Functions (Node 22)
 │   ├── index.js                  ← All exported HTTP functions
 │   ├── package.json              ← Dependencies (firebase-functions v6)
 │   └── *Service.js               ← Service modules
@@ -75,8 +121,8 @@ The root `/` redirects 302 to `/profile-viewer/home.html`.
 ├── aep-prototypes/               ← Vendored upstream (kirkside-bit/cursor)
 │   └── AEP Profile/
 │       ├── 00 Adobe Auth/        ← Shared IMS auth module
-│       └── 03 Profile Viewer/    ← Express app (source of truth for UI)
-│           └── public/           ← rsync'd → web/profile-viewer/
+│       └── 03 Profile Viewer/    ← Express app; public/ mirrors web/profile-viewer/
+│           └── public/           ← synced from web/profile-viewer/ (npm run sync-profile-viewer-ui)
 │
 ├── docs/                         ← Operational docs (deploy, decisioning, etc.)
 ├── scripts/                      ← Python/shell utilities
@@ -405,16 +451,16 @@ See `docs/COLLEAGUE_PROFILE_VIEWER.md` for full setup instructions.
 
 ## Change workflow (mandatory)
 
-Every change **must** follow these four steps in order. Do not skip any step.
+Every change **must** follow these steps in order. Do not skip any step.
 
 | Step | Command / action | Why |
 |------|-----------------|-----|
 | 1. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
-| 2. **Sync prototypes** | `npm run sync-profile-viewer-ui` (copies `web/profile-viewer/` → prototype `public/`) | Keep vendored Express mirror in sync |
-| 3. **Deploy** | `firebase deploy --only hosting` and/or `firebase deploy --only functions` | Push to live |
-| 4. **Commit & push** | `git add -A && git commit -m "..." && git push` | Track changes in version control |
+| 2. **Sync prototypes** | `npm run sync-profile-viewer-ui` when you changed `web/profile-viewer/` (copies **→** prototype `public/`) | Keep the vendored Express mirror aligned with Hosting |
+| 3. **Commit & push** | `git add`, `git commit`, `git push` to `origin` | GitHub is the audit trail; teammates and CI see your work |
+| 4. **Deploy** | `firebase deploy --only hosting` and/or `firebase deploy --only functions` | Live site and functions pick up what you pushed |
 
-> **Never** deploy without committing. Every deployed change must be tracked in git.
+> **Never** deploy work you care about before it is **committed and pushed**. See [Collaboration, Git, and environment](#collaboration-git-and-environment) for staying current with `origin/main` before and after you push.
 
 ---
 
