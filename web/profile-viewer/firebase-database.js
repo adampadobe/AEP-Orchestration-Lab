@@ -99,99 +99,13 @@
     return root === undefined ? null : root;
   }
 
-  function escapeHtmlForJson(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
-
-  /**
-   * Syntax-color pretty-printed JSON (from JSON.stringify) for display in a <pre>.
-   * Copy still uses plain text via element.textContent.
-   */
-  function highlightJsonText(text) {
-    var i = 0;
-    var out = '';
-    var len = text.length;
-    while (i < len) {
-      var c = text[i];
-      if (c === '"') {
-        var start = i;
-        i++;
-        while (i < len) {
-          if (text[i] === '\\' && i + 1 < len) {
-            var nx = text[i + 1];
-            if (nx === 'u' && i + 6 <= len) {
-              i += 6;
-              continue;
-            }
-            i += 2;
-            continue;
-          }
-          if (text[i] === '"') {
-            i++;
-            break;
-          }
-          i++;
-        }
-        var slice = text.slice(start, i);
-        var j = i;
-        while (j < len && /\s/.test(text[j])) j++;
-        var isKey = j < len && text[j] === ':';
-        var cls = isKey ? 'fb-db-json-hl-key' : 'fb-db-json-hl-string';
-        out += '<span class="' + cls + '">' + escapeHtmlForJson(slice) + '</span>';
-        continue;
-      }
-      if (c === 't' && text.slice(i, i + 4) === 'true') {
-        out += '<span class="fb-db-json-hl-boolean">true</span>';
-        i += 4;
-        continue;
-      }
-      if (c === 'f' && text.slice(i, i + 5) === 'false') {
-        out += '<span class="fb-db-json-hl-boolean">false</span>';
-        i += 5;
-        continue;
-      }
-      if (c === 'n' && text.slice(i, i + 4) === 'null') {
-        out += '<span class="fb-db-json-hl-null">null</span>';
-        i += 4;
-        continue;
-      }
-      if (c === '-' || (c >= '0' && c <= '9')) {
-        var n0 = i;
-        if (c === '-') i++;
-        while (i < len && /[0-9]/.test(text[i])) i++;
-        if (i < len && text[i] === '.') {
-          i++;
-          while (i < len && /[0-9]/.test(text[i])) i++;
-        }
-        if (i < len && /[eE]/.test(text[i])) {
-          i++;
-          if (i < len && /[+\-]/.test(text[i])) i++;
-          while (i < len && /[0-9]/.test(text[i])) i++;
-        }
-        out += '<span class="fb-db-json-hl-number">' + escapeHtmlForJson(text.slice(n0, i)) + '</span>';
-        continue;
-      }
-      if ('{}[],:'.indexOf(c) >= 0) {
-        out += '<span class="fb-db-json-hl-punct">' + escapeHtmlForJson(c) + '</span>';
-        i++;
-        continue;
-      }
-      out += escapeHtmlForJson(c);
-      i++;
-    }
-    return out;
-  }
-
   function renderJsonView() {
-    var pre = document.getElementById('fbDbJsonPre');
+    var ta = document.getElementById('fbDbJsonTextarea');
     var empty = document.getElementById('fbDbJsonEmpty');
-    if (!pre || !empty) return;
+    if (!ta || !empty) return;
     if (!basePath) {
-      pre.textContent = '';
-      pre.hidden = true;
+      ta.value = '';
+      ta.hidden = true;
       empty.hidden = false;
       empty.textContent =
         auth && auth.currentUser
@@ -199,21 +113,17 @@
           : 'Sign in and refresh to load data.';
       return;
     }
+    empty.hidden = true;
+    ta.hidden = false;
     var root = getViewRootData();
     if (root === null || root === undefined) {
-      pre.textContent = '';
-      pre.hidden = true;
-      empty.hidden = false;
-      empty.textContent = 'No data at this path.';
+      ta.value = '{}';
       return;
     }
-    empty.hidden = true;
-    pre.hidden = false;
     try {
-      var raw = JSON.stringify(root, null, 2);
-      pre.innerHTML = highlightJsonText(raw);
+      ta.value = JSON.stringify(root, null, 2);
     } catch (err) {
-      pre.textContent = String(root);
+      ta.value = String(root);
     }
   }
 
@@ -237,12 +147,12 @@
   }
 
   function copyJsonPanel() {
-    var pre = document.getElementById('fbDbJsonPre');
-    if (!pre || !pre.textContent) {
+    var ta = document.getElementById('fbDbJsonTextarea');
+    if (!ta || ta.hidden || !String(ta.value || '').trim()) {
       showMsg('No JSON to copy. Load data or switch to JSON view.', 'err');
       return;
     }
-    var text = pre.textContent;
+    var text = ta.value;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(
         function () {
@@ -255,6 +165,46 @@
     } else {
       fallbackCopyText(text, 'JSON copied to clipboard.');
     }
+  }
+
+  /** Writes textarea JSON to Firebase at the current tree path (full workspace or Navigate path). */
+  function applyJsonFromPanel() {
+    if (!database || !basePath) {
+      showMsg('Load a workspace first.', 'err');
+      return;
+    }
+    var ta = document.getElementById('fbDbJsonTextarea');
+    if (!ta || ta.hidden) {
+      showMsg('Open the JSON tab.', 'err');
+      return;
+    }
+    var raw = ta.value != null ? String(ta.value).trim() : '';
+    if (!raw) {
+      showMsg('Paste JSON first.', 'err');
+      return;
+    }
+    var parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      showMsg('Invalid JSON: ' + (e && e.message ? e.message : String(e)), 'err');
+      return;
+    }
+    var rel = normalizeRel(viewRootRel);
+    var fullPath = rel ? basePath + '/' + rel : basePath;
+    database
+      .ref(fullPath)
+      .set(parsed)
+      .then(function () {
+        showMsg('Saved.', 'ok');
+        return refreshDatabase();
+      })
+      .then(function () {
+        if (dataViewMode === 'json') renderJsonView();
+      })
+      .catch(function (e) {
+        showMsg(String(e.message || e), 'err');
+      });
   }
 
   function authErrorMessage(err) {
@@ -914,6 +864,7 @@
     if (typeof v === 'object' && !Array.isArray(v) && v !== null) {
       viewRootRel = sub;
       renderTree();
+      renderJsonView();
       showMsg(sub ? 'Showing subtree · use empty path + Go to return to root.' : 'Showing full workspace.', 'ok');
       return;
     }
@@ -1031,6 +982,17 @@
     });
   document.getElementById('fbDbCopyJson') &&
     document.getElementById('fbDbCopyJson').addEventListener('click', copyJsonPanel);
+  document.getElementById('fbDbApplyJson') &&
+    document.getElementById('fbDbApplyJson').addEventListener('click', applyJsonFromPanel);
+  var fbDbJsonTextarea = document.getElementById('fbDbJsonTextarea');
+  if (fbDbJsonTextarea) {
+    fbDbJsonTextarea.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        applyJsonFromPanel();
+      }
+    });
+  }
   document.getElementById('fbDbRefresh') && document.getElementById('fbDbRefresh').addEventListener('click', function () {
     refreshDatabase();
   });

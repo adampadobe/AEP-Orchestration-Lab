@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260410">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="firebase-database.css?v=20260409c">
+  <link rel="stylesheet" href="firebase-database.css?v=20260409d">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge firebase-database-page">
   <div class="dashboard-shell">
@@ -175,6 +175,9 @@
                 >
                   JSON
                 </button>
+                <button type="button" class="fb-db-json-apply-top" id="fbDbApplyJson" title="Save JSON to Firebase (current tree path)">
+                  Apply JSON
+                </button>
                 <button type="button" class="fb-db-json-copy-top" id="fbDbCopyJson" title="Copy JSON to clipboard">
                   Copy JSON
                 </button>
@@ -184,7 +187,14 @@
               <div id="fbDbTree" class="fb-db-tree" role="tree" aria-label="Workspace JSON tree"></div>
             </div>
             <div id="fbDbJsonWrap" class="fb-db-view-panel" hidden>
-              <pre id="fbDbJsonPre" class="fb-db-json-pre" aria-label="Workspace data as JSON"></pre>
+              <textarea
+                id="fbDbJsonTextarea"
+                class="fb-db-json-textarea"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Edit workspace JSON — paste, then Apply JSON"
+                placeholder="Paste JSON here, then click Apply JSON (or Ctrl+Enter)"
+              ></textarea>
               <p id="fbDbJsonEmpty" class="fb-db-json-placeholder" hidden>No data to show. Sign in and refresh.</p>
             </div>
 
