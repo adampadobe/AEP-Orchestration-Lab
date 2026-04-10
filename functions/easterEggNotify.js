@@ -6,7 +6,7 @@
  */
 const admin = require('firebase-admin');
 
-const RECIPIENTS = ['apalmer@adobe.com', 'kirkham@adobe.com'];
+const RECIPIENTS = ['apalmer@adobe.com', 'adamp.adobedemo@gmail.com'];
 const ALLOWED_FLAVORS = new Set(['home', 'journeys', 'catalog', 'profile']);
 
 function getDb() {
