@@ -1,0 +1,657 @@
+/** Reusable bottom profile drawer (demos). */
+/* Bottom hover-reveal profile panel. */
+.aep-profile-drawer-hover-zone {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 26px;
+  z-index: 3200;
+}
+
+.aep-profile-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #2c2c2c;
+  border-top: 1px solid rgba(236, 236, 236, 0.18);
+  box-shadow: 0 -14px 34px rgba(0, 0, 0, 0.42);
+  transform: translateY(calc(100% - 22px));
+  transition: transform 0.2s ease;
+  z-index: 3210;
+}
+
+body.aep-profile-drawer-open .aep-profile-drawer,
+.aep-profile-drawer:focus-within {
+  transform: translateY(0);
+}
+
+.aep-profile-drawer-inner {
+  max-width: min(1920px, 100%);
+  width: 100%;
+  margin: 0 auto;
+  padding: 1rem clamp(0.5rem, 1.25vw, 1.25rem) 1.1rem;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns:
+    minmax(200px, 1.12fr) minmax(190px, 0.95fr) minmax(240px, 1.18fr) minmax(200px, 1.05fr) minmax(200px, 1.02fr);
+  grid-template-areas: 'cell-customer cell-identity cell-graph cell-audmsg cell-events';
+  gap: 0.85rem 1rem;
+  align-items: stretch;
+}
+
+.aep-profile-drawer-grid-cell--customer {
+  grid-area: cell-customer;
+}
+.aep-profile-drawer-grid-cell--identity {
+  grid-area: cell-identity;
+}
+.aep-profile-drawer-grid-cell--graph {
+  grid-area: cell-graph;
+}
+.aep-profile-drawer-grid-cell--audmsg {
+  grid-area: cell-audmsg;
+}
+.aep-profile-drawer-grid-cell--events {
+  grid-area: cell-events;
+}
+
+/* Equal-height columns: each top-level cell matches the tallest (Customer Profile) */
+.aep-profile-drawer-inner > .aep-profile-drawer-col,
+.aep-profile-drawer-inner > .aep-profile-drawer-block,
+.aep-profile-drawer-inner > section.aep-profile-drawer-col {
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* Audiences + EMAILS SENT stacked in one grid column — column fills row; panels split height */
+.aep-profile-drawer-col-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+}
+
+.aep-profile-drawer-col-group > .aep-profile-drawer-col--stacked-panel {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.aep-profile-drawer-col-group > .aep-profile-drawer-col--stacked-panel .aep-profile-drawer-audiences {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.aep-profile-drawer-col-group > .aep-profile-drawer-col--messages-sent .aep-profile-drawer-email-sends-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.aep-profile-drawer-col--stacked-panel {
+  min-height: 0;
+  width: 100%;
+}
+
+.aep-profile-drawer-col {
+  background: rgba(255, 255, 254, 0.05);
+  border: 1px solid rgba(255, 255, 254, 0.1);
+  border-radius: 10px;
+  padding: 0.9rem 0.95rem;
+  min-height: 154px;
+}
+
+.aep-profile-drawer-block {
+  background: rgba(255, 255, 254, 0.05);
+  border: 1px solid rgba(255, 255, 254, 0.1);
+  border-radius: 10px;
+  padding: 0.9rem 0.95rem;
+  min-height: 280px;
+}
+
+.aep-profile-drawer-block--customer {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.aep-profile-drawer-block--customer .aep-profile-drawer-panel-heading {
+  text-align: center;
+}
+
+.aep-profile-drawer-block--identity {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.aep-profile-drawer-block--identity .aep-profile-drawer-identity-fields {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Shared panel titles — one row across drawer columns, all caps */
+.aep-profile-drawer-panel-heading {
+  margin: 0 0 0.45rem;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #fffffe;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.aep-profile-drawer-identity-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.aep-profile-drawer-identity-row strong {
+  display: block;
+  color: #fffffe;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+}
+
+.aep-profile-drawer-identity-row span {
+  display: block;
+  color: #ececec;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.aep-profile-drawer-col h2:not(.aep-profile-drawer-panel-heading) {
+  margin: 0 0 0.5rem;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #fffffe;
+}
+
+.aep-profile-drawer-card-title {
+  margin-bottom: 0.45rem;
+  letter-spacing: 0.035em;
+}
+
+.aep-profile-drawer-avatar-ring {
+  width: 138px;
+  height: 138px;
+  border-radius: 999px;
+  border: 5px solid #4f86ff;
+  margin: 0 auto 0.85rem;
+  display: grid;
+  place-items: center;
+}
+
+.aep-profile-drawer-avatar {
+  width: 124px;
+  height: 124px;
+  border-radius: 999px;
+  object-fit: cover;
+  object-position: center;
+  border: 3px solid rgba(255, 255, 254, 0.75);
+}
+
+.aep-profile-drawer-col p {
+  margin: 0 0 0.32rem;
+  font-size: 0.93rem;
+  color: #ececec;
+}
+
+.aep-profile-drawer-card-fields {
+  text-align: left;
+  margin-top: 0.15rem;
+}
+
+.aep-profile-drawer-card-fields p {
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.aep-profile-drawer-card-fields strong {
+  color: #fffffe;
+  font-weight: 700;
+}
+
+.aep-profile-drawer-card-consent {
+  margin-top: 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  text-align: left;
+}
+
+.aep-profile-drawer-card-consent label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  font-size: 0.83rem;
+  color: #ececec;
+}
+
+.aep-profile-drawer-card-consent input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  accent-color: #4f86ff;
+}
+
+.aep-profile-drawer-audiences {
+  margin: 0.15rem 0 0;
+  padding-left: 1.05rem;
+}
+
+.aep-profile-drawer-audiences li {
+  margin: 0 0 0.28rem;
+  font-size: 0.9rem;
+  color: #ececec;
+}
+
+.aep-profile-drawer-audience-exited {
+  color: #bfc3c9;
+}
+
+.aep-profile-drawer-message-sent-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.45rem;
+}
+
+.aep-profile-drawer-message-sent-heading-row .aep-profile-drawer-panel-heading {
+  margin: 0;
+}
+
+.aep-profile-drawer-message-sent-heading-row .aep-profile-drawer-email-sends-subheading {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.aep-profile-drawer-email-sends-subheading {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #bfc3c9;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.aep-profile-drawer-col--messages-sent .aep-profile-drawer-email-sends-body {
+  margin: 0.1rem 0 0;
+}
+
+.aep-profile-drawer-email-sends-body .aep-profile-drawer-push-sends-row {
+  margin-top: 0.55rem;
+}
+
+.aep-profile-drawer-email-sends-count-row {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.35rem;
+  line-height: 1.15;
+}
+
+.aep-profile-drawer-email-sends-count {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fffffe;
+  letter-spacing: 0.02em;
+}
+
+.aep-profile-drawer-email-sends-unit {
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: #ececec;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+/* Last events column: fill drawer row; scroll inside if many events */
+.aep-profile-drawer-inner > .aep-profile-drawer-col:not(.aep-profile-drawer-col--graph):not(.aep-profile-drawer-col--stacked-panel) {
+  display: flex;
+  flex-direction: column;
+}
+
+.aep-profile-drawer-inner > .aep-profile-drawer-col:not(.aep-profile-drawer-col--graph):last-child {
+  min-height: 0;
+}
+
+.aep-profile-drawer-inner > .aep-profile-drawer-col:not(.aep-profile-drawer-col--graph):last-child .aep-profile-drawer-events {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.aep-profile-drawer-events {
+  position: relative;
+  margin-top: 0.1rem;
+}
+
+.aep-profile-drawer-events p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #ececec;
+}
+
+.aep-profile-drawer-event-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 0.65rem;
+  padding: 0 0 0.95rem;
+}
+
+.aep-profile-drawer-event-item::before {
+  content: '';
+  position: absolute;
+  left: 21px;
+  top: 42px;
+  bottom: -6px;
+  width: 2px;
+  background: rgba(236, 236, 236, 0.22);
+}
+
+.aep-profile-drawer-event-item:last-child::before {
+  display: none;
+}
+
+.aep-profile-drawer-event-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 2px solid rgba(236, 236, 236, 0.55);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #5a6069;
+}
+
+/* Local PNG icon (envelope + @) — light tile so black line art reads on dark panel */
+.aep-profile-drawer-event-thumb--message-feedback {
+  background-color: #f3f4f6;
+  background-size: 68%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Coloured envelope + speech-tail icon — soft backdrop so blues read on dark drawer */
+.aep-profile-drawer-event-thumb--message-tracking {
+  background-color: rgba(79, 134, 255, 0.14);
+  background-size: 76%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Globe / web channel icon when event type starts with web (e.g. web.webPageDetails.pageViews) */
+.aep-profile-drawer-event-thumb--event-web {
+  background-color: #f3f4f6;
+  background-size: 88%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Mobile channel — event type starts with mobile (e.g. mobile.appLaunch) */
+.aep-profile-drawer-event-thumb--event-mobile {
+  background-color: #f3f4f6;
+  background-size: 82%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* application.launch — isometric phone + rocket artwork */
+.aep-profile-drawer-event-thumb--application-launch {
+  background-color: #ffffff;
+  background-size: 88%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Any event string containing "login" (e.g. web.login, application.login) */
+.aep-profile-drawer-event-thumb--event-login {
+  background-color: #1e3a5f;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.aep-profile-drawer-event-time {
+  display: block;
+  color: #bfc3c9;
+  font-size: 0.78rem;
+  margin-bottom: 0.15rem;
+}
+
+.aep-profile-drawer-event-title {
+  display: block;
+  color: #fffffe;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.aep-profile-drawer-event-sub {
+  display: block;
+  color: #bfc3c9;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  margin-top: 0.15rem;
+}
+
+.aep-profile-drawer-col--graph {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  justify-content: flex-start;
+}
+
+.aep-profile-drawer-graph-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.aep-profile-drawer-graph-head h2 {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.aep-profile-drawer-graph-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aep-profile-drawer-zoom-btn {
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 254, 0.25);
+  border-radius: 4px;
+  background: rgba(255, 255, 254, 0.08);
+  color: #fffffe;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.aep-profile-drawer-zoom-btn:hover {
+  background: rgba(255, 255, 254, 0.14);
+}
+
+.aep-profile-drawer-graph-viewport {
+  position: relative;
+  flex: 0 1 auto;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: min(280px, 38vh);
+  margin: 0 auto;
+  border-radius: 10px;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 254, 0.07) 0%, rgba(44, 44, 44, 0.4) 70%);
+  border: 1px solid rgba(255, 255, 254, 0.08);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aep-profile-drawer-graph-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  flex-shrink: 0;
+}
+
+/* Identity graph — node / edge entrance (new linked IDs) */
+.aep-profile-drawer-graph-svg .aep-ig-node-scale {
+  transform-box: fill-box;
+  transform-origin: center center;
+  transform: scale(1);
+  opacity: 1;
+}
+
+.aep-profile-drawer-graph-svg .aep-ig-node-new {
+  transform: scale(0.2);
+  opacity: 0;
+}
+
+.aep-profile-drawer-graph-svg .aep-ig-node-new.aep-ig-node-in {
+  transform: scale(1);
+  opacity: 1;
+  transition:
+    transform 0.55s cubic-bezier(0.33, 1.24, 0.64, 1),
+    opacity 0.45s ease-out;
+}
+
+@keyframes aep-ig-node-new-ring {
+  0% {
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.95));
+  }
+  45% {
+    stroke-width: 3;
+    filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.75));
+  }
+  100% {
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.2));
+  }
+}
+
+.aep-profile-drawer-graph-svg .aep-ig-node-new.aep-ig-node-in rect.aep-ig-node-rect--new {
+  animation: aep-ig-node-new-ring 2.4s ease-out 0.15s 1 both;
+}
+
+.aep-profile-drawer-graph-svg line.aep-ig-edge-new {
+  opacity: 0;
+}
+
+.aep-profile-drawer-graph-svg line.aep-ig-edge-new.aep-ig-edge-in {
+  opacity: 1;
+  transition: opacity 0.5s ease-out 0.06s;
+}
+
+.aep-profile-drawer-graph-svg .aep-ig-hub-scale {
+  transform-box: fill-box;
+  transform-origin: center center;
+  transform: scale(1);
+  opacity: 1;
+}
+
+@keyframes aep-ig-hub-pop {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.aep-profile-drawer-graph-svg .aep-ig-hub-scale.aep-ig-hub-in {
+  animation: aep-ig-hub-pop 0.55s cubic-bezier(0.33, 1.2, 0.64, 1) both;
+}
+
+@keyframes aep-ig-hub-link-pulse {
+  0% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  35% {
+    filter: drop-shadow(0 0 14px rgba(34, 211, 238, 0.55));
+  }
+  100% {
+    filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.15));
+  }
+}
+
+.aep-profile-drawer-graph-svg .aep-ig-hub-scale.aep-ig-hub-linked-new {
+  animation: aep-ig-hub-link-pulse 0.95s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aep-profile-drawer-graph-svg .aep-ig-node-new,
+  .aep-profile-drawer-graph-svg .aep-ig-node-new.aep-ig-node-in,
+  .aep-profile-drawer-graph-svg line.aep-ig-edge-new,
+  .aep-profile-drawer-graph-svg line.aep-ig-edge-new.aep-ig-edge-in,
+  .aep-profile-drawer-graph-svg .aep-ig-hub-scale,
+  .aep-profile-drawer-graph-svg .aep-ig-hub-scale.aep-ig-hub-in,
+  .aep-profile-drawer-graph-svg .aep-ig-hub-scale.aep-ig-hub-linked-new,
+  .aep-profile-drawer-graph-svg .aep-ig-node-new.aep-ig-node-in rect.aep-ig-node-rect--new {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    stroke-width: 1.5px !important;
+  }
+}
+
+@media (max-width: 980px) {
+  .aep-profile-drawer-inner {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'cell-customer'
+      'cell-identity'
+      'cell-graph'
+      'cell-audmsg'
+      'cell-events';
+    gap: 0.85rem;
+    max-height: 55vh;
+    overflow: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aep-profile-drawer {
+    transition: none;
+  }
+}

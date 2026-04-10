@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260406">
   <link rel="stylesheet" href="donate-demo.css">
-  <link rel="stylesheet" href="demo-profile-drawer.css">
+  <link rel="stylesheet" href="aep-profile-drawer.css">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
 </head>
 <body class="donate-demo-page home-dashboard-concierge">
@@ -212,106 +212,124 @@
     </div>
   </div>
 
-  <div class="donate-profile-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
-  <aside class="donate-profile-drawer" id="profileDrawer" aria-label="Profile preview">
-    <div class="donate-profile-drawer-inner">
-      <div class="donate-profile-col donate-profile-col--split">
-        <div class="donate-profile-split">
-          <section class="donate-profile-block donate-profile-block--customer" aria-labelledby="profileDrawerCustomerHeading">
-            <h2 class="donate-profile-card-title" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
-            <div class="donate-profile-avatar-ring">
-              <img
-                id="profileDrawerAvatar"
-                class="donate-profile-avatar"
-                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=320&q=80"
-                alt="Customer profile photo"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-            <div class="donate-profile-card-fields">
-              <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
-              <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
-              <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
-              <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
-              <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
-              <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
-              <p><strong>Address:</strong> <span id="profileDrawerAddress">Unknown</span></p>
-              <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
-            </div>
-            <div class="donate-profile-card-consent" aria-label="Customer preference flags">
-              <label><input type="checkbox" checked disabled> Marketing</label>
-              <label><input type="checkbox" checked disabled> Notifications</label>
-              <label><input type="checkbox" disabled> Newsletter</label>
-            </div>
-          </section>
-          <section class="donate-profile-block donate-profile-block--identity" aria-labelledby="profileDrawerIdentityHeading">
-            <h2 class="donate-profile-identity-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
-            <div class="donate-profile-identity-fields">
-              <div class="donate-profile-identity-row">
-                <strong>ECID</strong>
-                <span id="profileDrawerDesktopId">—</span>
-              </div>
-              <div class="donate-profile-identity-row">
-                <strong title="_demoemea.scoring.core.propensityScore">Propensity Score</strong>
-                <span id="profileDrawerPropensityScore">—</span>
-              </div>
-              <div class="donate-profile-identity-row">
-                <strong title="_demoemea.scoring.churn.churnPrediction">Churn Score</strong>
-                <span id="profileDrawerChurnScore">—</span>
-              </div>
-              <div class="donate-profile-identity-row">
-                <strong>Loyalty Status</strong>
-                <span id="profileDrawerLoyalty">Unknown</span>
-              </div>
-            </div>
-          </section>
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section
+        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer aep-profile-drawer-grid-cell--customer"
+        aria-labelledby="profileDrawerCustomerHeading"
+      >
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-avatar-ring">
+          <img
+            id="profileDrawerAvatar"
+            class="aep-profile-drawer-avatar"
+            src="https://contenthosting.web.app/AEPProfile/avatar-female.png"
+            alt="Customer profile photo"
+            loading="lazy"
+            decoding="async"
+          />
         </div>
-      </div>
-      <div class="donate-profile-col donate-profile-col--stacked-panel">
-        <h2>AUDIENCES</h2>
-        <ul class="donate-profile-audiences" id="profileDrawerAudiences">
-          <li>No audience membership loaded</li>
-        </ul>
-      </div>
-      <div class="donate-profile-col donate-profile-col--stacked-panel">
-        <div class="donate-profile-message-sent-heading-row">
-          <h2>MESSAGES SENT</h2>
-          <p class="donate-profile-email-sends-subheading">(last 24 hours)</p>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+          <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+          <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
         </div>
-        <div class="donate-profile-email-sends-body">
-          <p class="donate-profile-email-sends-count-row" aria-live="polite">
-            <span class="donate-profile-email-sends-count" id="profileDrawerMessageSentValue">—</span>
-            <span class="donate-profile-email-sends-unit" id="profileDrawerMessageSentUnit"></span>
-          </p>
-          <p class="donate-profile-email-sends-count-row donate-profile-push-sends-row" id="profileDrawerPushSendsRow" hidden aria-live="polite">
-            <span class="donate-profile-email-sends-count" id="profileDrawerPushSentValue"></span>
-            <span class="donate-profile-email-sends-unit" id="profileDrawerPushSentUnit"></span>
-          </p>
+        <div class="aep-profile-drawer-card-consent" aria-label="Customer preference flags">
+          <label><input type="checkbox" checked disabled> Marketing</label>
+          <label><input type="checkbox" checked disabled> Notifications</label>
+          <label><input type="checkbox" disabled> Newsletter</label>
         </div>
-      </div>
-      <div class="donate-profile-col">
-        <h2>LAST 5 EVENTS</h2>
-        <div class="donate-profile-events" id="profileDrawerEvents">
-          <p>No events loaded</p>
-        </div>
-      </div>
-      <div class="donate-profile-col donate-profile-col--graph" aria-label="Identity graph">
-        <div class="donate-identity-graph-head">
-          <h2>Identity graph</h2>
-          <div class="donate-identity-graph-zoom" role="group" aria-label="Zoom">
-            <button type="button" id="identityGraphZoomIn" class="donate-identity-zoom-btn" aria-label="Zoom in">+</button>
-            <button type="button" id="identityGraphZoomOut" class="donate-identity-zoom-btn" aria-label="Zoom out">−</button>
+      </section>
+      <section
+        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity aep-profile-drawer-grid-cell--identity"
+        aria-labelledby="profileDrawerIdentityHeading"
+      >
+        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+        <div class="aep-profile-drawer-identity-fields">
+          <div class="aep-profile-drawer-identity-row">
+            <strong>ECID</strong>
+            <span id="profileDrawerDesktopId">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong>
+            <span id="profileDrawerPropensityScore">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong>
+            <span id="profileDrawerChurnScore">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong>Loyalty Status</strong>
+            <span id="profileDrawerLoyalty">Unknown</span>
           </div>
         </div>
-        <div class="donate-identity-graph-viewport" id="identityGraphViewport">
+      </section>
+      <div
+        class="aep-profile-drawer-col aep-profile-drawer-col--graph aep-profile-drawer-grid-cell--graph"
+        aria-label="Identity graph"
+      >
+        <div class="aep-profile-drawer-graph-head">
+          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
           <svg
-            class="donate-identity-graph-svg"
+            class="aep-profile-drawer-graph-svg"
             id="identityGraphSvg"
             viewBox="0 0 320 320"
             preserveAspectRatio="xMidYMid meet"
             aria-hidden="true"
           ></svg>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col-group aep-profile-drawer-grid-cell--audmsg" aria-label="Audiences and messages sent">
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+            <li>No audience membership loaded</li>
+          </ul>
+        </div>
+        <div
+          class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent"
+          aria-labelledby="profileDrawerMessageSentHeading"
+        >
+          <div class="aep-profile-drawer-message-sent-heading-row">
+            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+          </div>
+          <div class="aep-profile-drawer-email-sends-body">
+            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite">
+              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span
+                class="aep-profile-drawer-email-sends-unit"
+                id="profileDrawerMessageSentUnit"
+              ></span>
+            </p>
+            <p
+              class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row"
+              id="profileDrawerPushSendsRow"
+              hidden
+              aria-live="polite"
+            >
+              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span
+                class="aep-profile-drawer-email-sends-unit"
+                id="profileDrawerPushSentUnit"
+              ></span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col aep-profile-drawer-grid-cell--events">
+        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+          <p>No events loaded</p>
         </div>
       </div>
     </div>
@@ -321,7 +339,7 @@
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="email-engagement-metrics.js"></script>
-  <script src="demo-profile-drawer.js"></script>
+  <script src="aep-profile-drawer.js"></script>
   <script src="donate-demo.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260410"></script>
