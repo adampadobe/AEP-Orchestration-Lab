@@ -2032,7 +2032,7 @@ exports.easterEggNotify = onRequest(
     secrets: [EASTER_EGG_MAILGUN_API_KEY, EASTER_EGG_MAILGUN_DOMAIN],
     /** MAIL_FROM on your Mailgun domain; MAILGUN_REGION '' = US, 'eu' = EU API host. */
     environmentVariables: {
-      EASTER_EGG_MAIL_FROM: '',
+      EASTER_EGG_MAIL_FROM: 'postmaster@mail.apalmer-consulting.com',
       EASTER_EGG_MAILGUN_REGION: '',
     },
   },
@@ -2051,7 +2051,9 @@ exports.easterEggNotify = onRequest(
     }
     const mailgunKey = EASTER_EGG_MAILGUN_API_KEY.value();
     const mailgunDomain = EASTER_EGG_MAILGUN_DOMAIN.value();
-    const mailFrom = process.env.EASTER_EGG_MAIL_FROM || '';
+    /** Cloud Run sometimes omits onRequest.environmentVariables; keep Postmaster default in sync with Mailgun domain. */
+    const mailFrom =
+      process.env.EASTER_EGG_MAIL_FROM || 'postmaster@mail.apalmer-consulting.com';
     const mailgunRegion = process.env.EASTER_EGG_MAILGUN_REGION || '';
     return handleEasterEggNotify(req, res, {
       mailgunKey,
