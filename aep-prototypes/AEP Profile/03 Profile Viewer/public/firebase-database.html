@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260410">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="firebase-database.css?v=20260418">
+  <link rel="stylesheet" href="firebase-database.css?v=20260419">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge firebase-database-page">
   <div class="dashboard-shell">
@@ -105,7 +105,37 @@
               <code class="dashboard-code">userWorkspaces/&lt;ldap&gt;.json</code>, not your Firebase user id. If you still have a legacy folder under your uid, set a name here to copy data and unlock the URL.
             </p>
             <div id="fbDbApiBlock" class="fb-db-api-block" hidden>
-              <h4 class="fb-db-api-title">REST API URL</h4>
+              <div class="fb-db-api-block-header">
+                <h4 class="fb-db-api-title">REST API URL</h4>
+                <details class="fb-db-ajo-help">
+                  <summary class="fb-db-ajo-help-summary">Using this URL in Journey Optimizer (AJO)</summary>
+                  <div class="fb-db-ajo-help-inner">
+                    <p>
+                      In <strong>Adobe Journey Optimizer</strong>, create a <strong>Custom action</strong> under
+                      <strong>Administration</strong> → <strong>Configurations</strong> → <strong>Actions</strong> → <strong>Create Action</strong>.
+                      Paste this HTTPS URL as the endpoint, set <strong>Method</strong> (for example <code class="dashboard-code">GET</code> to read data),
+                      and add <strong>Headers</strong> or <strong>Authentication</strong> if your Realtime Database rules require a token.
+                      Pick the <strong>sandbox</strong> that matches the journeys where you will use the action.
+                    </p>
+                    <p class="fb-db-ajo-help-note">
+                      Adobe does not document a public API to auto-create these actions; configuration is done in the UI or via supported deployment patterns.
+                      For sensitive credentials, prefer a small HTTPS proxy that calls Firebase with server-side keys instead of embedding secrets in the action.
+                    </p>
+                    <p class="fb-db-ajo-help-docs">Experience League</p>
+                    <ul class="fb-db-ajo-help-links">
+                      <li>
+                        <a href="https://experienceleague.adobe.com/en/docs/journey-optimizer/using/configure-journeys/action-journeys/about-custom-action-configuration" target="_blank" rel="noopener">Configure a custom action</a>
+                      </li>
+                      <li>
+                        <a href="https://experienceleague.adobe.com/en/docs/journey-optimizer/using/orchestrate-journeys/about-journey-building/using-custom-actions" target="_blank" rel="noopener">Use custom actions in journeys</a>
+                      </li>
+                      <li>
+                        <a href="https://experienceleague.adobe.com/en/docs/journey-optimizer-learn/tutorials/configuration/journey-configuration/create-actions" target="_blank" rel="noopener">Tutorial: Create actions</a>
+                      </li>
+                    </ul>
+                  </div>
+                </details>
+              </div>
               <p class="fb-db-api-hint">
                 Standard Firebase RTDB HTTPS endpoint for your workspace root. From other systems, add
                 <code class="dashboard-code">?auth=&lt;ID_TOKEN&gt;</code> (or use the Admin SDK) so rules allow access.

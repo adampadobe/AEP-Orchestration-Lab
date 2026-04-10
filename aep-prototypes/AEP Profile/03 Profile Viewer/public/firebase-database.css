@@ -377,11 +377,115 @@ html[data-aep-theme='dark'] body.firebase-database-page {
   background: var(--dash-surface-alt);
 }
 
+.firebase-database-page .fb-db-api-block-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.firebase-database-page .fb-db-api-block-header .fb-db-api-title {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .firebase-database-page .fb-db-api-title {
   margin: 0 0 0.35rem;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--dash-text);
+}
+
+.firebase-database-page .fb-db-ajo-help {
+  flex: 0 1 auto;
+  max-width: 100%;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--dash-muted);
+}
+
+.firebase-database-page .fb-db-ajo-help-summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--dash-link, #0d66d0);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.firebase-database-page .fb-db-ajo-help-summary::-webkit-details-marker {
+  display: none;
+}
+
+.firebase-database-page .fb-db-ajo-help-summary::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 0.35rem;
+  border-style: solid;
+  border-width: 4px 0 4px 6px;
+  border-color: transparent transparent transparent currentColor;
+  vertical-align: 0.1em;
+  transition: transform 0.15s ease;
+}
+
+.firebase-database-page .fb-db-ajo-help[open] .fb-db-ajo-help-summary::before {
+  transform: rotate(90deg);
+}
+
+.firebase-database-page .fb-db-ajo-help-summary:hover {
+  color: var(--dash-text);
+}
+
+.firebase-database-page .fb-db-ajo-help-inner {
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-bg, #fff);
+}
+
+.firebase-database-page .fb-db-ajo-help-inner p {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--dash-text);
+}
+
+.firebase-database-page .fb-db-ajo-help-inner p:last-child {
+  margin-bottom: 0;
+}
+
+.firebase-database-page .fb-db-ajo-help-note {
+  color: var(--dash-muted) !important;
+  font-size: 0.68rem !important;
+}
+
+.firebase-database-page .fb-db-ajo-help-docs {
+  margin-top: 0.65rem !important;
+  margin-bottom: 0.25rem !important;
+  font-weight: 600;
+  font-size: 0.7rem !important;
+  color: var(--dash-text) !important;
+}
+
+.firebase-database-page .fb-db-ajo-help-links {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.firebase-database-page .fb-db-ajo-help-links a {
+  color: var(--dash-link, #0d66d0);
+}
+
+.firebase-database-page .fb-db-ajo-help-links a:hover {
+  text-decoration: underline;
 }
 
 .firebase-database-page .fb-db-api-hint {
