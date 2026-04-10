@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="profile-viewer.css">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="consent.css">
-  <link rel="stylesheet" href="journeys.css?v=20260409g">
+  <link rel="stylesheet" href="journeys.css?v=20260409h">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge journeys-page">
   <div class="dashboard-shell">
@@ -43,31 +43,50 @@
           </div>
         </section>
 
-        <div class="journeys-cja-picker" aria-label="CJA data view for journey metrics">
-          <label for="cjaDataViewSelect" class="journeys-cja-picker__label">CJA data view</label>
-          <select id="cjaDataViewSelect" class="journeys-cja-select" aria-describedby="journeysCjaHelp">
-            <option value="">Loading AJO-enabled data views…</option>
-          </select>
-          <p id="journeysCjaHelp" class="journeys-cja-help">
-            Same view as <strong>AJO → Administration → Reporting → Configure data from CJA</strong>. Pick the AJO-enabled data view for the sandbox you are analyzing; metrics use Customer Journey Analytics Reporting (not the AEP sandbox header).
-          </p>
+        <div class="journeys-context-card" aria-label="Sandbox and journey analytics">
+          <div class="journeys-context-card__inner">
+            <div class="journeys-context-sandbox">
+              <div class="form-row">
+                <label for="sandboxSelect">Sandbox</label>
+                <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                  <option value="">Loading sandboxes…</option>
+                </select>
+              </div>
+            </div>
+            <div class="journeys-context-analytics">
+              <div class="journeys-analytics-head">
+                <input
+                  type="checkbox"
+                  id="journeysCjaAnalyticsToggle"
+                  class="journeys-analytics-toggle-input"
+                  role="switch"
+                  aria-checked="false"
+                  aria-controls="journeysCjaPanel"
+                />
+                <label for="journeysCjaAnalyticsToggle" class="journeys-analytics-toggle-label">
+                  <span class="journeys-analytics-switch" aria-hidden="true"><span class="journeys-analytics-switch-knob"></span></span>
+                  <span class="journeys-analytics-toggle-text">CJA analytics</span>
+                </label>
+              </div>
+              <div id="journeysCjaPanel" class="journeys-cja-panel" hidden>
+                <label for="cjaDataViewSelect" class="journeys-cja-picker__label">Data view</label>
+                <select id="cjaDataViewSelect" class="journeys-cja-select" aria-describedby="journeysCjaHelp">
+                  <option value="">Loading AJO-enabled data views…</option>
+                </select>
+                <p id="journeysCjaHelp" class="journeys-cja-help">
+                  Same view as <strong>AJO → Administration → Reporting → Configure data from CJA</strong>. Pick the AJO-enabled data view for the sandbox you are analyzing; metrics use Customer Journey Analytics Reporting (not the AEP sandbox header).
+                </p>
+              </div>
+            </div>
+            <div class="journeys-context-actions">
+              <button type="button" id="jrnRefresh" class="jrn-refresh-btn" title="Fetch live from Adobe (bypass cache)">↻ Refresh</button>
+            </div>
+          </div>
         </div>
 
         <div class="journeys-tabs" role="tablist" aria-label="Journey views">
           <span class="journeys-tab" role="tab" aria-selected="false">Overview</span>
           <span class="journeys-tab journeys-tab--active" role="tab" aria-selected="true">Browse</span>
-        </div>
-
-        <div class="journeys-sandbox-toolbar">
-          <div class="sandbox-config">
-            <div class="form-row">
-              <label for="sandboxSelect">Sandbox</label>
-              <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                <option value="">Loading sandboxes…</option>
-              </select>
-            </div>
-          </div>
-          <button type="button" id="jrnRefresh" class="jrn-refresh-btn" title="Fetch live from Adobe (bypass cache)">↻ Refresh</button>
         </div>
 
         <div class="journeys-toolbar">
@@ -280,6 +299,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-theme.js"></script>
   <script src="aep-lab-nav.js"></script>
-  <script src="journeys.js?v=20260409g"></script>
+  <script src="journeys.js?v=20260409h"></script>
 </body>
 </html>

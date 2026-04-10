@@ -8,7 +8,10 @@
   const sandboxSelect = document.getElementById('sandboxSelect');
   const refreshBtn = document.getElementById('jrnRefresh');
   const cjaDataViewSelect = document.getElementById('cjaDataViewSelect');
+  const cjaAnalyticsToggle = document.getElementById('journeysCjaAnalyticsToggle');
+  const cjaAnalyticsPanel = document.getElementById('journeysCjaPanel');
   const CJA_DV_STORAGE_KEY = 'aepJourneysCjaDataViewId';
+  const CJA_ANALYTICS_ENABLED_KEY = 'aepJourneysCjaAnalyticsEnabled';
   const COLUMN_VISIBILITY_STORAGE_KEY = 'aepJourneysColumnVisibility';
   const TOGGLE_COLUMN_KEYS = [
     'version',
@@ -109,7 +112,46 @@
     return (sandboxSelect && sandboxSelect.value) || '';
   }
 
+  function loadCjaAnalyticsEnabled() {
+    try {
+      const v = localStorage.getItem(CJA_ANALYTICS_ENABLED_KEY);
+      if (v === '1' || v === 'true') return true;
+      if (v === '0' || v === 'false') return false;
+    } catch (e) {
+      /* ignore */
+    }
+    try {
+      const dv = localStorage.getItem(CJA_DV_STORAGE_KEY);
+      if (dv && String(dv).trim()) return true;
+    } catch (e2) {
+      /* ignore */
+    }
+    return false;
+  }
+
+  function saveCjaAnalyticsEnabled(on) {
+    try {
+      localStorage.setItem(CJA_ANALYTICS_ENABLED_KEY, on ? '1' : '0');
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function applyCjaAnalyticsUi() {
+    const on = !!(cjaAnalyticsToggle && cjaAnalyticsToggle.checked);
+    if (cjaAnalyticsPanel) {
+      cjaAnalyticsPanel.hidden = !on;
+    }
+    if (cjaAnalyticsToggle) {
+      cjaAnalyticsToggle.setAttribute('aria-checked', on ? 'true' : 'false');
+    }
+    if (cjaDataViewSelect) {
+      cjaDataViewSelect.disabled = !on;
+    }
+  }
+
   function getSelectedCjaDataViewId() {
+    if (!cjaAnalyticsToggle || !cjaAnalyticsToggle.checked) return '';
     if (!cjaDataViewSelect) return '';
     return String(cjaDataViewSelect.value || '').trim();
   }
@@ -164,7 +206,7 @@
       oErr.textContent = err.message ? String(err.message) : 'Failed to load data views';
       cjaDataViewSelect.appendChild(oErr);
     } finally {
-      cjaDataViewSelect.disabled = false;
+      applyCjaAnalyticsUi();
     }
   }
 
@@ -923,6 +965,16 @@
 
   if (refreshBtn) {
     refreshBtn.addEventListener('click', () => load(true));
+  }
+
+  if (cjaAnalyticsToggle) {
+    cjaAnalyticsToggle.checked = loadCjaAnalyticsEnabled();
+    applyCjaAnalyticsUi();
+    cjaAnalyticsToggle.addEventListener('change', function () {
+      saveCjaAnalyticsEnabled(!!cjaAnalyticsToggle.checked);
+      applyCjaAnalyticsUi();
+      load();
+    });
   }
 
   if (cjaDataViewSelect) {

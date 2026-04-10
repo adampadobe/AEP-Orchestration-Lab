@@ -839,28 +839,45 @@ body.journeys-page {
   color: #64748b;
 }
 
-/* Sandbox selector + refresh (Firebase-hosted journeys browse) */
-.journeys-page .journeys-sandbox-toolbar {
+.journeys-page #journeysStatus.consent-message {
+  margin: 0 1.5rem 0.75rem;
+}
+
+/* Sandbox + CJA analytics + refresh — single card */
+.journeys-page .journeys-context-card {
+  margin: 0 1.5rem 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.journeys-page .journeys-context-card__inner {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
+  gap: 1rem 1.5rem;
   justify-content: space-between;
-  gap: 0.75rem 1.5rem;
-  padding: 0 1.5rem 1rem;
 }
-.journeys-page .journeys-sandbox-toolbar .form-row {
+
+.journeys-page .journeys-context-sandbox .form-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin: 0;
 }
-.journeys-page .journeys-sandbox-toolbar label {
+
+.journeys-page .journeys-context-sandbox label {
   font-size: 0.875rem;
   font-weight: 600;
   color: #475569;
+  white-space: nowrap;
 }
-.journeys-page .journeys-sandbox-toolbar .sandbox-select {
+
+.journeys-page .journeys-context-sandbox .sandbox-select {
   min-width: 14rem;
+  max-width: min(28rem, 100%);
   padding: 0.45rem 0.65rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -869,32 +886,97 @@ body.journeys-page {
   background: #fff;
   color: #0f172a;
 }
-.journeys-page .journeys-sandbox-toolbar .jrn-refresh-btn {
-  padding: 0.45rem 0.85rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 0.875rem;
-  background: #fff;
-  color: #0f172a;
-  cursor: pointer;
-}
-.journeys-page .journeys-sandbox-toolbar .jrn-refresh-btn:hover {
-  background: #f8fafc;
-}
-.journeys-page #journeysStatus.consent-message {
-  margin: 0 1.5rem 0.75rem;
+
+.journeys-page .journeys-context-analytics {
+  flex: 1 1 16rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
-/* CJA data view picker (matches AJO Admin → Reporting → Configure data from CJA) */
-.journeys-page .journeys-cja-picker {
-  margin: 0 1.5rem 1rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-  max-width: min(52rem, 100%);
+.journeys-page .journeys-analytics-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
 }
+
+.journeys-page .journeys-analytics-toggle-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.journeys-page .journeys-analytics-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.journeys-page .journeys-analytics-toggle-input:focus-visible + .journeys-analytics-toggle-label {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.journeys-page .journeys-analytics-switch {
+  position: relative;
+  display: inline-block;
+  width: 2.5rem;
+  height: 1.35rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: background 0.15s ease;
+}
+
+.journeys-page .journeys-analytics-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.35rem - 4px);
+  height: calc(1.35rem - 4px);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: transform 0.15s ease;
+}
+
+.journeys-page .journeys-analytics-toggle-input:checked + .journeys-analytics-toggle-label .journeys-analytics-switch {
+  background: #2563eb;
+}
+
+.journeys-page .journeys-analytics-toggle-input:checked + .journeys-analytics-toggle-label .journeys-analytics-switch-knob {
+  transform: translateX(1.1rem);
+}
+
+.journeys-page .journeys-analytics-toggle-text {
+  line-height: 1.2;
+}
+
+.journeys-page .journeys-cja-panel {
+  padding: 0.75rem 0.85rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.journeys-page .journeys-cja-panel[hidden] {
+  display: none !important;
+}
+
 .journeys-page .journeys-cja-picker__label {
   display: block;
   font-size: 0.8125rem;
@@ -902,6 +984,7 @@ body.journeys-page {
   color: #334155;
   margin-bottom: 0.35rem;
 }
+
 .journeys-page .journeys-cja-select {
   width: 100%;
   max-width: 48rem;
@@ -912,10 +995,49 @@ body.journeys-page {
   background: #fff;
   color: #0f172a;
 }
+
+.journeys-page .journeys-cja-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .journeys-page .journeys-cja-help {
   margin: 0.6rem 0 0;
   font-size: 0.75rem;
   line-height: 1.45;
   color: #64748b;
   max-width: 48rem;
+}
+
+.journeys-page .journeys-context-actions {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: auto;
+}
+
+.journeys-page .journeys-context-actions .jrn-refresh-btn {
+  padding: 0.45rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.875rem;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.journeys-page .journeys-context-actions .jrn-refresh-btn:hover {
+  background: #f8fafc;
+}
+
+@media (max-width: 52rem) {
+  .journeys-page .journeys-context-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .journeys-page .journeys-context-actions .jrn-refresh-btn {
+    width: 100%;
+  }
 }
