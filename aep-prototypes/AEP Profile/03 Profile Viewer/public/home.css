@@ -843,16 +843,16 @@ body.home-dashboard-concierge .dashboard-server-warning a {
 
 .dashboard-sidebar-toggle-ico {
   display: flex;
-  flex-direction: column;
-  gap: 3.5px;
+  align-items: center;
+  justify-content: center;
   width: 16px;
+  height: 16px;
 }
 
-.dashboard-sidebar-toggle-ico span {
+.dashboard-sidebar-toggle-ico svg {
+  width: 16px;
+  height: 16px;
   display: block;
-  height: 1.5px;
-  background: currentColor;
-  border-radius: 1px;
 }
 
 /* ── Sidebar navigation ── */

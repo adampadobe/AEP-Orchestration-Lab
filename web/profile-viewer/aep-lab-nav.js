@@ -189,7 +189,11 @@
       'aria-label': collapsed ? 'Expand sidebar' : 'Collapse sidebar',
     });
     var toggleIco = mk('span', 'dashboard-sidebar-toggle-ico', { 'aria-hidden': 'true' });
-    toggleIco.innerHTML = '<span></span><span></span><span></span>';
+    toggleIco.innerHTML =
+      '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">' +
+      '<rect fill="currentColor" height="2" rx="0.5" width="14" x="2" y="8"/>' +
+      '<rect fill="currentColor" height="2" rx="0.5" width="14" x="2" y="3"/>' +
+      '<rect fill="currentColor" height="2" rx="0.5" width="14" x="2" y="13"/></svg>';
     toggleBtn.appendChild(toggleIco);
 
     header.appendChild(brand);
