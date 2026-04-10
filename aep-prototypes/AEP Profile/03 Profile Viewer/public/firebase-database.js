@@ -32,6 +32,12 @@
         status: 'OnTime',
         cabin: 'Business',
       },
+      location: {
+        entryLogoUrl: 'https://example.com/wkndfly/location-entry-logo.png',
+        entryText: 'Welcome — your lounge access and personalised offers are ready.',
+        exitLogoUrl: 'https://example.com/wkndfly/location-exit-logo.png',
+        exitText: 'Thanks for visiting. See you on your next trip.',
+      },
       retail: { item: 'Shoes', price: '£50', quantity: 1 },
       messages: { emailSubject: 'We Miss You!', pushTitle: 'Your offer is ready' },
     },
