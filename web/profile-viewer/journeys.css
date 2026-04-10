@@ -209,11 +209,20 @@ body.journeys-page {
   min-height: 0;
 }
 
-/* Metric cols: title → total → date (no sparkline — shorter header than other columns) */
+/* Metric cols: title → spark → column total → CJA date range (Alan / AJO workspace style) */
 .journeys-page .journeys-th-stack--metric {
   align-items: flex-start;
   gap: 0.12rem;
   padding: 0.45rem 0.65rem 0.5rem 0.5rem;
+}
+
+.journeys-page .journeys-th-stack--metric .journeys-th-spark--metric {
+  align-self: flex-end;
+  width: 100%;
+  max-width: 6.75rem;
+  height: 12px;
+  margin-top: 0.12rem;
+  opacity: 0.92;
 }
 
 .journeys-page .journeys-col-metric .journeys-th-stack {
@@ -496,6 +505,27 @@ body.journeys-page {
 
 .journeys-page .journeys-table tbody tr:hover td {
   background: #f8fafc;
+}
+
+/* High share of visible-table metric totals (similar to AJO emphasis rows) */
+.journeys-page .journeys-table tbody tr.journeys-tr--metric-hot td.journeys-col-metric {
+  background: linear-gradient(
+    90deg,
+    rgba(37, 99, 235, 0.07) 0%,
+    rgba(22, 163, 74, 0.08) 42%,
+    transparent 88%
+  );
+}
+.journeys-page .journeys-table tbody tr.journeys-tr--metric-hot:hover td {
+  background: #f1f5f9;
+}
+.journeys-page .journeys-table tbody tr.journeys-tr--metric-hot:hover td.journeys-col-metric {
+  background: linear-gradient(
+    90deg,
+    rgba(37, 99, 235, 0.09) 0%,
+    rgba(22, 163, 74, 0.11) 45%,
+    #f1f5f9 100%
+  );
 }
 
 .journeys-page .journeys-table tbody tr:last-child td {

@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="profile-viewer.css">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="consent.css">
-  <link rel="stylesheet" href="journeys.css?v=20260409d">
+  <link rel="stylesheet" href="journeys.css?v=20260409e">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge journeys-page">
   <div class="dashboard-shell">
@@ -155,6 +155,7 @@
                       <button type="button" class="journeys-th-sort" data-sort-key="enters" title="CJA metric adobe_reserved_label.ajo_journeyEnters (Journey Enters); else authoring entry count">
                         <span class="journeys-th-sort-label">Enters</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
                       </button>
+                      <div class="journeys-th-spark journeys-th-spark--metric" aria-hidden="true"></div>
                       <div class="journeys-th-total" id="journeysThTotalEnters" aria-live="polite"></div>
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
@@ -164,6 +165,7 @@
                       <button type="button" class="journeys-th-sort" data-sort-key="exits" title="Second CJA metric (e.g. exits); configure CJA_METRIC_JOURNEY_ENGAGEMENT. % = exits ÷ enters when both available.">
                         <span class="journeys-th-sort-label">Exits</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
                       </button>
+                      <div class="journeys-th-spark journeys-th-spark--metric" aria-hidden="true"></div>
                       <div class="journeys-th-total" id="journeysThTotalExits" aria-live="polite"></div>
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
@@ -173,6 +175,7 @@
                       <button type="button" class="journeys-th-sort" data-sort-key="delivered" title="CJA metric (e.g. adobe_reserved_label.ajo_delivered); set CJA_METRIC_DELIVERED to override">
                         <span class="journeys-th-sort-label">Delivered</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
                       </button>
+                      <div class="journeys-th-spark journeys-th-spark--metric" aria-hidden="true"></div>
                       <div class="journeys-th-total" id="journeysThTotalDelivered" aria-live="polite"></div>
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
@@ -182,6 +185,7 @@
                       <button type="button" class="journeys-th-sort" data-sort-key="displays" title="CJA metric adobe_reserved_label.ajo_displays (set CJA_METRIC_DISPLAYS to override)">
                         <span class="journeys-th-sort-label">Displays</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
                       </button>
+                      <div class="journeys-th-spark journeys-th-spark--metric" aria-hidden="true"></div>
                       <div class="journeys-th-total" id="journeysThTotalDisplays" aria-live="polite"></div>
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
@@ -191,6 +195,7 @@
                       <button type="button" class="journeys-th-sort" data-sort-key="clicks" title="CJA metric adobe_reserved_label.ajo_clicks (set CJA_METRIC_CLICKS to override)">
                         <span class="journeys-th-sort-label">Clicks</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
                       </button>
+                      <div class="journeys-th-spark journeys-th-spark--metric" aria-hidden="true"></div>
                       <div class="journeys-th-total" id="journeysThTotalClicks" aria-live="polite"></div>
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
@@ -264,6 +269,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-theme.js"></script>
   <script src="aep-lab-nav.js"></script>
-  <script src="journeys.js?v=20260409d"></script>
+  <script src="journeys.js?v=20260409e"></script>
 </body>
 </html>

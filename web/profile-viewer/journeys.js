@@ -15,6 +15,8 @@
   let sortKey = 'name';
   let sortDir = 'asc';
   let loadGen = 0;
+  /** Mirrors server CJA_DATE_RANGE_ID for header date labels (updated from API when CJA applies). */
+  let lastCjaDateRangeId = 'last30Days';
 
   function getSandbox() {
     if (window.AepGlobalSandbox) return window.AepGlobalSandbox.getSandboxName() || '';
@@ -368,6 +370,56 @@
     });
   }
 
+  /**
+   * Sets the small date range under every column header to match the CJA report window
+   * (same logic family as functions/cjaJourneyMetrics cjaDateRangeGlobalFilter).
+   */
+  function updateJourneyTableHeaderDateRange(dateRangeId) {
+    const id = dateRangeId || 'last30Days';
+    const end = new Date();
+    const start = new Date(end.getTime());
+    if (id === 'last7Days') start.setDate(start.getDate() - 7);
+    else if (id === 'last30Days' || id === 'lastMonth') start.setDate(start.getDate() - 30);
+    else if (id === 'last90Days') start.setDate(start.getDate() - 90);
+    else if (id === 'thisMonth') {
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+    } else start.setDate(start.getDate() - 30);
+    const fmt = (d) =>
+      d
+        .toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+        .replace(/\s/g, ' ')
+        .trim();
+    const a = fmt(start);
+    const b = fmt(end);
+    const thead = document.getElementById('journeysThead');
+    if (!thead) return;
+    thead.querySelectorAll('.journeys-th-range-a').forEach((el) => {
+      el.textContent = a;
+    });
+    thead.querySelectorAll('.journeys-th-range-b').forEach((el) => {
+      el.textContent = b;
+    });
+  }
+
+  /** Highlight rows that account for a large share of any visible metric column total. */
+  function rowIsMetricHot(row, sumEnters, sumExits, sumDelivered, sumDisplays, sumClicks) {
+    const threshold = 0.17;
+    const parts = [];
+    const e = entersSortValue(row);
+    if (e != null && sumEnters > 0) parts.push(e / sumEnters);
+    const x = exitsSortValue(row);
+    if (x != null && sumExits > 0) parts.push(x / sumExits);
+    const d = cjaFieldSortValue(row, 'cjaDelivered');
+    if (d != null && sumDelivered > 0) parts.push(d / sumDelivered);
+    const p = cjaFieldSortValue(row, 'cjaDisplays');
+    if (p != null && sumDisplays > 0) parts.push(p / sumDisplays);
+    const k = cjaFieldSortValue(row, 'cjaClicks');
+    if (k != null && sumClicks > 0) parts.push(k / sumClicks);
+    if (parts.length === 0) return false;
+    return Math.max.apply(null, parts) >= threshold;
+  }
+
   function updateJourneysMetricHeaders(
     sumEnters,
     sumExits,
@@ -498,6 +550,7 @@
     }
     updateJourneysMetricHeaders(sumEnters, sumExits, sumDelivered, sumDisplays, sumClicks, true);
     for (const row of sorted) {
+      const hot = rowIsMetricHot(row, sumEnters, sumExits, sumDelivered, sumDisplays, sumClicks);
       const st = statusClassAndLabel(row.status);
       const name = row.name || row.journeyVersionID || row.journeyID || '—';
       const tags = (row.tags || [])
@@ -558,6 +611,7 @@
         <td>${escapeHtml(formatUsDateOnly(row.publishedAt))}</td>
         <td>${escapeHtml(row.publishedBy || '—')}</td>
       `;
+      if (hot) tr.classList.add('journeys-tr--metric-hot');
       const link = tr.querySelector('.journeys-name-link');
       if (link) {
         link.addEventListener('click', (e) => e.preventDefault());
@@ -614,6 +668,8 @@
           line += ' · live refresh';
         }
         const cja = data.cja;
+        if (cja && cja.dateRangeId) lastCjaDateRangeId = cja.dateRangeId;
+        updateJourneyTableHeaderDateRange(lastCjaDateRangeId);
         if (cja && cja.applied) {
           line += ` · CJA metrics (${cja.dateRangeId || 'range'}).`;
           if (cja.messagesSentSkipped) {
@@ -737,6 +793,7 @@
       window.AepGlobalSandbox.attachStorageSync(sandboxSelect);
     }
     await populateCjaDataViewDropdown();
+    updateJourneyTableHeaderDateRange(lastCjaDateRangeId);
     load();
   }
 
