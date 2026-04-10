@@ -28,6 +28,27 @@
   color: #0f172a;
 }
 
+.firebase-database-page .fb-db-subhead {
+  margin: 1.25rem 0 0.65rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e8ecf1;
+}
+
+.firebase-database-page .fb-db-auth-lead {
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.firebase-database-page .fb-db-btn--quiet {
+  font-weight: 500;
+  color: #475569;
+  background: #f8fafc;
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+}
+
 .firebase-database-page .fb-db-status {
   display: flex;
   align-items: center;

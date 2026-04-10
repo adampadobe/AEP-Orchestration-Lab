@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260410">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="firebase-database.css?v=20260410">
+  <link rel="stylesheet" href="firebase-database.css?v=20260411">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge firebase-database-page">
   <div class="dashboard-shell">
@@ -34,27 +34,41 @@
             <header class="dashboard-hero-header">
               <h2 id="bannerHeadingFbDb" class="dashboard-hero-title">Firebase Realtime Database</h2>
               <p class="dashboard-hero-subtitle">
-                Sign in anonymously, then read and write JSON under your own workspace path. Data is isolated per Firebase Auth user via security rules.
+                Use one shared Realtime Database: your data lives under <code class="dashboard-code">userWorkspaces/&lt;your-user-id&gt;</code>. Sign in with email and password so you get the same workspace when you return.
               </p>
             </header>
           </div>
         </section>
 
         <p class="fb-db-setup-note" role="note">
-          <strong>One-time setup (Firebase Console):</strong> enable <strong>Realtime Database</strong> (default instance),
-          deploy rules from this repo (<code class="dashboard-code">database.rules.json</code>), and enable <strong>Anonymous</strong>
-          under Authentication → Sign-in method. Then use <strong>Connect</strong> below.
+          <strong>Firebase Console:</strong> enable <strong>Email/Password</strong> (and optionally <strong>Anonymous</strong> for guest try)
+          under Authentication → Sign-in method. Realtime Database rules in <code class="dashboard-code">database.rules.json</code>
+          scope data to each user’s <code class="dashboard-code">userWorkspaces/{uid}</code> path.
         </p>
 
         <p id="fbDbMessage" class="fb-db-msg fb-db-msg--info" hidden role="status"></p>
 
         <div class="fb-db-layout">
           <div class="fb-db-panel">
-            <h3>Controls</h3>
-            <div class="fb-db-status" id="fbDbStatusWrap">
-              <span id="fbDbStatusText">Disconnected</span>
+            <h3>Your account</h3>
+            <p class="fb-db-auth-lead">Create an account or sign in. Your JSON is stored only under your user id.</p>
+            <div class="fb-db-field">
+              <label for="fbDbEmail">Email</label>
+              <input type="email" id="fbDbEmail" autocomplete="username" placeholder="you@example.com" />
             </div>
-            <button type="button" class="fb-db-btn fb-db-btn--primary" id="fbDbConnect">Connect</button>
+            <div class="fb-db-field">
+              <label for="fbDbPassword">Password</label>
+              <input type="password" id="fbDbPassword" autocomplete="current-password" placeholder="min. 6 characters" />
+            </div>
+            <button type="button" class="fb-db-btn fb-db-btn--primary" id="fbDbSignIn">Sign in</button>
+            <button type="button" class="fb-db-btn" id="fbDbRegister">Create account</button>
+            <button type="button" class="fb-db-btn fb-db-btn--quiet" id="fbDbResetPassword">Send password reset email</button>
+            <button type="button" class="fb-db-btn fb-db-btn--quiet" id="fbDbAnonymous">Continue as guest (anonymous)</button>
+
+            <h3 class="fb-db-subhead">Workspace</h3>
+            <div class="fb-db-status" id="fbDbStatusWrap">
+              <span id="fbDbStatusText">Not signed in</span>
+            </div>
             <button type="button" class="fb-db-btn" id="fbDbRefresh">Refresh data</button>
             <button type="button" class="fb-db-btn" id="fbDbExport">Export JSON</button>
             <button type="button" class="fb-db-btn fb-db-btn--danger" id="fbDbSignOut">Sign out</button>
@@ -110,11 +124,11 @@
     </div>
   </div>
 
-  <script src="firebase-database-config.js?v=20260410"></script>
+  <script src="firebase-database-config.js?v=20260411"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-  <script src="firebase-database.js?v=20260410"></script>
+  <script src="firebase-database.js?v=20260411"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260410"></script>
 </body>

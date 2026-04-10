@@ -65,48 +65,156 @@
     return cur;
   }
 
-  function connectToDatabase() {
+  function authErrorMessage(err) {
+    if (!err || !err.code) return err && err.message ? String(err.message) : 'Request failed';
+    switch (err.code) {
+      case 'auth/email-already-in-use':
+        return 'That email is already registered — try Sign in.';
+      case 'auth/invalid-email':
+        return 'Enter a valid email address.';
+      case 'auth/weak-password':
+        return 'Password should be at least 6 characters.';
+      case 'auth/user-disabled':
+        return 'This account has been disabled.';
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'Wrong email or password.';
+      case 'auth/too-many-requests':
+        return 'Too many attempts. Wait a bit and try again.';
+      default:
+        return err.message || String(err.code);
+    }
+  }
+
+  function getEmailPassword() {
+    var em = document.getElementById('fbDbEmail');
+    var pw = document.getElementById('fbDbPassword');
+    var email = em && em.value ? String(em.value).trim() : '';
+    var password = pw && pw.value ? String(pw.value) : '';
+    return { email: email, password: password };
+  }
+
+  function initFirebaseApp() {
     var cfg = getCfg();
     if (!cfg || !cfg.apiKey) {
       showMsg('Missing firebase-database-config.js (apiKey).', 'err');
       return;
     }
-    setStatus('Connecting…', 'warn');
-    showMsg('Signing in anonymously…', 'info');
-
     try {
       if (!firebase.apps.length) {
         firebase.initializeApp(cfg);
       }
       auth = firebase.auth();
       database = firebase.database();
+      auth.onAuthStateChanged(function (user) {
+        if (user) {
+          basePath = 'userWorkspaces/' + user.uid;
+          var who = user.email || 'Guest ' + user.uid.slice(0, 8) + '…';
+          setStatus('Signed in · ' + who, 'ok');
+          cancelEdit();
+          refreshDatabase();
+        } else {
+          basePath = '';
+          databaseData = {};
+          viewRootRel = '';
+          if (treeEl) {
+            treeEl.innerHTML =
+              '<div class="fb-db-tree-empty">Sign in or create an account to load your workspace.</div>';
+          }
+          setStatus('Not signed in', 'warn');
+          cancelEdit();
+        }
+      });
     } catch (e) {
       setStatus('Error', 'warn');
       showMsg(String(e.message || e), 'err');
+    }
+  }
+
+  function signInWithEmail() {
+    var x = getEmailPassword();
+    if (!x.email || !x.password) {
+      showMsg('Enter email and password.', 'err');
       return;
     }
-
+    if (!auth) {
+      showMsg('Firebase not initialized.', 'err');
+      return;
+    }
+    showMsg('Signing in…', 'info');
     auth
-      .signInAnonymously()
-      .then(function (cred) {
-        basePath = 'userWorkspaces/' + cred.user.uid;
-        setStatus('Connected · ' + cred.user.uid.slice(0, 8) + '…', 'ok');
-        showMsg('Connected. Your data lives under userWorkspaces/' + cred.user.uid + '.', 'ok');
-        return refreshDatabase();
+      .signInWithEmailAndPassword(x.email, x.password)
+      .then(function () {
+        showMsg('Signed in.', 'ok');
       })
       .catch(function (e) {
-        setStatus('Disconnected', 'warn');
+        showMsg(authErrorMessage(e), 'err');
+      });
+  }
+
+  function registerWithEmail() {
+    var x = getEmailPassword();
+    if (!x.email || !x.password) {
+      showMsg('Enter email and password (min. 6 characters).', 'err');
+      return;
+    }
+    if (!auth) {
+      showMsg('Firebase not initialized.', 'err');
+      return;
+    }
+    showMsg('Creating account…', 'info');
+    auth
+      .createUserWithEmailAndPassword(x.email, x.password)
+      .then(function () {
+        showMsg('Account created. Your workspace is ready.', 'ok');
+      })
+      .catch(function (e) {
+        showMsg(authErrorMessage(e), 'err');
+      });
+  }
+
+  function signInAnonymous() {
+    if (!auth) {
+      showMsg('Firebase not initialized.', 'err');
+      return;
+    }
+    showMsg('Signing in as guest…', 'info');
+    auth
+      .signInAnonymously()
+      .then(function () {
+        showMsg('Guest session — data may not persist across browsers.', 'info');
+      })
+      .catch(function (e) {
         showMsg(
-          (e && e.message) ||
-            'Sign-in failed. Enable Anonymous auth in Firebase Console (Authentication → Sign-in method).',
+          authErrorMessage(e) +
+            ' Enable Anonymous under Authentication → Sign-in method if you need this.',
           'err',
         );
       });
   }
 
+  function sendPasswordReset() {
+    var x = getEmailPassword();
+    if (!x.email) {
+      showMsg('Enter your email, then click Send password reset email.', 'err');
+      return;
+    }
+    if (!auth) return;
+    showMsg('Sending…', 'info');
+    auth
+      .sendPasswordResetEmail(x.email)
+      .then(function () {
+        showMsg('Check your inbox for a reset link.', 'ok');
+      })
+      .catch(function (e) {
+        showMsg(authErrorMessage(e), 'err');
+      });
+  }
+
   function refreshDatabase() {
     if (!database || !basePath) {
-      showMsg('Connect first.', 'err');
+      showMsg('Sign in first.', 'err');
       return Promise.resolve();
     }
     showMsg('Loading data…', 'info');
@@ -371,13 +479,7 @@
   function signOutUser() {
     if (auth) {
       auth.signOut().then(function () {
-        basePath = '';
-        databaseData = {};
-        viewRootRel = '';
-        if (treeEl) treeEl.innerHTML = '';
-        setStatus('Disconnected', 'warn');
         showMsg('Signed out.', 'info');
-        cancelEdit();
       });
     }
   }
@@ -388,7 +490,20 @@
     return d.innerHTML;
   }
 
-  document.getElementById('fbDbConnect') && document.getElementById('fbDbConnect').addEventListener('click', connectToDatabase);
+  initFirebaseApp();
+
+  var pwEl = document.getElementById('fbDbPassword');
+  if (pwEl) {
+    pwEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') signInWithEmail();
+    });
+  }
+
+  document.getElementById('fbDbSignIn') && document.getElementById('fbDbSignIn').addEventListener('click', signInWithEmail);
+  document.getElementById('fbDbRegister') && document.getElementById('fbDbRegister').addEventListener('click', registerWithEmail);
+  document.getElementById('fbDbAnonymous') && document.getElementById('fbDbAnonymous').addEventListener('click', signInAnonymous);
+  document.getElementById('fbDbResetPassword') &&
+    document.getElementById('fbDbResetPassword').addEventListener('click', sendPasswordReset);
   document.getElementById('fbDbRefresh') && document.getElementById('fbDbRefresh').addEventListener('click', function () {
     refreshDatabase();
   });
