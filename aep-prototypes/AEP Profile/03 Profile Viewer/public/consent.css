@@ -38,13 +38,8 @@ body.consent-page:not(.home-dashboard-concierge) .consent-main {
 /* -------------------------------------------------------------------------- */
 
 body.home-dashboard-concierge.consent-page {
-  background: transparent;
+  background: var(--dash-bg);
   color: var(--dash-text);
-}
-
-body.home-dashboard-concierge.consent-page.consent-manager-page .consent-main {
-  max-width: min(1400px, 100%);
-  margin: 0 auto;
 }
 
 body.home-dashboard-concierge.consent-page .consent-panel {

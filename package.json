@@ -2,9 +2,13 @@
   "name": "aep-orchestration-lab",
   "private": true,
   "description": "AEP Orchestration Lab – decisioning, profile tools, and vendored prototypes",
+  "engines": {
+    "node": ">=22 <26",
+    "npm": ">=10"
+  },
   "scripts": {
     "profile-viewer": "cd \"aep-prototypes/AEP Profile/03 Profile Viewer\" && npm start",
     "profile-viewer:install": "cd \"aep-prototypes/AEP Profile/00 Adobe Auth\" && npm install && cd \"../03 Profile Viewer\" && npm install",
-    "sync-profile-viewer-ui": "rsync -a --delete \"aep-prototypes/AEP Profile/03 Profile Viewer/public/\" \"web/profile-viewer/\""
+    "sync-profile-viewer-ui": "rsync -a --delete \"web/profile-viewer/\" \"aep-prototypes/AEP Profile/03 Profile Viewer/public/\""
   }
 }

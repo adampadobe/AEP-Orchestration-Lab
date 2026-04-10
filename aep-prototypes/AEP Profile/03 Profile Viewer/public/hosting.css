@@ -26,13 +26,12 @@
   padding: 0 0 2rem;
 }
 
-/* Left-align this page; top offset for the banner comes from home.css (.dashboard-hero--page-banner:first-child) */
 body.home-dashboard-concierge .dashboard-main.dashboard-main--firebase-hosting {
   margin-left: 0;
   margin-right: auto;
   max-width: 100%;
   width: 100%;
-  padding: 0 clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
+  padding: 1rem clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
 }
 
 .firebase-hosting-layout {

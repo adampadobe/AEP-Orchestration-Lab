@@ -64,6 +64,19 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-item--a
   color: #fff;
 }
 
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-group-toggle:hover {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] .dashboard-nav-tooltip {
+  background: #e8eaed;
+  color: #12151a;
+}
+
 /* ── Hero banner (gradient overrides) ── */
 
 html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-hero-inner {

@@ -81,7 +81,8 @@ After deploy, opening **`https://<project-id>.web.app/`** (site root) **redirect
 - **Experience Decisioning lab (original):** `https://<project-id>.web.app/index.html`
 - **Content decision (simple):** `https://<project-id>.web.app/content-decision-live.html`
 
-Before each deploy, refresh the copied UI from the vendored app:
+After changing Profile Viewer files under **`web/profile-viewer/`**, optionally
+update the vendored prototype mirror (for local Express) with:
 
 ```bash
 npm run sync-profile-viewer-ui

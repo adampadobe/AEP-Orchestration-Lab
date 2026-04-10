@@ -89,17 +89,20 @@ The root `/` redirects 302 to `/profile-viewer/home.html`.
 
 ### Sync between prototypes and hosting
 
-The vendored Profile Viewer UI lives in
-`aep-prototypes/AEP Profile/03 Profile Viewer/public/`.
-Before deploying, run:
+**Canonical Profile Viewer static UI is `web/profile-viewer/`** (Firebase Hosting serves `web/`).
+
+The vendored Express prototype mirrors that tree under
+`aep-prototypes/AEP Profile/03 Profile Viewer/public/`. After you change sidebar
+icons, `aep-lab-nav.js`, CSS, or images under **`web/profile-viewer/`**, run:
 
 ```bash
 npm run sync-profile-viewer-ui
 ```
 
-This rsync's that folder into `web/profile-viewer/`. If you edit UI files,
-**edit them in `web/profile-viewer/`** for hosting, or in the prototype
-`public/` folder if you need local Express to reflect changes too — then sync.
+This rsyncs **`web/profile-viewer/` → prototype `public/`** so local `npm run profile-viewer`
+matches what ships on Hosting. Do **not** assume the prototype folder is the
+source of truth; syncing the old direction overwrote Hosting assets and caused
+nav icons to “revert.”
 
 ---
 
@@ -407,7 +410,7 @@ Every change **must** follow these four steps in order. Do not skip any step.
 | Step | Command / action | Why |
 |------|-----------------|-----|
 | 1. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
-| 2. **Sync prototypes** | `cp web/profile-viewer/<file> "aep-prototypes/AEP Profile/03 Profile Viewer/public/<file>"` | Keep prototype folder in sync |
+| 2. **Sync prototypes** | `npm run sync-profile-viewer-ui` (copies `web/profile-viewer/` → prototype `public/`) | Keep vendored Express mirror in sync |
 | 3. **Deploy** | `firebase deploy --only hosting` and/or `firebase deploy --only functions` | Push to live |
 | 4. **Commit & push** | `git add -A && git commit -m "..." && git push` | Track changes in version control |
 
@@ -420,7 +423,7 @@ Every change **must** follow these four steps in order. Do not skip any step.
 ### Pre-deploy
 
 ```bash
-npm run sync-profile-viewer-ui   # copy prototype UI → web/profile-viewer/
+npm run sync-profile-viewer-ui   # copy web/profile-viewer/ → prototype public/ (keep mirror in sync)
 cd functions && npm install && cd ..
 ```
 

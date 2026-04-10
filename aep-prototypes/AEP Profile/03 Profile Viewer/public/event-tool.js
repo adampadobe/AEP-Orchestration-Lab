@@ -31,6 +31,7 @@
     dsInput:          document.getElementById('etManualDs'),
     saveConfigBtn:    document.getElementById('etSaveConfigBtn'),
     connectionMsg:    document.getElementById('etConnectionMsg'),
+    fetchConfigBtn:   document.getElementById('etFetchConfigBtn'),
     checkInfraBtn:    document.getElementById('etCheckInfraBtn'),
     infraMsg:         document.getElementById('etInfraMsg'),
 
@@ -38,6 +39,10 @@
     customMode:       document.getElementById('etCustomMode'),
     triggerType:      document.getElementById('etTriggerType'),
     triggerDesc:      document.getElementById('etTriggerDesc'),
+    removeTriggerBtn: document.getElementById('etRemoveTriggerBtn'),
+    schemaTypesPanel: document.getElementById('etSchemaTypesPanel'),
+    schemaTypesCount: document.getElementById('etSchemaTypesCount'),
+    schemaTypesList:  document.getElementById('etSchemaTypesList'),
     eventType:        document.getElementById('etEventType'),
     orchId:           document.getElementById('etOrchId'),
     viewName:         document.getElementById('etViewName'),
@@ -45,11 +50,21 @@
     channel:          document.getElementById('etChannel'),
 
     sendBtn:          document.getElementById('etSendBtn'),
+    previewBtn:       document.getElementById('etPreviewBtn'),
     sendMsg:          document.getElementById('etSendMsg'),
+    previewPanel:     document.getElementById('etPreviewPanel'),
+    previewHeader:    document.getElementById('etPreviewHeader'),
+    previewTitle:     document.getElementById('etPreviewTitle'),
+    previewMeta:      document.getElementById('etPreviewMeta'),
+    previewMinBtn:    document.getElementById('etPreviewMinBtn'),
+    previewNote:      document.getElementById('etPreviewNote'),
+    previewPre:       document.getElementById('etPreviewPre'),
   };
 
   /* ── State ── */
   let triggerTemplates = {};
+  let schemaEventTypes = [];
+  let customTriggers = [];
   let resolvedEcid = '';
   let resolvedEmail = '';
   let activeMode = 'trigger';
@@ -87,10 +102,10 @@
 
   /* ═══════════ Sandbox selector ═══════════ */
 
-  function initSandboxSelect() {
+  async function initSandboxSelect() {
     if (!dom.sandboxSelect) return;
     if (typeof window.AepGlobalSandbox !== 'undefined') {
-      window.AepGlobalSandbox.loadSandboxesIntoSelect(dom.sandboxSelect);
+      await window.AepGlobalSandbox.loadSandboxesIntoSelect(dom.sandboxSelect);
       window.AepGlobalSandbox.onSandboxSelectChange(dom.sandboxSelect);
       window.AepGlobalSandbox.attachStorageSync(dom.sandboxSelect);
     }
@@ -102,18 +117,44 @@
   async function loadSavedConfig() {
     const qs = sandboxQs();
     if (!qs) return;
+    setMsg(dom.infraMsg, 'Loading saved configuration from Firebase…', '');
     try {
       const res = await fetch('/api/events/config' + qs);
       const data = await res.json().catch(() => ({}));
-      if (data.ok && data.record && data.record.datastreamId) {
-        dom.dsInput.value = data.record.datastreamId;
-        collapseConfig();
+      if (data.ok && data.record) {
+        if (data.record.datastreamId) dom.dsInput.value = data.record.datastreamId;
+        if (data.record.schemaTitle) dom.schemaTitle.value = data.record.schemaTitle;
+        if (data.record.datasetName) dom.datasetName.value = data.record.datasetName;
+        customTriggers = Array.isArray(data.record.customTriggers) ? data.record.customTriggers : [];
+        rebuildTriggerSelect();
+        if (data.record.datastreamId) {
+          collapseConfig();
+          setMsg(dom.infraMsg, 'Configuration loaded from Firebase.', 'success');
+        } else {
+          expandConfig();
+          setMsg(dom.infraMsg, 'No datastream saved for this sandbox yet. Complete the steps below, then click Save.', '');
+        }
+        if (data.record.schemaTitle) loadSchemaEventTypes(data.record.schemaTitle);
       } else {
         expandConfig();
+        setMsg(dom.infraMsg, 'No configuration found for this sandbox. Complete the steps below to get started.', '');
       }
     } catch {
       expandConfig();
+      setMsg(dom.infraMsg, '', '');
     }
+  }
+
+  async function saveConfigField(patch) {
+    const sandbox = getSandboxName();
+    if (!sandbox) return;
+    try {
+      await fetch('/api/events/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox, ...patch }),
+      });
+    } catch { /* silent — best-effort persist */ }
   }
 
   function collapseConfig() {
@@ -124,6 +165,174 @@
   function expandConfig() {
     if (dom.configDetails) dom.configDetails.setAttribute('open', '');
     if (dom.configBadge) dom.configBadge.hidden = true;
+  }
+
+  /* ═══════════ Event types from schema ═══════════ */
+
+  async function loadSchemaEventTypes(schemaTitle) {
+    if (!schemaTitle) return;
+    const qs = sandboxQs();
+    if (!qs) return;
+    const hint = document.getElementById('etEventTypeHint');
+    if (hint) { hint.textContent = 'Loading event types from schema…'; hint.hidden = false; }
+    try {
+      const res = await fetch('/api/events/infra/event-types' + qs + '&schemaTitle=' + encodeURIComponent(schemaTitle));
+      const data = await res.json().catch(() => ({}));
+      if (data.ok && Array.isArray(data.eventTypes) && data.eventTypes.length > 0) {
+        schemaEventTypes = data.eventTypes;
+      } else {
+        schemaEventTypes = [];
+        if (hint) { hint.textContent = data.error || 'No event types found in schema — type any value.'; hint.hidden = false; }
+      }
+    } catch (e) {
+      schemaEventTypes = [];
+      if (hint) { hint.textContent = 'Could not load event types: ' + (e.message || 'network error'); hint.hidden = false; }
+    }
+    populateEventTypeDatalist();
+  }
+
+  function populateEventTypeDatalist() {
+    const dl = document.getElementById('etEventTypeList');
+    if (dl) {
+      dl.innerHTML = '';
+      schemaEventTypes.forEach(function (et) {
+        const opt = document.createElement('option');
+        opt.value = et.value;
+        if (et.label && et.label !== et.value) opt.label = et.label;
+        dl.appendChild(opt);
+      });
+    }
+    const hint = document.getElementById('etEventTypeHint');
+    if (hint && schemaEventTypes.length > 0) {
+      hint.textContent = schemaEventTypes.length + ' event types loaded from schema — select or type your own.';
+      hint.hidden = false;
+    }
+    rebuildTriggerSelect();
+  }
+
+  function rebuildTriggerSelect() {
+    if (!dom.triggerType) return;
+    var prev = dom.triggerType.value;
+    dom.triggerType.innerHTML = '';
+
+    var templateKeys = Object.keys(triggerTemplates).filter(function (k) {
+      return typeof triggerTemplates[k] === 'object' && triggerTemplates[k].payload;
+    });
+
+    if (templateKeys.length > 0) {
+      var tplGroup = document.createElement('optgroup');
+      tplGroup.label = 'Templates';
+      templateKeys.forEach(function (k) {
+        var opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = k;
+        tplGroup.appendChild(opt);
+      });
+      dom.triggerType.appendChild(tplGroup);
+    }
+
+    if (customTriggers.length > 0) {
+      var custGroup = document.createElement('optgroup');
+      custGroup.label = 'My triggers';
+      customTriggers.forEach(function (t) {
+        var val = typeof t === 'string' ? t : (t.value || t.eventType || '');
+        if (!val) return;
+        var opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        custGroup.appendChild(opt);
+      });
+      dom.triggerType.appendChild(custGroup);
+    }
+
+    if (dom.triggerType.options.length === 0) {
+      var empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = '— No triggers — add from schema below';
+      dom.triggerType.appendChild(empty);
+    }
+
+    if (prev && dom.triggerType.querySelector('option[value="' + CSS.escape(prev) + '"]')) {
+      dom.triggerType.value = prev;
+    }
+    updateTriggerDesc();
+    updateRemoveBtn();
+    populateSchemaTypesPanel();
+  }
+
+  function updateRemoveBtn() {
+    if (!dom.removeTriggerBtn) return;
+    var key = dom.triggerType.value;
+    var isCustom = customTriggers.some(function (t) { return (typeof t === 'string' ? t : t.value) === key; });
+    dom.removeTriggerBtn.hidden = !isCustom;
+  }
+
+  function populateSchemaTypesPanel() {
+    if (!dom.schemaTypesList) return;
+    dom.schemaTypesList.innerHTML = '';
+
+    var inSelect = new Set();
+    Object.keys(triggerTemplates).forEach(function (k) { inSelect.add(k); });
+    customTriggers.forEach(function (t) { inSelect.add(typeof t === 'string' ? t : t.value); });
+
+    var available = schemaEventTypes.filter(function (et) { return !inSelect.has(et.value); });
+
+    if (dom.schemaTypesCount) {
+      dom.schemaTypesCount.textContent = schemaEventTypes.length > 0
+        ? '(' + available.length + ' available of ' + schemaEventTypes.length + ')'
+        : '';
+    }
+
+    if (schemaEventTypes.length === 0) {
+      dom.schemaTypesList.innerHTML = '<p class="field-hint">No schema event types loaded yet. Save a schema name in Configuration and fetch config.</p>';
+      return;
+    }
+    if (available.length === 0) {
+      dom.schemaTypesList.innerHTML = '<p class="field-hint">All schema event types have been added to your triggers.</p>';
+      return;
+    }
+
+    available.forEach(function (et) {
+      var row = document.createElement('div');
+      row.className = 'et-schema-type-row';
+
+      var name = document.createElement('span');
+      name.className = 'et-schema-type-name';
+      name.textContent = et.value;
+      row.appendChild(name);
+
+      if (et.label && et.label !== et.value) {
+        var lbl = document.createElement('span');
+        lbl.className = 'et-schema-type-label';
+        lbl.textContent = et.label;
+        row.appendChild(lbl);
+      }
+
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'et-schema-type-add';
+      addBtn.textContent = '+ Add';
+      addBtn.addEventListener('click', function () { addCustomTrigger(et.value); });
+      row.appendChild(addBtn);
+
+      dom.schemaTypesList.appendChild(row);
+    });
+  }
+
+  function addCustomTrigger(eventType) {
+    if (customTriggers.some(function (t) { return (typeof t === 'string' ? t : t.value) === eventType; })) return;
+    customTriggers.push(eventType);
+    rebuildTriggerSelect();
+    dom.triggerType.value = eventType;
+    updateTriggerDesc();
+    updateRemoveBtn();
+    saveConfigField({ customTriggers: customTriggers });
+  }
+
+  function removeCustomTrigger(eventType) {
+    customTriggers = customTriggers.filter(function (t) { return (typeof t === 'string' ? t : t.value) !== eventType; });
+    rebuildTriggerSelect();
+    saveConfigField({ customTriggers: customTriggers });
   }
 
   /* ═══════════ Step 1 — Create Schema ═══════════ */
@@ -144,6 +353,8 @@
       const data = await res.json().catch(() => ({}));
       if (!data.ok) { setMsg(dom.schemaMsg, data.error || 'Failed.', 'error'); return; }
       setMsg(dom.schemaMsg, data.message || 'Schema created.', 'success');
+      saveConfigField({ schemaTitle });
+      loadSchemaEventTypes(schemaTitle);
     } catch (e) {
       setMsg(dom.schemaMsg, e.message || 'Network error', 'error');
     } finally {
@@ -171,6 +382,7 @@
       const data = await res.json().catch(() => ({}));
       if (!data.ok) { setMsg(dom.datasetMsg, data.error || 'Failed.', 'error'); return; }
       setMsg(dom.datasetMsg, data.message || 'Dataset created.', 'success');
+      saveConfigField({ schemaTitle, datasetName });
     } catch (e) {
       setMsg(dom.datasetMsg, e.message || 'Network error', 'error');
     } finally {
@@ -185,22 +397,60 @@
     if (!dsId) { setMsg(dom.connectionMsg, 'Paste a datastream ID.', 'error'); return; }
     const sandbox = getSandboxName();
     if (!sandbox) { setMsg(dom.connectionMsg, 'Select a sandbox first.', 'error'); return; }
-    setMsg(dom.connectionMsg, 'Saving…', '');
+    setMsg(dom.connectionMsg, 'Saving to Firebase…', '');
+    const schemaTitle = (dom.schemaTitle.value || '').trim();
+    const datasetName = (dom.datasetName.value || '').trim();
     try {
       const res = await fetch('/api/events/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sandbox, datastreamId: dsId }),
+        body: JSON.stringify({ sandbox, datastreamId: dsId, schemaTitle, datasetName }),
       });
       const data = await res.json().catch(() => ({}));
       if (data.ok) {
-        setMsg(dom.connectionMsg, 'Saved for sandbox "' + sandbox + '".', 'success');
+        setMsg(dom.connectionMsg, 'Saved to Firebase for sandbox "' + sandbox + '".', 'success');
+        setMsg(dom.infraMsg, 'Configuration loaded from Firebase.', 'success');
         collapseConfig();
+        if (schemaTitle) loadSchemaEventTypes(schemaTitle);
       } else {
         setMsg(dom.connectionMsg, data.error || 'Save failed.', 'error');
       }
     } catch (e) {
       setMsg(dom.connectionMsg, e.message || 'Network error', 'error');
+    }
+  });
+
+  /* ═══════════ Fetch Config from Firebase ═══════════ */
+
+  dom.fetchConfigBtn.addEventListener('click', async () => {
+    const sandbox = getSandboxName();
+    if (!sandbox) { setMsg(dom.infraMsg, 'Select a sandbox first.', 'error'); return; }
+    dom.fetchConfigBtn.disabled = true;
+    setMsg(dom.infraMsg, 'Fetching configuration from Firebase…', '');
+    try {
+      const res = await fetch('/api/events/config' + sandboxQs());
+      const data = await res.json().catch(() => ({}));
+      if (data.ok && data.record) {
+        const r = data.record;
+        const parts = [];
+        if (r.schemaTitle) { dom.schemaTitle.value = r.schemaTitle; parts.push('Schema: ' + r.schemaTitle); }
+        if (r.datasetName) { dom.datasetName.value = r.datasetName; parts.push('Dataset: ' + r.datasetName); }
+        if (r.datastreamId) { dom.dsInput.value = r.datastreamId; parts.push('Datastream: ' + r.datastreamId); }
+        customTriggers = Array.isArray(r.customTriggers) ? r.customTriggers : [];
+        rebuildTriggerSelect();
+        if (parts.length > 0) {
+          setMsg(dom.infraMsg, 'Loaded from Firebase — ' + parts.join('  ·  '), 'success');
+          if (r.schemaTitle) loadSchemaEventTypes(r.schemaTitle);
+        } else {
+          setMsg(dom.infraMsg, 'No saved configuration found for sandbox "' + sandbox + '".', 'error');
+        }
+      } else {
+        setMsg(dom.infraMsg, 'No saved configuration found for sandbox "' + sandbox + '".', 'error');
+      }
+    } catch (e) {
+      setMsg(dom.infraMsg, e.message || 'Network error', 'error');
+    } finally {
+      dom.fetchConfigBtn.disabled = false;
     }
   });
 
@@ -299,70 +549,181 @@
     } catch {
       triggerTemplates = {};
     }
-
-    const keys = Object.keys(triggerTemplates).filter(
-      (k) => typeof triggerTemplates[k] === 'object' && triggerTemplates[k].payload
-    );
-    dom.triggerType.innerHTML = '';
-    if (keys.length === 0) {
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = '— No templates —';
-      dom.triggerType.appendChild(opt);
-      return;
-    }
-    keys.forEach((k) => {
-      const opt = document.createElement('option');
-      opt.value = k;
-      opt.textContent = k;
-      dom.triggerType.appendChild(opt);
-    });
-    updateTriggerDesc();
+    rebuildTriggerSelect();
   }
 
   function updateTriggerDesc() {
     const key = dom.triggerType.value;
     const tpl = triggerTemplates[key];
-    dom.triggerDesc.textContent = tpl ? (tpl.description || '') : '';
+    if (tpl) {
+      dom.triggerDesc.textContent = tpl.description || '';
+    } else if (key) {
+      const et = schemaEventTypes.find(function (e) { return e.value === key; });
+      dom.triggerDesc.textContent = et && et.label && et.label !== et.value ? et.label : 'Sends a generic XDM event with this eventType.';
+    } else {
+      dom.triggerDesc.textContent = '';
+    }
+    updateRemoveBtn();
   }
 
   dom.triggerType.addEventListener('change', updateTriggerDesc);
 
+  if (dom.removeTriggerBtn) {
+    dom.removeTriggerBtn.addEventListener('click', function () {
+      var key = dom.triggerType.value;
+      if (!key) return;
+      removeCustomTrigger(key);
+    });
+  }
+
+  /* ═══════════ Build request body ═══════════ */
+
+  function buildRequestBody() {
+    const dsId = (dom.dsInput.value || '').trim();
+    if (!dsId) return { error: 'Set a Datastream ID in Configuration first.' };
+    const email = resolvedEmail || (dom.identifier.value || '').trim();
+    if (!email) return { error: 'Enter an identifier first.' };
+
+    const body = { datastreamId: dsId, email };
+    if (resolvedEcid && resolvedEcid !== '—' && /^\d+$/.test(resolvedEcid) && resolvedEcid.length >= 10) {
+      body.ecid = resolvedEcid;
+    }
+
+    if (activeMode === 'trigger') {
+      const key = dom.triggerType.value;
+      if (!key) return { error: 'Select an event type.' };
+      const tpl = triggerTemplates[key];
+      if (tpl && tpl.payload) {
+        body.triggerTemplate = tpl.payload;
+      }
+      body.eventType = key;
+    } else {
+      body.eventType = (dom.eventType.value || '').trim() || 'transaction';
+      const orchId = (dom.orchId.value || '').trim();
+      if (orchId) body.eventID = orchId;
+      const vn = (dom.viewName.value || '').trim();
+      const vu = (dom.viewUrl.value || '').trim();
+      if (vn) body.viewName = vn;
+      if (vu) body.viewUrl = vu;
+      const ch = (dom.channel.value || '').trim();
+      if (ch) body.channel = ch;
+    }
+    return { body };
+  }
+
+  function buildPreviewXdm(body) {
+    var now = new Date().toISOString();
+    var _id = String(Date.now());
+    var eventType = body.eventType || 'transaction';
+    var email = body.email || '';
+    var ecid = body.ecid || '';
+
+    if (body.triggerTemplate) {
+      var tpl = JSON.parse(JSON.stringify(body.triggerTemplate));
+      var replacements = { ecid: ecid, email: email, _id: 'trigger-' + Date.now(), timestamp: now, eventType: eventType };
+      (function replace(obj) {
+        if (!obj || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) { obj.forEach(function (v, i) { obj[i] = replace(v); }); return obj; }
+        for (var k of Object.keys(obj)) {
+          if (typeof obj[k] === 'string') {
+            for (var rk in replacements) { obj[k] = obj[k].replace(new RegExp('\\{\\{' + rk + '\\}\\}', 'g'), String(replacements[rk])); }
+          } else if (typeof obj[k] === 'object') { replace(obj[k]); }
+        }
+        return obj;
+      })(tpl);
+      if (tpl.event && tpl.event.xdm) {
+        tpl.event.xdm.identityMap = {};
+        if (ecid) tpl.event.xdm.identityMap.ECID = [{ id: ecid, primary: true }];
+        if (email) tpl.event.xdm.identityMap.Email = [{ id: email, primary: !ecid }];
+      }
+      return { endpoint: 'POST https://server.adobedc.net/ee/v2/interact?dataStreamId=' + body.datastreamId, payload: tpl };
+    }
+
+    var identityMap = {};
+    if (ecid) identityMap.ECID = [{ id: ecid, primary: true }];
+    if (email) identityMap.Email = [{ id: email, primary: !ecid }];
+
+    var xdm = {
+      identityMap: identityMap,
+      _id: _id,
+      eventType: eventType,
+      timestamp: now,
+      _experience: { campaign: { orchestration: { eventID: body.eventID || '' } } },
+    };
+    if (body.viewName || body.viewUrl) {
+      xdm.web = { webPageDetails: { URL: body.viewUrl || '', name: body.viewName || '', viewName: body.viewName || '' } };
+    }
+
+    return {
+      endpoint: 'POST https://server.adobedc.net/ee/v2/interact?dataStreamId=' + body.datastreamId,
+      payload: { event: { xdm: xdm } },
+    };
+  }
+
+  /* ═══════════ Preview payload ═══════════ */
+
+  function setPreviewMinimized(min) {
+    if (!dom.previewPanel) return;
+    dom.previewPanel.classList.toggle('consent-preview-panel--minimized', min);
+    if (dom.previewHeader) dom.previewHeader.setAttribute('aria-expanded', String(!min));
+    if (dom.previewMinBtn) {
+      dom.previewMinBtn.textContent = min ? 'Expand' : 'Minimize';
+      dom.previewMinBtn.title = min ? 'Expand payload preview' : 'Collapse payload preview';
+    }
+    if (dom.previewTitle) dom.previewTitle.textContent = min ? 'Edge payload preview (collapsed)' : 'Edge payload preview';
+    if (dom.previewMeta) {
+      dom.previewMeta.setAttribute('aria-hidden', min ? 'false' : 'true');
+      if (min) {
+        var json = (dom.previewPre && dom.previewPre.textContent) || '';
+        var bytes = json.length;
+        try { bytes = new TextEncoder().encode(json).length; } catch {}
+        dom.previewMeta.textContent = (bytes / 1024).toFixed(1) + ' KB';
+      } else {
+        dom.previewMeta.textContent = '';
+      }
+    }
+  }
+
+  function togglePreview() {
+    if (!dom.previewPanel || dom.previewPanel.hidden) return;
+    setPreviewMinimized(!dom.previewPanel.classList.contains('consent-preview-panel--minimized'));
+  }
+
+  if (dom.previewHeader) {
+    dom.previewHeader.addEventListener('click', function (e) { if (!e.target.closest('#etPreviewMinBtn')) togglePreview(); });
+    dom.previewHeader.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (e.target.closest('#etPreviewMinBtn')) return;
+      e.preventDefault();
+      togglePreview();
+    });
+  }
+  if (dom.previewMinBtn) dom.previewMinBtn.addEventListener('click', function (e) { e.stopPropagation(); togglePreview(); });
+
+  dom.previewBtn.addEventListener('click', function () {
+    var result = buildRequestBody();
+    if (result.error) { setMsg(dom.sendMsg, result.error, 'error'); return; }
+    var preview = buildPreviewXdm(result.body);
+    if (dom.previewPanel && dom.previewNote && dom.previewPre) {
+      dom.previewPanel.hidden = false;
+      setPreviewMinimized(false);
+      dom.previewNote.textContent = preview.endpoint;
+      dom.previewPre.textContent = JSON.stringify(preview.payload, null, 2);
+    }
+    setMsg(dom.sendMsg, 'Payload preview loaded below — this is what will be sent to the Edge Network.', 'success');
+  });
+
   /* ═══════════ Send event ═══════════ */
 
   dom.sendBtn.addEventListener('click', async () => {
-    const dsId = (dom.dsInput.value || '').trim();
-    if (!dsId) { setMsg(dom.sendMsg, 'Set a Datastream ID in Configuration first.', 'error'); return; }
-    const email = resolvedEmail || (dom.identifier.value || '').trim();
-    if (!email) { setMsg(dom.sendMsg, 'Enter an identifier first.', 'error'); return; }
+    var result = buildRequestBody();
+    if (result.error) { setMsg(dom.sendMsg, result.error, 'error'); return; }
+    var body = result.body;
 
     dom.sendBtn.disabled = true;
     setMsg(dom.sendMsg, 'Sending…', '');
 
     try {
-      const body = { datastreamId: dsId, email };
-      if (resolvedEcid && resolvedEcid !== '—' && /^\d+$/.test(resolvedEcid) && resolvedEcid.length >= 10) {
-        body.ecid = resolvedEcid;
-      }
-
-      if (activeMode === 'trigger') {
-        const key = dom.triggerType.value;
-        const tpl = triggerTemplates[key];
-        if (!tpl || !tpl.payload) { setMsg(dom.sendMsg, 'Select a valid event template.', 'error'); return; }
-        body.triggerTemplate = tpl.payload;
-        body.eventType = key;
-      } else {
-        body.eventType = (dom.eventType.value || '').trim() || 'transaction';
-        const orchId = (dom.orchId.value || '').trim();
-        if (orchId) body.eventID = orchId;
-        const vn = (dom.viewName.value || '').trim();
-        const vu = (dom.viewUrl.value || '').trim();
-        if (vn) body.viewName = vn;
-        if (vu) body.viewUrl = vu;
-        const ch = (dom.channel.value || '').trim();
-        if (ch) body.channel = ch;
-      }
-
       const res = await fetch('/api/events/edge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -389,6 +750,8 @@
   function onSandboxChange() {
     resolvedEcid = '';
     resolvedEmail = '';
+    customTriggers = [];
+    schemaEventTypes = [];
     dom.dsInput.value = '';
     dom.profileInfo.hidden = true;
     setMsg(dom.profileMsg, '', '');
@@ -398,6 +761,7 @@
     setMsg(dom.infraMsg, '', '');
     setMsg(dom.sendMsg, '', '');
     if (dom.configBadge) dom.configBadge.hidden = true;
+    rebuildTriggerSelect();
     loadSavedConfig();
   }
 
@@ -407,8 +771,8 @@
 
   /* ═══════════ Init ═══════════ */
 
-  function init() {
-    initSandboxSelect();
+  async function init() {
+    await initSandboxSelect();
     loadTriggerTemplates();
     loadSavedConfig();
   }
