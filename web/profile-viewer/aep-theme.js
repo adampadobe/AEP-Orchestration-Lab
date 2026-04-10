@@ -1,6 +1,7 @@
 /**
  * Global theme: localStorage key aepTheme = 'dark' | 'light'.
  * Sets html[data-aep-theme="dark"]; injects sidebar toggle on dashboard pages.
+ * For paint-time sync before this script runs, pages include aep-head-sync.js in <head>.
  */
 (function (global) {
   var LS = 'aepTheme';

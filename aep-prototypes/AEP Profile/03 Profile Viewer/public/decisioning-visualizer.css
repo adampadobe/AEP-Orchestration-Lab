@@ -13,23 +13,24 @@
   --red: #cc0000;
   --red-light: #ff2626;
   --red-dim: rgba(204, 0, 0, 0.12);
-  --ink: #0f0f0f;
-  --paper: #faf9f7;
-  --paper-2: #f2f0ec;
-  --muted: #7a7570;
-  --line: rgba(0, 0, 0, 0.1);
+  /* Semantic aliases: follow --dce-* / --dash-* from decisioning-catalog-page (light + dark) */
+  --ink: var(--dce-text);
+  --paper: var(--dce-bg-panel);
+  --paper-2: var(--dce-bg-hover);
+  --muted: var(--dce-muted);
+  --line: color-mix(in srgb, var(--dce-border) 55%, transparent);
   --priority-color: #c47b00;
   --formula-color: #005f9e;
   --ai-color: #1a7a4a;
   --exp-color: #6b3fa0;
   font-family: var(--dce-font, "DM Sans", system-ui), "Outfit", sans-serif;
-  background: var(--dce-bg, var(--paper));
-  color: var(--dce-text, var(--ink));
+  background: var(--dce-bg-panel);
+  color: var(--dce-text);
   overflow-x: hidden;
   font-size: 16px;
   border-radius: var(--dce-radius, 8px);
-  border: 1px solid var(--dce-border, rgba(0, 0, 0, 0.1));
-  box-shadow: var(--dce-shadow, 0 4px 12px rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--dce-border);
+  box-shadow: var(--dce-shadow);
   margin-top: 1.5rem;
 }
 
@@ -47,7 +48,7 @@
   /* ── NAV TABS ── */
   .decisioning-catalog-page .dce-viz-scope .tab-nav {
     display: flex;
-    background: white;
+    background: var(--paper);
     border-bottom: 1px solid var(--line);
     position: sticky;
     top: 0;
@@ -170,7 +171,7 @@
 
   /* ── CARD ── */
   .decisioning-catalog-page .dce-viz-scope .card {
-    background: white;
+    background: var(--paper);
     border: 1px solid var(--line);
     border-radius: 12px;
     padding: 28px;
@@ -203,7 +204,7 @@
   }
 
   .decisioning-catalog-page .dce-viz-scope .offer-row.winner {
-    background: color-mix(in srgb, var(--priority-color) 8%, white);
+    background: color-mix(in srgb, var(--priority-color) 8%, var(--paper));
     border-color: var(--priority-color);
   }
 
@@ -297,8 +298,8 @@
     display: flex;
     align-items: center;
     gap: 0;
-    background: white;
-    border: 1.5px solid #d0dde8;
+    background: var(--paper);
+    border: 1.5px solid var(--dce-border);
     border-radius: 10px;
     overflow: hidden;
     flex: 1;
@@ -322,7 +323,7 @@
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    border-right: 1.5px solid #d0dde8;
+    border-right: 1.5px solid var(--line);
     white-space: nowrap;
     min-height: 52px;
   }
@@ -338,8 +339,8 @@
     padding: 0 14px;
     font-size: 13px;
     font-weight: 600;
-    color: #1a1a1a;
-    border-right: 1.5px solid #edf0f3;
+    color: var(--ink);
+    border-right: 1.5px solid var(--line);
     white-space: nowrap;
     min-height: 52px;
     display: flex;
@@ -350,13 +351,13 @@
     padding: 0 12px;
     font-family: 'DM Mono', monospace;
     font-size: 11px;
-    color: #7a7570;
-    border-right: 1.5px solid #edf0f3;
+    color: var(--muted);
+    border-right: 1.5px solid var(--line);
     white-space: nowrap;
     min-height: 52px;
     display: flex;
     align-items: center;
-    background: #fafafa;
+    background: var(--paper-2);
   }
 
   .decisioning-catalog-page .dce-viz-scope .rule-value {
@@ -367,7 +368,7 @@
     min-height: 52px;
     display: flex;
     align-items: center;
-    border-right: 1.5px solid #edf0f3;
+    border-right: 1.5px solid var(--line);
   }
 
   .decisioning-catalog-page .dce-viz-scope .rule-action {
@@ -498,13 +499,13 @@
   }
 
   .decisioning-catalog-page .dce-viz-scope .toggle-opt.active {
-    background: white;
+    background: var(--paper);
     color: var(--formula-color);
     box-shadow: 0 1px 4px rgba(0,0,0,0.12);
   }
 
   .decisioning-catalog-page .dce-viz-scope .score-readout {
-    background: color-mix(in srgb, var(--method-color) 8%, white);
+    background: color-mix(in srgb, var(--method-color) 8%, var(--paper));
     border: 1px solid color-mix(in srgb, var(--method-color) 20%, transparent);
     border-radius: 10px;
     padding: 20px 24px;
@@ -534,12 +535,12 @@
     cursor: pointer;
     transition: all 0.2s;
     text-align: center;
-    background: white;
+    background: var(--paper);
   }
 
   .decisioning-catalog-page .dce-viz-scope .profile-card.selected {
     border-color: var(--ai-color);
-    background: color-mix(in srgb, var(--ai-color) 5%, white);
+    background: color-mix(in srgb, var(--ai-color) 5%, var(--paper));
   }
 
   .decisioning-catalog-page .dce-viz-scope .profile-avatar {
@@ -571,7 +572,7 @@
   }
 
   .decisioning-catalog-page .dce-viz-scope .ai-offer-row.top {
-    background: color-mix(in srgb, var(--ai-color) 8%, white);
+    background: color-mix(in srgb, var(--ai-color) 8%, var(--paper));
     border-color: var(--ai-color);
   }
 
@@ -626,7 +627,7 @@
     align-items: center;
   }
 
-  .decisioning-catalog-page .dce-viz-scope .exp-arm-body { padding: 20px; background: white; }
+  .decisioning-catalog-page .dce-viz-scope .exp-arm-body { padding: 20px; background: var(--paper); }
 
   .decisioning-catalog-page .dce-viz-scope .metric-row {
     display: flex;
@@ -642,7 +643,7 @@
   .decisioning-catalog-page .dce-viz-scope .metric-value { font-family: 'DM Mono', monospace; font-weight: 500; }
 
   .decisioning-catalog-page .dce-viz-scope .lift-banner {
-    background: linear-gradient(135deg, color-mix(in srgb, var(--exp-color) 10%, white), color-mix(in srgb, var(--exp-color) 5%, white));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--exp-color) 10%, var(--paper)), color-mix(in srgb, var(--exp-color) 5%, var(--paper)));
     border: 1px solid color-mix(in srgb, var(--exp-color) 25%, transparent);
     border-radius: 12px;
     padding: 28px;
@@ -666,7 +667,7 @@
   .decisioning-catalog-page .dce-viz-scope .story-box {
     border-left: 3px solid var(--method-color);
     padding: 20px 24px;
-    background: color-mix(in srgb, var(--method-color) 4%, white);
+    background: color-mix(in srgb, var(--method-color) 4%, var(--paper));
     border-radius: 0 10px 10px 0;
     margin-top: 24px;
   }
@@ -683,7 +684,7 @@
   .decisioning-catalog-page .dce-viz-scope .story-text {
     font-size: 14px;
     line-height: 1.75;
-    color: #444;
+    color: var(--ink);
     font-style: italic;
   }
 
@@ -727,7 +728,7 @@
     line-height: 1.2;
   }
 
-  .decisioning-catalog-page .dce-viz-scope .ov-body { padding: 18px 20px; background: white; border: 1px solid var(--line); border-top: none; border-radius: 0 0 14px 14px; }
+  .decisioning-catalog-page .dce-viz-scope .ov-body { padding: 18px 20px; background: var(--paper); border: 1px solid var(--line); border-top: none; border-radius: 0 0 14px 14px; }
   .decisioning-catalog-page .dce-viz-scope .ov-best { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; }
   .decisioning-catalog-page .dce-viz-scope .ov-desc { font-size: 13px; color: var(--ink); font-weight: 400; line-height: 1.5; }
 
@@ -752,7 +753,7 @@
     gap: 10px;
     font-size: 14px;
     line-height: 1.5;
-    color: #444;
+    color: var(--ink);
   }
 
   .decisioning-catalog-page .dce-viz-scope .char-icon { color: var(--method-color); flex-shrink: 0; font-size: 15px; margin-top: 1px; }
@@ -779,9 +780,10 @@
   .decisioning-catalog-page .dce-viz-scope .run-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
 
   /* ── FOOTER ── */
+  /* Always a dark strip (do not use --ink: it aliases to --dce-text and inverts in dark mode). */
   .decisioning-catalog-page .dce-viz-scope .footer {
-    background: var(--ink);
-    color: rgba(255,255,255,0.3);
+    background: #121212;
+    color: rgba(255, 255, 255, 0.38);
     padding: 28px 40px;
     text-align: center;
     font-size: 12px;
@@ -868,11 +870,3 @@
   .decisioning-catalog-page .dce-viz-scope .profile-name { font-size: 14px; }
   .decisioning-catalog-page .dce-viz-scope .profile-trait { font-size: 12px; }
   .decisioning-catalog-page .dce-viz-scope .lift-text { font-size: 15px; }
-
-html[data-aep-theme='dark'] .decisioning-catalog-page .dce-viz-scope {
-  --paper: #252830;
-  --paper-2: #1a1d23;
-  --ink: #e6e9ef;
-  --muted: #8b909a;
-  --line: rgba(255, 255, 255, 0.12);
-}

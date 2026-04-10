@@ -1,34 +1,22 @@
 /**
- * Decisioning catalog full page — aligns with dashboard hero + panel patterns (home.css).
+ * Decisioning tool pages (catalog + visualiser shell).
+ * Theme policy: localStorage aepTheme, html[data-aep-theme="dark"], body.home-dashboard-concierge --dash-* (home.css + aep-theme.css).
+ * --dce-* aliases this feature area to the same tokens so panels track light/dark automatically.
  */
 .decisioning-catalog-page {
   --dce-font: "DM Sans", "Segoe UI", system-ui, sans-serif;
-  --dce-bg: #f5f6f8;
-  --dce-bg-panel: #ffffff;
-  --dce-bg-hover: #eef0f4;
-  --dce-border: #d8dde6;
-  --dce-text: #2c2c2c;
-  --dce-muted: #6e6e6e;
-  --dce-accent: #1473e6;
-  --dce-accent-hover: #0d66d0;
-  --dce-success: #268e6c;
-  --dce-error: #d7373f;
+  --dce-bg: var(--dash-bg);
+  --dce-bg-panel: var(--dash-surface);
+  --dce-bg-hover: var(--dash-hover);
+  --dce-border: var(--dash-border);
+  --dce-text: var(--dash-text);
+  --dce-muted: var(--dash-muted);
+  --dce-accent: var(--dash-blue);
+  --dce-accent-hover: var(--dash-blue);
+  --dce-success: var(--dash-success-text);
+  --dce-error: var(--dash-error-text);
   --dce-radius: 8px;
-  --dce-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-html[data-aep-theme='dark'] .decisioning-catalog-page {
-  --dce-bg: #1a1d23;
-  --dce-bg-panel: #252830;
-  --dce-bg-hover: #2d3139;
-  --dce-border: #3d424d;
-  --dce-text: #e6e9ef;
-  --dce-muted: #8b909a;
-  --dce-accent: #7c9fe6;
-  --dce-accent-hover: #94b3f0;
-  --dce-success: #7dd3a8;
-  --dce-error: #e07d7d;
-  --dce-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --dce-shadow: var(--dash-shadow);
 }
 
 /* Same horizontal bounds as `.dashboard-hero` — main already applies tool-page gutters in home.css */
@@ -231,13 +219,8 @@ html[data-aep-theme='dark'] .decisioning-catalog-page {
   letter-spacing: 0.04em;
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
-  background: #e6f4ea;
-  color: #1a7f37;
-}
-
-html[data-aep-theme='dark'] .decisioning-catalog-page .cd-schema-badge {
-  background: #1a3a2a;
-  color: #6fdd8b;
+  background: var(--dash-success-bg);
+  color: var(--dash-success-text);
 }
 
 .decisioning-catalog-page .cd-schema-config-body {
@@ -334,27 +317,15 @@ html[data-aep-theme='dark'] .decisioning-catalog-page .cd-schema-badge {
 }
 
 .decisioning-catalog-page .cd-catalog-table td.cd-offer-active {
-  color: #12805c;
+  color: var(--dash-success-text);
 }
 
 .decisioning-catalog-page .cd-catalog-table td.cd-offer-expired {
-  color: #d1344b;
+  color: var(--dash-error-text);
 }
 
 .decisioning-catalog-page .cd-catalog-table td.cd-offer-scheduled {
-  color: #e68619;
-}
-
-html[data-aep-theme='dark'] .decisioning-catalog-page .cd-catalog-table td.cd-offer-active {
-  color: #36b37e;
-}
-
-html[data-aep-theme='dark'] .decisioning-catalog-page .cd-catalog-table td.cd-offer-expired {
-  color: #ff6b6b;
-}
-
-html[data-aep-theme='dark'] .decisioning-catalog-page .cd-catalog-table td.cd-offer-scheduled {
-  color: #ffab00;
+  color: var(--dash-warning-text);
 }
 
 .decisioning-catalog-page .cd-offer-tag {
