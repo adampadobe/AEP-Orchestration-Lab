@@ -1,5 +1,4 @@
 (function () {
-  const JOURNEYS_TABLE_COLSPAN = 16;
   const statusEl = document.getElementById('journeysStatus');
   const tbody = document.getElementById('journeysTbody');
   const searchInput = document.getElementById('journeysSearch');
@@ -10,6 +9,93 @@
   const refreshBtn = document.getElementById('jrnRefresh');
   const cjaDataViewSelect = document.getElementById('cjaDataViewSelect');
   const CJA_DV_STORAGE_KEY = 'aepJourneysCjaDataViewId';
+  const COLUMN_VISIBILITY_STORAGE_KEY = 'aepJourneysColumnVisibility';
+  const TOGGLE_COLUMN_KEYS = [
+    'version',
+    'status',
+    'tags',
+    'enters',
+    'exits',
+    'delivered',
+    'displays',
+    'clicks',
+    'createdAt',
+    'createdBy',
+    'updatedAt',
+    'updatedBy',
+    'publishedAt',
+    'publishedBy',
+  ];
+  const COLUMN_LABELS = {
+    version: 'Version',
+    status: 'Status',
+    tags: 'Tags',
+    enters: 'Enters',
+    exits: 'Exits',
+    delivered: 'Delivered',
+    displays: 'Displays',
+    clicks: 'Clicks',
+    createdAt: 'Creation date',
+    createdBy: 'Created by',
+    updatedAt: 'Last update',
+    updatedBy: 'Last update by',
+    publishedAt: 'Published',
+    publishedBy: 'Published by',
+  };
+
+  function loadColumnVisibility() {
+    const defaults = {};
+    for (let i = 0; i < TOGGLE_COLUMN_KEYS.length; i++) {
+      defaults[TOGGLE_COLUMN_KEYS[i]] = true;
+    }
+    try {
+      const raw = localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY);
+      if (!raw) return defaults;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return defaults;
+      const out = { ...defaults };
+      for (let j = 0; j < TOGGLE_COLUMN_KEYS.length; j++) {
+        const k = TOGGLE_COLUMN_KEYS[j];
+        if (Object.prototype.hasOwnProperty.call(parsed, k)) out[k] = Boolean(parsed[k]);
+      }
+      return out;
+    } catch (e) {
+      return defaults;
+    }
+  }
+
+  function saveColumnVisibility() {
+    try {
+      const o = {};
+      for (let i = 0; i < TOGGLE_COLUMN_KEYS.length; i++) {
+        const k = TOGGLE_COLUMN_KEYS[i];
+        o[k] = columnVisibility[k] !== false;
+      }
+      localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify(o));
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  let columnVisibility = loadColumnVisibility();
+
+  function visibleJourneyColCount() {
+    let n = 2;
+    for (let i = 0; i < TOGGLE_COLUMN_KEYS.length; i++) {
+      const k = TOGGLE_COLUMN_KEYS[i];
+      if (columnVisibility[k] !== false) n += 1;
+    }
+    return n;
+  }
+
+  function applyJourneyColumnVisibility() {
+    const table = document.getElementById('journeysTable');
+    if (!table) return;
+    for (let i = 0; i < TOGGLE_COLUMN_KEYS.length; i++) {
+      const k = TOGGLE_COLUMN_KEYS[i];
+      table.classList.toggle(`journeys-col--hide-${k}`, columnVisibility[k] === false);
+    }
+  }
 
   let allRows = [];
   let sortKey = 'name';
@@ -525,10 +611,10 @@
       countEl.textContent = `${filtered.length} of ${rows.length}`;
     }
     if (filtered.length === 0) {
-      tbody.innerHTML =
-        `<tr><td colspan="${JOURNEYS_TABLE_COLSPAN}" class="journeys-empty">No journeys match your search or status filter, or the list is empty.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${visibleJourneyColCount()}" class="journeys-empty">No journeys match your search or status filter, or the list is empty.</td></tr>`;
       updateJourneysMetricHeaders(0, 0, 0, 0, 0, false);
       updateSortIndicators();
+      applyJourneyColumnVisibility();
       return;
     }
     let sumEnters = 0;
@@ -563,24 +649,24 @@
       const verDisp = journeyVersionDisplay(row);
       const verTitle = journeyVersionTitle(row);
       tr.innerHTML = `
-        <td><input type="checkbox" disabled aria-label="Select row" /></td>
-        <td class="journeys-col-name">
+        <td data-jcol="check"><input type="checkbox" disabled aria-label="Select row" /></td>
+        <td data-jcol="name" class="journeys-col-name">
           <div class="journeys-name-cell">
             <a href="#" class="journeys-name-link" title="${escapeHtmlAttr(name)}">${escapeHtml(name)}</a>
             <span class="journeys-row-actions" title="More actions">⋯</span>
           </div>
         </td>
-        <td class="journeys-col-version" title="${escapeHtmlAttr(verTitle || verDisp)}">${escapeHtml(verDisp)}</td>
-        <td>
+        <td data-jcol="version" class="journeys-col-version" title="${escapeHtmlAttr(verTitle || verDisp)}">${escapeHtml(verDisp)}</td>
+        <td data-jcol="status">
           <span class="journeys-status ${st.cls}">
             <span class="journeys-status-dot" aria-hidden="true"></span>
             <span class="journeys-status-label">${escapeHtml(st.label)}</span>
           </span>
         </td>
-        <td>${tags || '<span class="journeys-empty" style="padding:0">—</span>'}</td>
-        <td class="journeys-col-metric">${formatEntersMetricHtml(row, sumEnters)}</td>
-        <td class="journeys-col-metric">${formatExitsMetricHtml(row, sumExits)}</td>
-        <td class="journeys-col-metric">${formatCjaShareMetricHtml(
+        <td data-jcol="tags">${tags || '<span class="journeys-empty" style="padding:0">—</span>'}</td>
+        <td data-jcol="enters" class="journeys-col-metric">${formatEntersMetricHtml(row, sumEnters)}</td>
+        <td data-jcol="exits" class="journeys-col-metric">${formatExitsMetricHtml(row, sumExits)}</td>
+        <td data-jcol="delivered" class="journeys-col-metric">${formatCjaShareMetricHtml(
           row,
           'cjaDelivered',
           sumDelivered,
@@ -588,7 +674,7 @@
           'CJA Delivered metric when available',
           'CJA Delivered; % is share of listed journeys.',
         )}</td>
-        <td class="journeys-col-metric">${formatCjaShareMetricHtml(
+        <td data-jcol="displays" class="journeys-col-metric">${formatCjaShareMetricHtml(
           row,
           'cjaDisplays',
           sumDisplays,
@@ -596,7 +682,7 @@
           'CJA adobe_reserved_label.ajo_displays when available',
           'CJA Displays; % is share of listed journeys.',
         )}</td>
-        <td class="journeys-col-metric">${formatCjaShareMetricHtml(
+        <td data-jcol="clicks" class="journeys-col-metric">${formatCjaShareMetricHtml(
           row,
           'cjaClicks',
           sumClicks,
@@ -604,12 +690,12 @@
           'CJA adobe_reserved_label.ajo_clicks when available',
           'CJA Clicks; % is share of listed journeys.',
         )}</td>
-        <td>${escapeHtml(formatUsDateTime(row.createdAt))}</td>
-        <td>${escapeHtml(row.createdBy || '—')}</td>
-        <td>${escapeHtml(formatUsDateTime(row.updatedAt))}</td>
-        <td>${escapeHtml(row.updatedBy || '—')}</td>
-        <td>${escapeHtml(formatUsDateOnly(row.publishedAt))}</td>
-        <td>${escapeHtml(row.publishedBy || '—')}</td>
+        <td data-jcol="createdAt">${escapeHtml(formatUsDateTime(row.createdAt))}</td>
+        <td data-jcol="createdBy">${escapeHtml(row.createdBy || '—')}</td>
+        <td data-jcol="updatedAt">${escapeHtml(formatUsDateTime(row.updatedAt))}</td>
+        <td data-jcol="updatedBy">${escapeHtml(row.updatedBy || '—')}</td>
+        <td data-jcol="publishedAt">${escapeHtml(formatUsDateOnly(row.publishedAt))}</td>
+        <td data-jcol="publishedBy">${escapeHtml(row.publishedBy || '—')}</td>
       `;
       if (hot) tr.classList.add('journeys-tr--metric-hot');
       const link = tr.querySelector('.journeys-name-link');
@@ -619,6 +705,7 @@
       tbody.appendChild(tr);
     }
     updateSortIndicators();
+    applyJourneyColumnVisibility();
   }
 
   async function load(forceRefresh) {
@@ -742,6 +829,71 @@
     }
   }
   applyJourneysNameColumnWidth();
+
+  function buildJourneysColumnsMenu() {
+    const list = document.getElementById('journeysColumnsList');
+    if (!list) return;
+    list.innerHTML = '';
+    for (let i = 0; i < TOGGLE_COLUMN_KEYS.length; i++) {
+      const key = TOGGLE_COLUMN_KEYS[i];
+      const id = `journeysColCb_${key}`;
+      const label = document.createElement('label');
+      label.className = 'journeys-columns-item';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.id = id;
+      cb.checked = columnVisibility[key] !== false;
+      const span = document.createElement('span');
+      span.textContent = COLUMN_LABELS[key] || key;
+      label.appendChild(cb);
+      label.appendChild(span);
+      cb.addEventListener('change', function () {
+        columnVisibility[key] = cb.checked;
+        saveColumnVisibility();
+        applyJourneyColumnVisibility();
+        render(allRows);
+      });
+      list.appendChild(label);
+    }
+  }
+
+  const journeysColsToggle = document.getElementById('journeysColumnsToggle');
+  const journeysColsMenu = document.getElementById('journeysColumnsMenu');
+  function setJourneysColumnsMenuOpen(open) {
+    if (!journeysColsMenu || !journeysColsToggle) return;
+    journeysColsMenu.hidden = !open;
+    journeysColsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  if (journeysColsToggle && journeysColsMenu) {
+    journeysColsToggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setJourneysColumnsMenuOpen(journeysColsMenu.hidden);
+    });
+    journeysColsMenu.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+    document.addEventListener('click', function () {
+      setJourneysColumnsMenuOpen(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && journeysColsMenu && !journeysColsMenu.hidden) setJourneysColumnsMenuOpen(false);
+    });
+  }
+  const journeysColsShowAll = document.getElementById('journeysColumnsShowAll');
+  if (journeysColsShowAll) {
+    journeysColsShowAll.addEventListener('click', function () {
+      for (let j = 0; j < TOGGLE_COLUMN_KEYS.length; j++) {
+        columnVisibility[TOGGLE_COLUMN_KEYS[j]] = true;
+      }
+      saveColumnVisibility();
+      buildJourneysColumnsMenu();
+      applyJourneyColumnVisibility();
+      render(allRows);
+      setJourneysColumnsMenuOpen(false);
+    });
+  }
+  buildJourneysColumnsMenu();
+  applyJourneyColumnVisibility();
 
   const nameResizeEl = document.getElementById('journeysNameResize');
   if (nameResizeEl) {

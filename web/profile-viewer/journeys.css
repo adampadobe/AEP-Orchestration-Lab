@@ -131,15 +131,133 @@
   white-space: nowrap;
 }
 
-.journeys-page .journeys-view-toggles {
+.journeys-page .journeys-columns-dropdown {
   margin-left: auto;
+  position: relative;
   display: flex;
-  gap: 0.25rem;
+  align-items: center;
+}
+
+.journeys-page .journeys-columns-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.journeys-page .journeys-columns-toggle:hover,
+.journeys-page .journeys-columns-toggle:focus-visible {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.journeys-page .journeys-columns-toggle:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.journeys-page .journeys-columns-caret {
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+
+.journeys-page .journeys-columns-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 40;
+  min-width: 15rem;
+  max-height: min(70vh, 22rem);
+  overflow: auto;
+  padding: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+}
+
+.journeys-page .journeys-columns-menu-header {
+  padding: 0.65rem 0.85rem 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.journeys-page .journeys-columns-list {
+  padding: 0 0.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.journeys-page .journeys-columns-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #1e293b;
+  cursor: pointer;
+  user-select: none;
+}
+
+.journeys-page .journeys-columns-item:hover {
+  background: #f1f5f9;
+}
+
+.journeys-page .journeys-columns-item input {
+  flex-shrink: 0;
+}
+
+.journeys-page .journeys-columns-menu-footer {
+  padding: 0.45rem 0.75rem 0.65rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.journeys-page .journeys-columns-footer-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #2563eb;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.journeys-page .journeys-columns-footer-btn:hover {
+  color: #1d4ed8;
 }
 
 .journeys-page .journeys-panel {
   padding: 0 1.5rem 2rem;
   background: #fff;
+}
+
+.journeys-page .journeys-table-scroll-hint {
+  margin: 0 0 0.5rem;
+  padding: 0 0.15rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.journeys-page .journeys-scroll-hint-ico {
+  display: inline-block;
+  margin-right: 0.25rem;
+  opacity: 0.7;
 }
 
 .journeys-page .journeys-table-wrap {
@@ -389,20 +507,41 @@ body.journeys-page {
   background: #fff;
 }
 
-/* Status / tags — do not collapse (checkbox … name … version … status … tags … metrics … dates) */
-.journeys-page .journeys-table th:nth-child(4),
-.journeys-page .journeys-table td:nth-child(4) {
+/* Column widths by data-jcol — stable when optional columns are hidden */
+.journeys-page .journeys-table th[data-jcol="name"],
+.journeys-page .journeys-table td[data-jcol="name"] {
+  min-width: 12rem;
+  max-width: 36rem;
+}
+
+.journeys-page .journeys-table th[data-jcol="version"],
+.journeys-page .journeys-table td[data-jcol="version"] {
+  min-width: 8rem;
+}
+
+.journeys-page .journeys-table th[data-jcol="status"],
+.journeys-page .journeys-table td[data-jcol="status"] {
   min-width: 6rem;
 }
-.journeys-page .journeys-table th:nth-child(5),
-.journeys-page .journeys-table td:nth-child(5) {
+
+.journeys-page .journeys-table th[data-jcol="tags"],
+.journeys-page .journeys-table td[data-jcol="tags"] {
   min-width: 7.5rem;
   max-width: 18rem;
 }
 
-/* Creation / audit columns (11–16): fixed readable width + no overlap */
-.journeys-page .journeys-table th:nth-child(n + 11),
-.journeys-page .journeys-table td:nth-child(n + 11) {
+.journeys-page .journeys-table th[data-jcol="createdAt"],
+.journeys-page .journeys-table td[data-jcol="createdAt"],
+.journeys-page .journeys-table th[data-jcol="createdBy"],
+.journeys-page .journeys-table td[data-jcol="createdBy"],
+.journeys-page .journeys-table th[data-jcol="updatedAt"],
+.journeys-page .journeys-table td[data-jcol="updatedAt"],
+.journeys-page .journeys-table th[data-jcol="updatedBy"],
+.journeys-page .journeys-table td[data-jcol="updatedBy"],
+.journeys-page .journeys-table th[data-jcol="publishedAt"],
+.journeys-page .journeys-table td[data-jcol="publishedAt"],
+.journeys-page .journeys-table th[data-jcol="publishedBy"],
+.journeys-page .journeys-table td[data-jcol="publishedBy"] {
   min-width: 9.25rem;
   max-width: 14rem;
   white-space: nowrap;
@@ -410,15 +549,22 @@ body.journeys-page {
   text-overflow: ellipsis;
 }
 
-.journeys-page .journeys-table th:nth-child(2),
-.journeys-page .journeys-table td:nth-child(2) {
-  min-width: 12rem;
-  max-width: 36rem;
-}
-
-.journeys-page .journeys-table th:nth-child(3),
-.journeys-page .journeys-table td:nth-child(3) {
-  min-width: 8rem;
+/* Hide optional columns (checkbox + name stay visible) */
+.journeys-page #journeysTable.journeys-col--hide-version :is(th, td)[data-jcol="version"],
+.journeys-page #journeysTable.journeys-col--hide-status :is(th, td)[data-jcol="status"],
+.journeys-page #journeysTable.journeys-col--hide-tags :is(th, td)[data-jcol="tags"],
+.journeys-page #journeysTable.journeys-col--hide-enters :is(th, td)[data-jcol="enters"],
+.journeys-page #journeysTable.journeys-col--hide-exits :is(th, td)[data-jcol="exits"],
+.journeys-page #journeysTable.journeys-col--hide-delivered :is(th, td)[data-jcol="delivered"],
+.journeys-page #journeysTable.journeys-col--hide-displays :is(th, td)[data-jcol="displays"],
+.journeys-page #journeysTable.journeys-col--hide-clicks :is(th, td)[data-jcol="clicks"],
+.journeys-page #journeysTable.journeys-col--hide-createdAt :is(th, td)[data-jcol="createdAt"],
+.journeys-page #journeysTable.journeys-col--hide-createdBy :is(th, td)[data-jcol="createdBy"],
+.journeys-page #journeysTable.journeys-col--hide-updatedAt :is(th, td)[data-jcol="updatedAt"],
+.journeys-page #journeysTable.journeys-col--hide-updatedBy :is(th, td)[data-jcol="updatedBy"],
+.journeys-page #journeysTable.journeys-col--hide-publishedAt :is(th, td)[data-jcol="publishedAt"],
+.journeys-page #journeysTable.journeys-col--hide-publishedBy :is(th, td)[data-jcol="publishedBy"] {
+  display: none !important;
 }
 
 .journeys-page .journeys-table th.journeys-col-numeric,

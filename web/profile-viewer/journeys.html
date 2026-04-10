@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="profile-viewer.css">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="consent.css">
-  <link rel="stylesheet" href="journeys.css?v=20260409f">
+  <link rel="stylesheet" href="journeys.css?v=20260409g">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge journeys-page">
   <div class="dashboard-shell">
@@ -83,9 +83,17 @@
               <option value="">All statuses</option>
             </select>
           </div>
-          <div class="journeys-view-toggles" aria-hidden="true">
-            <span class="journeys-toolbar-ico" title="List view">☰</span>
-            <span class="journeys-toolbar-ico" title="Grid view">▦</span>
+          <div class="journeys-columns-dropdown">
+            <button type="button" id="journeysColumnsToggle" class="journeys-columns-toggle" aria-expanded="false" aria-controls="journeysColumnsMenu" aria-haspopup="true">
+              Columns <span class="journeys-columns-caret" aria-hidden="true">▾</span>
+            </button>
+            <div id="journeysColumnsMenu" class="journeys-columns-menu" role="dialog" aria-label="Visible columns" hidden>
+              <div class="journeys-columns-menu-header">Show or hide columns</div>
+              <div id="journeysColumnsList" class="journeys-columns-list"></div>
+              <div class="journeys-columns-menu-footer">
+                <button type="button" id="journeysColumnsShowAll" class="journeys-columns-footer-btn">Show all</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -94,7 +102,11 @@
 
         <section class="journeys-panel" aria-labelledby="journeysTableHeading">
           <h3 id="journeysTableHeading" class="visually-hidden">Journey list</h3>
-          <div class="journeys-table-wrap">
+          <p class="journeys-table-scroll-hint" id="journeysScrollHint">
+            <span class="journeys-scroll-hint-ico" aria-hidden="true">↔</span>
+            Scroll horizontally on the table to see every column, or open <strong>Columns</strong> to reduce what is shown.
+          </p>
+          <div class="journeys-table-wrap" id="journeysTableWrap">
             <table class="journeys-table" id="journeysTable">
               <colgroup>
                 <col class="journeys-col-check" style="width: 2.75rem" />
@@ -103,8 +115,8 @@
               </colgroup>
               <thead id="journeysThead">
                 <tr>
-                  <th scope="col" class="journeys-th-check"><input type="checkbox" disabled aria-label="Select all" /></th>
-                  <th scope="col" class="journeys-th-name journeys-col-name journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="check" class="journeys-th-check"><input type="checkbox" disabled aria-label="Select all" /></th>
+                  <th scope="col" data-jcol="name" class="journeys-th-name journeys-col-name journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-name-inner">
                       <div class="journeys-th-stack">
                         <button type="button" class="journeys-th-sort" data-sort-key="name">
@@ -122,7 +134,7 @@
                       title="Drag to widen or narrow"
                     ></button>
                   </th>
-                  <th scope="col" class="journeys-col-version journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="version" class="journeys-col-version journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack">
                       <button type="button" class="journeys-th-sort" data-sort-key="journeyVersion">
                         <span class="journeys-th-sort-label">Version</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -131,7 +143,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="status" class="journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack">
                       <button type="button" class="journeys-th-sort" data-sort-key="status">
                         <span class="journeys-th-sort-label">Status</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -140,7 +152,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="tags" class="journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack">
                       <button type="button" class="journeys-th-sort" data-sort-key="tags">
                         <span class="journeys-th-sort-label">Tags</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -149,7 +161,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-col-metric journeys-th-metric journeys-th-metric--enters journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="enters" class="journeys-col-metric journeys-th-metric journeys-th-metric--enters journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack journeys-th-stack--metric">
                       <button type="button" class="journeys-th-sort" data-sort-key="enters" title="CJA metric adobe_reserved_label.ajo_journeyEnters (Journey Enters); else authoring entry count">
                         <span class="journeys-th-sort-label">Enters</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -159,7 +171,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-col-metric journeys-th-metric journeys-th-metric--exits journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="exits" class="journeys-col-metric journeys-th-metric journeys-th-metric--exits journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack journeys-th-stack--metric">
                       <button type="button" class="journeys-th-sort" data-sort-key="exits" title="Second CJA metric (e.g. exits); configure CJA_METRIC_JOURNEY_ENGAGEMENT. % = exits ÷ enters when both available.">
                         <span class="journeys-th-sort-label">Exits</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -169,7 +181,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-col-metric journeys-th-metric journeys-th-metric--delivered journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="delivered" class="journeys-col-metric journeys-th-metric journeys-th-metric--delivered journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack journeys-th-stack--metric">
                       <button type="button" class="journeys-th-sort" data-sort-key="delivered" title="CJA metric (e.g. adobe_reserved_label.ajo_delivered); set CJA_METRIC_DELIVERED to override">
                         <span class="journeys-th-sort-label">Delivered</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -179,7 +191,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-col-metric journeys-th-metric journeys-th-metric--displays journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="displays" class="journeys-col-metric journeys-th-metric journeys-th-metric--displays journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack journeys-th-stack--metric">
                       <button type="button" class="journeys-th-sort" data-sort-key="displays" title="CJA metric adobe_reserved_label.ajo_displays (set CJA_METRIC_DISPLAYS to override)">
                         <span class="journeys-th-sort-label">Displays</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -189,7 +201,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-col-metric journeys-th-metric journeys-th-metric--clicks journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="clicks" class="journeys-col-metric journeys-th-metric journeys-th-metric--clicks journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack journeys-th-stack--metric">
                       <button type="button" class="journeys-th-sort" data-sort-key="clicks" title="CJA metric adobe_reserved_label.ajo_clicks (set CJA_METRIC_CLICKS to override)">
                         <span class="journeys-th-sort-label">Clicks</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -199,7 +211,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="createdAt" class="journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack">
                       <button type="button" class="journeys-th-sort" data-sort-key="createdAt">
                         <span class="journeys-th-sort-label">Creation date</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -208,7 +220,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="createdBy" class="journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack">
                       <button type="button" class="journeys-th-sort" data-sort-key="createdBy">
                         <span class="journeys-th-sort-label">Created by</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -217,7 +229,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="updatedAt" class="journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack">
                       <button type="button" class="journeys-th-sort" data-sort-key="updatedAt">
                         <span class="journeys-th-sort-label">Last update</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -226,7 +238,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="updatedBy" class="journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack">
                       <button type="button" class="journeys-th-sort" data-sort-key="updatedBy">
                         <span class="journeys-th-sort-label">Last update by</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -235,7 +247,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="publishedAt" class="journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack">
                       <button type="button" class="journeys-th-sort" data-sort-key="publishedAt">
                         <span class="journeys-th-sort-label">Published</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -244,7 +256,7 @@
                       <div class="journeys-th-range" aria-hidden="true"><span class="journeys-th-range-a">Mar 11</span><span class="journeys-th-range-track"></span><span class="journeys-th-range-b">Apr 9</span></div>
                     </div>
                   </th>
-                  <th scope="col" class="journeys-th-cell journeys-th-accent">
+                  <th scope="col" data-jcol="publishedBy" class="journeys-th-cell journeys-th-accent">
                     <div class="journeys-th-stack">
                       <button type="button" class="journeys-th-sort" data-sort-key="publishedBy">
                         <span class="journeys-th-sort-label">Published by</span><span class="journeys-sort-indicator" aria-hidden="true">⇅</span>
@@ -268,6 +280,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-theme.js"></script>
   <script src="aep-lab-nav.js"></script>
-  <script src="journeys.js?v=20260409e"></script>
+  <script src="journeys.js?v=20260409g"></script>
 </body>
 </html>
