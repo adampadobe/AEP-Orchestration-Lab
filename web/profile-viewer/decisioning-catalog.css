@@ -387,3 +387,33 @@ html[data-aep-theme='dark'] .decisioning-catalog-page .cd-catalog-table td.cd-of
 .decisioning-catalog-page .cd-sort-none {
   opacity: 0.35;
 }
+
+/* Decisioning visualiser (ranking explorer) — below catalog */
+.decisioning-catalog-page .dce-viz-section {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 2rem;
+  box-sizing: border-box;
+}
+
+.decisioning-catalog-page .dce-viz-section-intro {
+  margin-bottom: 1rem;
+}
+
+.decisioning-catalog-page .dce-viz-section-title {
+  font-family: var(--dce-font);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dce-text);
+  margin: 0 0 0.5rem;
+}
+
+.decisioning-catalog-page .dce-viz-section-lead {
+  font-family: var(--dce-font);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--dce-muted);
+  margin: 0;
+  max-width: 52rem;
+}

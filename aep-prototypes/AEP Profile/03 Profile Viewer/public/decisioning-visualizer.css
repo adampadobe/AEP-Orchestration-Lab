@@ -1,0 +1,950 @@
+/**
+ * Decisioning visualiser — ranking methods explorer (scoped).
+ * Loaded on decisioning-catalog.html below the catalog surface.
+ */
+.decisioning-catalog-page .dce-viz-scope,
+.decisioning-catalog-page .dce-viz-scope *,
+.decisioning-catalog-page .dce-viz-scope *::before,
+.decisioning-catalog-page .dce-viz-scope *::after {
+  box-sizing: border-box;
+}
+
+.decisioning-catalog-page .dce-viz-scope {
+  --red: #cc0000;
+  --red-light: #ff2626;
+  --red-dim: rgba(204, 0, 0, 0.12);
+  --ink: #0f0f0f;
+  --paper: #faf9f7;
+  --paper-2: #f2f0ec;
+  --muted: #7a7570;
+  --line: rgba(0, 0, 0, 0.1);
+  --priority-color: #c47b00;
+  --formula-color: #005f9e;
+  --ai-color: #1a7a4a;
+  --exp-color: #6b3fa0;
+  font-family: var(--dce-font, "DM Sans", system-ui), "Outfit", sans-serif;
+  background: var(--dce-bg, var(--paper));
+  color: var(--dce-text, var(--ink));
+  overflow-x: hidden;
+  font-size: 16px;
+  border-radius: var(--dce-radius, 8px);
+  border: 1px solid var(--dce-border, rgba(0, 0, 0, 0.1));
+  box-shadow: var(--dce-shadow, 0 4px 12px rgba(0, 0, 0, 0.08));
+  margin-top: 1.5rem;
+}
+
+  /* ── HERO ── */
+  .decisioning-catalog-page .dce-viz-scope .hero {
+    position: relative;
+    background: var(--ink);
+    color: white;
+    padding: 80px 60px 60px;
+    overflow: hidden;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 79px,
+      rgba(255,255,255,0.03) 79px,
+      rgba(255,255,255,0.03) 80px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent,
+      transparent 79px,
+      rgba(255,255,255,0.03) 79px,
+      rgba(255,255,255,0.03) 80px
+    );
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--red-light);
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(42px, 6vw, 78px);
+    line-height: 1.05;
+    position: relative;
+    max-width: 800px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .hero h1 em {
+    font-style: italic;
+    color: #d4cfc9;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .hero-sub {
+    font-size: 17px;
+    font-weight: 300;
+    color: #a09a94;
+    margin-top: 20px;
+    max-width: 520px;
+    line-height: 1.6;
+    position: relative;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .hero-badge {
+    position: absolute;
+    top: 60px;
+    right: 60px;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    line-height: 1.8;
+    text-align: center;
+  }
+
+  /* ── NAV TABS ── */
+  .decisioning-catalog-page .dce-viz-scope .tab-nav {
+    display: flex;
+    background: white;
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+    overflow-x: auto;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .tab-btn {
+    flex: 1;
+    min-width: 160px;
+    padding: 18px 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .tab-btn:hover { color: var(--ink); background: var(--paper); }
+
+  .decisioning-catalog-page .dce-viz-scope .tab-btn.active {
+    color: var(--ink);
+    border-bottom-color: var(--active-color, var(--red));
+    background: var(--paper);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .tab-icon {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--active-color, #ccc);
+    flex-shrink: 0;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .decisioning-catalog-page .dce-viz-scope .content {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 40px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .panel { display: none; }
+  .decisioning-catalog-page .dce-viz-scope .panel.active { display: block; animation: fadeIn 0.35s ease; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SECTION HEADER ── */
+  .decisioning-catalog-page .dce-viz-scope .section-header {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 32px;
+    align-items: start;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .method-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 96px;
+    line-height: 1;
+    color: var(--method-color);
+    opacity: 0.15;
+    user-select: none;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .method-meta { padding-top: 8px; }
+
+  .decisioning-catalog-page .dce-viz-scope .method-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--method-color);
+    background: color-mix(in srgb, var(--method-color) 10%, transparent);
+    padding: 4px 10px;
+    border-radius: 3px;
+    margin-bottom: 12px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .method-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 44px;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .method-desc {
+    margin-top: 12px;
+    font-size: 16px;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.65;
+    max-width: 540px;
+  }
+
+  /* ── TWO COLUMN ── */
+  .decisioning-catalog-page .dce-viz-scope .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  @media (max-width: 700px) { .decisioning-catalog-page .dce-viz-scope .two-col { grid-template-columns: 1fr; } }
+
+  /* ── CARD ── */
+  .decisioning-catalog-page .dce-viz-scope .card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 28px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ── OFFER PRIORITY VIZ ── */
+  .decisioning-catalog-page .dce-viz-scope .offers-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .decisioning-catalog-page .dce-viz-scope .offer-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .offer-row.winner {
+    background: color-mix(in srgb, var(--priority-color) 8%, white);
+    border-color: var(--priority-color);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .offer-row:hover { transform: translateX(4px); }
+
+  .decisioning-catalog-page .dce-viz-scope .offer-score-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: white;
+    flex-shrink: 0;
+    background: var(--priority-color);
+    opacity: 0.3;
+    transition: opacity 0.2s;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .offer-row.winner .offer-score-badge { opacity: 1; }
+
+  .decisioning-catalog-page .dce-viz-scope .offer-name { font-size: 14px; font-weight: 500; flex: 1; }
+  .decisioning-catalog-page .dce-viz-scope .offer-sub { font-size: 12px; color: var(--muted); }
+
+  .decisioning-catalog-page .dce-viz-scope .crown {
+    position: absolute;
+    right: 14px;
+    font-size: 18px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .offer-row.winner .crown { opacity: 1; }
+
+  .decisioning-catalog-page .dce-viz-scope .priority-bar-wrap { margin-top: 8px; }
+  .decisioning-catalog-page .dce-viz-scope .priority-bar-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .decisioning-catalog-page .dce-viz-scope .priority-bar-track {
+    height: 6px;
+    background: var(--paper-2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .decisioning-catalog-page .dce-viz-scope .priority-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--priority-color);
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ── FORMULA BUILDER UI ── */
+  .decisioning-catalog-page .dce-viz-scope .formula-builder {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-rule {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    position: relative;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-rule + .formula-rule {
+    margin-top: 6px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .rule-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 0;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .rule-connector-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: white;
+    background: #005f9e;
+    padding: 3px 10px;
+    border-radius: 10px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .rule-block {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: white;
+    border: 1.5px solid #d0dde8;
+    border-radius: 10px;
+    overflow: hidden;
+    flex: 1;
+    min-height: 52px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .rule-block.active-rule {
+    border-color: #005f9e;
+    box-shadow: 0 0 0 3px rgba(0,95,158,0.1);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .rule-source-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    height: 100%;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-right: 1.5px solid #d0dde8;
+    white-space: nowrap;
+    min-height: 52px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .rule-source-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .rule-attribute {
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    border-right: 1.5px solid #edf0f3;
+    white-space: nowrap;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .rule-operator {
+    padding: 0 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #7a7570;
+    border-right: 1.5px solid #edf0f3;
+    white-space: nowrap;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    background: #fafafa;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .rule-value {
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    border-right: 1.5px solid #edf0f3;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .rule-action {
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 52px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .action-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .action-multiply { background: #fff3cd; color: #856404; }
+  .decisioning-catalog-page .dce-viz-scope .action-add { background: #d1f0e0; color: #1a7a4a; }
+  .decisioning-catalog-page .dce-viz-scope .action-base { background: #e8f0fe; color: #005f9e; }
+  .decisioning-catalog-page .dce-viz-scope .action-propensity { background: #f0ebfa; color: #6b3fa0; }
+  .decisioning-catalog-page .dce-viz-scope .action-campaign { background: #fdecea; color: #b91c1c; }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-result-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #005f9e, #0077c2);
+    border-radius: 10px;
+    color: white;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-result-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 2px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-result-expr {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    opacity: 0.9;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-result-score {
+    font-family: 'DM Serif Display', serif;
+    font-size: 36px;
+    line-height: 1;
+    margin-left: auto;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .attr-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 3px 8px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1.5px solid currentColor;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-inputs { display: flex; flex-direction: column; gap: 10px; }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-input-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    transition: background 0.2s;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-input-row.winner-row {
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.35);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-rank-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .winner-row .formula-rank-num {
+    background: #005f9e;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .formula-input-label { font-size: 13px; font-weight: 500; flex: 1; }
+  .decisioning-catalog-page .dce-viz-scope .formula-input-value { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--formula-color); font-weight: 500; }
+
+  .decisioning-catalog-page .dce-viz-scope .toggle-pill {
+    display: flex;
+    background: var(--paper-2);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .toggle-opt {
+    padding: 5px 14px;
+    border-radius: 16px;
+    border: none;
+    background: none;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .toggle-opt.active {
+    background: white;
+    color: var(--formula-color);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .score-readout {
+    background: color-mix(in srgb, var(--method-color) 8%, white);
+    border: 1px solid color-mix(in srgb, var(--method-color) 20%, transparent);
+    border-radius: 10px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-top: 16px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .score-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 52px;
+    color: var(--method-color);
+    line-height: 1;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .score-label { font-size: 13px; color: var(--muted); font-weight: 400; }
+  .decisioning-catalog-page .dce-viz-scope .score-breakdown { font-size: 12px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+  /* ── AI VIZ ── */
+  .decisioning-catalog-page .dce-viz-scope .ai-profiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+
+  .decisioning-catalog-page .dce-viz-scope .profile-card {
+    padding: 16px;
+    border-radius: 10px;
+    border: 2px solid var(--line);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    background: white;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .profile-card.selected {
+    border-color: var(--ai-color);
+    background: color-mix(in srgb, var(--ai-color) 5%, white);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .profile-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .profile-name { font-size: 13px; font-weight: 600; }
+  .decisioning-catalog-page .dce-viz-scope .profile-trait { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .decisioning-catalog-page .dce-viz-scope .ai-offer-ranks { display: flex; flex-direction: column; gap: 8px; }
+
+  .decisioning-catalog-page .dce-viz-scope .ai-offer-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    transition: all 0.35s;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .ai-offer-row.top {
+    background: color-mix(in srgb, var(--ai-color) 8%, white);
+    border-color: var(--ai-color);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .ai-rank { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ai-color); opacity: 0.4; width: 24px; text-align: center; }
+  .decisioning-catalog-page .dce-viz-scope .ai-offer-row.top .ai-rank { opacity: 1; }
+  .decisioning-catalog-page .dce-viz-scope .ai-offer-name { flex: 1; font-size: 13px; font-weight: 500; }
+
+  .decisioning-catalog-page .dce-viz-scope .ai-confidence {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--ai-color);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .conf-bar {
+    width: 60px;
+    height: 4px;
+    background: var(--paper-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .conf-fill {
+    height: 100%;
+    background: var(--ai-color);
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ── EXPERIMENT VIZ ── */
+  .decisioning-catalog-page .dce-viz-scope .experiment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .exp-arm {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .exp-arm-header {
+    padding: 16px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .exp-arm-body { padding: 20px; background: white; }
+
+  .decisioning-catalog-page .dce-viz-scope .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .metric-row:last-child { border-bottom: none; }
+  .decisioning-catalog-page .dce-viz-scope .metric-label { color: var(--muted); }
+  .decisioning-catalog-page .dce-viz-scope .metric-value { font-family: 'DM Mono', monospace; font-weight: 500; }
+
+  .decisioning-catalog-page .dce-viz-scope .lift-banner {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--exp-color) 10%, white), color-mix(in srgb, var(--exp-color) 5%, white));
+    border: 1px solid color-mix(in srgb, var(--exp-color) 25%, transparent);
+    border-radius: 12px;
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .lift-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 64px;
+    color: var(--exp-color);
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .lift-text { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .decisioning-catalog-page .dce-viz-scope .lift-text strong { color: var(--ink); }
+
+  /* ── STORY BOX ── */
+  .decisioning-catalog-page .dce-viz-scope .story-box {
+    border-left: 3px solid var(--method-color);
+    padding: 20px 24px;
+    background: color-mix(in srgb, var(--method-color) 4%, white);
+    border-radius: 0 10px 10px 0;
+    margin-top: 24px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .story-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--method-color);
+    margin-bottom: 10px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .story-text {
+    font-size: 14px;
+    line-height: 1.75;
+    color: #444;
+    font-style: italic;
+  }
+
+  /* ── COMPARISON OVERVIEW ── */
+  .decisioning-catalog-page .dce-viz-scope .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 800px) { .decisioning-catalog-page .dce-viz-scope .overview-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .decisioning-catalog-page .dce-viz-scope .overview-card {
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    display: block;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .overview-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
+
+  .decisioning-catalog-page .dce-viz-scope .ov-header {
+    padding: 24px 20px 20px;
+    color: white;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .ov-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 40px;
+    opacity: 0.35;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .ov-name {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .ov-body { padding: 18px 20px; background: white; border: 1px solid var(--line); border-top: none; border-radius: 0 0 14px 14px; }
+  .decisioning-catalog-page .dce-viz-scope .ov-best { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+  .decisioning-catalog-page .dce-viz-scope .ov-desc { font-size: 13px; color: var(--ink); font-weight: 400; line-height: 1.5; }
+
+  .decisioning-catalog-page .dce-viz-scope .ov-complexity {
+    margin-top: 14px;
+    display: flex;
+    gap: 3px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .complexity-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* ── CHARACTERISTICS ── */
+  .decisioning-catalog-page .dce-viz-scope .chars { display: flex; flex-direction: column; gap: 8px; }
+
+  .decisioning-catalog-page .dce-viz-scope .char-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #444;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .char-icon { color: var(--method-color); flex-shrink: 0; font-size: 15px; margin-top: 1px; }
+
+  /* ── RUN BUTTON ── */
+  .decisioning-catalog-page .dce-viz-scope .run-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: var(--method-color, var(--ink));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+    margin-top: 16px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .run-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+
+  /* ── FOOTER ── */
+  .decisioning-catalog-page .dce-viz-scope .footer {
+    background: var(--ink);
+    color: rgba(255,255,255,0.3);
+    padding: 28px 40px;
+    text-align: center;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── PROGRESS INDICATOR ── */
+  .decisioning-catalog-page .dce-viz-scope .progress-wrap {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .prog-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--line);
+    transition: background 0.2s;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .prog-dot.done { background: var(--method-color); }
+
+  /* Sliders */
+  .decisioning-catalog-page .dce-viz-scope input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--paper-2);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--formula-color);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .slider-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .slider-value { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--formula-color); }
+
+  /* ── GLOBAL READABILITY BOOST ── */
+  .decisioning-catalog-page .dce-viz-scope .card-label { font-size: 12px; }
+  .decisioning-catalog-page .dce-viz-scope .char-row { font-size: 15px; }
+  .decisioning-catalog-page .dce-viz-scope .offer-name { font-size: 15px; }
+  .decisioning-catalog-page .dce-viz-scope .offer-sub { font-size: 13px; }
+  .decisioning-catalog-page .dce-viz-scope .ov-desc { font-size: 14px; }
+  .decisioning-catalog-page .dce-viz-scope .method-desc { font-size: 17px; }
+  .decisioning-catalog-page .dce-viz-scope .slider-meta { font-size: 13px; }
+  .decisioning-catalog-page .dce-viz-scope .formula-input-label { font-size: 14px; }
+  .decisioning-catalog-page .dce-viz-scope .formula-input-value { font-size: 13px; }
+  .decisioning-catalog-page .dce-viz-scope .rule-attribute { font-size: 14px; }
+  .decisioning-catalog-page .dce-viz-scope .rule-operator { font-size: 12px; }
+  .decisioning-catalog-page .dce-viz-scope .rule-value { font-size: 14px; }
+  .decisioning-catalog-page .dce-viz-scope .action-badge { font-size: 13px; }
+  .decisioning-catalog-page .dce-viz-scope .rule-source-tag { font-size: 11px; }
+  .decisioning-catalog-page .dce-viz-scope .ai-offer-name { font-size: 14px; }
+  .decisioning-catalog-page .dce-viz-scope .ai-confidence { font-size: 12px; }
+  .decisioning-catalog-page .dce-viz-scope .metric-label { font-size: 14px; }
+  .decisioning-catalog-page .dce-viz-scope .metric-value { font-size: 14px; }
+  .decisioning-catalog-page .dce-viz-scope .story-text { font-size: 15px; }
+  .decisioning-catalog-page .dce-viz-scope .story-eyebrow { font-size: 11px; }
+  .decisioning-catalog-page .dce-viz-scope .profile-name { font-size: 14px; }
+  .decisioning-catalog-page .dce-viz-scope .profile-trait { font-size: 12px; }
+  .decisioning-catalog-page .dce-viz-scope .lift-text { font-size: 15px; }
+
+html[data-aep-theme='dark'] .decisioning-catalog-page .dce-viz-scope {
+  --paper: #252830;
+  --paper-2: #1a1d23;
+  --ink: #e6e9ef;
+  --muted: #8b909a;
+  --line: rgba(255, 255, 255, 0.12);
+}
