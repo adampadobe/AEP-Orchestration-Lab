@@ -779,16 +779,22 @@
 
   .decisioning-catalog-page .dce-viz-scope .run-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
 
-  /* ── FOOTER ── */
-  /* Always a dark strip (do not use --ink: it aliases to --dce-text and inverts in dark mode). */
+  /* ── FOOTER ── Light: subtle panel strip; dark: branded bar (matches global theme). */
   .decisioning-catalog-page .dce-viz-scope .footer {
-    background: #121212;
-    color: rgba(255, 255, 255, 0.38);
+    background: color-mix(in srgb, var(--dce-border) 22%, var(--dce-bg-panel));
+    color: var(--dce-muted);
+    border-top: 1px solid var(--dce-border);
     padding: 28px 40px;
     text-align: center;
     font-size: 12px;
     font-family: 'DM Mono', monospace;
     letter-spacing: 0.08em;
+  }
+
+  html[data-aep-theme='dark'] .decisioning-catalog-page .dce-viz-scope .footer {
+    background: #121212;
+    color: rgba(255, 255, 255, 0.38);
+    border-top-color: rgba(255, 255, 255, 0.08);
   }
 
   /* ── PROGRESS INDICATOR ── */
