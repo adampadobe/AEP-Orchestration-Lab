@@ -531,6 +531,11 @@ html[data-aep-theme='dark'] body.firebase-database-page {
   color: var(--dash-muted);
 }
 
+.firebase-database-page .fb-db-api-hint--tight {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+}
+
 .firebase-database-page .fb-db-api-hint .dashboard-code {
   font-size: 0.68rem;
 }

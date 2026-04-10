@@ -294,16 +294,6 @@
     return { email: email, password: password };
   }
 
-  /** REST API URL for workspace root — only for claimed LDAP slug, e.g. …/userWorkspaces/apalmer.json */
-  function workspaceRestApiUrlFromSlug(slug) {
-    if (!slug) return '';
-    var cfg = getCfg();
-    var root = cfg && cfg.databaseURL ? String(cfg.databaseURL).trim() : '';
-    if (!root) return '';
-    if (root.endsWith('/')) root = root.slice(0, -1);
-    return root + '/userWorkspaces/' + encodeURIComponent(slug) + '.json';
-  }
-
   /** Public read mirror for AJO custom actions (GET, no auth) — …/ajoLookups/&lt;slug&gt;.json */
   function workspaceAjoRestApiUrlFromSlug(slug) {
     if (!slug) return '';
@@ -327,17 +317,14 @@
 
   function updateRestApiLink(user) {
     var block = document.getElementById('fbDbApiBlock');
-    var urlEl = document.getElementById('fbDbRestUrl');
     var ajoEl = document.getElementById('fbDbAjoUrl');
-    if (!block || !urlEl) return;
+    if (!block || !ajoEl) return;
     if (user && user.uid && workspaceSlug) {
-      var url = workspaceRestApiUrlFromSlug(workspaceSlug);
-      urlEl.textContent = url;
-      if (ajoEl) ajoEl.textContent = workspaceAjoRestApiUrlFromSlug(workspaceSlug);
+      var url = workspaceAjoRestApiUrlFromSlug(workspaceSlug);
+      ajoEl.textContent = url;
       block.hidden = !url;
     } else {
-      urlEl.textContent = '';
-      if (ajoEl) ajoEl.textContent = '';
+      ajoEl.textContent = '';
       block.hidden = true;
     }
     syncRestApiPendingHint();
@@ -436,7 +423,7 @@
               pendingRequired: false,
               setupMode: 'optional',
               optionalLead:
-                'Your data uses a legacy folder keyed by user id. Set your LDAP workspace name below — your data will be copied to userWorkspaces/<name> and your REST API URL will use that name (not your user id).',
+                'Your data uses a legacy folder keyed by user id. Set a workspace name below to copy data and unlock your Adobe URL.',
             });
             return;
           }
@@ -491,38 +478,13 @@
       });
   }
 
-  function copyRestApiUrl() {
-    var urlEl = document.getElementById('fbDbRestUrl');
-    if (!urlEl || !urlEl.textContent) {
-      if (auth && auth.currentUser && !workspaceSlug) {
-        showMsg('Set your LDAP workspace name first — the REST URL will use userWorkspaces/<name>.json (not your user id).', 'err');
-      } else {
-        showMsg('Sign in to get an API URL.', 'err');
-      }
-      return;
-    }
-    var text = urlEl.textContent;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(
-        function () {
-          showMsg('REST API URL copied to clipboard.', 'ok');
-        },
-        function () {
-          fallbackCopyText(text, 'REST API URL copied to clipboard.');
-        },
-      );
-    } else {
-      fallbackCopyText(text, 'REST API URL copied to clipboard.');
-    }
-  }
-
   function copyAjoRestApiUrl() {
     var urlEl = document.getElementById('fbDbAjoUrl');
     if (!urlEl || !urlEl.textContent) {
       if (auth && auth.currentUser && !workspaceSlug) {
-        showMsg('Set your LDAP workspace name first to get the AJO URL.', 'err');
+        showMsg('Save a workspace name first.', 'err');
       } else {
-        showMsg('Sign in to get an API URL.', 'err');
+        showMsg('Sign in to get a URL.', 'err');
       }
       return;
     }
@@ -530,14 +492,14 @@
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(
         function () {
-          showMsg('AJO personalization URL copied to clipboard.', 'ok');
+          showMsg('URL copied.', 'ok');
         },
         function () {
-          fallbackCopyText(text, 'AJO personalization URL copied to clipboard.');
+          fallbackCopyText(text, 'URL copied.');
         },
       );
     } else {
-      fallbackCopyText(text, 'AJO personalization URL copied to clipboard.');
+      fallbackCopyText(text, 'URL copied.');
     }
   }
 
@@ -1057,8 +1019,6 @@
   document.getElementById('fbDbAnonymous') && document.getElementById('fbDbAnonymous').addEventListener('click', signInAnonymous);
   document.getElementById('fbDbResetPassword') &&
     document.getElementById('fbDbResetPassword').addEventListener('click', sendPasswordReset);
-  document.getElementById('fbDbCopyRestUrl') &&
-    document.getElementById('fbDbCopyRestUrl').addEventListener('click', copyRestApiUrl);
   document.getElementById('fbDbCopyAjoUrl') &&
     document.getElementById('fbDbCopyAjoUrl').addEventListener('click', copyAjoRestApiUrl);
   document.getElementById('fbDbViewTree') &&
