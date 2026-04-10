@@ -4,13 +4,33 @@ Notes for anyone working in this repository together: tooling versions, conventi
 
 ## Git: stay current with `origin/main`
 
-Upstream is **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (`origin`). Before starting work (or before pushing), **fetch and pull** so your branch is not behind **`origin/main`**—otherwise you risk conflicts and overwriting teammates’ changes.
+Upstream is **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (`origin`). **Everyone** working in this repo—including **Alan**—should treat GitHub as the source of truth and follow the two-phase habit below so we do not edit or deploy on top of stale `main`, and we avoid surprise conflicts when the other person has already merged.
+
+### Phase A — start of each work session (before substantive edits)
+
+Run this **before** you spend time on code, docs, or a long Cursor/agent session:
 
 1. `git fetch origin`
-2. On `main`: `git pull --ff-only origin main` (use **`git stash`** first if you have dirty changes and Git refuses to pull)
-3. See also **`.cursor/rules/sync-origin-main.mdc`** in this repo
+2. `git status` — if you are **behind** `origin/main`, update before continuing.
+3. On branch `main`: `git pull --ff-only origin main`  
+   If you have uncommitted changes and Git refuses: `git stash push -m "wip"`, pull, then `git stash pop`.
+4. On a **feature branch**: merge or rebase **`origin/main`** into your branch so it includes the latest shared commits.
 
-Cursor’s **github-git-workflow** skill documents the same habit for all shared repos.
+**Cursor:** the project skill **`.cursor/skills/sync-with-origin-main/SKILL.md`** tells the agent to run this pattern when syncing or before pushes. Prefer loading that skill (or following this section) so stays consistent.
+
+### Phase B — immediately before `git push`
+
+Someone else may have merged while you were working. Right before you push:
+
+1. `git fetch origin` again
+2. If your branch is behind `origin/main`, **`git pull --ff-only origin main`** (or rebase/merge your feature branch onto current `origin/main`) and fix any conflicts **before** `git push`.
+
+If `git push` is **rejected**, do **not** force-push to `main`. Update from `origin`, resolve, then push again.
+
+### Other references
+
+- **`.cursor/rules/sync-origin-main.mdc`** — workspace reminder to align with `origin/main` before substantive edits.
+- **github-git-workflow** skill (personal Cursor skills) — same habits for any shared repo.
 
 ## Node.js
 
@@ -53,4 +73,5 @@ prototype**, not the reverse). Using the old reversed sync overwrote
 
 ## Related docs
 
+- **`.cursor/skills/sync-with-origin-main/SKILL.md`** — agent workflow for Phase A / Phase B Git sync with `origin/main`.
 - Firebase Functions runtime: [Manage functions](https://firebase.google.com/docs/functions/manage-functions) (2nd gen uses the `engines` field in `functions/package.json`).
