@@ -1,0 +1,14 @@
+---
+description: Base work on latest origin/main; fetch and pull before substantive edits.
+alwaysApply: true
+---
+
+# Start from latest `main`
+
+Before making or committing changes in this repo:
+
+1. Run **`git fetch origin`** and ensure your branch is aligned with **`origin/main`** (e.g. `git status` should not show your tracking branch as **behind** `origin/main`).
+2. If you are behind: **`git pull --rebase origin main`** while on `main`, or **rebase/merge `origin/main` into your feature branch** before piling on new commits.
+3. Avoid long-lived drift from **`adampadobe/AEP-Orchestration-Lab`** **`main`** without coordinating with your teammate.
+
+Upstream is **`origin`** → `https://github.com/adampadobe/AEP-Orchestration-Lab.git`.
