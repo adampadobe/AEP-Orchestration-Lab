@@ -21,7 +21,7 @@
   var SAMPLE_WORKSPACE_JSON_PRETTY = JSON.stringify(
     {
       brand: {
-        name: 'Etihad',
+        name: 'WKNDFly',
         tagline: 'Your journey, your destination',
         siteUrl: 'https://example.com',
       },
