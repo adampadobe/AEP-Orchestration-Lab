@@ -9,6 +9,59 @@ const admin = require('firebase-admin');
 const RECIPIENTS = ['apalmer@adobe.com', 'adamp.adobedemo@gmail.com'];
 const ALLOWED_FLAVORS = new Set(['home', 'journeys', 'catalog', 'profile']);
 
+/** Marauder’s Map–style labels for which speck / “egg” fired (plain-text email). */
+const EGG_LORE = {
+  home: {
+    codename: 'The Hearth Ink',
+    epithet: 'the Home dashboard egg',
+    blurb: (n) =>
+      `${n} followed the tiny blot past “credentials,” swore the thing one swears when the Ministry isn’t looking, and the parchment obliged. ` +
+      `This is the original margin-dot — the welcome mat for honest trouble.`,
+  },
+  journeys: {
+    codename: 'The Atlas Fleck',
+    epithet: 'the Journey Orchestration egg',
+    blurb: (n) =>
+      `${n} spotted the mark on the journey banner, where sandboxes gossip and caches pretend to be patient. ` +
+      `Footprints approved; metrics may still be loading.`,
+  },
+  catalog: {
+    codename: 'The Merchant’s Speck',
+    epithet: 'the Decisioning catalog egg',
+    blurb: (n) =>
+      `${n} found ink hiding among offers, collections, and strategies — proof that ranking drama survives even in polite UI. ` +
+      `The shelves remember who reads to the last sentence.`,
+  },
+  profile: {
+    codename: 'The Pensieve Dot',
+    epithet: 'the Profile Viewer egg',
+    blurb: (n) =>
+      `${n} signed near the query scroll where namespaces meet and identity maps hold hands under consent. ` +
+      `Not a ghost on the stairs — a ghost in the graph, with paperwork.`,
+  },
+};
+
+function buildEggEmail({ name, flavor, page, docId }) {
+  const lore = EGG_LORE[flavor] || EGG_LORE.home;
+  const subject = `Mischief managed: ${name} • ${lore.codename} (${lore.epithet})`;
+  const text = [
+    `Messrs. Palmer & Kirkham beg to report that the Marauder’s Map has stirred.`,
+    ``,
+    `Who: ${name}`,
+    `Which secret passage: ${lore.codename} — ${lore.epithet}`,
+    ``,
+    lore.blurb(name),
+    ``,
+    `Parchment coordinates (for the boring truth): ${page}`,
+    `Register entry id: ${docId}`,
+    ``,
+    `I solemnly swear this owl was dispatched without eating any sandwiches.`,
+    ``,
+    `— AEP Orchestration Lab (unofficial, slightly smug)`,
+  ].join('\n');
+  return { subject, text };
+}
+
 function getDb() {
   if (!admin.apps.length) admin.initializeApp();
   return admin.firestore();
@@ -108,17 +161,7 @@ async function handleEasterEggNotify(req, res, deps) {
     return;
   }
 
-  const subject = `Mischief managed: ${name} found the map (${flavor})`;
-  const text = [
-    `Someone signed the Marauder's Map register.`,
-    ``,
-    `Name: ${name}`,
-    `Flavor / page: ${flavor}`,
-    `Path: ${page}`,
-    `Firestore doc: ${docId}`,
-    ``,
-    `— AEP Orchestration Lab easter egg`,
-  ].join('\n');
+  const { subject, text } = buildEggEmail({ name, flavor, page, docId });
 
   let emailResult = { skipped: true };
   if (process.env.FUNCTIONS_EMULATOR === 'true') {
