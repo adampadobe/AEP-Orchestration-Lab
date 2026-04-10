@@ -144,6 +144,10 @@
 
 .journeys-page .journeys-table-wrap {
   overflow-x: auto;
+  overflow-y: visible;
+  max-width: 100%;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
   border: none;
   border-radius: 10px;
   background: #fff;
@@ -154,12 +158,24 @@ body.journeys-page {
   --journeys-name-col-width: min(32rem, 48vw);
 }
 
+/* Natural column widths + horizontal scroll — avoids fixed-layout crushing 13 cols into one <col span> */
 .journeys-page .journeys-table {
-  width: 100%;
-  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  table-layout: auto;
   border-collapse: collapse;
   font-size: 0.8125rem;
   border: none;
+}
+
+/* Allow main column to size from content when table is wider than viewport */
+.journeys-page .journeys-panel {
+  min-width: 0;
+}
+
+.journeys-page .dashboard-main-wrap {
+  min-width: 0;
 }
 
 .journeys-page col.journeys-col-name {
@@ -371,6 +387,38 @@ body.journeys-page {
   color: #1e293b;
   vertical-align: middle;
   background: #fff;
+}
+
+/* Status / tags — do not collapse (checkbox … name … version … status … tags … metrics … dates) */
+.journeys-page .journeys-table th:nth-child(4),
+.journeys-page .journeys-table td:nth-child(4) {
+  min-width: 6rem;
+}
+.journeys-page .journeys-table th:nth-child(5),
+.journeys-page .journeys-table td:nth-child(5) {
+  min-width: 7.5rem;
+  max-width: 18rem;
+}
+
+/* Creation / audit columns (11–16): fixed readable width + no overlap */
+.journeys-page .journeys-table th:nth-child(n + 11),
+.journeys-page .journeys-table td:nth-child(n + 11) {
+  min-width: 9.25rem;
+  max-width: 14rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.journeys-page .journeys-table th:nth-child(2),
+.journeys-page .journeys-table td:nth-child(2) {
+  min-width: 12rem;
+  max-width: 36rem;
+}
+
+.journeys-page .journeys-table th:nth-child(3),
+.journeys-page .journeys-table td:nth-child(3) {
+  min-width: 8rem;
 }
 
 .journeys-page .journeys-table th.journeys-col-numeric,
