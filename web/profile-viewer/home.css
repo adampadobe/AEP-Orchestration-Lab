@@ -788,7 +788,7 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: var(--dash-text);
+  background: #fff;
   color: #fff;
   display: flex;
   align-items: center;
