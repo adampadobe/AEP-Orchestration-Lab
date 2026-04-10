@@ -11,7 +11,8 @@ const ADOBE_CLIENT_SECRET = defineSecret('ADOBE_CLIENT_SECRET');
 const ADOBE_IMS_ORG = defineSecret('ADOBE_IMS_ORG');
 const ADOBE_SCOPES = defineSecret('ADOBE_SCOPES');
 
-const EASTER_EGG_SENDGRID_API_KEY = defineSecret('EASTER_EGG_SENDGRID_API_KEY');
+const EASTER_EGG_MAILGUN_API_KEY = defineSecret('EASTER_EGG_MAILGUN_API_KEY');
+const EASTER_EGG_MAILGUN_DOMAIN = defineSecret('EASTER_EGG_MAILGUN_DOMAIN');
 
 /** Default Platform sandbox; override at deploy: `ADOBE_SANDBOX_NAME=other firebase deploy` or edit this constant. */
 const DEFAULT_ADOBE_SANDBOX = 'apalmer';
@@ -2021,17 +2022,18 @@ exports.journeysCjaDataviews = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
-/** POST /api/easter-egg-found — Marauder's Map register (Firestore + optional SendGrid to lab owners). */
+/** POST /api/easter-egg-found — Marauder's Map register (Firestore + optional Mailgun to lab owners). */
 exports.easterEggNotify = onRequest(
   {
     region: REGION,
     invoker: 'public',
     timeoutSeconds: 30,
     memory: '256MiB',
-    secrets: [EASTER_EGG_SENDGRID_API_KEY],
-    /** Override in GCP Console → function → Edit → env to a SendGrid-verified sender to enable outbound mail. */
+    secrets: [EASTER_EGG_MAILGUN_API_KEY, EASTER_EGG_MAILGUN_DOMAIN],
+    /** MAIL_FROM: address on your Mailgun domain. MAILGUN_REGION: '' (US) or 'eu'. */
     environmentVariables: {
       EASTER_EGG_MAIL_FROM: '',
+      EASTER_EGG_MAILGUN_REGION: '',
     },
   },
   async (req, res) => {
@@ -2047,9 +2049,16 @@ exports.easterEggNotify = onRequest(
       res.status(405).json({ error: 'Method not allowed' });
       return;
     }
-    const sendgridKey = EASTER_EGG_SENDGRID_API_KEY.value();
+    const mailgunKey = EASTER_EGG_MAILGUN_API_KEY.value();
+    const mailgunDomain = EASTER_EGG_MAILGUN_DOMAIN.value();
     const mailFrom = process.env.EASTER_EGG_MAIL_FROM || '';
-    return handleEasterEggNotify(req, res, { sendgridKey, mailFrom });
+    const mailgunRegion = process.env.EASTER_EGG_MAILGUN_REGION || '';
+    return handleEasterEggNotify(req, res, {
+      mailgunKey,
+      mailgunDomain,
+      mailFrom,
+      mailgunRegion,
+    });
   },
 );
 

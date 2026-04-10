@@ -1,6 +1,7 @@
 /**
  * POST /api/easter-egg-found — records Marauder's Map "register" signings and optionally emails lab owners.
- * Optional SendGrid: set secret EASTER_EGG_SENDGRID_API_KEY (use "skip" to disable) and param EASTER_EGG_MAIL_FROM (verified sender).
+ * Optional Mailgun: secrets EASTER_EGG_MAILGUN_API_KEY + EASTER_EGG_MAILGUN_DOMAIN (use "skip" to disable mail).
+ * Env EASTER_EGG_MAIL_FROM must be an address on that Mailgun domain; EASTER_EGG_MAILGUN_REGION = '' (US) or 'eu'.
  */
 const admin = require('firebase-admin');
 
@@ -28,34 +29,48 @@ function sanitizePage(page) {
   return p.replace(/[\x00-\x1f<>]/g, '') || '(unknown)';
 }
 
-async function sendSendgridEmail({ apiKey, fromEmail, subject, text }) {
+async function sendMailgunEmail({ apiKey, domain, region, fromEmail, subject, text, recipients }) {
   if (!apiKey || apiKey === 'disabled' || apiKey === 'skip' || apiKey.length < 8) {
     return { skipped: true };
+  }
+  if (!domain || domain === 'skip' || String(domain).trim().length < 2) {
+    return { skipped: true, reason: 'no_domain' };
   }
   if (!fromEmail || !String(fromEmail).includes('@')) {
     return { skipped: true, reason: 'no_from' };
   }
-  const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+  const base =
+    String(region || '').toLowerCase() === 'eu' ? 'https://api.eu.mailgun.net' : 'https://api.mailgun.net';
+  const url = `${base}/v3/${encodeURIComponent(String(domain).trim())}/messages`;
+  const params = new URLSearchParams();
+  const from = `AEP Orchestration Lab <${String(fromEmail).trim()}>`;
+  params.append('from', from);
+  recipients.forEach((to) => params.append('to', to));
+  params.append('subject', subject);
+  params.append('text', text);
+  const auth = Buffer.from(`api:${apiKey}`, 'utf8').toString('base64');
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
+      Authorization: `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: JSON.stringify({
-      personalizations: [{ to: RECIPIENTS.map((email) => ({ email })) }],
-      from: { email: String(fromEmail).trim(), name: 'AEP Orchestration Lab' },
-      subject,
-      content: [{ type: 'text/plain', value: text }],
-    }),
+    body: params.toString(),
   });
+  const raw = await res.text();
   if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`SendGrid ${res.status}: ${t.slice(0, 500)}`);
+    throw new Error(`Mailgun ${res.status}: ${raw.slice(0, 500)}`);
   }
   return { sent: true };
 }
 
-async function handleEasterEggNotify(req, res, { sendgridKey, mailFrom }) {
+async function handleEasterEggNotify(req, res, deps) {
+  const {
+    mailgunKey,
+    mailgunDomain,
+    mailFrom,
+    mailgunRegion,
+  } = deps;
   let body;
   try {
     body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
@@ -115,14 +130,17 @@ async function handleEasterEggNotify(req, res, { sendgridKey, mailFrom }) {
     emailResult = { skipped: true, reason: 'emulator' };
   } else {
     try {
-      emailResult = await sendSendgridEmail({
-        apiKey: sendgridKey,
+      emailResult = await sendMailgunEmail({
+        apiKey: mailgunKey,
+        domain: mailgunDomain,
+        region: mailgunRegion,
         fromEmail: mailFrom,
         subject,
         text,
+        recipients: RECIPIENTS,
       });
     } catch (e) {
-      console.error('[easterEggNotify] SendGrid failed', e.message || e);
+      console.error('[easterEggNotify] Mailgun failed', e.message || e);
       emailResult = { error: String(e.message || e) };
     }
   }
