@@ -174,10 +174,7 @@
     var brand = mk('div', 'dashboard-sidebar-brand');
     var markEl = mk('span', 'dashboard-sidebar-mark', { 'aria-hidden': 'true' });
     markEl.innerHTML =
-      '<svg class="dashboard-sidebar-mark-svg" viewBox="0 0 30 26" xmlns="http://www.w3.org/2000/svg" focusable="false">' +
-      '<polygon fill="#FA0F00" points="19,0 30,0 30,26"/>' +
-      '<polygon fill="#FA0F00" points="11.1,0 0,0 0,26"/>' +
-      '<polygon fill="#FA0F00" points="15,9.6 22.1,26 17.5,26 15.4,20.8 10.2,20.8"/></svg>';
+      '<img class="dashboard-sidebar-mark-img" src="images/adobe-brand-mark.png" alt="" width="32" height="32" decoding="async" draggable="false" />';
     var titles = mk('div', 'dashboard-sidebar-titles');
     var nameEl = mk('span', 'dashboard-sidebar-name');
     nameEl.textContent = 'AEP';

@@ -46,7 +46,7 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge {
 /* ── Sidebar & navigation (structural) ── */
 
 html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-sidebar-mark {
-  background: #fff;
+  background: transparent;
   color: #fff;
 }
 
