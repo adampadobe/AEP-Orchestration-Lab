@@ -112,7 +112,10 @@
     });
 
     var toggle = mk('button', 'dashboard-nav-group-toggle', {
-      type: 'button', 'aria-expanded': String(expanded),
+      type: 'button',
+      'aria-expanded': String(expanded),
+      'data-tooltip': def.group,
+      'aria-label': (expanded ? 'Collapse ' : 'Expand ') + def.group + ' section',
     });
     var chev = mk('span', 'dashboard-nav-group-chevron', { 'aria-hidden': 'true' });
     var gl = mk('span', 'dashboard-nav-group-label');
@@ -128,6 +131,7 @@
     toggle.addEventListener('click', function () {
       var isExp = wrap.classList.toggle('dashboard-nav-group--expanded');
       toggle.setAttribute('aria-expanded', String(isExp));
+      toggle.setAttribute('aria-label', (isExp ? 'Collapse ' : 'Expand ') + def.group + ' section');
       var st = getGroupStates();
       st[def.id] = isExp;
       saveGroupStates(st);
@@ -138,19 +142,30 @@
 
   /* ── Tooltip (fixed-position element on <body>) ── */
 
+  function sidebarIsIconOnly(sidebar) {
+    return sidebar.classList.contains('dashboard-sidebar--collapsed') ||
+      document.documentElement.hasAttribute('data-sidebar-collapsed');
+  }
+
+  function tooltipTarget(el) {
+    if (!el || typeof el.closest !== 'function') return null;
+    return el.closest('.dashboard-nav-item[data-tooltip]') ||
+      el.closest('.dashboard-nav-group-toggle[data-tooltip]');
+  }
+
   function setupTooltips(sidebar) {
     var tip = mk('div', 'dashboard-nav-tooltip');
     document.body.appendChild(tip);
 
     sidebar.addEventListener('mouseover', function (e) {
-      if (!sidebar.classList.contains('dashboard-sidebar--collapsed')) {
+      if (!sidebarIsIconOnly(sidebar)) {
         tip.classList.remove('dashboard-nav-tooltip--visible');
         return;
       }
-      var item = e.target.closest('.dashboard-nav-item[data-tooltip]');
-      if (!item) { tip.classList.remove('dashboard-nav-tooltip--visible'); return; }
-      tip.textContent = item.getAttribute('data-tooltip');
-      var r = item.getBoundingClientRect();
+      var el = tooltipTarget(e.target);
+      if (!el) { tip.classList.remove('dashboard-nav-tooltip--visible'); return; }
+      tip.textContent = el.getAttribute('data-tooltip');
+      var r = el.getBoundingClientRect();
       tip.style.top = (r.top + r.height / 2) + 'px';
       tip.style.left = (r.right + 8) + 'px';
       tip.classList.add('dashboard-nav-tooltip--visible');
@@ -158,9 +173,8 @@
 
     sidebar.addEventListener('mouseout', function (e) {
       var rel = e.relatedTarget;
-      if (!rel || typeof rel.closest !== 'function' || !rel.closest('.dashboard-nav-item[data-tooltip]')) {
-        tip.classList.remove('dashboard-nav-tooltip--visible');
-      }
+      if (tooltipTarget(rel)) return;
+      tip.classList.remove('dashboard-nav-tooltip--visible');
     });
   }
 

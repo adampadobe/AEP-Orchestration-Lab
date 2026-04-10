@@ -31,20 +31,26 @@ html[data-aep-theme='dark'] .decisioning-catalog-page {
   --dce-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+/* Same horizontal bounds as `.dashboard-hero` — main already applies tool-page gutters in home.css */
 .decisioning-catalog-page .dce-catalog-layout {
-  padding: 0 1.25rem 1.5rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 1.5rem;
+  box-sizing: border-box;
 }
 
 .decisioning-catalog-page .dce-catalog-surface {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   font-family: var(--dce-font);
   color: var(--dce-text);
   background: var(--dce-bg-panel);
   border: 1px solid var(--dce-border);
   border-radius: var(--dce-radius);
   box-shadow: var(--dce-shadow);
-  padding: 1.25rem 1.35rem 1.5rem;
+  padding: 1.25rem clamp(1rem, 2.5vw, 1.35rem) 1.5rem;
 }
 
 .decisioning-catalog-page .dce-catalog-surface label {

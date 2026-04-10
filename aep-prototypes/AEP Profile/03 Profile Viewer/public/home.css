@@ -1055,24 +1055,38 @@ html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-sidebar-titles {
   padding: 0.5rem;
 }
 
-.dashboard-sidebar--collapsed .dashboard-nav-group-toggle {
+/* Icon-only sidebar: keep section chevrons (AEP-style); label hidden, toggle still collapses groups */
+.dashboard-sidebar--collapsed .dashboard-nav-group-toggle,
+html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-nav-group-toggle {
+  justify-content: center;
+  gap: 0;
+  padding: 0.3rem 0.35rem;
+  min-height: 1.75rem;
+}
+
+.dashboard-sidebar--collapsed .dashboard-nav-group-label,
+html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-nav-group-label {
+  opacity: 0;
+  width: 0;
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dashboard-sidebar--collapsed .dashboard-nav-group-chevron,
+html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-nav-group-chevron {
+  flex-shrink: 0;
+}
+
+/* Group expand/collapse uses same rules as expanded sidebar (no forced-open override) */
+
+.dashboard-sidebar--collapsed .dashboard-nav-group::before,
+html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-nav-group::before {
   display: none;
 }
 
-.dashboard-sidebar--collapsed .dashboard-nav-group-items {
-  max-height: none !important;
-  opacity: 1 !important;
-}
-
-.dashboard-sidebar--collapsed .dashboard-nav-group::before {
-  content: '';
-  display: block;
-  height: 1px;
-  background: var(--dash-border);
-  margin: 0.3rem 0.65rem;
-}
-
-.dashboard-sidebar--collapsed .dashboard-nav-group + .dashboard-nav-group {
+.dashboard-sidebar--collapsed .dashboard-nav-group + .dashboard-nav-group,
+html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-nav-group + .dashboard-nav-group {
   margin-top: 0;
   padding-top: 0;
 }
