@@ -261,7 +261,8 @@
   var currentFlavor = 'home';
   var lastSpeck = specks[0];
   var sendingOwl = false;
-  var hallFetchInFlight = false;
+  /** Monotonic id so an older fetch cannot overwrite a newer roster. */
+  var hallFetchGeneration = 0;
 
   function esc(s) {
     return String(s || '')
@@ -312,22 +313,27 @@
   }
 
   function loadHall() {
-    if (hallFetchInFlight || !hallList) return;
-    hallFetchInFlight = true;
+    if (!hallList) return;
+    var gen = ++hallFetchGeneration;
     if (hallStatus) {
       hallStatus.textContent = '';
       hallStatus.className = 'map-egg-hall-status';
     }
     if (hallCount) hallCount.textContent = '…';
     hallList.innerHTML = '<li class="map-egg-hall-empty">Unfurling the parchment…</li>';
-    fetch('/api/easter-egg-found', { method: 'GET', headers: { Accept: 'application/json' } })
+    var url = '/api/easter-egg-found?_=' + Date.now();
+    fetch(url, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { Accept: 'application/json', 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    })
       .then(function (r) {
         return r.json().then(function (data) {
           return { ok: r.ok, data: data };
         });
       })
       .then(function (result) {
-        hallFetchInFlight = false;
+        if (gen !== hallFetchGeneration) return;
         if (!result.ok || !result.data || !result.data.ok) {
           if (hallStatus) {
             hallStatus.textContent = 'The roster would not unfold—try again later.';
@@ -340,7 +346,7 @@
         renderHallEntries(result.data.entries || []);
       })
       .catch(function () {
-        hallFetchInFlight = false;
+        if (gen !== hallFetchGeneration) return;
         if (hallStatus) {
           hallStatus.textContent = 'Could not reach the roster.';
           hallStatus.className = 'map-egg-hall-status map-egg-hall-status--err';
@@ -384,6 +390,7 @@
     if (signer) signer.value = '';
     if (input) input.value = '';
     showPhase('intro');
+    loadHall();
     setTimeout(function () {
       if (btnContinue) btnContinue.focus();
     }, 120);
@@ -396,7 +403,7 @@
     if (input) input.value = '';
     if (signer) signer.value = '';
     sendingOwl = false;
-    hallFetchInFlight = false;
+    hallFetchGeneration += 1;
     if (hallDetails) hallDetails.open = false;
     showPhase('intro');
     lastSpeck.focus();
@@ -493,6 +500,12 @@
 
   overlay.querySelector('[data-map-egg-managed]').addEventListener('click', closeEgg);
   overlay.querySelector('[data-map-egg-send-owl]').addEventListener('click', sendOwl);
+
+  if (hallDetails) {
+    hallDetails.addEventListener('toggle', function () {
+      if (hallDetails.open) loadHall();
+    });
+  }
 
   if (input) {
     input.addEventListener('keydown', function (e) {
