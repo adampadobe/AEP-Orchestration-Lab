@@ -1,5 +1,5 @@
 /**
- * Decisioning visualiser — interactive ranking methods (embedded on decisioning-catalog).
+ * Decisioning visualiser — interactive ranking methods (decisioning-visualiser.html).
  */
 (function () {
   'use strict';
@@ -37,7 +37,7 @@ function buildPriorityList() {
         <div class="offer-sub">${o.sub}</div>
         <div class="priority-bar-wrap">
           <div class="priority-bar-track">
-            <div class="priority-bar-fill" id="bar-${o.id}" style="width:0%"></div>
+            <div class="priority-bar-fill" id="dceViz-bar-${o.id}" style="width:0%"></div>
           </div>
         </div>
       </div>
@@ -430,18 +430,6 @@ function renderAiRanks(ranks) {
 buildAiRanksList();
 renderAiRanks(profiles[0].ranks);
 document.getElementById('dceViz-ai-reasoning').innerHTML = profiles[0].reasoning;
-
-  function scrollToVizIfHash() {
-    if (window.location.hash === '#decisioning-visualiser') {
-      var sec = document.getElementById('decisioning-visualiser');
-      if (sec) sec.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    }
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', scrollToVizIfHash);
-  } else {
-    scrollToVizIfHash();
-  }
 
   window.dceVizShowPanel = showPanel;
   window.dceVizUpdatePriority = updatePriority;

@@ -1,6 +1,6 @@
 /**
  * Decisioning visualiser — ranking methods explorer (scoped).
- * Loaded on decisioning-catalog.html below the catalog surface.
+ * Loaded on decisioning-visualiser.html (parent: .decisioning-catalog-page for shared tokens).
  */
 .decisioning-catalog-page .dce-viz-scope,
 .decisioning-catalog-page .dce-viz-scope *,
