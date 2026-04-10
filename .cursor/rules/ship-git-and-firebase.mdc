@@ -1,0 +1,15 @@
+---
+description: After changes to web/ or functions/, finish with git commit + push + Firebase deploy in that order (unless user excludes deploy).
+alwaysApply: true
+---
+
+# Ship changes: commit → push → Firebase deploy
+
+For this repo’s **Firebase Hosting** (`web/`) and **Cloud Functions** (`functions/`):
+
+1. `git status` → `git add` (focused scope) → `git commit` → **`git push origin` (current branch)**.
+2. Then **`npx -y firebase-tools@latest deploy --only functions,hosting`** from the repo root (see **github-git-workflow** and **firebase-basics** skills).
+
+Do **not** deploy without committing. If the user explicitly asks for Git-only or local-only, skip deploy and say so.
+
+Aligns with **`CONTRIBUTING.md`** (deploy after tracked commits). CI does not auto-deploy functions/hosting.
