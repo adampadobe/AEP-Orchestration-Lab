@@ -250,6 +250,13 @@
         }
       },
       {
+        "source": "/api/easter-egg-found",
+        "function": {
+          "functionId": "easterEggNotify",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/schema-viewer/**",
         "function": {
           "functionId": "schemaViewerProxy",

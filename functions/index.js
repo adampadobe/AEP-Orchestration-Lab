@@ -11,6 +11,8 @@ const ADOBE_CLIENT_SECRET = defineSecret('ADOBE_CLIENT_SECRET');
 const ADOBE_IMS_ORG = defineSecret('ADOBE_IMS_ORG');
 const ADOBE_SCOPES = defineSecret('ADOBE_SCOPES');
 
+const EASTER_EGG_SENDGRID_API_KEY = defineSecret('EASTER_EGG_SENDGRID_API_KEY');
+
 /** Default Platform sandbox; override at deploy: `ADOBE_SANDBOX_NAME=other firebase deploy` or edit this constant. */
 const DEFAULT_ADOBE_SANDBOX = 'apalmer';
 const RESOLVED_ADOBE_SANDBOX = String(
@@ -56,6 +58,7 @@ const { getCatalogConfig, saveCatalogConfig } = require('./catalogConfigStore');
 const { buildBrowseResponse: buildJourneysBrowseResponse } = require('./journeysBrowse');
 const { enrichJourneyRowsWithCja, listCjaDataViewsAjoEnabled } = require('./cjaJourneyMetrics');
 const journeyBrowseCache = require('./journeyBrowseCacheStore');
+const { handleEasterEggNotify } = require('./easterEggNotify');
 const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
 const {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
@@ -2017,6 +2020,35 @@ exports.journeysCjaDataviews = onRequest(profileFnOpts, async (req, res) => {
     res.status(500).json({ ok: false, error: String(e.message || e), dataViews: [] });
   }
 });
+
+/** POST /api/easter-egg-found — Marauder's Map register (Firestore + optional SendGrid to lab owners). */
+exports.easterEggNotify = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 30,
+    memory: '256MiB',
+    secrets: [EASTER_EGG_SENDGRID_API_KEY],
+    /** Override in GCP Console → function → Edit → env to a SendGrid-verified sender to enable outbound mail. */
+    environmentVariables: {
+      EASTER_EGG_MAIL_FROM: '',
+    },
+  },
+  async (req, res) => {
+    setCors(res);
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+    const sendgridKey = EASTER_EGG_SENDGRID_API_KEY.value();
+    const mailFrom = process.env.EASTER_EGG_MAIL_FROM || '';
+    return handleEasterEggNotify(req, res, { sendgridKey, mailFrom });
+  },
+);
 
 /** Hourly refresh of Firestore journey browse cache for sandboxes that were loaded at least once. */
 exports.journeyBrowseCacheRefresh = onSchedule(

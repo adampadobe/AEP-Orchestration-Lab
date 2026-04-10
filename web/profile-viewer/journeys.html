@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="journeys.css?v=20260409h">
+  <link rel="stylesheet" href="marauders-map-egg.css?v=20260417">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge journeys-page">
   <div class="dashboard-shell">
@@ -37,7 +38,7 @@
               <h2 id="bannerHeadingJourneys" class="dashboard-hero-title">Journey Orchestration</h2>
               <p class="dashboard-hero-subtitle">
                 Browse journeys from Adobe Journey Optimizer. Optional CJA metrics (Enters, a second metric, Delivered, Displays, Clicks) come from Customer Journey Analytics when the Cloud Function is configured with
-                <code>CJA_DATAVIEW_ID</code> or data-view lookup env vars. Journey lists are cached per sandbox in Firestore for about an hour; use Refresh for a live AJO pull.
+                <code>CJA_DATAVIEW_ID</code> or data-view lookup env vars. Journey lists are cached per sandbox in Firestore for about an hour; use Refresh for a live AJO pull.<button type="button" class="map-egg-speck" data-map-egg-flavor="journeys" title="" aria-label="A stray ink fleck on the banner"></button>
               </p>
             </header>
           </div>
@@ -300,5 +301,6 @@
   <script src="aep-theme.js"></script>
   <script src="aep-lab-nav.js?v=20260420"></script>
   <script src="journeys.js?v=20260409h"></script>
+  <script defer src="marauders-map-egg.js?v=20260417"></script>
 </body>
 </html>

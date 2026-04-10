@@ -127,6 +127,67 @@ html[data-aep-theme='dark'] .map-egg-intro-names {
   justify-content: center;
 }
 
+.map-egg-register {
+  margin: 1rem 0 1.1rem;
+  padding: 1rem 0.85rem;
+  border-radius: 10px;
+  border: 1px dashed rgba(100, 70, 45, 0.45);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+html[data-aep-theme='dark'] .map-egg-register {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(200, 160, 100, 0.3);
+}
+
+.map-egg-register-blurb {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  margin: 0 0 0.65rem;
+}
+
+.map-egg-register-label {
+  display: block;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5c4030;
+  margin-bottom: 0.35rem;
+}
+
+html[data-aep-theme='dark'] .map-egg-register-label {
+  color: #d4b896;
+}
+
+.map-egg-input--signer {
+  margin-bottom: 0.5rem;
+}
+
+.map-egg-register-status {
+  font-size: 0.78rem;
+  font-family: 'Inter', sans-serif;
+  min-height: 1.25em;
+  margin: 0 0 0.5rem;
+}
+
+.map-egg-register-status--ok {
+  color: #2d6a4f;
+}
+
+.map-egg-register-status--err {
+  color: #8b2942;
+}
+
+html[data-aep-theme='dark'] .map-egg-register-status--ok {
+  color: #7dffb3;
+}
+
+.map-egg-row--register {
+  justify-content: flex-start;
+}
+
 .map-egg-oath-title {
   font-size: 0.72rem;
   letter-spacing: 0.14em;
