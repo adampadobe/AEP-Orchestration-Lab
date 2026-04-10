@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="profile-viewer.css">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="consent.css">
-  <link rel="stylesheet" href="journeys.css?v=20260409b">
+  <link rel="stylesheet" href="journeys.css?v=20260409d">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge journeys-page">
   <div class="dashboard-shell">
@@ -42,6 +42,16 @@
             </header>
           </div>
         </section>
+
+        <div class="journeys-cja-picker" aria-label="CJA data view for journey metrics">
+          <label for="cjaDataViewSelect" class="journeys-cja-picker__label">CJA data view</label>
+          <select id="cjaDataViewSelect" class="journeys-cja-select" aria-describedby="journeysCjaHelp">
+            <option value="">Loading AJO-enabled data views…</option>
+          </select>
+          <p id="journeysCjaHelp" class="journeys-cja-help">
+            Same view as <strong>AJO → Administration → Reporting → Configure data from CJA</strong>. Pick the AJO-enabled data view for the sandbox you are analyzing; metrics use Customer Journey Analytics Reporting (not the AEP sandbox header).
+          </p>
+        </div>
 
         <div class="journeys-tabs" role="tablist" aria-label="Journey views">
           <span class="journeys-tab" role="tab" aria-selected="false">Overview</span>
@@ -254,6 +264,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-theme.js"></script>
   <script src="aep-lab-nav.js"></script>
-  <script src="journeys.js?v=20260409c"></script>
+  <script src="journeys.js?v=20260409d"></script>
 </body>
 </html>

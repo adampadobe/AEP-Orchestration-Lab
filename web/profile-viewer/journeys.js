@@ -8,6 +8,8 @@
   const statusFilterEl = document.getElementById('journeysStatusFilter');
   const sandboxSelect = document.getElementById('sandboxSelect');
   const refreshBtn = document.getElementById('jrnRefresh');
+  const cjaDataViewSelect = document.getElementById('cjaDataViewSelect');
+  const CJA_DV_STORAGE_KEY = 'aepJourneysCjaDataViewId';
 
   let allRows = [];
   let sortKey = 'name';
@@ -17,6 +19,65 @@
   function getSandbox() {
     if (window.AepGlobalSandbox) return window.AepGlobalSandbox.getSandboxName() || '';
     return (sandboxSelect && sandboxSelect.value) || '';
+  }
+
+  function getSelectedCjaDataViewId() {
+    if (!cjaDataViewSelect) return '';
+    return String(cjaDataViewSelect.value || '').trim();
+  }
+
+  /** Populate AJO-enabled CJA data views from the API (matches names containing "AJO Enabled"). */
+  async function populateCjaDataViewDropdown() {
+    if (!cjaDataViewSelect) return;
+    cjaDataViewSelect.disabled = true;
+    cjaDataViewSelect.innerHTML = '<option value="">Loading…</option>';
+    try {
+      const res = await fetch('/api/journeys/cja-dataviews');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || data.detail || res.statusText || 'Request failed');
+      }
+      const list = Array.isArray(data.dataViews) ? data.dataViews : [];
+      let stored = '';
+      try {
+        stored = localStorage.getItem(CJA_DV_STORAGE_KEY) || '';
+      } catch (e) {
+        stored = '';
+      }
+      cjaDataViewSelect.innerHTML = '';
+      const optDef = document.createElement('option');
+      optDef.value = '';
+      optDef.textContent = 'Server default (CJA_DATAVIEW_ID / env lookup)';
+      cjaDataViewSelect.appendChild(optDef);
+      for (let i = 0; i < list.length; i++) {
+        const dv = list[i];
+        const o = document.createElement('option');
+        o.value = dv.id;
+        o.textContent = dv.name ? `${dv.name} (${dv.id})` : dv.id;
+        cjaDataViewSelect.appendChild(o);
+      }
+      let pick = '';
+      if (stored && list.some(function (d) { return d.id === stored; })) {
+        pick = stored;
+      } else {
+        var sb = getSandbox().toLowerCase();
+        if (sb) {
+          var m = list.find(function (d) {
+            return d.name && d.name.toLowerCase().indexOf('(' + sb + ')') !== -1;
+          });
+          if (m) pick = m.id;
+        }
+      }
+      cjaDataViewSelect.value = pick || '';
+    } catch (err) {
+      cjaDataViewSelect.innerHTML = '';
+      var oErr = document.createElement('option');
+      oErr.value = '';
+      oErr.textContent = err.message ? String(err.message) : 'Failed to load data views';
+      cjaDataViewSelect.appendChild(oErr);
+    } finally {
+      cjaDataViewSelect.disabled = false;
+    }
   }
 
   function formatUsDateTime(iso) {
@@ -526,6 +587,8 @@
     }
     try {
       let url = `/api/journeys/browse?sandbox=${encodeURIComponent(sandbox)}&start=0&limit=500`;
+      var cjaDv = getSelectedCjaDataViewId();
+      if (cjaDv) url += '&cjaDataViewId=' + encodeURIComponent(cjaDv);
       if (forceRefresh) url += '&refresh=1';
       const res = await fetch(url);
       const data = await res.json().catch(() => ({}));
@@ -654,6 +717,17 @@
     refreshBtn.addEventListener('click', () => load(true));
   }
 
+  if (cjaDataViewSelect) {
+    cjaDataViewSelect.addEventListener('change', function () {
+      try {
+        localStorage.setItem(CJA_DV_STORAGE_KEY, cjaDataViewSelect.value || '');
+      } catch (e) {
+        /* ignore */
+      }
+      load();
+    });
+  }
+
   window.addEventListener('aep-global-sandbox-change', () => load());
 
   async function initSandboxAndLoad() {
@@ -662,6 +736,7 @@
       window.AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
       window.AepGlobalSandbox.attachStorageSync(sandboxSelect);
     }
+    await populateCjaDataViewDropdown();
     load();
   }
 

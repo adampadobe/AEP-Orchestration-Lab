@@ -233,6 +233,13 @@
         }
       },
       {
+        "source": "/api/journeys/cja-dataviews",
+        "function": {
+          "functionId": "journeysCjaDataviews",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/journeys/browse",
         "function": {
           "functionId": "journeysBrowse",

@@ -661,3 +661,37 @@ body.journeys-page {
 .journeys-page #journeysStatus.consent-message {
   margin: 0 1.5rem 0.75rem;
 }
+
+/* CJA data view picker (matches AJO Admin → Reporting → Configure data from CJA) */
+.journeys-page .journeys-cja-picker {
+  margin: 0 1.5rem 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  max-width: min(52rem, 100%);
+}
+.journeys-page .journeys-cja-picker__label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.35rem;
+}
+.journeys-page .journeys-cja-select {
+  width: 100%;
+  max-width: 48rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+}
+.journeys-page .journeys-cja-help {
+  margin: 0.6rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #64748b;
+  max-width: 48rem;
+}

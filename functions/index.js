@@ -54,7 +54,7 @@ const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = requir
 const { getEventConfig, saveEventConfig } = require('./eventConfigStore');
 const { getCatalogConfig, saveCatalogConfig } = require('./catalogConfigStore');
 const { buildBrowseResponse: buildJourneysBrowseResponse } = require('./journeysBrowse');
-const { enrichJourneyRowsWithCja } = require('./cjaJourneyMetrics');
+const { enrichJourneyRowsWithCja, listCjaDataViewsAjoEnabled } = require('./cjaJourneyMetrics');
 const journeyBrowseCache = require('./journeyBrowseCacheStore');
 const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
 const {
@@ -1906,6 +1906,7 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
   if (req.method !== 'GET') { res.status(405).json({ error: 'Method not allowed' }); return; }
   const sandbox = resolveSandboxFromQuery(req);
+  const cjaDataViewId = String(req.query.cjaDataViewId || '').trim();
   const start = Math.max(0, parseInt(req.query.start, 10) || 0);
   const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 200));
   const forceRefresh =
@@ -1932,6 +1933,7 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
               cjaToken,
               { clientId: ADOBE_CLIENT_ID.value() },
               { orgId: ADOBE_IMS_ORG.value() },
+              cjaDataViewId ? { dataViewId: cjaDataViewId } : {},
             );
           } catch (cjaErr) {
             cjaMeta = { applied: false, message: cjaErr?.message || String(cjaErr) };
@@ -1964,7 +1966,15 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
   try {
-    const payload = await buildJourneysBrowseResponse(sandbox, accessToken, clientId, orgId, start, limit);
+    const payload = await buildJourneysBrowseResponse(
+      sandbox,
+      accessToken,
+      clientId,
+      orgId,
+      start,
+      limit,
+      cjaDataViewId,
+    );
     if (payload.ok) {
       try {
         await journeyBrowseCache.saveJourneyBrowseCache(sandbox, payload);
@@ -1979,6 +1989,32 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), journeys: [] });
+  }
+});
+
+/** GET /api/journeys/cja-dataviews — list CJA data views whose names match "AJO Enabled" (Journeys UI picker). */
+exports.journeysCjaDataviews = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+  if (req.method !== 'GET') { res.status(405).json({ error: 'GET only' }); return; }
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ ok: false, error: 'Auth failed', detail: String(e.message || e), dataViews: [] });
+    return;
+  }
+  const clientId = ADOBE_CLIENT_ID.value();
+  const orgId = ADOBE_IMS_ORG.value();
+  try {
+    const result = await listCjaDataViewsAjoEnabled(accessToken, { clientId }, { orgId });
+    res.status(result.ok ? 200 : 502).json({
+      ok: result.ok,
+      dataViews: result.dataViews || [],
+      error: result.error,
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e.message || e), dataViews: [] });
   }
 });
 
@@ -2023,6 +2059,7 @@ exports.journeyBrowseCacheRefresh = onSchedule(
           orgId,
           0,
           refreshLimit,
+          '',
         );
         if (payload.ok) {
           await journeyBrowseCache.saveJourneyBrowseCache(sb, payload);

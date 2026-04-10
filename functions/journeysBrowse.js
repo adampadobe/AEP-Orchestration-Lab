@@ -283,7 +283,7 @@ async function enrichFromDetailApi(rows, authHdrs, platHdrs) {
   }
 }
 
-async function buildBrowseResponse(sandbox, token, clientId, orgId, start, limit) {
+async function buildBrowseResponse(sandbox, token, clientId, orgId, start, limit, cjaDataViewId) {
   const authHdrs = authoringHeaders(token, clientId, orgId, sandbox);
   const platHdrs = platformHeaders(token, clientId, orgId, sandbox);
 
@@ -301,9 +301,10 @@ async function buildBrowseResponse(sandbox, token, clientId, orgId, start, limit
 
   await enrichFromDetailApi(rows, authHdrs, platHdrs);
 
+  const cjaOpts = cjaDataViewId && String(cjaDataViewId).trim() ? { dataViewId: String(cjaDataViewId).trim() } : {};
   let cjaMeta = { applied: false };
   try {
-    cjaMeta = await enrichJourneyRowsWithCja(rows, token, { clientId }, { orgId });
+    cjaMeta = await enrichJourneyRowsWithCja(rows, token, { clientId }, { orgId }, cjaOpts);
   } catch (e) {
     cjaMeta = { applied: false, message: e?.message || String(e) };
   }

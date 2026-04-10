@@ -77,7 +77,14 @@ function normalizeCjaDataViewIdForReports(raw) {
   return s;
 }
 
-async function resolveCjaDataViewIdDetailed(token, cfg, config) {
+async function resolveCjaDataViewIdDetailed(token, cfg, config, requestDataViewId) {
+  const req = String(requestDataViewId || '').trim();
+  if (req) {
+    const id = normalizeCjaDataViewIdForReports(req);
+    return id
+      ? { id, matchedBy: 'request', matchedName: null }
+      : { id: null, error: 'cjaDataViewId is not a valid data view id (expected dv_… or UUID).' };
+  }
   const explicit = (process.env.CJA_DATAVIEW_ID || '').trim();
   if (explicit) {
     const id = normalizeCjaDataViewIdForReports(explicit);
@@ -536,13 +543,14 @@ function applyCjaMetricsToRow(row, lookup, fieldNames) {
   return next;
 }
 
-async function enrichJourneyRowsWithCja(rows, token, cfg, config) {
+async function enrichJourneyRowsWithCja(rows, token, cfg, config, options) {
   if (process.env.CJA_ENABLE_METRICS === '0' || process.env.CJA_ENABLE_METRICS === 'false') {
     return { applied: false, dataViewId: null, message: 'CJA metrics disabled (CJA_ENABLE_METRICS).' };
   }
+  const requestDv = options && typeof options === 'object' ? String(options.dataViewId || '').trim() : '';
   let resolved;
   try {
-    resolved = await resolveCjaDataViewIdDetailed(token, cfg, config);
+    resolved = await resolveCjaDataViewIdDetailed(token, cfg, config, requestDv);
   } catch (e) {
     return { applied: false, dataViewId: null, message: e?.message || String(e) };
   }
@@ -660,4 +668,49 @@ async function enrichJourneyRowsWithCja(rows, token, cfg, config) {
   };
 }
 
-module.exports = { enrichJourneyRowsWithCja };
+/**
+ * List CJA data views whose name looks like an AJO reporting view (matches /AJO Enabled/i).
+ * Used by the Journeys UI dropdown.
+ */
+async function listCjaDataViewsAjoEnabled(token, cfg, config) {
+  const headers = cjaApiHeaders(token, cfg, config);
+  const out = [];
+  const seen = new Set();
+  for (let page = 0; page < 60; page++) {
+    const url = `${CJA_BASE}/data/dataviews?expansion=name&limit=100&page=${page}`;
+    const res = await fetch(url, { method: 'GET', headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const hint = data?.message || data?.error || data?.reason || JSON.stringify(data).slice(0, 200);
+      return {
+        ok: false,
+        error: `CJA list data views failed (HTTP ${res.status}): ${hint}`,
+        dataViews: [],
+      };
+    }
+    const content = cjaContentArray(data);
+    for (const dv of content) {
+      if (!dv || typeof dv !== 'object') continue;
+      const name = String(dv.name || dv.title || '').trim();
+      if (!/ajo\s*enabled/i.test(name)) continue;
+      const rawId = cjaDataViewRecordId(dv);
+      const id = normalizeCjaDataViewIdForReports(rawId);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      const ext =
+        dv.externalId ||
+        (Array.isArray(dv.externalIds) && dv.externalIds[0]) ||
+        (typeof dv.externalIds === 'string' ? dv.externalIds : null);
+      out.push({
+        id,
+        name,
+        externalId: ext != null ? String(ext) : null,
+      });
+    }
+    if (content.length === 0 || content.length < 100 || data.lastPage === true) break;
+  }
+  out.sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' }));
+  return { ok: true, dataViews: out };
+}
+
+module.exports = { enrichJourneyRowsWithCja, listCjaDataViewsAjoEnabled };
