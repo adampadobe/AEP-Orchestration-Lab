@@ -41,9 +41,11 @@
         </section>
 
         <p class="fb-db-setup-note" role="note">
-          <strong>Firebase Console:</strong> enable <strong>Email/Password</strong> (and optionally <strong>Anonymous</strong> for guest try)
-          under Authentication → Sign-in method. Realtime Database rules in <code class="dashboard-code">database.rules.json</code>
-          scope data to each user’s <code class="dashboard-code">userWorkspaces/{uid}</code> path.
+          <strong>Required:</strong> In
+          <a href="https://console.firebase.google.com/project/aep-orchestration-lab/authentication/providers" target="_blank" rel="noopener">Firebase Console → Authentication → Sign-in method</a>,
+          open <strong>Email/Password</strong>, turn the first toggle <strong>on</strong>, and click <strong>Save</strong>. Without this, sign-up shows
+          <code class="dashboard-code">auth/configuration-not-found</code>.
+          Optional: enable <strong>Anonymous</strong> for “Continue as guest”. RTDB rules in <code class="dashboard-code">database.rules.json</code> scope data to <code class="dashboard-code">userWorkspaces/{uid}</code>.
         </p>
 
         <p id="fbDbMessage" class="fb-db-msg fb-db-msg--info" hidden role="status"></p>
@@ -128,7 +130,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-  <script src="firebase-database.js?v=20260411"></script>
+  <script src="firebase-database.js?v=20260411b"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260410"></script>
 </body>

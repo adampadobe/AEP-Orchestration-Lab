@@ -82,6 +82,13 @@
         return 'Wrong email or password.';
       case 'auth/too-many-requests':
         return 'Too many attempts. Wait a bit and try again.';
+      case 'auth/configuration-not-found':
+      case 'auth/operation-not-allowed':
+        return (
+          'Email/Password sign-in is not enabled for this Firebase project. Open Firebase Console → Authentication → Sign-in method, ' +
+          'enable Email/Password (first row), save, wait a few seconds, then try Create account again. ' +
+          'Direct link: https://console.firebase.google.com/project/aep-orchestration-lab/authentication/providers'
+        );
       default:
         return err.message || String(err.code);
     }
