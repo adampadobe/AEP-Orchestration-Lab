@@ -217,6 +217,15 @@
     '<p class="map-egg-inner-lead" id="mapEggInnerLead">Herein lie orchestrations…</p>' +
     '<ul class="map-egg-charms" id="mapEggCharms"></ul>' +
     '<p class="map-egg-signoff" id="mapEggSignoff"></p>' +
+    '<details class="map-egg-hall" id="mapEggHall">' +
+    '<summary class="map-egg-hall-summary">' +
+    '<span class="map-egg-hall-title">The mischief roster</span>' +
+    '<span class="map-egg-hall-count" id="mapEggHallCount"></span>' +
+    '</summary>' +
+    '<p class="map-egg-hall-sub">Everyone who sent the owl and signed the register—newest scrawls first.</p>' +
+    '<ul class="map-egg-hall-list" id="mapEggHallList"></ul>' +
+    '<p class="map-egg-hall-status" id="mapEggHallStatus" aria-live="polite"></p>' +
+    '</details>' +
     '<div class="map-egg-register">' +
     '<p class="map-egg-register-blurb" id="mapEggRegisterBlurb"></p>' +
     '<label for="mapEggSigner" class="map-egg-register-label">Your name or worthy alias</label>' +
@@ -245,9 +254,101 @@
   var err = overlay.querySelector('#mapEggErr');
   var regStatus = overlay.querySelector('#mapEggRegisterStatus');
   var btnContinue = overlay.querySelector('[data-map-egg-continue]');
+  var hallDetails = overlay.querySelector('#mapEggHall');
+  var hallList = overlay.querySelector('#mapEggHallList');
+  var hallCount = overlay.querySelector('#mapEggHallCount');
+  var hallStatus = overlay.querySelector('#mapEggHallStatus');
   var currentFlavor = 'home';
   var lastSpeck = specks[0];
   var sendingOwl = false;
+  var hallFetchInFlight = false;
+
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatAgo(iso) {
+    if (!iso) return '';
+    var t = new Date(iso).getTime();
+    if (Number.isNaN(t)) return '';
+    var sec = Math.floor((Date.now() - t) / 1000);
+    if (sec < 45) return 'just now';
+    if (sec < 3600) return Math.floor(sec / 60) + 'm ago';
+    if (sec < 86400) return Math.floor(sec / 3600) + 'h ago';
+    if (sec < 604800) return Math.floor(sec / 86400) + 'd ago';
+    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  function renderHallEntries(entries) {
+    if (!hallList) return;
+    if (!entries || !entries.length) {
+      hallList.innerHTML =
+        '<li class="map-egg-hall-empty">No signatures yet—be the first to send the owl below.</li>';
+      if (hallCount) hallCount.textContent = '(0)';
+      return;
+    }
+    if (hallCount) hallCount.textContent = '(' + entries.length + ')';
+    hallList.innerHTML = entries
+      .map(function (row) {
+        var ago = formatAgo(row.at);
+        var label = esc(row.flavorLabel || row.flavor || '');
+        return (
+          '<li class="map-egg-hall-item">' +
+          '<span class="map-egg-hall-name">' +
+          esc(row.name) +
+          '</span>' +
+          '<span class="map-egg-hall-meta">' +
+          label +
+          (ago ? ' · ' + esc(ago) : '') +
+          '</span>' +
+          '</li>'
+        );
+      })
+      .join('');
+  }
+
+  function loadHall() {
+    if (hallFetchInFlight || !hallList) return;
+    hallFetchInFlight = true;
+    if (hallStatus) {
+      hallStatus.textContent = '';
+      hallStatus.className = 'map-egg-hall-status';
+    }
+    if (hallCount) hallCount.textContent = '…';
+    hallList.innerHTML = '<li class="map-egg-hall-empty">Unfurling the parchment…</li>';
+    fetch('/api/easter-egg-found', { method: 'GET', headers: { Accept: 'application/json' } })
+      .then(function (r) {
+        return r.json().then(function (data) {
+          return { ok: r.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        hallFetchInFlight = false;
+        if (!result.ok || !result.data || !result.data.ok) {
+          if (hallStatus) {
+            hallStatus.textContent = 'The roster would not unfold—try again later.';
+            hallStatus.className = 'map-egg-hall-status map-egg-hall-status--err';
+          }
+          if (hallList) hallList.innerHTML = '';
+          if (hallCount) hallCount.textContent = '';
+          return;
+        }
+        renderHallEntries(result.data.entries || []);
+      })
+      .catch(function () {
+        hallFetchInFlight = false;
+        if (hallStatus) {
+          hallStatus.textContent = 'Could not reach the roster.';
+          hallStatus.className = 'map-egg-hall-status map-egg-hall-status--err';
+        }
+        if (hallList) hallList.innerHTML = '';
+        if (hallCount) hallCount.textContent = '';
+      });
+  }
 
   function showPhase(which) {
     phaseIntro.classList.toggle('map-egg-phase--active', which === 'intro');
@@ -295,6 +396,8 @@
     if (input) input.value = '';
     if (signer) signer.value = '';
     sendingOwl = false;
+    hallFetchInFlight = false;
+    if (hallDetails) hallDetails.open = false;
     showPhase('intro');
     lastSpeck.focus();
   }
@@ -307,6 +410,7 @@
     }
     err.textContent = '';
     showPhase('map');
+    loadHall();
     if (signer) {
       setTimeout(function () {
         signer.focus();
@@ -359,6 +463,7 @@
             'The owl is away. Palmer &amp; Kirkham have been notified (and your name is in the register).';
           regStatus.className = 'map-egg-register-status map-egg-register-status--ok';
         }
+        loadHall();
       })
       .catch(function () {
         sendingOwl = false;

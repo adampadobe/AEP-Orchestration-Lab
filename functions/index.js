@@ -58,7 +58,7 @@ const { getCatalogConfig, saveCatalogConfig } = require('./catalogConfigStore');
 const { buildBrowseResponse: buildJourneysBrowseResponse } = require('./journeysBrowse');
 const { enrichJourneyRowsWithCja, listCjaDataViewsAjoEnabled } = require('./cjaJourneyMetrics');
 const journeyBrowseCache = require('./journeyBrowseCacheStore');
-const { handleEasterEggNotify } = require('./easterEggNotify');
+const { handleEasterEggNotify, handleEasterEggList } = require('./easterEggNotify');
 const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
 const {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
@@ -2039,6 +2039,9 @@ exports.easterEggNotify = onRequest(
     if (req.method === 'OPTIONS') {
       res.status(204).send('');
       return;
+    }
+    if (req.method === 'GET') {
+      return handleEasterEggList(req, res);
     }
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'Method not allowed' });

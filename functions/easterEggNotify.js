@@ -134,4 +134,47 @@ async function handleEasterEggNotify(req, res, { sendgridKey, mailFrom }) {
   });
 }
 
-module.exports = { handleEasterEggNotify };
+const FLAVOR_LABEL = {
+  home: 'Home',
+  journeys: 'Journeys',
+  catalog: 'Catalog',
+  profile: 'Profile',
+};
+
+/** GET — public roster of register signings (names + flavor + time), newest first. */
+async function handleEasterEggList(req, res) {
+  try {
+    const snap = await getDb()
+      .collection('easterEggFinds')
+      .orderBy('createdAt', 'desc')
+      .limit(150)
+      .get();
+
+    const entries = snap.docs.map((doc) => {
+      const x = doc.data();
+      let at = null;
+      if (x.createdAt && typeof x.createdAt.toDate === 'function') {
+        at = x.createdAt.toDate().toISOString();
+      }
+      const name = sanitizeName(x.name) || 'Anonymous';
+      const flavor = sanitizeFlavor(x.flavor);
+      return {
+        name,
+        flavor,
+        flavorLabel: FLAVOR_LABEL[flavor] || flavor,
+        at,
+      };
+    });
+
+    res.status(200).json({
+      ok: true,
+      entries,
+      total: entries.length,
+    });
+  } catch (e) {
+    console.error('[easterEggNotify] list failed', e);
+    res.status(500).json({ ok: false, error: 'Could not load the roster.' });
+  }
+}
+
+module.exports = { handleEasterEggNotify, handleEasterEggList };

@@ -366,6 +366,117 @@ html[data-aep-theme='dark'] .map-egg-lab-title {
   padding-left: 0.65rem;
 }
 
+/* Collapsible roster (GET /api/easter-egg-found) */
+.map-egg-hall {
+  margin: 0 0 1.1rem;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(100, 70, 45, 0.35);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+html[data-aep-theme='dark'] .map-egg-hall {
+  background: rgba(0, 0, 0, 0.18);
+  border-color: rgba(200, 160, 100, 0.28);
+}
+
+.map-egg-hall-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.55rem 0.75rem;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5c4030;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.map-egg-hall-summary::-webkit-details-marker {
+  display: none;
+}
+
+.map-egg-hall-summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 0.35rem;
+  opacity: 0.65;
+  transition: transform 0.2s ease;
+}
+
+.map-egg-hall[open] .map-egg-hall-summary::before {
+  transform: rotate(90deg);
+}
+
+html[data-aep-theme='dark'] .map-egg-hall-summary {
+  color: #d4b896;
+}
+
+.map-egg-hall-count {
+  font-weight: 500;
+  opacity: 0.85;
+  letter-spacing: 0.02em;
+}
+
+.map-egg-hall-sub {
+  font-size: 0.78rem;
+  margin: 0 0.75rem 0.5rem;
+  padding: 0 0 0 0.15rem;
+  opacity: 0.88;
+  line-height: 1.45;
+}
+
+.map-egg-hall-list {
+  margin: 0;
+  padding: 0 0.75rem 0.65rem 1.5rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  max-height: 11rem;
+  overflow-y: auto;
+}
+
+.map-egg-hall-item {
+  margin-bottom: 0.4rem;
+  list-style: disc;
+}
+
+.map-egg-hall-name {
+  font-weight: 600;
+  margin-right: 0.35rem;
+}
+
+.map-egg-hall-meta {
+  font-size: 0.76rem;
+  opacity: 0.82;
+  font-family: 'Inter', sans-serif;
+}
+
+.map-egg-hall-empty {
+  list-style: none;
+  margin-left: -1rem;
+  font-style: italic;
+  opacity: 0.88;
+}
+
+.map-egg-hall-status {
+  font-size: 0.72rem;
+  margin: 0 0.75rem 0.5rem;
+  font-family: 'Inter', sans-serif;
+  min-height: 1em;
+}
+
+.map-egg-hall-status--err {
+  color: #8b2942;
+}
+
+html[data-aep-theme='dark'] .map-egg-hall-status--err {
+  color: #ff8a9a;
+}
+
 .map-egg-links {
   display: flex;
   flex-wrap: wrap;
