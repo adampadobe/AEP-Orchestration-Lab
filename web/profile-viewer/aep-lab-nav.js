@@ -16,7 +16,7 @@
     {
       group: 'Profiles', id: 'profiles',
       items: [
-        { label: 'Profile Viewer', href: 'index.html', ico: '\uD83D\uDC64' },
+        { label: 'Profile Viewer', href: 'index.html', ico: '\uD83D\uDDC4' },
         { label: 'Data viewer', href: 'schema-viewer.html', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="4.5" rx="6" ry="2.5"/><path d="M2 4.5v4c0 1.38 2.69 2.5 6 2.5.7 0 1.37-.04 2-.13"/><path d="M14 4.5v4c0 .47-.3.9-.8 1.27"/><path d="M2 8.5v4c0 1.38 2.69 2.5 6 2.5.7 0 1.37-.04 2-.13"/><path d="M14 8.5v1"/><circle cx="15" cy="14" r="2.5"/><path d="M17 16l1.5 1.5"/></svg>' },
         { label: 'Audience', href: 'audience-membership.html', ico: '\uD83D\uDC65' },
         { label: 'Consent', href: 'consent.html', ico: '\u2713' },
