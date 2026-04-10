@@ -101,6 +101,32 @@ html[data-aep-theme='dark'] .map-egg-parchment {
   display: block;
 }
 
+.map-egg-intro-names {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: center;
+  margin: 0 0 0.35rem;
+  color: #3d2818;
+}
+
+html[data-aep-theme='dark'] .map-egg-intro-names {
+  color: #f0e6d8;
+}
+
+.map-egg-intro-tag {
+  font-size: 0.82rem;
+  font-style: italic;
+  text-align: center;
+  margin: 0 0 1.35rem;
+  opacity: 0.88;
+  letter-spacing: 0.02em;
+}
+
+.map-egg-row--intro {
+  justify-content: center;
+}
+
 .map-egg-oath-title {
   font-size: 0.72rem;
   letter-spacing: 0.14em;

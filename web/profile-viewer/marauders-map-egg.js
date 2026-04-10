@@ -28,11 +28,18 @@
   overlay.className = 'map-egg-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-labelledby', 'mapEggOathTitle');
+  overlay.setAttribute('aria-labelledby', 'mapEggIntroTitle');
   overlay.innerHTML =
     '<div class="map-egg-scroll">' +
     '<div class="map-egg-parchment">' +
-    '<div class="map-egg-phase map-egg-phase--active" data-phase="oath">' +
+    '<div class="map-egg-phase map-egg-phase--active" data-phase="intro">' +
+    '<p id="mapEggIntroTitle" class="map-egg-intro-names">Palmer &amp; Kirkham</p>' +
+    '<p class="map-egg-intro-tag">Messrs. of the margin</p>' +
+    '<div class="map-egg-row map-egg-row--intro">' +
+    '<button type="button" class="map-egg-btn" data-map-egg-cancel-intro>Never mind</button>' +
+    '<button type="button" class="map-egg-btn map-egg-btn--primary" data-map-egg-continue>Continue</button>' +
+    '</div></div>' +
+    '<div class="map-egg-phase" data-phase="oath">' +
     '<p id="mapEggOathTitle" class="map-egg-oath-title">The blank parchment stares back</p>' +
     '<p class="map-egg-oath-hint">Perhaps an oath would help—exactly the sort you might swear when the Ministry isn’t looking.</p>' +
     '<label class="visually-hidden" for="mapEggOathInput">Oath</label>' +
@@ -46,7 +53,7 @@
     '<div class="map-egg-cover">' +
     '<p class="map-egg-present">Palmer &amp; Kirkham</p>' +
     '<p class="map-egg-proudly">proudly present</p>' +
-    '<h2 class="map-egg-lab-title">The AEP Orchestration Lab</h2>' +
+    '<h2 id="mapEggLabTitle" class="map-egg-lab-title">The AEP Orchestration Lab</h2>' +
     '<div class="map-egg-footprints" aria-hidden="true">· · · · ·</div>' +
     '</div>' +
     '<div class="map-egg-inner">' +
@@ -69,28 +76,52 @@
 
   document.body.appendChild(overlay);
 
+  var phaseIntro = overlay.querySelector('[data-phase="intro"]');
   var phaseOath = overlay.querySelector('[data-phase="oath"]');
   var phaseMap = overlay.querySelector('[data-phase="map"]');
   var input = overlay.querySelector('#mapEggOathInput');
   var err = overlay.querySelector('#mapEggErr');
+  var btnContinue = overlay.querySelector('[data-map-egg-continue]');
 
-  function openEgg() {
-    overlay.classList.add('map-egg-overlay--open');
-    phaseOath.classList.add('map-egg-phase--active');
-    phaseMap.classList.remove('map-egg-phase--active');
+  function showPhase(which) {
+    phaseIntro.classList.toggle('map-egg-phase--active', which === 'intro');
+    phaseOath.classList.toggle('map-egg-phase--active', which === 'oath');
+    phaseMap.classList.toggle('map-egg-phase--active', which === 'map');
+    if (which === 'intro') {
+      overlay.setAttribute('aria-labelledby', 'mapEggIntroTitle');
+    } else if (which === 'oath') {
+      overlay.setAttribute('aria-labelledby', 'mapEggOathTitle');
+    } else {
+      overlay.setAttribute('aria-labelledby', 'mapEggLabTitle');
+    }
+  }
+
+  function goToOath() {
     err.textContent = '';
+    if (input) input.value = '';
+    showPhase('oath');
     if (input) {
-      input.value = '';
       setTimeout(function () {
         input.focus();
       }, 120);
     }
   }
 
+  function openEgg() {
+    overlay.classList.add('map-egg-overlay--open');
+    err.textContent = '';
+    if (input) input.value = '';
+    showPhase('intro');
+    setTimeout(function () {
+      if (btnContinue) btnContinue.focus();
+    }, 120);
+  }
+
   function closeEgg() {
     overlay.classList.remove('map-egg-overlay--open');
     err.textContent = '';
     if (input) input.value = '';
+    showPhase('intro');
     speck.focus();
   }
 
@@ -101,8 +132,7 @@
       return;
     }
     err.textContent = '';
-    phaseOath.classList.remove('map-egg-phase--active');
-    phaseMap.classList.add('map-egg-phase--active');
+    showPhase('map');
   }
 
   speck.addEventListener('click', function (e) {
@@ -113,6 +143,9 @@
   overlay.addEventListener('click', function (e) {
     if (e.target === overlay) closeEgg();
   });
+
+  overlay.querySelector('[data-map-egg-cancel-intro]').addEventListener('click', closeEgg);
+  overlay.querySelector('[data-map-egg-continue]').addEventListener('click', goToOath);
 
   overlay.querySelector('[data-map-egg-cancel]').addEventListener('click', closeEgg);
   overlay.querySelector('[data-map-egg-submit]').addEventListener('click', tryReveal);
