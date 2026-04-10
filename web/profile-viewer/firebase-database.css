@@ -1,0 +1,210 @@
+/* Firebase Realtime Database manager — matches dashboard chrome */
+.firebase-database-page .fb-db-layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 18rem) 1fr;
+  gap: 1.25rem;
+  padding: 0 1.5rem 2rem;
+  align-items: start;
+}
+
+@media (max-width: 56rem) {
+  .firebase-database-page .fb-db-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.firebase-database-page .fb-db-panel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.firebase-database-page .fb-db-panel h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.firebase-database-page .fb-db-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.firebase-database-page .fb-db-status--ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.firebase-database-page .fb-db-status--warn {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.firebase-database-page .fb-db-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.firebase-database-page .fb-db-btn:hover {
+  background: #f8fafc;
+}
+
+.firebase-database-page .fb-db-btn--primary {
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+.firebase-database-page .fb-db-btn--danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.firebase-database-page .fb-db-field {
+  margin-bottom: 0.65rem;
+}
+
+.firebase-database-page .fb-db-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.25rem;
+}
+
+.firebase-database-page .fb-db-field input,
+.firebase-database-page .fb-db-field textarea,
+.firebase-database-page .fb-db-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.firebase-database-page .fb-db-msg {
+  margin: 0 1.5rem 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+
+.firebase-database-page .fb-db-msg--info {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.firebase-database-page .fb-db-msg--err {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.firebase-database-page .fb-db-msg--ok {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.firebase-database-page .fb-db-tree {
+  font-size: 0.8125rem;
+  max-height: min(60vh, 32rem);
+  overflow: auto;
+  padding: 0.5rem;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  background: #fafbfc;
+}
+
+.firebase-database-page .fb-db-tree-empty {
+  text-align: center;
+  color: #64748b;
+  padding: 2rem 1rem;
+}
+
+.firebase-database-page .fb-db-tree-row {
+  margin: 0.15rem 0;
+  padding-left: 0.35rem;
+}
+
+.firebase-database-page .fb-db-tree-key {
+  cursor: pointer;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.firebase-database-page .fb-db-tree-key:hover {
+  color: #2563eb;
+}
+
+.firebase-database-page .fb-db-tree-folder {
+  font-weight: 600;
+}
+
+.firebase-database-page .fb-db-tree-leaf-val {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.firebase-database-page .fb-db-edit {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.firebase-database-page .fb-db-edit:not(.fb-db-edit--active) {
+  display: none;
+}
+
+.firebase-database-page .fb-db-path {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+  word-break: break-all;
+}
+
+.firebase-database-page .fb-db-setup-note {
+  margin: 0 1.5rem 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.firebase-database-page .fb-db-setup-note code {
+  font-size: 0.78rem;
+  background: #f1f5f9;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.firebase-database-page .fb-db-tree-children {
+  margin-left: 0.75rem;
+  border-left: 1px solid #e8ecf1;
+  padding-left: 0.35rem;
+}

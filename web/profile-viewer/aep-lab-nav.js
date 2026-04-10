@@ -30,6 +30,7 @@
         { label: 'Profile generation', href: 'profile-generation.html', ico: '\u2795' },
         { label: 'Event tool', href: 'event-tool.html', ico: '\uD83D\uDCE4' },
         { label: 'Firebase images', href: 'firebase-hosting.html', ico: '\uD83D\uDDBC' },
+        { label: 'Firebase database', href: 'firebase-database.html', ico: '\uD83D\uDDC4' },
         { label: 'Audit events', href: 'audit-events.html', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2h8l4 4v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M12 2v4h4"/><path d="M7 10h6M7 13h4"/></svg>' },
       ],
     },

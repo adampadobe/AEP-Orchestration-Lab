@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase database – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260410">
+  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="firebase-database.css?v=20260410">
+</head>
+<body class="profile-viewer-page home-dashboard-concierge firebase-database-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Firebase Realtime DB">Firebase</span>
+          <a href="https://firebase.google.com/docs/database" class="dashboard-topbar-link" target="_blank" rel="noopener">RTDB docs</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="home.html" class="dashboard-topbar-icon" title="Home">⌂</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-viewer-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingFbDb">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingFbDb" class="dashboard-hero-title">Firebase Realtime Database</h2>
+              <p class="dashboard-hero-subtitle">
+                Sign in anonymously, then read and write JSON under your own workspace path. Data is isolated per Firebase Auth user via security rules.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <p class="fb-db-setup-note" role="note">
+          <strong>One-time setup (Firebase Console):</strong> enable <strong>Realtime Database</strong> (default instance),
+          deploy rules from this repo (<code class="dashboard-code">database.rules.json</code>), and enable <strong>Anonymous</strong>
+          under Authentication → Sign-in method. Then use <strong>Connect</strong> below.
+        </p>
+
+        <p id="fbDbMessage" class="fb-db-msg fb-db-msg--info" hidden role="status"></p>
+
+        <div class="fb-db-layout">
+          <div class="fb-db-panel">
+            <h3>Controls</h3>
+            <div class="fb-db-status" id="fbDbStatusWrap">
+              <span id="fbDbStatusText">Disconnected</span>
+            </div>
+            <button type="button" class="fb-db-btn fb-db-btn--primary" id="fbDbConnect">Connect</button>
+            <button type="button" class="fb-db-btn" id="fbDbRefresh">Refresh data</button>
+            <button type="button" class="fb-db-btn" id="fbDbExport">Export JSON</button>
+            <button type="button" class="fb-db-btn fb-db-btn--danger" id="fbDbSignOut">Sign out</button>
+
+            <div class="fb-db-field">
+              <label for="fbDbNavigatePath">Tree view path (relative to your workspace)</label>
+              <input type="text" id="fbDbNavigatePath" placeholder="/ or demo/settings" value="" autocomplete="off" />
+              <button type="button" class="fb-db-btn" id="fbDbGoPath" style="margin-top:0.5rem">Go to path</button>
+            </div>
+
+            <div class="fb-db-field">
+              <label for="fbDbNewPath">Create / overwrite path</label>
+              <input type="text" id="fbDbNewPath" placeholder="demo/message" autocomplete="off" />
+              <input type="text" id="fbDbNewValue" placeholder="value or JSON" style="margin-top:0.35rem" autocomplete="off" />
+              <button type="button" class="fb-db-btn fb-db-btn--primary" id="fbDbCreate" style="margin-top:0.5rem">Create node</button>
+            </div>
+          </div>
+
+          <div class="fb-db-panel">
+            <h3>Data</h3>
+            <div id="fbDbTree" class="fb-db-tree" role="tree" aria-label="Workspace JSON tree"></div>
+
+            <div id="fbDbEditForm" class="fb-db-edit">
+              <h3>Edit selected value</h3>
+              <div id="fbDbEditPath" class="fb-db-path"></div>
+              <div class="fb-db-field">
+                <label for="fbDbEditKey">Key</label>
+                <input type="text" id="fbDbEditKey" readonly />
+              </div>
+              <div class="fb-db-field">
+                <label for="fbDbEditValue">Value</label>
+                <textarea id="fbDbEditValue" rows="5"></textarea>
+              </div>
+              <div class="fb-db-field">
+                <label for="fbDbEditType">Type</label>
+                <select id="fbDbEditType">
+                  <option value="string">String</option>
+                  <option value="number">Number</option>
+                  <option value="boolean">Boolean</option>
+                  <option value="object">Object / array (JSON)</option>
+                  <option value="null">Null</option>
+                </select>
+              </div>
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                <button type="button" class="fb-db-btn fb-db-btn--primary" id="fbDbSave" style="flex:1;min-width:8rem">Save</button>
+                <button type="button" class="fb-db-btn fb-db-btn--danger" id="fbDbDelete" style="flex:1;min-width:8rem">Delete</button>
+                <button type="button" class="fb-db-btn" id="fbDbCancel">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js?v=20260410"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="firebase-database.js?v=20260410"></script>
+  <script defer src="aep-theme.js?v=20260406"></script>
+  <script defer src="aep-lab-nav.js?v=20260410"></script>
+</body>
+</html>
