@@ -34,27 +34,10 @@ body.aep-profile-drawer-open .aep-profile-drawer,
   padding: 1rem clamp(0.5rem, 1.25vw, 1.25rem) 1.1rem;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns:
-    minmax(200px, 1.12fr) minmax(190px, 0.95fr) minmax(240px, 1.18fr) minmax(200px, 1.05fr) minmax(200px, 1.02fr);
-  grid-template-areas: 'cell-customer cell-identity cell-graph cell-audmsg cell-events';
+  /* Five equal columns — matches AEP Profile reference (Customer | Identity | Graph | Aud+Msg | Events) */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.85rem 1rem;
   align-items: stretch;
-}
-
-.aep-profile-drawer-grid-cell--customer {
-  grid-area: cell-customer;
-}
-.aep-profile-drawer-grid-cell--identity {
-  grid-area: cell-identity;
-}
-.aep-profile-drawer-grid-cell--graph {
-  grid-area: cell-graph;
-}
-.aep-profile-drawer-grid-cell--audmsg {
-  grid-area: cell-audmsg;
-}
-.aep-profile-drawer-grid-cell--events {
-  grid-area: cell-events;
 }
 
 /* Equal-height columns: each top-level cell matches the tallest (Customer Profile) */
@@ -66,10 +49,16 @@ body.aep-profile-drawer-open .aep-profile-drawer,
   box-sizing: border-box;
 }
 
+/* One grid cell per top-level child; minmax(0,1fr) needs min-width:0 on flex/grid children */
+.aep-profile-drawer-inner > * {
+  min-width: 0;
+  align-self: stretch;
+}
+
 /* Audiences + EMAILS SENT stacked in one grid column — column fills row; panels split height */
 .aep-profile-drawer-col-group {
-  display: flex;
-  flex-direction: column;
+  display: flex !important;
+  flex-direction: column !important;
   gap: 0.85rem;
   min-width: 0;
   min-height: 0;
@@ -465,7 +454,6 @@ body.aep-profile-drawer-open .aep-profile-drawer,
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  justify-content: flex-start;
 }
 
 .aep-profile-drawer-graph-head {
@@ -508,26 +496,19 @@ body.aep-profile-drawer-open .aep-profile-drawer,
 
 .aep-profile-drawer-graph-viewport {
   position: relative;
-  flex: 0 1 auto;
-  width: 100%;
-  aspect-ratio: 1;
-  max-height: min(280px, 38vh);
-  margin: 0 auto;
+  flex: 1 1 auto;
+  min-height: 140px;
   border-radius: 10px;
   background: radial-gradient(ellipse at center, rgba(255, 255, 254, 0.07) 0%, rgba(44, 44, 44, 0.4) 70%);
   border: 1px solid rgba(255, 255, 254, 0.08);
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .aep-profile-drawer-graph-svg {
   display: block;
   width: 100%;
   height: 100%;
-  max-height: 100%;
-  flex-shrink: 0;
+  min-height: 120px;
 }
 
 /* Identity graph — node / edge entrance (new linked IDs) */
@@ -638,16 +619,11 @@ body.aep-profile-drawer-open .aep-profile-drawer,
 @media (max-width: 980px) {
   .aep-profile-drawer-inner {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      'cell-customer'
-      'cell-identity'
-      'cell-graph'
-      'cell-audmsg'
-      'cell-events';
     gap: 0.85rem;
     max-height: 55vh;
     overflow: auto;
   }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
