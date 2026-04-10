@@ -14,6 +14,8 @@
   var viewRootRel = '';
   /** 'tree' | 'json' — data panel view */
   var dataViewMode = 'tree';
+  /** JSON tab: false = syntax-highlighted read-only pre, true = textarea editor */
+  var jsonEditMode = false;
 
   var statusEl = document.getElementById('fbDbStatusText');
   var msgEl = document.getElementById('fbDbMessage');
@@ -99,35 +101,168 @@
     return root === undefined ? null : root;
   }
 
+  function escapeHtmlForJson(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  /** Syntax-color pretty-printed JSON for display in a <pre>. */
+  function highlightJsonText(text) {
+    var i = 0;
+    var out = '';
+    var len = text.length;
+    while (i < len) {
+      var c = text[i];
+      if (c === '"') {
+        var start = i;
+        i++;
+        while (i < len) {
+          if (text[i] === '\\' && i + 1 < len) {
+            var nx = text[i + 1];
+            if (nx === 'u' && i + 6 <= len) {
+              i += 6;
+              continue;
+            }
+            i += 2;
+            continue;
+          }
+          if (text[i] === '"') {
+            i++;
+            break;
+          }
+          i++;
+        }
+        var slice = text.slice(start, i);
+        var j = i;
+        while (j < len && /\s/.test(text[j])) j++;
+        var isKey = j < len && text[j] === ':';
+        var cls = isKey ? 'fb-db-json-hl-key' : 'fb-db-json-hl-string';
+        out += '<span class="' + cls + '">' + escapeHtmlForJson(slice) + '</span>';
+        continue;
+      }
+      if (c === 't' && text.slice(i, i + 4) === 'true') {
+        out += '<span class="fb-db-json-hl-boolean">true</span>';
+        i += 4;
+        continue;
+      }
+      if (c === 'f' && text.slice(i, i + 5) === 'false') {
+        out += '<span class="fb-db-json-hl-boolean">false</span>';
+        i += 5;
+        continue;
+      }
+      if (c === 'n' && text.slice(i, i + 4) === 'null') {
+        out += '<span class="fb-db-json-hl-null">null</span>';
+        i += 4;
+        continue;
+      }
+      if (c === '-' || (c >= '0' && c <= '9')) {
+        var n0 = i;
+        if (c === '-') i++;
+        while (i < len && /[0-9]/.test(text[i])) i++;
+        if (i < len && text[i] === '.') {
+          i++;
+          while (i < len && /[0-9]/.test(text[i])) i++;
+        }
+        if (i < len && /[eE]/.test(text[i])) {
+          i++;
+          if (i < len && /[+\-]/.test(text[i])) i++;
+          while (i < len && /[0-9]/.test(text[i])) i++;
+        }
+        out += '<span class="fb-db-json-hl-number">' + escapeHtmlForJson(text.slice(n0, i)) + '</span>';
+        continue;
+      }
+      if ('{}[],:'.indexOf(c) >= 0) {
+        out += '<span class="fb-db-json-hl-punct">' + escapeHtmlForJson(c) + '</span>';
+        i++;
+        continue;
+      }
+      out += escapeHtmlForJson(c);
+      i++;
+    }
+    return out;
+  }
+
+  function syncJsonModeChrome() {
+    var editBtn = document.getElementById('fbDbJsonEdit');
+    var cancelBtn = document.getElementById('fbDbJsonCancel');
+    var applyBtn = document.getElementById('fbDbApplyJson');
+    var copyBtn = document.getElementById('fbDbCopyJson');
+    if (!editBtn || !cancelBtn || !applyBtn || !copyBtn) return;
+    var onJsonTab = dataViewMode === 'json';
+    if (!onJsonTab) {
+      editBtn.hidden = true;
+      cancelBtn.hidden = true;
+      applyBtn.hidden = true;
+      copyBtn.hidden = true;
+      return;
+    }
+    if (!basePath) {
+      editBtn.hidden = true;
+      cancelBtn.hidden = true;
+      applyBtn.hidden = true;
+      copyBtn.hidden = true;
+      return;
+    }
+    copyBtn.hidden = false;
+    editBtn.hidden = jsonEditMode;
+    cancelBtn.hidden = !jsonEditMode;
+    applyBtn.hidden = !jsonEditMode;
+  }
+
   function renderJsonView() {
+    var pre = document.getElementById('fbDbJsonPre');
     var ta = document.getElementById('fbDbJsonTextarea');
     var empty = document.getElementById('fbDbJsonEmpty');
-    if (!ta || !empty) return;
+    if (!pre || !ta || !empty) return;
     if (!basePath) {
       ta.value = '';
+      pre.innerHTML = '';
+      pre.hidden = true;
       ta.hidden = true;
       empty.hidden = false;
       empty.textContent =
         auth && auth.currentUser
           ? 'Choose a workspace name on the left to load data.'
           : 'Sign in and refresh to load data.';
+      syncJsonModeChrome();
       return;
     }
     empty.hidden = true;
-    ta.hidden = false;
     var root = getViewRootData();
+    var rawStr;
     if (root === null || root === undefined) {
-      ta.value = '{}';
-      return;
+      rawStr = '{}';
+    } else {
+      try {
+        rawStr = JSON.stringify(root, null, 2);
+      } catch (err) {
+        rawStr = String(root);
+      }
     }
+    ta.value = rawStr;
     try {
-      ta.value = JSON.stringify(root, null, 2);
-    } catch (err) {
-      ta.value = String(root);
+      pre.innerHTML = highlightJsonText(rawStr);
+    } catch (err2) {
+      pre.textContent = rawStr;
+    }
+    pre.hidden = jsonEditMode;
+    ta.hidden = !jsonEditMode;
+    syncJsonModeChrome();
+    if (jsonEditMode && !ta.hidden) {
+      try {
+        ta.focus();
+      } catch (fe) {
+        /* */
+      }
     }
   }
 
   function setDataViewMode(mode) {
+    if (mode !== 'json') {
+      jsonEditMode = false;
+    }
     dataViewMode = mode === 'json' ? 'json' : 'tree';
     var treeWrap = document.getElementById('fbDbTreeWrap');
     var jsonWrap = document.getElementById('fbDbJsonWrap');
@@ -147,12 +282,18 @@
   }
 
   function copyJsonPanel() {
-    var ta = document.getElementById('fbDbJsonTextarea');
-    if (!ta || ta.hidden || !String(ta.value || '').trim()) {
+    var text = '';
+    if (jsonEditMode) {
+      var ta = document.getElementById('fbDbJsonTextarea');
+      text = ta && ta.value ? String(ta.value).trim() : '';
+    } else {
+      var pre = document.getElementById('fbDbJsonPre');
+      text = pre && !pre.hidden && pre.textContent ? pre.textContent.trim() : '';
+    }
+    if (!text) {
       showMsg('No JSON to copy. Load data or switch to JSON view.', 'err');
       return;
     }
-    var text = ta.value;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(
         function () {
@@ -198,9 +339,13 @@
       showMsg('Load a workspace first.', 'err');
       return;
     }
+    if (!jsonEditMode) {
+      showMsg('Click Edit JSON to change data.', 'info');
+      return;
+    }
     var ta = document.getElementById('fbDbJsonTextarea');
     if (!ta || ta.hidden) {
-      showMsg('Open the JSON tab.', 'err');
+      showMsg('Open the JSON tab and click Edit JSON.', 'err');
       return;
     }
     var raw = ta.value != null ? String(ta.value).trim() : '';
@@ -225,11 +370,22 @@
         return refreshDatabase();
       })
       .then(function () {
+        jsonEditMode = false;
         if (dataViewMode === 'json') renderJsonView();
       })
       .catch(function (e) {
         showMsg(String(e.message || e), 'err');
       });
+  }
+
+  function enterJsonEditMode() {
+    jsonEditMode = true;
+    renderJsonView();
+  }
+
+  function cancelJsonEditMode() {
+    jsonEditMode = false;
+    renderJsonView();
   }
 
   function authErrorMessage(err) {
@@ -1009,6 +1165,10 @@
     document.getElementById('fbDbCopyJson').addEventListener('click', copyJsonPanel);
   document.getElementById('fbDbApplyJson') &&
     document.getElementById('fbDbApplyJson').addEventListener('click', applyJsonFromPanel);
+  document.getElementById('fbDbJsonEdit') &&
+    document.getElementById('fbDbJsonEdit').addEventListener('click', enterJsonEditMode);
+  document.getElementById('fbDbJsonCancel') &&
+    document.getElementById('fbDbJsonCancel').addEventListener('click', cancelJsonEditMode);
   var fbDbJsonTextarea = document.getElementById('fbDbJsonTextarea');
   if (fbDbJsonTextarea) {
     fbDbJsonTextarea.addEventListener('paste', onJsonTextareaPaste);
