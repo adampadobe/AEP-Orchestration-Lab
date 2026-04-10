@@ -167,6 +167,31 @@
     }
   }
 
+  function insertAtTextareaCursor(ta, text) {
+    var start = ta.selectionStart;
+    var end = ta.selectionEnd;
+    var v = ta.value;
+    ta.value = v.slice(0, start) + text + v.slice(end);
+    var pos = start + text.length;
+    ta.selectionStart = ta.selectionEnd = pos;
+  }
+
+  /** Pretty-print clipboard text when it parses as JSON (otherwise normal paste). */
+  function onJsonTextareaPaste(e) {
+    var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    if (text == null) return;
+    var trimmed = String(text).trim();
+    if (!trimmed) return;
+    var parsed;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch (err) {
+      return;
+    }
+    e.preventDefault();
+    insertAtTextareaCursor(e.target, JSON.stringify(parsed, null, 2));
+  }
+
   /** Writes textarea JSON to Firebase at the current tree path (full workspace or Navigate path). */
   function applyJsonFromPanel() {
     if (!database || !basePath) {
@@ -986,6 +1011,7 @@
     document.getElementById('fbDbApplyJson').addEventListener('click', applyJsonFromPanel);
   var fbDbJsonTextarea = document.getElementById('fbDbJsonTextarea');
   if (fbDbJsonTextarea) {
+    fbDbJsonTextarea.addEventListener('paste', onJsonTextareaPaste);
     fbDbJsonTextarea.addEventListener('keydown', function (e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
