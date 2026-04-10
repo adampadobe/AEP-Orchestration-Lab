@@ -102,6 +102,68 @@
     return { email: email, password: password };
   }
 
+  /** Firebase REST API URL for this user’s workspace root (GET/PUT JSON). */
+  function workspaceRestApiUrl(uid) {
+    if (!uid) return '';
+    var cfg = getCfg();
+    var base = cfg && cfg.databaseURL ? String(cfg.databaseURL).trim() : '';
+    if (!base) return '';
+    if (base.endsWith('/')) base = base.slice(0, -1);
+    return base + '/userWorkspaces/' + encodeURIComponent(uid) + '.json';
+  }
+
+  function updateRestApiLink(user) {
+    var block = document.getElementById('fbDbApiBlock');
+    var urlEl = document.getElementById('fbDbRestUrl');
+    if (!block || !urlEl) return;
+    if (user && user.uid) {
+      var url = workspaceRestApiUrl(user.uid);
+      urlEl.textContent = url;
+      block.hidden = !url;
+    } else {
+      urlEl.textContent = '';
+      block.hidden = true;
+    }
+  }
+
+  function copyRestApiUrl() {
+    var urlEl = document.getElementById('fbDbRestUrl');
+    if (!urlEl || !urlEl.textContent) {
+      showMsg('Sign in to get an API URL.', 'err');
+      return;
+    }
+    var text = urlEl.textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () {
+          showMsg('REST API URL copied to clipboard.', 'ok');
+        },
+        function () {
+          fallbackCopyText(text);
+        },
+      );
+    } else {
+      fallbackCopyText(text);
+    }
+  }
+
+  function fallbackCopyText(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showMsg('REST API URL copied to clipboard.', 'ok');
+    } catch (e) {
+      showMsg('Could not copy. Select the URL and copy manually.', 'err');
+    }
+    document.body.removeChild(ta);
+  }
+
   function initFirebaseApp() {
     var cfg = getCfg();
     if (!cfg || !cfg.apiKey) {
@@ -119,12 +181,14 @@
           basePath = 'userWorkspaces/' + user.uid;
           var who = user.email || 'Guest ' + user.uid.slice(0, 8) + '…';
           setStatus('Signed in · ' + who, 'ok');
+          updateRestApiLink(user);
           cancelEdit();
           refreshDatabase();
         } else {
           basePath = '';
           databaseData = {};
           viewRootRel = '';
+          updateRestApiLink(null);
           if (treeEl) {
             treeEl.innerHTML =
               '<div class="fb-db-tree-empty">Sign in or create an account to load your workspace.</div>';
@@ -511,6 +575,8 @@
   document.getElementById('fbDbAnonymous') && document.getElementById('fbDbAnonymous').addEventListener('click', signInAnonymous);
   document.getElementById('fbDbResetPassword') &&
     document.getElementById('fbDbResetPassword').addEventListener('click', sendPasswordReset);
+  document.getElementById('fbDbCopyRestUrl') &&
+    document.getElementById('fbDbCopyRestUrl').addEventListener('click', copyRestApiUrl);
   document.getElementById('fbDbRefresh') && document.getElementById('fbDbRefresh').addEventListener('click', function () {
     refreshDatabase();
   });

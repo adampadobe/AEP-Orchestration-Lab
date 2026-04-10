@@ -260,3 +260,56 @@ html[data-aep-theme='dark'] body.firebase-database-page {
   border-left: 1px solid var(--dash-border);
   padding-left: 0.35rem;
 }
+
+.firebase-database-page .fb-db-api-block {
+  margin: 0.75rem 0 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+
+.firebase-database-page .fb-db-api-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.firebase-database-page .fb-db-api-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--dash-muted);
+}
+
+.firebase-database-page .fb-db-api-hint .dashboard-code {
+  font-size: 0.68rem;
+}
+
+.firebase-database-page .fb-db-api-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.firebase-database-page .fb-db-code-url {
+  flex: 1 1 12rem;
+  display: block;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  word-break: break-all;
+  border-radius: 6px;
+  border: 1px solid var(--dash-input-border);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+}
+
+.firebase-database-page .fb-db-copy-btn {
+  flex: 0 0 auto;
+  width: auto !important;
+  min-width: 4.5rem;
+  margin-bottom: 0 !important;
+}

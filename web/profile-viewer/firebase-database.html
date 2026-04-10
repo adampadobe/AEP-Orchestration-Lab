@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260410">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="firebase-database.css?v=20260411d">
+  <link rel="stylesheet" href="firebase-database.css?v=20260411e">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge firebase-database-page">
   <div class="dashboard-shell">
@@ -63,6 +63,19 @@
             <div class="fb-db-status" id="fbDbStatusWrap">
               <span id="fbDbStatusText">Not signed in</span>
             </div>
+
+            <div id="fbDbApiBlock" class="fb-db-api-block" hidden>
+              <h4 class="fb-db-api-title">REST API URL</h4>
+              <p class="fb-db-api-hint">
+                Standard Firebase RTDB HTTPS endpoint for your workspace root. From other systems, add
+                <code class="dashboard-code">?auth=&lt;ID_TOKEN&gt;</code> (or use the Admin SDK) so rules allow access.
+              </p>
+              <div class="fb-db-api-row">
+                <code id="fbDbRestUrl" class="fb-db-code-url" translate="no"></code>
+                <button type="button" class="fb-db-btn fb-db-copy-btn" id="fbDbCopyRestUrl">Copy</button>
+              </div>
+            </div>
+
             <button type="button" class="fb-db-btn" id="fbDbRefresh">Refresh data</button>
             <button type="button" class="fb-db-btn" id="fbDbExport">Export JSON</button>
             <button type="button" class="fb-db-btn fb-db-btn--danger" id="fbDbSignOut">Sign out</button>
@@ -122,7 +135,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-  <script src="firebase-database.js?v=20260411b"></script>
+  <script src="firebase-database.js?v=20260411e"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260410"></script>
 </body>
