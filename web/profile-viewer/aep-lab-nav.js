@@ -37,6 +37,7 @@
       group: 'Decisioning', id: 'decisioning',
       items: [
         { label: 'Decisioning lab', href: 'content-decision-live.html', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="5" height="4" rx="1"/><rect x="1" y="13" width="5" height="4" rx="1"/><rect x="14" y="8" width="5" height="4" rx="1"/><path d="M6 5h3l3 5.5"/><path d="M6 15h3l3-5"/><path d="M12 10.5h2"/><path d="M10.5 1l.5 1.2.5-1.2M11.7 1.5l-1.2.5 1.2.5" stroke-width="1.1"/></svg>' },
+        { label: 'Decisioning catalog', href: 'decisioning-catalog.html', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M2.5,4.5a1,1,0,1,0,1,1A1,1,0,0,0,2.5,4.5Zm3,.5h10a.5.5,0,0,0,0-1h-10a.5.5,0,0,0,0,1Zm-3,4a1,1,0,1,0,1,1A1,1,0,0,0,2.5,9Zm3,.5h10a.5.5,0,0,0,0-1h-10a.5.5,0,0,0,0,1Zm-3,4a1,1,0,1,0,1,1A1,1,0,0,0,2.5,13.5Zm3,.5h7a.5.5,0,0,0,0-1h-7a.5.5,0,0,0,0,1Z"/></svg>' },
       ],
     },
     {
