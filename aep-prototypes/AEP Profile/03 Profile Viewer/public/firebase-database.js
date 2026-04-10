@@ -17,6 +17,48 @@
   /** JSON tab: false = syntax-highlighted read-only pre, true = textarea editor */
   var jsonEditMode = false;
 
+  /** Short demo workspace — trimmed from full export; safe to copy into Edit JSON. */
+  var SAMPLE_WORKSPACE_JSON_PRETTY = JSON.stringify(
+    {
+      brand: {
+        name: 'Etihad',
+        tagline: 'Your journey, your destination',
+        siteUrl: 'https://example.com',
+      },
+      loyalty: { tier: 'Silver', points: 600 },
+      travel: {
+        flightNumber: 'EY-007',
+        gate: 'C56',
+        status: 'OnTime',
+        cabin: 'Business',
+      },
+      retail: { item: 'Shoes', price: '£50', quantity: 1 },
+      messages: { emailSubject: 'We Miss You!', pushTitle: 'Your offer is ready' },
+    },
+    null,
+    2,
+  );
+
+  function initWorkspaceJsonSample() {
+    var el = document.getElementById('fbDbJsonSamplePre');
+    if (el) el.textContent = SAMPLE_WORKSPACE_JSON_PRETTY;
+  }
+
+  function copyWorkspaceJsonSample() {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(SAMPLE_WORKSPACE_JSON_PRETTY).then(
+        function () {
+          showMsg('Example JSON copied. Click Edit JSON, paste, then Apply JSON.', 'ok');
+        },
+        function () {
+          fallbackCopyText(SAMPLE_WORKSPACE_JSON_PRETTY, 'Example JSON copied.');
+        },
+      );
+    } else {
+      fallbackCopyText(SAMPLE_WORKSPACE_JSON_PRETTY, 'Example JSON copied.');
+    }
+  }
+
   var statusEl = document.getElementById('fbDbStatusText');
   var msgEl = document.getElementById('fbDbMessage');
   var treeEl = document.getElementById('fbDbTree');
@@ -1169,6 +1211,9 @@
     document.getElementById('fbDbJsonEdit').addEventListener('click', enterJsonEditMode);
   document.getElementById('fbDbJsonCancel') &&
     document.getElementById('fbDbJsonCancel').addEventListener('click', cancelJsonEditMode);
+  document.getElementById('fbDbCopyJsonSample') &&
+    document.getElementById('fbDbCopyJsonSample').addEventListener('click', copyWorkspaceJsonSample);
+  initWorkspaceJsonSample();
   var fbDbJsonTextarea = document.getElementById('fbDbJsonTextarea');
   if (fbDbJsonTextarea) {
     fbDbJsonTextarea.addEventListener('paste', onJsonTextareaPaste);

@@ -663,6 +663,81 @@ html[data-aep-theme='dark'] .firebase-database-page .fb-db-view-tab--active {
   min-height: 2rem;
 }
 
+.firebase-database-page .fb-db-json-sample {
+  margin: 0 0 0.65rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px dashed var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+
+.firebase-database-page .fb-db-json-sample-summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  list-style: none;
+}
+
+.firebase-database-page .fb-db-json-sample summary::-webkit-details-marker {
+  display: none;
+}
+
+.firebase-database-page .fb-db-json-sample-summary::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform 0.12s ease;
+  color: var(--dash-muted);
+}
+
+.firebase-database-page .fb-db-json-sample[open] .fb-db-json-sample-summary::before {
+  transform: rotate(90deg);
+}
+
+.firebase-database-page .fb-db-json-sample-lead {
+  margin: 0.4rem 0 0.5rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--dash-muted);
+}
+
+.firebase-database-page .fb-db-json-sample-actions {
+  margin-bottom: 0.45rem;
+}
+
+.firebase-database-page .fb-db-json-sample-copy {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid var(--dash-border);
+  border-radius: 6px;
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  cursor: pointer;
+}
+
+.firebase-database-page .fb-db-json-sample-copy:hover {
+  background: var(--dash-hover);
+}
+
+.firebase-database-page .fb-db-json-sample-pre {
+  display: block;
+  margin: 0;
+  max-height: 10rem;
+  overflow: auto;
+  padding: 0.5rem 0.55rem;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  tab-size: 2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .firebase-database-page .fb-db-json-pre {
   display: block;
   margin: 0;

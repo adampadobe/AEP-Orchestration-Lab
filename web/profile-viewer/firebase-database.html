@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260410">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="firebase-database.css?v=20260409f">
+  <link rel="stylesheet" href="firebase-database.css?v=20260409g">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge firebase-database-page">
   <div class="dashboard-shell">
@@ -193,6 +193,20 @@
               <div id="fbDbTree" class="fb-db-tree" role="tree" aria-label="Workspace JSON tree"></div>
             </div>
             <div id="fbDbJsonWrap" class="fb-db-view-panel" hidden>
+              <details class="fb-db-json-sample" id="fbDbJsonSample">
+                <summary class="fb-db-json-sample-summary" title="Short starter JSON for personalization demos — copy and paste into Edit JSON">
+                  Example workspace JSON
+                </summary>
+                <p class="fb-db-json-sample-lead">
+                  Copy this, click <strong>Edit JSON</strong>, paste, tweak, then <strong>Apply JSON</strong>.
+                </p>
+                <div class="fb-db-json-sample-actions">
+                  <button type="button" class="fb-db-json-sample-copy" id="fbDbCopyJsonSample">
+                    Copy example
+                  </button>
+                </div>
+                <pre class="fb-db-json-sample-pre" id="fbDbJsonSamplePre" aria-label="Example workspace JSON"></pre>
+              </details>
               <pre
                 id="fbDbJsonPre"
                 class="fb-db-json-pre"
@@ -205,6 +219,7 @@
                 spellcheck="false"
                 autocomplete="off"
                 aria-label="Edit workspace JSON"
+                title="Open Example workspace JSON above, copy it, then Edit JSON and paste here — or write your own object."
                 placeholder="Paste JSON (auto-formatted) — then Apply JSON or Ctrl+Enter"
                 hidden
               ></textarea>
