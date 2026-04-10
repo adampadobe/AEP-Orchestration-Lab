@@ -22,7 +22,10 @@
   z-index: 3210;
 }
 
+/* Default + donate/race demos pass profileOpenClass in DemoProfileDrawer.init */
 body.aep-profile-drawer-open .aep-profile-drawer,
+body.donate-demo-page--profile-open .aep-profile-drawer,
+body.race-page--profile-open .aep-profile-drawer,
 .aep-profile-drawer:focus-within {
   transform: translateY(0);
 }
