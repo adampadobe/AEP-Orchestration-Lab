@@ -58,19 +58,19 @@
 
 <!-- NAV -->
 <nav class="tab-nav">
-  <button class="tab-btn active" onclick="window.dceVizShowPanel('overview')" style="--active-color: #CC0000">
+  <button type="button" class="tab-btn active" data-dce-panel="overview" style="--active-color: #CC0000">
     <span class="tab-icon" style="background:#CC0000"></span> Overview
   </button>
-  <button class="tab-btn" onclick="window.dceVizShowPanel('priority')" style="--active-color: #c47b00">
+  <button type="button" class="tab-btn" data-dce-panel="priority" style="--active-color: #c47b00">
     <span class="tab-icon" style="background:#c47b00"></span> 01 · Item Priority
   </button>
-  <button class="tab-btn" onclick="window.dceVizShowPanel('formula')" style="--active-color: #005f9e">
+  <button type="button" class="tab-btn" data-dce-panel="formula" style="--active-color: #005f9e">
     <span class="tab-icon" style="background:#005f9e"></span> 02 · Ranking Formulas
   </button>
-  <button class="tab-btn" onclick="window.dceVizShowPanel('ai')" style="--active-color: #1a7a4a">
+  <button type="button" class="tab-btn" data-dce-panel="ai" style="--active-color: #1a7a4a">
     <span class="tab-icon" style="background:#1a7a4a"></span> 03 · AI Models
   </button>
-  <button class="tab-btn" onclick="window.dceVizShowPanel('experiment')" style="--active-color: #6b3fa0">
+  <button type="button" class="tab-btn" data-dce-panel="experiment" style="--active-color: #6b3fa0">
     <span class="tab-icon" style="background:#6b3fa0"></span> Experimentation
   </button>
 </nav>
@@ -85,7 +85,7 @@
     </div>
 
     <div class="overview-grid">
-      <a class="overview-card" onclick="window.dceVizShowPanel('priority'); return false;" href="#">
+      <a class="overview-card" data-dce-panel="priority" href="#">
         <div class="ov-header" style="background: #c47b00;">
           <div class="ov-num">01</div>
           <div class="ov-name">Item Priority</div>
@@ -100,7 +100,7 @@
           </div>
         </div>
       </a>
-      <a class="overview-card" onclick="window.dceVizShowPanel('formula'); return false;" href="#">
+      <a class="overview-card" data-dce-panel="formula" href="#">
         <div class="ov-header" style="background: #005f9e;">
           <div class="ov-num">02</div>
           <div class="ov-name">Ranking Formulas</div>
@@ -115,7 +115,7 @@
           </div>
         </div>
       </a>
-      <a class="overview-card" onclick="window.dceVizShowPanel('ai'); return false;" href="#">
+      <a class="overview-card" data-dce-panel="ai" href="#">
         <div class="ov-header" style="background: #1a7a4a;">
           <div class="ov-num">03</div>
           <div class="ov-name">AI Models</div>
@@ -130,7 +130,7 @@
           </div>
         </div>
       </a>
-      <a class="overview-card" onclick="window.dceVizShowPanel('experiment'); return false;" href="#">
+      <a class="overview-card" data-dce-panel="experiment" href="#">
         <div class="ov-header" style="background: #6b3fa0;">
           <div class="ov-num">+</div>
           <div class="ov-name">Experimentation</div>
@@ -774,6 +774,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260420"></script>
-  <script defer src="decisioning-visualizer.js?v=20260409"></script>
+  <script defer src="decisioning-visualizer.js?v=20260410"></script>
 </body>
 </html>

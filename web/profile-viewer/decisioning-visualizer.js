@@ -6,14 +6,49 @@
 
 // ── TAB NAVIGATION ────────────────────────────────────────────────────────
 function showPanel(id) {
-  document.getElementById('dceVizRoot').querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('dceVizRoot').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('dceViz-panel-' + id).classList.add('active');
+  var root = document.getElementById('dceVizRoot');
+  if (!root) return;
+  var panel = document.getElementById('dceViz-panel-' + id);
+  if (!panel) return;
+  var order = ['overview', 'priority', 'formula', 'ai', 'experiment'];
+  var idx = order.indexOf(id);
+  if (idx < 0) return;
 
-  const idx = ['overview','priority','formula','ai','experiment'].indexOf(id);
-  document.getElementById('dceVizRoot').querySelectorAll('.tab-btn')[idx].classList.add('active');
-  var _sec = document.getElementById('decisioning-visualiser'); if (_sec) _sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  root.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+  root.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+  panel.classList.add('active');
+
+  var btns = root.querySelectorAll('.tab-btn');
+  if (btns[idx]) btns[idx].classList.add('active');
+
+  var sec = document.getElementById('decisioning-visualiser');
+  if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+/** Expose immediately so tab clicks work even if later initialisation throws (e.g. missing APIs). */
+window.dceVizShowPanel = showPanel;
+
+function bindVizRootClicks() {
+  var root = document.getElementById('dceVizRoot');
+  if (!root || root.getAttribute('data-dce-viz-bound') === '1') return;
+  root.setAttribute('data-dce-viz-bound', '1');
+  root.addEventListener('click', function (e) {
+    var tab = e.target.closest && e.target.closest('.tab-btn');
+    if (tab && root.contains(tab)) {
+      e.preventDefault();
+      var pid = tab.getAttribute('data-dce-panel');
+      if (pid) showPanel(pid);
+      return;
+    }
+    var card = e.target.closest && e.target.closest('a.overview-card');
+    if (card && root.contains(card)) {
+      e.preventDefault();
+      var cid = card.getAttribute('data-dce-panel');
+      if (cid) showPanel(cid);
+    }
+  });
+}
+bindVizRootClicks();
 
 // ── OFFER PRIORITY ────────────────────────────────────────────────────────
 const offers = [
@@ -96,8 +131,12 @@ function updatePriority() {
   document.getElementById('dceViz-winner-label').textContent = winner.name.replace(/^.\s/, '');
 }
 
-buildPriorityList();
-updatePriority();
+try {
+  buildPriorityList();
+  updatePriority();
+} catch (err) {
+  console.error('[decisioning-visualizer] priority init', err);
+}
 
 // ── RANKING FORMULA ───────────────────────────────────────────────────────
 // Each item has its own expiry window (expiresIn hours). Urgency ×2 fires
@@ -306,10 +345,16 @@ function updateFormula() {
 }
 
 // Initialise formula panel at 48h (nothing boosted) so the flip is demonstrable by dragging left
-buildFormulaList();
-document.getElementById('dceViz-hours-val').textContent = '48h remaining';
-document.getElementById('dceViz-hours-slider').value = 48;
-updateFormula();
+try {
+  buildFormulaList();
+  var hv = document.getElementById('dceViz-hours-val');
+  var hs = document.getElementById('dceViz-hours-slider');
+  if (hv) hv.textContent = '48h remaining';
+  if (hs) hs.value = 48;
+  updateFormula();
+} catch (err) {
+  console.error('[decisioning-visualizer] formula init', err);
+}
 
 // ── AI MODELS ─────────────────────────────────────────────────────────────
 const profiles = [
@@ -391,7 +436,10 @@ function renderAiRanks(ranks) {
   // ── FLIP: record First positions (all nodes always visible) ──────────
   const nodes = {};
   allAiItems.forEach(name => {
-    const el = container.querySelector(`[data-ai-item="${CSS.escape(name)}"]`);
+    var el = null;
+    container.querySelectorAll('[data-ai-item]').forEach(function (node) {
+      if (node.getAttribute('data-ai-item') === name) el = node;
+    });
     if (el) { nodes[name] = el; el._firstTop = el.getBoundingClientRect().top; }
   });
 
@@ -427,11 +475,15 @@ function renderAiRanks(ranks) {
   });
 }
 
-buildAiRanksList();
-renderAiRanks(profiles[0].ranks);
-document.getElementById('dceViz-ai-reasoning').innerHTML = profiles[0].reasoning;
+try {
+  buildAiRanksList();
+  renderAiRanks(profiles[0].ranks);
+  var ar = document.getElementById('dceViz-ai-reasoning');
+  if (ar) ar.innerHTML = profiles[0].reasoning;
+} catch (err) {
+  console.error('[decisioning-visualizer] AI init', err);
+}
 
-  window.dceVizShowPanel = showPanel;
   window.dceVizUpdatePriority = updatePriority;
   window.dceVizUpdateFormula = updateFormula;
   window.dceVizSetInterest = setInterest;
