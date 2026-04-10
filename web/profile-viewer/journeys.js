@@ -156,7 +156,7 @@
     return String(cjaDataViewSelect.value || '').trim();
   }
 
-  /** Populate AJO-enabled CJA data views from the API (matches names containing "AJO Enabled"). */
+  /** Populate CJA data views from the API (all views; AJO-related names listed first). */
   async function populateCjaDataViewDropdown() {
     if (!cjaDataViewSelect) return;
     cjaDataViewSelect.disabled = true;

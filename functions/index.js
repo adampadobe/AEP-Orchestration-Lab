@@ -1992,7 +1992,7 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
-/** GET /api/journeys/cja-dataviews — list CJA data views whose names match "AJO Enabled" (Journeys UI picker). */
+/** GET /api/journeys/cja-dataviews — list all CJA data views; names containing "AJO" first (Journeys UI picker). */
 exports.journeysCjaDataviews = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }

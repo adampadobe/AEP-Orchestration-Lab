@@ -669,14 +669,14 @@ async function enrichJourneyRowsWithCja(rows, token, cfg, config, options) {
 }
 
 /**
- * List CJA data views whose name looks like an AJO reporting view (matches /AJO Enabled/i).
+ * List all CJA data views (paginated). Names containing "AJO" (case-insensitive) sort first; then A–Z by name.
  * Used by the Journeys UI dropdown.
  */
 async function listCjaDataViewsAjoEnabled(token, cfg, config) {
   const headers = cjaApiHeaders(token, cfg, config);
   const out = [];
   const seen = new Set();
-  for (let page = 0; page < 60; page++) {
+  for (let page = 0; page < 100; page++) {
     const url = `${CJA_BASE}/data/dataviews?expansion=name&limit=100&page=${page}`;
     const res = await fetch(url, { method: 'GET', headers });
     const data = await res.json().catch(() => ({}));
@@ -691,12 +691,12 @@ async function listCjaDataViewsAjoEnabled(token, cfg, config) {
     const content = cjaContentArray(data);
     for (const dv of content) {
       if (!dv || typeof dv !== 'object') continue;
-      const name = String(dv.name || dv.title || '').trim();
-      if (!/ajo\s*enabled/i.test(name)) continue;
       const rawId = cjaDataViewRecordId(dv);
       const id = normalizeCjaDataViewIdForReports(rawId);
       if (!id || seen.has(id)) continue;
       seen.add(id);
+      const nameRaw = String(dv.name || dv.title || '').trim();
+      const name = nameRaw || id;
       const ext =
         dv.externalId ||
         (Array.isArray(dv.externalIds) && dv.externalIds[0]) ||
@@ -709,7 +709,15 @@ async function listCjaDataViewsAjoEnabled(token, cfg, config) {
     }
     if (content.length === 0 || content.length < 100 || data.lastPage === true) break;
   }
-  out.sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' }));
+  function ajoSortKey(label) {
+    return /ajo/i.test(String(label || '')) ? 0 : 1;
+  }
+  out.sort((a, b) => {
+    const pa = ajoSortKey(a.name);
+    const pb = ajoSortKey(b.name);
+    if (pa !== pb) return pa - pb;
+    return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' });
+  });
   return { ok: true, dataViews: out };
 }
 
