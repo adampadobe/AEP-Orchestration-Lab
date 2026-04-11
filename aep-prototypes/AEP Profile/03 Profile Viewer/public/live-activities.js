@@ -44,6 +44,14 @@
     return document.getElementById(id);
   }
 
+  function getSandboxForRequest() {
+    if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
+      return String(AepGlobalSandbox.getSandboxName() || '').trim();
+    }
+    var el = $('sandboxSelect');
+    return el && el.value != null ? String(el.value).trim() : '';
+  }
+
   function randomUuid() {
     if (window.crypto && typeof crypto.randomUUID === 'function') {
       return crypto.randomUUID();
@@ -132,6 +140,13 @@
     $('laAttributes').value = DEFAULT_ATTRIBUTES;
     $('laAlert').value = DEFAULT_ALERT;
 
+    var sandboxSelect = $('sandboxSelect');
+    if (sandboxSelect && typeof AepGlobalSandbox !== 'undefined') {
+      AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
+      AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
+      AepGlobalSandbox.attachStorageSync(sandboxSelect);
+    }
+
     $('laPreviewBtn').addEventListener('click', function () {
       try {
         var p = buildPayload();
@@ -145,7 +160,7 @@
     });
 
     $('laSendBtn').addEventListener('click', async function () {
-      var sandbox = String($('laSandbox').value || '').trim();
+      var sandbox = getSandboxForRequest();
 
       var payload;
       try {

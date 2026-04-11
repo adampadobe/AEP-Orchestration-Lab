@@ -11,7 +11,8 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260410">
-  <link rel="stylesheet" href="live-activities.css?v=20260416">
+  <link rel="stylesheet" href="profile-generation.css">
+  <link rel="stylesheet" href="live-activities.css?v=20260418">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="home-dashboard-concierge profile-generation-page">
@@ -45,17 +46,19 @@
             This page calls <code class="dashboard-code">POST /ajo/im/executions/unitary</code> through this app’s proxy. The bearer token, IMS org, and API key are obtained server-side from the same credentials as the rest of this lab (not shown in the browser).
           </p>
           <p class="la-note" role="note">
-            Set <strong>x-sandbox-name</strong> below if it should differ from the default sandbox configured for this environment. Leave blank on Firebase Hosting to use the deployed default.
+            <strong>Sandbox</strong> uses the same dropdown as other Profile Viewer tools: sandboxes are loaded from your IMS org (via Platform sandbox management), and your choice is saved as the <strong>global sandbox</strong> for this browser.
           </p>
 
           <div class="profile-gen-boxes">
             <div class="profile-box et-full-width">
               <h3 class="profile-box-title"><span class="profile-box-icon">◇</span> Sandbox</h3>
               <div class="profile-box-content">
-                <div class="la-grid la-grid--full">
-                  <div class="la-field">
-                    <label for="laSandbox">x-sandbox-name</label>
-                    <input type="text" id="laSandbox" autocomplete="off" value="apalmer" placeholder="e.g. apalmer (optional)" spellcheck="false">
+                <div class="config-row">
+                  <div class="form-row profile-viewer-sandbox-row">
+                    <label for="sandboxSelect">Sandbox</label>
+                    <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox">
+                      <option value="">Loading sandboxes…</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -142,8 +145,9 @@
     </div>
   </div>
 
+  <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260416"></script>
-  <script defer src="live-activities.js?v=20260417"></script>
+  <script defer src="live-activities.js?v=20260418"></script>
 </body>
 </html>
