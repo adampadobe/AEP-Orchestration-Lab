@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260422">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260424">
+  <link rel="stylesheet" href="live-activities.css?v=20260425">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -129,18 +129,66 @@
                 </div>
               </div>
 
-              <p class="la-section-title la-section-title--json">JSON (edit freely)</p>
-              <div class="la-field la-grid--full">
-                <label for="laContentState">content-state</label>
-                <textarea id="laContentState" class="la-json" spellcheck="false"></textarea>
+              <p class="la-section-title la-section-title--json">Payload fields</p>
+              <p class="la-ts-note la-ts-note--payload">
+                Use <strong>Form</strong> to edit fields in plain language (add or remove rows as needed). Switch to <strong>JSON</strong> when you need full control or uncommon structures.
+              </p>
+
+              <div class="la-json-block" data-json-editor aria-labelledby="laBlockContentStateTitle">
+                <div class="la-json-block-head">
+                  <div class="la-json-block-titles">
+                    <span id="laBlockContentStateTitle" class="la-json-block-title">content-state</span>
+                    <span class="la-json-block-desc">Short status lines shown on the Live Activity (e.g. boarding, gate).</span>
+                  </div>
+                  <div class="la-json-mode" role="group" aria-label="content-state editor mode">
+                    <button type="button" class="la-mode-btn la-mode-btn--active" data-mode="simple">Form</button>
+                    <button type="button" class="la-mode-btn" data-mode="json">JSON</button>
+                  </div>
+                </div>
+                <div class="la-kv-panel">
+                  <div class="la-kv-rows" data-kv-rows></div>
+                  <button type="button" class="btn btn-secondary la-kv-add">+ Add field</button>
+                  <p class="la-kv-msg" hidden role="status"></p>
+                </div>
+                <textarea id="laContentState" class="la-json la-json--panel" spellcheck="false" rows="8" aria-label="content-state JSON"></textarea>
               </div>
-              <div class="la-field la-grid--full">
-                <label for="laAttributes">attributes</label>
-                <textarea id="laAttributes" class="la-json" spellcheck="false"></textarea>
+
+              <div class="la-json-block" data-json-editor aria-labelledby="laBlockAttributesTitle">
+                <div class="la-json-block-head">
+                  <div class="la-json-block-titles">
+                    <span id="laBlockAttributesTitle" class="la-json-block-title">attributes</span>
+                    <span class="la-json-block-desc">Structured data for your <code class="dashboard-code">attributes-type</code> (nested objects use a small JSON box).</span>
+                  </div>
+                  <div class="la-json-mode" role="group" aria-label="attributes editor mode">
+                    <button type="button" class="la-mode-btn la-mode-btn--active" data-mode="simple">Form</button>
+                    <button type="button" class="la-mode-btn" data-mode="json">JSON</button>
+                  </div>
+                </div>
+                <div class="la-kv-panel">
+                  <div class="la-kv-rows" data-kv-rows></div>
+                  <button type="button" class="btn btn-secondary la-kv-add">+ Add field</button>
+                  <p class="la-kv-msg" hidden role="status"></p>
+                </div>
+                <textarea id="laAttributes" class="la-json la-json--panel" spellcheck="false" rows="12" aria-label="attributes JSON"></textarea>
               </div>
-              <div class="la-field la-grid--full">
-                <label for="laAlert">alert</label>
-                <textarea id="laAlert" class="la-json" spellcheck="false"></textarea>
+
+              <div class="la-json-block" data-json-editor aria-labelledby="laBlockAlertTitle">
+                <div class="la-json-block-head">
+                  <div class="la-json-block-titles">
+                    <span id="laBlockAlertTitle" class="la-json-block-title">alert</span>
+                    <span class="la-json-block-desc">Notification title and body text.</span>
+                  </div>
+                  <div class="la-json-mode" role="group" aria-label="alert editor mode">
+                    <button type="button" class="la-mode-btn la-mode-btn--active" data-mode="simple">Form</button>
+                    <button type="button" class="la-mode-btn" data-mode="json">JSON</button>
+                  </div>
+                </div>
+                <div class="la-kv-panel">
+                  <div class="la-kv-rows" data-kv-rows></div>
+                  <button type="button" class="btn btn-secondary la-kv-add">+ Add field</button>
+                  <p class="la-kv-msg" hidden role="status"></p>
+                </div>
+                <textarea id="laAlert" class="la-json la-json--panel" spellcheck="false" rows="6" aria-label="alert JSON"></textarea>
               </div>
 
               <div class="la-actions">
@@ -161,6 +209,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260426"></script>
-  <script defer src="live-activities.js?v=20260424"></script>
+  <script defer src="live-activities.js?v=20260425"></script>
 </body>
 </html>
