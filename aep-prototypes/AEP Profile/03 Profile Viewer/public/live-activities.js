@@ -248,6 +248,7 @@
     var ta = block.querySelector('.la-json--panel');
     var kvPanel = block.querySelector('.la-kv-panel');
     if (!ta || !kvPanel) return;
+    var wrap = ta.closest('.la-json-field-wrap');
     block.querySelectorAll('.la-mode-btn').forEach(function (b) {
       var active = b.getAttribute('data-mode') === mode;
       b.classList.toggle('la-mode-btn--active', active);
@@ -256,12 +257,21 @@
     block.setAttribute('data-mode', mode);
     if (mode === 'simple') {
       kvPanel.hidden = false;
-      ta.classList.add('la-json--hidden');
+      if (wrap) {
+        wrap.setAttribute('hidden', '');
+      } else {
+        ta.classList.add('la-json--hidden');
+      }
       ta.setAttribute('aria-hidden', 'true');
     } else {
       kvPanel.hidden = true;
-      ta.classList.remove('la-json--hidden');
+      if (wrap) {
+        wrap.removeAttribute('hidden');
+      } else {
+        ta.classList.remove('la-json--hidden');
+      }
       ta.setAttribute('aria-hidden', 'false');
+      bumpJsonMirror(ta);
     }
   }
 
@@ -272,6 +282,155 @@
     el.hidden = !text;
   }
 
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /** Lightweight JSON syntax coloring for the mirror layer (invalid JSON still gets partial styling). */
+  function jsonHighlightHtml(s) {
+    var i = 0;
+    var n = s.length;
+    var out = [];
+    while (i < n) {
+      var c = s.charAt(i);
+      if (c === ' ' || c === '\n' || c === '\r' || c === '\t') {
+        out.push(escapeHtml(c));
+        i++;
+        continue;
+      }
+      if (c === '"') {
+        var start = i;
+        i++;
+        while (i < n) {
+          var ch = s.charAt(i);
+          if (ch === '\\' && i + 1 < n) {
+            i += 2;
+            continue;
+          }
+          if (ch === '"') {
+            i++;
+            break;
+          }
+          i++;
+        }
+        out.push('<span class="la-json-tok la-json-str">' + escapeHtml(s.slice(start, i)) + '</span>');
+        continue;
+      }
+      if ('{[]},:'.indexOf(c) >= 0) {
+        out.push('<span class="la-json-tok la-json-punc">' + escapeHtml(c) + '</span>');
+        i++;
+        continue;
+      }
+      if (c === '-' || (c >= '0' && c <= '9')) {
+        var j = i;
+        if (c === '-') i++;
+        while (i < n && /[0-9.eE+\-]/.test(s.charAt(i))) i++;
+        out.push('<span class="la-json-tok la-json-num">' + escapeHtml(s.slice(j, i)) + '</span>');
+        continue;
+      }
+      if (s.substr(i, 4) === 'true') {
+        out.push('<span class="la-json-tok la-json-kw">true</span>');
+        i += 4;
+        continue;
+      }
+      if (s.substr(i, 5) === 'false') {
+        out.push('<span class="la-json-tok la-json-kw">false</span>');
+        i += 5;
+        continue;
+      }
+      if (s.substr(i, 4) === 'null') {
+        out.push('<span class="la-json-tok la-json-kw">null</span>');
+        i += 4;
+        continue;
+      }
+      out.push(escapeHtml(c));
+      i++;
+    }
+    return out.join('');
+  }
+
+  function ensureJsonMirror(ta) {
+    if (!ta || ta.dataset.jsonMirror === '1') return;
+    var wrap = document.createElement('div');
+    wrap.className = 'la-json-field-wrap';
+    var pre = document.createElement('pre');
+    pre.className = 'la-json-backdrop';
+    pre.setAttribute('aria-hidden', 'true');
+    ta.parentNode.insertBefore(wrap, ta);
+    wrap.appendChild(pre);
+    wrap.appendChild(ta);
+    ta.classList.add('la-json--mirror-input');
+    ta.dataset.jsonMirror = '1';
+  }
+
+  function refreshJsonMirror(ta) {
+    var wrap = ta.closest('.la-json-field-wrap');
+    if (!wrap) return;
+    var pre = wrap.querySelector('.la-json-backdrop');
+    if (!pre) return;
+    var raw = ta.value;
+    pre.innerHTML = raw ? jsonHighlightHtml(raw) : '';
+    pre.scrollTop = ta.scrollTop;
+    pre.scrollLeft = ta.scrollLeft;
+  }
+
+  function autoSizeJsonTextarea(ta) {
+    if (!ta) return;
+    ta.style.height = 'auto';
+    var max = Math.min(720, Math.floor(window.innerHeight * 0.65));
+    var next = Math.min(ta.scrollHeight + 2, max);
+    if (next < 80) next = 80;
+    ta.style.height = next + 'px';
+    ta.style.maxHeight = max + 'px';
+    var wrap = ta.closest('.la-json-field-wrap');
+    if (wrap) {
+      var pre = wrap.querySelector('.la-json-backdrop');
+      if (pre) {
+        pre.style.height = next + 'px';
+        pre.style.maxHeight = max + 'px';
+      }
+    }
+  }
+
+  function bumpJsonMirror(ta) {
+    if (!ta || ta.dataset.jsonMirror !== '1') return;
+    refreshJsonMirror(ta);
+    autoSizeJsonTextarea(ta);
+  }
+
+  function attachJsonMirror(ta) {
+    ensureJsonMirror(ta);
+    if (ta.dataset.jsonMirrorListeners === '1') return;
+    ta.dataset.jsonMirrorListeners = '1';
+    function syncBackdropScroll() {
+      var wrap = ta.closest('.la-json-field-wrap');
+      if (!wrap) return;
+      var pre = wrap.querySelector('.la-json-backdrop');
+      if (pre) {
+        pre.scrollTop = ta.scrollTop;
+        pre.scrollLeft = ta.scrollLeft;
+      }
+    }
+    ta.addEventListener('input', function () {
+      refreshJsonMirror(ta);
+      autoSizeJsonTextarea(ta);
+    });
+    ta.addEventListener('scroll', syncBackdropScroll);
+  }
+
+  function setupJsonMirrors() {
+    document.querySelectorAll('.la-json--panel, #laImportPaste').forEach(function (ta) {
+      ensureJsonMirror(ta);
+      attachJsonMirror(ta);
+      ta.scrollTop = 0;
+      bumpJsonMirror(ta);
+    });
+  }
+
   function syncFormToTextarea(block) {
     var ta = block.querySelector('.la-json--panel');
     var rows = block.querySelector('[data-kv-rows]');
@@ -279,6 +438,7 @@
     var obj = collectObjectFromRows(rows, ta.id);
     ta.value = formatJsonTextarea(obj);
     showKvMsg(block, '');
+    bumpJsonMirror(ta);
   }
 
   function syncTextareaToForm(block) {
@@ -311,6 +471,8 @@
     ta.value = v.slice(0, start) + text + v.slice(end);
     var pos = start + text.length;
     ta.selectionStart = ta.selectionEnd = pos;
+    ta.scrollTop = 0;
+    bumpJsonMirror(ta);
   }
 
   /** True if object looks like the APS block (not a random single-field snippet). */
@@ -407,6 +569,8 @@
       } else {
         ta.value = JSON.stringify(v, null, 2);
       }
+      ta.scrollTop = 0;
+      bumpJsonMirror(ta);
       try {
         syncTextareaToForm(block);
         setBlockMode(block, 'simple');
@@ -495,6 +659,8 @@
     }
     if (applyExtracted(ext)) {
       showImportMsg('Applied — switched sections to Form where possible. Review and send.', false);
+      var ip = $('laImportPaste');
+      if (ip) bumpJsonMirror(ip);
     } else {
       showImportMsg('Payload recognized but aps was missing or invalid.', true);
     }
@@ -658,6 +824,8 @@
     $('laContentState').value = DEFAULT_CONTENT_STATE;
     $('laAttributes').value = DEFAULT_ATTRIBUTES;
     $('laAlert').value = DEFAULT_ALERT;
+
+    setupJsonMirrors();
 
     document.querySelectorAll('[data-json-editor]').forEach(initJsonBlock);
 
