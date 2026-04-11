@@ -1693,8 +1693,22 @@ body.profile-viewer-page.consent-page:not(.profile-generation-page).with-sidebar
 /* Standalone audience membership page */
 .profile-viewer-page .audience-page-footnote {
   margin-top: 1.25rem;
+  margin-bottom: 0;
   font-size: 0.875rem;
   color: var(--dash-muted);
+}
+
+body.profile-generation-page.audience-membership-page #audienceResults.profile-view-panel {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+body.profile-generation-page.audience-membership-page #audienceResults .audience-results-card .panel-desc.audience-page-footnote {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--dash-border, rgba(0, 0, 0, 0.08));
 }
 
 /* Audience Membership tab */

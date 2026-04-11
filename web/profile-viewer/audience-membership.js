@@ -71,7 +71,7 @@ async function loadSandboxes() {
 function setStatus(text, type) {
   if (!statusEl) return;
   statusEl.textContent = text || '';
-  statusEl.className = 'consent-message' + (type ? ` ${type}` : '');
+  statusEl.className = 'profile-status consent-message' + (type ? ` ${type}` : '');
   statusEl.hidden = !text;
 }
 

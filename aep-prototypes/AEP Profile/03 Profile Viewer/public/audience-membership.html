@@ -10,11 +10,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
-  <link rel="stylesheet" href="home.css?v=20260411">
-  <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="home.css?v=20260422">
+  <link rel="stylesheet" href="profile-generation.css">
+  <link rel="stylesheet" href="profile-viewer.css?v=20260422">
+  <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
-<body class="profile-viewer-page home-dashboard-concierge">
+<body class="profile-viewer-page profile-generation-page home-dashboard-concierge audience-membership-page">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -22,67 +23,70 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Local tool">Local</span>
-          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <span class="dashboard-env-pill" title="Segment qualification">Audiences</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/profile/api/profile-entity.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Profile API</a>
           <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
-          <a href="consent.html" class="dashboard-topbar-icon" title="Consent">✓</a>
         </div>
       </header>
 
-      <main class="dashboard-main profile-viewer-main">
+      <main class="dashboard-main profile-viewer-main profile-generation-main audience-main">
         <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingAudience">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
               <h2 id="bannerHeadingAudience" class="dashboard-hero-title">See who qualifies for segments</h2>
               <p class="dashboard-hero-subtitle">
-                Look up audience membership for a profile email using the same data as Profile Viewer.
+                Look up audience membership for a profile identity using the same data as Profile Viewer.
               </p>
             </header>
           </div>
         </section>
-    <section class="consent-panel">
-      <h2 class="panel-title"><span class="icon">👥</span> Audience membership</h2>
-      <p class="panel-desc">Look up segment qualification for a profile by identity (same data as the Profile Viewer <strong>Audience Membership</strong> tab). Uses the Platform Profile API via <code>GET /api/profile/audiences</code>.</p>
 
-      <div class="sandbox-config">
-        <h3 class="sandbox-config-title">AEP sandbox</h3>
-        <div class="form-row">
-          <label for="sandboxSelect">Sandbox</label>
-          <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-            <option value="">Loading sandboxes…</option>
-          </select>
-        </div>
-      </div>
-      <div class="consent-step1-row">
-        <div class="consent-step1-field">
-          <label for="audienceNs">Identity namespace</label>
-          <select id="audienceNs" class="sandbox-select" aria-label="Identity namespace">
-            <option value="email">Email</option>
-            <option value="ecid">ECID</option>
-            <option value="crmId">CRM ID</option>
-            <option value="loyaltyId">Loyalty ID</option>
-            <option value="phone">Phone</option>
-          </select>
-        </div>
-        <div class="consent-step1-field">
-          <label for="audienceEmail">Identifier value</label>
-          <input type="text" id="audienceEmail" placeholder="Enter email address" autocomplete="off">
-        </div>
-      </div>
-      <div class="button-row">
-        <button type="button" id="audienceLookupBtn" class="btn btn-primary btn-query">Load audience membership</button>
-      </div>
-      <p id="audienceStatus" class="consent-message" role="status" aria-live="polite" hidden></p>
-    </section>
+        <section class="consent-panel" id="lookupPanel">
+          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">1</span> Audience membership</h2>
+          <p class="panel-desc">Look up segment qualification for a profile by identity (same data as the Profile Viewer <strong>Audience Membership</strong> tab). Uses the Platform Profile API via <code class="dashboard-code">GET /api/profile/audiences</code>.</p>
 
-    <section class="consent-panel profile-view-panel" id="audienceResults" hidden>
-      <h3 class="panel-title" style="font-size: 1.1rem;">Results</h3>
-      <div id="audienceLoading" class="events-loading" hidden>Loading audience membership…</div>
-      <div id="audienceError" class="events-error" role="alert" hidden></div>
-      <p id="audienceEmpty" class="events-empty" hidden>No audience membership found for this email.</p>
-      <div id="audienceList" class="profile-audience-list"></div>
-      <p class="panel-desc audience-page-footnote"><a href="index.html">Open Profile Viewer</a> to see full attributes, events, and membership in one place.</p>
-    </section>
+          <div class="profile-gen-config">
+            <div class="config-row">
+              <div class="form-row profile-viewer-sandbox-row">
+                <label for="sandboxSelect">Sandbox</label>
+                <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                  <option value="">Loading sandboxes…</option>
+                </select>
+              </div>
+              <div class="form-row profile-viewer-ns-row">
+                <label for="audienceNs">Identity namespace</label>
+                <select id="audienceNs" class="sandbox-select" aria-label="Identity namespace">
+                  <option value="email">Email</option>
+                  <option value="ecid">ECID</option>
+                  <option value="crmId">CRM ID</option>
+                  <option value="loyaltyId">Loyalty ID</option>
+                  <option value="phone">Phone</option>
+                </select>
+              </div>
+              <div class="form-row profile-viewer-email-row">
+                <label for="audienceEmail">Identifier value</label>
+                <input type="text" id="audienceEmail" placeholder="Enter email address" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="form-row form-row--action profile-gen-actions">
+                <button type="button" id="audienceLookupBtn" class="btn btn-primary btn-query">Load audience membership</button>
+              </div>
+            </div>
+          </div>
+          <p id="audienceStatus" class="profile-status consent-message" role="status" aria-live="polite" hidden></p>
+        </section>
+
+        <section class="consent-panel profile-view-panel" id="audienceResults" hidden>
+          <div class="profile-box audience-results-card">
+            <h3 class="profile-box-title"><span class="profile-box-icon" aria-hidden="true">2</span> Results</h3>
+            <div class="profile-box-content">
+              <div id="audienceLoading" class="events-loading" hidden>Loading audience membership…</div>
+              <div id="audienceError" class="events-error" role="alert" hidden></div>
+              <p id="audienceEmpty" class="events-empty" hidden>No audience membership found for this profile.</p>
+              <div id="audienceList" class="profile-audience-list"></div>
+            </div>
+            <p class="panel-desc audience-page-footnote"><a href="index.html">Open Profile Viewer</a> to see full attributes, events, and membership in one place.</p>
+          </div>
+        </section>
       </main>
     </div>
   </div>
@@ -93,8 +97,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260413"></script>
-  <script src="audience-membership.js"></script>
-  <script defer src="aep-theme.js?v=20260406"></script>
+  <script src="audience-membership.js?v=20260422"></script>
+  <script defer src="aep-theme.js?v=20260407"></script>
   <script defer src="aep-lab-nav.js?v=20260422"></script>
 </body>
 </html>

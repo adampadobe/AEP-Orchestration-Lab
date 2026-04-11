@@ -1813,6 +1813,7 @@ body.home-dashboard-concierge:not(.home-page) .dashboard-main.schema-viewer-main
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.consent-main,
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.audit-main,
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.event-tool-main,
+body.home-dashboard-concierge:not(.home-page) .dashboard-main.audience-main,
 body.home-dashboard-concierge.search-tool-page .dashboard-main {
   max-width: none;
   width: 100%;
