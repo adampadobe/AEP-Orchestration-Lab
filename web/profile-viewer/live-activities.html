@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260466">
+  <link rel="stylesheet" href="live-activities.css?v=20260471">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -99,7 +99,7 @@
               <div class="la-grid la-grid--exec">
                 <div class="la-field">
                   <label for="laCampaignId">Campaign ID</label>
-                  <input type="text" id="laCampaignId" autocomplete="off" value="43a8ba87-81c0-4e0c-86ec-8bdb4faf2e85" spellcheck="false" aria-describedby="laCampaignHint">
+                  <input type="text" id="laCampaignId" autocomplete="off" spellcheck="false" aria-describedby="laCampaignHint" placeholder="e.g. 43a8ba87-81c0-4e0c-86ec-8bdbb4faf2e85">
                   <span id="laCampaignHint" class="la-field-hint">AJO campaign UUID</span>
                 </div>
                 <div class="la-field">
@@ -108,9 +108,9 @@
                     type="text"
                     id="laUserId"
                     autocomplete="off"
-                    value="69861237882705185278691173436829507978"
                     spellcheck="false"
                     aria-describedby="laEcidHint"
+                    placeholder="e.g. 69861237882705185278691173436829"
                   >
                   <span id="laEcidHint" class="la-field-hint">Must match ECID in the JSON recipient</span>
                 </div>
@@ -121,7 +121,7 @@
                     id="laLiveActivityId"
                     autocomplete="off"
                     spellcheck="false"
-                    placeholder="From your app / push setup"
+                    placeholder="e.g. 80085f973468e3e562568e937582397afbbfd9bc599c26c63643d14ff108303e6f…"
                     aria-describedby="laLaiHint"
                   >
                   <span id="laLaiHint" class="la-field-hint">Written to attributes.liveActivityData in JSON</span>
@@ -129,7 +129,8 @@
                 <div class="la-field">
                   <label for="laEvent">Event</label>
                   <select id="laEvent" aria-label="Live activity event" aria-describedby="laEventHint">
-                    <option value="start" selected>start</option>
+                    <option value="">e.g. start, update, or end</option>
+                    <option value="start">start</option>
                     <option value="update">update</option>
                     <option value="end">end</option>
                   </select>
@@ -413,11 +414,11 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="aep-lab-sandbox-sync.js?v=20260411"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260412"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260470"></script>
+  <script defer src="live-activities.js?v=20260471"></script>
 </body>
 </html>

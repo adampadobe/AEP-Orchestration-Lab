@@ -9,6 +9,7 @@
   var SYNC_KEYS = [
     'aep-profile-viewer-recent-identifiers-v1',
     'aepLaPayloadTemplatesV1',
+    'aepLaExecutionFieldsV1',
     'aepIdentityNamespace',
     'aepDetailsChannelTab',
     'aep-profile-viewer-recent-search-terms',

@@ -238,6 +238,16 @@
   font-size: 0.68rem;
 }
 
+.live-activities-page .la-grid--exec .la-field input::placeholder {
+  color: var(--dash-text-muted, #8a8d94);
+  opacity: 0.88;
+}
+
+html[data-aep-theme='dark'] .live-activities-page .la-grid--exec .la-field input::placeholder {
+  color: #8b9099;
+  opacity: 0.92;
+}
+
 @media (max-width: 1100px) {
   .live-activities-page .la-grid--exec {
     grid-template-columns: repeat(2, minmax(0, 1fr));

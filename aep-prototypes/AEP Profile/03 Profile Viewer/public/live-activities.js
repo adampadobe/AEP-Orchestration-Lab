@@ -64,6 +64,77 @@
     return LA_POSTMAN_BUILTINS_SANDBOXES.indexOf(sb) >= 0;
   }
 
+  /** Per-sandbox unitary execution row (Campaign / ECID / Live Activity ID / Event) — synced via aep-lab-sandbox-sync. */
+  var LA_EXEC_FIELDS_STORAGE_KEY = 'aepLaExecutionFieldsV1';
+  var laExecFieldsSaveTimer = null;
+
+  function laScheduleSaveExecutionFields() {
+    clearTimeout(laExecFieldsSaveTimer);
+    laExecFieldsSaveTimer = setTimeout(function () {
+      var o = {
+        campaignId: String($('laCampaignId') && $('laCampaignId').value || '').trim(),
+        userId: String($('laUserId') && $('laUserId').value || '').trim(),
+        liveActivityId: String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim(),
+        event: String($('laEvent') && $('laEvent').value || '').trim().toLowerCase(),
+      };
+      try {
+        localStorage.setItem(LA_EXEC_FIELDS_STORAGE_KEY, JSON.stringify(o));
+      } catch (e) {}
+      if (
+        typeof window !== 'undefined' &&
+        window.AepLabSandboxSync &&
+        typeof window.AepLabSandboxSync.notifyDirty === 'function'
+      ) {
+        window.AepLabSandboxSync.notifyDirty();
+      }
+    }, 450);
+  }
+
+  function laLoadExecutionFieldsFromStorage() {
+    var c = $('laCampaignId');
+    var u = $('laUserId');
+    var l = $('laLiveActivityId');
+    var ev = $('laEvent');
+    if (!c || !u || !l || !ev) return;
+    try {
+      var raw = localStorage.getItem(LA_EXEC_FIELDS_STORAGE_KEY);
+      if (!raw) {
+        c.value = '';
+        u.value = '';
+        l.value = '';
+        ev.value = '';
+        return;
+      }
+      var o = JSON.parse(raw);
+      if (!o || typeof o !== 'object') {
+        c.value = '';
+        u.value = '';
+        l.value = '';
+        ev.value = '';
+        return;
+      }
+      c.value = o.campaignId != null ? String(o.campaignId) : '';
+      u.value = o.userId != null ? String(o.userId) : '';
+      l.value = o.liveActivityId != null ? String(o.liveActivityId) : '';
+      var e = o.event != null ? String(o.event).trim().toLowerCase() : '';
+      ev.value = e === 'start' || e === 'update' || e === 'end' ? e : '';
+    } catch (err2) {
+      c.value = '';
+      u.value = '';
+      l.value = '';
+      ev.value = '';
+    }
+  }
+
+  function laWireExecutionFieldsPersistence() {
+    ['laCampaignId', 'laUserId', 'laLiveActivityId', 'laEvent'].forEach(function (fid) {
+      var el = $(fid);
+      if (!el) return;
+      el.addEventListener('input', laScheduleSaveExecutionFields);
+      el.addEventListener('change', laScheduleSaveExecutionFields);
+    });
+  }
+
   /**
    * Built-in unitary bodies: raw request bodies from data/live-activities.postman_collection.json
    * (Postman collection v2.1). Loaded at init; duplicate bodies are skipped.
@@ -808,6 +879,7 @@
     setApsPart('content-state', 'laContentState');
     setApsPart('attributes', 'laAttributes');
     setApsPart('alert', 'laAlert');
+    laScheduleSaveExecutionFields();
     return true;
   }
 
@@ -1603,9 +1675,9 @@
 
   function injectEventFromField() {
     var sel = $('laEvent');
-    var ev = sel ? String(sel.value || 'start').trim().toLowerCase() : 'start';
+    var ev = sel ? String(sel.value || '').trim().toLowerCase() : '';
     if (ev !== 'start' && ev !== 'update' && ev !== 'end') {
-      showImportMsg('Select start, update, or end.', true);
+      showImportMsg('Choose start, update, or end in the Event field.', true);
       return;
     }
     injectLaImportPaste({ event: ev });
@@ -1616,11 +1688,15 @@
     var c = String($('laCampaignId') && $('laCampaignId').value || '').trim();
     var u = String($('laUserId') && $('laUserId').value || '').trim();
     var lid = String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim();
-    var ev = String($('laEvent') && $('laEvent').value || 'start').trim().toLowerCase();
+    var ev = String($('laEvent') && $('laEvent').value || '').trim().toLowerCase();
+    if (ev !== 'start' && ev !== 'update' && ev !== 'end') {
+      showImportMsg('Choose start, update, or end in the Event field.', true);
+      return;
+    }
     if (c) patch.campaignId = c;
     if (u) patch.userId = u;
     if (lid) patch.liveActivityId = lid;
-    if (ev === 'start' || ev === 'update' || ev === 'end') patch.event = ev;
+    patch.event = ev;
     patch.requestId = randomUuid();
     patch.timestamp = Math.floor(Date.now() / 1000);
     injectLaImportPaste(patch);
@@ -1766,14 +1842,14 @@
     var namespace = 'ECID';
     var contentAvailable = parseInt(String($('laContentAvailable').value || '0'), 10);
     var timestamp = Math.floor(Date.now() / 1000);
-    var event = String($('laEvent').value || 'start').trim().toLowerCase();
+    var event = String($('laEvent').value || '').trim().toLowerCase();
     var attributesType = String($('laAttributesType').value || '').trim();
 
     if (!campaignId || !userId) {
       throw new Error('campaign ID and ECID are required.');
     }
     if (event !== 'start' && event !== 'update' && event !== 'end') {
-      throw new Error('event must be start, update, or end.');
+      throw new Error('Choose start, update, or end in the Event field.');
     }
     if (!Number.isFinite(contentAvailable)) {
       throw new Error('content-available must be a number.');
@@ -1843,12 +1919,12 @@
     var out = JSON.parse(JSON.stringify(parsed));
     var campaignId = String($('laCampaignId').value || '').trim();
     var userId = String($('laUserId').value || '').trim();
-    var event = String($('laEvent').value || 'start').trim().toLowerCase();
+    var event = String($('laEvent').value || '').trim().toLowerCase();
     if (!campaignId || !userId) {
       throw new Error('campaign ID and ECID are required.');
     }
     if (event !== 'start' && event !== 'update' && event !== 'end') {
-      throw new Error('event must be start, update, or end.');
+      throw new Error('Choose start, update, or end in the Event field.');
     }
     if (!out.recipients || !Array.isArray(out.recipients) || !out.recipients[0]) {
       throw new Error('Pasted JSON must include recipients[0].');
@@ -2115,19 +2191,8 @@
     $('laAttributes').value = DEFAULT_ATTRIBUTES;
     $('laAlert').value = DEFAULT_ALERT;
 
-    try {
-      var laiEl = $('laLiveActivityId');
-      if (laiEl && !String(laiEl.value || '').trim()) {
-        var attrObj = JSON.parse(DEFAULT_ATTRIBUTES);
-        if (
-          attrObj.liveActivityData &&
-          attrObj.liveActivityData.liveActivityID != null &&
-          String(attrObj.liveActivityData.liveActivityID).trim() !== ''
-        ) {
-          laiEl.value = String(attrObj.liveActivityData.liveActivityID);
-        }
-      }
-    } catch (e) {}
+    laWireExecutionFieldsPersistence();
+    laLoadExecutionFieldsFromStorage();
 
     setupJsonMirrors();
 
@@ -2209,9 +2274,11 @@
       });
     window.addEventListener('aep-global-sandbox-change', function () {
       laPopulateTemplateSelect();
+      laLoadExecutionFieldsFromStorage();
     });
     document.addEventListener('aep-lab-sandbox-keys-applied', function () {
       laPopulateTemplateSelect();
+      laLoadExecutionFieldsFromStorage();
     });
     var laTsel = $('laTemplateSelect');
     if (laTsel) laTsel.addEventListener('change', laUpdateTemplateDeleteState);
@@ -2287,6 +2354,7 @@
           ecidVal = String(ecidVal || '').trim();
           if (data.found && ecidVal) {
             $('laUserId').value = ecidVal;
+            laScheduleSaveExecutionFields();
             setProfileQueryMsg(profileQueryMsg, 'Profile found — ECID filled in below.', 'success');
           } else if (data.found && !ecidVal) {
             setProfileQueryMsg(
