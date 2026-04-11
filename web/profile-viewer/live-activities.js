@@ -51,630 +51,102 @@
   /** localStorage for user-saved payload bodies (name + json string). */
   var LA_TEMPLATE_STORAGE_KEY = 'aepLaPayloadTemplatesV1';
 
-  function laFormatTemplate(obj) {
-    return JSON.stringify(obj, null, 2);
+  /**
+   * Built-in unitary bodies: raw request bodies from data/live-activities.postman_collection.json
+   * (Postman collection v2.1). Loaded at init; duplicate bodies are skipped.
+   */
+  var LA_BUILTIN_TEMPLATES = [];
+
+  function laSlugForBuiltinId(s) {
+    return String(s || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 96);
   }
 
-  /**
-   * Built-in unitary bodies (Postman-style placeholders as strings; Beautify fixes bare {{…}}).
-   */
-  var LA_BUILTIN_TEMPLATES = [
-    {
-      id: 'la-builtin-etihad-25-wifi-ev',
-      name: 'Etihad — 25% (wifi + event placeholders)',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: '{{event}}',
-                  'content-state': {
-                    status: 'Departed',
-                    wifiAvailable: '{{wifiAvailable}}',
-                    currentLocation: 'Wi-fi available onboard',
-                    journeyProgress: 25,
-                  },
-                  'attributes-type': 'EtihadPremiumFlightAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:05',
-                    arrivalTime: '07:55',
-                    departureDate: 'On time',
-                    arrivalDate: 'On time',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: { title: 'Flight Update', body: 'EY 62 is 25% complete' },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-25-start',
-      name: 'Etihad — 25% (event start, wifi on)',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: 'start',
-                  'content-state': {
-                    status: 'Departed',
-                    wifiAvailable: true,
-                    currentLocation: 'Wi-fi available onboard',
-                    journeyProgress: 25,
-                  },
-                  'attributes-type': 'EtihadPremiumFlightAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:05',
-                    arrivalTime: '07:55',
-                    departureDate: 'On time',
-                    arrivalDate: 'On time',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: { title: 'Flight Update', body: 'EY 62 is 25% complete' },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-75-wifi-ev',
-      name: 'Etihad — 75% approaching AUH (wifi + event ph)',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: '{{event}}',
-                  'content-state': {
-                    status: 'Departed',
-                    wifiAvailable: '{{wifiAvailable}}',
-                    currentLocation: 'Wi-fi available onboard',
-                    journeyProgress: 75,
-                  },
-                  'attributes-type': 'EtihadPremiumFlightAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:05',
-                    arrivalTime: '07:55',
-                    departureDate: 'On time',
-                    arrivalDate: 'On time',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: {
-                    title: 'Flight Update',
-                    body: 'EY 62 is 75% complete - approaching Abu Dhabi',
-                  },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-25-wifi-on-ev',
-      name: 'Etihad — 25% (wifi on, {{event}})',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: '{{event}}',
-                  'content-state': {
-                    status: 'Departed',
-                    wifiAvailable: true,
-                    currentLocation: 'Wi-fi available onboard',
-                    journeyProgress: 25,
-                  },
-                  'attributes-type': 'EtihadPremiumFlightAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:05',
-                    arrivalTime: '07:55',
-                    departureDate: 'On time',
-                    arrivalDate: 'On time',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: { title: 'Flight Update', body: 'EY 62 is 25% complete' },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-checkin-open',
-      name: 'Etihad — check-in open (boarding attributes)',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: '{{event}}',
-                  'content-state': {
-                    boardingStatus: 'Check-in Open',
-                    statusMessage: 'Check-in opens 24 hours before departure',
-                    timeStatus: 'On time',
-                  },
-                  'attributes-type': 'EtihadBoardingAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:10',
-                    arrivalTime: '08:05',
-                    flightDuration: '6h 55m',
-                    terminal: 'Terminal A',
-                    gate: 'Gate D4B',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: {
-                    title: 'Check-in Open',
-                    body: 'Check-in is now open for EY 62',
-                  },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-checked-in',
-      name: 'Etihad — boarding: checked in',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: '{{event}}',
-                  'content-state': {
-                    boardingStatus: 'Checked In',
-                    statusMessage: 'Terminal A - Gate D4B',
-                    timeStatus: 'On time',
-                  },
-                  'attributes-type': 'EtihadBoardingAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:10',
-                    arrivalTime: '08:05',
-                    flightDuration: '6h 55m',
-                    terminal: 'Terminal A',
-                    gate: 'Gate D4B',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: {
-                    title: 'Checked In',
-                    body: "You're checked in for EY 62",
-                  },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-go-security',
-      name: 'Etihad — boarding: go to security',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: 'update',
-                  'content-state': {
-                    boardingStatus: 'Go to Security',
-                    statusMessage: 'Terminal A - Gate D4B',
-                    timeStatus: 'On time',
-                  },
-                  'attributes-type': 'EtihadBoardingAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:10',
-                    arrivalTime: '08:05',
-                    flightDuration: '6h 55m',
-                    terminal: 'Terminal A',
-                    gate: 'Gate D4B',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: {
-                    title: 'Time to Go',
-                    body: 'Head to security for EY 62',
-                  },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-boarding-now',
-      name: 'Etihad — boarding: boarding now',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: 'update',
-                  'content-state': {
-                    boardingStatus: 'Boarding now',
-                    statusMessage: 'Terminal A - Gate D4B',
-                    timeStatus: 'On time',
-                  },
-                  'attributes-type': 'EtihadBoardingAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:10',
-                    arrivalTime: '08:05',
-                    flightDuration: '6h 55m',
-                    terminal: 'Terminal A',
-                    gate: 'Gate D4B',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: {
-                    title: 'Boarding Now',
-                    body: 'EY 62 is now boarding at Gate D4B',
-                  },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-gate-closing',
-      name: 'Etihad — boarding: gate closing',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: 'update',
-                  'content-state': {
-                    boardingStatus: 'Gate Closing',
-                    statusMessage: 'Terminal A - Gate D4B',
-                    timeStatus: 'Boarding',
-                  },
-                  'attributes-type': 'EtihadBoardingAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:10',
-                    arrivalTime: '08:05',
-                    flightDuration: '6h 55m',
-                    terminal: 'Terminal A',
-                    gate: 'Gate D4B',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: {
-                    title: 'Gate Closing Soon',
-                    body: 'Hurry to Gate D4B for EY 62',
-                  },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-boarding-departed',
-      name: 'Etihad — boarding: departed',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: 'update',
-                  'content-state': {
-                    boardingStatus: 'Departed',
-                    statusMessage: 'Have a pleasant flight',
-                    timeStatus: 'Departed',
-                  },
-                  'attributes-type': 'EtihadBoardingAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:10',
-                    arrivalTime: '08:05',
-                    flightDuration: '6h 55m',
-                    terminal: 'Terminal A',
-                    gate: 'Gate D4B',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: {
-                    title: 'Departed',
-                    body: 'EY 62 has departed. Enjoy your flight!',
-                  },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-departed',
-      name: 'Etihad — departed (journey 0%)',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: '{{event}}',
-                  'content-state': {
-                    status: 'Departed',
-                    wifiAvailable: true,
-                    currentLocation: 'Wi-fi available onboard',
-                    journeyProgress: 0,
-                  },
-                  'attributes-type': 'EtihadPremiumFlightAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:05',
-                    arrivalTime: '07:55',
-                    departureDate: 'On time',
-                    arrivalDate: 'On time',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: { title: 'Flight Update', body: 'EY 62 status: Departed' },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-wifi',
-      name: 'Etihad — in flight (wifi placeholder, classic)',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: '{{event}}',
-                  'content-state': {
-                    status: 'Departed',
-                    wifiAvailable: '{{wifiAvailable}}',
-                    currentLocation: 'Wi-fi available onboard',
-                    journeyProgress: 25,
-                  },
-                  'attributes-type': 'EtihadPremiumFlightAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:05',
-                    arrivalTime: '07:55',
-                    departureDate: 'On time',
-                    arrivalDate: 'On time',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: { title: 'Flight Update', body: 'EY 62 is 25% complete' },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-etihad-start',
-      name: 'Etihad — event start literal (classic)',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: 'start',
-                  'content-state': {
-                    status: 'Departed',
-                    wifiAvailable: true,
-                    currentLocation: 'Wi-fi available onboard',
-                    journeyProgress: 25,
-                  },
-                  'attributes-type': 'EtihadPremiumFlightAttributes',
-                  attributes: {
-                    flightNumber: 'EY 62',
-                    departureAirport: 'LHR',
-                    arrivalAirport: 'AUH',
-                    departureTime: '22:05',
-                    arrivalTime: '07:55',
-                    departureDate: 'On time',
-                    arrivalDate: 'On time',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: { title: 'Flight Update', body: 'EY 62 is 25% complete' },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-    {
-      id: 'la-builtin-ksia-boarding',
-      name: 'KSIA — boarding (airport attributes)',
-      json: laFormatTemplate({
-        requestId: '{{$randomUUID}}',
-        campaignId: '{{campaignID}}',
-        recipients: [
-          {
-            type: 'aep',
-            userId: '{{ECID}}',
-            namespace: 'ECID',
-            context: {
-              requestPayload: {
-                aps: {
-                  'content-available': 1,
-                  timestamp: '{{$timestamp}}',
-                  event: '{{event}}',
-                  'content-state': {
-                    boardingStatus: 'Boarding Now',
-                    statusMessage: 'Terminal 1 - Gate A12',
-                    timeStatus: 'Boarding',
-                    dwellTimeMessage: 'Final call - Proceed to gate',
-                  },
-                  'attributes-type': 'KSIAAirportAttributes',
-                  attributes: {
-                    flightNumber: 'RX 123',
-                    airline: 'Riyadh Air',
-                    departureAirport: 'RUH',
-                    arrivalAirport: 'DXB',
-                    departureTime: '14:30',
-                    arrivalTime: '17:45',
-                    flightDuration: '3h 15m',
-                    terminal: 'Terminal 1',
-                    gate: 'A12',
-                    seatNumber: '12A',
-                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
-                  },
-                  alert: {
-                    title: 'Boarding Now',
-                    body: 'RX 123 is now boarding at Gate A12',
-                  },
-                },
-              },
-            },
-          },
-        ],
-      }),
-    },
-  ];
+  function laWalkPostmanItems(items, groupParts, out) {
+    (items || []).forEach(function (node) {
+      if (!node) return;
+      if (node.item && Array.isArray(node.item)) {
+        laWalkPostmanItems(node.item, groupParts.concat(node.name || ''), out);
+        return;
+      }
+      var req = node.request;
+      if (!req || !req.body || req.body.mode !== 'raw') return;
+      var raw = req.body.raw;
+      if (raw == null || !String(raw).trim()) return;
+      var parts = (groupParts || []).filter(function (p) {
+        return String(p || '').trim();
+      });
+      var label = parts.concat(node.name || 'Request').join(' — ');
+      out.push({
+        name: label,
+        json: String(raw)
+          .replace(/^\uFEFF/, '')
+          .trim(),
+      });
+    });
+  }
+
+  function laBuiltinTemplatesFromCollection(coll) {
+    var flat = [];
+    laWalkPostmanItems(coll && coll.item, [], flat);
+    var seenBodies = Object.create(null);
+    var usedIds = Object.create(null);
+    var result = [];
+    flat.forEach(function (entry, idx) {
+      var norm = entry.json.replace(/\s+/g, ' ').trim();
+      if (seenBodies[norm]) return;
+      seenBodies[norm] = true;
+      var slug = laSlugForBuiltinId(entry.name.replace(/\s*—\s*/g, ' '));
+      if (!slug) slug = 'request-' + idx;
+      var id = 'la-builtin-' + slug;
+      var orig = id;
+      var n = 2;
+      while (usedIds[id]) {
+        id = orig + '-' + n;
+        n++;
+      }
+      usedIds[id] = true;
+      result.push({ id: id, name: entry.name, json: entry.json });
+    });
+    return result;
+  }
+
+  function laBuiltinCollectionUrl() {
+    var sc = document.querySelector('script[src*="live-activities.js"]');
+    if (sc && sc.getAttribute('src')) {
+      try {
+        var src = sc.getAttribute('src');
+        var u = new URL(src, window.location.href);
+        u.search = '';
+        u.hash = '';
+        var p = u.pathname;
+        var slash = p.lastIndexOf('/');
+        if (slash >= 0) {
+          u.pathname = p.slice(0, slash + 1) + 'data/live-activities.postman_collection.json';
+          return u.toString();
+        }
+      } catch (e) {}
+    }
+    try {
+      return new URL('data/live-activities.postman_collection.json', window.location.href).toString();
+    } catch (e2) {
+      return 'data/live-activities.postman_collection.json';
+    }
+  }
+
+  function laFetchBuiltinTemplates() {
+    return fetch(laBuiltinCollectionUrl(), { credentials: 'same-origin' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (coll) {
+        LA_BUILTIN_TEMPLATES = laBuiltinTemplatesFromCollection(coll);
+      });
+  }
 
   function $(id) {
     return document.getElementById(id);
@@ -2669,7 +2141,13 @@
     var injAll = $('laInjectAllFromFields');
     if (injAll) injAll.addEventListener('click', injectAllFromExecutionFields);
 
-    laPopulateTemplateSelect();
+    laFetchBuiltinTemplates()
+      .catch(function (err) {
+        console.warn('Live Activity built-in templates:', err);
+      })
+      .then(function () {
+        laPopulateTemplateSelect();
+      });
     var laTsel = $('laTemplateSelect');
     if (laTsel) laTsel.addEventListener('change', laUpdateTemplateDeleteState);
     var laTload = $('laTemplateLoad');

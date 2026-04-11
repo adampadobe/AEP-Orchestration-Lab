@@ -1,0 +1,1027 @@
+{
+  "info": {
+    "_postman_id": "4d9ecb50-9a8a-4f7a-9bdf-5e7535844a82",
+    "name": "LiveActvities",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "45474229"
+  },
+  "item": [
+    {
+      "name": "Etihad",
+      "item": [
+        {
+          "name": "Live Activities Etihad Zero",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"status\": \"Departed\",\n                            \"wifiAvailable\": true,\n                            \"currentLocation\": \"Wi-fi available onboard\",\n                            \"journeyProgress\": 0\n                        },\n                        \"attributes-type\": \"EtihadPremiumFlightAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:05\",\n                            \"arrivalTime\": \"07:55\",\n                            \"departureDate\": \"On time\",\n                            \"arrivalDate\": \"On time\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Flight Update\",\n                            \"body\": \"EY 62 status: Departed\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Live Activities Etihad Zero 25",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"status\": \"Departed\",\n                            \"wifiAvailable\": {{wifiAvailable}},\n                            \"currentLocation\": \"Wi-fi available onboard\",\n                            \"journeyProgress\": 25\n                        },\n                        \"attributes-type\": \"EtihadPremiumFlightAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:05\",\n                            \"arrivalTime\": \"07:55\",\n                            \"departureDate\": \"On time\",\n                            \"arrivalDate\": \"On time\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Flight Update\",\n                            \"body\": \"EY 62 is 25% complete\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Live Activities Etihad Zero 50",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"start\",\n                        \"content-state\": {\n                            \"status\": \"Departed\",\n                            \"wifiAvailable\": true,\n                            \"currentLocation\": \"Wi-fi available onboard\",\n                            \"journeyProgress\": 25\n                        },\n                        \"attributes-type\": \"EtihadPremiumFlightAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:05\",\n                            \"arrivalTime\": \"07:55\",\n                            \"departureDate\": \"On time\",\n                            \"arrivalDate\": \"On time\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Flight Update\",\n                            \"body\": \"EY 62 is 25% complete\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Live Activities Etihad Zero 75",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"status\": \"Departed\",\n                            \"wifiAvailable\": {{wifiAvailable}},\n                            \"currentLocation\": \"Wi-fi available onboard\",\n                            \"journeyProgress\": 75\n                        },\n                        \"attributes-type\": \"EtihadPremiumFlightAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:05\",\n                            \"arrivalTime\": \"07:55\",\n                            \"departureDate\": \"On time\",\n                            \"arrivalDate\": \"On time\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Flight Update\",\n                            \"body\": \"EY 62 is 75% complete - approaching Abu Dhabi\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Live Activities Etihad Zero 100",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"status\": \"Departed\",\n                            \"wifiAvailable\": true,\n                            \"currentLocation\": \"Wi-fi available onboard\",\n                            \"journeyProgress\": 25\n                        },\n                        \"attributes-type\": \"EtihadPremiumFlightAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:05\",\n                            \"arrivalTime\": \"07:55\",\n                            \"departureDate\": \"On time\",\n                            \"arrivalDate\": \"On time\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Flight Update\",\n                            \"body\": \"EY 62 is 25% complete\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Live Activities Etihad CheckIn Open",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Check-in Open\",\n                            \"statusMessage\": \"Check-in opens 24 hours before departure\",\n                            \"timeStatus\": \"On time\"\n                        },\n                        \"attributes-type\": \"EtihadBoardingAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:10\",\n                            \"arrivalTime\": \"08:05\",\n                            \"flightDuration\": \"6h 55m\",\n                            \"terminal\": \"Terminal A\",\n                            \"gate\": \"Gate D4B\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Check-in Open\",\n                            \"body\": \"Check-in is now open for EY 62\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Live Activities Etihad Checked In",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Checked In\",\n                            \"statusMessage\": \"Terminal A - Gate D4B\",\n                            \"timeStatus\": \"On time\"\n                        },\n                        \"attributes-type\": \"EtihadBoardingAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:10\",\n                            \"arrivalTime\": \"08:05\",\n                            \"flightDuration\": \"6h 55m\",\n                            \"terminal\": \"Terminal A\",\n                            \"gate\": \"Gate D4B\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Checked In\",\n                            \"body\": \"You're checked in for EY 62\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Live Activities Etihad Go to Security",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"update\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Go to Security\",\n                            \"statusMessage\": \"Terminal A - Gate D4B\",\n                            \"timeStatus\": \"On time\"\n                        },\n                        \"attributes-type\": \"EtihadBoardingAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:10\",\n                            \"arrivalTime\": \"08:05\",\n                            \"flightDuration\": \"6h 55m\",\n                            \"terminal\": \"Terminal A\",\n                            \"gate\": \"Gate D4B\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Time to Go\",\n                            \"body\": \"Head to security for EY 62\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Live Activities Etihad Go to Boarding",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"update\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Boarding now\",\n                            \"statusMessage\": \"Terminal A - Gate D4B\",\n                            \"timeStatus\": \"On time\"\n                        },\n                        \"attributes-type\": \"EtihadBoardingAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:10\",\n                            \"arrivalTime\": \"08:05\",\n                            \"flightDuration\": \"6h 55m\",\n                            \"terminal\": \"Terminal A\",\n                            \"gate\": \"Gate D4B\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Boarding Now\",\n                            \"body\": \"EY 62 is now boarding at Gate D4B\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Live Activities Etihad Go to Gate Closed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"update\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Gate Closing\",\n                            \"statusMessage\": \"Terminal A - Gate D4B\",\n                            \"timeStatus\": \"Boarding\"\n                        },\n                        \"attributes-type\": \"EtihadBoardingAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:10\",\n                            \"arrivalTime\": \"08:05\",\n                            \"flightDuration\": \"6h 55m\",\n                            \"terminal\": \"Terminal A\",\n                            \"gate\": \"Gate D4B\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Gate Closing Soon\",\n                            \"body\": \"Hurry to Gate D4B for EY 62\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Live Activities Etihad Go to Departed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"update\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Departed\",\n                            \"statusMessage\": \"Have a pleasant flight\",\n                            \"timeStatus\": \"Departed\"\n                        },\n                        \"attributes-type\": \"EtihadBoardingAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"EY 62\",\n                            \"departureAirport\": \"LHR\",\n                            \"arrivalAirport\": \"AUH\",\n                            \"departureTime\": \"22:10\",\n                            \"arrivalTime\": \"08:05\",\n                            \"flightDuration\": \"6h 55m\",\n                            \"terminal\": \"Terminal A\",\n                            \"gate\": \"Gate D4B\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Departed\",\n                            \"body\": \"EY 62 has departed. Enjoy your flight!\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "KSIA",
+      "item": [
+        {
+          "name": "01 - Live Activities KSIA CheckIn Complete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Check-in Complete\",\n                            \"statusMessage\": \"Proceed to security\",\n                            \"timeStatus\": \"On time\",\n                            \"dwellTimeMessage\": \"Explore KSIA's dining & shopping\"\n                        },\n                        \"attributes-type\": \"KSIAAirportAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"RX 123\",\n                            \"airline\": \"Riyadh Air\",\n                            \"departureAirport\": \"RUH\",\n                            \"arrivalAirport\": \"DXB\",\n                            \"departureTime\": \"14:30\",\n                            \"arrivalTime\": \"17:45\",\n                            \"flightDuration\": \"3h 15m\",\n                            \"terminal\": \"Terminal 1\",\n                            \"gate\": \"A12\",\n                            \"seatNumber\": \"12A\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Check-in Complete\",\n                            \"body\": \"Proceed to security for RX 123\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Live Activities KSIA Security Clear",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "\n{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Security Clear\",\n                            \"statusMessage\": \"Gate opens in 90 minutes\",\n                            \"timeStatus\": \"On time\",\n                            \"dwellTimeMessage\": \"Visit Al Dahlah Lounge - Level 2\"\n                        },\n                        \"attributes-type\": \"KSIAAirportAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"RX 123\",\n                            \"airline\": \"Riyadh Air\",\n                            \"departureAirport\": \"RUH\",\n                            \"arrivalAirport\": \"DXB\",\n                            \"departureTime\": \"14:30\",\n                            \"arrivalTime\": \"17:45\",\n                            \"flightDuration\": \"3h 15m\",\n                            \"terminal\": \"Terminal 1\",\n                            \"gate\": \"A12\",\n                            \"seatNumber\": \"12A\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Security Clear\",\n                            \"body\": \"Visit Al Dahlah Lounge while you wait\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Live Activities KSIA Explore Airport - Duty Free",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Explore Airport\",\n                            \"statusMessage\": \"Gate opens in 60 minutes\",\n                            \"timeStatus\": \"On time\",\n                            \"dwellTimeMessage\": \"Duty Free - 30% off luxury brands\"\n                        },\n                        \"attributes-type\": \"KSIAAirportAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"RX 123\",\n                            \"airline\": \"Riyadh Air\",\n                            \"departureAirport\": \"RUH\",\n                            \"arrivalAirport\": \"DXB\",\n                            \"departureTime\": \"14:30\",\n                            \"arrivalTime\": \"17:45\",\n                            \"flightDuration\": \"3h 15m\",\n                            \"terminal\": \"Terminal 1\",\n                            \"gate\": \"A12\",\n                            \"seatNumber\": \"12A\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Explore KSIA\",\n                            \"body\": \"Duty Free - 30% off luxury brands today\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Live Activities KSIA Explore Airport - Food and Beverage",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Explore Airport\",\n                            \"statusMessage\": \"Gate opens in 30 minutes\",\n                            \"timeStatus\": \"On time\",\n                            \"dwellTimeMessage\": \"Try Al Baik Restaurant - Terminal 1\"\n                        },\n                        \"attributes-type\": \"KSIAAirportAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"RX 123\",\n                            \"airline\": \"Riyadh Air\",\n                            \"departureAirport\": \"RUH\",\n                            \"arrivalAirport\": \"DXB\",\n                            \"departureTime\": \"14:30\",\n                            \"arrivalTime\": \"17:45\",\n                            \"flightDuration\": \"3h 15m\",\n                            \"terminal\": \"Terminal 1\",\n                            \"gate\": \"A12\",\n                            \"seatNumber\": \"12A\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Dining Options\",\n                            \"body\": \"Enjoy Al Baik Restaurant before your flight\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Live Activities KSIA Boarding Soon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Boarding Soon\",\n                            \"statusMessage\": \"Gate A12 - Please proceed\",\n                            \"timeStatus\": \"On time\",\n                            \"dwellTimeMessage\": \"Grab a coffee at Starbucks - Gate A\"\n                        },\n                        \"attributes-type\": \"KSIAAirportAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"RX 123\",\n                            \"airline\": \"Riyadh Air\",\n                            \"departureAirport\": \"RUH\",\n                            \"arrivalAirport\": \"DXB\",\n                            \"departureTime\": \"14:30\",\n                            \"arrivalTime\": \"17:45\",\n                            \"flightDuration\": \"3h 15m\",\n                            \"terminal\": \"Terminal 1\",\n                            \"gate\": \"A12\",\n                            \"seatNumber\": \"12A\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Boarding Soon\",\n                            \"body\": \"RX 123 - Please proceed to Gate A12\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Live Activities KSIA Boarding Now",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Boarding Now\",\n                            \"statusMessage\": \"Terminal 1 - Gate A12\",\n                            \"timeStatus\": \"Boarding\",\n                            \"dwellTimeMessage\": \"Final call - Proceed to gate\"\n                        },\n                        \"attributes-type\": \"KSIAAirportAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"RX 123\",\n                            \"airline\": \"Riyadh Air\",\n                            \"departureAirport\": \"RUH\",\n                            \"arrivalAirport\": \"DXB\",\n                            \"departureTime\": \"14:30\",\n                            \"arrivalTime\": \"17:45\",\n                            \"flightDuration\": \"3h 15m\",\n                            \"terminal\": \"Terminal 1\",\n                            \"gate\": \"A12\",\n                            \"seatNumber\": \"12A\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Boarding Now\",\n                            \"body\": \"RX 123 is now boarding at Gate A12\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07 - Live Activities KSIA Gate Closing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Gate Closing\",\n                            \"statusMessage\": \"Final call - Gate A12\",\n                            \"timeStatus\": \"Closing\",\n                            \"dwellTimeMessage\": \"Last call for boarding\"\n                        },\n                        \"attributes-type\": \"KSIAAirportAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"RX 123\",\n                            \"airline\": \"Riyadh Air\",\n                            \"departureAirport\": \"RUH\",\n                            \"arrivalAirport\": \"DXB\",\n                            \"departureTime\": \"14:30\",\n                            \"arrivalTime\": \"17:45\",\n                            \"flightDuration\": \"3h 15m\",\n                            \"terminal\": \"Terminal 1\",\n                            \"gate\": \"A12\",\n                            \"seatNumber\": \"12A\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Gate Closing\",\n                            \"body\": \"Final call for RX 123 - Gate A12\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08 - Live Activities KSIA Departed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-gw-ims-org-id",
+                "value": "{{IMS_ORG}}"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{API_KEY}}"
+              },
+              {
+                "key": "x-sandbox-name",
+                "value": "{{SANDBOX_NAME}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ACCESS_TOKEN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"requestId\": \"{{$randomUUID}}\",\n    \"campaignId\": \"{{campaignID}}\",\n    \"recipients\": [\n        {\n            \"type\": \"aep\",\n            \"userId\": \"{{ECID}}\",\n            \"namespace\": \"ECID\",\n            \"context\": {\n                \"requestPayload\": {\n                    \"aps\": {\n                        \"content-available\": 1,\n                        \"timestamp\": {{$timestamp}},\n                        \"event\": \"{{event}}\",\n                        \"content-state\": {\n                            \"boardingStatus\": \"Departed\",\n                            \"statusMessage\": \"Have a great flight!\",\n                            \"timeStatus\": \"Departed\",\n                            \"dwellTimeMessage\": \"Thank you for flying Riyadh Air\"\n                        },\n                        \"attributes-type\": \"KSIAAirportAttributes\",\n                        \"attributes\": {\n                            \"flightNumber\": \"RX 123\",\n                            \"airline\": \"Riyadh Air\",\n                            \"departureAirport\": \"RUH\",\n                            \"arrivalAirport\": \"DXB\",\n                            \"departureTime\": \"14:30\",\n                            \"arrivalTime\": \"17:45\",\n                            \"flightDuration\": \"3h 15m\",\n                            \"terminal\": \"Terminal 1\",\n                            \"gate\": \"A12\",\n                            \"seatNumber\": \"12A\",\n                            \"liveActivityData\": {\n                                \"liveActivityID\": \"{{LiveActivityID}}\"\n                            }\n                        },\n                        \"alert\": {\n                            \"title\": \"Departed\",\n                            \"body\": \"RX 123 has departed. Have a great flight!\"\n                        }\n                    }\n                }\n            }\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://platform.adobe.io/ajo/im/executions/unitary",
+              "protocol": "https",
+              "host": [
+                "platform",
+                "adobe",
+                "io"
+              ],
+              "path": [
+                "ajo",
+                "im",
+                "executions",
+                "unitary"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
