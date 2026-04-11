@@ -199,6 +199,57 @@
   grid-template-columns: 1fr;
 }
 
+/* Campaign row: top-align labels; equal-width columns that grow with main width (sidebar open/closed) */
+.live-activities-page .la-grid--exec {
+  width: 100%;
+  box-sizing: border-box;
+  align-items: start;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.live-activities-page .la-grid--exec .la-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.live-activities-page .la-grid--exec .la-field label {
+  flex-shrink: 0;
+}
+
+.live-activities-page .la-grid--exec .la-field input[type='text'],
+.live-activities-page .la-grid--exec .la-field select {
+  width: 100%;
+  min-width: 0;
+}
+
+.live-activities-page .la-grid--exec .la-field-hint {
+  display: block;
+  margin: 0;
+  min-height: 2.75em;
+  line-height: 1.35;
+  font-size: 0.7rem;
+  color: var(--dash-text-secondary, #6b6f78);
+}
+
+.live-activities-page .la-grid--exec .la-field-hint .dashboard-code {
+  font-size: 0.68rem;
+}
+
+@media (max-width: 1100px) {
+  .live-activities-page .la-grid--exec {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .live-activities-page .la-grid--exec {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .live-activities-page .la-exec-sync {
   margin-top: 0.85rem;
   padding: 0.75rem 0.85rem;

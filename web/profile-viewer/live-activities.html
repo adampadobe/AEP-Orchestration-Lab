@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260462">
+  <link rel="stylesheet" href="live-activities.css?v=20260463">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -104,7 +104,15 @@
                 </div>
                 <div class="la-field">
                   <label for="laUserId">ECID (recipient)</label>
-                  <input type="text" id="laUserId" autocomplete="off" value="69861237882705185278691173436829507978" spellcheck="false" title="Must match namespace ECID in the payload">
+                  <input
+                    type="text"
+                    id="laUserId"
+                    autocomplete="off"
+                    value="69861237882705185278691173436829507978"
+                    spellcheck="false"
+                    aria-describedby="laEcidHint"
+                  >
+                  <span id="laEcidHint" class="la-field-hint">Must match ECID in the JSON recipient</span>
                 </div>
                 <div class="la-field">
                   <label for="laLiveActivityId">Live Activity ID</label>
@@ -113,17 +121,19 @@
                     id="laLiveActivityId"
                     autocomplete="off"
                     spellcheck="false"
-                    title="Apple Live Activity token — written into the JSON"
                     placeholder="From your app / push setup"
+                    aria-describedby="laLaiHint"
                   >
+                  <span id="laLaiHint" class="la-field-hint">Written to attributes.liveActivityData in JSON</span>
                 </div>
                 <div class="la-field">
                   <label for="laEvent">Event</label>
-                  <select id="laEvent" aria-label="Live activity event">
+                  <select id="laEvent" aria-label="Live activity event" aria-describedby="laEventHint">
                     <option value="start" selected>start</option>
                     <option value="update">update</option>
                     <option value="end">end</option>
                   </select>
+                  <span id="laEventHint" class="la-field-hint">Maps to <code class="dashboard-code">aps.event</code></span>
                 </div>
               </div>
               <div class="la-exec-sync" aria-describedby="laExecSyncHelp">
