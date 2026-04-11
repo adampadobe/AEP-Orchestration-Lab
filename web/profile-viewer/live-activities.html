@@ -12,11 +12,10 @@
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260410">
   <link rel="stylesheet" href="profile-generation.css">
-  <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260420">
+  <link rel="stylesheet" href="live-activities.css?v=20260421">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
-<body class="home-dashboard-concierge profile-generation-page event-generator-page">
+<body class="home-dashboard-concierge profile-generation-page live-activities-page">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -42,48 +41,62 @@
           </div>
         </section>
 
+        <section class="la-context-strip" aria-labelledby="laStripHeading">
+          <h2 id="laStripHeading" class="la-sr-only">Sandbox and profile lookup</h2>
+          <div class="la-context-strip__stack">
+            <div class="la-context-box la-context-box--sandbox">
+              <span class="la-context-box__title" id="laBoxSandboxLabel">Sandbox</span>
+              <div class="la-context-box__control">
+                <label class="la-sr-only" for="sandboxSelect">AEP sandbox</label>
+                <select
+                  id="sandboxSelect"
+                  class="sandbox-select la-sandbox-select-wide"
+                  aria-labelledby="laBoxSandboxLabel"
+                >
+                  <option value="">Loading sandboxes…</option>
+                </select>
+              </div>
+            </div>
+            <div class="la-context-box la-context-box--identifier">
+              <label for="laProfileIdentifier" class="la-context-box__title">Identifier</label>
+              <div class="la-context-box__control">
+                <input
+                  type="text"
+                  id="laProfileIdentifier"
+                  class="la-profile-id-input"
+                  placeholder="Enter email address"
+                  autocomplete="off"
+                  spellcheck="false"
+                >
+              </div>
+              <p class="la-context-box__hint">
+                Identity namespace matches other Profile Viewer tools (saved in this browser). Defaults to <strong>email</strong> until you pick another on e.g. Event tool or Global values.
+              </p>
+            </div>
+            <div class="la-context-box la-context-box--query">
+              <button type="button" id="laQueryProfileBtn" class="btn btn-primary btn-query la-query-profile-btn">
+                Query profile
+              </button>
+            </div>
+          </div>
+          <div
+            id="laProfileQueryMsg"
+            class="consent-message consent-message--below-btn la-profile-query-msg"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+        </section>
+
         <section class="consent-panel" id="laPanel">
           <p class="la-intro">
             This page calls <code class="dashboard-code">POST /ajo/im/executions/unitary</code> through this app’s proxy. The bearer token, IMS org, and API key are obtained server-side from the same credentials as the rest of this lab (not shown in the browser).
           </p>
           <p class="la-note" role="note">
-            Choose <strong>sandbox</strong>, run <strong>Query profile</strong> with any supported identity (e.g. email), then the <strong>ECID</strong> below fills in for the unitary payload. Sandbox selection matches other tools and updates your global sandbox.
+            Use the <strong>three steps above</strong> to pick sandbox, enter an identifier, and resolve <strong>ECID</strong> into the field below. Sandbox updates your global selection for all tools.
           </p>
 
           <div class="profile-gen-boxes">
-            <div class="profile-box et-full-width" id="laLookupPanel">
-              <h3 class="profile-box-title"><span class="profile-box-icon">◇</span> Sandbox &amp; profile</h3>
-              <p class="field-hint event-gen-box-intro">Select <strong>sandbox</strong> and <strong>namespace</strong>, enter an identifier, then <strong>Query profile</strong> to resolve ECID into the recipient field below.</p>
-              <div class="profile-box-content">
-                <div class="config-row">
-                  <div class="form-row profile-viewer-sandbox-row">
-                    <label for="sandboxSelect">Sandbox</label>
-                    <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox">
-                      <option value="">Loading sandboxes…</option>
-                    </select>
-                  </div>
-                  <div class="form-row profile-viewer-ns-row">
-                    <label for="laProfileNs">Namespace</label>
-                    <select id="laProfileNs" class="sandbox-select" aria-label="Identity namespace">
-                      <option value="email">Email</option>
-                      <option value="ecid">ECID</option>
-                      <option value="crmId">CRM ID</option>
-                      <option value="loyaltyId">Loyalty ID</option>
-                      <option value="phone">Phone</option>
-                    </select>
-                  </div>
-                  <div class="form-row profile-viewer-email-row">
-                    <label for="laProfileIdentifier">Identifier value</label>
-                    <input type="text" id="laProfileIdentifier" placeholder="Enter email address" autocomplete="off" spellcheck="false">
-                  </div>
-                  <div class="form-row form-row--action profile-gen-actions">
-                    <button type="button" id="laQueryProfileBtn" class="btn btn-primary btn-query">Query profile</button>
-                  </div>
-                </div>
-                <div id="laProfileQueryMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
-              </div>
-            </div>
-
             <div class="profile-box et-full-width">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Execution &amp; recipient</h3>
               <div class="profile-box-content">
@@ -158,10 +171,9 @@
   </div>
 
   <script src="email-cache.js"></script>
-  <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260416"></script>
-  <script defer src="live-activities.js?v=20260420"></script>
+  <script defer src="live-activities.js?v=20260421"></script>
 </body>
 </html>
