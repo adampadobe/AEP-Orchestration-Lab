@@ -275,6 +275,180 @@
         ],
       }),
     },
+    {
+      id: 'la-builtin-etihad-departed',
+      name: 'Etihad — departed (journey 0%)',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: '{{event}}',
+                  'content-state': {
+                    status: 'Departed',
+                    wifiAvailable: true,
+                    currentLocation: 'Wi-fi available onboard',
+                    journeyProgress: 0,
+                  },
+                  'attributes-type': 'EtihadPremiumFlightAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:05',
+                    arrivalTime: '07:55',
+                    departureDate: 'On time',
+                    arrivalDate: 'On time',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: { title: 'Flight Update', body: 'EY 62 status: Departed' },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
+      id: 'la-builtin-etihad-wifi',
+      name: 'Etihad — in flight (wifi placeholder, classic)',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: '{{event}}',
+                  'content-state': {
+                    status: 'Departed',
+                    wifiAvailable: '{{wifiAvailable}}',
+                    currentLocation: 'Wi-fi available onboard',
+                    journeyProgress: 25,
+                  },
+                  'attributes-type': 'EtihadPremiumFlightAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:05',
+                    arrivalTime: '07:55',
+                    departureDate: 'On time',
+                    arrivalDate: 'On time',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: { title: 'Flight Update', body: 'EY 62 is 25% complete' },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
+      id: 'la-builtin-etihad-start',
+      name: 'Etihad — event start literal (classic)',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: 'start',
+                  'content-state': {
+                    status: 'Departed',
+                    wifiAvailable: true,
+                    currentLocation: 'Wi-fi available onboard',
+                    journeyProgress: 25,
+                  },
+                  'attributes-type': 'EtihadPremiumFlightAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:05',
+                    arrivalTime: '07:55',
+                    departureDate: 'On time',
+                    arrivalDate: 'On time',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: { title: 'Flight Update', body: 'EY 62 is 25% complete' },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
+      id: 'la-builtin-ksia-boarding',
+      name: 'KSIA — boarding (airport attributes)',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: '{{event}}',
+                  'content-state': {
+                    boardingStatus: 'Boarding Now',
+                    statusMessage: 'Terminal 1 - Gate A12',
+                    timeStatus: 'Boarding',
+                    dwellTimeMessage: 'Final call - Proceed to gate',
+                  },
+                  'attributes-type': 'KSIAAirportAttributes',
+                  attributes: {
+                    flightNumber: 'RX 123',
+                    airline: 'Riyadh Air',
+                    departureAirport: 'RUH',
+                    arrivalAirport: 'DXB',
+                    departureTime: '14:30',
+                    arrivalTime: '17:45',
+                    flightDuration: '3h 15m',
+                    terminal: 'Terminal 1',
+                    gate: 'A12',
+                    seatNumber: '12A',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: {
+                    title: 'Boarding Now',
+                    body: 'RX 123 is now boarding at Gate A12',
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
   ];
 
   function $(id) {
