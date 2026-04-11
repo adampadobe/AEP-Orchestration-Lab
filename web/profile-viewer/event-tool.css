@@ -213,15 +213,36 @@
 .et-schema-type-add:hover { background: #e6f4ea; color: #1a7f37; }
 .et-schema-type-add:disabled { opacity: 0.4; cursor: default; }
 
-/* Trigger select row alignment */
-.form-row:has(#etTriggerType) {
+/* Quick trigger combobox row (input + datalist + actions) */
+.et-quick-trigger-row {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.4rem;
 }
-.form-row:has(#etTriggerType) label { flex-basis: 100%; }
-.form-row:has(#etTriggerType) select { flex: 1 1 0; min-width: 0; }
+.et-quick-trigger-row label { flex-basis: 100%; }
+.et-quick-trigger-row .et-trigger-combo {
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--dash-input-border, #ccc);
+  border-radius: 6px;
+  background: var(--dash-surface, #fff);
+  color: var(--dash-text, #333);
+}
+.et-quick-trigger-row .et-add-trigger-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.et-quick-trigger-row .btn-icon {
+  flex-shrink: 0;
+}
+[data-aep-theme="dark"] .et-quick-trigger-row .et-trigger-combo {
+  background: var(--dash-surface-alt, #2a2a2a);
+  border-color: var(--dash-input-border, #555);
+  color: var(--dash-text, #eee);
+}
 
 /* ── Dark mode overrides ── */
 [data-aep-theme="dark"] .et-config-details {

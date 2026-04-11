@@ -40,6 +40,7 @@
     triggerType:      document.getElementById('etTriggerType'),
     triggerDesc:      document.getElementById('etTriggerDesc'),
     removeTriggerBtn: document.getElementById('etRemoveTriggerBtn'),
+    addTriggerBtn:    document.getElementById('etAddTriggerBtn'),
     schemaTypesPanel: document.getElementById('etSchemaTypesPanel'),
     schemaTypesCount: document.getElementById('etSchemaTypesCount'),
     schemaTypesList:  document.getElementById('etSchemaTypesList'),
@@ -212,49 +213,32 @@
 
   function rebuildTriggerSelect() {
     if (!dom.triggerType) return;
-    var prev = dom.triggerType.value;
-    dom.triggerType.innerHTML = '';
-
-    var templateKeys = Object.keys(triggerTemplates).filter(function (k) {
-      return typeof triggerTemplates[k] === 'object' && triggerTemplates[k].payload;
-    });
-
-    if (templateKeys.length > 0) {
-      var tplGroup = document.createElement('optgroup');
-      tplGroup.label = 'Templates';
-      templateKeys.forEach(function (k) {
-        var opt = document.createElement('option');
-        opt.value = k;
-        opt.textContent = k;
-        tplGroup.appendChild(opt);
-      });
-      dom.triggerType.appendChild(tplGroup);
-    }
-
-    if (customTriggers.length > 0) {
-      var custGroup = document.createElement('optgroup');
-      custGroup.label = 'My triggers';
-      customTriggers.forEach(function (t) {
-        var val = typeof t === 'string' ? t : (t.value || t.eventType || '');
-        if (!val) return;
+    var prev = (dom.triggerType.value || '').trim();
+    var dl = document.getElementById('etQuickTriggerList');
+    if (dl) {
+      dl.innerHTML = '';
+      var seen = new Set();
+      function addDatalistOption(val) {
+        if (!val || seen.has(val)) return;
+        seen.add(val);
         var opt = document.createElement('option');
         opt.value = val;
-        opt.textContent = val;
-        custGroup.appendChild(opt);
+        dl.appendChild(opt);
+      }
+      Object.keys(triggerTemplates)
+        .filter(function (k) {
+          return typeof triggerTemplates[k] === 'object' && triggerTemplates[k].payload;
+        })
+        .sort()
+        .forEach(addDatalistOption);
+      customTriggers.forEach(function (t) {
+        addDatalistOption(typeof t === 'string' ? t : (t.value || t.eventType || ''));
       });
-      dom.triggerType.appendChild(custGroup);
+      schemaEventTypes.forEach(function (et) {
+        addDatalistOption(et.value);
+      });
     }
-
-    if (dom.triggerType.options.length === 0) {
-      var empty = document.createElement('option');
-      empty.value = '';
-      empty.textContent = '— No triggers — add from schema below';
-      dom.triggerType.appendChild(empty);
-    }
-
-    if (prev && dom.triggerType.querySelector('option[value="' + CSS.escape(prev) + '"]')) {
-      dom.triggerType.value = prev;
-    }
+    if (prev) dom.triggerType.value = prev;
     updateTriggerDesc();
     updateRemoveBtn();
     populateSchemaTypesPanel();
@@ -262,7 +246,7 @@
 
   function updateRemoveBtn() {
     if (!dom.removeTriggerBtn) return;
-    var key = dom.triggerType.value;
+    var key = (dom.triggerType.value || '').trim();
     var isCustom = customTriggers.some(function (t) { return (typeof t === 'string' ? t : t.value) === key; });
     dom.removeTriggerBtn.hidden = !isCustom;
   }
@@ -553,7 +537,7 @@
   }
 
   function updateTriggerDesc() {
-    const key = dom.triggerType.value;
+    const key = (dom.triggerType.value || '').trim();
     const tpl = triggerTemplates[key];
     if (tpl) {
       dom.triggerDesc.textContent = tpl.description || '';
@@ -566,14 +550,43 @@
     updateRemoveBtn();
   }
 
-  dom.triggerType.addEventListener('change', updateTriggerDesc);
+  if (dom.triggerType) {
+    dom.triggerType.addEventListener('change', updateTriggerDesc);
+    dom.triggerType.addEventListener('input', updateTriggerDesc);
+  }
+
+  if (dom.addTriggerBtn) {
+    dom.addTriggerBtn.addEventListener('click', function () {
+      var raw = (dom.triggerType.value || '').trim();
+      if (!raw) {
+        setMsg(dom.sendMsg, 'Enter an event type in the field first.', 'error');
+        return;
+      }
+      if (customTriggers.some(function (t) { return (typeof t === 'string' ? t : t.value) === raw; })) {
+        setMsg(dom.sendMsg, 'That event type is already in My triggers.', '');
+        return;
+      }
+      addCustomTrigger(raw);
+      setMsg(dom.sendMsg, 'Saved to My triggers for this sandbox (Firebase).', 'success');
+    });
+  }
 
   if (dom.removeTriggerBtn) {
     dom.removeTriggerBtn.addEventListener('click', function () {
-      var key = dom.triggerType.value;
+      var key = (dom.triggerType.value || '').trim();
       if (!key) return;
       removeCustomTrigger(key);
     });
+  }
+
+  /** After a successful Edge send, persist non-template event types to My triggers for next time. */
+  function persistQuickTriggerIfNeededAfterSend() {
+    var key = (dom.triggerType.value || '').trim();
+    if (!key) return;
+    var tpl = triggerTemplates[key];
+    if (tpl && tpl.payload) return;
+    if (customTriggers.some(function (t) { return (typeof t === 'string' ? t : t.value) === key; })) return;
+    addCustomTrigger(key);
   }
 
   /* ═══════════ Build request body ═══════════ */
@@ -590,8 +603,8 @@
     }
 
     if (activeMode === 'trigger') {
-      const key = dom.triggerType.value;
-      if (!key) return { error: 'Select an event type.' };
+      const key = (dom.triggerType.value || '').trim();
+      if (!key) return { error: 'Enter or select an event type.' };
       const tpl = triggerTemplates[key];
       if (tpl && tpl.payload) {
         body.triggerTemplate = tpl.payload;
@@ -737,6 +750,7 @@
         let idPart = '';
         if (data.requestId) idPart = ' — requestId: ' + data.requestId;
         setMsg(dom.sendMsg, 'Event sent successfully.' + idPart, 'success');
+        if (activeMode === 'trigger') persistQuickTriggerIfNeededAfterSend();
       }
     } catch (e) {
       setMsg(dom.sendMsg, e.message || 'Network error', 'error');
@@ -753,6 +767,7 @@
     customTriggers = [];
     schemaEventTypes = [];
     dom.dsInput.value = '';
+    if (dom.triggerType) dom.triggerType.value = '';
     dom.profileInfo.hidden = true;
     setMsg(dom.profileMsg, '', '');
     setMsg(dom.connectionMsg, '', '');
