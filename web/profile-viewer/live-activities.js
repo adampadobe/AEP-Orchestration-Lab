@@ -1971,7 +1971,12 @@
     return buildPayloadFromImportPaste();
   }
 
-  function laGetSavedTemplates() {
+  function laCurrentSandboxForTemplates() {
+    return String(getSandboxForRequest() || '').trim().toLowerCase();
+  }
+
+  /** Full list from storage (may include multiple sandboxes if data was merged before sync fixes). */
+  function laGetSavedTemplatesRaw() {
     try {
       var raw = localStorage.getItem(LA_TEMPLATE_STORAGE_KEY);
       if (!raw) return [];
@@ -1980,6 +1985,20 @@
     } catch (e) {
       return [];
     }
+  }
+
+  /**
+   * Custom templates for the active technical sandbox only.
+   * Entries include `savedInSandbox` (new); legacy entries without it still show (same stored blob after Firestore pull).
+   */
+  function laGetSavedTemplates() {
+    var cur = laCurrentSandboxForTemplates();
+    return laGetSavedTemplatesRaw().filter(function (t) {
+      if (!t || typeof t !== 'object') return false;
+      var tag = t.savedInSandbox != null ? String(t.savedInSandbox).trim().toLowerCase() : '';
+      if (!tag) return true;
+      return tag === cur;
+    });
   }
 
   function laSetSavedTemplates(arr) {
@@ -2006,24 +2025,27 @@
     sel.appendChild(ph);
     var showBuiltins = laSandboxShowsPostmanBuiltins() && LA_BUILTIN_TEMPLATES.length;
     var saved = laGetSavedTemplates();
-    if (showBuiltins || saved.length) {
-      var og = document.createElement('optgroup');
-      og.label = 'My templates';
-      if (showBuiltins) {
-        LA_BUILTIN_TEMPLATES.forEach(function (t) {
-          var o = document.createElement('option');
-          o.value = t.id;
-          o.textContent = t.name;
-          og.appendChild(o);
-        });
-      }
+    if (showBuiltins) {
+      var ogLab = document.createElement('optgroup');
+      ogLab.label = 'Lab samples';
+      LA_BUILTIN_TEMPLATES.forEach(function (t) {
+        var o = document.createElement('option');
+        o.value = t.id;
+        o.textContent = t.name;
+        ogLab.appendChild(o);
+      });
+      sel.appendChild(ogLab);
+    }
+    if (saved.length) {
+      var ogSaved = document.createElement('optgroup');
+      ogSaved.label = 'Saved in this sandbox';
       saved.forEach(function (t) {
         var o = document.createElement('option');
         o.value = t.id;
         o.textContent = t.name || t.id;
-        og.appendChild(o);
+        ogSaved.appendChild(o);
       });
-      sel.appendChild(og);
+      sel.appendChild(ogSaved);
     }
     if (
       preserved &&
@@ -2098,21 +2120,26 @@
       return;
     }
     var id = 'la-custom-' + Date.now();
-    var list = laGetSavedTemplates();
-    list.push({ id: id, name: name, json: ta.value });
+    var list = laGetSavedTemplatesRaw();
+    list.push({
+      id: id,
+      name: name,
+      json: ta.value,
+      savedInSandbox: getSandboxForRequest() || '',
+    });
     laSetSavedTemplates(list);
     laPopulateTemplateSelect();
     var sel = $('laTemplateSelect');
     if (sel) sel.value = id;
     laUpdateTemplateDeleteState();
-    laShowTemplateMsg('Saved to My templates.', false);
+    laShowTemplateMsg('Saved for this sandbox.', false);
   }
 
   function laDeleteSelectedTemplate() {
     var sel = $('laTemplateSelect');
     if (!sel || !sel.value || laIsBuiltinTemplateId(sel.value)) return;
     if (!window.confirm('Delete this saved template?')) return;
-    var next = laGetSavedTemplates().filter(function (t) {
+    var next = laGetSavedTemplatesRaw().filter(function (t) {
       return t.id !== sel.value;
     });
     laSetSavedTemplates(next);
