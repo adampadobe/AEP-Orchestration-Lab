@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260407">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="event-generator.css">
-  <link rel="stylesheet" href="event-tool.css?v=20260411">
+  <link rel="stylesheet" href="event-tool.css?v=20260413">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="event-generator-page profile-generation-page home-dashboard-concierge">
@@ -169,17 +169,25 @@
                 <div id="etTriggerMode" class="et-mode-panel">
                   <div class="form-row et-quick-trigger-row">
                     <label for="etTriggerType">Event type</label>
-                    <input type="text" id="etTriggerType" class="et-trigger-combo" list="etQuickTriggerList" placeholder="Type or pick an event type…" autocomplete="off" spellcheck="false" aria-label="Quick event type" aria-describedby="etTriggerDesc">
+                    <input type="text" id="etTriggerType" class="et-trigger-combo" list="etQuickTriggerList" placeholder="Pick a shortcut or type an event type…" autocomplete="off" spellcheck="false" aria-label="Quick event type" aria-describedby="etTriggerDesc">
                     <datalist id="etQuickTriggerList"></datalist>
                     <button type="button" id="etAddTriggerBtn" class="btn btn-secondary btn-sm et-add-trigger-btn" title="Save this event type under My triggers">Add to my triggers</button>
                     <button type="button" id="etRemoveTriggerBtn" class="btn-icon btn-icon--remove" title="Remove from My triggers" hidden aria-label="Remove from My triggers">✕</button>
                   </div>
                   <div id="etTriggerDesc" class="field-hint" style="margin-bottom:0.75rem;"></div>
 
+                  <details id="etMyTriggersPanel" class="et-schema-types-panel et-my-triggers-panel" open>
+                    <summary class="et-schema-types-summary">My triggers <span id="etMyTriggersCount" class="et-schema-types-count"></span></summary>
+                    <div class="et-schema-types-body">
+                      <p class="field-hint">Saved event types for this sandbox (Firebase). <strong>Add to dropdown</strong> puts a shortcut in the type-ahead; <strong>Remove from dropdown</strong> hides it there but keeps it saved. <strong>Delete saved</strong> removes it everywhere.</p>
+                      <div id="etMyTriggersList" class="et-schema-types-list"></div>
+                    </div>
+                  </details>
+
                   <details id="etSchemaTypesPanel" class="et-schema-types-panel">
                     <summary class="et-schema-types-summary">Schema event types <span id="etSchemaTypesCount" class="et-schema-types-count"></span></summary>
                     <div class="et-schema-types-body">
-                      <p class="field-hint">Type a name above, use <strong>Add to my triggers</strong>, or click <strong>+ Add</strong> below. Saved types appear under <strong>My triggers</strong> in the list and in Firebase.</p>
+                      <p class="field-hint">Click <strong>+ Add</strong> to save an event type to <strong>My triggers</strong> and add it to the dropdown shortcuts. Types already saved are hidden here.</p>
                       <div id="etSchemaTypesList" class="et-schema-types-list"></div>
                     </div>
                   </details>
@@ -242,7 +250,7 @@
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="event-tool.js?v=20260411"></script>
+  <script src="event-tool.js?v=20260413"></script>
   <script defer src="aep-theme.js?v=20260407"></script>
   <script defer src="aep-lab-nav.js?v=20260412"></script>
 </body>

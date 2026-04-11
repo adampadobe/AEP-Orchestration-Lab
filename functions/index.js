@@ -1761,6 +1761,7 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
         schemaTitle: body.schemaTitle,
         datasetName: body.datasetName,
         customTriggers: body.customTriggers,
+        quickMenuTriggers: body.quickMenuTriggers,
       });
       res.status(200).json({ ok: true, sandbox, record: serializeEventConfigRecord(record) });
     } catch (e) {

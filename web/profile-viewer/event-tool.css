@@ -213,6 +213,41 @@
 .et-schema-type-add:hover { background: #e6f4ea; color: #1a7f37; }
 .et-schema-type-add:disabled { opacity: 0.4; cursor: default; }
 
+/* My triggers library (above schema list) */
+.et-my-triggers-panel {
+  margin-bottom: 0.5rem;
+}
+
+.et-my-triggers-badge {
+  flex: 0 1 auto;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--dash-text-secondary, #888);
+  white-space: nowrap;
+}
+
+.et-my-triggers-btn--ghost {
+  background: transparent !important;
+  border-style: dashed !important;
+}
+
+.et-my-triggers-delete {
+  flex-shrink: 0;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--dash-input-border, #ddd);
+  border-radius: 5px;
+  background: var(--dash-surface-alt, #f5f5f5);
+  color: var(--dash-text-secondary, #666);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.et-my-triggers-delete:hover {
+  background: #fce4e4;
+  color: #c0392b;
+  border-color: #e0a0a0;
+}
+
 /* Quick trigger combobox row (input + datalist + actions) */
 .et-quick-trigger-row {
   display: flex;
@@ -284,3 +319,9 @@
 [data-aep-theme="dark"] .et-schema-type-row:hover { background: var(--dash-surface-alt, #2a2a2a); }
 [data-aep-theme="dark"] .et-schema-type-add { background: var(--dash-surface-alt, #2a2a2a); border-color: var(--dash-input-border, #555); color: var(--dash-text-secondary, #aaa); }
 [data-aep-theme="dark"] .et-schema-type-add:hover { background: #1a3a2a; color: #6fdd8b; }
+[data-aep-theme="dark"] .et-my-triggers-delete {
+  background: var(--dash-surface-alt, #2a2a2a);
+  border-color: var(--dash-input-border, #555);
+  color: var(--dash-text-secondary, #aaa);
+}
+[data-aep-theme="dark"] .et-my-triggers-delete:hover { background: #3a2020; color: #e74c3c; }

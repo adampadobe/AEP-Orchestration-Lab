@@ -49,6 +49,10 @@ async function saveEventConfig(sandbox, patch) {
       ? (Array.isArray(patch.customTriggers) ? patch.customTriggers.slice(0, 200) : [])
       : (Array.isArray(prev.customTriggers) ? prev.customTriggers : []);
 
+    const quickMenuTriggers = patch.quickMenuTriggers !== undefined
+      ? (Array.isArray(patch.quickMenuTriggers) ? patch.quickMenuTriggers.slice(0, 200) : [])
+      : (Array.isArray(prev.quickMenuTriggers) ? prev.quickMenuTriggers : []);
+
     const merged = {
       sandbox: name,
       datastreamId: trim(
@@ -68,6 +72,7 @@ async function saveEventConfig(sandbox, patch) {
         256
       ),
       customTriggers,
+      quickMenuTriggers,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
