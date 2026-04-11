@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live activities (in development) – AEP Profile Viewer</title>
+  <title>Live activities – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260452">
+  <link rel="stylesheet" href="live-activities.css?v=20260454">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -34,9 +34,9 @@
         <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="laBanner">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
-              <h2 id="laBanner" class="dashboard-hero-title">Live activities (in development)</h2>
+              <h2 id="laBanner" class="dashboard-hero-title">Live activities</h2>
               <p class="dashboard-hero-subtitle">
-                Send a unitary execution to AJO in-app messaging — same payload structure as Postman, with Live Activity fields. Platform auth uses this deployment’s IMS credentials (like other AEP tools).
+                Unitary execution to AJO in-app messaging — pick a template, fill the execution row, <strong>Apply all from fields</strong>, then <strong>Send to Adobe</strong>.
               </p>
             </header>
           </div>
@@ -79,18 +79,15 @@
 
         <section class="consent-panel" id="laPanel">
           <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">◆</span> Unitary execution</h2>
-          <p class="panel-desc la-panel-lead">
-            This page calls <code class="dashboard-code">POST /ajo/im/executions/unitary</code> through this app’s proxy. The bearer token, IMS org, and API key are obtained server-side from the same credentials as the rest of this lab (not shown in the browser).
-          </p>
-          <p class="la-note" role="note">
-            Use <strong>Query profile</strong> above to resolve <strong>ECID</strong>, then set <strong>campaign</strong>, <strong>APS payload</strong> fields, and preview or send. Sandbox selection updates your global sandbox for all tools.
+          <p class="panel-desc la-panel-lead la-panel-lead--compact">
+            <code class="dashboard-code">POST /ajo/im/executions/unitary</code> via this app’s proxy (auth server-side). Use <strong>Query profile</strong> for ECID, then templates + execution fields below.
           </p>
 
           <div class="profile-box la-unitary-card">
             <h3 class="la-subpanel-title"><span class="profile-box-icon" aria-hidden="true">✦</span> Execution &amp; recipient</h3>
             <div class="profile-box-content">
-              <p class="la-ts-note" role="note">
-                <code class="dashboard-code">requestId</code> is a new random UUID each time you <strong>Preview</strong> or <strong>Send</strong> (same idea as Postman <code class="dashboard-code">{{$randomUUID}}</code>).
+              <p class="la-ts-note la-ts-note--compact" role="note">
+                <strong>Preview / Send</strong> use the <strong>Paste JSON</strong> body when it’s filled; otherwise the optional form editor below. Each send gets a fresh <code class="dashboard-code">requestId</code> and <code class="dashboard-code">timestamp</code>.
               </p>
               <div class="la-grid la-grid--exec">
                 <div class="la-field">
@@ -154,9 +151,28 @@
             <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">◆</span> APS payload</h3>
             <div class="profile-box-content">
               <div class="la-payload-workspace" id="laPayloadWorkspace">
+                <div class="la-template-bar" id="laTemplateBar" aria-label="Payload templates">
+                  <div class="la-template-bar-head">
+                    <label for="laTemplateSelect" class="la-template-bar-label">Templates</label>
+                    <p class="la-template-bar-lead">
+                      Built-in Etihad / KSIA starters and your saved bodies (stored in this browser). Load one, tweak JSON, <strong>Apply all from fields</strong>, send.
+                    </p>
+                  </div>
+                  <div class="la-template-bar-row">
+                    <select id="laTemplateSelect" class="la-template-select" aria-label="Choose template">
+                      <option value="">Select a template…</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary" id="laTemplateLoad">Load</button>
+                    <button type="button" class="btn btn-secondary" id="laTemplateSave" title="Save current Paste JSON">Save as…</button>
+                    <button type="button" class="btn btn-secondary" id="laTemplateDelete" title="Delete selected saved template" disabled>
+                      Delete
+                    </button>
+                  </div>
+                  <p id="laTemplateMsg" class="la-template-msg" hidden role="status"></p>
+                </div>
                 <div class="la-payload-view-head">
-                  <p class="la-payload-view-lead">
-                    Same idea as <strong>Firebase Realtime Database</strong>: paste in <strong>Paste JSON</strong>, use <strong>Tree</strong> to browse like the RTDB tree view, then <strong>Parse &amp; fill form</strong> or switch to <strong>Form</strong> to edit fields.
+                  <p class="la-payload-view-lead la-payload-view-lead--compact">
+                    <strong>Paste JSON</strong> is the main editor. <strong>Tree</strong> for browsing; optional <strong>Form</strong> for small edits.
                   </p>
                   <div class="la-payload-view-toggle" role="tablist" aria-label="APS payload editor">
                     <button
@@ -193,87 +209,29 @@
                 </div>
 
                 <div id="laPayloadPastePanel" class="la-payload-panel" role="tabpanel" aria-labelledby="laPayloadTabPaste">
-                  <p class="la-import-banner-lead">
-                    Paste the <strong>full unitary body</strong>, or only <code class="dashboard-code">requestPayload</code> / <code class="dashboard-code">aps</code>. Use <strong>Beautify</strong>, then <strong>Parse &amp; fill form</strong> — we open the Form tab with fields filled (like switching from JSON to Tree on Firebase). Use the <strong>Execution &amp; recipient</strong> buttons above to inject timestamp, requestId, and other values into the JSON.
-                  </p>
-                  <label for="laImportPaste" class="la-import-label">Unitary JSON or <code class="dashboard-code">aps</code></label>
+                  <label for="laImportPaste" class="la-import-label">Unitary JSON</label>
                   <textarea
                     id="laImportPaste"
                     class="la-json la-import-paste"
                     spellcheck="false"
-                    rows="16"
-                    placeholder="Paste full JSON here, then Beautify → Parse &amp; fill form. You can also paste into a section’s JSON view (JSON mode) on the Form tab."
-                    title="Full Postman-style unitary body, or recipients[0].context.requestPayload.aps, or raw aps. campaignId and ECID map when present."
-                    aria-describedby="laImportBannerHelp laImportPasteTitleHint"
+                    rows="18"
+                    placeholder="Load a template or paste JSON. Postman-style {{placeholders}} are fixed when you Beautify. Ctrl/⌘+Enter fills the optional form."
+                    title="Full unitary body preferred for Preview/Send"
+                    aria-describedby="laImportPasteHint"
                   ></textarea>
-                  <p id="laImportPasteTitleHint" class="la-import-title-hint">
-                    Smallest useful paste is the <code class="dashboard-code">aps</code> object — see example below. <strong>Ctrl/⌘ + Enter</strong> runs Parse &amp; fill form.
-                  </p>
-                  <p id="laImportBannerHelp" class="la-import-help">
-                    Pasting valid JSON auto-formats like the Realtime DB editor. Each Preview/Send still generates a new <code class="dashboard-code">requestId</code> unless you rely on the server payload builder only.
+                  <p id="laImportPasteHint" class="la-import-title-hint">
+                    <strong>Beautify</strong> quotes placeholders. <strong>Apply all from fields</strong> fills IDs and times. Clear this box to use only the advanced form editor.
                   </p>
                   <div class="la-import-actions">
                     <button type="button" class="btn btn-secondary" id="laImportBeautify">Beautify</button>
                     <button type="button" class="btn btn-secondary" id="laImportApply">Parse &amp; fill form</button>
                     <span id="laImportMsg" class="la-import-msg" hidden role="status"></span>
                   </div>
-                  <details class="la-import-details">
-                    <summary class="la-import-details-summary">Example (Postman / AJO)</summary>
-                    <p class="la-import-details-lead">
-                      You can paste the <strong>full</strong> JSON below, or only the <code class="dashboard-code">aps</code> object. <code class="dashboard-code">requestId</code> is optional — each Preview/Send can generate a new UUID. Unquoted placeholders (e.g. <code class="dashboard-code">"timestamp": {{$timestamp}}</code>) are auto-quoted for parsing.
-                    </p>
-                    <pre class="la-import-example" aria-label="Example unitary JSON body">{
-    "requestId": "{{$randomUUID}}",
-    "campaignId": "{{campaignID}}",
-    "recipients": [
-        {
-            "type": "aep",
-            "userId": "{{ECID}}",
-            "namespace": "ECID",
-            "context": {
-                "requestPayload": {
-                    "aps": {
-                        "content-available": 1,
-                        "timestamp": 1735689600,
-                        "event": "start",
-                        "content-state": {
-                            "boardingStatus": "Check-in Complete",
-                            "statusMessage": "Proceed to security",
-                            "timeStatus": "On time",
-                            "dwellTimeMessage": "Explore KSIA's dining &amp; shopping"
-                        },
-                        "attributes-type": "KSIAAirportAttributes",
-                        "attributes": {
-                            "flightNumber": "RX 123",
-                            "airline": "Riyadh Air",
-                            "departureAirport": "RUH",
-                            "arrivalAirport": "DXB",
-                            "departureTime": "14:30",
-                            "arrivalTime": "17:45",
-                            "flightDuration": "3h 15m",
-                            "terminal": "Terminal 1",
-                            "gate": "A12",
-                            "seatNumber": "12A",
-                            "liveActivityData": {
-                                "liveActivityID": "{{LiveActivityID}}"
-                            }
-                        },
-                        "alert": {
-                            "title": "Check-in Complete",
-                            "body": "Proceed to security for RX 123"
-                        }
-                    }
-                }
-            }
-        }
-    ]
-}</pre>
-                  </details>
                 </div>
 
                 <div id="laPayloadTreePanel" class="la-payload-panel la-payload-panel--tree" role="tabpanel" hidden aria-labelledby="laPayloadTabTree">
-                  <p class="la-tree-view-lead">
-                    Browse like <strong>Firebase Realtime Database → Tree</strong>. Click a <strong>value</strong> to edit it; changes update the JSON in <strong>Paste JSON</strong>. <strong>Expand all</strong> opens every branch and grows the tree to use the viewport.
+                  <p class="la-tree-view-lead la-tree-view-lead--compact">
+                    Click values to edit (updates Paste JSON). <strong>Expand all</strong> for large trees.
                   </p>
                   <div class="la-paste-tree-toolbar" role="toolbar" aria-label="Tree actions">
                     <div class="la-paste-tree-toolbar-segmented">
@@ -323,9 +281,11 @@
                 </div>
 
                 <div id="laPayloadFormPanel" class="la-payload-panel" role="tabpanel" hidden aria-labelledby="laPayloadTabForm">
+                  <details class="la-advanced-form" id="laAdvancedFormDetails">
+                    <summary class="la-advanced-form-summary">Advanced: form editor (when not using Paste JSON)</summary>
                   <p class="la-section-title">Scalars</p>
                   <p class="la-ts-note" role="note">
-                    <code class="dashboard-code">timestamp</code> (Unix seconds) is set when you click <strong>Preview</strong> or <strong>Send</strong> — not taken from pasted JSON.
+                    <code class="dashboard-code">timestamp</code> on send uses server “now” when sending from Paste JSON; from form-only mode, Preview/Send use form values.
                   </p>
                   <div class="la-grid la-grid--scalars">
                     <div class="la-field">
@@ -411,6 +371,7 @@
                 </div>
                 <textarea id="laAlert" class="la-json la-json--panel" spellcheck="false" rows="6" aria-label="alert JSON"></textarea>
               </div>
+                  </details>
                 </div>
               </div>
 
@@ -432,6 +393,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260452"></script>
+  <script defer src="live-activities.js?v=20260454"></script>
 </body>
 </html>

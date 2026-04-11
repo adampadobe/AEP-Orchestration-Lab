@@ -83,6 +83,94 @@
   font-size: 0.78rem;
 }
 
+.live-activities-page .la-panel-lead--compact {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin-bottom: 0.75rem;
+}
+
+.live-activities-page .la-ts-note--compact {
+  font-size: 0.78rem;
+  margin-bottom: 0.65rem;
+}
+
+.live-activities-page .la-template-bar {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.12));
+  background: var(--dash-surface-alt, rgba(0, 0, 0, 0.02));
+}
+
+.live-activities-page .la-template-bar-head {
+  margin-bottom: 0.5rem;
+}
+
+.live-activities-page .la-template-bar-label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.82rem;
+  margin-bottom: 0.25rem;
+  color: var(--dash-text, inherit);
+}
+
+.live-activities-page .la-template-bar-lead {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, #5c5f66);
+}
+
+.live-activities-page .la-template-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.live-activities-page .la-template-select {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+  max-width: 100%;
+  padding: 0.45rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--dash-input-border, #ced4da);
+  background: var(--dash-input-bg, #fff);
+  color: var(--dash-text, inherit);
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+.live-activities-page .la-template-msg {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--dash-text-secondary, #5c5f66);
+}
+
+.live-activities-page .la-template-msg--err {
+  color: #b03030;
+}
+
+.live-activities-page .la-payload-view-lead--compact {
+  margin-bottom: 0.5rem;
+}
+
+.live-activities-page .la-advanced-form {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-radius: 8px;
+  border: 1px dashed var(--dash-border, rgba(0, 0, 0, 0.12));
+  background: var(--dash-surface-alt, rgba(0, 0, 0, 0.02));
+}
+
+.live-activities-page .la-advanced-form-summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--dash-text, inherit);
+}
+
 .la-note {
   margin: 0 0 1.25rem;
   padding: 0.75rem 1rem;

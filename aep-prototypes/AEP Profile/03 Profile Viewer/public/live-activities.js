@@ -48,6 +48,193 @@
     '}',
   ].join('\n');
 
+  /** localStorage for user-saved payload bodies (name + json string). */
+  var LA_TEMPLATE_STORAGE_KEY = 'aepLaPayloadTemplatesV1';
+
+  function laFormatTemplate(obj) {
+    return JSON.stringify(obj, null, 2);
+  }
+
+  /**
+   * Built-in unitary examples (Postman-style placeholders; Beautify quotes bare {{…}} values).
+   */
+  var LA_BUILTIN_TEMPLATES = [
+    {
+      id: 'la-builtin-etihad-departed',
+      name: 'Etihad — departed (journey 0%)',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: '{{event}}',
+                  'content-state': {
+                    status: 'Departed',
+                    wifiAvailable: true,
+                    currentLocation: 'Wi-fi available onboard',
+                    journeyProgress: 0,
+                  },
+                  'attributes-type': 'EtihadPremiumFlightAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:05',
+                    arrivalTime: '07:55',
+                    departureDate: 'On time',
+                    arrivalDate: 'On time',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: { title: 'Flight Update', body: 'EY 62 status: Departed' },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
+      id: 'la-builtin-etihad-wifi',
+      name: 'Etihad — in flight (wifi placeholder)',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: '{{event}}',
+                  'content-state': {
+                    status: 'Departed',
+                    wifiAvailable: '{{wifiAvailable}}',
+                    currentLocation: 'Wi-fi available onboard',
+                    journeyProgress: 25,
+                  },
+                  'attributes-type': 'EtihadPremiumFlightAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:05',
+                    arrivalTime: '07:55',
+                    departureDate: 'On time',
+                    arrivalDate: 'On time',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: { title: 'Flight Update', body: 'EY 62 is 25% complete' },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
+      id: 'la-builtin-etihad-start',
+      name: 'Etihad — event start literal',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: 'start',
+                  'content-state': {
+                    status: 'Departed',
+                    wifiAvailable: true,
+                    currentLocation: 'Wi-fi available onboard',
+                    journeyProgress: 25,
+                  },
+                  'attributes-type': 'EtihadPremiumFlightAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:05',
+                    arrivalTime: '07:55',
+                    departureDate: 'On time',
+                    arrivalDate: 'On time',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: { title: 'Flight Update', body: 'EY 62 is 25% complete' },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
+      id: 'la-builtin-ksia-boarding',
+      name: 'KSIA — boarding (airport attributes)',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: '{{event}}',
+                  'content-state': {
+                    boardingStatus: 'Boarding Now',
+                    statusMessage: 'Terminal 1 - Gate A12',
+                    timeStatus: 'Boarding',
+                    dwellTimeMessage: 'Final call - Proceed to gate',
+                  },
+                  'attributes-type': 'KSIAAirportAttributes',
+                  attributes: {
+                    flightNumber: 'RX 123',
+                    airline: 'Riyadh Air',
+                    departureAirport: 'RUH',
+                    arrivalAirport: 'DXB',
+                    departureTime: '14:30',
+                    arrivalTime: '17:45',
+                    flightDuration: '3h 15m',
+                    terminal: 'Terminal 1',
+                    gate: 'A12',
+                    seatNumber: '12A',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: {
+                    title: 'Boarding Now',
+                    body: 'RX 123 is now boarding at Gate A12',
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+  ];
+
   function $(id) {
     return document.getElementById(id);
   }
@@ -907,6 +1094,8 @@
       }
     }
     if (showForm) {
+      var adv = $('laAdvancedFormDetails');
+      if (adv) adv.open = true;
       document.querySelectorAll('[data-json-editor]').forEach(function (block) {
         var ta = block.querySelector('.la-json--panel');
         if (ta) bumpJsonMirror(ta);
@@ -1714,6 +1903,224 @@
     };
   }
 
+  /**
+   * Build the outbound unitary body from Paste JSON + execution fields.
+   * Preserves pasted content-state / attributes / alert; refreshes ids, time, event, and liveActivityID from the form row.
+   */
+  function buildPayloadFromImportPaste() {
+    var ta = $('laImportPaste');
+    var raw = ta && String(ta.value || '').trim();
+    if (!raw) {
+      throw new Error('Paste JSON is empty.');
+    }
+    var parsed = parseUserJson(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Pasted JSON must be a single object.');
+    }
+    var out = JSON.parse(JSON.stringify(parsed));
+    var campaignId = String($('laCampaignId').value || '').trim();
+    var userId = String($('laUserId').value || '').trim();
+    var event = String($('laEvent').value || 'start').trim().toLowerCase();
+    if (!campaignId || !userId) {
+      throw new Error('campaign ID and ECID are required.');
+    }
+    if (event !== 'start' && event !== 'update' && event !== 'end') {
+      throw new Error('event must be start, update, or end.');
+    }
+    if (!out.recipients || !Array.isArray(out.recipients) || !out.recipients[0]) {
+      throw new Error('Pasted JSON must include recipients[0].');
+    }
+    var r0 = out.recipients[0];
+    if (!r0.context || !r0.context.requestPayload || !r0.context.requestPayload.aps) {
+      throw new Error('Pasted JSON must include recipients[0].context.requestPayload.aps.');
+    }
+    var aps = r0.context.requestPayload.aps;
+    out.requestId = randomUuid();
+    out.campaignId = campaignId;
+    r0.userId = userId;
+    r0.type = r0.type || 'aep';
+    r0.namespace = r0.namespace || 'ECID';
+    aps.timestamp = Math.floor(Date.now() / 1000);
+    aps.event = event;
+    var ca = parseInt(String($('laContentAvailable').value || '1'), 10);
+    if (Number.isFinite(ca)) {
+      aps['content-available'] = ca;
+    }
+    var attrType = String($('laAttributesType').value || '').trim();
+    if (attrType) {
+      aps['attributes-type'] = attrType;
+    }
+    var liveActivityFromField = String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim();
+    if (liveActivityFromField) {
+      if (!aps.attributes || typeof aps.attributes !== 'object' || Array.isArray(aps.attributes)) {
+        aps.attributes = {};
+      }
+      if (
+        !aps.attributes.liveActivityData ||
+        typeof aps.attributes.liveActivityData !== 'object' ||
+        Array.isArray(aps.attributes.liveActivityData)
+      ) {
+        aps.attributes.liveActivityData = {};
+      }
+      aps.attributes.liveActivityData.liveActivityID = liveActivityFromField;
+    }
+    return out;
+  }
+
+  function getOutgoingPayload() {
+    var raw = String($('laImportPaste') && $('laImportPaste').value || '').trim();
+    if (raw) {
+      return buildPayloadFromImportPaste();
+    }
+    return buildPayload();
+  }
+
+  function laGetSavedTemplates() {
+    try {
+      var raw = localStorage.getItem(LA_TEMPLATE_STORAGE_KEY);
+      if (!raw) return [];
+      var a = JSON.parse(raw);
+      return Array.isArray(a) ? a : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function laSetSavedTemplates(arr) {
+    try {
+      localStorage.setItem(LA_TEMPLATE_STORAGE_KEY, JSON.stringify(arr));
+    } catch (e) {}
+  }
+
+  function laIsBuiltinTemplateId(id) {
+    return String(id || '').indexOf('la-builtin-') === 0;
+  }
+
+  function laPopulateTemplateSelect() {
+    var sel = $('laTemplateSelect');
+    if (!sel) return;
+    var preserved = sel.value;
+    sel.innerHTML = '';
+    var ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = 'Select a template…';
+    sel.appendChild(ph);
+    var og1 = document.createElement('optgroup');
+    og1.label = 'Built-in';
+    LA_BUILTIN_TEMPLATES.forEach(function (t) {
+      var o = document.createElement('option');
+      o.value = t.id;
+      o.textContent = t.name;
+      og1.appendChild(o);
+    });
+    sel.appendChild(og1);
+    var saved = laGetSavedTemplates();
+    if (saved.length) {
+      var og2 = document.createElement('optgroup');
+      og2.label = 'Saved in this browser';
+      saved.forEach(function (t) {
+        var o = document.createElement('option');
+        o.value = t.id;
+        o.textContent = t.name || t.id;
+        og2.appendChild(o);
+      });
+      sel.appendChild(og2);
+    }
+    if (
+      preserved &&
+      Array.prototype.some.call(sel.options, function (x) {
+        return x.value === preserved;
+      })
+    ) {
+      sel.value = preserved;
+    }
+    laUpdateTemplateDeleteState();
+  }
+
+  function laUpdateTemplateDeleteState() {
+    var sel = $('laTemplateSelect');
+    var del = $('laTemplateDelete');
+    if (!sel || !del) return;
+    var id = sel.value;
+    del.disabled = !id || laIsBuiltinTemplateId(id);
+  }
+
+  function laShowTemplateMsg(text, isErr) {
+    var el = $('laTemplateMsg');
+    if (!el) return;
+    el.textContent = text || '';
+    el.hidden = !text;
+    el.classList.toggle('la-template-msg--err', !!isErr);
+  }
+
+  function laGetTemplateJsonById(id) {
+    if (!id) return '';
+    for (var i = 0; i < LA_BUILTIN_TEMPLATES.length; i++) {
+      if (LA_BUILTIN_TEMPLATES[i].id === id) return LA_BUILTIN_TEMPLATES[i].json;
+    }
+    var saved = laGetSavedTemplates();
+    for (var j = 0; j < saved.length; j++) {
+      if (saved[j].id === id) return saved[j].json != null ? String(saved[j].json) : '';
+    }
+    return '';
+  }
+
+  function laLoadSelectedTemplate() {
+    var sel = $('laTemplateSelect');
+    if (!sel || !sel.value) {
+      laShowTemplateMsg('Choose a template first.', true);
+      return;
+    }
+    var json = laGetTemplateJsonById(sel.value);
+    if (!json) {
+      laShowTemplateMsg('Template not found.', true);
+      return;
+    }
+    var ta = $('laImportPaste');
+    if (!ta) return;
+    ta.value = json;
+    bumpJsonMirror(ta);
+    afterImportPasteMutation();
+    setPayloadView('paste');
+    laShowTemplateMsg('Loaded — Beautify, then Apply all from fields.', false);
+  }
+
+  function laSaveCurrentAsTemplate() {
+    var ta = $('laImportPaste');
+    if (!ta || !String(ta.value || '').trim()) {
+      laShowTemplateMsg('Paste JSON is empty — nothing to save.', true);
+      return;
+    }
+    var name = window.prompt('Template name', 'My unitary payload');
+    if (name == null) return;
+    name = String(name).trim();
+    if (!name) {
+      laShowTemplateMsg('Name required.', true);
+      return;
+    }
+    var id = 'la-custom-' + Date.now();
+    var list = laGetSavedTemplates();
+    list.push({ id: id, name: name, json: ta.value });
+    laSetSavedTemplates(list);
+    laPopulateTemplateSelect();
+    var sel = $('laTemplateSelect');
+    if (sel) sel.value = id;
+    laUpdateTemplateDeleteState();
+    laShowTemplateMsg('Saved in this browser.', false);
+  }
+
+  function laDeleteSelectedTemplate() {
+    var sel = $('laTemplateSelect');
+    if (!sel || !sel.value || laIsBuiltinTemplateId(sel.value)) return;
+    if (!window.confirm('Delete this saved template?')) return;
+    var next = laGetSavedTemplates().filter(function (t) {
+      return t.id !== sel.value;
+    });
+    laSetSavedTemplates(next);
+    laPopulateTemplateSelect();
+    laShowTemplateMsg('Deleted.', false);
+  }
+
   function setMessage(el, text, isErr) {
     el.textContent = text;
     el.hidden = !text;
@@ -1821,6 +2228,16 @@
     var injAll = $('laInjectAllFromFields');
     if (injAll) injAll.addEventListener('click', injectAllFromExecutionFields);
 
+    laPopulateTemplateSelect();
+    var laTsel = $('laTemplateSelect');
+    if (laTsel) laTsel.addEventListener('change', laUpdateTemplateDeleteState);
+    var laTload = $('laTemplateLoad');
+    if (laTload) laTload.addEventListener('click', laLoadSelectedTemplate);
+    var laTsave = $('laTemplateSave');
+    if (laTsave) laTsave.addEventListener('click', laSaveCurrentAsTemplate);
+    var laTdel = $('laTemplateDelete');
+    if (laTdel) laTdel.addEventListener('click', laDeleteSelectedTemplate);
+
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('.la-json-beautify');
       if (!btn || btn.id === 'laImportBeautify') return;
@@ -1904,7 +2321,7 @@
 
     $('laPreviewBtn').addEventListener('click', function () {
       try {
-        var p = buildPayload();
+        var p = getOutgoingPayload();
         preview.textContent = JSON.stringify(p, null, 2);
         preview.hidden = false;
         setMessage(msg, '', false);
@@ -1919,7 +2336,7 @@
 
       var payload;
       try {
-        payload = buildPayload();
+        payload = getOutgoingPayload();
       } catch (e) {
         setMessage(msg, String(e.message || e), true);
         return;
