@@ -714,7 +714,7 @@
 
   /**
    * Apply known keys from the execution fields into parsed JSON (structure-aware).
-   * patch: { campaignId?, userId?, requestId?, timestamp?, liveActivityId? } — omit keys to skip.
+   * patch: { campaignId?, userId?, requestId?, timestamp?, liveActivityId?, event? } — omit keys to skip.
    */
   function mutateLaImportJson(parsed, patch) {
     var o = JSON.parse(JSON.stringify(parsed));
@@ -800,6 +800,19 @@
         missed.push(
           'liveActivityID (no aps block — paste a unitary body or aps with attributes.liveActivityData)'
         );
+      }
+    }
+
+    if (patch.event != null && String(patch.event).trim() !== '') {
+      var evInj = String(patch.event).trim().toLowerCase();
+      if (evInj === 'start' || evInj === 'update' || evInj === 'end') {
+        var apsEv = findApsInParsedForMutation(o);
+        if (apsEv) {
+          apsEv.event = evInj;
+          changes.push('aps.event');
+        } else {
+          missed.push('event (no aps block found)');
+        }
       }
     }
 
@@ -1444,14 +1457,26 @@
     injectLaImportPaste({ liveActivityId: lid });
   }
 
+  function injectEventFromField() {
+    var sel = $('laEvent');
+    var ev = sel ? String(sel.value || 'start').trim().toLowerCase() : 'start';
+    if (ev !== 'start' && ev !== 'update' && ev !== 'end') {
+      showImportMsg('Select start, update, or end.', true);
+      return;
+    }
+    injectLaImportPaste({ event: ev });
+  }
+
   function injectAllFromExecutionFields() {
     var patch = {};
     var c = String($('laCampaignId') && $('laCampaignId').value || '').trim();
     var u = String($('laUserId') && $('laUserId').value || '').trim();
     var lid = String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim();
+    var ev = String($('laEvent') && $('laEvent').value || 'start').trim().toLowerCase();
     if (c) patch.campaignId = c;
     if (u) patch.userId = u;
     if (lid) patch.liveActivityId = lid;
+    if (ev === 'start' || ev === 'update' || ev === 'end') patch.event = ev;
     patch.requestId = randomUuid();
     patch.timestamp = Math.floor(Date.now() / 1000);
     injectLaImportPaste(patch);
@@ -1791,6 +1816,8 @@
     if (injUuidSmart) injUuidSmart.addEventListener('click', replaceRequestIdInImportPaste);
     var injLai = $('laInjectLiveActivity');
     if (injLai) injLai.addEventListener('click', injectLiveActivityFromField);
+    var injEv = $('laInjectEvent');
+    if (injEv) injEv.addEventListener('click', injectEventFromField);
     var injAll = $('laInjectAllFromFields');
     if (injAll) injAll.addEventListener('click', injectAllFromExecutionFields);
 
