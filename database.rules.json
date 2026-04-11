@@ -25,6 +25,11 @@
         ".read": true,
         ".write": "auth != null && (auth.uid === $wid || root.child('workspaceClaims').child($wid).val() === auth.uid)"
       }
+    },
+    "profileViewerConfig": {
+      "liveActivitiesPostmanCollection": {
+        ".read": true
+      }
     }
   }
 }

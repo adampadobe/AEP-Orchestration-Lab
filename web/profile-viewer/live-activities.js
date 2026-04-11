@@ -137,15 +137,54 @@
     }
   }
 
-  function laFetchBuiltinTemplates() {
-    return fetch(laBuiltinCollectionUrl(), { credentials: 'same-origin' })
+  /** Canonical copy: Realtime Database `profileViewerConfig/liveActivitiesPostmanCollection` (public read). */
+  var LA_RTDB_POSTMAN_PATH = '/profileViewerConfig/liveActivitiesPostmanCollection.json';
+
+  function laIsPostmanCollectionV21(data) {
+    return data && typeof data === 'object' && Array.isArray(data.item);
+  }
+
+  function laRtdbPostmanCollectionUrl() {
+    var cfg = typeof window !== 'undefined' && window.firebaseDatabaseConfig;
+    var base = cfg && String(cfg.databaseURL || '').replace(/\/$/, '');
+    if (!base) return null;
+    return base + LA_RTDB_POSTMAN_PATH;
+  }
+
+  function laFetchPostmanCollectionJson() {
+    function loadBundled() {
+      return fetch(laBuiltinCollectionUrl(), { credentials: 'same-origin' }).then(function (res) {
+        if (!res.ok) throw new Error('bundled HTTP ' + res.status);
+        return res.json();
+      });
+    }
+
+    var rtdbUrl = laRtdbPostmanCollectionUrl();
+    if (!rtdbUrl) {
+      return loadBundled();
+    }
+
+    return fetch(rtdbUrl, { credentials: 'omit', mode: 'cors' })
       .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.ok) throw new Error('RTDB HTTP ' + res.status);
         return res.json();
       })
-      .then(function (coll) {
-        LA_BUILTIN_TEMPLATES = laBuiltinTemplatesFromCollection(coll);
+      .then(function (data) {
+        if (!laIsPostmanCollectionV21(data)) {
+          throw new Error('RTDB payload missing or not a Postman collection');
+        }
+        return data;
+      })
+      .catch(function (err) {
+        console.warn('Live Activity templates: Firebase RTDB unavailable or empty; using bundled JSON.', err);
+        return loadBundled();
       });
+  }
+
+  function laFetchBuiltinTemplates() {
+    return laFetchPostmanCollectionJson().then(function (coll) {
+      LA_BUILTIN_TEMPLATES = laBuiltinTemplatesFromCollection(coll);
+    });
   }
 
   function $(id) {
