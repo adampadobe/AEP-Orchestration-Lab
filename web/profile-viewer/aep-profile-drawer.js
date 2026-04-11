@@ -608,7 +608,7 @@ function eventThumbForName(eventName) {
     return { url: aepProfileImageCssUrl('message-feedback-icon.png'), variant: 'message-feedback' };
   }
   if (key.includes('message.tracking') || key === 'messagetracking') {
-    return { url: aepProfileImageCssUrl('message-tracking-icon.png'), variant: 'message-tracking' };
+    return { url: aepProfileImageCssUrl('Smock_LocationBasedEvent_18_N.svg'), variant: 'message-tracking' };
   }
   if (
     key === 'application.launch' ||
