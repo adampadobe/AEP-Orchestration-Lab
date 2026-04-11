@@ -294,11 +294,15 @@ const AJO_UNITARY_EXECUTIONS_URL = `${BASE_PLATFORM}/ajo/im/executions/unitary`;
 
 /**
  * POST /api/ajo/live-activity — AJO in-app messaging unitary execution (Live Activity push).
- * Uses caller-supplied IMS org, API key, sandbox, and Bearer token (not server secrets).
+ * Uses deployment IMS credentials (same as /api/aep); optional sandboxName overrides default sandbox.
  */
 exports.ajoLiveActivityProxy = onRequest(
   {
     region: REGION,
+    secrets: [ADOBE_CLIENT_ID, ADOBE_CLIENT_SECRET, ADOBE_IMS_ORG, ADOBE_SCOPES],
+    environmentVariables: {
+      ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX,
+    },
     invoker: 'public',
     timeoutSeconds: 120,
     memory: '256MiB',
@@ -320,33 +324,31 @@ exports.ajoLiveActivityProxy = onRequest(
       res.status(400).json({ error: 'Invalid JSON body' });
       return;
     }
-    const imsOrg = String(body.imsOrg || '').trim();
-    const apiKey = String(body.apiKey || '').trim();
-    const sandboxName = String(body.sandboxName || '').trim();
-    let bearerToken = String(body.bearerToken || '').trim();
-    if (/^bearer\s+/i.test(bearerToken)) {
-      bearerToken = bearerToken.replace(/^bearer\s+/i, '').trim();
-    }
+    const sandboxName = String(body.sandboxName || '').trim() || RESOLVED_ADOBE_SANDBOX;
     const payload = body.payload;
 
-    if (!imsOrg || !apiKey || !sandboxName || !bearerToken) {
-      res.status(400).json({
-        error: 'Missing imsOrg, apiKey, sandboxName, or bearerToken',
-      });
-      return;
-    }
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       res.status(400).json({ error: 'payload must be a JSON object' });
       return;
     }
 
+    let accessToken;
+    try {
+      accessToken = await getAdobeAccessToken();
+    } catch (e) {
+      res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+      return;
+    }
+
+    const clientId = ADOBE_CLIENT_ID.value();
+    const org = ADOBE_IMS_ORG.value();
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'x-gw-ims-org-id': imsOrg.slice(0, 512),
-      'x-api-key': apiKey.slice(0, 256),
+      'x-gw-ims-org-id': String(org).slice(0, 512),
+      'x-api-key': String(clientId).slice(0, 256),
       'x-sandbox-name': sandboxName.slice(0, 120),
-      Authorization: `Bearer ${bearerToken.slice(0, 65536)}`,
+      Authorization: `Bearer ${accessToken}`,
     };
 
     let upstream;

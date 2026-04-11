@@ -62,12 +62,6 @@
   resize: vertical;
 }
 
-.la-field textarea.la-token {
-  min-height: 4.5rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.75rem;
-}
-
 .la-actions {
   display: flex;
   flex-wrap: wrap;

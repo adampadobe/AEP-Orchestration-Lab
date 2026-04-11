@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260410">
-  <link rel="stylesheet" href="live-activities.css?v=20260415">
+  <link rel="stylesheet" href="live-activities.css?v=20260415b">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="home-dashboard-concierge profile-generation-page">
@@ -34,7 +34,7 @@
             <header class="dashboard-hero-header">
               <h2 id="laBanner" class="dashboard-hero-title">Live activities</h2>
               <p class="dashboard-hero-subtitle">
-                Send a unitary execution to AJO in-app messaging — same payload as Postman, with your IMS org, API key, sandbox, token, and Live Activity fields.
+                Send a unitary execution to AJO in-app messaging — same payload structure as Postman, with Live Activity fields. Platform auth uses this deployment’s IMS credentials (like other AEP tools).
               </p>
             </header>
           </div>
@@ -42,33 +42,21 @@
 
         <section class="consent-panel" id="laPanel">
           <p class="la-intro">
-            This page calls <code class="dashboard-code">POST /ajo/im/executions/unitary</code> on Adobe Experience Platform. Your credentials are sent only for that request through this app’s proxy and are not stored.
+            This page calls <code class="dashboard-code">POST /ajo/im/executions/unitary</code> through this app’s proxy. The bearer token, IMS org, and API key are obtained server-side from the same credentials as the rest of this lab (not shown in the browser).
           </p>
           <p class="la-note" role="note">
-            Paste a valid <strong>OAuth access token</strong> (JWT) with scopes that allow AJO execution for your sandbox. You may paste either the raw token or <code class="dashboard-code">Bearer …</code>.
+            Set <strong>x-sandbox-name</strong> below if it should differ from the default sandbox configured for this environment. Leave blank on Firebase Hosting to use the deployed default.
           </p>
 
           <div class="profile-gen-boxes">
             <div class="profile-box et-full-width">
-              <h3 class="profile-box-title"><span class="profile-box-icon">◇</span> Platform headers</h3>
+              <h3 class="profile-box-title"><span class="profile-box-icon">◇</span> Sandbox</h3>
               <div class="profile-box-content">
-                <div class="la-grid">
-                  <div class="la-field">
-                    <label for="laImsOrg">x-gw-ims-org-id</label>
-                    <input type="text" id="laImsOrg" autocomplete="off" value="BF9C27AA6464801C0A495FD0@AdobeOrg" spellcheck="false">
-                  </div>
-                  <div class="la-field">
-                    <label for="laApiKey">x-api-key</label>
-                    <input type="text" id="laApiKey" autocomplete="off" value="cea848b1875e4b67acd5e9bdb8ebb1b1" spellcheck="false">
-                  </div>
+                <div class="la-grid la-grid--full">
                   <div class="la-field">
                     <label for="laSandbox">x-sandbox-name</label>
-                    <input type="text" id="laSandbox" autocomplete="off" value="apalmer" spellcheck="false">
+                    <input type="text" id="laSandbox" autocomplete="off" value="apalmer" placeholder="e.g. apalmer (optional)" spellcheck="false">
                   </div>
-                </div>
-                <div class="la-field la-grid--full" style="margin-top:0.75rem">
-                  <label for="laBearer">Authorization (Bearer token)</label>
-                  <textarea id="laBearer" class="la-token" placeholder="Paste access token or Bearer …" spellcheck="false" rows="3"></textarea>
                 </div>
               </div>
             </div>
@@ -160,6 +148,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="live-activities.js?v=20260415"></script>
+  <script defer src="live-activities.js?v=20260415b"></script>
 </body>
 </html>

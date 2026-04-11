@@ -153,10 +153,7 @@
     });
 
     $('laSendBtn').addEventListener('click', async function () {
-      var imsOrg = String($('laImsOrg').value || '').trim();
-      var apiKey = String($('laApiKey').value || '').trim();
       var sandbox = String($('laSandbox').value || '').trim();
-      var bearer = String($('laBearer').value || '').trim();
 
       var payload;
       try {
@@ -166,21 +163,13 @@
         return;
       }
 
-      if (!imsOrg || !apiKey || !sandbox || !bearer) {
-        setMessage(msg, 'Fill in IMS org, API key, sandbox, and Bearer token.', true);
-        return;
-      }
-
       setMessage(msg, 'Sending…', false);
       try {
         var res = await fetch(API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            imsOrg: imsOrg,
-            apiKey: apiKey,
             sandboxName: sandbox,
-            bearerToken: bearer,
             payload: payload,
           }),
         });

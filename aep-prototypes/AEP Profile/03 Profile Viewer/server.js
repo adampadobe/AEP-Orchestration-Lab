@@ -4025,34 +4025,39 @@ app.post('/api/events/ajo', async (req, res) => {
 
 const AJO_UNITARY_EXECUTIONS_URL = 'https://platform.adobe.io/ajo/im/executions/unitary';
 
-/** POST /api/ajo/live-activity — AJO unitary execution (Live Activity); user-supplied IMS headers + token. */
+/** POST /api/ajo/live-activity — AJO unitary execution (Live Activity); IMS token and org/API key from Adobe Auth. */
 app.post('/api/ajo/live-activity', async (req, res) => {
   const body = req.body && typeof req.body === 'object' ? req.body : {};
-  let imsOrg = String(body.imsOrg || '').trim();
-  let apiKey = String(body.apiKey || '').trim();
-  let sandboxName = String(body.sandboxName || '').trim();
-  let bearerToken = String(body.bearerToken || '').trim();
-  if (/^bearer\s+/i.test(bearerToken)) {
-    bearerToken = bearerToken.replace(/^bearer\s+/i, '').trim();
-  }
   const payload = body.payload;
 
-  if (!imsOrg || !apiKey || !sandboxName || !bearerToken) {
-    return res.status(400).json({
-      error: 'Missing imsOrg, apiKey, sandboxName, or bearerToken',
-    });
-  }
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return res.status(400).json({ error: 'payload must be a JSON object' });
   }
 
+  let token;
+  let cfg;
+  let authConf;
+  try {
+    const auth = await getAuth();
+    token = auth.token;
+    authConf = auth.config;
+    cfg = getConfig();
+  } catch (err) {
+    return res.status(503).json({
+      error: 'Adobe auth failed: ' + (err.message || String(err)),
+    });
+  }
+
+  const sandboxFromBody = String(body.sandboxName || '').trim();
+  const sandboxName = sandboxFromBody || authConf.sandboxName || cfg.sandboxName || 'production';
+
   const headers = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    'x-gw-ims-org-id': imsOrg.slice(0, 512),
-    'x-api-key': apiKey.slice(0, 256),
-    'x-sandbox-name': sandboxName.slice(0, 120),
-    Authorization: `Bearer ${bearerToken.slice(0, 65536)}`,
+    'x-gw-ims-org-id': String(authConf.orgId || cfg.orgId || '').slice(0, 512),
+    'x-api-key': String(cfg.clientId || '').slice(0, 256),
+    'x-sandbox-name': String(sandboxName).slice(0, 120),
+    Authorization: `Bearer ${token}`,
   };
 
   let upstream;
