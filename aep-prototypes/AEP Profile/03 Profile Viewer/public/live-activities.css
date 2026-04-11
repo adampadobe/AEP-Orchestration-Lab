@@ -324,6 +324,13 @@ html[data-aep-theme='dark'] .live-activities-page textarea.la-json--mirror-input
   min-height: 5.5rem;
 }
 
+.live-activities-page .la-import-title-hint {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--aep-text-muted, #5c5f66);
+}
+
 .live-activities-page .la-import-help {
   margin: 0.45rem 0 0.65rem;
   font-size: 0.75rem;
@@ -331,11 +338,70 @@ html[data-aep-theme='dark'] .live-activities-page textarea.la-json--mirror-input
   color: var(--aep-text-muted, #5c5f66);
 }
 
+.live-activities-page .la-import-details {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--aep-border, rgba(0, 0, 0, 0.1));
+  background: var(--dash-surface, #fff);
+}
+
+.live-activities-page .la-import-details-summary {
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--dash-blue, #0d7ea2);
+  list-style: none;
+}
+
+.live-activities-page .la-import-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.live-activities-page .la-import-details-summary::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.live-activities-page .la-import-details[open] .la-import-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.live-activities-page .la-import-details-lead {
+  margin: 0.65rem 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--aep-text-muted, #5c5f66);
+}
+
+.live-activities-page .la-import-example {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  max-height: 280px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  white-space: pre;
+  color: var(--dash-text, #2c2c2c);
+  background: var(--aep-surface-2, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--aep-border, rgba(0, 0, 0, 0.08));
+  border-radius: 6px;
+}
+
+html[data-aep-theme='dark'] .live-activities-page .la-import-example {
+  color: var(--dash-surface-alt, #e8e8e8);
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 .live-activities-page .la-import-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .live-activities-page .la-import-msg {
