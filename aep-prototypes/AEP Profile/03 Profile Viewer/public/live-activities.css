@@ -778,24 +778,6 @@ html[data-aep-theme='dark'] .live-activities-page .la-payload-tab--active {
   display: none !important;
 }
 
-.live-activities-page .la-timestamp-tools {
-  margin-bottom: 0.85rem;
-  padding: 0.65rem 0.75rem;
-  border-radius: 8px;
-  background: rgba(13, 126, 162, 0.08);
-  border: 1px solid rgba(13, 126, 162, 0.22);
-}
-
-.live-activities-page .la-ts-note--tools {
-  margin: 0 0 0.65rem;
-}
-
-.live-activities-page .la-paste-helper-btns {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
 /* Tree tab — read-only explorer (Firebase RTDB–style) */
 .live-activities-page .la-payload-panel--tree {
   display: flex;

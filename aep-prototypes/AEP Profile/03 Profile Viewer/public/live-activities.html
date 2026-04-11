@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260450">
+  <link rel="stylesheet" href="live-activities.css?v=20260451">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -183,21 +183,8 @@
 
                 <div id="laPayloadPastePanel" class="la-payload-panel" role="tabpanel" aria-labelledby="laPayloadTabPaste">
                   <p class="la-import-banner-lead">
-                    Paste the <strong>full unitary body</strong>, or only <code class="dashboard-code">requestPayload</code> / <code class="dashboard-code">aps</code>. Use <strong>Beautify</strong>, then <strong>Parse &amp; fill form</strong> — we open the Form tab with fields filled (like switching from JSON to Tree on Firebase).
+                    Paste the <strong>full unitary body</strong>, or only <code class="dashboard-code">requestPayload</code> / <code class="dashboard-code">aps</code>. Use <strong>Beautify</strong>, then <strong>Parse &amp; fill form</strong> — we open the Form tab with fields filled (like switching from JSON to Tree on Firebase). Use the <strong>Execution &amp; recipient</strong> buttons above to inject timestamp, requestId, and other values into the JSON.
                   </p>
-                  <div class="la-timestamp-tools">
-                    <p class="la-ts-note la-ts-note--tools" role="note">
-                      <strong>Timestamp:</strong> Preview and Send always attach the <strong>current Unix time</strong> in the outbound <code class="dashboard-code">aps</code> — you do not need to edit it. A <code class="dashboard-code">timestamp</code> in pasted JSON is only for reference; Postman-style <code class="dashboard-code">{{$timestamp}}</code> is auto-quoted so the paste parses.
-                    </p>
-                    <div class="la-paste-helper-btns">
-                      <button type="button" class="btn btn-secondary" id="laPasteInsertTimestamp" title="Replace or add aps timestamp with Unix seconds now">
-                        Insert now (Unix s)
-                      </button>
-                      <button type="button" class="btn btn-secondary" id="laPasteInsertRequestId" title="Replace requestId with a new UUID">
-                        New requestId (UUID)
-                      </button>
-                    </div>
-                  </div>
                   <label for="laImportPaste" class="la-import-label">Unitary JSON or <code class="dashboard-code">aps</code></label>
                   <textarea
                     id="laImportPaste"
@@ -439,6 +426,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260450"></script>
+  <script defer src="live-activities.js?v=20260451"></script>
 </body>
 </html>

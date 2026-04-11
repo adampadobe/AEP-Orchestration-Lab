@@ -1781,10 +1781,6 @@
     if (pasteTreeSave) pasteTreeSave.addEventListener('click', saveLaTreeEdit);
     var pasteTreeCancel = $('laPasteTreeEditCancel');
     if (pasteTreeCancel) pasteTreeCancel.addEventListener('click', cancelLaTreeEdit);
-    var insTs = $('laPasteInsertTimestamp');
-    if (insTs) insTs.addEventListener('click', replaceTimestampInImportPaste);
-    var insRid = $('laPasteInsertRequestId');
-    if (insRid) insRid.addEventListener('click', replaceRequestIdInImportPaste);
     var injCamp = $('laInjectCampaign');
     if (injCamp) injCamp.addEventListener('click', injectCampaignFromField);
     var injEcid = $('laInjectEcid');
