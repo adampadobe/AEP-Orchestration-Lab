@@ -714,7 +714,7 @@
 
   /**
    * Apply known keys from the execution fields into parsed JSON (structure-aware).
-   * patch: { campaignId?, userId?, requestId?, timestamp? } — omit keys to skip.
+   * patch: { campaignId?, userId?, requestId?, timestamp?, liveActivityId? } — omit keys to skip.
    */
   function mutateLaImportJson(parsed, patch) {
     var o = JSON.parse(JSON.stringify(parsed));
@@ -771,12 +771,35 @@
     }
 
     if (patch.timestamp != null && Number.isFinite(Number(patch.timestamp))) {
-      var aps = findApsInParsedForMutation(o);
-      if (aps) {
-        aps.timestamp = Number(patch.timestamp);
+      var apsTs = findApsInParsedForMutation(o);
+      if (apsTs) {
+        apsTs.timestamp = Number(patch.timestamp);
         changes.push('aps.timestamp');
       } else {
         missed.push('timestamp (no aps block found — include requestPayload.aps or a full unitary body)');
+      }
+    }
+
+    if (patch.liveActivityId != null && String(patch.liveActivityId).trim() !== '') {
+      var lai = String(patch.liveActivityId).trim();
+      var apsLa = findApsInParsedForMutation(o);
+      if (apsLa) {
+        if (!apsLa.attributes || typeof apsLa.attributes !== 'object' || Array.isArray(apsLa.attributes)) {
+          apsLa.attributes = {};
+        }
+        if (
+          !apsLa.attributes.liveActivityData ||
+          typeof apsLa.attributes.liveActivityData !== 'object' ||
+          Array.isArray(apsLa.attributes.liveActivityData)
+        ) {
+          apsLa.attributes.liveActivityData = {};
+        }
+        apsLa.attributes.liveActivityData.liveActivityID = lai;
+        changes.push('attributes.liveActivityData.liveActivityID');
+      } else {
+        missed.push(
+          'liveActivityID (no aps block — paste a unitary body or aps with attributes.liveActivityData)'
+        );
       }
     }
 
@@ -1412,12 +1435,23 @@
     injectLaImportPaste({ userId: u });
   }
 
+  function injectLiveActivityFromField() {
+    var lid = String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim();
+    if (!lid) {
+      showImportMsg('Enter Live Activity ID in the field above.', true);
+      return;
+    }
+    injectLaImportPaste({ liveActivityId: lid });
+  }
+
   function injectAllFromExecutionFields() {
     var patch = {};
     var c = String($('laCampaignId') && $('laCampaignId').value || '').trim();
     var u = String($('laUserId') && $('laUserId').value || '').trim();
+    var lid = String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim();
     if (c) patch.campaignId = c;
     if (u) patch.userId = u;
+    if (lid) patch.liveActivityId = lid;
     patch.requestId = randomUuid();
     patch.timestamp = Math.floor(Date.now() / 1000);
     injectLaImportPaste(patch);
@@ -1612,6 +1646,23 @@
     var attributes = parseJsonLabel('attributes', $('laAttributes').value);
     var alert = parseJsonLabel('alert', $('laAlert').value);
 
+    var liveActivityFromField = String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim();
+    if (liveActivityFromField) {
+      if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) {
+        attributes = {};
+      } else {
+        attributes = JSON.parse(JSON.stringify(attributes));
+      }
+      if (
+        !attributes.liveActivityData ||
+        typeof attributes.liveActivityData !== 'object' ||
+        Array.isArray(attributes.liveActivityData)
+      ) {
+        attributes.liveActivityData = {};
+      }
+      attributes.liveActivityData.liveActivityID = liveActivityFromField;
+    }
+
     return {
       requestId: requestId,
       campaignId: campaignId,
@@ -1651,6 +1702,20 @@
     $('laContentState').value = DEFAULT_CONTENT_STATE;
     $('laAttributes').value = DEFAULT_ATTRIBUTES;
     $('laAlert').value = DEFAULT_ALERT;
+
+    try {
+      var laiEl = $('laLiveActivityId');
+      if (laiEl && !String(laiEl.value || '').trim()) {
+        var attrObj = JSON.parse(DEFAULT_ATTRIBUTES);
+        if (
+          attrObj.liveActivityData &&
+          attrObj.liveActivityData.liveActivityID != null &&
+          String(attrObj.liveActivityData.liveActivityID).trim() !== ''
+        ) {
+          laiEl.value = String(attrObj.liveActivityData.liveActivityID);
+        }
+      }
+    } catch (e) {}
 
     setupJsonMirrors();
 
@@ -1728,6 +1793,8 @@
     if (injTsSmart) injTsSmart.addEventListener('click', replaceTimestampInImportPaste);
     var injUuidSmart = $('laInjectUuidSmart');
     if (injUuidSmart) injUuidSmart.addEventListener('click', replaceRequestIdInImportPaste);
+    var injLai = $('laInjectLiveActivity');
+    if (injLai) injLai.addEventListener('click', injectLiveActivityFromField);
     var injAll = $('laInjectAllFromFields');
     if (injAll) injAll.addEventListener('click', injectAllFromExecutionFields);
 
