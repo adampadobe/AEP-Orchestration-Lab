@@ -618,7 +618,11 @@
       );
       const data = await res.json();
       if (!res.ok) { setMsg(dom.profileMsg, data.error || 'Request failed.', 'error'); return; }
-      if (typeof addEmail === 'function') addEmail(id);
+      if (typeof addRecentIdentifier === 'function') {
+        addRecentIdentifier(id, ns);
+      } else if (typeof addEmail === 'function') {
+        addEmail(id);
+      }
 
       if (data.found) {
         dom.infoEmail.textContent = data.email || id;

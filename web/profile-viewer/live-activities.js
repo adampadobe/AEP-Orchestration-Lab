@@ -2256,7 +2256,11 @@
             setProfileQueryMsg(profileQueryMsg, data.error || 'Request failed.', 'error');
             return;
           }
-          if (typeof addEmail === 'function') addEmail(id);
+          if (typeof addRecentIdentifier === 'function') {
+            addRecentIdentifier(id, ns);
+          } else if (typeof addEmail === 'function') {
+            addEmail(id);
+          }
           var ecidVal = Array.isArray(data.ecid) ? data.ecid[0] || '' : data.ecid || '';
           ecidVal = String(ecidVal || '').trim();
           if (data.found && ecidVal) {

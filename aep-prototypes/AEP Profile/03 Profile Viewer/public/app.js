@@ -689,7 +689,11 @@ fetchBtn.addEventListener('click', async () => {
 
     lastFetchedSandbox = getCurrentSandbox();
     showResults(data);
-    if (typeof addEmail === 'function') addEmail(email);
+    if (typeof addRecentIdentifier === 'function') {
+      addRecentIdentifier(email, ns);
+    } else if (typeof addEmail === 'function') {
+      addEmail(email);
+    }
     setStatus(`Profile loaded for ${email}.`);
     // Force-refresh all data tabs regardless of visibility
     loadEventsIfNeeded();
