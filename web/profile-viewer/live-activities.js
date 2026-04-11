@@ -276,6 +276,231 @@
       }),
     },
     {
+      id: 'la-builtin-etihad-checked-in',
+      name: 'Etihad — boarding: checked in',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: '{{event}}',
+                  'content-state': {
+                    boardingStatus: 'Checked In',
+                    statusMessage: 'Terminal A - Gate D4B',
+                    timeStatus: 'On time',
+                  },
+                  'attributes-type': 'EtihadBoardingAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:10',
+                    arrivalTime: '08:05',
+                    flightDuration: '6h 55m',
+                    terminal: 'Terminal A',
+                    gate: 'Gate D4B',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: {
+                    title: 'Checked In',
+                    body: "You're checked in for EY 62",
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
+      id: 'la-builtin-etihad-go-security',
+      name: 'Etihad — boarding: go to security',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: 'update',
+                  'content-state': {
+                    boardingStatus: 'Go to Security',
+                    statusMessage: 'Terminal A - Gate D4B',
+                    timeStatus: 'On time',
+                  },
+                  'attributes-type': 'EtihadBoardingAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:10',
+                    arrivalTime: '08:05',
+                    flightDuration: '6h 55m',
+                    terminal: 'Terminal A',
+                    gate: 'Gate D4B',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: {
+                    title: 'Time to Go',
+                    body: 'Head to security for EY 62',
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
+      id: 'la-builtin-etihad-boarding-now',
+      name: 'Etihad — boarding: boarding now',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: 'update',
+                  'content-state': {
+                    boardingStatus: 'Boarding now',
+                    statusMessage: 'Terminal A - Gate D4B',
+                    timeStatus: 'On time',
+                  },
+                  'attributes-type': 'EtihadBoardingAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:10',
+                    arrivalTime: '08:05',
+                    flightDuration: '6h 55m',
+                    terminal: 'Terminal A',
+                    gate: 'Gate D4B',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: {
+                    title: 'Boarding Now',
+                    body: 'EY 62 is now boarding at Gate D4B',
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
+      id: 'la-builtin-etihad-gate-closing',
+      name: 'Etihad — boarding: gate closing',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: 'update',
+                  'content-state': {
+                    boardingStatus: 'Gate Closing',
+                    statusMessage: 'Terminal A - Gate D4B',
+                    timeStatus: 'Boarding',
+                  },
+                  'attributes-type': 'EtihadBoardingAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:10',
+                    arrivalTime: '08:05',
+                    flightDuration: '6h 55m',
+                    terminal: 'Terminal A',
+                    gate: 'Gate D4B',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: {
+                    title: 'Gate Closing Soon',
+                    body: 'Hurry to Gate D4B for EY 62',
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
+      id: 'la-builtin-etihad-boarding-departed',
+      name: 'Etihad — boarding: departed',
+      json: laFormatTemplate({
+        requestId: '{{$randomUUID}}',
+        campaignId: '{{campaignID}}',
+        recipients: [
+          {
+            type: 'aep',
+            userId: '{{ECID}}',
+            namespace: 'ECID',
+            context: {
+              requestPayload: {
+                aps: {
+                  'content-available': 1,
+                  timestamp: '{{$timestamp}}',
+                  event: 'update',
+                  'content-state': {
+                    boardingStatus: 'Departed',
+                    statusMessage: 'Have a pleasant flight',
+                    timeStatus: 'Departed',
+                  },
+                  'attributes-type': 'EtihadBoardingAttributes',
+                  attributes: {
+                    flightNumber: 'EY 62',
+                    departureAirport: 'LHR',
+                    arrivalAirport: 'AUH',
+                    departureTime: '22:10',
+                    arrivalTime: '08:05',
+                    flightDuration: '6h 55m',
+                    terminal: 'Terminal A',
+                    gate: 'Gate D4B',
+                    liveActivityData: { liveActivityID: '{{LiveActivityID}}' },
+                  },
+                  alert: {
+                    title: 'Departed',
+                    body: 'EY 62 has departed. Enjoy your flight!',
+                  },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    },
+    {
       id: 'la-builtin-etihad-departed',
       name: 'Etihad — departed (journey 0%)',
       json: laFormatTemplate({
