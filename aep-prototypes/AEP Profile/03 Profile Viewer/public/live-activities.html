@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260422">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260423">
+  <link rel="stylesheet" href="live-activities.css?v=20260424">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -78,80 +78,77 @@
         </section>
 
         <section class="consent-panel" id="laPanel">
-          <p class="la-intro">
+          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">◆</span> Unitary execution</h2>
+          <p class="panel-desc la-panel-lead">
             This page calls <code class="dashboard-code">POST /ajo/im/executions/unitary</code> through this app’s proxy. The bearer token, IMS org, and API key are obtained server-side from the same credentials as the rest of this lab (not shown in the browser).
           </p>
           <p class="la-note" role="note">
-            Use <strong>Query profile</strong> above (same as Profile Viewer), then complete <strong>Execution</strong> and <strong>APS payload</strong> below. Sandbox selection updates your global sandbox for all tools.
+            Use <strong>Query profile</strong> above to resolve <strong>ECID</strong>, then set <strong>campaign</strong>, <strong>APS payload</strong> fields, and preview or send. Sandbox selection updates your global sandbox for all tools.
           </p>
 
-          <div class="profile-gen-boxes">
-            <div class="profile-box et-full-width">
-              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Execution &amp; recipient</h3>
-              <div class="profile-box-content">
-                <p class="la-ts-note" role="note">
-                  <code class="dashboard-code">requestId</code> is a new random UUID each time you <strong>Preview</strong> or <strong>Send</strong> (same idea as Postman <code class="dashboard-code">{{$randomUUID}}</code>).
-                </p>
-                <div class="la-grid">
-                  <div class="la-field">
-                    <label for="laCampaignId">campaignId</label>
-                    <input type="text" id="laCampaignId" autocomplete="off" value="43a8ba87-81c0-4e0c-86ec-8bdb4faf2e85" spellcheck="false">
-                  </div>
-                  <div class="la-field">
-                    <label for="laUserId">ECID</label>
-                    <input type="text" id="laUserId" autocomplete="off" value="69861237882705185278691173436829507978" spellcheck="false" title="Profile identity value for namespace ECID">
-                  </div>
+          <div class="profile-box la-unitary-card">
+            <h3 class="la-subpanel-title"><span class="profile-box-icon" aria-hidden="true">✦</span> Execution &amp; recipient</h3>
+            <div class="profile-box-content">
+              <p class="la-ts-note" role="note">
+                <code class="dashboard-code">requestId</code> is a new random UUID each time you <strong>Preview</strong> or <strong>Send</strong> (same idea as Postman <code class="dashboard-code">{{$randomUUID}}</code>).
+              </p>
+              <div class="la-grid la-grid--exec">
+                <div class="la-field">
+                  <label for="laCampaignId">campaignId</label>
+                  <input type="text" id="laCampaignId" autocomplete="off" value="43a8ba87-81c0-4e0c-86ec-8bdb4faf2e85" spellcheck="false">
+                </div>
+                <div class="la-field">
+                  <label for="laUserId">ECID</label>
+                  <input type="text" id="laUserId" autocomplete="off" value="69861237882705185278691173436829507978" spellcheck="false" title="Profile identity value for namespace ECID">
                 </div>
               </div>
             </div>
 
-            <div class="profile-box et-full-width">
-              <h3 class="profile-box-title"><span class="profile-box-icon">◆</span> APS payload</h3>
-              <div class="profile-box-content">
-                <p class="la-section-title">Scalars</p>
-                <p class="la-ts-note" role="note">
-                  <code class="dashboard-code">timestamp</code> (Unix seconds) is set automatically in the payload to the time you click <strong>Preview</strong> or <strong>Send to Adobe</strong>.
-                </p>
-                <div class="la-grid">
-                  <div class="la-field">
-                    <label for="laContentAvailable">content-available</label>
-                    <input type="number" id="laContentAvailable" value="1" step="1">
-                  </div>
-                  <div class="la-field">
-                    <label for="laEvent">event</label>
-                    <select id="laEvent" aria-label="Live activity event">
-                      <option value="start" selected>start</option>
-                      <option value="update">update</option>
-                      <option value="end">end</option>
-                    </select>
-                  </div>
-                  <div class="la-field">
-                    <label for="laAttributesType">attributes-type</label>
-                    <input type="text" id="laAttributesType" value="KSIAAirportAttributes" spellcheck="false">
-                  </div>
+            <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">◆</span> APS payload</h3>
+            <div class="profile-box-content">
+              <p class="la-section-title">Scalars</p>
+              <p class="la-ts-note" role="note">
+                <code class="dashboard-code">timestamp</code> (Unix seconds) is set automatically in the payload to the time you click <strong>Preview</strong> or <strong>Send to Adobe</strong>.
+              </p>
+              <div class="la-grid la-grid--scalars">
+                <div class="la-field">
+                  <label for="laContentAvailable">content-available</label>
+                  <input type="number" id="laContentAvailable" value="1" step="1">
                 </div>
-
-                <p class="la-section-title" style="margin-top:1.25rem">JSON (edit freely)</p>
-                <div class="la-field la-grid--full">
-                  <label for="laContentState">content-state</label>
-                  <textarea id="laContentState" class="la-json" spellcheck="false"></textarea>
+                <div class="la-field">
+                  <label for="laEvent">event</label>
+                  <select id="laEvent" aria-label="Live activity event">
+                    <option value="start" selected>start</option>
+                    <option value="update">update</option>
+                    <option value="end">end</option>
+                  </select>
                 </div>
-                <div class="la-field la-grid--full">
-                  <label for="laAttributes">attributes</label>
-                  <textarea id="laAttributes" class="la-json" spellcheck="false"></textarea>
+                <div class="la-field">
+                  <label for="laAttributesType">attributes-type</label>
+                  <input type="text" id="laAttributesType" value="KSIAAirportAttributes" spellcheck="false">
                 </div>
-                <div class="la-field la-grid--full">
-                  <label for="laAlert">alert</label>
-                  <textarea id="laAlert" class="la-json" spellcheck="false"></textarea>
-                </div>
-
-                <div class="la-actions">
-                  <button type="button" class="btn btn-secondary" id="laPreviewBtn">Preview JSON body</button>
-                  <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
-                </div>
-                <pre id="laPreview" class="la-response" hidden aria-live="polite"></pre>
-                <pre id="laResponse" class="la-response" hidden role="status" aria-live="polite"></pre>
               </div>
+
+              <p class="la-section-title la-section-title--json">JSON (edit freely)</p>
+              <div class="la-field la-grid--full">
+                <label for="laContentState">content-state</label>
+                <textarea id="laContentState" class="la-json" spellcheck="false"></textarea>
+              </div>
+              <div class="la-field la-grid--full">
+                <label for="laAttributes">attributes</label>
+                <textarea id="laAttributes" class="la-json" spellcheck="false"></textarea>
+              </div>
+              <div class="la-field la-grid--full">
+                <label for="laAlert">alert</label>
+                <textarea id="laAlert" class="la-json" spellcheck="false"></textarea>
+              </div>
+
+              <div class="la-actions">
+                <button type="button" class="btn btn-secondary" id="laPreviewBtn">Preview JSON body</button>
+                <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
+              </div>
+              <pre id="laPreview" class="la-response" hidden aria-live="polite"></pre>
+              <pre id="laResponse" class="la-response" hidden role="status" aria-live="polite"></pre>
             </div>
           </div>
         </section>
@@ -164,6 +161,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260422"></script>
-  <script defer src="live-activities.js?v=20260423"></script>
+  <script defer src="live-activities.js?v=20260424"></script>
 </body>
 </html>
