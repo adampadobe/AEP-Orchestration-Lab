@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260422">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260425">
+  <link rel="stylesheet" href="live-activities.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -131,8 +131,30 @@
 
               <p class="la-section-title la-section-title--json">Payload fields</p>
               <p class="la-ts-note la-ts-note--payload">
-                Use <strong>Form</strong> to edit fields in plain language (add or remove rows as needed). Switch to <strong>JSON</strong> when you need full control or uncommon structures.
+                Use <strong>Form</strong> to edit fields in plain language (add or remove rows as needed). Switch to <strong>JSON</strong> when you need full control or uncommon structures. Paste a full AJO / Postman body (or the <code class="dashboard-code">aps</code> object) into any JSON field — we detect it, format it, and fill the form.
               </p>
+
+              <div class="la-import-banner" id="laImportBanner">
+                <p class="la-import-banner-lead">
+                  <strong>Paste from AJO or Postman</strong> — drop the full unitary request body here (or into any block’s JSON view). Valid JSON is auto-formatted; recognized payloads map into execution fields and the three sections, then you can switch to <strong>Form</strong>.
+                </p>
+                <label for="laImportPaste" class="la-import-label">Optional import area</label>
+                <textarea
+                  id="laImportPaste"
+                  class="la-json la-import-paste"
+                  spellcheck="false"
+                  rows="4"
+                  placeholder="Paste full JSON here, then Parse &amp; fill form — or paste directly into content-state / attributes / alert JSON (JSON mode)."
+                  aria-describedby="laImportBannerHelp"
+                ></textarea>
+                <p id="laImportBannerHelp" class="la-import-help">
+                  Same behavior as Firebase Realtime Database: pasting valid JSON pretty-prints. Use <strong>Parse &amp; fill form</strong> when pasting here; pasting into a section’s JSON field can import the full payload in one step.
+                </p>
+                <div class="la-import-actions">
+                  <button type="button" class="btn btn-secondary" id="laImportApply">Parse &amp; fill form</button>
+                  <span id="laImportMsg" class="la-import-msg" hidden role="status"></span>
+                </div>
+              </div>
 
               <div class="la-json-block" data-json-editor aria-labelledby="laBlockContentStateTitle">
                 <div class="la-json-block-head">
@@ -209,6 +231,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260426"></script>
-  <script defer src="live-activities.js?v=20260425"></script>
+  <script defer src="live-activities.js?v=20260426"></script>
 </body>
 </html>

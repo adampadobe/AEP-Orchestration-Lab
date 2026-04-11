@@ -304,6 +304,202 @@
     }
   }
 
+  function insertAtTextareaCursor(ta, text) {
+    var start = ta.selectionStart;
+    var end = ta.selectionEnd;
+    var v = ta.value;
+    ta.value = v.slice(0, start) + text + v.slice(end);
+    var pos = start + text.length;
+    ta.selectionStart = ta.selectionEnd = pos;
+  }
+
+  /** True if object looks like the APS block (not a random single-field snippet). */
+  function isProbableApsEnvelope(obj) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+    if (obj['content-available'] !== undefined) return true;
+    if (obj['content-state'] !== undefined) return true;
+    if (obj['attributes-type'] !== undefined) return true;
+    if (obj.attributes !== undefined && typeof obj.attributes === 'object') return true;
+    if (obj.alert !== undefined && typeof obj.alert === 'object') return true;
+    if (obj.event !== undefined) return true;
+    if (obj.timestamp !== undefined) return true;
+    return false;
+  }
+
+  /**
+   * Accepts full unitary POST body, recipient wrapper, requestPayload, or raw aps object.
+   */
+  function extractUnitaryPayload(parsed) {
+    if (parsed == null || typeof parsed !== 'object') return null;
+    if (parsed.recipients && Array.isArray(parsed.recipients) && parsed.recipients.length) {
+      var r0 = parsed.recipients[0];
+      var aps = r0 && r0.context && r0.context.requestPayload && r0.context.requestPayload.aps;
+      if (aps && typeof aps === 'object' && !Array.isArray(aps)) {
+        return {
+          campaignId: parsed.campaignId,
+          userId: r0.userId,
+          requestId: parsed.requestId,
+          aps: aps,
+        };
+      }
+    }
+    if (parsed.context && parsed.context.requestPayload && parsed.context.requestPayload.aps) {
+      var apsW = parsed.context.requestPayload.aps;
+      if (apsW && typeof apsW === 'object' && !Array.isArray(apsW)) {
+        return {
+          campaignId: parsed.campaignId,
+          userId: parsed.userId,
+          aps: apsW,
+        };
+      }
+    }
+    if (parsed.requestPayload && parsed.requestPayload.aps) {
+      var apsX = parsed.requestPayload.aps;
+      if (apsX && typeof apsX === 'object' && !Array.isArray(apsX)) {
+        return { aps: apsX };
+      }
+    }
+    if (parsed.aps && typeof parsed.aps === 'object' && !Array.isArray(parsed.aps) && isProbableApsEnvelope(parsed.aps)) {
+      return { aps: parsed.aps };
+    }
+    if (isProbableApsEnvelope(parsed)) {
+      return { aps: parsed };
+    }
+    return null;
+  }
+
+  function applyExtracted(ext) {
+    if (!ext || !ext.aps || typeof ext.aps !== 'object' || Array.isArray(ext.aps)) {
+      return false;
+    }
+    if (ext.campaignId != null && ext.campaignId !== '' && $('laCampaignId')) {
+      $('laCampaignId').value = String(ext.campaignId);
+    }
+    if (ext.userId != null && ext.userId !== '' && $('laUserId')) {
+      $('laUserId').value = String(ext.userId);
+    }
+    var aps = ext.aps;
+    if (aps['content-available'] !== undefined && $('laContentAvailable')) {
+      $('laContentAvailable').value = String(aps['content-available']);
+    }
+    if (aps.event != null && $('laEvent')) {
+      var ev = String(aps.event).toLowerCase().trim();
+      if (ev === 'start' || ev === 'update' || ev === 'end') {
+        $('laEvent').value = ev;
+      }
+    }
+    if (aps['attributes-type'] != null && $('laAttributesType')) {
+      $('laAttributesType').value = String(aps['attributes-type']);
+    }
+
+    function blockFor(textareaId) {
+      var ta = $(textareaId);
+      return ta ? ta.closest('[data-json-editor]') : null;
+    }
+
+    function setApsPart(key, textareaId) {
+      var v = aps[key];
+      var block = blockFor(textareaId);
+      var ta = $(textareaId);
+      if (!block || !ta) return;
+      if (v === undefined) {
+        ta.value = '{}';
+      } else {
+        ta.value = JSON.stringify(v, null, 2);
+      }
+      try {
+        syncTextareaToForm(block);
+        setBlockMode(block, 'simple');
+        showKvMsg(block, '');
+      } catch (err) {
+        showKvMsg(
+          block,
+          'Form view unavailable for this value — edit as JSON. ' + (err.message || err)
+        );
+        setBlockMode(block, 'json');
+      }
+    }
+
+    setApsPart('content-state', 'laContentState');
+    setApsPart('attributes', 'laAttributes');
+    setApsPart('alert', 'laAlert');
+    return true;
+  }
+
+  function showImportMsg(text, isErr) {
+    var el = $('laImportMsg');
+    if (!el) return;
+    el.textContent = text || '';
+    el.hidden = !text;
+    el.classList.toggle('la-import-msg--err', !!isErr);
+  }
+
+  function onLaJsonPanelPaste(e) {
+    var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    if (text == null) return;
+    var trimmed = String(text).trim();
+    if (!trimmed) return;
+    var parsed;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch (err) {
+      return;
+    }
+    var ext = extractUnitaryPayload(parsed);
+    if (ext) {
+      e.preventDefault();
+      applyExtracted(ext);
+      showImportMsg('Imported unitary / aps payload — review campaign, ECID, and Form fields below.', false);
+      return;
+    }
+    e.preventDefault();
+    insertAtTextareaCursor(e.target, JSON.stringify(parsed, null, 2));
+  }
+
+  function onImportAreaPaste(e) {
+    var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    if (text == null) return;
+    var trimmed = String(text).trim();
+    if (!trimmed) return;
+    var parsed;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch (err) {
+      return;
+    }
+    e.preventDefault();
+    insertAtTextareaCursor(e.target, JSON.stringify(parsed, null, 2));
+  }
+
+  function onImportApplyClick() {
+    var ta = $('laImportPaste');
+    var raw = ta && ta.value != null ? String(ta.value).trim() : '';
+    if (!raw) {
+      showImportMsg('Paste JSON first.', true);
+      return;
+    }
+    var parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      showImportMsg('Invalid JSON: ' + (err.message || err), true);
+      return;
+    }
+    var ext = extractUnitaryPayload(parsed);
+    if (!ext) {
+      showImportMsg(
+        'Could not find a unitary payload or aps object. Include recipients[0].context.requestPayload.aps, requestPayload.aps, or the aps { } block.',
+        true
+      );
+      return;
+    }
+    if (applyExtracted(ext)) {
+      showImportMsg('Applied — switched sections to Form where possible. Review and send.', false);
+    } else {
+      showImportMsg('Payload recognized but aps was missing or invalid.', true);
+    }
+  }
+
   function initJsonBlock(block) {
     var ta = block.querySelector('.la-json--panel');
     var rowsEl = block.querySelector('[data-kv-rows]');
@@ -464,6 +660,24 @@
     $('laAlert').value = DEFAULT_ALERT;
 
     document.querySelectorAll('[data-json-editor]').forEach(initJsonBlock);
+
+    document.querySelectorAll('.la-json--panel').forEach(function (ta) {
+      ta.addEventListener('paste', onLaJsonPanelPaste);
+    });
+    var importPaste = $('laImportPaste');
+    if (importPaste) {
+      importPaste.addEventListener('paste', onImportAreaPaste);
+      importPaste.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.keyCode === 13)) {
+          e.preventDefault();
+          onImportApplyClick();
+        }
+      });
+    }
+    var importApply = $('laImportApply');
+    if (importApply) {
+      importApply.addEventListener('click', onImportApplyClick);
+    }
 
     var sandboxSelect = $('sandboxSelect');
     if (sandboxSelect && typeof AepGlobalSandbox !== 'undefined') {
