@@ -110,7 +110,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   margin-bottom: 0.35rem;
-  color: var(--aep-text-secondary, #3d4047);
+  color: var(--dash-text-secondary, var(--aep-text-secondary, #3d4047));
 }
 
 .la-field input[type="text"],
@@ -122,9 +122,18 @@
   font: inherit;
   padding: 0.5rem 0.65rem;
   border-radius: 6px;
-  border: 1px solid var(--aep-border, rgba(0, 0, 0, 0.12));
-  background: var(--aep-input-bg, #fff);
-  color: inherit;
+  border: 1px solid var(--dash-input-border, var(--aep-border, rgba(0, 0, 0, 0.12)));
+  background: var(--dash-input-bg, var(--aep-input-bg, #fff));
+  color: var(--dash-text, inherit);
+  caret-color: var(--dash-text, currentColor);
+}
+
+.la-field input:focus,
+.la-field select:focus,
+.la-field textarea:focus {
+  outline: none;
+  border-color: var(--dash-blue, #0d7ea2);
+  box-shadow: 0 0 0 1px var(--dash-blue, #0d7ea2);
 }
 
 .la-field textarea.la-json:not(.la-json--mirror-input) {
@@ -139,9 +148,9 @@
 .live-activities-page .la-json-field-wrap {
   position: relative;
   display: block;
-  border: 1px solid var(--aep-border, rgba(0, 0, 0, 0.12));
+  border: 1px solid var(--dash-input-border, var(--aep-border, rgba(0, 0, 0, 0.12)));
   border-radius: 6px;
-  background: var(--aep-input-bg, #fff);
+  background: var(--dash-input-bg, var(--aep-input-bg, #fff));
   box-sizing: border-box;
 }
 
@@ -200,8 +209,8 @@ html[data-aep-theme='dark'] .live-activities-page .la-json-tok.la-json-punc {
 }
 
 html[data-aep-theme='dark'] .live-activities-page .la-json-field-wrap {
-  background: var(--aep-input-bg, #1e1e1e);
-  border-color: var(--aep-border, rgba(255, 255, 255, 0.12));
+  background: var(--dash-input-bg, #1e1e1e);
+  border-color: var(--dash-input-border, rgba(255, 255, 255, 0.12));
 }
 
 .live-activities-page textarea.la-json--mirror-input {
@@ -622,8 +631,10 @@ html[data-aep-theme='dark'] .live-activities-page .la-import-example {
   font: inherit;
   padding: 0.45rem 0.55rem;
   border-radius: 6px;
-  border: 1px solid var(--aep-border, rgba(0, 0, 0, 0.12));
-  background: var(--aep-input-bg, #fff);
+  border: 1px solid var(--dash-input-border, var(--aep-border, rgba(0, 0, 0, 0.12)));
+  background: var(--dash-input-bg, var(--aep-input-bg, #fff));
+  color: var(--dash-text, inherit);
+  caret-color: var(--dash-text, currentColor);
 }
 
 .live-activities-page .la-kv-key {
@@ -1042,23 +1053,26 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
 
 .live-activities-page .la-paste-tree-edit {
   margin-bottom: 1rem;
+  flex: 0 0 auto;
   padding: 0.85rem 1rem;
   border-radius: 10px;
   border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.12));
   background: var(--dash-surface, #fff);
+  box-shadow: var(--dash-shadow, 0 1px 2px rgba(0, 0, 0, 0.04));
 }
 
 .live-activities-page .la-paste-tree-edit-title {
   margin: 0 0 0.5rem;
   font-size: 0.9375rem;
   font-weight: 600;
+  color: var(--dash-text, inherit);
 }
 
 .live-activities-page .la-paste-tree-edit-path {
   margin: 0 0 0.65rem;
   font-size: 0.75rem;
   word-break: break-all;
-  color: var(--aep-text-muted, #6b6f78);
+  color: var(--dash-text-secondary, var(--aep-text-muted, #6b6f78));
 }
 
 .live-activities-page .la-paste-tree-edit-fields {
@@ -1073,8 +1087,28 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
 .live-activities-page .la-paste-tree-edit-value {
   width: 100%;
   box-sizing: border-box;
+  min-height: 5.5rem;
+  resize: vertical;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+/* WebKit autofill: keep dark dashboard surfaces (same idea as firebase-database.css) */
+.live-activities-page .la-paste-tree-edit input:-webkit-autofill,
+.live-activities-page .la-paste-tree-edit input:-webkit-autofill:hover,
+.live-activities-page .la-paste-tree-edit input:-webkit-autofill:focus,
+.live-activities-page .la-paste-tree-edit textarea:-webkit-autofill,
+.live-activities-page .la-paste-tree-edit textarea:-webkit-autofill:hover,
+.live-activities-page .la-paste-tree-edit textarea:-webkit-autofill:focus,
+.live-activities-page .la-paste-tree-edit select:-webkit-autofill,
+.live-activities-page .la-paste-tree-edit select:-webkit-autofill:hover,
+.live-activities-page .la-paste-tree-edit select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--dash-input-bg, #0f1114) inset !important;
+  box-shadow: 0 0 0 1000px var(--dash-input-bg, #0f1114) inset !important;
+  -webkit-text-fill-color: var(--dash-text, #e8eaed) !important;
+  border-color: var(--dash-input-border, #2a3038);
+  transition: background-color 99999s ease-out 0s;
 }
 
 .live-activities-page .la-paste-tree-edit-actions {
