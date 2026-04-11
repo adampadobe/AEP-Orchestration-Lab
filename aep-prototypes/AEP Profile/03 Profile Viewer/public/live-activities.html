@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260460">
+  <link rel="stylesheet" href="live-activities.css?v=20260462">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -86,7 +86,7 @@
           <p class="panel-desc la-panel-lead la-panel-lead--compact">
             <strong>2)</strong> Enter the values below (they must match your campaign and device).
             <strong>3)</strong> Load a template or paste JSON.
-            <strong>4)</strong> Click <strong>Apply all from fields</strong>, then <strong>Send to Adobe</strong>.
+            <strong>4)</strong> Next to <strong>Beautify</strong>, click <strong>Apply all from fields</strong> to merge step 2 into the JSON and open the preview, then <strong>Send to Adobe</strong>.
             <span class="la-panel-meta">Uses <code class="dashboard-code">POST /ajo/im/executions/unitary</code> via this app’s proxy.</span>
           </p>
 
@@ -128,13 +128,8 @@
               </div>
               <div class="la-exec-sync" aria-describedby="laExecSyncHelp">
                 <p id="laExecSyncHelp" class="la-exec-sync-lead">
-                  After your JSON is in the box below, use <strong class="la-exec-sync-primary">Apply all from fields</strong> to copy campaign ID, ECID, event, Live Activity ID, and fresh ids/time into the payload.
+                  Fill these first. In <strong>Message JSON</strong> below, load a template (or paste JSON), then use <strong>Apply all from fields</strong> next to <strong>Beautify</strong> — it merges this row into the editor and updates the <strong>preview</strong> you’ll send.
                 </p>
-                <div class="la-apply-all-row">
-                  <button type="button" class="btn btn-primary btn-la-apply-all" id="laInjectAllFromFields" title="Apply campaign, ECID, event, Live Activity ID, timestamp, and requestId">
-                    Apply all from fields
-                  </button>
-                </div>
                 <details class="la-inject-advanced">
                   <summary>Optional: update one value in the JSON</summary>
                   <div class="la-exec-sync-btns" role="group" aria-label="Inject a single field into pasted JSON">
@@ -185,7 +180,7 @@
                 </div>
                 <div class="la-payload-view-head">
                   <p class="la-payload-view-lead la-payload-view-lead--compact">
-                    Edit the full unitary body here, or use <strong>Tree</strong> to browse. <strong>Beautify</strong> fixes Postman-style placeholders. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify.
+                    Load a template or paste JSON, then <strong>Beautify</strong> if needed. <strong>Apply all from fields</strong> (next to Beautify) merges step 2 into this text and refreshes the outgoing preview below. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify.
                   </p>
                   <div class="la-payload-view-toggle" role="tablist" aria-label="JSON editor view">
                     <button
@@ -218,15 +213,20 @@
                     class="la-json la-import-paste"
                     spellcheck="false"
                     rows="18"
-                    placeholder="Load a template above, or paste JSON from Postman. Then use Apply all from fields (step 2), Preview, and Send."
+                    placeholder="Load a template or paste JSON. Use Apply all from fields (next to Beautify) to merge campaign, ECID, event, and IDs — then check the preview before Send."
                     title="Required for Preview and Send"
                     aria-describedby="laImportPasteHint"
                   ></textarea>
                   <p id="laImportPasteHint" class="la-import-title-hint">
-                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. Use <strong>Apply all from fields</strong> above to inject campaign, ECID, event, Live Activity ID, and fresh request/time.
+                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. <strong>Apply all from fields</strong> merges the Campaign &amp; recipient row into this JSON and updates the preview block under step 4.
                   </p>
                   <div class="la-import-actions">
-                    <button type="button" class="btn btn-secondary" id="laImportBeautify">Beautify</button>
+                    <div class="la-import-actions-btns" role="group" aria-label="Format JSON and merge execution fields">
+                      <button type="button" class="btn btn-secondary" id="laImportBeautify">Beautify</button>
+                      <button type="button" class="btn btn-primary" id="laInjectAllFromFields" title="Merge campaign, ECID, event, Live Activity ID, timestamp, and requestId into JSON; refresh preview">
+                        Apply all from fields
+                      </button>
+                    </div>
                     <span id="laImportMsg" class="la-import-msg" hidden role="status"></span>
                   </div>
                 </div>
@@ -379,11 +379,12 @@
               </div>
 
               <div class="la-actions la-actions--send">
-                <p class="la-send-step"><span class="la-send-step-num">4</span> Review and send</p>
-                <button type="button" class="btn btn-secondary" id="laPreviewBtn">Preview JSON (what will be sent)</button>
+                <p class="la-send-step"><span class="la-send-step-num">4</span> Preview (outgoing payload) &amp; send</p>
+                <p class="la-send-step-hint">After <strong>Apply all from fields</strong>, this shows exactly what will be sent. Use <strong>Preview</strong> again any time after edits.</p>
+                <button type="button" class="btn btn-secondary" id="laPreviewBtn">Refresh preview</button>
                 <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
               </div>
-              <pre id="laPreview" class="la-response" hidden aria-live="polite"></pre>
+              <pre id="laPreview" class="la-response la-preview-outgoing" hidden aria-live="polite"></pre>
               <pre id="laResponse" class="la-response" hidden role="status" aria-live="polite"></pre>
             </div>
           </div>
@@ -398,6 +399,6 @@
   <script defer src="firebase-database-config.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260460"></script>
+  <script defer src="live-activities.js?v=20260462"></script>
 </body>
 </html>

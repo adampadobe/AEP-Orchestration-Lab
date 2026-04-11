@@ -407,17 +407,6 @@ html[data-aep-theme='dark'] .live-activities-page textarea.la-json--mirror-input
   color: var(--dash-text, inherit);
 }
 
-.live-activities-page .la-apply-all-row {
-  margin-bottom: 0.75rem;
-}
-
-.live-activities-page .btn-la-apply-all {
-  width: 100%;
-  justify-content: center;
-  padding: 0.65rem 1rem;
-  font-weight: 600;
-}
-
 .live-activities-page .la-inject-advanced {
   margin-top: 0.15rem;
   font-size: 0.82rem;
@@ -455,6 +444,19 @@ html[data-aep-theme='dark'] .live-activities-page textarea.la-json--mirror-input
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--dash-text, inherit);
+}
+
+.live-activities-page .la-send-step-hint {
+  margin: 0;
+  flex: 1 1 100%;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, #5c5f66);
+}
+
+.live-activities-page .la-preview-outgoing {
+  max-height: min(50vh, 28rem);
+  overflow: auto;
 }
 
 .live-activities-page .la-send-step-num {
@@ -692,10 +694,21 @@ html[data-aep-theme='dark'] .live-activities-page .la-import-example {
 
 .live-activities-page .la-import-actions {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.live-activities-page .la-import-actions-btns {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.65rem 1rem;
-  margin-bottom: 0.75rem;
+  gap: 0.5rem 0.65rem;
+}
+
+.live-activities-page .la-import-actions-btns .btn-primary {
+  font-weight: 600;
 }
 
 .live-activities-page .la-import-msg {

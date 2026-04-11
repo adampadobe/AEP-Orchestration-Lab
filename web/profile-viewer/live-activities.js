@@ -1610,7 +1610,9 @@
     if (ev === 'start' || ev === 'update' || ev === 'end') patch.event = ev;
     patch.requestId = randomUuid();
     patch.timestamp = Math.floor(Date.now() / 1000);
-    injectLaImportPaste(patch);
+    if (injectLaImportPaste(patch)) {
+      laRefreshOutgoingPreview();
+    }
   }
 
   function onLaJsonPanelPaste(e) {
@@ -1994,7 +1996,7 @@
     bumpJsonMirror(ta);
     afterImportPasteMutation();
     setPayloadView('paste');
-    laShowTemplateMsg('Loaded — use Beautify if needed, then Apply all from fields.', false);
+    laShowTemplateMsg('Loaded — Beautify if needed, then Apply all from fields (next to Beautify) to merge and preview.', false);
   }
 
   function laSaveCurrentAsTemplate() {
@@ -2037,6 +2039,25 @@
     el.textContent = text;
     el.hidden = !text;
     el.classList.toggle('la-response--err', !!isErr);
+  }
+
+  /** Fills #laPreview with getOutgoingPayload() — same bytes Send to Adobe uses. */
+  function laRefreshOutgoingPreview() {
+    var preview = $('laPreview');
+    var responseEl = $('laResponse');
+    if (!preview) return;
+    try {
+      var p = getOutgoingPayload();
+      preview.textContent = JSON.stringify(p, null, 2);
+      preview.hidden = false;
+      if (responseEl) setMessage(responseEl, '', false);
+      try {
+        preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (e2) {}
+    } catch (e) {
+      preview.hidden = true;
+      if (responseEl) setMessage(responseEl, String(e.message || e), true);
+    }
   }
 
   function init() {
@@ -2230,15 +2251,7 @@
     }
 
     $('laPreviewBtn').addEventListener('click', function () {
-      try {
-        var p = getOutgoingPayload();
-        preview.textContent = JSON.stringify(p, null, 2);
-        preview.hidden = false;
-        setMessage(msg, '', false);
-      } catch (e) {
-        preview.hidden = true;
-        setMessage(msg, String(e.message || e), true);
-      }
+      laRefreshOutgoingPreview();
     });
 
     $('laSendBtn').addEventListener('click', async function () {
