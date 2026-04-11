@@ -431,6 +431,40 @@
     });
   }
 
+  /** Parse and rewrite with JSON.stringify(…, null, 2); refresh form rows when in Form mode. */
+  function beautifyJsonTextarea(ta, onErr) {
+    if (!ta) return;
+    var raw = String(ta.value || '').trim();
+    if (!raw) {
+      if (onErr) onErr('Nothing to format.');
+      return;
+    }
+    var parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      if (onErr) onErr('Invalid JSON — ' + (e.message || e));
+      return;
+    }
+    ta.value = JSON.stringify(parsed, null, 2);
+    ta.scrollTop = 0;
+    bumpJsonMirror(ta);
+    if (ta.id === 'laImportPaste') {
+      showImportMsg('', false);
+    }
+    var block = ta.closest('[data-json-editor]');
+    if (block && block.getAttribute('data-mode') === 'simple') {
+      try {
+        syncTextareaToForm(block);
+        showKvMsg(block, '');
+      } catch (err2) {
+        if (onErr) onErr(String(err2.message || err2));
+      }
+    } else if (block) {
+      showKvMsg(block, '');
+    }
+  }
+
   function syncFormToTextarea(block) {
     var ta = block.querySelector('.la-json--panel');
     var rows = block.querySelector('[data-kv-rows]');
@@ -846,6 +880,25 @@
     if (importApply) {
       importApply.addEventListener('click', onImportApplyClick);
     }
+    var importBeautify = $('laImportBeautify');
+    if (importBeautify) {
+      importBeautify.addEventListener('click', function () {
+        beautifyJsonTextarea($('laImportPaste'), function (msg) {
+          showImportMsg(msg, true);
+        });
+      });
+    }
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('.la-json-beautify');
+      if (!btn || btn.id === 'laImportBeautify') return;
+      var block = btn.closest('[data-json-editor]');
+      if (!block) return;
+      var ta = block.querySelector('.la-json--panel');
+      if (!ta) return;
+      beautifyJsonTextarea(ta, function (msg) {
+        showKvMsg(block, msg);
+      });
+    });
 
     var sandboxSelect = $('sandboxSelect');
     if (sandboxSelect && typeof AepGlobalSandbox !== 'undefined') {

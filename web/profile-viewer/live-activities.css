@@ -459,6 +459,19 @@ html[data-aep-theme='dark'] .live-activities-page .la-import-example {
   font-size: 0.85em;
 }
 
+.live-activities-page .la-json-block-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+  flex-shrink: 0;
+}
+
+.live-activities-page .la-json-beautify {
+  font-size: 0.8125rem;
+  padding: 0.35rem 0.65rem;
+}
+
 .live-activities-page .la-json-mode {
   display: inline-flex;
   border-radius: 8px;

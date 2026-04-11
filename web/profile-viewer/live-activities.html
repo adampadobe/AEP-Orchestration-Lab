@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260422">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260428">
+  <link rel="stylesheet" href="live-activities.css?v=20260429">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -152,9 +152,10 @@
                   Hover the field above for a quick guide. Smallest useful paste is the <code class="dashboard-code">aps</code> object — see example below.
                 </p>
                 <p id="laImportBannerHelp" class="la-import-help">
-                  Same behavior as Firebase Realtime Database: pasting valid JSON pretty-prints. Use <strong>Parse &amp; fill form</strong> when pasting here; pasting into a section’s JSON field can import the full payload in one step.
+                  Same behavior as Firebase Realtime Database: pasting valid JSON pretty-prints. <strong>Beautify</strong> re-indents with 2 spaces. Use <strong>Parse &amp; fill form</strong> when pasting here; pasting into a section’s JSON field can import the full payload in one step.
                 </p>
                 <div class="la-import-actions">
+                  <button type="button" class="btn btn-secondary" id="laImportBeautify">Beautify</button>
                   <button type="button" class="btn btn-secondary" id="laImportApply">Parse &amp; fill form</button>
                   <span id="laImportMsg" class="la-import-msg" hidden role="status"></span>
                 </div>
@@ -218,9 +219,12 @@
                     <span id="laBlockContentStateTitle" class="la-json-block-title">content-state</span>
                     <span class="la-json-block-desc">Short status lines shown on the Live Activity (e.g. boarding, gate).</span>
                   </div>
-                  <div class="la-json-mode" role="group" aria-label="content-state editor mode">
-                    <button type="button" class="la-mode-btn la-mode-btn--active" data-mode="simple">Form</button>
-                    <button type="button" class="la-mode-btn" data-mode="json">JSON</button>
+                  <div class="la-json-block-tools">
+                    <div class="la-json-mode" role="group" aria-label="content-state editor mode">
+                      <button type="button" class="la-mode-btn la-mode-btn--active" data-mode="simple">Form</button>
+                      <button type="button" class="la-mode-btn" data-mode="json">JSON</button>
+                    </div>
+                    <button type="button" class="btn btn-secondary la-json-beautify" title="Format with 2-space indentation">Beautify</button>
                   </div>
                 </div>
                 <div class="la-kv-panel">
@@ -237,9 +241,12 @@
                     <span id="laBlockAttributesTitle" class="la-json-block-title">attributes</span>
                     <span class="la-json-block-desc">Structured data for your <code class="dashboard-code">attributes-type</code> (nested objects use a small JSON box).</span>
                   </div>
-                  <div class="la-json-mode" role="group" aria-label="attributes editor mode">
-                    <button type="button" class="la-mode-btn la-mode-btn--active" data-mode="simple">Form</button>
-                    <button type="button" class="la-mode-btn" data-mode="json">JSON</button>
+                  <div class="la-json-block-tools">
+                    <div class="la-json-mode" role="group" aria-label="attributes editor mode">
+                      <button type="button" class="la-mode-btn la-mode-btn--active" data-mode="simple">Form</button>
+                      <button type="button" class="la-mode-btn" data-mode="json">JSON</button>
+                    </div>
+                    <button type="button" class="btn btn-secondary la-json-beautify" title="Format with 2-space indentation">Beautify</button>
                   </div>
                 </div>
                 <div class="la-kv-panel">
@@ -256,9 +263,12 @@
                     <span id="laBlockAlertTitle" class="la-json-block-title">alert</span>
                     <span class="la-json-block-desc">Notification title and body text.</span>
                   </div>
-                  <div class="la-json-mode" role="group" aria-label="alert editor mode">
-                    <button type="button" class="la-mode-btn la-mode-btn--active" data-mode="simple">Form</button>
-                    <button type="button" class="la-mode-btn" data-mode="json">JSON</button>
+                  <div class="la-json-block-tools">
+                    <div class="la-json-mode" role="group" aria-label="alert editor mode">
+                      <button type="button" class="la-mode-btn la-mode-btn--active" data-mode="simple">Form</button>
+                      <button type="button" class="la-mode-btn" data-mode="json">JSON</button>
+                    </div>
+                    <button type="button" class="btn btn-secondary la-json-beautify" title="Format with 2-space indentation">Beautify</button>
                   </div>
                 </div>
                 <div class="la-kv-panel">
@@ -287,6 +297,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260426"></script>
-  <script defer src="live-activities.js?v=20260428"></script>
+  <script defer src="live-activities.js?v=20260429"></script>
 </body>
 </html>
