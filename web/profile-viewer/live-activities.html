@@ -162,7 +162,7 @@
                 <details class="la-import-details">
                   <summary class="la-import-details-summary">What to paste (example from Postman / AJO)</summary>
                   <p class="la-import-details-lead">
-                    You can paste the <strong>full</strong> JSON below, or only the <code class="dashboard-code">aps</code> object. <code class="dashboard-code">requestId</code> is not required for this tool — each Preview/Send generates a new UUID. Resolve Postman variables to real values before parsing; <code class="dashboard-code">timestamp</code> in the live request is Unix seconds (this page sets it on send).
+                    You can paste the <strong>full</strong> JSON below, or only the <code class="dashboard-code">aps</code> object. <code class="dashboard-code">requestId</code> is not required for this tool — each Preview/Send generates a new UUID. Postman sometimes leaves <strong>unquoted</strong> placeholders (e.g. <code class="dashboard-code">"timestamp": {{$timestamp}}</code>); those are auto-quoted so the file parses. For a real send, replace variables with real values or rely on this app’s timestamp/UUID. <code class="dashboard-code">timestamp</code> in the outbound request is still set to Unix seconds at send time.
                   </p>
                   <pre class="la-import-example" aria-label="Example unitary JSON body">{
     "requestId": "{{$randomUUID}}",
@@ -297,6 +297,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260426"></script>
-  <script defer src="live-activities.js?v=20260429"></script>
+  <script defer src="live-activities.js?v=20260430"></script>
 </body>
 </html>

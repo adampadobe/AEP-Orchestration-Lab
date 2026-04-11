@@ -225,7 +225,7 @@
           throw new Error('Field "' + key + '" has empty nested JSON (' + textareaId + ').');
         }
         try {
-          out[key] = JSON.parse(raw);
+          out[key] = parseUserJson(raw);
         } catch (e) {
           throw new Error(
             'Field "' + key + '" in ' + textareaId + ': invalid nested JSON — ' + (e.message || e)
@@ -242,6 +242,33 @@
 
   function formatJsonTextarea(obj) {
     return JSON.stringify(obj, null, 2);
+  }
+
+  /**
+   * Postman uses unquoted placeholders: "timestamp": {{$timestamp}} — invalid JSON.
+   * Quote bare {{...}} values so JSON.parse succeeds; real sends still replace vars in Postman.
+   */
+  function sanitizePostmanJsonText(text) {
+    return String(text || '').replace(/:(\s*)(\{\{[^{}]+\}\})(?=\s*[,}\]])/g, function (_, space, ph) {
+      return ':' + space + JSON.stringify(ph);
+    });
+  }
+
+  /** Parse user JSON; retry after quoting Postman-style {{tokens}}. */
+  function parseUserJson(raw) {
+    var s = String(raw || '').trim();
+    if (!s) {
+      throw new Error('Empty input.');
+    }
+    try {
+      return JSON.parse(s);
+    } catch (e0) {
+      try {
+        return JSON.parse(sanitizePostmanJsonText(s));
+      } catch (e1) {
+        throw e0;
+      }
+    }
   }
 
   function setBlockMode(block, mode) {
@@ -441,7 +468,7 @@
     }
     var parsed;
     try {
-      parsed = JSON.parse(raw);
+      parsed = parseUserJson(raw);
     } catch (e) {
       if (onErr) onErr('Invalid JSON — ' + (e.message || e));
       return;
@@ -486,7 +513,7 @@
     }
     var parsed;
     try {
-      parsed = JSON.parse(raw);
+      parsed = parseUserJson(raw);
     } catch (e) {
       throw new Error('Invalid JSON — ' + (e.message || e));
     }
@@ -639,7 +666,7 @@
     if (!trimmed) return;
     var parsed;
     try {
-      parsed = JSON.parse(trimmed);
+      parsed = parseUserJson(trimmed);
     } catch (err) {
       return;
     }
@@ -661,7 +688,7 @@
     if (!trimmed) return;
     var parsed;
     try {
-      parsed = JSON.parse(trimmed);
+      parsed = parseUserJson(trimmed);
     } catch (err) {
       return;
     }
@@ -678,7 +705,7 @@
     }
     var parsed;
     try {
-      parsed = JSON.parse(raw);
+      parsed = parseUserJson(raw);
     } catch (err) {
       showImportMsg('Invalid JSON: ' + (err.message || err), true);
       return;
@@ -787,7 +814,7 @@
       throw new Error(name + ' is empty (valid JSON required).');
     }
     try {
-      return JSON.parse(t);
+      return parseUserJson(t);
     } catch (e) {
       throw new Error(name + ': invalid JSON — ' + (e.message || String(e)));
     }
