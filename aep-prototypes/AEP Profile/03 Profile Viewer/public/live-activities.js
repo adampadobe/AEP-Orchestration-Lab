@@ -667,6 +667,14 @@
     el.classList.toggle('la-import-msg--err', !!isErr);
   }
 
+  /** Tree tab: large viewport (svh) so expanded JSON is readable; cleared when leaving Tree. */
+  function setLaTreeViewportMaximized(on) {
+    var panel = $('laPayloadTreePanel');
+    var viewport = $('laPasteTreeViewport');
+    if (panel) panel.classList.toggle('la-payload-panel--tree-max', !!on);
+    if (viewport) viewport.classList.toggle('la-paste-tree-viewport--max', !!on);
+  }
+
   /** RTDB-style: primary “Paste JSON” vs editable “Form” for the APS workspace */
   function setPayloadView(mode) {
     var pasteTab = $('laPayloadTabPaste');
@@ -694,7 +702,14 @@
       formTab.classList.toggle('la-payload-tab--active', showForm);
       formTab.setAttribute('aria-selected', showForm ? 'true' : 'false');
     }
-    if (showTree) renderPasteTree();
+    if (treePanel) {
+      if (showTree) {
+        setLaTreeViewportMaximized(true);
+        renderPasteTree();
+      } else {
+        setLaTreeViewportMaximized(false);
+      }
+    }
     if (showForm) {
       document.querySelectorAll('[data-json-editor]').forEach(function (block) {
         var ta = block.querySelector('.la-json--panel');
@@ -1193,7 +1208,15 @@
     paths.forEach(function (p) {
       laTreeExpanded.add(p);
     });
+    setLaTreeViewportMaximized(true);
     renderPasteTree();
+    var vp = $('laPasteTreeViewport');
+    if (vp) {
+      vp.scrollTop = 0;
+      requestAnimationFrame(function () {
+        vp.scrollTop = 0;
+      });
+    }
     showTreeMsg('Expanded all branches.', false);
   }
 
