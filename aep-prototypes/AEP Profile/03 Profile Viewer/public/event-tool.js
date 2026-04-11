@@ -40,6 +40,10 @@
     triggerType:      document.getElementById('etTriggerType'),
     triggerDesc:      document.getElementById('etTriggerDesc'),
     removeTriggerBtn: document.getElementById('etRemoveTriggerBtn'),
+    addTriggerBtn:    document.getElementById('etAddTriggerBtn'),
+    myTriggersPanel:  document.getElementById('etMyTriggersPanel'),
+    myTriggersCount:  document.getElementById('etMyTriggersCount'),
+    myTriggersList:   document.getElementById('etMyTriggersList'),
     schemaTypesPanel: document.getElementById('etSchemaTypesPanel'),
     schemaTypesCount: document.getElementById('etSchemaTypesCount'),
     schemaTypesList:  document.getElementById('etSchemaTypesList'),
@@ -65,6 +69,8 @@
   let triggerTemplates = {};
   let schemaEventTypes = [];
   let customTriggers = [];
+  /** Short list for the quick-trigger datalist only (also in Firestore). */
+  let quickMenuTriggers = [];
   let resolvedEcid = '';
   let resolvedEmail = '';
   let activeMode = 'trigger';
@@ -86,6 +92,36 @@
   function sandboxQsAmp() {
     const n = getSandboxName();
     return n ? '&sandbox=' + encodeURIComponent(n) : '';
+  }
+
+  function triggerKey(t) {
+    if (t == null) return '';
+    return typeof t === 'string' ? t : (t.value || t.eventType || '');
+  }
+
+  function isTemplatePayloadKey(k) {
+    var tpl = triggerTemplates[k];
+    return !!(tpl && typeof tpl === 'object' && tpl.payload);
+  }
+
+  function isInCustomLibrary(key) {
+    if (!key) return false;
+    return customTriggers.some(function (t) { return triggerKey(t) === key; });
+  }
+
+  /** Keep quick menu aligned with library + optional template keys pinned in menu. */
+  function sanitizeQuickMenuTriggers() {
+    var seen = new Set();
+    quickMenuTriggers = quickMenuTriggers.filter(function (k) {
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return isInCustomLibrary(k) || isTemplatePayloadKey(k);
+    });
+  }
+
+  function persistTriggersState() {
+    sanitizeQuickMenuTriggers();
+    saveConfigField({ customTriggers: customTriggers, quickMenuTriggers: quickMenuTriggers });
   }
 
   /* ── Message helper ── */
@@ -126,6 +162,15 @@
         if (data.record.schemaTitle) dom.schemaTitle.value = data.record.schemaTitle;
         if (data.record.datasetName) dom.datasetName.value = data.record.datasetName;
         customTriggers = Array.isArray(data.record.customTriggers) ? data.record.customTriggers : [];
+        if (Array.isArray(data.record.quickMenuTriggers)) {
+          quickMenuTriggers = data.record.quickMenuTriggers.map(function (x) { return typeof x === 'string' ? x : triggerKey(x); }).filter(Boolean);
+        } else if (customTriggers.length > 0) {
+          quickMenuTriggers = customTriggers.map(function (t) { return triggerKey(t); }).filter(Boolean);
+          persistTriggersState();
+        } else {
+          quickMenuTriggers = [];
+        }
+        sanitizeQuickMenuTriggers();
         rebuildTriggerSelect();
         if (data.record.datastreamId) {
           collapseConfig();
@@ -212,59 +257,117 @@
 
   function rebuildTriggerSelect() {
     if (!dom.triggerType) return;
-    var prev = dom.triggerType.value;
-    dom.triggerType.innerHTML = '';
-
-    var templateKeys = Object.keys(triggerTemplates).filter(function (k) {
-      return typeof triggerTemplates[k] === 'object' && triggerTemplates[k].payload;
-    });
-
-    if (templateKeys.length > 0) {
-      var tplGroup = document.createElement('optgroup');
-      tplGroup.label = 'Templates';
-      templateKeys.forEach(function (k) {
-        var opt = document.createElement('option');
-        opt.value = k;
-        opt.textContent = k;
-        tplGroup.appendChild(opt);
-      });
-      dom.triggerType.appendChild(tplGroup);
-    }
-
-    if (customTriggers.length > 0) {
-      var custGroup = document.createElement('optgroup');
-      custGroup.label = 'My triggers';
-      customTriggers.forEach(function (t) {
-        var val = typeof t === 'string' ? t : (t.value || t.eventType || '');
-        if (!val) return;
+    sanitizeQuickMenuTriggers();
+    var prev = (dom.triggerType.value || '').trim();
+    var dl = document.getElementById('etQuickTriggerList');
+    if (dl) {
+      dl.innerHTML = '';
+      var seen = new Set();
+      function addDatalistOption(val) {
+        if (!val || seen.has(val)) return;
+        seen.add(val);
         var opt = document.createElement('option');
         opt.value = val;
-        opt.textContent = val;
-        custGroup.appendChild(opt);
-      });
-      dom.triggerType.appendChild(custGroup);
+        dl.appendChild(opt);
+      }
+      Object.keys(triggerTemplates)
+        .filter(function (k) {
+          return typeof triggerTemplates[k] === 'object' && triggerTemplates[k].payload;
+        })
+        .sort()
+        .forEach(addDatalistOption);
+      quickMenuTriggers.slice().sort().forEach(addDatalistOption);
     }
-
-    if (dom.triggerType.options.length === 0) {
-      var empty = document.createElement('option');
-      empty.value = '';
-      empty.textContent = '— No triggers — add from schema below';
-      dom.triggerType.appendChild(empty);
-    }
-
-    if (prev && dom.triggerType.querySelector('option[value="' + CSS.escape(prev) + '"]')) {
-      dom.triggerType.value = prev;
-    }
+    if (prev) dom.triggerType.value = prev;
     updateTriggerDesc();
     updateRemoveBtn();
+    populateMyTriggersPanel();
     populateSchemaTypesPanel();
   }
 
   function updateRemoveBtn() {
     if (!dom.removeTriggerBtn) return;
-    var key = dom.triggerType.value;
-    var isCustom = customTriggers.some(function (t) { return (typeof t === 'string' ? t : t.value) === key; });
+    var key = (dom.triggerType.value || '').trim();
+    var isCustom = isInCustomLibrary(key);
     dom.removeTriggerBtn.hidden = !isCustom;
+  }
+
+  function populateMyTriggersPanel() {
+    if (!dom.myTriggersList) return;
+    dom.myTriggersList.innerHTML = '';
+
+    var keys = customTriggers.map(function (t) { return triggerKey(t); }).filter(Boolean);
+    keys.sort();
+
+    if (dom.myTriggersCount) {
+      dom.myTriggersCount.textContent = keys.length > 0 ? '(' + keys.length + ' saved)' : '';
+    }
+
+    if (keys.length === 0) {
+      dom.myTriggersList.innerHTML = '<p class="field-hint">No saved triggers yet — use <strong>+ Add</strong> under Schema event types or <strong>Add to my triggers</strong> above.</p>';
+      return;
+    }
+
+    keys.forEach(function (eventType) {
+      var inMenu = quickMenuTriggers.indexOf(eventType) >= 0;
+
+      var row = document.createElement('div');
+      row.className = 'et-schema-type-row';
+
+      var name = document.createElement('span');
+      name.className = 'et-schema-type-name';
+      name.textContent = eventType;
+      row.appendChild(name);
+
+      var badge = document.createElement('span');
+      badge.className = 'et-my-triggers-badge';
+      badge.textContent = inMenu ? 'In dropdown' : 'Not in dropdown';
+      row.appendChild(badge);
+
+      if (inMenu) {
+        var rmMenu = document.createElement('button');
+        rmMenu.type = 'button';
+        rmMenu.className = 'et-schema-type-add et-my-triggers-btn--ghost';
+        rmMenu.textContent = 'Remove from dropdown';
+        rmMenu.title = 'Hide from type-ahead; keeps saved trigger';
+        rmMenu.addEventListener('click', function () { removeFromQuickMenuOnly(eventType); });
+        row.appendChild(rmMenu);
+      } else {
+        var addMenu = document.createElement('button');
+        addMenu.type = 'button';
+        addMenu.className = 'et-schema-type-add';
+        addMenu.textContent = 'Add to dropdown';
+        addMenu.title = 'Show in type-ahead shortcuts';
+        addMenu.addEventListener('click', function () { addToQuickMenuOnly(eventType); });
+        row.appendChild(addMenu);
+      }
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'et-my-triggers-delete';
+      del.textContent = 'Delete saved';
+      del.title = 'Remove from My triggers and from Firebase';
+      del.addEventListener('click', function () { removeCustomTrigger(eventType); });
+      row.appendChild(del);
+
+      dom.myTriggersList.appendChild(row);
+    });
+  }
+
+  function addToQuickMenuOnly(eventType) {
+    if (!eventType || quickMenuTriggers.indexOf(eventType) >= 0) return;
+    if (!isInCustomLibrary(eventType) && !isTemplatePayloadKey(eventType)) return;
+    quickMenuTriggers.push(eventType);
+    sanitizeQuickMenuTriggers();
+    rebuildTriggerSelect();
+    persistTriggersState();
+  }
+
+  function removeFromQuickMenuOnly(eventType) {
+    quickMenuTriggers = quickMenuTriggers.filter(function (k) { return k !== eventType; });
+    sanitizeQuickMenuTriggers();
+    rebuildTriggerSelect();
+    saveConfigField({ quickMenuTriggers: quickMenuTriggers });
   }
 
   function populateSchemaTypesPanel() {
@@ -273,7 +376,7 @@
 
     var inSelect = new Set();
     Object.keys(triggerTemplates).forEach(function (k) { inSelect.add(k); });
-    customTriggers.forEach(function (t) { inSelect.add(typeof t === 'string' ? t : t.value); });
+    customTriggers.forEach(function (t) { inSelect.add(triggerKey(t)); });
 
     var available = schemaEventTypes.filter(function (et) { return !inSelect.has(et.value); });
 
@@ -320,19 +423,27 @@
   }
 
   function addCustomTrigger(eventType) {
-    if (customTriggers.some(function (t) { return (typeof t === 'string' ? t : t.value) === eventType; })) return;
-    customTriggers.push(eventType);
+    if (!eventType) return;
+    if (!customTriggers.some(function (t) { return triggerKey(t) === eventType; })) {
+      customTriggers.push(eventType);
+    }
+    if (quickMenuTriggers.indexOf(eventType) < 0) {
+      quickMenuTriggers.push(eventType);
+    }
+    sanitizeQuickMenuTriggers();
     rebuildTriggerSelect();
     dom.triggerType.value = eventType;
     updateTriggerDesc();
     updateRemoveBtn();
-    saveConfigField({ customTriggers: customTriggers });
+    persistTriggersState();
   }
 
   function removeCustomTrigger(eventType) {
-    customTriggers = customTriggers.filter(function (t) { return (typeof t === 'string' ? t : t.value) !== eventType; });
+    customTriggers = customTriggers.filter(function (t) { return triggerKey(t) !== eventType; });
+    quickMenuTriggers = quickMenuTriggers.filter(function (k) { return k !== eventType; });
+    sanitizeQuickMenuTriggers();
     rebuildTriggerSelect();
-    saveConfigField({ customTriggers: customTriggers });
+    persistTriggersState();
   }
 
   /* ═══════════ Step 1 — Create Schema ═══════════ */
@@ -437,6 +548,15 @@
         if (r.datasetName) { dom.datasetName.value = r.datasetName; parts.push('Dataset: ' + r.datasetName); }
         if (r.datastreamId) { dom.dsInput.value = r.datastreamId; parts.push('Datastream: ' + r.datastreamId); }
         customTriggers = Array.isArray(r.customTriggers) ? r.customTriggers : [];
+        if (Array.isArray(r.quickMenuTriggers)) {
+          quickMenuTriggers = r.quickMenuTriggers.map(function (x) { return typeof x === 'string' ? x : triggerKey(x); }).filter(Boolean);
+        } else if (customTriggers.length > 0) {
+          quickMenuTriggers = customTriggers.map(function (t) { return triggerKey(t); }).filter(Boolean);
+          persistTriggersState();
+        } else {
+          quickMenuTriggers = [];
+        }
+        sanitizeQuickMenuTriggers();
         rebuildTriggerSelect();
         if (parts.length > 0) {
           setMsg(dom.infraMsg, 'Loaded from Firebase — ' + parts.join('  ·  '), 'success');
@@ -553,7 +673,7 @@
   }
 
   function updateTriggerDesc() {
-    const key = dom.triggerType.value;
+    const key = (dom.triggerType.value || '').trim();
     const tpl = triggerTemplates[key];
     if (tpl) {
       dom.triggerDesc.textContent = tpl.description || '';
@@ -566,14 +686,53 @@
     updateRemoveBtn();
   }
 
-  dom.triggerType.addEventListener('change', updateTriggerDesc);
+  if (dom.triggerType) {
+    dom.triggerType.addEventListener('change', updateTriggerDesc);
+    dom.triggerType.addEventListener('input', updateTriggerDesc);
+  }
+
+  if (dom.addTriggerBtn) {
+    dom.addTriggerBtn.addEventListener('click', function () {
+      var raw = (dom.triggerType.value || '').trim();
+      if (!raw) {
+        setMsg(dom.sendMsg, 'Enter an event type in the field first.', 'error');
+        return;
+      }
+      if (isInCustomLibrary(raw)) {
+        if (quickMenuTriggers.indexOf(raw) < 0) {
+          addToQuickMenuOnly(raw);
+          setMsg(dom.sendMsg, 'Added to dropdown shortcuts.', 'success');
+        } else {
+          setMsg(dom.sendMsg, 'Already saved and listed in the dropdown.', '');
+        }
+        return;
+      }
+      addCustomTrigger(raw);
+      setMsg(dom.sendMsg, 'Saved to My triggers and added to dropdown (Firebase).', 'success');
+    });
+  }
 
   if (dom.removeTriggerBtn) {
     dom.removeTriggerBtn.addEventListener('click', function () {
-      var key = dom.triggerType.value;
+      var key = (dom.triggerType.value || '').trim();
       if (!key) return;
       removeCustomTrigger(key);
     });
+  }
+
+  /** After a successful Edge send, persist non-template event types to My triggers for next time. */
+  function persistQuickTriggerIfNeededAfterSend() {
+    var key = (dom.triggerType.value || '').trim();
+    if (!key) return;
+    var tpl = triggerTemplates[key];
+    if (tpl && tpl.payload) return;
+    if (isInCustomLibrary(key)) {
+      if (quickMenuTriggers.indexOf(key) < 0) {
+        addToQuickMenuOnly(key);
+      }
+      return;
+    }
+    addCustomTrigger(key);
   }
 
   /* ═══════════ Build request body ═══════════ */
@@ -590,8 +749,8 @@
     }
 
     if (activeMode === 'trigger') {
-      const key = dom.triggerType.value;
-      if (!key) return { error: 'Select an event type.' };
+      const key = (dom.triggerType.value || '').trim();
+      if (!key) return { error: 'Enter or select an event type.' };
       const tpl = triggerTemplates[key];
       if (tpl && tpl.payload) {
         body.triggerTemplate = tpl.payload;
@@ -737,6 +896,7 @@
         let idPart = '';
         if (data.requestId) idPart = ' — requestId: ' + data.requestId;
         setMsg(dom.sendMsg, 'Event sent successfully.' + idPart, 'success');
+        if (activeMode === 'trigger') persistQuickTriggerIfNeededAfterSend();
       }
     } catch (e) {
       setMsg(dom.sendMsg, e.message || 'Network error', 'error');
@@ -751,8 +911,10 @@
     resolvedEcid = '';
     resolvedEmail = '';
     customTriggers = [];
+    quickMenuTriggers = [];
     schemaEventTypes = [];
     dom.dsInput.value = '';
+    if (dom.triggerType) dom.triggerType.value = '';
     dom.profileInfo.hidden = true;
     setMsg(dom.profileMsg, '', '');
     setMsg(dom.connectionMsg, '', '');

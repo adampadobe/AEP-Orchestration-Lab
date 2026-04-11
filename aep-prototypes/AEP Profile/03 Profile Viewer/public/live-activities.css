@@ -1,0 +1,110 @@
+/* Live activities — AJO unitary execution helper */
+
+.live-activities-main .consent-panel {
+  max-width: 960px;
+}
+
+.la-intro {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--aep-text-muted, #5c5f66);
+}
+
+.la-note {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  border-radius: 8px;
+  background: var(--aep-surface-2, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--aep-border, rgba(0, 0, 0, 0.08));
+}
+
+.la-grid {
+  display: grid;
+  gap: 0.75rem 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  align-items: end;
+}
+
+.la-grid--full {
+  grid-template-columns: 1fr;
+}
+
+.la-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--aep-text-secondary, #3d4047);
+}
+
+.la-field input[type="text"],
+.la-field input[type="number"],
+.la-field select,
+.la-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--aep-border, rgba(0, 0, 0, 0.12));
+  background: var(--aep-input-bg, #fff);
+  color: inherit;
+}
+
+.la-field textarea.la-json {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  min-height: 140px;
+  resize: vertical;
+}
+
+.la-field textarea.la-token {
+  min-height: 4.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+}
+
+.la-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.la-actions .btn {
+  margin: 0;
+}
+
+.la-response {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: var(--aep-surface-2, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--aep-border, rgba(0, 0, 0, 0.08));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.la-response.la-response--err {
+  border-color: rgba(180, 60, 60, 0.35);
+  background: rgba(180, 60, 60, 0.06);
+}
+
+.la-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--aep-text-muted, #6b6f78);
+}

@@ -290,6 +290,99 @@ exports.aepProxy = onRequest(
   }
 );
 
+const AJO_UNITARY_EXECUTIONS_URL = `${BASE_PLATFORM}/ajo/im/executions/unitary`;
+
+/**
+ * POST /api/ajo/live-activity — AJO in-app messaging unitary execution (Live Activity push).
+ * Uses caller-supplied IMS org, API key, sandbox, and Bearer token (not server secrets).
+ */
+exports.ajoLiveActivityProxy = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 120,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res);
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+    let body;
+    try {
+      body = typeof req.body === 'object' && req.body !== null ? req.body : JSON.parse(req.rawBody || '{}');
+    } catch (e) {
+      res.status(400).json({ error: 'Invalid JSON body' });
+      return;
+    }
+    const imsOrg = String(body.imsOrg || '').trim();
+    const apiKey = String(body.apiKey || '').trim();
+    const sandboxName = String(body.sandboxName || '').trim();
+    let bearerToken = String(body.bearerToken || '').trim();
+    if (/^bearer\s+/i.test(bearerToken)) {
+      bearerToken = bearerToken.replace(/^bearer\s+/i, '').trim();
+    }
+    const payload = body.payload;
+
+    if (!imsOrg || !apiKey || !sandboxName || !bearerToken) {
+      res.status(400).json({
+        error: 'Missing imsOrg, apiKey, sandboxName, or bearerToken',
+      });
+      return;
+    }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      res.status(400).json({ error: 'payload must be a JSON object' });
+      return;
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'x-gw-ims-org-id': imsOrg.slice(0, 512),
+      'x-api-key': apiKey.slice(0, 256),
+      'x-sandbox-name': sandboxName.slice(0, 120),
+      Authorization: `Bearer ${bearerToken.slice(0, 65536)}`,
+    };
+
+    let upstream;
+    try {
+      upstream = await fetch(AJO_UNITARY_EXECUTIONS_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      res.status(502).json({ error: String(e.message || e) });
+      return;
+    }
+
+    const ct = upstream.headers.get('Content-Type') || '';
+    let platformResponse;
+    if (ct.toLowerCase().includes('json')) {
+      try {
+        platformResponse = await upstream.json();
+      } catch {
+        platformResponse = { raw: await upstream.text() };
+      }
+    } else {
+      const text = await upstream.text();
+      platformResponse = { raw: text.slice(0, 50000) };
+    }
+
+    res.status(upstream.status).json({
+      ok: upstream.ok,
+      status: upstream.status,
+      platform_response: platformResponse,
+      request_url: AJO_UNITARY_EXECUTIONS_URL,
+    });
+  }
+);
+
 /** GET /api/profile/table — same JSON as local Express (Firebase Hosting rewrite). */
 exports.profileTableProxy = onRequest(
   {

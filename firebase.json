@@ -47,6 +47,13 @@
         }
       },
       {
+        "source": "/api/ajo/live-activity",
+        "function": {
+          "functionId": "ajoLiveActivityProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/table",
         "function": {
           "functionId": "profileTableProxy",

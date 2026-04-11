@@ -4023,6 +4023,70 @@ app.post('/api/events/ajo', async (req, res) => {
   }
 });
 
+const AJO_UNITARY_EXECUTIONS_URL = 'https://platform.adobe.io/ajo/im/executions/unitary';
+
+/** POST /api/ajo/live-activity — AJO unitary execution (Live Activity); user-supplied IMS headers + token. */
+app.post('/api/ajo/live-activity', async (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  let imsOrg = String(body.imsOrg || '').trim();
+  let apiKey = String(body.apiKey || '').trim();
+  let sandboxName = String(body.sandboxName || '').trim();
+  let bearerToken = String(body.bearerToken || '').trim();
+  if (/^bearer\s+/i.test(bearerToken)) {
+    bearerToken = bearerToken.replace(/^bearer\s+/i, '').trim();
+  }
+  const payload = body.payload;
+
+  if (!imsOrg || !apiKey || !sandboxName || !bearerToken) {
+    return res.status(400).json({
+      error: 'Missing imsOrg, apiKey, sandboxName, or bearerToken',
+    });
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return res.status(400).json({ error: 'payload must be a JSON object' });
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    'x-gw-ims-org-id': imsOrg.slice(0, 512),
+    'x-api-key': apiKey.slice(0, 256),
+    'x-sandbox-name': sandboxName.slice(0, 120),
+    Authorization: `Bearer ${bearerToken.slice(0, 65536)}`,
+  };
+
+  let upstream;
+  try {
+    upstream = await fetch(AJO_UNITARY_EXECUTIONS_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    return res.status(502).json({ error: String(err.message || err) });
+  }
+
+  const ct = upstream.headers.get('Content-Type') || '';
+  let platformResponse;
+  if (ct.toLowerCase().includes('json')) {
+    try {
+      platformResponse = await upstream.json();
+    } catch {
+      platformResponse = { raw: await upstream.text() };
+    }
+  } else {
+    const text = await upstream.text();
+    platformResponse = { raw: text.slice(0, 50000) };
+  }
+
+  res.status(upstream.status).json({
+    ok: upstream.ok,
+    status: upstream.status,
+    platform_response: platformResponse,
+    request_url: AJO_UNITARY_EXECUTIONS_URL,
+  });
+});
+
 // --- Events Trigger (event-triggers.json: predefined payloads per eventType, ECID injected) ---
 const EVENT_TRIGGERS_PATH = join(__dirname, 'public', 'event-triggers.json');
 const EVENT_TRIGGER_STREAMING_URL = process.env.AEP_TRIGGER_STREAMING_URL || process.env.AEP_EVENT_STREAMING_URL || process.env.AEP_PROFILE_STREAMING_URL;
