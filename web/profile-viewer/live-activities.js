@@ -52,8 +52,8 @@
   var LA_TEMPLATE_STORAGE_KEY = 'aepLaPayloadTemplatesV1';
 
   /**
-   * Postman / lab bundled built-ins (Etihad, KSIA, …) are curated for specific demo sandboxes only.
-   * Other sandboxes see no built-in optgroup — only templates saved for that sandbox (Firestore sync).
+   * Bundled Postman collection bodies (Etihad, KSIA, …) list first under “Saved in this sandbox” on allowed
+   * technical sandboxes only; other sandboxes see only user-saved templates (Firestore sync).
    */
   var LA_POSTMAN_BUILTINS_SANDBOXES = ['apalmer'];
 
@@ -2025,27 +2025,24 @@
     sel.appendChild(ph);
     var showBuiltins = laSandboxShowsPostmanBuiltins() && LA_BUILTIN_TEMPLATES.length;
     var saved = laGetSavedTemplates();
-    if (showBuiltins) {
-      var ogLab = document.createElement('optgroup');
-      ogLab.label = 'Lab samples';
-      LA_BUILTIN_TEMPLATES.forEach(function (t) {
-        var o = document.createElement('option');
-        o.value = t.id;
-        o.textContent = t.name;
-        ogLab.appendChild(o);
-      });
-      sel.appendChild(ogLab);
-    }
-    if (saved.length) {
-      var ogSaved = document.createElement('optgroup');
-      ogSaved.label = 'Saved in this sandbox';
+    if (showBuiltins || saved.length) {
+      var og = document.createElement('optgroup');
+      og.label = 'Saved in this sandbox';
+      if (showBuiltins) {
+        LA_BUILTIN_TEMPLATES.forEach(function (t) {
+          var o = document.createElement('option');
+          o.value = t.id;
+          o.textContent = t.name;
+          og.appendChild(o);
+        });
+      }
       saved.forEach(function (t) {
         var o = document.createElement('option');
         o.value = t.id;
         o.textContent = t.name || t.id;
-        ogSaved.appendChild(o);
+        og.appendChild(o);
       });
-      sel.appendChild(ogSaved);
+      sel.appendChild(og);
     }
     if (
       preserved &&
