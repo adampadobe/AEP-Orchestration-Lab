@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260448">
+  <link rel="stylesheet" href="live-activities.css?v=20260449">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -100,6 +100,28 @@
                 <div class="la-field">
                   <label for="laUserId">ECID</label>
                   <input type="text" id="laUserId" autocomplete="off" value="69861237882705185278691173436829507978" spellcheck="false" title="Profile identity value for namespace ECID">
+                </div>
+              </div>
+              <div class="la-exec-sync" aria-describedby="laExecSyncHelp">
+                <p id="laExecSyncHelp" class="la-exec-sync-lead">
+                  Insert values from the fields above into the <strong>Paste JSON</strong> block — paths are resolved on the parsed object (unitary body, <code class="dashboard-code">requestPayload</code>, or <code class="dashboard-code">aps</code>).
+                </p>
+                <div class="la-exec-sync-btns" role="group" aria-label="Inject field values into pasted JSON">
+                  <button type="button" class="btn btn-secondary" id="laInjectCampaign" title="Set top-level campaignId when the JSON has recipients or campaignId">
+                    campaignId → JSON
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="laInjectEcid" title="Set recipients[0].userId from ECID field">
+                    ECID → userId
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="laInjectTimestampSmart" title="Set aps.timestamp to current Unix seconds">
+                    timestamp → now
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="laInjectUuidSmart" title="Set top-level requestId to a new UUID">
+                    requestId → UUID
+                  </button>
+                  <button type="button" class="btn btn-primary" id="laInjectAllFromFields" title="Apply campaign, ECID, timestamp, and requestId where the JSON shape allows">
+                    Apply all from fields
+                  </button>
                 </div>
               </div>
             </div>
@@ -403,6 +425,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260448"></script>
+  <script defer src="live-activities.js?v=20260449"></script>
 </body>
 </html>

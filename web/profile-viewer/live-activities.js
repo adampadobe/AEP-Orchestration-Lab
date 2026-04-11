@@ -667,6 +667,166 @@
     el.classList.toggle('la-import-msg--err', !!isErr);
   }
 
+  /**
+   * Locate the aps object inside pasted JSON (same shapes as extractUnitaryPayload).
+   * Mutates the clone passed in — returns a reference into that object graph.
+   */
+  function findApsInParsedForMutation(root) {
+    if (!root || typeof root !== 'object') return null;
+    if (root.recipients && Array.isArray(root.recipients) && root.recipients.length) {
+      var r0 = root.recipients[0];
+      if (
+        r0 &&
+        r0.context &&
+        r0.context.requestPayload &&
+        r0.context.requestPayload.aps &&
+        typeof r0.context.requestPayload.aps === 'object' &&
+        !Array.isArray(r0.context.requestPayload.aps)
+      ) {
+        return r0.context.requestPayload.aps;
+      }
+    }
+    if (
+      root.context &&
+      root.context.requestPayload &&
+      root.context.requestPayload.aps &&
+      typeof root.context.requestPayload.aps === 'object' &&
+      !Array.isArray(root.context.requestPayload.aps)
+    ) {
+      return root.context.requestPayload.aps;
+    }
+    if (
+      root.requestPayload &&
+      root.requestPayload.aps &&
+      typeof root.requestPayload.aps === 'object' &&
+      !Array.isArray(root.requestPayload.aps)
+    ) {
+      return root.requestPayload.aps;
+    }
+    if (root.aps && typeof root.aps === 'object' && !Array.isArray(root.aps)) {
+      return root.aps;
+    }
+    if (isProbableApsEnvelope(root)) {
+      return root;
+    }
+    return null;
+  }
+
+  /**
+   * Apply known keys from the execution fields into parsed JSON (structure-aware).
+   * patch: { campaignId?, userId?, requestId?, timestamp? } — omit keys to skip.
+   */
+  function mutateLaImportJson(parsed, patch) {
+    var o = JSON.parse(JSON.stringify(parsed));
+    var changes = [];
+    var missed = [];
+
+    if (o === null || typeof o !== 'object' || Array.isArray(o)) {
+      return { obj: o, changes: changes, missed: ['root must be a JSON object { … }'] };
+    }
+
+    var hasRecip =
+      o.recipients &&
+      Array.isArray(o.recipients) &&
+      o.recipients.length > 0 &&
+      o.recipients[0] &&
+      typeof o.recipients[0] === 'object';
+    var hasTopCampaign = Object.prototype.hasOwnProperty.call(o, 'campaignId');
+    var hasTopRequest = Object.prototype.hasOwnProperty.call(o, 'requestId');
+    var unitaryScope = hasRecip || hasTopCampaign || hasTopRequest;
+
+    if (patch.campaignId != null && String(patch.campaignId).trim() !== '') {
+      if (hasRecip || hasTopCampaign) {
+        o.campaignId = String(patch.campaignId).trim();
+        changes.push('campaignId');
+      } else {
+        missed.push('campaignId (needs recipients[] or an existing campaignId key)');
+      }
+    }
+
+    if (patch.requestId != null && String(patch.requestId).trim() !== '') {
+      if (unitaryScope || hasTopRequest) {
+        o.requestId = String(patch.requestId).trim();
+        changes.push('requestId');
+      } else {
+        missed.push('requestId (needs unitary shape: recipients, campaignId, or requestId)');
+      }
+    }
+
+    if (patch.userId != null && String(patch.userId).trim() !== '') {
+      var uid = String(patch.userId).trim();
+      if (hasRecip) {
+        o.recipients[0].userId = uid;
+        changes.push('recipients[0].userId');
+      } else if (
+        Object.prototype.hasOwnProperty.call(o, 'userId') &&
+        o.context &&
+        o.context.requestPayload
+      ) {
+        o.userId = uid;
+        changes.push('userId');
+      } else {
+        missed.push('userId (needs recipients[0] or a recipient-shaped object with userId)');
+      }
+    }
+
+    if (patch.timestamp != null && Number.isFinite(Number(patch.timestamp))) {
+      var aps = findApsInParsedForMutation(o);
+      if (aps) {
+        aps.timestamp = Number(patch.timestamp);
+        changes.push('aps.timestamp');
+      } else {
+        missed.push('timestamp (no aps block found — include requestPayload.aps or a full unitary body)');
+      }
+    }
+
+    return { obj: o, changes: changes, missed: missed };
+  }
+
+  function afterImportPasteMutation() {
+    var treeTab = $('laPayloadTabTree');
+    if (treeTab && treeTab.getAttribute('aria-selected') === 'true') {
+      renderPasteTree();
+    }
+  }
+
+  /**
+   * Writes formatted JSON back to #laImportPaste. Shows combined success / skip hints.
+   * @returns {boolean} true if at least one field was updated
+   */
+  function injectLaImportPaste(patch) {
+    var ta = $('laImportPaste');
+    if (!ta || !String(ta.value || '').trim()) {
+      showImportMsg('Paste JSON in the unitary editor first.', true);
+      return false;
+    }
+    var parsed;
+    try {
+      parsed = parseUserJson(ta.value);
+    } catch (e) {
+      showImportMsg('Invalid JSON — ' + (e.message || e), true);
+      return false;
+    }
+    var result = mutateLaImportJson(parsed, patch);
+    if (!result.changes.length) {
+      var hint = result.missed && result.missed.length ? result.missed.join(' ') : 'Nothing matched this JSON shape.';
+      showImportMsg(hint, true);
+      return false;
+    }
+    ta.value = formatJsonTextarea(result.obj);
+    bumpJsonMirror(ta);
+    try {
+      ta.focus();
+    } catch (e) {}
+    afterImportPasteMutation();
+    var msg = 'Updated ' + result.changes.join(', ') + '.';
+    if (result.missed && result.missed.length) {
+      msg += ' Skipped: ' + result.missed.join('; ') + '.';
+    }
+    showImportMsg(msg, false);
+    return true;
+  }
+
   /** Tree tab: large viewport (svh) so expanded JSON is readable; cleared when leaving Tree. */
   function setLaTreeViewportMaximized(on) {
     var panel = $('laPayloadTreePanel');
@@ -1227,52 +1387,40 @@
   }
 
   function replaceTimestampInImportPaste() {
-    var ta = $('laImportPaste');
-    if (!ta) return;
-    var ts = Math.floor(Date.now() / 1000);
-    var v = ta.value;
-    if (!String(v || '').trim()) {
-      showImportMsg('Paste JSON first (or add a "timestamp" key to edit).', true);
-      return;
-    }
-    if (!/"timestamp"\s*:/.test(v)) {
-      showImportMsg('No "timestamp" key in the editor — paste a template that includes it, or Beautify after adding one.', true);
-      return;
-    }
-    var next = v.replace(
-      /"timestamp"\s*:\s*(\{\{[^{}]+\}\}|-?[0-9]+|"[^"]*")/g,
-      '"timestamp": ' + ts
-    );
-    ta.value = next;
-    bumpJsonMirror(ta);
-    showImportMsg('Set timestamp to ' + ts + ' (Unix seconds) in the editor.', false);
+    injectLaImportPaste({ timestamp: Math.floor(Date.now() / 1000) });
   }
 
   function replaceRequestIdInImportPaste() {
-    var ta = $('laImportPaste');
-    if (!ta) return;
-    var rid = randomUuid();
-    var v = ta.value;
-    if (!String(v || '').trim()) {
-      showImportMsg('Paste JSON first.', true);
+    injectLaImportPaste({ requestId: randomUuid() });
+  }
+
+  function injectCampaignFromField() {
+    var c = String($('laCampaignId') && $('laCampaignId').value || '').trim();
+    if (!c) {
+      showImportMsg('Enter campaignId in the field above.', true);
       return;
     }
-    if (/"requestId"\s*:/.test(v)) {
-      ta.value = v.replace(
-        /"requestId"\s*:\s*(\{\{[^{}]+\}\}|"[^"]*"|'[^']*')/,
-        '"requestId": "' + rid + '"'
-      );
-    } else {
-      var trimmed = String(v).trim();
-      if (trimmed.indexOf('{') === 0) {
-        ta.value = v.replace(/^\s*\{/, '{\n  "requestId": "' + rid + '",');
-      } else {
-        showImportMsg('Could not insert requestId — JSON should start with {.', true);
-        return;
-      }
+    injectLaImportPaste({ campaignId: c });
+  }
+
+  function injectEcidFromField() {
+    var u = String($('laUserId') && $('laUserId').value || '').trim();
+    if (!u) {
+      showImportMsg('Enter ECID (or use Get profile to resolve it).', true);
+      return;
     }
-    bumpJsonMirror(ta);
-    showImportMsg('Set requestId to a new UUID in the editor.', false);
+    injectLaImportPaste({ userId: u });
+  }
+
+  function injectAllFromExecutionFields() {
+    var patch = {};
+    var c = String($('laCampaignId') && $('laCampaignId').value || '').trim();
+    var u = String($('laUserId') && $('laUserId').value || '').trim();
+    if (c) patch.campaignId = c;
+    if (u) patch.userId = u;
+    patch.requestId = randomUuid();
+    patch.timestamp = Math.floor(Date.now() / 1000);
+    injectLaImportPaste(patch);
   }
 
   function onLaJsonPanelPaste(e) {
@@ -1572,6 +1720,16 @@
     if (insTs) insTs.addEventListener('click', replaceTimestampInImportPaste);
     var insRid = $('laPasteInsertRequestId');
     if (insRid) insRid.addEventListener('click', replaceRequestIdInImportPaste);
+    var injCamp = $('laInjectCampaign');
+    if (injCamp) injCamp.addEventListener('click', injectCampaignFromField);
+    var injEcid = $('laInjectEcid');
+    if (injEcid) injEcid.addEventListener('click', injectEcidFromField);
+    var injTsSmart = $('laInjectTimestampSmart');
+    if (injTsSmart) injTsSmart.addEventListener('click', replaceTimestampInImportPaste);
+    var injUuidSmart = $('laInjectUuidSmart');
+    if (injUuidSmart) injUuidSmart.addEventListener('click', replaceRequestIdInImportPaste);
+    var injAll = $('laInjectAllFromFields');
+    if (injAll) injAll.addEventListener('click', injectAllFromExecutionFields);
 
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('.la-json-beautify');
