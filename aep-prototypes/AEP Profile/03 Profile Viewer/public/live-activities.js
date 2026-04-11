@@ -1928,28 +1928,26 @@
     ph.value = '';
     ph.textContent = 'Select a template…';
     sel.appendChild(ph);
-    if (laSandboxShowsPostmanBuiltins() && LA_BUILTIN_TEMPLATES.length) {
-      var og1 = document.createElement('optgroup');
-      og1.label = 'Lab samples (Postman)';
-      LA_BUILTIN_TEMPLATES.forEach(function (t) {
-        var o = document.createElement('option');
-        o.value = t.id;
-        o.textContent = t.name;
-        og1.appendChild(o);
-      });
-      sel.appendChild(og1);
-    }
+    var showBuiltins = laSandboxShowsPostmanBuiltins() && LA_BUILTIN_TEMPLATES.length;
     var saved = laGetSavedTemplates();
-    if (saved.length) {
-      var og2 = document.createElement('optgroup');
-      og2.label = 'Saved for this sandbox';
+    if (showBuiltins || saved.length) {
+      var og = document.createElement('optgroup');
+      og.label = 'My templates';
+      if (showBuiltins) {
+        LA_BUILTIN_TEMPLATES.forEach(function (t) {
+          var o = document.createElement('option');
+          o.value = t.id;
+          o.textContent = t.name;
+          og.appendChild(o);
+        });
+      }
       saved.forEach(function (t) {
         var o = document.createElement('option');
         o.value = t.id;
         o.textContent = t.name || t.id;
-        og2.appendChild(o);
+        og.appendChild(o);
       });
-      sel.appendChild(og2);
+      sel.appendChild(og);
     }
     if (
       preserved &&
@@ -2031,7 +2029,7 @@
     var sel = $('laTemplateSelect');
     if (sel) sel.value = id;
     laUpdateTemplateDeleteState();
-    laShowTemplateMsg('Saved for this sandbox.', false);
+    laShowTemplateMsg('Saved to My templates.', false);
   }
 
   function laDeleteSelectedTemplate() {
