@@ -10,93 +10,9 @@
   margin-right: auto;
 }
 
-/* Full-width strip: 3 stacked boxes below hero (journeys-style cards) */
-.live-activities-page .la-context-strip {
-  width: 100%;
-  margin: 0 0 1.5rem;
-  box-sizing: border-box;
-}
-
-.live-activities-page .la-context-strip__stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.live-activities-page .la-context-box {
-  border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.1));
-  border-radius: 12px;
-  background: var(--dash-surface, #fff);
-  box-shadow: var(--dash-shadow, 0 1px 2px rgba(15, 15, 25, 0.06));
-  padding: 1rem 1.15rem 1.1rem;
-  box-sizing: border-box;
-}
-
-.live-activities-page .la-context-box__title {
-  display: block;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--dash-muted, #5c5f66);
-  margin: 0 0 0.5rem;
-}
-
-.live-activities-page .la-context-box--identifier .la-context-box__title {
-  cursor: default;
-}
-
-.live-activities-page .la-context-box__control {
-  width: 100%;
-}
-
-.live-activities-page .la-sandbox-select-wide,
-.live-activities-page .la-profile-id-input {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 0.55rem 0.7rem;
-  border-radius: 8px;
-  border: 1px solid var(--dash-input-border, rgba(0, 0, 0, 0.14));
-  font: inherit;
-  font-size: 0.9375rem;
-  background: var(--dash-input-bg, #fff);
-  color: var(--dash-text, #1a1a1a);
-}
-
-.live-activities-page .la-context-box__hint {
-  margin: 0.5rem 0 0;
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: var(--dash-muted, #6b6f78);
-}
-
-.live-activities-page .la-context-box--query {
-  padding: 0.85rem 1.15rem;
-}
-
-.live-activities-page .la-query-profile-btn {
-  width: 100%;
-  justify-content: center;
-  padding-top: 0.65rem;
-  padding-bottom: 0.65rem;
-  font-size: 0.95rem;
-}
-
-.live-activities-page .la-profile-query-msg {
-  margin-top: 0.65rem;
-}
-
-.live-activities-page .la-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+/* Query profile bar uses profile-viewer.css (#lookupPanel); keep air below hero */
+.live-activities-page #lookupPanel {
+  margin-bottom: 0.25rem;
 }
 
 .la-intro {
