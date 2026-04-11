@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260459">
+  <link rel="stylesheet" href="live-activities.css?v=20260460">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -35,17 +35,21 @@
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
               <h2 id="laBanner" class="dashboard-hero-title">Live activities</h2>
-              <p class="dashboard-hero-subtitle">
-                Unitary execution to AJO in-app messaging — pick a template, fill the execution row, <strong>Apply all from fields</strong>, then <strong>Send to Adobe</strong>.
+              <p class="dashboard-hero-subtitle la-hero-flow">
+                Send a Live Activity push through AJO in four steps:
+                <strong>1)</strong> find the person ·
+                <strong>2)</strong> enter campaign, ECID, Live Activity ID, and event ·
+                <strong>3)</strong> load or paste JSON ·
+                <strong>4)</strong> <strong>Apply all from fields</strong>, then <strong>Send to Adobe</strong>.
               </p>
             </header>
           </div>
         </section>
 
         <section class="consent-panel" id="lookupPanel">
-          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">✦</span> Query profile</h2>
+          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">1</span> Find the person</h2>
           <p class="panel-desc">
-            Select an <strong>identity namespace</strong> and enter the identifier value, then click <strong>Get profile</strong> to resolve <strong>ECID</strong> for the unitary payload below — same layout as Profile Viewer.
+            Choose how you’re looking them up (email, ECID, etc.), enter the value, then <strong>Get profile</strong>. When a profile is found, <strong>ECID</strong> is filled in for step 2.
           </p>
           <div class="profile-gen-config">
             <div class="config-row">
@@ -78,25 +82,29 @@
         </section>
 
         <section class="consent-panel" id="laPanel">
-          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">◆</span> Unitary execution</h2>
+          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">2–4</span> Build &amp; send the unitary message</h2>
           <p class="panel-desc la-panel-lead la-panel-lead--compact">
-            <code class="dashboard-code">POST /ajo/im/executions/unitary</code> via this app’s proxy (auth server-side). Use <strong>Query profile</strong> for ECID, then templates + execution fields below.
+            <strong>2)</strong> Enter the values below (they must match your campaign and device).
+            <strong>3)</strong> Load a template or paste JSON.
+            <strong>4)</strong> Click <strong>Apply all from fields</strong>, then <strong>Send to Adobe</strong>.
+            <span class="la-panel-meta">Uses <code class="dashboard-code">POST /ajo/im/executions/unitary</code> via this app’s proxy.</span>
           </p>
 
           <div class="profile-box la-unitary-card">
-            <h3 class="la-subpanel-title"><span class="profile-box-icon" aria-hidden="true">✦</span> Execution &amp; recipient</h3>
+            <h3 class="la-subpanel-title"><span class="profile-box-icon" aria-hidden="true">2</span> Campaign &amp; recipient</h3>
             <div class="profile-box-content">
               <p class="la-ts-note la-ts-note--compact" role="note">
-                <strong>Preview / Send</strong> use the <strong>Paste JSON</strong> body when it’s filled; otherwise the optional form editor below. Each send gets a fresh <code class="dashboard-code">requestId</code> and <code class="dashboard-code">timestamp</code>.
+                Check these match your AJO setup. Each send refreshes <code class="dashboard-code">requestId</code> and <code class="dashboard-code">timestamp</code> when you use <strong>Apply all from fields</strong> or send.
               </p>
               <div class="la-grid la-grid--exec">
                 <div class="la-field">
-                  <label for="laCampaignId">campaignId</label>
-                  <input type="text" id="laCampaignId" autocomplete="off" value="43a8ba87-81c0-4e0c-86ec-8bdb4faf2e85" spellcheck="false">
+                  <label for="laCampaignId">Campaign ID</label>
+                  <input type="text" id="laCampaignId" autocomplete="off" value="43a8ba87-81c0-4e0c-86ec-8bdb4faf2e85" spellcheck="false" aria-describedby="laCampaignHint">
+                  <span id="laCampaignHint" class="la-field-hint">AJO campaign UUID</span>
                 </div>
                 <div class="la-field">
-                  <label for="laUserId">ECID</label>
-                  <input type="text" id="laUserId" autocomplete="off" value="69861237882705185278691173436829507978" spellcheck="false" title="Profile identity value for namespace ECID">
+                  <label for="laUserId">ECID (recipient)</label>
+                  <input type="text" id="laUserId" autocomplete="off" value="69861237882705185278691173436829507978" spellcheck="false" title="Must match namespace ECID in the payload">
                 </div>
                 <div class="la-field">
                   <label for="laLiveActivityId">Live Activity ID</label>
@@ -105,12 +113,12 @@
                     id="laLiveActivityId"
                     autocomplete="off"
                     spellcheck="false"
-                    title="Written to aps.attributes.liveActivityData.liveActivityID (Apple push token)"
-                    placeholder="aps.attributes.liveActivityData.liveActivityID"
+                    title="Apple Live Activity token — written into the JSON"
+                    placeholder="From your app / push setup"
                   >
                 </div>
                 <div class="la-field">
-                  <label for="laEvent">event</label>
+                  <label for="laEvent">Event</label>
                   <select id="laEvent" aria-label="Live activity event">
                     <option value="start" selected>start</option>
                     <option value="update">update</option>
@@ -120,42 +128,47 @@
               </div>
               <div class="la-exec-sync" aria-describedby="laExecSyncHelp">
                 <p id="laExecSyncHelp" class="la-exec-sync-lead">
-                  Insert values from the fields above into the <strong>Paste JSON</strong> block — paths are resolved on the parsed object (unitary body, <code class="dashboard-code">requestPayload</code>, or <code class="dashboard-code">aps</code>, including <code class="dashboard-code">event</code> and <code class="dashboard-code">liveActivityID</code> under attributes).
+                  After your JSON is in the box below, use <strong class="la-exec-sync-primary">Apply all from fields</strong> to copy campaign ID, ECID, event, Live Activity ID, and fresh ids/time into the payload.
                 </p>
-                <div class="la-exec-sync-btns" role="group" aria-label="Inject field values into pasted JSON">
-                  <button type="button" class="btn btn-secondary" id="laInjectCampaign" title="Set top-level campaignId when the JSON has recipients or campaignId">
-                    campaignId → JSON
-                  </button>
-                  <button type="button" class="btn btn-secondary" id="laInjectEcid" title="Set recipients[0].userId from ECID field">
-                    ECID → userId
-                  </button>
-                  <button type="button" class="btn btn-secondary" id="laInjectTimestampSmart" title="Set aps.timestamp to current Unix seconds">
-                    timestamp → now
-                  </button>
-                  <button type="button" class="btn btn-secondary" id="laInjectUuidSmart" title="Set top-level requestId to a new UUID">
-                    requestId → UUID
-                  </button>
-                  <button type="button" class="btn btn-secondary" id="laInjectLiveActivity" title="Set aps.attributes.liveActivityData.liveActivityID from the field above">
-                    Live Activity ID → JSON
-                  </button>
-                  <button type="button" class="btn btn-secondary" id="laInjectEvent" title="Set aps.event from the dropdown (start, update, end)">
-                    event → JSON
-                  </button>
-                  <button type="button" class="btn btn-primary" id="laInjectAllFromFields" title="Apply campaign, ECID, event, Live Activity ID, timestamp, and requestId where the JSON shape allows">
+                <div class="la-apply-all-row">
+                  <button type="button" class="btn btn-primary btn-la-apply-all" id="laInjectAllFromFields" title="Apply campaign, ECID, event, Live Activity ID, timestamp, and requestId">
                     Apply all from fields
                   </button>
                 </div>
+                <details class="la-inject-advanced">
+                  <summary>Optional: update one value in the JSON</summary>
+                  <div class="la-exec-sync-btns" role="group" aria-label="Inject a single field into pasted JSON">
+                    <button type="button" class="btn btn-secondary" id="laInjectCampaign" title="Set campaignId in JSON">
+                      Campaign ID → JSON
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="laInjectEcid" title="Set recipients[0].userId from ECID field">
+                      ECID → userId
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="laInjectTimestampSmart" title="Set aps.timestamp to now">
+                      timestamp → now
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="laInjectUuidSmart" title="Set requestId to a new UUID">
+                      requestId → UUID
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="laInjectLiveActivity" title="Set Live Activity ID in JSON">
+                      Live Activity ID → JSON
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="laInjectEvent" title="Set aps.event">
+                      event → JSON
+                    </button>
+                  </div>
+                </details>
               </div>
             </div>
 
-            <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">◆</span> APS payload</h3>
+            <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">3</span> Message JSON</h3>
             <div class="profile-box-content">
               <div class="la-payload-workspace" id="laPayloadWorkspace">
                 <div class="la-template-bar" id="laTemplateBar" aria-label="Payload templates">
                   <div class="la-template-bar-head">
                     <label for="laTemplateSelect" class="la-template-bar-label">Templates</label>
                     <p class="la-template-bar-lead">
-                      Built-in Etihad / KSIA starters and your saved bodies (stored in this browser). Load one, tweak JSON, <strong>Apply all from fields</strong>, send.
+                      Pick a built-in or saved template, then <strong>Load</strong>. Or paste your own JSON. Use <strong>Save as…</strong> to keep a copy in this browser.
                     </p>
                   </div>
                   <div class="la-template-bar-row">
@@ -172,9 +185,9 @@
                 </div>
                 <div class="la-payload-view-head">
                   <p class="la-payload-view-lead la-payload-view-lead--compact">
-                    <strong>Paste JSON</strong> is the main editor. <strong>Tree</strong> for browsing; optional <strong>Form</strong> for small edits.
+                    Edit the full unitary body here, or use <strong>Tree</strong> to browse. <strong>Beautify</strong> fixes Postman-style placeholders. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify.
                   </p>
-                  <div class="la-payload-view-toggle" role="tablist" aria-label="APS payload editor">
+                  <div class="la-payload-view-toggle" role="tablist" aria-label="JSON editor view">
                     <button
                       type="button"
                       id="laPayloadTabPaste"
@@ -195,16 +208,6 @@
                     >
                       Tree
                     </button>
-                    <button
-                      type="button"
-                      id="laPayloadTabForm"
-                      class="la-payload-tab"
-                      role="tab"
-                      aria-selected="false"
-                      aria-controls="laPayloadFormPanel"
-                    >
-                      Form
-                    </button>
                   </div>
                 </div>
 
@@ -215,16 +218,15 @@
                     class="la-json la-import-paste"
                     spellcheck="false"
                     rows="18"
-                    placeholder="Load a template or paste JSON. Postman-style {{placeholders}} are fixed when you Beautify. Ctrl/⌘+Enter fills the optional form."
-                    title="Full unitary body preferred for Preview/Send"
+                    placeholder="Load a template above, or paste JSON from Postman. Then use Apply all from fields (step 2), Preview, and Send."
+                    title="Required for Preview and Send"
                     aria-describedby="laImportPasteHint"
                   ></textarea>
                   <p id="laImportPasteHint" class="la-import-title-hint">
-                    <strong>Beautify</strong> quotes placeholders. <strong>Apply all from fields</strong> fills IDs and times. Clear this box to use only the advanced form editor.
+                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. Use <strong>Apply all from fields</strong> above to inject campaign, ECID, event, Live Activity ID, and fresh request/time.
                   </p>
                   <div class="la-import-actions">
                     <button type="button" class="btn btn-secondary" id="laImportBeautify">Beautify</button>
-                    <button type="button" class="btn btn-secondary" id="laImportApply">Parse &amp; fill form</button>
                     <span id="laImportMsg" class="la-import-msg" hidden role="status"></span>
                   </div>
                 </div>
@@ -280,7 +282,8 @@
                   </div>
                 </div>
 
-                <div id="laPayloadFormPanel" class="la-payload-panel" role="tabpanel" hidden aria-labelledby="laPayloadTabForm">
+                <!-- Parked: full form editor (may return later). Hidden via JS; keep ids for laContentState / laAttributes / laAlert used by Apply-all internals. -->
+                <div id="laPayloadFormPanel" class="la-payload-panel la-payload-panel--parked" role="tabpanel" hidden aria-hidden="true" data-la-parked="form-editor">
                   <details class="la-advanced-form" id="laAdvancedFormDetails">
                     <summary class="la-advanced-form-summary">Advanced: form editor (when not using Paste JSON)</summary>
                   <p class="la-section-title">Scalars</p>
@@ -375,8 +378,9 @@
                 </div>
               </div>
 
-              <div class="la-actions">
-                <button type="button" class="btn btn-secondary" id="laPreviewBtn">Preview JSON body</button>
+              <div class="la-actions la-actions--send">
+                <p class="la-send-step"><span class="la-send-step-num">4</span> Review and send</p>
+                <button type="button" class="btn btn-secondary" id="laPreviewBtn">Preview JSON (what will be sent)</button>
                 <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
               </div>
               <pre id="laPreview" class="la-response" hidden aria-live="polite"></pre>
@@ -394,6 +398,6 @@
   <script defer src="firebase-database-config.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260459"></script>
+  <script defer src="live-activities.js?v=20260460"></script>
 </body>
 </html>

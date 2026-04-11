@@ -972,7 +972,7 @@
   function injectLaImportPaste(patch) {
     var ta = $('laImportPaste');
     if (!ta || !String(ta.value || '').trim()) {
-      showImportMsg('Paste JSON in the unitary editor first.', true);
+      showImportMsg('Load a template or paste JSON in the unitary editor first.', true);
       return false;
     }
     var parsed;
@@ -1010,21 +1010,23 @@
     if (viewport) viewport.classList.toggle('la-paste-tree-viewport--max', !!on);
   }
 
-  /** RTDB-style: primary “Paste JSON” vs editable “Form” for the APS workspace */
+  /** Paste JSON vs Tree. Form editor is parked (hidden) — map legacy "form" to paste. */
   function setPayloadView(mode) {
+    if (mode === 'form') mode = 'paste';
     var pasteTab = $('laPayloadTabPaste');
     var treeTab = $('laPayloadTabTree');
-    var formTab = $('laPayloadTabForm');
     var pastePanel = $('laPayloadPastePanel');
     var treePanel = $('laPayloadTreePanel');
     var formPanel = $('laPayloadFormPanel');
-    if (!pastePanel || !formPanel) return;
+    if (!pastePanel) return;
     var showPaste = mode === 'paste';
     var showTree = mode === 'tree';
-    var showForm = mode === 'form';
     pastePanel.hidden = !showPaste;
     if (treePanel) treePanel.hidden = !showTree;
-    formPanel.hidden = !showForm;
+    if (formPanel) {
+      formPanel.hidden = true;
+      formPanel.setAttribute('aria-hidden', 'true');
+    }
     if (pasteTab) {
       pasteTab.classList.toggle('la-payload-tab--active', showPaste);
       pasteTab.setAttribute('aria-selected', showPaste ? 'true' : 'false');
@@ -1033,10 +1035,6 @@
       treeTab.classList.toggle('la-payload-tab--active', showTree);
       treeTab.setAttribute('aria-selected', showTree ? 'true' : 'false');
     }
-    if (formTab) {
-      formTab.classList.toggle('la-payload-tab--active', showForm);
-      formTab.setAttribute('aria-selected', showForm ? 'true' : 'false');
-    }
     if (treePanel) {
       if (showTree) {
         setLaTreeViewportMaximized(true);
@@ -1044,14 +1042,6 @@
       } else {
         setLaTreeViewportMaximized(false);
       }
-    }
-    if (showForm) {
-      var adv = $('laAdvancedFormDetails');
-      if (adv) adv.open = true;
-      document.querySelectorAll('[data-json-editor]').forEach(function (block) {
-        var ta = block.querySelector('.la-json--panel');
-        if (ta) bumpJsonMirror(ta);
-      });
     }
   }
 
@@ -1638,8 +1628,8 @@
     if (ext) {
       e.preventDefault();
       applyExtracted(ext);
-      setPayloadView('form');
-      showImportMsg('Imported unitary / aps payload — review campaign, ECID, and Form fields below.', false);
+      setPayloadView('paste');
+      showImportMsg('Imported payload into the JSON editor — set step 2 fields, then Apply all from fields.', false);
       return;
     }
     e.preventDefault();
@@ -1659,38 +1649,6 @@
     }
     e.preventDefault();
     insertAtTextareaCursor(e.target, JSON.stringify(parsed, null, 2));
-  }
-
-  function onImportApplyClick() {
-    var ta = $('laImportPaste');
-    var raw = ta && ta.value != null ? String(ta.value).trim() : '';
-    if (!raw) {
-      showImportMsg('Paste JSON first.', true);
-      return;
-    }
-    var parsed;
-    try {
-      parsed = parseUserJson(raw);
-    } catch (err) {
-      showImportMsg('Invalid JSON: ' + (err.message || err), true);
-      return;
-    }
-    var ext = extractUnitaryPayload(parsed);
-    if (!ext) {
-      showImportMsg(
-        'Could not find a unitary payload or aps object. Include recipients[0].context.requestPayload.aps, requestPayload.aps, or the aps { } block.',
-        true
-      );
-      return;
-    }
-    if (applyExtracted(ext)) {
-      showImportMsg('Applied — opening the Form tab. Review fields, then Preview or Send.', false);
-      setPayloadView('form');
-      var ip = $('laImportPaste');
-      if (ip) bumpJsonMirror(ip);
-    } else {
-      showImportMsg('Payload recognized but aps was missing or invalid.', true);
-    }
   }
 
   function initJsonBlock(block) {
@@ -1921,10 +1879,12 @@
 
   function getOutgoingPayload() {
     var raw = String($('laImportPaste') && $('laImportPaste').value || '').trim();
-    if (raw) {
-      return buildPayloadFromImportPaste();
+    if (!raw) {
+      throw new Error(
+        'Load a template or paste JSON in the box (step 3), then use Apply all from fields before Preview or Send.'
+      );
     }
-    return buildPayload();
+    return buildPayloadFromImportPaste();
   }
 
   function laGetSavedTemplates() {
@@ -2034,7 +1994,7 @@
     bumpJsonMirror(ta);
     afterImportPasteMutation();
     setPayloadView('paste');
-    laShowTemplateMsg('Loaded — Beautify, then Apply all from fields.', false);
+    laShowTemplateMsg('Loaded — use Beautify if needed, then Apply all from fields.', false);
   }
 
   function laSaveCurrentAsTemplate() {
@@ -2114,13 +2074,11 @@
       importPaste.addEventListener('keydown', function (e) {
         if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.keyCode === 13)) {
           e.preventDefault();
-          onImportApplyClick();
+          beautifyJsonTextarea($('laImportPaste'), function (msg) {
+            showImportMsg(msg, true);
+          });
         }
       });
-    }
-    var importApply = $('laImportApply');
-    if (importApply) {
-      importApply.addEventListener('click', onImportApplyClick);
     }
     var importBeautify = $('laImportBeautify');
     if (importBeautify) {
@@ -2132,7 +2090,6 @@
     }
     var pasteTab = $('laPayloadTabPaste');
     var treeTab = $('laPayloadTabTree');
-    var formTab = $('laPayloadTabForm');
     if (pasteTab) {
       pasteTab.addEventListener('click', function () {
         setPayloadView('paste');
@@ -2143,12 +2100,7 @@
         setPayloadView('tree');
       });
     }
-    if (formTab) {
-      formTab.addEventListener('click', function () {
-        setPayloadView('form');
-      });
-    }
-    if ($('laPayloadPastePanel') && $('laPayloadFormPanel')) {
+    if ($('laPayloadPastePanel')) {
       setPayloadView('paste');
     }
     var pasteTreeRoot = $('laPasteTree');

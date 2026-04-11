@@ -383,6 +383,110 @@ html[data-aep-theme='dark'] .live-activities-page textarea.la-json--mirror-input
   margin: 0;
 }
 
+.live-activities-page .la-hero-flow {
+  max-width: 52rem;
+  line-height: 1.55;
+}
+
+.live-activities-page .la-panel-meta {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary, #5c5f66);
+}
+
+.live-activities-page .la-field-hint {
+  display: block;
+  font-size: 0.7rem;
+  margin-top: 0.25rem;
+  color: var(--dash-text-secondary, #6b6f78);
+}
+
+.live-activities-page .la-exec-sync-primary {
+  font-weight: 600;
+  color: var(--dash-text, inherit);
+}
+
+.live-activities-page .la-apply-all-row {
+  margin-bottom: 0.75rem;
+}
+
+.live-activities-page .btn-la-apply-all {
+  width: 100%;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+}
+
+.live-activities-page .la-inject-advanced {
+  margin-top: 0.15rem;
+  font-size: 0.82rem;
+}
+
+.live-activities-page .la-inject-advanced summary {
+  cursor: pointer;
+  color: var(--dash-text-secondary, #5c5f66);
+  padding: 0.3rem 0;
+  list-style-position: outside;
+}
+
+.live-activities-page .la-inject-advanced[open] .la-exec-sync-btns {
+  margin-top: 0.55rem;
+}
+
+.live-activities-page .la-kbd {
+  display: inline-block;
+  padding: 0.06rem 0.32rem;
+  font-size: 0.72rem;
+  font-family: inherit;
+  border-radius: 4px;
+  border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.15));
+  background: var(--dash-surface-alt, rgba(0, 0, 0, 0.04));
+}
+
+.live-activities-page .la-actions--send {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.live-activities-page .la-send-step {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--dash-text, inherit);
+}
+
+.live-activities-page .la-send-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-right: 0.4rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  background: var(--dash-blue, #0d7ea2);
+  color: #fff;
+  vertical-align: middle;
+}
+
+@media (min-width: 640px) {
+  .live-activities-page .la-actions--send {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .live-activities-page .la-send-step {
+    flex: 1 1 100%;
+  }
+}
+
+.live-activities-page .la-payload-panel--parked {
+  display: none !important;
+}
+
 .la-response {
   margin-top: 1rem;
   padding: 1rem;
