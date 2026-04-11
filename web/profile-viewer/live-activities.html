@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260442">
+  <link rel="stylesheet" href="live-activities.css?v=20260443">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -109,7 +109,7 @@
               <div class="la-payload-workspace" id="laPayloadWorkspace">
                 <div class="la-payload-view-head">
                   <p class="la-payload-view-lead">
-                    Same idea as <strong>Firebase Realtime Database</strong> on this site: start in <strong>Paste JSON</strong>, paste your body, then <strong>Parse &amp; fill form</strong> to switch to the editable <strong>Form</strong> view.
+                    Same idea as <strong>Firebase Realtime Database</strong>: paste in <strong>Paste JSON</strong>, use <strong>Tree</strong> to browse like the RTDB tree view, then <strong>Parse &amp; fill form</strong> or switch to <strong>Form</strong> to edit fields.
                   </p>
                   <div class="la-payload-view-toggle" role="tablist" aria-label="APS payload editor">
                     <button
@@ -121,6 +121,16 @@
                       aria-controls="laPayloadPastePanel"
                     >
                       Paste JSON
+                    </button>
+                    <button
+                      type="button"
+                      id="laPayloadTabTree"
+                      class="la-payload-tab"
+                      role="tab"
+                      aria-selected="false"
+                      aria-controls="laPayloadTreePanel"
+                    >
+                      Tree
                     </button>
                     <button
                       type="button"
@@ -225,6 +235,18 @@
     ]
 }</pre>
                   </details>
+                </div>
+
+                <div id="laPayloadTreePanel" class="la-payload-panel" role="tabpanel" hidden aria-labelledby="laPayloadTabTree">
+                  <p class="la-tree-view-lead">
+                    Read-only tree of whatever you pasted in <strong>Paste JSON</strong> (same pattern as <strong>Tree</strong> on Firebase Realtime Database). Edit the text there, then <strong>Refresh tree</strong> or switch back to this tab.
+                  </p>
+                  <div class="la-paste-tree-toolbar">
+                    <button type="button" class="btn btn-secondary" id="laPasteTreeRefresh">Refresh tree</button>
+                    <button type="button" class="btn btn-secondary" id="laPasteTreeExpandAll">Expand all</button>
+                    <button type="button" class="btn btn-secondary" id="laPasteTreeCollapseAll">Collapse all</button>
+                  </div>
+                  <div id="laPasteTree" class="la-paste-tree" role="tree" aria-label="Structure of pasted JSON"></div>
                 </div>
 
                 <div id="laPayloadFormPanel" class="la-payload-panel" role="tabpanel" hidden aria-labelledby="laPayloadTabForm">
@@ -342,6 +364,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260442"></script>
+  <script defer src="live-activities.js?v=20260443"></script>
 </body>
 </html>

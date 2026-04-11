@@ -750,3 +750,101 @@ html[data-aep-theme='dark'] .live-activities-page .la-payload-tab--active {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+/* Tree tab — read-only explorer (Firebase RTDB–style) */
+.live-activities-page .la-tree-view-lead {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--aep-text-muted, #5c5f66);
+}
+
+.live-activities-page .la-paste-tree-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.live-activities-page .la-paste-tree {
+  font-size: 0.8125rem;
+  max-height: min(60vh, 34rem);
+  overflow: auto;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  background: var(--dash-surface-alt, rgba(0, 0, 0, 0.03));
+  color: var(--dash-text, #2c2c2c);
+}
+
+.live-activities-page .la-paste-tree-empty {
+  text-align: center;
+  color: var(--aep-text-muted, #6b6f78);
+  padding: 2rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.live-activities-page .la-paste-tree-empty--err {
+  color: #b03030;
+  text-align: left;
+}
+
+.live-activities-page .la-paste-tree-row {
+  margin: 0.12rem 0;
+  padding-left: 0.2rem;
+}
+
+.live-activities-page .la-paste-tree-key {
+  cursor: pointer;
+  color: var(--dash-text, #2c2c2c);
+  word-break: break-word;
+  background: none;
+  border: none;
+  font: inherit;
+  text-align: left;
+  padding: 0.12rem 0;
+  display: block;
+  width: 100%;
+}
+
+.live-activities-page .la-paste-tree-key:hover {
+  color: var(--dash-blue, #0d7ea2);
+}
+
+.live-activities-page .la-paste-tree-folder {
+  font-weight: 600;
+}
+
+.live-activities-page .la-paste-tree-leaf-val {
+  color: var(--aep-text-muted, #6b6f78);
+  font-weight: 400;
+}
+
+.live-activities-page .la-paste-tree-leaf-row {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.live-activities-page .la-paste-tree-leaf-key {
+  font-weight: 500;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.live-activities-page .la-paste-tree-children {
+  margin-left: 0.75rem;
+  border-left: 1px solid var(--dash-border, rgba(0, 0, 0, 0.1));
+  padding-left: 0.4rem;
+}
+
+.live-activities-page .la-paste-tree-leaf-inline,
+.live-activities-page .la-paste-tree-root-scalar {
+  font-size: 0.8125rem;
+  color: var(--aep-text-muted, #6b6f78);
+}
+
+.live-activities-page .la-paste-tree-empty-inline {
+  font-size: 0.78rem;
+  color: var(--aep-text-muted, #6b6f78);
+}

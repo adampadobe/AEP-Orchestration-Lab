@@ -6,6 +6,9 @@
 
   var API = '/api/ajo/live-activity';
 
+  /** Expanded paths in Paste JSON → Tree view (same idea as Firebase RTDB tree). */
+  var laTreeExpanded = new Set();
+
   var DEFAULT_CONTENT_STATE = [
     '{',
     '  "boardingStatus": "Check-in Complete",',
@@ -662,27 +665,251 @@
   /** RTDB-style: primary “Paste JSON” vs editable “Form” for the APS workspace */
   function setPayloadView(mode) {
     var pasteTab = $('laPayloadTabPaste');
+    var treeTab = $('laPayloadTabTree');
     var formTab = $('laPayloadTabForm');
     var pastePanel = $('laPayloadPastePanel');
+    var treePanel = $('laPayloadTreePanel');
     var formPanel = $('laPayloadFormPanel');
     if (!pastePanel || !formPanel) return;
-    var isPaste = mode === 'paste';
-    pastePanel.hidden = !isPaste;
-    formPanel.hidden = isPaste;
+    var showPaste = mode === 'paste';
+    var showTree = mode === 'tree';
+    var showForm = mode === 'form';
+    pastePanel.hidden = !showPaste;
+    if (treePanel) treePanel.hidden = !showTree;
+    formPanel.hidden = !showForm;
     if (pasteTab) {
-      pasteTab.classList.toggle('la-payload-tab--active', isPaste);
-      pasteTab.setAttribute('aria-selected', isPaste ? 'true' : 'false');
+      pasteTab.classList.toggle('la-payload-tab--active', showPaste);
+      pasteTab.setAttribute('aria-selected', showPaste ? 'true' : 'false');
+    }
+    if (treeTab) {
+      treeTab.classList.toggle('la-payload-tab--active', showTree);
+      treeTab.setAttribute('aria-selected', showTree ? 'true' : 'false');
     }
     if (formTab) {
-      formTab.classList.toggle('la-payload-tab--active', !isPaste);
-      formTab.setAttribute('aria-selected', !isPaste ? 'true' : 'false');
+      formTab.classList.toggle('la-payload-tab--active', showForm);
+      formTab.setAttribute('aria-selected', showForm ? 'true' : 'false');
     }
-    if (!isPaste) {
+    if (showTree) renderPasteTree();
+    if (showForm) {
       document.querySelectorAll('[data-json-editor]').forEach(function (block) {
         var ta = block.querySelector('.la-json--panel');
         if (ta) bumpJsonMirror(ta);
       });
     }
+  }
+
+  function joinLaPath(prefix, key) {
+    if (!prefix) return key;
+    return prefix + '/' + key;
+  }
+
+  function formatLaLeafValue(value) {
+    if (value === null) return 'null';
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (typeof value === 'string') {
+      var s = value;
+      if (s.length > 120) return s.slice(0, 120) + '…';
+      return s;
+    }
+    return String(value);
+  }
+
+  function childCountLabel(val) {
+    if (Array.isArray(val)) return val.length + ' items';
+    return Object.keys(val).length + ' keys';
+  }
+
+  function renderLaValue(value, path, container) {
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      renderLaObject(value, path, container);
+    } else if (Array.isArray(value)) {
+      renderLaArray(value, path, container);
+    } else {
+      var row = document.createElement('div');
+      row.className = 'la-paste-tree-row';
+      var line = document.createElement('div');
+      line.className = 'la-paste-tree-leaf-inline';
+      line.textContent = formatLaLeafValue(value);
+      row.appendChild(line);
+      container.appendChild(row);
+    }
+  }
+
+  function renderLaObject(obj, path, container) {
+    var keys = Object.keys(obj);
+    if (keys.length === 0) {
+      var rowE = document.createElement('div');
+      rowE.className = 'la-paste-tree-row';
+      var em = document.createElement('span');
+      em.className = 'la-paste-tree-empty-inline';
+      em.textContent = (path || 'root') + ': { }';
+      rowE.appendChild(em);
+      container.appendChild(rowE);
+      return;
+    }
+    keys.forEach(function (key) {
+      var val = obj[key];
+      var childPath = joinLaPath(path, key);
+      var row = document.createElement('div');
+      row.className = 'la-paste-tree-row';
+      if (val !== null && typeof val === 'object') {
+        var isOpen = laTreeExpanded.has(childPath);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'la-paste-tree-key la-paste-tree-folder';
+        btn.setAttribute('data-la-tree-toggle', childPath);
+        btn.textContent = (isOpen ? '▼ ' : '▶ ') + key + ' (' + childCountLabel(val) + ')';
+        row.appendChild(btn);
+        var childWrap = document.createElement('div');
+        childWrap.className = 'la-paste-tree-children';
+        childWrap.style.display = isOpen ? 'block' : 'none';
+        renderLaValue(val, childPath, childWrap);
+        row.appendChild(childWrap);
+      } else {
+        var leaf = document.createElement('div');
+        leaf.className = 'la-paste-tree-leaf-row';
+        var kEl = document.createElement('span');
+        kEl.className = 'la-paste-tree-leaf-key';
+        kEl.textContent = key + ': ';
+        var vEl = document.createElement('span');
+        vEl.className = 'la-paste-tree-leaf-val';
+        vEl.textContent = formatLaLeafValue(val);
+        leaf.appendChild(kEl);
+        leaf.appendChild(vEl);
+        row.appendChild(leaf);
+      }
+      container.appendChild(row);
+    });
+  }
+
+  function renderLaArray(arr, path, container) {
+    if (arr.length === 0) {
+      var rowA = document.createElement('div');
+      rowA.className = 'la-paste-tree-row';
+      var em = document.createElement('span');
+      em.className = 'la-paste-tree-empty-inline';
+      em.textContent = '[ ] empty array';
+      rowA.appendChild(em);
+      container.appendChild(rowA);
+      return;
+    }
+    arr.forEach(function (item, i) {
+      var childPath = joinLaPath(path, String(i));
+      var row = document.createElement('div');
+      row.className = 'la-paste-tree-row';
+      var label = '[' + i + ']';
+      if (item !== null && typeof item === 'object') {
+        var isOpen = laTreeExpanded.has(childPath);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'la-paste-tree-key la-paste-tree-folder';
+        btn.setAttribute('data-la-tree-toggle', childPath);
+        btn.textContent = (isOpen ? '▼ ' : '▶ ') + label + ' (' + childCountLabel(item) + ')';
+        row.appendChild(btn);
+        var childWrap = document.createElement('div');
+        childWrap.className = 'la-paste-tree-children';
+        childWrap.style.display = isOpen ? 'block' : 'none';
+        renderLaValue(item, childPath, childWrap);
+        row.appendChild(childWrap);
+      } else {
+        var leaf = document.createElement('div');
+        leaf.className = 'la-paste-tree-leaf-row';
+        var kEl = document.createElement('span');
+        kEl.className = 'la-paste-tree-leaf-key';
+        kEl.textContent = label + ': ';
+        var vEl = document.createElement('span');
+        vEl.className = 'la-paste-tree-leaf-val';
+        vEl.textContent = formatLaLeafValue(item);
+        leaf.appendChild(kEl);
+        leaf.appendChild(vEl);
+        row.appendChild(leaf);
+      }
+      container.appendChild(row);
+    });
+  }
+
+  function renderLaRoot(value, container) {
+    if (value !== null && typeof value === 'object') {
+      renderLaValue(value, '', container);
+    } else {
+      var row = document.createElement('div');
+      row.className = 'la-paste-tree-row';
+      var span = document.createElement('div');
+      span.className = 'la-paste-tree-root-scalar';
+      span.textContent = 'Root: ' + formatLaLeafValue(value);
+      row.appendChild(span);
+      container.appendChild(row);
+    }
+  }
+
+  function renderPasteTree() {
+    var el = $('laPasteTree');
+    if (!el) return;
+    el.innerHTML = '';
+    var ta = $('laImportPaste');
+    var raw = ta && ta.value != null ? String(ta.value) : '';
+    if (!raw.trim()) {
+      el.innerHTML =
+        '<div class="la-paste-tree-empty">Nothing to show — paste JSON in the <strong>Paste JSON</strong> tab first.</div>';
+      return;
+    }
+    var parsed;
+    try {
+      parsed = parseUserJson(raw);
+    } catch (e) {
+      el.innerHTML =
+        '<div class="la-paste-tree-empty la-paste-tree-empty--err">Invalid JSON — fix it in Paste JSON or click Beautify. ' +
+        escapeHtml(String(e.message || e)) +
+        '</div>';
+      return;
+    }
+    renderLaRoot(parsed, el);
+  }
+
+  function onLaPasteTreeClick(e) {
+    var t = e.target.closest('[data-la-tree-toggle]');
+    if (!t) return;
+    var path = t.getAttribute('data-la-tree-toggle') || '';
+    if (laTreeExpanded.has(path)) laTreeExpanded.delete(path);
+    else laTreeExpanded.add(path);
+    renderPasteTree();
+  }
+
+  function collectLaExpandablePaths(val, path, out) {
+    if (val === null || typeof val !== 'object') return;
+    out.push(path);
+    if (Array.isArray(val)) {
+      val.forEach(function (item, i) {
+        collectLaExpandablePaths(item, joinLaPath(path, String(i)), out);
+      });
+    } else {
+      Object.keys(val).forEach(function (k) {
+        collectLaExpandablePaths(val[k], joinLaPath(path, k), out);
+      });
+    }
+  }
+
+  function laPasteTreeExpandAll() {
+    var ta = $('laImportPaste');
+    if (!ta || !String(ta.value || '').trim()) return;
+    var parsed;
+    try {
+      parsed = parseUserJson(ta.value);
+    } catch (e) {
+      return;
+    }
+    laTreeExpanded.clear();
+    var paths = [];
+    collectLaExpandablePaths(parsed, '', paths);
+    paths.forEach(function (p) {
+      laTreeExpanded.add(p);
+    });
+    renderPasteTree();
+  }
+
+  function laPasteTreeCollapseAll() {
+    laTreeExpanded.clear();
+    renderPasteTree();
   }
 
   function replaceTimestampInImportPaste() {
@@ -993,10 +1220,16 @@
       });
     }
     var pasteTab = $('laPayloadTabPaste');
+    var treeTab = $('laPayloadTabTree');
     var formTab = $('laPayloadTabForm');
     if (pasteTab) {
       pasteTab.addEventListener('click', function () {
         setPayloadView('paste');
+      });
+    }
+    if (treeTab) {
+      treeTab.addEventListener('click', function () {
+        setPayloadView('tree');
       });
     }
     if (formTab) {
@@ -1007,6 +1240,16 @@
     if ($('laPayloadPastePanel') && $('laPayloadFormPanel')) {
       setPayloadView('paste');
     }
+    var pasteTreeRoot = $('laPasteTree');
+    if (pasteTreeRoot) {
+      pasteTreeRoot.addEventListener('click', onLaPasteTreeClick);
+    }
+    var ptr = $('laPasteTreeRefresh');
+    if (ptr) ptr.addEventListener('click', renderPasteTree);
+    var pex = $('laPasteTreeExpandAll');
+    if (pex) pex.addEventListener('click', laPasteTreeExpandAll);
+    var pcl = $('laPasteTreeCollapseAll');
+    if (pcl) pcl.addEventListener('click', laPasteTreeCollapseAll);
     var insTs = $('laPasteInsertTimestamp');
     if (insTs) insTs.addEventListener('click', replaceTimestampInImportPaste);
     var insRid = $('laPasteInsertRequestId');
