@@ -44,6 +44,17 @@
     return document.getElementById(id);
   }
 
+  function randomUuid() {
+    if (window.crypto && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0;
+      var v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
   function parseJsonLabel(name, raw) {
     var t = String(raw || '').trim();
     if (!t) {
@@ -57,7 +68,7 @@
   }
 
   function buildPayload() {
-    var requestId = String($('laRequestId').value || '').trim();
+    var requestId = randomUuid();
     var campaignId = String($('laCampaignId').value || '').trim();
     var recType = String($('laRecipientType').value || '').trim() || 'aep';
     var userId = String($('laUserId').value || '').trim();
@@ -67,8 +78,8 @@
     var event = String($('laEvent').value || 'start').trim().toLowerCase();
     var attributesType = String($('laAttributesType').value || '').trim();
 
-    if (!requestId || !campaignId || !userId || !namespace) {
-      throw new Error('request ID, campaign ID, user ID, and namespace are required.');
+    if (!campaignId || !userId || !namespace) {
+      throw new Error('campaign ID, user ID, and namespace are required.');
     }
     if (event !== 'start' && event !== 'update' && event !== 'end') {
       throw new Error('event must be start, update, or end.');
@@ -120,18 +131,6 @@
     $('laContentState').value = DEFAULT_CONTENT_STATE;
     $('laAttributes').value = DEFAULT_ATTRIBUTES;
     $('laAlert').value = DEFAULT_ALERT;
-
-    $('laNewRequestId').addEventListener('click', function () {
-      if (window.crypto && crypto.randomUUID) {
-        $('laRequestId').value = crypto.randomUUID();
-      } else {
-        $('laRequestId').value = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-          var r = (Math.random() * 16) | 0;
-          var v = c === 'x' ? r : (r & 0x3) | 0x8;
-          return v.toString(16);
-        });
-      }
-    });
 
     $('laPreviewBtn').addEventListener('click', function () {
       try {

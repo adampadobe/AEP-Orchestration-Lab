@@ -64,11 +64,10 @@
             <div class="profile-box et-full-width">
               <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Execution &amp; recipient</h3>
               <div class="profile-box-content">
+                <p class="la-ts-note" role="note">
+                  <code class="dashboard-code">requestId</code> is a new random UUID each time you <strong>Preview</strong> or <strong>Send</strong> (same idea as Postman <code class="dashboard-code">{{$randomUUID}}</code>).
+                </p>
                 <div class="la-grid">
-                  <div class="la-field">
-                    <label for="laRequestId">requestId</label>
-                    <input type="text" id="laRequestId" autocomplete="off" value="e8cb4663-7e51-4b7d-b49a-e0f8ecb7f89e" spellcheck="false">
-                  </div>
                   <div class="la-field">
                     <label for="laCampaignId">campaignId</label>
                     <input type="text" id="laCampaignId" autocomplete="off" value="43a8ba87-81c0-4e0c-86ec-8bdb4faf2e85" spellcheck="false">
@@ -130,7 +129,6 @@
                 </div>
 
                 <div class="la-actions">
-                  <button type="button" class="btn btn-secondary" id="laNewRequestId">New request ID</button>
                   <button type="button" class="btn btn-secondary" id="laPreviewBtn">Preview JSON body</button>
                   <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
                 </div>
@@ -146,6 +144,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260416"></script>
-  <script defer src="live-activities.js?v=20260416"></script>
+  <script defer src="live-activities.js?v=20260417"></script>
 </body>
 </html>
