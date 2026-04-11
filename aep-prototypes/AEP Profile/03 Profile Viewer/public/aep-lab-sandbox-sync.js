@@ -50,19 +50,26 @@
     return o;
   }
 
+  /**
+   * Apply Firestore snapshot for the *current* sandbox. Keys omitted from the server payload
+   * are removed from localStorage so we never show another sandbox’s data (inputs fall back to placeholders).
+   */
   function applyKeys(keys) {
-    if (!keys || typeof keys !== 'object') return;
+    var kobj = keys && typeof keys === 'object' ? keys : {};
     for (var i = 0; i < SYNC_KEYS.length; i++) {
       var k = SYNC_KEYS[i];
-      if (!Object.prototype.hasOwnProperty.call(keys, k)) continue;
       try {
-        var v = keys[k];
-        if (v === null || v === '') localStorage.removeItem(k);
-        else localStorage.setItem(k, String(v));
+        if (Object.prototype.hasOwnProperty.call(kobj, k)) {
+          var v = kobj[k];
+          if (v === null || v === '') localStorage.removeItem(k);
+          else localStorage.setItem(k, String(v));
+        } else {
+          localStorage.removeItem(k);
+        }
       } catch (e) {}
     }
     try {
-      document.dispatchEvent(new CustomEvent('aep-lab-sandbox-keys-applied', { detail: { keys: keys } }));
+      document.dispatchEvent(new CustomEvent('aep-lab-sandbox-keys-applied', { detail: { keys: kobj } }));
     } catch (e2) {}
   }
 
@@ -110,7 +117,7 @@
           return res.json();
         })
         .then(function (data) {
-          if (data && data.ok && data.keys) applyKeys(data.keys);
+          if (data && data.ok) applyKeys(data.keys || {});
         })
         .catch(function () {});
     });
