@@ -2028,30 +2028,71 @@
     laShowTemplateMsg('Deleted.', false);
   }
 
-  function setMessage(el, text, isErr) {
-    el.textContent = text;
-    el.hidden = !text;
-    el.classList.toggle('la-response--err', !!isErr);
+  function laClearSendFeedback() {
+    var box = $('laSendFeedback');
+    if (!box) return;
+    box.hidden = true;
+    box.classList.remove('la-send-feedback--error', 'la-send-feedback--ok', 'la-send-feedback--loading');
+    var st = $('laSendFeedbackStatus');
+    var det = $('laSendFeedbackDetails');
+    var raw = $('laResponseRaw');
+    if (st) st.textContent = '';
+    if (raw) raw.textContent = '';
+    if (det) {
+      det.hidden = true;
+      det.open = false;
+    }
+  }
+
+  /**
+   * @param {{ statusText?: string, isError?: boolean, isOk?: boolean, loading?: boolean, rawText?: string, detailsOpen?: boolean }} options
+   */
+  function laShowSendFeedback(options) {
+    options = options || {};
+    var box = $('laSendFeedback');
+    var st = $('laSendFeedbackStatus');
+    var det = $('laSendFeedbackDetails');
+    var raw = $('laResponseRaw');
+    if (!box || !st) return;
+    box.hidden = false;
+    box.classList.remove('la-send-feedback--error', 'la-send-feedback--ok', 'la-send-feedback--loading');
+    if (options.isError) box.classList.add('la-send-feedback--error');
+    else if (options.isOk) box.classList.add('la-send-feedback--ok');
+    else if (options.loading) box.classList.add('la-send-feedback--loading');
+    st.textContent = options.statusText || '';
+    var rawStr =
+      options.rawText != null && String(options.rawText).length > 0 ? String(options.rawText) : '';
+    if (raw) raw.textContent = rawStr;
+    if (det) {
+      if (rawStr.length) {
+        det.hidden = false;
+        det.open = !!options.detailsOpen;
+      } else {
+        det.hidden = true;
+        det.open = false;
+      }
+    }
   }
 
   /** Fills #laPreview with getOutgoingPayload() — same bytes Send to Adobe uses. */
   function laRefreshOutgoingPreview() {
     var preview = $('laPreview');
-    var responseEl = $('laResponse');
     if (!preview) return;
     try {
       var p = getOutgoingPayload();
       preview.textContent = JSON.stringify(p, null, 2);
       preview.hidden = false;
-      if (responseEl) setMessage(responseEl, '', false);
+      laClearSendFeedback();
     } catch (e) {
       preview.hidden = true;
-      if (responseEl) setMessage(responseEl, String(e.message || e), true);
+      laShowSendFeedback({
+        statusText: String(e.message || e),
+        isError: true,
+      });
     }
   }
 
   function init() {
-    var msg = $('laResponse');
     var preview = $('laPreview');
 
     $('laContentState').value = DEFAULT_CONTENT_STATE;
@@ -2251,11 +2292,11 @@
       try {
         payload = getOutgoingPayload();
       } catch (e) {
-        setMessage(msg, String(e.message || e), true);
+        laShowSendFeedback({ statusText: String(e.message || e), isError: true });
         return;
       }
 
-      setMessage(msg, 'Sending…', false);
+      laShowSendFeedback({ statusText: 'Sending…', loading: true, rawText: '' });
       try {
         var res = await fetch(API, {
           method: 'POST',
@@ -2273,9 +2314,30 @@
           parsed = { raw: bodyText };
         }
         var out = JSON.stringify(parsed, null, 2);
-        setMessage(msg, out, !res.ok);
+        if (res.ok) {
+          laShowSendFeedback({
+            statusText: 'OK — request sent successfully.',
+            isOk: true,
+            rawText: out,
+            detailsOpen: false,
+          });
+        } else {
+          var shortErr = 'Request failed (HTTP ' + res.status + '). Open “Show response body” below for details.';
+          if (parsed && typeof parsed === 'object' && parsed.error != null) {
+            shortErr = 'Error (HTTP ' + res.status + '): ' + String(parsed.error);
+          }
+          laShowSendFeedback({
+            statusText: shortErr,
+            isError: true,
+            rawText: out,
+            detailsOpen: true,
+          });
+        }
       } catch (e) {
-        setMessage(msg, 'Request failed: ' + String(e.message || e), true);
+        laShowSendFeedback({
+          statusText: 'Request failed: ' + String(e.message || e),
+          isError: true,
+        });
       }
     });
   }

@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260463">
+  <link rel="stylesheet" href="live-activities.css?v=20260466">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -395,7 +395,13 @@
                 <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
               </div>
               <pre id="laPreview" class="la-response la-preview-outgoing" hidden aria-live="polite"></pre>
-              <pre id="laResponse" class="la-response" hidden role="status" aria-live="polite"></pre>
+              <div id="laSendFeedback" class="la-send-feedback" hidden>
+                <div id="laSendFeedbackStatus" class="la-send-feedback__status" role="status" aria-live="polite"></div>
+                <details id="laSendFeedbackDetails" class="la-send-feedback__details" hidden>
+                  <summary class="la-send-feedback__summary">Show response body (JSON)</summary>
+                  <pre id="laResponseRaw" class="la-response la-response--raw"></pre>
+                </details>
+              </div>
             </div>
           </div>
         </section>
@@ -409,6 +415,6 @@
   <script defer src="firebase-database-config.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260465"></script>
+  <script defer src="live-activities.js?v=20260466"></script>
 </body>
 </html>
