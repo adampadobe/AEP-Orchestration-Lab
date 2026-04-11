@@ -141,6 +141,12 @@
    */
   var LA_BUILTIN_TEMPLATES = [];
 
+  /**
+   * Global reference payloads (same in every sandbox) from data/live-activity-examples.json.
+   * Shown under “Example”; ids use prefix la-example-.
+   */
+  var LA_GLOBAL_EXAMPLES = [];
+
   function laSlugForBuiltinId(s) {
     return String(s || '')
       .toLowerCase()
@@ -219,6 +225,88 @@
     } catch (e2) {
       return 'data/live-activities.postman_collection.json';
     }
+  }
+
+  function laExamplesJsonUrl() {
+    var sc = document.querySelector('script[src*="live-activities.js"]');
+    if (sc && sc.getAttribute('src')) {
+      try {
+        var src = sc.getAttribute('src');
+        var u = new URL(src, window.location.href);
+        u.search = '';
+        u.hash = '';
+        var p = u.pathname;
+        var slash = p.lastIndexOf('/');
+        if (slash >= 0) {
+          u.pathname = p.slice(0, slash + 1) + 'data/live-activity-examples.json';
+          return u.toString();
+        }
+      } catch (e) {}
+    }
+    try {
+      return new URL('data/live-activity-examples.json', window.location.href).toString();
+    } catch (e2) {
+      return 'data/live-activity-examples.json';
+    }
+  }
+
+  function laNormalizeGlobalExampleEntry(entry, idx) {
+    if (!entry || typeof entry !== 'object') return null;
+    var rawId = String(entry.id || '').trim();
+    var id =
+      rawId.indexOf('la-example-') === 0
+        ? rawId
+        : 'la-example-' + (rawId ? laSlugForBuiltinId(rawId) : 'item-' + idx);
+    var name = String(entry.name || id).trim() || id;
+    var json = '';
+    if (entry.body != null && typeof entry.body === 'object' && !Array.isArray(entry.body)) {
+      try {
+        json = JSON.stringify(entry.body, null, 2);
+      } catch (e) {
+        return null;
+      }
+    } else if (typeof entry.json === 'string' && String(entry.json).trim()) {
+      json = String(entry.json)
+        .replace(/^\uFEFF/, '')
+        .trim();
+    }
+    if (!json) return null;
+    return { id: id, name: name, json: json };
+  }
+
+  function laExamplesFromDoc(data) {
+    var arr = data && data.examples;
+    if (!Array.isArray(arr)) return [];
+    var out = [];
+    var usedIds = Object.create(null);
+    arr.forEach(function (entry, idx) {
+      var n = laNormalizeGlobalExampleEntry(entry, idx);
+      if (!n) return;
+      var orig = n.id;
+      var n2 = 2;
+      while (usedIds[n.id]) {
+        n.id = orig + '-' + n2;
+        n2++;
+      }
+      usedIds[n.id] = true;
+      out.push(n);
+    });
+    return out;
+  }
+
+  function laFetchGlobalExampleTemplates() {
+    return fetch(laExamplesJsonUrl(), { credentials: 'same-origin' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        LA_GLOBAL_EXAMPLES = laExamplesFromDoc(data);
+      })
+      .catch(function (err) {
+        console.warn('Live Activity global examples:', err);
+        LA_GLOBAL_EXAMPLES = [];
+      });
   }
 
   /** Canonical copy: Realtime Database `profileViewerConfig/liveActivitiesPostmanCollection` (public read). */
@@ -1995,6 +2083,7 @@
     var cur = laCurrentSandboxForTemplates();
     return laGetSavedTemplatesRaw().filter(function (t) {
       if (!t || typeof t !== 'object') return false;
+      if (laIsGlobalExampleId(t.id)) return false;
       var tag = t.savedInSandbox != null ? String(t.savedInSandbox).trim().toLowerCase() : '';
       if (!tag) return true;
       return tag === cur;
@@ -2014,6 +2103,10 @@
     return String(id || '').indexOf('la-builtin-') === 0;
   }
 
+  function laIsGlobalExampleId(id) {
+    return String(id || '').indexOf('la-example-') === 0;
+  }
+
   function laPopulateTemplateSelect() {
     var sel = $('laTemplateSelect');
     if (!sel) return;
@@ -2023,6 +2116,17 @@
     ph.value = '';
     ph.textContent = 'Select a template…';
     sel.appendChild(ph);
+    if (LA_GLOBAL_EXAMPLES.length) {
+      var ogEx = document.createElement('optgroup');
+      ogEx.label = 'Example';
+      LA_GLOBAL_EXAMPLES.forEach(function (t) {
+        var o = document.createElement('option');
+        o.value = t.id;
+        o.textContent = t.name;
+        ogEx.appendChild(o);
+      });
+      sel.appendChild(ogEx);
+    }
     var showBuiltins = laSandboxShowsPostmanBuiltins() && LA_BUILTIN_TEMPLATES.length;
     var saved = laGetSavedTemplates();
     if (showBuiltins || saved.length) {
@@ -2060,7 +2164,7 @@
     var del = $('laTemplateDelete');
     if (!sel || !del) return;
     var id = sel.value;
-    del.disabled = !id || laIsBuiltinTemplateId(id);
+    del.disabled = !id || laIsBuiltinTemplateId(id) || laIsGlobalExampleId(id);
   }
 
   function laShowTemplateMsg(text, isErr) {
@@ -2073,6 +2177,9 @@
 
   function laGetTemplateJsonById(id) {
     if (!id) return '';
+    for (var g = 0; g < LA_GLOBAL_EXAMPLES.length; g++) {
+      if (LA_GLOBAL_EXAMPLES[g].id === id) return LA_GLOBAL_EXAMPLES[g].json;
+    }
     for (var i = 0; i < LA_BUILTIN_TEMPLATES.length; i++) {
       if (LA_BUILTIN_TEMPLATES[i].id === id) return LA_BUILTIN_TEMPLATES[i].json;
     }
@@ -2134,7 +2241,7 @@
 
   function laDeleteSelectedTemplate() {
     var sel = $('laTemplateSelect');
-    if (!sel || !sel.value || laIsBuiltinTemplateId(sel.value)) return;
+    if (!sel || !sel.value || laIsBuiltinTemplateId(sel.value) || laIsGlobalExampleId(sel.value)) return;
     if (!window.confirm('Delete this saved template?')) return;
     var next = laGetSavedTemplatesRaw().filter(function (t) {
       return t.id !== sel.value;
@@ -2289,13 +2396,14 @@
     var injAll = $('laInjectAllFromFields');
     if (injAll) injAll.addEventListener('click', injectAllFromExecutionFields);
 
-    laFetchBuiltinTemplates()
-      .catch(function (err) {
+    Promise.all([
+      laFetchBuiltinTemplates().catch(function (err) {
         console.warn('Live Activity built-in templates:', err);
-      })
-      .then(function () {
-        laPopulateTemplateSelect();
-      });
+      }),
+      laFetchGlobalExampleTemplates(),
+    ]).then(function () {
+      laPopulateTemplateSelect();
+    });
     window.addEventListener('aep-global-sandbox-change', function () {
       laPopulateTemplateSelect();
       laLoadExecutionFieldsFromStorage();

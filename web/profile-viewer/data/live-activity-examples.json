@@ -1,0 +1,54 @@
+{
+  "examples": [
+    {
+      "id": "la-example-payload",
+      "name": "Example Payload",
+      "body": {
+        "requestId": "11111111-2222-4333-8444-555555555555",
+        "campaignId": "YOUR_CAMPAIGN_ID",
+        "recipients": [
+          {
+            "type": "aep",
+            "userId": "YOUR_ECID",
+            "namespace": "ECID",
+            "context": {
+              "requestPayload": {
+                "aps": {
+                  "content-available": 0,
+                  "timestamp": 1710100000,
+                  "event": "start",
+                  "content-state": {
+                    "boardingStatus": "Check-in Complete",
+                    "statusMessage": "Proceed to security",
+                    "timeStatus": "On time",
+                    "dwellTimeMessage": "Explore KSIA's dining & shopping"
+                  },
+                  "attributes-type": "YOUR_STRING",
+                  "attributes": {
+                    "flightNumber": "RX 123",
+                    "airline": "Riyadh Air",
+                    "departureAirport": "RUH",
+                    "arrivalAirport": "DXB",
+                    "departureTime": "14:30",
+                    "arrivalTime": "17:45",
+                    "flightDuration": "3h 15m",
+                    "terminal": "Terminal 1",
+                    "gate": "A12",
+                    "seatNumber": "12A",
+                    "liveActivityData": {
+                      "liveActivityID": "paste-live-activity-id-from-step-2-or-here"
+                    }
+                  },
+                  "alert": {
+                    "title": "Check-in Complete",
+                    "body": "Proceed to security for RX 123"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
