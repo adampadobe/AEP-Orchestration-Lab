@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260431">
+  <link rel="stylesheet" href="live-activities.css?v=20260442">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -106,71 +106,79 @@
 
             <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">◆</span> APS payload</h3>
             <div class="profile-box-content">
-              <p class="la-section-title">Scalars</p>
-              <p class="la-ts-note" role="note">
-                <code class="dashboard-code">timestamp</code> (Unix seconds) is set automatically in the payload to the time you click <strong>Preview</strong> or <strong>Send to Adobe</strong>.
-              </p>
-              <div class="la-grid la-grid--scalars">
-                <div class="la-field">
-                  <label for="laContentAvailable">content-available</label>
-                  <input type="number" id="laContentAvailable" value="1" step="1">
-                </div>
-                <div class="la-field">
-                  <label for="laEvent">event</label>
-                  <select id="laEvent" aria-label="Live activity event">
-                    <option value="start" selected>start</option>
-                    <option value="update">update</option>
-                    <option value="end">end</option>
-                  </select>
-                </div>
-                <div class="la-field">
-                  <label for="laAttributesType">attributes-type</label>
-                  <input type="text" id="laAttributesType" value="KSIAAirportAttributes" spellcheck="false">
-                </div>
-              </div>
-
-              <p class="la-section-title la-section-title--json">Payload fields</p>
-              <p class="la-ts-note la-ts-note--payload">
-                Use <strong>Form</strong> to edit fields in plain language (add or remove rows as needed). Switch to <strong>JSON</strong> when you need full control or uncommon structures. Expand <strong>Paste from AJO or Postman</strong> below for the import area, or paste a full AJO / Postman body (or the <code class="dashboard-code">aps</code> object) into any JSON field — we detect it, format it, and fill the form.
-              </p>
-
-              <div class="la-import-banner" id="laImportBanner">
-                <details class="la-import-panel">
-                  <summary class="la-import-panel-summary">
-                    <span class="la-import-panel-summary-title">Paste from AJO or Postman</span>
-                    <span class="la-import-panel-summary-hint">Expand to paste JSON, Beautify, or Parse &amp; fill form</span>
-                  </summary>
-                  <div class="la-import-panel-body">
-                <p class="la-import-banner-lead">
-                  Drop the full unitary request body here (or into any block’s JSON view). Valid JSON is auto-formatted; recognized payloads map into execution fields and the three sections, then you can switch to <strong>Form</strong>.
-                </p>
-                <label for="laImportPaste" class="la-import-label">Optional import area</label>
-                <textarea
-                  id="laImportPaste"
-                  class="la-json la-import-paste"
-                  spellcheck="false"
-                  rows="4"
-                  placeholder="Paste full JSON here, then Parse &amp; fill form — or paste directly into content-state / attributes / alert JSON (JSON mode)."
-                  title="Paste a full Postman-style unitary body, or only requestPayload / the aps object. requestId is optional (a new UUID is used on send). campaignId and ECID are applied when present; the important part is recipients[0].context.requestPayload.aps."
-                  aria-describedby="laImportBannerHelp laImportPasteTitleHint"
-                ></textarea>
-                <p id="laImportPasteTitleHint" class="la-import-title-hint">
-                  Hover the field above for a quick guide. Smallest useful paste is the <code class="dashboard-code">aps</code> object — see example below.
-                </p>
-                <p id="laImportBannerHelp" class="la-import-help">
-                  Same behavior as Firebase Realtime Database: pasting valid JSON pretty-prints. <strong>Beautify</strong> re-indents with 2 spaces. Use <strong>Parse &amp; fill form</strong> when pasting here; pasting into a section’s JSON field can import the full payload in one step.
-                </p>
-                <div class="la-import-actions">
-                  <button type="button" class="btn btn-secondary" id="laImportBeautify">Beautify</button>
-                  <button type="button" class="btn btn-secondary" id="laImportApply">Parse &amp; fill form</button>
-                  <span id="laImportMsg" class="la-import-msg" hidden role="status"></span>
-                </div>
-                <details class="la-import-details">
-                  <summary class="la-import-details-summary">What to paste (example from Postman / AJO)</summary>
-                  <p class="la-import-details-lead">
-                    You can paste the <strong>full</strong> JSON below, or only the <code class="dashboard-code">aps</code> object. <code class="dashboard-code">requestId</code> is not required for this tool — each Preview/Send generates a new UUID. Postman sometimes leaves <strong>unquoted</strong> placeholders (e.g. <code class="dashboard-code">"timestamp": {{$timestamp}}</code>); those are auto-quoted so the file parses. For a real send, replace variables with real values or rely on this app’s timestamp/UUID. <code class="dashboard-code">timestamp</code> in the outbound request is still set to Unix seconds at send time.
+              <div class="la-payload-workspace" id="laPayloadWorkspace">
+                <div class="la-payload-view-head">
+                  <p class="la-payload-view-lead">
+                    Same idea as <strong>Firebase Realtime Database</strong> on this site: start in <strong>Paste JSON</strong>, paste your body, then <strong>Parse &amp; fill form</strong> to switch to the editable <strong>Form</strong> view.
                   </p>
-                  <pre class="la-import-example" aria-label="Example unitary JSON body">{
+                  <div class="la-payload-view-toggle" role="tablist" aria-label="APS payload editor">
+                    <button
+                      type="button"
+                      id="laPayloadTabPaste"
+                      class="la-payload-tab la-payload-tab--active"
+                      role="tab"
+                      aria-selected="true"
+                      aria-controls="laPayloadPastePanel"
+                    >
+                      Paste JSON
+                    </button>
+                    <button
+                      type="button"
+                      id="laPayloadTabForm"
+                      class="la-payload-tab"
+                      role="tab"
+                      aria-selected="false"
+                      aria-controls="laPayloadFormPanel"
+                    >
+                      Form
+                    </button>
+                  </div>
+                </div>
+
+                <div id="laPayloadPastePanel" class="la-payload-panel" role="tabpanel" aria-labelledby="laPayloadTabPaste">
+                  <p class="la-import-banner-lead">
+                    Paste the <strong>full unitary body</strong>, or only <code class="dashboard-code">requestPayload</code> / <code class="dashboard-code">aps</code>. Use <strong>Beautify</strong>, then <strong>Parse &amp; fill form</strong> — we open the Form tab with fields filled (like switching from JSON to Tree on Firebase).
+                  </p>
+                  <div class="la-timestamp-tools">
+                    <p class="la-ts-note la-ts-note--tools" role="note">
+                      <strong>Timestamp:</strong> Preview and Send always attach the <strong>current Unix time</strong> in the outbound <code class="dashboard-code">aps</code> — you do not need to edit it. A <code class="dashboard-code">timestamp</code> in pasted JSON is only for reference; Postman-style <code class="dashboard-code">{{$timestamp}}</code> is auto-quoted so the paste parses.
+                    </p>
+                    <div class="la-paste-helper-btns">
+                      <button type="button" class="btn btn-secondary" id="laPasteInsertTimestamp" title="Replace or add aps timestamp with Unix seconds now">
+                        Insert now (Unix s)
+                      </button>
+                      <button type="button" class="btn btn-secondary" id="laPasteInsertRequestId" title="Replace requestId with a new UUID">
+                        New requestId (UUID)
+                      </button>
+                    </div>
+                  </div>
+                  <label for="laImportPaste" class="la-import-label">Unitary JSON or <code class="dashboard-code">aps</code></label>
+                  <textarea
+                    id="laImportPaste"
+                    class="la-json la-import-paste"
+                    spellcheck="false"
+                    rows="16"
+                    placeholder="Paste full JSON here, then Beautify → Parse &amp; fill form. You can also paste into a section’s JSON view (JSON mode) on the Form tab."
+                    title="Full Postman-style unitary body, or recipients[0].context.requestPayload.aps, or raw aps. campaignId and ECID map when present."
+                    aria-describedby="laImportBannerHelp laImportPasteTitleHint"
+                  ></textarea>
+                  <p id="laImportPasteTitleHint" class="la-import-title-hint">
+                    Smallest useful paste is the <code class="dashboard-code">aps</code> object — see example below. <strong>Ctrl/⌘ + Enter</strong> runs Parse &amp; fill form.
+                  </p>
+                  <p id="laImportBannerHelp" class="la-import-help">
+                    Pasting valid JSON auto-formats like the Realtime DB editor. Each Preview/Send still generates a new <code class="dashboard-code">requestId</code> unless you rely on the server payload builder only.
+                  </p>
+                  <div class="la-import-actions">
+                    <button type="button" class="btn btn-secondary" id="laImportBeautify">Beautify</button>
+                    <button type="button" class="btn btn-secondary" id="laImportApply">Parse &amp; fill form</button>
+                    <span id="laImportMsg" class="la-import-msg" hidden role="status"></span>
+                  </div>
+                  <details class="la-import-details">
+                    <summary class="la-import-details-summary">Example (Postman / AJO)</summary>
+                    <p class="la-import-details-lead">
+                      You can paste the <strong>full</strong> JSON below, or only the <code class="dashboard-code">aps</code> object. <code class="dashboard-code">requestId</code> is optional — each Preview/Send can generate a new UUID. Unquoted placeholders (e.g. <code class="dashboard-code">"timestamp": {{$timestamp}}</code>) are auto-quoted for parsing.
+                    </p>
+                    <pre class="la-import-example" aria-label="Example unitary JSON body">{
     "requestId": "{{$randomUUID}}",
     "campaignId": "{{campaignID}}",
     "recipients": [
@@ -216,10 +224,37 @@
         }
     ]
 }</pre>
-                </details>
+                  </details>
+                </div>
+
+                <div id="laPayloadFormPanel" class="la-payload-panel" role="tabpanel" hidden aria-labelledby="laPayloadTabForm">
+                  <p class="la-section-title">Scalars</p>
+                  <p class="la-ts-note" role="note">
+                    <code class="dashboard-code">timestamp</code> (Unix seconds) is set when you click <strong>Preview</strong> or <strong>Send</strong> — not taken from pasted JSON.
+                  </p>
+                  <div class="la-grid la-grid--scalars">
+                    <div class="la-field">
+                      <label for="laContentAvailable">content-available</label>
+                      <input type="number" id="laContentAvailable" value="1" step="1">
+                    </div>
+                    <div class="la-field">
+                      <label for="laEvent">event</label>
+                      <select id="laEvent" aria-label="Live activity event">
+                        <option value="start" selected>start</option>
+                        <option value="update">update</option>
+                        <option value="end">end</option>
+                      </select>
+                    </div>
+                    <div class="la-field">
+                      <label for="laAttributesType">attributes-type</label>
+                      <input type="text" id="laAttributesType" value="KSIAAirportAttributes" spellcheck="false">
+                    </div>
                   </div>
-                </details>
-              </div>
+
+                  <p class="la-section-title la-section-title--json">Payload fields</p>
+                  <p class="la-ts-note la-ts-note--payload">
+                    Each block has <strong>Form</strong> (key/value rows) and <strong>JSON</strong>. Paste a fragment or full <code class="dashboard-code">aps</code> into any JSON field to import — or use the <strong>Paste JSON</strong> tab for the whole body.
+                  </p>
 
               <div class="la-json-block" data-json-editor aria-labelledby="laBlockContentStateTitle">
                 <div class="la-json-block-head">
@@ -286,6 +321,8 @@
                 </div>
                 <textarea id="laAlert" class="la-json la-json--panel" spellcheck="false" rows="6" aria-label="alert JSON"></textarea>
               </div>
+                </div>
+              </div>
 
               <div class="la-actions">
                 <button type="button" class="btn btn-secondary" id="laPreviewBtn">Preview JSON body</button>
@@ -305,6 +342,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260431"></script>
+  <script defer src="live-activities.js?v=20260442"></script>
 </body>
 </html>

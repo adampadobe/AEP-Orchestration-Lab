@@ -659,6 +659,81 @@
     el.classList.toggle('la-import-msg--err', !!isErr);
   }
 
+  /** RTDB-style: primary “Paste JSON” vs editable “Form” for the APS workspace */
+  function setPayloadView(mode) {
+    var pasteTab = $('laPayloadTabPaste');
+    var formTab = $('laPayloadTabForm');
+    var pastePanel = $('laPayloadPastePanel');
+    var formPanel = $('laPayloadFormPanel');
+    if (!pastePanel || !formPanel) return;
+    var isPaste = mode === 'paste';
+    pastePanel.hidden = !isPaste;
+    formPanel.hidden = isPaste;
+    if (pasteTab) {
+      pasteTab.classList.toggle('la-payload-tab--active', isPaste);
+      pasteTab.setAttribute('aria-selected', isPaste ? 'true' : 'false');
+    }
+    if (formTab) {
+      formTab.classList.toggle('la-payload-tab--active', !isPaste);
+      formTab.setAttribute('aria-selected', !isPaste ? 'true' : 'false');
+    }
+    if (!isPaste) {
+      document.querySelectorAll('[data-json-editor]').forEach(function (block) {
+        var ta = block.querySelector('.la-json--panel');
+        if (ta) bumpJsonMirror(ta);
+      });
+    }
+  }
+
+  function replaceTimestampInImportPaste() {
+    var ta = $('laImportPaste');
+    if (!ta) return;
+    var ts = Math.floor(Date.now() / 1000);
+    var v = ta.value;
+    if (!String(v || '').trim()) {
+      showImportMsg('Paste JSON first (or add a "timestamp" key to edit).', true);
+      return;
+    }
+    if (!/"timestamp"\s*:/.test(v)) {
+      showImportMsg('No "timestamp" key in the editor — paste a template that includes it, or Beautify after adding one.', true);
+      return;
+    }
+    var next = v.replace(
+      /"timestamp"\s*:\s*(\{\{[^{}]+\}\}|-?[0-9]+|"[^"]*")/g,
+      '"timestamp": ' + ts
+    );
+    ta.value = next;
+    bumpJsonMirror(ta);
+    showImportMsg('Set timestamp to ' + ts + ' (Unix seconds) in the editor.', false);
+  }
+
+  function replaceRequestIdInImportPaste() {
+    var ta = $('laImportPaste');
+    if (!ta) return;
+    var rid = randomUuid();
+    var v = ta.value;
+    if (!String(v || '').trim()) {
+      showImportMsg('Paste JSON first.', true);
+      return;
+    }
+    if (/"requestId"\s*:/.test(v)) {
+      ta.value = v.replace(
+        /"requestId"\s*:\s*(\{\{[^{}]+\}\}|"[^"]*"|'[^']*')/,
+        '"requestId": "' + rid + '"'
+      );
+    } else {
+      var trimmed = String(v).trim();
+      if (trimmed.indexOf('{') === 0) {
+        ta.value = v.replace(/^\s*\{/, '{\n  "requestId": "' + rid + '",');
+      } else {
+        showImportMsg('Could not insert requestId — JSON should start with {.', true);
+        return;
+      }
+    }
+    bumpJsonMirror(ta);
+    showImportMsg('Set requestId to a new UUID in the editor.', false);
+  }
+
   function onLaJsonPanelPaste(e) {
     var text = (e.clipboardData || window.clipboardData).getData('text/plain');
     if (text == null) return;
@@ -674,6 +749,7 @@
     if (ext) {
       e.preventDefault();
       applyExtracted(ext);
+      setPayloadView('form');
       showImportMsg('Imported unitary / aps payload — review campaign, ECID, and Form fields below.', false);
       return;
     }
@@ -719,7 +795,8 @@
       return;
     }
     if (applyExtracted(ext)) {
-      showImportMsg('Applied — switched sections to Form where possible. Review and send.', false);
+      showImportMsg('Applied — opening the Form tab. Review fields, then Preview or Send.', false);
+      setPayloadView('form');
       var ip = $('laImportPaste');
       if (ip) bumpJsonMirror(ip);
     } else {
@@ -915,6 +992,26 @@
         });
       });
     }
+    var pasteTab = $('laPayloadTabPaste');
+    var formTab = $('laPayloadTabForm');
+    if (pasteTab) {
+      pasteTab.addEventListener('click', function () {
+        setPayloadView('paste');
+      });
+    }
+    if (formTab) {
+      formTab.addEventListener('click', function () {
+        setPayloadView('form');
+      });
+    }
+    if ($('laPayloadPastePanel') && $('laPayloadFormPanel')) {
+      setPayloadView('paste');
+    }
+    var insTs = $('laPasteInsertTimestamp');
+    if (insTs) insTs.addEventListener('click', replaceTimestampInImportPaste);
+    var insRid = $('laPasteInsertRequestId');
+    if (insRid) insRid.addEventListener('click', replaceRequestIdInImportPaste);
+
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('.la-json-beautify');
       if (!btn || btn.id === 'laImportBeautify') return;
