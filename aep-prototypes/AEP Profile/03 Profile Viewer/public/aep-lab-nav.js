@@ -107,28 +107,40 @@
     return e;
   }
 
+  function normalizeNavLabelText(s) {
+    return String(s == null ? '' : s).replace(/\u00a0/g, ' ').trim();
+  }
+
+  function stripInDevelopmentSuffix(s) {
+    return normalizeNavLabelText(s).replace(/\s+\(in development\)\s*$/i, '').trim();
+  }
+
   /* ── Builders ── */
 
   function buildItem(def, filename) {
     var active = navItemActive(def.href, filename);
+    var raw = normalizeNavLabelText(def.label);
+    var isLiveActivities = def.href === 'live-activities.html';
+    var stacked = /^(.+?)\s+\(in development\)\s*$/i.exec(raw);
+    var useStacked = !!stacked && !isLiveActivities;
+    var tooltipText = stripInDevelopmentSuffix(raw) || raw;
     var a = mk('a', 'dashboard-nav-item' + (active ? ' dashboard-nav-item--active' : ''), {
       href: def.href,
-      'data-tooltip': def.label,
+      'data-tooltip': tooltipText,
     });
     var ico = mk('span', 'dashboard-nav-ico', { 'aria-hidden': 'true' });
     if (def.ico && def.ico.charAt(0) === '<') { ico.innerHTML = def.ico; } else { ico.textContent = def.ico; }
     var lbl = mk('span', 'dashboard-nav-label');
-    var stacked = /^(.+?)\s+\(in development\)\s*$/.exec(def.label);
-    if (stacked) {
+    if (useStacked) {
       lbl.className += ' dashboard-nav-label--stacked';
       var primary = mk('span', 'dashboard-nav-label-primary');
-      primary.textContent = stacked[1];
+      primary.textContent = stacked[1].trim();
       var dev = mk('span', 'dashboard-nav-label-dev');
       dev.textContent = '(in development)';
       lbl.appendChild(primary);
       lbl.appendChild(dev);
     } else {
-      lbl.textContent = def.label;
+      lbl.textContent = isLiveActivities ? stripInDevelopmentSuffix(raw) || raw : raw;
     }
     a.appendChild(ico);
     a.appendChild(lbl);
