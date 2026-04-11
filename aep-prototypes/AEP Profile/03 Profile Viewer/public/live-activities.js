@@ -52,6 +52,19 @@
   var LA_TEMPLATE_STORAGE_KEY = 'aepLaPayloadTemplatesV1';
 
   /**
+   * Postman / lab bundled built-ins (Etihad, KSIA, …) are curated for specific demo sandboxes only.
+   * Other sandboxes see no built-in optgroup — only templates saved for that sandbox (Firestore sync).
+   */
+  var LA_POSTMAN_BUILTINS_SANDBOXES = ['apalmer'];
+
+  function laSandboxShowsPostmanBuiltins() {
+    var sb = String(getSandboxForRequest() || '')
+      .trim()
+      .toLowerCase();
+    return LA_POSTMAN_BUILTINS_SANDBOXES.indexOf(sb) >= 0;
+  }
+
+  /**
    * Built-in unitary bodies: raw request bodies from data/live-activities.postman_collection.json
    * (Postman collection v2.1). Loaded at init; duplicate bodies are skipped.
    */
@@ -1915,19 +1928,21 @@
     ph.value = '';
     ph.textContent = 'Select a template…';
     sel.appendChild(ph);
-    var og1 = document.createElement('optgroup');
-    og1.label = 'Built-in';
-    LA_BUILTIN_TEMPLATES.forEach(function (t) {
-      var o = document.createElement('option');
-      o.value = t.id;
-      o.textContent = t.name;
-      og1.appendChild(o);
-    });
-    sel.appendChild(og1);
+    if (laSandboxShowsPostmanBuiltins() && LA_BUILTIN_TEMPLATES.length) {
+      var og1 = document.createElement('optgroup');
+      og1.label = 'Lab samples (Postman)';
+      LA_BUILTIN_TEMPLATES.forEach(function (t) {
+        var o = document.createElement('option');
+        o.value = t.id;
+        o.textContent = t.name;
+        og1.appendChild(o);
+      });
+      sel.appendChild(og1);
+    }
     var saved = laGetSavedTemplates();
     if (saved.length) {
       var og2 = document.createElement('optgroup');
-      og2.label = 'Saved in this browser';
+      og2.label = 'Saved for this sandbox';
       saved.forEach(function (t) {
         var o = document.createElement('option');
         o.value = t.id;
@@ -2016,7 +2031,7 @@
     var sel = $('laTemplateSelect');
     if (sel) sel.value = id;
     laUpdateTemplateDeleteState();
-    laShowTemplateMsg('Saved in this browser.', false);
+    laShowTemplateMsg('Saved for this sandbox.', false);
   }
 
   function laDeleteSelectedTemplate() {
@@ -2194,6 +2209,12 @@
       .then(function () {
         laPopulateTemplateSelect();
       });
+    window.addEventListener('aep-global-sandbox-change', function () {
+      laPopulateTemplateSelect();
+    });
+    document.addEventListener('aep-lab-sandbox-keys-applied', function () {
+      laPopulateTemplateSelect();
+    });
     var laTsel = $('laTemplateSelect');
     if (laTsel) laTsel.addEventListener('change', laUpdateTemplateDeleteState);
     var laTload = $('laTemplateLoad');
