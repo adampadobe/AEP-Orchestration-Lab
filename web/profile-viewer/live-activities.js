@@ -1610,9 +1610,7 @@
     if (ev === 'start' || ev === 'update' || ev === 'end') patch.event = ev;
     patch.requestId = randomUuid();
     patch.timestamp = Math.floor(Date.now() / 1000);
-    if (injectLaImportPaste(patch)) {
-      laRefreshOutgoingPreview();
-    }
+    injectLaImportPaste(patch);
   }
 
   function onLaJsonPanelPaste(e) {
@@ -1991,7 +1989,7 @@
     bumpJsonMirror(ta);
     afterImportPasteMutation();
     setPayloadView('paste');
-    laShowTemplateMsg('Loaded — Beautify if needed, then Apply all from fields (next to Beautify) to merge and preview.', false);
+    laShowTemplateMsg('Loaded — Beautify if needed, then Apply all from fields (next to Beautify) to merge step 2 into the JSON.', false);
   }
 
   function laSaveCurrentAsTemplate() {
@@ -2046,9 +2044,6 @@
       preview.textContent = JSON.stringify(p, null, 2);
       preview.hidden = false;
       if (responseEl) setMessage(responseEl, '', false);
-      try {
-        preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (e2) {}
     } catch (e) {
       preview.hidden = true;
       if (responseEl) setMessage(responseEl, String(e.message || e), true);

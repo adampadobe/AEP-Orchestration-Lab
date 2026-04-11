@@ -86,7 +86,7 @@
           <p class="panel-desc la-panel-lead la-panel-lead--compact">
             <strong>2)</strong> Enter the values below (they must match your campaign and device).
             <strong>3)</strong> Load a template or paste JSON.
-            <strong>4)</strong> Next to <strong>Beautify</strong>, click <strong>Apply all from fields</strong> to merge step 2 into the JSON and open the preview, then <strong>Send to Adobe</strong>.
+            <strong>4)</strong> Use <strong>Refresh preview</strong> when you want to see the exact outgoing body, then <strong>Send to Adobe</strong>.
             <span class="la-panel-meta">Uses <code class="dashboard-code">POST /ajo/im/executions/unitary</code> via this app’s proxy.</span>
           </p>
 
@@ -138,7 +138,7 @@
               </div>
               <div class="la-exec-sync" aria-describedby="laExecSyncHelp">
                 <p id="laExecSyncHelp" class="la-exec-sync-lead">
-                  Fill these first. In <strong>Message JSON</strong> below, load a template (or paste JSON), then use <strong>Apply all from fields</strong> next to <strong>Beautify</strong> — it merges this row into the editor and updates the <strong>preview</strong> you’ll send.
+                  Fill these first. In <strong>Message JSON</strong> below, load a template (or paste JSON), then use <strong>Apply all from fields</strong> next to <strong>Beautify</strong> to merge this row into the editor.
                 </p>
                 <details class="la-inject-advanced">
                   <summary>Optional: update one value in the JSON</summary>
@@ -190,7 +190,7 @@
                 </div>
                 <div class="la-payload-view-head">
                   <p class="la-payload-view-lead la-payload-view-lead--compact">
-                    Load a template or paste JSON, then <strong>Beautify</strong> if needed. <strong>Apply all from fields</strong> (next to Beautify) merges step 2 into this text and refreshes the outgoing preview below. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify.
+                    Load a template or paste JSON, then <strong>Beautify</strong> if needed. <strong>Apply all from fields</strong> merges step 2 into this text. Use <strong>Refresh preview</strong> (step 4) to see the outgoing payload. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify.
                   </p>
                   <div class="la-payload-view-toggle" role="tablist" aria-label="JSON editor view">
                     <button
@@ -228,12 +228,12 @@
                     aria-describedby="laImportPasteHint"
                   ></textarea>
                   <p id="laImportPasteHint" class="la-import-title-hint">
-                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. <strong>Apply all from fields</strong> merges the Campaign &amp; recipient row into this JSON and updates the preview block under step 4.
+                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. <strong>Apply all from fields</strong> merges the Campaign &amp; recipient row into this JSON (use <strong>Refresh preview</strong> below when you want to see the exact body).
                   </p>
                   <div class="la-import-actions">
                     <div class="la-import-actions-btns" role="group" aria-label="Format JSON and merge execution fields">
                       <button type="button" class="btn btn-secondary" id="laImportBeautify">Beautify</button>
-                      <button type="button" class="btn btn-primary" id="laInjectAllFromFields" title="Merge campaign, ECID, event, Live Activity ID, timestamp, and requestId into JSON; refresh preview">
+                      <button type="button" class="btn btn-primary" id="laInjectAllFromFields" title="Merge campaign, ECID, event, Live Activity ID, timestamp, and requestId into the JSON editor">
                         Apply all from fields
                       </button>
                     </div>
@@ -390,7 +390,7 @@
 
               <div class="la-actions la-actions--send">
                 <p class="la-send-step"><span class="la-send-step-num">4</span> Preview (outgoing payload) &amp; send</p>
-                <p class="la-send-step-hint">After <strong>Apply all from fields</strong>, this shows exactly what will be sent. Use <strong>Preview</strong> again any time after edits.</p>
+                <p class="la-send-step-hint">Click to fill the preview with the exact JSON that <strong>Send to Adobe</strong> will use (after <strong>Apply all from fields</strong> updates the editor).</p>
                 <button type="button" class="btn btn-secondary" id="laPreviewBtn">Refresh preview</button>
                 <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
               </div>
@@ -409,6 +409,6 @@
   <script defer src="firebase-database-config.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260464"></script>
+  <script defer src="live-activities.js?v=20260465"></script>
 </body>
 </html>
