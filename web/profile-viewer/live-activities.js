@@ -78,16 +78,16 @@
   function buildPayload() {
     var requestId = randomUuid();
     var campaignId = String($('laCampaignId').value || '').trim();
-    var recType = String($('laRecipientType').value || '').trim() || 'aep';
+    var recType = 'aep';
     var userId = String($('laUserId').value || '').trim();
-    var namespace = String($('laNamespace').value || '').trim();
+    var namespace = 'ECID';
     var contentAvailable = parseInt(String($('laContentAvailable').value || '0'), 10);
     var timestamp = Math.floor(Date.now() / 1000);
     var event = String($('laEvent').value || 'start').trim().toLowerCase();
     var attributesType = String($('laAttributesType').value || '').trim();
 
-    if (!campaignId || !userId || !namespace) {
-      throw new Error('campaign ID, user ID, and namespace are required.');
+    if (!campaignId || !userId) {
+      throw new Error('campaign ID and ECID are required.');
     }
     if (event !== 'start' && event !== 'update' && event !== 'end') {
       throw new Error('event must be start, update, or end.');
