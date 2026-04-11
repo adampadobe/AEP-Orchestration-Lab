@@ -52,6 +52,18 @@
     return el && el.value != null ? String(el.value).trim() : '';
   }
 
+  function sandboxQsAmp() {
+    var n = getSandboxForRequest();
+    return n ? '&sandbox=' + encodeURIComponent(n) : '';
+  }
+
+  function setProfileQueryMsg(el, text, type) {
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'consent-message consent-message--below-btn' + (type ? ' ' + type : '');
+    el.hidden = !text;
+  }
+
   function randomUuid() {
     if (window.crypto && typeof crypto.randomUUID === 'function') {
       return crypto.randomUUID();
@@ -145,6 +157,68 @@
       AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
       AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
       AepGlobalSandbox.attachStorageSync(sandboxSelect);
+    }
+
+    if (typeof attachEmailDatalist === 'function') {
+      attachEmailDatalist('laProfileIdentifier');
+    }
+    if (typeof AepIdentityPicker !== 'undefined') {
+      AepIdentityPicker.init('laProfileIdentifier', 'laProfileNs');
+    }
+
+    var profileQueryMsg = $('laProfileQueryMsg');
+    var queryBtn = $('laQueryProfileBtn');
+    if (queryBtn && profileQueryMsg) {
+      queryBtn.addEventListener('click', async function () {
+        var id =
+          typeof AepIdentityPicker !== 'undefined'
+            ? AepIdentityPicker.getIdentifier('laProfileIdentifier')
+            : String(($('laProfileIdentifier') && $('laProfileIdentifier').value) || '').trim();
+        if (!id) {
+          setProfileQueryMsg(profileQueryMsg, 'Enter an identifier.', 'error');
+          return;
+        }
+        var ns =
+          typeof AepIdentityPicker !== 'undefined'
+            ? AepIdentityPicker.getNamespace('laProfileIdentifier')
+            : String(($('laProfileNs') && $('laProfileNs').value) || 'email').trim();
+        setProfileQueryMsg(profileQueryMsg, 'Loading…', '');
+        try {
+          var res = await fetch(
+            '/api/profile/consent?identifier=' +
+              encodeURIComponent(id) +
+              '&namespace=' +
+              encodeURIComponent(ns) +
+              sandboxQsAmp()
+          );
+          var data = await res.json();
+          if (!res.ok) {
+            setProfileQueryMsg(profileQueryMsg, data.error || 'Request failed.', 'error');
+            return;
+          }
+          if (typeof addEmail === 'function') addEmail(id);
+          var ecidVal = Array.isArray(data.ecid) ? data.ecid[0] || '' : data.ecid || '';
+          ecidVal = String(ecidVal || '').trim();
+          if (data.found && ecidVal) {
+            $('laUserId').value = ecidVal;
+            setProfileQueryMsg(profileQueryMsg, 'Profile found — ECID filled in below.', 'success');
+          } else if (data.found && !ecidVal) {
+            setProfileQueryMsg(
+              profileQueryMsg,
+              'Profile found but no ECID on record — enter ECID manually.',
+              'error'
+            );
+          } else {
+            setProfileQueryMsg(
+              profileQueryMsg,
+              'No profile found — enter ECID manually or try another identity.',
+              'error'
+            );
+          }
+        } catch (e) {
+          setProfileQueryMsg(profileQueryMsg, String(e.message || e), 'error');
+        }
+      });
     }
 
     $('laPreviewBtn').addEventListener('click', function () {
