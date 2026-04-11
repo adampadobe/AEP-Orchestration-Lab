@@ -118,7 +118,18 @@
     var ico = mk('span', 'dashboard-nav-ico', { 'aria-hidden': 'true' });
     if (def.ico && def.ico.charAt(0) === '<') { ico.innerHTML = def.ico; } else { ico.textContent = def.ico; }
     var lbl = mk('span', 'dashboard-nav-label');
-    lbl.textContent = def.label;
+    var stacked = /^(.+?)\s+\(in development\)\s*$/.exec(def.label);
+    if (stacked) {
+      lbl.className += ' dashboard-nav-label--stacked';
+      var primary = mk('span', 'dashboard-nav-label-primary');
+      primary.textContent = stacked[1];
+      var dev = mk('span', 'dashboard-nav-label-dev');
+      dev.textContent = '(in development)';
+      lbl.appendChild(primary);
+      lbl.appendChild(dev);
+    } else {
+      lbl.textContent = def.label;
+    }
     a.appendChild(ico);
     a.appendChild(lbl);
     return a;

@@ -945,6 +945,37 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   transition: opacity 0.18s ease;
 }
 
+/* In-development tools: title + “(in development)” so the suffix is not ellipsed away */
+.dashboard-nav-label--stacked {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12em;
+  line-height: 1.2;
+}
+
+.dashboard-nav-label-primary {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.dashboard-nav-label-dev {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.72;
+  white-space: nowrap;
+}
+
+.dashboard-nav-item--active .dashboard-nav-label-dev {
+  opacity: 0.88;
+}
+
 /* ── Nav section groups ── */
 
 .dashboard-nav-group {
