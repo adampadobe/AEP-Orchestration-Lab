@@ -215,6 +215,13 @@
         }
       },
       {
+        "source": "/api/lab/sandbox-state",
+        "function": {
+          "functionId": "labUserSandboxState",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/events/datastreams",
         "function": {
           "functionId": "eventDatastreamsProxy",

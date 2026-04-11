@@ -39,7 +39,7 @@
         <section class="dashboard-hero" style="max-width: 640px;">
           <div class="dashboard-action-card" style="text-align: left;">
             <label for="globalSandboxSelect" class="schema-aep-sandbox-label" style="display:block;margin-bottom:4px;font-weight:600;">Active sandbox</label>
-            <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">Loads active sandboxes from your org. Saved in <code>localStorage</code> and applied across all pages.</p>
+            <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">Loads active sandboxes from your org. The selection is stored in this browser; templates, recent identifiers, and Edge/catalog config are also saved per sandbox in Firestore (after anonymous Firebase sign-in).</p>
             <select id="globalSandboxSelect" class="sandbox-select schema-aep-sandbox-select" style="max-width: 100%; width: 100%; margin-bottom: 12px;" aria-label="Global AEP sandbox"></select>
             <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
               <button type="button" class="dashboard-btn-outline" id="btnRefreshSandboxes">Refresh list</button>
@@ -59,7 +59,11 @@
     </div>
   </div>
 
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260411"></script>
   <script>
     (function () {
       var sel = document.getElementById('globalSandboxSelect');

@@ -72,6 +72,15 @@
       } catch (e) { return ''; }
     }
 
+    async function catalogAuthFetch(url, opts) {
+      opts = opts || {};
+      var extra = {};
+      if (typeof AepLabSandboxSync !== 'undefined' && AepLabSandboxSync.getAuthHeaders) {
+        extra = await AepLabSandboxSync.getAuthHeaders();
+      }
+      return fetch(url, Object.assign({}, opts, { headers: Object.assign({}, extra, opts.headers || {}) }));
+    }
+
     function catalogAepCall(payload) {
       var sandbox = getCatalogSandbox();
       if (sandbox) {
@@ -119,8 +128,13 @@
     async function loadSchemaConfig() {
       var sandbox = getCatalogSandbox();
       if (!sandbox) return;
+      if (window.__aepLabSyncReady) {
+        try {
+          await window.__aepLabSyncReady;
+        } catch (e) {}
+      }
       try {
-        var res = await fetch('/api/catalog/config?sandbox=' + encodeURIComponent(sandbox));
+        var res = await catalogAuthFetch('/api/catalog/config?sandbox=' + encodeURIComponent(sandbox));
         var data = await res.json().catch(function () { return {}; });
         if (data.ok && data.record && data.record.schemaId) {
           schemaInput.value = data.record.schemaId;
@@ -146,7 +160,7 @@
       var val = schemaInput.value.trim();
       if (!sandbox) return;
       try {
-        await fetch('/api/catalog/config', {
+        await catalogAuthFetch('/api/catalog/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sandbox: sandbox, schemaId: val }),

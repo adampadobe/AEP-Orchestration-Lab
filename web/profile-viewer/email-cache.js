@@ -95,6 +95,9 @@ function addRecentIdentifier(value, namespace) {
   list = list.slice(0, MAX_PER_NS);
   map[ns] = list;
   saveMap(map);
+  if (typeof window !== 'undefined' && window.AepLabSandboxSync && typeof window.AepLabSandboxSync.notifyDirty === 'function') {
+    window.AepLabSandboxSync.notifyDirty();
+  }
 }
 
 /** Add email to cache (moves to front if already present). */
@@ -164,6 +167,8 @@ function attachEmailDatalist(inputId, datalistId = 'recentEmails', namespaceSele
   }
 
   refresh();
+
+  document.addEventListener('aep-lab-sandbox-keys-applied', refresh);
 
   input.addEventListener('focus', refresh);
 

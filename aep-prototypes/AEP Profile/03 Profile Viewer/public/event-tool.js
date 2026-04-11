@@ -94,6 +94,18 @@
     return n ? '&sandbox=' + encodeURIComponent(n) : '';
   }
 
+  async function labAuthFetch(url, options) {
+    options = options || {};
+    const extra =
+      typeof AepLabSandboxSync !== 'undefined' && AepLabSandboxSync.getAuthHeaders
+        ? await AepLabSandboxSync.getAuthHeaders()
+        : {};
+    return fetch(url, {
+      ...options,
+      headers: { ...extra, ...(options.headers || {}) },
+    });
+  }
+
   function triggerKey(t) {
     if (t == null) return '';
     return typeof t === 'string' ? t : (t.value || t.eventType || '');
@@ -155,7 +167,7 @@
     if (!qs) return;
     setMsg(dom.infraMsg, 'Loading saved configuration from Firebase…', '');
     try {
-      const res = await fetch('/api/events/config' + qs);
+      const res = await labAuthFetch('/api/events/config' + qs);
       const data = await res.json().catch(() => ({}));
       if (data.ok && data.record) {
         if (data.record.datastreamId) dom.dsInput.value = data.record.datastreamId;
@@ -194,7 +206,7 @@
     const sandbox = getSandboxName();
     if (!sandbox) return;
     try {
-      await fetch('/api/events/config', {
+      await labAuthFetch('/api/events/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sandbox, ...patch }),
@@ -512,7 +524,7 @@
     const schemaTitle = (dom.schemaTitle.value || '').trim();
     const datasetName = (dom.datasetName.value || '').trim();
     try {
-      const res = await fetch('/api/events/config', {
+      const res = await labAuthFetch('/api/events/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sandbox, datastreamId: dsId, schemaTitle, datasetName }),
@@ -539,7 +551,7 @@
     dom.fetchConfigBtn.disabled = true;
     setMsg(dom.infraMsg, 'Fetching configuration from Firebase…', '');
     try {
-      const res = await fetch('/api/events/config' + sandboxQs());
+      const res = await labAuthFetch('/api/events/config' + sandboxQs());
       const data = await res.json().catch(() => ({}));
       if (data.ok && data.record) {
         const r = data.record;
@@ -940,7 +952,12 @@
   async function init() {
     await initSandboxSelect();
     loadTriggerTemplates();
-    loadSavedConfig();
+    if (window.__aepLabSyncReady) {
+      try {
+        await window.__aepLabSyncReady;
+      } catch (e) {}
+    }
+    await loadSavedConfig();
   }
 
   if (document.readyState === 'loading') {

@@ -26,6 +26,9 @@
 
   function persistNamespace(ns) {
     try { localStorage.setItem(LS_KEY, ns); } catch { /* noop */ }
+    if (typeof window !== 'undefined' && window.AepLabSandboxSync && typeof window.AepLabSandboxSync.notifyDirty === 'function') {
+      window.AepLabSandboxSync.notifyDirty();
+    }
   }
 
   /**
@@ -73,5 +76,16 @@
     return `identifier=${encodeURIComponent(id)}&namespace=${encodeURIComponent(ns)}`;
   }
 
-  window.AepIdentityPicker = { init, getNamespace, getIdentifier, getQueryString };
+  function refreshAllFromStorage() {
+    const ns = savedNamespace();
+    Object.values(instances).forEach((inst) => {
+      if (!inst || !inst.select || !inst.input) return;
+      inst.select.value = ns;
+      inst.input.placeholder = PLACEHOLDERS[ns] || PLACEHOLDERS.email;
+    });
+  }
+
+  document.addEventListener('aep-lab-sandbox-keys-applied', refreshAllFromStorage);
+
+  window.AepIdentityPicker = { init, getNamespace, getIdentifier, getQueryString, refreshAllFromStorage };
 })();

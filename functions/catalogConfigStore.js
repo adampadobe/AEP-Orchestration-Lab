@@ -6,6 +6,7 @@
 const admin = require('firebase-admin');
 
 const COLLECTION = 'catalogConfig';
+const USER_COLLECTION = 'catalogConfigUser';
 
 let db;
 function getDb() {
@@ -19,6 +20,12 @@ function getDb() {
 function docId(sandbox) {
   const s = String(sandbox || 'default').trim() || 'default';
   return s.replace(/[/\s.#$\[\]]/g, '_').slice(0, 700);
+}
+
+function userDocId(uid, sandbox) {
+  const u = String(uid || '').trim().slice(0, 128);
+  const d = docId(sandbox);
+  return `${u}__${d}`.slice(0, 800);
 }
 
 function trim(val, max) {
@@ -61,4 +68,68 @@ async function saveCatalogConfig(sandbox, patch) {
   return after.exists ? { id: after.id, ...after.data() } : null;
 }
 
-module.exports = { COLLECTION, getCatalogConfig, saveCatalogConfig, docId };
+async function getUserCatalogConfig(uid, sandbox) {
+  const name = String(sandbox || '').trim();
+  const u = String(uid || '').trim();
+  if (!name || !u) return null;
+  const snap = await getDb().collection(USER_COLLECTION).doc(userDocId(u, name)).get();
+  if (!snap.exists) return null;
+  const data = snap.data();
+  return data && typeof data === 'object' ? { id: snap.id, ...data } : null;
+}
+
+async function saveUserCatalogConfig(uid, sandbox, patch) {
+  const name = String(sandbox || '').trim();
+  const u = String(uid || '').trim();
+  if (!name) throw new Error('sandbox is required');
+  if (!u) throw new Error('uid is required');
+
+  const ref = getDb().collection(USER_COLLECTION).doc(userDocId(u, name));
+
+  await getDb().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const prev = snap.exists && snap.data() ? snap.data() : {};
+
+    const merged = {
+      uid: u,
+      sandbox: name,
+      schemaId: trim(
+        patch.schemaId !== undefined ? patch.schemaId : prev.schemaId,
+        512,
+      ),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    tx.set(ref, merged, { merge: true });
+  });
+
+  const after = await ref.get();
+  return after.exists ? { id: after.id, ...after.data() } : null;
+}
+
+async function getEffectiveCatalogConfig(sandbox, uid) {
+  const u = String(uid || '').trim();
+  if (u) {
+    const userRec = await getUserCatalogConfig(u, sandbox);
+    if (userRec) return userRec;
+  }
+  return getCatalogConfig(sandbox);
+}
+
+async function saveEffectiveCatalogConfig(sandbox, uid, patch) {
+  const u = String(uid || '').trim();
+  if (u) return saveUserCatalogConfig(u, sandbox, patch);
+  return saveCatalogConfig(sandbox, patch);
+}
+
+module.exports = {
+  COLLECTION,
+  USER_COLLECTION,
+  getCatalogConfig,
+  saveCatalogConfig,
+  getUserCatalogConfig,
+  saveUserCatalogConfig,
+  getEffectiveCatalogConfig,
+  saveEffectiveCatalogConfig,
+  docId,
+};

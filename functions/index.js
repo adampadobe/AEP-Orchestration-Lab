@@ -54,8 +54,19 @@ const { lookupConsentHttpFlow } = require('./consentFlowLookup');
 const { getConsentConnection, saveConsentConnection } = require('./consentConnectionStore');
 const { getCachedJourneyName, setCachedJourneyName } = require('./journeyNameStore');
 const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = require('./eventEdgeService');
-const { getEventConfig, saveEventConfig } = require('./eventConfigStore');
-const { getCatalogConfig, saveCatalogConfig } = require('./catalogConfigStore');
+const {
+  getEffectiveEventConfig,
+  saveEffectiveEventConfig,
+} = require('./eventConfigStore');
+const {
+  getEffectiveCatalogConfig,
+  saveEffectiveCatalogConfig,
+} = require('./catalogConfigStore');
+const {
+  getLabKeys,
+  mergeLabKeys,
+  verifyIdTokenFromRequest,
+} = require('./labUserSandboxStore');
 const { buildBrowseResponse: buildJourneysBrowseResponse } = require('./journeysBrowse');
 const { enrichJourneyRowsWithCja, listCjaDataViewsAjoEnabled } = require('./cjaJourneyMetrics');
 const journeyBrowseCache = require('./journeyBrowseCacheStore');
@@ -121,7 +132,7 @@ let tokenCache = { accessToken: null, expiresAtMs: 0 };
 function setCors(res, methods = 'GET, POST, OPTIONS') {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', methods);
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
 async function getAdobeAccessToken() {
@@ -1838,10 +1849,17 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
     ? String(req.body.sandbox).trim()
     : resolveSandboxFromQuery(req);
 
+  const uid = await verifyIdTokenFromRequest(req);
+
   if (req.method === 'GET') {
     try {
-      const record = await getEventConfig(sandbox);
-      res.status(200).json({ ok: true, sandbox, record: serializeEventConfigRecord(record) });
+      const record = await getEffectiveEventConfig(sandbox, uid);
+      res.status(200).json({
+        ok: true,
+        sandbox,
+        record: serializeEventConfigRecord(record),
+        storage: uid ? 'user' : 'shared',
+      });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
     }
@@ -1850,7 +1868,15 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
   if (req.method === 'POST') {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     try {
-      const record = await saveEventConfig(sandbox, {
+      if (!uid) {
+        res.status(401).json({
+          ok: false,
+          error: 'Sign in required to save Edge config (anonymous sign-in is enough).',
+          sandbox,
+        });
+        return;
+      }
+      const record = await saveEffectiveEventConfig(sandbox, uid, {
         datastreamId: body.datastreamId,
         datastreamTitle: body.datastreamTitle,
         schemaTitle: body.schemaTitle,
@@ -1858,7 +1884,12 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
         customTriggers: body.customTriggers,
         quickMenuTriggers: body.quickMenuTriggers,
       });
-      res.status(200).json({ ok: true, sandbox, record: serializeEventConfigRecord(record) });
+      res.status(200).json({
+        ok: true,
+        sandbox,
+        record: serializeEventConfigRecord(record),
+        storage: 'user',
+      });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
     }
@@ -1876,10 +1907,12 @@ exports.catalogConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) =
     ? String(req.body.sandbox).trim()
     : resolveSandboxFromQuery(req);
 
+  const uid = await verifyIdTokenFromRequest(req);
+
   if (req.method === 'GET') {
     try {
-      const record = await getCatalogConfig(sandbox);
-      res.status(200).json({ ok: true, sandbox, record });
+      const record = await getEffectiveCatalogConfig(sandbox, uid);
+      res.status(200).json({ ok: true, sandbox, record, storage: uid ? 'user' : 'shared' });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
     }
@@ -1888,15 +1921,72 @@ exports.catalogConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) =
   if (req.method === 'POST') {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     try {
-      const record = await saveCatalogConfig(sandbox, {
+      if (!uid) {
+        res.status(401).json({
+          ok: false,
+          error: 'Sign in required to save catalog config (anonymous sign-in is enough).',
+          sandbox,
+        });
+        return;
+      }
+      const record = await saveEffectiveCatalogConfig(sandbox, uid, {
         schemaId: body.schemaId,
       });
-      res.status(200).json({ ok: true, sandbox, record });
+      res.status(200).json({ ok: true, sandbox, record, storage: 'user' });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
     }
     return;
   }
+  res.status(405).json({ error: 'Method not allowed' });
+});
+
+/** GET/POST /api/lab/sandbox-state — per-user per-sandbox localStorage mirror (Firestore) */
+exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  const uid = await verifyIdTokenFromRequest(req);
+  if (!uid) {
+    res.status(401).json({ ok: false, error: 'Firebase Auth required (anonymous sign-in is enough).' });
+    return;
+  }
+
+  const sandbox = (req.method === 'POST' && req.body?.sandbox)
+    ? String(req.body.sandbox).trim()
+    : resolveSandboxFromQuery(req);
+
+  if (!sandbox) {
+    res.status(400).json({ ok: false, error: 'sandbox is required' });
+    return;
+  }
+
+  if (req.method === 'GET') {
+    try {
+      const keys = await getLabKeys(uid, sandbox);
+      res.status(200).json({ ok: true, sandbox, keys });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+    return;
+  }
+
+  if (req.method === 'POST') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const patch = body.keys && typeof body.keys === 'object' ? body.keys : {};
+    const replace = !!body.replace;
+    try {
+      const keys = await mergeLabKeys(uid, sandbox, patch, { replace });
+      res.status(200).json({ ok: true, sandbox, keys });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+    return;
+  }
+
   res.status(405).json({ error: 'Method not allowed' });
 });
 

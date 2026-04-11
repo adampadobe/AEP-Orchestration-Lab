@@ -1897,6 +1897,9 @@
     try {
       localStorage.setItem(LA_TEMPLATE_STORAGE_KEY, JSON.stringify(arr));
     } catch (e) {}
+    if (typeof window !== 'undefined' && window.AepLabSandboxSync && typeof window.AepLabSandboxSync.notifyDirty === 'function') {
+      window.AepLabSandboxSync.notifyDirty();
+    }
   }
 
   function laIsBuiltinTemplateId(id) {

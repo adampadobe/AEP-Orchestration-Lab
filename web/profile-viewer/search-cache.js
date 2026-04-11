@@ -66,4 +66,7 @@ function addRecentSearchTerm(term) {
   } catch {
     // ignore
   }
+  if (typeof window !== 'undefined' && window.AepLabSandboxSync && typeof window.AepLabSandboxSync.notifyDirty === 'function') {
+    window.AepLabSandboxSync.notifyDirty();
+  }
 }

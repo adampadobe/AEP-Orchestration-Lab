@@ -800,6 +800,9 @@ function buildChannelTabs(detectedChannels) {
 function setActiveChannelTab(key) {
   activeChannelTab = key;
   try { localStorage.setItem(LS_CHANNEL_TAB, key); } catch (e) {}
+  if (typeof window !== 'undefined' && window.AepLabSandboxSync && typeof window.AepLabSandboxSync.notifyDirty === 'function') {
+    window.AepLabSandboxSync.notifyDirty();
+  }
   var container = document.getElementById('detailsChannelTabs');
   if (container) {
     container.querySelectorAll('.details-channel-tab').forEach(function (btn) {
