@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260443">
+  <link rel="stylesheet" href="live-activities.css?v=20260445">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="profile-viewer-page profile-generation-page home-dashboard-concierge live-activities-page">
@@ -239,12 +239,41 @@
 
                 <div id="laPayloadTreePanel" class="la-payload-panel" role="tabpanel" hidden aria-labelledby="laPayloadTabTree">
                   <p class="la-tree-view-lead">
-                    Read-only tree of whatever you pasted in <strong>Paste JSON</strong> (same pattern as <strong>Tree</strong> on Firebase Realtime Database). Edit the text there, then <strong>Refresh tree</strong> or switch back to this tab.
+                    Browse like <strong>Firebase Realtime Database → Tree</strong>. Click a <strong>value</strong> to edit it; changes update the JSON in <strong>Paste JSON</strong>. Use <strong>Expand all</strong> to open every folder.
                   </p>
                   <div class="la-paste-tree-toolbar">
-                    <button type="button" class="btn btn-secondary" id="laPasteTreeRefresh">Refresh tree</button>
-                    <button type="button" class="btn btn-secondary" id="laPasteTreeExpandAll">Expand all</button>
+                    <button type="button" class="btn btn-primary" id="laPasteTreeExpandAll">Expand all</button>
                     <button type="button" class="btn btn-secondary" id="laPasteTreeCollapseAll">Collapse all</button>
+                    <button type="button" class="btn btn-secondary" id="laPasteTreeRefresh">Refresh tree</button>
+                  </div>
+                  <p id="laPasteTreeMsg" class="la-paste-tree-msg" hidden role="status"></p>
+                  <div id="laPasteTreeEdit" class="la-paste-tree-edit" hidden>
+                    <h4 class="la-paste-tree-edit-title">Edit value</h4>
+                    <p id="laPasteTreeEditPath" class="la-paste-tree-edit-path" aria-live="polite"></p>
+                    <div class="la-paste-tree-edit-fields">
+                      <div class="la-field">
+                        <label for="laPasteTreeEditKey">Field</label>
+                        <input type="text" id="laPasteTreeEditKey" readonly class="la-paste-tree-edit-key" autocomplete="off" spellcheck="false" />
+                      </div>
+                      <div class="la-field">
+                        <label for="laPasteTreeEditType">Type</label>
+                        <select id="laPasteTreeEditType" aria-label="Value type">
+                          <option value="string">string</option>
+                          <option value="number">number</option>
+                          <option value="boolean">boolean</option>
+                          <option value="null">null</option>
+                          <option value="json">JSON (object or array)</option>
+                        </select>
+                      </div>
+                      <div class="la-field la-field--block">
+                        <label for="laPasteTreeEditValue">Value</label>
+                        <textarea id="laPasteTreeEditValue" class="la-paste-tree-edit-value" rows="5" spellcheck="false" autocomplete="off" placeholder="New value"></textarea>
+                      </div>
+                    </div>
+                    <div class="la-paste-tree-edit-actions">
+                      <button type="button" class="btn btn-primary" id="laPasteTreeEditSave">Apply to JSON</button>
+                      <button type="button" class="btn btn-secondary" id="laPasteTreeEditCancel">Cancel</button>
+                    </div>
                   </div>
                   <div id="laPasteTree" class="la-paste-tree" role="tree" aria-label="Structure of pasted JSON"></div>
                 </div>
@@ -364,6 +393,6 @@
   <script src="aep-global-sandbox.js"></script>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260411"></script>
-  <script defer src="live-activities.js?v=20260443"></script>
+  <script defer src="live-activities.js?v=20260445"></script>
 </body>
 </html>

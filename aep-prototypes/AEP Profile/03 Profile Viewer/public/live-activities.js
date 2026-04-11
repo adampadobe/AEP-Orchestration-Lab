@@ -9,6 +9,11 @@
   /** Expanded paths in Paste JSON → Tree view (same idea as Firebase RTDB tree). */
   var laTreeExpanded = new Set();
 
+  /** Normalized path '' = root value; null = edit panel closed. */
+  var laTreeEditPath = null;
+  /** Last selected path for row highlight (normalized, '' = root). */
+  var laTreeSelectedPathKey = null;
+
   var DEFAULT_CONTENT_STATE = [
     '{',
     '  "boardingStatus": "Check-in Complete",',
@@ -703,6 +708,216 @@
     return prefix + '/' + key;
   }
 
+  function showTreeMsg(text, isErr) {
+    var el = $('laPasteTreeMsg');
+    if (!el) return;
+    el.textContent = text || '';
+    el.hidden = !text;
+    el.classList.toggle('la-paste-tree-msg--err', !!isErr);
+  }
+
+  function normalizeLaTreePathAttr(attr) {
+    if (attr == null || attr === '' || attr === '__root__') return '';
+    return String(attr);
+  }
+
+  function getLaAtPath(root, pathKey) {
+    if (pathKey === '') return root;
+    var parts = pathKey.split('/').filter(Boolean);
+    var cur = root;
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      if (cur == null || typeof cur !== 'object') return undefined;
+      if (Array.isArray(cur)) {
+        var idx = parseInt(p, 10);
+        if (String(idx) !== p) return undefined;
+        cur = cur[idx];
+      } else {
+        cur = cur[p];
+      }
+    }
+    return cur;
+  }
+
+  function setLaAtPathMutate(root, pathKey, newValue) {
+    var parts = pathKey.split('/').filter(Boolean);
+    if (parts.length === 0) return;
+    var cur = root;
+    for (var i = 0; i < parts.length - 1; i++) {
+      var p = parts[i];
+      if (Array.isArray(cur)) cur = cur[parseInt(p, 10)];
+      else cur = cur[p];
+      if (cur == null) return;
+    }
+    var last = parts[parts.length - 1];
+    if (Array.isArray(cur)) cur[parseInt(last, 10)] = newValue;
+    else cur[last] = newValue;
+  }
+
+  function parseLaEditValue(raw, type) {
+    var t = String(type || 'string');
+    if (t === 'null') return null;
+    if (t === 'boolean') {
+      var sb = String(raw).trim().toLowerCase();
+      if (sb === 'true') return true;
+      if (sb === 'false') return false;
+      throw new Error('Boolean must be true or false.');
+    }
+    if (t === 'number') {
+      var n = parseFloat(String(raw).trim());
+      if (Number.isNaN(n)) throw new Error('Invalid number.');
+      return n;
+    }
+    if (t === 'json') {
+      var j = String(raw || '').trim();
+      if (!j) throw new Error('JSON value is empty.');
+      return parseUserJson(j);
+    }
+    return String(raw);
+  }
+
+  function openLaTreeEdit(pathAttr, opts) {
+    opts = opts || {};
+    var pathKey = normalizeLaTreePathAttr(pathAttr);
+    var ta = $('laImportPaste');
+    var panel = $('laPasteTreeEdit');
+    if (!ta || !panel) return;
+    var raw = String(ta.value || '').trim();
+    if (!raw) {
+      showTreeMsg('Paste JSON in the Paste JSON tab first.', true);
+      return;
+    }
+    var parsed;
+    try {
+      parsed = parseUserJson(raw);
+    } catch (e) {
+      showTreeMsg('Invalid JSON: ' + (e.message || e), true);
+      return;
+    }
+    var val = getLaAtPath(parsed, pathKey);
+    if (val === undefined) {
+      showTreeMsg('That path is not in the document — try Refresh tree.', true);
+      return;
+    }
+    var asJson = !!opts.jsonSubtree;
+    if (asJson) {
+      if (val === null || typeof val !== 'object') {
+        showTreeMsg('Nothing to edit as JSON at this path.', true);
+        return;
+      }
+    } else if (val !== null && typeof val === 'object') {
+      showTreeMsg('Use the JSON button on this row to edit an object or array.', false);
+      return;
+    }
+    laTreeEditPath = pathKey;
+    laTreeSelectedPathKey = pathKey;
+    var pathEl = $('laPasteTreeEditPath');
+    var keyEl = $('laPasteTreeEditKey');
+    var typeEl = $('laPasteTreeEditType');
+    var valEl = $('laPasteTreeEditValue');
+    if (pathEl) {
+      pathEl.textContent =
+        pathKey === '' ? 'Path: / (entire document)' : 'Path: /' + pathKey;
+    }
+    if (keyEl) {
+      keyEl.value =
+        pathKey === '' ? '(root)' : pathKey.split('/').filter(Boolean).pop() || '(root)';
+    }
+    if (typeEl && valEl) {
+      if (asJson || (val !== null && typeof val === 'object')) {
+        typeEl.value = 'json';
+        valEl.value = JSON.stringify(val, null, 2);
+      } else {
+        var ty =
+          val === null
+            ? 'null'
+            : typeof val === 'boolean'
+              ? 'boolean'
+              : typeof val === 'number'
+                ? 'number'
+                : 'string';
+        typeEl.value = ty;
+        if (val === null) valEl.value = '';
+        else if (typeof val === 'boolean' || typeof val === 'number') valEl.value = String(val);
+        else valEl.value = String(val);
+      }
+    }
+    panel.hidden = false;
+    renderPasteTree();
+    if (valEl) {
+      try {
+        valEl.focus();
+      } catch (fe) {}
+    }
+    showTreeMsg('Change the value and click Apply to JSON.', false);
+  }
+
+  function cancelLaTreeEdit() {
+    laTreeEditPath = null;
+    laTreeSelectedPathKey = null;
+    var panel = $('laPasteTreeEdit');
+    if (panel) panel.hidden = true;
+    showTreeMsg('', false);
+    renderPasteTree();
+  }
+
+  function closeLaTreeEditAfterSave() {
+    laTreeEditPath = null;
+    var panel = $('laPasteTreeEdit');
+    if (panel) panel.hidden = true;
+    showTreeMsg('', false);
+  }
+
+  function saveLaTreeEdit() {
+    if (laTreeEditPath === null) return;
+    var pathKey = laTreeEditPath;
+    var ta = $('laImportPaste');
+    var typeEl = $('laPasteTreeEditType');
+    var valEl = $('laPasteTreeEditValue');
+    if (!ta || !typeEl || !valEl) return;
+    var rawIn = String(ta.value || '').trim();
+    var parsed;
+    try {
+      parsed = parseUserJson(rawIn);
+    } catch (e) {
+      showTreeMsg('Invalid JSON in paste box: ' + (e.message || e), true);
+      return;
+    }
+    var newVal;
+    try {
+      newVal = parseLaEditValue(valEl.value, typeEl.value);
+    } catch (e2) {
+      showTreeMsg(String(e2.message || e2), true);
+      return;
+    }
+    var next;
+    if (pathKey === '') {
+      next = newVal;
+    } else {
+      next = JSON.parse(JSON.stringify(parsed));
+      setLaAtPathMutate(next, pathKey, newVal);
+    }
+    try {
+      ta.value = JSON.stringify(next, null, 2);
+    } catch (e3) {
+      showTreeMsg('Could not save: ' + (e3.message || e3), true);
+      return;
+    }
+    bumpJsonMirror(ta);
+    laTreeSelectedPathKey = pathKey;
+    closeLaTreeEditAfterSave();
+    renderPasteTree();
+    showTreeMsg('Updated paste JSON.', false);
+  }
+
+  function laPathKeySelected(pathKey) {
+    return (
+      laTreeSelectedPathKey != null &&
+      laTreeSelectedPathKey === pathKey &&
+      laTreeEditPath === null
+    );
+  }
+
   function formatLaLeafValue(value) {
     if (value === null) return 'null';
     if (typeof value === 'number' || typeof value === 'boolean') return String(value);
@@ -727,10 +942,20 @@
     } else {
       var row = document.createElement('div');
       row.className = 'la-paste-tree-row';
-      var line = document.createElement('div');
-      line.className = 'la-paste-tree-leaf-inline';
-      line.textContent = formatLaLeafValue(value);
-      row.appendChild(line);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'la-paste-tree-leaf-btn';
+      btn.setAttribute('data-la-tree-edit', path === '' ? '__root__' : path);
+      if (laPathKeySelected(path === '' ? '' : path)) btn.classList.add('la-paste-tree-leaf-btn--selected');
+      var kEl = document.createElement('span');
+      kEl.className = 'la-paste-tree-leaf-key';
+      kEl.textContent = 'value: ';
+      var vEl = document.createElement('span');
+      vEl.className = 'la-paste-tree-leaf-val';
+      vEl.textContent = formatLaLeafValue(value);
+      btn.appendChild(kEl);
+      btn.appendChild(vEl);
+      row.appendChild(btn);
       container.appendChild(row);
     }
   }
@@ -754,29 +979,43 @@
       row.className = 'la-paste-tree-row';
       if (val !== null && typeof val === 'object') {
         var isOpen = laTreeExpanded.has(childPath);
+        var line = document.createElement('div');
+        line.className = 'la-paste-tree-folder-line';
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'la-paste-tree-key la-paste-tree-folder';
         btn.setAttribute('data-la-tree-toggle', childPath);
         btn.textContent = (isOpen ? '▼ ' : '▶ ') + key + ' (' + childCountLabel(val) + ')';
-        row.appendChild(btn);
+        var ej = document.createElement('button');
+        ej.type = 'button';
+        ej.className = 'la-paste-tree-json-btn';
+        ej.setAttribute('data-la-tree-json', childPath);
+        ej.setAttribute('title', 'Edit this object or array as JSON');
+        ej.textContent = 'JSON';
+        if (laPathKeySelected(childPath)) ej.classList.add('la-paste-tree-json-btn--selected');
+        line.appendChild(btn);
+        line.appendChild(ej);
+        row.appendChild(line);
         var childWrap = document.createElement('div');
         childWrap.className = 'la-paste-tree-children';
         childWrap.style.display = isOpen ? 'block' : 'none';
         renderLaValue(val, childPath, childWrap);
         row.appendChild(childWrap);
       } else {
-        var leaf = document.createElement('div');
-        leaf.className = 'la-paste-tree-leaf-row';
+        var leafBtn = document.createElement('button');
+        leafBtn.type = 'button';
+        leafBtn.className = 'la-paste-tree-leaf-btn';
+        leafBtn.setAttribute('data-la-tree-edit', childPath);
+        if (laPathKeySelected(childPath)) leafBtn.classList.add('la-paste-tree-leaf-btn--selected');
         var kEl = document.createElement('span');
         kEl.className = 'la-paste-tree-leaf-key';
         kEl.textContent = key + ': ';
         var vEl = document.createElement('span');
         vEl.className = 'la-paste-tree-leaf-val';
         vEl.textContent = formatLaLeafValue(val);
-        leaf.appendChild(kEl);
-        leaf.appendChild(vEl);
-        row.appendChild(leaf);
+        leafBtn.appendChild(kEl);
+        leafBtn.appendChild(vEl);
+        row.appendChild(leafBtn);
       }
       container.appendChild(row);
     });
@@ -800,29 +1039,43 @@
       var label = '[' + i + ']';
       if (item !== null && typeof item === 'object') {
         var isOpen = laTreeExpanded.has(childPath);
+        var line = document.createElement('div');
+        line.className = 'la-paste-tree-folder-line';
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'la-paste-tree-key la-paste-tree-folder';
         btn.setAttribute('data-la-tree-toggle', childPath);
         btn.textContent = (isOpen ? '▼ ' : '▶ ') + label + ' (' + childCountLabel(item) + ')';
-        row.appendChild(btn);
+        var ej = document.createElement('button');
+        ej.type = 'button';
+        ej.className = 'la-paste-tree-json-btn';
+        ej.setAttribute('data-la-tree-json', childPath);
+        ej.setAttribute('title', 'Edit this object or array as JSON');
+        ej.textContent = 'JSON';
+        if (laPathKeySelected(childPath)) ej.classList.add('la-paste-tree-json-btn--selected');
+        line.appendChild(btn);
+        line.appendChild(ej);
+        row.appendChild(line);
         var childWrap = document.createElement('div');
         childWrap.className = 'la-paste-tree-children';
         childWrap.style.display = isOpen ? 'block' : 'none';
         renderLaValue(item, childPath, childWrap);
         row.appendChild(childWrap);
       } else {
-        var leaf = document.createElement('div');
-        leaf.className = 'la-paste-tree-leaf-row';
+        var leafBtn = document.createElement('button');
+        leafBtn.type = 'button';
+        leafBtn.className = 'la-paste-tree-leaf-btn';
+        leafBtn.setAttribute('data-la-tree-edit', childPath);
+        if (laPathKeySelected(childPath)) leafBtn.classList.add('la-paste-tree-leaf-btn--selected');
         var kEl = document.createElement('span');
         kEl.className = 'la-paste-tree-leaf-key';
         kEl.textContent = label + ': ';
         var vEl = document.createElement('span');
         vEl.className = 'la-paste-tree-leaf-val';
         vEl.textContent = formatLaLeafValue(item);
-        leaf.appendChild(kEl);
-        leaf.appendChild(vEl);
-        row.appendChild(leaf);
+        leafBtn.appendChild(kEl);
+        leafBtn.appendChild(vEl);
+        row.appendChild(leafBtn);
       }
       container.appendChild(row);
     });
@@ -830,14 +1083,34 @@
 
   function renderLaRoot(value, container) {
     if (value !== null && typeof value === 'object') {
+      var bar = document.createElement('div');
+      bar.className = 'la-paste-tree-root-actions';
+      var rootJson = document.createElement('button');
+      rootJson.type = 'button';
+      rootJson.className = 'btn btn-secondary la-paste-tree-json-btn la-paste-tree-json-btn--wide';
+      rootJson.setAttribute('data-la-tree-json', '__root__');
+      rootJson.textContent = 'Edit entire JSON';
+      if (laPathKeySelected('')) rootJson.classList.add('la-paste-tree-json-btn--selected');
+      bar.appendChild(rootJson);
+      container.appendChild(bar);
       renderLaValue(value, '', container);
     } else {
       var row = document.createElement('div');
       row.className = 'la-paste-tree-row';
-      var span = document.createElement('div');
-      span.className = 'la-paste-tree-root-scalar';
-      span.textContent = 'Root: ' + formatLaLeafValue(value);
-      row.appendChild(span);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'la-paste-tree-leaf-btn';
+      btn.setAttribute('data-la-tree-edit', '__root__');
+      if (laPathKeySelected('')) btn.classList.add('la-paste-tree-leaf-btn--selected');
+      var kEl = document.createElement('span');
+      kEl.className = 'la-paste-tree-leaf-key';
+      kEl.textContent = 'Root: ';
+      var vEl = document.createElement('span');
+      vEl.className = 'la-paste-tree-leaf-val';
+      vEl.textContent = formatLaLeafValue(value);
+      btn.appendChild(kEl);
+      btn.appendChild(vEl);
+      row.appendChild(btn);
       container.appendChild(row);
     }
   }
@@ -867,6 +1140,18 @@
   }
 
   function onLaPasteTreeClick(e) {
+    var jsonBtn = e.target.closest('[data-la-tree-json]');
+    if (jsonBtn) {
+      e.preventDefault();
+      openLaTreeEdit(jsonBtn.getAttribute('data-la-tree-json'), { jsonSubtree: true });
+      return;
+    }
+    var leafBtn = e.target.closest('[data-la-tree-edit]');
+    if (leafBtn) {
+      e.preventDefault();
+      openLaTreeEdit(leafBtn.getAttribute('data-la-tree-edit'));
+      return;
+    }
     var t = e.target.closest('[data-la-tree-toggle]');
     if (!t) return;
     var path = t.getAttribute('data-la-tree-toggle') || '';
@@ -891,11 +1176,15 @@
 
   function laPasteTreeExpandAll() {
     var ta = $('laImportPaste');
-    if (!ta || !String(ta.value || '').trim()) return;
+    if (!ta || !String(ta.value || '').trim()) {
+      showTreeMsg('Paste JSON first.', true);
+      return;
+    }
     var parsed;
     try {
       parsed = parseUserJson(ta.value);
     } catch (e) {
+      showTreeMsg('Invalid JSON — fix in Paste JSON tab. ' + (e.message || e), true);
       return;
     }
     laTreeExpanded.clear();
@@ -905,11 +1194,13 @@
       laTreeExpanded.add(p);
     });
     renderPasteTree();
+    showTreeMsg('Expanded all branches.', false);
   }
 
   function laPasteTreeCollapseAll() {
     laTreeExpanded.clear();
     renderPasteTree();
+    showTreeMsg('Collapsed all branches.', false);
   }
 
   function replaceTimestampInImportPaste() {
@@ -1250,6 +1541,10 @@
     if (pex) pex.addEventListener('click', laPasteTreeExpandAll);
     var pcl = $('laPasteTreeCollapseAll');
     if (pcl) pcl.addEventListener('click', laPasteTreeCollapseAll);
+    var pasteTreeSave = $('laPasteTreeEditSave');
+    if (pasteTreeSave) pasteTreeSave.addEventListener('click', saveLaTreeEdit);
+    var pasteTreeCancel = $('laPasteTreeEditCancel');
+    if (pasteTreeCancel) pasteTreeCancel.addEventListener('click', cancelLaTreeEdit);
     var insTs = $('laPasteInsertTimestamp');
     if (insTs) insTs.addEventListener('click', replaceTimestampInImportPaste);
     var insRid = $('laPasteInsertRequestId');
