@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260410">
-  <link rel="stylesheet" href="live-activities.css?v=20260415b">
+  <link rel="stylesheet" href="live-activities.css?v=20260416">
   <link rel="stylesheet" href="aep-theme.css?v=20260407">
 </head>
 <body class="home-dashboard-concierge profile-generation-page">
@@ -93,14 +93,13 @@
               <h3 class="profile-box-title"><span class="profile-box-icon">◆</span> APS payload</h3>
               <div class="profile-box-content">
                 <p class="la-section-title">Scalars</p>
+                <p class="la-ts-note" role="note">
+                  <code class="dashboard-code">timestamp</code> (Unix seconds) is set automatically in the payload to the time you click <strong>Preview</strong> or <strong>Send to Adobe</strong>.
+                </p>
                 <div class="la-grid">
                   <div class="la-field">
                     <label for="laContentAvailable">content-available</label>
                     <input type="number" id="laContentAvailable" value="1" step="1">
-                  </div>
-                  <div class="la-field">
-                    <label for="laTimestamp">timestamp (Unix seconds)</label>
-                    <input type="number" id="laTimestamp" value="1775913607" step="1">
                   </div>
                   <div class="la-field">
                     <label for="laEvent">event</label>
@@ -132,7 +131,6 @@
 
                 <div class="la-actions">
                   <button type="button" class="btn btn-secondary" id="laNewRequestId">New request ID</button>
-                  <button type="button" class="btn btn-secondary" id="laNowTimestamp">Set timestamp to now</button>
                   <button type="button" class="btn btn-secondary" id="laPreviewBtn">Preview JSON body</button>
                   <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
                 </div>
@@ -148,6 +146,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260416"></script>
-  <script defer src="live-activities.js?v=20260415b"></script>
+  <script defer src="live-activities.js?v=20260416"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 /**
- * AJO unitary execution — Live Activity push (user-supplied IMS headers + token).
+ * AJO unitary execution — Live Activity push (sandbox + payload; IMS auth server-side).
  */
 (function () {
   'use strict';
@@ -63,7 +63,7 @@
     var userId = String($('laUserId').value || '').trim();
     var namespace = String($('laNamespace').value || '').trim();
     var contentAvailable = parseInt(String($('laContentAvailable').value || '0'), 10);
-    var timestamp = parseInt(String($('laTimestamp').value || '0'), 10);
+    var timestamp = Math.floor(Date.now() / 1000);
     var event = String($('laEvent').value || 'start').trim().toLowerCase();
     var attributesType = String($('laAttributesType').value || '').trim();
 
@@ -75,9 +75,6 @@
     }
     if (!Number.isFinite(contentAvailable)) {
       throw new Error('content-available must be a number.');
-    }
-    if (!Number.isFinite(timestamp)) {
-      throw new Error('timestamp must be a number (Unix seconds).');
     }
 
     var contentState = parseJsonLabel('content-state', $('laContentState').value);
@@ -134,10 +131,6 @@
           return v.toString(16);
         });
       }
-    });
-
-    $('laNowTimestamp').addEventListener('click', function () {
-      $('laTimestamp').value = String(Math.floor(Date.now() / 1000));
     });
 
     $('laPreviewBtn').addEventListener('click', function () {
