@@ -1816,8 +1816,8 @@
   }
 
   /**
-   * Build the outbound unitary body from Paste JSON + execution fields.
-   * Preserves pasted content-state / attributes / alert; refreshes ids, time, event, and liveActivityID from the form row.
+   * Build the outbound unitary body from Paste JSON + execution fields (campaign, ECID, event, Live Activity ID).
+   * Preserves pasted APS shape (content-state, attributes-type, attributes, alert). Does not apply parked #laAttributesType.
    */
   function buildPayloadFromImportPaste() {
     var ta = $('laImportPaste');
@@ -1854,14 +1854,9 @@
     r0.namespace = r0.namespace || 'ECID';
     aps.timestamp = Math.floor(Date.now() / 1000);
     aps.event = event;
-    var ca = parseInt(String($('laContentAvailable').value || '1'), 10);
-    if (Number.isFinite(ca)) {
-      aps['content-available'] = ca;
-    }
-    var attrType = String($('laAttributesType').value || '').trim();
-    if (attrType) {
-      aps['attributes-type'] = attrType;
-    }
+    // Do not overwrite content-available or attributes-type from the parked advanced form (#laContentAvailable /
+    // #laAttributesType). Those defaults (e.g. KSIAAirportAttributes) are not shown in the main flow and would
+    // corrupt Etihad and other templates. Pasted JSON is the source of truth for APS shape.
     var liveActivityFromField = String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim();
     if (liveActivityFromField) {
       if (!aps.attributes || typeof aps.attributes !== 'object' || Array.isArray(aps.attributes)) {
