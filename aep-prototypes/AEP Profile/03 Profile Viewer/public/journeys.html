@@ -77,6 +77,17 @@
                 <p id="journeysCjaHelp" class="journeys-cja-help">
                   Same view as <strong>AJO → Administration → Reporting → Configure data from CJA</strong>. Pick the AJO-enabled data view for the sandbox you are analyzing; metrics use Customer Journey Analytics Reporting (not the AEP sandbox header).
                 </p>
+                <div class="journeys-cja-range" role="group" aria-labelledby="journeysCjaRangeLabel">
+                  <span id="journeysCjaRangeLabel" class="journeys-cja-range-label">Reporting period</span>
+                  <div class="journeys-cja-range-buttons" id="journeysCjaDateRangeBtns">
+                    <button type="button" class="journeys-cja-range-btn" data-cja-range="today" aria-pressed="false">Today</button>
+                    <button type="button" class="journeys-cja-range-btn" data-cja-range="yesterday" aria-pressed="false">Yesterday</button>
+                    <button type="button" class="journeys-cja-range-btn" data-cja-range="last7Days" aria-pressed="false">Last 7 days</button>
+                    <button type="button" class="journeys-cja-range-btn" data-cja-range="last30Days" aria-pressed="false">Last 30 days</button>
+                    <button type="button" class="journeys-cja-range-btn" data-cja-range="last90Days" aria-pressed="false">Last 90 days</button>
+                    <button type="button" class="journeys-cja-range-btn" data-cja-range="last180Days" aria-pressed="false">Last 180 days</button>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="journeys-context-actions">
@@ -306,7 +317,7 @@
   <script src="aep-lab-sandbox-sync.js?v=20260413"></script>
   <script src="aep-theme.js"></script>
   <script src="aep-lab-nav.js?v=20260422"></script>
-  <script src="journeys.js?v=20260409h"></script>
+  <script src="journeys.js?v=20260412"></script>
   <script defer src="marauders-map-egg.js?v=20260420"></script>
 </body>
 </html>

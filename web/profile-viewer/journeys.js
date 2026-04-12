@@ -12,6 +12,15 @@
   const cjaAnalyticsPanel = document.getElementById('journeysCjaPanel');
   const CJA_DV_STORAGE_KEY = 'aepJourneysCjaDataViewId';
   const CJA_ANALYTICS_ENABLED_KEY = 'aepJourneysCjaAnalyticsEnabled';
+  const CJA_DATE_RANGE_STORAGE_KEY = 'aepJourneysCjaDateRangeId';
+  const CJA_DATE_RANGE_IDS = [
+    'today',
+    'yesterday',
+    'last7Days',
+    'last30Days',
+    'last90Days',
+    'last180Days',
+  ];
   const COLUMN_VISIBILITY_STORAGE_KEY = 'aepJourneysColumnVisibility';
   const TOGGLE_COLUMN_KEYS = [
     'version',
@@ -137,6 +146,46 @@
     }
   }
 
+  function loadCjaDateRangeId() {
+    try {
+      const v = localStorage.getItem(CJA_DATE_RANGE_STORAGE_KEY);
+      if (v && CJA_DATE_RANGE_IDS.indexOf(v) !== -1) return v;
+    } catch (e) {
+      /* ignore */
+    }
+    return 'last30Days';
+  }
+
+  function saveCjaDateRangeId(id) {
+    const s = id && CJA_DATE_RANGE_IDS.indexOf(id) !== -1 ? id : 'last30Days';
+    try {
+      localStorage.setItem(CJA_DATE_RANGE_STORAGE_KEY, s);
+    } catch (e) {
+      /* ignore */
+    }
+    return s;
+  }
+
+  /** Selected CJA reporting window (always a valid id — sent on browse requests for server-side CJA enrichment). */
+  function getSelectedCjaDateRangeId() {
+    return loadCjaDateRangeId();
+  }
+
+  const cjaDateRangeBtns = document.getElementById('journeysCjaDateRangeBtns');
+
+  function syncCjaDateRangeButtons() {
+    if (!cjaDateRangeBtns) return;
+    const current = getSelectedCjaDateRangeId();
+    const buttons = cjaDateRangeBtns.querySelectorAll('.journeys-cja-range-btn[data-cja-range]');
+    for (let i = 0; i < buttons.length; i++) {
+      const b = buttons[i];
+      const id = b.getAttribute('data-cja-range');
+      const active = id === current;
+      b.classList.toggle('journeys-cja-range-btn--active', active);
+      b.setAttribute('aria-pressed', active ? 'true' : 'false');
+    }
+  }
+
   function applyCjaAnalyticsUi() {
     const on = !!(cjaAnalyticsToggle && cjaAnalyticsToggle.checked);
     if (cjaAnalyticsPanel) {
@@ -147,6 +196,12 @@
     }
     if (cjaDataViewSelect) {
       cjaDataViewSelect.disabled = !on;
+    }
+    if (cjaDateRangeBtns) {
+      const buttons = cjaDateRangeBtns.querySelectorAll('.journeys-cja-range-btn');
+      for (let i = 0; i < buttons.length; i++) {
+        buttons[i].disabled = !on;
+      }
     }
   }
 
@@ -504,11 +559,22 @@
    */
   function updateJourneyTableHeaderDateRange(dateRangeId) {
     const id = dateRangeId || 'last30Days';
-    const end = new Date();
-    const start = new Date(end.getTime());
-    if (id === 'last7Days') start.setDate(start.getDate() - 7);
+    let end = new Date();
+    let start = new Date(end.getTime());
+    if (id === 'today') {
+      start.setUTCHours(0, 0, 0, 0);
+    } else if (id === 'yesterday') {
+      const yStart = new Date(end.getTime());
+      yStart.setUTCDate(yStart.getUTCDate() - 1);
+      yStart.setUTCHours(0, 0, 0, 0);
+      const yEnd = new Date(yStart.getTime());
+      yEnd.setUTCHours(23, 59, 59, 999);
+      start = yStart;
+      end = yEnd;
+    } else if (id === 'last7Days') start.setDate(start.getDate() - 7);
     else if (id === 'last30Days' || id === 'lastMonth') start.setDate(start.getDate() - 30);
     else if (id === 'last90Days') start.setDate(start.getDate() - 90);
+    else if (id === 'last180Days') start.setDate(start.getDate() - 180);
     else if (id === 'thisMonth') {
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
@@ -772,6 +838,7 @@
       let url = `/api/journeys/browse?sandbox=${encodeURIComponent(sandbox)}&start=0&limit=500`;
       var cjaDv = getSelectedCjaDataViewId();
       if (cjaDv) url += '&cjaDataViewId=' + encodeURIComponent(cjaDv);
+      url += '&cjaDateRangeId=' + encodeURIComponent(getSelectedCjaDateRangeId());
       if (forceRefresh) url += '&refresh=1';
       const res = await fetch(url);
       const data = await res.json().catch(() => ({}));
@@ -988,6 +1055,19 @@
     });
   }
 
+  if (cjaDateRangeBtns) {
+    cjaDateRangeBtns.addEventListener('click', function (e) {
+      const btn = e.target && e.target.closest && e.target.closest('.journeys-cja-range-btn[data-cja-range]');
+      if (!btn || !cjaDateRangeBtns.contains(btn)) return;
+      const rid = btn.getAttribute('data-cja-range');
+      if (!rid || CJA_DATE_RANGE_IDS.indexOf(rid) === -1) return;
+      saveCjaDateRangeId(rid);
+      syncCjaRangeButtons();
+      updateJourneyTableHeaderDateRange(rid);
+      load();
+    });
+  }
+
   window.addEventListener('aep-global-sandbox-change', () => load());
 
   async function initSandboxAndLoad() {
@@ -996,8 +1076,9 @@
       window.AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
       window.AepGlobalSandbox.attachStorageSync(sandboxSelect);
     }
+    syncCjaRangeButtons();
     await populateCjaDataViewDropdown();
-    updateJourneyTableHeaderDateRange(lastCjaDateRangeId);
+    updateJourneyTableHeaderDateRange(getSelectedCjaDateRangeId());
     load();
   }
 

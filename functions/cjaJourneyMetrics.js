@@ -13,6 +13,31 @@ const CJA_DATAVIEW_EXTERNAL_ID = process.env.CJA_DATAVIEW_EXTERNAL_ID || '';
 /** Comma-separated fragments; data view name must include every fragment (case-insensitive). Fallback if external id returns nothing. */
 const CJA_DATAVIEW_NAME_MATCH = process.env.CJA_DATAVIEW_NAME_MATCH || '';
 const CJA_DATE_RANGE_ID = process.env.CJA_DATE_RANGE_ID || 'last30Days';
+
+/** Valid CJA global filter dateRangeId values (UI + env). */
+const CJA_DATE_RANGE_IDS = new Set([
+  'today',
+  'yesterday',
+  'last7Days',
+  'last30Days',
+  'last90Days',
+  'last180Days',
+  'lastMonth',
+  'thisMonth',
+]);
+
+/**
+ * Resolves a date range id for CJA reports. Unknown values fall back to env or last30Days.
+ * @param {string} [raw]
+ * @returns {string}
+ */
+function normalizeCjaDateRangeId(raw) {
+  const fallback = CJA_DATE_RANGE_IDS.has(String(CJA_DATE_RANGE_ID || '').trim())
+    ? String(CJA_DATE_RANGE_ID).trim()
+    : 'last30Days';
+  const s = raw != null && String(raw).trim() !== '' ? String(raw).trim() : fallback;
+  return CJA_DATE_RANGE_IDS.has(s) ? s : fallback;
+}
 const CJA_METRIC_JOURNEY_ENTERS_DEFAULT_ID = 'adobe_reserved_label.ajo_journeyEnters';
 /** AJO journey message metrics (optional CJA columns); override via CJA_METRIC_DELIVERED / DISPLAYS / CLICKS. */
 const CJA_METRIC_AJO_DELIVERED_DEFAULT_ID = 'adobe_reserved_label.ajo_delivered';
@@ -315,15 +340,32 @@ function pickCjaJourneyMetrics(dimensions, metrics) {
 /** CJA POST /reports often requires both dateRange (ISO span) and dateRangeId. */
 function cjaDateRangeGlobalFilter(dateRangeId) {
   const id = dateRangeId || 'last30Days';
-  const end = new Date();
-  const start = new Date(end.getTime());
-  if (id === 'last7Days') start.setDate(start.getDate() - 7);
-  else if (id === 'last30Days' || id === 'lastMonth') start.setDate(start.getDate() - 30);
-  else if (id === 'last90Days') start.setDate(start.getDate() - 90);
-  else if (id === 'thisMonth') {
+  let end = new Date();
+  let start = new Date(end.getTime());
+  if (id === 'today') {
+    start.setUTCHours(0, 0, 0, 0);
+  } else if (id === 'yesterday') {
+    const yStart = new Date(end.getTime());
+    yStart.setUTCDate(yStart.getUTCDate() - 1);
+    yStart.setUTCHours(0, 0, 0, 0);
+    const yEnd = new Date(yStart.getTime());
+    yEnd.setUTCHours(23, 59, 59, 999);
+    start = yStart;
+    end = yEnd;
+  } else if (id === 'last7Days') {
+    start.setDate(start.getDate() - 7);
+  } else if (id === 'last30Days' || id === 'lastMonth') {
+    start.setDate(start.getDate() - 30);
+  } else if (id === 'last90Days') {
+    start.setDate(start.getDate() - 90);
+  } else if (id === 'last180Days') {
+    start.setDate(start.getDate() - 180);
+  } else if (id === 'thisMonth') {
     start.setDate(1);
     start.setHours(0, 0, 0, 0);
-  } else start.setDate(start.getDate() - 30);
+  } else {
+    start.setDate(start.getDate() - 30);
+  }
   const fmt = (d) => {
     const iso = d.toISOString();
     return `${iso.slice(0, 19)}.000`;
@@ -355,7 +397,7 @@ function cjaFormatReportError(data, status) {
   return `CJA report HTTP ${status}`;
 }
 
-async function postCjaJourneyReport(dataViewId, dimensionId, metricIdsIn, token, cfg, config) {
+async function postCjaJourneyReport(dataViewId, dimensionId, metricIdsIn, token, cfg, config, dateRangeId) {
   const headers = cjaApiHeaders(token, cfg, config);
   const metricIds = [...new Set((metricIdsIn || []).filter(Boolean))].map((id) => normalizeCjaMetricIdForReport(id));
   const metrics = [];
@@ -373,9 +415,10 @@ async function postCjaJourneyReport(dataViewId, dimensionId, metricIdsIn, token,
       data: { errorCode: 'invalid_data', errorDescription: 'DataId was null', reason: 'missing or invalid CJA data view id' },
     };
   }
+  const rangeResolved = normalizeCjaDateRangeId(dateRangeId);
   const body = {
     dataId: rid,
-    globalFilters: [cjaDateRangeGlobalFilter(CJA_DATE_RANGE_ID)],
+    globalFilters: [cjaDateRangeGlobalFilter(rangeResolved)],
     metricContainer: { metrics },
     dimension: dimensionId,
     settings: {
@@ -398,16 +441,16 @@ async function postCjaJourneyReport(dataViewId, dimensionId, metricIdsIn, token,
 /**
  * If the full metric set 400s (e.g. too many columns), retry with enters+second only, then enters only.
  */
-async function postCjaJourneyReportWithFallback(dataViewId, dimensionId, metricIds, token, cfg, config) {
+async function postCjaJourneyReportWithFallback(dataViewId, dimensionId, metricIds, token, cfg, config, dateRangeId) {
   const ids = [...new Set((metricIds || []).filter(Boolean))];
   if (ids.length === 0) {
     return { ok: false, status: 400, data: { reason: 'no metric ids' } };
   }
-  let last = await postCjaJourneyReport(dataViewId, dimensionId, ids, token, cfg, config);
+  let last = await postCjaJourneyReport(dataViewId, dimensionId, ids, token, cfg, config, dateRangeId);
   if (last.ok) return last;
   if (last.status !== 400) return last;
   if (ids.length > 2) {
-    last = await postCjaJourneyReport(dataViewId, dimensionId, ids.slice(0, 2), token, cfg, config);
+    last = await postCjaJourneyReport(dataViewId, dimensionId, ids.slice(0, 2), token, cfg, config, dateRangeId);
     if (last.ok) {
       last.usedMetricsFallback = 'two';
       return last;
@@ -415,7 +458,7 @@ async function postCjaJourneyReportWithFallback(dataViewId, dimensionId, metricI
     if (last.status !== 400) return last;
   }
   if (ids.length > 1) {
-    last = await postCjaJourneyReport(dataViewId, dimensionId, [ids[0]], token, cfg, config);
+    last = await postCjaJourneyReport(dataViewId, dimensionId, [ids[0]], token, cfg, config, dateRangeId);
     if (last.ok) last.usedMetricsFallback = true;
   }
   return last;
@@ -548,6 +591,9 @@ async function enrichJourneyRowsWithCja(rows, token, cfg, config, options) {
     return { applied: false, dataViewId: null, message: 'CJA metrics disabled (CJA_ENABLE_METRICS).' };
   }
   const requestDv = options && typeof options === 'object' ? String(options.dataViewId || '').trim() : '';
+  const effectiveRange = normalizeCjaDateRangeId(
+    options && typeof options === 'object' ? options.dateRangeId : undefined,
+  );
   let resolved;
   try {
     resolved = await resolveCjaDataViewIdDetailed(token, cfg, config, requestDv);
@@ -600,7 +646,7 @@ async function enrichJourneyRowsWithCja(rows, token, cfg, config, options) {
       : pickJourneyIdDimensionId(dimensions);
   const idMergeKey =
     mergeIdDim && mergeIdDim !== picked.dimensionId ? mergeIdDim : '';
-  const cacheKeyBase = `${dataViewId}|${CJA_DATE_RANGE_ID}|${picked.dimensionId}|${metricIds.join('|')}|id:${idMergeKey}`;
+  const cacheKeyBase = `${dataViewId}|${effectiveRange}|${picked.dimensionId}|${metricIds.join('|')}|id:${idMergeKey}`;
   const now = Date.now();
   let reportData = null;
   /** null = full metric set; 'two' = enters+second only; true = enters only */
@@ -619,6 +665,7 @@ async function enrichJourneyRowsWithCja(rows, token, cfg, config, options) {
       token,
       cfg,
       config,
+      effectiveRange,
     );
     if (!rep.ok) {
       return {
@@ -630,7 +677,15 @@ async function enrichJourneyRowsWithCja(rows, token, cfg, config, options) {
     reportData = rep.data;
     metricsFallbackMode = rep.usedMetricsFallback === 'two' ? 'two' : rep.usedMetricsFallback ? true : null;
     if (idMergeKey && mergeIdDim) {
-      const rep2 = await postCjaJourneyReportWithFallback(dataViewId, mergeIdDim, metricIds, token, cfg, config);
+      const rep2 = await postCjaJourneyReportWithFallback(
+        dataViewId,
+        mergeIdDim,
+        metricIds,
+        token,
+        cfg,
+        config,
+        effectiveRange,
+      );
       if (rep2.ok) {
         const r1 = reportData?.rows || [];
         const r2 = rep2.data?.rows || [];
@@ -655,7 +710,7 @@ async function enrichJourneyRowsWithCja(rows, token, cfg, config, options) {
     dataViewId,
     dataViewName: resolved?.matchedName,
     dataViewMatchedBy: resolved?.matchedBy,
-    dateRangeId: CJA_DATE_RANGE_ID,
+    dateRangeId: effectiveRange,
     connectionId: CJA_CONNECTION_ID_DEFAULT,
     dimensionId: picked.dimensionId,
     metricJourneyEnters: picked.metricJourneyEnters,
@@ -721,4 +776,4 @@ async function listCjaDataViewsAjoEnabled(token, cfg, config) {
   return { ok: true, dataViews: out };
 }
 
-module.exports = { enrichJourneyRowsWithCja, listCjaDataViewsAjoEnabled };
+module.exports = { enrichJourneyRowsWithCja, listCjaDataViewsAjoEnabled, normalizeCjaDateRangeId };

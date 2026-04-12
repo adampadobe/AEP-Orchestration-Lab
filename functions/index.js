@@ -68,7 +68,7 @@ const {
   verifyIdTokenFromRequest,
 } = require('./labUserSandboxStore');
 const { buildBrowseResponse: buildJourneysBrowseResponse } = require('./journeysBrowse');
-const { enrichJourneyRowsWithCja, listCjaDataViewsAjoEnabled } = require('./cjaJourneyMetrics');
+const { enrichJourneyRowsWithCja, listCjaDataViewsAjoEnabled, normalizeCjaDateRangeId } = require('./cjaJourneyMetrics');
 const journeyBrowseCache = require('./journeyBrowseCacheStore');
 const { handleEasterEggNotify, handleEasterEggList } = require('./easterEggNotify');
 const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
@@ -2097,6 +2097,8 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
   if (req.method !== 'GET') { res.status(405).json({ error: 'Method not allowed' }); return; }
   const sandbox = resolveSandboxFromQuery(req);
   const cjaDataViewId = String(req.query.cjaDataViewId || '').trim();
+  const cjaDateRangeRaw = String(req.query.cjaDateRangeId || req.query.cjaDateRange || '').trim();
+  const cjaDateRangeForCja = cjaDateRangeRaw ? normalizeCjaDateRangeId(cjaDateRangeRaw) : normalizeCjaDateRangeId();
   const start = Math.max(0, parseInt(req.query.start, 10) || 0);
   const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 200));
   const forceRefresh =
@@ -2118,12 +2120,14 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
         if (!cjaDisabled && journeysOut.length > 0) {
           try {
             const cjaToken = await getAdobeAccessToken();
+            const cjaOptsCached = { dateRangeId: cjaDateRangeForCja };
+            if (cjaDataViewId) cjaOptsCached.dataViewId = cjaDataViewId;
             cjaMeta = await enrichJourneyRowsWithCja(
               journeysOut,
               cjaToken,
               { clientId: ADOBE_CLIENT_ID.value() },
               { orgId: ADOBE_IMS_ORG.value() },
-              cjaDataViewId ? { dataViewId: cjaDataViewId } : {},
+              cjaOptsCached,
             );
           } catch (cjaErr) {
             cjaMeta = { applied: false, message: cjaErr?.message || String(cjaErr) };
@@ -2164,6 +2168,7 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
       start,
       limit,
       cjaDataViewId,
+      cjaDateRangeRaw ? cjaDateRangeForCja : undefined,
     );
     if (payload.ok) {
       try {

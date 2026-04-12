@@ -1048,6 +1048,63 @@ body.journeys-page {
   max-width: 48rem;
 }
 
+.journeys-page .journeys-cja-range {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--dash-border);
+}
+
+.journeys-page .journeys-cja-range-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+  margin-bottom: 0.45rem;
+}
+
+.journeys-page .journeys-cja-range-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.journeys-page .journeys-cja-range-btn {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--dash-surface);
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+  line-height: 1.2;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.journeys-page .journeys-cja-range-btn:hover:not(:disabled) {
+  background: var(--dash-hover);
+  color: var(--dash-text);
+}
+
+.journeys-page .journeys-cja-range-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.journeys-page .journeys-cja-range-btn--active {
+  border-color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 12%, var(--dash-surface));
+  color: var(--dash-text);
+  font-weight: 600;
+}
+
+html[data-aep-theme='dark'] .journeys-page .journeys-cja-range-btn--active {
+  background: color-mix(in srgb, var(--dash-blue) 22%, var(--dash-surface));
+}
+
 .journeys-page .journeys-context-actions {
   flex: 0 0 auto;
   align-self: center;
