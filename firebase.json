@@ -277,6 +277,17 @@
           "region": "us-central1"
         }
       }
+    ],
+    "headers": [
+      {
+        "source": "/profile-viewer/**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=0, must-revalidate"
+          }
+        ]
+      }
     ]
   }
 }
