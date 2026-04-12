@@ -399,22 +399,81 @@
         --wf-drawer-h: min(75vh, calc(100dvh - 4.5rem));
       }
     }
-    .workflow-drawer > summary {
+    .workflow-drawer > summary.workflow-summary {
       list-style: none; cursor: pointer; padding: 0.875rem 1.5rem; font-size: 0.75rem; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
-      display: flex; align-items: center; justify-content: space-between; user-select: none;
+      display: flex; align-items: center; justify-content: center; user-select: none;
       border-bottom: 1px solid transparent;
       box-sizing: border-box;
       height: var(--wf-summary-h);
       flex-shrink: 0;
     }
-    .workflow-drawer > summary::-webkit-details-marker { display: none; }
-    .workflow-drawer > summary::after {
-      content: ''; width: 0.5rem; height: 0.5rem; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
-      transform: rotate(45deg); transition: transform 0.2s; margin-left: 0.5rem;
+    .workflow-drawer > summary.workflow-summary::-webkit-details-marker { display: none; }
+
+    .workflow-summary__row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-width: 0;
+      gap: 0;
     }
-    .workflow-drawer[open] > summary { border-bottom-color: var(--border); }
-    .workflow-drawer[open] > summary::after { transform: rotate(-135deg); }
+
+    /* Collapsed: only chevron; label reveals on hover (desktop) or when open / keyboard focus */
+    .workflow-summary__label {
+      opacity: 0;
+      max-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: opacity 0.2s ease, max-width 0.28s ease;
+    }
+
+    .workflow-summary__icon {
+      flex-shrink: 0;
+      width: 0.5rem;
+      height: 0.5rem;
+      border-right: 2px solid var(--muted);
+      border-bottom: 2px solid var(--muted);
+      transform: rotate(45deg);
+      transition: transform 0.2s;
+    }
+
+    .workflow-drawer > summary.workflow-summary:hover .workflow-summary__row,
+    .workflow-drawer[open] > summary.workflow-summary .workflow-summary__row,
+    .workflow-drawer > summary.workflow-summary:focus-visible .workflow-summary__row {
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .workflow-drawer > summary.workflow-summary:hover .workflow-summary__label,
+    .workflow-drawer[open] > summary.workflow-summary .workflow-summary__label,
+    .workflow-drawer > summary.workflow-summary:focus-visible .workflow-summary__label {
+      opacity: 1;
+      max-width: min(100%, 22rem);
+    }
+
+    /* Touch / no hover: show label once the dock is peeked so the bar is understandable */
+    @media (hover: none) {
+      .workflow-dock-outer.workflow-dock-outer--peek .workflow-summary__label {
+        opacity: 1;
+        max-width: min(100%, 22rem);
+      }
+      .workflow-dock-outer.workflow-dock-outer--peek .workflow-summary__row {
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .workflow-summary__label {
+        transition: none;
+      }
+    }
+
+    .workflow-drawer[open] > summary.workflow-summary { border-bottom-color: var(--border); }
+    .workflow-drawer[open] > summary.workflow-summary .workflow-summary__icon {
+      transform: rotate(-135deg);
+    }
     .workflow-drawer-scroll {
       box-sizing: border-box;
       padding: 1rem 1.5rem 1.5rem;
@@ -589,7 +648,7 @@
           <div class="cd-hero-main">
             <div id="cdHeroPlaceholder" class="hero-placeholder">
               <strong>No preview yet.</strong><br>
-              Use <strong>Run content decision</strong> (left). Move the pointer to the <strong>bottom edge</strong> of the window to reveal <strong>Workflow &amp; controls</strong>, then click to expand.
+              Use <strong>Run content decision</strong> (left). Move the pointer to the <strong>bottom edge</strong> to show the workflow bar (chevron only), <strong>hover the bar</strong> to see the label, then click to expand controls.
             </div>
             <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Content decision banner"></div>
           </div>
@@ -600,7 +659,12 @@
       <div id="workflowDockOuter" class="workflow-dock-outer" aria-label="Workflow controls dock">
         <div class="workflow-dock-slide">
       <details class="workflow-drawer" id="workflowDrawer">
-        <summary>Workflow &amp; controls</summary>
+        <summary class="workflow-summary" aria-label="Workflow and controls">
+          <span class="workflow-summary__row">
+            <span class="workflow-summary__label">Workflow &amp; controls</span>
+            <span class="workflow-summary__icon" aria-hidden="true"></span>
+          </span>
+        </summary>
         <div class="workflow-drawer-scroll">
           <div class="panel">
             <h2>Profile &amp; <code>get.decisions</code></h2>
