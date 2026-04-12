@@ -22,73 +22,43 @@ const RESOLVED_ADOBE_SANDBOX = String(
 
 const BASE_PLATFORM = 'https://platform.adobe.io';
 const IMS_TOKEN_URL = 'https://ims-na1.adobelogin.com/ims/token/v2';
-const { buildProfileTablePayload, fetchUpsProfileEntities } = require('./profileTableHelpers');
-const { buildConsentGetPayload } = require('./profileConsentPayload');
-const { buildAudiencesPayload } = require('./profileAudiences');
-const { buildEventsPayload } = require('./profileEventsService');
-const { listActiveSandboxes } = require('./sandboxesList');
-const {
-  getTreatmentNameById,
-  getCampaignNameById,
-  getJourneyNameById,
-  listJourneyVersionMap,
-} = require('./joLookups');
-const schemaViewerService = require('./schemaViewerService');
-const svCache = require('./schemaViewerCache');
-const { getAuditEvents } = require('./auditEventsService');
-const {
-  listTenantSchemas,
-  getTenantSchema,
-  createTenantSchema,
-  patchTenantSchema,
-  listGlobalFieldGroups,
-} = require('./schemaRegistryService');
-const {
-  runConsentInfraEnsure,
-  runConsentInfraStatus,
-  runConsentInfraStep,
-  CONSENT_DATASET_NAME,
-  CONSENT_HTTP_DATAFLOW_NAME,
-} = require('./consentInfraService');
-const { lookupConsentHttpFlow } = require('./consentFlowLookup');
-const { getConsentConnection, saveConsentConnection } = require('./consentConnectionStore');
-const { getCachedJourneyName, setCachedJourneyName } = require('./journeyNameStore');
-const { buildXdm, buildTriggerPayload, sendEdgeEvent, listDatastreams } = require('./eventEdgeService');
-const {
-  getEffectiveEventConfig,
-  saveEffectiveEventConfig,
-} = require('./eventConfigStore');
-const {
-  getEffectiveCatalogConfig,
-  saveEffectiveCatalogConfig,
-} = require('./catalogConfigStore');
-const {
-  getLabKeys,
-  mergeLabKeys,
-  verifyIdTokenFromRequest,
-} = require('./labUserSandboxStore');
-const { buildBrowseResponse: buildJourneysBrowseResponse } = require('./journeysBrowse');
-const { enrichJourneyRowsWithCja, listCjaDataViewsAjoEnabled, normalizeCjaDateRangeId } = require('./cjaJourneyMetrics');
-const journeyBrowseCache = require('./journeyBrowseCacheStore');
-const { handleEasterEggNotify, handleEasterEggList } = require('./easterEggNotify');
-const { runEventInfraStatus, runEventInfraStep, fetchSchemaEventTypes } = require('./eventInfraService');
-const {
-  PROFILE_STREAM_ROOT_PATH_PREFIXES,
-  setByPath,
-  normalizeProfileUpdateDateString,
-  buildConsentXdm,
-  buildProfileStreamPayload,
-  buildProfileStreamingEnvelope,
-  buildOperationalConsentXdmEntity,
-  profileStreamingUseEnvelope,
-  buildProfileDcsStreamingHeaders,
-  redactedProfileDcsRequestHeaders,
-  parseStreamingCollectionResponse,
-} = require('./profileStreamingCore');
-const {
-  buildLegacyConsentDcsHeaders,
-  redactLegacyConsentDcsHeaders,
-} = require('./consentManagerLegacy');
+/** Lazy require: defer loading heavy modules until first handler use (keeps deploy analysis under timeout). */
+function lazyRequireMod(p) {
+  let cache;
+  return new Proxy({}, {
+    get(_t, prop) {
+      if (!cache) cache = require(p);
+      const v = cache[prop];
+      return typeof v === 'function' ? v.bind(cache) : v;
+    },
+  });
+}
+
+const profileTableHelpers = lazyRequireMod('./profileTableHelpers');
+const profileConsentPayload = lazyRequireMod('./profileConsentPayload');
+const profileAudiences = lazyRequireMod('./profileAudiences');
+const profileEventsService = lazyRequireMod('./profileEventsService');
+const sandboxesList = lazyRequireMod('./sandboxesList');
+const joLookups = lazyRequireMod('./joLookups');
+const schemaViewerService = lazyRequireMod('./schemaViewerService');
+const svCache = lazyRequireMod('./schemaViewerCache');
+const auditEventsService = lazyRequireMod('./auditEventsService');
+const schemaRegistryService = lazyRequireMod('./schemaRegistryService');
+const consentInfraService = lazyRequireMod('./consentInfraService');
+const consentFlowLookup = lazyRequireMod('./consentFlowLookup');
+const consentConnectionStore = lazyRequireMod('./consentConnectionStore');
+const journeyNameStore = lazyRequireMod('./journeyNameStore');
+const eventEdgeService = lazyRequireMod('./eventEdgeService');
+const eventConfigStore = lazyRequireMod('./eventConfigStore');
+const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
+const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
+const journeysBrowse = lazyRequireMod('./journeysBrowse');
+const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
+const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
+const easterEggNotify = lazyRequireMod('./easterEggNotify');
+const eventInfraService = lazyRequireMod('./eventInfraService');
+const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
+const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -435,8 +405,8 @@ exports.profileTableProxy = onRequest(
     const clientId = ADOBE_CLIENT_ID.value();
     const orgId = ADOBE_IMS_ORG.value();
     try {
-      const ups = await fetchUpsProfileEntities(identifier, sandbox, accessToken, clientId, orgId, namespace);
-      const payload = buildProfileTablePayload(identifier, ups);
+      const ups = await profileTableHelpers.fetchUpsProfileEntities(identifier, sandbox, accessToken, clientId, orgId, namespace);
+      const payload = profileTableHelpers.buildProfileTablePayload(identifier, ups);
       res.status(200).json(payload);
     } catch (e) {
       res.status(500).json({ error: String(e.message || e) });
@@ -490,12 +460,12 @@ exports.provisioningTenantSchemas = onRequest(profileFnOpts, async (req, res) =>
     const altId = String(req.query.altId || req.query.metaAltId || '').trim();
     try {
       if (altId) {
-        const schema = await getTenantSchema(accessToken, clientId, orgId, sandbox, altId);
+        const schema = await schemaRegistryService.getTenantSchema(accessToken, clientId, orgId, sandbox, altId);
         res.status(200).json({ sandbox, schema });
         return;
       }
       const query = pickSchemaListQuery(req.query);
-      const result = await listTenantSchemas(accessToken, clientId, orgId, sandbox, query);
+      const result = await schemaRegistryService.listTenantSchemas(accessToken, clientId, orgId, sandbox, query);
       res.status(200).json({ sandbox, result });
     } catch (e) {
       const status = e.status && Number(e.status) >= 400 && Number(e.status) < 600 ? e.status : 500;
@@ -521,7 +491,7 @@ exports.provisioningTenantSchemas = onRequest(profileFnOpts, async (req, res) =>
       return;
     }
     try {
-      const schema = await createTenantSchema(accessToken, clientId, orgId, sandbox, descriptor);
+      const schema = await schemaRegistryService.createTenantSchema(accessToken, clientId, orgId, sandbox, descriptor);
       res.status(201).json({ sandbox, schema });
     } catch (e) {
       const status = e.status && Number(e.status) >= 400 && Number(e.status) < 600 ? e.status : 500;
@@ -561,7 +531,7 @@ exports.provisioningFieldGroups = onRequest(profileFnOpts, async (req, res) => {
   if (classUrl) query.class = classUrl;
 
   try {
-    const result = await listGlobalFieldGroups(
+    const result = await schemaRegistryService.listGlobalFieldGroups(
       accessToken,
       ADOBE_CLIENT_ID.value(),
       ADOBE_IMS_ORG.value(),
@@ -614,7 +584,7 @@ exports.provisioningTenantSchemaPatch = onRequest(profileFnOpts, async (req, res
     return;
   }
   try {
-    const schema = await patchTenantSchema(
+    const schema = await schemaRegistryService.patchTenantSchema(
       accessToken,
       ADOBE_CLIENT_ID.value(),
       ADOBE_IMS_ORG.value(),
@@ -656,7 +626,7 @@ exports.consentInfraStatus = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   try {
-    const payload = await runConsentInfraStatus(
+    const payload = await consentInfraService.runConsentInfraStatus(
       sandbox,
       accessToken,
       ADOBE_CLIENT_ID.value(),
@@ -706,7 +676,7 @@ exports.consentInfraStep = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   try {
-    const payload = await runConsentInfraStep(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), step);
+    const payload = await consentInfraService.runConsentInfraStep(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), step);
     res.status(200).json(payload);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), sandbox, step });
@@ -737,7 +707,7 @@ exports.consentInfraEnsure = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   try {
-    const payload = await runConsentInfraEnsure(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), {
+    const payload = await consentInfraService.runConsentInfraEnsure(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), {
       dryRun,
     });
     console.log(
@@ -794,7 +764,7 @@ exports.consentInfraFlowLookup = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   try {
-    const payload = await lookupConsentHttpFlow(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), {
+    const payload = await consentFlowLookup.lookupConsentHttpFlow(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), {
       flowId: flowId || undefined,
       flowName: flowName || undefined,
     });
@@ -817,7 +787,7 @@ exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
   const sandboxQ = resolveSandboxFromQuery(req);
   if (req.method === 'GET') {
     try {
-      const record = await getConsentConnection(sandboxQ);
+      const record = await consentConnectionStore.getConsentConnection(sandboxQ);
       res.status(200).json({ ok: true, sandbox: sandboxQ, record: serializeConsentFirestoreRecord(record) });
     } catch (e) {
       console.log('[consentConnection]', JSON.stringify({ route: 'GET', sandbox: sandboxQ, error: String(e.message || e) }));
@@ -829,7 +799,7 @@ exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     const sb = String(body.sandbox || sandboxQ).trim() || sandboxQ;
     try {
-      const record = await saveConsentConnection(sb, {
+      const record = await consentConnectionStore.saveConsentConnection(sb, {
         streaming: body.streaming,
         infra: body.infra,
       });
@@ -845,7 +815,7 @@ exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
 
 /**
  * POST /api/profile/update — streams to the consent HTTP connection (body.streaming.url + flowId, sandbox).
- * Default payload matches Profile Viewer: buildProfileStreamPayload (identityMap + root consents/optInOut + _demoemea + demoemea mirror).
+ * Default payload matches Profile Viewer: profileStreamingCore.buildProfileStreamPayload (identityMap + root consents/optInOut + _demoemea + demoemea mirror).
  * ECID optional: included in identityMap and identification.core when body.ecid is valid (matches EMEA presales Consent Manager). Optional streamPayloadProfile=operational for slim shape only.
  */
 exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
@@ -894,7 +864,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     streaming.useEnvelope === true ||
     streaming.useEnvelope === 'true' ||
     hasDatasetAndSchema ||
-    profileStreamingUseEnvelope(process.env.AEP_PROFILE_STREAMING_ENVELOPE);
+    profileStreamingCore.profileStreamingUseEnvelope(process.env.AEP_PROFILE_STREAMING_ENVELOPE);
   if (isAdobeDcsCollection) {
     useEnvelope = true;
   }
@@ -904,7 +874,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
 
   if (!dryRun && (!streamUrl || !flowId)) {
     res.status(400).json({
-      error: `Missing streaming.url (DCS collection URL) and streaming.flowId. In AEP, create an HTTP API streaming dataflow named "${CONSENT_HTTP_DATAFLOW_NAME}" for dataset "${CONSENT_DATASET_NAME}", then save URL and Flow ID on the Consent page.`,
+      error: `Missing streaming.url (DCS collection URL) and streaming.flowId. In AEP, create an HTTP API streaming dataflow named "${consentInfraService.CONSENT_HTTP_DATAFLOW_NAME}" for dataset "${consentInfraService.CONSENT_DATASET_NAME}", then save URL and Flow ID on the Consent page.`,
     });
     return;
   }
@@ -949,7 +919,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
 
   if (hasConsent) {
     const c = consentRaw;
-    const fragment = buildConsentXdm(email, {
+    const fragment = profileStreamingCore.buildConsentXdm(email, {
       marketingConsent: c.marketingConsent,
       channelOptInOut: c.channelOptInOut,
       channels: c.channels,
@@ -992,15 +962,15 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       const val = u.value;
       let out = val !== undefined && val !== null ? val : '';
       if (typeof out === 'string') {
-        out = normalizeProfileUpdateDateString(path, out);
+        out = profileStreamingCore.normalizeProfileUpdateDateString(path, out);
       }
       const top = path.split('.')[0];
-      const underRootMixin = PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top);
+      const underRootMixin = profileStreamingCore.PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top);
       const target = underRootMixin ? rootExtras : demoemea;
       if (typeof out === 'string' && out.trim() !== '' && /^\d+$/.test(out)) {
-        setByPath(target, path, parseInt(out, 10));
+        profileStreamingCore.setByPath(target, path, parseInt(out, 10));
       } else {
-        setByPath(target, path, out);
+        profileStreamingCore.setByPath(target, path, out);
       }
       applied++;
       appliedPathsDetail.push({ sourcePath: rawPath, relativePath: path, underRootMixin });
@@ -1032,11 +1002,11 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   let payload;
   let payloadFormat;
   if (useOperational && useEnvelope) {
-    const xdmEntity = buildOperationalConsentXdmEntity(demoemea, email, ecidForPayload, rootExtras);
-    payload = buildProfileStreamingEnvelope(xdmEntity, orgId, envelopeSourceName, datasetId, schemaId);
+    const xdmEntity = profileStreamingCore.buildOperationalConsentXdmEntity(demoemea, email, ecidForPayload, rootExtras);
+    payload = profileStreamingCore.buildProfileStreamingEnvelope(xdmEntity, orgId, envelopeSourceName, datasetId, schemaId);
     payloadFormat = 'envelope';
   } else {
-    const built = buildProfileStreamPayload(
+    const built = profileStreamingCore.buildProfileStreamPayload(
       demoemea,
       email,
       ecidForPayload,
@@ -1067,7 +1037,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
 
-  const headers = buildProfileDcsStreamingHeaders(accessToken, sandbox, flowId, apiKey);
+  const headers = profileStreamingCore.buildProfileDcsStreamingHeaders(accessToken, sandbox, flowId, apiKey);
 
   let streamRes;
   let rawText;
@@ -1083,7 +1053,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
 
-  const { parsed: data, streamErrors, streamWarnings } = parseStreamingCollectionResponse(streamRes.status, rawText);
+  const { parsed: data, streamErrors, streamWarnings } = profileStreamingCore.parseStreamingCollectionResponse(streamRes.status, rawText);
 
   if (!streamRes.ok || streamErrors.length > 0) {
     res.status(502).json({
@@ -1092,7 +1062,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       streamingResponse: data,
       sentToAep: payload,
       payloadFormat,
-      requestHeaders: redactedProfileDcsRequestHeaders(headers),
+      requestHeaders: profileStreamingCore.redactedProfileDcsRequestHeaders(headers),
     });
     return;
   }
@@ -1104,7 +1074,7 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     payloadFormat,
     streamingResponse: data,
     streamingWarning: streamWarnings.length ? streamWarnings.join(' ') : undefined,
-    requestHeaders: redactedProfileDcsRequestHeaders(headers),
+    requestHeaders: profileStreamingCore.redactedProfileDcsRequestHeaders(headers),
     ...(appliedPathsDetail && appliedPathsDetail.length ? { appliedPathsDetail } : {}),
   });
 });
@@ -1176,7 +1146,7 @@ exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) =
 
   const flowId = String(body.flowId || '').trim();
   const apiKey = ADOBE_CLIENT_ID.value();
-  const headers = buildLegacyConsentDcsHeaders(accessToken, sandbox, flowId, apiKey, orgId);
+  const headers = consentManagerLegacy.buildLegacyConsentDcsHeaders(accessToken, sandbox, flowId, apiKey, orgId);
 
   let streamRes;
   let rawText;
@@ -1192,7 +1162,7 @@ exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) =
     return;
   }
 
-  const { parsed: data, streamErrors, streamWarnings } = parseStreamingCollectionResponse(streamRes.status, rawText);
+  const { parsed: data, streamErrors, streamWarnings } = profileStreamingCore.parseStreamingCollectionResponse(streamRes.status, rawText);
 
   if (!streamRes.ok || streamErrors.length > 0) {
     res.status(502).json({
@@ -1202,7 +1172,7 @@ exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) =
       streamingStatus: streamRes.status,
       streamingResponse: data,
       sentToAep: payload,
-      requestHeaders: redactLegacyConsentDcsHeaders(headers),
+      requestHeaders: consentManagerLegacy.redactLegacyConsentDcsHeaders(headers),
     });
     return;
   }
@@ -1214,7 +1184,7 @@ exports.consentManagerLegacyUpdate = onRequest(profileFnOpts, async (req, res) =
     sentToAep: payload,
     streamingResponse: data,
     streamingWarning: streamWarnings.length ? streamWarnings.join(' ') : undefined,
-    requestHeaders: redactLegacyConsentDcsHeaders(headers),
+    requestHeaders: consentManagerLegacy.redactLegacyConsentDcsHeaders(headers),
   });
 });
 
@@ -1237,7 +1207,7 @@ exports.sandboxesProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   try {
-    const sandboxes = await listActiveSandboxes(
+    const sandboxes = await sandboxesList.listActiveSandboxes(
       accessToken,
       ADOBE_CLIENT_ID.value(),
       ADOBE_IMS_ORG.value()
@@ -1276,7 +1246,7 @@ exports.profileAudiencesProxy = onRequest(profileFnOpts, async (req, res) => {
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
   try {
-    const payload = await buildAudiencesPayload(identifier, sandbox, accessToken, clientId, orgId, namespace);
+    const payload = await profileAudiences.buildAudiencesPayload(identifier, sandbox, accessToken, clientId, orgId, namespace);
     res.status(200).json(payload);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), realized: [], exited: [] });
@@ -1313,8 +1283,8 @@ exports.profileConsentProxy = onRequest(profileFnOpts, async (req, res) => {
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
   try {
-    const ups = await fetchUpsProfileEntities(identifier, sandbox, accessToken, clientId, orgId, namespace);
-    const payload = buildConsentGetPayload(identifier, ups);
+    const ups = await profileTableHelpers.fetchUpsProfileEntities(identifier, sandbox, accessToken, clientId, orgId, namespace);
+    const payload = profileConsentPayload.buildConsentGetPayload(identifier, ups);
     res.status(200).json(payload);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
@@ -1349,7 +1319,7 @@ exports.profileEventsProxy = onRequest(profileFnOpts, async (req, res) => {
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
   try {
-    const payload = await buildEventsPayload(identifier, namespace, sandbox, accessToken, clientId, orgId);
+    const payload = await profileEventsService.buildEventsPayload(identifier, namespace, sandbox, accessToken, clientId, orgId);
     res.status(200).json(payload);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), events: [] });
@@ -1381,7 +1351,7 @@ exports.decisioningTreatmentNameProxy = onRequest(profileFnOpts, async (req, res
     return;
   }
   try {
-    const name = await getTreatmentNameById(
+    const name = await joLookups.getTreatmentNameById(
       id,
       sandbox,
       accessToken,
@@ -1419,7 +1389,7 @@ exports.campaignNameProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   try {
-    const name = await getCampaignNameById(
+    const name = await joLookups.getCampaignNameById(
       id,
       sandbox,
       accessToken,
@@ -1450,7 +1420,7 @@ exports.journeyNameProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   try {
-    const cached = await getCachedJourneyName(sandbox, id);
+    const cached = await journeyNameStore.getCachedJourneyName(sandbox, id);
     if (cached) {
       res.status(200).json({ id, name: cached, source: 'cache' });
       return;
@@ -1466,7 +1436,7 @@ exports.journeyNameProxy = onRequest(profileFnOpts, async (req, res) => {
     return;
   }
   try {
-    const name = await getJourneyNameById(
+    const name = await joLookups.getJourneyNameById(
       id,
       sandbox,
       accessToken,
@@ -1475,20 +1445,20 @@ exports.journeyNameProxy = onRequest(profileFnOpts, async (req, res) => {
     );
     // Bulk-cache all discovered journey names from the version map
     try {
-      const vmap = await listJourneyVersionMap(
+      const vmap = await joLookups.listJourneyVersionMap(
         sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value()
       );
       const writes = [];
       for (const [vid, vname] of vmap) {
-        if (vname) writes.push(setCachedJourneyName(sandbox, vid, vname));
+        if (vname) writes.push(journeyNameStore.setCachedJourneyName(sandbox, vid, vname));
       }
       if (name && !vmap.has(id)) {
-        writes.push(setCachedJourneyName(sandbox, id, name));
+        writes.push(journeyNameStore.setCachedJourneyName(sandbox, id, name));
       }
       await Promise.allSettled(writes);
     } catch (bulkErr) {
       if (name) {
-        await setCachedJourneyName(sandbox, id, name).catch(() => {});
+        await journeyNameStore.setCachedJourneyName(sandbox, id, name).catch(() => {});
       }
     }
     res.status(200).json({ id, name, source: 'api' });
@@ -1754,7 +1724,7 @@ exports.auditEventsProxy = onRequest(
     }
 
     try {
-      const result = await getAuditEvents({
+      const result = await auditEventsService.getAuditEvents({
         token: accessToken,
         clientId: ADOBE_CLIENT_ID.value(),
         orgId: ADOBE_IMS_ORG.value(),
@@ -1821,18 +1791,18 @@ exports.eventEdgeProxy = onRequest(
     try {
       let payload;
       if (body.triggerTemplate && typeof body.triggerTemplate === 'object') {
-        payload = buildTriggerPayload(
+        payload = eventEdgeService.buildTriggerPayload(
           body.triggerTemplate,
           body.ecid || '',
           body.email || '',
           body.eventType || body.triggerTemplate.event?.xdm?.eventType || ''
         );
       } else {
-        const xdm = buildXdm(body);
+        const xdm = eventEdgeService.buildXdm(body);
         payload = { event: { xdm } };
       }
 
-      const result = await sendEdgeEvent(accessToken, clientId, orgId, datastreamId, payload);
+      const result = await eventEdgeService.sendEdgeEvent(accessToken, clientId, orgId, datastreamId, payload);
       res.status(200).json({ ok: true, ...result, sentPayload: payload });
     } catch (e) {
       res.status(502).json({ error: String(e.message || e) });
@@ -1849,11 +1819,11 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
     ? String(req.body.sandbox).trim()
     : resolveSandboxFromQuery(req);
 
-  const uid = await verifyIdTokenFromRequest(req);
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
 
   if (req.method === 'GET') {
     try {
-      const record = await getEffectiveEventConfig(sandbox, uid);
+      const record = await eventConfigStore.getEffectiveEventConfig(sandbox, uid);
       res.status(200).json({
         ok: true,
         sandbox,
@@ -1876,7 +1846,7 @@ exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => 
         });
         return;
       }
-      const record = await saveEffectiveEventConfig(sandbox, uid, {
+      const record = await eventConfigStore.saveEffectiveEventConfig(sandbox, uid, {
         datastreamId: body.datastreamId,
         datastreamTitle: body.datastreamTitle,
         schemaTitle: body.schemaTitle,
@@ -1907,11 +1877,11 @@ exports.catalogConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) =
     ? String(req.body.sandbox).trim()
     : resolveSandboxFromQuery(req);
 
-  const uid = await verifyIdTokenFromRequest(req);
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
 
   if (req.method === 'GET') {
     try {
-      const record = await getEffectiveCatalogConfig(sandbox, uid);
+      const record = await catalogConfigStore.getEffectiveCatalogConfig(sandbox, uid);
       res.status(200).json({ ok: true, sandbox, record, storage: uid ? 'user' : 'shared' });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
@@ -1929,7 +1899,7 @@ exports.catalogConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) =
         });
         return;
       }
-      const record = await saveEffectiveCatalogConfig(sandbox, uid, {
+      const record = await catalogConfigStore.saveEffectiveCatalogConfig(sandbox, uid, {
         schemaId: body.schemaId,
       });
       res.status(200).json({ ok: true, sandbox, record, storage: 'user' });
@@ -1949,7 +1919,7 @@ exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) 
     return;
   }
 
-  const uid = await verifyIdTokenFromRequest(req);
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
   if (!uid) {
     res.status(401).json({ ok: false, error: 'Firebase Auth required (anonymous sign-in is enough).' });
     return;
@@ -1966,7 +1936,7 @@ exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) 
 
   if (req.method === 'GET') {
     try {
-      const keys = await getLabKeys(uid, sandbox);
+      const keys = await labUserSandboxStore.getLabKeys(uid, sandbox);
       res.status(200).json({ ok: true, sandbox, keys });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
@@ -1979,7 +1949,7 @@ exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) 
     const patch = body.keys && typeof body.keys === 'object' ? body.keys : {};
     const replace = !!body.replace;
     try {
-      const keys = await mergeLabKeys(uid, sandbox, patch, { replace });
+      const keys = await labUserSandboxStore.mergeLabKeys(uid, sandbox, patch, { replace });
       res.status(200).json({ ok: true, sandbox, keys });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
@@ -2010,7 +1980,7 @@ exports.eventDatastreamsProxy = onRequest(
     catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
 
     try {
-      const result = await listDatastreams(accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value());
+      const result = await eventEdgeService.listDatastreams(accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value());
       if (result && result.errors) {
         res.status(200).json({ ok: false, datastreams: [], discoveryErrors: result.errors, note: 'Auto-discovery failed. Use manual datastream ID input.' });
       } else {
@@ -2039,7 +2009,7 @@ exports.eventInfraStatus = onRequest(profileFnOpts, async (req, res) => {
   try { accessToken = await getAdobeAccessToken(); }
   catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
   try {
-    const result = await runEventInfraStatus(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), schemaTitle, datasetName);
+    const result = await eventInfraService.runEventInfraStatus(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), schemaTitle, datasetName);
     res.status(200).json(result);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), sandbox });
@@ -2058,7 +2028,7 @@ exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
   try { accessToken = await getAdobeAccessToken(); }
   catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
   try {
-    const result = await runEventInfraStep(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), step, {
+    const result = await eventInfraService.runEventInfraStep(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), step, {
       schemaTitle: body.schemaTitle,
       datasetName: body.datasetName,
     });
@@ -2080,7 +2050,7 @@ exports.eventInfraEventTypes = onRequest(profileFnOpts, async (req, res) => {
   try { accessToken = await getAdobeAccessToken(); }
   catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e), eventTypes: [] }); return; }
   try {
-    const result = await fetchSchemaEventTypes(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), schemaTitle);
+    const result = await eventInfraService.fetchSchemaEventTypes(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), schemaTitle);
     res.status(200).json(result);
   } catch (e) {
     res.status(500).json({ error: String(e.message || e), eventTypes: [] });
@@ -2098,7 +2068,7 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
   const sandbox = resolveSandboxFromQuery(req);
   const cjaDataViewId = String(req.query.cjaDataViewId || '').trim();
   const cjaDateRangeRaw = String(req.query.cjaDateRangeId || req.query.cjaDateRange || '').trim();
-  const cjaDateRangeForCja = cjaDateRangeRaw ? normalizeCjaDateRangeId(cjaDateRangeRaw) : normalizeCjaDateRangeId();
+  const cjaDateRangeForCja = cjaDateRangeRaw ? cjaJourneyMetrics.normalizeCjaDateRangeId(cjaDateRangeRaw) : cjaJourneyMetrics.normalizeCjaDateRangeId();
   const start = Math.max(0, parseInt(req.query.start, 10) || 0);
   const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 200));
   const forceRefresh =
@@ -2122,7 +2092,7 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
             const cjaToken = await getAdobeAccessToken();
             const cjaOptsCached = { dateRangeId: cjaDateRangeForCja };
             if (cjaDataViewId) cjaOptsCached.dataViewId = cjaDataViewId;
-            cjaMeta = await enrichJourneyRowsWithCja(
+            cjaMeta = await cjaJourneyMetrics.enrichJourneyRowsWithCja(
               journeysOut,
               cjaToken,
               { clientId: ADOBE_CLIENT_ID.value() },
@@ -2160,7 +2130,7 @@ exports.journeysBrowse = onRequest(profileFnOpts, async (req, res) => {
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
   try {
-    const payload = await buildJourneysBrowseResponse(
+    const payload = await journeysBrowse.buildBrowseResponse(
       sandbox,
       accessToken,
       clientId,
@@ -2202,7 +2172,7 @@ exports.journeysCjaDataviews = onRequest(profileFnOpts, async (req, res) => {
   const clientId = ADOBE_CLIENT_ID.value();
   const orgId = ADOBE_IMS_ORG.value();
   try {
-    const result = await listCjaDataViewsAjoEnabled(accessToken, { clientId }, { orgId });
+    const result = await cjaJourneyMetrics.listCjaDataViewsAjoEnabled(accessToken, { clientId }, { orgId });
     res.status(result.ok ? 200 : 502).json({
       ok: result.ok,
       dataViews: result.dataViews || [],
@@ -2234,7 +2204,7 @@ exports.easterEggNotify = onRequest(
       return;
     }
     if (req.method === 'GET') {
-      return handleEasterEggList(req, res);
+      return easterEggNotify.handleEasterEggList(req, res);
     }
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'Method not allowed' });
@@ -2246,7 +2216,7 @@ exports.easterEggNotify = onRequest(
     const mailFrom =
       process.env.EASTER_EGG_MAIL_FROM || 'postmaster@mail.apalmer-consulting.com';
     const mailgunRegion = process.env.EASTER_EGG_MAILGUN_REGION || '';
-    return handleEasterEggNotify(req, res, {
+    return easterEggNotify.handleEasterEggNotify(req, res, {
       mailgunKey,
       mailgunDomain,
       mailFrom,
@@ -2289,7 +2259,7 @@ exports.journeyBrowseCacheRefresh = onSchedule(
     for (let i = 0; i < sandboxes.length; i++) {
       const sb = sandboxes[i];
       try {
-        const payload = await buildJourneysBrowseResponse(
+        const payload = await journeysBrowse.buildBrowseResponse(
           sb,
           accessToken,
           clientId,
