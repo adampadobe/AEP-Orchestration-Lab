@@ -1,6 +1,6 @@
 /**
  * Decisioning visualiser — interactive ranking methods (decisioning-visualiser.html).
- * Industry context: media (default), travel, retail, FSI, or telco (examples + copy).
+ * Industry context: media (default), travel, retail, FSI, telco, or automotive (examples + copy).
  */
 (function () {
   'use strict';
@@ -9,7 +9,7 @@
 
   function getIndustry() {
     var b = document.body && document.body.getAttribute('data-dce-industry');
-    if (b === 'travel' || b === 'retail' || b === 'fsi' || b === 'telco') return b;
+    if (b === 'travel' || b === 'retail' || b === 'fsi' || b === 'telco' || b === 'automotive') return b;
     return 'media';
   }
 
@@ -84,6 +84,11 @@
     { name: '🏠 Fibre Max 1Gbps — mesh Wi‑Fi included', sub: 'Home broadband · acquisition & churn save', id: 's2' },
     { name: '🧑‍💼 Business multi-line — static IP & SD‑WAN trial', sub: 'SMB connectivity · B2B attach', id: 's3' },
   ];
+  var PRIORITY_AUTOMOTIVE = [
+    { name: '🚙 New hybrid SUV — PCP launch event', sub: 'Volume target · Q4 registration push', id: 's1' },
+    { name: '🔌 EV bundle — wallbox + off-peak tariff', sub: 'Electrification · OEM programme', id: 's2' },
+    { name: '🛠️ Service plan+ — 3 years / 36k miles', sub: 'Aftersales · retention & fixed ops', id: 's3' },
+  ];
 
   var FORMULA_MEDIA = [
     { name: 'Drama Series — Annual Plan', category: 'drama', baseScore: 75, expiresIn: 20 },
@@ -109,6 +114,11 @@
     { name: 'Mobile — 5G device + unlimited bundle', category: 'mobile', baseScore: 75, expiresIn: 20 },
     { name: 'Home & fibre — gigabit + mesh upgrade', category: 'home', baseScore: 85, expiresIn: 36 },
     { name: 'Business lines — multi-line + static IP pack', category: 'smb', baseScore: 78, expiresIn: 10 },
+  ];
+  var FORMULA_AUTOMOTIVE = [
+    { name: 'Showroom — hybrid SUV PCP weekend', category: 'showroom', baseScore: 75, expiresIn: 20 },
+    { name: 'EV bundle — test drive + home charger', category: 'ev', baseScore: 85, expiresIn: 36 },
+    { name: 'Fleet care — multi-vehicle service plan', category: 'fleet', baseScore: 78, expiresIn: 10 },
   ];
 
   var offers = PRIORITY_MEDIA.slice();
@@ -309,6 +319,45 @@
     },
   ];
 
+  var profilesAutomotive = [
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Hannah is mid-funnel on a family SUV with two dealer visits and a part-exchange valuation saved. The model predicts showroom PCP and stock-led offers before EV-only bundles — she’s not yet on a BEV shortlist.',
+      ranks: [
+        { name: 'New hybrid SUV — PCP launch event', why: 'Config + test-drive signals → strongest close probability', conf: 93 },
+        { name: 'Approved used — warranty extension', why: 'Cross-shopped CPO in same session', conf: 72 },
+        { name: 'Part-exchange boost — this month', why: 'Valuation saved · trade-in intent', conf: 58 },
+        { name: 'Service plan+ — 3 years / 36k miles', why: 'Post-handover attach opportunity', conf: 41 },
+        { name: 'EV bundle — wallbox + off-peak tariff', why: 'Weaker — no charging research yet', conf: 22 },
+        { name: 'Winter tyre + alignment pack', why: 'Seasonal · secondary to purchase', conf: 11 },
+        { name: 'Business contract hire — 18 months', why: 'Personal PCP path · no fleet ID', conf: 5 },
+      ],
+    },
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Omar has browsed range calculators and wallbox installers — clear electrification intent. The model prioritises EV bundles and charger logistics before ICE showroom stock.',
+      ranks: [
+        { name: 'EV bundle — wallbox + off-peak tariff', why: 'Charging + tariff pages → top predictor', conf: 94 },
+        { name: 'EV test drive — priority slot', why: 'High intent · low friction next step', conf: 77 },
+        { name: 'Home charger install — fast track', why: 'Installer funnel started from app', conf: 52 },
+        { name: 'New hybrid SUV — PCP launch event', why: 'Fallback if BEV stock waitlisted', conf: 28 },
+        { name: 'Service plan+ — 3 years / 36k miles', why: 'Post-purchase · lower on acquisition path', conf: 14 },
+        { name: 'Approved used — warranty extension', why: 'New-car preference in profile', conf: 8 },
+        { name: 'Part-exchange boost — this month', why: 'Lease return not ICE trade-in', conf: 4 },
+      ],
+    },
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Claire manages 22 registered vehicles and an open service RFP. The model prioritises fleet service plans and contract terms over retail weekend PCP creatives.',
+      ranks: [
+        { name: 'Fleet care — multi-vehicle service plan', why: 'Fleet ID + mileage pattern → B2B predictor', conf: 95 },
+        { name: 'Business contract hire — 18 months', why: 'Replacement cycle in procurement calendar', conf: 73 },
+        { name: 'Telematics safety pack — fleet', why: 'Duty-of-care keyword in enquiry', conf: 46 },
+        { name: 'Service plan+ — 3 years / 36k miles', why: 'Applicable to mixed car/van parc', conf: 24 },
+        { name: 'New hybrid SUV — PCP launch event', why: 'Consumer creative — weak for fleet gate', conf: 12 },
+        { name: 'EV bundle — wallbox + off-peak tariff', why: 'Depot charging already contracted', conf: 7 },
+        { name: 'Part-exchange boost — this month', why: 'Not a retail part-ex journey', conf: 3 },
+      ],
+    },
+  ];
+
   var profiles = profilesMedia;
 
   var allAiItems = [];
@@ -422,6 +471,7 @@
     if (k === 'retail') return document.getElementById('dceViz-hours-slider-retail');
     if (k === 'fsi') return document.getElementById('dceViz-hours-slider-fsi');
     if (k === 'telco') return document.getElementById('dceViz-hours-slider-telco');
+    if (k === 'automotive') return document.getElementById('dceViz-hours-slider-automotive');
     return document.getElementById('dceViz-hours-slider');
   }
 
@@ -431,6 +481,7 @@
     if (k === 'retail') return document.getElementById('dceViz-hours-val-retail');
     if (k === 'fsi') return document.getElementById('dceViz-hours-val-fsi');
     if (k === 'telco') return document.getElementById('dceViz-hours-val-telco');
+    if (k === 'automotive') return document.getElementById('dceViz-hours-val-automotive');
     return document.getElementById('dceViz-hours-val');
   }
 
@@ -547,17 +598,27 @@
         urgencyFlagTelco.innerHTML = '⚡ Urgency ×2 active for: <strong style="margin-left:4px;">' + boostedTel.join(', ') + '</strong> — ranking order has changed.';
       }
     }
+    var urgencyFlagAuto = document.getElementById('dceViz-urgency-flag-automotive');
+    if (urgencyFlagAuto) {
+      urgencyFlagAuto.style.display = getIndustry() === 'automotive' && urgencyActive ? 'flex' : 'none';
+      if (getIndustry() === 'automotive' && urgencyActive) {
+        var boostedA = formulaOffers.filter(function (o) { return hours <= o.expiresIn; }).map(function (o) { return o.name.split('—')[0].trim(); });
+        urgencyFlagAuto.innerHTML = '⚡ Urgency ×2 active for: <strong style="margin-left:4px;">' + boostedA.join(', ') + '</strong> — ranking order has changed.';
+      }
+    }
 
     var crossoverHint = document.getElementById('dceViz-crossover-hint');
     var crossoverHintT = document.getElementById('dceViz-crossover-hint-travel');
     var crossoverHintR = document.getElementById('dceViz-crossover-hint-retail');
     var crossoverHintFsi = document.getElementById('dceViz-crossover-hint-fsi');
     var crossoverHintTelco = document.getElementById('dceViz-crossover-hint-telco');
+    var crossoverHintAuto = document.getElementById('dceViz-crossover-hint-automotive');
     if (crossoverHint) crossoverHint.style.display = getIndustry() === 'media' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintT) crossoverHintT.style.display = getIndustry() === 'travel' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintR) crossoverHintR.style.display = getIndustry() === 'retail' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintFsi) crossoverHintFsi.style.display = getIndustry() === 'fsi' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintTelco) crossoverHintTelco.style.display = getIndustry() === 'telco' && !urgencyActive ? 'block' : 'none';
+    if (crossoverHintAuto) crossoverHintAuto.style.display = getIndustry() === 'automotive' && !urgencyActive ? 'block' : 'none';
 
     var ruleUrgency = document.getElementById('dceViz-rule-urgency');
     if (ruleUrgency) {
@@ -576,6 +637,8 @@
         interestDisplay.textContent = currentInterest + ' (customerIntent → product.line)';
       } else if (getIndustry() === 'telco') {
         interestDisplay.textContent = currentInterest + ' (subscriberSegment → offer.line)';
+      } else if (getIndustry() === 'automotive') {
+        interestDisplay.textContent = currentInterest + ' (buyerSegment → offer.program)';
       } else {
         interestDisplay.textContent = currentInterest + ' (viewer genre → item.genre)';
       }
@@ -629,6 +692,7 @@
     if (indForm === 'retail') matchLabel = 'segment(+30)';
     if (indForm === 'fsi') matchLabel = 'intent(+30)';
     if (indForm === 'telco') matchLabel = 'line(+30)';
+    if (indForm === 'automotive') matchLabel = 'program(+30)';
     var breakdown = 'base(' + winner.baseScore + ')';
     if (winner.urgency) breakdown += ' × urgency(×2)';
     if (winner.match) breakdown += ' + ' + matchLabel;
@@ -661,6 +725,7 @@
         if (getIndustry() === 'retail') tripOrGenre = '🎯 +30 segment match';
         if (getIndustry() === 'fsi') tripOrGenre = '🎯 +30 intent match';
         if (getIndustry() === 'telco') tripOrGenre = '🎯 +30 line match';
+        if (getIndustry() === 'automotive') tripOrGenre = '🎯 +30 program match';
         sub.innerHTML = (o.urgency ? '<span style="color:#f5a623;font-weight:600;">⚡ ×2 urgency</span> · ' : '<span style="color:rgba(255,255,255,0.35);">cut-off ' + o.expiresIn + 'h</span> · ') +
           (o.match ? '<span style="color:#5ecf90;font-weight:600;">' + tripOrGenre + '</span> · ' : '') +
           (o.highPropensity ? '<span style="color:#c4a3f0;font-weight:600;">🧠 ×1.5 propensity</span> · ' : '') +
@@ -765,22 +830,24 @@
 
   // ── INDUSTRY SWITCH ───────────────────────────────────────────────────────
   function setIndustry(key, persist) {
-    if (key !== 'travel' && key !== 'media' && key !== 'retail' && key !== 'fsi' && key !== 'telco') key = 'media';
+    if (key !== 'travel' && key !== 'media' && key !== 'retail' && key !== 'fsi' && key !== 'telco' && key !== 'automotive') key = 'media';
 
     var prevIndustry = document.body.getAttribute('data-dce-industry') || 'media';
-    if (prevIndustry !== 'travel' && prevIndustry !== 'media' && prevIndustry !== 'retail' && prevIndustry !== 'fsi' && prevIndustry !== 'telco') prevIndustry = 'media';
+    if (prevIndustry !== 'travel' && prevIndustry !== 'media' && prevIndustry !== 'retail' && prevIndustry !== 'fsi' && prevIndustry !== 'telco' && prevIndustry !== 'automotive') prevIndustry = 'media';
 
     var hsm = document.getElementById('dceViz-hours-slider');
     var hst = document.getElementById('dceViz-hours-slider-travel');
     var hsr = document.getElementById('dceViz-hours-slider-retail');
     var hsf = document.getElementById('dceViz-hours-slider-fsi');
     var hstel = document.getElementById('dceViz-hours-slider-telco');
+    var hsauto = document.getElementById('dceViz-hours-slider-automotive');
     var v = 48;
     if (prevIndustry === 'media' && hsm) v = parseInt(hsm.value, 10) || 48;
     else if (prevIndustry === 'travel' && hst) v = parseInt(hst.value, 10) || 48;
     else if (prevIndustry === 'retail' && hsr) v = parseInt(hsr.value, 10) || 48;
     else if (prevIndustry === 'fsi' && hsf) v = parseInt(hsf.value, 10) || 48;
     else if (prevIndustry === 'telco' && hstel) v = parseInt(hstel.value, 10) || 48;
+    else if (prevIndustry === 'automotive' && hsauto) v = parseInt(hsauto.value, 10) || 48;
 
     document.body.setAttribute('data-dce-industry', key);
     if (persist) {
@@ -811,6 +878,11 @@
       formulaOffers = FORMULA_TELCO.slice();
       profiles = profilesTelco;
       currentInterest = 'mobile';
+    } else if (key === 'automotive') {
+      offers = PRIORITY_AUTOMOTIVE.slice();
+      formulaOffers = FORMULA_AUTOMOTIVE.slice();
+      profiles = profilesAutomotive;
+      currentInterest = 'showroom';
     } else {
       offers = PRIORITY_MEDIA.slice();
       formulaOffers = FORMULA_MEDIA.slice();
@@ -830,6 +902,7 @@
     if (hsr) hsr.value = String(v);
     if (hsf) hsf.value = String(v);
     if (hstel) hstel.value = String(v);
+    if (hsauto) hsauto.value = String(v);
 
     recomputeAllAiItems();
     buildAiRanksList();
@@ -860,7 +933,7 @@
     var key = 'media';
     try {
       var s = localStorage.getItem(LS_INDUSTRY);
-      if (s === 'travel' || s === 'media' || s === 'retail' || s === 'fsi' || s === 'telco') key = s;
+      if (s === 'travel' || s === 'media' || s === 'retail' || s === 'fsi' || s === 'telco' || s === 'automotive') key = s;
     } catch (e) {}
     setIndustry(key, false);
 
