@@ -78,16 +78,16 @@
     font-weight: 600;
   }
 
-  [data-dce-industry-show='media'],
-  [data-dce-industry-show='travel'],
-  [data-dce-industry-show='retail'],
-  [data-dce-industry-show='fsi'],
-  [data-dce-industry-show='telco'],
-  [data-dce-industry-show='automotive'],
-  [data-dce-industry-show='healthcare'] {
+  /* Hypothesis metrics use flex, not block — exclude from blanket hide and hide non-matching rows below */
+  [data-dce-industry-show='media']:not(.dce-ai-hypothesis-metrics),
+  [data-dce-industry-show='travel']:not(.dce-ai-hypothesis-metrics),
+  [data-dce-industry-show='retail']:not(.dce-ai-hypothesis-metrics),
+  [data-dce-industry-show='fsi']:not(.dce-ai-hypothesis-metrics),
+  [data-dce-industry-show='telco']:not(.dce-ai-hypothesis-metrics),
+  [data-dce-industry-show='automotive']:not(.dce-ai-hypothesis-metrics),
+  [data-dce-industry-show='healthcare']:not(.dce-ai-hypothesis-metrics) {
     display: none;
   }
-  /* Never force display:block on hypothesis metrics row — it must stay flex (see ajo-ranking-visualizer original) */
   body[data-dce-industry='media'] [data-dce-industry-show='media']:not(.dce-ai-hypothesis-metrics) {
     display: block;
   }
@@ -108,6 +108,15 @@
   }
   body[data-dce-industry='healthcare'] [data-dce-industry-show='healthcare']:not(.dce-ai-hypothesis-metrics) {
     display: block;
+  }
+  body[data-dce-industry='media'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='media']),
+  body[data-dce-industry='travel'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='travel']),
+  body[data-dce-industry='retail'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='retail']),
+  body[data-dce-industry='fsi'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='fsi']),
+  body[data-dce-industry='telco'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='telco']),
+  body[data-dce-industry='automotive'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='automotive']),
+  body[data-dce-industry='healthcare'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='healthcare']) {
+    display: none !important;
   }
 
   /* AI hypothesis — shared “green card” layout (all industries identical structure) */
@@ -185,13 +194,13 @@
     z-index: 1;
     gap: 20px;
   }
-  body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='media'],
-  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='travel'],
-  body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='retail'],
-  body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='fsi'],
-  body[data-dce-industry='telco'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='telco'],
-  body[data-dce-industry='automotive'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='automotive'],
-  body[data-dce-industry='healthcare'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='healthcare'] {
+  body[data-dce-industry='media'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='media'],
+  body[data-dce-industry='travel'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='travel'],
+  body[data-dce-industry='retail'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='retail'],
+  body[data-dce-industry='fsi'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='fsi'],
+  body[data-dce-industry='telco'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='telco'],
+  body[data-dce-industry='automotive'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='automotive'],
+  body[data-dce-industry='healthcare'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='healthcare'] {
     display: flex !important;
     flex-direction: row;
     flex-wrap: wrap;
