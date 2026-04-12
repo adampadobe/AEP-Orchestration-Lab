@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260424">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260423">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -1127,62 +1127,139 @@
       <div class="dce-ai-hypothesis-lede" data-dce-industry-show="healthcare">
         A health system and plan publish many care programme variants — virtual primary, urgent video, specialty expedited intake, pharmacy bundles, chronic coaching, mental health, and employer screening. Every eligible member may hit the same next-best-programme slot, but <strong>which offer ranks first</strong> comes from a Personalized Optimization model trained on booking, refill, risk screen, and benefits events. It learns care path, urgency, and channel — not one global “best” brochure.
       </div>
-      <table class="dce-ai-hypothesis-metrics" data-dce-industry-show="media" role="presentation">
-        <tbody><tr>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">5</div><div class="dce-ai-hyp-stat__label">item variants</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">6mo</div><div class="dce-ai-hyp-stat__label">training data</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">1</div><div class="dce-ai-hyp-stat__label">goal: subscription conversion</div></div></td>
-          <td><div class="dce-ai-hyp-model"><div class="dce-ai-hyp-model__eyebrow">Model type</div><div class="dce-ai-hyp-model__title">Personalized Optimization</div><div class="dce-ai-hyp-model__sub">Individual-level prediction</div></div></td>
-        </tr></tbody>
-      </table>
-      <table class="dce-ai-hypothesis-metrics" data-dce-industry-show="travel" role="presentation">
-        <tbody><tr>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">7</div><div class="dce-ai-hyp-stat__label">ancillary variants</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">6mo</div><div class="dce-ai-hyp-stat__label">training data</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">1</div><div class="dce-ai-hyp-stat__label">goal: ancillary attachment</div></div></td>
-          <td><div class="dce-ai-hyp-model"><div class="dce-ai-hyp-model__eyebrow">Model type</div><div class="dce-ai-hyp-model__title">Personalized Optimization</div><div class="dce-ai-hyp-model__sub">Trip- and profile-aware</div></div></td>
-        </tr></tbody>
-      </table>
-      <table class="dce-ai-hypothesis-metrics" data-dce-industry-show="retail" role="presentation">
-        <tbody><tr>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">7</div><div class="dce-ai-hyp-stat__label">offer variants</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">6mo</div><div class="dce-ai-hyp-stat__label">training data</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">1</div><div class="dce-ai-hyp-stat__label">goal: promo conversion</div></div></td>
-          <td><div class="dce-ai-hyp-model"><div class="dce-ai-hyp-model__eyebrow">Model type</div><div class="dce-ai-hyp-model__title">Personalized Optimization</div><div class="dce-ai-hyp-model__sub">Basket- and channel-aware</div></div></td>
-        </tr></tbody>
-      </table>
-      <table class="dce-ai-hypothesis-metrics" data-dce-industry-show="fsi" role="presentation">
-        <tbody><tr>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">7</div><div class="dce-ai-hyp-stat__label">product variants</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">6mo</div><div class="dce-ai-hyp-stat__label">training data</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">1</div><div class="dce-ai-hyp-stat__label">goal: application / uptake</div></div></td>
-          <td><div class="dce-ai-hyp-model"><div class="dce-ai-hyp-model__eyebrow">Model type</div><div class="dce-ai-hyp-model__title">Personalized Optimization</div><div class="dce-ai-hyp-model__sub">Intent- and eligibility-aware</div></div></td>
-        </tr></tbody>
-      </table>
-      <table class="dce-ai-hypothesis-metrics" data-dce-industry-show="telco" role="presentation">
-        <tbody><tr>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">7</div><div class="dce-ai-hyp-stat__label">offer variants</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">6mo</div><div class="dce-ai-hyp-stat__label">training data</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">1</div><div class="dce-ai-hyp-stat__label">goal: upgrade / attach</div></div></td>
-          <td><div class="dce-ai-hyp-model"><div class="dce-ai-hyp-model__eyebrow">Model type</div><div class="dce-ai-hyp-model__title">Personalized Optimization</div><div class="dce-ai-hyp-model__sub">Usage- and line-aware</div></div></td>
-        </tr></tbody>
-      </table>
-      <table class="dce-ai-hypothesis-metrics" data-dce-industry-show="automotive" role="presentation">
-        <tbody><tr>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">7</div><div class="dce-ai-hyp-stat__label">programme variants</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">6mo</div><div class="dce-ai-hyp-stat__label">training data</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">1</div><div class="dce-ai-hyp-stat__label">goal: lead → handover</div></div></td>
-          <td><div class="dce-ai-hyp-model"><div class="dce-ai-hyp-model__eyebrow">Model type</div><div class="dce-ai-hyp-model__title">Personalized Optimization</div><div class="dce-ai-hyp-model__sub">Journey- and stock-aware</div></div></td>
-        </tr></tbody>
-      </table>
-      <table class="dce-ai-hypothesis-metrics" data-dce-industry-show="healthcare" role="presentation">
-        <tbody><tr>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">7</div><div class="dce-ai-hyp-stat__label">programme variants</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">6mo</div><div class="dce-ai-hyp-stat__label">training data</div></div></td>
-          <td><div class="dce-ai-hyp-stat"><div class="dce-ai-hyp-stat__num">1</div><div class="dce-ai-hyp-stat__label">goal: next care step</div></div></td>
-          <td><div class="dce-ai-hyp-model"><div class="dce-ai-hyp-model__eyebrow">Model type</div><div class="dce-ai-hyp-model__title">Personalized Optimization</div><div class="dce-ai-hyp-model__sub">Path- and eligibility-aware</div></div></td>
-        </tr></tbody>
-      </table>
+      <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="media">
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">5</div>
+          <div class="dce-ai-hyp-stat__label">item variants</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: subscription conversion</div>
+        </div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Individual-level prediction</div>
+        </div>
+      </div>
+      <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="travel">
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">ancillary variants</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: ancillary attachment</div>
+        </div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Trip- and profile-aware</div>
+        </div>
+      </div>
+      <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="retail">
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">offer variants</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: promo conversion</div>
+        </div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Basket- and channel-aware</div>
+        </div>
+      </div>
+      <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="fsi">
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">product variants</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: application / uptake</div>
+        </div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Intent- and eligibility-aware</div>
+        </div>
+      </div>
+      <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="telco">
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">offer variants</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: upgrade / attach</div>
+        </div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Usage- and line-aware</div>
+        </div>
+      </div>
+      <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="automotive">
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">programme variants</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: lead → handover</div>
+        </div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Journey- and stock-aware</div>
+        </div>
+      </div>
+      <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="healthcare">
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">programme variants</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
+        </div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: next care step</div>
+        </div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Path- and eligibility-aware</div>
+        </div>
+      </div>
     </div>
 
     <!-- PROFILES + RANKS -->
@@ -1827,6 +1904,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260422"></script>
-  <script defer src="decisioning-visualizer.js?v=20260424"></script>
+  <script defer src="decisioning-visualizer.js?v=20260423"></script>
 </body>
 </html>
