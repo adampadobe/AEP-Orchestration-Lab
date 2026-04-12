@@ -1058,7 +1058,11 @@
 
   if (cjaDateRangeBtns) {
     cjaDateRangeBtns.addEventListener('click', function (e) {
-      const btn = e.target && e.target.closest && e.target.closest('.journeys-cja-range-btn[data-cja-range]');
+      /** Text nodes inside <button> have no .closest — use parent element (see HTML click target rules). */
+      var raw = e.target;
+      if (!raw) return;
+      var el = raw.nodeType === 1 ? raw : raw.parentElement;
+      var btn = el && el.closest && el.closest('.journeys-cja-range-btn[data-cja-range]');
       if (!btn || !cjaDateRangeBtns.contains(btn)) return;
       const rid = btn.getAttribute('data-cja-range');
       if (!rid || CJA_DATE_RANGE_IDS.indexOf(rid) === -1) return;
