@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260426">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260427">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -514,7 +514,7 @@
         <div class="card-label" style="margin-bottom:16px;">② Simulate — set the context</div>
         <div class="dce-viz-sim-grid" data-dce-industry-show="media" style="grid-template-columns: repeat(2, 1fr); gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden;">
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#1a7a4a 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--bb dce-viz-sim-cell--profile">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
@@ -529,7 +529,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#c47b00 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--bb dce-viz-sim-cell--urgency">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#c47b00;display:inline-block;"></span>
@@ -553,7 +553,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); background:color-mix(in srgb,#6b3fa0 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--ml">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#6b3fa0;display:inline-block;"></span>
@@ -568,7 +568,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; background:color-mix(in srgb,#b91c1c 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--campaign">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#b91c1c;display:inline-block;"></span>
@@ -587,7 +587,7 @@
 
         <div class="dce-viz-sim-grid" data-dce-industry-show="travel" style="grid-template-columns: repeat(2, 1fr); gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden;">
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#1a7a4a 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--bb dce-viz-sim-cell--profile">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
@@ -602,7 +602,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#c47b00 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--bb dce-viz-sim-cell--urgency">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#c47b00;display:inline-block;"></span>
@@ -626,7 +626,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); background:color-mix(in srgb,#6b3fa0 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--ml">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#6b3fa0;display:inline-block;"></span>
@@ -641,7 +641,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; background:color-mix(in srgb,#b91c1c 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--campaign">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#b91c1c;display:inline-block;"></span>
@@ -660,7 +660,7 @@
 
         <div class="dce-viz-sim-grid" data-dce-industry-show="retail" style="grid-template-columns: repeat(2, 1fr); gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden;">
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#1a7a4a 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--bb dce-viz-sim-cell--profile">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
@@ -675,7 +675,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#c47b00 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--bb dce-viz-sim-cell--urgency">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#c47b00;display:inline-block;"></span>
@@ -699,7 +699,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); background:color-mix(in srgb,#6b3fa0 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--ml">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#6b3fa0;display:inline-block;"></span>
@@ -714,7 +714,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; background:color-mix(in srgb,#b91c1c 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--campaign">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#b91c1c;display:inline-block;"></span>
@@ -733,7 +733,7 @@
 
         <div class="dce-viz-sim-grid" data-dce-industry-show="fsi" style="grid-template-columns: repeat(2, 1fr); gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden;">
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#1a7a4a 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--bb dce-viz-sim-cell--profile">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
@@ -748,7 +748,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#c47b00 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--bb dce-viz-sim-cell--urgency">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#c47b00;display:inline-block;"></span>
@@ -772,7 +772,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); background:color-mix(in srgb,#6b3fa0 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--ml">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#6b3fa0;display:inline-block;"></span>
@@ -787,7 +787,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; background:color-mix(in srgb,#b91c1c 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--campaign">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#b91c1c;display:inline-block;"></span>
@@ -806,7 +806,7 @@
 
         <div class="dce-viz-sim-grid" data-dce-industry-show="telco" style="grid-template-columns: repeat(2, 1fr); gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden;">
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#1a7a4a 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--bb dce-viz-sim-cell--profile">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
@@ -821,7 +821,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#c47b00 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--bb dce-viz-sim-cell--urgency">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#c47b00;display:inline-block;"></span>
@@ -845,7 +845,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); background:color-mix(in srgb,#6b3fa0 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--ml">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#6b3fa0;display:inline-block;"></span>
@@ -860,7 +860,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; background:color-mix(in srgb,#b91c1c 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--campaign">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#b91c1c;display:inline-block;"></span>
@@ -879,7 +879,7 @@
 
         <div class="dce-viz-sim-grid" data-dce-industry-show="automotive" style="grid-template-columns: repeat(2, 1fr); gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden;">
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#1a7a4a 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--bb dce-viz-sim-cell--profile">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
@@ -894,7 +894,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#c47b00 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--bb dce-viz-sim-cell--urgency">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#c47b00;display:inline-block;"></span>
@@ -918,7 +918,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); background:color-mix(in srgb,#6b3fa0 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--ml">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#6b3fa0;display:inline-block;"></span>
@@ -933,7 +933,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; background:color-mix(in srgb,#b91c1c 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--campaign">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#b91c1c;display:inline-block;"></span>
@@ -952,7 +952,7 @@
 
         <div class="dce-viz-sim-grid" data-dce-industry-show="healthcare" style="grid-template-columns: repeat(2, 1fr); gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden;">
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#1a7a4a 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--bb dce-viz-sim-cell--profile">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
@@ -967,7 +967,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#c47b00 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--bb dce-viz-sim-cell--urgency">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#c47b00;display:inline-block;"></span>
@@ -991,7 +991,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; border-right:1.5px solid var(--line); background:color-mix(in srgb,#6b3fa0 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--br dce-viz-sim-cell--ml">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#6b3fa0;display:inline-block;"></span>
@@ -1006,7 +1006,7 @@
           </div>
         </div>
 
-        <div style="padding:20px 22px; background:color-mix(in srgb,#b91c1c 3%,white);">
+        <div class="dce-viz-sim-cell dce-viz-sim-cell--campaign">
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#b91c1c;display:inline-block;"></span>
@@ -1750,7 +1750,7 @@
 
     <div class="experiment-grid">
       <div class="exp-arm">
-        <div class="exp-arm-header" style="background:#f0ebe8;">
+        <div class="exp-arm-header exp-arm-header--control">
           <span>Control — Ranking Formula</span>
           <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
         </div>
@@ -1774,8 +1774,8 @@
         </div>
       </div>
       <div class="exp-arm">
-        <div class="exp-arm-header" style="background:color-mix(in srgb, #6b3fa0 10%, white);">
-          <span style="color:#6b3fa0; font-weight:700;">Treatment — AI Auto-Optimization</span>
+        <div class="exp-arm-header exp-arm-header--treatment">
+          <span style="color:var(--method-color); font-weight:700;">Treatment — AI Auto-Optimization</span>
           <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
         </div>
         <div class="exp-arm-body">

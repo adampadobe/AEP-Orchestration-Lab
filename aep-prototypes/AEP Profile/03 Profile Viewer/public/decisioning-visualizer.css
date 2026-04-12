@@ -302,6 +302,42 @@
     display: grid;
   }
 
+  /* “Simulate — set the context” grid cells: tint with accent + panel (not white) so dark mode matches --dash-surface */
+  .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell {
+    padding: 20px 22px;
+    box-sizing: border-box;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell--br {
+    border-right: 1.5px solid var(--line);
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell--bb {
+    border-bottom: 1.5px solid var(--line);
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell--profile {
+    background: color-mix(in srgb, #1a7a4a 5%, var(--paper));
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell--urgency {
+    background: color-mix(in srgb, #c47b00 5%, var(--paper));
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell--ml {
+    background: color-mix(in srgb, #6b3fa0 5%, var(--paper));
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell--campaign {
+    background: color-mix(in srgb, #b91c1c 5%, var(--paper));
+  }
+  html[data-aep-theme='dark'] .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell--profile {
+    background: color-mix(in srgb, #1a7a4a 22%, var(--paper));
+  }
+  html[data-aep-theme='dark'] .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell--urgency {
+    background: color-mix(in srgb, #c47b00 20%, var(--paper));
+  }
+  html[data-aep-theme='dark'] .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell--ml {
+    background: color-mix(in srgb, #6b3fa0 22%, var(--paper));
+  }
+  html[data-aep-theme='dark'] .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-cell--campaign {
+    background: color-mix(in srgb, #b91c1c 20%, var(--paper));
+  }
+
   /* AI profile card stacks — one column per industry */
   .decisioning-catalog-page .dce-viz-scope .dce-profile-stack {
     display: none;
@@ -787,6 +823,9 @@
     color: var(--formula-color);
     box-shadow: 0 1px 4px rgba(0,0,0,0.12);
   }
+  html[data-aep-theme='dark'] .decisioning-catalog-page .dce-viz-scope .toggle-opt.active {
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+  }
 
   .decisioning-catalog-page .dce-viz-scope .score-readout {
     background: color-mix(in srgb, var(--method-color) 8%, var(--paper));
@@ -909,6 +948,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .exp-arm-header--control {
+    background: var(--paper-2);
+  }
+
+  .decisioning-catalog-page .dce-viz-scope .exp-arm-header--treatment {
+    background: color-mix(in srgb, #6b3fa0 10%, var(--paper));
+  }
+  html[data-aep-theme='dark'] .decisioning-catalog-page .dce-viz-scope .exp-arm-header--treatment {
+    background: color-mix(in srgb, #6b3fa0 26%, var(--paper));
   }
 
   .decisioning-catalog-page .dce-viz-scope .exp-arm-body { padding: 20px; background: var(--paper); }
