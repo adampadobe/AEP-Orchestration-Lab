@@ -418,7 +418,68 @@
     .workflow-drawer-scroll {
       box-sizing: border-box;
       padding: 1rem 1.5rem 1.5rem;
+      font-family: var(--font);
+      color: var(--text);
     }
+
+    /* Form controls live outside .cd-content — mirror those rules so inputs match the hero / namespace styling */
+    .workflow-drawer-scroll label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .workflow-drawer-scroll input[type="email"],
+    .workflow-drawer-scroll input[type="text"],
+    .workflow-drawer-scroll input[type="url"],
+    .workflow-drawer-scroll input[type="number"],
+    .workflow-drawer-scroll select {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      padding: 0.5rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      background: var(--bg-panel);
+      color: var(--text);
+      margin-bottom: 0.65rem;
+      font-family: var(--font);
+      box-sizing: border-box;
+    }
+    .workflow-drawer-scroll input:focus,
+    .workflow-drawer-scroll select:focus {
+      outline: 1px solid var(--accent);
+      outline-offset: 0;
+    }
+
+    /* Chrome/Safari: email autofill often paints a dark background unless overridden */
+    .workflow-drawer-scroll input:-webkit-autofill,
+    .workflow-drawer-scroll input:-webkit-autofill:hover,
+    .workflow-drawer-scroll input:-webkit-autofill:focus,
+    .workflow-drawer-scroll input:-webkit-autofill:active,
+    .workflow-drawer-scroll select:-webkit-autofill,
+    .workflow-drawer-scroll select:-webkit-autofill:hover,
+    .workflow-drawer-scroll select:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px var(--bg-panel) inset !important;
+      box-shadow: 0 0 0 1000px var(--bg-panel) inset !important;
+      -webkit-text-fill-color: var(--text) !important;
+      border-color: var(--border);
+      transition: background-color 99999s ease-out 0s;
+    }
+
+    .workflow-drawer-scroll .panel {
+      min-width: 0;
+    }
+
+    .workflow-drawer-scroll .auto-webhook-delay input[type="number"] {
+      width: 3.5rem;
+      margin-bottom: 0;
+      padding: 0.35rem 0.45rem;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
     .workflow-drawer[open] .workflow-drawer-scroll {
       height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
       max-height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
