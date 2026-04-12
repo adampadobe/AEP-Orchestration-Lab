@@ -43,9 +43,41 @@
       --cd-primary-btn-fg: #1a1d23;
     }
 
+    /*
+      Fill the viewport (no page scroll): preview scrolls inside .hero-stage; Workflow & controls
+      stays visible at the bottom of the main column on all screen sizes.
+    */
+    body.cd-page {
+      overflow: hidden;
+      height: 100dvh;
+      max-height: 100dvh;
+    }
+    @supports not (height: 100dvh) {
+      body.cd-page {
+        height: 100vh;
+        max-height: 100vh;
+      }
+    }
+
+    body.cd-page .dashboard-shell {
+      height: 100%;
+      min-height: 0;
+      max-height: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    body.cd-page .dashboard-main-wrap {
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     body.cd-page .dashboard-main.cd-main {
       padding: 0;
       max-width: none;
+      flex: 1 1 0;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -55,11 +87,12 @@
       font-family: var(--font);
       color: var(--text);
       background: var(--bg);
-      flex: 1;
-      display: flex;
-      flex-direction: column;
+      flex: 1 1 0;
       min-height: 0;
       overflow: hidden;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .cd-content code { font-family: ui-monospace, monospace; font-size: 0.9em; background: var(--bg-hover); padding: 0.15em 0.4em; border-radius: 4px; }
@@ -82,13 +115,15 @@
     .cd-content input:focus, .cd-content select:focus { outline: 1px solid var(--accent); outline-offset: 0; }
 
     .hero-stage {
-      flex: 1 1 0;
+      grid-row: 1;
       min-height: 0;
       padding: 1.25rem 1.5rem;
       overflow-y: auto;
+      overflow-x: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
+      overscroll-behavior: contain;
     }
 
     .cd-hero-layout {
@@ -322,26 +357,31 @@
     .cd-banner-cta--ghost { cursor: default; opacity: 0.85; }
 
     /*
-      Workflow drawer: explicit height + inner scroll (not flex on <details> — unreliable in WebKit/Chromium).
-      Opens upward by taking a fixed slice of the viewport; hero-stage shrinks (flex above). Scroll inside .workflow-drawer-scroll only.
+      Workflow drawer: pinned to bottom of .cd-content grid row 2. Summary bar always in view (no document scroll).
+      When open, height is capped so hero + drawer stay within the viewport; body .cd-page is overflow:hidden.
     */
     .workflow-drawer {
+      grid-row: 2;
+      align-self: end;
+      width: 100%;
       border-top: 1px solid var(--border);
       background: var(--bg-panel);
-      flex: 0 0 auto;
       --wf-summary-h: 3.125rem;
+      min-height: 0;
     }
     .workflow-drawer[open] {
-      --wf-drawer-h: min(75vh, calc(100vh - 4.5rem));
-      display: block;
+      /* Cap panel so preview row above keeps space; inner .workflow-drawer-scroll scrolls */
+      --wf-drawer-h: min(62vh, calc(100dvh - 14rem));
+      display: flex;
+      flex-direction: column;
       height: var(--wf-drawer-h);
       max-height: var(--wf-drawer-h);
       overflow: hidden;
       box-sizing: border-box;
     }
-    @supports (height: 100dvh) {
+    @supports not (height: 100dvh) {
       .workflow-drawer[open] {
-        --wf-drawer-h: min(75vh, calc(100dvh - 4.5rem));
+        --wf-drawer-h: min(62vh, calc(100vh - 14rem));
       }
     }
     .workflow-drawer > summary {
@@ -365,8 +405,8 @@
       padding: 1rem 1.5rem 1.5rem;
     }
     .workflow-drawer[open] .workflow-drawer-scroll {
-      height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
-      max-height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
+      flex: 1 1 0;
+      min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
       overscroll-behavior: contain;
