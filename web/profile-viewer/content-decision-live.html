@@ -43,16 +43,9 @@
       --cd-primary-btn-fg: #1a1d23;
     }
 
-    /* Fill sidebar column; min-height:0 so nested flex children can shrink (workflow drawer stays visible). */
-    body.cd-page .dashboard-main-wrap {
-      min-height: 0;
-    }
-
     body.cd-page .dashboard-main.cd-main {
       padding: 0;
       max-width: none;
-      flex: 1 1 0;
-      min-height: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -62,7 +55,7 @@
       font-family: var(--font);
       color: var(--text);
       background: var(--bg);
-      flex: 1 1 0;
+      flex: 1;
       display: flex;
       flex-direction: column;
       min-height: 0;
@@ -329,30 +322,26 @@
     .cd-banner-cta--ghost { cursor: default; opacity: 0.85; }
 
     /*
-      Workflow drawer: height capped so hero-stage + drawer never exceed cd-content (overflow hidden).
-      Previously 75vh + flex hero exceeded the viewport and clipped the drawer. Scroll inside .workflow-drawer-scroll only.
+      Workflow drawer: explicit height + inner scroll (not flex on <details> — unreliable in WebKit/Chromium).
+      Opens upward by taking a fixed slice of the viewport; hero-stage shrinks (flex above). Scroll inside .workflow-drawer-scroll only.
     */
     .workflow-drawer {
       border-top: 1px solid var(--border);
       background: var(--bg-panel);
       flex: 0 0 auto;
-      min-height: 0;
       --wf-summary-h: 3.125rem;
     }
     .workflow-drawer[open] {
-      /* Leave room for hero rail + preview; stay within dynamic viewport (mobile browser chrome). */
-      --wf-drawer-h: min(58vh, calc(100dvh - 12rem));
-      display: flex;
-      flex-direction: column;
+      --wf-drawer-h: min(75vh, calc(100vh - 4.5rem));
+      display: block;
       height: var(--wf-drawer-h);
       max-height: var(--wf-drawer-h);
-      flex-shrink: 1;
       overflow: hidden;
       box-sizing: border-box;
     }
-    @supports not (height: 100dvh) {
+    @supports (height: 100dvh) {
       .workflow-drawer[open] {
-        --wf-drawer-h: min(58vh, calc(100vh - 12rem));
+        --wf-drawer-h: min(75vh, calc(100dvh - 4.5rem));
       }
     }
     .workflow-drawer > summary {
@@ -376,10 +365,8 @@
       padding: 1rem 1.5rem 1.5rem;
     }
     .workflow-drawer[open] .workflow-drawer-scroll {
-      flex: 1 1 0;
-      min-height: 0;
-      height: auto;
-      max-height: none;
+      height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
+      max-height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
       overflow-y: auto;
       overflow-x: hidden;
       overscroll-behavior: contain;
