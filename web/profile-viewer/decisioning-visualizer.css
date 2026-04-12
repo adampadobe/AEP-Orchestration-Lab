@@ -174,17 +174,22 @@
     font-weight: 600;
   }
 
-  /* One row: three stat tiles + model panel (grid; beats generic [data-dce-industry-show] { display:block } when visible) */
+  /* One row only: three equal stat tiles + wider model panel (reference layout) */
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics {
     box-sizing: border-box;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(200px, 1.45fr);
-    gap: 16px;
+    /* Three equal tiles + wider model column; min widths preserve one-line row + horizontal scroll when needed */
+    grid-template-columns: repeat(3, minmax(76px, 1fr)) minmax(200px, 2.8fr);
+    gap: 12px;
     margin-top: 0;
     align-items: stretch;
     width: 100%;
     min-width: 0;
     position: relative;
     z-index: 1;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
   }
   body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='media'],
   body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='travel'],
@@ -205,6 +210,10 @@
     min-width: 0;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-stat__num {
@@ -222,6 +231,9 @@
     line-height: 1.35;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-model {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     text-align: left;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-model__eyebrow {
@@ -245,21 +257,6 @@
     color: #5ecf90;
     margin-top: 4px;
     line-height: 1.35;
-  }
-
-  @media (max-width: 720px) {
-    body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='media'],
-    body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='travel'],
-    body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='retail'],
-    body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='fsi'],
-    body[data-dce-industry='telco'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='telco'],
-    body[data-dce-industry='automotive'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='automotive'],
-    body[data-dce-industry='healthcare'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='healthcare'] {
-      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
-    .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics .dce-ai-hyp-model {
-      grid-column: 1 / -1;
-    }
   }
 
   .dashboard-hero--page-banner .dashboard-hero-subtitle[data-dce-industry-show] {
