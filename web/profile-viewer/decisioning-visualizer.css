@@ -88,25 +88,26 @@
   [data-dce-industry-show='healthcare']:not(.dce-ai-hypothesis-metrics) {
     display: none;
   }
-  body[data-dce-industry='media'] [data-dce-industry-show='media']:not(.dce-ai-hypothesis-metrics) {
+  /* Exclude .dce-experiment-arms: those use display:grid !important below — display:block here breaks the 2-col A/B layout */
+  body[data-dce-industry='media'] [data-dce-industry-show='media']:not(.dce-ai-hypothesis-metrics):not(.dce-experiment-arms) {
     display: block;
   }
-  body[data-dce-industry='travel'] [data-dce-industry-show='travel']:not(.dce-ai-hypothesis-metrics) {
+  body[data-dce-industry='travel'] [data-dce-industry-show='travel']:not(.dce-ai-hypothesis-metrics):not(.dce-experiment-arms) {
     display: block;
   }
-  body[data-dce-industry='retail'] [data-dce-industry-show='retail']:not(.dce-ai-hypothesis-metrics) {
+  body[data-dce-industry='retail'] [data-dce-industry-show='retail']:not(.dce-ai-hypothesis-metrics):not(.dce-experiment-arms) {
     display: block;
   }
-  body[data-dce-industry='fsi'] [data-dce-industry-show='fsi']:not(.dce-ai-hypothesis-metrics) {
+  body[data-dce-industry='fsi'] [data-dce-industry-show='fsi']:not(.dce-ai-hypothesis-metrics):not(.dce-experiment-arms) {
     display: block;
   }
-  body[data-dce-industry='telco'] [data-dce-industry-show='telco']:not(.dce-ai-hypothesis-metrics) {
+  body[data-dce-industry='telco'] [data-dce-industry-show='telco']:not(.dce-ai-hypothesis-metrics):not(.dce-experiment-arms) {
     display: block;
   }
-  body[data-dce-industry='automotive'] [data-dce-industry-show='automotive']:not(.dce-ai-hypothesis-metrics) {
+  body[data-dce-industry='automotive'] [data-dce-industry-show='automotive']:not(.dce-ai-hypothesis-metrics):not(.dce-experiment-arms) {
     display: block;
   }
-  body[data-dce-industry='healthcare'] [data-dce-industry-show='healthcare']:not(.dce-ai-hypothesis-metrics) {
+  body[data-dce-industry='healthcare'] [data-dce-industry-show='healthcare']:not(.dce-ai-hypothesis-metrics):not(.dce-experiment-arms) {
     display: block;
   }
   body[data-dce-industry='media'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='media']),
