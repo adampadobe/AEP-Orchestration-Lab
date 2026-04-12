@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260419">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260420">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -1099,165 +1099,165 @@
     </div>
 
     <!-- HYPOTHESIS BLOCK -->
-    <div style="background: linear-gradient(135deg, #0d2b1e, #0a3d2b); border-radius:14px; padding:28px 32px; margin-bottom:28px; position:relative; overflow:hidden;">
-      <div style="position:absolute; top:-20px; right:-20px; width:160px; height:160px; border-radius:50%; background:rgba(255,255,255,0.03);"></div>
-      <div style="position:absolute; bottom:-30px; right:60px; width:100px; height:100px; border-radius:50%; background:rgba(255,255,255,0.03);"></div>
-      <div style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#5ecf90; margin-bottom:12px;">The Hypothesis</div>
-      <div style="font-family:'DM Serif Display',serif; font-size:22px; color:white; line-height:1.35; max-width:700px; margin-bottom:16px;">
-        "Not every customer converts for the same reason.<br>If we could learn <em style="color:#a8e6c4;">what drives each individual</em>, we could show the item most likely to resonate — not the one we <em style="color:#a8e6c4;">think</em> should work."
+    <div class="dce-ai-hypothesis-card">
+      <div class="dce-ai-hypothesis-card__decor dce-ai-hypothesis-card__decor--tr" aria-hidden="true"></div>
+      <div class="dce-ai-hypothesis-card__decor dce-ai-hypothesis-card__decor--br" aria-hidden="true"></div>
+      <div class="dce-ai-hypothesis-eyebrow">The hypothesis</div>
+      <div class="dce-ai-hypothesis-quote">
+        "Not every customer converts for the same reason.<br>If we could learn <em>what drives each individual</em>, we could show the item most likely to resonate — not the one we <em>think</em> should work."
       </div>
-      <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="media">
-        A streaming platform has 5 upgrade item variants — different value propositions, commitment levels, and price anchors. Every customer sees the upgrade prompt, but <strong style="color:#a8e6c4;">which variant</strong> they see is determined by a Personalized Optimization model trained on 6 months of real subscription events. The model doesn't follow rules a marketer wrote. It finds patterns humans wouldn't think to look for.
+      <div class="dce-ai-hypothesis-lede" data-dce-industry-show="media">
+        A streaming platform has 5 upgrade item variants — different value propositions, commitment levels, and price anchors. Every customer sees the upgrade prompt, but <strong>which variant</strong> they see is determined by a Personalized Optimization model trained on 6 months of real subscription events. The model doesn't follow rules a marketer wrote. It finds patterns humans wouldn't think to look for.
       </div>
-      <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="travel">
-        An airline publishes 7 ancillary and upgrade variants — bags, seats, priority, Wi‑Fi, bundles, and cabin upsells. Every traveller eligible for add-ons sees the same decision surface, but <strong style="color:#a8e6c4;">which offer ranks first</strong> comes from a Personalized Optimization model trained on months of purchase and hold events. It learns route, party size, and loyalty patterns — not a single global “best” ancillary.
+      <div class="dce-ai-hypothesis-lede" data-dce-industry-show="travel">
+        An airline publishes 7 ancillary and upgrade variants — bags, seats, priority, Wi‑Fi, bundles, and cabin upsells. Every traveller eligible for add-ons sees the same decision surface, but <strong>which offer ranks first</strong> comes from a Personalized Optimization model trained on months of purchase and hold events. It learns route, party size, and loyalty patterns — not a single global “best” ancillary.
       </div>
-      <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="retail">
-        A retailer runs dozens of concurrent promos across categories — delivery, loyalty, financing, bundles, and clearance. Every eligible shopper hits the same decision surface at checkout, but <strong style="color:#a8e6c4;">which offer ranks first</strong> comes from a Personalized Optimization model trained on purchase, browse, and abandonment events. It learns segment, basket, and channel — not one global “best” coupon.
+      <div class="dce-ai-hypothesis-lede" data-dce-industry-show="retail">
+        A retailer runs dozens of concurrent promos across categories — delivery, loyalty, financing, bundles, and clearance. Every eligible shopper hits the same decision surface at checkout, but <strong>which offer ranks first</strong> comes from a Personalized Optimization model trained on purchase, browse, and abandonment events. It learns segment, basket, and channel — not one global “best” coupon.
       </div>
-      <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="fsi">
-        A bank markets many product variants — cards, lending, savings, wealth, and insurance. Every eligible customer may see the next-best offer in-app, but <strong style="color:#a8e6c4;">which product ranks first</strong> comes from a Personalized Optimization model trained on applications, holds, and servicing events. It learns intent, risk band, and channel — not one global “best” rate sheet.
+      <div class="dce-ai-hypothesis-lede" data-dce-industry-show="fsi">
+        A bank markets many product variants — cards, lending, savings, wealth, and insurance. Every eligible customer may see the next-best offer in-app, but <strong>which product ranks first</strong> comes from a Personalized Optimization model trained on applications, holds, and servicing events. It learns intent, risk band, and channel — not one global “best” rate sheet.
       </div>
-      <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="telco">
-        A telco publishes many plan and add-on variants — mobile tiers, fibre speeds, SMB packs, roaming, and devices. Every eligible subscriber may hit the same upgrade surface, but <strong style="color:#a8e6c4;">which offer ranks first</strong> comes from a Personalized Optimization model trained on usage, recharge, care, and install events. It learns segment, line mix, and channel — not one global “best” tariff.
+      <div class="dce-ai-hypothesis-lede" data-dce-industry-show="telco">
+        A telco publishes many plan and add-on variants — mobile tiers, fibre speeds, SMB packs, roaming, and devices. Every eligible subscriber may hit the same upgrade surface, but <strong>which offer ranks first</strong> comes from a Personalized Optimization model trained on usage, recharge, care, and install events. It learns segment, line mix, and channel — not one global “best” tariff.
       </div>
-      <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="automotive">
-        An OEM and dealer network run many programme variants — PCP events, EV charger bundles, service plans, fleet terms, and approved used. Every eligible contact may see the same next-best-offer slot, but <strong style="color:#a8e6c4;">which programme ranks first</strong> comes from a Personalized Optimization model trained on configure, test-drive, handover, and workshop events. It learns journey stage, stock, and channel — not one global “best” incentive.
+      <div class="dce-ai-hypothesis-lede" data-dce-industry-show="automotive">
+        An OEM and dealer network run many programme variants — PCP events, EV charger bundles, service plans, fleet terms, and approved used. Every eligible contact may see the same next-best-offer slot, but <strong>which programme ranks first</strong> comes from a Personalized Optimization model trained on configure, test-drive, handover, and workshop events. It learns journey stage, stock, and channel — not one global “best” incentive.
       </div>
-      <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="healthcare">
-        A health system and plan publish many care programme variants — virtual primary, urgent video, specialty expedited intake, pharmacy bundles, chronic coaching, mental health, and employer screening. Every eligible member may hit the same next-best-programme slot, but <strong style="color:#a8e6c4;">which offer ranks first</strong> comes from a Personalized Optimization model trained on booking, refill, risk screen, and benefits events. It learns care path, urgency, and channel — not one global “best” brochure.
+      <div class="dce-ai-hypothesis-lede" data-dce-industry-show="healthcare">
+        A health system and plan publish many care programme variants — virtual primary, urgent video, specialty expedited intake, pharmacy bundles, chronic coaching, mental health, and employer screening. Every eligible member may hit the same next-best-programme slot, but <strong>which offer ranks first</strong> comes from a Personalized Optimization model trained on booking, refill, risk screen, and benefits events. It learns care path, urgency, and channel — not one global “best” brochure.
       </div>
       <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="media">
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">5</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">item variants</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">5</div>
+          <div class="dce-ai-hyp-stat__label">item variants</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">6mo</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">training data</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">1</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">goal: subscription conversion</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: subscription conversion</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:160px; text-align:left;">
-          <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
-          <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
-          <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Individual-level prediction</div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Individual-level prediction</div>
         </div>
       </div>
       <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="travel">
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">7</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">ancillary variants</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">ancillary variants</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">6mo</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">training data</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">1</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">goal: ancillary attachment</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: ancillary attachment</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:160px; text-align:left;">
-          <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
-          <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
-          <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Trip- and profile-aware</div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Trip- and profile-aware</div>
         </div>
       </div>
       <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="retail">
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">7</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">offer variants</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">offer variants</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">6mo</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">training data</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">1</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">goal: promo conversion</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: promo conversion</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:160px; text-align:left;">
-          <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
-          <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
-          <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Basket- and channel-aware</div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Basket- and channel-aware</div>
         </div>
       </div>
       <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="fsi">
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">7</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">product variants</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">product variants</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">6mo</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">training data</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">1</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">goal: application / uptake</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: application / uptake</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:160px; text-align:left;">
-          <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
-          <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
-          <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Intent- and eligibility-aware</div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Intent- and eligibility-aware</div>
         </div>
       </div>
       <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="telco">
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">7</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">offer variants</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">offer variants</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">6mo</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">training data</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">1</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">goal: upgrade / attach</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: upgrade / attach</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:160px; text-align:left;">
-          <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
-          <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
-          <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Usage- and line-aware</div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Usage- and line-aware</div>
         </div>
       </div>
       <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="automotive">
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">7</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">programme variants</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">programme variants</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">6mo</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">training data</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">1</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">goal: lead → handover</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: lead → handover</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:160px; text-align:left;">
-          <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
-          <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
-          <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Journey- and stock-aware</div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Journey- and stock-aware</div>
         </div>
       </div>
       <div class="dce-ai-hypothesis-metrics" data-dce-industry-show="healthcare">
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">7</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">programme variants</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">7</div>
+          <div class="dce-ai-hyp-stat__label">programme variants</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">6mo</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">training data</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">6mo</div>
+          <div class="dce-ai-hyp-stat__label">training data</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
-          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">1</div>
-          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">goal: next care step</div>
+        <div class="dce-ai-hyp-stat">
+          <div class="dce-ai-hyp-stat__num">1</div>
+          <div class="dce-ai-hyp-stat__label">goal: next care step</div>
         </div>
-        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:160px; text-align:left;">
-          <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
-          <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
-          <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Path- and eligibility-aware</div>
+        <div class="dce-ai-hyp-model">
+          <div class="dce-ai-hyp-model__eyebrow">Model type</div>
+          <div class="dce-ai-hyp-model__title">Personalized Optimization</div>
+          <div class="dce-ai-hyp-model__sub">Path- and eligibility-aware</div>
         </div>
       </div>
     </div>
@@ -1904,6 +1904,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260422"></script>
-  <script defer src="decisioning-visualizer.js?v=20260419"></script>
+  <script defer src="decisioning-visualizer.js?v=20260420"></script>
 </body>
 </html>
