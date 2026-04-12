@@ -443,13 +443,13 @@
             <span class="rule-connector-label">+ IF</span>
           </div>
 
-          <!-- Rule 2: Genre match -->
+          <!-- Rule 2: Profile ↔ item match (attribute names mirror “Simulate” per industry) -->
           <div class="formula-rule">
             <div class="rule-block" id="dceViz-rule-interest">
               <div class="rule-source-tag" style="background:#edf7f2; color:#1a7a4a;">
                 <div class="rule-source-dot" style="background:#1a7a4a;"></div>Profile
               </div>
-              <div class="rule-attribute">preferredGenre</div>
+              <div class="rule-attribute" id="dceViz-interest-attr-label">preferredGenre</div>
               <div class="rule-operator">equals</div>
               <div class="rule-value">
                 <span id="dceViz-interest-val-display" style="font-family:'DM Mono',monospace; font-size:13px; color:#1a7a4a; font-weight:600;">item.genre</span>
@@ -1907,6 +1907,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260422"></script>
-  <script defer src="decisioning-visualizer.js?v=20260425"></script>
+  <script defer src="decisioning-visualizer.js?v=20260426"></script>
 </body>
 </html>

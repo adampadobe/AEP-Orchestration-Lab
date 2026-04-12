@@ -688,6 +688,18 @@
       if (badge) badge.style.opacity = urgencyActive ? '1' : '0.3';
     }
 
+    var interestAttrLabel = document.getElementById('dceViz-interest-attr-label');
+    if (interestAttrLabel) {
+      var indAttr = getIndustry();
+      if (indAttr === 'travel') interestAttrLabel.textContent = 'tripProfile';
+      else if (indAttr === 'retail') interestAttrLabel.textContent = 'shopperSegment';
+      else if (indAttr === 'fsi') interestAttrLabel.textContent = 'customerIntent';
+      else if (indAttr === 'telco') interestAttrLabel.textContent = 'subscriberSegment';
+      else if (indAttr === 'automotive') interestAttrLabel.textContent = 'buyerSegment';
+      else if (indAttr === 'healthcare') interestAttrLabel.textContent = 'patientSegment';
+      else interestAttrLabel.textContent = 'preferredGenre';
+    }
+
     var interestDisplay = document.getElementById('dceViz-interest-val-display');
     if (interestDisplay) {
       if (getIndustry() === 'travel') {
@@ -703,7 +715,7 @@
       } else if (getIndustry() === 'healthcare') {
         interestDisplay.textContent = currentInterest + ' (patientSegment → offer.carePath)';
       } else {
-        interestDisplay.textContent = currentInterest + ' (viewer genre → item.genre)';
+        interestDisplay.textContent = currentInterest + ' (preferredGenre → item.genre)';
       }
     }
 
