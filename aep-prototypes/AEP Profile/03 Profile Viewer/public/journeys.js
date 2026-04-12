@@ -865,10 +865,17 @@
           line += ' · live refresh';
         }
         const cja = data.cja;
-        if (cja && cja.dateRangeId) lastCjaDateRangeId = cja.dateRangeId;
-        updateJourneyTableHeaderDateRange(lastCjaDateRangeId);
+        const requestedRange = getSelectedCjaDateRangeId();
+        const serverRange = cja && cja.dateRangeId ? String(cja.dateRangeId) : '';
+        lastCjaDateRangeId = serverRange || requestedRange;
+        /** Header strip matches server-reported window (source of truth for numbers). */
+        updateJourneyTableHeaderDateRange(lastCjaDateRangeId || requestedRange);
         if (cja && cja.applied) {
-          line += ` · CJA metrics (${cja.dateRangeId || 'range'}).`;
+          if (serverRange && serverRange !== requestedRange) {
+            line += ` · CJA (${serverRange} from API). You chose ${requestedRange} — redeploy Cloud Functions from this repo for custom date windows.`;
+          } else {
+            line += ` · CJA metrics (${serverRange || requestedRange || 'range'}).`;
+          }
           if (cja.messagesSentSkipped) {
             line += ' Second metric and Delivered/Displays/Clicks omitted (CJA returned Journey Enters only).';
           } else if (cja.ajoChannelMetricsSkipped) {
@@ -1069,7 +1076,8 @@
       saveCjaDateRangeId(rid);
       syncCjaRangeButtons();
       updateJourneyTableHeaderDateRange(rid);
-      load();
+      /** Bypass Firestore journey cache so browse hits live path with the new cjaDateRangeId. */
+      load(true);
     });
   }
 
