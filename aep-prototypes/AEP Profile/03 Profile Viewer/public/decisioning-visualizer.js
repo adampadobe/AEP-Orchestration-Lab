@@ -1,6 +1,6 @@
 /**
  * Decisioning visualiser — interactive ranking methods (decisioning-visualiser.html).
- * Industry context: media (default), travel, retail, FSI, telco, or automotive (examples + copy).
+ * Industry context: media (default), travel, retail, FSI, telco, automotive, or healthcare (examples + copy).
  */
 (function () {
   'use strict';
@@ -9,7 +9,7 @@
 
   function getIndustry() {
     var b = document.body && document.body.getAttribute('data-dce-industry');
-    if (b === 'travel' || b === 'retail' || b === 'fsi' || b === 'telco' || b === 'automotive') return b;
+    if (b === 'travel' || b === 'retail' || b === 'fsi' || b === 'telco' || b === 'automotive' || b === 'healthcare') return b;
     return 'media';
   }
 
@@ -89,6 +89,11 @@
     { name: '🔌 EV bundle — wallbox + off-peak tariff', sub: 'Electrification · OEM programme', id: 's2' },
     { name: '🛠️ Service plan+ — 3 years / 36k miles', sub: 'Aftersales · retention & fixed ops', id: 's3' },
   ];
+  var PRIORITY_HEALTHCARE = [
+    { name: '🩺 Virtual primary — same-day video (£0 copay)', sub: 'Digital front door · access & triage', id: 's1' },
+    { name: '🏥 Specialty expedited — cardiology intake', sub: 'Clinical pathway · SLAs & capacity', id: 's2' },
+    { name: '💊 Pharmacy + wellness — 90-day + coaching', sub: 'Adherence · chronic & prevention', id: 's3' },
+  ];
 
   var FORMULA_MEDIA = [
     { name: 'Drama Series — Annual Plan', category: 'drama', baseScore: 75, expiresIn: 20 },
@@ -119,6 +124,11 @@
     { name: 'Showroom — hybrid SUV PCP weekend', category: 'showroom', baseScore: 75, expiresIn: 20 },
     { name: 'EV bundle — test drive + home charger', category: 'ev', baseScore: 85, expiresIn: 36 },
     { name: 'Fleet care — multi-vehicle service plan', category: 'fleet', baseScore: 78, expiresIn: 10 },
+  ];
+  var FORMULA_HEALTHCARE = [
+    { name: 'Virtual visit — same-day primary video', category: 'virtual', baseScore: 85, expiresIn: 36 },
+    { name: 'Specialty slot — expedited referral window', category: 'specialty', baseScore: 75, expiresIn: 20 },
+    { name: 'Employer screening — biometric kit', category: 'employer', baseScore: 78, expiresIn: 10 },
   ];
 
   var offers = PRIORITY_MEDIA.slice();
@@ -358,6 +368,45 @@
     },
   ];
 
+  var profilesHealthcare = [
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Morgan books video visits for minor illness and manages two chronic meds through the app. The model predicts virtual primary and pharmacy bundles before specialty intake — no cardiology signals in her history.',
+      ranks: [
+        { name: 'Virtual primary — same-day video (£0 copay)', why: 'Digital-first usage + refill pattern → strongest fit', conf: 93 },
+        { name: 'Urgent care video — under 30 min wait', why: 'After-hours symptom checker path', conf: 74 },
+        { name: 'Pharmacy + wellness — 90-day + coaching', why: 'Adherence programme eligibility', conf: 58 },
+        { name: 'Chronic care coach — diabetes programme', why: 'Condition in file · secondary on this journey', conf: 41 },
+        { name: 'Mental health — therapist match', why: 'Weaker — no BH screen this session', conf: 22 },
+        { name: 'Specialty expedited — cardiology intake', why: 'No cardiac risk flags in profile', conf: 11 },
+        { name: 'Employer screening — biometric kit', why: 'Individual plan · no employer ID', conf: 5 },
+      ],
+    },
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> James searched chest discomfort and completed a cardiac risk screener — high urgency for structured specialty access. The model prioritises expedited cardiology over retail pharmacy promos.',
+      ranks: [
+        { name: 'Specialty expedited — cardiology intake', why: 'Screener + keyword intent → top predictor', conf: 95 },
+        { name: 'Cardiac imaging — fast booking', why: 'Referral pathway started in same session', conf: 76 },
+        { name: 'Virtual primary — same-day video (£0 copay)', why: 'Triage step — not replacement for specialty', conf: 42 },
+        { name: 'Pharmacy + wellness — 90-day + coaching', why: 'Post-diagnosis opportunity · lower on acute path', conf: 28 },
+        { name: 'Chronic care coach — diabetes programme', why: 'Different condition cluster', conf: 14 },
+        { name: 'Employer screening — biometric kit', why: 'No workforce benefits match', conf: 8 },
+        { name: 'Mental health — therapist match', why: 'Deferred vs somatic chief complaint', conf: 4 },
+      ],
+    },
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Taylor administers an employer plan with open enrolment and onsite screening targets. The model prioritises employer wellness and biometric programmes over individual virtual retail offers.',
+      ranks: [
+        { name: 'Employer screening — biometric kit', why: 'HR admin + group ID → B2B2C predictor', conf: 94 },
+        { name: 'Wellness challenge — team leaderboard', why: 'Open enrolment campaign in calendar', conf: 71 },
+        { name: 'Virtual primary — same-day video (£0 copay)', why: 'Employee benefit · secondary to population programme', conf: 38 },
+        { name: 'Pharmacy + wellness — 90-day + coaching', why: 'Formulary education slot in webinar', conf: 24 },
+        { name: 'Specialty expedited — cardiology intake', why: 'Population health · not individual acute path', conf: 12 },
+        { name: 'Chronic care coach — diabetes programme', why: 'Segmented later in nurture', conf: 7 },
+        { name: 'Urgent care video — under 30 min wait', why: 'B2B gate · not employee retail journey', conf: 3 },
+      ],
+    },
+  ];
+
   var profiles = profilesMedia;
 
   var allAiItems = [];
@@ -472,6 +521,7 @@
     if (k === 'fsi') return document.getElementById('dceViz-hours-slider-fsi');
     if (k === 'telco') return document.getElementById('dceViz-hours-slider-telco');
     if (k === 'automotive') return document.getElementById('dceViz-hours-slider-automotive');
+    if (k === 'healthcare') return document.getElementById('dceViz-hours-slider-healthcare');
     return document.getElementById('dceViz-hours-slider');
   }
 
@@ -482,6 +532,7 @@
     if (k === 'fsi') return document.getElementById('dceViz-hours-val-fsi');
     if (k === 'telco') return document.getElementById('dceViz-hours-val-telco');
     if (k === 'automotive') return document.getElementById('dceViz-hours-val-automotive');
+    if (k === 'healthcare') return document.getElementById('dceViz-hours-val-healthcare');
     return document.getElementById('dceViz-hours-val');
   }
 
@@ -606,6 +657,14 @@
         urgencyFlagAuto.innerHTML = '⚡ Urgency ×2 active for: <strong style="margin-left:4px;">' + boostedA.join(', ') + '</strong> — ranking order has changed.';
       }
     }
+    var urgencyFlagHealth = document.getElementById('dceViz-urgency-flag-healthcare');
+    if (urgencyFlagHealth) {
+      urgencyFlagHealth.style.display = getIndustry() === 'healthcare' && urgencyActive ? 'flex' : 'none';
+      if (getIndustry() === 'healthcare' && urgencyActive) {
+        var boostedH = formulaOffers.filter(function (o) { return hours <= o.expiresIn; }).map(function (o) { return o.name.split('—')[0].trim(); });
+        urgencyFlagHealth.innerHTML = '⚡ Urgency ×2 active for: <strong style="margin-left:4px;">' + boostedH.join(', ') + '</strong> — ranking order has changed.';
+      }
+    }
 
     var crossoverHint = document.getElementById('dceViz-crossover-hint');
     var crossoverHintT = document.getElementById('dceViz-crossover-hint-travel');
@@ -613,12 +672,14 @@
     var crossoverHintFsi = document.getElementById('dceViz-crossover-hint-fsi');
     var crossoverHintTelco = document.getElementById('dceViz-crossover-hint-telco');
     var crossoverHintAuto = document.getElementById('dceViz-crossover-hint-automotive');
+    var crossoverHintHealth = document.getElementById('dceViz-crossover-hint-healthcare');
     if (crossoverHint) crossoverHint.style.display = getIndustry() === 'media' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintT) crossoverHintT.style.display = getIndustry() === 'travel' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintR) crossoverHintR.style.display = getIndustry() === 'retail' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintFsi) crossoverHintFsi.style.display = getIndustry() === 'fsi' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintTelco) crossoverHintTelco.style.display = getIndustry() === 'telco' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintAuto) crossoverHintAuto.style.display = getIndustry() === 'automotive' && !urgencyActive ? 'block' : 'none';
+    if (crossoverHintHealth) crossoverHintHealth.style.display = getIndustry() === 'healthcare' && !urgencyActive ? 'block' : 'none';
 
     var ruleUrgency = document.getElementById('dceViz-rule-urgency');
     if (ruleUrgency) {
@@ -639,6 +700,8 @@
         interestDisplay.textContent = currentInterest + ' (subscriberSegment → offer.line)';
       } else if (getIndustry() === 'automotive') {
         interestDisplay.textContent = currentInterest + ' (buyerSegment → offer.program)';
+      } else if (getIndustry() === 'healthcare') {
+        interestDisplay.textContent = currentInterest + ' (patientSegment → offer.carePath)';
       } else {
         interestDisplay.textContent = currentInterest + ' (viewer genre → item.genre)';
       }
@@ -693,6 +756,7 @@
     if (indForm === 'fsi') matchLabel = 'intent(+30)';
     if (indForm === 'telco') matchLabel = 'line(+30)';
     if (indForm === 'automotive') matchLabel = 'program(+30)';
+    if (indForm === 'healthcare') matchLabel = 'path(+30)';
     var breakdown = 'base(' + winner.baseScore + ')';
     if (winner.urgency) breakdown += ' × urgency(×2)';
     if (winner.match) breakdown += ' + ' + matchLabel;
@@ -726,6 +790,7 @@
         if (getIndustry() === 'fsi') tripOrGenre = '🎯 +30 intent match';
         if (getIndustry() === 'telco') tripOrGenre = '🎯 +30 line match';
         if (getIndustry() === 'automotive') tripOrGenre = '🎯 +30 program match';
+        if (getIndustry() === 'healthcare') tripOrGenre = '🎯 +30 path match';
         sub.innerHTML = (o.urgency ? '<span style="color:#f5a623;font-weight:600;">⚡ ×2 urgency</span> · ' : '<span style="color:rgba(255,255,255,0.35);">cut-off ' + o.expiresIn + 'h</span> · ') +
           (o.match ? '<span style="color:#5ecf90;font-weight:600;">' + tripOrGenre + '</span> · ' : '') +
           (o.highPropensity ? '<span style="color:#c4a3f0;font-weight:600;">🧠 ×1.5 propensity</span> · ' : '') +
@@ -830,10 +895,10 @@
 
   // ── INDUSTRY SWITCH ───────────────────────────────────────────────────────
   function setIndustry(key, persist) {
-    if (key !== 'travel' && key !== 'media' && key !== 'retail' && key !== 'fsi' && key !== 'telco' && key !== 'automotive') key = 'media';
+    if (key !== 'travel' && key !== 'media' && key !== 'retail' && key !== 'fsi' && key !== 'telco' && key !== 'automotive' && key !== 'healthcare') key = 'media';
 
     var prevIndustry = document.body.getAttribute('data-dce-industry') || 'media';
-    if (prevIndustry !== 'travel' && prevIndustry !== 'media' && prevIndustry !== 'retail' && prevIndustry !== 'fsi' && prevIndustry !== 'telco' && prevIndustry !== 'automotive') prevIndustry = 'media';
+    if (prevIndustry !== 'travel' && prevIndustry !== 'media' && prevIndustry !== 'retail' && prevIndustry !== 'fsi' && prevIndustry !== 'telco' && prevIndustry !== 'automotive' && prevIndustry !== 'healthcare') prevIndustry = 'media';
 
     var hsm = document.getElementById('dceViz-hours-slider');
     var hst = document.getElementById('dceViz-hours-slider-travel');
@@ -841,6 +906,7 @@
     var hsf = document.getElementById('dceViz-hours-slider-fsi');
     var hstel = document.getElementById('dceViz-hours-slider-telco');
     var hsauto = document.getElementById('dceViz-hours-slider-automotive');
+    var hshealth = document.getElementById('dceViz-hours-slider-healthcare');
     var v = 48;
     if (prevIndustry === 'media' && hsm) v = parseInt(hsm.value, 10) || 48;
     else if (prevIndustry === 'travel' && hst) v = parseInt(hst.value, 10) || 48;
@@ -848,6 +914,7 @@
     else if (prevIndustry === 'fsi' && hsf) v = parseInt(hsf.value, 10) || 48;
     else if (prevIndustry === 'telco' && hstel) v = parseInt(hstel.value, 10) || 48;
     else if (prevIndustry === 'automotive' && hsauto) v = parseInt(hsauto.value, 10) || 48;
+    else if (prevIndustry === 'healthcare' && hshealth) v = parseInt(hshealth.value, 10) || 48;
 
     document.body.setAttribute('data-dce-industry', key);
     if (persist) {
@@ -883,6 +950,11 @@
       formulaOffers = FORMULA_AUTOMOTIVE.slice();
       profiles = profilesAutomotive;
       currentInterest = 'showroom';
+    } else if (key === 'healthcare') {
+      offers = PRIORITY_HEALTHCARE.slice();
+      formulaOffers = FORMULA_HEALTHCARE.slice();
+      profiles = profilesHealthcare;
+      currentInterest = 'virtual';
     } else {
       offers = PRIORITY_MEDIA.slice();
       formulaOffers = FORMULA_MEDIA.slice();
@@ -903,6 +975,7 @@
     if (hsf) hsf.value = String(v);
     if (hstel) hstel.value = String(v);
     if (hsauto) hsauto.value = String(v);
+    if (hshealth) hshealth.value = String(v);
 
     recomputeAllAiItems();
     buildAiRanksList();
@@ -933,7 +1006,7 @@
     var key = 'media';
     try {
       var s = localStorage.getItem(LS_INDUSTRY);
-      if (s === 'travel' || s === 'media' || s === 'retail' || s === 'fsi' || s === 'telco' || s === 'automotive') key = s;
+      if (s === 'travel' || s === 'media' || s === 'retail' || s === 'fsi' || s === 'telco' || s === 'automotive' || s === 'healthcare') key = s;
     } catch (e) {}
     setIndustry(key, false);
 
