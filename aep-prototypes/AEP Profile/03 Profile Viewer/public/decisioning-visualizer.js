@@ -1,6 +1,6 @@
 /**
  * Decisioning visualiser — interactive ranking methods (decisioning-visualiser.html).
- * Industry context: media (default), travel · airline, or retail (examples + copy).
+ * Industry context: media (default), travel, retail, or FSI (examples + copy).
  */
 (function () {
   'use strict';
@@ -9,7 +9,7 @@
 
   function getIndustry() {
     var b = document.body && document.body.getAttribute('data-dce-industry');
-    if (b === 'travel' || b === 'retail') return b;
+    if (b === 'travel' || b === 'retail' || b === 'fsi') return b;
     return 'media';
   }
 
@@ -74,6 +74,11 @@
     { name: '🏷️ Loyalty 3× points — this weekend', sub: 'Mid-tier · drives app & repeat visits', id: 's2' },
     { name: '💳 BNPL 0% — 12 months on electrics', sub: 'Broad reach · reduces basket abandonment', id: 's3' },
   ];
+  var PRIORITY_FSI = [
+    { name: '🏦 Fixed-rate mortgage — 4.19% 5yr', sub: 'Strategic priority · high lifetime value', id: 's1' },
+    { name: '💳 Balance-transfer card — 0% 24 months', sub: 'Acquisition · broad eligibility', id: 's2' },
+    { name: '📈 Stocks & Shares ISA — £150 switching bonus', sub: 'Mid-term savings · cross-sell', id: 's3' },
+  ];
 
   var FORMULA_MEDIA = [
     { name: 'Drama Series — Annual Plan', category: 'drama', baseScore: 75, expiresIn: 20 },
@@ -89,6 +94,11 @@
     { name: 'Member exclusive — extra 20% off electrics', category: 'member', baseScore: 75, expiresIn: 20 },
     { name: 'Premium beauty bundle — gift with purchase', category: 'premium', baseScore: 85, expiresIn: 36 },
     { name: 'Value aisle flash — household essentials', category: 'value', baseScore: 78, expiresIn: 10 },
+  ];
+  var FORMULA_FSI = [
+    { name: 'Wealth — advisory portfolio review', category: 'wealth', baseScore: 75, expiresIn: 20 },
+    { name: 'Everyday — cashback current account', category: 'everyday', baseScore: 85, expiresIn: 36 },
+    { name: 'Business banking — fee-free 12 months', category: 'smb', baseScore: 78, expiresIn: 10 },
   ];
 
   var offers = PRIORITY_MEDIA.slice();
@@ -211,6 +221,45 @@
     },
   ];
 
+  var profilesFSI = [
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Elena is a private-banking client with investable assets above £750k and regular advisory meetings. The model predicts wealth and structured products over mass-market cards — regulatory fit and relationship depth dominate.',
+      ranks: [
+        { name: 'Wealth — advisory portfolio review', why: 'Segment + AUM → strongest predicted uptake', conf: 94 },
+        { name: 'Credit card — travel rewards', why: 'Premium spend pattern · aligns to lifestyle', conf: 71 },
+        { name: 'Home insurance — multi-policy discount', why: 'Cross-hold opportunity from mortgage data', conf: 52 },
+        { name: 'Everyday — cashback current account', why: 'Weaker — already on packaged current account', conf: 28 },
+        { name: 'Business banking — fee-free 12 months', why: 'Solo profile — no SMB signals', conf: 14 },
+        { name: 'Personal loan — 5.9% representative APR', why: 'Low debt appetite in file', conf: 9 },
+        { name: 'Junior ISA — £25 top-up bonus', why: 'No dependents flagged in household', conf: 4 },
+      ],
+    },
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Chris uses the mobile app weekly for balance checks and has one direct debit — a classic mass-market profile. The model favours everyday cashback and balance-transfer nudges before wealth propositions that would feel mis-targeted.',
+      ranks: [
+        { name: 'Everyday — cashback current account', why: 'Salary-in pattern · everyday banking fit', conf: 89 },
+        { name: 'Balance-transfer card — 0% 24 months', why: 'Revolving balance signal in bureau summary', conf: 68 },
+        { name: 'Personal loan — 5.9% representative APR', why: 'Consolidation intent from browse', conf: 41 },
+        { name: 'Stocks & Shares ISA — £150 switching bonus', why: 'Investment curiosity but lower priority', conf: 24 },
+        { name: 'Wealth — advisory portfolio review', why: 'Wealth threshold not met — poor fit', conf: 11 },
+        { name: 'Business banking — fee-free 12 months', why: 'No business account or turnover signals', conf: 6 },
+        { name: 'Credit card — travel rewards', why: 'Fee sensitivity vs rewards value', conf: 3 },
+      ],
+    },
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Miguel runs a limited company with a business current account and regular card spend on software and travel. The model prioritises SMB banking and expense-friendly cards over retail ISA offers.',
+      ranks: [
+        { name: 'Business banking — fee-free 12 months', why: 'Ltd co. + BCA activity → top predictor', conf: 93 },
+        { name: 'Credit card — travel rewards', why: 'Expense volume · reclaim-friendly categories', conf: 74 },
+        { name: 'Personal loan — 5.9% representative APR', why: 'Equipment financing intent from search', conf: 46 },
+        { name: 'Everyday — cashback current account', why: 'Secondary — business wallet already primary', conf: 21 },
+        { name: 'Wealth — advisory portfolio review', why: 'AUM below private threshold', conf: 12 },
+        { name: 'Balance-transfer card — 0% 24 months', why: 'Lower revolving need on business profile', conf: 7 },
+        { name: 'Junior ISA — £25 top-up bonus', why: 'Irrelevant to company context', conf: 2 },
+      ],
+    },
+  ];
+
   var profiles = profilesMedia;
 
   var allAiItems = [];
@@ -322,6 +371,7 @@
     var k = getIndustry();
     if (k === 'travel') return document.getElementById('dceViz-hours-slider-travel');
     if (k === 'retail') return document.getElementById('dceViz-hours-slider-retail');
+    if (k === 'fsi') return document.getElementById('dceViz-hours-slider-fsi');
     return document.getElementById('dceViz-hours-slider');
   }
 
@@ -329,6 +379,7 @@
     var k = getIndustry();
     if (k === 'travel') return document.getElementById('dceViz-hours-val-travel');
     if (k === 'retail') return document.getElementById('dceViz-hours-val-retail');
+    if (k === 'fsi') return document.getElementById('dceViz-hours-val-fsi');
     return document.getElementById('dceViz-hours-val');
   }
 
@@ -429,13 +480,23 @@
         urgencyFlagR.innerHTML = '⚡ Urgency ×2 active for: <strong style="margin-left:4px;">' + boostedR.join(', ') + '</strong> — ranking order has changed.';
       }
     }
+    var urgencyFlagFsi = document.getElementById('dceViz-urgency-flag-fsi');
+    if (urgencyFlagFsi) {
+      urgencyFlagFsi.style.display = getIndustry() === 'fsi' && urgencyActive ? 'flex' : 'none';
+      if (getIndustry() === 'fsi' && urgencyActive) {
+        var boostedF = formulaOffers.filter(function (o) { return hours <= o.expiresIn; }).map(function (o) { return o.name.split('—')[0].trim(); });
+        urgencyFlagFsi.innerHTML = '⚡ Urgency ×2 active for: <strong style="margin-left:4px;">' + boostedF.join(', ') + '</strong> — ranking order has changed.';
+      }
+    }
 
     var crossoverHint = document.getElementById('dceViz-crossover-hint');
     var crossoverHintT = document.getElementById('dceViz-crossover-hint-travel');
     var crossoverHintR = document.getElementById('dceViz-crossover-hint-retail');
+    var crossoverHintFsi = document.getElementById('dceViz-crossover-hint-fsi');
     if (crossoverHint) crossoverHint.style.display = getIndustry() === 'media' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintT) crossoverHintT.style.display = getIndustry() === 'travel' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintR) crossoverHintR.style.display = getIndustry() === 'retail' && !urgencyActive ? 'block' : 'none';
+    if (crossoverHintFsi) crossoverHintFsi.style.display = getIndustry() === 'fsi' && !urgencyActive ? 'block' : 'none';
 
     var ruleUrgency = document.getElementById('dceViz-rule-urgency');
     if (ruleUrgency) {
@@ -450,6 +511,8 @@
         interestDisplay.textContent = currentInterest + ' (tripProfile → item.tripSegment)';
       } else if (getIndustry() === 'retail') {
         interestDisplay.textContent = currentInterest + ' (shopperSegment → item.merchSegment)';
+      } else if (getIndustry() === 'fsi') {
+        interestDisplay.textContent = currentInterest + ' (customerIntent → product.line)';
       } else {
         interestDisplay.textContent = currentInterest + ' (viewer genre → item.genre)';
       }
@@ -501,6 +564,7 @@
     var matchLabel = 'genre(+30)';
     if (indForm === 'travel') matchLabel = 'trip(+30)';
     if (indForm === 'retail') matchLabel = 'segment(+30)';
+    if (indForm === 'fsi') matchLabel = 'intent(+30)';
     var breakdown = 'base(' + winner.baseScore + ')';
     if (winner.urgency) breakdown += ' × urgency(×2)';
     if (winner.match) breakdown += ' + ' + matchLabel;
@@ -531,6 +595,7 @@
         var tripOrGenre = '🎯 +30 genre';
         if (getIndustry() === 'travel') tripOrGenre = '🎯 +30 trip match';
         if (getIndustry() === 'retail') tripOrGenre = '🎯 +30 segment match';
+        if (getIndustry() === 'fsi') tripOrGenre = '🎯 +30 intent match';
         sub.innerHTML = (o.urgency ? '<span style="color:#f5a623;font-weight:600;">⚡ ×2 urgency</span> · ' : '<span style="color:rgba(255,255,255,0.35);">cut-off ' + o.expiresIn + 'h</span> · ') +
           (o.match ? '<span style="color:#5ecf90;font-weight:600;">' + tripOrGenre + '</span> · ' : '') +
           (o.highPropensity ? '<span style="color:#c4a3f0;font-weight:600;">🧠 ×1.5 propensity</span> · ' : '') +
@@ -635,18 +700,20 @@
 
   // ── INDUSTRY SWITCH ───────────────────────────────────────────────────────
   function setIndustry(key, persist) {
-    if (key !== 'travel' && key !== 'media' && key !== 'retail') key = 'media';
+    if (key !== 'travel' && key !== 'media' && key !== 'retail' && key !== 'fsi') key = 'media';
 
     var prevIndustry = document.body.getAttribute('data-dce-industry') || 'media';
-    if (prevIndustry !== 'travel' && prevIndustry !== 'media' && prevIndustry !== 'retail') prevIndustry = 'media';
+    if (prevIndustry !== 'travel' && prevIndustry !== 'media' && prevIndustry !== 'retail' && prevIndustry !== 'fsi') prevIndustry = 'media';
 
     var hsm = document.getElementById('dceViz-hours-slider');
     var hst = document.getElementById('dceViz-hours-slider-travel');
     var hsr = document.getElementById('dceViz-hours-slider-retail');
+    var hsf = document.getElementById('dceViz-hours-slider-fsi');
     var v = 48;
     if (prevIndustry === 'media' && hsm) v = parseInt(hsm.value, 10) || 48;
     else if (prevIndustry === 'travel' && hst) v = parseInt(hst.value, 10) || 48;
     else if (prevIndustry === 'retail' && hsr) v = parseInt(hsr.value, 10) || 48;
+    else if (prevIndustry === 'fsi' && hsf) v = parseInt(hsf.value, 10) || 48;
 
     document.body.setAttribute('data-dce-industry', key);
     if (persist) {
@@ -667,6 +734,11 @@
       formulaOffers = FORMULA_RETAIL.slice();
       profiles = profilesRetail;
       currentInterest = 'member';
+    } else if (key === 'fsi') {
+      offers = PRIORITY_FSI.slice();
+      formulaOffers = FORMULA_FSI.slice();
+      profiles = profilesFSI;
+      currentInterest = 'everyday';
     } else {
       offers = PRIORITY_MEDIA.slice();
       formulaOffers = FORMULA_MEDIA.slice();
@@ -684,6 +756,7 @@
     if (hsm) hsm.value = String(v);
     if (hst) hst.value = String(v);
     if (hsr) hsr.value = String(v);
+    if (hsf) hsf.value = String(v);
 
     recomputeAllAiItems();
     buildAiRanksList();
@@ -714,7 +787,7 @@
     var key = 'media';
     try {
       var s = localStorage.getItem(LS_INDUSTRY);
-      if (s === 'travel' || s === 'media' || s === 'retail') key = s;
+      if (s === 'travel' || s === 'media' || s === 'retail' || s === 'fsi') key = s;
     } catch (e) {}
     setIndustry(key, false);
 
