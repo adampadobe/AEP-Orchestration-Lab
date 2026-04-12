@@ -87,25 +87,26 @@
   [data-dce-industry-show='healthcare'] {
     display: none;
   }
-  body[data-dce-industry='media'] [data-dce-industry-show='media'] {
+  /* Never force display:block on hypothesis metrics row — it must stay flex (see ajo-ranking-visualizer original) */
+  body[data-dce-industry='media'] [data-dce-industry-show='media']:not(.dce-ai-hypothesis-metrics) {
     display: block;
   }
-  body[data-dce-industry='travel'] [data-dce-industry-show='travel'] {
+  body[data-dce-industry='travel'] [data-dce-industry-show='travel']:not(.dce-ai-hypothesis-metrics) {
     display: block;
   }
-  body[data-dce-industry='retail'] [data-dce-industry-show='retail'] {
+  body[data-dce-industry='retail'] [data-dce-industry-show='retail']:not(.dce-ai-hypothesis-metrics) {
     display: block;
   }
-  body[data-dce-industry='fsi'] [data-dce-industry-show='fsi'] {
+  body[data-dce-industry='fsi'] [data-dce-industry-show='fsi']:not(.dce-ai-hypothesis-metrics) {
     display: block;
   }
-  body[data-dce-industry='telco'] [data-dce-industry-show='telco'] {
+  body[data-dce-industry='telco'] [data-dce-industry-show='telco']:not(.dce-ai-hypothesis-metrics) {
     display: block;
   }
-  body[data-dce-industry='automotive'] [data-dce-industry-show='automotive'] {
+  body[data-dce-industry='automotive'] [data-dce-industry-show='automotive']:not(.dce-ai-hypothesis-metrics) {
     display: block;
   }
-  body[data-dce-industry='healthcare'] [data-dce-industry-show='healthcare'] {
+  body[data-dce-industry='healthcare'] [data-dce-industry-show='healthcare']:not(.dce-ai-hypothesis-metrics) {
     display: block;
   }
 
@@ -174,19 +175,15 @@
     font-weight: 600;
   }
 
-  /* Explicit LTR row: col1 | col2 | col3 | model (flex beats any ambiguous grid behavior) */
+  /* Matches ajo-ranking-visualizer (30 mar).html: flex row of 4 chips + model panel */
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics {
     box-sizing: border-box;
-    margin-top: 0;
+    margin-top: 20px;
     width: 100%;
     min-width: 0;
     position: relative;
     z-index: 1;
-    gap: 12px;
-    overflow-x: auto;
-    overflow-y: visible;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-gutter: stable;
+    gap: 20px;
   }
   body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='media'],
   body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='travel'],
@@ -197,7 +194,7 @@
   body[data-dce-industry='healthcare'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='healthcare'] {
     display: flex !important;
     flex-direction: row;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: stretch;
     justify-content: flex-start;
   }
@@ -209,58 +206,54 @@
     padding: 12px 16px;
     box-sizing: border-box;
     min-width: 0;
+    text-align: center;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-stat {
-    flex: 1 1 0;
-    min-width: 72px;
+    flex: 1 1 auto;
+    min-width: 5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    text-align: center;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-stat__num {
     font-family: 'DM Serif Display', serif;
     font-size: 28px;
-    font-weight: 600;
     color: #5ecf90;
     line-height: 1;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-stat__label {
-    font-family: 'DM Sans', 'Outfit', system-ui, sans-serif;
     font-size: 11px;
     color: #7ab89a;
-    margin-top: 4px;
+    margin-top: 2px;
     line-height: 1.35;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-model {
-    flex: 2.75 1 200px;
-    min-width: min(100%, 220px);
+    flex: 1 1 160px;
+    min-width: 160px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     text-align: left;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-model__eyebrow {
-    font-size: 10px;
+    font-size: 11px;
     color: #7ab89a;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     font-family: 'DM Mono', monospace;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-model__title {
-    font-family: 'DM Sans', 'Outfit', system-ui, sans-serif;
-    font-size: 15px;
+    font-size: 13px;
     color: #fff;
-    font-weight: 700;
+    font-weight: 500;
     line-height: 1.25;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-model__sub {
-    font-family: 'DM Sans', 'Outfit', system-ui, sans-serif;
     font-size: 11px;
     color: #5ecf90;
-    margin-top: 4px;
+    margin-top: 2px;
     line-height: 1.35;
   }
 
