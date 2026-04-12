@@ -74,12 +74,13 @@ body.race-page--profile-open .aep-profile-drawer,
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 
 .aep-profile-drawer-col-group > .aep-profile-drawer-col--stacked-panel .aep-profile-drawer-audiences {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .aep-profile-drawer-col-group > .aep-profile-drawer-col--messages-sent .aep-profile-drawer-email-sends-body {
@@ -320,7 +321,7 @@ body.race-page--profile-open .aep-profile-drawer,
   text-transform: lowercase;
 }
 
-/* Last events column: fill drawer row; scroll inside if many events */
+/* Last events column: fill drawer row */
 .aep-profile-drawer-inner > .aep-profile-drawer-col:not(.aep-profile-drawer-col--graph):not(.aep-profile-drawer-col--stacked-panel) {
   display: flex;
   flex-direction: column;
@@ -333,7 +334,7 @@ body.race-page--profile-open .aep-profile-drawer,
 .aep-profile-drawer-inner > .aep-profile-drawer-col:not(.aep-profile-drawer-col--graph):last-child .aep-profile-drawer-events {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .aep-profile-drawer-events {
