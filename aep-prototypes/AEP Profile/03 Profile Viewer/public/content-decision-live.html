@@ -452,7 +452,10 @@
       gap: 0;
     }
 
-    /* Collapsed: only chevron; label reveals on hover (desktop) or when open / keyboard focus */
+    /*
+      While the slide is collapsed (idle), nothing shows. When the dock peeks in
+      (pointer near bottom) show “Workflow & controls” + chevron together — one step, then click to expand.
+    */
     .workflow-summary__label {
       opacity: 0;
       max-width: 0;
@@ -472,30 +475,18 @@
       transition: transform 0.2s;
     }
 
-    .workflow-drawer > summary.workflow-summary:hover .workflow-summary__row,
+    .workflow-dock-outer.workflow-dock-outer--peek .workflow-summary__row,
     .workflow-drawer[open] > summary.workflow-summary .workflow-summary__row,
     .workflow-drawer > summary.workflow-summary:focus-visible .workflow-summary__row {
       justify-content: space-between;
       gap: 0.5rem;
     }
 
-    .workflow-drawer > summary.workflow-summary:hover .workflow-summary__label,
+    .workflow-dock-outer.workflow-dock-outer--peek .workflow-summary__label,
     .workflow-drawer[open] > summary.workflow-summary .workflow-summary__label,
     .workflow-drawer > summary.workflow-summary:focus-visible .workflow-summary__label {
       opacity: 1;
       max-width: min(100%, 22rem);
-    }
-
-    /* Touch / no hover: show label once the dock is peeked so the bar is understandable */
-    @media (hover: none) {
-      .workflow-dock-outer.workflow-dock-outer--peek .workflow-summary__label {
-        opacity: 1;
-        max-width: min(100%, 22rem);
-      }
-      .workflow-dock-outer.workflow-dock-outer--peek .workflow-summary__row {
-        justify-content: space-between;
-        gap: 0.5rem;
-      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -682,7 +673,7 @@
           <div class="cd-hero-main">
             <div id="cdHeroPlaceholder" class="hero-placeholder">
               <strong>No preview yet.</strong><br>
-              Use <strong>Run content decision</strong> (left). Move the pointer to the <strong>bottom edge</strong> to show the workflow bar (chevron only), <strong>hover the bar</strong> to see the label, then click to expand controls.
+              Use <strong>Run content decision</strong> (left). Move the pointer to the <strong>bottom edge</strong> to reveal <strong>Workflow &amp; controls</strong>, then click to expand.
             </div>
             <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Content decision banner"></div>
           </div>
@@ -812,7 +803,7 @@
         </div>
       </details>
         </div>
-        <div class="workflow-dock-hit" id="workflowDockHit" role="presentation" aria-hidden="true" title="Move pointer here to show Workflow controls"></div>
+        <div class="workflow-dock-hit" id="workflowDockHit" role="presentation" aria-hidden="true" title="Move pointer to bottom edge to reveal Workflow &amp; controls"></div>
       </div>
       </main>
     </div>
