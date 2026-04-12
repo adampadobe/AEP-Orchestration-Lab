@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260427">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260428">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -1748,7 +1748,7 @@
       </div>
     </div>
 
-    <div class="experiment-grid">
+    <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="media">
       <div class="exp-arm">
         <div class="exp-arm-header exp-arm-header--control">
           <span>Control — Ranking Formula</span>
@@ -1756,19 +1756,19 @@
         </div>
         <div class="exp-arm-body">
           <div class="metric-row">
-            <span class="metric-label">Account openings</span>
+            <span class="metric-label">Upgrade starts</span>
             <span class="metric-value">1,204</span>
           </div>
           <div class="metric-row">
-            <span class="metric-label">Conversion rate</span>
+            <span class="metric-label">Upgrade CTR</span>
             <span class="metric-value">3.1%</span>
           </div>
           <div class="metric-row">
-            <span class="metric-label">Avg. session value</span>
-            <span class="metric-value">$48.20</span>
+            <span class="metric-label">Avg. mins watched / session</span>
+            <span class="metric-value">48.2</span>
           </div>
           <div class="metric-row">
-            <span class="metric-label">Offer clicks</span>
+            <span class="metric-label">Upgrade surface clicks</span>
             <span class="metric-value">8,940</span>
           </div>
         </div>
@@ -1780,19 +1780,325 @@
         </div>
         <div class="exp-arm-body">
           <div class="metric-row">
-            <span class="metric-label">Account openings</span>
+            <span class="metric-label">Upgrade starts</span>
             <span class="metric-value" style="color:#1a7a4a; font-weight:600;">1,420 ↑</span>
           </div>
           <div class="metric-row">
-            <span class="metric-label">Conversion rate</span>
+            <span class="metric-label">Upgrade CTR</span>
             <span class="metric-value" style="color:#1a7a4a; font-weight:600;">3.66% ↑</span>
           </div>
           <div class="metric-row">
-            <span class="metric-label">Avg. session value</span>
+            <span class="metric-label">Avg. mins watched / session</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">55.7 ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Upgrade surface clicks</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">10,230 ↑</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="travel">
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--control">
+          <span>Control — Ranking Formula</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Ancillary attach rate</span>
+            <span class="metric-value">22.1%</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Ancillary revenue / passenger</span>
+            <span class="metric-value">$14.20</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Seat + bag bundle rate</span>
+            <span class="metric-value">31%</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Pre-trip offer clicks</span>
+            <span class="metric-value">8,940</span>
+          </div>
+        </div>
+      </div>
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--treatment">
+          <span style="color:var(--method-color); font-weight:700;">Treatment — AI Auto-Optimization</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Ancillary attach rate</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">25.8% ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Ancillary revenue / passenger</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">$16.20 ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Seat + bag bundle rate</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">35% ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Pre-trip offer clicks</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">10,230 ↑</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="retail">
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--control">
+          <span>Control — Ranking Formula</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Promo conversion rate</span>
+            <span class="metric-value">3.1%</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Promo revenue / session</span>
+            <span class="metric-value">$48.20</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Avg. order value</span>
+            <span class="metric-value">$62.00</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Promo surface clicks</span>
+            <span class="metric-value">8,940</span>
+          </div>
+        </div>
+      </div>
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--treatment">
+          <span style="color:var(--method-color); font-weight:700;">Treatment — AI Auto-Optimization</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Promo conversion rate</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">3.66% ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Promo revenue / session</span>
             <span class="metric-value" style="color:#1a7a4a; font-weight:600;">$55.70 ↑</span>
           </div>
           <div class="metric-row">
-            <span class="metric-label">Offer clicks</span>
+            <span class="metric-label">Avg. order value</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">$68.40 ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Promo surface clicks</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">10,230 ↑</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="fsi">
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--control">
+          <span>Control — Ranking Formula</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Qualified application starts</span>
+            <span class="metric-value">1,204</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Application completion rate</span>
+            <span class="metric-value">3.1%</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Avg. digitally-assisted value</span>
+            <span class="metric-value">$48.20</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Product CTA clicks</span>
+            <span class="metric-value">8,940</span>
+          </div>
+        </div>
+      </div>
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--treatment">
+          <span style="color:var(--method-color); font-weight:700;">Treatment — AI Auto-Optimization</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Qualified application starts</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">1,420 ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Application completion rate</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">3.66% ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Avg. digitally-assisted value</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">$55.70 ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Product CTA clicks</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">10,230 ↑</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="telco">
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--control">
+          <span>Control — Ranking Formula</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Upgrade conversion rate</span>
+            <span class="metric-value">3.1%</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Incremental ARPU (monthly)</span>
+            <span class="metric-value">$48.20</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Save-offer accept rate</span>
+            <span class="metric-value">12%</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Upgrade journey clicks</span>
+            <span class="metric-value">8,940</span>
+          </div>
+        </div>
+      </div>
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--treatment">
+          <span style="color:var(--method-color); font-weight:700;">Treatment — AI Auto-Optimization</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Upgrade conversion rate</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">3.66% ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Incremental ARPU (monthly)</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">$55.70 ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Save-offer accept rate</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">14% ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Upgrade journey clicks</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">10,230 ↑</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="automotive">
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--control">
+          <span>Control — Ranking Formula</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Qualified test-drive bookings</span>
+            <span class="metric-value">1,204</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Lead → test-drive rate</span>
+            <span class="metric-value">3.1%</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Configure &amp; price starts</span>
+            <span class="metric-value">1,820</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Programme CTA clicks</span>
+            <span class="metric-value">8,940</span>
+          </div>
+        </div>
+      </div>
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--treatment">
+          <span style="color:var(--method-color); font-weight:700;">Treatment — AI Auto-Optimization</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Qualified test-drive bookings</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">1,420 ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Lead → test-drive rate</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">3.66% ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Configure &amp; price starts</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">2,140 ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Programme CTA clicks</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">10,230 ↑</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="healthcare">
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--control">
+          <span>Control — Ranking Formula</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Completed care-step bookings</span>
+            <span class="metric-value">1,204</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Next-step conversion rate</span>
+            <span class="metric-value">3.1%</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Avg. portal sessions / member</span>
+            <span class="metric-value">4.2</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Programme tile clicks</span>
+            <span class="metric-value">8,940</span>
+          </div>
+        </div>
+      </div>
+      <div class="exp-arm">
+        <div class="exp-arm-header exp-arm-header--treatment">
+          <span style="color:var(--method-color); font-weight:700;">Treatment — AI Auto-Optimization</span>
+          <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+        </div>
+        <div class="exp-arm-body">
+          <div class="metric-row">
+            <span class="metric-label">Completed care-step bookings</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">1,420 ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Next-step conversion rate</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">3.66% ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Avg. portal sessions / member</span>
+            <span class="metric-value" style="color:#1a7a4a; font-weight:600;">4.9 ↑</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Programme tile clicks</span>
             <span class="metric-value" style="color:#1a7a4a; font-weight:600;">10,230 ↑</span>
           </div>
         </div>
@@ -1802,8 +2108,8 @@
     <div class="lift-banner" data-dce-industry-show="media">
       <div class="lift-number">+18%</div>
       <div>
-        <div class="lift-text"><strong>AI Auto-Optimization outperformed the hand-crafted formula</strong> by 18% on account openings after a 4-week experiment.</div>
-        <div class="lift-text" style="margin-top:8px;">The team updated their selection strategy with confidence — not gut feel, but data from the lift reporting dashboard.</div>
+        <div class="lift-text"><strong>AI Auto-Optimization outperformed the hand-crafted formula</strong> by 18% on subscription upgrade starts after a 4-week experiment.</div>
+        <div class="lift-text" style="margin-top:8px;">Growth could read lift by surface and cohort — not a single sitewide hero — and updated the selection strategy from the lift dashboard.</div>
       </div>
     </div>
     <div class="lift-banner" data-dce-industry-show="travel">
@@ -1850,8 +2156,8 @@
     </div>
 
     <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="media">
-      <div class="story-eyebrow">📖 The Bank That Wanted Proof</div>
-      <div class="story-text">"A financial institution's marketing team debated: do we trust the AI, or do we trust our formulas? They set up an experiment inside a decision policy for their savings account promotion. Half the audience got the formula — refined over months. The other half got a freshly trained AI model. After four weeks: the AI won by 18%. The team moved forward with confidence, not opinion."</div>
+      <div class="story-eyebrow">📖 The Streamer That Wanted Proof</div>
+      <div class="story-text">"Product and growth couldn’t agree: keep a fixed upgrade ladder in the app, or let a model reorder which annual vs monthly vs trial bundle each profile sees? They ran an experiment in the same decision policy on the logged-in home path. Half the audience got the formula; half got Personalized Optimization. After four weeks the ML arm lifted upgrade starts without dragging engagement on the holdout. Proof replaced the roadmap debate."</div>
     </div>
     <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="travel">
       <div class="story-eyebrow">📖 The Airline That Wanted Proof</div>
