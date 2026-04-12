@@ -1,6 +1,6 @@
 /**
  * Decisioning visualiser — interactive ranking methods (decisioning-visualiser.html).
- * Supports industry context: media (default) vs travel · airline (examples + copy).
+ * Industry context: media (default), travel · airline, or retail (examples + copy).
  */
 (function () {
   'use strict';
@@ -9,7 +9,8 @@
 
   function getIndustry() {
     var b = document.body && document.body.getAttribute('data-dce-industry');
-    return b === 'travel' ? 'travel' : 'media';
+    if (b === 'travel' || b === 'retail') return b;
+    return 'media';
   }
 
   // ── TAB NAVIGATION ────────────────────────────────────────────────────────
@@ -68,6 +69,11 @@
     { name: '🧳 Checked bags — 2×23kg', sub: 'Popular ancillary · mid route yield', id: 's2' },
     { name: '⭐ Priority boarding — Group 1', sub: 'Broad eligibility · conversion driver', id: 's3' },
   ];
+  var PRIORITY_RETAIL = [
+    { name: '🛍️ Cart VIP — free express delivery', sub: 'Highest margin · conversion on big-ticket baskets', id: 's1' },
+    { name: '🏷️ Loyalty 3× points — this weekend', sub: 'Mid-tier · drives app & repeat visits', id: 's2' },
+    { name: '💳 BNPL 0% — 12 months on electrics', sub: 'Broad reach · reduces basket abandonment', id: 's3' },
+  ];
 
   var FORMULA_MEDIA = [
     { name: 'Drama Series — Annual Plan', category: 'drama', baseScore: 75, expiresIn: 20 },
@@ -78,6 +84,11 @@
     { name: 'Business cabin upgrade — long-haul', category: 'business', baseScore: 75, expiresIn: 20 },
     { name: 'City break saver — short-haul bundle', category: 'leisure', baseScore: 85, expiresIn: 36 },
     { name: 'Family row + bags — 4 seats', category: 'family', baseScore: 78, expiresIn: 10 },
+  ];
+  var FORMULA_RETAIL = [
+    { name: 'Member exclusive — extra 20% off electrics', category: 'member', baseScore: 75, expiresIn: 20 },
+    { name: 'Premium beauty bundle — gift with purchase', category: 'premium', baseScore: 85, expiresIn: 36 },
+    { name: 'Value aisle flash — household essentials', category: 'value', baseScore: 78, expiresIn: 10 },
   ];
 
   var offers = PRIORITY_MEDIA.slice();
@@ -157,6 +168,45 @@
         { name: 'Business upgrade — one segment', why: 'Uneven value across party', conf: 11 },
         { name: 'Wi‑Fi pass', why: 'Secondary after seating resolved', conf: 7 },
         { name: 'Lounge access', why: 'Short connection — lower priority', conf: 3 },
+      ],
+    },
+  ];
+
+  var profilesRetail = [
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Jordan is Platinum loyalty with high app engagement and basket values over £120. The model predicts member-only and premium bundles over generic clearance — price sensitivity is low; recognition and exclusivity drive conversion.',
+      ranks: [
+        { name: 'Member exclusive — extra 20% off electrics', why: 'Tier + electronics browse history → strongest fit', conf: 93 },
+        { name: 'Premium beauty bundle — gift with purchase', why: 'Cross-category affinity from past orders', conf: 76 },
+        { name: 'Express delivery — next-day slot', why: 'Convenience matches high-intent checkout', conf: 58 },
+        { name: 'Value aisle flash — household essentials', why: 'Lower margin vs member tier offers', conf: 31 },
+        { name: 'Clearance apparel — extra 25% at checkout', why: 'Brand mismatch vs usual basket', conf: 22 },
+        { name: 'Kids back-to-school bundle', why: 'No kids’ categories in profile', conf: 9 },
+        { name: 'Subscription first month — half price', why: 'Already on paid tier — weak incremental', conf: 5 },
+      ],
+    },
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Riley abandons carts often and only converts on promo or free shipping. The model favours value aisle and BNPL-style framing before premium beauty — luxury upsells would likely bounce.',
+      ranks: [
+        { name: 'Value aisle flash — household essentials', why: 'Price-led · clear savings message', conf: 88 },
+        { name: 'BNPL 0% — 12 months on electrics', why: 'Reduces sticker shock on big-ticket', conf: 67 },
+        { name: 'Clearance apparel — extra 25% at checkout', why: 'Deal seeker profile', conf: 42 },
+        { name: 'Express delivery — next-day slot', why: 'Only after basket value clears threshold', conf: 28 },
+        { name: 'Premium beauty bundle — gift with purchase', why: 'Premium step — poor fit for tight budget', conf: 14 },
+        { name: 'Member exclusive — extra 20% off electrics', why: 'Needs login friction — weaker for guest', conf: 8 },
+        { name: 'Subscription first month — half price', why: 'Commitment aversion in segment', conf: 4 },
+      ],
+    },
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> The Parkers shop weekly for a household of five with recurring grocery and school lists. The model prioritises bulk value and family bundles over single-SKU premium SKUs.',
+      ranks: [
+        { name: 'Kids back-to-school bundle', why: 'Household + kids categories → top predictor', conf: 95 },
+        { name: 'Value aisle flash — household essentials', why: 'Bulk buy pattern · high basket overlap', conf: 72 },
+        { name: 'Express delivery — next-day slot', why: 'Slot booking reduces trip stress', conf: 48 },
+        { name: 'Member exclusive — extra 20% off electrics', why: 'Weaker — electronics not core for this trip', conf: 19 },
+        { name: 'Premium beauty bundle — gift with purchase', why: 'Single-SKU focus vs basket mission', conf: 11 },
+        { name: 'BNPL 0% — 12 months on electrics', why: 'Deferred for grocery-heavy shop', conf: 7 },
+        { name: 'Clearance apparel — extra 25% at checkout', why: 'Secondary to school list', conf: 3 },
       ],
     },
   ];
@@ -269,11 +319,17 @@
   var currentCampaign = 'none';
 
   function getHoursSlider() {
-    return document.getElementById(getIndustry() === 'travel' ? 'dceViz-hours-slider-travel' : 'dceViz-hours-slider');
+    var k = getIndustry();
+    if (k === 'travel') return document.getElementById('dceViz-hours-slider-travel');
+    if (k === 'retail') return document.getElementById('dceViz-hours-slider-retail');
+    return document.getElementById('dceViz-hours-slider');
   }
 
   function getHoursValEl() {
-    return document.getElementById(getIndustry() === 'travel' ? 'dceViz-hours-val-travel' : 'dceViz-hours-val');
+    var k = getIndustry();
+    if (k === 'travel') return document.getElementById('dceViz-hours-val-travel');
+    if (k === 'retail') return document.getElementById('dceViz-hours-val-retail');
+    return document.getElementById('dceViz-hours-val');
   }
 
   function setInterest(interest, btn) {
@@ -365,11 +421,21 @@
         urgencyFlagT.innerHTML = '⚡ Urgency ×2 active for: <strong style="margin-left:4px;">' + boostedT.join(', ') + '</strong> — ranking order has changed.';
       }
     }
+    var urgencyFlagR = document.getElementById('dceViz-urgency-flag-retail');
+    if (urgencyFlagR) {
+      urgencyFlagR.style.display = getIndustry() === 'retail' && urgencyActive ? 'flex' : 'none';
+      if (getIndustry() === 'retail' && urgencyActive) {
+        var boostedR = formulaOffers.filter(function (o) { return hours <= o.expiresIn; }).map(function (o) { return o.name.split('—')[0].trim(); });
+        urgencyFlagR.innerHTML = '⚡ Urgency ×2 active for: <strong style="margin-left:4px;">' + boostedR.join(', ') + '</strong> — ranking order has changed.';
+      }
+    }
 
     var crossoverHint = document.getElementById('dceViz-crossover-hint');
     var crossoverHintT = document.getElementById('dceViz-crossover-hint-travel');
+    var crossoverHintR = document.getElementById('dceViz-crossover-hint-retail');
     if (crossoverHint) crossoverHint.style.display = getIndustry() === 'media' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintT) crossoverHintT.style.display = getIndustry() === 'travel' && !urgencyActive ? 'block' : 'none';
+    if (crossoverHintR) crossoverHintR.style.display = getIndustry() === 'retail' && !urgencyActive ? 'block' : 'none';
 
     var ruleUrgency = document.getElementById('dceViz-rule-urgency');
     if (ruleUrgency) {
@@ -382,6 +448,8 @@
     if (interestDisplay) {
       if (getIndustry() === 'travel') {
         interestDisplay.textContent = currentInterest + ' (tripProfile → item.tripSegment)';
+      } else if (getIndustry() === 'retail') {
+        interestDisplay.textContent = currentInterest + ' (shopperSegment → item.merchSegment)';
       } else {
         interestDisplay.textContent = currentInterest + ' (viewer genre → item.genre)';
       }
@@ -429,7 +497,10 @@
     var winnerEl = document.getElementById('dceViz-formula-winner');
     if (winnerEl) winnerEl.textContent = winner.name;
 
-    var matchLabel = getIndustry() === 'travel' ? 'trip(+30)' : 'genre(+30)';
+    var indForm = getIndustry();
+    var matchLabel = 'genre(+30)';
+    if (indForm === 'travel') matchLabel = 'trip(+30)';
+    if (indForm === 'retail') matchLabel = 'segment(+30)';
     var breakdown = 'base(' + winner.baseScore + ')';
     if (winner.urgency) breakdown += ' × urgency(×2)';
     if (winner.match) breakdown += ' + ' + matchLabel;
@@ -457,7 +528,9 @@
       if (trophy) trophy.textContent = isWinner ? '🏆 ' : '';
       var sub = el.querySelector('.formula-sub-' + o.category);
       if (sub) {
-        var tripOrGenre = getIndustry() === 'travel' ? '🎯 +30 trip match' : '🎯 +30 genre';
+        var tripOrGenre = '🎯 +30 genre';
+        if (getIndustry() === 'travel') tripOrGenre = '🎯 +30 trip match';
+        if (getIndustry() === 'retail') tripOrGenre = '🎯 +30 segment match';
         sub.innerHTML = (o.urgency ? '<span style="color:#f5a623;font-weight:600;">⚡ ×2 urgency</span> · ' : '<span style="color:rgba(255,255,255,0.35);">cut-off ' + o.expiresIn + 'h</span> · ') +
           (o.match ? '<span style="color:#5ecf90;font-weight:600;">' + tripOrGenre + '</span> · ' : '') +
           (o.highPropensity ? '<span style="color:#c4a3f0;font-weight:600;">🧠 ×1.5 propensity</span> · ' : '') +
@@ -562,7 +635,19 @@
 
   // ── INDUSTRY SWITCH ───────────────────────────────────────────────────────
   function setIndustry(key, persist) {
-    if (key !== 'travel' && key !== 'media') key = 'media';
+    if (key !== 'travel' && key !== 'media' && key !== 'retail') key = 'media';
+
+    var prevIndustry = document.body.getAttribute('data-dce-industry') || 'media';
+    if (prevIndustry !== 'travel' && prevIndustry !== 'media' && prevIndustry !== 'retail') prevIndustry = 'media';
+
+    var hsm = document.getElementById('dceViz-hours-slider');
+    var hst = document.getElementById('dceViz-hours-slider-travel');
+    var hsr = document.getElementById('dceViz-hours-slider-retail');
+    var v = 48;
+    if (prevIndustry === 'media' && hsm) v = parseInt(hsm.value, 10) || 48;
+    else if (prevIndustry === 'travel' && hst) v = parseInt(hst.value, 10) || 48;
+    else if (prevIndustry === 'retail' && hsr) v = parseInt(hsr.value, 10) || 48;
+
     document.body.setAttribute('data-dce-industry', key);
     if (persist) {
       try { localStorage.setItem(LS_INDUSTRY, key); } catch (e) {}
@@ -572,11 +657,22 @@
       b.classList.toggle('active', b.getAttribute('data-dce-industry') === key);
     });
 
-    offers = key === 'travel' ? PRIORITY_TRAVEL.slice() : PRIORITY_MEDIA.slice();
-    formulaOffers = key === 'travel' ? FORMULA_TRAVEL.slice() : FORMULA_MEDIA.slice();
-    profiles = key === 'travel' ? profilesTravel : profilesMedia;
-
-    currentInterest = key === 'travel' ? 'business' : 'drama';
+    if (key === 'travel') {
+      offers = PRIORITY_TRAVEL.slice();
+      formulaOffers = FORMULA_TRAVEL.slice();
+      profiles = profilesTravel;
+      currentInterest = 'business';
+    } else if (key === 'retail') {
+      offers = PRIORITY_RETAIL.slice();
+      formulaOffers = FORMULA_RETAIL.slice();
+      profiles = profilesRetail;
+      currentInterest = 'member';
+    } else {
+      offers = PRIORITY_MEDIA.slice();
+      formulaOffers = FORMULA_MEDIA.slice();
+      profiles = profilesMedia;
+      currentInterest = 'drama';
+    }
     currentCampaign = 'none';
     currentPropensity = 'medium';
 
@@ -585,13 +681,9 @@
     updatePriority();
 
     buildFormulaList();
-    var hsm = document.getElementById('dceViz-hours-slider');
-    var hst = document.getElementById('dceViz-hours-slider-travel');
-    var v = 48;
-    if (key === 'travel' && hsm) v = parseInt(hsm.value, 10) || 48;
-    if (key === 'media' && hst) v = parseInt(hst.value, 10) || 48;
     if (hsm) hsm.value = String(v);
     if (hst) hst.value = String(v);
+    if (hsr) hsr.value = String(v);
 
     recomputeAllAiItems();
     buildAiRanksList();
@@ -622,7 +714,7 @@
     var key = 'media';
     try {
       var s = localStorage.getItem(LS_INDUSTRY);
-      if (s === 'travel' || s === 'media') key = s;
+      if (s === 'travel' || s === 'media' || s === 'retail') key = s;
     } catch (e) {}
     setIndustry(key, false);
 

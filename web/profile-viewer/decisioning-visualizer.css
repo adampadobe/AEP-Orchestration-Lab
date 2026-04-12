@@ -34,7 +34,7 @@
   margin-top: 1.5rem;
 }
 
-  /* Industry context toggle (Media vs Travel · Airline) */
+  /* Industry context toggle (Media · Travel · Retail) */
   .decisioning-catalog-page .dce-viz-industry-bar {
     display: flex;
     flex-wrap: wrap;
@@ -79,7 +79,8 @@
   }
 
   [data-dce-industry-show='media'],
-  [data-dce-industry-show='travel'] {
+  [data-dce-industry-show='travel'],
+  [data-dce-industry-show='retail'] {
     display: none;
   }
   body[data-dce-industry='media'] [data-dce-industry-show='media'] {
@@ -88,12 +89,16 @@
   body[data-dce-industry='travel'] [data-dce-industry-show='travel'] {
     display: block;
   }
+  body[data-dce-industry='retail'] [data-dce-industry-show='retail'] {
+    display: block;
+  }
   .dashboard-hero--page-banner .dashboard-hero-subtitle[data-dce-industry-show] {
     display: none;
     margin: 0;
   }
   body[data-dce-industry='media'] .dashboard-hero-subtitle[data-dce-industry-show='media'],
-  body[data-dce-industry='travel'] .dashboard-hero-subtitle[data-dce-industry-show='travel'] {
+  body[data-dce-industry='travel'] .dashboard-hero-subtitle[data-dce-industry-show='travel'],
+  body[data-dce-industry='retail'] .dashboard-hero-subtitle[data-dce-industry-show='retail'] {
     display: block;
   }
 
@@ -104,8 +109,10 @@
   }
   body[data-dce-industry='media'] .dce-viz-sim-grid[data-dce-industry-show='media'],
   body[data-dce-industry='travel'] .dce-viz-sim-grid[data-dce-industry-show='travel'],
+  body[data-dce-industry='retail'] .dce-viz-sim-grid[data-dce-industry-show='retail'],
   body[data-dce-industry='media'] .dce-what-grid[data-dce-industry-show='media'],
-  body[data-dce-industry='travel'] .dce-what-grid[data-dce-industry-show='travel'] {
+  body[data-dce-industry='travel'] .dce-what-grid[data-dce-industry-show='travel'],
+  body[data-dce-industry='retail'] .dce-what-grid[data-dce-industry-show='retail'] {
     display: grid;
   }
 
@@ -116,7 +123,8 @@
     gap: 12px;
   }
   body[data-dce-industry='media'] .dce-profile-stack[data-dce-industry-show='media'],
-  body[data-dce-industry='travel'] .dce-profile-stack[data-dce-industry-show='travel'] {
+  body[data-dce-industry='travel'] .dce-profile-stack[data-dce-industry-show='travel'],
+  body[data-dce-industry='retail'] .dce-profile-stack[data-dce-industry-show='retail'] {
     display: flex;
   }
 
@@ -738,13 +746,15 @@
     gap: 28px;
   }
 
-  /* Industry toggles: .lift-banner’s display:flex beats generic [data-dce-industry-show] hide rules — force correct arm */
-  body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='travel'],
-  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='media'] {
+  /* Industry toggles: .lift-banner’s display:flex beats generic [data-dce-industry-show] hide rules — force one arm */
+  body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='media']),
+  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='travel']),
+  body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='retail']) {
     display: none !important;
   }
   body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='media'],
-  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='travel'] {
+  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='travel'],
+  body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='retail'] {
     display: flex !important;
   }
 

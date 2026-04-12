@@ -12,10 +12,10 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260412b">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260413">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
-  <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
+  <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -43,6 +43,10 @@
                 Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>travel · airline</strong> examples: upcoming flights, ancillaries (bags, seats, priority), and trip context.
                 Use the tabs below to explore how eligible offers are ordered for travellers.
               </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="retail">
+                Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>retail</strong> examples: carts, loyalty, delivery, financing, and promo windows.
+                Use the tabs below to explore how eligible offers are ordered for shoppers.
+              </p>
             </header>
           </div>
         </section>
@@ -53,6 +57,7 @@
   <span class="dce-viz-industry-label">Example context</span>
   <button type="button" class="dce-viz-industry-btn active" data-dce-industry="media">Media &amp; entertainment</button>
   <button type="button" class="dce-viz-industry-btn" data-dce-industry="travel">Travel · Airline</button>
+  <button type="button" class="dce-viz-industry-btn" data-dce-industry="retail">Retail</button>
 </div>
 <script>(function(){try{var k=document.body.getAttribute('data-dce-industry')||'media';document.querySelectorAll('.dce-viz-industry-btn').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-dce-industry')===k);});}catch(e){}})();</script>
 <!-- NAV -->
@@ -81,8 +86,10 @@
     <div style="margin-bottom: 48px;">
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="media">When multiple decisions are available, how does the engine decide?</div>
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="travel">When many ancillaries and upgrades compete for the same traveller, how does the engine decide?</div>
+      <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="retail">When several promotions and add-ons could appear in the same journey, how does the engine decide?</div>
       <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="media">Each ranking method answers that question differently — choose the one that fits your maturity and goals.</h2>
       <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="travel">Each ranking method answers that question differently — from fixed commercial rules to trip-aware logic and ML — pick what fits your airline’s maturity.</h2>
+      <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="retail">Each ranking method answers that question differently — from fixed merchandising rules to behavioural formulas and ML — pick what fits your retail maturity.</h2>
     </div>
 
     <div class="overview-grid">
@@ -219,6 +226,7 @@
         <div class="card-label">Live demo — drag sliders to set priority scores</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="media">A streaming platform is running three concurrent upgrade promotions. The marketing team sets priority scores to control which offer gets shown first to any eligible visitor.</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="travel">An airline is promoting three ancillaries on the pre-trip website and app. Revenue management sets priority scores so the highest commercial-value bundle surfaces first to every eligible traveller.</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="retail">A retailer is running three concurrent checkout and homepage promotions. Merchandising sets priority scores so the highest-margin or strategic offer surfaces first for every eligible shopper.</div>
         <div class="slider-row">
           <div class="slider-meta">
             <span id="dceViz-s1-name">🎬 Annual Plan — 2 months free</span>
@@ -273,6 +281,10 @@
       <div class="story-eyebrow">✈️ The Airline — Peak Summer Push</div>
       <div class="story-text">"Network revenue wants long-haul ancillaries (extra legroom + bundles) to lead every eligible booking path before departure. Three upsells are live — but leadership has already decided: the long-haul comfort bundle is the commercial priority. It gets a score of 100. Every traveller who checks in online sees that bundle first, regardless of loyalty tier. The hierarchy reflects network strategy, not a single traveller’s profile. Transparent and easy to explain to finance."</div>
     </div>
+    <div class="story-box" style="--method-color: #c47b00" data-dce-industry-show="retail">
+      <div class="story-eyebrow">🛍️ The Retailer — Peak Trading Weekend</div>
+      <div class="story-text">"E-commerce and stores are running overlapping promos: express delivery, loyalty multipliers, and BNPL on big-ticket SKUs. Leadership has already decided: the Cart VIP free-delivery message is the commercial priority for the event — score 100. Every eligible basket sees it first, whether the shopper is new or Platinum. The hierarchy reflects trading strategy, not individual behaviour — simple to brief store managers and finance."</div>
+    </div>
   </div>
 
   <!-- ══ FORMULA ═════════════════════════════════════════════════════════ -->
@@ -300,6 +312,12 @@
         <div class="char-row"><span class="char-icon">◆</span> <strong>Profile attributes</strong> — loyalty tier, home hub, trip purpose (business / leisure)</div>
         <div class="char-row"><span class="char-icon">◆</span> <strong>Item attributes</strong> — ancillary type, route, cut-off hours before departure</div>
         <div class="char-row"><span class="char-icon">◆</span> <strong>Context data</strong> — channel (web, app, kiosk), device, days until departure</div>
+        <div class="char-row"><span class="char-icon">◆</span> <strong>Logical operators</strong> — boosts, multipliers, conditionals</div>
+      </div>
+      <div class="dce-what-grid" data-dce-industry-show="retail" style="grid-template-columns: repeat(2, 1fr); gap:10px;">
+        <div class="char-row"><span class="char-icon">◆</span> <strong>Profile attributes</strong> — loyalty tier, price band, shopper segment (value / premium / member)</div>
+        <div class="char-row"><span class="char-icon">◆</span> <strong>Item attributes</strong> — category, margin band, hours until promo end</div>
+        <div class="char-row"><span class="char-icon">◆</span> <strong>Context data</strong> — channel (web, app, store), device, cart value, store pickup</div>
         <div class="char-row"><span class="char-icon">◆</span> <strong>Logical operators</strong> — boosts, multipliers, conditionals</div>
       </div>
     </div>
@@ -564,6 +582,79 @@
         </div>
 
         </div><!-- /2x2 grid travel -->
+
+        <div class="dce-viz-sim-grid" data-dce-industry-show="retail" style="grid-template-columns: repeat(2, 1fr); gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden;">
+
+        <div style="padding:20px 22px; border-right:1.5px solid var(--line); border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#1a7a4a 3%,white);">
+          <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
+              Profile attribute · <span style="font-family:'DM Mono',monospace;">shopperSegment</span>
+            </span>
+          </div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">Is this shopper primarily value-led, premium-seeking, or loyalty / member focused?</div>
+          <div class="toggle-pill">
+            <button type="button" class="toggle-opt active" onclick="window.dceVizSetInterest('member', this)">⭐ Member</button>
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetInterest('value', this)">🏷️ Value</button>
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetInterest('premium', this)">💎 Premium</button>
+          </div>
+        </div>
+
+        <div style="padding:20px 22px; border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#c47b00 3%,white);">
+          <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#c47b00;display:inline-block;"></span>
+              Item attribute · <span style="font-family:'DM Mono',monospace;">hoursUntilPromoEnd</span>
+            </span>
+          </div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">Hours until the promotional window closes — urgency rises as the event ends.</div>
+          <div class="slider-row" style="margin-bottom:0">
+            <div class="slider-meta">
+              <span style="color:var(--muted);">1 hour</span>
+              <span class="slider-value" id="dceViz-hours-val-retail">48h remaining</span>
+              <span style="color:var(--muted);">72 hours</span>
+            </div>
+            <input type="range" min="1" max="72" value="48" id="dceViz-hours-slider-retail" oninput="window.dceVizUpdateFormula()">
+          </div>
+          <div id="dceViz-urgency-flag-retail" style="margin-top:8px; font-size:13px; font-weight:600; color:#c47b00; display:none; align-items:center; gap:6px;">
+            ⚡ Urgency boost — promo window closing soon
+          </div>
+          <div id="dceViz-crossover-hint-retail" style="margin-top:8px; font-size:12px; color:var(--muted); font-style:italic; line-height:1.5;">
+            ↓ Drag left — each SKU group has its own cut-off. Premium beauty closes at <strong style="color:#c47b00;">36h</strong>, member electrics at <strong style="color:#c47b00;">20h</strong>, value aisle at <strong style="color:#c47b00;">10h</strong>. Watch rankings change as urgency kicks in.
+          </div>
+        </div>
+
+        <div style="padding:20px 22px; border-right:1.5px solid var(--line); background:color-mix(in srgb,#6b3fa0 3%,white);">
+          <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#6b3fa0;display:inline-block;"></span>
+              External ML · <span style="font-family:'DM Mono',monospace;">propensityScore</span>
+            </span>
+          </div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">How likely is this shopper to convert on an add-on before checkout?</div>
+          <div class="toggle-pill">
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetPropensity('low', this)">📉 Low (&lt; 0.4)</button>
+            <button type="button" class="toggle-opt active" onclick="window.dceVizSetPropensity('medium', this)">📊 Medium (0.4–0.7)</button>
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetPropensity('high', this)">🚀 High (&gt; 0.7)</button>
+          </div>
+        </div>
+
+        <div style="padding:20px 22px; background:color-mix(in srgb,#b91c1c 3%,white);">
+          <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#b91c1c;display:inline-block;"></span>
+              Item attribute · <span style="font-family:'DM Mono',monospace;">campaignGroup</span>
+            </span>
+          </div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">Which offers are on strategic promotion for this event?</div>
+          <div class="toggle-pill">
+            <button type="button" class="toggle-opt active" onclick="window.dceVizSetCampaign('none', this)">🚫 None active</button>
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetCampaign('member', this)">⭐ Boost Member</button>
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetCampaign('premium', this)">💎 Boost Premium</button>
+          </div>
+        </div>
+
+        </div><!-- /2x2 grid retail -->
       </div><!-- /simulate card -->
 
     </div><!-- /zone 1 -->
@@ -577,6 +668,7 @@
       <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#7ab4e0;margin-bottom:6px;">③ Decisioning result</div>
       <div style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin-bottom:20px;line-height:1.3;" data-dce-industry-show="media">Ranked upgrade items <span style="font-size:13px;font-family:'Outfit',sans-serif;font-weight:400;color:#7ab4e0;margin-left:8px;">— changes as you adjust the context above</span></div>
       <div style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin-bottom:20px;line-height:1.3;" data-dce-industry-show="travel">Ranked ancillaries &amp; cabin offers <span style="font-size:13px;font-family:'Outfit',sans-serif;font-weight:400;color:#7ab4e0;margin-left:8px;">— seat maps, bags, and priority shift as departure nears</span></div>
+      <div style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin-bottom:20px;line-height:1.3;" data-dce-industry-show="retail">Ranked offers &amp; add-ons <span style="font-size:13px;font-family:'Outfit',sans-serif;font-weight:400;color:#7ab4e0;margin-left:8px;">— delivery, loyalty, and bundles shift as the promo window tightens</span></div>
 
       <div style="display:grid; grid-template-columns: 1fr 220px; gap:24px; align-items:start;">
 
@@ -603,6 +695,10 @@
     <div class="story-box" style="--method-color: #005f9e" data-dce-industry-show="travel">
       <div class="story-eyebrow">📖 The Airline — Cut-Offs Before Departure</div>
       <div class="story-text">"Three ancillaries compete in the same decision: a city-break bundle closes at 36 hours, a business cabin upgrade at 20 hours, and a family row + bags package at 10 hours. The formula doubles any offer's score inside its urgency window. For a business traveller, the leisure bundle can still jump ahead when its window opens first — because the doubled base score overtakes a weaker match. Same engine as media — different catalogue and trip context."</div>
+    </div>
+    <div class="story-box" style="--method-color: #005f9e" data-dce-industry-show="retail">
+      <div class="story-eyebrow">📖 The Retailer — Event &amp; Promo Windows</div>
+      <div class="story-text">"Three offers compete on the same cart path: a premium beauty bundle ends in 36 hours, member pricing on electrics in 20 hours, and a value-aisle flash in 10 hours. The formula doubles any item's score inside its urgency window. For a member-focused shopper, the value aisle can still jump up when its window hits first — because the doubled score beats a weaker segment match. Same ranking engine — retail catalogue and promo rules."</div>
     </div>
   </div>
 
@@ -631,6 +727,9 @@
       </div>
       <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="travel">
         An airline publishes 7 ancillary and upgrade variants — bags, seats, priority, Wi‑Fi, bundles, and cabin upsells. Every traveller eligible for add-ons sees the same decision surface, but <strong style="color:#a8e6c4;">which offer ranks first</strong> comes from a Personalized Optimization model trained on months of purchase and hold events. It learns route, party size, and loyalty patterns — not a single global “best” ancillary.
+      </div>
+      <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="retail">
+        A retailer runs dozens of concurrent promos across categories — delivery, loyalty, financing, bundles, and clearance. Every eligible shopper hits the same decision surface at checkout, but <strong style="color:#a8e6c4;">which offer ranks first</strong> comes from a Personalized Optimization model trained on purchase, browse, and abandonment events. It learns segment, basket, and channel — not one global “best” coupon.
       </div>
       <div style="display:flex; gap:20px; margin-top:20px; flex-wrap:wrap;" data-dce-industry-show="media">
         <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
@@ -668,6 +767,25 @@
           <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
           <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
           <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Trip- and profile-aware</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:20px; margin-top:20px; flex-wrap:wrap;" data-dce-industry-show="retail">
+        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
+          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">7</div>
+          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">offer variants</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
+          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">6mo</div>
+          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">training data</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
+          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">1</div>
+          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">goal: promo conversion</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:160px; text-align:left;">
+          <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
+          <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
+          <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Basket- and channel-aware</div>
         </div>
       </div>
     </div>
@@ -780,6 +898,56 @@
         </div>
         </div>
 
+        <div class="dce-profile-stack" data-dce-industry-show="retail">
+        <div class="profile-card selected" data-dce-profile-industry="retail" onclick="window.dceVizSelectProfile(0, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🛍️</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div class="profile-name">Jordan, 34</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#1a7a4a; background:#e8f4ec; padding:2px 8px; border-radius:10px;">Platinum · high AOV</div>
+            </div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">App-first · Shops 3–4×/month · Electronics &amp; beauty</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Loyalty tier</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Big baskets</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Member offers</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-card" data-dce-profile-industry="retail" onclick="window.dceVizSelectProfile(1, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🏷️</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div class="profile-name">Riley, 27</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#c47b00; background:#fff3cd; padding:2px 8px; border-radius:10px;">Deal seeker</div>
+            </div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Cart abandons often · Converts on promo or free shipping</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Price-led</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Guest checkout</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Sparse loyalty</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-card" data-dce-profile-industry="retail" onclick="window.dceVizSelectProfile(2, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🛒</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div class="profile-name">The Parkers</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#005f9e; background:#edf4fc; padding:2px 8px; border-radius:10px;">Household</div>
+            </div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Weekly shop · Party of 5 · School list + grocery mission</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Bulk buying</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Kids categories</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Click &amp; collect</span>
+            </div>
+          </div>
+        </div>
+        </div>
+
       </div>
 
       <div class="card">
@@ -804,6 +972,10 @@
           <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
           Purchase probability · trained on hold, seat, bag, and bundle events
         </div>
+        <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;" data-dce-industry-show="retail">
+          <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
+          Conversion probability · trained on browse, cart, and purchase events
+        </div>
       </div>
     </div>
 
@@ -814,6 +986,7 @@
         <div style="font-size:14px; line-height:1.6; color:#444;">Optimizes for <strong>overall item performance</strong>. Surfaces whichever item variant drives the best conversion rate across the entire audience — same winner for everyone.</div>
         <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="media">In our streaming example: the model would find that "30 Days Free" converts best overall and show it to everyone — ignoring that high-intent users like Maya would have converted on a higher-value plan.</div>
         <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="travel">In our airline example: auto-optimization might push the same checked-bag deal to everyone — even when Gold travellers like Alex respond better to cabin upgrades and families need row-together first.</div>
+        <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="retail">In our retail example: auto-optimization might push the same sitewide coupon to everyone — even when Platinum shoppers like Jordan respond better to member electrics and households need bulk value first.</div>
         <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
           <span style="background:#e8f4ec; color:#1a7a4a; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:500;">Best aggregate CTR</span>
           <span style="background:#e8f4ec; color:#1a7a4a; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:500;">No profile data needed</span>
@@ -825,6 +998,7 @@
         <div style="font-size:14px; line-height:1.6; color:#444;">Predicts the <strong>best item per individual</strong>. Each profile gets a different score — the model learns from that person's own behavioural signals and similar users who converted.</div>
         <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="media">In our streaming example: Maya sees the premium annual plan, Marcus sees the low-risk monthly trial, the Garcias see the family bundle — each ranked #1 because the model predicts it converts <em>them</em>.</div>
         <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="travel">In our airline example: Alex sees cabin upgrade first, Sam sees bags and seat selection, the Nguyens see family row + bags — each ranked #1 for that trip because the model predicts attachment <em>for that traveller</em>.</div>
+        <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="retail">In our retail example: Jordan sees member electrics first, Riley sees value aisle and BNPL, the Parkers see kids bundles — each ranked #1 because the model predicts conversion <em>for that shopper</em>.</div>
         <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
           <span style="background:#e8f4ec; color:#1a7a4a; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:500;">1:1 personalization</span>
           <span style="background:#e8f4ec; color:#1a7a4a; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:500;">CJA metrics support</span>
@@ -840,6 +1014,10 @@
     <div class="story-box" style="--method-color: #1a7a4a; margin-top:24px;" data-dce-industry-show="travel">
       <div class="story-eyebrow">📖 The Airline — what the model discovered</div>
       <div class="story-text">"Revenue management assumed every long-haul passenger wanted the same bag promo. The model disagreed. Frequent business travellers like Alex bought comfort and time — upgrades and priority — while Sam, booking a rare trip, started with bags and seats before anything premium. The Nguyens never behaved like three solo passengers; seated-together and family bundles won. Same decision policy — different ranked ancillaries per profile — because behaviour, not averages, drove the ranking."</div>
+    </div>
+    <div class="story-box" style="--method-color: #1a7a4a; margin-top:24px;" data-dce-industry-show="retail">
+      <div class="story-eyebrow">📖 The Retailer — what the model discovered</div>
+      <div class="story-text">"Merchandising assumed one sitewide coupon was enough. The model disagreed. Platinum shoppers like Jordan converted on exclusivity and member pricing — Riley needed savings and financing nudges first. The Parkers didn’t shop like individuals; family and school-list bundles won the top slot. Same decision policy — different ranked promos per profile — because baskets and segments, not a single average, drove the ranking."</div>
     </div>
   </div>
 
@@ -920,6 +1098,13 @@
         <div class="lift-text" style="margin-top:8px;">Route owners could see lift by segment (business vs leisure vs family) — not just a single campaign average.</div>
       </div>
     </div>
+    <div class="lift-banner" data-dce-industry-show="retail">
+      <div class="lift-number">+11%</div>
+      <div>
+        <div class="lift-text"><strong>Personalized promo ranking outperformed the rules-based arm</strong> by 11% on promo-attributed revenue per session after a 2-week experiment.</div>
+        <div class="lift-text" style="margin-top:8px;">Category leads could read lift by shopper segment (value vs premium vs member) — not a single sitewide average.</div>
+      </div>
+    </div>
 
     <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="media">
       <div class="story-eyebrow">📖 The Bank That Wanted Proof</div>
@@ -928,6 +1113,10 @@
     <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="travel">
       <div class="story-eyebrow">📖 The Airline That Wanted Proof</div>
       <div class="story-text">"Digital and revenue teams argued: should ancillaries follow fixed commercial rules or an ML-ranked order? They ran an experiment in the same decision policy: formula vs personalized model on the pre-departure journey. After three weeks, the ML arm lifted ancillary attachment without hurting NPS on the control route. Proof replaced debate."</div>
+    </div>
+    <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="retail">
+      <div class="story-eyebrow">📖 The Retailer That Wanted Proof</div>
+      <div class="story-text">"E-commerce and stores couldn’t agree: stack ranked promos by fixed rules or let the model reorder by shopper? They ran an experiment in the same decision policy on the checkout path. After two weeks, the ML arm lifted promo conversion and attachment without eroding margin on the holdout cohort. Data settled the debate."</div>
     </div>
 
     <div class="card" style="margin-top:24px;">
@@ -959,6 +1148,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260422"></script>
-  <script defer src="decisioning-visualizer.js?v=20260412b"></script>
+  <script defer src="decisioning-visualizer.js?v=20260413"></script>
 </body>
 </html>
