@@ -443,25 +443,15 @@
     }
     .workflow-drawer > summary.workflow-summary::-webkit-details-marker { display: none; }
 
-    .workflow-summary__row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      min-width: 0;
-      gap: 0;
-    }
-
     /*
-      While the slide is collapsed (idle), nothing shows. When the dock peeks in
-      (pointer near bottom) show “Workflow & controls” + chevron together — one step, then click to expand.
+      Idle: slide height 0 — nothing visible. Whenever the bar is shown, label + chevron always together.
     */
     .workflow-summary__label {
-      opacity: 0;
-      max-width: 0;
-      overflow: hidden;
+      flex: 1;
+      min-width: 0;
       white-space: nowrap;
-      transition: opacity 0.2s ease, max-width 0.28s ease;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .workflow-summary__icon {
@@ -475,24 +465,13 @@
       transition: transform 0.2s;
     }
 
-    .workflow-dock-outer.workflow-dock-outer--peek .workflow-summary__row,
-    .workflow-drawer[open] > summary.workflow-summary .workflow-summary__row,
-    .workflow-drawer > summary.workflow-summary:focus-visible .workflow-summary__row {
+    .workflow-summary__row {
+      display: flex;
+      align-items: center;
       justify-content: space-between;
+      width: 100%;
+      min-width: 0;
       gap: 0.5rem;
-    }
-
-    .workflow-dock-outer.workflow-dock-outer--peek .workflow-summary__label,
-    .workflow-drawer[open] > summary.workflow-summary .workflow-summary__label,
-    .workflow-drawer > summary.workflow-summary:focus-visible .workflow-summary__label {
-      opacity: 1;
-      max-width: min(100%, 22rem);
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .workflow-summary__label {
-        transition: none;
-      }
     }
 
     .workflow-drawer[open] > summary.workflow-summary { border-bottom-color: var(--border); }
