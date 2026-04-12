@@ -34,6 +34,92 @@
   margin-top: 1.5rem;
 }
 
+  /* Industry context toggle (Media vs Travel · Airline) */
+  .decisioning-catalog-page .dce-viz-industry-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem 1rem;
+    padding: 0.75rem 1rem;
+    margin: 0;
+    background: color-mix(in srgb, var(--dce-border) 35%, var(--dce-bg-panel));
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 210;
+  }
+  .decisioning-catalog-page .dce-viz-industry-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .decisioning-catalog-page .dce-viz-industry-btn {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0.4rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--dce-bg-panel);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .decisioning-catalog-page .dce-viz-industry-btn:hover {
+    border-color: color-mix(in srgb, var(--dce-text) 25%, var(--dce-border));
+    background: var(--paper-2);
+  }
+  .decisioning-catalog-page .dce-viz-industry-btn.active {
+    border-color: var(--red);
+    background: var(--red-dim);
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  [data-dce-industry-show='media'],
+  [data-dce-industry-show='travel'] {
+    display: none;
+  }
+  body[data-dce-industry='media'] [data-dce-industry-show='media'] {
+    display: block;
+  }
+  body[data-dce-industry='travel'] [data-dce-industry-show='travel'] {
+    display: block;
+  }
+  .dashboard-hero--page-banner .dashboard-hero-subtitle[data-dce-industry-show] {
+    display: none;
+    margin: 0;
+  }
+  body[data-dce-industry='media'] .dashboard-hero-subtitle[data-dce-industry-show='media'],
+  body[data-dce-industry='travel'] .dashboard-hero-subtitle[data-dce-industry-show='travel'] {
+    display: block;
+  }
+
+  /* Simulate + “what you can use” grids — visibility by industry (avoid inline display fighting CSS) */
+  .decisioning-catalog-page .dce-viz-scope .dce-viz-sim-grid,
+  .decisioning-catalog-page .dce-viz-scope .dce-what-grid {
+    display: none;
+  }
+  body[data-dce-industry='media'] .dce-viz-sim-grid[data-dce-industry-show='media'],
+  body[data-dce-industry='travel'] .dce-viz-sim-grid[data-dce-industry-show='travel'],
+  body[data-dce-industry='media'] .dce-what-grid[data-dce-industry-show='media'],
+  body[data-dce-industry='travel'] .dce-what-grid[data-dce-industry-show='travel'] {
+    display: grid;
+  }
+
+  /* AI profile card stacks — one column per industry */
+  .decisioning-catalog-page .dce-viz-scope .dce-profile-stack {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+  }
+  body[data-dce-industry='media'] .dce-profile-stack[data-dce-industry-show='media'],
+  body[data-dce-industry='travel'] .dce-profile-stack[data-dce-industry-show='travel'] {
+    display: flex;
+  }
+
   /* Eyebrow label (e.g. overview intro — not the removed top hero strip) */
   .decisioning-catalog-page .dce-viz-scope .hero-eyebrow {
     font-family: 'DM Mono', monospace;
@@ -650,6 +736,16 @@
     display: flex;
     align-items: center;
     gap: 28px;
+  }
+
+  /* Industry toggles: .lift-banner’s display:flex beats generic [data-dce-industry-show] hide rules — force correct arm */
+  body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='travel'],
+  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='media'] {
+    display: none !important;
+  }
+  body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='media'],
+  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='travel'] {
+    display: flex !important;
   }
 
   .decisioning-catalog-page .dce-viz-scope .lift-number {
