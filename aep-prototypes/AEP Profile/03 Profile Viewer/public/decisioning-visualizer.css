@@ -174,18 +174,15 @@
     font-weight: 600;
   }
 
-  /* One row only: three equal stat tiles + wider model panel (reference layout) */
+  /* Explicit LTR row: col1 | col2 | col3 | model (flex beats any ambiguous grid behavior) */
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics {
     box-sizing: border-box;
-    /* Three equal tiles + wider model column; min widths preserve one-line row + horizontal scroll when needed */
-    grid-template-columns: repeat(3, minmax(76px, 1fr)) minmax(200px, 2.8fr);
-    gap: 12px;
     margin-top: 0;
-    align-items: stretch;
     width: 100%;
     min-width: 0;
     position: relative;
     z-index: 1;
+    gap: 12px;
     overflow-x: auto;
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
@@ -198,7 +195,11 @@
   body[data-dce-industry='telco'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='telco'],
   body[data-dce-industry='automotive'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='automotive'],
   body[data-dce-industry='healthcare'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='healthcare'] {
-    display: grid !important;
+    display: flex !important;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
   }
 
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-stat,
@@ -210,6 +211,8 @@
     min-width: 0;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-stat {
+    flex: 1 1 0;
+    min-width: 72px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -231,6 +234,8 @@
     line-height: 1.35;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ai-hyp-model {
+    flex: 2.75 1 200px;
+    min-width: min(100%, 220px);
     display: flex;
     flex-direction: column;
     justify-content: center;
