@@ -44,41 +44,34 @@
     }
 
     /*
-      Main column only: constrain scroll to the content area so the Workflow toolbar stays visible
-      at the bottom of the main pane. Do NOT set overflow:hidden on body or .dashboard-shell — that
-      breaks sidebar nav scrolling / tooltips / mobile layout to match other Profile Viewer pages.
-      Preview scrolls inside .hero-stage.
+      Main column only: lock this page to the viewport so the Workflow & controls toolbar stays
+      at the bottom without scrolling the document. Preview scrolls inside .hero-stage.
+      Does not change sidebar / nav (home.css) or workflow drawer open / inner-scroll rules below.
     */
-    body.cd-page .dashboard-shell {
-      /* Match other tools: at least full viewport; explicit height lets the main column cap cleanly */
-      min-height: 100dvh;
+    body.cd-page {
+      overflow: hidden;
       height: 100dvh;
       max-height: 100dvh;
-      overflow: visible;
-      box-sizing: border-box;
     }
     @supports not (height: 100dvh) {
-      body.cd-page .dashboard-shell {
-        min-height: 100vh;
+      body.cd-page {
         height: 100vh;
         max-height: 100vh;
       }
     }
 
-    body.cd-page .dashboard-main-wrap {
-      flex: 1 1 0;
-      min-width: 0;
+    body.cd-page .dashboard-shell {
+      height: 100%;
       min-height: 0;
+      max-height: 100%;
       overflow: hidden;
+      box-sizing: border-box;
     }
 
-    /* home.css switches shell to column ≤768px — don’t lock shell height (same as other pages). */
-    @media (max-width: 768px) {
-      body.cd-page .dashboard-shell {
-        height: auto;
-        max-height: none;
-        min-height: 100dvh;
-      }
+    body.cd-page .dashboard-main-wrap {
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
     }
 
     body.cd-page .dashboard-main.cd-main {
