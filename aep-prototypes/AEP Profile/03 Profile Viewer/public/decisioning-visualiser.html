@@ -12,10 +12,10 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260414">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260415">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
-  <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
+  <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -51,6 +51,10 @@
                 Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>financial services</strong> examples: accounts, cards, lending, wealth, and insurance.
                 Use the tabs below to explore how eligible offers are ordered for customers.
               </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="telco">
+                Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>telco</strong> examples: mobile, fibre, SMB connectivity, roaming, and device bundles.
+                Use the tabs below to explore how eligible offers are ordered for subscribers.
+              </p>
             </header>
           </div>
         </section>
@@ -63,6 +67,7 @@
   <button type="button" class="dce-viz-industry-btn" data-dce-industry="travel">Travel · Airline</button>
   <button type="button" class="dce-viz-industry-btn" data-dce-industry="retail">Retail</button>
   <button type="button" class="dce-viz-industry-btn" data-dce-industry="fsi">FSI</button>
+  <button type="button" class="dce-viz-industry-btn" data-dce-industry="telco">Telco</button>
 </div>
 <script>(function(){try{var k=document.body.getAttribute('data-dce-industry')||'media';document.querySelectorAll('.dce-viz-industry-btn').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-dce-industry')===k);});}catch(e){}})();</script>
 <!-- NAV -->
@@ -93,10 +98,12 @@
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="travel">When many ancillaries and upgrades compete for the same traveller, how does the engine decide?</div>
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="retail">When several promotions and add-ons could appear in the same journey, how does the engine decide?</div>
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="fsi">When multiple regulated products could be in scope for the same customer, how does the engine decide?</div>
+      <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="telco">When mobile, broadband, and business offers could all be eligible for the same subscriber, how does the engine decide?</div>
       <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="media">Each ranking method answers that question differently — choose the one that fits your maturity and goals.</h2>
       <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="travel">Each ranking method answers that question differently — from fixed commercial rules to trip-aware logic and ML — pick what fits your airline’s maturity.</h2>
       <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="retail">Each ranking method answers that question differently — from fixed merchandising rules to behavioural formulas and ML — pick what fits your retail maturity.</h2>
       <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="fsi">Each ranking method answers that question differently — from policy-driven priority to intent-aware formulas and ML — pick what fits your risk and compliance posture.</h2>
+      <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="telco">Each ranking method answers that question differently — from commercial priority stacks to usage-aware formulas and ML — pick what fits your network and subscriber strategy.</h2>
     </div>
 
     <div class="overview-grid">
@@ -235,6 +242,7 @@
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="travel">An airline is promoting three ancillaries on the pre-trip website and app. Revenue management sets priority scores so the highest commercial-value bundle surfaces first to every eligible traveller.</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="retail">A retailer is running three concurrent checkout and homepage promotions. Merchandising sets priority scores so the highest-margin or strategic offer surfaces first for every eligible shopper.</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="fsi">A bank is promoting three products on mobile and web — mortgage, card, and ISA. Marketing and risk set priority scores so the commercially aligned, eligible offer surfaces first for every customer in scope.</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="telco">A telco is promoting three concurrent acquisition offers — unlimited mobile, gigabit fibre, and SMB connectivity. Marketing and wholesale set priority scores so the strategic, eligible offer surfaces first for every subscriber in scope.</div>
         <div class="slider-row">
           <div class="slider-meta">
             <span id="dceViz-s1-name">🎬 Annual Plan — 2 months free</span>
@@ -297,6 +305,10 @@
       <div class="story-eyebrow">🏦 The Bank — Rate-Review Season</div>
       <div class="story-text">"Mortgage, card, and savings campaigns are live at once. The board has already decided: the fixed-rate mortgage bundle is the commercial priority for the quarter — score 100. Every eligible customer in the mortgage funnel sees it first on the app home screen, regardless of day-one propensity for a card. The hierarchy reflects balance-sheet strategy, not a single model score — easy to explain to risk and regulators."</div>
     </div>
+    <div class="story-box" style="--method-color: #c47b00" data-dce-industry-show="telco">
+      <div class="story-eyebrow">📡 The Telco — Network Investment Push</div>
+      <div class="story-text">"Mobile, fibre, and SMB bundles are live in the same quarter. Leadership has already decided: the 5G unlimited + roaming pack is the commercial priority — score 100. Every eligible subscriber on the upgrade path sees it first in app and SMS, whether they’re a light data user or a power streamer. The hierarchy reflects ARPU strategy, not a single propensity score — easy to brief network and finance."</div>
+    </div>
   </div>
 
   <!-- ══ FORMULA ═════════════════════════════════════════════════════════ -->
@@ -337,6 +349,12 @@
         <div class="char-row"><span class="char-icon">◆</span> <strong>Item attributes</strong> — product line, APR / fee, hours until rate-lock or offer end</div>
         <div class="char-row"><span class="char-icon">◆</span> <strong>Context data</strong> — channel (branch, web, app), authenticated session, consent flags</div>
         <div class="char-row"><span class="char-icon">◆</span> <strong>Logical operators</strong> — boosts, multipliers, eligibility rules</div>
+      </div>
+      <div class="dce-what-grid" data-dce-industry-show="telco" style="grid-template-columns: repeat(2, 1fr); gap:10px;">
+        <div class="char-row"><span class="char-icon">◆</span> <strong>Profile attributes</strong> — subscriber segment (mobile / home / SMB), tenure, usage &amp; spend band</div>
+        <div class="char-row"><span class="char-icon">◆</span> <strong>Item attributes</strong> — product line, contract term, hours until offer or install window ends</div>
+        <div class="char-row"><span class="char-icon">◆</span> <strong>Context data</strong> — channel (app, web, retail, care), network type, roaming or in-market</div>
+        <div class="char-row"><span class="char-icon">◆</span> <strong>Logical operators</strong> — boosts, multipliers, eligibility &amp; fair-use rules</div>
       </div>
     </div>
 
@@ -746,6 +764,79 @@
         </div>
 
         </div><!-- /2x2 grid fsi -->
+
+        <div class="dce-viz-sim-grid" data-dce-industry-show="telco" style="grid-template-columns: repeat(2, 1fr); gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden;">
+
+        <div style="padding:20px 22px; border-right:1.5px solid var(--line); border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#1a7a4a 3%,white);">
+          <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
+              Profile attribute · <span style="font-family:'DM Mono',monospace;">subscriberSegment</span>
+            </span>
+          </div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">Is this subscriber primarily mobile-led, home broadband, or business connectivity?</div>
+          <div class="toggle-pill">
+            <button type="button" class="toggle-opt active" onclick="window.dceVizSetInterest('mobile', this)">📱 Mobile</button>
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetInterest('home', this)">🏠 Home &amp; fibre</button>
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetInterest('smb', this)">🧑‍💼 Business</button>
+          </div>
+        </div>
+
+        <div style="padding:20px 22px; border-bottom:1.5px solid var(--line); background:color-mix(in srgb,#c47b00 3%,white);">
+          <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#c47b00;display:inline-block;"></span>
+              Item attribute · <span style="font-family:'DM Mono',monospace;">hoursUntilOfferEnd</span>
+            </span>
+          </div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">Hours until the personalised upgrade or install window closes.</div>
+          <div class="slider-row" style="margin-bottom:0">
+            <div class="slider-meta">
+              <span style="color:var(--muted);">1 hour</span>
+              <span class="slider-value" id="dceViz-hours-val-telco">48h remaining</span>
+              <span style="color:var(--muted);">72 hours</span>
+            </div>
+            <input type="range" min="1" max="72" value="48" id="dceViz-hours-slider-telco" oninput="window.dceVizUpdateFormula()">
+          </div>
+          <div id="dceViz-urgency-flag-telco" style="margin-top:8px; font-size:13px; font-weight:600; color:#c47b00; display:none; align-items:center; gap:6px;">
+            ⚡ Urgency boost — offer window closing soon
+          </div>
+          <div id="dceViz-crossover-hint-telco" style="margin-top:8px; font-size:12px; color:var(--muted); font-style:italic; line-height:1.5;">
+            ↓ Drag left — each offer has its own cut-off. Home &amp; fibre closes at <strong style="color:#c47b00;">36h</strong>, mobile bundle at <strong style="color:#c47b00;">20h</strong>, business lines at <strong style="color:#c47b00;">10h</strong>. Watch rankings change as urgency kicks in.
+          </div>
+        </div>
+
+        <div style="padding:20px 22px; border-right:1.5px solid var(--line); background:color-mix(in srgb,#6b3fa0 3%,white);">
+          <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#6b3fa0;display:inline-block;"></span>
+              External ML · <span style="font-family:'DM Mono',monospace;">propensityScore</span>
+            </span>
+          </div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">How likely is this subscriber to accept an upgrade or add-on on this journey?</div>
+          <div class="toggle-pill">
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetPropensity('low', this)">📉 Low (&lt; 0.4)</button>
+            <button type="button" class="toggle-opt active" onclick="window.dceVizSetPropensity('medium', this)">📊 Medium (0.4–0.7)</button>
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetPropensity('high', this)">🚀 High (&gt; 0.7)</button>
+          </div>
+        </div>
+
+        <div style="padding:20px 22px; background:color-mix(in srgb,#b91c1c 3%,white);">
+          <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#b91c1c;display:inline-block;"></span>
+              Item attribute · <span style="font-family:'DM Mono',monospace;">campaignGroup</span>
+            </span>
+          </div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">Which lines are on strategic campaign for this cohort?</div>
+          <div class="toggle-pill">
+            <button type="button" class="toggle-opt active" onclick="window.dceVizSetCampaign('none', this)">🚫 None active</button>
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetCampaign('home', this)">🏠 Boost Home</button>
+            <button type="button" class="toggle-opt" onclick="window.dceVizSetCampaign('smb', this)">🧑‍💼 Boost Business</button>
+          </div>
+        </div>
+
+        </div><!-- /2x2 grid telco -->
       </div><!-- /simulate card -->
 
     </div><!-- /zone 1 -->
@@ -761,6 +852,7 @@
       <div style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin-bottom:20px;line-height:1.3;" data-dce-industry-show="travel">Ranked ancillaries &amp; cabin offers <span style="font-size:13px;font-family:'Outfit',sans-serif;font-weight:400;color:#7ab4e0;margin-left:8px;">— seat maps, bags, and priority shift as departure nears</span></div>
       <div style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin-bottom:20px;line-height:1.3;" data-dce-industry-show="retail">Ranked offers &amp; add-ons <span style="font-size:13px;font-family:'Outfit',sans-serif;font-weight:400;color:#7ab4e0;margin-left:8px;">— delivery, loyalty, and bundles shift as the promo window tightens</span></div>
       <div style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin-bottom:20px;line-height:1.3;" data-dce-industry-show="fsi">Ranked products &amp; propositions <span style="font-size:13px;font-family:'Outfit',sans-serif;font-weight:400;color:#7ab4e0;margin-left:8px;">— cards, lending, and wealth shift as eligibility and cut-offs tighten</span></div>
+      <div style="font-family:'DM Serif Display',serif;font-size:20px;color:white;margin-bottom:20px;line-height:1.3;" data-dce-industry-show="telco">Ranked plans &amp; add-ons <span style="font-size:13px;font-family:'Outfit',sans-serif;font-weight:400;color:#7ab4e0;margin-left:8px;">— mobile, fibre, and business packs shift as usage signals and windows tighten</span></div>
 
       <div style="display:grid; grid-template-columns: 1fr 220px; gap:24px; align-items:start;">
 
@@ -796,6 +888,10 @@
       <div class="story-eyebrow">📖 The Bank — Offer Windows &amp; Rate Locks</div>
       <div class="story-text">"Three regulated products compete in the same decision: an everyday cashback account closes in 36 hours, a wealth advisory review in 20 hours, and a business banking bundle in 10 hours. The formula doubles any item's score inside its urgency window. For an everyday-intent customer, the wealth offer can still jump ahead when its window opens first — because the doubled base score beats a weaker intent match. Same engine — financial product rules and compliance context."</div>
     </div>
+    <div class="story-box" style="--method-color: #005f9e" data-dce-industry-show="telco">
+      <div class="story-eyebrow">📖 The Telco — Upgrade &amp; Install Windows</div>
+      <div class="story-text">"Three offers compete in the same decision: a gigabit + mesh upgrade closes in 36 hours, a 5G unlimited bundle in 20 hours, and a business multi-line pack in 10 hours. The formula doubles any item's score inside its urgency window. For a mobile-led subscriber, the fibre offer can still jump ahead when its window opens first — because the doubled base score beats a weaker line match. Same engine — telco catalogue and campaign rules."</div>
+    </div>
   </div>
 
   <!-- ══ AI ════════════════════════════════════════════════════════════════ -->
@@ -829,6 +925,9 @@
       </div>
       <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="fsi">
         A bank markets many product variants — cards, lending, savings, wealth, and insurance. Every eligible customer may see the next-best offer in-app, but <strong style="color:#a8e6c4;">which product ranks first</strong> comes from a Personalized Optimization model trained on applications, holds, and servicing events. It learns intent, risk band, and channel — not one global “best” rate sheet.
+      </div>
+      <div style="font-size:13px; color:#7ab89a; line-height:1.65; max-width:680px;" data-dce-industry-show="telco">
+        A telco publishes many plan and add-on variants — mobile tiers, fibre speeds, SMB packs, roaming, and devices. Every eligible subscriber may hit the same upgrade surface, but <strong style="color:#a8e6c4;">which offer ranks first</strong> comes from a Personalized Optimization model trained on usage, recharge, care, and install events. It learns segment, line mix, and channel — not one global “best” tariff.
       </div>
       <div style="display:flex; gap:20px; margin-top:20px; flex-wrap:wrap;" data-dce-industry-show="media">
         <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
@@ -904,6 +1003,25 @@
           <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
           <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
           <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Intent- and eligibility-aware</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:20px; margin-top:20px; flex-wrap:wrap;" data-dce-industry-show="telco">
+        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
+          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">7</div>
+          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">offer variants</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
+          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">6mo</div>
+          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">training data</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center;">
+          <div style="font-family:'DM Serif Display',serif; font-size:28px; color:#5ecf90; line-height:1;">1</div>
+          <div style="font-size:11px; color:#7ab89a; margin-top:2px;">goal: upgrade / attach</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px; text-align:center; flex:1; min-width:160px; text-align:left;">
+          <div style="font-size:11px; color:#7ab89a; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.1em; text-transform:uppercase;">Model type</div>
+          <div style="font-size:13px; color:white; font-weight:500;">Personalized Optimization</div>
+          <div style="font-size:11px; color:#5ecf90; margin-top:2px;">Usage- and line-aware</div>
         </div>
       </div>
     </div>
@@ -1116,6 +1234,56 @@
         </div>
         </div>
 
+        <div class="dce-profile-stack" data-dce-industry-show="telco">
+        <div class="profile-card selected" data-dce-profile-industry="telco" onclick="window.dceVizSelectProfile(0, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">📱</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div class="profile-name">Priya, 29</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#1a7a4a; background:#e8f4ec; padding:2px 8px; border-radius:10px;">Mobile-first</div>
+            </div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">40GB+/mo · Roaming + sports streaming · 5G handset</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">High data</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Travel</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">App-heavy</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-card" data-dce-profile-industry="telco" onclick="window.dceVizSelectProfile(1, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🏠</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div class="profile-name">Dan, 44</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#c47b00; background:#fff3cd; padding:2px 8px; border-radius:10px;">Home &amp; fibre</div>
+            </div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">WFH household · 4K streaming · Wi‑Fi pain points</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Gigabit candidate</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Mesh upsell</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Multi-screen</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-card" data-dce-profile-industry="telco" onclick="window.dceVizSelectProfile(2, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🧑‍💼</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div class="profile-name">Renee, 37</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#005f9e; background:#edf4fc; padding:2px 8px; border-radius:10px;">SMB</div>
+            </div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">12-person office · Business tariff · Rising upload needs</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">B2B</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">SD‑WAN interest</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Static IP</span>
+            </div>
+          </div>
+        </div>
+        </div>
+
       </div>
 
       <div class="card">
@@ -1148,6 +1316,10 @@
           <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
           Uptake probability · trained on applications, holds, and servicing events
         </div>
+        <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;" data-dce-industry-show="telco">
+          <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
+          Attach probability · trained on usage, care, install, and upgrade events
+        </div>
       </div>
     </div>
 
@@ -1160,6 +1332,7 @@
         <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="travel">In our airline example: auto-optimization might push the same checked-bag deal to everyone — even when Gold travellers like Alex respond better to cabin upgrades and families need row-together first.</div>
         <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="retail">In our retail example: auto-optimization might push the same sitewide coupon to everyone — even when Platinum shoppers like Jordan respond better to member electrics and households need bulk value first.</div>
         <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="fsi">In our FSI example: auto-optimization might push the same generic savings rate to everyone — even when private-banking clients like Elena need wealth propositions first and SMB owners like Miguel need business bundles.</div>
+        <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="telco">In our telco example: auto-optimization might push the same handset discount to everyone — even when mobile-heavy subscribers like Priya need roaming and unlimited first and fibre-led households like Dan need mesh and gigabit before mobile upsells.</div>
         <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
           <span style="background:#e8f4ec; color:#1a7a4a; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:500;">Best aggregate CTR</span>
           <span style="background:#e8f4ec; color:#1a7a4a; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:500;">No profile data needed</span>
@@ -1173,6 +1346,7 @@
         <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="travel">In our airline example: Alex sees cabin upgrade first, Sam sees bags and seat selection, the Nguyens see family row + bags — each ranked #1 for that trip because the model predicts attachment <em>for that traveller</em>.</div>
         <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="retail">In our retail example: Jordan sees member electrics first, Riley sees value aisle and BNPL, the Parkers see kids bundles — each ranked #1 because the model predicts conversion <em>for that shopper</em>.</div>
         <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="fsi">In our FSI example: Elena sees wealth advisory first, Chris sees cashback and balance transfer, Miguel sees business banking — each ranked #1 because the model predicts uptake <em>for that customer</em>.</div>
+        <div style="margin-top:12px; font-size:12px; color:var(--muted); font-style:italic;" data-dce-industry-show="telco">In our telco example: Priya sees unlimited and roaming first, Dan sees fibre and mesh first, Renee sees business multi-line and SD‑WAN first — each ranked #1 because the model predicts attach <em>for that subscriber</em>.</div>
         <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
           <span style="background:#e8f4ec; color:#1a7a4a; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:500;">1:1 personalization</span>
           <span style="background:#e8f4ec; color:#1a7a4a; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:500;">CJA metrics support</span>
@@ -1196,6 +1370,10 @@
     <div class="story-box" style="--method-color: #1a7a4a; margin-top:24px;" data-dce-industry-show="fsi">
       <div class="story-eyebrow">📖 FSI — what the model discovered</div>
       <div class="story-text">"Product marketing assumed one ‘best’ savings headline worked for everyone. The model disagreed. Private-banking clients like Elena responded to advisory and structured offers — Chris needed everyday cashback and transfer mechanics first. Miguel’s path looked nothing like either; business bundles and expense-friendly cards won. Same decision policy — different ranked products per profile — because intent and eligibility, not a single rate, drove the ranking."</div>
+    </div>
+    <div class="story-box" style="--method-color: #1a7a4a; margin-top:24px;" data-dce-industry-show="telco">
+      <div class="story-eyebrow">📖 Telco — what the model discovered</div>
+      <div class="story-text">"Marketing assumed one headline upgrade — cheapest handset — worked for everyone. The model disagreed. High-data travellers like Priya responded to roaming and unlimited tiers first — Dan needed fibre speed and mesh before another SIM promo. Renee’s SMB account looked nothing like either; business lines and SD‑WAN won. Same decision policy — different ranked offers per profile — because usage and line mix, not a single tariff, drove the ranking."</div>
     </div>
   </div>
 
@@ -1290,6 +1468,13 @@
         <div class="lift-text" style="margin-top:8px;">Product owners could read lift by intent (everyday vs wealth vs SMB) — not a single product hierarchy.</div>
       </div>
     </div>
+    <div class="lift-banner" data-dce-industry-show="telco">
+      <div class="lift-number">+8%</div>
+      <div>
+        <div class="lift-text"><strong>Personalized offer ranking outperformed the static formula arm</strong> by 8% on incremental ARPU from upgrades after a 6-week experiment.</div>
+        <div class="lift-text" style="margin-top:8px;">Marketing could read lift by line (mobile vs home vs business) — not a single sitewide upgrade hero.</div>
+      </div>
+    </div>
 
     <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="media">
       <div class="story-eyebrow">📖 The Bank That Wanted Proof</div>
@@ -1306,6 +1491,10 @@
     <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="fsi">
       <div class="story-eyebrow">📖 FSI — proof in the policy</div>
       <div class="story-text">"Product and digital teams split: keep a fixed product ladder or let the model reorder by intent and eligibility? They ran an experiment in the same decision policy on the logged-in home path. After four weeks, the ML arm lifted qualified starts without increasing decline rates on the control cohort. Proof replaced the org chart."</div>
+    </div>
+    <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="telco">
+      <div class="story-eyebrow">📖 Telco — proof in the policy</div>
+      <div class="story-text">"Consumer and wholesale teams disagreed: keep a fixed upgrade ladder or let the model reorder by usage and line? They ran an experiment in the same decision policy on the app upgrade path. After six weeks, the ML arm lifted incremental ARPU without higher churn on the holdout. Proof replaced the tariff slide."</div>
     </div>
 
     <div class="card" style="margin-top:24px;">
@@ -1337,6 +1526,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260422"></script>
-  <script defer src="decisioning-visualizer.js?v=20260414"></script>
+  <script defer src="decisioning-visualizer.js?v=20260415"></script>
 </body>
 </html>

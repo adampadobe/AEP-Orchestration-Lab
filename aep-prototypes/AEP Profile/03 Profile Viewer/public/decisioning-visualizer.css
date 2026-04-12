@@ -81,7 +81,8 @@
   [data-dce-industry-show='media'],
   [data-dce-industry-show='travel'],
   [data-dce-industry-show='retail'],
-  [data-dce-industry-show='fsi'] {
+  [data-dce-industry-show='fsi'],
+  [data-dce-industry-show='telco'] {
     display: none;
   }
   body[data-dce-industry='media'] [data-dce-industry-show='media'] {
@@ -96,6 +97,9 @@
   body[data-dce-industry='fsi'] [data-dce-industry-show='fsi'] {
     display: block;
   }
+  body[data-dce-industry='telco'] [data-dce-industry-show='telco'] {
+    display: block;
+  }
   .dashboard-hero--page-banner .dashboard-hero-subtitle[data-dce-industry-show] {
     display: none;
     margin: 0;
@@ -103,7 +107,8 @@
   body[data-dce-industry='media'] .dashboard-hero-subtitle[data-dce-industry-show='media'],
   body[data-dce-industry='travel'] .dashboard-hero-subtitle[data-dce-industry-show='travel'],
   body[data-dce-industry='retail'] .dashboard-hero-subtitle[data-dce-industry-show='retail'],
-  body[data-dce-industry='fsi'] .dashboard-hero-subtitle[data-dce-industry-show='fsi'] {
+  body[data-dce-industry='fsi'] .dashboard-hero-subtitle[data-dce-industry-show='fsi'],
+  body[data-dce-industry='telco'] .dashboard-hero-subtitle[data-dce-industry-show='telco'] {
     display: block;
   }
 
@@ -116,10 +121,12 @@
   body[data-dce-industry='travel'] .dce-viz-sim-grid[data-dce-industry-show='travel'],
   body[data-dce-industry='retail'] .dce-viz-sim-grid[data-dce-industry-show='retail'],
   body[data-dce-industry='fsi'] .dce-viz-sim-grid[data-dce-industry-show='fsi'],
+  body[data-dce-industry='telco'] .dce-viz-sim-grid[data-dce-industry-show='telco'],
   body[data-dce-industry='media'] .dce-what-grid[data-dce-industry-show='media'],
   body[data-dce-industry='travel'] .dce-what-grid[data-dce-industry-show='travel'],
   body[data-dce-industry='retail'] .dce-what-grid[data-dce-industry-show='retail'],
-  body[data-dce-industry='fsi'] .dce-what-grid[data-dce-industry-show='fsi'] {
+  body[data-dce-industry='fsi'] .dce-what-grid[data-dce-industry-show='fsi'],
+  body[data-dce-industry='telco'] .dce-what-grid[data-dce-industry-show='telco'] {
     display: grid;
   }
 
@@ -132,7 +139,8 @@
   body[data-dce-industry='media'] .dce-profile-stack[data-dce-industry-show='media'],
   body[data-dce-industry='travel'] .dce-profile-stack[data-dce-industry-show='travel'],
   body[data-dce-industry='retail'] .dce-profile-stack[data-dce-industry-show='retail'],
-  body[data-dce-industry='fsi'] .dce-profile-stack[data-dce-industry-show='fsi'] {
+  body[data-dce-industry='fsi'] .dce-profile-stack[data-dce-industry-show='fsi'],
+  body[data-dce-industry='telco'] .dce-profile-stack[data-dce-industry-show='telco'] {
     display: flex;
   }
 
@@ -758,13 +766,15 @@
   body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='media']),
   body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='travel']),
   body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='retail']),
-  body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='fsi']) {
+  body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='fsi']),
+  body[data-dce-industry='telco'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='telco']) {
     display: none !important;
   }
   body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='media'],
   body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='travel'],
   body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='retail'],
-  body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='fsi'] {
+  body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='fsi'],
+  body[data-dce-industry='telco'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='telco'] {
     display: flex !important;
   }
 

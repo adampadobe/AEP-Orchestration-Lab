@@ -1,6 +1,6 @@
 /**
  * Decisioning visualiser — interactive ranking methods (decisioning-visualiser.html).
- * Industry context: media (default), travel, retail, or FSI (examples + copy).
+ * Industry context: media (default), travel, retail, FSI, or telco (examples + copy).
  */
 (function () {
   'use strict';
@@ -9,7 +9,7 @@
 
   function getIndustry() {
     var b = document.body && document.body.getAttribute('data-dce-industry');
-    if (b === 'travel' || b === 'retail' || b === 'fsi') return b;
+    if (b === 'travel' || b === 'retail' || b === 'fsi' || b === 'telco') return b;
     return 'media';
   }
 
@@ -79,6 +79,11 @@
     { name: '💳 Balance-transfer card — 0% 24 months', sub: 'Acquisition · broad eligibility', id: 's2' },
     { name: '📈 Stocks & Shares ISA — £150 switching bonus', sub: 'Mid-term savings · cross-sell', id: 's3' },
   ];
+  var PRIORITY_TELCO = [
+    { name: '📱 5G Unlimited Plus — roaming & eSIM', sub: 'Highest ARPU · strategic mobile growth', id: 's1' },
+    { name: '🏠 Fibre Max 1Gbps — mesh Wi‑Fi included', sub: 'Home broadband · acquisition & churn save', id: 's2' },
+    { name: '🧑‍💼 Business multi-line — static IP & SD‑WAN trial', sub: 'SMB connectivity · B2B attach', id: 's3' },
+  ];
 
   var FORMULA_MEDIA = [
     { name: 'Drama Series — Annual Plan', category: 'drama', baseScore: 75, expiresIn: 20 },
@@ -99,6 +104,11 @@
     { name: 'Wealth — advisory portfolio review', category: 'wealth', baseScore: 75, expiresIn: 20 },
     { name: 'Everyday — cashback current account', category: 'everyday', baseScore: 85, expiresIn: 36 },
     { name: 'Business banking — fee-free 12 months', category: 'smb', baseScore: 78, expiresIn: 10 },
+  ];
+  var FORMULA_TELCO = [
+    { name: 'Mobile — 5G device + unlimited bundle', category: 'mobile', baseScore: 75, expiresIn: 20 },
+    { name: 'Home & fibre — gigabit + mesh upgrade', category: 'home', baseScore: 85, expiresIn: 36 },
+    { name: 'Business lines — multi-line + static IP pack', category: 'smb', baseScore: 78, expiresIn: 10 },
   ];
 
   var offers = PRIORITY_MEDIA.slice();
@@ -260,6 +270,45 @@
     },
   ];
 
+  var profilesTelco = [
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Priya burns 40GB+/month with roaming and sports streaming on 5G. The model predicts handset upgrades and unlimited tiers over home fibre upsells — she’s rarely on Wi‑Fi during the day.',
+      ranks: [
+        { name: '5G Unlimited Plus — roaming & eSIM', why: 'Data volume + roaming events → strongest fit', conf: 94 },
+        { name: 'International roaming pass — 30 days', why: 'Frequent EU/US trips in calendar', conf: 76 },
+        { name: 'Tablet + 5G data add-on', why: 'Multi-device usage on account', conf: 58 },
+        { name: 'Fibre Max 1Gbps — mesh Wi‑Fi included', why: 'Weaker — mobile-first usage pattern', conf: 29 },
+        { name: 'Family plan — 4 lines', why: 'Single-line profile', conf: 18 },
+        { name: 'Business multi-line — static IP & SD‑WAN trial', why: 'No B2B or VAT signals', conf: 9 },
+        { name: 'Pay-as-you-go starter', why: 'Postpaid tenure 4+ years', conf: 4 },
+      ],
+    },
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Dan’s household streams 4K on multiple TVs and works from home — fibre speed and Wi‑Fi quality dominate. The model favours gigabit and mesh before mobile handset promos.',
+      ranks: [
+        { name: 'Fibre Max 1Gbps — mesh Wi‑Fi included', why: 'Usage + speed tests → line saturation signals', conf: 92 },
+        { name: 'Home phone + streaming bundle', why: 'Bundle affinity from billing', conf: 68 },
+        { name: 'Tablet + 5G data add-on', why: 'Kids’ devices on account', conf: 44 },
+        { name: '5G Unlimited Plus — roaming & eSIM', why: 'Secondary — home is primary pain point', conf: 22 },
+        { name: 'International roaming pass — 30 days', why: 'Low outbound travel score', conf: 11 },
+        { name: 'Business multi-line — static IP & SD‑WAN trial', why: 'Residential service address', conf: 7 },
+        { name: 'Pay-as-you-go starter', why: 'Long-standing postpaid customer', conf: 3 },
+      ],
+    },
+    {
+      reasoning: '🧠 <strong>Model reasoning:</strong> Renee runs a 12-person office on the operator’s business tariff with rising upload needs. The model prioritises SD‑WAN and multi-line packs over consumer handset offers.',
+      ranks: [
+        { name: 'Business multi-line — static IP & SD‑WAN trial', why: 'BCA + ticket volume → B2B predictor', conf: 95 },
+        { name: '5G Unlimited Plus — roaming & eSIM', why: 'Director lines on same contract', conf: 71 },
+        { name: 'International roaming pass — 30 days', why: 'Roaming for client visits', conf: 46 },
+        { name: 'Fibre Max 1Gbps — mesh Wi‑Fi included', why: 'Weaker — office on leased line elsewhere', conf: 21 },
+        { name: 'Family plan — 4 lines', why: 'Business account, not consumer household', conf: 12 },
+        { name: 'Home phone + streaming bundle', why: 'Irrelevant to registered business ID', conf: 6 },
+        { name: 'Pay-as-you-go starter', why: 'Established SMB billing', conf: 2 },
+      ],
+    },
+  ];
+
   var profiles = profilesMedia;
 
   var allAiItems = [];
@@ -372,6 +421,7 @@
     if (k === 'travel') return document.getElementById('dceViz-hours-slider-travel');
     if (k === 'retail') return document.getElementById('dceViz-hours-slider-retail');
     if (k === 'fsi') return document.getElementById('dceViz-hours-slider-fsi');
+    if (k === 'telco') return document.getElementById('dceViz-hours-slider-telco');
     return document.getElementById('dceViz-hours-slider');
   }
 
@@ -380,6 +430,7 @@
     if (k === 'travel') return document.getElementById('dceViz-hours-val-travel');
     if (k === 'retail') return document.getElementById('dceViz-hours-val-retail');
     if (k === 'fsi') return document.getElementById('dceViz-hours-val-fsi');
+    if (k === 'telco') return document.getElementById('dceViz-hours-val-telco');
     return document.getElementById('dceViz-hours-val');
   }
 
@@ -488,15 +539,25 @@
         urgencyFlagFsi.innerHTML = '⚡ Urgency ×2 active for: <strong style="margin-left:4px;">' + boostedF.join(', ') + '</strong> — ranking order has changed.';
       }
     }
+    var urgencyFlagTelco = document.getElementById('dceViz-urgency-flag-telco');
+    if (urgencyFlagTelco) {
+      urgencyFlagTelco.style.display = getIndustry() === 'telco' && urgencyActive ? 'flex' : 'none';
+      if (getIndustry() === 'telco' && urgencyActive) {
+        var boostedTel = formulaOffers.filter(function (o) { return hours <= o.expiresIn; }).map(function (o) { return o.name.split('—')[0].trim(); });
+        urgencyFlagTelco.innerHTML = '⚡ Urgency ×2 active for: <strong style="margin-left:4px;">' + boostedTel.join(', ') + '</strong> — ranking order has changed.';
+      }
+    }
 
     var crossoverHint = document.getElementById('dceViz-crossover-hint');
     var crossoverHintT = document.getElementById('dceViz-crossover-hint-travel');
     var crossoverHintR = document.getElementById('dceViz-crossover-hint-retail');
     var crossoverHintFsi = document.getElementById('dceViz-crossover-hint-fsi');
+    var crossoverHintTelco = document.getElementById('dceViz-crossover-hint-telco');
     if (crossoverHint) crossoverHint.style.display = getIndustry() === 'media' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintT) crossoverHintT.style.display = getIndustry() === 'travel' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintR) crossoverHintR.style.display = getIndustry() === 'retail' && !urgencyActive ? 'block' : 'none';
     if (crossoverHintFsi) crossoverHintFsi.style.display = getIndustry() === 'fsi' && !urgencyActive ? 'block' : 'none';
+    if (crossoverHintTelco) crossoverHintTelco.style.display = getIndustry() === 'telco' && !urgencyActive ? 'block' : 'none';
 
     var ruleUrgency = document.getElementById('dceViz-rule-urgency');
     if (ruleUrgency) {
@@ -513,6 +574,8 @@
         interestDisplay.textContent = currentInterest + ' (shopperSegment → item.merchSegment)';
       } else if (getIndustry() === 'fsi') {
         interestDisplay.textContent = currentInterest + ' (customerIntent → product.line)';
+      } else if (getIndustry() === 'telco') {
+        interestDisplay.textContent = currentInterest + ' (subscriberSegment → offer.line)';
       } else {
         interestDisplay.textContent = currentInterest + ' (viewer genre → item.genre)';
       }
@@ -565,6 +628,7 @@
     if (indForm === 'travel') matchLabel = 'trip(+30)';
     if (indForm === 'retail') matchLabel = 'segment(+30)';
     if (indForm === 'fsi') matchLabel = 'intent(+30)';
+    if (indForm === 'telco') matchLabel = 'line(+30)';
     var breakdown = 'base(' + winner.baseScore + ')';
     if (winner.urgency) breakdown += ' × urgency(×2)';
     if (winner.match) breakdown += ' + ' + matchLabel;
@@ -596,6 +660,7 @@
         if (getIndustry() === 'travel') tripOrGenre = '🎯 +30 trip match';
         if (getIndustry() === 'retail') tripOrGenre = '🎯 +30 segment match';
         if (getIndustry() === 'fsi') tripOrGenre = '🎯 +30 intent match';
+        if (getIndustry() === 'telco') tripOrGenre = '🎯 +30 line match';
         sub.innerHTML = (o.urgency ? '<span style="color:#f5a623;font-weight:600;">⚡ ×2 urgency</span> · ' : '<span style="color:rgba(255,255,255,0.35);">cut-off ' + o.expiresIn + 'h</span> · ') +
           (o.match ? '<span style="color:#5ecf90;font-weight:600;">' + tripOrGenre + '</span> · ' : '') +
           (o.highPropensity ? '<span style="color:#c4a3f0;font-weight:600;">🧠 ×1.5 propensity</span> · ' : '') +
@@ -700,20 +765,22 @@
 
   // ── INDUSTRY SWITCH ───────────────────────────────────────────────────────
   function setIndustry(key, persist) {
-    if (key !== 'travel' && key !== 'media' && key !== 'retail' && key !== 'fsi') key = 'media';
+    if (key !== 'travel' && key !== 'media' && key !== 'retail' && key !== 'fsi' && key !== 'telco') key = 'media';
 
     var prevIndustry = document.body.getAttribute('data-dce-industry') || 'media';
-    if (prevIndustry !== 'travel' && prevIndustry !== 'media' && prevIndustry !== 'retail' && prevIndustry !== 'fsi') prevIndustry = 'media';
+    if (prevIndustry !== 'travel' && prevIndustry !== 'media' && prevIndustry !== 'retail' && prevIndustry !== 'fsi' && prevIndustry !== 'telco') prevIndustry = 'media';
 
     var hsm = document.getElementById('dceViz-hours-slider');
     var hst = document.getElementById('dceViz-hours-slider-travel');
     var hsr = document.getElementById('dceViz-hours-slider-retail');
     var hsf = document.getElementById('dceViz-hours-slider-fsi');
+    var hstel = document.getElementById('dceViz-hours-slider-telco');
     var v = 48;
     if (prevIndustry === 'media' && hsm) v = parseInt(hsm.value, 10) || 48;
     else if (prevIndustry === 'travel' && hst) v = parseInt(hst.value, 10) || 48;
     else if (prevIndustry === 'retail' && hsr) v = parseInt(hsr.value, 10) || 48;
     else if (prevIndustry === 'fsi' && hsf) v = parseInt(hsf.value, 10) || 48;
+    else if (prevIndustry === 'telco' && hstel) v = parseInt(hstel.value, 10) || 48;
 
     document.body.setAttribute('data-dce-industry', key);
     if (persist) {
@@ -739,6 +806,11 @@
       formulaOffers = FORMULA_FSI.slice();
       profiles = profilesFSI;
       currentInterest = 'everyday';
+    } else if (key === 'telco') {
+      offers = PRIORITY_TELCO.slice();
+      formulaOffers = FORMULA_TELCO.slice();
+      profiles = profilesTelco;
+      currentInterest = 'mobile';
     } else {
       offers = PRIORITY_MEDIA.slice();
       formulaOffers = FORMULA_MEDIA.slice();
@@ -757,6 +829,7 @@
     if (hst) hst.value = String(v);
     if (hsr) hsr.value = String(v);
     if (hsf) hsf.value = String(v);
+    if (hstel) hstel.value = String(v);
 
     recomputeAllAiItems();
     buildAiRanksList();
@@ -787,7 +860,7 @@
     var key = 'media';
     try {
       var s = localStorage.getItem(LS_INDUSTRY);
-      if (s === 'travel' || s === 'media' || s === 'retail' || s === 'fsi') key = s;
+      if (s === 'travel' || s === 'media' || s === 'retail' || s === 'fsi' || s === 'telco') key = s;
     } catch (e) {}
     setIndustry(key, false);
 
