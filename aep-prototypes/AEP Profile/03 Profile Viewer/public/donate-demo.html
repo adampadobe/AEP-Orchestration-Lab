@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="donate-demo.css">
-  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260412">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260413">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
 </head>
 <body class="donate-demo-page home-dashboard-concierge">
@@ -239,10 +239,10 @@
           <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
           <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
         </div>
-        <div class="aep-profile-drawer-card-consent" aria-label="Customer preference flags">
-          <label><input type="checkbox" checked disabled> Marketing</label>
-          <label><input type="checkbox" checked disabled> Notifications</label>
-          <label><input type="checkbox" disabled> Newsletter</label>
+        <div class="aep-profile-drawer-card-consent" aria-label="Marketing channel consent">
+          <label><input type="checkbox" id="profileDrawerConsentEmail" disabled title="consents.marketing.email.val" /> Email</label>
+          <label><input type="checkbox" id="profileDrawerConsentSms" disabled title="consents.marketing.sms.val" /> SMS</label>
+          <label><input type="checkbox" id="profileDrawerConsentPush" disabled title="consents.marketing.push.val" /> Push</label>
         </div>
       </section>
       <section

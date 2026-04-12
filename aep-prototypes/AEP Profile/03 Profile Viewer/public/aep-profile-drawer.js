@@ -31,6 +31,9 @@
   let profileDrawerPushSentValue;
   let profileDrawerPushSentUnit;
   let profileDrawerEvents;
+  let profileDrawerConsentEmail;
+  let profileDrawerConsentSms;
+  let profileDrawerConsentPush;
   let infoEcid;
   let identityGraphSvg;
   let identityGraphZoomIn;
@@ -73,6 +76,9 @@
     profileDrawerPushSentValue = document.getElementById('profileDrawerPushSentValue');
     profileDrawerPushSentUnit = document.getElementById('profileDrawerPushSentUnit');
     profileDrawerEvents = document.getElementById('profileDrawerEvents');
+    profileDrawerConsentEmail = document.getElementById('profileDrawerConsentEmail');
+    profileDrawerConsentSms = document.getElementById('profileDrawerConsentSms');
+    profileDrawerConsentPush = document.getElementById('profileDrawerConsentPush');
     infoEcid = document.getElementById('infoEcid');
     identityGraphSvg = document.getElementById('identityGraphSvg');
     identityGraphZoomIn = document.getElementById('identityGraphZoomIn');
@@ -160,6 +166,33 @@ function avatarSrcForProfile(source) {
   return AVATAR_DEFAULT;
 }
 
+/** consents.marketing.{email|sms|push}.val → GET /api/profile/consent `channels` (in|out|not_provided) */
+function marketingChannelOptIn(source, key) {
+  const channels = source && source.channels;
+  if (channels && typeof channels === 'object' && channels[key] != null) {
+    return String(channels[key]).toLowerCase() === 'in';
+  }
+  const m = source && source.marketingConsent;
+  if (m === 'Y' || m === 'y') return true;
+  if (m === 'N' || m === 'n') return false;
+  return false;
+}
+
+function updateMarketingConsentCheckboxes(source) {
+  const set = (el, on) => {
+    if (el) el.checked = !!on;
+  };
+  if (!source) {
+    set(profileDrawerConsentEmail, false);
+    set(profileDrawerConsentSms, false);
+    set(profileDrawerConsentPush, false);
+    return;
+  }
+  set(profileDrawerConsentEmail, marketingChannelOptIn(source, 'email'));
+  set(profileDrawerConsentSms, marketingChannelOptIn(source, 'sms'));
+  set(profileDrawerConsentPush, marketingChannelOptIn(source, 'push'));
+}
+
 function updateProfileDrawer(profile) {
   const source = profile || null;
   const first = source && source.firstName ? String(source.firstName).trim() : '';
@@ -218,6 +251,7 @@ function updateProfileDrawer(profile) {
   if (profileDrawerAvatar) {
     profileDrawerAvatar.src = avatarSrcForProfile(source);
   }
+  updateMarketingConsentCheckboxes(source);
   renderAudienceList(source ? source.audiences : null);
   renderEventTimeline(source ? source.events : null);
   renderIdentityGraph(source);
@@ -917,6 +951,7 @@ async function loadProfileDataForDrawer(email, options) {
       email: canonicalEmail,
       ecid: ecidVal || null,
       marketingConsent: data.marketingConsent || null,
+      channels: data.channels && typeof data.channels === 'object' ? { ...data.channels } : null,
       preferredMarketingChannel: data.preferredMarketingChannel || null,
       dataCollection: data.dataCollection || null,
       lastModifiedAt: data.lastModifiedAt || null,

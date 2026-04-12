@@ -229,20 +229,33 @@ body.race-page--profile-open .aep-profile-drawer,
   gap: 0.55rem;
   flex-wrap: wrap;
   text-align: left;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: #ececec;
 }
 
 .aep-profile-drawer-card-consent label {
   display: inline-flex;
   align-items: center;
   gap: 0.38rem;
-  font-size: 0.83rem;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
   color: #ececec;
+  cursor: default;
 }
 
 .aep-profile-drawer-card-consent input[type='checkbox'] {
   width: 15px;
   height: 15px;
+  flex-shrink: 0;
   accent-color: #4f86ff;
+  opacity: 1;
+}
+
+.aep-profile-drawer-card-consent input[type='checkbox']:disabled {
+  opacity: 1;
 }
 
 .aep-profile-drawer-audiences {
