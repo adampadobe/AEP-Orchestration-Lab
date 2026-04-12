@@ -43,9 +43,42 @@
       --cd-primary-btn-fg: #1a1d23;
     }
 
+    /*
+      Main column only: lock this page to the viewport so the Workflow & controls toolbar stays
+      at the bottom without scrolling the document. Preview scrolls inside .hero-stage.
+      Does not change sidebar / nav (home.css) or workflow drawer open / inner-scroll rules below.
+    */
+    body.cd-page {
+      overflow: hidden;
+      height: 100dvh;
+      max-height: 100dvh;
+    }
+    @supports not (height: 100dvh) {
+      body.cd-page {
+        height: 100vh;
+        max-height: 100vh;
+      }
+    }
+
+    body.cd-page .dashboard-shell {
+      height: 100%;
+      min-height: 0;
+      max-height: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    body.cd-page .dashboard-main-wrap {
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     body.cd-page .dashboard-main.cd-main {
       padding: 0;
       max-width: none;
+      flex: 1 1 0;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -55,7 +88,7 @@
       font-family: var(--font);
       color: var(--text);
       background: var(--bg);
-      flex: 1;
+      flex: 1 1 0;
       display: flex;
       flex-direction: column;
       min-height: 0;
