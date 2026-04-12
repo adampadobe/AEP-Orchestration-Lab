@@ -339,18 +339,43 @@
       box-sizing: border-box;
     }
 
+    /*
+      Hide by collapsing height — transform alone kept a ~50px layout bar (buggy / “thick”).
+      Peek shows summary-only height; open uses same cap as .workflow-drawer[open].
+    */
     .workflow-dock-slide {
-      transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-      transform: translateY(100%);
+      /*
+        Collapsed: height 0 + min-height 0 — flex items ignore max-height:0 unless min-height is forced
+        (was leaving ~50px of summary chrome visible as a “fat” grey bar).
+      */
+      min-height: 0;
+      height: 0;
+      max-height: 0;
+      overflow: hidden;
       pointer-events: none;
-      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+      transition: max-height 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      box-shadow: none;
     }
 
-    .workflow-dock-outer.workflow-dock-outer--peek .workflow-dock-slide,
-    .workflow-dock-outer:has(#workflowDrawer[open]) .workflow-dock-slide,
-    .workflow-dock-outer:focus-within .workflow-dock-slide {
-      transform: translateY(0);
+    .workflow-dock-outer.workflow-dock-outer--peek:not(:has(#workflowDrawer[open])) .workflow-dock-slide,
+    .workflow-dock-outer:not(:has(#workflowDrawer[open])):focus-within .workflow-dock-slide {
+      height: auto;
+      max-height: var(--wf-peek-h, 2.25rem);
       pointer-events: auto;
+      box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06);
+    }
+
+    .workflow-dock-outer:has(#workflowDrawer[open]) .workflow-dock-slide {
+      height: auto;
+      max-height: min(75vh, calc(100vh - 4.5rem));
+      pointer-events: auto;
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    @supports (height: 100dvh) {
+      .workflow-dock-outer:has(#workflowDrawer[open]) .workflow-dock-slide {
+        max-height: min(75vh, calc(100dvh - 4.5rem));
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -359,18 +384,23 @@
       }
     }
 
+    /*
+      When the slide is collapsed, this is the only visible chrome — keep it a hairline
+      (wide touch/aim area, minimal visual weight).
+    */
     .workflow-dock-hit {
-      height: 44px;
+      height: 20px;
       flex-shrink: 0;
       pointer-events: auto;
       cursor: pointer;
-      background: linear-gradient(to top, rgba(20, 115, 230, 0.08), transparent);
-      border-top: 1px solid var(--border);
       box-sizing: border-box;
+      border: none;
+      background: transparent;
+      box-shadow: inset 0 1px 0 rgba(15, 20, 30, 0.07);
     }
 
     html[data-aep-theme='dark'] .workflow-dock-hit {
-      background: linear-gradient(to top, rgba(124, 159, 230, 0.12), transparent);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     /*
@@ -378,9 +408,11 @@
       Opens upward by taking a fixed slice of the viewport; hero-stage shrinks (flex above). Scroll inside .workflow-drawer-scroll only.
     */
     .workflow-dock-slide .workflow-drawer {
+      min-height: 0;
       border-top: 1px solid var(--border);
       background: var(--bg-panel);
-      --wf-summary-h: 3.125rem;
+      --wf-summary-h: 2.25rem;
+      --wf-peek-h: var(--wf-summary-h);
     }
 
     .workflow-drawer {
@@ -400,11 +432,12 @@
       }
     }
     .workflow-drawer > summary.workflow-summary {
-      list-style: none; cursor: pointer; padding: 0.875rem 1.5rem; font-size: 0.75rem; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+      list-style: none; cursor: pointer; padding: 0.35rem 1rem 0.4rem; font-size: 0.6875rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted);
       display: flex; align-items: center; justify-content: center; user-select: none;
       border-bottom: 1px solid transparent;
       box-sizing: border-box;
+      min-height: var(--wf-summary-h);
       height: var(--wf-summary-h);
       flex-shrink: 0;
     }
@@ -430,10 +463,11 @@
 
     .workflow-summary__icon {
       flex-shrink: 0;
-      width: 0.5rem;
-      height: 0.5rem;
-      border-right: 2px solid var(--muted);
-      border-bottom: 2px solid var(--muted);
+      width: 0.4rem;
+      height: 0.4rem;
+      border-right: 1.5px solid var(--muted);
+      border-bottom: 1.5px solid var(--muted);
+      opacity: 0.85;
       transform: rotate(45deg);
       transition: transform 0.2s;
     }
@@ -1608,7 +1642,7 @@
     var hit = document.getElementById('workflowDockHit');
     if (!mainEl || !dockOuter) return;
 
-    var PEEK_PX = 52;
+    var PEEK_PX = 40;
     var peekRaf = null;
     var lastX = 0;
     var lastY = 0;
