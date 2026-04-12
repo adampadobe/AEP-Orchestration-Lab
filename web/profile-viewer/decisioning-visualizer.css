@@ -987,42 +987,42 @@
   }
 
   /* Industry toggles: .lift-banner’s display:flex beats generic [data-dce-industry-show] hide rules — force one arm */
-  body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='media']),
-  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='travel']),
-  body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='retail']),
-  body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='fsi']),
-  body[data-dce-industry='telco'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='telco']),
-  body[data-dce-industry='automotive'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='automotive']),
-  body[data-dce-industry='healthcare'] .decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='healthcare']) {
+  body[data-dce-industry='media'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='media']),
+  body[data-dce-industry='travel'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='travel']),
+  body[data-dce-industry='retail'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='retail']),
+  body[data-dce-industry='fsi'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='fsi']),
+  body[data-dce-industry='telco'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='telco']),
+  body[data-dce-industry='automotive'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='automotive']),
+  body[data-dce-industry='healthcare'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='healthcare']) {
     display: none !important;
   }
-  body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='media'],
-  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='travel'],
-  body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='retail'],
-  body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='fsi'],
-  body[data-dce-industry='telco'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='telco'],
-  body[data-dce-industry='automotive'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='automotive'],
-  body[data-dce-industry='healthcare'] .decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='healthcare'] {
+  body[data-dce-industry='media'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='media'],
+  body[data-dce-industry='travel'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='travel'],
+  body[data-dce-industry='retail'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='retail'],
+  body[data-dce-industry='fsi'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='fsi'],
+  body[data-dce-industry='telco'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='telco'],
+  body[data-dce-industry='automotive'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='automotive'],
+  body[data-dce-industry='healthcare'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='healthcare'] {
     display: flex !important;
   }
 
   /* A/B metric arms: one grid per industry (generic [data-dce-industry-show] uses display:block when visible — force grid) */
-  body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='media']),
-  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='travel']),
-  body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='retail']),
-  body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='fsi']),
-  body[data-dce-industry='telco'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='telco']),
-  body[data-dce-industry='automotive'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='automotive']),
-  body[data-dce-industry='healthcare'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='healthcare']) {
+  body[data-dce-industry='media'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='media']),
+  body[data-dce-industry='travel'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='travel']),
+  body[data-dce-industry='retail'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='retail']),
+  body[data-dce-industry='fsi'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='fsi']),
+  body[data-dce-industry='telco'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='telco']),
+  body[data-dce-industry='automotive'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='automotive']),
+  body[data-dce-industry='healthcare'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='healthcare']) {
     display: none !important;
   }
-  body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='media'],
-  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='travel'],
-  body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='retail'],
-  body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='fsi'],
-  body[data-dce-industry='telco'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='telco'],
-  body[data-dce-industry='automotive'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='automotive'],
-  body[data-dce-industry='healthcare'] .decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='healthcare'] {
+  body[data-dce-industry='media'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='media'],
+  body[data-dce-industry='travel'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='travel'],
+  body[data-dce-industry='retail'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='retail'],
+  body[data-dce-industry='fsi'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='fsi'],
+  body[data-dce-industry='telco'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='telco'],
+  body[data-dce-industry='automotive'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='automotive'],
+  body[data-dce-industry='healthcare'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='healthcare'] {
     display: grid !important;
   }
 
