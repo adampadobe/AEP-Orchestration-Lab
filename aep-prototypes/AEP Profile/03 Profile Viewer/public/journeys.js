@@ -213,9 +213,10 @@
 
   /** Populate CJA data views from the API (all views; AJO-related names listed first). */
   async function populateCjaDataViewDropdown() {
-    if (!cjaDataViewSelect) return;
-    cjaDataViewSelect.disabled = true;
-    cjaDataViewSelect.innerHTML = '<option value="">Loading…</option>';
+    const sel = document.getElementById('cjaDataViewSelect');
+    if (!sel) return;
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">Loading…</option>';
     try {
       const res = await fetch('/api/journeys/cja-dataviews');
       const data = await res.json().catch(() => ({}));
@@ -229,17 +230,17 @@
       } catch (e) {
         stored = '';
       }
-      cjaDataViewSelect.innerHTML = '';
+      sel.innerHTML = '';
       const optDef = document.createElement('option');
       optDef.value = '';
       optDef.textContent = 'Server default (CJA_DATAVIEW_ID / env lookup)';
-      cjaDataViewSelect.appendChild(optDef);
+      sel.appendChild(optDef);
       for (let i = 0; i < list.length; i++) {
         const dv = list[i];
         const o = document.createElement('option');
         o.value = dv.id;
         o.textContent = dv.name ? `${dv.name} (${dv.id})` : dv.id;
-        cjaDataViewSelect.appendChild(o);
+        sel.appendChild(o);
       }
       let pick = '';
       if (stored && list.some(function (d) { return d.id === stored; })) {
@@ -253,13 +254,13 @@
           if (m) pick = m.id;
         }
       }
-      cjaDataViewSelect.value = pick || '';
+      sel.value = pick || '';
     } catch (err) {
-      cjaDataViewSelect.innerHTML = '';
+      sel.innerHTML = '';
       var oErr = document.createElement('option');
       oErr.value = '';
       oErr.textContent = err.message ? String(err.message) : 'Failed to load data views';
-      cjaDataViewSelect.appendChild(oErr);
+      sel.appendChild(oErr);
     } finally {
       applyCjaAnalyticsUi();
     }
@@ -1071,13 +1072,15 @@
   window.addEventListener('aep-global-sandbox-change', () => load());
 
   async function initSandboxAndLoad() {
+    /** Load CJA data views in parallel with sandboxes — do not block the picker on sandbox API latency. */
+    const cjaDataViewsPromise = populateCjaDataViewDropdown();
     if (window.AepGlobalSandbox && sandboxSelect) {
       await window.AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
       window.AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
       window.AepGlobalSandbox.attachStorageSync(sandboxSelect);
     }
     syncCjaRangeButtons();
-    await populateCjaDataViewDropdown();
+    await cjaDataViewsPromise;
     updateJourneyTableHeaderDateRange(getSelectedCjaDateRangeId());
     load();
   }
