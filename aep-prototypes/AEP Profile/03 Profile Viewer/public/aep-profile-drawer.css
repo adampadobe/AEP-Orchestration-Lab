@@ -235,15 +235,23 @@ body.race-page--profile-open .aep-profile-drawer,
   color: #ececec;
 }
 
-.aep-profile-drawer-card-consent label {
+/* Drawer is always dark — override home-dashboard-concierge label { color: #333 } from style.css */
+.aep-profile-drawer .aep-profile-drawer-card-consent label {
   display: inline-flex;
   align-items: center;
   gap: 0.38rem;
   font-size: inherit;
   font-weight: inherit;
   line-height: inherit;
-  color: #ececec;
+  color: #ececec !important;
   cursor: default;
+}
+
+.aep-profile-drawer .aep-profile-drawer-card-consent .aep-profile-drawer-consent-label {
+  color: #ececec !important;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: nowrap;
 }
 
 .aep-profile-drawer-card-consent input[type='checkbox'] {
