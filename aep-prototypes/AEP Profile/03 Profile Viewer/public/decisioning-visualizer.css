@@ -108,6 +108,23 @@
   body[data-dce-industry='healthcare'] [data-dce-industry-show='healthcare'] {
     display: block;
   }
+
+  /* AI hypothesis — stats row uses inline flex; that beats display:none on other industries, so layout lives in CSS */
+  .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics {
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 20px;
+  }
+  body[data-dce-industry='media'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='media'],
+  body[data-dce-industry='travel'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='travel'],
+  body[data-dce-industry='retail'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='retail'],
+  body[data-dce-industry='fsi'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='fsi'],
+  body[data-dce-industry='telco'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='telco'],
+  body[data-dce-industry='automotive'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='automotive'],
+  body[data-dce-industry='healthcare'] .decisioning-catalog-page .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='healthcare'] {
+    display: flex;
+  }
+
   .dashboard-hero--page-banner .dashboard-hero-subtitle[data-dce-industry-show] {
     display: none;
     margin: 0;
