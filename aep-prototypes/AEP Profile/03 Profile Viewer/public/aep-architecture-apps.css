@@ -47,13 +47,17 @@
   border-radius: 10px;
 }
 
-.arch-apps-page .arch-apps-figure picture {
-  display: block;
-  width: 100%;
-  line-height: 0;
+.arch-apps-page .arch-apps-figure--diagram {
+  background: #fff;
 }
 
-.arch-apps-page .arch-apps-figure img {
+html[data-aep-theme='dark'] .arch-apps-page .arch-apps-figure--diagram {
+  /* Diagram is authored on white; keep a light mat so structure stays visible in dark UI */
+  background: #f0f2f5;
+  border-color: var(--dash-border);
+}
+
+.arch-apps-page .arch-apps-diagram-img {
   display: block;
   width: 100%;
   max-width: 100%;

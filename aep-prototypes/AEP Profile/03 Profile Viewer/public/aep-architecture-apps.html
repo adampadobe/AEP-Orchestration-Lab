@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260429">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260430">
 </head>
 <body class="home-dashboard-concierge arch-apps-page">
   <div class="dashboard-shell">
@@ -45,20 +45,18 @@
               <h3 class="arch-apps-slide-h2" id="archAppsSlideTitle">Adobe Experience Platform &amp; Applications</h3>
               <div class="arch-apps-slide-body" id="archAppsSlideBody"></div>
             </div>
-            <figure class="arch-apps-figure">
-              <picture>
-                <source srcset="images/aep-architecture-slide-diagram.svg" type="image/svg+xml" />
-                <img
-                  src="images/aep-architecture-slide-diagram.png"
-                  width="8478"
-                  height="2122"
-                  alt="Reference diagram: Adobe Experience Platform with data collection, profile, decisioning, customer engagement, and natively built applications."
-                  decoding="async"
-                  fetchpriority="high"
-                />
-              </picture>
+            <figure class="arch-apps-figure arch-apps-figure--diagram">
+              <img
+                class="arch-apps-diagram-img"
+                src="images/aep-architecture-diagram-reference.png"
+                width="1024"
+                height="700"
+                alt="Adobe Experience Platform and applications: data collection, profile and data management, experience decisioning, and customer engagement, with ingress, intra-system, and egress flows."
+                decoding="async"
+                fetchpriority="high"
+              />
               <figcaption class="arch-apps-figcaption">
-                Reference architecture (as in the source deck). The same diagram accompanies each slide in the original presentation; copy updates above while the visual anchor stays consistent.
+                Reference architecture diagram. Slide copy above walks through how each area works; this graphic stays fixed as the visual anchor (same layout as the AEP Architecture deck).
               </figcaption>
             </figure>
             <nav class="arch-apps-nav" aria-label="Slide navigation">
@@ -70,7 +68,7 @@
             </nav>
           </div>
           <p class="arch-apps-footnote">
-            Content reconstructed from the Adobe <strong>AEP Architecture</strong> presentation used in AJO conversation decks. Diagram asset extracted from the source <code class="dashboard-code">.pptx</code> for this viewer.
+            Narrative reconstructed from the Adobe <strong>AEP Architecture</strong> deck. The diagram image is the official-style reference graphic (not an automated export from <code class="dashboard-code">.pptx</code>, which did not reliably preserve the full diagram).
           </p>
         </section>
       </main>
@@ -92,6 +90,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260428"></script>
-  <script defer src="aep-architecture-apps.js?v=20260429"></script>
+  <script defer src="aep-architecture-apps.js?v=20260430"></script>
 </body>
 </html>
