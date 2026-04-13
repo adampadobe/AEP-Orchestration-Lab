@@ -173,6 +173,68 @@
   gap: 0.35rem;
 }
 
+.arch-highlight-picker-wrap {
+  flex-basis: 100%;
+  border: 1px solid var(--dash-border, #e4e6eb);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.arch-highlight-picker-summary {
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-text, #1a1d21);
+  list-style-position: outside;
+  padding: 0.15rem 0;
+}
+
+.arch-highlight-picker-help {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--dash-muted, #6b7280);
+  max-width: 52ch;
+}
+
+.arch-highlight-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.arch-highlight-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--dash-muted, #4b5563);
+  cursor: pointer;
+  user-select: none;
+}
+
+.arch-highlight-picker-item input {
+  width: 0.85rem;
+  height: 0.85rem;
+  accent-color: #1473e6;
+  flex-shrink: 0;
+}
+
+.arch-highlight-picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.arch-highlight-picker-actions .dashboard-btn-outline {
+  font-size: 0.68rem !important;
+  padding: 0.2rem 0.45rem !important;
+}
+
 .arch-int-hud-hint {
   font-size: 0.65rem;
   font-weight: 500;

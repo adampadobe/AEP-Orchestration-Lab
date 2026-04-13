@@ -184,6 +184,69 @@
     },
   ];
 
+  /** Order of boxes in the highlight picker (matches diagram regions left→right, top→bottom). */
+  var ARCH_HIGHLIGHT_KEYS = [
+    'tags',
+    'sources',
+    'edge',
+    'creative',
+    'aem',
+    'aep',
+    'streaming',
+    'batch',
+    'query',
+    'intel',
+    'lake',
+    'pipeline',
+    'profile',
+    'identity',
+    'seg',
+    'decision',
+    'jo',
+    'rtcdp',
+    'cja',
+    'mix',
+    'inbound',
+    'msg',
+    'paid',
+    'jrpt',
+    'mrpt',
+  ];
+
+  var ARCH_NODE_LABELS = {
+    tags: 'Tags',
+    sources: 'Sources',
+    edge: 'Edge Network',
+    creative: 'Creative Cloud',
+    aem: 'AEM Assets',
+    aep: 'Adobe Experience Platform',
+    streaming: 'Streaming collection',
+    batch: 'Batch collection',
+    query: 'Query Service',
+    intel: 'Intelligence & AI',
+    lake: 'Data Lake',
+    pipeline: 'Pipeline',
+    profile: 'Real-Time Profile',
+    identity: 'Identity Graph',
+    seg: 'Segmentation',
+    decision: 'Decisioning / Journeys',
+    jo: 'Journey Optimizer',
+    rtcdp: 'Real-Time CDP',
+    cja: 'Customer Journey Analytics',
+    mix: 'Mix Modeler',
+    inbound: 'Inbound experiences',
+    msg: 'Message Delivery',
+    paid: 'Paid Media',
+    jrpt: 'Journey Reporting',
+    mrpt: 'Marketing performance',
+  };
+
+  var LS_STATE_HILITE_OVERRIDES = 'aepArchStateHighlightOverrides';
+
+  /** Per-state override of which node ids are highlighted; key = state index string "0".."15". */
+  var archStateHighlightOverrides = {};
+  var archHighlightPickerSyncing = false;
+
   var idx = 0;
   var hudTitle;
   var hudMeta;
@@ -202,12 +265,113 @@
     return Array.prototype.slice.call((root || document).querySelectorAll(sel));
   }
 
+  function archHighlightsForState(stateIndex) {
+    var o = archStateHighlightOverrides[stateIndex];
+    if (o === undefined) o = archStateHighlightOverrides[String(stateIndex)];
+    if (Array.isArray(o)) return o.slice();
+    var st = STATES[stateIndex];
+    return st && st.highlights ? st.highlights.slice() : [];
+  }
+
+  function archHighlightArraysEqual(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    var sa = a.slice().sort();
+    var sb = b.slice().sort();
+    for (var i = 0; i < sa.length; i++) {
+      if (sa[i] !== sb[i]) return false;
+    }
+    return true;
+  }
+
+  function archStateHighlightOverridesPersist() {
+    try {
+      localStorage.setItem(LS_STATE_HILITE_OVERRIDES, JSON.stringify(archStateHighlightOverrides));
+    } catch (e) {}
+  }
+
+  function archStateHighlightOverridesLoad() {
+    try {
+      var r = localStorage.getItem(LS_STATE_HILITE_OVERRIDES);
+      if (!r) {
+        archStateHighlightOverrides = {};
+        return;
+      }
+      var p = JSON.parse(r);
+      archStateHighlightOverrides = p && typeof p === 'object' ? p : {};
+    } catch (e2) {
+      archStateHighlightOverrides = {};
+    }
+  }
+
+  function archHighlightPickerInit() {
+    var host = qs('#archHighlightPicker');
+    if (!host || host.getAttribute('data-arch-built')) return;
+    host.setAttribute('data-arch-built', '1');
+    ARCH_HIGHLIGHT_KEYS.forEach(function (key) {
+      if (!NODE_LAYOUT[key]) return;
+      var id = 'node-' + key;
+      var lab = ARCH_NODE_LABELS[key] || key;
+      var wrap = document.createElement('label');
+      wrap.className = 'arch-highlight-picker-item';
+      var inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.setAttribute('data-node-id', id);
+      inp.addEventListener('change', archHighlightPickerOnChange);
+      var span = document.createElement('span');
+      span.textContent = lab;
+      wrap.appendChild(inp);
+      wrap.appendChild(span);
+      host.appendChild(wrap);
+    });
+  }
+
+  function archHighlightPickerSync() {
+    var host = qs('#archHighlightPicker');
+    if (!host) return;
+    var nums = qs('#archHighlightStateNum');
+    if (nums) nums.textContent = String(idx + 1);
+    var hilites = archHighlightsForState(idx);
+    archHighlightPickerSyncing = true;
+    host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      var nid = cb.getAttribute('data-node-id');
+      cb.checked = hilites.indexOf(nid) >= 0;
+    });
+    archHighlightPickerSyncing = false;
+  }
+
+  function archHighlightPickerOnChange() {
+    if (archHighlightPickerSyncing) return;
+    var host = qs('#archHighlightPicker');
+    if (!host) return;
+    var selected = [];
+    host.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      if (cb.checked) selected.push(cb.getAttribute('data-node-id'));
+    });
+    var def = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    if (archHighlightArraysEqual(selected, def)) {
+      delete archStateHighlightOverrides[idx];
+      delete archStateHighlightOverrides[String(idx)];
+    } else {
+      archStateHighlightOverrides[String(idx)] = selected;
+    }
+    archStateHighlightOverridesPersist();
+    applyState();
+  }
+
+  function archHighlightResetCurrentState() {
+    delete archStateHighlightOverrides[idx];
+    delete archStateHighlightOverrides[String(idx)];
+    archStateHighlightOverridesPersist();
+    applyState();
+  }
+
   function applyState() {
     var st = STATES[idx];
     if (!st) return;
 
+    var hilites = archHighlightsForState(idx);
     $all('.arch-node').forEach(function (el) {
-      el.classList.toggle('is-highlighted', st.highlights.indexOf(el.id) >= 0);
+      el.classList.toggle('is-highlighted', hilites.indexOf(el.id) >= 0);
     });
 
     var activeIds = {};
@@ -249,6 +413,8 @@
     if (archViewport) {
       archViewport.classList.toggle('arch-int-viewport--intro', idx === 0);
     }
+
+    archHighlightPickerSync();
   }
 
   function go(delta) {
@@ -291,6 +457,15 @@
     stateHeadline = qs('#archIntStateHeadline');
     stateBody = qs('#archIntStateBody');
     archViewport = qs('#archIntViewport');
+
+    archStateHighlightOverridesLoad();
+    archHighlightPickerInit();
+    var archHighlightResetBtn = qs('#archHighlightResetState');
+    if (archHighlightResetBtn) {
+      archHighlightResetBtn.addEventListener('click', function () {
+        archHighlightResetCurrentState();
+      });
+    }
 
     qs('#archIntPrev').addEventListener('click', function () {
       go(-1);
@@ -1609,11 +1784,12 @@
 
   function archMasterSerialize() {
     return {
-      version: 4,
+      version: 5,
       savedAt: new Date().toISOString(),
       nodes: archDrag.pos,
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
       userLines: userLines.lines.map(archUserLineMigrateLegacy),
+      stateHighlightOverrides: JSON.parse(JSON.stringify(archStateHighlightOverrides)),
     };
   }
 
@@ -1637,6 +1813,13 @@
       if (data.labels.content) archLabel.state.content = data.labels.content;
     }
     if (Array.isArray(data.userLines)) userLines.lines = data.userLines.map(archUserLineMigrateLegacy);
+    if (data.stateHighlightOverrides && typeof data.stateHighlightOverrides === 'object') {
+      archStateHighlightOverrides = {};
+      Object.keys(data.stateHighlightOverrides).forEach(function (k) {
+        var v = data.stateHighlightOverrides[k];
+        if (Array.isArray(v)) archStateHighlightOverrides[k] = v.slice();
+      });
+    }
   }
 
   function archMasterTryLoad() {
@@ -1840,6 +2023,7 @@
       archDragSave();
       archLabelSave();
       archUserLinePersist();
+      archStateHighlightOverridesPersist();
     } catch (err) {}
     if (liveRegion) {
       liveRegion.textContent = 'Master layout saved for this browser.';
@@ -1854,6 +2038,7 @@
       localStorage.removeItem(LS_USER_LINES);
       localStorage.removeItem('aepArchDragTags');
       localStorage.removeItem('aepArchDragSources');
+      localStorage.removeItem(LS_STATE_HILITE_OVERRIDES);
     } catch (e) {}
     window.location.reload();
   }
@@ -1882,7 +2067,9 @@
         archDragSave();
         archLabelSave();
         archUserLinePersist();
+        archStateHighlightOverridesPersist();
         localStorage.setItem(LS_MASTER, JSON.stringify(data));
+        applyState();
         if (liveRegion) liveRegion.textContent = 'Imported master layout applied.';
       } catch (err) {
         window.alert('Could not import: invalid JSON.');
@@ -1945,7 +2132,11 @@
     }
     if (reset) {
       reset.addEventListener('click', function () {
-        if (window.confirm('Restore the original Adobe diagram and clear all custom layout, labels, and connectors in this browser?')) {
+        if (
+          window.confirm(
+            'Restore the original Adobe diagram and clear all custom layout, labels, connectors, and per-state highlight choices in this browser?'
+          )
+        ) {
           archFactoryReset();
         }
       });
@@ -1997,6 +2188,9 @@
     $all('.arch-int-svg-wrap g.arch-node').forEach(function (g) {
       g.addEventListener('pointerdown', archDragPointerDown);
     });
+
+    archStateHighlightOverridesPersist();
+    applyState();
   }
 
   if (document.readyState === 'loading') {

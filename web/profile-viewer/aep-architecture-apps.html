@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260504">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260505">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -351,6 +351,14 @@
                 <span>Highlight boxes for current state</span>
               </label>
             </div>
+            <details class="arch-highlight-picker-wrap" id="archHighlightPickerWrap">
+              <summary class="arch-highlight-picker-summary">Which boxes are highlighted in this state</summary>
+              <p class="arch-highlight-picker-help">Choose boxes for <strong>state <span id="archHighlightStateNum">1</span></strong> (saved in this browser; included in Download JSON).</p>
+              <div id="archHighlightPicker" class="arch-highlight-picker" role="group" aria-label="Boxes to highlight for the current diagram state"></div>
+              <div class="arch-highlight-picker-actions">
+                <button type="button" class="dashboard-btn-outline" id="archHighlightResetState" title="Use Adobe default highlights for this state only">Reset this state to Adobe default</button>
+              </div>
+            </details>
             <div class="arch-int-hud-tools" aria-label="Diagram layout">
               <label class="arch-drag-toggle">
                 <input type="checkbox" id="archDragToggle"/>
@@ -425,6 +433,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="aep-architecture-apps.js?v=20260504"></script>
+  <script defer src="aep-architecture-apps.js?v=20260505"></script>
 </body>
 </html>
