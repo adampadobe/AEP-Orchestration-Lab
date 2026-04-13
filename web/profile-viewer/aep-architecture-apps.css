@@ -235,3 +235,45 @@ html[data-aep-theme='dark'] .arch-int-hud {
   align-items: center;
   gap: 0.5rem 0.75rem;
 }
+
+/* Sources panel — compact vertical stack (reusable pattern for architecture boxes) */
+.arch-sources-shell {
+  transition: stroke 0.25s ease, filter 0.25s ease;
+}
+
+.arch-sources-row {
+  transition: fill 0.2s ease;
+}
+
+.arch-src-lbl {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 5.5px;
+  font-weight: 500;
+  fill: #374151;
+}
+
+.arch-src-lbl--strong {
+  font-size: 6px;
+  font-weight: 600;
+}
+
+.arch-src-ico {
+  fill: #5c6570;
+  stroke: #5c6570;
+}
+
+.arch-node.is-highlighted .arch-sources-shell {
+  stroke: #1473e6 !important;
+  stroke-width: 2.5px !important;
+  filter: drop-shadow(0 0 6px rgba(20, 115, 230, 0.35));
+}
+
+.arch-node.is-highlighted .arch-src-lbl,
+.arch-node.is-highlighted .arch-src-lbl--strong {
+  fill: #0d47a1;
+}
+
+.arch-node.is-highlighted .arch-src-ico {
+  fill: #1473e6;
+  stroke: #1473e6;
+}
