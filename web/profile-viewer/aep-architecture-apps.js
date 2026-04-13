@@ -30,7 +30,7 @@
       headline: 'Ingress from tags, SDKs, and streaming sources',
       body:
         'Experience Platform Tags and streaming collection bring first-party data into the Edge Network so it can be processed consistently with your governance policies.',
-      highlights: ['node-tags', 'node-edge', 'node-streaming'],
+      highlights: ['node-tags', 'node-sources', 'node-edge', 'node-streaming'],
       flows: [
         { id: 'flow-tags-edge', stroke: C.ingress, kind: 'ingress' },
         { id: 'flow-sources-stream', stroke: C.ingress, kind: 'ingress' },
