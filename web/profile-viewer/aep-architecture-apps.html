@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260503">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260504">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -345,6 +345,12 @@
               <div id="archIntHudMeta" class="arch-int-hud-meta">State 1 / 16</div>
             </div>
             <div class="arch-int-dots" id="archIntDots" role="tablist" aria-label="Diagram state"></div>
+            <div class="arch-int-hud-view" aria-label="Diagram view">
+              <label class="arch-drag-toggle">
+                <input type="checkbox" id="archStateHighlightsToggle" checked/>
+                <span>Highlight boxes for current state</span>
+              </label>
+            </div>
             <div class="arch-int-hud-tools" aria-label="Diagram layout">
               <label class="arch-drag-toggle">
                 <input type="checkbox" id="archDragToggle"/>
@@ -419,6 +425,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="aep-architecture-apps.js?v=20260503"></script>
+  <script defer src="aep-architecture-apps.js?v=20260504"></script>
 </body>
 </html>

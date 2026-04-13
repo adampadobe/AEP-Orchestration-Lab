@@ -91,19 +91,19 @@
   transition: stroke 0.25s ease, fill 0.25s ease, filter 0.25s ease;
 }
 
-.arch-node.is-highlighted rect[data-arch-shell] {
+.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted rect[data-arch-shell] {
   stroke: #1473e6 !important;
   stroke-width: 2.5px !important;
   filter: drop-shadow(0 0 6px rgba(20, 115, 230, 0.35));
 }
 
-.arch-node.is-highlighted .arch-node-label {
+.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-node-label {
   font-weight: 700;
   fill: #0d47a1;
 }
 
-.arch-node.is-highlighted .arch-node-label-inv,
-.arch-node.is-highlighted .arch-node-sublabel-inv {
+.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-node-label-inv,
+.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-node-sublabel-inv {
   fill: #f0f9ff;
 }
 
@@ -163,6 +163,14 @@
 .arch-int-hud-meta {
   font-size: 0.72rem;
   color: var(--dash-muted, #6b7280);
+}
+
+.arch-int-hud-view {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .arch-int-hud-hint {
@@ -399,22 +407,22 @@ html[data-aep-theme='dark'] .arch-int-hud {
   stroke: #5c6570;
 }
 
-.arch-node.is-highlighted .arch-sources-shell {
+.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-sources-shell {
   stroke: #1473e6 !important;
   stroke-width: 2.5px !important;
   filter: drop-shadow(0 0 6px rgba(20, 115, 230, 0.35));
 }
 
-.arch-node.is-highlighted .arch-src-sdk-title,
-.arch-node.is-highlighted .arch-src-lbl {
+.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-src-sdk-title,
+.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-src-lbl {
   fill: #0d47a1;
 }
 
-.arch-node.is-highlighted .arch-src-ico {
+.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-src-ico {
   fill: #1473e6;
   stroke: #1473e6;
 }
 
-.arch-node.is-highlighted .arch-src-ico rect {
+.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-src-ico rect {
   fill: #1473e6;
 }

@@ -264,6 +264,25 @@
     applyState();
   }
 
+  var LS_STATE_HILITE = 'aepArchStateHighlights';
+
+  function archStateHighlightsApply() {
+    var on = true;
+    try {
+      if (localStorage.getItem(LS_STATE_HILITE) === '0') on = false;
+    } catch (e) {}
+    if (archViewport) archViewport.classList.toggle('arch-state-highlights-off', !on);
+    var tgl = qs('#archStateHighlightsToggle');
+    if (tgl) tgl.checked = on;
+  }
+
+  function archStateHighlightsSet(on) {
+    try {
+      localStorage.setItem(LS_STATE_HILITE, on ? '1' : '0');
+    } catch (e) {}
+    archStateHighlightsApply();
+  }
+
   function init() {
     hudTitle = qs('#archIntHudTitle');
     hudMeta = qs('#archIntHudMeta');
@@ -307,6 +326,14 @@
         go(1);
       }
     });
+
+    var hiliteTgl = qs('#archStateHighlightsToggle');
+    if (hiliteTgl) {
+      hiliteTgl.addEventListener('change', function () {
+        archStateHighlightsSet(!!hiliteTgl.checked);
+      });
+    }
+    archStateHighlightsApply();
 
     applyState();
   }
