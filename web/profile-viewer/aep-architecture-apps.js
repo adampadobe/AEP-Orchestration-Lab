@@ -311,9 +311,510 @@
     applyState();
   }
 
+  /**
+   * Draggable architecture nodes: base translate baked in for Tags/Sources (SVG parity).
+   * User offset = archDrag.pos[key]; world rect = rect + base + offset.
+   */
+  var LS_NODES = 'aepArchDragNodes';
+
+  var NODE_LAYOUT = {
+    tags: { base: [52, 0], rect: [43, 40, 76, 76] },
+    sources: { base: [52, 0], rect: [22, 122, 118, 200] },
+    edge: { base: [0, 0], rect: [260, 58, 360, 36] },
+    aep: { base: [0, 0], rect: [250, 112, 700, 452] },
+    streaming: { base: [0, 0], rect: [262, 200, 130, 44] },
+    batch: { base: [0, 0], rect: [262, 252, 130, 44] },
+    query: { base: [0, 0], rect: [262, 308, 62, 36] },
+    intel: { base: [0, 0], rect: [330, 308, 62, 36] },
+    lake: { base: [0, 0], rect: [262, 356, 130, 56] },
+    pipeline: { base: [0, 0], rect: [442, 200, 26, 210] },
+    profile: { base: [0, 0], rect: [490, 200, 168, 52] },
+    identity: { base: [0, 0], rect: [502, 240, 74, 18] },
+    seg: { base: [0, 0], rect: [490, 266, 168, 88] },
+    decision: { base: [0, 0], rect: [682, 200, 120, 56] },
+    creative: { base: [0, 0], rect: [628, 58, 104, 36] },
+    aem: { base: [0, 0], rect: [628, 100, 104, 28] },
+    jo: { base: [0, 0], rect: [682, 268, 120, 40] },
+    rtcdp: { base: [0, 0], rect: [682, 316, 120, 36] },
+    cja: { base: [0, 0], rect: [682, 360, 120, 36] },
+    mix: { base: [0, 0], rect: [682, 404, 120, 32] },
+    inbound: { base: [0, 0], rect: [997, 200, 140, 44] },
+    msg: { base: [0, 0], rect: [997, 252, 140, 44] },
+    paid: { base: [0, 0], rect: [997, 304, 140, 36] },
+    jrpt: { base: [0, 0], rect: [997, 348, 140, 36] },
+    mrpt: { base: [0, 0], rect: [997, 392, 140, 36] },
+  };
+
+  function archDragDefaultPos() {
+    var o = {};
+    Object.keys(NODE_LAYOUT).forEach(function (k) {
+      o[k] = { x: 0, y: 0 };
+    });
+    return o;
+  }
+
+  var archDrag = {
+    enabled: false,
+    pos: archDragDefaultPos(),
+    active: null,
+    start: null,
+    svg: null,
+  };
+
+  function archDragWorldRect(key) {
+    var L = NODE_LAYOUT[key];
+    if (!L) return null;
+    var p = archDrag.pos[key];
+    if (!p) p = { x: 0, y: 0 };
+    var tx = L.base[0] + p.x;
+    var ty = L.base[1] + p.y;
+    var x = L.rect[0] + tx;
+    var y = L.rect[1] + ty;
+    var w = L.rect[2];
+    var h = L.rect[3];
+    return {
+      left: x,
+      top: y,
+      right: x + w,
+      bottom: y + h,
+      w: w,
+      h: h,
+      cx: x + w / 2,
+      cy: y + h / 2,
+    };
+  }
+
+  function archClamp(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  }
+
+  function archFlowSet(id, d) {
+    var el = qs('#' + id);
+    if (el) el.setAttribute('d', d);
+  }
+
+  function archDragRebuildFlows() {
+    var t = archDragWorldRect('tags');
+    var s = archDragWorldRect('sources');
+    var e = archDragWorldRect('edge');
+    var st = archDragWorldRect('streaming');
+    var b = archDragWorldRect('batch');
+    var lk = archDragWorldRect('lake');
+    var pi = archDragWorldRect('pipeline');
+    var pr = archDragWorldRect('profile');
+    var sg = archDragWorldRect('seg');
+    var jo = archDragWorldRect('jo');
+    var rt = archDragWorldRect('rtcdp');
+    var inbound = archDragWorldRect('inbound');
+    var msg = archDragWorldRect('msg');
+    var paid = archDragWorldRect('paid');
+    var cja = archDragWorldRect('cja');
+    var jrpt = archDragWorldRect('jrpt');
+    var mix = archDragWorldRect('mix');
+    var mrpt = archDragWorldRect('mrpt');
+
+    var d;
+    if (t && e) {
+      var yJoinTe = (t.bottom + e.top) / 2;
+      d =
+        'M ' +
+        t.cx +
+        ' ' +
+        t.bottom +
+        ' L ' +
+        t.cx +
+        ' ' +
+        yJoinTe +
+        ' L ' +
+        e.cx +
+        ' ' +
+        yJoinTe +
+        ' L ' +
+        e.cx +
+        ' ' +
+        e.top;
+      archFlowSet('flow-tags-edge', d);
+    }
+
+    if (s && st) {
+      var sys = archClamp(st.cy, s.top + 8, s.bottom - 8);
+      d =
+        'M ' +
+        s.right +
+        ' ' +
+        sys +
+        ' L ' +
+        (s.right + 23) +
+        ' ' +
+        sys +
+        ' L ' +
+        (s.right + 23) +
+        ' ' +
+        st.top +
+        ' L ' +
+        st.left +
+        ' ' +
+        st.top;
+      archFlowSet('flow-sources-stream', d);
+    }
+
+    if (s && b) {
+      var bys = archClamp(b.cy, s.top + 8, s.bottom - 8);
+      d =
+        'M ' +
+        s.right +
+        ' ' +
+        bys +
+        ' L ' +
+        (s.right + 18) +
+        ' ' +
+        bys +
+        ' L ' +
+        (s.right + 18) +
+        ' ' +
+        b.top +
+        ' L ' +
+        b.left +
+        ' ' +
+        b.top;
+      archFlowSet('flow-sources-batch', d);
+    }
+
+    if (st && lk) {
+      var mxSl = st.right + 26;
+      d =
+        'M ' +
+        st.right +
+        ' ' +
+        st.cy +
+        ' L ' +
+        mxSl +
+        ' ' +
+        st.cy +
+        ' L ' +
+        mxSl +
+        ' ' +
+        lk.cy +
+        ' L ' +
+        lk.left +
+        ' ' +
+        lk.cy;
+      archFlowSet('flow-stream-lake', d);
+    }
+
+    if (b && lk) {
+      var mxBl = b.right + 26;
+      d =
+        'M ' +
+        b.right +
+        ' ' +
+        b.cy +
+        ' L ' +
+        mxBl +
+        ' ' +
+        b.cy +
+        ' L ' +
+        mxBl +
+        ' ' +
+        lk.cy +
+        ' L ' +
+        lk.left +
+        ' ' +
+        lk.cy;
+      archFlowSet('flow-batch-lake', d);
+    }
+
+    if (lk && pi) {
+      var yLake = lk.top + 28;
+      var xLake = lk.left + Math.min(156, lk.w - 8);
+      d = 'M ' + xLake + ' ' + yLake + ' L ' + pi.left + ' ' + yLake + ' L ' + pi.left + ' ' + pi.cy;
+      archFlowSet('flow-lake-pipeline', d);
+    }
+
+    if (pi && pr) {
+      d =
+        'M ' +
+        pi.right +
+        ' ' +
+        pi.cy +
+        ' L ' +
+        pr.left +
+        ' ' +
+        pi.cy +
+        ' L ' +
+        pr.left +
+        ' ' +
+        (pr.top + 36);
+      archFlowSet('flow-pipeline-profile', d);
+    }
+
+    if (e && pr) {
+      d =
+        'M ' +
+        e.cx +
+        ' ' +
+        e.bottom +
+        ' L ' +
+        e.cx +
+        ' ' +
+        pr.top +
+        ' L ' +
+        pr.left +
+        ' ' +
+        pr.top +
+        ' L ' +
+        pr.left +
+        ' ' +
+        (pr.top + 36);
+      archFlowSet('flow-edge-profile', d);
+    }
+
+    if (pr && sg) {
+      d = 'M ' + pr.cx + ' ' + pr.bottom + ' L ' + pr.cx + ' ' + sg.top;
+      archFlowSet('flow-profile-seg', d);
+    }
+
+    if (sg && jo) {
+      var ySeg = archClamp(sg.cy, sg.top + 4, sg.bottom - 4);
+      d =
+        'M ' +
+        sg.right +
+        ' ' +
+        ySeg +
+        ' L ' +
+        jo.left +
+        ' ' +
+        ySeg +
+        ' L ' +
+        jo.left +
+        ' ' +
+        jo.cy;
+      archFlowSet('flow-seg-jo', d);
+    }
+
+    if (pr && rt) {
+      var yPr = pr.top + 26;
+      d =
+        'M ' +
+        pr.right +
+        ' ' +
+        yPr +
+        ' L ' +
+        (pr.right + 170) +
+        ' ' +
+        yPr +
+        ' L ' +
+        (pr.right + 170) +
+        ' ' +
+        rt.bottom +
+        ' L ' +
+        rt.left +
+        ' ' +
+        rt.bottom;
+      archFlowSet('flow-profile-cdp', d);
+    }
+
+    if (e && inbound) {
+      var ex = e.right - 24;
+      var ey = e.top + 6;
+      d =
+        'M ' +
+        ex +
+        ' ' +
+        ey +
+        ' L ' +
+        (inbound.left - 46) +
+        ' ' +
+        ey +
+        ' L ' +
+        (inbound.left - 46) +
+        ' ' +
+        inbound.cy +
+        ' L ' +
+        inbound.left +
+        ' ' +
+        inbound.cy;
+      archFlowSet('flow-edge-inbound', d);
+    }
+
+    function egressH(jn, dest) {
+      var mid = (jn.right + dest.left) / 2;
+      return (
+        'M ' +
+        jn.right +
+        ' ' +
+        jn.cy +
+        ' L ' +
+        mid +
+        ' ' +
+        jn.cy +
+        ' L ' +
+        mid +
+        ' ' +
+        dest.cy +
+        ' L ' +
+        dest.left +
+        ' ' +
+        dest.cy
+      );
+    }
+
+    if (jo && msg) archFlowSet('flow-jo-msg', egressH(jo, msg));
+    if (rt && paid) archFlowSet('flow-cdp-paid', egressH(rt, paid));
+    if (cja && jrpt) archFlowSet('flow-cja-jrpt', egressH(cja, jrpt));
+    if (mix && mrpt) archFlowSet('flow-mix-mrpt', egressH(mix, mrpt));
+  }
+
+  function archDragApply() {
+    Object.keys(NODE_LAYOUT).forEach(function (key) {
+      var g = qs('#node-' + key);
+      if (!g) return;
+      var L = NODE_LAYOUT[key];
+      var p = archDrag.pos[key] || { x: 0, y: 0 };
+      var tx = L.base[0] + p.x;
+      var ty = L.base[1] + p.y;
+      g.setAttribute('transform', 'translate(' + tx + ',' + ty + ')');
+    });
+    archDragRebuildFlows();
+  }
+
+  function archDragLoad() {
+    try {
+      var raw = localStorage.getItem(LS_NODES);
+      if (raw) {
+        var saved = JSON.parse(raw);
+        if (saved && typeof saved === 'object') {
+          Object.keys(saved).forEach(function (k) {
+            if (NODE_LAYOUT[k] && saved[k] && typeof saved[k].x === 'number' && typeof saved[k].y === 'number') {
+              archDrag.pos[k] = { x: saved[k].x, y: saved[k].y };
+            }
+          });
+        }
+        return;
+      }
+    } catch (e) {}
+
+    try {
+      if (!localStorage.getItem(LS_NODES)) {
+        var tg = JSON.parse(localStorage.getItem('aepArchDragTags') || 'null');
+        var sr = JSON.parse(localStorage.getItem('aepArchDragSources') || 'null');
+        if (tg && typeof tg.x === 'number') {
+          archDrag.pos.tags = { x: tg.x - 52, y: tg.y || 0 };
+        }
+        if (sr && typeof sr.x === 'number') {
+          archDrag.pos.sources = { x: sr.x - 52, y: sr.y || 0 };
+        }
+      }
+    } catch (e2) {}
+  }
+
+  function archDragSave() {
+    try {
+      localStorage.setItem(LS_NODES, JSON.stringify(archDrag.pos));
+    } catch (e) {}
+  }
+
+  function svgClientToSvg(svg, clientX, clientY) {
+    var pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    var ctm = svg.getScreenCTM();
+    if (!ctm) return { x: clientX, y: clientY };
+    return pt.matrixTransform(ctm.inverse());
+  }
+
+  function archDragSetEnabled(on) {
+    archDrag.enabled = !!on;
+    if (archViewport) archViewport.classList.toggle('arch-drag-on', archDrag.enabled);
+    var tgl = qs('#archDragToggle');
+    if (tgl) tgl.checked = archDrag.enabled;
+  }
+
+  function archDragPointerMoveWin(e) {
+    if (!archDrag.active || !archDrag.start) return;
+    e.preventDefault();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var dx = p.x - archDrag.start.mx;
+    var dy = p.y - archDrag.start.my;
+    archDrag.pos[archDrag.active] = {
+      x: archDrag.start.ox + dx,
+      y: archDrag.start.oy + dy,
+    };
+    archDragApply();
+  }
+
+  function archDragPointerUpWin() {
+    if (!archDrag.active) return;
+    if (archViewport) archViewport.classList.remove('arch-dragging');
+    window.removeEventListener('pointermove', archDragPointerMoveWin, true);
+    window.removeEventListener('pointerup', archDragPointerUpWin, true);
+    window.removeEventListener('pointercancel', archDragPointerUpWin, true);
+    archDrag.active = null;
+    archDrag.start = null;
+    archDragSave();
+  }
+
+  function archDragPointerDown(e) {
+    if (!archDrag.enabled) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    var g = e.currentTarget;
+    if (!g || !g.id || g.id.indexOf('node-') !== 0) return;
+    var which = g.id.slice(5);
+    if (!NODE_LAYOUT[which]) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!archDrag.pos[which]) archDrag.pos[which] = { x: 0, y: 0 };
+    archDrag.active = which;
+    archDrag.start = {
+      ox: archDrag.pos[which].x,
+      oy: archDrag.pos[which].y,
+    };
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    archDrag.start.mx = p.x;
+    archDrag.start.my = p.y;
+    if (archViewport) archViewport.classList.add('arch-dragging');
+    window.addEventListener('pointermove', archDragPointerMoveWin, true);
+    window.addEventListener('pointerup', archDragPointerUpWin, true);
+    window.addEventListener('pointercancel', archDragPointerUpWin, true);
+  }
+
+  function initArchDrag() {
+    archDrag.svg = qs('.arch-int-svg-wrap svg');
+    if (!archDrag.svg) return;
+
+    archDragLoad();
+    archDragApply();
+
+    var toggle = qs('#archDragToggle');
+    var reset = qs('#archDragReset');
+    if (toggle) {
+      toggle.checked = false;
+      toggle.addEventListener('change', function () {
+        archDragSetEnabled(toggle.checked);
+      });
+    }
+    if (reset) {
+      reset.addEventListener('click', function () {
+        archDrag.pos = archDragDefaultPos();
+        archDragApply();
+        archDragSave();
+      });
+    }
+
+    $all('.arch-int-svg-wrap g.arch-node').forEach(function (g) {
+      g.addEventListener('pointerdown', archDragPointerDown);
+    });
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initArchDrag);
+  } else {
+    initArchDrag();
   }
 })();
