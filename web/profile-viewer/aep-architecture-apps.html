@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260429f">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260411r">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -68,202 +68,202 @@
             </defs>
             <rect width="1200" height="680" fill="#ffffff"/>
 
-            <!-- Top columns: 1/4 Data Collection | 2/4 Profile + Decisioning | 1/4 Customer Engagement -->
-            <rect x="16" y="12" width="292" height="24" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
-            <rect x="308" y="12" width="584" height="24" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
+            <!-- Top columns: 1/5 Data Collection | 3/5 Profile + Decisioning | 1/5 Customer Engagement -->
+            <rect x="16" y="12" width="234" height="24" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
+            <rect x="250" y="12" width="700" height="24" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
             <line x1="600" y1="12" x2="600" y2="36" stroke="#cbd5e1" stroke-width="1"/>
-            <rect x="892" y="12" width="292" height="24" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
-            <text x="162" y="28" text-anchor="middle" class="arch-lane arch-lane-sm">DATA COLLECTION</text>
-            <text x="454" y="28" text-anchor="middle" class="arch-lane">PROFILE &amp; DATA MGMT</text>
-            <text x="746" y="28" text-anchor="middle" class="arch-lane arch-lane-sm">EXPERIENCE DECISIONING</text>
-            <text x="1038" y="28" text-anchor="middle" class="arch-lane">CUSTOMER ENGAGEMENT</text>
+            <rect x="950" y="12" width="234" height="24" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
+            <text x="133" y="28" text-anchor="middle" class="arch-lane arch-lane-sm">DATA COLLECTION</text>
+            <text x="425" y="28" text-anchor="middle" class="arch-lane">PROFILE &amp; DATA MGMT</text>
+            <text x="775" y="28" text-anchor="middle" class="arch-lane arch-lane-sm">EXPERIENCE DECISIONING</text>
+            <text x="1067" y="28" text-anchor="middle" class="arch-lane">CUSTOMER ENGAGEMENT</text>
 
             <!-- Flow layer (under nodes) -->
             <g id="layer-flows" fill="none" stroke-width="2.2">
-              <path id="flow-tags-edge" class="arch-flow" d="M 158 144 L 158 96 L 560 96 L 560 90"/>
-              <path id="flow-sources-stream" class="arch-flow" d="M 158 220 L 200 220 L 200 200 L 318 200"/>
-              <path id="flow-sources-batch" class="arch-flow" d="M 158 300 L 258 300 L 258 252 L 318 252"/>
-              <path id="flow-stream-lake" class="arch-flow" d="M 448 244 L 462 244 L 462 356 L 448 356"/>
-              <path id="flow-batch-lake" class="arch-flow" d="M 448 296 L 462 296 L 462 356 L 448 356"/>
-              <path id="flow-lake-pipeline" class="arch-flow" d="M 448 384 L 479 384 L 479 308"/>
-              <path id="flow-pipeline-profile" class="arch-flow" d="M 490 308 L 508 308 L 508 236 L 520 236"/>
-              <path id="flow-edge-profile" class="arch-flow" d="M 600 94 L 600 200 L 508 200 L 508 236"/>
-              <path id="flow-profile-seg" class="arch-flow" d="M 578 252 L 578 266"/>
-              <path id="flow-seg-jo" class="arch-flow" d="M 648 310 L 668 310 L 668 268"/>
-              <path id="flow-profile-cdp" class="arch-flow" d="M 648 226 L 720 226 L 720 316 L 668 316"/>
-              <path id="flow-edge-inbound" class="arch-flow" d="M 882 94 L 1040 94 L 1040 222 L 968 222"/>
-              <path id="flow-jo-msg" class="arch-flow" d="M 768 288 L 968 274"/>
-              <path id="flow-cdp-paid" class="arch-flow" d="M 768 316 L 968 322"/>
-              <path id="flow-cja-jrpt" class="arch-flow" d="M 768 360 L 968 366"/>
-              <path id="flow-mix-mrpt" class="arch-flow" d="M 768 404 L 968 410"/>
+              <path id="flow-tags-edge" class="arch-flow" d="M 130 144 L 130 96 L 552 96 L 552 90"/>
+              <path id="flow-sources-stream" class="arch-flow" d="M 130 220 L 163 220 L 163 200 L 262 200"/>
+              <path id="flow-sources-batch" class="arch-flow" d="M 130 300 L 210 300 L 210 252 L 262 252"/>
+              <path id="flow-stream-lake" class="arch-flow" d="M 418 244 L 435 244 L 435 356 L 418 356"/>
+              <path id="flow-batch-lake" class="arch-flow" d="M 418 296 L 435 296 L 435 356 L 418 356"/>
+              <path id="flow-lake-pipeline" class="arch-flow" d="M 418 384 L 455 384 L 455 308"/>
+              <path id="flow-pipeline-profile" class="arch-flow" d="M 468 308 L 490 308 L 490 236 L 504 236"/>
+              <path id="flow-edge-profile" class="arch-flow" d="M 600 94 L 600 200 L 490 200 L 490 236"/>
+              <path id="flow-profile-seg" class="arch-flow" d="M 574 252 L 574 266"/>
+              <path id="flow-seg-jo" class="arch-flow" d="M 658 310 L 682 310 L 682 268"/>
+              <path id="flow-profile-cdp" class="arch-flow" d="M 658 226 L 744 226 L 744 316 L 682 316"/>
+              <path id="flow-edge-inbound" class="arch-flow" d="M 938 94 L 1069 94 L 1069 222 L 1011 222"/>
+              <path id="flow-jo-msg" class="arch-flow" d="M 801 288 L 1011 274"/>
+              <path id="flow-cdp-paid" class="arch-flow" d="M 801 316 L 1011 322"/>
+              <path id="flow-cja-jrpt" class="arch-flow" d="M 801 360 L 1011 366"/>
+              <path id="flow-mix-mrpt" class="arch-flow" d="M 801 404 L 1011 410"/>
             </g>
 
-            <!-- Data Collection: 1/4 width -->
-            <rect x="16" y="42" width="292" height="564" rx="8" fill="#eceff1" stroke="#d8dde3"/>
+            <!-- Data Collection: 1/5 width -->
+            <rect x="16" y="42" width="234" height="564" rx="8" fill="#eceff1" stroke="#d8dde3"/>
 
-            <!-- Middle 2/4: Profile + Decisioning (strip above AEP shell) -->
-            <rect x="308" y="42" width="584" height="68" rx="0" fill="#f9fafb" stroke="none"/>
+            <!-- Middle 3/5: Profile + Decisioning (strip above AEP shell) -->
+            <rect x="250" y="42" width="700" height="68" rx="0" fill="#f9fafb" stroke="none"/>
 
-            <!-- Customer Engagement: 1/4 width -->
-            <rect x="892" y="42" width="292" height="564" rx="8" fill="#eceff1" stroke="#d8dde3"/>
+            <!-- Customer Engagement: 1/5 width -->
+            <rect x="950" y="42" width="234" height="564" rx="8" fill="#eceff1" stroke="#d8dde3"/>
 
-            <!-- Edge Network — outside AEP rounded container (spans middle 2/4) -->
+            <!-- Edge Network — outside AEP rounded container (spans middle 3/5) -->
             <g id="node-edge" class="arch-node">
-              <rect x="318" y="58" width="564" height="36" rx="6" fill="#000000" stroke="#000000"/>
+              <rect x="260" y="58" width="680" height="36" rx="6" fill="#000000" stroke="#000000"/>
               <text x="600" y="80" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="8.5px" font-weight="600">Edge Network &amp; Edge Profile</text>
             </g>
 
-            <!-- AEP shell (middle 2/4 only) -->
+            <!-- AEP shell (middle 3/5 only) -->
             <g id="node-aep" class="arch-node">
-              <rect x="308" y="112" width="584" height="452" rx="10" fill="#f3f4f6" stroke="#d1d5db"/>
-              <rect x="324" y="122" width="12" height="12" rx="2" fill="#e1251b"/>
-              <text x="342" y="132" class="arch-node-label" font-size="9px">Adobe Experience Platform</text>
+              <rect x="250" y="112" width="700" height="452" rx="10" fill="#f3f4f6" stroke="#d1d5db"/>
+              <rect x="269" y="122" width="12" height="12" rx="2" fill="#e1251b"/>
+              <text x="291" y="132" class="arch-node-label" font-size="9px">Adobe Experience Platform</text>
             </g>
 
             <g id="node-tags" class="arch-node">
-              <rect x="48" y="108" width="228" height="36" rx="4" fill="#111827" stroke="#000000"/>
-              <rect x="56" y="116" width="12" height="12" rx="2" fill="#e1251b"/>
-              <text x="61" y="125" text-anchor="middle" fill="#ffffff" font-family="Inter,system-ui,sans-serif" font-size="7px" font-weight="800">A</text>
-              <text x="72" y="122" class="arch-node-label-inv">Tags</text>
-              <text x="72" y="132" class="arch-node-sublabel-inv">Client Side</text>
+              <rect x="42" y="108" width="183" height="36" rx="4" fill="#111827" stroke="#000000"/>
+              <rect x="48" y="116" width="12" height="12" rx="2" fill="#e1251b"/>
+              <text x="54" y="125" text-anchor="middle" fill="#ffffff" font-family="Inter,system-ui,sans-serif" font-size="7px" font-weight="800">A</text>
+              <text x="61" y="122" class="arch-node-label-inv">Tags</text>
+              <text x="61" y="132" class="arch-node-sublabel-inv">Client Side</text>
             </g>
 
             <g id="node-sources" class="arch-node">
-              <rect x="48" y="152" width="228" height="200" rx="4" fill="#f9fafb" stroke="#d1d5db"/>
-              <path d="M 56 168 h8 v5 h-8 z M 58 170 h4" fill="none" stroke="#6b7280" stroke-width="0.8"/>
-              <rect x="66" y="168" width="5" height="7" rx="0.8" fill="none" stroke="#6b7280" stroke-width="0.8"/>
-              <text x="76" y="174" class="arch-node-sublabel">SDK</text>
-              <path d="M 56 188 a3 3 0 1 1 6 0 v4 h-6 z" fill="none" stroke="#6b7280" stroke-width="0.7"/>
-              <text x="76" y="194" class="arch-node-sublabel">Cloud Apps / 3rd Party</text>
-              <text x="56" y="212" class="arch-node-sublabel">Enterprise Sources</text>
-              <rect x="56" y="220" width="10" height="8" rx="1" fill="none" stroke="#6b7280" stroke-width="0.7"/>
-              <text x="76" y="226" class="arch-node-sublabel">ETL Ecosystem</text>
-              <text x="56" y="244" class="arch-node-sublabel">External Data Warehouse</text>
+              <rect x="42" y="152" width="183" height="200" rx="4" fill="#f9fafb" stroke="#d1d5db"/>
+              <path d="M 48 168 h8 v5 h-8 z M 50 170 h4" fill="none" stroke="#6b7280" stroke-width="0.8"/>
+              <rect x="56" y="168" width="5" height="7" rx="0.8" fill="none" stroke="#6b7280" stroke-width="0.8"/>
+              <text x="64" y="174" class="arch-node-sublabel">SDK</text>
+              <path d="M 48 188 a3 3 0 1 1 6 0 v4 h-6 z" fill="none" stroke="#6b7280" stroke-width="0.7"/>
+              <text x="64" y="194" class="arch-node-sublabel">Cloud Apps / 3rd Party</text>
+              <text x="48" y="212" class="arch-node-sublabel">Enterprise Sources</text>
+              <rect x="48" y="220" width="10" height="8" rx="1" fill="none" stroke="#6b7280" stroke-width="0.7"/>
+              <text x="64" y="226" class="arch-node-sublabel">ETL Ecosystem</text>
+              <text x="48" y="244" class="arch-node-sublabel">External Data Warehouse</text>
             </g>
 
             <g id="node-streaming" class="arch-node">
-              <rect x="318" y="200" width="130" height="44" rx="4" fill="#111827" stroke="#000000"/>
-              <text x="383" y="218" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Streaming Data</text>
-              <text x="383" y="230" text-anchor="middle" fill="#d1d5db" font-family="Inter,system-ui,sans-serif" font-size="6.5px">Collection</text>
+              <rect x="262" y="200" width="130" height="44" rx="4" fill="#111827" stroke="#000000"/>
+              <text x="340" y="218" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Streaming Data</text>
+              <text x="340" y="230" text-anchor="middle" fill="#d1d5db" font-family="Inter,system-ui,sans-serif" font-size="6.5px">Collection</text>
             </g>
 
             <g id="node-batch" class="arch-node">
-              <rect x="318" y="252" width="130" height="44" rx="4" fill="#111827" stroke="#000000"/>
-              <text x="383" y="270" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Batch Data</text>
-              <text x="383" y="282" text-anchor="middle" fill="#d1d5db" font-family="Inter,system-ui,sans-serif" font-size="6.5px">Collection</text>
+              <rect x="262" y="252" width="130" height="44" rx="4" fill="#111827" stroke="#000000"/>
+              <text x="340" y="270" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Batch Data</text>
+              <text x="340" y="282" text-anchor="middle" fill="#d1d5db" font-family="Inter,system-ui,sans-serif" font-size="6.5px">Collection</text>
             </g>
 
             <g id="node-query" class="arch-node">
-              <rect x="318" y="308" width="62" height="36" rx="3" fill="#ffffff" stroke="#d1d5db"/>
-              <text x="349" y="326" text-anchor="middle" class="arch-node-sublabel" font-size="6.5px">Query Service</text>
+              <rect x="262" y="308" width="62" height="36" rx="3" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="293" y="326" text-anchor="middle" class="arch-node-sublabel" font-size="6.5px">Query Service</text>
             </g>
 
             <g id="node-intel" class="arch-node">
-              <rect x="386" y="308" width="62" height="36" rx="3" fill="#ffffff" stroke="#d1d5db"/>
-              <text x="417" y="326" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Intelligence &amp; AI</text>
+              <rect x="330" y="308" width="62" height="36" rx="3" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="361" y="326" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Intelligence &amp; AI</text>
             </g>
 
             <g id="node-lake" class="arch-node">
-              <rect x="318" y="356" width="130" height="56" rx="4" fill="#111827" stroke="#000000"/>
-              <text x="383" y="374" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Data Lake</text>
-              <text x="383" y="386" text-anchor="middle" fill="#d1d5db" font-family="Inter,system-ui,sans-serif" font-size="6px">(Raw Profile Data)</text>
-              <rect x="328" y="390" width="110" height="14" rx="2" fill="#ffffff" stroke="#d1d5db"/>
-              <text x="383" y="400" text-anchor="middle" class="arch-node-sublabel" font-size="5.5px">Data Governance</text>
+              <rect x="262" y="356" width="130" height="56" rx="4" fill="#111827" stroke="#000000"/>
+              <text x="340" y="374" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Data Lake</text>
+              <text x="340" y="386" text-anchor="middle" fill="#d1d5db" font-family="Inter,system-ui,sans-serif" font-size="6px">(Raw Profile Data)</text>
+              <rect x="274" y="390" width="110" height="14" rx="2" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="340" y="400" text-anchor="middle" class="arch-node-sublabel" font-size="5.5px">Data Governance</text>
             </g>
 
             <g id="node-pipeline" class="arch-node">
-              <rect x="468" y="200" width="22" height="210" rx="3" fill="#1f2937" stroke="#111827"/>
-              <text x="479" y="308" text-anchor="middle" fill="#e5e7eb" font-family="Inter,system-ui,sans-serif" font-size="6.5px" font-weight="600" transform="rotate(-90 479 308)">Pipeline</text>
+              <rect x="442" y="200" width="26" height="210" rx="3" fill="#1f2937" stroke="#111827"/>
+              <text x="455" y="308" text-anchor="middle" fill="#e5e7eb" font-family="Inter,system-ui,sans-serif" font-size="6.5px" font-weight="600" transform="rotate(-90 455 308)">Pipeline</text>
             </g>
 
             <g id="node-profile" class="arch-node">
-              <rect x="508" y="200" width="140" height="52" rx="4" fill="#111827" stroke="#000000"/>
-              <circle cx="578" cy="218" r="5" fill="none" stroke="#f9fafb" stroke-width="1.2"/>
-              <path d="M 578 224 v3 M 574 230 h8" fill="none" stroke="#f9fafb" stroke-width="1"/>
-              <text x="578" y="236" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Real-Time Customer Profile</text>
+              <rect x="490" y="200" width="168" height="52" rx="4" fill="#111827" stroke="#000000"/>
+              <circle cx="574" cy="218" r="5" fill="none" stroke="#f9fafb" stroke-width="1.2"/>
+              <path d="M 574 224 v3 M 570 230 h8" fill="none" stroke="#f9fafb" stroke-width="1"/>
+              <text x="574" y="236" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Real-Time Customer Profile</text>
             </g>
 
             <g id="node-identity" class="arch-node">
-              <rect x="518" y="240" width="52" height="18" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
-              <text x="544" y="252" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Identity Graph</text>
+              <rect x="502" y="240" width="74" height="18" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
+              <text x="539" y="252" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Identity Graph</text>
             </g>
 
             <g id="node-seg" class="arch-node">
-              <rect x="508" y="266" width="140" height="88" rx="4" fill="#ffffff" stroke="#d1d5db"/>
-              <text x="578" y="278" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Streaming Segmentation</text>
-              <text x="578" y="290" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Batch Segmentation</text>
-              <text x="578" y="302" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Audience Composition</text>
-              <text x="578" y="314" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Federated Audience Composition</text>
+              <rect x="490" y="266" width="168" height="88" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="574" y="278" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Streaming Segmentation</text>
+              <text x="574" y="290" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Batch Segmentation</text>
+              <text x="574" y="302" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Audience Composition</text>
+              <text x="574" y="314" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Federated Audience Composition</text>
             </g>
 
             <g id="node-decision" class="arch-node">
-              <rect x="668" y="200" width="100" height="56" rx="4" fill="#ffffff" stroke="#d1d5db"/>
-              <text x="718" y="216" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Journeys</text>
-              <text x="718" y="228" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Decision Mgt</text>
-              <text x="718" y="240" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Message Exec</text>
+              <rect x="682" y="200" width="120" height="56" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="741" y="216" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Journeys</text>
+              <text x="741" y="228" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Decision Mgt</text>
+              <text x="741" y="240" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Message Exec</text>
             </g>
 
             <g id="node-creative" class="arch-node">
-              <rect x="700" y="100" width="72" height="28" rx="4" fill="#f3f4f6" stroke="#d1d5db"/>
-              <text x="736" y="117" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Creative Cloud</text>
+              <rect x="720" y="100" width="87" height="28" rx="4" fill="#f3f4f6" stroke="#d1d5db"/>
+              <text x="763" y="117" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Creative Cloud</text>
             </g>
 
             <g id="node-aem" class="arch-node">
-              <rect x="700" y="136" width="72" height="28" rx="4" fill="#ffffff" stroke="#d1d5db"/>
-              <rect x="706" y="142" width="10" height="10" rx="2" fill="#e1251b"/>
-              <text x="711" y="150" fill="#ffffff" font-family="Inter,system-ui,sans-serif" font-size="6px" font-weight="800">A</text>
-              <text x="736" y="154" text-anchor="middle" class="arch-node-sublabel" font-size="5.5px">AEM Assets Essentials</text>
+              <rect x="720" y="136" width="87" height="28" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+              <rect x="727" y="142" width="10" height="10" rx="2" fill="#e1251b"/>
+              <text x="732" y="150" fill="#ffffff" font-family="Inter,system-ui,sans-serif" font-size="6px" font-weight="800">A</text>
+              <text x="763" y="154" text-anchor="middle" class="arch-node-sublabel" font-size="5.5px">AEM Assets Essentials</text>
             </g>
 
             <g id="node-jo" class="arch-node">
-              <rect x="668" y="268" width="100" height="40" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
-              <text x="718" y="292" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Journey Optimizer</text>
+              <rect x="682" y="268" width="120" height="40" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
+              <text x="741" y="292" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Journey Optimizer</text>
             </g>
 
             <g id="node-rtcdp" class="arch-node">
-              <rect x="668" y="316" width="100" height="36" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
-              <text x="718" y="338" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Real-Time CDP</text>
+              <rect x="682" y="316" width="120" height="36" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
+              <text x="741" y="338" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Real-Time CDP</text>
             </g>
 
             <g id="node-cja" class="arch-node">
-              <rect x="668" y="360" width="100" height="36" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
-              <text x="718" y="382" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="6.5px" font-weight="600">Customer Journey Analytics</text>
+              <rect x="682" y="360" width="120" height="36" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
+              <text x="741" y="382" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="6.5px" font-weight="600">Customer Journey Analytics</text>
             </g>
 
             <g id="node-mix" class="arch-node">
-              <rect x="668" y="404" width="100" height="32" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
-              <text x="718" y="423" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Mix Modeler</text>
+              <rect x="682" y="404" width="120" height="32" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
+              <text x="741" y="423" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Mix Modeler</text>
             </g>
 
-            <!-- Customer Engagement stack (1/4 column; centered under header) -->
+            <!-- Customer Engagement stack (1/5 column; centered under header) -->
             <g id="node-inbound" class="arch-node">
-              <rect x="968" y="200" width="140" height="44" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
-              <text x="1038" y="218" text-anchor="middle" class="arch-node-label" font-size="8px">Inbound Experiences</text>
-              <text x="1038" y="230" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Desktop · Mobile · Code</text>
+              <rect x="997" y="200" width="140" height="44" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
+              <text x="1067" y="218" text-anchor="middle" class="arch-node-label" font-size="8px">Inbound Experiences</text>
+              <text x="1067" y="230" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Desktop · Mobile · Code</text>
             </g>
 
             <g id="node-msg" class="arch-node">
-              <rect x="968" y="252" width="140" height="44" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
-              <text x="1038" y="270" text-anchor="middle" class="arch-node-label" font-size="8px">Message Delivery</text>
-              <text x="1038" y="282" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Email · Mobile · SMS · Direct Mail</text>
+              <rect x="997" y="252" width="140" height="44" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
+              <text x="1067" y="270" text-anchor="middle" class="arch-node-label" font-size="8px">Message Delivery</text>
+              <text x="1067" y="282" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Email · Mobile · SMS · Direct Mail</text>
             </g>
 
             <g id="node-paid" class="arch-node">
-              <rect x="968" y="304" width="140" height="36" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
-              <text x="1038" y="322" text-anchor="middle" class="arch-node-label" font-size="8px">Paid Media</text>
-              <text x="1038" y="334" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Display · Social</text>
+              <rect x="997" y="304" width="140" height="36" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
+              <text x="1067" y="322" text-anchor="middle" class="arch-node-label" font-size="8px">Paid Media</text>
+              <text x="1067" y="334" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Display · Social</text>
             </g>
 
             <g id="node-jrpt" class="arch-node">
-              <rect x="968" y="348" width="140" height="36" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
-              <text x="1038" y="366" text-anchor="middle" class="arch-node-label" font-size="8px">Journey Reporting</text>
-              <text x="1038" y="378" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Dashboards · Analysis</text>
+              <rect x="997" y="348" width="140" height="36" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
+              <text x="1067" y="366" text-anchor="middle" class="arch-node-label" font-size="8px">Journey Reporting</text>
+              <text x="1067" y="378" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Dashboards · Analysis</text>
             </g>
 
             <g id="node-mrpt" class="arch-node">
-              <rect x="968" y="392" width="140" height="36" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
-              <text x="1038" y="410" text-anchor="middle" class="arch-node-label" font-size="8px">Marketing Performance</text>
-              <text x="1038" y="422" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Dashboards · Analysis</text>
+              <rect x="997" y="392" width="140" height="36" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
+              <text x="1067" y="410" text-anchor="middle" class="arch-node-label" font-size="8px">Marketing Performance</text>
+              <text x="1067" y="422" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Dashboards · Analysis</text>
             </g>
 
             <!-- Platform utilities (reference deck) -->
@@ -317,6 +317,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260429"></script>
-  <script defer src="aep-architecture-apps.js?v=20260429f"></script>
+  <script defer src="aep-architecture-apps.js?v=20260411r"></script>
 </body>
 </html>
