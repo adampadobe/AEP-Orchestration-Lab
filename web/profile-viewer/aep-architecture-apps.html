@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260416">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260417">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -80,18 +80,18 @@
 
             <!-- Flow layer (under nodes) -->
             <g id="layer-flows" fill="none" stroke-width="2.2">
-              <path id="flow-tags-edge" class="arch-flow" d="M 130 144 L 130 96 L 552 96 L 552 90"/>
+              <path id="flow-tags-edge" class="arch-flow" d="M 130 144 L 130 96 L 440 96 L 440 58"/>
               <path id="flow-sources-stream" class="arch-flow" d="M 130 220 L 163 220 L 163 200 L 262 200"/>
               <path id="flow-sources-batch" class="arch-flow" d="M 130 300 L 210 300 L 210 252 L 262 252"/>
               <path id="flow-stream-lake" class="arch-flow" d="M 418 244 L 435 244 L 435 356 L 418 356"/>
               <path id="flow-batch-lake" class="arch-flow" d="M 418 296 L 435 296 L 435 356 L 418 356"/>
               <path id="flow-lake-pipeline" class="arch-flow" d="M 418 384 L 455 384 L 455 308"/>
               <path id="flow-pipeline-profile" class="arch-flow" d="M 468 308 L 490 308 L 490 236 L 504 236"/>
-              <path id="flow-edge-profile" class="arch-flow" d="M 600 94 L 600 200 L 490 200 L 490 236"/>
+              <path id="flow-edge-profile" class="arch-flow" d="M 440 94 L 440 200 L 490 200 L 490 236"/>
               <path id="flow-profile-seg" class="arch-flow" d="M 574 252 L 574 266"/>
               <path id="flow-seg-jo" class="arch-flow" d="M 658 310 L 682 310 L 682 268"/>
               <path id="flow-profile-cdp" class="arch-flow" d="M 658 226 L 744 226 L 744 316 L 682 316"/>
-              <path id="flow-edge-inbound" class="arch-flow" d="M 938 94 L 1069 94 L 1069 222 L 1011 222"/>
+              <path id="flow-edge-inbound" class="arch-flow" d="M 732 94 L 1069 94 L 1069 222 L 1011 222"/>
               <path id="flow-jo-msg" class="arch-flow" d="M 801 288 L 1011 274"/>
               <path id="flow-cdp-paid" class="arch-flow" d="M 801 316 L 1011 322"/>
               <path id="flow-cja-jrpt" class="arch-flow" d="M 801 360 L 1011 366"/>
@@ -101,10 +101,10 @@
             <!-- Middle 3/5: Profile + Decisioning (strip above AEP shell only; no full-height side column boxes — keeps flow lines visible) -->
             <rect x="250" y="42" width="700" height="68" rx="0" fill="#f9fafb" stroke="none"/>
 
-            <!-- Edge Network — outside AEP rounded container (spans middle 3/5) -->
+            <!-- Edge Network — shortened strip; Creative Cloud tile shares the same row (y=58) -->
             <g id="node-edge" class="arch-node">
-              <rect x="260" y="58" width="680" height="36" rx="6" fill="#000000" stroke="#000000"/>
-              <text x="600" y="80" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="8.5px" font-weight="600">Edge Network &amp; Edge Profile</text>
+              <rect x="260" y="58" width="360" height="36" rx="6" fill="#000000" stroke="#000000"/>
+              <text x="440" y="80" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="8.5px" font-weight="600">Edge Network &amp; Edge Profile</text>
             </g>
 
             <!-- AEP shell (middle 3/5 only) -->
@@ -198,15 +198,16 @@
             </g>
 
             <g id="node-creative" class="arch-node">
-              <rect x="720" y="100" width="87" height="28" rx="4" fill="#f3f4f6" stroke="#d1d5db"/>
-              <text x="763" y="117" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Creative Cloud</text>
+              <rect x="628" y="58" width="104" height="36" rx="6" fill="#ffffff" stroke="#d1d5db"/>
+              <image href="images/creative-cloud-icon-18.svg" x="636" y="66" width="14" height="14" preserveAspectRatio="xMidYMid meet"/>
+              <text x="654" y="80" text-anchor="start" class="arch-node-sublabel" font-size="6px">Creative Cloud</text>
             </g>
 
             <g id="node-aem" class="arch-node">
-              <rect x="720" y="136" width="87" height="28" rx="4" fill="#ffffff" stroke="#d1d5db"/>
-              <rect x="727" y="142" width="10" height="10" rx="2" fill="#e1251b"/>
-              <text x="732" y="150" fill="#ffffff" font-family="Inter,system-ui,sans-serif" font-size="6px" font-weight="800">A</text>
-              <text x="763" y="154" text-anchor="middle" class="arch-node-sublabel" font-size="5.5px">AEM Assets Essentials</text>
+              <rect x="628" y="100" width="104" height="28" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+              <rect x="634" y="106" width="10" height="10" rx="2" fill="#e1251b"/>
+              <text x="639" y="114" text-anchor="middle" fill="#ffffff" font-family="Inter,system-ui,sans-serif" font-size="6px" font-weight="800">A</text>
+              <text x="650" y="117" text-anchor="start" class="arch-node-sublabel" font-size="5.5px">AEM Assets Essentials</text>
             </g>
 
             <g id="node-jo" class="arch-node">
@@ -311,6 +312,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="aep-architecture-apps.js?v=20260416"></script>
+  <script defer src="aep-architecture-apps.js?v=20260417"></script>
 </body>
 </html>
