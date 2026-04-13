@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260425">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260426">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -80,9 +80,9 @@
 
             <!-- Flow layer (under nodes) -->
             <g id="layer-flows" fill="none" stroke-width="2.2">
-              <path id="flow-tags-edge" class="arch-flow" d="M 81 116 L 81 96 L 440 96 L 440 58"/>
-              <path id="flow-sources-stream" class="arch-flow" d="M 140 224 L 163 224 L 163 200 L 262 200"/>
-              <path id="flow-sources-batch" class="arch-flow" d="M 140 284 L 210 284 L 210 252 L 262 252"/>
+              <path id="flow-tags-edge" class="arch-flow" d="M 133 116 L 133 96 L 440 96 L 440 58"/>
+              <path id="flow-sources-stream" class="arch-flow" d="M 192 224 L 215 224 L 215 200 L 262 200"/>
+              <path id="flow-sources-batch" class="arch-flow" d="M 192 284 L 210 284 L 210 252 L 262 252"/>
               <path id="flow-stream-lake" class="arch-flow" d="M 418 244 L 435 244 L 435 356 L 418 356"/>
               <path id="flow-batch-lake" class="arch-flow" d="M 418 296 L 435 296 L 435 356 L 418 356"/>
               <path id="flow-lake-pipeline" class="arch-flow" d="M 418 384 L 455 384 L 455 308"/>
@@ -114,15 +114,15 @@
               <text x="291" y="132" class="arch-node-label" font-size="9px">Adobe Experience Platform</text>
             </g>
 
-            <!-- Tags: centered above Sources panel (same centerline x=81 as Sources) -->
-            <g id="node-tags" class="arch-node">
+            <!-- Tags: centered on DATA COLLECTION lane (x=133); translate aligns with Sources -->
+            <g id="node-tags" class="arch-node" transform="translate(52, 0)">
               <rect x="43" y="40" width="76" height="76" rx="6" fill="#111827" stroke="#000000"/>
               <image href="images/adobe-experience-platform-logo-tags.png" x="64" y="46" width="34" height="34" preserveAspectRatio="xMidYMid meet"/>
               <text x="81" y="88" text-anchor="middle" class="arch-node-label-inv" font-size="6.5px">Tags</text>
               <text x="81" y="100" text-anchor="middle" class="arch-node-sublabel-inv" font-size="5px">(Client Side)</text>
             </g>
 
-            <g id="node-sources" class="arch-node">
+            <g id="node-sources" class="arch-node" transform="translate(52, 0)">
               <!-- Label above icons (SDK pattern); single divider only after SDK device icons -->
               <rect class="arch-sources-shell" x="22" y="122" width="118" height="200" rx="10" fill="#e8eaed" stroke="#c5cdd6" stroke-width="1"/>
               <g id="arch-sources-sdk" class="arch-sources-sdk" aria-label="SDK">
@@ -361,6 +361,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="aep-architecture-apps.js?v=20260425"></script>
+  <script defer src="aep-architecture-apps.js?v=20260426"></script>
 </body>
 </html>
