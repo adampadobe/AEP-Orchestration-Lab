@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260428">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260429">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -337,7 +337,11 @@
                 <input type="checkbox" id="archDragToggle"/>
                 <span>Drag diagram boxes</span>
               </label>
-              <button type="button" class="dashboard-btn-outline arch-drag-reset" id="archDragReset" title="Reset all nodes to default positions">Reset layout</button>
+              <label class="arch-drag-toggle">
+                <input type="checkbox" id="archLabelToggle"/>
+                <span>Move &amp; edit labels</span>
+              </label>
+              <button type="button" class="dashboard-btn-outline arch-drag-reset" id="archDragReset" title="Reset box positions and label text/placement">Reset layout</button>
             </div>
             <div class="arch-int-hud-nav">
               <button type="button" class="dashboard-btn-outline" id="archIntPrev">Previous</button>
@@ -368,6 +372,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="aep-architecture-apps.js?v=20260428"></script>
+  <script defer src="aep-architecture-apps.js?v=20260429"></script>
 </body>
 </html>

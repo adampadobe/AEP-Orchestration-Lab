@@ -714,6 +714,275 @@
     } catch (e) {}
   }
 
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var LS_LABELS = 'aepArchLabelEdits';
+
+  var archLabel = {
+    enabled: false,
+    state: { pos: {}, content: {} },
+    dragActive: null,
+    dragStart: null,
+    dragPending: null,
+  };
+
+  function archGetTextContent(textEl) {
+    var tspans = textEl.querySelectorAll('tspan');
+    if (tspans.length) {
+      return Array.prototype.map.call(tspans, function (n) {
+        return n.textContent;
+      }).join('\n');
+    }
+    return (textEl.textContent || '').trim();
+  }
+
+  function archSetTextContent(textEl, raw) {
+    var lines = String(raw).split(/\r?\n/);
+    var tspans = textEl.querySelectorAll('tspan');
+    if (tspans.length > 1) {
+      lines.forEach(function (line, i) {
+        if (tspans[i]) tspans[i].textContent = line;
+      });
+      return;
+    }
+    if (tspans.length === 1) {
+      tspans[0].textContent = lines.join('\n');
+      return;
+    }
+    if (lines.length > 1) {
+      var ax = textEl.getAttribute('x') || '0';
+      textEl.textContent = '';
+      lines.forEach(function (line, i) {
+        if (i === 0) {
+          textEl.textContent = line;
+        } else {
+          var ts = document.createElementNS(SVG_NS, 'tspan');
+          ts.setAttribute('x', ax);
+          ts.setAttribute('dy', '1.05em');
+          ts.textContent = line;
+          textEl.appendChild(ts);
+        }
+      });
+    } else {
+      textEl.textContent = raw;
+    }
+  }
+
+  function archLabelTransformTarget(textEl) {
+    var p = textEl.parentNode;
+    if (p && p.getAttribute && p.getAttribute('data-arch-label-wrap') === '1') return p;
+    return textEl;
+  }
+
+  function archLabelWrapRotatedLabels() {
+    $all('.arch-int-svg-wrap svg text').forEach(function (t) {
+      var tr = t.getAttribute('transform') || '';
+      if (tr.indexOf('rotate') === -1) return;
+      if (t.parentNode && t.parentNode.getAttribute('data-arch-label-wrap') === '1') return;
+      var w = document.createElementNS(SVG_NS, 'g');
+      w.setAttribute('data-arch-label-wrap', '1');
+      t.parentNode.insertBefore(w, t);
+      w.appendChild(t);
+    });
+  }
+
+  function archAssignTextIdsAndDefaults() {
+    archLabelWrapRotatedLabels();
+    var floatN = 0;
+    $all('.arch-int-svg-wrap svg text').forEach(function (t) {
+      if (t.getAttribute('data-arch-id')) return;
+      var ownerG = t.closest('g.arch-node');
+      var id;
+      if (ownerG && ownerG.id) {
+        var k = ownerG.id.replace(/^node-/, '');
+        var list = ownerG.querySelectorAll('text');
+        var idx = Array.prototype.indexOf.call(list, t);
+        id = k + '-txt' + idx;
+      } else {
+        id = 'floating-txt' + floatN++;
+      }
+      t.setAttribute('data-arch-id', id);
+      if (!t.getAttribute('data-arch-default')) {
+        t.setAttribute('data-arch-default', archGetTextContent(t));
+      }
+    });
+  }
+
+  function archLabelLoad() {
+    try {
+      var raw = localStorage.getItem(LS_LABELS);
+      if (!raw) return;
+      var s = JSON.parse(raw);
+      if (s && s.pos) archLabel.state.pos = s.pos;
+      if (s && s.content) archLabel.state.content = s.content;
+    } catch (e) {}
+  }
+
+  function archLabelSave() {
+    try {
+      localStorage.setItem(LS_LABELS, JSON.stringify(archLabel.state));
+    } catch (e) {}
+  }
+
+  function archLabelApplyAll() {
+    Object.keys(archLabel.state.content).forEach(function (id) {
+      var el = qs('[data-arch-id="' + id + '"]');
+      if (el) archSetTextContent(el, archLabel.state.content[id]);
+    });
+    Object.keys(archLabel.state.pos).forEach(function (id) {
+      var el = qs('[data-arch-id="' + id + '"]');
+      if (!el) return;
+      var p = archLabel.state.pos[id];
+      if (!p || (p.x == null && p.y == null)) return;
+      var tgt = archLabelTransformTarget(el);
+      tgt.setAttribute('transform', 'translate(' + (p.x || 0) + ',' + (p.y || 0) + ')');
+    });
+  }
+
+  function archLabelReset() {
+    archLabel.state = { pos: {}, content: {} };
+    archLabelSave();
+    $all('.arch-int-svg-wrap svg text').forEach(function (t) {
+      var def = t.getAttribute('data-arch-default');
+      if (def != null) archSetTextContent(t, def);
+      var tgt = archLabelTransformTarget(t);
+      tgt.removeAttribute('transform');
+    });
+  }
+
+  function archLabelSetEnabled(on) {
+    archLabel.enabled = !!on;
+    if (archViewport) archViewport.classList.toggle('arch-label-edit-on', archLabel.enabled);
+    var lt = qs('#archLabelToggle');
+    if (lt) lt.checked = archLabel.enabled;
+  }
+
+  function archLabelClearPendingListeners() {
+    if (!archLabel.dragPending) return;
+    window.removeEventListener('pointermove', archLabelPointerPendingMove, true);
+    window.removeEventListener('pointerup', archLabelPointerPendingUp, true);
+    archLabel.dragPending = null;
+  }
+
+  function archLabelPointerPendingMove(e) {
+    if (!archLabel.dragPending) return;
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var dx = p.x - archLabel.dragPending.sx;
+    var dy = p.y - archLabel.dragPending.sy;
+    if (Math.abs(dx) + Math.abs(dy) < 5) return;
+    archLabel.dragActive = archLabel.dragPending.id;
+    archLabel.dragStart = {
+      ox: archLabel.dragPending.ox,
+      oy: archLabel.dragPending.oy,
+      mx: archLabel.dragPending.sx,
+      my: archLabel.dragPending.sy,
+    };
+    archLabelClearPendingListeners();
+    if (archViewport) archViewport.classList.add('arch-label-dragging');
+    window.addEventListener('pointermove', archLabelPointerMoveWin, true);
+    window.addEventListener('pointerup', archLabelPointerUpWin, true);
+    window.addEventListener('pointercancel', archLabelPointerUpWin, true);
+    archLabelPointerMoveWin(e);
+  }
+
+  function archLabelPointerPendingUp() {
+    archLabelClearPendingListeners();
+  }
+
+  function archLabelOpenEditor(textEl) {
+    if (!archLabel.enabled) return;
+    archLabelClearPendingListeners();
+    var rect = textEl.getBoundingClientRect();
+    var ta = document.createElement('textarea');
+    ta.value = archGetTextContent(textEl);
+    ta.setAttribute('aria-label', 'Edit diagram label');
+    ta.style.position = 'fixed';
+    ta.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 300)) + 'px';
+    ta.style.top = Math.max(8, Math.min(rect.top, window.innerHeight - 140)) + 'px';
+    ta.style.width = '280px';
+    ta.style.height = '110px';
+    ta.style.zIndex = '10000';
+    ta.style.fontSize = '13px';
+    ta.style.fontFamily = 'Inter, system-ui, sans-serif';
+    document.body.appendChild(ta);
+    ta.focus();
+    function finish() {
+      if (!ta.parentNode) return;
+      var id = textEl.getAttribute('data-arch-id');
+      archSetTextContent(textEl, ta.value);
+      if (id) archLabel.state.content[id] = ta.value;
+      archLabelSave();
+      document.body.removeChild(ta);
+      ta.removeEventListener('blur', onBlur);
+    }
+    function onBlur() {
+      finish();
+    }
+    ta.addEventListener('blur', onBlur);
+    ta.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') {
+        ta.removeEventListener('blur', onBlur);
+        if (ta.parentNode) document.body.removeChild(ta);
+        ev.preventDefault();
+      }
+      if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) {
+        ev.preventDefault();
+        finish();
+      }
+    });
+  }
+
+  function archLabelPointerMoveWin(e) {
+    if (!archLabel.dragActive || !archLabel.dragStart) return;
+    e.preventDefault();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var dx = p.x - archLabel.dragStart.mx;
+    var dy = p.y - archLabel.dragStart.my;
+    var ox = archLabel.dragStart.ox + dx;
+    var oy = archLabel.dragStart.oy + dy;
+    archLabel.state.pos[archLabel.dragActive] = { x: ox, y: oy };
+    var el = qs('[data-arch-id="' + archLabel.dragActive + '"]');
+    if (el) {
+      var tgt = archLabelTransformTarget(el);
+      tgt.setAttribute('transform', 'translate(' + ox + ',' + oy + ')');
+    }
+  }
+
+  function archLabelPointerUpWin() {
+    if (!archLabel.dragActive) return;
+    if (archViewport) archViewport.classList.remove('arch-label-dragging');
+    window.removeEventListener('pointermove', archLabelPointerMoveWin, true);
+    window.removeEventListener('pointerup', archLabelPointerUpWin, true);
+    window.removeEventListener('pointercancel', archLabelPointerUpWin, true);
+    archLabel.dragActive = null;
+    archLabel.dragStart = null;
+    archLabelSave();
+  }
+
+  function archLabelPointerDownCapture(e) {
+    if (!archLabel.enabled) return;
+    var te = e.target.closest('text');
+    if (!te || !te.getAttribute('data-arch-id')) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    e.preventDefault();
+    e.stopPropagation();
+    var id = te.getAttribute('data-arch-id');
+    var cur = archLabel.state.pos[id] || { x: 0, y: 0 };
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    archLabel.dragPending = { id: id, ox: cur.x, oy: cur.y, sx: p.x, sy: p.y };
+    window.addEventListener('pointermove', archLabelPointerPendingMove, true);
+    window.addEventListener('pointerup', archLabelPointerPendingUp, true);
+  }
+
+  function archLabelDblClick(e) {
+    if (!archLabel.enabled) return;
+    var te = e.target.closest('text');
+    if (!te || !te.getAttribute('data-arch-id')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    archLabelClearPendingListeners();
+    archLabelOpenEditor(te);
+  }
+
   function svgClientToSvg(svg, clientX, clientY) {
     var pt = svg.createSVGPoint();
     pt.x = clientX;
@@ -757,6 +1026,7 @@
   function archDragPointerDown(e) {
     if (!archDrag.enabled) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (e.target && e.target.closest && e.target.closest('text')) return;
     var g = e.currentTarget;
     if (!g || !g.id || g.id.indexOf('node-') !== 0) return;
     var which = g.id.slice(5);
@@ -782,10 +1052,14 @@
     archDrag.svg = qs('.arch-int-svg-wrap svg');
     if (!archDrag.svg) return;
 
+    archAssignTextIdsAndDefaults();
+    archLabelLoad();
+    archLabelApplyAll();
     archDragLoad();
     archDragApply();
 
     var toggle = qs('#archDragToggle');
+    var labelToggle = qs('#archLabelToggle');
     var reset = qs('#archDragReset');
     if (toggle) {
       toggle.checked = false;
@@ -793,13 +1067,23 @@
         archDragSetEnabled(toggle.checked);
       });
     }
+    if (labelToggle) {
+      labelToggle.checked = false;
+      labelToggle.addEventListener('change', function () {
+        archLabelSetEnabled(labelToggle.checked);
+      });
+    }
     if (reset) {
       reset.addEventListener('click', function () {
         archDrag.pos = archDragDefaultPos();
+        archLabelReset();
         archDragApply();
         archDragSave();
       });
     }
+
+    archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
+    archDrag.svg.addEventListener('dblclick', archLabelDblClick, true);
 
     $all('.arch-int-svg-wrap g.arch-node').forEach(function (g) {
       g.addEventListener('pointerdown', archDragPointerDown);
