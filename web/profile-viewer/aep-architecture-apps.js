@@ -4,6 +4,15 @@
 (function () {
   'use strict';
 
+  /** Static PNG exports of the AEP Architecture deck (user-provided order: pages 1–15). Slide 16 reuses page 15. */
+  var DECK_PAGE_COUNT = 15;
+
+  function deckImageUrlForSlide(zeroBasedSlideIndex) {
+    var page = Math.min(zeroBasedSlideIndex + 1, DECK_PAGE_COUNT);
+    var nn = page < 10 ? '0' + page : String(page);
+    return 'images/aep-deck/slide-' + nn + '.png';
+  }
+
   var slides = [
     {
       title: 'Adobe Experience Platform & Applications',
@@ -115,6 +124,8 @@
   var bodyEl;
   var counterEl;
   var liveEl;
+  var diagramImgEl;
+  var diagramCaptionEl;
 
   function render() {
     if (!titleEl || !bodyEl) return;
@@ -132,6 +143,32 @@
     }
     if (liveEl) {
       liveEl.textContent = 'Slide ' + String(idx + 1) + ' of ' + String(slides.length);
+    }
+
+    if (diagramImgEl) {
+      diagramImgEl.src = deckImageUrlForSlide(idx);
+      diagramImgEl.alt =
+        'AEP Architecture deck visual for narrative slide ' +
+        String(idx + 1) +
+        ' of ' +
+        String(slides.length) +
+        ' (exported deck page ' +
+        String(Math.min(idx + 1, DECK_PAGE_COUNT)) +
+        ' of ' +
+        String(DECK_PAGE_COUNT) +
+        ').';
+    }
+    if (diagramCaptionEl) {
+      var dp = Math.min(idx + 1, DECK_PAGE_COUNT);
+      var reuse = idx + 1 > DECK_PAGE_COUNT;
+      diagramCaptionEl.textContent =
+        'Deck image: page ' +
+        String(dp) +
+        ' of ' +
+        String(DECK_PAGE_COUNT) +
+        ' in your export sequence' +
+        (reuse ? ' (same image as page ' + String(DECK_PAGE_COUNT) + ' for this narrative slide)' : '') +
+        '.';
     }
 
     var prev = document.getElementById('archAppsPrev');
@@ -152,6 +189,8 @@
     bodyEl = document.getElementById('archAppsSlideBody');
     counterEl = document.getElementById('archAppsCounter');
     liveEl = document.getElementById('archAppsLive');
+    diagramImgEl = document.getElementById('archAppsDiagramImg');
+    diagramCaptionEl = document.getElementById('archAppsDiagramCaption');
 
     var prev = document.getElementById('archAppsPrev');
     var next = document.getElementById('archAppsNext');

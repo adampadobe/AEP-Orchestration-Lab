@@ -47,16 +47,17 @@
             </div>
             <figure class="arch-apps-figure arch-apps-figure--diagram">
               <img
+                id="archAppsDiagramImg"
                 class="arch-apps-diagram-img"
-                src="images/aep-architecture-diagram.svg"
+                src="images/aep-deck/slide-01.png"
                 width="1024"
                 height="700"
-                alt="Adobe Experience Platform and applications: data collection, profile and data management, experience decisioning, and customer engagement, with ingress, intra-system, and egress flows."
+                alt="AEP Architecture deck slide 1: reference diagram for data collection, profile, decisioning, and engagement."
                 decoding="async"
                 fetchpriority="high"
               />
-              <figcaption class="arch-apps-figcaption">
-                Reference architecture as a hand-built SVG (labels, Adobe-style greys, blue ingress, grey intra-system, red egress) aligned to the official diagram; marketing icons are omitted for a clean vector.
+              <figcaption class="arch-apps-figcaption" id="archAppsDiagramCaption">
+                Visual for this slide matches the exported deck page (page 1 of 15 in the image sequence you provided). Use Previous/Next to change the narrative and the slide image together.
               </figcaption>
             </figure>
             <nav class="arch-apps-nav" aria-label="Slide navigation">
@@ -68,7 +69,7 @@
             </nav>
           </div>
           <p class="arch-apps-footnote">
-            Narrative reconstructed from the Adobe <strong>AEP Architecture</strong> deck. The diagram is a maintained SVG (<code class="dashboard-code">images/aep-architecture-diagram.svg</code>), not extracted from <code class="dashboard-code">.pptx</code>, so labels stay crisp at any zoom.
+            Narrative reconstructed from the Adobe <strong>AEP Architecture</strong> deck. Slide images are static PNG exports (<code class="dashboard-code">images/aep-deck/slide-NN.png</code>, pages 1–15 in your paste order). Slide 16 reuses page 15 until a 16th export is added. The hand-built SVG (<code class="dashboard-code">images/aep-architecture-diagram.svg</code>) remains in the repo as an optional vector reference.
           </p>
         </section>
       </main>
@@ -90,6 +91,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260428"></script>
-  <script defer src="aep-architecture-apps.js?v=20260430"></script>
+  <script defer src="aep-architecture-apps.js?v=20260413"></script>
 </body>
 </html>
