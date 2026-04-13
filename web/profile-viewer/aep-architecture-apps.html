@@ -48,15 +48,15 @@
             <figure class="arch-apps-figure arch-apps-figure--diagram">
               <img
                 class="arch-apps-diagram-img"
-                src="images/aep-architecture-slide1.svg"
-                width="1280"
-                height="720"
-                alt="Adobe Experience Platform and applications: data collection, profile and data management, experience decisioning, and customer engagement, with ingress, intra-system, and egress flows (vector shapes and connectors from slide 1 of the AEP Architecture deck)."
+                src="images/aep-architecture-diagram.svg"
+                width="1024"
+                height="700"
+                alt="Adobe Experience Platform and applications: data collection, profile and data management, experience decisioning, and customer engagement, with ingress, intra-system, and egress flows."
                 decoding="async"
                 fetchpriority="high"
               />
               <figcaption class="arch-apps-figcaption">
-                Reference architecture diagram as vector shapes and connectors, exported from slide 1 of the AEP Architecture deck (<code class="dashboard-code">.pptx</code> OOXML). Narrative above stays in sync with the same slide sequence.
+                Reference architecture as a hand-built SVG (labels, Adobe-style greys, blue ingress, grey intra-system, red egress) aligned to the official diagram; marketing icons are omitted for a clean vector.
               </figcaption>
             </figure>
             <nav class="arch-apps-nav" aria-label="Slide navigation">
@@ -68,7 +68,7 @@
             </nav>
           </div>
           <p class="arch-apps-footnote">
-            Narrative reconstructed from the Adobe <strong>AEP Architecture</strong> deck. The diagram is generated from the deck’s Office Open XML (boxes, lines, and on-slide labels) via <code class="dashboard-code">tools/pptx_slide_to_svg.py</code>; embedded photos and non-rect geometry are not reproduced.
+            Narrative reconstructed from the Adobe <strong>AEP Architecture</strong> deck. The diagram is a maintained SVG (<code class="dashboard-code">images/aep-architecture-diagram.svg</code>), not extracted from <code class="dashboard-code">.pptx</code>, so labels stay crisp at any zoom.
           </p>
         </section>
       </main>
