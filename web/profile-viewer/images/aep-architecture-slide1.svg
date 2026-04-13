@@ -159,74 +159,74 @@
     <rect x="430045.00" y="5424987.00" width="478684.00" height="287210.00" fill="none" stroke="#bbbbbb" stroke-width="9525" opacity="0.95"/>
     <rect x="379368.00" y="4674223.00" width="140851.00" height="140851.00" fill="#B1B8C9" stroke="#cccccc" stroke-width="9525" opacity="0.95"/>
   </g>
-  <g id="labels" font-family="system-ui,Segoe UI,Arial,sans-serif" fill="#111111">
-    <text x="9843389.00" y="264000.00" font-size="220000">Adobe Experience Platform is a powerful, flexible, open, and centralized data foundation that collects, standardizes, governs, applies AI insights to, and unifies data to offer thoughtful and relevant</text>
-    <text x="8192561.90" y="2375678.00" font-size="215203">Inbound Experiences</text>
-    <text x="8195517.90" y="3410816.00" font-size="220000">Message Delivery</text>
-    <text x="1753549.95" y="2384497.00" font-size="220000">Adobe Experience Platform</text>
-    <text x="307415.00" y="1145472.00" font-size="80000">DATA COLLECTION</text>
-    <text x="2901094.00" y="1145472.00" font-size="80000">PROFILE &amp; DATA MANGEMENT</text>
-    <text x="6144754.00" y="1145472.00" font-size="80000">EXPERIENCE DECISIONING</text>
-    <text x="7631818.00" y="1145472.00" font-size="80000">CUSTOMER ENGAGEMENT</text>
-    <text x="4329726.35" y="3001358.00" font-size="220000">Pipeline</text>
-    <text x="4554147.00" y="3735112.00" font-size="80000">Identity Graph</text>
-    <text x="4512999.00" y="3137194.00" font-size="182880">Real-Time Customer Profile</text>
-    <text x="2923685.00" y="3679968.00" font-size="220000">Data Lake (Raw Profile Data)</text>
-    <text x="2964833.00" y="3995771.27" font-size="170047">Data Governance</text>
-    <text x="1968445.60" y="3232777.07" font-size="106374">Streaming Data Collection</text>
-    <text x="2011526.75" y="4366111.07" font-size="96494">Intelligence &amp; AI</text>
-    <text x="1970497.60" y="4960830.07" font-size="106374">Batch Data Collection</text>
-    <text x="297179.00" y="2905885.00" font-size="80000">SDK</text>
-    <text x="297179.00" y="5505843.00" font-size="80000">ETL Ecosystem</text>
-    <text x="2205105.00" y="1684520.00" font-size="80000">Edge Network &amp; Edge Profile</text>
-    <text x="7200194.55" y="2640190.00" font-size="80000">Content</text>
-    <text x="6801277.40" y="1634364.00" font-size="80000">Creative Cloud</text>
-    <text x="6844358.60" y="2244357.00" font-size="80000">AEM Assets Essentials</text>
-    <text x="6081551.00" y="5329321.00" font-size="162560">Customer Journey Analytics</text>
-    <text x="8254030.20" y="2698020.00" font-size="80000">Desktop</text>
-    <text x="8732714.20" y="2698020.00" font-size="80000">Mobile</text>
-    <text x="8272692.20" y="4103192.00" font-size="80000">SMS</text>
-    <text x="8751376.20" y="4103192.00" font-size="80000">Direct Mail</text>
-    <text x="8272692.20" y="3714558.00" font-size="80000">Email</text>
-    <text x="8751376.20" y="3714558.00" font-size="80000">Mobile</text>
-    <text x="8192562.90" y="4432304.93" font-size="103039">Paid Media Display         Social</text>
-    <text x="214883.00" y="1812544.20" font-size="131596">Tags (Client Side)</text>
-    <text x="1091649.20" y="5063028.00" font-size="80000">Batch Data (API, Connectors)</text>
-    <text x="1091649.20" y="3459850.00" font-size="80000">Streaming Data (SDK, API)</text>
-    <text x="3366650.05" y="6428521.00" font-size="80000">Gateway / Adobe I/O</text>
-    <text x="6285964.35" y="3216826.00" font-size="80000">Profile Lookup</text>
-    <text x="5166216.35" y="5602339.00" font-size="80000">Raw Data</text>
-    <text x="5014808.35" y="2844099.00" font-size="80000">Events</text>
-    <text x="6246297.35" y="4286855.00" font-size="80000">Profile Activation</text>
-    <text x="4913888.55" y="4150087.00" font-size="80000">Profiles</text>
-    <text x="5519134.35" y="4095219.00" font-size="80000">Audience Membership</text>
-    <text x="1291502.05" y="4074828.00" font-size="80000">Gateway / Adobe I/O</text>
-    <text x="1853325.00" y="3629185.00" font-size="80000">Cloud Apps/ 3 rd  Party</text>
-    <text x="1853325.00" y="4852989.00" font-size="80000">Enterprise Sources</text>
-    <text x="1830930.45" y="5848504.00" font-size="80000">Audit Logs</text>
-    <text x="2011526.75" y="3892772.07" font-size="91904">Query Service</text>
-    <text x="4910996.10" y="4365939.00" font-size="80000">Streaming Segmentation</text>
-    <text x="2490536.45" y="5848504.00" font-size="80000">Alerts</text>
-    <text x="1830930.45" y="6062816.00" font-size="80000">Access   Controls</text>
-    <text x="2490536.45" y="6062816.00" font-size="80000">Sandboxing</text>
-    <text x="4910996.05" y="4658833.00" font-size="80000">Batch Segmentation</text>
-    <text x="4910996.10" y="4943260.00" font-size="80000">Audience Composition</text>
-    <text x="6094063.00" y="2818077.00" font-size="220000">Journey Optimizer</text>
-    <text x="6889231.10" y="2832375.00" font-size="80000">Journeys</text>
-    <text x="6889231.10" y="3055022.00" font-size="80000">Decision   Mgt .</text>
-    <text x="6889231.10" y="3277669.00" font-size="80000">Message   Exec .</text>
-    <text x="6060714.85" y="4453282.00" font-size="142240">Real-Time  CDP</text>
-    <text x="730500.60" y="6193047.00" font-size="80000">Ingress Data Flow</text>
-    <text x="745672.70" y="6315953.00" font-size="80000">Intra System Data Flow</text>
-    <text x="732686.60" y="6443772.00" font-size="80000">Egress Data Flow</text>
-    <text x="384764.00" y="6065230.00" font-size="80000">Diagram Key</text>
-    <text x="8530628.00" y="2876865.00" font-size="80000">Code-based</text>
-    <text x="8512910.00" y="2997375.00" font-size="80000">&lt;/&gt;</text>
-    <text x="8199451.90" y="5126686.93" font-size="103039">Journey Reporting Dashboards         Analysis</text>
-    <text x="6060714.85" y="4410904.67" font-size="106926">Mix Modeler</text>
-    <text x="4919463.10" y="5231128.00" font-size="80000">Federated Audience Composition</text>
-    <text x="5157739.35" y="6034139.00" font-size="80000">Raw Data</text>
-    <text x="8199450.90" y="5833391.67" font-size="112889">Marketing Performance Reporting Dashboards         Analysis</text>
-    <text x="453979.20" y="5520987.00" font-size="80000">External Data Warehouse</text>
+  <g id="labels" font-family="system-ui,Segoe UI,Arial,sans-serif">
+    <text font-size="203200" fill="#2C2C2C"><tspan x="9902825.00" y="843280.00">Adobe Experience Platform is a powerful, flexible, open, and centralized data foundation that collects, standardizes, governs, applies AI insights to, and unifies data to offer thoughtful and relevant digital customer experiences.</tspan></text>
+    <text font-size="88900" fill="#2C2C2C"><tspan x="8135204.00" y="2297774.00">Inbound Experiences</tspan></text>
+    <text font-size="88900" fill="#2C2C2C"><tspan x="8138160.00" y="3327156.00">Message Delivery</tspan></text>
+    <text font-size="101600" fill="#2C2C2C"><tspan x="1552534.00" y="2313537.00">Adobe Experience Platform</tspan></text>
+    <text font-size="65837" fill="#000000"><tspan x="266267.00" y="1206748.80">DATA COLLECTION</tspan></text>
+    <text font-size="65837" fill="#000000"><tspan x="2827942.00" y="1206748.80">PROFILE &amp; DATA MANGEMENT</tspan></text>
+    <text font-size="65837" fill="#000000"><tspan x="6071602.00" y="1206748.80">EXPERIENCE DECISIONING</tspan></text>
+    <text font-size="65837" fill="#000000"><tspan x="7576954.00" y="1206748.80">CUSTOMER ENGAGEMENT</tspan></text>
+    <text transform="rotate(-90 4428198.50 3981937.00)" font-size="88900" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle" x="4428198.50" y="3981937.00">Pipeline</text>
+    <text font-size="88900" fill="#FFFFFF"><tspan x="4517571.00" y="3819452.00">Identity Graph</tspan></text>
+    <text font-size="101600" fill="#FFFFFF"><tspan x="4563291.00" y="3110778.00">Real-Time</tspan><tspan x="4563291.00" dy="119888.00">Customer</tspan><tspan x="4563291.00" dy="119888.00">Profile</tspan></text>
+    <text font-size="101600" fill="#FFFFFF"><tspan x="2973977.00" y="3609008.00">Data Lake</tspan><tspan x="2973977.00" dy="119888.00">(Raw Profile Data)</tspan></text>
+    <text font-size="95250" fill="#000000"><tspan x="3019697.00" y="3978405.00">Data Governance</tspan></text>
+    <text font-size="95250" fill="#FFFFFF"><tspan x="2016804.00" y="3291818.00">Streaming Data Collection</tspan></text>
+    <text font-size="95250" fill="#000000"><tspan x="2064672.00" y="4437008.00">Intelligence &amp; AI</tspan></text>
+    <text font-size="95250" fill="#FFFFFF"><tspan x="2019084.00" y="5019871.00">Batch</tspan><tspan x="2019084.00" dy="112395.00">Data Collection</tspan></text>
+    <text font-size="65837" fill="#000000"><tspan x="274319.00" y="2967161.80">SDK</tspan></text>
+    <text font-size="88900" fill="#000000"><tspan x="274319.00" y="5590183.00">ETL Ecosystem</tspan></text>
+    <text font-size="95250" fill="#FFFFFF"><tspan x="2114645.00" y="1775210.00">Edge Network &amp; Edge Profile</tspan></text>
+    <text font-size="45954" fill="#2C2C2C"><tspan x="7185834.00" y="2681583.76">Content</tspan></text>
+    <text font-size="95250" fill="#2C2C2C"><tspan x="6753409.00" y="1725054.00">Creative Cloud</tspan></text>
+    <text font-size="95250" fill="#FFFFFF"><tspan x="7075597.00" y="2335047.00">AEM Assets</tspan><tspan x="7075597.00" dy="112395.00">Essentials</tspan></text>
+    <text font-size="95250" fill="#FFFFFF"><tspan x="6131843.00" y="5320939.00">Customer Journey Analytics</tspan></text>
+    <text font-size="68930" fill="#000000"><tspan x="8230096.00" y="2762390.40">Desktop</tspan></text>
+    <text font-size="68930" fill="#000000"><tspan x="8708780.00" y="2762390.40">Mobile</tspan></text>
+    <text font-size="68930" fill="#000000"><tspan x="8248758.00" y="4167562.40">SMS</tspan></text>
+    <text font-size="68930" fill="#000000"><tspan x="8727442.00" y="4167562.40">Direct Mail</tspan></text>
+    <text font-size="68930" fill="#000000"><tspan x="8248758.00" y="3778928.40">Email</tspan></text>
+    <text font-size="68930" fill="#000000"><tspan x="8727442.00" y="3778928.40">Mobile</tspan></text>
+    <text font-size="88900" fill="#2C2C2C"><tspan x="8135205.00" y="4488998.00">Paid Media</tspan><tspan x="8135205.00" dy="104902.00">Display         Social</tspan></text>
+    <text font-size="101600" fill="#FFFFFF"><tspan x="274319.00" y="1847669.00">Tags</tspan><tspan x="274319.00" dy="119888.00">(Client Side)</tspan></text>
+    <text font-size="63500" fill="#2C2C2C"><tspan x="1067715.00" y="5121968.00">Batch Data</tspan><tspan x="1067715.00" dy="74930.00">(API, Connectors)</tspan></text>
+    <text font-size="63500" fill="#2C2C2C"><tspan x="1067715.00" y="3518790.00">Streaming Data</tspan><tspan x="1067715.00" dy="74930.00">(SDK, API)</tspan></text>
+    <text font-size="45954" fill="#2C2C2C"><tspan x="3337929.00" y="6469914.76">Gateway / Adobe I/O</tspan></text>
+    <text font-size="63500" fill="#2C2C2C"><tspan x="6266817.00" y="3275766.00">Profile</tspan><tspan x="6266817.00" dy="74930.00">Lookup</tspan></text>
+    <text font-size="63500" fill="#2C2C2C"><tspan x="5147069.00" y="5661279.00">Raw Data</tspan></text>
+    <text font-size="45954" fill="#2C2C2C"><tspan x="4995661.00" y="2885492.76">Events</tspan></text>
+    <text font-size="63500" fill="#2C2C2C"><tspan x="6227150.00" y="4345795.00">Profile</tspan><tspan x="6227150.00" dy="74930.00">Activation</tspan></text>
+    <text font-size="45954" fill="#2C2C2C"><tspan x="4899528.00" y="4191480.76">Profiles</tspan></text>
+    <text font-size="63500" fill="#2C2C2C"><tspan x="5499987.00" y="4154159.00">Audience</tspan><tspan x="5499987.00" dy="74930.00">Membership</tspan></text>
+    <text font-size="45954" fill="#2C2C2C"><tspan x="1262781.00" y="4116221.76">Gateway / Adobe I/O</tspan></text>
+    <text font-size="88900" fill="#000000"><tspan x="1830465.00" y="3713525.00">Cloud Apps/ 3rd Party</tspan></text>
+    <text font-size="88900" fill="#000000"><tspan x="1830465.00" y="4937329.00">Enterprise Sources</tspan></text>
+    <text font-size="63500" fill="#FFFFFF"><tspan x="1891256.00" y="5907444.00">Audit Logs</tspan></text>
+    <text font-size="95250" fill="#000000"><tspan x="2064672.00" y="3969177.00">Query Service</tspan></text>
+    <text font-size="95250" fill="#000000"><tspan x="4864224.00" y="4456629.00">Streaming Segmentation</tspan></text>
+    <text font-size="63500" fill="#FFFFFF"><tspan x="2550862.00" y="5907444.00">Alerts</tspan></text>
+    <text font-size="63500" fill="#FFFFFF"><tspan x="1891256.00" y="6121756.00">Access Controls</tspan></text>
+    <text font-size="63500" fill="#FFFFFF"><tspan x="2550862.00" y="6121756.00">Sandboxing</tspan></text>
+    <text font-size="95250" fill="#000000"><tspan x="4864224.00" y="4749523.00">Batch Segmentation</tspan></text>
+    <text font-size="95250" fill="#000000"><tspan x="4864224.00" y="5033950.00">Audience Composition</tspan></text>
+    <text font-size="95250" fill="#FFFFFF"><tspan x="6144355.00" y="2740767.00">Journey Optimizer</tspan></text>
+    <text font-size="85256" fill="#000000"><tspan x="6941773.00" y="2913071.16">Journeys</tspan></text>
+    <text font-size="85256" fill="#000000"><tspan x="6941773.00" y="3135718.16">Decision Mgt.</tspan></text>
+    <text font-size="85256" fill="#000000"><tspan x="6941773.00" y="3358365.16">Message Exec.</tspan></text>
+    <text font-size="95250" fill="#FFFFFF"><tspan x="6110767.00" y="4469284.00">Real-Time </tspan><tspan x="6110767.00" dy="112395.00">CDP</tspan></text>
+    <text font-size="34869" fill="#2C2C2C"><tspan x="693582.00" y="6223355.64">Ingress Data Flow</tspan></text>
+    <text font-size="30804" fill="#2C2C2C"><tspan x="697133.00" y="6342197.48">Intra System Data Flow</tspan></text>
+    <text font-size="34869" fill="#2C2C2C"><tspan x="695768.00" y="6474080.64">Egress Data Flow</tspan></text>
+    <text font-size="42209" fill="#2C2C2C"><tspan x="348091.00" y="6102879.28">Diagram Key</tspan></text>
+    <text font-size="65837" fill="#000000"><tspan x="8507768.00" y="2938141.80">Code-based</tspan></text>
+    <text font-size="65837" fill="#000000"><tspan x="8490050.00" y="3058651.80">&lt;/&gt;</tspan></text>
+    <text font-size="88900" fill="#2C2C2C"><tspan x="8142094.00" y="5183380.00">Journey Reporting</tspan><tspan x="8142094.00" dy="104902.00">Dashboards         Analysis</tspan></text>
+    <text font-size="95250" fill="#FFFFFF"><tspan x="6110767.00" y="4469284.00">Mix Modeler</tspan></text>
+    <text font-size="95250" fill="#000000"><tspan x="4872691.00" y="5321818.00">Federated Audience Composition</tspan></text>
+    <text font-size="63500" fill="#2C2C2C"><tspan x="5138592.00" y="6093079.00">Raw Data</tspan></text>
+    <text font-size="88900" fill="#2C2C2C"><tspan x="8142093.00" y="5878265.00">Marketing Performance Reporting</tspan><tspan x="8142093.00" dy="104902.00">Dashboards         Analysis</tspan></text>
+    <text font-size="88900" fill="#000000"><tspan x="430045.00" y="5605327.00">External Data Warehouse</tspan></text>
   </g>
 </svg>

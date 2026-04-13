@@ -147,17 +147,113 @@ def line_style(sp_pr: ET.Element) -> Tuple[Optional[str], float]:
     return "#888888", w
 
 
-def extract_text(sp_el: ET.Element) -> str:
-    parts: List[str] = []
+def parse_scheme_color(scheme_el: ET.Element) -> Optional[str]:
+    """Map a:schemeClr @val to an approximate sRGB hex (theme not loaded)."""
+    v = scheme_el.get("val", "")
+    # Light backgrounds / text on dark
+    if v in ("lt1", "bg1", "lt2", "bg2"):
+        return "#FFFFFF"
+    if v in ("dk1", "tx1"):
+        return "#1A1A1A"
+    if v in ("dk2", "tx2"):
+        return "#2C2C2C"
+    if v.startswith("accent"):
+        return "#1A1A1A"
+    return "#2C2C2C"
+
+
+def parse_rpr_color(rpr: ET.Element) -> Optional[str]:
+    if rpr is None:
+        return None
+    solid = rpr.find("a:solidFill", NS)
+    if solid is None:
+        return None
+    srgb = solid.find("a:srgbClr", NS)
+    if srgb is not None and "val" in srgb.attrib:
+        return "#" + srgb.attrib["val"]
+    sch = solid.find("a:schemeClr", NS)
+    if sch is not None:
+        return parse_scheme_color(sch)
+    return None
+
+
+def sz_hundredths_pt_to_emu(sz: str) -> float:
+    """OOXML sz is in 1/100 pt."""
+    return float(sz) / 100.0 * EMU_PER_PT
+
+
+def extract_text_meta(sp_el: ET.Element) -> dict:
+    """
+    Walk p:txBody in document order: paragraphs, br, runs.
+    Returns text (newlines preserved), optional fill, font size in EMU, bodyPr vert.
+    """
     tx = sp_el.find("p:txBody", NS) or sp_el.find(q("p", "txBody"))
     if tx is None:
-        return ""
-    for t in tx.iter():
-        if local(t.tag) == "t" and t.text:
-            parts.append(t.text)
-        elif local(t.tag) == "t" and not t.text and (t.text is None):
-            continue
-    return " ".join(parts).strip()
+        return {
+            "text": "",
+            "fill": None,
+            "font_size_emu": None,
+            "vert": "horz",
+            "l_ins": 91440,
+            "t_ins": 91440,
+        }
+
+    body = tx.find("a:bodyPr", NS)
+    vert = "horz"
+    l_ins = t_ins = 91440
+    if body is not None:
+        vert = body.get("vert", "horz") or "horz"
+        l_ins = int(float(body.get("lIns", "91440")))
+        t_ins = int(float(body.get("tIns", "91440")))
+
+    paras: List[str] = []
+    first_fill: Optional[str] = None
+    first_sz_emu: Optional[float] = None
+
+    for p in tx.findall("a:p", NS):
+        line_chunks: List[str] = []
+        for child in list(p):
+            ctag = local(child.tag)
+            if ctag == "r":
+                rpr = child.find("a:rPr", NS)
+                if rpr is not None:
+                    if first_sz_emu is None and rpr.get("sz"):
+                        first_sz_emu = sz_hundredths_pt_to_emu(rpr.get("sz", "1100"))
+                    if first_fill is None:
+                        fc = parse_rpr_color(rpr)
+                        if fc:
+                            first_fill = fc
+                for t in child.iter():
+                    if local(t.tag) == "t":
+                        if t.text:
+                            line_chunks.append(t.text)
+                        if t.tail:
+                            line_chunks.append(t.tail)
+            elif ctag == "br":
+                line_chunks.append("\n")
+        paras.append("".join(line_chunks))
+        epr = p.find("a:endParaRPr", NS)
+        if epr is not None:
+            if first_sz_emu is None and epr.get("sz"):
+                first_sz_emu = sz_hundredths_pt_to_emu(epr.get("sz", "1100"))
+            if first_fill is None:
+                fc = parse_rpr_color(epr)
+                if fc:
+                    first_fill = fc
+
+    text = "\n".join(paras).strip()
+    return {
+        "text": text,
+        "fill": first_fill,
+        "font_size_emu": first_sz_emu,
+        "vert": vert,
+        "l_ins": l_ins,
+        "t_ins": t_ins,
+    }
+
+
+def extract_text(sp_el: ET.Element) -> str:
+    return extract_text_meta(sp_el)["text"]
 
 
 def preset_geom_name(sp_pr: ET.Element) -> Optional[str]:
@@ -190,6 +286,30 @@ def cxn_line_points(
     return x1, y1, x2, y2
 
 
+def default_text_font_emu(w: float, h: float, text: str) -> float:
+    """When OOXML has no sz, scale from box (EMU)."""
+    lines = max(1, text.count("\n") + 1)
+    per_line = h / (lines + 0.5)
+    by_w = w / max(len(text.replace("\n", "")) * 0.55, 4.0)
+    fs = min(per_line * 0.85, by_w * 1.1, h * 0.22)
+    return max(24000.0, min(fs, 320000.0))
+
+
+def text_fill_fallback(shape_fill: Optional[str]) -> str:
+    """Dark text on light fills, light text on dark fills."""
+    if not shape_fill or shape_fill.lower() in ("none", "#ffffff", "#fff"):
+        return "#1a1d21"
+    hx = shape_fill.lstrip("#")
+    if len(hx) != 6:
+        return "#1a1d21"
+    try:
+        r, g, b = int(hx[0:2], 16), int(hx[2:4], 16), int(hx[4:6], 16)
+    except ValueError:
+        return "#1a1d21"
+    lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
+    return "#f5f5f5" if lum < 0.42 else "#1a1d21"
+
+
 def walk_sp_tree(
     node: ET.Element,
     groups: List[GroupXfrm],
@@ -220,8 +340,8 @@ def walk_sp_tree(
         sp_pr = node.find("p:spPr", NS) or node.find(q("p", "spPr"))
         fill = solid_fill_color(sp_pr) if sp_pr is not None else None
         prst = preset_geom_name(sp_pr) if sp_pr is not None else None
-        text = extract_text(node)
-        emit_rect(sx, sy, sw, sh, fill, prst, text)
+        meta = extract_text_meta(node)
+        emit_rect(sx, sy, sw, sh, fill, prst, meta)
         return
 
     if tag == "cxnSp":
@@ -256,7 +376,6 @@ def pptx_slide_to_svg(zpath: str, slide_1based: int, skip_pics: bool = True) -> 
 
     rects: List[dict] = []
     lines: List[dict] = []
-    labels: List[dict] = []
 
     def emit_rect(
         x: float,
@@ -265,15 +384,27 @@ def pptx_slide_to_svg(zpath: str, slide_1based: int, skip_pics: bool = True) -> 
         h: float,
         fill: Optional[str],
         prst: Optional[str],
-        text: str,
+        meta: dict,
     ) -> None:
         if w < 1 and h < 1:
             return
+        text = meta.get("text", "")
         rects.append(
-            {"x": x, "y": y, "w": w, "h": h, "fill": fill, "prst": prst, "text": text}
+            {
+                "x": x,
+                "y": y,
+                "w": w,
+                "h": h,
+                "fill": fill,
+                "prst": prst,
+                "text": text,
+                "text_fill": meta.get("fill"),
+                "font_size_emu": meta.get("font_size_emu"),
+                "vert": meta.get("vert", "horz"),
+                "l_ins": meta.get("l_ins", 91440),
+                "t_ins": meta.get("t_ins", 91440),
+            }
         )
-        if text and w > 20000 and h > 8000:
-            labels.append({"x": x, "y": y, "w": w, "h": h, "text": text})
 
     def emit_line(
         x1: float,
@@ -329,13 +460,54 @@ def pptx_slide_to_svg(zpath: str, slide_1based: int, skip_pics: bool = True) -> 
             f'fill="{html.escape(fill)}" stroke="{stroke}" stroke-width="9525" opacity="0.95"/>'
         )
     out.append("  </g>")
-    out.append('  <g id="labels" font-family="system-ui,Segoe UI,Arial,sans-serif" fill="#111111">')
-    for lb in labels:
-        tx = html.escape(lb["text"][:200])
-        # crude font size from box height
-        fs = max(80000, min(lb["h"] / 4.5, 220000))
+    out.append(
+        '  <g id="labels" font-family="system-ui,Segoe UI,Arial,sans-serif">'
+    )
+    for r in rects:
+        raw = (r.get("text") or "").strip()
+        if not raw:
+            continue
+        x, y, w, h = r["x"], r["y"], r["w"], r["h"]
+        if w < 2500 or h < 2000:
+            continue
+        if r.get("font_size_emu") is not None:
+            fs = float(r["font_size_emu"])
+        else:
+            fs = default_text_font_emu(w, h, raw)
+        fs = max(22000.0, min(fs, min(w, h) * 0.48))
+        tfill = r.get("text_fill") or text_fill_fallback(r.get("fill"))
+        vert = r.get("vert") or "horz"
+        l_ins = float(r.get("l_ins", 91440))
+        t_ins = float(r.get("t_ins", 91440))
+        lines = raw.split("\n")
+        cx = x + w / 2.0
+        cy = y + h / 2.0
+
+        if vert in ("vert", "vert270", "eaVert", "mongolianVert", "wordArtVert"):
+            # One dominant use: vertical caption along a narrow box (e.g. "Pipeline")
+            line0 = lines[0][:500]
+            out.append(
+                f'    <text transform="rotate(-90 {cx:.2f} {cy:.2f})" font-size="{fs:.0f}" '
+                f'fill="{html.escape(tfill)}" text-anchor="middle" dominant-baseline="middle" '
+                f'x="{cx:.2f}" y="{cy:.2f}">{html.escape(line0)}</text>'
+            )
+            continue
+
+        lh = fs * 1.18
+        y0 = y + t_ins + fs
+        parts: List[str] = []
+        for i, line in enumerate(lines[:30]):
+            frag = line[:800]
+            if i == 0:
+                parts.append(
+                    f'<tspan x="{x + l_ins:.2f}" y="{y0:.2f}">{html.escape(frag)}</tspan>'
+                )
+            else:
+                parts.append(
+                    f'<tspan x="{x + l_ins:.2f}" dy="{lh:.2f}">{html.escape(frag)}</tspan>'
+                )
         out.append(
-            f'    <text x="{lb["x"] + lb["w"] * 0.05:.2f}" y="{lb["y"] + fs * 1.2:.2f}" font-size="{fs:.0f}">{tx}</text>'
+            f'    <text font-size="{fs:.0f}" fill="{html.escape(tfill)}">{"".join(parts)}</text>'
         )
     out.append("  </g>")
     out.append("</svg>")
