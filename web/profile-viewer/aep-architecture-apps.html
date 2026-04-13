@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260420">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260421">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -81,8 +81,8 @@
             <!-- Flow layer (under nodes) -->
             <g id="layer-flows" fill="none" stroke-width="2.2">
               <path id="flow-tags-edge" class="arch-flow" d="M 133 128 L 133 96 L 440 96 L 440 58"/>
-              <path id="flow-sources-stream" class="arch-flow" d="M 132 198 L 163 198 L 163 200 L 262 200"/>
-              <path id="flow-sources-batch" class="arch-flow" d="M 132 278 L 210 278 L 210 252 L 262 252"/>
+              <path id="flow-sources-stream" class="arch-flow" d="M 132 218 L 163 218 L 163 200 L 262 200"/>
+              <path id="flow-sources-batch" class="arch-flow" d="M 132 296 L 210 296 L 210 252 L 262 252"/>
               <path id="flow-stream-lake" class="arch-flow" d="M 418 244 L 435 244 L 435 356 L 418 356"/>
               <path id="flow-batch-lake" class="arch-flow" d="M 418 296 L 435 296 L 435 356 L 418 356"/>
               <path id="flow-lake-pipeline" class="arch-flow" d="M 418 384 L 455 384 L 455 308"/>
@@ -123,16 +123,18 @@
             </g>
 
             <g id="node-sources" class="arch-node">
-              <rect x="18" y="136" width="228" height="200" rx="4" fill="#f9fafb" stroke="#d1d5db"/>
-              <path d="M 24 152 h8 v5 h-8 z M 26 154 h4" fill="none" stroke="#6b7280" stroke-width="0.8"/>
-              <rect x="32" y="152" width="5" height="7" rx="0.8" fill="none" stroke="#6b7280" stroke-width="0.8"/>
-              <text x="40" y="158" class="arch-node-sublabel">SDK</text>
-              <path d="M 24 172 a3 3 0 1 1 6 0 v4 h-6 z" fill="none" stroke="#6b7280" stroke-width="0.7"/>
-              <text x="40" y="178" class="arch-node-sublabel">Cloud Apps / 3rd Party</text>
-              <text x="24" y="196" class="arch-node-sublabel">Enterprise Sources</text>
-              <rect x="24" y="204" width="10" height="8" rx="1" fill="none" stroke="#6b7280" stroke-width="0.7"/>
-              <text x="40" y="210" class="arch-node-sublabel">ETL Ecosystem</text>
-              <text x="24" y="228" class="arch-node-sublabel">External Data Warehouse</text>
+              <rect x="18" y="136" width="228" height="216" rx="4" fill="#f9fafb" stroke="#d1d5db"/>
+              <!-- SDK: 84px wide; height from content; label centered above icons; laptop left, phone right -->
+              <rect x="90" y="144" width="84" height="34" rx="3" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="132" y="154" text-anchor="middle" class="arch-node-sublabel">SDK</text>
+              <image href="images/smock-device-laptop-18.svg" x="92" y="160" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
+              <image href="images/smock-device-phone-18.svg" x="154" y="160" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
+              <path d="M 24 188 a3 3 0 1 1 6 0 v4 h-6 z" fill="none" stroke="#6b7280" stroke-width="0.7"/>
+              <text x="40" y="194" class="arch-node-sublabel">Cloud Apps / 3rd Party</text>
+              <text x="24" y="212" class="arch-node-sublabel">Enterprise Sources</text>
+              <rect x="24" y="220" width="10" height="8" rx="1" fill="none" stroke="#6b7280" stroke-width="0.7"/>
+              <text x="40" y="226" class="arch-node-sublabel">ETL Ecosystem</text>
+              <text x="24" y="244" class="arch-node-sublabel">External Data Warehouse</text>
             </g>
 
             <g id="node-streaming" class="arch-node">
@@ -312,6 +314,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="aep-architecture-apps.js?v=20260420"></script>
+  <script defer src="aep-architecture-apps.js?v=20260421"></script>
 </body>
 </html>
