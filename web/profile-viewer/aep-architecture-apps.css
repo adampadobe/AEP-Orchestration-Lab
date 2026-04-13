@@ -279,3 +279,7 @@ html[data-aep-theme='dark'] .arch-int-hud {
   fill: #1473e6;
   stroke: #1473e6;
 }
+
+.arch-node.is-highlighted .arch-src-ico rect {
+  fill: #1473e6;
+}
