@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260419">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260420">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -80,9 +80,9 @@
 
             <!-- Flow layer (under nodes) -->
             <g id="layer-flows" fill="none" stroke-width="2.2">
-              <path id="flow-tags-edge" class="arch-flow" d="M 132 278 L 132 96 L 440 96 L 440 58"/>
-              <path id="flow-sources-stream" class="arch-flow" d="M 132 348 L 163 348 L 163 200 L 262 200"/>
-              <path id="flow-sources-batch" class="arch-flow" d="M 132 428 L 210 428 L 210 252 L 262 252"/>
+              <path id="flow-tags-edge" class="arch-flow" d="M 133 128 L 133 96 L 440 96 L 440 58"/>
+              <path id="flow-sources-stream" class="arch-flow" d="M 132 198 L 163 198 L 163 200 L 262 200"/>
+              <path id="flow-sources-batch" class="arch-flow" d="M 132 278 L 210 278 L 210 252 L 262 252"/>
               <path id="flow-stream-lake" class="arch-flow" d="M 418 244 L 435 244 L 435 356 L 418 356"/>
               <path id="flow-batch-lake" class="arch-flow" d="M 418 296 L 435 296 L 435 356 L 418 356"/>
               <path id="flow-lake-pipeline" class="arch-flow" d="M 418 384 L 455 384 L 455 308"/>
@@ -114,25 +114,25 @@
               <text x="291" y="132" class="arch-node-label" font-size="9px">Adobe Experience Platform</text>
             </g>
 
-            <!-- Tags: square card (228×228 svg units; 524×524 requested but exceeds diagram viewBox / column width) -->
+            <!-- Tags: 76×76 (⅓ of prior 228×228); logo 34×34; labels centered -->
             <g id="node-tags" class="arch-node">
-              <rect x="18" y="50" width="228" height="228" rx="8" fill="#111827" stroke="#000000"/>
-              <image href="images/adobe-experience-platform-logo-tags.png" x="82" y="64" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
-              <text x="132" y="198" text-anchor="middle" class="arch-node-label-inv" font-size="9px">Tags</text>
-              <text x="132" y="214" text-anchor="middle" class="arch-node-sublabel-inv">Client Side</text>
+              <rect x="95" y="52" width="76" height="76" rx="6" fill="#111827" stroke="#000000"/>
+              <image href="images/adobe-experience-platform-logo-tags.png" x="116" y="58" width="34" height="34" preserveAspectRatio="xMidYMid meet"/>
+              <text x="133" y="100" text-anchor="middle" class="arch-node-label-inv" font-size="6.5px">Tags</text>
+              <text x="133" y="112" text-anchor="middle" class="arch-node-sublabel-inv" font-size="5px">(Client Side)</text>
             </g>
 
             <g id="node-sources" class="arch-node">
-              <rect x="18" y="286" width="228" height="200" rx="4" fill="#f9fafb" stroke="#d1d5db"/>
-              <path d="M 24 302 h8 v5 h-8 z M 26 304 h4" fill="none" stroke="#6b7280" stroke-width="0.8"/>
-              <rect x="32" y="302" width="5" height="7" rx="0.8" fill="none" stroke="#6b7280" stroke-width="0.8"/>
-              <text x="40" y="308" class="arch-node-sublabel">SDK</text>
-              <path d="M 24 322 a3 3 0 1 1 6 0 v4 h-6 z" fill="none" stroke="#6b7280" stroke-width="0.7"/>
-              <text x="40" y="328" class="arch-node-sublabel">Cloud Apps / 3rd Party</text>
-              <text x="24" y="346" class="arch-node-sublabel">Enterprise Sources</text>
-              <rect x="24" y="354" width="10" height="8" rx="1" fill="none" stroke="#6b7280" stroke-width="0.7"/>
-              <text x="40" y="360" class="arch-node-sublabel">ETL Ecosystem</text>
-              <text x="24" y="378" class="arch-node-sublabel">External Data Warehouse</text>
+              <rect x="18" y="136" width="228" height="200" rx="4" fill="#f9fafb" stroke="#d1d5db"/>
+              <path d="M 24 152 h8 v5 h-8 z M 26 154 h4" fill="none" stroke="#6b7280" stroke-width="0.8"/>
+              <rect x="32" y="152" width="5" height="7" rx="0.8" fill="none" stroke="#6b7280" stroke-width="0.8"/>
+              <text x="40" y="158" class="arch-node-sublabel">SDK</text>
+              <path d="M 24 172 a3 3 0 1 1 6 0 v4 h-6 z" fill="none" stroke="#6b7280" stroke-width="0.7"/>
+              <text x="40" y="178" class="arch-node-sublabel">Cloud Apps / 3rd Party</text>
+              <text x="24" y="196" class="arch-node-sublabel">Enterprise Sources</text>
+              <rect x="24" y="204" width="10" height="8" rx="1" fill="none" stroke="#6b7280" stroke-width="0.7"/>
+              <text x="40" y="210" class="arch-node-sublabel">ETL Ecosystem</text>
+              <text x="24" y="228" class="arch-node-sublabel">External Data Warehouse</text>
             </g>
 
             <g id="node-streaming" class="arch-node">
@@ -312,6 +312,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="aep-architecture-apps.js?v=20260419"></script>
+  <script defer src="aep-architecture-apps.js?v=20260420"></script>
 </body>
 </html>
