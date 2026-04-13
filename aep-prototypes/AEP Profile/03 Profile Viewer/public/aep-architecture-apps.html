@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEP & Apps – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260411">
+  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260428">
+</head>
+<body class="home-dashboard-concierge arch-apps-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP & Apps</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Architecture reference">Architecture</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Platform docs</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="archAppsBannerHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="archAppsBannerHeading" class="dashboard-hero-title">Adobe Experience Platform &amp; applications</h2>
+              <p class="dashboard-hero-subtitle">
+                Walk through the reference architecture and narrative from the AEP Architecture deck—data collection, profile, decisioning, and engagement—at your own pace.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="dashboard-hero arch-apps-deck-wrap" aria-labelledby="archAppsSlideTitle">
+          <div id="archAppsLive" class="visually-hidden" aria-live="polite"></div>
+          <div class="arch-apps-deck">
+            <div class="arch-apps-slide-text">
+              <h3 class="arch-apps-slide-h2" id="archAppsSlideTitle">Adobe Experience Platform &amp; Applications</h3>
+              <div class="arch-apps-slide-body" id="archAppsSlideBody"></div>
+            </div>
+            <figure class="arch-apps-figure">
+              <img
+                src="images/aep-architecture-slide-diagram.png"
+                width="8478"
+                height="2122"
+                alt="Reference diagram: Adobe Experience Platform with data collection, profile, decisioning, customer engagement, and natively built applications."
+                loading="lazy"
+                decoding="async"
+              />
+              <figcaption class="arch-apps-figcaption">
+                Reference architecture (as in the source deck). The same diagram accompanies each slide in the original presentation; copy updates above while the visual anchor stays consistent.
+              </figcaption>
+            </figure>
+            <nav class="arch-apps-nav" aria-label="Slide navigation">
+              <div class="arch-apps-nav-buttons">
+                <button type="button" class="dashboard-btn-outline" id="archAppsPrev">Previous</button>
+                <button type="button" class="dashboard-btn-outline" id="archAppsNext">Next</button>
+              </div>
+              <span class="arch-apps-counter" id="archAppsCounter" aria-hidden="true">1 / 16</span>
+            </nav>
+          </div>
+          <p class="arch-apps-footnote">
+            Content reconstructed from the Adobe <strong>AEP Architecture</strong> presentation used in AJO conversation decks. Diagram asset extracted from the source <code class="dashboard-code">.pptx</code> for this viewer.
+          </p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <style>
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+  <script defer src="aep-theme.js?v=20260406"></script>
+  <script defer src="aep-lab-nav.js?v=20260428"></script>
+  <script defer src="aep-architecture-apps.js?v=20260428"></script>
+</body>
+</html>

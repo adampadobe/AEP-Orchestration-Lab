@@ -48,6 +48,17 @@
       ],
     },
     {
+      group: 'Architecture', id: 'architecture',
+      items: [
+        {
+          label: 'AEP & Apps',
+          href: 'aep-architecture-apps.html',
+          ico:
+            '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M3 14.5h12v2H3v-2zm0-4.5h12v2H3v-2zm0-4.5h12v2H3v-2z"/><path fill="currentColor" d="M4 2.5h10a1 1 0 011 1v2H3v-2a1 1 0 011-1z" opacity="0.45"/></svg>',
+        },
+      ],
+    },
+    {
       group: 'Demos', id: 'demos',
       items: [
         { label: 'Donate (demo)', href: 'donate-demo.html', ico: '\uD83D\uDC9D' },

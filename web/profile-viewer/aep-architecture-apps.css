@@ -1,0 +1,99 @@
+/* AEP & Apps deck — uses dashboard / aep-theme tokens */
+
+.arch-apps-page .arch-apps-deck-wrap {
+  max-width: 56rem;
+  margin: 0 auto;
+}
+
+.arch-apps-page .arch-apps-deck {
+  background: var(--dash-surface, #fff);
+  border: 1px solid var(--dash-border, #e4e6eb);
+  border-radius: 12px;
+  padding: 1.25rem 1.35rem 1.5rem;
+  box-shadow: var(--dash-shadow, 0 2px 10px rgba(15, 23, 42, 0.06));
+}
+
+.arch-apps-page .arch-apps-slide-text {
+  margin-bottom: 1.25rem;
+}
+
+.arch-apps-page .arch-apps-slide-h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--dash-text, #1a1d21);
+  margin: 0 0 0.75rem;
+  line-height: 1.35;
+}
+
+.arch-apps-page .arch-apps-slide-body {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--dash-text-secondary, #3d4450);
+}
+
+.arch-apps-page .arch-apps-slide-p {
+  margin: 0 0 0.85rem;
+}
+
+.arch-apps-page .arch-apps-slide-p:last-child {
+  margin-bottom: 0;
+}
+
+.arch-apps-page .arch-apps-figure {
+  margin: 0;
+  padding: 0.75rem;
+  background: var(--dash-surface-alt, #f6f7f9);
+  border: 1px solid var(--dash-border, #e4e6eb);
+  border-radius: 10px;
+}
+
+.arch-apps-page .arch-apps-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.arch-apps-page .arch-apps-figcaption {
+  margin-top: 0.6rem;
+  font-size: 0.75rem;
+  color: var(--dash-muted, #6b7280);
+  line-height: 1.45;
+}
+
+.arch-apps-page .arch-apps-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--dash-border, #e4e6eb);
+}
+
+.arch-apps-page .arch-apps-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.arch-apps-page .arch-apps-counter {
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-apps-page .arch-apps-footnote {
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--dash-muted, #6b7280);
+  line-height: 1.5;
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+html[data-aep-theme='dark'] .arch-apps-page .arch-apps-deck {
+  box-shadow: var(--dash-shadow, 0 2px 14px rgba(0, 0, 0, 0.35));
+}
