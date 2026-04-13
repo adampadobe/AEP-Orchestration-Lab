@@ -236,13 +236,20 @@ html[data-aep-theme='dark'] .arch-int-hud {
   gap: 0.5rem 0.75rem;
 }
 
-/* Sources panel — compact vertical stack (reusable pattern for architecture boxes) */
+/* Sources panel — narrow column: SDK header (centered) + body rows (icon axis | label axis) */
 .arch-sources-shell {
   transition: stroke 0.25s ease, filter 0.25s ease;
 }
 
-.arch-sources-row {
-  transition: fill 0.2s ease;
+.arch-sources-sdk .arch-src-sdk-title {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 6.25px;
+  font-weight: 600;
+  fill: #374151;
+}
+
+.arch-sources-sep {
+  vector-effect: non-scaling-stroke;
 }
 
 .arch-src-lbl {
@@ -250,11 +257,6 @@ html[data-aep-theme='dark'] .arch-int-hud {
   font-size: 5.5px;
   font-weight: 500;
   fill: #374151;
-}
-
-.arch-src-lbl--strong {
-  font-size: 6px;
-  font-weight: 600;
 }
 
 .arch-src-ico {
@@ -268,8 +270,8 @@ html[data-aep-theme='dark'] .arch-int-hud {
   filter: drop-shadow(0 0 6px rgba(20, 115, 230, 0.35));
 }
 
-.arch-node.is-highlighted .arch-src-lbl,
-.arch-node.is-highlighted .arch-src-lbl--strong {
+.arch-node.is-highlighted .arch-src-sdk-title,
+.arch-node.is-highlighted .arch-src-lbl {
   fill: #0d47a1;
 }
 

@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260423">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260424">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -81,8 +81,8 @@
             <!-- Flow layer (under nodes) -->
             <g id="layer-flows" fill="none" stroke-width="2.2">
               <path id="flow-tags-edge" class="arch-flow" d="M 133 128 L 133 96 L 440 96 L 440 58"/>
-              <path id="flow-sources-stream" class="arch-flow" d="M 132 224 L 163 224 L 163 200 L 262 200"/>
-              <path id="flow-sources-batch" class="arch-flow" d="M 132 284 L 210 284 L 210 252 L 262 252"/>
+              <path id="flow-sources-stream" class="arch-flow" d="M 140 224 L 163 224 L 163 200 L 262 200"/>
+              <path id="flow-sources-batch" class="arch-flow" d="M 140 284 L 210 284 L 210 252 L 262 252"/>
               <path id="flow-stream-lake" class="arch-flow" d="M 418 244 L 435 244 L 435 356 L 418 356"/>
               <path id="flow-batch-lake" class="arch-flow" d="M 418 296 L 435 296 L 435 356 L 418 356"/>
               <path id="flow-lake-pipeline" class="arch-flow" d="M 418 384 L 455 384 L 455 308"/>
@@ -123,48 +123,70 @@
             </g>
 
             <g id="node-sources" class="arch-node">
-              <!-- Vertical stack: one rounded shell; icon left, label right; spacing replaces divider lines -->
-              <rect class="arch-sources-shell" x="22" y="136" width="200" height="176" rx="8" fill="#eceff1" stroke="#c5cdd6" stroke-width="1"/>
-              <!-- 1 SDK: devices left, label right -->
-              <image href="images/smock-device-laptop-18.svg" x="28" y="145" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
-              <image href="images/smock-device-phone-18.svg" x="50" y="145" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
-              <text x="210" y="158" text-anchor="end" class="arch-src-lbl arch-src-lbl--strong">SDK</text>
-              <!-- 2 Cloud -->
-              <g class="arch-src-ico" transform="translate(27, 179)" aria-hidden="true">
-                <path fill="#5c6570" d="M12.5 12H3.2A2.2 2.2 0 0 1 1 9.9a2.3 2.3 0 0 1 1.9-2.3A3.6 3.6 0 0 1 9.2 4a3.5 3.5 0 0 1 3.4 2.6 2.8 2.8 0 0 1 .4 5.4z"/>
+              <!-- Narrow vertical shell: SDK header (centered) + body rows (icon | label, shared axes) -->
+              <rect class="arch-sources-shell" x="22" y="122" width="118" height="194" rx="10" fill="#e8eaed" stroke="#c5cdd6" stroke-width="1"/>
+              <!-- SDK — distinct header: title + devices centered; subtle separator -->
+              <g id="arch-sources-sdk" class="arch-sources-sdk" aria-label="SDK">
+                <text x="81" y="138" text-anchor="middle" class="arch-src-sdk-title">SDK</text>
+                <line class="arch-sources-sep" x1="30" y1="145" x2="132" y2="145" stroke="#d1d5db" stroke-width="0.75"/>
+                <image href="images/smock-device-laptop-18.svg" x="61" y="150" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
+                <image href="images/smock-device-phone-18.svg" x="83" y="150" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
               </g>
-              <text x="210" y="186" text-anchor="end" class="arch-src-lbl">
-                <tspan x="210" y="186">Cloud Apps /</tspan>
-                <tspan x="210" y="194">3rd Party</tspan>
-              </text>
-              <!-- 3 Enterprise hub -->
-              <g class="arch-src-ico" transform="translate(26, 213)" aria-hidden="true">
-                <circle cx="9" cy="9" r="2.3" fill="#5c6570"/>
-                <circle cx="4" cy="6" r="1.4" fill="#5c6570"/>
-                <circle cx="14" cy="6" r="1.4" fill="#5c6570"/>
-                <circle cx="4" cy="12" r="1.4" fill="#5c6570"/>
-                <circle cx="14" cy="12" r="1.4" fill="#5c6570"/>
+              <!-- Body: fixed icon column (x=28); labels start x=52 (single text axis) -->
+              <g id="arch-sources-body" class="arch-sources-body">
+                <!-- Cloud Apps / 3rd Party — two compact icons (fits ≤22px) + label column -->
+                <g class="arch-src-row">
+                  <g class="arch-src-ico" transform="translate(28, 184)" aria-hidden="true">
+                    <path fill="#5c6570" d="M9.5 11H2.4A1.6 1.6 0 0 1 1 9.4a1.7 1.7 0 0 1 1.4-1.7 2.6 2.6 0 0 1 4.9-3.5 2.5 2.5 0 0 1 2.4 1.9 2.1 2.1 0 0 1 .2 5z"/>
+                    <circle cx="10.5" cy="8" r="1" fill="#5c6570"/>
+                  </g>
+                  <g class="arch-src-ico" transform="translate(41, 184)" aria-hidden="true">
+                    <path fill="none" stroke="#5c6570" stroke-width="0.9" d="M7.5 1.5l5 2.8v5.6l-5 2.8-5-2.8V4.3l5-2.8z"/>
+                    <path fill="#5c6570" d="M4.5 6h6v1h-6V6zm0 2h6v1h-6V8z"/>
+                  </g>
+                  <text x="56" y="189" text-anchor="start" class="arch-src-lbl">
+                    <tspan x="56" y="189">Cloud Apps /</tspan>
+                    <tspan x="56" y="197">3rd Party</tspan>
+                  </text>
+                </g>
+                <!-- Enterprise Sources -->
+                <g class="arch-src-row">
+                  <g class="arch-src-ico" transform="translate(28, 216)" aria-hidden="true">
+                    <circle cx="9" cy="9" r="2.2" fill="#5c6570"/>
+                    <circle cx="4" cy="5.5" r="1.3" fill="#5c6570"/>
+                    <circle cx="14" cy="5.5" r="1.3" fill="#5c6570"/>
+                    <circle cx="4" cy="12.5" r="1.3" fill="#5c6570"/>
+                    <circle cx="14" cy="12.5" r="1.3" fill="#5c6570"/>
+                  </g>
+                  <text x="56" y="221" text-anchor="start" class="arch-src-lbl">
+                    <tspan x="56" y="221">Enterprise</tspan>
+                    <tspan x="56" y="229">Sources</tspan>
+                  </text>
+                </g>
+                <!-- ETL Ecosystem -->
+                <g class="arch-src-row">
+                  <g class="arch-src-ico" transform="translate(28, 248)" fill="none" stroke="#5c6570" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="1" y="4" width="5" height="10" rx="0.8"/>
+                    <path d="M8 9h4l2 2.5-2 2.5H8"/>
+                    <rect x="14" y="4" width="5" height="10" rx="0.8"/>
+                  </g>
+                  <text x="56" y="253" text-anchor="start" class="arch-src-lbl">
+                    <tspan x="56" y="253">ETL</tspan>
+                    <tspan x="56" y="261">Ecosystem</tspan>
+                  </text>
+                </g>
+                <!-- External Data Warehouse -->
+                <g class="arch-src-row">
+                  <g class="arch-src-ico" transform="translate(28, 280)" fill="none" stroke="#5c6570" stroke-width="1.15" aria-hidden="true">
+                    <ellipse cx="9" cy="4" rx="7" ry="2"/>
+                    <path d="M2 4v8c0 1.1 3.1 2 7 2s7-.9 7-2V4"/>
+                  </g>
+                  <text x="56" y="285" text-anchor="start" class="arch-src-lbl">
+                    <tspan x="56" y="285">External Data</tspan>
+                    <tspan x="56" y="293">Warehouse</tspan>
+                  </text>
+                </g>
               </g>
-              <text x="210" y="224" text-anchor="end" class="arch-src-lbl">
-                <tspan x="210" y="224">Enterprise</tspan>
-                <tspan x="210" y="232">Sources</tspan>
-              </text>
-              <!-- 4 ETL -->
-              <g class="arch-src-ico" transform="translate(27, 246)" fill="none" stroke="#5c6570" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="1" y="4" width="5" height="10" rx="0.8"/>
-                <path d="M8 9h4l2 2.5-2 2.5H8"/>
-                <rect x="14" y="4" width="5" height="10" rx="0.8"/>
-              </g>
-              <text x="210" y="257" text-anchor="end" class="arch-src-lbl">ETL Ecosystem</text>
-              <!-- 5 Warehouse -->
-              <g class="arch-src-ico" transform="translate(27, 282)" fill="none" stroke="#5c6570" stroke-width="1.2" aria-hidden="true">
-                <ellipse cx="9" cy="4" rx="7" ry="2"/>
-                <path d="M2 4v8c0 1.1 3.1 2 7 2s7-.9 7-2V4"/>
-              </g>
-              <text x="210" y="290" text-anchor="end" class="arch-src-lbl">
-                <tspan x="210" y="290">External Data</tspan>
-                <tspan x="210" y="298">Warehouse</tspan>
-              </text>
             </g>
 
             <g id="node-streaming" class="arch-node">
@@ -344,6 +366,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="aep-architecture-apps.js?v=20260423"></script>
+  <script defer src="aep-architecture-apps.js?v=20260424"></script>
 </body>
 </html>
