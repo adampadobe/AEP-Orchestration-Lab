@@ -22,7 +22,8 @@
       body:
         'Collects, standardizes, governs, applies AI insights to, and unifies data to power thoughtful and relevant customer experiences.',
       highlights: ['node-aep', 'node-edge'],
-      flows: [{ id: 'flow-edge-profile', stroke: C.intra, kind: 'intra' }],
+      /** Intro: static overview — no flow animation (see arch-int-viewport--intro) */
+      flows: [],
     },
     {
       label: '2 — Ingress: Tags & Edge',
@@ -190,6 +191,7 @@
   var stateKicker;
   var stateHeadline;
   var stateBody;
+  var archViewport;
   var dotButtons = [];
 
   function qs(sel, root) {
@@ -243,6 +245,10 @@
       liveRegion.textContent =
         'State ' + (idx + 1) + ' of ' + STATES.length + ': ' + (st.headline || st.label);
     }
+
+    if (archViewport) {
+      archViewport.classList.toggle('arch-int-viewport--intro', idx === 0);
+    }
   }
 
   function go(delta) {
@@ -265,6 +271,7 @@
     stateKicker = qs('#archIntStateKicker');
     stateHeadline = qs('#archIntStateHeadline');
     stateBody = qs('#archIntStateBody');
+    archViewport = qs('#archIntViewport');
 
     qs('#archIntPrev').addEventListener('click', function () {
       go(-1);

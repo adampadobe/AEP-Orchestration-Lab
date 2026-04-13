@@ -29,6 +29,17 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
+/* State 1: static intro — diagram matches reference deck (no animated flows) */
+.arch-int-viewport--intro {
+  background: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.arch-int-viewport--intro .arch-flow.is-visible {
+  animation: none;
+  stroke-dasharray: none;
+}
+
 .arch-int-state-copy {
   flex-shrink: 0;
   padding: 0.85rem 1rem 0.75rem;
@@ -90,6 +101,11 @@
 .arch-node.is-highlighted .arch-node-label {
   font-weight: 700;
   fill: #0d47a1;
+}
+
+.arch-node.is-highlighted .arch-node-label-inv,
+.arch-node.is-highlighted .arch-node-sublabel-inv {
+  fill: #f0f9ff;
 }
 
 /* Flows default hidden */
