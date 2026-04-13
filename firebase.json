@@ -36,6 +36,11 @@
         "source": "/content-decision-live.html",
         "destination": "/profile-viewer/content-decision-live.html",
         "type": 301
+      },
+      {
+        "source": "/profile-viewer/aep-architecture-interactive.html",
+        "destination": "/profile-viewer/aep-architecture-apps.html",
+        "type": 301
       }
     ],
     "rewrites": [

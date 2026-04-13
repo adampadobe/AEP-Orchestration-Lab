@@ -1,201 +1,233 @@
 /**
- * AEP & Apps — slide deck viewer (content reconstructed from AEP Architecture.pptx).
+ * AEP & Apps architecture page — 16-state machine for highlights + visible flows + stroke colours.
+ * Vanilla JS only. Flow animation via CSS stroke-dasharray + keyframes on .is-visible.
  */
 (function () {
   'use strict';
 
-  /** Static PNG exports of the AEP Architecture deck (user-provided order: pages 1–15). Slide 16 reuses page 15. */
-  var DECK_PAGE_COUNT = 15;
+  var C = {
+    ingress: '#308fff',
+    intra: '#7d8a9e',
+    egress: '#e34850',
+  };
 
-  function deckImageUrlForSlide(zeroBasedSlideIndex) {
-    var page = Math.min(zeroBasedSlideIndex + 1, DECK_PAGE_COUNT);
-    var nn = page < 10 ? '0' + page : String(page);
-    return 'images/aep-deck/slide-' + nn + '.png';
-  }
-
-  var slides = [
+  /**
+   * Each state: label for HUD, node ids to highlight, flows { id, stroke, kind }
+   * kind: 'ingress' | 'intra' | 'egress' — sets data-flow-kind for dash styling
+   */
+  var STATES = [
     {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Adobe Experience Platform is a powerful, flexible, open, and centralized data foundation that collects, standardizes, governs, applies AI insights to, and unifies data to offer thoughtful and relevant digital customer experiences.',
+      label: '1 — Platform frame',
+      highlights: ['node-aep', 'node-edge'],
+      flows: [{ id: 'flow-edge-profile', stroke: C.intra, kind: 'intra' }],
+    },
+    {
+      label: '2 — Ingress: Tags & Edge',
+      highlights: ['node-tags', 'node-edge', 'node-streaming'],
+      flows: [
+        { id: 'flow-tags-edge', stroke: C.ingress, kind: 'ingress' },
+        { id: 'flow-sources-stream', stroke: C.ingress, kind: 'ingress' },
       ],
     },
     {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Four applications are natively built on Experience Platform: Adobe Real-Time Customer Data Platform (RTCDP), Journey Optimizer (AJO), Customer Journey Analytics (CJA), and Adobe Mix Modeler.',
+      label: '3 — Batch collection',
+      highlights: ['node-sources', 'node-batch', 'node-lake'],
+      flows: [
+        { id: 'flow-sources-batch', stroke: C.ingress, kind: 'ingress' },
+        { id: 'flow-batch-lake', stroke: C.intra, kind: 'intra' },
       ],
     },
     {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Adobe Experience Platform can ingest data from almost any source needed to power a customer experience—web and mobile behavioral data, Adobe Experience Cloud applications, third-party systems, cloud-based storage or databases, enterprise data sources like CRMs, ETL tools, external data warehouses, and more.',
-        'Experience Platform ingests data from sources either by streaming or batch.',
+      label: '4 — Data Lake & governance',
+      highlights: ['node-lake', 'node-query', 'node-intel'],
+      flows: [
+        { id: 'flow-stream-lake', stroke: C.intra, kind: 'intra' },
+        { id: 'flow-batch-lake', stroke: C.intra, kind: 'intra' },
       ],
     },
     {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Customer experiences are more impactful when they happen in the context of each customer’s unique journey—taking into account when, where, how, and why they may be engaging with you.',
-        'Experience Platform supports streaming data from your data sources using either an SDK or an API. That data updates the Real-Time Customer Profile in real time, which in turn can support real-time experiences and personalization.',
+      label: '5 — Pipeline bus',
+      highlights: ['node-lake', 'node-pipeline', 'node-profile'],
+      flows: [
+        { id: 'flow-lake-pipeline', stroke: C.intra, kind: 'intra' },
+        { id: 'flow-pipeline-profile', stroke: C.intra, kind: 'intra' },
       ],
     },
     {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'You can batch upload data on a one-time or periodic basis using an API or a pre-built connector. Batch ingested data gets loaded into the Experience Platform Data Lake and enriches the Real-Time Customer Profile once daily.',
+      label: '6 — Real-Time Profile',
+      highlights: ['node-profile', 'node-identity', 'node-edge'],
+      flows: [
+        { id: 'flow-edge-profile', stroke: C.intra, kind: 'intra' },
+        { id: 'flow-pipeline-profile', stroke: C.intra, kind: 'intra' },
       ],
     },
     {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'You can stream data directly into Experience Platform or via the Edge Network, a globally distributed network of servers that minimizes latency for sending data to Experience Platform and delivering content by using a server physically close to the customer.',
-        'Tags expedite and simplify your Experience Platform deployment. It gives users a simple way to deploy and manage all the analytics, marketing, and advertising tags necessary to power relevant customer experiences.',
+      label: '7 — Segmentation',
+      highlights: ['node-seg', 'node-profile'],
+      flows: [{ id: 'flow-profile-seg', stroke: C.intra, kind: 'intra' }],
+    },
+    {
+      label: '8 — Decisioning trio → Journey Optimizer',
+      highlights: ['node-decision', 'node-jo'],
+      flows: [
+        { id: 'flow-seg-jo', stroke: C.intra, kind: 'intra' },
+        { id: 'flow-profile-cdp', stroke: C.intra, kind: 'intra' },
       ],
     },
     {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Streaming data enriches the Real-Time Customer Profile, unlocking your ability to do real-time personalization, journey orchestration, and activation at destinations.',
+      label: '9 — Egress: Edge → Inbound',
+      highlights: ['node-edge', 'node-inbound'],
+      flows: [{ id: 'flow-edge-inbound', stroke: C.egress, kind: 'egress' }],
+    },
+    {
+      label: '10 — Egress: JO → Message Delivery',
+      highlights: ['node-jo', 'node-msg'],
+      flows: [{ id: 'flow-jo-msg', stroke: C.egress, kind: 'egress' }],
+    },
+    {
+      label: '11 — Egress: CDP → Paid Media',
+      highlights: ['node-rtcdp', 'node-paid'],
+      flows: [{ id: 'flow-cdp-paid', stroke: C.egress, kind: 'egress' }],
+    },
+    {
+      label: '12 — Egress: CJA → Journey reporting',
+      highlights: ['node-cja', 'node-jrpt'],
+      flows: [{ id: 'flow-cja-jrpt', stroke: C.egress, kind: 'egress' }],
+    },
+    {
+      label: '13 — Egress: Mix Modeler → Marketing performance',
+      highlights: ['node-mix', 'node-mrpt'],
+      flows: [{ id: 'flow-mix-mrpt', stroke: C.egress, kind: 'egress' }],
+    },
+    {
+      label: '14 — Creative & AEM',
+      highlights: ['node-creative', 'node-aem', 'node-edge'],
+      flows: [{ id: 'flow-edge-profile', stroke: C.intra, kind: 'intra' }],
+    },
+    {
+      label: '15 — Full ingress picture',
+      highlights: ['node-tags', 'node-sources', 'node-edge', 'node-streaming', 'node-batch'],
+      flows: [
+        { id: 'flow-tags-edge', stroke: C.ingress, kind: 'ingress' },
+        { id: 'flow-sources-stream', stroke: C.ingress, kind: 'ingress' },
+        { id: 'flow-sources-batch', stroke: C.ingress, kind: 'ingress' },
       ],
     },
     {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Identity Graph is a collection of a single customer’s identities across your data sources—their CRM ID, email ID, support ID, and others. Experience Platform’s approach to identity resolution is highly accurate, so it supports delivering customers extremely relevant messaging.',
+      label: '16 — End-to-end (all flow types)',
+      highlights: [
+        'node-tags',
+        'node-edge',
+        'node-lake',
+        'node-pipeline',
+        'node-profile',
+        'node-seg',
+        'node-jo',
+        'node-inbound',
+        'node-msg',
       ],
-    },
-    {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Experience Platform provides marketer-friendly rules-based segmentation capabilities. As streaming data streams in and attaches to a profile, the rules are applied to immediately qualify or disqualify individuals for segments. In comparison, segmentation is only applied to batch data once a day.',
-        'Audience Composition is a flexible way to manage segments in Experience Platform that can be used alongside the rules-based segmentation capability.',
-      ],
-    },
-    {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Federated Audience Composition allows you to import third-party audiences from data warehouses into Experience Platform so that you can build and enrich audiences with these third-party audiences.',
-      ],
-    },
-    {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Query Service and Intelligence and AI are additional capabilities that can offer your business value by helping you answer questions based on data in the Data Lake.',
-      ],
-    },
-    {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'You can take select data out of the Data Lake to any external destination that accepts information from the Data Lake—for example, to use in a third-party data visualization product like Tableau.',
-      ],
-    },
-    {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Because Experience Platform is an API-oriented system, you can set it up to provide Alerts that tell you when something went wrong or needs attention.',
-        'Audit Logs will tell you who logged into Experience Platform, the actions they took, and the time they took those actions—all important for governance.',
-        'Granular Access Controls allow you to restrict who has access to what so that everyone has the exact right level of access for their role.',
-      ],
-    },
-    {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'A sandbox creates a complete Experience Platform environment. Sandboxing allows you to create separate development and production environments, separate environments to handle highly sensitive data, or separate environments for subsidiaries if you are a multi-business company.',
-      ],
-    },
-    {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Real-Time Customer Data Platform, Journey Optimizer, Customer Journey Analytics, and Mix Modeler are all applications natively built on Experience Platform.',
-        'Each has different access to the Real-Time Customer Profile and Data Lake based on use cases solved for by each product and the entitlements of specific packages purchased.',
-      ],
-    },
-    {
-      title: 'Adobe Experience Platform & Applications',
-      paras: [
-        'Journey Optimizer uses the Real-Time Customer Profile to personalize customer engagement for inbound and outbound channels.',
+      flows: [
+        { id: 'flow-tags-edge', stroke: C.ingress, kind: 'ingress' },
+        { id: 'flow-lake-pipeline', stroke: C.intra, kind: 'intra' },
+        { id: 'flow-edge-inbound', stroke: C.egress, kind: 'egress' },
+        { id: 'flow-jo-msg', stroke: C.egress, kind: 'egress' },
       ],
     },
   ];
 
   var idx = 0;
-  var titleEl;
-  var bodyEl;
-  var counterEl;
-  var liveEl;
-  var diagramImgEl;
-  var diagramCaptionEl;
+  var hudTitle;
+  var hudMeta;
+  var liveRegion;
+  var dotButtons = [];
 
-  function render() {
-    if (!titleEl || !bodyEl) return;
-    var s = slides[idx];
-    titleEl.textContent = s.title;
-    bodyEl.innerHTML = '';
-    s.paras.forEach(function (p) {
-      var el = document.createElement('p');
-      el.className = 'arch-apps-slide-p';
-      el.textContent = p;
-      bodyEl.appendChild(el);
+  function qs(sel, root) {
+    return (root || document).querySelector(sel);
+  }
+
+  function $all(sel, root) {
+    return Array.prototype.slice.call((root || document).querySelectorAll(sel));
+  }
+
+  function applyState() {
+    var st = STATES[idx];
+    if (!st) return;
+
+    $all('.arch-node').forEach(function (el) {
+      el.classList.toggle('is-highlighted', st.highlights.indexOf(el.id) >= 0);
     });
-    if (counterEl) {
-      counterEl.textContent = String(idx + 1) + ' / ' + String(slides.length);
-    }
-    if (liveEl) {
-      liveEl.textContent = 'Slide ' + String(idx + 1) + ' of ' + String(slides.length);
-    }
 
-    if (diagramImgEl) {
-      diagramImgEl.src = deckImageUrlForSlide(idx);
-      diagramImgEl.alt =
-        'AEP Architecture deck visual for narrative slide ' +
-        String(idx + 1) +
-        ' of ' +
-        String(slides.length) +
-        ' (exported deck page ' +
-        String(Math.min(idx + 1, DECK_PAGE_COUNT)) +
-        ' of ' +
-        String(DECK_PAGE_COUNT) +
-        ').';
-    }
-    if (diagramCaptionEl) {
-      var dp = Math.min(idx + 1, DECK_PAGE_COUNT);
-      var reuse = idx + 1 > DECK_PAGE_COUNT;
-      diagramCaptionEl.textContent =
-        'Deck image: page ' +
-        String(dp) +
-        ' of ' +
-        String(DECK_PAGE_COUNT) +
-        ' in your export sequence' +
-        (reuse ? ' (same image as page ' + String(DECK_PAGE_COUNT) + ' for this narrative slide)' : '') +
-        '.';
-    }
+    var activeIds = {};
+    st.flows.forEach(function (f) {
+      activeIds[f.id] = f;
+    });
 
-    var prev = document.getElementById('archAppsPrev');
-    var next = document.getElementById('archAppsNext');
-    if (prev) prev.disabled = idx <= 0;
-    if (next) next.disabled = idx >= slides.length - 1;
+    $all('.arch-flow').forEach(function (path) {
+      var spec = activeIds[path.id];
+      if (!spec) {
+        path.classList.remove('is-visible');
+        path.removeAttribute('data-flow-kind');
+        path.style.stroke = '';
+        return;
+      }
+      path.style.stroke = spec.stroke;
+      path.setAttribute('data-flow-kind', spec.kind || 'intra');
+      path.classList.add('is-visible');
+    });
+
+    if (hudTitle) hudTitle.textContent = st.label;
+    if (hudMeta) hudMeta.textContent = 'State ' + (idx + 1) + ' / ' + STATES.length;
+
+    dotButtons.forEach(function (btn, i) {
+      btn.setAttribute('aria-current', i === idx ? 'true' : 'false');
+    });
+
+    if (liveRegion) {
+      liveRegion.textContent = 'Now showing: ' + st.label;
+    }
   }
 
   function go(delta) {
     var n = idx + delta;
-    if (n < 0 || n >= slides.length) return;
+    if (n < 0 || n >= STATES.length) return;
     idx = n;
-    render();
+    applyState();
+  }
+
+  function goTo(i) {
+    if (i < 0 || i >= STATES.length) return;
+    idx = i;
+    applyState();
   }
 
   function init() {
-    titleEl = document.getElementById('archAppsSlideTitle');
-    bodyEl = document.getElementById('archAppsSlideBody');
-    counterEl = document.getElementById('archAppsCounter');
-    liveEl = document.getElementById('archAppsLive');
-    diagramImgEl = document.getElementById('archAppsDiagramImg');
-    diagramCaptionEl = document.getElementById('archAppsDiagramCaption');
+    hudTitle = qs('#archIntHudTitle');
+    hudMeta = qs('#archIntHudMeta');
+    liveRegion = qs('#archIntLive');
 
-    var prev = document.getElementById('archAppsPrev');
-    var next = document.getElementById('archAppsNext');
-    if (prev) prev.addEventListener('click', function () { go(-1); });
-    if (next) next.addEventListener('click', function () { go(1); });
+    qs('#archIntPrev').addEventListener('click', function () {
+      go(-1);
+    });
+    qs('#archIntNext').addEventListener('click', function () {
+      go(1);
+    });
+
+    var dots = qs('#archIntDots');
+    if (dots) {
+      for (var i = 0; i < STATES.length; i++) {
+        (function (stateIndex) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'arch-int-dot';
+          b.title = 'Go to state ' + (stateIndex + 1);
+          b.addEventListener('click', function () {
+            goTo(stateIndex);
+          });
+          dots.appendChild(b);
+          dotButtons.push(b);
+        })(i);
+      }
+    }
 
     document.addEventListener('keydown', function (e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
@@ -208,7 +240,7 @@
       }
     });
 
-    render();
+    applyState();
   }
 
   if (document.readyState === 'loading') {

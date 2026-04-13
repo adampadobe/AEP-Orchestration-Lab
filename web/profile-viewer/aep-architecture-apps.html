@@ -4,75 +4,252 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AEP & Apps – AEP Profile Viewer</title>
+  <title>AEP &amp; Apps (in development) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260414">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260429">
 </head>
-<body class="home-dashboard-concierge arch-apps-page">
+<body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
     <div class="dashboard-main-wrap">
       <header class="dashboard-topbar">
-        <h1 class="dashboard-topbar-title">AEP & Apps</h1>
+        <div class="dashboard-topbar-brand">
+          <h1 class="dashboard-topbar-title">AEP &amp; Apps</h1>
+          <span class="dashboard-env-pill" title="Work in progress">In development</span>
+        </div>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Architecture reference">Architecture</span>
-          <a href="aep-architecture-interactive.html" class="dashboard-topbar-link">Interactive diagram</a>
+          <span class="dashboard-env-pill" title="Area">Architecture</span>
           <a href="https://experienceleague.adobe.com/docs/experience-platform/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Platform docs</a>
         </div>
       </header>
 
       <main class="dashboard-main">
-        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="archAppsBannerHeading">
+        <div id="archIntLive" class="visually-hidden" aria-live="polite"></div>
+
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="archIntBannerHeading">
           <div class="dashboard-hero-inner">
-            <header class="dashboard-hero-header">
-              <h2 id="archAppsBannerHeading" class="dashboard-hero-title">Adobe Experience Platform &amp; applications</h2>
+            <header class="dashboard-hero-header arch-apps-hero-header">
+              <div class="arch-apps-hero-title-row">
+                <h2 id="archIntBannerHeading" class="dashboard-hero-title">Adobe Experience Platform &amp; applications</h2>
+                <span class="dashboard-env-pill" title="Work in progress">In development</span>
+              </div>
               <p class="dashboard-hero-subtitle">
-                Walk through the reference architecture and narrative from the AEP Architecture deck—data collection, profile, decisioning, and engagement—at your own pace.
+                Interactive reference architecture — use arrows or dots to step through 16 states (highlights and animated flows). No server; runs entirely in the browser.
               </p>
             </header>
           </div>
         </section>
 
-        <section class="dashboard-hero arch-apps-deck-wrap" aria-labelledby="archAppsSlideTitle">
-          <div id="archAppsLive" class="visually-hidden" aria-live="polite"></div>
-          <div class="arch-apps-deck">
-            <div class="arch-apps-slide-text">
-              <h3 class="arch-apps-slide-h2" id="archAppsSlideTitle">Adobe Experience Platform &amp; Applications</h3>
-              <div class="arch-apps-slide-body" id="archAppsSlideBody"></div>
-            </div>
-            <figure class="arch-apps-figure arch-apps-figure--diagram">
-              <img
-                id="archAppsDiagramImg"
-                class="arch-apps-diagram-img"
-                src="images/aep-deck/slide-01.png"
-                width="1024"
-                height="700"
-                alt="AEP Architecture deck slide 1: reference diagram for data collection, profile, decisioning, and engagement."
-                decoding="async"
-                fetchpriority="high"
-              />
-              <figcaption class="arch-apps-figcaption" id="archAppsDiagramCaption">
-                Visual for this slide matches the exported deck page (page 1 of 15 in the image sequence you provided). Use Previous/Next to change the narrative and the slide image together.
-              </figcaption>
-            </figure>
-            <nav class="arch-apps-nav" aria-label="Slide navigation">
-              <div class="arch-apps-nav-buttons">
-                <button type="button" class="dashboard-btn-outline" id="archAppsPrev">Previous</button>
-                <button type="button" class="dashboard-btn-outline" id="archAppsNext">Next</button>
-              </div>
-              <span class="arch-apps-counter" id="archAppsCounter" aria-hidden="true">1 / 16</span>
-            </nav>
+        <section class="arch-int-viewport" aria-label="Architecture diagram">
+          <div class="arch-int-svg-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <style>
+                .arch-node-label { font-family: Inter, system-ui, sans-serif; fill: #1a1d21; font-size: 9px; font-weight: 600; }
+                .arch-node-sublabel { font-family: Inter, system-ui, sans-serif; fill: #5c6370; font-size: 7px; font-weight: 500; }
+                .arch-lane { font-family: Inter, system-ui, sans-serif; fill: #1a1d21; font-size: 8px; font-weight: 700; }
+              </style>
+            </defs>
+            <rect width="1200" height="640" fill="#f0f2f5"/>
+
+            <!-- Swimlanes -->
+            <rect x="16" y="12" width="284" height="22" fill="#dfe3e8" stroke="#c5cad3" rx="2"/>
+            <rect x="304" y="12" width="284" height="22" fill="#dfe3e8" stroke="#c5cad3" rx="2"/>
+            <rect x="592" y="12" width="284" height="22" fill="#dfe3e8" stroke="#c5cad3" rx="2"/>
+            <rect x="880" y="12" width="304" height="22" fill="#dfe3e8" stroke="#c5cad3" rx="2"/>
+            <text x="158" y="27" text-anchor="middle" class="arch-lane">DATA COLLECTION</text>
+            <text x="446" y="27" text-anchor="middle" class="arch-lane">PROFILE &amp; DATA MGMT</text>
+            <text x="734" y="27" text-anchor="middle" class="arch-lane">EXPERIENCE DECISIONING</text>
+            <text x="1032" y="27" text-anchor="middle" class="arch-lane">CUSTOMER ENGAGEMENT</text>
+
+            <!-- Flow layer (under nodes) -->
+            <g id="layer-flows" fill="none" stroke-width="2.2">
+              <path id="flow-tags-edge" class="arch-flow" d="M 54 144 L 54 96 L 360 96 L 360 90"/>
+              <path id="flow-sources-stream" class="arch-flow" d="M 54 220 L 100 220 L 100 154 L 118 154"/>
+              <path id="flow-sources-batch" class="arch-flow" d="M 54 300 L 108 300 L 108 206 L 118 206"/>
+              <path id="flow-stream-lake" class="arch-flow" d="M 248 176 L 262 176 L 262 318 L 248 318"/>
+              <path id="flow-batch-lake" class="arch-flow" d="M 248 228 L 262 228 L 262 318 L 248 318"/>
+              <path id="flow-lake-pipeline" class="arch-flow" d="M 248 344 L 279 344 L 279 250"/>
+              <path id="flow-pipeline-profile" class="arch-flow" d="M 290 250 L 308 250 L 308 168 L 320 168"/>
+              <path id="flow-edge-profile" class="arch-flow" d="M 400 90 L 400 140 L 308 140 L 308 168"/>
+              <path id="flow-profile-seg" class="arch-flow" d="M 378 184 L 378 210"/>
+              <path id="flow-seg-jo" class="arch-flow" d="M 448 242 L 468 242 L 468 220"/>
+              <path id="flow-profile-cdp" class="arch-flow" d="M 448 168 L 520 168 L 520 266 L 468 266"/>
+              <path id="flow-edge-inbound" class="arch-flow" d="M 718 90 L 880 90 L 880 154 L 600 154"/>
+              <path id="flow-jo-msg" class="arch-flow" d="M 568 220 L 600 220"/>
+              <path id="flow-cdp-paid" class="arch-flow" d="M 568 266 L 600 266"/>
+              <path id="flow-cja-jrpt" class="arch-flow" d="M 568 310 L 600 310"/>
+              <path id="flow-mix-mrpt" class="arch-flow" d="M 568 352 L 600 352"/>
+            </g>
+
+            <!-- AEP shell -->
+            <g id="node-aep" class="arch-node">
+              <rect x="108" y="44" width="640" height="520" rx="8" fill="#f5f7fa" stroke="#c5cad3"/>
+              <text x="124" y="66" class="arch-node-label">Adobe Experience Platform</text>
+              <rect x="124" y="50" width="10" height="10" fill="#e1251b" rx="1"/>
+            </g>
+
+            <g id="node-tags" class="arch-node">
+              <rect x="18" y="108" width="72" height="36" rx="3" fill="#eceff2" stroke="#d0d4dd"/>
+              <text x="26" y="128" class="arch-node-label">Tags</text>
+              <text x="26" y="138" class="arch-node-sublabel">Client</text>
+            </g>
+
+            <g id="node-sources" class="arch-node">
+              <rect x="18" y="152" width="72" height="200" rx="3" fill="#eceff2" stroke="#d0d4dd"/>
+              <text x="26" y="175" class="arch-node-sublabel">SDK · Cloud · ETL</text>
+              <text x="26" y="190" class="arch-node-sublabel">Enterprise · DW</text>
+            </g>
+
+            <g id="node-edge" class="arch-node">
+              <rect x="118" y="72" width="600" height="36" rx="3" fill="#3a3f47" stroke="#2a2f35"/>
+              <text x="418" y="94" text-anchor="middle" fill="#f5f5f5" font-family="Inter,system-ui,sans-serif" font-size="9px" font-weight="600">Edge Network &amp; Edge Profile</text>
+            </g>
+
+            <g id="node-streaming" class="arch-node">
+              <rect x="118" y="132" width="130" height="44" rx="3" fill="#25282d" stroke="#1a1d21"/>
+              <text x="183" y="154" text-anchor="middle" fill="#eee" font-family="Inter,system-ui,sans-serif" font-size="8px" font-weight="600">Streaming Data</text>
+              <text x="183" y="166" text-anchor="middle" fill="#ccc" font-family="Inter,system-ui,sans-serif" font-size="7px">Collection</text>
+            </g>
+
+            <g id="node-batch" class="arch-node">
+              <rect x="118" y="184" width="130" height="44" rx="3" fill="#25282d" stroke="#1a1d21"/>
+              <text x="183" y="206" text-anchor="middle" fill="#eee" font-family="Inter,system-ui,sans-serif" font-size="8px" font-weight="600">Batch Data</text>
+              <text x="183" y="218" text-anchor="middle" fill="#ccc" font-family="Inter,system-ui,sans-serif" font-size="7px">Collection</text>
+            </g>
+
+            <g id="node-query" class="arch-node">
+              <rect x="118" y="240" width="62" height="36" rx="2" fill="#fff" stroke="#c5cad3"/>
+              <text x="149" y="260" text-anchor="middle" class="arch-node-sublabel">Query</text>
+            </g>
+
+            <g id="node-intel" class="arch-node">
+              <rect x="186" y="240" width="62" height="36" rx="2" fill="#fff" stroke="#c5cad3"/>
+              <text x="217" y="260" text-anchor="middle" class="arch-node-sublabel">Intel &amp; AI</text>
+            </g>
+
+            <g id="node-lake" class="arch-node">
+              <rect x="118" y="288" width="130" height="56" rx="3" fill="#25282d" stroke="#1a1d21"/>
+              <text x="183" y="312" text-anchor="middle" fill="#eee" font-family="Inter,system-ui,sans-serif" font-size="8px" font-weight="600">Data Lake</text>
+              <text x="183" y="326" text-anchor="middle" fill="#ccc" font-family="Inter,system-ui,sans-serif" font-size="7px">(Raw data)</text>
+            </g>
+
+            <g id="node-pipeline" class="arch-node">
+              <rect x="268" y="132" width="22" height="210" rx="2" fill="#2e3238" stroke="#1f2328"/>
+              <text x="279" y="240" text-anchor="middle" fill="#eee" font-family="Inter,system-ui,sans-serif" font-size="7px" font-weight="600" transform="rotate(-90 279 240)">Pipeline</text>
+            </g>
+
+            <g id="node-profile" class="arch-node">
+              <rect x="308" y="132" width="140" height="52" rx="3" fill="#25282d" stroke="#1a1d21"/>
+              <text x="378" y="158" text-anchor="middle" fill="#eee" font-family="Inter,system-ui,sans-serif" font-size="8px" font-weight="600">Real-Time Profile</text>
+            </g>
+
+            <g id="node-identity" class="arch-node">
+              <rect x="318" y="172" width="52" height="18" rx="2" fill="#fff" stroke="#c5cad3"/>
+              <text x="344" y="184" text-anchor="middle" class="arch-node-sublabel">Identity</text>
+            </g>
+
+            <g id="node-seg" class="arch-node">
+              <rect x="308" y="198" width="140" height="88" rx="3" fill="#fff" stroke="#c5cad3"/>
+              <text x="378" y="218" text-anchor="middle" class="arch-node-sublabel">Segmentation stack</text>
+              <text x="378" y="232" text-anchor="middle" class="arch-node-sublabel">Streaming · Batch · Aud.</text>
+            </g>
+
+            <g id="node-decision" class="arch-node">
+              <rect x="468" y="132" width="100" height="56" rx="3" fill="#fff" stroke="#c5cad3"/>
+              <text x="518" y="155" text-anchor="middle" class="arch-node-sublabel">Journeys · Dec · Msg</text>
+            </g>
+
+            <g id="node-creative" class="arch-node">
+              <rect x="576" y="72" width="72" height="28" rx="3" fill="#eceff2" stroke="#d0d4dd"/>
+              <text x="612" y="89" text-anchor="middle" class="arch-node-sublabel">Creative Cloud</text>
+            </g>
+
+            <g id="node-aem" class="arch-node">
+              <rect x="576" y="106" width="72" height="28" rx="3" fill="#3a3f47" stroke="#2a2f35"/>
+              <text x="612" y="123" text-anchor="middle" fill="#eee" font-family="Inter,system-ui,sans-serif" font-size="7px" font-weight="600">AEM Assets</text>
+            </g>
+
+            <g id="node-jo" class="arch-node">
+              <rect x="468" y="200" width="100" height="40" rx="3" fill="#3d4450" stroke="#2a3038"/>
+              <text x="518" y="224" text-anchor="middle" fill="#eee" font-family="Inter,system-ui,sans-serif" font-size="8px" font-weight="600">Journey Optimizer</text>
+            </g>
+
+            <g id="node-rtcdp" class="arch-node">
+              <rect x="468" y="248" width="100" height="36" rx="3" fill="#3d4450" stroke="#2a3038"/>
+              <text x="518" y="270" text-anchor="middle" fill="#eee" font-family="Inter,system-ui,sans-serif" font-size="8px" font-weight="600">Real-Time CDP</text>
+            </g>
+
+            <g id="node-cja" class="arch-node">
+              <rect x="468" y="292" width="100" height="36" rx="3" fill="#3d4450" stroke="#2a3038"/>
+              <text x="518" y="314" text-anchor="middle" fill="#eee" font-family="Inter,system-ui,sans-serif" font-size="7px" font-weight="600">Cust. Journey Analytics</text>
+            </g>
+
+            <g id="node-mix" class="arch-node">
+              <rect x="468" y="336" width="100" height="32" rx="3" fill="#3d4450" stroke="#2a3038"/>
+              <text x="518" y="355" text-anchor="middle" fill="#eee" font-family="Inter,system-ui,sans-serif" font-size="8px" font-weight="600">Mix Modeler</text>
+            </g>
+
+            <g id="node-inbound" class="arch-node">
+              <rect x="600" y="132" width="140" height="44" rx="3" fill="#e8eaee" stroke="#c9ced6"/>
+              <text x="670" y="158" text-anchor="middle" class="arch-node-label">Inbound Experiences</text>
+            </g>
+
+            <g id="node-msg" class="arch-node">
+              <rect x="600" y="184" width="140" height="44" rx="3" fill="#e8eaee" stroke="#c9ced6"/>
+              <text x="670" y="210" text-anchor="middle" class="arch-node-label">Message Delivery</text>
+            </g>
+
+            <g id="node-paid" class="arch-node">
+              <rect x="600" y="236" width="140" height="36" rx="3" fill="#e8eaee" stroke="#c9ced6"/>
+              <text x="670" y="258" text-anchor="middle" class="arch-node-label">Paid Media</text>
+            </g>
+
+            <g id="node-jrpt" class="arch-node">
+              <rect x="600" y="280" width="140" height="36" rx="3" fill="#e8eaee" stroke="#c9ced6"/>
+              <text x="670" y="302" text-anchor="middle" class="arch-node-label">Journey Reporting</text>
+            </g>
+
+            <g id="node-mrpt" class="arch-node">
+              <rect x="600" y="324" width="140" height="36" rx="3" fill="#e8eaee" stroke="#c9ced6"/>
+              <text x="670" y="346" text-anchor="middle" class="arch-node-label">Mkt Performance</text>
+            </g>
+
+            <!-- Key -->
+            <g transform="translate(18, 600)">
+              <text x="0" y="0" class="arch-node-sublabel" font-weight="700">Key</text>
+              <line x1="0" y1="10" x2="36" y2="10" stroke="#308fff" stroke-width="2"/>
+              <text x="42" y="13" class="arch-node-sublabel">Ingress</text>
+              <line x1="120" y1="10" x2="156" y2="10" stroke="#7d8a9e" stroke-width="2" stroke-dasharray="4 3"/>
+              <text x="162" y="13" class="arch-node-sublabel">Intra</text>
+              <line x1="220" y1="10" x2="256" y2="10" stroke="#e34850" stroke-width="2"/>
+              <text x="262" y="13" class="arch-node-sublabel">Egress</text>
+            </g>
+          </svg>
           </div>
-          <p class="arch-apps-footnote">
-            Narrative reconstructed from the Adobe <strong>AEP Architecture</strong> deck. Slide images are static PNG exports (<code class="dashboard-code">images/aep-deck/slide-NN.png</code>, pages 1–15 in your paste order). Slide 16 reuses page 15 until a 16th export is added. The hand-built SVG (<code class="dashboard-code">images/aep-architecture-diagram.svg</code>) remains in the repo as an optional vector reference.
-          </p>
+
+          <div class="arch-int-hud">
+            <div>
+              <div id="archIntHudTitle" class="arch-int-hud-title">1 — Platform frame</div>
+              <div id="archIntHudMeta" class="arch-int-hud-meta">State 1 / 16</div>
+            </div>
+            <div class="arch-int-dots" id="archIntDots" role="tablist" aria-label="Diagram state"></div>
+            <div class="arch-int-hud-nav">
+              <button type="button" class="dashboard-btn-outline" id="archIntPrev">Previous</button>
+              <button type="button" class="dashboard-btn-outline" id="archIntNext">Next</button>
+            </div>
+          </div>
         </section>
+
+        <p style="margin-top:0.75rem;font-size:0.8rem;color:var(--dash-muted,#6b7280);max-width:none;">
+          Architecture diagram: SVG and vanilla JavaScript (16 states). Runs entirely in the browser.
+        </p>
       </main>
     </div>
   </div>
@@ -91,7 +268,7 @@
     }
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
-  <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="aep-architecture-apps.js?v=20260413"></script>
+  <script defer src="aep-lab-nav.js?v=20260429"></script>
+  <script defer src="aep-architecture-apps.js?v=20260429"></script>
 </body>
 </html>
