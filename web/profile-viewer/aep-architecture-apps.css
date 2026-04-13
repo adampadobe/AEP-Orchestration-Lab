@@ -91,8 +91,7 @@
   transition: stroke 0.25s ease, fill 0.25s ease, filter 0.25s ease;
 }
 
-.arch-node.is-highlighted rect:first-of-type,
-.arch-node.is-highlighted > rect {
+.arch-node.is-highlighted rect[data-arch-shell] {
   stroke: #1473e6 !important;
   stroke-width: 2.5px !important;
   filter: drop-shadow(0 0 6px rgba(20, 115, 230, 0.35));
@@ -166,6 +165,14 @@
   color: var(--dash-muted, #6b7280);
 }
 
+.arch-int-hud-hint {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--dash-muted, #6b7280);
+  max-width: 14rem;
+  line-height: 1.25;
+}
+
 .arch-int-hud-tools {
   display: flex;
   flex-wrap: wrap;
@@ -200,11 +207,31 @@
   cursor: grab;
 }
 
+.arch-node-resize-handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle {
+  opacity: 1;
+  pointer-events: all;
+  cursor: nwse-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle {
+  cursor: nwse-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-draggable {
+  cursor: default;
+}
+
 .arch-int-viewport.arch-drag-on.arch-dragging .arch-draggable {
   cursor: grabbing;
 }
 
-.arch-int-viewport.arch-dragging {
+.arch-int-viewport.arch-dragging,
+.arch-int-viewport.arch-resizing {
   touch-action: none;
 }
 
@@ -215,6 +242,69 @@
 
 .arch-int-viewport.arch-label-edit-on.arch-label-dragging svg text {
   cursor: grabbing;
+}
+
+.arch-int-viewport.arch-user-line-draw svg {
+  cursor: crosshair;
+}
+
+.arch-user-lines-layer .arch-user-line {
+  pointer-events: stroke;
+  stroke-width: 2.2;
+}
+
+.arch-user-lines-layer .arch-user-line--selected {
+  stroke-width: 3.2;
+  filter: drop-shadow(0 0 2px rgba(20, 115, 230, 0.6));
+}
+
+.arch-user-line-preview {
+  pointer-events: none;
+}
+
+/* PowerPoint-style alignment guides while dragging nodes */
+.arch-drag-guides-layer .arch-drag-guide {
+  stroke: #e91e8c;
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.arch-int-viewport.arch-dragging .arch-drag-guides-layer .arch-drag-guide {
+  stroke: #c2186d;
+}
+
+.arch-hud-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-hud-label select {
+  font-size: 0.72rem;
+  max-width: 11rem;
+}
+
+.arch-user-line-props {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.35rem 0.75rem;
+  margin: 0 0.75rem 0.5rem;
+  background: rgba(20, 115, 230, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(20, 115, 230, 0.2);
+}
+
+.arch-master-import-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
 }
 
 .arch-int-dots {
