@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260428">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260429">
 </head>
 <body class="home-dashboard-concierge arch-apps-page">
   <div class="dashboard-shell">
@@ -46,14 +46,17 @@
               <div class="arch-apps-slide-body" id="archAppsSlideBody"></div>
             </div>
             <figure class="arch-apps-figure">
-              <img
-                src="images/aep-architecture-slide-diagram.png"
-                width="8478"
-                height="2122"
-                alt="Reference diagram: Adobe Experience Platform with data collection, profile, decisioning, customer engagement, and natively built applications."
-                loading="lazy"
-                decoding="async"
-              />
+              <picture>
+                <source srcset="images/aep-architecture-slide-diagram.svg" type="image/svg+xml" />
+                <img
+                  src="images/aep-architecture-slide-diagram.png"
+                  width="8478"
+                  height="2122"
+                  alt="Reference diagram: Adobe Experience Platform with data collection, profile, decisioning, customer engagement, and natively built applications."
+                  decoding="async"
+                  fetchpriority="high"
+                />
+              </picture>
               <figcaption class="arch-apps-figcaption">
                 Reference architecture (as in the source deck). The same diagram accompanies each slide in the original presentation; copy updates above while the visual anchor stays consistent.
               </figcaption>
@@ -89,6 +92,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260428"></script>
-  <script defer src="aep-architecture-apps.js?v=20260428"></script>
+  <script defer src="aep-architecture-apps.js?v=20260429"></script>
 </body>
 </html>

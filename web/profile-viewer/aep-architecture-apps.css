@@ -47,9 +47,16 @@
   border-radius: 10px;
 }
 
+.arch-apps-page .arch-apps-figure picture {
+  display: block;
+  width: 100%;
+  line-height: 0;
+}
+
 .arch-apps-page .arch-apps-figure img {
   display: block;
   width: 100%;
+  max-width: 100%;
   height: auto;
   border-radius: 6px;
 }
