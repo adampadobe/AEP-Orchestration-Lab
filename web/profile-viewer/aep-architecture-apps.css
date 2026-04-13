@@ -1,8 +1,10 @@
 /* AEP & Apps deck — uses dashboard / aep-theme tokens */
 
+/* Full width within .dashboard-main (matches gradient page banner and other tool pages) */
 .arch-apps-page .arch-apps-deck-wrap {
-  max-width: 56rem;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .arch-apps-page .arch-apps-deck {
@@ -100,9 +102,7 @@ html[data-aep-theme='dark'] .arch-apps-page .arch-apps-figure--diagram {
   font-size: 0.8rem;
   color: var(--dash-muted, #6b7280);
   line-height: 1.5;
-  max-width: 56rem;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: none;
 }
 
 html[data-aep-theme='dark'] .arch-apps-page .arch-apps-deck {
