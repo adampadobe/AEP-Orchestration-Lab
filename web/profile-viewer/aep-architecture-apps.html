@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260421">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260422">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -123,18 +123,22 @@
             </g>
 
             <g id="node-sources" class="arch-node">
-              <rect x="18" y="136" width="228" height="216" rx="4" fill="#f9fafb" stroke="#d1d5db"/>
-              <!-- SDK: 84px wide; height from content; label centered above icons; laptop left, phone right -->
+              <rect x="18" y="136" width="228" height="228" rx="4" fill="#f9fafb" stroke="#d1d5db"/>
+              <!-- SDK: 84px wide; label centered above icons; laptop left, phone right -->
               <rect x="90" y="144" width="84" height="34" rx="3" fill="#ffffff" stroke="#d1d5db"/>
               <text x="132" y="154" text-anchor="middle" class="arch-node-sublabel">SDK</text>
               <image href="images/smock-device-laptop-18.svg" x="92" y="160" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
               <image href="images/smock-device-phone-18.svg" x="154" y="160" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
-              <path d="M 24 188 a3 3 0 1 1 6 0 v4 h-6 z" fill="none" stroke="#6b7280" stroke-width="0.7"/>
-              <text x="40" y="194" class="arch-node-sublabel">Cloud Apps / 3rd Party</text>
-              <text x="24" y="212" class="arch-node-sublabel">Enterprise Sources</text>
-              <rect x="24" y="220" width="10" height="8" rx="1" fill="none" stroke="#6b7280" stroke-width="0.7"/>
-              <text x="40" y="226" class="arch-node-sublabel">ETL Ecosystem</text>
-              <text x="24" y="244" class="arch-node-sublabel">External Data Warehouse</text>
+              <line x1="28" y1="180" x2="236" y2="180" stroke="#d1d5db" stroke-width="1"/>
+              <path d="M 24 186 a3 3 0 1 1 6 0 v4 h-6 z" fill="none" stroke="#6b7280" stroke-width="0.7"/>
+              <text x="40" y="192" class="arch-node-sublabel">Cloud Apps / 3rd Party</text>
+              <line x1="28" y1="200" x2="236" y2="200" stroke="#d1d5db" stroke-width="1"/>
+              <text x="24" y="210" class="arch-node-sublabel">Enterprise Sources</text>
+              <line x1="28" y1="218" x2="236" y2="218" stroke="#d1d5db" stroke-width="1"/>
+              <rect x="24" y="224" width="10" height="8" rx="1" fill="none" stroke="#6b7280" stroke-width="0.7"/>
+              <text x="40" y="230" class="arch-node-sublabel">ETL Ecosystem</text>
+              <line x1="28" y1="238" x2="236" y2="238" stroke="#d1d5db" stroke-width="1"/>
+              <text x="24" y="248" class="arch-node-sublabel">External Data Warehouse</text>
             </g>
 
             <g id="node-streaming" class="arch-node">
@@ -314,6 +318,6 @@
   </style>
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="aep-architecture-apps.js?v=20260421"></script>
+  <script defer src="aep-architecture-apps.js?v=20260422"></script>
 </body>
 </html>
