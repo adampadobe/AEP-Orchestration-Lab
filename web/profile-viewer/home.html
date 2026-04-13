@@ -113,9 +113,9 @@
                 <li><a href="firebase-hosting.html">Firebase images (in development)</a></li>
                 <li><a href="firebase-database.html">Real-time database</a></li>
                 <li><a href="audit-events.html">Audit events</a></li>
-                <li class="dashboard-link-list-heading">Demos</li>
-                <li><a href="donate-demo.html">Donate (demo)</a></li>
-                <li><a href="race-for-life-demo.html">Race for Life (demo)</a></li>
+                <li class="dashboard-link-list-heading home-demos-only" hidden>Demos</li>
+                <li class="home-demos-only" hidden><a href="donate-demo.html">Donate (demo)</a></li>
+                <li class="home-demos-only" hidden><a href="race-for-life-demo.html">Race for Life (demo)</a></li>
               </ul>
             </section>
           </div>
@@ -140,7 +140,26 @@
   </div>
 
   <script defer src="aep-theme.js?v=20260406"></script>
-  <script defer src="aep-lab-nav.js?v=20260429"></script>
+  <script defer src="aep-lab-nav.js?v=20260413"></script>
+  <script>
+    (function () {
+      function syncHomeDemos() {
+        try {
+          var s = (localStorage.getItem('aepGlobalSandboxName') || '').trim().toLowerCase();
+          var show = s === 'apalmer' || s === 'kirkham';
+          document.querySelectorAll('.home-demos-only').forEach(function (el) {
+            if (show) el.removeAttribute('hidden');
+            else el.setAttribute('hidden', '');
+          });
+        } catch (e) {}
+      }
+      syncHomeDemos();
+      window.addEventListener('aep-global-sandbox-change', syncHomeDemos);
+      window.addEventListener('storage', function (e) {
+        if (e.key === 'aepGlobalSandboxName') syncHomeDemos();
+      });
+    })();
+  </script>
   <script defer src="marauders-map-egg.js?v=20260420"></script>
 </body>
 </html>

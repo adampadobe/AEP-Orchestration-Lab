@@ -9,6 +9,19 @@
 
   var LS_COLLAPSED = 'aepSidebarCollapsed';
   var LS_GROUPS    = 'aepNavGroups';
+  /** Same key as aep-global-sandbox.js — selected sandbox technical name */
+  var LS_SANDBOX   = 'aepGlobalSandboxName';
+
+  /** Demos (donate / Race for Life) only for these sandboxes */
+  function isDemosNavVisible() {
+    try {
+      var raw = localStorage.getItem(LS_SANDBOX) || '';
+      var s = String(raw).trim().toLowerCase();
+      return s === 'apalmer' || s === 'kirkham';
+    } catch (e) {
+      return false;
+    }
+  }
 
   var NAV = [
     { label: 'Home', href: 'home.html', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M17.666,10.125,9.375,1.834a.53151.53151,0,0,0-.75,0L.334,10.125a.53051.53051,0,0,0,0,.75l.979.9785A.5.5,0,0,0,1.6665,12H2v4.5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5v-5a.5.5,0,0,1,.5-.5h3a.5.5,0,0,1,.5.5v5a.5.5,0,0,0,.5.5h4a.5.5,0,0,0,.5-.5V12h.3335a.5.5,0,0,0,.3535-.1465l.979-.9785A.53051.53051,0,0,0,17.666,10.125Z"/></svg>' },
@@ -277,6 +290,7 @@
     /* Navigation */
     var nav = mk('nav', 'dashboard-sidebar-nav');
     NAV.forEach(function (entry) {
+      if (entry.group === 'demos' && !isDemosNavVisible()) return;
       if (entry.group) nav.appendChild(buildGroup(entry, filename, gStates));
       else nav.appendChild(buildItem(entry, filename));
     });
@@ -323,4 +337,8 @@
   } else {
     init();
   }
+
+  window.addEventListener('aep-global-sandbox-change', function () {
+    document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
+  });
 })();
