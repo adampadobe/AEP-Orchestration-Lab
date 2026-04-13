@@ -469,22 +469,4 @@ html[data-aep-theme='dark'] .arch-int-hud {
   stroke: #5c6570;
 }
 
-.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-sources-shell {
-  stroke: #1473e6 !important;
-  stroke-width: 2.5px !important;
-  filter: drop-shadow(0 0 6px rgba(20, 115, 230, 0.35));
-}
-
-.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-src-sdk-title,
-.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-src-lbl {
-  fill: #0d47a1;
-}
-
-.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-src-ico {
-  fill: #1473e6;
-  stroke: #1473e6;
-}
-
-.arch-int-viewport:not(.arch-state-highlights-off) .arch-node.is-highlighted .arch-src-ico rect {
-  fill: #1473e6;
-}
+/* Sources: highlight only the shell (rect[data-arch-shell]); inner labels/icons keep base styles */
