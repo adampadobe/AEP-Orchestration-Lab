@@ -409,20 +409,10 @@
 
   var profiles = profilesMedia;
 
-  var allAiItems = [];
-
-  function recomputeAllAiItems() {
-    allAiItems = [];
-    var seen = Object.create(null);
-    profiles.forEach(function (p) {
-      p.ranks.forEach(function (r) {
-        if (!seen[r.name]) {
-          seen[r.name] = true;
-          allAiItems.push(r.name);
-        }
-      });
-    });
-  }
+  /** Selected persona index (0–2) for AI panel; sort applies to current profile only. */
+  var aiSelectedProfileIdx = 0;
+  /** When true, rows are ordered by conf descending; when false, model narrative order. */
+  var aiRankSortByScore = false;
 
   // ── OFFER PRIORITY ────────────────────────────────────────────────────────
   function buildPriorityList() {
@@ -837,71 +827,80 @@
     var ind = getIndustry();
     root.querySelectorAll('.profile-card[data-dce-profile-industry="' + ind + '"]').forEach(function (c) { c.classList.remove('selected'); });
     el.classList.add('selected');
+    aiSelectedProfileIdx = idx;
     var p = profiles[idx];
     document.getElementById('dceViz-ai-reasoning').innerHTML = p.reasoning;
-    renderAiRanks(p.ranks);
+    renderAiRankPanel();
   }
 
-  function buildAiRanksList() {
+  function updateAiSortButtonLabel() {
+    var btn = document.getElementById('dceViz-ai-sort-btn');
+    if (!btn) return;
+    btn.textContent = aiRankSortByScore ? 'Model rank order' : 'Sort by score ↓';
+    btn.setAttribute('aria-pressed', aiRankSortByScore ? 'true' : 'false');
+  }
+
+  /**
+   * Renders only this profile's ranked offers (fixes stray 0% rows from the old union of all personas).
+   * Optional sort: highest predicted conversion first.
+   */
+  function renderAiRankPanel() {
     var container = document.getElementById('dceViz-ai-ranks');
     if (!container) return;
+    var p = profiles[aiSelectedProfileIdx];
+    if (!p || !Array.isArray(p.ranks)) return;
+
+    var ranks = p.ranks.map(function (r) {
+      return { name: r.name, why: r.why, conf: r.conf };
+    });
+    if (aiRankSortByScore) {
+      ranks.sort(function (a, b) { return b.conf - a.conf; });
+    }
+
     container.innerHTML = '';
-    allAiItems.forEach(function (name) {
-      var el = document.createElement('div');
-      el.className = 'ai-offer-row';
-      el.setAttribute('data-ai-item', name);
-      el.style.cssText = 'flex-direction:column; align-items:stretch; gap:6px; padding:10px 14px;';
-      el.innerHTML =
-        '<div style="display:flex; align-items:center; gap:10px;">' +
-        '<div class="ai-rank" data-rank-num>1</div>' +
-        '<div class="ai-offer-name" style="flex:1;">' + name + '</div>' +
-        '<div class="ai-confidence">' +
-        '<div class="conf-bar"><div class="conf-fill" data-conf-fill style="width:0%"></div></div>' +
-        '<span style="min-width:30px; text-align:right;" data-conf-pct>0%</span>' +
-        '</div></div>' +
-        '<div style="font-size:11px; padding-left:34px; font-style:italic;" data-why></div>';
-      container.appendChild(el);
-    });
-  }
-
-  function renderAiRanks(ranks) {
-    var container = document.getElementById('dceViz-ai-ranks');
-    var nodes = {};
-    allAiItems.forEach(function (name) {
-      container.querySelectorAll('[data-ai-item]').forEach(function (node) {
-        if (node.getAttribute('data-ai-item') === name) nodes[name] = node;
-      });
-      if (nodes[name]) nodes[name]._firstTop = nodes[name].getBoundingClientRect().top;
-    });
-
     ranks.forEach(function (r, i) {
-      var el = nodes[r.name];
-      if (!el) return;
-      el.classList.toggle('top', i === 0);
-      el.querySelector('[data-rank-num]').textContent = i + 1;
-      el.querySelector('[data-conf-fill]').style.width = r.conf + '%';
-      el.querySelector('[data-conf-pct]').textContent = r.conf + '%';
-      var why = el.querySelector('[data-why]');
-      why.textContent = r.why;
-      why.style.color = i === 0 ? '#1a7a4a' : '#9a948e';
-    });
+      var row = document.createElement('div');
+      row.className = 'ai-offer-row' + (i === 0 ? ' top' : '');
+      row.style.cssText = 'flex-direction:column; align-items:stretch; gap:6px; padding:10px 14px;';
 
-    ranks.forEach(function (r) {
-      container.appendChild(nodes[r.name]);
-    });
+      var topRow = document.createElement('div');
+      topRow.style.cssText = 'display:flex; align-items:center; gap:10px;';
 
-    ranks.forEach(function (r) {
-      var el = nodes[r.name];
-      if (!el) return;
-      var lastTop = el.getBoundingClientRect().top;
-      var delta = el._firstTop - lastTop;
-      if (Math.abs(delta) > 1) {
-        el.style.transform = 'translateY(' + delta + 'px)';
-        el.style.transition = 'none';
-        el.getBoundingClientRect();
-        el.style.transition = 'transform 0.38s cubic-bezier(0.34, 1.28, 0.64, 1)';
-        el.style.transform = 'translateY(0)';
-      }
+      var rankEl = document.createElement('div');
+      rankEl.className = 'ai-rank';
+      rankEl.textContent = String(i + 1);
+
+      var nameEl = document.createElement('div');
+      nameEl.className = 'ai-offer-name';
+      nameEl.style.flex = '1';
+      nameEl.textContent = r.name;
+
+      var confWrap = document.createElement('div');
+      confWrap.className = 'ai-confidence';
+      var bar = document.createElement('div');
+      bar.className = 'conf-bar';
+      var fill = document.createElement('div');
+      fill.className = 'conf-fill';
+      fill.style.width = Math.max(0, Math.min(100, Number(r.conf) || 0)) + '%';
+      bar.appendChild(fill);
+      var pct = document.createElement('span');
+      pct.style.cssText = 'min-width:36px; text-align:right;';
+      pct.textContent = (Number(r.conf) || 0) + '%';
+      confWrap.appendChild(bar);
+      confWrap.appendChild(pct);
+
+      topRow.appendChild(rankEl);
+      topRow.appendChild(nameEl);
+      topRow.appendChild(confWrap);
+
+      var whyEl = document.createElement('div');
+      whyEl.style.cssText = 'font-size:11px; padding-left:34px; font-style:italic;';
+      whyEl.textContent = r.why;
+      whyEl.style.color = i === 0 ? '#1a7a4a' : '#9a948e';
+
+      row.appendChild(topRow);
+      row.appendChild(whyEl);
+      container.appendChild(row);
     });
   }
 
@@ -989,11 +988,12 @@
     if (hsauto) hsauto.value = String(v);
     if (hshealth) hshealth.value = String(v);
 
-    recomputeAllAiItems();
-    buildAiRanksList();
-    renderAiRanks(profiles[0].ranks);
+    aiSelectedProfileIdx = 0;
+    aiRankSortByScore = false;
+    updateAiSortButtonLabel();
     var ar = document.getElementById('dceViz-ai-reasoning');
     if (ar) ar.innerHTML = profiles[0].reasoning;
+    renderAiRankPanel();
 
     var simWrap = document.querySelector('#dceViz-panel-formula .dce-viz-sim-grid[data-dce-industry-show="' + key + '"]');
     if (simWrap) {
@@ -1035,6 +1035,15 @@
     initIndustry();
   } catch (err) {
     console.error('[decisioning-visualizer] init', err);
+  }
+
+  var sortBtn = document.getElementById('dceViz-ai-sort-btn');
+  if (sortBtn) {
+    sortBtn.addEventListener('click', function () {
+      aiRankSortByScore = !aiRankSortByScore;
+      updateAiSortButtonLabel();
+      renderAiRankPanel();
+    });
   }
 
   window.dceVizUpdatePriority = updatePriority;

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260411d">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260427">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -1626,9 +1626,12 @@
       </div>
 
       <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:4px;">
           <div class="card-label" style="margin-bottom:0;">AI-ranked items for this profile</div>
-          <div style="font-family:'DM Mono',monospace; font-size:10px; color:#1a7a4a; background:#e8f4ec; padding:3px 8px; border-radius:6px;">LIVE PREDICTION</div>
+          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+            <button type="button" class="dce-viz-ai-sort-btn" id="dceViz-ai-sort-btn" aria-pressed="false" title="Reorder rows by predicted conversion (highest first)">Sort by score ↓</button>
+            <div style="font-family:'DM Mono',monospace; font-size:10px; color:#1a7a4a; background:#e8f4ec; padding:3px 8px; border-radius:6px;">LIVE PREDICTION</div>
+          </div>
         </div>
 
         <!-- Model reasoning -->
@@ -2213,6 +2216,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260422"></script>
-  <script defer src="decisioning-visualizer.js?v=20260426"></script>
+  <script defer src="decisioning-visualizer.js?v=20260427"></script>
 </body>
 </html>
