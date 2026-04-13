@@ -290,7 +290,7 @@
     /* Navigation */
     var nav = mk('nav', 'dashboard-sidebar-nav');
     NAV.forEach(function (entry) {
-      if (entry.group === 'demos' && !isDemosNavVisible()) return;
+      if (entry.id === 'demos' && !isDemosNavVisible()) return;
       if (entry.group) nav.appendChild(buildGroup(entry, filename, gStates));
       else nav.appendChild(buildItem(entry, filename));
     });
