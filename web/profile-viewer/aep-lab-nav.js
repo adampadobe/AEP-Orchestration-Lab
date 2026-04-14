@@ -11,6 +11,16 @@
   var LS_GROUPS    = 'aepNavGroups';
   /** Same key as aep-global-sandbox.js — selected sandbox technical name */
   var LS_SANDBOX   = 'aepGlobalSandboxName';
+  var LS_HIDE_EDP  = 'aepHideDataViewerDecisioningPlayground';
+
+  /** Experience decisioning (Data viewer tab) — respect Global values hide toggle */
+  function isExperienceDecisioningNavVisible() {
+    try {
+      return localStorage.getItem(LS_HIDE_EDP) !== '1';
+    } catch (e) {
+      return true;
+    }
+  }
 
   /** Demos (donate / Race for Life) only for these sandboxes */
   function isDemosNavVisible() {
@@ -30,7 +40,13 @@
       group: 'Profiles', id: 'profiles',
       items: [
         { label: 'Profile Viewer', href: 'index.html', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M9,.5A8.5,8.5,0,1,0,17.5,9,8.5,8.5,0,0,0,9,.5Zm5.491,13.59161a5.41289,5.41289,0,0,0-3.11213-1.56415.65361.65361,0,0,1-.5655-.65569V10.9256a.65656.65656,0,0,1,.16645-.42218A4.99536,4.99536,0,0,0,12.12006,7.3855c0-2.36029-1.25416-3.67963-3.14337-3.67963s-3.179,1.36835-3.179,3.67963A5.05147,5.05147,0,0,0,6.9892,10.5047a.655.655,0,0,1,.16656.42206v.94165a.64978.64978,0,0,1-.57006.65539,5.43158,5.43158,0,0,0-3.11963,1.5205,7.49965,7.49965,0,1,1,11.025.04731Z"/></svg>' },
-        { label: 'Data viewer', href: 'schema-viewer.html', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="4.5" rx="6" ry="2.5"/><path d="M2 4.5v4c0 1.38 2.69 2.5 6 2.5.7 0 1.37-.04 2-.13"/><path d="M14 4.5v4c0 .47-.3.9-.8 1.27"/><path d="M2 8.5v4c0 1.38 2.69 2.5 6 2.5.7 0 1.37-.04 2-.13"/><path d="M14 8.5v1"/><circle cx="15" cy="14" r="2.5"/><path d="M17 16l1.5 1.5"/></svg>' },
+        { label: 'Data viewer', href: 'schema-viewer.html#overview', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="4.5" rx="6" ry="2.5"/><path d="M2 4.5v4c0 1.38 2.69 2.5 6 2.5.7 0 1.37-.04 2-.13"/><path d="M14 4.5v4c0 .47-.3.9-.8 1.27"/><path d="M2 8.5v4c0 1.38 2.69 2.5 6 2.5.7 0 1.37-.04 2-.13"/><path d="M14 8.5v1"/><circle cx="15" cy="14" r="2.5"/><path d="M17 16l1.5 1.5"/></svg>' },
+        {
+          label: 'Experience decisioning',
+          href: 'schema-viewer.html#playground',
+          hideIfEdpHidden: true,
+          ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v-4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M12.24 12.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h-4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M12.24 7.76l2.83-2.83"/></svg>',
+        },
         { label: 'Audience', href: 'audience-membership.html', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><circle fill="currentColor" cx="9" cy="9" r="2.1005"/><path fill="currentColor" d="M13.0745,9.75a4.12348,4.12348,0,0,1-5.5975,3.1L5.4185,16.1435A7.98449,7.98449,0,0,0,16.962,9.75Z"/><path fill="currentColor" d="M9.75,4.9255a4.13351,4.13351,0,0,1,2.13,1.095L15.0395,3.764A7.97551,7.97551,0,0,0,9.75,1.038Z"/><path fill="currentColor" d="M15.9115,4.985,12.75,7.2445A4.11065,4.11065,0,0,1,13.0765,8.25H16.964A7.93442,7.93442,0,0,0,15.9115,4.985Z"/><path fill="currentColor" d="M6.208,12.05A4.13,4.13,0,0,1,8.25,4.9255V1.038A7.9905,7.9905,0,0,0,4.147,15.35Z"/></svg>' },
         { label: 'Consent', href: 'consent.html', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M7.35,13.5a6.15759,6.15759,0,0,1,.204-1.55A25.07476,25.07476,0,0,0,6.168,9.7C5.1315,8.157,4.189,9.111,3.573,6.882c-.523-1.891.827-2.706.694-4.324A8.03648,8.03648,0,0,0,1,9c0,4.556,3.9715,7.271,6.777,7.866a3.44443,3.44443,0,0,0,.523.084c.015-.0385.0235-.0775.0375-.116A6.113,6.113,0,0,1,7.35,13.5Z"/><path fill="currentColor" d="M8.0135,2.327a1.85251,1.85251,0,0,0-.55-.226c-.909-.1055.44,2.3885.3885,2.057a1.15173,1.15173,0,0,1,2.2825-.0735A1.871,1.871,0,0,1,9.716,5.217c-.7055.927-.85,2.577-1.2,2.155-3.2955-1.35-2.9325.4355-1.85,1.629,1.279,1.4105,1.1365.8465,1.8865.8565A6.116,6.116,0,0,1,14.836,7.5V7.4335a2.883,2.883,0,0,1,.833-2,1.55006,1.55006,0,0,1,.365-.1745c-.096-.1745-.2-.342-.31-.509-.0185.0095-.035.022-.0545.031-.625.2915-.7115.3775-1,0a.788.788,0,0,1,.1735-1.163,7.993,7.993,0,0,0-5.83-2.6105c1.0135.014,2.223.765,1.6065,1.9645.093-.1905-2.0135-.645-2.3-.645-.386,0,.7875-1.4445.68-1.3195A8.04239,8.04239,0,0,0,5.692,1.719c.547.353,1.1555.2295,1.772.382A1.507,1.507,0,0,1,8.0135,2.327Z"/><path fill="currentColor" d="M13.5,9.05a4.45,4.45,0,1,0,4.45,4.45A4.45,4.45,0,0,0,13.5,9.05Zm-1.169,7.156-2.064-2.064a.25.25,0,0,1,0-.3535l.518-.518a.25.25,0,0,1,.3535,0L12.504,14.636l3.053-3.053a.25.25,0,0,1,.3535,0l.5215.5215a.25.25,0,0,1,0,.3535l-3.75,3.75A.25.25,0,0,1,12.331,16.206Z"/></svg>' },
       ],
@@ -119,7 +135,12 @@
     var base = parts[0] || '';
     if (filename !== base) return false;
     if (parts.length >= 2 && parts[1]) {
-      return (window.location.hash || '') === '#' + parts[1];
+      var h = window.location.hash || '';
+      var want = '#' + parts[1];
+      if (parts[1] === 'overview' && (h === '' || h === '#')) {
+        return true;
+      }
+      return h === want;
     }
     return true;
   }
@@ -191,7 +212,10 @@
     wrap.appendChild(toggle);
 
     var items = mk('div', 'dashboard-nav-group-items');
-    def.items.forEach(function (item) { items.appendChild(buildItem(item, filename)); });
+    def.items.forEach(function (item) {
+      if (item.hideIfEdpHidden && !isExperienceDecisioningNavVisible()) return;
+      items.appendChild(buildItem(item, filename));
+    });
     wrap.appendChild(items);
 
     toggle.addEventListener('click', function () {
@@ -339,6 +363,10 @@
   }
 
   window.addEventListener('aep-global-sandbox-change', function () {
+    document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
+  });
+
+  window.addEventListener('aep-edp-visibility-change', function () {
     document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
   });
 })();

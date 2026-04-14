@@ -1156,6 +1156,24 @@
     } else if (tab === 'audiences') {
       loadAudiencesFromApi();
     }
+
+    try {
+      const want = `#${tab}`;
+      if ((window.location.hash || '') !== want) {
+        history.replaceState(null, '', `${window.location.pathname}${window.location.search}${want}`);
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function applyInitialHashFromUrl() {
+    const raw = (window.location.hash || '').replace(/^#/, '');
+    const valid = ['overview', 'playground', 'browse', 'datasets', 'audiences'];
+    let tab = 'overview';
+    if (raw && valid.includes(raw)) tab = raw;
+    if (tab === 'playground' && isPlaygroundTabHidden()) tab = 'overview';
+    setAepTab(tab);
   }
 
   function initAepTabs() {
@@ -1782,8 +1800,19 @@
     window.addEventListener('storage', (e) => {
       if (e.key === LS_HIDE_EDP_TAB) applyPlaygroundTabVisibility();
     });
+    window.addEventListener('hashchange', () => {
+      const raw = (window.location.hash || '').replace(/^#/, '');
+      const valid = ['overview', 'playground', 'browse', 'datasets', 'audiences'];
+      if (!raw || !valid.includes(raw)) return;
+      let tab = raw;
+      if (tab === 'playground' && isPlaygroundTabHidden()) {
+        if (currentAepTab !== 'overview') setAepTab('overview');
+        return;
+      }
+      if (tab !== currentAepTab) setAepTab(tab);
+    });
     await loadSandboxes();
-    setAepTab('overview');
+    applyInitialHashFromUrl();
     syncSourceUI();
     loadOperationalSample();
   })();
