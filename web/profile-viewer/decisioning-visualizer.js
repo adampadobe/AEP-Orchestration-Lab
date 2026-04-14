@@ -408,21 +408,7 @@
     applyChannel('email');
   }
 
-  // ── OFFER SCHEMA TAB (blueprint + preview — industry-aware) ────────────────
-  var SCHEMA_STANDARD_FIELDS = ['itemName', 'priority', 'startDate', 'endDate'];
-  var SCHEMA_OPTIONAL_FIELDS = [
-    'heroImage', 'thumbnail', 'title', 'description', 'callToAction',
-    'webUrl', 'deepLink', 'channelType', 'promoCode',
-    'contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin',
-  ];
-  var SCHEMA_TOTAL = 19;
-  /** Custom-tagged offer + metadata fields (excludes Navigation & Promo). */
-  var SCHEMA_CUSTOM_FIELDS = [
-    'heroImage', 'thumbnail', 'title', 'description', 'callToAction',
-    'contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin',
-  ];
-  var SCHEMA_NAV_PROMO_FIELDS = ['webUrl', 'deepLink', 'channelType', 'promoCode'];
-
+  // ── OFFER SCHEMA TAB (SchemaStep parity — github.com/alexmtmr/experience-decisioning-playground) ──
   var SCHEMA_OFFERS = {
     media: {
       itemName: 'Premium annual — 2 months free',
@@ -443,6 +429,7 @@
       category: 'Subscription',
       margin: 'High',
       accent: '#CC0000',
+      img: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=400&h=240&fit=crop',
     },
     travel: {
       itemName: 'Extra legroom bundle — long-haul',
@@ -463,6 +450,7 @@
       category: 'Ancillary',
       margin: 'High',
       accent: '#005f9e',
+      img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=240&fit=crop',
     },
     retail: {
       itemName: '20% Off Running Shoes',
@@ -483,6 +471,7 @@
       category: 'Footwear',
       margin: 'Medium',
       accent: '#2D9D78',
+      img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=240&fit=crop',
     },
     fsi: {
       itemName: 'Stocks & Shares ISA — switching bonus',
@@ -503,6 +492,7 @@
       category: 'Wealth',
       margin: 'Medium',
       accent: '#2680EB',
+      img: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&h=240&fit=crop',
     },
     telco: {
       itemName: '5G Unlimited Plus — eSIM & roaming',
@@ -523,6 +513,7 @@
       category: 'Mobile',
       margin: 'High',
       accent: '#E68619',
+      img: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=240&fit=crop',
     },
     automotive: {
       itemName: 'New hybrid SUV — PCP launch event',
@@ -543,6 +534,7 @@
       category: 'Showroom',
       margin: 'Medium',
       accent: '#1a1a1a',
+      img: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=240&fit=crop',
     },
     healthcare: {
       itemName: 'Virtual primary — same-day video',
@@ -563,6 +555,7 @@
       category: 'Virtual care',
       margin: 'Low',
       accent: '#6e4fc7',
+      img: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&h=240&fit=crop',
     },
   };
 
@@ -571,247 +564,333 @@
     if (!panel || panel.getAttribute('data-dce-schema-bound') === '1') return;
     panel.setAttribute('data-dce-schema-bound', '1');
 
-    var root = document.getElementById('dce-schema-tree-root');
-    if (!root) {
+    var treeMount = document.getElementById('dce-schema-tree-mount');
+    var previewMount = document.getElementById('dce-schema-preview-mount');
+    if (!treeMount || !previewMount) {
       window.dceVizApplySchemaIndustry = function () {};
       return;
     }
-    var progressEl = document.getElementById('dce-schema-progress');
-    var pctEl = document.getElementById('dce-schema-pct');
-    var countEl = document.getElementById('dce-schema-count');
+
+    var TREE = window.DCE_PLAYGROUND_SCHEMA_TREE;
+    if (!TREE || !TREE.length) {
+      treeMount.innerHTML = '<p class="dce-pg-schema-fallback">Schema tree failed to load.</p>';
+      window.dceVizApplySchemaIndustry = function () {};
+      return;
+    }
+
+    function escS(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/"/g, '&quot;');
+    }
 
     function getOffer() {
       var k = getIndustry();
-      return SCHEMA_OFFERS[k] || SCHEMA_OFFERS.media;
+      var o = SCHEMA_OFFERS[k] || SCHEMA_OFFERS.media;
+      if (!o.name) o.name = o.title || o.itemName;
+      if (!o.img) o.img = SCHEMA_OFFERS.retail.img;
+      return o;
     }
 
-    function setIndustryTexts() {
-      var o = getOffer();
-      var map = [
-        ['dce-schema-v-name', o.itemName],
-        ['dce-schema-v-title', o.title],
-        ['dce-schema-v-desc', o.description],
-        ['dce-schema-v-priority', o.priority],
-        ['dce-schema-v-start', o.start],
-        ['dce-schema-v-end', o.end],
-        ['dce-schema-v-weburl', o.webUrl],
-        ['dce-schema-v-deeplink', o.deepLink],
-        ['dce-schema-v-channeltype', o.channelType],
-        ['dce-schema-v-promo', o.promoCode],
-        ['dce-schema-v-contenttype', o.contentType],
-        ['dce-schema-v-salesstage', o.salesStage],
-        ['dce-schema-v-journeystage', o.journeyStage],
-        ['dce-schema-v-target', o.targetSegment],
-        ['dce-schema-v-category', o.category],
-        ['dce-schema-v-margin', o.margin],
-      ];
-      map.forEach(function (pair) {
-        var el = document.getElementById(pair[0]);
-        if (el) el.textContent = pair[1];
+    function walkLeaves(items, out) {
+      items.forEach(function (n) {
+        if (n.children) walkLeaves(n.children, out);
+        else out.push(n);
       });
-      var cta = document.getElementById('dce-schema-v-cta');
-      if (cta) {
-        cta.textContent = o.cta;
-        cta.style.background = o.accent || '#2D9D78';
+    }
+
+    function walkEnableCustom(items, enabled) {
+      items.forEach(function (n) {
+        if (n.children) walkEnableCustom(n.children, enabled);
+        else if (n.custom) enabled[n.id] = true;
+      });
+    }
+
+    function walkAllLeaves(items, enabled) {
+      items.forEach(function (n) {
+        if (n.children) walkAllLeaves(n.children, enabled);
+        else enabled[n.id] = true;
+      });
+    }
+
+    function collectOpenGroups(items, open) {
+      items.forEach(function (n) {
+        if (n.group) {
+          open[n.id] = true;
+          if (n.children) collectOpenGroups(n.children, open);
+        }
+      });
+    }
+
+    var allLeaves = [];
+    walkLeaves(TREE, allLeaves);
+    var SCHEMA_LEAF_TOTAL = allLeaves.length;
+
+    if (!panel._dcePlaygroundSchema) {
+      panel._dcePlaygroundSchema = {
+        enabled: { f15: true, f16: true, f17: true, f18: true },
+        open: { s3: true },
+      };
+    }
+    var st = panel._dcePlaygroundSchema;
+
+    function isEn(fid) {
+      return !!st.enabled[fid];
+    }
+
+    function activeFieldList() {
+      return allLeaves.filter(function (f) {
+        return isEn(f.id);
+      });
+    }
+
+    function previewValForField(field, offer) {
+      var id = field.id;
+      if (id === 'f15') return offer.itemName;
+      if (id === 'f16') return offer.priority;
+      if (id === 'f17') return offer.start;
+      if (id === 'f18') return offer.end;
+      if (id === 'f6') return offer.webUrl;
+      if (id === 'f7') return offer.deepLink;
+      if (id === 'f19') return offer.channelType;
+      if (id === 'f8') return offer.promoCode;
+      if (id === 'f9') return offer.contentType;
+      if (id === 'f10') return offer.salesStage;
+      if (id === 'f11') return offer.journeyStage;
+      if (id === 'f12') return offer.targetSegment;
+      if (id === 'f13') return offer.category;
+      if (id === 'f14') return offer.margin;
+      if (field.previewVal) return field.previewVal;
+      return offer.title || offer.itemName;
+    }
+
+    function renderTreeHtml(items, depth) {
+      var html = '';
+      for (var i = 0; i < items.length; i++) {
+        var node = items[i];
+        if (node.group) {
+          var isOpen = !!st.open[node.id];
+          html += '<div class="dce-pg-schema-node">';
+          html +=
+            '<button type="button" class="dce-pg-schema-group" style="padding-left:' +
+            (6 + depth * 14) +
+            'px" data-dce-pg-toggle-group="' +
+            escS(node.id) +
+            '" aria-expanded="' +
+            (isOpen ? 'true' : 'false') +
+            '">';
+          html += '<span class="dce-pg-schema-chev" aria-hidden="true">' + (isOpen ? '▼' : '▶') + '</span>';
+          if (node.locked) html += '<span class="dce-pg-schema-lock" aria-hidden="true">🔒</span>';
+          html += '<span class="dce-pg-schema-gname">' + escS(node.name) + '</span>';
+          if (node.custom) html += '<span class="dce-pg-schema-custom">custom</span>';
+          html += '</button>';
+          if (isOpen) {
+            html +=
+              '<div class="dce-pg-schema-nested" style="margin-left:' +
+              (10 + depth * 14) +
+              'px">';
+            html += renderTreeHtml(node.children, depth + 1);
+            html += '</div>';
+          }
+          html += '</div>';
+        } else {
+          var on = isEn(node.id);
+          html +=
+            '<button type="button" class="dce-pg-schema-field' +
+            (on ? ' is-on' : '') +
+            '" style="padding-left:' +
+            (8 + depth * 14) +
+            'px" data-dce-pg-field="' +
+            escS(node.id) +
+            '" aria-pressed="' +
+            (on ? 'true' : 'false') +
+            '">';
+          html += '<span class="dce-pg-schema-cb" aria-hidden="true"></span>';
+          html +=
+            '<span class="dce-pg-schema-ico dce-pg-schema-ico--' +
+            escS(node.icon || 'type') +
+            '" aria-hidden="true"></span>';
+          html += '<span class="dce-pg-schema-fname">' + escS(node.name) + '</span>';
+          html += '<span class="dce-pg-schema-ftype">' + escS(node.type) + '</span>';
+          html += '</button>';
+        }
       }
+      return html;
     }
 
-    function isFieldChecked(id) {
-      var cb = root.querySelector('input[data-dce-schema-field="' + id + '"]');
-      return cb && cb.checked;
-    }
+    function renderPreviewHtml() {
+      var offer = getOffer();
+      var active = activeFieldList();
+      var n = active.length;
+      var pct = SCHEMA_LEAF_TOTAL ? Math.round((n / SCHEMA_LEAF_TOTAL) * 100) : 0;
 
-    function toggleBlocks() {
-      panel.querySelectorAll('[data-dce-schema-block]').forEach(function (el) {
-        var id = el.getAttribute('data-dce-schema-block');
-        if (!id) return;
-        var on = isFieldChecked(id);
-        el.classList.toggle('dce-schema-block--off', !on);
+      var hasImage = active.some(function (f) {
+        return f.id === 'f1' || f.id === 'f2';
       });
-      var stdBlk = panel.querySelector('[data-dce-schema-section="standard"]');
-      if (stdBlk) {
-        var stdOn = SCHEMA_STANDARD_FIELDS.some(function (fid) {
-          return isFieldChecked(fid);
+      var hasTitle = active.some(function (f) {
+        return f.id === 'f3' || f.id === 'f15';
+      });
+      var hasDesc = active.some(function (f) {
+        return f.id === 'f4';
+      });
+      var hasCTA = active.some(function (f) {
+        return f.id === 'f5';
+      });
+
+      var stdFields = active.filter(function (f) {
+        return !f.visual && !f.meta && !f.nav;
+      });
+      var navFields = active.filter(function (f) {
+        return f.nav;
+      });
+      var metaFields = active.filter(function (f) {
+        return f.meta;
+      });
+
+      function fieldRowHtml(f) {
+        var pv = previewValForField(f, offer);
+        return (
+          '<div class="dce-pg-schema-preview-row">' +
+          '<span class="dce-pg-schema-ico dce-pg-schema-ico--' +
+          escS(f.icon || 'type') +
+          '" aria-hidden="true"></span>' +
+          '<span class="dce-pg-schema-plabel">' +
+          escS(f.previewLabel || f.name) +
+          '</span>' +
+          '<span class="dce-pg-schema-pval">' +
+          escS(pv) +
+          '</span></div>'
+        );
+      }
+
+      var mainCard = '';
+      if (n === 0) {
+        mainCard =
+          '<div class="dce-pg-schema-empty"><span class="dce-pg-schema-empty-ico" aria-hidden="true">👁</span>' +
+          '<p class="dce-pg-schema-empty-txt">Toggle fields to build the preview</p></div>';
+      } else {
+        if (hasImage) {
+          mainCard +=
+            '<div class="dce-pg-schema-imgwrap"><img src="' +
+            escS(offer.img) +
+            '" alt="" class="dce-pg-schema-img"/></div>';
+        }
+        mainCard += '<div class="dce-pg-schema-cardpad">';
+        if (hasTitle) {
+          mainCard += '<div class="dce-pg-schema-oname">' + escS(offer.title || offer.itemName) + '</div>';
+        }
+        if (hasDesc) mainCard += '<div class="dce-pg-schema-odesc">' + escS(offer.description) + '</div>';
+        if (hasCTA) {
+          mainCard +=
+            '<div class="dce-pg-schema-octa" style="background:' +
+            escS(offer.accent || '#2D9D78') +
+            '">' +
+            escS(offer.cta || 'Shop Now →') +
+            '</div>';
+        }
+        mainCard += '</div>';
+      }
+
+      var h = '';
+      h += '<div class="dce-pg-schema-preview-inner">';
+      h += '<div class="dce-schema-preview card dce-pg-schema-maincard">';
+      h += '<div class="dce-pg-schema-phdr"><span class="dce-pg-schema-pkick">Offer preview</span>';
+      h += '<span class="dce-pg-schema-pcount">' + n + ' / ' + SCHEMA_LEAF_TOTAL + '</span></div>';
+      h += mainCard;
+      h += '</div>';
+
+      if (stdFields.length) {
+        h += '<div class="dce-schema-preview-section card dce-pg-schema-widget"><div class="dce-schema-preview-sec-label">Standard attributes</div>';
+        h += '<div class="dce-pg-schema-plist">';
+        stdFields.forEach(function (f) {
+          h += fieldRowHtml(f);
         });
-        stdBlk.hidden = !stdOn;
+        h += '</div></div>';
       }
-      var navBlk = document.getElementById('dce-schema-nav-block');
-      if (navBlk) {
-        var navOn = isFieldChecked('webUrl') || isFieldChecked('deepLink') || isFieldChecked('channelType');
-        navBlk.hidden = !navOn;
-        navBlk.querySelectorAll('[data-dce-schema-block]').forEach(function (row) {
-          var id = row.getAttribute('data-dce-schema-block');
-          row.classList.toggle('dce-schema-block--off', id && !isFieldChecked(id));
+      if (navFields.length) {
+        h += '<div class="dce-schema-preview-section card dce-pg-schema-widget"><div class="dce-schema-preview-sec-label">Navigation &amp; delivery</div>';
+        h += '<div class="dce-pg-schema-plist">';
+        navFields.forEach(function (f) {
+          h += fieldRowHtml(f);
         });
+        h += '</div></div>';
       }
-      var promoBlk = document.getElementById('dce-schema-promo-block');
-      if (promoBlk) {
-        var pOn = isFieldChecked('promoCode');
-        promoBlk.hidden = !pOn;
-      }
-      var metaBlk = document.getElementById('dce-schema-meta-block');
-      if (metaBlk) {
-        var metaOn = ['contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin'].some(function (fid) {
-          return isFieldChecked(fid);
+      if (metaFields.length) {
+        h += '<div class="dce-schema-preview-section card dce-pg-schema-widget dce-pg-schema-widget--meta"><div class="dce-schema-preview-sec-label">Metadata &amp; classification</div>';
+        h += '<div class="dce-pg-schema-plist">';
+        metaFields.forEach(function (f) {
+          h += fieldRowHtml(f);
         });
-        metaBlk.hidden = !metaOn;
+        h += '</div></div>';
       }
+
+      h += '<div class="dce-pg-schema-progress">';
+      h += '<div class="dce-pg-schema-ptrack"><div class="dce-pg-schema-pfill" style="width:' + pct + '%"></div></div>';
+      h += '<span class="dce-pg-schema-ppct">' + pct + '%</span></div>';
+      h += '</div>';
+      return h;
     }
 
-    function countEnabled() {
-      var n = 0;
-      SCHEMA_STANDARD_FIELDS.forEach(function (fid) {
-        if (isFieldChecked(fid)) n++;
-      });
-      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
-        if (isFieldChecked(fid)) n++;
-      });
-      return n;
+    function renderAll() {
+      treeMount.innerHTML = renderTreeHtml(TREE, 0);
+      previewMount.innerHTML = renderPreviewHtml();
     }
 
-    function updateOfferSchemaPreview() {
-      toggleBlocks();
-      var n = countEnabled();
-      if (countEl) countEl.textContent = n + ' / ' + SCHEMA_TOTAL;
-      var pct = Math.round((n / SCHEMA_TOTAL) * 100);
-      if (pctEl) pctEl.textContent = pct + '%';
-      if (progressEl) progressEl.style.width = pct + '%';
-    }
-
-    function applySchemaIndustry() {
-      setIndustryTexts();
-      updateOfferSchemaPreview();
-    }
-
-    root.addEventListener('change', function (e) {
-      var t = e.target;
-      if (t && t.matches && t.matches('input[data-dce-schema-field]')) updateOfferSchemaPreview();
+    treeMount.addEventListener('click', function (e) {
+      var g = e.target.closest && e.target.closest('[data-dce-pg-toggle-group]');
+      if (g && treeMount.contains(g)) {
+        e.preventDefault();
+        var gid = g.getAttribute('data-dce-pg-toggle-group');
+        if (gid) st.open[gid] = !st.open[gid];
+        renderAll();
+        return;
+      }
+      var f = e.target.closest && e.target.closest('[data-dce-pg-field]');
+      if (f && treeMount.contains(f)) {
+        e.preventDefault();
+        var fid = f.getAttribute('data-dce-pg-field');
+        if (fid) st.enabled[fid] = !st.enabled[fid];
+        renderAll();
+      }
     });
-
-    function setFolderOpen(folder, open) {
-      var head = folder.querySelector(':scope > .dce-schema-folder-head');
-      var body = folder.querySelector(':scope > .dce-schema-folder-body');
-      if (!head || !body) return;
-      body.hidden = !open;
-      head.setAttribute('aria-expanded', open ? 'true' : 'false');
-      var chev = head.querySelector('.dce-schema-folder-chev');
-      if (chev) chev.textContent = open ? '▼' : '▶';
-    }
-
-    /**
-     * @param {'reset'|'custom'|'all'} preset — reset = standard-only tree; custom = custom fields on, nav/promo folders closed; all = everything expanded
-     */
-    function applySchemaFolderLayout(preset) {
-      root.querySelectorAll('.dce-schema-folder').forEach(function (folder) {
-        var key = folder.getAttribute('data-dce-schema-folder');
-        if (preset === 'all') {
-          setFolderOpen(folder, true);
-          return;
-        }
-        if (preset === 'reset') {
-          if (key === 'standard') setFolderOpen(folder, true);
-          else if (key === 'offer-content' || key === 'metadata') setFolderOpen(folder, false);
-          else if (key === 'media' || key === 'text') setFolderOpen(folder, true);
-          else if (key === 'nav' || key === 'promo') setFolderOpen(folder, false);
-          else setFolderOpen(folder, false);
-          return;
-        }
-        if (preset === 'custom') {
-          if (key === 'standard') setFolderOpen(folder, true);
-          else if (key === 'offer-content' || key === 'metadata') setFolderOpen(folder, true);
-          else if (key === 'media' || key === 'text') setFolderOpen(folder, true);
-          else if (key === 'nav' || key === 'promo') setFolderOpen(folder, false);
-          else setFolderOpen(folder, false);
-        }
-      });
-    }
-
-    function scrollSchemaPresetIntoView(preset) {
-      var treeScroll = document.querySelector('.dce-schema-tree-scroll');
-      if (!treeScroll) return;
-      window.requestAnimationFrame(function () {
-        window.requestAnimationFrame(function () {
-          if (preset === 'all') {
-            treeScroll.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
-          }
-          var el = preset === 'reset'
-            ? document.getElementById('dce-schema-folder-standard')
-            : document.getElementById('dce-schema-folder-offer');
-          if (el && typeof el.scrollIntoView === 'function') {
-            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        });
-      });
-    }
 
     var btnReset = document.getElementById('dce-schema-reset');
     var btnEnCust = document.getElementById('dce-schema-enable-custom');
     var btnEnAll = document.getElementById('dce-schema-enable-all');
 
-    if (btnReset) btnReset.addEventListener('click', function () {
-      SCHEMA_STANDARD_FIELDS.forEach(function (fid) {
-        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
-        if (cb) cb.checked = true;
+    if (btnReset) {
+      btnReset.addEventListener('click', function () {
+        st.enabled = { f15: true, f16: true, f17: true, f18: true };
+        st.open = { s3: true };
+        renderAll();
       });
-      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
-        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
-        if (cb) cb.checked = false;
+    }
+    if (btnEnCust) {
+      btnEnCust.addEventListener('click', function () {
+        var e2 = {};
+        for (var k in st.enabled) {
+          if (Object.prototype.hasOwnProperty.call(st.enabled, k)) e2[k] = st.enabled[k];
+        }
+        walkEnableCustom(TREE, e2);
+        st.enabled = e2;
+        st.open = { s1: true, s1a: true, s1b: true, s1c: true, s1d: true, s2: true, s3: true };
+        renderAll();
       });
-      applySchemaFolderLayout('reset');
-      updateOfferSchemaPreview();
-      scrollSchemaPresetIntoView('reset');
-    });
+    }
+    if (btnEnAll) {
+      btnEnAll.addEventListener('click', function () {
+        st.open = {};
+        collectOpenGroups(TREE, st.open);
+        var e3 = {};
+        walkAllLeaves(TREE, e3);
+        st.enabled = e3;
+        renderAll();
+      });
+    }
 
-    if (btnEnCust) btnEnCust.addEventListener('click', function () {
-      SCHEMA_NAV_PROMO_FIELDS.forEach(function (fid) {
-        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
-        if (cb) cb.checked = false;
-      });
-      SCHEMA_CUSTOM_FIELDS.forEach(function (fid) {
-        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
-        if (cb) cb.checked = true;
-      });
-      applySchemaFolderLayout('custom');
-      updateOfferSchemaPreview();
-      scrollSchemaPresetIntoView('custom');
-    });
-
-    if (btnEnAll) btnEnAll.addEventListener('click', function () {
-      SCHEMA_STANDARD_FIELDS.forEach(function (fid) {
-        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
-        if (cb) cb.checked = true;
-      });
-      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
-        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
-        if (cb) cb.checked = true;
-      });
-      applySchemaFolderLayout('all');
-      updateOfferSchemaPreview();
-      scrollSchemaPresetIntoView('all');
-    });
-
-    root.addEventListener('click', function (e) {
-      var head = e.target.closest && e.target.closest('.dce-schema-folder-head');
-      if (!head || !root.contains(head)) return;
-      if (e.target.closest('input')) return;
-      e.preventDefault();
-      var folder = head.closest('.dce-schema-folder');
-      if (!folder || !root.contains(folder)) return;
-      var body = folder.querySelector(':scope > .dce-schema-folder-body');
-      if (!body) return;
-      var willOpen = body.hasAttribute('hidden');
-      setFolderOpen(folder, willOpen);
-    });
-
-    var btnToggleFields = document.getElementById('dce-schema-toggle-fields');
-    if (btnToggleFields) {
-      var expandAllMode = false;
-      btnToggleFields.addEventListener('click', function () {
-        expandAllMode = !expandAllMode;
-        btnToggleFields.setAttribute('aria-pressed', expandAllMode ? 'true' : 'false');
-        applySchemaFolderLayout(expandAllMode ? 'all' : 'reset');
-      });
+    function applySchemaIndustry() {
+      renderAll();
     }
 
     window.dceVizApplySchemaIndustry = applySchemaIndustry;
