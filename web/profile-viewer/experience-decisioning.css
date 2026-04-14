@@ -2,7 +2,8 @@
 
 /* Mount uses full width; horizontal gutters + max-width come from main.dashboard-main.app-page (home.css) */
 
-.experience-decisioning-page .edp-mount {
+.experience-decisioning-page .edp-mount,
+.experience-decisioning-page #decisioning-overview.dce-viz-section {
   width: 100%;
   max-width: none;
   margin: 0 0 2.5rem;

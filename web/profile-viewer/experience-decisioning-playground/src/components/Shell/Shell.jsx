@@ -80,7 +80,11 @@ export const Shell = ({ step, goToStep, industry, setIndustry, showIndustry, set
         </div>
       </div>
 
-      <div ref={contentRef} className={styles.content} onClick={() => showIndustry && setShowIndustry(false)}>
+      <div
+        ref={contentRef}
+        className={`${styles.content} content`}
+        onClick={() => showIndustry && setShowIndustry(false)}
+      >
         {children}
       </div>
     </div>

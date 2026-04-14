@@ -38,7 +38,8 @@
 }
 
 /* Ranking explorer root: base .dce-viz-scope uses overflow-x:hidden; paired overflow clips the industry dropdown */
-.decisioning-catalog-page #dceVizRoot.dce-viz-scope {
+.decisioning-catalog-page #dceVizRoot.dce-viz-scope,
+.decisioning-catalog-page #edp-root.dce-viz-scope {
   overflow: visible;
 }
 
@@ -564,7 +565,8 @@
   }
 
   /* ── MAIN CONTENT ── (padding matches decisioning-visualizer-core.css + inner gutters) */
-  .decisioning-catalog-page #dceVizRoot.dce-viz-core .content {
+  .decisioning-catalog-page #dceVizRoot.dce-viz-core .content,
+  .decisioning-catalog-page #edp-root.dce-viz-core .content {
     max-width: none;
     margin: 0 auto;
     padding: 48px var(--dce-core-pad-x, clamp(1rem, 2.5vw, 1.35rem)) 60px;
@@ -3497,6 +3499,7 @@
   }
 
   /* Ranking explorer: shell header shadow in dark theme (see decisioning-edp-shell.css) */
-  html[data-aep-theme='dark'] .decisioning-catalog-page #dceVizRoot.dce-viz-core .dce-edp-shell-header {
+  html[data-aep-theme='dark'] .decisioning-catalog-page #dceVizRoot.dce-viz-core .dce-edp-shell-header,
+  html[data-aep-theme='dark'] .decisioning-catalog-page #edp-root.dce-viz-core .dce-edp-shell-header {
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
   }
