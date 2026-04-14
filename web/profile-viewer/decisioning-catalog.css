@@ -17,20 +17,14 @@
   --dce-error: var(--dash-error-text);
   --dce-radius: 8px;
   --dce-shadow: var(--dash-shadow);
-  /* Same content column as Profile generation (see profile-generation-main max-width) */
-  --dce-tool-content-max: min(1600px, 100%);
 }
 
-/* Fill viewport below sidebar: banner keeps natural height; catalog card + results use remaining space */
+/* Fill viewport below sidebar: banner keeps natural height; catalog card + results use remaining space.
+   Horizontal gutters come from home.css .dashboard-main (dashboard-tool-layout / profile-viewer-main) — do not re-max-width main here (avoids narrow centered column vs Generate Profiles). */
 body.decisioning-catalog-page.home-dashboard-concierge:not(.home-page) .dashboard-main.profile-viewer-main {
   display: flex;
   flex-direction: column;
   min-height: min(100dvh, 100vh);
-  max-width: var(--dce-tool-content-max);
-  margin-left: auto;
-  margin-right: auto;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 body.decisioning-catalog-page .dashboard-hero.dashboard-hero--page-banner {

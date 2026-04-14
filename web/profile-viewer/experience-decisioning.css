@@ -1,16 +1,7 @@
 /* Experience decisioning page — shell uses home.css / aep-theme; React app uses --dash-* via .edp-sandbox */
 
-/* Match Profile generation / Decisioning catalog: one centered content column */
-.experience-decisioning-page .dashboard-main {
-  max-width: min(1600px, 100%);
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 1rem clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
-  box-sizing: border-box;
-}
+/* Mount uses full width; horizontal gutters come from main.dashboard-tool-layout (home.css) */
 
-/* Mount uses content width; horizontal gutters come from .dashboard-main */
 .experience-decisioning-page .edp-mount {
   width: 100%;
   max-width: none;

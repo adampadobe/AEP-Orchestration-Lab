@@ -26,15 +26,14 @@
     color: var(--ink);
     /* overflow-x:hidden makes overflow-y compute to auto (CSS overflow pairing) and clips the industry dropdown */
     overflow: visible;
-    /* Match Profile generation / Decisioning catalog tool column (see --dce-tool-content-max) */
-    --dce-core-max: min(1600px, 100%);
-    --dce-core-pad-x: clamp(1rem, 2.5vw, 2rem);
+    /* Side padding comes from main.dashboard-main (home.css); avoid a second max-width here */
+    --dce-core-pad-x: 0;
   }
 
-  /* Shared inner width — aligns with Profile Viewer tool pages (max ~1200px + gutters) */
+  /* Full width inside main — gutters owned by outer tool layout only */
   #dceVizRoot.dce-viz-core .dce-core-container {
     width: 100%;
-    max-width: var(--dce-core-max);
+    max-width: none;
     margin-left: auto;
     margin-right: auto;
     padding-left: var(--dce-core-pad-x);
@@ -153,9 +152,10 @@
 
   /* ── MAIN CONTENT ── */
   #dceVizRoot.dce-viz-core .content {
-    max-width: var(--dce-core-max);
+    max-width: none;
+    width: 100%;
     margin: 0 auto;
-    padding: 60px var(--dce-core-pad-x);
+    padding: 48px 0 60px;
     box-sizing: border-box;
   }
 

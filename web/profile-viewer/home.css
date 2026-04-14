@@ -1810,7 +1810,8 @@ body.home-dashboard-concierge:not(.home-page) {
   min-height: 100vh;
 }
 
-/* Uniform tool-page container: consistent top gutter + side/bottom gutters */
+/* Uniform tool-page container: consistent top gutter + side/bottom gutters
+   (fluid column — no max-width; same pattern as Generate Profiles / profile-generation.html main.) */
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.profile-viewer-main,
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.event-generator-main,
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.profile-generation-main,
@@ -1819,6 +1820,7 @@ body.home-dashboard-concierge:not(.home-page) .dashboard-main.consent-main,
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.audit-main,
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.event-tool-main,
 body.home-dashboard-concierge:not(.home-page) .dashboard-main.audience-main,
+body.home-dashboard-concierge:not(.home-page) .dashboard-main.dashboard-tool-layout,
 body.home-dashboard-concierge.search-tool-page .dashboard-main {
   max-width: none;
   width: 100%;
