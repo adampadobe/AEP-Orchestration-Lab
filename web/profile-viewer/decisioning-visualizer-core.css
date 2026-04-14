@@ -26,7 +26,8 @@
     color: var(--ink);
     /* overflow-x:hidden makes overflow-y compute to auto (CSS overflow pairing) and clips the industry dropdown */
     overflow: visible;
-    --dce-core-max: 1200px;
+    /* Match Profile generation / Decisioning catalog tool column (see --dce-tool-content-max) */
+    --dce-core-max: min(1600px, 100%);
     --dce-core-pad-x: clamp(1rem, 2.5vw, 2rem);
   }
 

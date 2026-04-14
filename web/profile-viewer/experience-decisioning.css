@@ -1,10 +1,11 @@
 /* Experience decisioning page — shell uses home.css / aep-theme; React app uses --dash-* via .edp-sandbox */
 
-/* Match concierge tool pages: full-width main inside shell (see home.css tool-page block) */
+/* Match Profile generation / Decisioning catalog: one centered content column */
 .experience-decisioning-page .dashboard-main {
-  max-width: none;
+  max-width: min(1600px, 100%);
   width: 100%;
-  margin: 0;
+  margin-left: auto;
+  margin-right: auto;
   padding: 1rem clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
   box-sizing: border-box;
 }
@@ -18,9 +19,9 @@
   box-sizing: border-box;
 }
 
-/* Page banner — stretch like Decisioning catalog / visualiser (home.css caps inner text at 42rem) */
+/* Page banner — full column width (aligned with EDP mount below) */
 .experience-decisioning-page .dashboard-hero--page-banner .dashboard-hero-inner {
-  max-width: min(1200px, 100%);
+  max-width: none;
   width: 100%;
   margin-left: auto;
   margin-right: auto;
