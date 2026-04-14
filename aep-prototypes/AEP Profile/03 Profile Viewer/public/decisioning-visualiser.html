@@ -12,9 +12,11 @@
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260426">
-  <link rel="stylesheet" href="decisioning-visualizer-core.css?v=core20260428">
+  <link rel="stylesheet" href="spectrum2-tokens.css">
+  <link rel="stylesheet" href="decisioning-content-surface.css?v=20260414-surface">
+  <link rel="stylesheet" href="decisioning-visualizer-core.css?v=surface20260414">
   <link rel="stylesheet" href="decisioning-edp-shell.css?v=20260414-tabs">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=core20260428">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=surface20260414">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public'];var m={telco:'telecommunications',automotive:'sports',healthcare:'public'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -104,6 +106,7 @@
 </div>
 
 <div class="content">
+<div class="decisioning-content-surface">
   <!-- ══ OVERVIEW ══════════════════════════════════════════════════════════ -->
   <div id="panel-overview" class="panel active">
     <div style="margin-bottom: 48px;">
@@ -1505,6 +1508,7 @@
     </div>
   </div>
 </div>
+</div>
 
 <div class="dce-core-page-footer">ADOBE JOURNEY OPTIMIZER · EXPERIENCE DECISIONING · RANKING METHODS EXPLORER</div>
 
@@ -1517,6 +1521,6 @@
 
   <script defer src="aep-theme.js?v=20260416b"></script>
   <script defer src="aep-lab-nav.js?v=20260429"></script>
-  <script defer src="decisioning-visualizer.js?v=core20260428"></script>
+  <script defer src="decisioning-visualizer.js?v=surface20260414"></script>
 </body>
 </html>
