@@ -70,3 +70,23 @@ html[data-aep-theme='dark'] .experience-decisioning-page .edp-blocked {
   width: 100%;
   min-height: min(80vh, 900px);
 }
+
+/* Experimentation overview — hero copy switches with industry (see dceVizIndustry / aepEdpIndustry) */
+.experience-decisioning-page.experimentation-overview-page .dashboard-hero--page-banner .dashboard-hero-subtitle[data-dce-industry-show] {
+  display: none;
+  max-width: 42rem;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  line-height: 1.5;
+}
+
+body.experience-decisioning-page.experimentation-overview-page[data-dce-industry='media'] .dashboard-hero-subtitle[data-dce-industry-show='media'],
+body.experience-decisioning-page.experimentation-overview-page[data-dce-industry='travel'] .dashboard-hero-subtitle[data-dce-industry-show='travel'],
+body.experience-decisioning-page.experimentation-overview-page[data-dce-industry='retail'] .dashboard-hero-subtitle[data-dce-industry-show='retail'],
+body.experience-decisioning-page.experimentation-overview-page[data-dce-industry='fsi'] .dashboard-hero-subtitle[data-dce-industry-show='fsi'],
+body.experience-decisioning-page.experimentation-overview-page[data-dce-industry='telecommunications'] .dashboard-hero-subtitle[data-dce-industry-show='telecommunications'],
+body.experience-decisioning-page.experimentation-overview-page[data-dce-industry='sports'] .dashboard-hero-subtitle[data-dce-industry-show='sports'],
+body.experience-decisioning-page.experimentation-overview-page[data-dce-industry='public'] .dashboard-hero-subtitle[data-dce-industry-show='public'] {
+  display: block;
+}

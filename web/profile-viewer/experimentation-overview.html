@@ -11,10 +11,11 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="experience-decisioning.css?v=20260426">
+  <link rel="stylesheet" href="experience-decisioning.css?v=20260430">
   <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260414-tabs">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page experimentation-overview-page">
+  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public'];var m={telco:'telecommunications',automotive:'sports',healthcare:'public'};var last=null;function sync(){var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)<0)k='media';if(k!==last){last=k;document.body.setAttribute('data-dce-industry',k);}}sync();setInterval(sync,800);}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -34,9 +35,40 @@
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
               <h2 id="bannerHeadingExpOverview" class="dashboard-hero-title">Experimentation overview</h2>
-              <p class="dashboard-hero-subtitle">
-                Step-through demo: schema → items → collections → rules → ranking → strategy → policy → result.
-                Industries match Profile generation.
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="media">
+                Your media brand wants to test different messages, layouts, or offers to understand what drives better engagement or conversion.<br /><br />
+                A viewer reaches a touchpoint where experimentation is enabled — which variant should they see?<br /><br />
+                The walkthrough below shows how experimentation answers that systematically, across a defined audience, over time.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="travel">
+                Your travel brand wants to test different messages, layouts, or offers to understand what drives better engagement or conversion.<br /><br />
+                A traveller reaches a touchpoint where experimentation is enabled — which variant should they see?<br /><br />
+                The walkthrough below shows how experimentation answers that systematically, across a defined audience, over time.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="retail">
+                Your retail brand wants to test different messages, layouts, or offers to understand what drives better engagement or conversion.<br /><br />
+                A shopper reaches a touchpoint where experimentation is enabled — which variant should they see?<br /><br />
+                The walkthrough below shows how experimentation answers that systematically, across a defined audience, over time.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="fsi">
+                Your financial institution wants to test different messages, layouts, or offers to understand what drives better engagement or conversion.<br /><br />
+                A customer reaches a touchpoint where experimentation is enabled — which variant should they see?<br /><br />
+                The walkthrough below shows how experimentation answers that systematically, across eligible audiences and products, over time.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="telecommunications">
+                Your telecommunications brand wants to test different messages, layouts, or offers to understand what drives better engagement or conversion.<br /><br />
+                A subscriber reaches a touchpoint where experimentation is enabled — which variant should they see?<br /><br />
+                The walkthrough below shows how experimentation answers that systematically, across segments and lines of business, over time.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="sports">
+                Your sports organisation wants to test different messages, layouts, or offers to understand what drives better engagement or conversion.<br /><br />
+                A fan reaches a touchpoint where experimentation is enabled — which variant should they see?<br /><br />
+                The walkthrough below shows how experimentation answers that systematically, across defined fan segments, over time.
+              </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="public">
+                Your public-sector organisation wants to test different messages, layouts, or offers to understand what drives better service uptake or outcomes.<br /><br />
+                A resident reaches a touchpoint where experimentation is enabled — which variant should they see?<br /><br />
+                The walkthrough below shows how experimentation answers that systematically, across eligible cohorts, over time.
               </p>
             </header>
           </div>
@@ -88,6 +120,6 @@
     })();
   </script>
   <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260429"></script>
+  <script defer src="aep-lab-nav.js?v=20260430"></script>
 </body>
 </html>
