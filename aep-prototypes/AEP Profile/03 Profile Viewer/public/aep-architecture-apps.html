@@ -4,73 +4,497 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AEP & Apps – AEP Profile Viewer</title>
+  <title>AEP &amp; Apps (in development) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260411">
+  <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260430">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260517">
 </head>
-<body class="home-dashboard-concierge arch-apps-page">
+<body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
     <div class="dashboard-main-wrap">
       <header class="dashboard-topbar">
-        <h1 class="dashboard-topbar-title">AEP & Apps</h1>
+        <div class="dashboard-topbar-brand">
+          <h1 class="dashboard-topbar-title">AEP &amp; Apps</h1>
+          <span class="dashboard-env-pill" title="Work in progress">In development</span>
+        </div>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Architecture reference">Architecture</span>
+          <span class="dashboard-env-pill" title="Area">Architecture</span>
           <a href="https://experienceleague.adobe.com/docs/experience-platform/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Platform docs</a>
         </div>
       </header>
 
-      <main class="dashboard-main">
-        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="archAppsBannerHeading">
+      <main class="dashboard-main app-page">
+        <div id="archIntLive" class="visually-hidden" aria-live="polite"></div>
+
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="archIntBannerHeading">
           <div class="dashboard-hero-inner">
-            <header class="dashboard-hero-header">
-              <h2 id="archAppsBannerHeading" class="dashboard-hero-title">Adobe Experience Platform &amp; applications</h2>
+            <header class="dashboard-hero-header arch-apps-hero-header">
+              <div class="arch-apps-hero-title-row">
+                <h2 id="archIntBannerHeading" class="dashboard-hero-title">Adobe Experience Platform &amp; applications</h2>
+                <span class="dashboard-env-pill" title="Work in progress">In development</span>
+              </div>
               <p class="dashboard-hero-subtitle">
-                Walk through the reference architecture and narrative from the AEP Architecture deck—data collection, profile, decisioning, and engagement—at your own pace.
+                Interactive reference architecture — use arrows or dots to step through 16 states (highlights and animated flows). No server; runs entirely in the browser.
               </p>
             </header>
           </div>
         </section>
 
-        <section class="dashboard-hero arch-apps-deck-wrap" aria-labelledby="archAppsSlideTitle">
-          <div id="archAppsLive" class="visually-hidden" aria-live="polite"></div>
-          <div class="arch-apps-deck">
-            <div class="arch-apps-slide-text">
-              <h3 class="arch-apps-slide-h2" id="archAppsSlideTitle">Adobe Experience Platform &amp; Applications</h3>
-              <div class="arch-apps-slide-body" id="archAppsSlideBody"></div>
-            </div>
-            <figure class="arch-apps-figure arch-apps-figure--diagram">
-              <img
-                class="arch-apps-diagram-img"
-                src="images/aep-architecture-diagram-reference.png"
-                width="1024"
-                height="700"
-                alt="Adobe Experience Platform and applications: data collection, profile and data management, experience decisioning, and customer engagement, with ingress, intra-system, and egress flows."
-                decoding="async"
-                fetchpriority="high"
-              />
-              <figcaption class="arch-apps-figcaption">
-                Reference architecture diagram. Slide copy above walks through how each area works; this graphic stays fixed as the visual anchor (same layout as the AEP Architecture deck).
-              </figcaption>
-            </figure>
-            <nav class="arch-apps-nav" aria-label="Slide navigation">
-              <div class="arch-apps-nav-buttons">
-                <button type="button" class="dashboard-btn-outline" id="archAppsPrev">Previous</button>
-                <button type="button" class="dashboard-btn-outline" id="archAppsNext">Next</button>
-              </div>
-              <span class="arch-apps-counter" id="archAppsCounter" aria-hidden="true">1 / 16</span>
-            </nav>
+        <section class="arch-int-viewport" id="archIntViewport" aria-label="Architecture diagram">
+          <div class="arch-int-state-copy" id="archIntStateCopy">
+            <p class="arch-int-state-kicker" id="archIntStateKicker">State 1 of 16</p>
+            <h3 class="arch-int-state-headline" id="archIntStateHeadline">Adobe Experience Platform as the centralized data foundation</h3>
+            <p class="arch-int-state-body" id="archIntStateBody">
+              Collects, standardizes, governs, applies AI insights to, and unifies data to power thoughtful and relevant customer experiences.
+            </p>
           </div>
-          <p class="arch-apps-footnote">
-            Narrative reconstructed from the Adobe <strong>AEP Architecture</strong> deck. The diagram image is the official-style reference graphic (not an automated export from <code class="dashboard-code">.pptx</code>, which did not reliably preserve the full diagram).
-          </p>
+          <div class="arch-int-viewport-body">
+            <div class="arch-int-main-column">
+              <div class="arch-int-compact-bar arch-diagram-ui">
+                <div class="arch-int-compact-top">
+                  <div class="arch-int-compact-titles">
+                    <div id="archIntHudTitle" class="arch-int-hud-title">1 — Platform frame</div>
+                    <div id="archIntHudMeta" class="arch-int-hud-meta">State 1 / 16</div>
+                  </div>
+                  <div class="arch-int-compact-edit">
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archEditModeToggle"/>
+                      <span>Edit diagram</span>
+                    </label>
+                    <button type="button" class="dashboard-btn-outline arch-dock-flip-btn" id="archDockSideToggle" title="Dock editor on the right">⇄ Right</button>
+                  </div>
+                </div>
+                <div class="arch-int-compact-nav">
+                  <div class="arch-int-dots" id="archIntDots" role="tablist" aria-label="Diagram state"></div>
+                  <div class="arch-int-compact-nav-actions">
+                    <div class="arch-int-hud-nav">
+                      <button type="button" class="dashboard-btn-outline" id="archIntPrev">Previous</button>
+                      <button type="button" class="dashboard-btn-outline" id="archIntNext">Next</button>
+                    </div>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archHideControlsToggle"/>
+                      <span>Hide editing tools</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="arch-int-svg-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <marker id="archUserArrowEnd" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M0 0 L7 3.5 L0 7 Z" class="arch-user-arrow-head"/>
+              </marker>
+              <marker id="archUserArrowStart" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M7 0 L0 3.5 L7 7 Z" class="arch-user-arrow-head"/>
+              </marker>
+              <style>
+                .arch-node-label { font-family: Inter, system-ui, sans-serif; fill: #111827; font-size: 8.5px; font-weight: 600; }
+                .arch-node-sublabel { font-family: Inter, system-ui, sans-serif; fill: #4b5563; font-size: 6.5px; font-weight: 500; }
+                .arch-node-label-inv { font-family: Inter, system-ui, sans-serif; fill: #f9fafb; font-size: 8px; font-weight: 600; }
+                .arch-node-sublabel-inv { font-family: Inter, system-ui, sans-serif; fill: #d1d5db; font-size: 6px; font-weight: 500; }
+                .arch-lane { font-family: Inter, system-ui, sans-serif; fill: #374151; font-size: 8px; font-weight: 700; letter-spacing: 0.04em; }
+                .arch-lane-sm { font-size: 7px; letter-spacing: 0.02em; }
+                .arch-user-arrow-head { fill: #374151; stroke: none; }
+              </style>
+            </defs>
+            <rect width="1200" height="680" fill="#ffffff"/>
+
+            <!-- Top columns: 1/5 Data Collection | 3/5 Profile + Decisioning | 1/5 Customer Engagement -->
+            <rect x="16" y="12" width="234" height="24" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
+            <rect x="250" y="12" width="700" height="24" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
+            <line x1="600" y1="12" x2="600" y2="36" stroke="#cbd5e1" stroke-width="1"/>
+            <rect x="950" y="12" width="234" height="24" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
+            <text x="133" y="28" text-anchor="middle" class="arch-lane arch-lane-sm">DATA COLLECTION</text>
+            <text x="425" y="28" text-anchor="middle" class="arch-lane">PROFILE &amp; DATA MGMT</text>
+            <text x="775" y="28" text-anchor="middle" class="arch-lane arch-lane-sm">EXPERIENCE DECISIONING</text>
+            <text x="1067" y="28" text-anchor="middle" class="arch-lane">CUSTOMER ENGAGEMENT</text>
+
+            <!-- Flow layer (under nodes) -->
+            <g id="layer-flows" fill="none" stroke-width="2.2">
+              <path id="flow-tags-edge" class="arch-flow" d="M 133 116 L 133 96 L 440 96 L 440 58"/>
+              <path id="flow-sources-stream" class="arch-flow" d="M 192 224 L 215 224 L 215 200 L 262 200"/>
+              <path id="flow-sources-batch" class="arch-flow" d="M 192 284 L 210 284 L 210 252 L 262 252"/>
+              <path id="flow-stream-lake" class="arch-flow" d="M 418 244 L 435 244 L 435 356 L 418 356"/>
+              <path id="flow-batch-lake" class="arch-flow" d="M 418 296 L 435 296 L 435 356 L 418 356"/>
+              <path id="flow-lake-pipeline" class="arch-flow" d="M 418 384 L 455 384 L 455 308"/>
+              <path id="flow-pipeline-profile" class="arch-flow" d="M 468 308 L 490 308 L 490 236 L 504 236"/>
+              <path id="flow-edge-profile" class="arch-flow" d="M 440 94 L 440 200 L 490 200 L 490 236"/>
+              <path id="flow-profile-seg" class="arch-flow" d="M 574 252 L 574 266"/>
+              <path id="flow-seg-jo" class="arch-flow" d="M 658 310 L 682 310 L 682 268"/>
+              <path id="flow-profile-cdp" class="arch-flow" d="M 658 226 L 744 226 L 744 316 L 682 316"/>
+              <path id="flow-edge-inbound" class="arch-flow" d="M 732 94 L 1069 94 L 1069 222 L 1011 222"/>
+              <path id="flow-jo-msg" class="arch-flow" d="M 801 288 L 1011 274"/>
+              <path id="flow-cdp-paid" class="arch-flow" d="M 801 316 L 1011 322"/>
+              <path id="flow-cja-jrpt" class="arch-flow" d="M 801 360 L 1011 366"/>
+              <path id="flow-mix-mrpt" class="arch-flow" d="M 801 404 L 1011 410"/>
+            </g>
+
+            <!-- Middle 3/5: Profile + Decisioning (strip above AEP shell only; no full-height side column boxes — keeps flow lines visible) -->
+            <rect x="250" y="42" width="700" height="68" rx="0" fill="#f9fafb" stroke="none"/>
+
+            <!-- Edge Network — shortened strip; Creative Cloud tile shares the same row (y=58) -->
+            <g id="node-edge" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="260" y="58" width="360" height="36" rx="6" fill="#000000" stroke="#000000"/>
+              <text x="440" y="80" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="8.5px" font-weight="600">Edge Network &amp; Edge Profile</text>
+            </g>
+
+            <!-- AEP shell (middle 3/5 only) -->
+            <g id="node-aep" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="250" y="112" width="700" height="452" rx="10" fill="#f3f4f6" stroke="#d1d5db"/>
+              <rect x="269" y="122" width="12" height="12" rx="2" fill="#e1251b"/>
+              <text x="291" y="132" class="arch-node-label" font-size="9px">Adobe Experience Platform</text>
+            </g>
+
+            <!-- Tags: centered on DATA COLLECTION lane (x=133); translate aligns with Sources — position overridden when drag is enabled (see aep-architecture-apps.js) -->
+            <g id="node-tags" class="arch-node arch-draggable" transform="translate(52, 0)">
+              <rect data-arch-shell="1" x="43" y="40" width="76" height="76" rx="6" fill="#111827" stroke="#000000"/>
+              <image href="images/adobe-experience-platform-logo-tags.png" x="64" y="46" width="34" height="34" preserveAspectRatio="xMidYMid meet"/>
+              <text x="81" y="88" text-anchor="middle" class="arch-node-label-inv" font-size="6.5px">Tags</text>
+              <text x="81" y="100" text-anchor="middle" class="arch-node-sublabel-inv" font-size="5px">(Client Side)</text>
+            </g>
+
+            <g id="node-sources" class="arch-node arch-draggable" transform="translate(52, 0)">
+              <!-- Label above icons (SDK pattern); single divider only after SDK device icons -->
+              <rect class="arch-sources-shell" data-arch-shell="1" x="22" y="122" width="118" height="200" rx="10" fill="#e8eaed" stroke="#c5cdd6" stroke-width="1"/>
+              <g id="arch-sources-sdk" class="arch-sources-sdk" aria-label="SDK">
+                <text x="81" y="136" text-anchor="middle" class="arch-src-sdk-title">SDK</text>
+                <image href="images/smock-device-laptop-18.svg" x="61" y="142" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
+                <image href="images/smock-device-phone-18.svg" x="83" y="142" width="18" height="18" preserveAspectRatio="xMidYMid meet"/>
+              </g>
+              <g id="arch-sources-seps-layer" class="arch-sources-seps-layer" aria-hidden="true"></g>
+              <g id="arch-sources-body" class="arch-sources-body">
+                <!-- Each row: centered label (two lines) then icons below — same pattern as SDK -->
+                <g class="arch-src-row">
+                  <text x="81" y="178" text-anchor="middle" class="arch-src-lbl">
+                    <tspan x="81" y="178">Cloud Apps /</tspan>
+                    <tspan x="81" y="186">3rd Party</tspan>
+                  </text>
+                  <g class="arch-src-ico" transform="translate(65, 191)" aria-hidden="true">
+                    <path fill="#5c6570" d="M9.5 11H2.4A1.6 1.6 0 0 1 1 9.4a1.7 1.7 0 0 1 1.4-1.7 2.6 2.6 0 0 1 4.9-3.5 2.5 2.5 0 0 1 2.4 1.9 2.1 2.1 0 0 1 .2 5z"/>
+                    <circle cx="10.5" cy="8" r="1" fill="#5c6570"/>
+                  </g>
+                  <g class="arch-src-ico" transform="translate(83, 191)" aria-hidden="true">
+                    <path fill="none" stroke="#5c6570" stroke-width="0.9" d="M7.5 1.5l5 2.8v5.6l-5 2.8-5-2.8V4.3l5-2.8z"/>
+                    <path fill="#5c6570" d="M4.5 6h6v1h-6V6zm0 2h6v1h-6V8z"/>
+                  </g>
+                </g>
+                <g class="arch-src-row">
+                  <text x="81" y="216" text-anchor="middle" class="arch-src-lbl">
+                    <tspan x="81" y="216">Enterprise</tspan>
+                    <tspan x="81" y="224">Sources</tspan>
+                  </text>
+                  <g class="arch-src-ico" transform="translate(72, 229)" aria-hidden="true">
+                    <circle cx="9" cy="9" r="2.2" fill="#5c6570"/>
+                    <circle cx="4" cy="5.5" r="1.3" fill="#5c6570"/>
+                    <circle cx="14" cy="5.5" r="1.3" fill="#5c6570"/>
+                    <circle cx="4" cy="12.5" r="1.3" fill="#5c6570"/>
+                    <circle cx="14" cy="12.5" r="1.3" fill="#5c6570"/>
+                  </g>
+                </g>
+                <g class="arch-src-row">
+                  <text x="81" y="254" text-anchor="middle" class="arch-src-lbl">
+                    <tspan x="81" y="254">ETL</tspan>
+                    <tspan x="81" y="262">Ecosystem</tspan>
+                  </text>
+                  <g class="arch-src-ico" transform="translate(74, 267)" fill="#5c6570" aria-hidden="true">
+                    <rect x="0" y="4" width="3" height="10" rx="0.5"/>
+                    <rect x="5" y="2" width="3" height="12" rx="0.5"/>
+                    <rect x="10" y="5" width="3" height="9" rx="0.5"/>
+                  </g>
+                </g>
+                <g class="arch-src-row">
+                  <text x="81" y="292" text-anchor="middle" class="arch-src-lbl">
+                    <tspan x="81" y="292">External Data</tspan>
+                    <tspan x="81" y="300">Warehouse</tspan>
+                  </text>
+                  <g class="arch-src-ico" transform="translate(72, 305)" fill="none" stroke="#5c6570" stroke-width="1.15" aria-hidden="true">
+                    <ellipse cx="9" cy="4" rx="7" ry="2"/>
+                    <path d="M2 4v8c0 1.1 3.1 2 7 2s7-.9 7-2V4"/>
+                  </g>
+                </g>
+              </g>
+            </g>
+
+            <g id="node-streaming" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="262" y="200" width="130" height="44" rx="4" fill="#111827" stroke="#000000"/>
+              <text x="340" y="218" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Streaming Data</text>
+              <text x="340" y="230" text-anchor="middle" fill="#d1d5db" font-family="Inter,system-ui,sans-serif" font-size="6.5px">Collection</text>
+            </g>
+
+            <g id="node-batch" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="262" y="252" width="130" height="44" rx="4" fill="#111827" stroke="#000000"/>
+              <text x="340" y="270" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Batch Data</text>
+              <text x="340" y="282" text-anchor="middle" fill="#d1d5db" font-family="Inter,system-ui,sans-serif" font-size="6.5px">Collection</text>
+            </g>
+
+            <g id="node-query" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="262" y="308" width="62" height="36" rx="3" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="293" y="326" text-anchor="middle" class="arch-node-sublabel" font-size="6.5px">Query Service</text>
+            </g>
+
+            <g id="node-intel" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="330" y="308" width="62" height="36" rx="3" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="361" y="326" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Intelligence &amp; AI</text>
+            </g>
+
+            <g id="node-lake" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="262" y="356" width="130" height="56" rx="4" fill="#111827" stroke="#000000"/>
+              <text x="340" y="374" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Data Lake</text>
+              <text x="340" y="386" text-anchor="middle" fill="#d1d5db" font-family="Inter,system-ui,sans-serif" font-size="6px">(Raw Profile Data)</text>
+              <rect x="274" y="390" width="110" height="14" rx="2" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="340" y="400" text-anchor="middle" class="arch-node-sublabel" font-size="5.5px">Data Governance</text>
+            </g>
+
+            <g id="node-pipeline" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="442" y="200" width="26" height="210" rx="3" fill="#1f2937" stroke="#111827"/>
+              <text x="455" y="308" text-anchor="middle" fill="#e5e7eb" font-family="Inter,system-ui,sans-serif" font-size="6.5px" font-weight="600" transform="rotate(-90 455 308)">Pipeline</text>
+            </g>
+
+            <g id="node-profile" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="490" y="200" width="168" height="52" rx="4" fill="#111827" stroke="#000000"/>
+              <circle cx="574" cy="218" r="5" fill="none" stroke="#f9fafb" stroke-width="1.2"/>
+              <path d="M 574 224 v3 M 570 230 h8" fill="none" stroke="#f9fafb" stroke-width="1"/>
+              <text x="574" y="236" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Real-Time Customer Profile</text>
+            </g>
+
+            <g id="node-identity" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="502" y="240" width="74" height="18" rx="3" fill="#e5e7eb" stroke="#d1d5db"/>
+              <text x="539" y="252" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Identity Graph</text>
+            </g>
+
+            <g id="node-seg" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="490" y="266" width="168" height="88" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="574" y="278" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Streaming Segmentation</text>
+              <text x="574" y="290" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Batch Segmentation</text>
+              <text x="574" y="302" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Audience Composition</text>
+              <text x="574" y="314" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Federated Audience Composition</text>
+            </g>
+
+            <g id="node-decision" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="682" y="200" width="120" height="56" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+              <text x="741" y="216" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Journeys</text>
+              <text x="741" y="228" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Decision Mgt</text>
+              <text x="741" y="240" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Message Exec</text>
+            </g>
+
+            <g id="node-creative" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="628" y="58" width="104" height="36" rx="6" fill="#ffffff" stroke="#d1d5db"/>
+              <image href="images/creative-cloud-app-icon.png" x="634" y="68" width="16" height="16" preserveAspectRatio="xMidYMid meet"/>
+              <text x="656" y="80" text-anchor="start" class="arch-node-sublabel" font-size="6px">Creative Cloud</text>
+            </g>
+
+            <g id="node-aem" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="628" y="100" width="104" height="28" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+              <rect x="634" y="106" width="10" height="10" rx="2" fill="#e1251b"/>
+              <text x="639" y="114" text-anchor="middle" fill="#ffffff" font-family="Inter,system-ui,sans-serif" font-size="6px" font-weight="800">A</text>
+              <text x="650" y="117" text-anchor="start" class="arch-node-sublabel" font-size="5.5px">AEM Assets Essentials</text>
+            </g>
+
+            <g id="node-jo" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="682" y="268" width="120" height="40" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
+              <text x="741" y="292" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Journey Optimizer</text>
+            </g>
+
+            <g id="node-rtcdp" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="682" y="316" width="120" height="36" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
+              <text x="741" y="338" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Real-Time CDP</text>
+            </g>
+
+            <g id="node-cja" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="682" y="360" width="120" height="36" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
+              <text x="741" y="382" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="6.5px" font-weight="600">Customer Journey Analytics</text>
+            </g>
+
+            <g id="node-mix" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="682" y="404" width="120" height="32" rx="4" fill="#1e3a5f" stroke="#0f172a"/>
+              <text x="741" y="423" text-anchor="middle" fill="#f9fafb" font-family="Inter,system-ui,sans-serif" font-size="7.5px" font-weight="600">Mix Modeler</text>
+            </g>
+
+            <!-- Customer Engagement stack (1/5 column; centered under header) -->
+            <g id="node-inbound" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="997" y="200" width="140" height="44" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
+              <text x="1067" y="218" text-anchor="middle" class="arch-node-label" font-size="8px">Inbound Experiences</text>
+              <text x="1067" y="230" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Desktop · Mobile · Code</text>
+            </g>
+
+            <g id="node-msg" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="997" y="252" width="140" height="44" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
+              <text x="1067" y="270" text-anchor="middle" class="arch-node-label" font-size="8px">Message Delivery</text>
+              <text x="1067" y="282" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Email · Mobile · SMS · Direct Mail</text>
+            </g>
+
+            <g id="node-paid" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="997" y="304" width="140" height="36" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
+              <text x="1067" y="322" text-anchor="middle" class="arch-node-label" font-size="8px">Paid Media</text>
+              <text x="1067" y="334" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Display · Social</text>
+            </g>
+
+            <g id="node-jrpt" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="997" y="348" width="140" height="36" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
+              <text x="1067" y="366" text-anchor="middle" class="arch-node-label" font-size="8px">Journey Reporting</text>
+              <text x="1067" y="378" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Dashboards · Analysis</text>
+            </g>
+
+            <g id="node-mrpt" class="arch-node arch-draggable">
+              <rect data-arch-shell="1" x="997" y="392" width="140" height="36" rx="4" fill="#e6e8ed" stroke="#c9ced6"/>
+              <text x="1067" y="410" text-anchor="middle" class="arch-node-label" font-size="8px">Marketing Performance</text>
+              <text x="1067" y="422" text-anchor="middle" class="arch-node-sublabel" font-size="6px">Dashboards · Analysis</text>
+            </g>
+
+            <!-- Platform utilities (reference deck) -->
+            <text x="600" y="600" text-anchor="middle" fill="#9ca3af" font-family="Inter,system-ui,sans-serif" font-size="5.5px">Audit Logs · Alerts · Access Controls · Sandboxing</text>
+
+            <!-- Key -->
+            <g transform="translate(18, 640)">
+              <text x="0" y="0" class="arch-node-sublabel" font-weight="700">Diagram Key</text>
+              <line x1="0" y1="10" x2="36" y2="10" stroke="#308fff" stroke-width="2"/>
+              <text x="42" y="13" class="arch-node-sublabel">Ingress data flow</text>
+              <line x1="200" y1="10" x2="236" y2="10" stroke="#7d8a9e" stroke-width="2" stroke-dasharray="4 3"/>
+              <text x="242" y="13" class="arch-node-sublabel">Intra-system flow</text>
+              <line x1="400" y1="10" x2="436" y2="10" stroke="#e34850" stroke-width="2"/>
+              <text x="442" y="13" class="arch-node-sublabel">Egress data flow</text>
+            </g>
+
+            <!-- User-drawn custom boxes (below connectors) -->
+            <g id="layer-custom-boxes" class="arch-custom-boxes-layer" pointer-events="all"/>
+            <rect id="archCustomBoxPreview" class="arch-custom-box-preview" x="0" y="0" width="0" height="0" fill="rgba(20,115,230,0.12)" stroke="#1473e6" stroke-width="1.25" stroke-dasharray="4 3" opacity="0" pointer-events="none"/>
+            <!-- User-drawn connectors (Lucid-style); rendered on top for interaction -->
+            <g id="layer-user-lines" class="arch-user-lines-layer" fill="none" stroke-linecap="round" stroke-linejoin="round" pointer-events="stroke"/>
+            <line id="archUserLinePreview" class="arch-user-line-preview" x1="0" y1="0" x2="0" y2="0" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5 4" opacity="0" pointer-events="none"/>
+            <!-- PowerPoint-style alignment guides while dragging a box -->
+            <g id="layer-drag-guides" class="arch-drag-guides-layer" fill="none" pointer-events="none" aria-hidden="true"/>
+          </svg>
+          </div>
+              <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Show editing tools">Show editing tools</button>
+            </div>
+
+            <aside class="arch-editor-dock arch-diagram-ui" id="archEditorDock" hidden>
+              <div class="arch-editor-rail" role="tablist" aria-label="Diagram editor tools">
+                <button type="button" class="arch-editor-rail-btn is-active" data-arch-panel="layout" id="archEditorRailLayout" title="Layout tools" aria-pressed="true"><span class="arch-editor-rail-glyph" aria-hidden="true">L</span></button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="highlights" id="archEditorRailHighlights" title="Highlights" aria-pressed="false"><span class="arch-editor-rail-glyph" aria-hidden="true">H</span></button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="sources" id="archEditorRailSources" title="Sources dividers" aria-pressed="false"><span class="arch-editor-rail-glyph" aria-hidden="true">S</span></button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="file" id="archEditorRailFile" title="Save and import" aria-pressed="false"><span class="arch-editor-rail-glyph" aria-hidden="true">F</span></button>
+              </div>
+              <div class="arch-editor-panel arch-int-hud" id="archEditorPanel">
+                <div class="arch-editor-section is-active" data-arch-panel="layout" id="archEditorSectionLayout" role="tabpanel" aria-labelledby="archEditorRailLayout">
+                  <p class="arch-editor-panel-heading">Layout &amp; drawing</p>
+                  <div class="arch-int-hud-tools" aria-label="Diagram layout">
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archDragToggle"/>
+                      <span>Drag &amp; resize boxes</span>
+                    </label>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archLabelToggle"/>
+                      <span>Move &amp; edit labels</span>
+                    </label>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archUserLineDrawToggle"/>
+                      <span>Draw connectors</span>
+                    </label>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archCustomBoxDrawToggle"/>
+                      <span>Draw custom boxes</span>
+                    </label>
+                    <span class="arch-int-hud-hint" title="Within ~36px of a box, endpoints snap to that box edge and stay attached when you move or resize the box">Snap to boxes</span>
+                    <label class="arch-hud-label">
+                      New line color
+                      <select id="archUserLineStrokePreset" title="Stroke for next connector" aria-label="Default stroke color for new connectors">
+                        <option value="#308fff">Ingress (blue)</option>
+                        <option value="#7d8a9e">Intra (gray)</option>
+                        <option value="#e34850">Egress (red)</option>
+                        <option value="#111827">Dark</option>
+                        <option value="#059669">Green</option>
+                        <option value="#d97706">Amber</option>
+                        <option value="#7c3aed">Violet</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div id="archUserLineProps" class="arch-user-line-props" hidden aria-label="Selected connector">
+                    <span class="arch-hud-label">Selected line</span>
+                    <label class="arch-hud-label">Color
+                      <select id="archUserLineColorSel" aria-label="Selected line color"></select>
+                    </label>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archUserLineBidir"/>
+                      <span>Bidirectional</span>
+                    </label>
+                    <button type="button" class="dashboard-btn-outline" id="archUserLineDelete" title="Remove this connector">Delete line</button>
+                  </div>
+                  <div id="archCustomBoxProps" class="arch-user-line-props arch-custom-box-props" hidden aria-label="Selected custom box">
+                    <span class="arch-hud-label">Custom box</span>
+                    <label class="arch-hud-label">Name
+                      <input type="text" id="archCustomBoxNameInput" class="arch-custom-box-name-input" maxlength="120" autocomplete="off" aria-label="Custom box name"/>
+                    </label>
+                    <label class="arch-hud-label">Fill
+                      <input type="color" id="archCustomBoxFillInput" value="#e5e7eb" aria-label="Custom box fill color"/>
+                    </label>
+                    <label class="arch-hud-label">Outline
+                      <input type="color" id="archCustomBoxStrokeInput" value="#94a3b8" aria-label="Custom box outline color"/>
+                    </label>
+                    <span class="arch-hud-label arch-custom-box-text-size-row">
+                      Label size
+                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextSmaller" title="Decrease label text size" aria-label="Decrease label text size">−</button>
+                      <span id="archCustomBoxFontSizeDisplay" class="arch-custom-box-font-size-display" aria-live="polite">8.5</span>
+                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextLarger" title="Increase label text size" aria-label="Increase label text size">+</button>
+                    </span>
+                    <p class="arch-custom-box-text-size-hint">Click the label on the diagram, then use − or +.</p>
+                    <button type="button" class="dashboard-btn-outline" id="archCustomBoxDelete" title="Remove this box">Delete box</button>
+                  </div>
+                </div>
+                <div class="arch-editor-section" data-arch-panel="highlights" id="archEditorSectionHighlights" role="tabpanel" aria-labelledby="archEditorRailHighlights" hidden>
+                  <p class="arch-editor-panel-heading">Highlights</p>
+                  <div class="arch-int-hud-view" aria-label="Diagram view">
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archStateHighlightsToggle" checked/>
+                      <span>Highlight boxes for current state</span>
+                    </label>
+                  </div>
+                  <details class="arch-highlight-picker-wrap" id="archHighlightPickerWrap">
+                    <summary class="arch-highlight-picker-summary">Which boxes are highlighted in this state</summary>
+                    <p class="arch-highlight-picker-help">Choose boxes for <strong>state <span id="archHighlightStateNum">1</span></strong> (saved in this browser; included in Download JSON).</p>
+                    <div id="archHighlightPicker" class="arch-highlight-picker" role="group" aria-label="Boxes to highlight for the current diagram state"></div>
+                    <div class="arch-highlight-picker-actions">
+                      <button type="button" class="dashboard-btn-outline" id="archHighlightResetState" title="Use Adobe default highlights for this state only">Reset this state to Adobe default</button>
+                    </div>
+                  </details>
+                </div>
+                <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
+                  <p class="arch-editor-panel-heading">Sources column</p>
+                  <details class="arch-sources-dividers-wrap" id="archSourcesDividersWrap">
+                    <summary class="arch-highlight-picker-summary">Sources column divider lines</summary>
+                    <p class="arch-highlight-picker-help">
+                      Horizontal rules between the SDK block and the category rows. Adjust left/right ends to change length; duplicate or remove lines. Saved with layout / JSON.
+                    </p>
+                    <div id="archSourcesDividersList" class="arch-sources-dividers-list" role="group" aria-label="Sources divider lines"></div>
+                    <button type="button" class="dashboard-btn-outline" id="archSourcesDividerAdd">Add divider line</button>
+                  </details>
+                </div>
+                <div class="arch-editor-section" data-arch-panel="file" id="archEditorSectionFile" role="tabpanel" aria-labelledby="archEditorRailFile" hidden>
+                  <p class="arch-editor-panel-heading">Layout file</p>
+                  <div class="arch-int-hud-tools arch-int-hud-file-tools" aria-label="Save and restore layout">
+                    <button type="button" class="dashboard-btn-outline" id="archMasterSave" title="Store current diagram as the default for this browser">Save as master layout</button>
+                    <button type="button" class="dashboard-btn-outline" id="archMasterDownload" title="Download layout JSON">Download JSON</button>
+                    <label class="dashboard-btn-outline arch-master-import-label">
+                      Import JSON
+                      <input type="file" id="archMasterImport" accept="application/json,.json" class="visually-hidden"/>
+                    </label>
+                    <button type="button" class="dashboard-btn-outline arch-drag-reset" id="archDragReset" title="Reset positions, labels, and custom lines to Adobe defaults">Restore Adobe defaults</button>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
         </section>
+
+        <p style="margin-top:0.75rem;font-size:0.8rem;color:var(--dash-muted,#6b7280);max-width:none;">
+          Architecture diagram: SVG and vanilla JavaScript (16 states). Runs entirely in the browser.
+        </p>
       </main>
     </div>
   </div>
@@ -88,8 +512,13 @@
       border: 0;
     }
   </style>
-  <script defer src="aep-theme.js?v=20260406"></script>
-  <script defer src="aep-lab-nav.js?v=20260428"></script>
-  <script defer src="aep-architecture-apps.js?v=20260430"></script>
+  <script defer src="aep-theme.js?v=20260416b"></script>
+  <script defer src="aep-lab-nav.js?v=20260427"></script>
+  <script defer src="diagram/model.js?v=20260513"></script>
+  <script defer src="diagram/selection.js?v=20260513"></script>
+  <script defer src="diagram/undo.js?v=20260513"></script>
+  <script defer src="diagram/layout-math.js?v=20260513"></script>
+  <script defer src="diagram/tests.js?v=20260513"></script>
+  <script defer src="aep-architecture-apps.js?v=20260516"></script>
 </body>
 </html>

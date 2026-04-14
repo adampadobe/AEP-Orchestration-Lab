@@ -718,6 +718,12 @@ body.home-dashboard-concierge {
   --dash-shadow: 0 2px 14px rgba(15, 15, 25, 0.07);
   --dash-shadow-hover: 0 8px 28px rgba(15, 15, 25, 0.1);
 
+  /* Global app layout contract — use class .app-page on main.dashboard-main (single owner: max-width + center + gutters) */
+  --app-page-max-width: min(1600px, 100%);
+  --app-page-pad-x: clamp(0.75rem, 2.5vw, 2rem);
+  --app-page-pad-top: 1rem;
+  --app-page-pad-bottom: 2.5rem;
+
   margin: 0;
   min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -1264,7 +1270,10 @@ body.home-dashboard-concierge.home-page .dashboard-main {
 /* Text-only banner — tool pages only (home uses .dashboard-hero without --page-banner) */
 .dashboard-hero--page-banner .dashboard-hero-header {
   margin-bottom: 0;
+  margin-left: auto;
+  margin-right: auto;
   max-width: 42rem;
+  text-align: center;
 }
 
 .dashboard-hero--page-banner .dashboard-hero-inner {
@@ -1291,6 +1300,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
   letter-spacing: -0.03em;
   line-height: 1.2;
   margin: 0 0 0.75rem;
+  text-align: center;
 }
 
 .dashboard-hero--page-banner .dashboard-hero-subtitle {
@@ -1300,6 +1310,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
   max-width: 36rem;
   margin-left: auto;
   margin-right: auto;
+  text-align: center;
 }
 
 .dashboard-hero-inner {
@@ -1805,27 +1816,32 @@ body.home-dashboard-concierge:not(.home-page) {
   min-height: 100vh;
 }
 
-/* Uniform tool-page container: consistent top gutter + side/bottom gutters */
-body.home-dashboard-concierge:not(.home-page) .dashboard-main.profile-viewer-main,
-body.home-dashboard-concierge:not(.home-page) .dashboard-main.event-generator-main,
-body.home-dashboard-concierge:not(.home-page) .dashboard-main.profile-generation-main,
-body.home-dashboard-concierge:not(.home-page) .dashboard-main.schema-viewer-main,
-body.home-dashboard-concierge:not(.home-page) .dashboard-main.consent-main,
-body.home-dashboard-concierge:not(.home-page) .dashboard-main.audit-main,
-body.home-dashboard-concierge:not(.home-page) .dashboard-main.event-tool-main,
-body.home-dashboard-concierge:not(.home-page) .dashboard-main.audience-main,
-body.home-dashboard-concierge.search-tool-page .dashboard-main {
-  max-width: none;
+/* Global page layout: one centered column + responsive gutters (class app-page on main.dashboard-main) */
+body.home-dashboard-concierge:not(.home-page) .dashboard-main.app-page {
+  box-sizing: border-box;
   width: 100%;
+  max-width: var(--app-page-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--app-page-pad-top) var(--app-page-pad-x) var(--app-page-pad-bottom);
+}
+
+/* Optional inner wrapper — full width of .app-page; use for full-bleed siblings or nested grids */
+.dashboard-main.app-page > .app-page-container {
+  width: 100%;
+  max-width: none;
   margin: 0;
-  padding: 1rem clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
+  padding: 0;
   box-sizing: border-box;
 }
 
-body.home-dashboard-concierge.schema-viewer-page .dashboard-main.schema-viewer-main.schema-aep-main {
+/* Break out of horizontal padding for edge-to-edge bands (inside main.app-page) */
+.dashboard-main.app-page > .app-page-full-bleed {
+  position: relative;
+  left: calc(-1 * var(--app-page-pad-x));
+  width: calc(100% + 2 * var(--app-page-pad-x));
   max-width: none;
-  margin: 0;
-  padding: 1rem clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
+  box-sizing: border-box;
 }
 
 /* Primary actions match home (black), links use dash blue */

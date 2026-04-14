@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experimentation visualiser – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260426">
+  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+</head>
+<body class="profile-viewer-page home-dashboard-concierge experimentation-visualiser-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Work in progress">In development</span>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="home.html" class="dashboard-topbar-icon" title="Home">⌂</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-viewer-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="expVisHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="expVisHeading" class="dashboard-hero-title">Experimentation visualiser</h2>
+              <p class="dashboard-hero-subtitle">
+                Placeholder for experimentation flows and visualisations. Content will be added here.
+              </p>
+            </header>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script defer src="aep-theme.js?v=20260406"></script>
+  <script defer src="aep-lab-nav.js?v=20260427"></script>
+</body>
+</html>

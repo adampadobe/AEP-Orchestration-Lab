@@ -1,0 +1,211 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 700" width="1024" height="700" role="img" aria-labelledby="archDiagramTitle">
+  <title id="archDiagramTitle">Adobe Experience Platform and applications - reference architecture</title>
+  <defs>
+    <style type="text/css"><![CDATA[
+      .t { font-family: Inter, system-ui, "Segoe UI", Roboto, sans-serif; fill: #1a1d21; }
+      .t-inv { fill: #f5f5f5; }
+      .t-sm { font-size: 9px; font-weight: 600; }
+      .t-xs { font-size: 7.5px; font-weight: 500; }
+      .t-xxs { font-size: 6.5px; font-weight: 500; }
+      .t-title { font-size: 13px; font-weight: 700; }
+      .t-lane { font-size: 8.5px; font-weight: 700; letter-spacing: 0.02em; }
+      .box-light { fill: #eceff2; stroke: #d0d4dd; stroke-width: 1; }
+      .box-dark { fill: #2e3238; stroke: #1f2328; stroke-width: 1; }
+      .box-darker { fill: #25282d; stroke: #1a1d21; stroke-width: 1; }
+      .box-white { fill: #ffffff; stroke: #c5cad3; stroke-width: 1; }
+      .box-app { fill: #3d4450; stroke: #2a3038; stroke-width: 1; }
+      .box-eng { fill: #e8eaee; stroke: #c9ced6; stroke-width: 1; }
+      .edge-bar { fill: #3a3f47; stroke: #2a2f35; stroke-width: 1; }
+      .lane-bar { fill: #dfe3e8; stroke: #c5cad3; stroke-width: 1; }
+      .line-in { stroke: #308fff; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .line-mid { stroke: #8b95a5; stroke-width: 1.4; fill: none; stroke-linecap: round; stroke-dasharray: 4 3.5; }
+      .line-out { stroke: #e34850; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    ]]></style>
+    <marker id="mIn" markerWidth="5" markerHeight="5" refX="4.2" refY="2.5" orient="auto">
+      <polygon points="0,0 5,2.5 0,5" fill="#308fff"/>
+    </marker>
+    <marker id="mOut" markerWidth="5" markerHeight="5" refX="4.2" refY="2.5" orient="auto">
+      <polygon points="0,0 5,2.5 0,5" fill="#e34850"/>
+    </marker>
+  </defs>
+
+  <rect width="1024" height="700" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="20" y="26" class="t t-title">Adobe Experience Platform &amp; Applications</text>
+
+  <!-- Swimlane headers -->
+  <rect x="16" y="36" width="244" height="26" class="lane-bar" rx="2"/>
+  <rect x="260" y="36" width="244" height="26" class="lane-bar" rx="2"/>
+  <rect x="504" y="36" width="244" height="26" class="lane-bar" rx="2"/>
+  <rect x="748" y="36" width="260" height="26" class="lane-bar" rx="2"/>
+  <text x="138" y="52" text-anchor="middle" class="t t-lane">DATA COLLECTION</text>
+  <text x="382" y="52" text-anchor="middle" class="t t-lane">PROFILE &amp; DATA MANAGEMENT</text>
+  <text x="626" y="52" text-anchor="middle" class="t t-lane">EXPERIENCE DECISIONING</text>
+  <text x="878" y="52" text-anchor="middle" class="t t-lane">CUSTOMER ENGAGEMENT</text>
+
+  <!-- Left: sources -->
+  <g id="sources">
+    <rect x="16" y="72" width="88" height="36" class="box-light" rx="3"/>
+    <rect x="22" y="78" width="10" height="10" fill="#e1251b" rx="1"/>
+    <text x="36" y="86" class="t t-xs">Tags (Client Side)</text>
+    <text x="36" y="96" class="t t-xxs" fill="#5c6370">Launch / Tags</text>
+
+    <rect x="16" y="114" width="88" height="36" class="box-light" rx="3"/>
+    <text x="24" y="132" class="t t-xs">SDK</text>
+    <text x="24" y="142" class="t t-xxs" fill="#5c6370">Web / Mobile / Edge</text>
+
+    <rect x="16" y="156" width="88" height="36" class="box-light" rx="3"/>
+    <text x="24" y="172" class="t t-xxs">Cloud Apps /</text>
+    <text x="24" y="182" class="t t-xxs">3rd Party</text>
+
+    <rect x="16" y="198" width="88" height="32" class="box-light" rx="3"/>
+    <text x="24" y="216" class="t t-xxs">Enterprise Sources</text>
+
+    <rect x="16" y="236" width="88" height="32" class="box-light" rx="3"/>
+    <text x="24" y="254" class="t t-xxs">ETL Ecosystem</text>
+
+    <rect x="16" y="274" width="88" height="36" class="box-light" rx="3"/>
+    <text x="24" y="292" class="t t-xxs">External Data</text>
+    <text x="24" y="302" class="t t-xxs">Warehouse</text>
+  </g>
+
+  <!-- Main platform shell -->
+  <rect x="112" y="68" width="556" height="520" class="box-light" rx="6" fill="#f3f5f7" stroke="#c5cad3"/>
+
+  <!-- AEP label on shell -->
+  <rect x="128" y="74" width="12" height="12" fill="#e1251b" rx="1"/>
+  <text x="146" y="84" class="t t-sm">Adobe Experience Platform</text>
+
+  <!-- Edge bar -->
+  <rect x="124" y="96" width="532" height="32" class="edge-bar" rx="3"/>
+  <text x="390" y="116" text-anchor="middle" class="t t-sm t-inv">Edge Network &amp; Edge Profile</text>
+
+  <!-- Ingestion column -->
+  <rect x="124" y="140" width="118" height="44" class="box-darker" rx="3"/>
+  <text x="183" y="162" text-anchor="middle" class="t t-xs t-inv">Streaming Data</text>
+  <text x="183" y="174" text-anchor="middle" class="t t-xxs t-inv">Collection</text>
+
+  <rect x="124" y="190" width="118" height="44" class="box-darker" rx="3"/>
+  <text x="183" y="212" text-anchor="middle" class="t t-xs t-inv">Batch Data</text>
+  <text x="183" y="224" text-anchor="middle" class="t t-xxs t-inv">Collection</text>
+
+  <rect x="124" y="244" width="56" height="40" class="box-white" rx="2"/>
+  <text x="152" y="262" text-anchor="middle" class="t t-xxs">Query Service</text>
+  <rect x="186" y="244" width="56" height="40" class="box-white" rx="2"/>
+  <text x="214" y="262" text-anchor="middle" class="t t-xxs">Intelligence</text>
+  <text x="214" y="272" text-anchor="middle" class="t t-xxs">&amp; AI</text>
+
+  <!-- Data lake -->
+  <rect x="124" y="294" width="118" height="62" class="box-darker" rx="3"/>
+  <text x="183" y="312" text-anchor="middle" class="t t-xs t-inv">Data Lake</text>
+  <text x="183" y="324" text-anchor="middle" class="t t-xxs t-inv">(Raw Profile Data)</text>
+  <rect x="132" y="330" width="100" height="20" class="box-white" rx="2"/>
+  <text x="183" y="344" text-anchor="middle" class="t t-xxs">Data Governance</text>
+
+  <!-- Pipeline spine -->
+  <rect x="256" y="140" width="22" height="216" class="box-dark" rx="2"/>
+  <text x="267" y="252" text-anchor="middle" class="t t-xxs t-inv" transform="rotate(-90 267 252)">Pipeline</text>
+
+  <!-- Profile + identity -->
+  <rect x="290" y="140" width="130" height="52" class="box-darker" rx="3"/>
+  <text x="355" y="164" text-anchor="middle" class="t t-xs t-inv">Real-Time Customer Profile</text>
+  <rect x="300" y="170" width="52" height="18" class="box-white" rx="2"/>
+  <text x="326" y="182" text-anchor="middle" class="t t-xxs">Identity Graph</text>
+
+  <!-- Segmentation stack -->
+  <rect x="290" y="204" width="130" height="22" class="box-white" rx="2"/>
+  <text x="355" y="218" text-anchor="middle" class="t t-xxs">Streaming Segmentation</text>
+  <rect x="290" y="230" width="130" height="22" class="box-white" rx="2"/>
+  <text x="355" y="244" text-anchor="middle" class="t t-xxs">Batch Segmentation</text>
+  <rect x="290" y="256" width="130" height="22" class="box-white" rx="2"/>
+  <text x="355" y="270" text-anchor="middle" class="t t-xxs">Audience Composition</text>
+  <rect x="290" y="282" width="130" height="24" class="box-white" rx="2"/>
+  <text x="355" y="297" text-anchor="middle" class="t t-xxs">Federated Audience Comp.</text>
+
+  <!-- Foundation row -->
+  <rect x="124" y="364" width="296" height="28" class="box-light" rx="3"/>
+  <text x="156" y="380" class="t t-xxs">Audit Logs</text>
+  <text x="220" y="380" class="t t-xxs">Alerts</text>
+  <text x="280" y="380" class="t t-xxs">Access Controls</text>
+  <text x="360" y="380" class="t t-xxs">Sandboxing</text>
+
+  <!-- Decisioning / apps inside platform (JO stack) -->
+  <rect x="432" y="140" width="100" height="22" class="box-white" rx="2"/>
+  <text x="482" y="154" text-anchor="middle" class="t t-xxs">Journeys</text>
+  <rect x="432" y="166" width="100" height="22" class="box-white" rx="2"/>
+  <text x="482" y="180" text-anchor="middle" class="t t-xxs">Decision Mgt</text>
+  <rect x="432" y="192" width="100" height="22" class="box-white" rx="2"/>
+  <text x="482" y="206" text-anchor="middle" class="t t-xxs">Message Exec</text>
+
+  <rect x="432" y="224" width="100" height="36" class="box-app" rx="3"/>
+  <text x="482" y="242" text-anchor="middle" class="t t-xs t-inv">Journey Optimizer</text>
+  <rect x="432" y="266" width="100" height="32" class="box-app" rx="3"/>
+  <text x="482" y="282" text-anchor="middle" class="t t-xs t-inv">Real-Time CDP</text>
+  <rect x="432" y="304" width="100" height="32" class="box-app" rx="3"/>
+  <text x="482" y="322" text-anchor="middle" class="t t-xxs t-inv">Customer Journey</text>
+  <text x="482" y="332" text-anchor="middle" class="t t-xxs t-inv">Analytics</text>
+  <rect x="432" y="342" width="100" height="28" class="box-app" rx="3"/>
+  <text x="482" y="358" text-anchor="middle" class="t t-xs t-inv">Mix Modeler</text>
+
+  <!-- Creative + AEM floating -->
+  <rect x="540" y="96" width="72" height="28" class="box-light" rx="3"/>
+  <text x="576" y="112" text-anchor="middle" class="t t-xxs">Creative Cloud</text>
+  <rect x="540" y="130" width="72" height="28" class="box-dark" rx="3"/>
+  <text x="576" y="146" text-anchor="middle" class="t t-xxs t-inv">AEM Assets</text>
+
+  <!-- Engagement column -->
+  <g id="engagement">
+    <rect x="684" y="72" width="148" height="40" class="box-eng" rx="3"/>
+    <text x="758" y="90" text-anchor="middle" class="t t-xs">Inbound Experiences</text>
+    <text x="758" y="102" text-anchor="middle" class="t t-xxs" fill="#5c6370">Desktop / Mobile / Code</text>
+
+    <rect x="684" y="118" width="148" height="40" class="box-eng" rx="3"/>
+    <text x="758" y="136" text-anchor="middle" class="t t-xs">Message Delivery</text>
+    <text x="758" y="148" text-anchor="middle" class="t t-xxs" fill="#5c6370">Email / Push / SMS / DM</text>
+
+    <rect x="684" y="164" width="148" height="32" class="box-eng" rx="3"/>
+    <text x="758" y="182" text-anchor="middle" class="t t-xs">Paid Media</text>
+
+    <rect x="684" y="202" width="148" height="32" class="box-eng" rx="3"/>
+    <text x="758" y="220" text-anchor="middle" class="t t-xs">Journey Reporting</text>
+
+    <rect x="684" y="240" width="148" height="32" class="box-eng" rx="3"/>
+    <text x="758" y="258" text-anchor="middle" class="t t-xs">Marketing Performance</text>
+  </g>
+
+  <!-- Connectors (simplified topology) -->
+  <g id="connectors" pointer-events="none">
+    <!-- Ingress blue -->
+    <path d="M104 90 L116 90 L116 162" class="line-in" marker-end="url(#mIn)"/>
+    <path d="M104 132 L118 132 L118 212" class="line-in" marker-end="url(#mIn)"/>
+    <path d="M104 218 L120 218 L120 320" class="line-in" marker-end="url(#mIn)"/>
+    <path d="M104 292 L120 292 L120 320" class="line-in" marker-end="url(#mIn)"/>
+    <!-- Into edge -->
+    <path d="M104 90 L360 90 L360 112" class="line-in" marker-end="url(#mIn)"/>
+    <!-- Intra dashed -->
+    <path d="M242 162 L256 162 L256 320 L268 320" class="line-mid"/>
+    <path d="M278 166 L290 166" class="line-mid"/>
+    <path d="M420 248 L432 248" class="line-mid"/>
+    <path d="M355 248 L420 248" class="line-mid"/>
+    <path d="M532 248 L540 248 L540 110" class="line-mid"/>
+    <!-- Egress red -->
+    <path d="M532 248 L620 248 L620 92 L676 92" class="line-out" marker-end="url(#mOut)"/>
+    <path d="M532 282 L660 282 L660 138 L676 138" class="line-out" marker-end="url(#mOut)"/>
+    <path d="M532 318 L640 318 L640 180 L676 180" class="line-out" marker-end="url(#mOut)"/>
+    <path d="M532 356 L650 356 L650 218 L676 218" class="line-out" marker-end="url(#mOut)"/>
+  </g>
+
+  <!-- Diagram key -->
+  <g id="key">
+    <text x="16" y="612" class="t t-xs" font-weight="700">Diagram key</text>
+    <line x1="16" y1="624" x2="56" y2="624" class="line-in"/>
+    <text x="62" y="627" class="t t-xxs">Ingress data flow</text>
+    <line x1="16" y1="636" x2="56" y2="636" class="line-mid"/>
+    <text x="62" y="639" class="t t-xxs">Intra-system data flow</text>
+    <line x1="16" y1="648" x2="56" y2="648" class="line-out"/>
+    <text x="62" y="651" class="t t-xxs">Egress data flow</text>
+  </g>
+
+  <text x="512" y="688" text-anchor="middle" class="t t-xxs" fill="#6b7280">Hand-built SVG from the reference architecture (vector labels and colors; icons omitted).</text>
+</svg>

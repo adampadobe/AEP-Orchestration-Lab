@@ -1,0 +1,72 @@
+/* Experience decisioning page — shell uses home.css / aep-theme; React app uses --dash-* via .edp-sandbox */
+
+/* Mount uses full width; horizontal gutters + max-width come from main.dashboard-main.app-page (home.css) */
+
+.experience-decisioning-page .edp-mount {
+  width: 100%;
+  max-width: none;
+  margin: 0 0 2.5rem;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Page banner — full column width (aligned with EDP mount below) */
+.experience-decisioning-page .dashboard-hero--page-banner .dashboard-hero-inner {
+  max-width: none;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.experience-decisioning-page .dashboard-hero--page-banner .dashboard-hero-header {
+  max-width: none;
+  width: 100%;
+}
+
+.experience-decisioning-page .dashboard-hero--page-banner .dashboard-hero-subtitle {
+  max-width: none;
+}
+
+/*
+ * Fallback if an older edp build still caps Shell chrome (Vite module hash varies).
+ * Current builds set full width in Shell.module.css.
+ */
+.experience-decisioning-page .edp-sandbox [class*="headerInner"],
+.experience-decisioning-page .edp-sandbox [class*="footerInner"] {
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.experience-decisioning-page .edp-blocked {
+  max-width: 42rem;
+  margin: 0 1.5rem 2rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--dash-border, #e6e4ea);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface-alt, #f8f9fa);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, #555);
+}
+
+.experience-decisioning-page .edp-blocked a {
+  color: var(--dash-blue, #1473e6);
+  text-decoration: none;
+}
+
+.experience-decisioning-page .edp-blocked a:hover {
+  text-decoration: underline;
+}
+
+html[data-aep-theme='dark'] .experience-decisioning-page .edp-blocked {
+  background: var(--dash-surface-alt, #14161b);
+  border-color: var(--dash-border, #2a3038);
+  color: var(--dash-muted, #9aa0a8);
+}
+
+.experience-decisioning-page .schema-aep-edp-root {
+  width: 100%;
+  min-height: min(80vh, 900px);
+}

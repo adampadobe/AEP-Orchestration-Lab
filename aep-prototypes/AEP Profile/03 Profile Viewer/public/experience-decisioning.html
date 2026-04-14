@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Decisioning overview – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260426">
+  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="experience-decisioning.css?v=20260426">
+  <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260414-tabs">
+</head>
+<body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local learning tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/journey-optimizer/using/ajo-orchestration/decision-management/decision-management.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Decision management</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="schema-viewer.html" class="dashboard-topbar-icon" title="Data viewer">◧</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingEdp">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingEdp" class="dashboard-hero-title">Decisioning overview</h2>
+              <p class="dashboard-hero-subtitle">
+                Step-through demo: schema → items → collections → rules → ranking → strategy → policy → result.
+                Industries match Profile generation.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <div id="edpBlocked" class="edp-blocked" hidden>
+          <p style="margin:0 0 0.75rem;">
+            This page is hidden from the sidebar. Turn it back on under
+            <a href="global-settings.html"><strong>Global values</strong></a>
+            (uncheck “Hide Decisioning overview”).
+          </p>
+        </div>
+
+        <div id="edpMount" class="edp-mount">
+          <div id="edp-root" class="schema-aep-edp-root"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var LS_HIDE = 'aepHideDataViewerDecisioningPlayground';
+      function applyVisibility() {
+        var hide = false;
+        try {
+          hide = localStorage.getItem(LS_HIDE) === '1';
+        } catch (e) {}
+        var blocked = document.getElementById('edpBlocked');
+        var mount = document.getElementById('edpMount');
+        if (blocked && mount) {
+          blocked.hidden = !hide;
+          mount.hidden = hide;
+        }
+        if (!hide) {
+          var s = document.createElement('script');
+          s.type = 'module';
+          s.src = '/profile-viewer/experience-decisioning/assets/edp.js?v=20260414-tabs';
+          document.body.appendChild(s);
+        }
+      }
+      applyVisibility();
+      window.addEventListener('aep-edp-visibility-change', function () {
+        window.location.reload();
+      });
+      window.addEventListener('storage', function (e) {
+        if (e.key === LS_HIDE) window.location.reload();
+      });
+    })();
+  </script>
+  <script defer src="aep-theme.js?v=20260416b"></script>
+  <script defer src="aep-lab-nav.js?v=20260427"></script>
+</body>
+</html>

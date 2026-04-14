@@ -1,0 +1,235 @@
+/**
+ * Menu chrome — aligned with web/profile-viewer/decisioning-edp-shell.css
+ * (Decisioning visualiser is the source of truth for font sizes, weights, gaps, colors).
+ */
+.root {
+  min-height: 100vh;
+  background: var(--bg);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 210;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+.headerInner {
+  max-width: none;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 clamp(12px, 2vw, 20px);
+  box-sizing: border-box;
+}
+
+.tabBarRow {
+  display: flex;
+  align-items: stretch;
+  min-height: 44px;
+}
+
+.tabIndustry {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding-right: 12px;
+  margin-right: 4px;
+  border-right: 1px solid var(--border);
+}
+
+.dropdownWrap {
+  position: relative;
+}
+
+.tabIndustry .dropdownWrap {
+  margin-left: 0;
+}
+
+.dropdownBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--hover-surface);
+  border: 1px solid var(--border);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.dropdownBtn:hover {
+  filter: brightness(0.98);
+}
+
+.industryIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--blue);
+}
+
+.chevron {
+  flex-shrink: 0;
+  opacity: 0.75;
+  color: var(--text-muted);
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: auto;
+  margin-top: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 3px;
+  box-shadow: var(--shadow-popover);
+  min-width: 200px;
+  z-index: 600;
+  box-sizing: border-box;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  box-sizing: border-box;
+}
+
+.dropdownItem:hover {
+  background: var(--hover-surface);
+}
+
+.dropdownItemActive {
+  font-weight: 600;
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+}
+
+.dropdownItemActive:hover {
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+}
+
+.menuIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dropdownItem:not(.dropdownItemActive) .menuIcon {
+  color: var(--text-muted);
+}
+
+.dropdownItemActive .menuIcon {
+  color: var(--blue);
+}
+
+.menuLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Progress bar — same height/fill as Decisioning visualiser */
+.progressTrack {
+  height: 2px;
+  background: var(--border);
+  width: 100%;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--blue);
+  transition: width 0.35s ease;
+}
+
+/* Step tabs — same padding / font as .dce-edp-shell-tabs .tab-btn */
+.tabRow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  overflow-x: auto;
+  align-items: stretch;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 10px 16px 14px;
+  background: transparent;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: normal;
+  color: var(--text-muted);
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--hover-surface) 65%, transparent);
+}
+
+.tabActive {
+  font-weight: 600;
+  color: var(--blue);
+  background: transparent;
+}
+
+/* Pill underline — matches Decisioning visualiser (inset bar, rounded ends) */
+.tabActive::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 3px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--blue);
+  pointer-events: none;
+}
+
+.tabActive:hover {
+  color: var(--blue);
+  background: transparent;
+}
+
+/* ── CONTENT — same rhythm as #dceVizRoot.dce-viz-core .content ── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  padding: 48px var(--edp-core-pad-x, clamp(1rem, 2.5vw, 1.35rem)) 60px;
+  box-sizing: border-box;
+  background: var(--bg);
+}

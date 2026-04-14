@@ -59,6 +59,24 @@
     syncToggleLabels(getMode());
   }
 
+  function injectFavicon() {
+    var doc = global.document;
+    if (!doc.head || doc.querySelector('link[data-aep-favicon="main"]')) return;
+    /* Same multi-size .ico as AI Projects/firebaseFunctions/public/favicon.ico (copied to /web/favicon.ico). */
+    var v = '20260416b';
+    var ico = doc.createElement('link');
+    ico.rel = 'icon';
+    ico.href = '/favicon.ico?v=' + v;
+    ico.setAttribute('sizes', 'any');
+    ico.setAttribute('data-aep-favicon', 'main');
+    doc.head.appendChild(ico);
+    var apple = doc.createElement('link');
+    apple.rel = 'apple-touch-icon';
+    apple.href = '/apple-touch-icon.png?v=' + v;
+    apple.setAttribute('data-aep-favicon', 'apple');
+    doc.head.appendChild(apple);
+  }
+
   function injectSidebarToggle() {
     var doc = global.document;
     doc.querySelectorAll('.dashboard-sidebar').forEach(function (sidebar) {
@@ -75,6 +93,7 @@
   }
 
   function init() {
+    injectFavicon();
     applyToDocument(getMode());
     injectSidebarToggle();
     bindToggleButtons();

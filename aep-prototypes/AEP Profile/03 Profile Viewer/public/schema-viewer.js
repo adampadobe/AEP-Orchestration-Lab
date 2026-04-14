@@ -1138,6 +1138,35 @@
     } else if (tab === 'audiences') {
       loadAudiencesFromApi();
     }
+
+    try {
+      const want = `#${tab}`;
+      if ((window.location.hash || '') !== want) {
+        history.replaceState(null, '', `${window.location.pathname}${window.location.search}${want}`);
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function applyInitialHashFromUrl() {
+    let raw = (window.location.hash || '').replace(/^#/, '');
+    if (raw === 'playground') {
+      try {
+        history.replaceState(
+          null,
+          '',
+          `${window.location.pathname}${window.location.search}#overview`
+        );
+      } catch (e) {
+        /* ignore */
+      }
+      raw = 'overview';
+    }
+    const valid = ['overview', 'browse', 'datasets', 'audiences'];
+    let tab = 'overview';
+    if (raw && valid.includes(raw)) tab = raw;
+    setAepTab(tab);
   }
 
   function initAepTabs() {
@@ -1737,9 +1766,9 @@
 
   const refreshBtn = document.getElementById('dataViewerRefreshBtn');
   refreshBtn?.addEventListener('click', () => {
+    const tab = currentAepTab || 'overview';
     refreshBtn.disabled = true;
     refreshBtn.textContent = '↻ Refreshing…';
-    const tab = currentAepTab || 'overview';
     const jobs = [];
     if (tab === 'overview') jobs.push(loadOverviewStats(true));
     if (tab === 'browse') jobs.push(refreshBrowseFromApi(null, true));
@@ -1758,8 +1787,27 @@
     initAudienceTableSort();
     initSourceSelectStatic();
     initAepTabs();
+    window.addEventListener('hashchange', () => {
+      let raw = (window.location.hash || '').replace(/^#/, '');
+      if (raw === 'playground') {
+        try {
+          history.replaceState(
+            null,
+            '',
+            `${window.location.pathname}${window.location.search}#overview`
+          );
+        } catch (e) {
+          /* ignore */
+        }
+        raw = 'overview';
+      }
+      const valid = ['overview', 'browse', 'datasets', 'audiences'];
+      if (!raw || !valid.includes(raw)) return;
+      const tab = raw;
+      if (tab !== currentAepTab) setAepTab(tab);
+    });
     await loadSandboxes();
-    setAepTab('overview');
+    applyInitialHashFromUrl();
     syncSourceUI();
     loadOperationalSample();
   })();

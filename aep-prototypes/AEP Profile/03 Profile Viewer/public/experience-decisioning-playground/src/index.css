@@ -1,0 +1,126 @@
+/* Serif + mono; sans comes from host (Inter on AEP Profile Viewer) */
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+/* Scoped to .edp-sandbox — maps to AEP dashboard --dash-* when embedded */
+.edp-sandbox {
+  /* Core bridge (inherits --dash-* from body.home-dashboard-concierge) */
+  --bg: var(--dash-bg, #faf9f7);
+  --surface: var(--dash-surface, #ffffff);
+  --surface-alt: var(--dash-surface-alt, #f5f3ef);
+  --surface-warm: var(--dash-surface-alt, #fbf8f4);
+  --text: var(--dash-text, #1b1b1b);
+  --text-muted: var(--dash-muted, #807872);
+  --text-dim: var(--dash-text-secondary, #52525b);
+  --border: var(--dash-border, #e8e4df);
+  --blue: var(--dash-blue, #2680eb);
+  --accent: #eb1000;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  --green: #2d9d78;
+  --gold: #e68619;
+  --purple: #7c5cfc;
+  --preview-bg: var(--dash-surface-alt, #f9f6f1);
+  --preview-border: var(--dash-border, #ede8e0);
+
+  /* Frosted chrome inside the app shell */
+  --shell-sticky-bg: color-mix(in srgb, var(--surface) 88%, transparent);
+  --shadow-popover: var(--dash-shadow, 0 6px 20px rgba(15, 15, 25, 0.1));
+  --shadow-card: var(--dash-shadow, 0 1px 2px rgba(15, 15, 25, 0.06));
+  --shadow-card-hover: var(--dash-shadow-hover, 0 8px 24px rgba(15, 15, 25, 0.12));
+
+  /* Tint overlays (replace hex + alpha concatenation in JS) */
+  --mix-accent-06: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  --mix-accent-10: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  --mix-accent-25: color-mix(in srgb, var(--accent) 28%, var(--border));
+  --mix-green-06: color-mix(in srgb, var(--green) 8%, var(--surface));
+  --mix-green-10: color-mix(in srgb, var(--green) 12%, var(--surface));
+  --mix-green-25: color-mix(in srgb, var(--green) 28%, var(--border));
+  --mix-gold-10: color-mix(in srgb, var(--gold) 12%, var(--surface));
+  --mix-blue-03: color-mix(in srgb, var(--blue) 8%, var(--surface));
+  --mix-blue-09: color-mix(in srgb, var(--blue) 14%, var(--surface));
+  --mix-blue-18: color-mix(in srgb, var(--blue) 22%, var(--border));
+
+  /* Warm / nested borders */
+  --border-warm: color-mix(in srgb, var(--border) 65%, var(--surface-warm));
+  --border-row: color-mix(in srgb, var(--border) 50%, var(--surface));
+  --hover-surface: var(--dash-hover, #f4f4f5);
+
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'DM Mono', Consolas, monospace;
+
+  /* Match #dceVizRoot.dce-viz-core --dce-core-pad-x (decisioning-visualizer-core.css) */
+  --edp-core-pad-x: clamp(1rem, 2.5vw, 1.35rem);
+
+  box-sizing: border-box;
+  margin: 0;
+  background: var(--bg);
+  font-family: var(--font-sans);
+  color: var(--text);
+  isolation: isolate;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 520px;
+}
+
+.edp-sandbox *,
+.edp-sandbox *::before,
+.edp-sandbox *::after {
+  box-sizing: border-box;
+}
+
+/* Fade-in animation for step transitions */
+@keyframes edpFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Card explorer detail panel slide-in */
+@keyframes edpCardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.edp-sandbox input[type='range'] {
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border);
+}
+
+.edp-sandbox input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: currentColor;
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.edp-sandbox button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font: inherit;
+}
+
+.edp-sandbox ::-webkit-scrollbar {
+  width: 4px;
+}
+.edp-sandbox ::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}

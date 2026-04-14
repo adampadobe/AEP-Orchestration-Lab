@@ -1,0 +1,7 @@
+/* Step body — fade only; padding lives on Shell .content (matches decisioning-visualizer-core .content) */
+.stepInner {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  animation: edpFadeIn 0.3s ease;
+}
