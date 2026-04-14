@@ -409,6 +409,12 @@
     'contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin',
   ];
   var SCHEMA_TOTAL = 19;
+  /** Custom-tagged offer + metadata fields (excludes Navigation & Promo). */
+  var SCHEMA_CUSTOM_FIELDS = [
+    'heroImage', 'thumbnail', 'title', 'description', 'callToAction',
+    'contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin',
+  ];
+  var SCHEMA_NAV_PROMO_FIELDS = ['webUrl', 'deepLink', 'channelType', 'promoCode'];
 
   var SCHEMA_OFFERS = {
     media: {
@@ -665,34 +671,6 @@
       if (t && t.matches && t.matches('input[data-dce-schema-field]') && !t.disabled) updateOfferSchemaPreview();
     });
 
-    var btnReset = document.getElementById('dce-schema-reset');
-    var btnEnCust = document.getElementById('dce-schema-enable-custom');
-    var btnEnAll = document.getElementById('dce-schema-enable-all');
-
-    if (btnReset) btnReset.addEventListener('click', function () {
-      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
-        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
-        if (cb) cb.checked = false;
-      });
-      updateOfferSchemaPreview();
-    });
-
-    if (btnEnCust) btnEnCust.addEventListener('click', function () {
-      ['heroImage', 'thumbnail', 'title', 'description', 'callToAction', 'contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin'].forEach(function (fid) {
-        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
-        if (cb) cb.checked = true;
-      });
-      updateOfferSchemaPreview();
-    });
-
-    if (btnEnAll) btnEnAll.addEventListener('click', function () {
-      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
-        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
-        if (cb) cb.checked = true;
-      });
-      updateOfferSchemaPreview();
-    });
-
     function setFolderOpen(folder, open) {
       var head = folder.querySelector(':scope > .dce-schema-folder-head');
       var body = folder.querySelector(':scope > .dce-schema-folder-body');
@@ -702,6 +680,91 @@
       var chev = head.querySelector('.dce-schema-folder-chev');
       if (chev) chev.textContent = open ? '▼' : '▶';
     }
+
+    /**
+     * @param {'reset'|'custom'|'all'} preset — reset = standard-only tree; custom = custom fields on, nav/promo folders closed; all = everything expanded
+     */
+    function applySchemaFolderLayout(preset) {
+      root.querySelectorAll('.dce-schema-folder').forEach(function (folder) {
+        var key = folder.getAttribute('data-dce-schema-folder');
+        if (preset === 'all') {
+          setFolderOpen(folder, true);
+          return;
+        }
+        if (preset === 'reset') {
+          if (key === 'standard') setFolderOpen(folder, true);
+          else if (key === 'offer-content' || key === 'metadata') setFolderOpen(folder, false);
+          else if (key === 'media' || key === 'text') setFolderOpen(folder, true);
+          else if (key === 'nav' || key === 'promo') setFolderOpen(folder, false);
+          else setFolderOpen(folder, false);
+          return;
+        }
+        if (preset === 'custom') {
+          if (key === 'standard') setFolderOpen(folder, true);
+          else if (key === 'offer-content' || key === 'metadata') setFolderOpen(folder, true);
+          else if (key === 'media' || key === 'text') setFolderOpen(folder, true);
+          else if (key === 'nav' || key === 'promo') setFolderOpen(folder, false);
+          else setFolderOpen(folder, false);
+        }
+      });
+    }
+
+    function scrollSchemaPresetIntoView(preset) {
+      var treeScroll = document.querySelector('.dce-schema-tree-scroll');
+      if (!treeScroll) return;
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          if (preset === 'all') {
+            treeScroll.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+          }
+          var el = preset === 'reset'
+            ? document.getElementById('dce-schema-folder-standard')
+            : document.getElementById('dce-schema-folder-offer');
+          if (el && typeof el.scrollIntoView === 'function') {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+      });
+    }
+
+    var btnReset = document.getElementById('dce-schema-reset');
+    var btnEnCust = document.getElementById('dce-schema-enable-custom');
+    var btnEnAll = document.getElementById('dce-schema-enable-all');
+
+    if (btnReset) btnReset.addEventListener('click', function () {
+      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = false;
+      });
+      applySchemaFolderLayout('reset');
+      updateOfferSchemaPreview();
+      scrollSchemaPresetIntoView('reset');
+    });
+
+    if (btnEnCust) btnEnCust.addEventListener('click', function () {
+      SCHEMA_NAV_PROMO_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = false;
+      });
+      SCHEMA_CUSTOM_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = true;
+      });
+      applySchemaFolderLayout('custom');
+      updateOfferSchemaPreview();
+      scrollSchemaPresetIntoView('custom');
+    });
+
+    if (btnEnAll) btnEnAll.addEventListener('click', function () {
+      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = true;
+      });
+      applySchemaFolderLayout('all');
+      updateOfferSchemaPreview();
+      scrollSchemaPresetIntoView('all');
+    });
 
     root.addEventListener('click', function (e) {
       var head = e.target.closest && e.target.closest('.dce-schema-folder-head');
@@ -722,18 +785,7 @@
       btnToggleFields.addEventListener('click', function () {
         expandAllMode = !expandAllMode;
         btnToggleFields.setAttribute('aria-pressed', expandAllMode ? 'true' : 'false');
-        root.querySelectorAll('.dce-schema-folder').forEach(function (folder) {
-          var key = folder.getAttribute('data-dce-schema-folder');
-          if (expandAllMode) {
-            setFolderOpen(folder, true);
-          } else {
-            if (key === 'standard') setFolderOpen(folder, true);
-            else if (key === 'offer-content' || key === 'metadata') setFolderOpen(folder, false);
-            else if (key === 'media' || key === 'text') setFolderOpen(folder, true);
-            else if (key === 'nav' || key === 'promo') setFolderOpen(folder, false);
-            else setFolderOpen(folder, false);
-          }
-        });
+        applySchemaFolderLayout(expandAllMode ? 'all' : 'reset');
       });
     }
 

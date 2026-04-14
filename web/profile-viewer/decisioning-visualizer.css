@@ -1907,10 +1907,13 @@
     font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background 0.18s ease, color 0.15s ease, transform 0.12s ease;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-schema-folder-head:hover {
     background: var(--paper-2);
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-folder-head:active {
+    transform: scale(0.992);
   }
   .decisioning-catalog-page .dce-viz-scope .dce-schema-folder-chev {
     font-size: 9px;
@@ -1975,6 +1978,7 @@
     max-height: min(520px, 70vh);
     overflow: auto;
     padding: 0.65rem 0.85rem 1rem;
+    scroll-behavior: smooth;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-schema-group {
     margin-bottom: 0.85rem;
