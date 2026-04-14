@@ -107,8 +107,8 @@ export const RulesStep = () => {
               return (
                 <Card key={p.name} style={{
                   padding: '10px 14px',
-                  background: noRules ? T.sf : allPass ? T.gn + '06' : T.ac + '06',
-                  borderColor: noRules ? T.bd : allPass ? T.gn + '25' : T.ac + '25',
+                  background: noRules ? T.sf : allPass ? 'var(--mix-green-06)' : 'var(--mix-accent-06)',
+                  borderColor: noRules ? T.bd : allPass ? 'var(--mix-green-25)' : 'var(--mix-accent-25)',
                   transition: 'background 0.3s, border-color 0.3s',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

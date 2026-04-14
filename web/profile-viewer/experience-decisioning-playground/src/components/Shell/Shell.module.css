@@ -11,7 +11,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--shell-sticky-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
@@ -75,7 +75,7 @@
   border: 1px solid var(--border);
   border-radius: 9px;
   padding: 3px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-popover);
   min-width: 160px;
   z-index: 200;
 }
@@ -129,7 +129,7 @@
 .footer {
   position: sticky;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--shell-sticky-bg);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
   padding: 8px 20px;

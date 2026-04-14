@@ -8,7 +8,7 @@ export const Pill = ({ children, active, onClick, color = T.ac }) => (
     onClick={onClick}
     style={{
       border: `1.5px solid ${active ? color : T.bd}`,
-      background: active ? color + '10' : 'transparent',
+      background: active ? `color-mix(in srgb, ${color} 12%, transparent)` : 'transparent',
       color: active ? color : T.tm,
     }}
   >

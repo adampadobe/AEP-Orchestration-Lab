@@ -50,7 +50,9 @@ export const ResultStep = () => {
             }}>
               <div className={styles.iconCircle} style={{
                 width: isTop ? 44 : 32, height: isTop ? 44 : 32,
-                background: isTop ? offer.color : isMid ? T.bd + '80' : T.bd + '50',
+                background: isTop ? offer.color : isMid
+                  ? 'color-mix(in srgb, var(--border) 52%, var(--surface))'
+                  : 'color-mix(in srgb, var(--border) 32%, var(--surface))',
               }}>
                 <Icon size={isTop ? 20 : 14} color={isTop ? '#fff' : T.tm} />
               </div>

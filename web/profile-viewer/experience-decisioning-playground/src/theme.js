@@ -1,25 +1,24 @@
-/* ═══ THEME — Color tokens, font stacks, CSS custom properties ═══ */
+/* ═══ THEME — CSS variables (see index.css .edp-sandbox) + legacy font tokens ═══ */
 
-/* Font stacks loaded via Google Fonts @import in index.css */
 export const FONT_SERIF = "'Source Serif 4', Georgia, serif";
-export const FONT_SANS = "'DM Sans', 'Helvetica Neue', sans-serif";
+export const FONT_SANS = "'Inter', system-ui, -apple-system, sans-serif";
 export const FONT_MONO = "'DM Mono', Consolas, monospace";
 
-/* Color tokens — used as inline styles for dynamic coloring */
+/* Semantic colors — resolve against .edp-sandbox tokens (light/dash + dark) */
 export const T = {
-  bg: "#FAF9F7",       // page background
-  sf: "#FFFFFF",       // card / surface
-  sa: "#F5F3EF",       // secondary surface (tips, alt rows)
-  sw: "#FBF8F4",       // warm surface (metadata preview)
-  tx: "#1B1B1B",       // primary text
-  tm: "#807872",       // muted text
-  ac: "#EB1000",       // Adobe red — accent
-  as: "#FFF0EE",       // light red background
-  bd: "#E8E4DF",       // borders / dividers
-  gn: "#2D9D78",       // green — success / eligible
-  bl: "#2680EB",       // blue — profiles / standard fields
-  gl: "#E68619",       // gold — eligibility / formula
-  pu: "#7C5CFC",       // purple — specific offer accent
-  pv: "#F9F6F1",       // preview card background
-  pb: "#EDE8E0",       // preview card border
+  bg: 'var(--bg)',
+  sf: 'var(--surface)',
+  sa: 'var(--surface-alt)',
+  sw: 'var(--surface-warm)',
+  tx: 'var(--text)',
+  tm: 'var(--text-muted)',
+  ac: 'var(--accent)',
+  as: 'var(--accent-soft)',
+  bd: 'var(--border)',
+  gn: 'var(--green)',
+  bl: 'var(--blue)',
+  gl: 'var(--gold)',
+  pu: 'var(--purple)',
+  pv: 'var(--preview-bg)',
+  pb: 'var(--preview-border)',
 };

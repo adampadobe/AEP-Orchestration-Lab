@@ -128,8 +128,8 @@ function DetailPanel({ activeId, data, onClose, isMobile }) {
 
   const panelContent = data ? (
     <div style={{
-      width: "100%", background: "#fff", borderRadius: 14,
-      border: "1.5px solid #E4E4E7", overflow: "hidden",
+      width: "100%", background: "var(--surface)", borderRadius: 14,
+      border: "1.5px solid var(--border)", overflow: "hidden",
       animation: "edpCardSlideIn 0.35s cubic-bezier(0.25,0.46,0.45,0.94)",
       ...(!isMobile ? { position: "sticky", top: 32 } : {}),
     }}>
@@ -143,11 +143,11 @@ function DetailPanel({ activeId, data, onClose, isMobile }) {
           <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.25 }}>
             {data.title || data.label}
           </div>
-          {data.sub && <div style={{ fontSize: 12, color: "#A1A1AA", marginTop: 4 }}>{data.sub}</div>}
+          {data.sub && <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{data.sub}</div>}
         </div>
         <button onClick={onClose} className={styles.closeBtn}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "#F4F4F5"; e.currentTarget.style.borderColor = "#A1A1AA"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "#E4E4E7"; }}>
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover-surface)"; e.currentTarget.style.borderColor = "var(--text-muted)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border)"; }}>
           <X size={13} />
         </button>
       </div>
@@ -160,13 +160,13 @@ function DetailPanel({ activeId, data, onClose, isMobile }) {
           ...(data.info.schema ? [{ label: "Data Model · XDM Schema", text: data.info.schema, isSchema: true }] : []),
         ].map((s, i) => (
           <div key={i}>
-            <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: s.isSchema ? data.color || "#6B8FD4" : "#A1A1AA", marginBottom: 5 }}>
+            <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: s.isSchema ? data.color || "#6B8FD4" : "var(--text-muted)", marginBottom: 5 }}>
               {s.label}
             </div>
             <div style={{
-              fontSize: 13, lineHeight: 1.65, color: "#52525B",
-              ...(s.isEx ? { background: "#FAF9F7", borderRadius: 8, padding: "11px 13px", borderLeft: `3px solid ${(data.color || "#2D3142")}25`, fontStyle: "italic" } : {}),
-              ...(s.isSchema ? { background: "#F5F5F3", borderRadius: 8, padding: "11px 13px", borderLeft: `3px solid ${(data.color || "#6B8FD4")}40`, fontSize: 12.5 } : {}),
+              fontSize: 13, lineHeight: 1.65, color: "var(--text-dim)",
+              ...(s.isEx ? { background: "var(--bg)", borderRadius: 8, padding: "11px 13px", borderLeft: `3px solid ${(data.color || "#2D3142")}25`, fontStyle: "italic" } : {}),
+              ...(s.isSchema ? { background: "var(--surface-alt)", borderRadius: 8, padding: "11px 13px", borderLeft: `3px solid ${(data.color || "#6B8FD4")}40`, fontSize: 12.5 } : {}),
             }}>
               {s.text}
             </div>
@@ -209,8 +209,8 @@ function NodeCard({ id, children, isStrategy }) {
   const hasChildren = !!children;
   const isDashed = data.dashed;
   const isActive = activeId === id;
-  const bg = isStrategy ? "#F5F4F1" : "#fff";
-  const borderColor = isActive ? data.color : (isStrategy ? "#E5E3DE" : "#E4E4E7");
+  const bg = isStrategy ? "var(--surface-warm)" : "var(--surface)";
+  const borderColor = isActive ? data.color : (isStrategy ? "var(--border-warm)" : "var(--border)");
 
   return (
     <div style={{
@@ -227,14 +227,14 @@ function NodeCard({ id, children, isStrategy }) {
           padding: "12px 13px", cursor: hasChildren ? "pointer" : "default",
           userSelect: "none", transition: "background 0.2s",
         }}
-        onMouseEnter={(e) => { if (hasChildren) e.currentTarget.style.background = isStrategy ? "#EDECE8" : "#FAFAF9"; }}
+        onMouseEnter={(e) => { if (hasChildren) e.currentTarget.style.background = isStrategy ? "var(--surface-alt)" : "var(--hover-surface)"; }}
         onMouseLeave={(e) => { if (hasChildren) e.currentTarget.style.background = "transparent"; }}
       >
         <div style={{ width: 3.5, minHeight: 28, borderRadius: 3, background: data.color, opacity: isDashed ? 0.4 : 1, flexShrink: 0 }} />
 
         <div style={{
           width: 28, height: 28, borderRadius: 7,
-          background: isStrategy ? "#E8E6E0" : data.colorLight,
+          background: isStrategy ? "var(--surface-alt)" : data.colorLight,
           display: "flex", alignItems: "center", justifyContent: "center",
           color: data.color, flexShrink: 0,
         }}>
@@ -254,16 +254,16 @@ function NodeCard({ id, children, isStrategy }) {
           onClick={(e) => { e.stopPropagation(); openPanel(id, data); }}
           style={{
             width: 26, height: 26, borderRadius: "50%",
-            border: `1.5px solid ${isActive ? data.color : (isStrategy ? "#D5D2CB" : "#E4E4E7")}`,
+            border: `1.5px solid ${isActive ? data.color : (isStrategy ? "var(--border-warm)" : "var(--border)")}`,
             background: isActive ? data.color : "transparent",
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-            color: isActive ? "#fff" : "#A1A1AA", fontFamily: "inherit", transition: "all 0.2s",
+            color: isActive ? "#ffffff" : "var(--text-muted)", fontFamily: "inherit", transition: "all 0.2s",
           }}
           onMouseEnter={(e) => {
-            if (!isActive) { e.currentTarget.style.background = data.color; e.currentTarget.style.borderColor = data.color; e.currentTarget.style.color = "#fff"; }
+            if (!isActive) { e.currentTarget.style.background = data.color; e.currentTarget.style.borderColor = data.color; e.currentTarget.style.color = "#ffffff"; }
           }}
           onMouseLeave={(e) => {
-            if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = isStrategy ? "#D5D2CB" : "#E4E4E7"; e.currentTarget.style.color = "#A1A1AA"; }
+            if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = isStrategy ? "var(--border-warm)" : "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; }
           }}
         >
           <Info size={11} />
@@ -271,7 +271,7 @@ function NodeCard({ id, children, isStrategy }) {
 
         {hasChildren && (
           <div style={{
-            color: "#A1A1AA",
+            color: "var(--text-muted)",
             transition: "transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)",
             transform: open ? "rotate(0deg)" : "rotate(-90deg)", flexShrink: 0,
           }}>
@@ -284,7 +284,7 @@ function NodeCard({ id, children, isStrategy }) {
         <div style={{ maxHeight: open ? 2200 : 0, overflow: "hidden", transition: "max-height 0.5s cubic-bezier(0.25,0.46,0.45,0.94)" }}>
           <div style={{
             padding: "0 9px 9px", display: "flex", flexDirection: "column", gap: 6,
-            borderTop: `1px solid ${isStrategy ? "#E0DED8" : "#F0F0F0"}`, paddingTop: 9,
+            borderTop: `1px solid ${isStrategy ? "var(--border-warm)" : "var(--border-row)"}`, paddingTop: 9,
           }}>
             {children}
           </div>
@@ -304,12 +304,12 @@ function ItemsRow() {
           onClick={i < 3 ? () => openPanel("items", COMPONENTS.items) : undefined}
           style={{
             flex: 1, padding: "7px 4px", borderRadius: 7,
-            border: "1px solid rgba(74,114,184,0.18)", background: "rgba(74,114,184,0.03)",
-            fontSize: 11, fontWeight: 500, color: "#4A72B8",
+            border: "1px solid var(--mix-blue-18)", background: "var(--mix-blue-03)",
+            fontSize: 11, fontWeight: 500, color: "var(--blue)",
             textAlign: "center", cursor: i < 3 ? "pointer" : "default", transition: "all 0.2s",
           }}
-          onMouseEnter={(e) => { if (i < 3) { e.currentTarget.style.background = "rgba(74,114,184,0.09)"; e.currentTarget.style.borderColor = "#4A72B8"; } }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(74,114,184,0.03)"; e.currentTarget.style.borderColor = "rgba(74,114,184,0.18)"; }}
+          onMouseEnter={(e) => { if (i < 3) { e.currentTarget.style.background = "var(--mix-blue-09)"; e.currentTarget.style.borderColor = "var(--blue)"; } }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "var(--mix-blue-03)"; e.currentTarget.style.borderColor = "var(--mix-blue-18)"; }}
         >
           {label}
         </div>
@@ -322,7 +322,7 @@ function ItemsRow() {
 function MiniConnector() {
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: "1px 0" }}>
-      <div style={{ width: 2, height: 10, background: "#E4E4E7", borderRadius: 2 }} />
+      <div style={{ width: 2, height: 10, background: "var(--border)", borderRadius: 2 }} />
     </div>
   );
 }
@@ -330,13 +330,13 @@ function MiniConnector() {
 function Connector({ label }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "3px 0" }}>
-      <div style={{ width: 2, height: 14, background: "#E4E4E7", borderRadius: 2 }} />
+      <div style={{ width: 2, height: 14, background: "var(--border)", borderRadius: 2 }} />
       {label && (
-        <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "#807872", padding: "2px 0" }}>
+        <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-muted)", padding: "2px 0" }}>
           {label}
         </div>
       )}
-      <div style={{ width: 0, height: 0, borderLeft: "4px solid transparent", borderRight: "4px solid transparent", borderTop: "5px solid #D4D4D8" }} />
+      <div style={{ width: 0, height: 0, borderLeft: "4px solid transparent", borderRight: "4px solid transparent", borderTop: "5px solid var(--border)" }} />
     </div>
   );
 }
@@ -344,11 +344,11 @@ function Connector({ label }) {
 function StrategyDivider() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0", width: "100%" }}>
-      <div style={{ flex: 1, height: 1, background: "#E4E4E7" }} />
-      <span style={{ fontSize: 9, color: "#A1A1AA", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, whiteSpace: "nowrap" }}>
+      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+      <span style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, whiteSpace: "nowrap" }}>
         Parallel strategies
       </span>
-      <div style={{ flex: 1, height: 1, background: "#E4E4E7" }} />
+      <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
     </div>
   );
 }
@@ -429,11 +429,11 @@ export const CardExplorer = () => {
                 return (
                   <button key={ch.id} onClick={() => openChannelPanel(ch)} className={styles.channelBtn}
                     style={{
-                      border: `1.5px solid ${isChActive ? "#2D3142" : "#E4E4E7"}`,
-                      background: isChActive ? "#EEEEF2" : "#fff",
+                      border: `1.5px solid ${isChActive ? "var(--text)" : "var(--border)"}`,
+                      background: isChActive ? "var(--surface-alt)" : "var(--surface)",
                     }}
-                    onMouseEnter={(e) => { if (!isChActive) { e.currentTarget.style.borderColor = "#2D3142"; e.currentTarget.style.background = "#EEEEF2"; } }}
-                    onMouseLeave={(e) => { if (!isChActive) { e.currentTarget.style.borderColor = "#E4E4E7"; e.currentTarget.style.background = "#fff"; } }}
+                    onMouseEnter={(e) => { if (!isChActive) { e.currentTarget.style.borderColor = "var(--text)"; e.currentTarget.style.background = "var(--surface-alt)"; } }}
+                    onMouseLeave={(e) => { if (!isChActive) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--surface)"; } }}
                   >
                     <Ico name={ch.icon} size={14} strokeWidth={1.5} />
                     {ch.label}

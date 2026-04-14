@@ -32,7 +32,7 @@ export const StrategyStep = () => {
           </div>
           {COLLECTIONS.map((c, i) => (
             <div key={c.name} onClick={() => setColIdx(i)} className={styles.option}
-              style={{ background: colIdx === i ? T.ac + '10' : T.sf, border: `1.5px solid ${colIdx === i ? T.ac : T.bd}`, color: colIdx === i ? T.ac : T.tx, fontWeight: colIdx === i ? 600 : 400 }}>
+              style={{ background: colIdx === i ? 'var(--mix-accent-10)' : T.sf, border: `1.5px solid ${colIdx === i ? T.ac : T.bd}`, color: colIdx === i ? T.ac : T.tx, fontWeight: colIdx === i ? 600 : 400 }}>
               {c.name}
             </div>
           ))}
@@ -52,7 +52,7 @@ export const StrategyStep = () => {
             const Icon = r.icon;
             return (
               <div key={r.name} onClick={() => setRuleIdx(i)} className={styles.option}
-                style={{ background: ruleIdx === i ? T.gl + '10' : T.sf, border: `1.5px solid ${ruleIdx === i ? T.gl : T.bd}`, color: ruleIdx === i ? T.gl : T.tx, fontWeight: ruleIdx === i ? 600 : 400, display: 'flex', alignItems: 'center', gap: 5 }}>
+                style={{ background: ruleIdx === i ? 'var(--mix-gold-10)' : T.sf, border: `1.5px solid ${ruleIdx === i ? T.gl : T.bd}`, color: ruleIdx === i ? T.gl : T.tx, fontWeight: ruleIdx === i ? 600 : 400, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Icon size={11} color={ruleIdx === i ? T.gl : T.tm} />{r.name}
               </div>
             );
@@ -60,7 +60,7 @@ export const StrategyStep = () => {
             const Icon = a.icon;
             return (
               <div key={a.name} onClick={() => setAudIdx(i)} className={styles.option}
-                style={{ background: audIdx === i ? T.gl + '10' : T.sf, border: `1.5px solid ${audIdx === i ? T.gl : T.bd}`, color: audIdx === i ? T.gl : T.tx, fontWeight: audIdx === i ? 600 : 400, display: 'flex', alignItems: 'center', gap: 5 }}>
+                style={{ background: audIdx === i ? 'var(--mix-gold-10)' : T.sf, border: `1.5px solid ${audIdx === i ? T.gl : T.bd}`, color: audIdx === i ? T.gl : T.tx, fontWeight: audIdx === i ? 600 : 400, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Icon size={11} color={audIdx === i ? T.gl : T.tm} />{a.name}
                 <span style={{ fontFamily: FONT_MONO, fontSize: 8, color: T.tm, marginLeft: 'auto' }}>{a.desc}</span>
               </div>
@@ -78,7 +78,7 @@ export const StrategyStep = () => {
             const Icon = m.icon;
             return (
               <div key={m.name} onClick={() => setRankId(m.id)} className={styles.option}
-                style={{ background: rankId === m.id ? T.gn + '10' : T.sf, border: `1.5px solid ${rankId === m.id ? T.gn : T.bd}`, color: rankId === m.id ? T.gn : T.tx, fontWeight: rankId === m.id ? 600 : 400, display: 'flex', alignItems: 'center', gap: 5 }}>
+                style={{ background: rankId === m.id ? 'var(--mix-green-10)' : T.sf, border: `1.5px solid ${rankId === m.id ? T.gn : T.bd}`, color: rankId === m.id ? T.gn : T.tx, fontWeight: rankId === m.id ? 600 : 400, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Icon size={11} color={rankId === m.id ? T.gn : T.tm} />{m.name}
               </div>
             );

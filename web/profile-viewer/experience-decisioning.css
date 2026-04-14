@@ -1,4 +1,4 @@
-/* Standalone Experience decisioning playground page */
+/* Experience decisioning page — shell uses home.css / aep-theme; React app uses --dash-* via .edp-sandbox */
 
 .experience-decisioning-page .dashboard-main {
   max-width: 1400px;
@@ -16,16 +16,16 @@
   max-width: 42rem;
   margin: 0 1.5rem 2rem;
   padding: 1rem 1.25rem;
-  border: 1px solid var(--dash-border, #e8e4df);
-  border-radius: 8px;
-  background: var(--dash-panel, #fafafa);
+  border: 1px solid var(--dash-border, #e6e4ea);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface-alt, #f8f9fa);
   font-size: 0.9375rem;
   line-height: 1.45;
-  color: var(--dash-text-secondary, #444);
+  color: var(--dash-text-secondary, #555);
 }
 
 .experience-decisioning-page .edp-blocked a {
-  color: var(--dash-blue, #0265dc);
+  color: var(--dash-blue, #1473e6);
   text-decoration: none;
 }
 
@@ -34,7 +34,7 @@
 }
 
 html[data-aep-theme='dark'] .experience-decisioning-page .edp-blocked {
-  background: var(--dash-bg-elevated, #1a1d21);
+  background: var(--dash-surface-alt, #14161b);
   border-color: var(--dash-border, #2a3038);
   color: var(--dash-muted, #9aa0a8);
 }
