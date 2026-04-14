@@ -19,7 +19,7 @@
     if (!root) return;
     var panel = document.getElementById('dceViz-panel-' + id);
     if (!panel) return;
-    var order = ['overview', 'channels', 'priority', 'formula', 'ai', 'experiment'];
+    var order = ['overview', 'channels', 'schema', 'priority', 'formula', 'ai', 'experiment'];
     var idx = order.indexOf(id);
     if (idx < 0) return;
 
@@ -187,6 +187,327 @@
     window.dceVizUpdateChannelConnector = updateChannelConnector;
 
     applyChannel('email');
+  }
+
+  // ── OFFER SCHEMA TAB (blueprint + preview — industry-aware) ────────────────
+  var SCHEMA_OPTIONAL_FIELDS = [
+    'heroImage', 'thumbnail', 'title', 'description', 'callToAction',
+    'webUrl', 'deepLink', 'channelType', 'promoCode',
+    'contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin',
+  ];
+  var SCHEMA_TOTAL = 19;
+
+  var SCHEMA_OFFERS = {
+    media: {
+      itemName: 'Premium annual — 2 months free',
+      title: 'Premium annual — 2 months free',
+      description: 'Stream in 4K with offline downloads — limited-time sign-up offer for new subscribers.',
+      cta: 'Start watching →',
+      priority: '82',
+      start: '2026-04-01',
+      end: '2026-08-31',
+      webUrl: 'stream.example.com/premium',
+      deepLink: 'app://subscribe/premium-annual',
+      channelType: 'Web, App, TV',
+      promoCode: 'STREAM26',
+      contentType: 'Promotional',
+      salesStage: 'Cross-sell',
+      journeyStage: 'Acquisition',
+      targetSegment: 'High-intent viewers',
+      category: 'Subscription',
+      margin: 'High',
+      accent: '#CC0000',
+    },
+    travel: {
+      itemName: 'Extra legroom bundle — long-haul',
+      title: 'Extra legroom bundle — long-haul',
+      description: 'Add comfort on your next transatlantic flight — bundle with priority boarding while seats last.',
+      cta: 'Add to trip →',
+      priority: '76',
+      start: '2026-04-01',
+      end: '2026-09-30',
+      webUrl: 'airline.example.com/ancillaries',
+      deepLink: 'app://trip/extra-legroom',
+      channelType: 'Web, App',
+      promoCode: 'SKY26',
+      contentType: 'Ancillary',
+      salesStage: 'Upsell',
+      journeyStage: 'Pre-departure',
+      targetSegment: 'Leisure & business',
+      category: 'Ancillary',
+      margin: 'High',
+      accent: '#005f9e',
+    },
+    retail: {
+      itemName: '20% Off Running Shoes',
+      title: '20% Off Running Shoes',
+      description: 'Summer collection — limited time. Free returns on footwear.',
+      cta: 'Shop Now →',
+      priority: '70',
+      start: '2026-04-01',
+      end: '2026-08-31',
+      webUrl: 'shop.example.com/running',
+      deepLink: 'app://promo/shoes-summer',
+      channelType: 'Web, App, Email',
+      promoCode: 'RUN26',
+      contentType: 'Promotional',
+      salesStage: 'Cross-sell',
+      journeyStage: 'Retention',
+      targetSegment: 'High-value',
+      category: 'Footwear',
+      margin: 'Medium',
+      accent: '#2D9D78',
+    },
+    fsi: {
+      itemName: 'Stocks & Shares ISA — switching bonus',
+      title: 'Stocks & Shares ISA — switching bonus',
+      description: 'Transfer in by quarter-end — £150 bonus paid to your cash hub when eligibility criteria are met.',
+      cta: 'See rates →',
+      priority: '68',
+      start: '2026-04-01',
+      end: '2026-12-31',
+      webUrl: 'bank.example.com/isa',
+      deepLink: 'app://wealth/isa-transfer',
+      channelType: 'Web, App',
+      promoCode: 'WEALTH26',
+      contentType: 'Regulated',
+      salesStage: 'Cross-sell',
+      journeyStage: 'Consideration',
+      targetSegment: 'Investors',
+      category: 'Wealth',
+      margin: 'Medium',
+      accent: '#2680EB',
+    },
+    telco: {
+      itemName: '5G Unlimited Plus — eSIM & roaming',
+      title: '5G Unlimited Plus — eSIM & roaming',
+      description: 'Unlimited data in 45 destinations — add a line this month and waive activation.',
+      cta: 'Compare plans →',
+      priority: '74',
+      start: '2026-04-01',
+      end: '2026-10-31',
+      webUrl: 'telco.example.com/5g-unlimited',
+      deepLink: 'app://plans/unlimited-plus',
+      channelType: 'Web, App, Retail',
+      promoCode: 'FIVEG26',
+      contentType: 'Promotional',
+      salesStage: 'Acquisition',
+      journeyStage: 'Upgrade',
+      targetSegment: 'Heavy data users',
+      category: 'Mobile',
+      margin: 'High',
+      accent: '#E68619',
+    },
+    automotive: {
+      itemName: 'New hybrid SUV — PCP launch event',
+      title: 'New hybrid SUV — PCP launch event',
+      description: 'Test drive this weekend — competitive PCP with optional service pack for early orders.',
+      cta: 'Book test drive →',
+      priority: '71',
+      start: '2026-04-01',
+      end: '2027-03-31',
+      webUrl: 'dealer.example.com/suv-pcp',
+      deepLink: 'app://vehicles/hybrid-suv',
+      channelType: 'Web, Showroom',
+      promoCode: 'DRIVE26',
+      contentType: 'Promotional',
+      salesStage: 'Upsell',
+      journeyStage: 'Consideration',
+      targetSegment: 'Households',
+      category: 'Showroom',
+      margin: 'Medium',
+      accent: '#1a1a1a',
+    },
+    healthcare: {
+      itemName: 'Virtual primary — same-day video',
+      title: 'Virtual primary — same-day video',
+      description: '£0 copay for eligible members — book a same-day slot and renew scripts where appropriate.',
+      cta: 'Book visit →',
+      priority: '73',
+      start: '2026-04-01',
+      end: '2026-12-31',
+      webUrl: 'care.example.com/virtual',
+      deepLink: 'app://care/virtual-primary',
+      channelType: 'App, Web',
+      promoCode: 'WELL26',
+      contentType: 'Clinical access',
+      salesStage: 'Engagement',
+      journeyStage: 'Retention',
+      targetSegment: 'Chronic care',
+      category: 'Virtual care',
+      margin: 'Low',
+      accent: '#6e4fc7',
+    },
+  };
+
+  function bindOfferSchema() {
+    var panel = document.getElementById('dceViz-panel-schema');
+    if (!panel || panel.getAttribute('data-dce-schema-bound') === '1') return;
+    panel.setAttribute('data-dce-schema-bound', '1');
+
+    var root = document.getElementById('dce-schema-tree-root');
+    if (!root) {
+      window.dceVizApplySchemaIndustry = function () {};
+      return;
+    }
+    var progressEl = document.getElementById('dce-schema-progress');
+    var pctEl = document.getElementById('dce-schema-pct');
+    var countEl = document.getElementById('dce-schema-count');
+
+    function getOffer() {
+      var k = getIndustry();
+      return SCHEMA_OFFERS[k] || SCHEMA_OFFERS.media;
+    }
+
+    function setIndustryTexts() {
+      var o = getOffer();
+      var map = [
+        ['dce-schema-v-name', o.itemName],
+        ['dce-schema-v-title', o.title],
+        ['dce-schema-v-desc', o.description],
+        ['dce-schema-v-priority', o.priority],
+        ['dce-schema-v-start', o.start],
+        ['dce-schema-v-end', o.end],
+        ['dce-schema-v-weburl', o.webUrl],
+        ['dce-schema-v-deeplink', o.deepLink],
+        ['dce-schema-v-channeltype', o.channelType],
+        ['dce-schema-v-promo', o.promoCode],
+        ['dce-schema-v-contenttype', o.contentType],
+        ['dce-schema-v-salesstage', o.salesStage],
+        ['dce-schema-v-journeystage', o.journeyStage],
+        ['dce-schema-v-target', o.targetSegment],
+        ['dce-schema-v-category', o.category],
+        ['dce-schema-v-margin', o.margin],
+      ];
+      map.forEach(function (pair) {
+        var el = document.getElementById(pair[0]);
+        if (el) el.textContent = pair[1];
+      });
+      var cta = document.getElementById('dce-schema-v-cta');
+      if (cta) {
+        cta.textContent = o.cta;
+        cta.style.background = o.accent || '#2D9D78';
+      }
+    }
+
+    function isFieldChecked(id) {
+      var cb = root.querySelector('input[data-dce-schema-field="' + id + '"]');
+      return cb && cb.checked;
+    }
+
+    function toggleBlocks() {
+      panel.querySelectorAll('[data-dce-schema-block]').forEach(function (el) {
+        var id = el.getAttribute('data-dce-schema-block');
+        if (!id) return;
+        var on = id === 'itemName' || id === 'priority' || id === 'startDate' || id === 'endDate' ? true : isFieldChecked(id);
+        el.classList.toggle('dce-schema-block--off', !on);
+      });
+      var navBlk = document.getElementById('dce-schema-nav-block');
+      if (navBlk) {
+        var navOn = isFieldChecked('webUrl') || isFieldChecked('deepLink') || isFieldChecked('channelType');
+        navBlk.hidden = !navOn;
+        navBlk.querySelectorAll('[data-dce-schema-block]').forEach(function (row) {
+          var id = row.getAttribute('data-dce-schema-block');
+          row.classList.toggle('dce-schema-block--off', id && !isFieldChecked(id));
+        });
+      }
+      var promoBlk = document.getElementById('dce-schema-promo-block');
+      if (promoBlk) {
+        var pOn = isFieldChecked('promoCode');
+        promoBlk.hidden = !pOn;
+      }
+      var metaBlk = document.getElementById('dce-schema-meta-block');
+      if (metaBlk) {
+        var metaOn = ['contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin'].some(function (fid) {
+          return isFieldChecked(fid);
+        });
+        metaBlk.hidden = !metaOn;
+      }
+    }
+
+    function countEnabled() {
+      var n = 4;
+      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
+        if (isFieldChecked(fid)) n++;
+      });
+      return n;
+    }
+
+    function updateOfferSchemaPreview() {
+      toggleBlocks();
+      var n = countEnabled();
+      if (countEl) countEl.textContent = n + ' / ' + SCHEMA_TOTAL;
+      var pct = Math.round((n / SCHEMA_TOTAL) * 100);
+      if (pctEl) pctEl.textContent = pct + '%';
+      if (progressEl) progressEl.style.width = pct + '%';
+    }
+
+    function applySchemaIndustry() {
+      setIndustryTexts();
+      updateOfferSchemaPreview();
+    }
+
+    root.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t && t.matches && t.matches('input[data-dce-schema-field]') && !t.disabled) updateOfferSchemaPreview();
+    });
+
+    var btnReset = document.getElementById('dce-schema-reset');
+    var btnEnCust = document.getElementById('dce-schema-enable-custom');
+    var btnEnAll = document.getElementById('dce-schema-enable-all');
+
+    if (btnReset) btnReset.addEventListener('click', function () {
+      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = false;
+      });
+      updateOfferSchemaPreview();
+    });
+
+    if (btnEnCust) btnEnCust.addEventListener('click', function () {
+      ['heroImage', 'thumbnail', 'title', 'description', 'callToAction', 'contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin'].forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = true;
+      });
+      updateOfferSchemaPreview();
+    });
+
+    if (btnEnAll) btnEnAll.addEventListener('click', function () {
+      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = true;
+      });
+      updateOfferSchemaPreview();
+    });
+
+    (function bindNavCollapse() {
+      var btn = document.getElementById('dce-schema-toggle-nav');
+      var body = document.getElementById('dce-schema-body-nav');
+      if (!btn || !body) return;
+      btn.addEventListener('click', function () {
+        var open = body.hasAttribute('hidden');
+        body.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        var chev = btn.querySelector('.dce-schema-chev');
+        if (chev) chev.textContent = open ? '▾' : '▸';
+      });
+    })();
+
+    (function bindPromo() {
+      var btn = document.getElementById('dce-schema-toggle-promo');
+      var body = document.getElementById('dce-schema-body-promo');
+      if (!btn || !body) return;
+      btn.addEventListener('click', function () {
+        var open = body.hasAttribute('hidden');
+        body.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        var chev = btn.querySelector('.dce-schema-chev');
+        if (chev) chev.textContent = open ? '▾' : '▸';
+      });
+    })();
+
+    window.dceVizApplySchemaIndustry = applySchemaIndustry;
+    applySchemaIndustry();
   }
 
   // ── INDUSTRY CONFIG ─────────────────────────────────────────────────────────
@@ -1143,6 +1464,8 @@
     document.querySelectorAll('.profile-card[data-dce-profile-industry="' + key + '"]').forEach(function (c, i) { c.classList.toggle('selected', i === 0); });
 
     updateFormula();
+
+    if (typeof window.dceVizApplySchemaIndustry === 'function') window.dceVizApplySchemaIndustry();
   }
 
   function initIndustry() {
@@ -1163,6 +1486,7 @@
 
   // ── INIT ───────────────────────────────────────────────────────────────────
   try {
+    bindOfferSchema();
     initIndustry();
     bindChannelExplainer();
   } catch (err) {

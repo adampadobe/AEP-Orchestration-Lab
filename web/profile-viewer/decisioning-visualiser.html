@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260414b">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260414c">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -87,6 +87,9 @@
   </button>
   <button type="button" class="tab-btn" data-dce-panel="channels" style="--active-color: #2D3142">
     <span class="tab-icon" style="background:#2D3142"></span> Channels
+  </button>
+  <button type="button" class="tab-btn" data-dce-panel="schema" style="--active-color: #8B5C8A">
+    <span class="tab-icon" style="background:#8B5C8A"></span> Offer Schema
   </button>
   <button type="button" class="tab-btn" data-dce-panel="priority" style="--active-color: #c47b00">
     <span class="tab-icon" style="background:#c47b00"></span> 01 · Item Priority
@@ -331,6 +334,144 @@
           </aside>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ══ OFFER SCHEMA (blueprint — aligned with AJO Experience Decisioning playground) ══ -->
+  <div id="dceViz-panel-schema" class="panel dce-schema-panel">
+    <header class="dce-schema-intro">
+      <p class="dce-schema-step-label" id="dce-schema-step-label">Step 01 — The Blueprint</p>
+      <h2 class="dce-schema-h2">Offer Schema</h2>
+      <p class="dce-schema-lead">Toggle fields on and off — watch the offer preview build up on the right. Fields marked <span class="dce-schema-custom-pill">custom</span> are attributes you define for your business needs. Examples follow your <strong>industry</strong> selection above.</p>
+      <div class="dce-schema-toolbar" role="toolbar" aria-label="Schema presets">
+        <button type="button" class="dce-schema-tool-btn" id="dce-schema-reset">Reset</button>
+        <button type="button" class="dce-schema-tool-btn dce-schema-tool-btn--accent" id="dce-schema-enable-custom">Enable custom</button>
+        <button type="button" class="dce-schema-tool-btn dce-schema-tool-btn--blue" id="dce-schema-enable-all">Enable all</button>
+      </div>
+    </header>
+
+    <div class="dce-schema-split">
+      <div class="dce-schema-tree card" aria-label="XDM schema field toggles">
+        <div class="dce-schema-tree-top">
+          <span class="dce-schema-tree-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg> XDM Schema</span>
+          <span class="dce-schema-tree-hint">Toggle fields</span>
+        </div>
+        <div class="dce-schema-tree-scroll" id="dce-schema-tree-root">
+          <div class="dce-schema-group">
+            <div class="dce-schema-group-label"><span class="dce-schema-lock" title="Standard" aria-hidden="true">🔒</span> Standard Fields</div>
+            <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="itemName"> <span class="dce-schema-fname">itemName</span> <span class="dce-schema-ftype">String</span></label>
+            <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="priority"> <span class="dce-schema-fname">priority</span> <span class="dce-schema-ftype">Integer</span></label>
+            <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="startDate"> <span class="dce-schema-fname">startDate</span> <span class="dce-schema-ftype">DateTime</span></label>
+            <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="endDate"> <span class="dce-schema-fname">endDate</span> <span class="dce-schema-ftype">DateTime</span></label>
+          </div>
+          <div class="dce-schema-group">
+            <div class="dce-schema-group-label dce-schema-group-label--custom">Offer Content</div>
+            <div class="dce-schema-subgroup-label">Media Assets <span class="dce-schema-custom-tag">custom</span></div>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="heroImage"> <span class="dce-schema-fname">heroImage</span> <span class="dce-schema-ftype">Asset</span></label>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="thumbnail"> <span class="dce-schema-fname">thumbnail</span> <span class="dce-schema-ftype">Asset</span></label>
+            <div class="dce-schema-subgroup-label">Text Content <span class="dce-schema-custom-tag">custom</span></div>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="title"> <span class="dce-schema-fname">title</span> <span class="dce-schema-ftype">String</span></label>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="description"> <span class="dce-schema-fname">description</span> <span class="dce-schema-ftype">String</span></label>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="callToAction"> <span class="dce-schema-fname">callToAction</span> <span class="dce-schema-ftype">String</span></label>
+          </div>
+          <div class="dce-schema-group dce-schema-group--collapsible" data-dce-schema-collapsible="nav">
+            <button type="button" class="dce-schema-collapse-btn" aria-expanded="false" id="dce-schema-toggle-nav"><span class="dce-schema-chev" aria-hidden="true">▸</span> Navigation <span class="dce-schema-custom-tag">custom</span></button>
+            <div class="dce-schema-collapse-body" id="dce-schema-body-nav" hidden>
+              <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="webUrl"> <span class="dce-schema-fname">webUrl</span> <span class="dce-schema-ftype">String</span></label>
+              <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="deepLink"> <span class="dce-schema-fname">deepLink</span> <span class="dce-schema-ftype">String</span></label>
+              <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="channelType"> <span class="dce-schema-fname">channelType</span> <span class="dce-schema-ftype">Enum</span></label>
+            </div>
+          </div>
+          <div class="dce-schema-group dce-schema-group--collapsible" data-dce-schema-collapsible="promo">
+            <button type="button" class="dce-schema-collapse-btn" aria-expanded="false" id="dce-schema-toggle-promo"><span class="dce-schema-chev" aria-hidden="true">▸</span> Promo Elements <span class="dce-schema-custom-tag">custom</span></button>
+            <div class="dce-schema-collapse-body" id="dce-schema-body-promo" hidden>
+              <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="promoCode"> <span class="dce-schema-fname">promoCode</span> <span class="dce-schema-ftype">String</span></label>
+            </div>
+          </div>
+          <div class="dce-schema-group">
+            <div class="dce-schema-group-label dce-schema-group-label--custom">Offer Metadata <span class="dce-schema-custom-tag">custom</span></div>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="contentType"> <span class="dce-schema-fname">contentType</span> <span class="dce-schema-ftype">Enum</span></label>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="salesStage"> <span class="dce-schema-fname">salesStage</span> <span class="dce-schema-ftype">Enum</span></label>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="journeyStage"> <span class="dce-schema-fname">journeyStage</span> <span class="dce-schema-ftype">Enum</span></label>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="targetSegment"> <span class="dce-schema-fname">targetSegment</span> <span class="dce-schema-ftype">Enum</span></label>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="category"> <span class="dce-schema-fname">category</span> <span class="dce-schema-ftype">String</span></label>
+            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="margin"> <span class="dce-schema-fname">margin</span> <span class="dce-schema-ftype">Enum</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="dce-schema-preview card" aria-live="polite">
+        <div class="dce-schema-preview-head">
+          <span class="dce-schema-preview-kicker">Offer preview</span>
+          <span class="dce-schema-preview-count" id="dce-schema-count">15 / 19</span>
+        </div>
+        <div class="dce-schema-preview-card">
+          <div class="dce-schema-hero-wrap" data-dce-schema-block="heroImage">
+            <div class="dce-schema-img-placeholder dce-schema-img-placeholder--hero">
+              <span class="dce-schema-img-msg">Hero image — to be provided</span>
+            </div>
+          </div>
+          <div class="dce-schema-preview-body">
+            <div class="dce-schema-thumb-row" data-dce-schema-block="thumbnail">
+              <div class="dce-schema-img-placeholder dce-schema-img-placeholder--thumb">
+                <span class="dce-schema-img-msg">Thumbnail — to be provided</span>
+              </div>
+            </div>
+            <h3 class="dce-schema-offer-title" data-dce-schema-block="title" id="dce-schema-v-title">—</h3>
+            <p class="dce-schema-offer-desc" data-dce-schema-block="description" id="dce-schema-v-desc">—</p>
+            <div data-dce-schema-block="callToAction"><button type="button" class="dce-schema-cta" id="dce-schema-v-cta">Shop Now →</button></div>
+          </div>
+        </div>
+        <div class="dce-schema-preview-section" data-dce-schema-section="standard">
+          <div class="dce-schema-preview-sec-label">Standard attributes</div>
+          <table class="dce-schema-kv" role="presentation">
+            <tbody>
+              <tr data-dce-schema-block="itemName"><td class="dce-schema-k">Name</td><td class="dce-schema-v" id="dce-schema-v-name">—</td></tr>
+              <tr data-dce-schema-block="priority"><td class="dce-schema-k">Priority</td><td class="dce-schema-v" id="dce-schema-v-priority">—</td></tr>
+              <tr data-dce-schema-block="startDate"><td class="dce-schema-k">Start</td><td class="dce-schema-v" id="dce-schema-v-start">—</td></tr>
+              <tr data-dce-schema-block="endDate"><td class="dce-schema-k">End</td><td class="dce-schema-v" id="dce-schema-v-end">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dce-schema-preview-section" data-dce-schema-section="nav" id="dce-schema-nav-block" hidden>
+          <div class="dce-schema-preview-sec-label">Navigation &amp; delivery</div>
+          <table class="dce-schema-kv" role="presentation">
+            <tbody>
+              <tr data-dce-schema-block="webUrl"><td class="dce-schema-k">Web URL</td><td class="dce-schema-v" id="dce-schema-v-weburl">—</td></tr>
+              <tr data-dce-schema-block="deepLink"><td class="dce-schema-k">Deep link</td><td class="dce-schema-v" id="dce-schema-v-deeplink">—</td></tr>
+              <tr data-dce-schema-block="channelType"><td class="dce-schema-k">Channel</td><td class="dce-schema-v" id="dce-schema-v-channeltype">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dce-schema-preview-section" data-dce-schema-section="promo" id="dce-schema-promo-block" hidden>
+          <div class="dce-schema-preview-sec-label">Promo</div>
+          <table class="dce-schema-kv" role="presentation">
+            <tbody>
+              <tr data-dce-schema-block="promoCode"><td class="dce-schema-k">Promo code</td><td class="dce-schema-v" id="dce-schema-v-promo">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dce-schema-preview-section" data-dce-schema-section="meta" id="dce-schema-meta-block">
+          <div class="dce-schema-preview-sec-label">Metadata &amp; classification</div>
+          <table class="dce-schema-kv" role="presentation">
+            <tbody>
+              <tr data-dce-schema-block="contentType"><td class="dce-schema-k">Content type</td><td class="dce-schema-v" id="dce-schema-v-contenttype">—</td></tr>
+              <tr data-dce-schema-block="salesStage"><td class="dce-schema-k">Sales stage</td><td class="dce-schema-v" id="dce-schema-v-salesstage">—</td></tr>
+              <tr data-dce-schema-block="journeyStage"><td class="dce-schema-k">Journey stage</td><td class="dce-schema-v" id="dce-schema-v-journeystage">—</td></tr>
+              <tr data-dce-schema-block="targetSegment"><td class="dce-schema-k">Target</td><td class="dce-schema-v" id="dce-schema-v-target">—</td></tr>
+              <tr data-dce-schema-block="category"><td class="dce-schema-k">Category</td><td class="dce-schema-v" id="dce-schema-v-category">—</td></tr>
+              <tr data-dce-schema-block="margin"><td class="dce-schema-k">Margin</td><td class="dce-schema-v" id="dce-schema-v-margin">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dce-schema-progress-wrap">
+          <div class="dce-schema-progress-track"><div class="dce-schema-progress-fill" id="dce-schema-progress" style="width:79%"></div></div>
+          <span class="dce-schema-progress-pct" id="dce-schema-pct">79%</span>
+        </div>
+      </div>
+    </div>
+    <div class="dce-schema-footnote card">
+      <strong>Why this matters:</strong> Every field you enable becomes available in ranking formulas, eligibility rules, and collections. Richer schema = smarter engine.
     </div>
   </div>
 
@@ -2310,6 +2451,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="decisioning-visualizer.js?v=20260414b"></script>
+  <script defer src="decisioning-visualizer.js?v=20260414c"></script>
 </body>
 </html>
