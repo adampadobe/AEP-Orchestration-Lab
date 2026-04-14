@@ -2904,6 +2904,12 @@
     color: var(--ink);
     margin-bottom: 6px;
   }
+  .decisioning-catalog-page .dce-viz-scope .dce-rules-persona-detail {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--muted);
+    margin: -2px 0 8px;
+  }
   .decisioning-catalog-page .dce-viz-scope .dce-rules-checklist {
     list-style: none;
     margin: 0;

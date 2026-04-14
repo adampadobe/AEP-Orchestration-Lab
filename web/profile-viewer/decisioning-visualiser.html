@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260424a">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260425a">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -382,12 +382,13 @@
 
   <!-- ══ COLLECTIONS (item pools — AJO Experience Decisioning alignment) ══ -->
   <div id="dceViz-panel-collections" class="panel dce-collections-panel" style="--method-color: #7c3aed;">
+    <p class="dce-items-step-label">Step 03 — Organize</p>
     <div class="section-header">
       <div class="method-number" style="color:#7c3aed;">◆</div>
       <div class="method-meta">
         <div class="method-tag">Item pool</div>
         <div class="method-title">Collections</div>
-        <div class="method-desc">Rule-bound slices of the item pool before ranking — the same collection layer you configure in Decision Management.</div>
+        <div class="method-desc">Rule-bound slices of the item pool before ranking — the same collection layer as the <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a> Collections step and Decision Management.</div>
       </div>
     </div>
     <p class="dce-collections-lead">Collections group items using schema attribute filters — like smart folders. Switch between the pills to see which offers match.</p>
@@ -399,12 +400,13 @@
 
   <!-- ══ DECISION RULES (eligibility — AJO Experience Decisioning alignment) ══ -->
   <div id="dceViz-panel-rules" class="panel dce-rules-panel" style="--method-color: #0f766e;">
+    <p class="dce-items-step-label">Step 04 — Who qualifies</p>
     <div class="section-header">
       <div class="method-number" style="color:#0f766e;">◆</div>
       <div class="method-meta">
         <div class="method-tag">Eligibility</div>
         <div class="method-title">Decision Rules</div>
-        <div class="method-desc">Rules are reusable eligibility conditions. You define them once, then plug them into your selection strategies. Each rule narrows the audience — toggle them on and watch who is left. Same pattern as the <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">Experience Decisioning playground</a>.</div>
+        <div class="method-desc">Rules are reusable eligibility conditions. You define them once, then plug them into your selection strategies. Each rule narrows the audience — toggle them on and watch who is left. Same interaction model as the <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a> Rules step and the <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">hosted demo</a>.</div>
       </div>
     </div>
     <div class="dce-rules-split">
@@ -2449,9 +2451,10 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="playground-schema-tree.js?v=20260424a"></script>
-  <script defer src="playground-items-offers.js?v=20260424a"></script>
-  <script defer src="playground-items-step.js?v=20260424a"></script>
-  <script defer src="decisioning-visualizer.js?v=20260424a"></script>
+  <script defer src="playground-schema-tree.js?v=20260425a"></script>
+  <script defer src="playground-items-offers.js?v=20260425a"></script>
+  <script defer src="playground-collections-rules-data.js?v=20260425a"></script>
+  <script defer src="playground-items-step.js?v=20260425a"></script>
+  <script defer src="decisioning-visualizer.js?v=20260425a"></script>
 </body>
 </html>
