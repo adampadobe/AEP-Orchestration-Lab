@@ -1,21 +1,18 @@
 import { ChevronDown } from 'lucide-react';
-import { T } from '../../theme';
 import { STEPS } from '../../data/steps';
 import { INDUSTRIES } from '../../data/industries';
 import styles from './Shell.module.css';
 
 /*
  * App shell — progress bar, sticky tab row (industry dropdown + step tabs).
- * Step changes use the tab row only (no duplicate footer nav).
- * Receives all state + setters as props from App.jsx.
+ * Menu typography/colors match web/profile-viewer/decisioning-edp-shell.css (Decisioning visualiser).
  */
 export const Shell = ({ step, goToStep, industry, setIndustry, showIndustry, setShowIndustry, contentRef, children }) => {
-  const currentIndustry = INDUSTRIES.find(x => x.key === industry);
+  const currentIndustry = INDUSTRIES.find((x) => x.key === industry);
   const IndustryIcon = currentIndustry.icon;
 
   return (
     <div className={styles.root}>
-      {/* ── HEADER ── */}
       <div className={styles.header}>
         <div className={styles.progressTrack}>
           <div className={styles.progressFill} style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
@@ -33,28 +30,34 @@ export const Shell = ({ step, goToStep, industry, setIndustry, showIndustry, set
                   aria-haspopup="listbox"
                   onClick={() => setShowIndustry(!showIndustry)}
                 >
-                  <IndustryIcon size={12} color={T.ac} />
+                  <span className={styles.industryIcon} aria-hidden="true">
+                    <IndustryIcon size={12} color="currentColor" />
+                  </span>
                   {currentIndustry.label}
-                  <ChevronDown size={11} color={T.tm} />
+                  <ChevronDown className={styles.chevron} size={11} color="currentColor" />
                 </button>
                 {showIndustry && (
                   <div className={styles.dropdownMenu} role="listbox">
                     {INDUSTRIES.map((row) => {
                       const Ico = row.icon;
+                      const active = industry === row.key;
                       return (
-                        <div
+                        <button
                           key={row.key}
+                          type="button"
                           role="option"
-                          aria-selected={industry === row.key}
-                          onClick={() => { setIndustry(row.key); setShowIndustry(false); }}
-                          className={styles.dropdownItem}
-                          style={{ background: industry === row.key ? T.as : 'transparent', color: industry === row.key ? T.ac : T.tx, fontWeight: industry === row.key ? 600 : 400 }}
-                          onMouseEnter={e => { if (industry !== row.key) e.currentTarget.style.background = T.sa; }}
-                          onMouseLeave={e => { if (industry !== row.key) e.currentTarget.style.background = 'transparent'; }}
+                          aria-selected={active}
+                          onClick={() => {
+                            setIndustry(row.key);
+                            setShowIndustry(false);
+                          }}
+                          className={`${styles.dropdownItem} ${active ? styles.dropdownItemActive : ''}`}
                         >
-                          <Ico size={12} color={industry === row.key ? T.ac : T.tm} />
-                          {row.label}
-                        </div>
+                          <span className={styles.menuIcon} aria-hidden="true">
+                            <Ico size={12} color="currentColor" />
+                          </span>
+                          <span className={styles.menuLabel}>{row.label}</span>
+                        </button>
                       );
                     })}
                   </div>
@@ -67,8 +70,7 @@ export const Shell = ({ step, goToStep, industry, setIndustry, showIndustry, set
                   key={s.id}
                   type="button"
                   onClick={() => goToStep(i)}
-                  className={styles.tab}
-                  style={{ fontWeight: step === i ? 600 : 400, color: step === i ? T.ac : i < step ? T.tx : T.tm, borderBottom: `2px solid ${step === i ? T.ac : 'transparent'}` }}
+                  className={`${styles.tab} ${step === i ? styles.tabActive : ''}`}
                 >
                   {s.short}
                 </button>
@@ -78,7 +80,6 @@ export const Shell = ({ step, goToStep, industry, setIndustry, showIndustry, set
         </div>
       </div>
 
-      {/* ── CONTENT ── */}
       <div ref={contentRef} className={styles.content} onClick={() => showIndustry && setShowIndustry(false)}>
         {children}
       </div>
