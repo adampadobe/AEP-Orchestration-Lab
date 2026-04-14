@@ -3535,3 +3535,8 @@
     font-weight: 600;
     font-size: 12px;
   }
+
+  /* Ranking explorer (dce-viz-core): sticky tab bar shadow tracks light/dark */
+  html[data-aep-theme='dark'] .decisioning-catalog-page #dceVizRoot.dce-viz-core .tab-nav {
+    box-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+  }

@@ -24,33 +24,28 @@
   box-sizing: border-box;
 }
 
-.topBar {
+.tabBarRow {
+  display: flex;
+  align-items: stretch;
+  min-height: 44px;
+}
+
+.tabIndustry {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 42px;
-}
-
-.logo {
-  flex-shrink: 0;
-}
-
-.divider {
-  width: 1px;
-  height: 16px;
-  background: var(--border);
-}
-
-.appName {
-  font-family: var(--font-sans);
-  font-size: 11.5px;
-  color: var(--text-muted);
+  padding-right: 12px;
+  margin-right: 4px;
+  border-right: 1px solid var(--border);
 }
 
 /* Dropdown */
 .dropdownWrap {
-  margin-left: auto;
   position: relative;
+}
+
+.tabIndustry .dropdownWrap {
+  margin-left: 0;
 }
 
 .dropdownBtn {
@@ -71,14 +66,15 @@
 .dropdownMenu {
   position: absolute;
   top: 100%;
-  right: 0;
+  left: 0;
+  right: auto;
   margin-top: 3px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 9px;
   padding: 3px;
   box-shadow: var(--shadow-popover);
-  min-width: 160px;
+  min-width: 180px;
   z-index: 200;
 }
 
@@ -107,8 +103,11 @@
 
 /* Step tabs */
 .tabRow {
+  flex: 1;
+  min-width: 0;
   display: flex;
   overflow-x: auto;
+  align-items: stretch;
 }
 
 .tab {

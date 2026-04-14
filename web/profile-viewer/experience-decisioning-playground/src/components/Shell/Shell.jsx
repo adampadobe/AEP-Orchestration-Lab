@@ -1,12 +1,11 @@
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { FONT_SANS, FONT_MONO, T } from '../../theme';
+import { T } from '../../theme';
 import { STEPS } from '../../data/steps';
 import { INDUSTRIES } from '../../data/industries';
 import styles from './Shell.module.css';
 
 /*
- * App shell — sticky header (logo, tabs, industry dropdown, progress bar)
- * and sticky footer (Back / Next navigation).
+ * App shell — progress bar, sticky tab row (industry dropdown + step tabs), sticky footer.
  * Receives all state + setters as props from App.jsx.
  */
 export const Shell = ({ step, goToStep, industry, setIndustry, showIndustry, setShowIndustry, contentRef, children }) => {
@@ -17,50 +16,63 @@ export const Shell = ({ step, goToStep, industry, setIndustry, showIndustry, set
     <div className={styles.root}>
       {/* ── HEADER ── */}
       <div className={styles.header}>
-        <div className={styles.headerInner}>
-          <div className={styles.topBar}>
-            <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Adobe" width={28} height={27} className={styles.logo} />
-            <div className={styles.divider} />
-            <span className={styles.appName}>Decisioning overview</span>
-
-            {/* Industry dropdown */}
-            <div className={styles.dropdownWrap}>
-              <button className={styles.dropdownBtn} onClick={() => setShowIndustry(!showIndustry)}>
-                <IndustryIcon size={12} color={T.ac} />
-                {currentIndustry.label}
-                <ChevronDown size={11} color={T.tm} />
-              </button>
-              {showIndustry && (
-                <div className={styles.dropdownMenu}>
-                  {INDUSTRIES.map(({ key, label, icon: Icon }) => (
-                    <div key={key} onClick={() => { setIndustry(key); setShowIndustry(false); }}
-                      className={styles.dropdownItem}
-                      style={{ background: industry === key ? T.as : 'transparent', color: industry === key ? T.ac : T.tx, fontWeight: industry === key ? 600 : 400 }}
-                      onMouseEnter={e => { if (industry !== key) e.currentTarget.style.background = T.sa; }}
-                      onMouseLeave={e => { if (industry !== key) e.currentTarget.style.background = 'transparent'; }}>
-                      <Icon size={12} color={industry === key ? T.ac : T.tm} />{label}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Progress bar */}
         <div className={styles.progressTrack}>
           <div className={styles.progressFill} style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
         </div>
 
-        {/* Step tabs */}
         <div className={styles.headerInner}>
-          <div className={styles.tabRow}>
-            {STEPS.map((s, i) => (
-              <button key={s.id} onClick={() => goToStep(i)} className={styles.tab}
-                style={{ fontWeight: step === i ? 600 : 400, color: step === i ? T.ac : i < step ? T.tx : T.tm, borderBottom: `2px solid ${step === i ? T.ac : 'transparent'}` }}>
-                {s.short}
-              </button>
-            ))}
+          <div className={styles.tabBarRow}>
+            <div className={styles.tabIndustry}>
+              <div className={styles.dropdownWrap}>
+                <button
+                  type="button"
+                  className={styles.dropdownBtn}
+                  aria-label="Industry"
+                  aria-expanded={showIndustry}
+                  aria-haspopup="listbox"
+                  onClick={() => setShowIndustry(!showIndustry)}
+                >
+                  <IndustryIcon size={12} color={T.ac} />
+                  {currentIndustry.label}
+                  <ChevronDown size={11} color={T.tm} />
+                </button>
+                {showIndustry && (
+                  <div className={styles.dropdownMenu} role="listbox">
+                    {INDUSTRIES.map((row) => {
+                      const Ico = row.icon;
+                      return (
+                        <div
+                          key={row.key}
+                          role="option"
+                          aria-selected={industry === row.key}
+                          onClick={() => { setIndustry(row.key); setShowIndustry(false); }}
+                          className={styles.dropdownItem}
+                          style={{ background: industry === row.key ? T.as : 'transparent', color: industry === row.key ? T.ac : T.tx, fontWeight: industry === row.key ? 600 : 400 }}
+                          onMouseEnter={e => { if (industry !== row.key) e.currentTarget.style.background = T.sa; }}
+                          onMouseLeave={e => { if (industry !== row.key) e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <Ico size={12} color={industry === row.key ? T.ac : T.tm} />
+                          {row.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className={styles.tabRow}>
+              {STEPS.map((s, i) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => goToStep(i)}
+                  className={styles.tab}
+                  style={{ fontWeight: step === i ? 600 : 400, color: step === i ? T.ac : i < step ? T.tx : T.tm, borderBottom: `2px solid ${step === i ? T.ac : 'transparent'}` }}
+                >
+                  {s.short}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

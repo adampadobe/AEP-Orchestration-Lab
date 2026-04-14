@@ -1,30 +1,24 @@
-    <div class="dce-core-toolbar">
-      <div class="dce-core-toolbar-inner dce-core-container">
-        <span class="dce-pg-logo" aria-hidden="true"><svg width="28" height="27" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="#EB1000" d="M13.65 2.1 22 21.9h-5.7l-1.75-4.55h-5.1L7.7 21.9H2L10.35 2.1h3.3Zm-2.2 11.2-1.65-4.3-1.65 4.3h3.3Z"/></svg></span>
-        <span class="dce-pg-divider" aria-hidden="true"></span>
-        <span class="dce-pg-app-name">Ranking methods</span>
-        <div class="dce-pg-dropdown-wrap">
-          <button type="button" class="dce-pg-dropdown-btn" id="dce-pg-industry-btn" aria-expanded="false" aria-haspopup="listbox" aria-controls="dce-pg-industry-menu">
-            <svg class="dce-pg-pin" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="#EB1000" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg>
-            <span id="dce-pg-industry-label">Media &amp; entertainment</span>
-            <svg class="dce-pg-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-          <div class="dce-pg-dropdown-menu" id="dce-pg-industry-menu" role="listbox" hidden>
-            <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="media">Media &amp; entertainment</button>
-            <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="travel">Travel · Airline</button>
-            <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="retail">Retail</button>
-            <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="fsi">FSI</button>
-            <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="telco">Telco</button>
-            <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="automotive">Automotive</button>
-            <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="healthcare">Healthcare</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
 <!-- NAV -->
 <nav class="tab-nav" aria-label="Ranking methods">
   <div class="dce-core-container dce-core-container--tabnav">
+  <div class="dce-core-tabnav-industry">
+    <div class="dce-pg-dropdown-wrap">
+      <button type="button" class="dce-pg-dropdown-btn" id="dce-pg-industry-btn" aria-expanded="false" aria-haspopup="listbox" aria-controls="dce-pg-industry-menu" aria-label="Industry">
+        <svg class="dce-pg-pin" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="#EB1000" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg>
+        <span id="dce-pg-industry-label">Media &amp; entertainment</span>
+        <svg class="dce-pg-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="dce-pg-dropdown-menu" id="dce-pg-industry-menu" role="listbox" hidden>
+        <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="media">Media &amp; entertainment</button>
+        <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="travel">Travel · Airline</button>
+        <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="retail">Retail</button>
+        <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="fsi">FSI</button>
+        <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="telco">Telco</button>
+        <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="automotive">Automotive</button>
+        <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="healthcare">Healthcare</button>
+      </div>
+    </div>
+  </div>
   <button type="button" class="tab-btn active" data-dce-core-panel="overview" onclick="dceVizShowPanel('overview')" style="--active-color: #CC0000">
     <span class="tab-icon" style="background:#CC0000"></span> Overview
   </button>
