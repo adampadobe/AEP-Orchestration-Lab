@@ -177,9 +177,10 @@
 }
 
 .tab {
+  position: relative;
   flex: 0 0 auto;
   min-width: 0;
-  padding: 10px 16px;
+  padding: 10px 16px 14px;
   background: transparent;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 12.5px;
@@ -188,9 +189,8 @@
   color: var(--text-muted);
   white-space: nowrap;
   border: none;
-  border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
 .tab:hover {
@@ -201,8 +201,20 @@
 .tabActive {
   font-weight: 600;
   color: var(--blue);
-  border-bottom-color: var(--blue);
   background: transparent;
+}
+
+/* Pill underline — matches Decisioning visualiser (inset bar, rounded ends) */
+.tabActive::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 3px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--blue);
+  pointer-events: none;
 }
 
 .tabActive:hover {
@@ -210,8 +222,14 @@
   background: transparent;
 }
 
-/* ── CONTENT ── */
+/* ── CONTENT — same rhythm as #dceVizRoot.dce-viz-core .content ── */
 .content {
   flex: 1;
   overflow-y: auto;
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  padding: 48px var(--edp-core-pad-x, clamp(1rem, 2.5vw, 1.35rem)) 60px;
+  box-sizing: border-box;
+  background: var(--bg);
 }

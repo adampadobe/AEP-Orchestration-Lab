@@ -12,6 +12,7 @@ import { PolicyStep } from './components/steps/PolicyStep';
 import { ResultStep } from './components/steps/ResultStep';
 import { IndustryDataProvider } from './IndustryContext.jsx';
 import './index.css';
+import styles from './App.module.css';
 
 const VALID_INDUSTRIES = new Set(['retail', 'fsi', 'travel', 'media', 'sports', 'telecommunications', 'public']);
 
@@ -73,10 +74,7 @@ export default function App() {
           setShowIndustry={setShowIndustry}
           contentRef={contentRef}
         >
-          <div
-            key={fadeKey}
-            style={{ maxWidth: 1060, margin: '0 auto', padding: '28px 20px 70px', animation: 'edpFadeIn 0.3s' }}
-          >
+          <div key={fadeKey} className={styles.stepInner}>
             <CurrentStep />
           </div>
         </Shell>
