@@ -2,7 +2,7 @@
  * Decisioning visualiser — interactive ranking methods (decisioning-visualiser.html).
  * Industry context: media (default), travel, retail, FSI, telco, automotive, or healthcare (examples + copy).
  *
- * Flow: Start → Channels → Schema → Collections → Rules → Journey → Ranking …
+ * Flow: Overview → Channels → Schema → Collections → Rules → Journey → Ranking …
  * Panel id `channels` is delivery / decision items (playground “Items” step).
  * Extra steps: Priority, AI, Experimentation. Customer “Show for customer” toggles subset visibility.
  */
