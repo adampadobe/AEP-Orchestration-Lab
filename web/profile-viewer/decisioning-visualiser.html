@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260422a">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260423a">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -102,8 +102,8 @@
         <div class="dce-pg-dropdown-menu dce-pg-customer-menu" id="dce-pg-customer-menu" role="group" aria-label="Steps visible to customer" hidden>
           <p class="dce-pg-customer-hint">Uncheck steps to hide them from tabs, navigation, and the overview shortcuts. At least one step stays on.</p>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="overview" checked> <span>Start</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="channels" checked> <span>Channels</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="schema" checked> <span>Schema</span></label>
-          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="channels" checked> <span>Items</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="collections" checked> <span>Collections</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="rules" checked> <span>Rules</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="journey" checked> <span>Journey</span></label>
@@ -120,8 +120,8 @@
   <div class="dce-pg-header-inner dce-pg-header-inner--tabs">
 <nav class="tab-nav dce-pg-tab-row" aria-label="Experience Decisioning steps">
   <button type="button" class="tab-btn active" data-dce-panel="overview" data-dce-pg-short="Start" style="--active-color: #CC0000">Start</button>
+  <button type="button" class="tab-btn" data-dce-panel="channels" data-dce-pg-short="Channels" style="--active-color: #2D3142">Channels</button>
   <button type="button" class="tab-btn" data-dce-panel="schema" data-dce-pg-short="Schema" style="--active-color: #8B5C8A">Schema</button>
-  <button type="button" class="tab-btn" data-dce-panel="channels" data-dce-pg-short="Items" style="--active-color: #2D3142">Items</button>
   <button type="button" class="tab-btn" data-dce-panel="collections" data-dce-pg-short="Collections" style="--active-color: #7c3aed">Collections</button>
   <button type="button" class="tab-btn" data-dce-panel="rules" data-dce-pg-short="Rules" style="--active-color: #0f766e">Rules</button>
   <button type="button" class="tab-btn" data-dce-panel="journey" data-dce-pg-short="Journey" style="--active-color: #b91c1c">Journey</button>
@@ -155,6 +155,20 @@
     </div>
 
     <div class="overview-grid">
+      <a class="overview-card" data-dce-panel="channels" href="#">
+        <div class="ov-header" style="background: #2D3142;">
+          <div class="ov-name">Channels</div>
+        </div>
+        <div class="ov-body">
+          <div class="ov-best">What this means</div>
+          <div class="ov-desc"><span data-dce-industry-show="media">Decision items and how each renders per channel — email, web, app, push, SMS, code — after the policy picks a winner (same flow as the Experience Decisioning playground Items step).</span><span data-dce-industry-show="travel">Decision items and delivery surfaces — web, app, airport, crew tools — for the winning ancillary or bundle.</span><span data-dce-industry-show="retail">Your offer catalog and channel-ready representations — site, app, email, and more — so shoppers see the right creative in the right place.</span><span data-dce-industry-show="fsi">Regulated offers and compliant channel payloads — authenticated web, mobile banking, messaging — for the selected product.</span><span data-dce-industry-show="telco">Plans and add-ons as decision items across mobile, fibre, SMS, and agent-assisted surfaces.</span><span data-dce-industry-show="automotive">Programmes and incentives rendered on web, app, showroom, and dealer systems for the ranked offer.</span><span data-dce-industry-show="healthcare">Care programmes delivered through app, web, virtual visit, and navigator channels with compliant content.</span></div>
+          <div class="ov-complexity">
+            <div class="complexity-dot" style="background:#2D3142"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+          </div>
+        </div>
+      </a>
       <a class="overview-card" data-dce-panel="schema" href="#">
         <div class="ov-header" style="background: #8B5C8A;">
           <div class="ov-name">Schema</div>
@@ -164,20 +178,6 @@
           <div class="ov-desc"><span data-dce-industry-show="media">The decision-item blueprint — standard fields plus custom attributes (hero, copy, urgency) that define each streaming offer the engine can rank and deliver.</span><span data-dce-industry-show="travel">Ancillary and bundle attributes — cabin, route, cut-offs, and merchandising tags — that describe each offer in the trip context.</span><span data-dce-industry-show="retail">Product and promo structure — price, inventory, segment, and creative variants — powering merchandising rules and ranking inputs.</span><span data-dce-industry-show="fsi">Regulated product fields — eligibility, intent, rate, and disclosure hooks — so offers stay compliant while still competing in the policy.</span><span data-dce-industry-show="telco">Line, plan, speed, and add-on schema for mobile, home, and business offers in one decision framework.</span><span data-dce-industry-show="automotive">Programme and incentive attributes — stock, region, journey stage, and aftersales — for showroom and digital offers.</span><span data-dce-industry-show="healthcare">Care pathway and benefits metadata — consent, network, SLAs — for clinically appropriate programme ranking.</span></div>
           <div class="ov-complexity">
             <div class="complexity-dot" style="background:#8B5C8A"></div>
-            <div class="complexity-dot" style="background:#e8e0d5"></div>
-            <div class="complexity-dot" style="background:#e8e0d5"></div>
-          </div>
-        </div>
-      </a>
-      <a class="overview-card" data-dce-panel="channels" href="#">
-        <div class="ov-header" style="background: #2D3142;">
-          <div class="ov-name">Items</div>
-        </div>
-        <div class="ov-body">
-          <div class="ov-best">What this means</div>
-          <div class="ov-desc"><span data-dce-industry-show="media">Decision items and how each renders per channel — email, web, app, push, SMS, code — after the policy picks a winner (same flow as the Experience Decisioning playground Items step).</span><span data-dce-industry-show="travel">Decision items and delivery surfaces — web, app, airport, crew tools — for the winning ancillary or bundle.</span><span data-dce-industry-show="retail">Your offer catalog and channel-ready representations — site, app, email, and more — so shoppers see the right creative in the right place.</span><span data-dce-industry-show="fsi">Regulated offers and compliant channel payloads — authenticated web, mobile banking, messaging — for the selected product.</span><span data-dce-industry-show="telco">Plans and add-ons as decision items across mobile, fibre, SMS, and agent-assisted surfaces.</span><span data-dce-industry-show="automotive">Programmes and incentives rendered on web, app, showroom, and dealer systems for the ranked offer.</span><span data-dce-industry-show="healthcare">Care programmes delivered through app, web, virtual visit, and navigator channels with compliant content.</span></div>
-          <div class="ov-complexity">
-            <div class="complexity-dot" style="background:#2D3142"></div>
             <div class="complexity-dot" style="background:#e8e0d5"></div>
             <div class="complexity-dot" style="background:#e8e0d5"></div>
           </div>
@@ -340,38 +340,10 @@
     </div>
   </div>
 
-  <!-- ══ OFFER SCHEMA (SchemaStep from experience-decisioning-playground — tree + preview driven in JS) ══ -->
-  <div id="dceViz-panel-schema" class="panel dce-schema-panel dce-schema-panel--playground">
-    <header class="dce-schema-intro">
-      <p class="dce-schema-step-label" id="dce-schema-step-label">Step 01 — The Blueprint</p>
-      <h2 class="dce-schema-h2">Offer Schema</h2>
-      <p class="dce-schema-lead">Toggle fields on and off — watch the offer preview build up on the right. Fields marked <span class="dce-schema-custom-pill">custom</span> are attributes you define for your business needs. The field tree matches the <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a>; sample values follow your <strong>industry</strong> selection above.</p>
-      <div class="dce-schema-toolbar" role="toolbar" aria-label="Schema presets">
-        <button type="button" class="dce-schema-tool-btn" id="dce-schema-reset">Reset</button>
-        <button type="button" class="dce-schema-tool-btn dce-schema-tool-btn--accent" id="dce-schema-enable-custom">Enable Custom</button>
-        <button type="button" class="dce-schema-tool-btn dce-schema-tool-btn--blue" id="dce-schema-enable-all">Enable All</button>
-      </div>
-    </header>
-
-    <div class="dce-schema-split dce-schema-split--playground">
-      <div class="dce-schema-tree card" aria-label="XDM schema field toggles">
-        <div class="dce-schema-tree-top">
-          <span class="dce-schema-tree-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg> XDM Schema</span>
-          <span class="dce-schema-tree-hint-static" aria-hidden="true">Toggle fields</span>
-        </div>
-        <div class="dce-schema-tree-scroll" id="dce-schema-tree-mount"></div>
-      </div>
-      <div class="dce-schema-preview-col" id="dce-schema-preview-mount" aria-live="polite"></div>
-    </div>
-    <div class="dce-schema-footnote card">
-      <strong>Why this matters:</strong> Every field you enable becomes available in ranking formulas, eligibility rules, and collections. Richer schema = smarter engine.
-    </div>
-  </div>
-
-  <!-- ══ ITEMS (decision items + delivery — playground “Items” step; panel id channels for compat) ══ -->
+  <!-- ══ CHANNELS (decision items + delivery — playground “Items” step; panel id channels) ══ -->
   <div id="dceViz-panel-channels" class="panel dce-ch-panel">
     <p class="dce-ch-hint">
-      <strong>Step 02 — Decision items.</strong> After a <strong>decision policy</strong> picks a winning offer, that offer is rendered for the touchpoint you configure.
+      <strong>Step 01 — Channels.</strong> After a <strong>decision policy</strong> picks a winning offer, that offer is rendered for the touchpoint you configure.
       Select a channel to see how delivery works — same pattern as the
       <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a> Items step and the hosted
       <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">demo</a>.
@@ -457,6 +429,34 @@
           </aside>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ══ OFFER SCHEMA (SchemaStep from experience-decisioning-playground — tree + preview driven in JS) ══ -->
+  <div id="dceViz-panel-schema" class="panel dce-schema-panel dce-schema-panel--playground">
+    <header class="dce-schema-intro">
+      <p class="dce-schema-step-label" id="dce-schema-step-label">Step 02 — The Blueprint</p>
+      <h2 class="dce-schema-h2">Offer Schema</h2>
+      <p class="dce-schema-lead">Toggle fields on and off — watch the offer preview build up on the right. Fields marked <span class="dce-schema-custom-pill">custom</span> are attributes you define for your business needs. The field tree matches the <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a>; sample values follow your <strong>industry</strong> selection above.</p>
+      <div class="dce-schema-toolbar" role="toolbar" aria-label="Schema presets">
+        <button type="button" class="dce-schema-tool-btn" id="dce-schema-reset">Reset</button>
+        <button type="button" class="dce-schema-tool-btn dce-schema-tool-btn--accent" id="dce-schema-enable-custom">Enable Custom</button>
+        <button type="button" class="dce-schema-tool-btn dce-schema-tool-btn--blue" id="dce-schema-enable-all">Enable All</button>
+      </div>
+    </header>
+
+    <div class="dce-schema-split dce-schema-split--playground">
+      <div class="dce-schema-tree card" aria-label="XDM schema field toggles">
+        <div class="dce-schema-tree-top">
+          <span class="dce-schema-tree-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg> XDM Schema</span>
+          <span class="dce-schema-tree-hint-static" aria-hidden="true">Toggle fields</span>
+        </div>
+        <div class="dce-schema-tree-scroll" id="dce-schema-tree-mount"></div>
+      </div>
+      <div class="dce-schema-preview-col" id="dce-schema-preview-mount" aria-live="polite"></div>
+    </div>
+    <div class="dce-schema-footnote card">
+      <strong>Why this matters:</strong> Every field you enable becomes available in ranking formulas, eligibility rules, and collections. Richer schema = smarter engine.
     </div>
   </div>
 
@@ -2529,7 +2529,7 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="playground-schema-tree.js?v=20260422a"></script>
-  <script defer src="decisioning-visualizer.js?v=20260422a"></script>
+  <script defer src="playground-schema-tree.js?v=20260423a"></script>
+  <script defer src="decisioning-visualizer.js?v=20260423a"></script>
 </body>
 </html>

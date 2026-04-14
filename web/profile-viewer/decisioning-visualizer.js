@@ -2,8 +2,8 @@
  * Decisioning visualiser — interactive ranking methods (decisioning-visualiser.html).
  * Industry context: media (default), travel, retail, FSI, telco, automotive, or healthcare (examples + copy).
  *
- * Flow aligns with github.com/alexmtmr/experience-decisioning-playground (React): Start → Schema → Items →
- * Collections → Rules → Journey → Ranking … — we map Items to panel id `channels` (delivery / decision items).
+ * Flow: Start → Channels → Schema → Collections → Rules → Journey → Ranking …
+ * Panel id `channels` is delivery / decision items (playground “Items” step).
  * Extra steps: Priority, AI, Experimentation. Customer “Show for customer” toggles subset visibility.
  */
 (function () {
@@ -12,7 +12,7 @@
   var LS_INDUSTRY = 'dceVizIndustry';
   var LS_CUSTOMER_STEPS = 'dceVizCustomerSteps';
 
-  var DCE_PANEL_ORDER = ['overview', 'schema', 'channels', 'collections', 'rules', 'journey', 'priority', 'formula', 'ai', 'experiment'];
+  var DCE_PANEL_ORDER = ['overview', 'channels', 'schema', 'collections', 'rules', 'journey', 'priority', 'formula', 'ai', 'experiment'];
 
   var INDUSTRY_LABEL_UI = {
     media: 'Media & entertainment',
