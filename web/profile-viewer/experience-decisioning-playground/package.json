@@ -1,7 +1,7 @@
 {
   "name": "experience-decisioning",
   "private": true,
-  "description": "Vendored from github.com/alexmtmr/experience-decisioning-playground; built into Data viewer.",
+  "description": "Vendored from github.com/alexmtmr/experience-decisioning-playground; built to ../experience-decisioning/ for experience-decisioning.html.",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

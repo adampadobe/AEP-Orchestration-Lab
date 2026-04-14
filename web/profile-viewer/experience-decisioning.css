@@ -1,0 +1,45 @@
+/* Standalone Experience decisioning playground page */
+
+.experience-decisioning-page .dashboard-main {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.experience-decisioning-page .edp-mount {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto 2.5rem;
+  padding: 0 1.5rem 2rem;
+}
+
+.experience-decisioning-page .edp-blocked {
+  max-width: 42rem;
+  margin: 0 1.5rem 2rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--dash-border, #e8e4df);
+  border-radius: 8px;
+  background: var(--dash-panel, #fafafa);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, #444);
+}
+
+.experience-decisioning-page .edp-blocked a {
+  color: var(--dash-blue, #0265dc);
+  text-decoration: none;
+}
+
+.experience-decisioning-page .edp-blocked a:hover {
+  text-decoration: underline;
+}
+
+html[data-aep-theme='dark'] .experience-decisioning-page .edp-blocked {
+  background: var(--dash-bg-elevated, #1a1d21);
+  border-color: var(--dash-border, #2a3038);
+  color: var(--dash-muted, #9aa0a8);
+}
+
+.experience-decisioning-page .schema-aep-edp-root {
+  width: 100%;
+  min-height: min(80vh, 900px);
+}

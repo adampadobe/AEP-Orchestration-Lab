@@ -49,12 +49,9 @@
   const fullSchemaJsonCache = new Map();
 
   const overviewPanel = document.getElementById('schemaAepPanelOverview');
-  const playgroundPanel = document.getElementById('schemaAepPanelPlayground');
-  const playgroundTabBtn = document.getElementById('schemaAepTabPlayground');
   const browsePanel = document.getElementById('schemaAepPanelBrowse');
   const datasetsPanel = document.getElementById('schemaAepPanelDatasets');
   const audiencesPanel = document.getElementById('schemaAepPanelAudiences');
-  const LS_HIDE_EDP_TAB = 'aepHideDataViewerDecisioningPlayground';
   const datasetTableBody = document.getElementById('datasetTableBody');
   const datasetBrowseCount = document.getElementById('datasetBrowseCount');
   const audienceTableBody = document.getElementById('audienceTableBody');
@@ -1060,20 +1057,6 @@
     });
   }
 
-  function isPlaygroundTabHidden() {
-    try {
-      return localStorage.getItem(LS_HIDE_EDP_TAB) === '1';
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function applyPlaygroundTabVisibility() {
-    const hide = isPlaygroundTabHidden();
-    if (playgroundTabBtn) playgroundTabBtn.hidden = hide;
-    if (hide && currentAepTab === 'playground') setAepTab('overview');
-  }
-
   async function loadAudiencesFromApi(forceRefresh) {
     if (!audienceTableBody) return;
     const q = buildQuery(forceRefresh ? { refresh: 'true' } : null);
@@ -1113,7 +1096,6 @@
     const onBrowseLike = tab === 'browse';
 
     if (overviewPanel) overviewPanel.hidden = tab !== 'overview';
-    if (playgroundPanel) playgroundPanel.hidden = tab !== 'playground';
     if (browsePanel) browsePanel.hidden = !onBrowseLike;
     if (datasetsPanel) datasetsPanel.hidden = tab !== 'datasets';
     if (audiencesPanel) audiencesPanel.hidden = tab !== 'audiences';
@@ -1168,11 +1150,22 @@
   }
 
   function applyInitialHashFromUrl() {
-    const raw = (window.location.hash || '').replace(/^#/, '');
-    const valid = ['overview', 'playground', 'browse', 'datasets', 'audiences'];
+    let raw = (window.location.hash || '').replace(/^#/, '');
+    if (raw === 'playground') {
+      try {
+        history.replaceState(
+          null,
+          '',
+          `${window.location.pathname}${window.location.search}#overview`
+        );
+      } catch (e) {
+        /* ignore */
+      }
+      raw = 'overview';
+    }
+    const valid = ['overview', 'browse', 'datasets', 'audiences'];
     let tab = 'overview';
     if (raw && valid.includes(raw)) tab = raw;
-    if (tab === 'playground' && isPlaygroundTabHidden()) tab = 'overview';
     setAepTab(tab);
   }
 
@@ -1774,7 +1767,6 @@
   const refreshBtn = document.getElementById('dataViewerRefreshBtn');
   refreshBtn?.addEventListener('click', () => {
     const tab = currentAepTab || 'overview';
-    if (tab === 'playground') return;
     refreshBtn.disabled = true;
     refreshBtn.textContent = '↻ Refreshing…';
     const jobs = [];
@@ -1795,20 +1787,23 @@
     initAudienceTableSort();
     initSourceSelectStatic();
     initAepTabs();
-    applyPlaygroundTabVisibility();
-    window.addEventListener('aep-edp-visibility-change', applyPlaygroundTabVisibility);
-    window.addEventListener('storage', (e) => {
-      if (e.key === LS_HIDE_EDP_TAB) applyPlaygroundTabVisibility();
-    });
     window.addEventListener('hashchange', () => {
-      const raw = (window.location.hash || '').replace(/^#/, '');
-      const valid = ['overview', 'playground', 'browse', 'datasets', 'audiences'];
-      if (!raw || !valid.includes(raw)) return;
-      let tab = raw;
-      if (tab === 'playground' && isPlaygroundTabHidden()) {
-        if (currentAepTab !== 'overview') setAepTab('overview');
-        return;
+      let raw = (window.location.hash || '').replace(/^#/, '');
+      if (raw === 'playground') {
+        try {
+          history.replaceState(
+            null,
+            '',
+            `${window.location.pathname}${window.location.search}#overview`
+          );
+        } catch (e) {
+          /* ignore */
+        }
+        raw = 'overview';
       }
+      const valid = ['overview', 'browse', 'datasets', 'audiences'];
+      if (!raw || !valid.includes(raw)) return;
+      const tab = raw;
       if (tab !== currentAepTab) setAepTab(tab);
     });
     await loadSandboxes();
