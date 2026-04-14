@@ -863,109 +863,257 @@
    * Item collections (AJO DPS) — rule-bound slices of the item pool, aligned with playground “Collection” layer.
    * Each collection references priority-demo offer ids (s1–s3) for the active industry.
    */
-  var DCE_COLLECTIONS_BY_INDUSTRY = {
+  /**
+   * Collections UI — schema-filter “smart folders” with pills, rule line, and match grid (industry-specific).
+   */
+  var DCE_COL_PILL_IX = {};
+
+  var DCE_COLLECTIONS_UI = {
+    retail: {
+      offers: [
+        { id: 'r1', title: 'Free Express Delivery', icon: '🚚' },
+        { id: 'r2', title: '0% BNPL on Electronics', icon: '💳' },
+        { id: 'r3', title: 'Back-to-School Bundle', icon: '🎁' },
+        { id: 'r4', title: 'New Collection Preview', icon: '👕' },
+        { id: 'r5', title: 'Home — Free Assembly', icon: '🔧' },
+        { id: 'r6', title: '3x Loyalty Points Weekend', icon: '🏅' },
+        { id: 'r7', title: '20% Off Running Shoes', icon: '👟' },
+        { id: 'r8', title: 'Premium Headphones €30 Off', icon: '🎧' },
+        { id: 'r9', title: 'Smart Watch Trade-In', icon: '⌚' },
+        { id: 'r10', title: 'Grocery Flash Sale — 15% Off', icon: '🍴' },
+      ],
+      pills: [
+        { label: 'High-Margin Offers', ruleExpr: 'margin = "High"', description: 'High profit margin offers — prioritized to maximize revenue per impression.', matchIds: ['r1'] },
+        { label: 'Loyalty Rewards', ruleExpr: 'type IN ("Loyalty", "Exclusive")', description: 'For loyalty members — builds retention and lifetime value.', matchIds: ['r1', 'r4', 'r6'] },
+        { label: 'Electronics Deals', ruleExpr: 'category = "Electronics"', description: 'Electronics category — targets tech-interested shoppers.', matchIds: ['r2', 'r8', 'r9'] },
+        { label: 'Discount & Bundles', ruleExpr: 'type IN ("Discount", "Bundle")', description: 'Price-led promotions for price-sensitive segments.', matchIds: ['r3', 'r7', 'r8', 'r10'] },
+        { label: 'All Active Offers', ruleExpr: 'endDate > now()', description: 'Every offer within its validity window — broadest selection.', matchIds: ['r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10'] },
+      ],
+    },
     media: {
-      lead: 'Item collections group eligible offers before ranking runs. Rules combine profile, channel, and consent — only items in the matched collection compete for the placement.',
-      collections: [
-        { name: 'Homepage & CTV — signed-in subscribers', rule: 'Channel in (Web, CTV app) AND subscription_state = active AND marketable = true', items: ['s1', 's2', 's3'] },
-        { name: 'Upgrade runway — high engagement viewers', rule: 'Watch hours (30d) ≥ 12 AND completion_rate ≥ 0.4 AND genre_affinity matches scripted drama', items: ['s1', 's2'] },
-        { name: 'Acquisition & trials cohort', rule: 'Segment in (new_visitor, free_tier) OR win_back_90d = true', items: ['s3'] },
+      offers: [
+        { id: 'm1', title: 'Premium annual — 2 months free', icon: '🎬' },
+        { id: 'm2', title: 'Sports live pass add-on', icon: '⚽' },
+        { id: 'm3', title: 'Kids & family annual', icon: '👨‍👩‍👧' },
+        { id: 'm4', title: '30-day trial — card on file', icon: '🎁' },
+        { id: 'm5', title: '4K UHD tier upgrade', icon: '📺' },
+        { id: 'm6', title: 'Documentary hub monthly', icon: '📚' },
+        { id: 'm7', title: 'Student plan discount', icon: '🎓' },
+        { id: 'm8', title: 'CTV big-screen bundle', icon: '🖥' },
+        { id: 'm9', title: 'Win-back — 50% off 3 mo', icon: '💌' },
+        { id: 'm10', title: 'Streaming + music bundle', icon: '🎵' },
+      ],
+      pills: [
+        { label: 'Premium & high ARPU', ruleExpr: 'margin = "High"', description: 'Top-yield subscription SKUs — annual and tier upgrades first.', matchIds: ['m1', 'm5', 'm6'] },
+        { label: 'Live & sports', ruleExpr: 'genre = "Sports"', description: 'Live events and league passes for sports-heavy profiles.', matchIds: ['m2', 'm8'] },
+        { label: 'Family & kids paths', ruleExpr: 'audience IN ("Family", "Kids")', description: 'Household and parental-control bundles in the same policy.', matchIds: ['m3', 'm7'] },
+        { label: 'Trial & win-back', ruleExpr: 'segment IN ("trial", "win_back")', description: 'Acquisition and re-activation offers with short windows.', matchIds: ['m4', 'm9'] },
+        { label: 'Full active catalogue', ruleExpr: 'endDate > now()', description: 'Everything currently valid — broadest eligible pool.', matchIds: ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10'] },
       ],
     },
     travel: {
-      lead: 'Collections narrow ancillaries by trip phase and fare rules. Eligible items from the matched pool feed the same decision policy you use in Experience Decisioning.',
-      collections: [
-        { name: 'Pre-departure — seat & service upsell', rule: 'Trip_phase = pre_departure AND cabin in (Y, W) AND inventory > 0', items: ['s1', 's2', 's3'] },
-        { name: 'Loyalty & premium cabin path', rule: 'Tier ≥ Gold OR corporate_contract = true AND route = long_haul', items: ['s1', 's2'] },
-        { name: 'Baggage & priority flash window', rule: 'Hours_to_departure ≤ 48 AND ancillaries_open = true', items: ['s2', 's3'] },
+      offers: [
+        { id: 't1', title: 'Extra legroom — long-haul', icon: '✈️' },
+        { id: 't2', title: 'Checked bags — 2×23 kg', icon: '🧳' },
+        { id: 't3', title: 'Priority boarding — Group 1', icon: '⭐' },
+        { id: 't4', title: 'Lounge pass — departure', icon: '☕' },
+        { id: 't5', title: 'Inflight Wi‑Fi streaming', icon: '📶' },
+        { id: 't6', title: 'Chef meal upgrade', icon: '🍽' },
+        { id: 't7', title: 'Carbon offset bundle', icon: '🌱' },
+        { id: 't8', title: 'Twin seat assignment', icon: '💺' },
+        { id: 't9', title: 'Family row bundle', icon: '👨‍👩‍👧' },
+        { id: 't10', title: 'Last-minute upgrade window', icon: '⚡' },
       ],
-    },
-    retail: {
-      lead: 'Retail collections tie promos to cart value, channel, and loyalty — the engine only ranks offers that pass the collection’s eligibility constraints.',
-      collections: [
-        { name: 'Checkout & paid media recovery', rule: 'Surface in (checkout, cart_drawer, paid_social_rt) AND stock > 0', items: ['s1', 's2', 's3'] },
-        { name: 'Member & loyalty exclusives', rule: 'Loyalty_tier ≥ Silver OR app_authenticated = true', items: ['s1', 's2'] },
-        { name: 'BNPL & big-ticket save paths', rule: 'Basket_value ≥ threshold_electronics OR financing_eligible = true', items: ['s3'] },
+      pills: [
+        { label: 'High-yield ancillaries', ruleExpr: 'yield_tier = "high"', description: 'Seat and service upsells with the strongest route yield.', matchIds: ['t1', 't6', 't10'] },
+        { label: 'Loyalty & status', ruleExpr: 'tier IN ("Gold", "Platinum")', description: 'Tier-based perks that stack with fare rules.', matchIds: ['t3', 't4', 't8'] },
+        { label: 'Long-haul comfort', ruleExpr: 'haul = "long"', description: 'Comfort bundles for intercontinental legs.', matchIds: ['t1', 't5', 't9'] },
+        { label: 'Flash & seasonal', ruleExpr: 'window IN ("flash", "seasonal")', description: 'Time-boxed ancillaries during peaks and campaigns.', matchIds: ['t7', 't10'] },
+        { label: 'All bookable', ruleExpr: 'inventory > 0', description: 'Every ancillary still available for this itinerary.', matchIds: ['t1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10'] },
       ],
     },
     fsi: {
-      lead: 'Collections respect product permissions and fair-lending context. Items are grouped so only compliant offers enter the ranking for each profile.',
-      collections: [
-        { name: 'Authenticated digital offers hub', rule: 'Channel in (mobile_banking, web_logged_in) AND marketing_consent = true', items: ['s1', 's2', 's3'] },
-        { name: 'Wealth & mortgage intent', rule: 'Intent_score ≥ 0.72 OR pre_approval = true AND regulated_product = mortgage', items: ['s1'] },
-        { name: 'Everyday banking & acquisition', rule: 'Segment in (everyday, student, switcher) OR card_hold = false', items: ['s2', 's3'] },
+      offers: [
+        { id: 'f1', title: 'Fixed-rate mortgage — 4.19% 5 yr', icon: '🏠' },
+        { id: 'f2', title: 'Balance-transfer — 0% 24 mo', icon: '💳' },
+        { id: 'f3', title: 'Stocks & Shares ISA — bonus', icon: '📈' },
+        { id: 'f4', title: 'Everyday cashback current', icon: '🏦' },
+        { id: 'f5', title: 'Premium wealth review', icon: '👔' },
+        { id: 'f6', title: 'Student account pack', icon: '🎓' },
+        { id: 'f7', title: 'SMB business tariff', icon: '🏢' },
+        { id: 'f8', title: 'Green retrofit loan', icon: '🌿' },
+        { id: 'f9', title: 'Home insurance bundle', icon: '🛡' },
+        { id: 'f10', title: 'Mobile savings — 4.5% AER', icon: '📱' },
+      ],
+      pills: [
+        { label: 'Mortgage & lending', ruleExpr: 'product_line = "lending"', description: 'Secured lending and regulated mortgage paths.', matchIds: ['f1', 'f8'] },
+        { label: 'Cards & revolving', ruleExpr: 'type IN ("card", "credit")', description: 'Card acquisition and balance mechanics.', matchIds: ['f2', 'f4'] },
+        { label: 'Wealth & invest', ruleExpr: 'segment IN ("wealth", "invest")', description: 'ISA, advisory, and growth-led offers.', matchIds: ['f3', 'f5'] },
+        { label: 'Everyday & acquire', ruleExpr: 'segment = "retail_banking"', description: 'Current accounts, student, and SMB entry bundles.', matchIds: ['f4', 'f6', 'f7'] },
+        { label: 'All approved offers', ruleExpr: 'compliance_status = "approved"', description: 'Everything passing policy and fair-lending checks.', matchIds: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10'] },
       ],
     },
     telco: {
-      lead: 'Collections split mobile, home, and SMB journeys so acquisition and save offers are not mixed in the same eligible pool.',
-      collections: [
-        { name: 'Omni-channel acquisition stack', rule: 'Journey in (acquisition, upgrade) AND credit_pass = true', items: ['s1', 's2', 's3'] },
-        { name: 'Mobile & device upgrade', rule: 'Line_type = mobile AND handset_eligible = true', items: ['s1'] },
-        { name: 'Fibre & SMB connectivity', rule: 'Address_serviceable = true AND segment in (home, smb)', items: ['s2', 's3'] },
+      offers: [
+        { id: 'z1', title: '5G Unlimited Plus + eSIM', icon: '📱' },
+        { id: 'z2', title: 'Fibre Gigabit + mesh Wi‑Fi', icon: '🏠' },
+        { id: 'z3', title: 'Business multi-line + SD‑WAN', icon: '🏢' },
+        { id: 'z4', title: 'Prepaid data booster', icon: '📶' },
+        { id: 'z5', title: 'Family plan — 5 lines', icon: '👨‍👩‍👧' },
+        { id: 'z6', title: 'Roaming Europe pass', icon: '✈️' },
+        { id: 'z7', title: 'TV + fibre bundle', icon: '📺' },
+        { id: 'z8', title: 'Churn save — 30% off', icon: '💌' },
+        { id: 'z9', title: 'IoT fleet SIM pack', icon: '🚚' },
+        { id: 'z10', title: 'Priority fault repair SLA', icon: '🔧' },
+      ],
+      pills: [
+        { label: 'Mobile & 5G', ruleExpr: 'service = "mobile"', description: 'Handset-led and SIM-first acquisition paths.', matchIds: ['z1', 'z4', 'z5', 'z6'] },
+        { label: 'Fibre & home', ruleExpr: 'service = "fixed"', description: 'Broadband and entertainment convergence.', matchIds: ['z2', 'z7'] },
+        { label: 'SMB & business', ruleExpr: 'segment = "smb"', description: 'B2B connectivity and fleet-style add-ons.', matchIds: ['z3', 'z9'] },
+        { label: 'Retention & save', ruleExpr: 'journey IN ("save", "retention")', description: 'Discounts and SLAs aimed at reducing churn.', matchIds: ['z8', 'z10'] },
+        { label: 'All in-market', ruleExpr: 'status = "active"', description: 'Every SKU currently purchasable in region.', matchIds: ['z1', 'z2', 'z3', 'z4', 'z5', 'z6', 'z7', 'z8', 'z9', 'z10'] },
       ],
     },
     automotive: {
-      lead: 'Collections align showroom, EV, and aftersales programmes so each funnel only sees offers that match stock, region, and hand-raiser stage.',
-      collections: [
-        { name: 'Showroom & digital hand-raiser', rule: 'Lead_stage in (configure, test_drive_booked) AND dealer_region matches profile', items: ['s1', 's2', 's3'] },
-        { name: 'New vehicle & PCP priority', rule: 'Programme_type = retail_pcp AND stock_available = true', items: ['s1', 's2'] },
-        { name: 'EV bundle & aftersales attach', rule: 'Interest_tags contains EV OR workshop_due_within_90d = true', items: ['s2', 's3'] },
+      offers: [
+        { id: 'a1', title: 'Hybrid SUV PCP weekend', icon: '🚙' },
+        { id: 'a2', title: 'EV bundle — wallbox + tariff', icon: '🔌' },
+        { id: 'a3', title: 'Service plan+ — 36k miles', icon: '🛠' },
+        { id: 'a4', title: 'Winter tyre pack', icon: '❄' },
+        { id: 'a5', title: 'Fleet multi-vehicle lease', icon: '🚚' },
+        { id: 'a6', title: 'EV test-drive incentive', icon: '🎁' },
+        { id: 'a7', title: 'Accessories & retrofit pack', icon: '🧰' },
+        { id: 'a8', title: 'PCP end-of-term upgrade', icon: '🔄' },
+        { id: 'a9', title: 'Certified pre-owned warranty', icon: '✅' },
+        { id: 'a10', title: 'Mobile tyre fitting', icon: '🛞' },
+      ],
+      pills: [
+        { label: 'EV & electrification', ruleExpr: 'powertrain = "EV"', description: 'Charging, tariffs, and EV-first programmes.', matchIds: ['a2', 'a6'] },
+        { label: 'Retail PCP', ruleExpr: 'programme = "retail_pcp"', description: 'Consumer finance and showroom-led vehicles.', matchIds: ['a1', 'a8'] },
+        { label: 'Aftersales & care', ruleExpr: 'journey = "aftersales"', description: 'Service, tyres, and workshop attach.', matchIds: ['a3', 'a4', 'a10'] },
+        { label: 'Fleet & business', ruleExpr: 'segment = "fleet"', description: 'Multi-vehicle and B2B incentives.', matchIds: ['a5', 'a9'] },
+        { label: 'All programmes', ruleExpr: 'stock > 0', description: 'Every offer with available stock in market.', matchIds: ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10'] },
       ],
     },
     healthcare: {
-      lead: 'Clinical and benefits collections keep programmes separated by pathway, network, and employer rules before any ranking or ML step.',
-      collections: [
-        { name: 'Benefits-eligible care programmes', rule: 'Coverage_active = true AND consent_care_comms = true', items: ['s1', 's2', 's3'] },
-        { name: 'Virtual access & same-day entry', rule: 'Care_path in (primary_virtual, urgent_care) AND state_license ok', items: ['s1', 's3'] },
-        { name: 'Specialty & pharmacy continuity', rule: 'Referral_open = true OR chronic_programme = true', items: ['s2', 's3'] },
+      offers: [
+        { id: 'h1', title: 'Virtual primary — same-day video', icon: '🩺' },
+        { id: 'h2', title: 'Specialty — cardiology intake', icon: '🏥' },
+        { id: 'h3', title: 'Pharmacy 90-day + coaching', icon: '💊' },
+        { id: 'h4', title: 'Employer biometric screening', icon: '💼' },
+        { id: 'h5', title: 'Urgent care video queue', icon: '⚡' },
+        { id: 'h6', title: 'Chronic care — diabetes pathway', icon: '🫀' },
+        { id: 'h7', title: 'Maternity bundle', icon: '🍼' },
+        { id: 'h8', title: 'Mental health — EAP 6 sessions', icon: '🧠' },
+        { id: 'h9', title: 'Preventive screening kit', icon: '📋' },
+        { id: 'h10', title: 'Dental discount network', icon: '🦷' },
+      ],
+      pills: [
+        { label: 'Virtual & primary', ruleExpr: 'care_mode = "virtual"', description: 'Digital front door and same-day access.', matchIds: ['h1', 'h5'] },
+        { label: 'Specialty & referral', ruleExpr: 'pathway = "specialty"', description: 'Referral-led and specialty queues.', matchIds: ['h2', 'h6'] },
+        { label: 'Pharmacy & wellness', ruleExpr: 'programme IN ("pharmacy", "wellness")', description: 'Medication adherence and prevention.', matchIds: ['h3', 'h9'] },
+        { label: 'Employer & benefits', ruleExpr: 'payer = "employer"', description: 'Sponsored screenings and carve-outs.', matchIds: ['h4', 'h7', 'h8'] },
+        { label: 'All covered', ruleExpr: 'eligible = true', description: 'Full benefits-eligible catalogue for this member.', matchIds: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8', 'h9', 'h10'] },
       ],
     },
   };
+
+  var DCE_COL_FILTER_SVG =
+    '<svg class="dce-col-filter-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+
+  function renderCollectionsPanel() {
+    var mount = document.getElementById('dce-collections-mount');
+    if (!mount) return;
+    var ind = getIndustry();
+    var conf = DCE_COLLECTIONS_UI[ind] || DCE_COLLECTIONS_UI.retail;
+    var offers = conf.offers || [];
+    var pills = conf.pills || [];
+    var n = pills.length;
+    var ix = DCE_COL_PILL_IX[ind];
+    if (typeof ix !== 'number' || ix < 0 || ix >= n) {
+      ix = 0;
+      DCE_COL_PILL_IX[ind] = 0;
+    } else {
+      DCE_COL_PILL_IX[ind] = ix;
+    }
+    var active = pills[ix] || pills[0];
+    var matchSet = {};
+    (active && active.matchIds ? active.matchIds : []).forEach(function (oid) {
+      matchSet[oid] = true;
+    });
+
+    var parts = [];
+    parts.push('<div class="dce-collections-ui">');
+    parts.push('<div class="dce-col-pills" role="tablist" aria-label="Collections">');
+    pills.forEach(function (p, i) {
+      var isOn = i === ix;
+      parts.push(
+        '<button type="button" class="dce-col-pill' +
+          (isOn ? ' is-active' : '') +
+          '" data-dce-col-ix="' +
+          i +
+          '" role="tab" aria-selected="' +
+          (isOn ? 'true' : 'false') +
+          '" id="dce-col-pill-' +
+          i +
+          '">' +
+          escColHtml(p.label) +
+          '</button>'
+      );
+    });
+    parts.push('</div>');
+
+    parts.push('<div class="dce-col-detail card" role="tabpanel" aria-labelledby="dce-col-pill-' + ix + '">');
+    parts.push('<div class="dce-col-rule-block">');
+    parts.push('<div class="dce-col-rule-row">' + DCE_COL_FILTER_SVG);
+    parts.push('<code class="dce-col-rule-code">' + escColHtml(active.ruleExpr) + '</code></div>');
+    parts.push('<p class="dce-col-rule-desc">' + escColHtml(active.description) + '</p>');
+    parts.push('</div>');
+    parts.push('<div class="dce-col-offer-grid">');
+    offers.forEach(function (o) {
+      var isMatch = !!matchSet[o.id];
+      parts.push(
+        '<div class="dce-col-offer-tile' +
+          (isMatch ? '' : ' dce-col-offer-tile--dim') +
+          '"><span class="dce-col-offer-ico" aria-hidden="true">' +
+          (o.icon || '📋') +
+          '</span><span class="dce-col-offer-title">' +
+          escColHtml(o.title) +
+          '</span>' +
+          (isMatch ? '<span class="dce-col-match-pill">MATCH</span>' : '<span class="dce-col-match-spacer"></span>') +
+          '</div>'
+      );
+    });
+    parts.push('</div></div></div>');
+
+    mount.innerHTML = parts.join('');
+  }
+
+  function bindCollectionsPills() {
+    var mount = document.getElementById('dce-collections-mount');
+    if (!mount || mount._dceColBound) return;
+    mount._dceColBound = true;
+    mount.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('.dce-col-pill') : null;
+      if (!b || !mount.contains(b)) return;
+      e.preventDefault();
+      var raw = b.getAttribute('data-dce-col-ix');
+      var ix = raw == null ? NaN : parseInt(raw, 10);
+      if (isNaN(ix)) return;
+      DCE_COL_PILL_IX[getIndustry()] = ix;
+      renderCollectionsPanel();
+    });
+  }
+
+  function applyCollectionsIndustry() {
+    renderCollectionsPanel();
+  }
 
   function escColHtml(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/"/g, '&quot;');
-  }
-
-  function renderCollectionsPanel() {
-    var mount = document.getElementById('dce-collections-mount');
-    var leadEl = document.getElementById('dce-collections-lead');
-    if (!mount) return;
-    var ind = getIndustry();
-    var conf = DCE_COLLECTIONS_BY_INDUSTRY[ind] || DCE_COLLECTIONS_BY_INDUSTRY.media;
-    var list = getPriorityListForIndustry(ind);
-    var byId = {};
-    list.forEach(function (o) { byId[o.id] = o; });
-    if (leadEl) leadEl.textContent = conf.lead || '';
-    var parts = [];
-    (conf.collections || []).forEach(function (c, i) {
-      var letter = String.fromCharCode(65 + i);
-      var lis = [];
-      (c.items || []).forEach(function (oid) {
-        var o = byId[oid];
-        if (!o) return;
-        lis.push(
-          '<li class="dce-col-li"><span class="dce-col-offer-name">' + escColHtml(o.name) + '</span>' +
-          '<span class="dce-col-offer-sub">' + escColHtml(o.sub) + '</span></li>'
-        );
-      });
-      parts.push(
-        '<div class="dce-col-card card">' +
-        '<div class="dce-col-card-head">' +
-        '<span class="dce-col-ix" aria-hidden="true">' + escColHtml(letter) + '</span>' +
-        '<div><h3 class="dce-col-name">' + escColHtml(c.name) + '</h3>' +
-        '<p class="dce-col-rule"><span class="dce-col-rule-k">Rule</span> · ' + escColHtml(c.rule) + '</p></div></div>' +
-        '<div class="dce-col-items"><span class="dce-col-items-label">Offers in this collection</span>' +
-        '<ul class="dce-col-ul">' + lis.join('') + '</ul></div></div>'
-      );
-    });
-    mount.innerHTML = parts.join('');
-  }
-
-  function applyCollectionsIndustry() {
-    renderCollectionsPanel();
   }
 
   var FORMULA_MEDIA = [
@@ -1912,6 +2060,7 @@
   // ── INIT ───────────────────────────────────────────────────────────────────
   try {
     bindOfferSchema();
+    bindCollectionsPills();
     initIndustry();
     bindChannelExplainer();
   } catch (err) {
