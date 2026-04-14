@@ -32,6 +32,14 @@
 
     var sec = document.getElementById('decisioning-visualiser');
     if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (id === 'channels' && typeof window.dceVizUpdateChannelConnector === 'function') {
+      window.requestAnimationFrame(function () {
+        window.dceVizUpdateChannelConnector();
+        window.requestAnimationFrame(function () {
+          window.dceVizUpdateChannelConnector();
+        });
+      });
+    }
   }
 
   window.dceVizShowPanel = showPanel;
@@ -110,6 +118,36 @@
     var detail = document.getElementById('dce-ch-detail');
     if (!nameEl || !whatEl || !doesEl || !exEl || !detail) return;
 
+    var wrap = document.getElementById('dce-ch-bridge-wrap');
+    var svg = document.getElementById('dce-ch-connector-svg');
+    var pathEl = document.getElementById('dce-ch-connector-path');
+
+    function updateChannelConnector() {
+      if (!wrap || !svg || !pathEl || !detail) return;
+      if (!panel.classList.contains('active')) return;
+      var pill = panel.querySelector('.dce-ch-pill.active');
+      if (!pill) return;
+      var wr = wrap.getBoundingClientRect();
+      if (wr.width < 2 || wr.height < 2) {
+        pathEl.setAttribute('d', '');
+        return;
+      }
+      var pr = pill.getBoundingClientRect();
+      var cr = detail.getBoundingClientRect();
+      var x1 = (pr.left + pr.right) / 2 - wr.left;
+      var y1 = pr.bottom - wr.top;
+      var x2 = (cr.left + cr.right) / 2 - wr.left;
+      var y2 = cr.top - wr.top;
+      var yMid = y1 + (y2 - y1) * 0.5;
+      svg.setAttribute('width', String(wr.width));
+      svg.setAttribute('height', String(wr.height));
+      svg.setAttribute('viewBox', '0 0 ' + wr.width + ' ' + wr.height);
+      pathEl.setAttribute(
+        'd',
+        'M ' + x1 + ' ' + y1 + ' L ' + x1 + ' ' + yMid + ' L ' + x2 + ' ' + yMid + ' L ' + x2 + ' ' + y2
+      );
+    }
+
     function applyChannel(key) {
       var d = DCE_CHANNELS[key];
       if (!d) return;
@@ -124,6 +162,14 @@
         btn.setAttribute('aria-selected', on ? 'true' : 'false');
         if (on && detail) detail.setAttribute('aria-labelledby', btn.id);
       });
+      detail.classList.add('dce-ch-detail--pulse');
+      window.setTimeout(function () {
+        detail.classList.remove('dce-ch-detail--pulse');
+      }, 320);
+      window.requestAnimationFrame(function () {
+        updateChannelConnector();
+        window.requestAnimationFrame(updateChannelConnector);
+      });
     }
 
     panel.addEventListener('click', function (e) {
@@ -133,6 +179,12 @@
       var key = btn.getAttribute('data-dce-channel');
       if (key) applyChannel(key);
     });
+
+    window.addEventListener('resize', function () {
+      updateChannelConnector();
+    });
+
+    window.dceVizUpdateChannelConnector = updateChannelConnector;
 
     applyChannel('email');
   }

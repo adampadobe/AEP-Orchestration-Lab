@@ -1299,22 +1299,64 @@
     color: var(--red);
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ch-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
-    gap: 1.75rem;
-    align-items: start;
+    display: block;
   }
-  @media (max-width: 900px) {
-    .decisioning-catalog-page .dce-viz-scope .dce-ch-layout {
-      grid-template-columns: 1fr;
-    }
+  .decisioning-catalog-page .dce-viz-scope .dce-ch-layout--stack .dce-ch-flow {
+    max-width: 42rem;
+    margin: 0 auto;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ch-flow {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    max-width: 36rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-ch-bridge-wrap {
+    position: relative;
+    margin-top: 0.25rem;
+    z-index: 0;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-ch-connector-svg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: visible;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-ch-connector-path {
+    stroke: color-mix(in srgb, var(--muted) 70%, var(--dce-border));
+    stroke-width: 2;
+    stroke-dasharray: 4 8;
+    opacity: 0.95;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-ch-bridge-wrap .dce-ch-channel-row {
+    position: relative;
+    z-index: 1;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-ch-bridge-wrap .dce-ch-detail {
+    position: relative;
+    z-index: 1;
+    margin-top: 1.25rem;
+    max-width: 28rem;
+    margin-left: auto;
+    margin-right: auto;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-ch-detail--pulse {
+    animation: dce-ch-detail-pulse 0.34s ease;
+  }
+  @keyframes dce-ch-detail-pulse {
+    from {
+      opacity: 0.88;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   .decisioning-catalog-page .dce-viz-scope .dce-ch-policy-card {
     background: var(--dce-bg-panel, #fff);
