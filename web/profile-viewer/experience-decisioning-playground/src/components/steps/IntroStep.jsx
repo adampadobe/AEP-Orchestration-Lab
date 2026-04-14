@@ -17,15 +17,15 @@ export const IntroStep = () => (
     {/* Visual story: the problem → the engine → the result */}
     <div className={styles.storyRow}>
       {[
-        { title: '10 offers compete', sub: 'for the same slot' },
-        { title: 'The engine evaluates', sub: 'rules, ranking, context' },
-        { title: '1 winner', sub: 'per customer, per visit' },
+        { title: '1 control + N variants compete', sub: '' },
+        { title: 'allocation logic distributes audience', sub: '' },
+        { title: 'performance determines winner', sub: '' },
       ].map((box, i) => (
         <div key={i} className={styles.storyGroup}>
           {i > 0 && <ArrowRight size={18} color={T.tm} />}
           <div className={styles.storyBox}>
             <div className={styles.storyTitle}>{box.title}</div>
-            <div className={styles.storySub}>{box.sub}</div>
+            {box.sub ? <div className={styles.storySub}>{box.sub}</div> : null}
           </div>
         </div>
       ))}

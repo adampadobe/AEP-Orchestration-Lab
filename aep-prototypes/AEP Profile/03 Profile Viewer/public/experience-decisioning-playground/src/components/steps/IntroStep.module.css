@@ -56,8 +56,10 @@
   background: var(--surface);
   border: 1px solid var(--border);
   text-align: center;
-  width: 200px;
-  height: 90px;
+  width: min(260px, 100%);
+  min-width: 200px;
+  min-height: 90px;
+  height: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;

@@ -199,15 +199,15 @@ const IntroStep = () => (
     {/* Visual story: the problem → the engine → the result */}
     <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:28, flexWrap:"wrap", justifyContent:"center" }}>
       {[
-        { title:"10 offers compete", sub:"for the same slot" },
-        { title:"The engine evaluates", sub:"rules, ranking, context" },
-        { title:"1 personalized winner", sub:"per customer, per visit" },
+        { title:"1 control + N variants compete", sub:"" },
+        { title:"allocation logic distributes audience", sub:"" },
+        { title:"performance determines winner", sub:"" },
       ].map((box, i) => (
         <React.Fragment key={i}>
           {i > 0 && <ArrowRight size={18} color={T.tm} />}
-          <div style={{ padding:"20px 28px", borderRadius:10, background:T.sf, border:`1px solid ${T.bd}`, textAlign:"center", width:200, height:90, display:"flex", flexDirection:"column", justifyContent:"center", flexShrink:0 }}>
+          <div style={{ padding:"20px 28px", borderRadius:10, background:T.sf, border:`1px solid ${T.bd}`, textAlign:"center", width:"min(260px, 100%)", minWidth:200, minHeight:90, height:"auto", display:"flex", flexDirection:"column", justifyContent:"center", flexShrink:0 }}>
             <div style={{ fontFamily:FONT_SANS, fontSize:14, fontWeight:600, color:T.tx }}>{box.title}</div>
-            <div style={{ fontFamily:FONT_SANS, fontSize:12, color:T.tm, marginTop:4 }}>{box.sub}</div>
+            {box.sub ? <div style={{ fontFamily:FONT_SANS, fontSize:12, color:T.tm, marginTop:4 }}>{box.sub}</div> : null}
           </div>
         </React.Fragment>
       ))}
