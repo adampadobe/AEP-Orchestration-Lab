@@ -403,6 +403,7 @@
   }
 
   // ── OFFER SCHEMA TAB (blueprint + preview — industry-aware) ────────────────
+  var SCHEMA_STANDARD_FIELDS = ['itemName', 'priority', 'startDate', 'endDate'];
   var SCHEMA_OPTIONAL_FIELDS = [
     'heroImage', 'thumbnail', 'title', 'description', 'callToAction',
     'webUrl', 'deepLink', 'channelType', 'promoCode',
@@ -618,9 +619,16 @@
       panel.querySelectorAll('[data-dce-schema-block]').forEach(function (el) {
         var id = el.getAttribute('data-dce-schema-block');
         if (!id) return;
-        var on = id === 'itemName' || id === 'priority' || id === 'startDate' || id === 'endDate' ? true : isFieldChecked(id);
+        var on = isFieldChecked(id);
         el.classList.toggle('dce-schema-block--off', !on);
       });
+      var stdBlk = panel.querySelector('[data-dce-schema-section="standard"]');
+      if (stdBlk) {
+        var stdOn = SCHEMA_STANDARD_FIELDS.some(function (fid) {
+          return isFieldChecked(fid);
+        });
+        stdBlk.hidden = !stdOn;
+      }
       var navBlk = document.getElementById('dce-schema-nav-block');
       if (navBlk) {
         var navOn = isFieldChecked('webUrl') || isFieldChecked('deepLink') || isFieldChecked('channelType');
@@ -645,7 +653,10 @@
     }
 
     function countEnabled() {
-      var n = 4;
+      var n = 0;
+      SCHEMA_STANDARD_FIELDS.forEach(function (fid) {
+        if (isFieldChecked(fid)) n++;
+      });
       SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
         if (isFieldChecked(fid)) n++;
       });
@@ -668,7 +679,7 @@
 
     root.addEventListener('change', function (e) {
       var t = e.target;
-      if (t && t.matches && t.matches('input[data-dce-schema-field]') && !t.disabled) updateOfferSchemaPreview();
+      if (t && t.matches && t.matches('input[data-dce-schema-field]')) updateOfferSchemaPreview();
     });
 
     function setFolderOpen(folder, open) {
@@ -733,6 +744,10 @@
     var btnEnAll = document.getElementById('dce-schema-enable-all');
 
     if (btnReset) btnReset.addEventListener('click', function () {
+      SCHEMA_STANDARD_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = true;
+      });
       SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
         var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
         if (cb) cb.checked = false;
@@ -757,6 +772,10 @@
     });
 
     if (btnEnAll) btnEnAll.addEventListener('click', function () {
+      SCHEMA_STANDARD_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = true;
+      });
       SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
         var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
         if (cb) cb.checked = true;

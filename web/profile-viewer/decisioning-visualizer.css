@@ -2021,9 +2021,8 @@
     cursor: pointer;
     color: var(--ink);
   }
-  .decisioning-catalog-page .dce-viz-scope .dce-schema-row--locked {
-    opacity: 0.95;
-    cursor: default;
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-row--standard {
+    cursor: pointer;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-schema-row input {
     flex-shrink: 0;
