@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260416a">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260417a">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -151,9 +151,36 @@
     </div>
 
     <div class="overview-grid">
+      <a class="overview-card" data-dce-panel="channels" href="#">
+        <div class="ov-header" style="background: #2D3142;">
+          <div class="ov-name">Channels</div>
+        </div>
+        <div class="ov-body">
+          <div class="ov-best">What this means</div>
+          <div class="ov-desc"><span data-dce-industry-show="media">Where decisions become experience — email, web, app, CTV, and push — and how the winning subscription or upgrade offer is rendered on each surface.</span><span data-dce-industry-show="travel">Where ancillaries meet the traveller — web, app, airport, and cabin crew tools — and how the ranked offer is delivered before and during the trip.</span><span data-dce-industry-show="retail">Omnichannel placements — site, app, store, and paid media — so the right promo or add-on appears in cart, checkout, and recovery journeys.</span><span data-dce-industry-show="fsi">Approved channels for regulated offers — mobile banking, authenticated web, and compliant messaging — with audit-friendly delivery of the chosen product.</span><span data-dce-industry-show="telco">Acquisition and care channels — app, web, SMS, retail, and agent desktops — for ranked mobile, fibre, and SMB offers.</span><span data-dce-industry-show="automotive">Digital showroom, website, B2C app, and dealer systems — how ranked programmes reach hand-raisers, owners, and fleet buyers.</span><span data-dce-industry-show="healthcare">Member touchpoints — app, web, virtual care, and care navigation — with compliant rendering of ranked clinical and wellness programmes.</span></div>
+          <div class="ov-complexity">
+            <div class="complexity-dot" style="background:#2D3142"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+          </div>
+        </div>
+      </a>
+      <a class="overview-card" data-dce-panel="schema" href="#">
+        <div class="ov-header" style="background: #8B5C8A;">
+          <div class="ov-name">Schema</div>
+        </div>
+        <div class="ov-body">
+          <div class="ov-best">What this means</div>
+          <div class="ov-desc"><span data-dce-industry-show="media">The decision-item blueprint — standard fields plus custom attributes (hero, copy, urgency) that define each streaming offer the engine can rank and deliver.</span><span data-dce-industry-show="travel">Ancillary and bundle attributes — cabin, route, cut-offs, and merchandising tags — that describe each offer in the trip context.</span><span data-dce-industry-show="retail">Product and promo structure — price, inventory, segment, and creative variants — powering merchandising rules and ranking inputs.</span><span data-dce-industry-show="fsi">Regulated product fields — eligibility, intent, rate, and disclosure hooks — so offers stay compliant while still competing in the policy.</span><span data-dce-industry-show="telco">Line, plan, speed, and add-on schema for mobile, home, and business offers in one decision framework.</span><span data-dce-industry-show="automotive">Programme and incentive attributes — stock, region, journey stage, and aftersales — for showroom and digital offers.</span><span data-dce-industry-show="healthcare">Care pathway and benefits metadata — consent, network, SLAs — for clinically appropriate programme ranking.</span></div>
+          <div class="ov-complexity">
+            <div class="complexity-dot" style="background:#8B5C8A"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+          </div>
+        </div>
+      </a>
       <a class="overview-card" data-dce-panel="priority" href="#">
         <div class="ov-header" style="background: #c47b00;">
-          <div class="ov-num">01</div>
           <div class="ov-name">Item Priority</div>
         </div>
         <div class="ov-body">
@@ -168,8 +195,7 @@
       </a>
       <a class="overview-card" data-dce-panel="formula" href="#">
         <div class="ov-header" style="background: #005f9e;">
-          <div class="ov-num">02</div>
-          <div class="ov-name">Ranking Formulas</div>
+          <div class="ov-name">Ranking</div>
         </div>
         <div class="ov-body">
           <div class="ov-best">Best for</div>
@@ -183,8 +209,7 @@
       </a>
       <a class="overview-card" data-dce-panel="ai" href="#">
         <div class="ov-header" style="background: #1a7a4a;">
-          <div class="ov-num">03</div>
-          <div class="ov-name">AI Models</div>
+          <div class="ov-name">AI</div>
         </div>
         <div class="ov-body">
           <div class="ov-best">Best for</div>
@@ -198,7 +223,6 @@
       </a>
       <a class="overview-card" data-dce-panel="experiment" href="#">
         <div class="ov-header" style="background: #6b3fa0;">
-          <div class="ov-num">+</div>
           <div class="ov-name">Experimentation</div>
         </div>
         <div class="ov-body">
@@ -2549,6 +2573,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="decisioning-visualizer.js?v=20260416a"></script>
+  <script defer src="decisioning-visualizer.js?v=20260417a"></script>
 </body>
 </html>
