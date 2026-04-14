@@ -8,10 +8,10 @@ export const IntroStep = () => (
   <div className={styles.wrapper}>
     <div className={styles.module}>A module of Adobe Journey Optimizer</div>
 
-    <h1 className={styles.heading}>Experience Decisioning</h1>
+    <h1 className={styles.heading}>Decisioning overview</h1>
 
     <p className={styles.intro}>
-      Your online shop runs 10 different promotions at the same time. A customer lands on your homepage — which offer should they see? Experience Decisioning answers that question automatically, for every visitor, in real time.
+      Your online shop runs 10 different promotions at the same time. A customer lands on your homepage — which offer should they see? The walkthrough below shows how decisioning answers that automatically, for every visitor, in real time.
     </p>
 
     {/* Visual story: the problem → the engine → the result */}

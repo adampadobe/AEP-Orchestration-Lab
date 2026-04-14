@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Experience decisioning – AEP Profile Viewer</title>
+  <title>Decisioning overview – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="experience-decisioning.css?v=20260414b">
-  <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260414b">
+  <link rel="stylesheet" href="experience-decisioning.css?v=20260415b">
+  <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260415b">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page">
   <div class="dashboard-shell">
@@ -33,12 +33,10 @@
         <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingEdp">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
-              <h2 id="bannerHeadingEdp" class="dashboard-hero-title">Experience decisioning</h2>
+              <h2 id="bannerHeadingEdp" class="dashboard-hero-title">Decisioning overview</h2>
               <p class="dashboard-hero-subtitle">
                 Step-through demo: schema → items → collections → rules → ranking → strategy → policy → result.
-                Industries match Profile generation. Reference:
-                <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">Netlify demo</a>
-                · <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Source</a>.
+                Industries match Profile generation.
               </p>
             </header>
           </div>
@@ -48,7 +46,7 @@
           <p style="margin:0 0 0.75rem;">
             This page is hidden from the sidebar. Turn it back on under
             <a href="global-settings.html"><strong>Global values</strong></a>
-            (uncheck “Hide Experience decisioning”).
+            (uncheck “Hide Decisioning overview”).
           </p>
         </div>
 
@@ -76,7 +74,7 @@
         if (!hide) {
           var s = document.createElement('script');
           s.type = 'module';
-          s.src = '/profile-viewer/experience-decisioning/assets/edp.js?v=20260414b';
+          s.src = '/profile-viewer/experience-decisioning/assets/edp.js?v=20260415b';
           document.body.appendChild(s);
         }
       }
@@ -90,6 +88,6 @@
     })();
   </script>
   <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260428c"></script>
+  <script defer src="aep-lab-nav.js?v=20260415b"></script>
 </body>
 </html>

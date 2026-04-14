@@ -68,7 +68,7 @@ export const ResultStep = () => {
 
       {/* Closing */}
       <div className={styles.closing}>
-        <p className={styles.closingTitle}>That's Experience Decisioning.</p>
+        <p className={styles.closingTitle}>That’s the full pipeline.</p>
         <p className={styles.closingSub}>Schema → Items → Collections → Rules → Ranking → Strategy → Policy → Result.</p>
       </div>
     </div>

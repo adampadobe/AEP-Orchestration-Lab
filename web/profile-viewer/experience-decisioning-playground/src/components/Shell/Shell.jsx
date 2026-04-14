@@ -21,7 +21,7 @@ export const Shell = ({ step, goToStep, industry, setIndustry, showIndustry, set
           <div className={styles.topBar}>
             <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Adobe" width={28} height={27} className={styles.logo} />
             <div className={styles.divider} />
-            <span className={styles.appName}>Experience Decisioning</span>
+            <span className={styles.appName}>Decisioning overview</span>
 
             {/* Industry dropdown */}
             <div className={styles.dropdownWrap}>
