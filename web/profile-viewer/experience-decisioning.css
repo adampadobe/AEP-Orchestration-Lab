@@ -1,15 +1,50 @@
 /* Experience decisioning page — shell uses home.css / aep-theme; React app uses --dash-* via .edp-sandbox */
 
+/* Match concierge tool pages: full-width main inside shell (see home.css tool-page block) */
 .experience-decisioning-page .dashboard-main {
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 1rem clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
+  box-sizing: border-box;
 }
 
+/* Mount uses content width; horizontal gutters come from .dashboard-main */
 .experience-decisioning-page .edp-mount {
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto 2.5rem;
-  padding: 0 1.5rem 2rem;
+  max-width: none;
+  margin: 0 0 2.5rem;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Page banner — stretch like Decisioning catalog / visualiser (home.css caps inner text at 42rem) */
+.experience-decisioning-page .dashboard-hero--page-banner .dashboard-hero-inner {
+  max-width: min(1200px, 100%);
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.experience-decisioning-page .dashboard-hero--page-banner .dashboard-hero-header {
+  max-width: none;
+  width: 100%;
+}
+
+.experience-decisioning-page .dashboard-hero--page-banner .dashboard-hero-subtitle {
+  max-width: none;
+}
+
+/*
+ * Fallback if an older edp build still caps Shell chrome (Vite module hash varies).
+ * Current builds set full width in Shell.module.css.
+ */
+.experience-decisioning-page .edp-sandbox [class*="headerInner"],
+.experience-decisioning-page .edp-sandbox [class*="footerInner"] {
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .experience-decisioning-page .edp-blocked {

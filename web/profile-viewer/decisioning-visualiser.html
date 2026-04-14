@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260415a">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer-core.css?v=core20260414">
+  <link rel="stylesheet" href="decisioning-visualizer-core.css?v=core20260414c">
   <link rel="stylesheet" href="decisioning-visualizer.css?v=core20260414">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
@@ -71,7 +71,7 @@
                                 <section class="dce-viz-section" id="decisioning-visualiser" aria-label="Ranking methods explorer">
           <div id="dceVizRoot" class="dce-viz-scope dce-viz-core" role="region" aria-label="Decisioning visualiser">
     <div class="dce-core-toolbar">
-      <div class="dce-core-toolbar-inner">
+      <div class="dce-core-toolbar-inner dce-core-container">
         <span class="dce-pg-logo" aria-hidden="true"><svg width="28" height="27" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="#EB1000" d="M13.65 2.1 22 21.9h-5.7l-1.75-4.55h-5.1L7.7 21.9H2L10.35 2.1h3.3Zm-2.2 11.2-1.65-4.3-1.65 4.3h3.3Z"/></svg></span>
         <span class="dce-pg-divider" aria-hidden="true"></span>
         <span class="dce-pg-app-name">Ranking methods</span>
@@ -94,20 +94,9 @@
       </div>
     </div>
 
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-eyebrow">Adobe Journey Optimizer · Experience Decisioning</div>
-  <h1>Ranking<br><em>Methods</em><br>Explorer</h1>
-  <p class="hero-sub">An interactive guide to how the decisioning engine selects the best offer — from simple priority scores to self-learning AI.</p>
-  <div class="hero-badge">
-    <span>3</span>
-    <span>RANKING</span>
-    <span>METHODS</span>
-  </div>
-</div>
-
 <!-- NAV -->
-<nav class="tab-nav">
+<nav class="tab-nav" aria-label="Ranking methods">
+  <div class="dce-core-container dce-core-container--tabnav">
   <button type="button" class="tab-btn active" data-dce-core-panel="overview" onclick="dceVizShowPanel('overview')" style="--active-color: #CC0000">
     <span class="tab-icon" style="background:#CC0000"></span> Overview
   </button>
@@ -123,6 +112,7 @@
   <button type="button" class="tab-btn" data-dce-core-panel="experiment" onclick="dceVizShowPanel('experiment')" style="--active-color: #6b3fa0">
     <span class="tab-icon" style="background:#6b3fa0"></span> Experimentation
   </button>
+  </div>
 </nav>
 
 <div class="content">
@@ -137,13 +127,13 @@
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="telco">When mobile, broadband, and business offers could all be eligible for the same subscriber, how does the engine decide?</div>
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="automotive">When showroom, EV, aftersales, and fleet programmes could all be in play for the same contact, how does the engine decide?</div>
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="healthcare">When virtual, specialty, pharmacy, and employer programmes could all be eligible for the same member, how does the engine decide?</div>
-      <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="media">Each ranking method answers that question differently — from fixed editorial priority to engagement-aware formulas and ML — pick what fits your streaming product, content roadmap, and growth stage.</h2>
-      <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="travel">Each ranking method answers that question differently — from fixed commercial rules to trip-aware logic and ML — pick what fits your airline’s maturity.</h2>
-      <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="retail">Each ranking method answers that question differently — from fixed merchandising rules to behavioural formulas and ML — pick what fits your retail maturity.</h2>
-      <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="fsi">Each ranking method answers that question differently — from policy-driven priority to intent-aware formulas and ML — pick what fits your risk and compliance posture.</h2>
-      <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="telco">Each ranking method answers that question differently — from commercial priority stacks to usage-aware formulas and ML — pick what fits your network and subscriber strategy.</h2>
-      <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="automotive">Each ranking method answers that question differently — from fixed programme priority to journey formulas and ML — pick what fits your brand, channel mix, and stock strategy.</h2>
-      <h2 style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; max-width: 620px; line-height:1.2;" data-dce-industry-show="healthcare">Each ranking method answers that question differently — from clinical priority rules to pathway-aware formulas and ML — pick what fits your access model and compliance posture.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="media">Each ranking method answers that question differently — from fixed editorial priority to engagement-aware formulas and ML — pick what fits your streaming product, content roadmap, and growth stage.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="travel">Each ranking method answers that question differently — from fixed commercial rules to trip-aware logic and ML — pick what fits your airline’s maturity.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="retail">Each ranking method answers that question differently — from fixed merchandising rules to behavioural formulas and ML — pick what fits your retail maturity.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="fsi">Each ranking method answers that question differently — from policy-driven priority to intent-aware formulas and ML — pick what fits your risk and compliance posture.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="telco">Each ranking method answers that question differently — from commercial priority stacks to usage-aware formulas and ML — pick what fits your network and subscriber strategy.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="automotive">Each ranking method answers that question differently — from fixed programme priority to journey formulas and ML — pick what fits your brand, channel mix, and stock strategy.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="healthcare">Each ranking method answers that question differently — from clinical priority rules to pathway-aware formulas and ML — pick what fits your access model and compliance posture.</h2>
     </div>
 
     <div class="overview-grid">
@@ -212,7 +202,7 @@
     <!-- Comparison table -->
     <div class="card" style="overflow-x:auto;">
       <div class="card-label">Side-by-side comparison</div>
-      <p style="font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.55; max-width:720px;">
+      <p class="dce-overview-lead" style="font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.55;">
         <span data-dce-industry-show="media">Dimensions are universal; your <strong>media &amp; entertainment</strong> examples (streaming upgrades, genre fit, watch history) live in each method tab.</span><span data-dce-industry-show="travel">Dimensions are universal; your <strong>airline</strong> examples (ancillaries, cut-offs, loyalty) live in each method tab.</span><span data-dce-industry-show="retail">Dimensions are universal; your <strong>retail</strong> examples (promos, basket, channel) live in each method tab.</span><span data-dce-industry-show="fsi">Dimensions are universal; your <strong>FSI</strong> examples (intent, eligibility, rate windows) live in each method tab.</span><span data-dce-industry-show="telco">Dimensions are universal; your <strong>telco</strong> examples (mobile, fibre, SMB) live in each method tab.</span><span data-dce-industry-show="automotive">Dimensions are universal; your <strong>automotive</strong> examples (showroom, EV, fleet) live in each method tab.</span><span data-dce-industry-show="healthcare">Dimensions are universal; your <strong>healthcare</strong> examples (virtual, specialty, employer) live in each method tab.</span>
       </p>
       <table style="width:100%; border-collapse:collapse; font-size:13px;">

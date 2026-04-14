@@ -24,35 +24,35 @@
     background: var(--paper);
     color: var(--ink);
     overflow-x: hidden;
+    --dce-core-max: 1200px;
+    --dce-core-pad-x: clamp(1rem, 2.5vw, 2rem);
   }
 
-  /* ── HERO ── */
-  #dceVizRoot.dce-viz-core .hero {
-    position: relative;
-    background: var(--ink);
-    color: white;
-    padding: 80px 60px 60px;
-    overflow: hidden;
+  /* Shared inner width — aligns with Profile Viewer tool pages (max ~1200px + gutters) */
+  #dceVizRoot.dce-viz-core .dce-core-container {
+    width: 100%;
+    max-width: var(--dce-core-max);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--dce-core-pad-x);
+    padding-right: var(--dce-core-pad-x);
+    box-sizing: border-box;
   }
 
-  #dceVizRoot.dce-viz-core .hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 79px,
-      rgba(255,255,255,0.03) 79px,
-      rgba(255,255,255,0.03) 80px
-    ),
-    repeating-linear-gradient(
-      180deg,
-      transparent,
-      transparent 79px,
-      rgba(255,255,255,0.03) 79px,
-      rgba(255,255,255,0.03) 80px
-    );
+  #dceVizRoot.dce-viz-core .dce-core-toolbar {
+    width: 100%;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+
+  #dceVizRoot.dce-viz-core .dce-core-toolbar-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 52px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 
   #dceVizRoot.dce-viz-core .hero-eyebrow {
@@ -65,60 +65,21 @@
     position: relative;
   }
 
-  #dceVizRoot.dce-viz-core .hero h1 {
-    font-family: 'DM Serif Display', serif;
-    font-size: clamp(42px, 6vw, 78px);
-    line-height: 1.05;
-    position: relative;
-    max-width: 800px;
-  }
-
-  #dceVizRoot.dce-viz-core .hero h1 em {
-    font-style: italic;
-    color: #d4cfc9;
-  }
-
-  #dceVizRoot.dce-viz-core .hero-sub {
-    font-size: 17px;
-    font-weight: 300;
-    color: #a09a94;
-    margin-top: 20px;
-    max-width: 520px;
-    line-height: 1.6;
-    position: relative;
-  }
-
-  #dceVizRoot.dce-viz-core .hero-badge {
-    position: absolute;
-    top: 60px;
-    right: 60px;
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(255,255,255,0.15);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    color: rgba(255,255,255,0.4);
-    text-transform: uppercase;
-    line-height: 1.8;
-    text-align: center;
-  }
-
   /* ── NAV TABS ── */
   #dceVizRoot.dce-viz-core .tab-nav {
-    display: flex;
+    display: block;
     background: white;
     border-bottom: 1px solid var(--line);
     position: sticky;
     top: 0;
     z-index: 100;
     box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+  }
+
+  #dceVizRoot.dce-viz-core .dce-core-container--tabnav {
+    display: flex;
     overflow-x: auto;
+    gap: 0;
   }
 
   #dceVizRoot.dce-viz-core .tab-btn {
@@ -159,9 +120,19 @@
 
   /* ── MAIN CONTENT ── */
   #dceVizRoot.dce-viz-core .content {
-    max-width: 1100px;
+    max-width: var(--dce-core-max);
     margin: 0 auto;
-    padding: 60px 40px;
+    padding: 60px var(--dce-core-pad-x);
+    box-sizing: border-box;
+  }
+
+  #dceVizRoot.dce-viz-core #panel-overview .dce-overview-title {
+    max-width: none;
+    width: 100%;
+  }
+
+  #dceVizRoot.dce-viz-core #panel-overview .dce-overview-lead {
+    max-width: none;
   }
 
   #dceVizRoot.dce-viz-core .panel { display: none; }

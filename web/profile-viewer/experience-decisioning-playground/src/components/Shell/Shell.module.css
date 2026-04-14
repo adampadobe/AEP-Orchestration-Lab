@@ -17,9 +17,11 @@
 }
 
 .headerInner {
-  max-width: 1060px;
+  max-width: none;
+  width: 100%;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 clamp(12px, 2vw, 20px);
+  box-sizing: border-box;
 }
 
 .topBar {
@@ -136,11 +138,14 @@
 }
 
 .footerInner {
-  max-width: 1060px;
+  max-width: none;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 clamp(12px, 2vw, 20px);
+  box-sizing: border-box;
 }
 
 .backBtn {

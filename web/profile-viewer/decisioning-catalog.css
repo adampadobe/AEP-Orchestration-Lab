@@ -388,3 +388,21 @@
   margin: 0;
   max-width: 52rem;
 }
+
+/* Decisioning visualiser — page banner matches tool main width (see home.css tool pages) */
+body.decisioning-catalog-page .dashboard-hero--page-banner .dashboard-hero-inner {
+  max-width: min(1200px, 100%);
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+body.decisioning-catalog-page .dashboard-hero--page-banner .dashboard-hero-header {
+  max-width: none;
+  width: 100%;
+}
+
+body.decisioning-catalog-page .dashboard-hero--page-banner .dashboard-hero-subtitle {
+  max-width: none;
+}
