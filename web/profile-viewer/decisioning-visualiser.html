@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=legacy20260431">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=legacy20260432">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -343,7 +343,6 @@
   <!-- ══ OFFER SCHEMA (SchemaStep from experience-decisioning-playground — tree + preview driven in JS) ══ -->
   <div id="dceViz-panel-schema" class="panel dce-schema-panel dce-schema-panel--playground">
     <header class="dce-schema-intro">
-      <p class="dce-schema-step-label" id="dce-schema-step-label">Step 01 — The Blueprint</p>
       <h2 class="dce-schema-h2">Offer Schema</h2>
       <p class="dce-schema-lead">Toggle fields on and off — watch the offer preview build up on the right. Fields marked <span class="dce-schema-custom-pill">custom</span> are attributes you define for your business needs.</p>
       <div class="dce-schema-toolbar" role="toolbar" aria-label="Schema presets">
@@ -370,7 +369,6 @@
 
   <!-- ══ ITEMS (ItemsStep from experience-decisioning-playground — panel id channels) ══ -->
   <div id="dceViz-panel-channels" class="panel dce-items-panel">
-    <p class="dce-items-step-label">Step 02 — Your offers</p>
     <h2 class="dce-items-title">Decision items</h2>
     <p class="dce-items-desc">Click any offer card. Use the channel toggle to preview how it renders — same interaction model as the <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a> Items step and the <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">hosted demo</a>. Catalog changes with your industry selection.</p>
     <div id="dce-items-channel-mount"></div>
@@ -382,7 +380,6 @@
 
   <!-- ══ COLLECTIONS (item pools — AJO Experience Decisioning alignment) ══ -->
   <div id="dceViz-panel-collections" class="panel dce-collections-panel" style="--method-color: #7c3aed;">
-    <p class="dce-items-step-label">Step 03 — Organize</p>
     <div class="section-header">
       <div class="method-number" style="color:#7c3aed;">◆</div>
       <div class="method-meta">
@@ -400,7 +397,6 @@
 
   <!-- ══ DECISION RULES (eligibility — AJO Experience Decisioning alignment) ══ -->
   <div id="dceViz-panel-rules" class="panel dce-rules-panel" style="--method-color: #0f766e;">
-    <p class="dce-items-step-label">Step 04 — Who qualifies</p>
     <div class="section-header">
       <div class="method-number" style="color:#0f766e;">◆</div>
       <div class="method-meta">
@@ -2441,6 +2437,6 @@
   <script defer src="playground-items-offers.js?v=legacy20260428"></script>
   <script defer src="playground-collections-rules-data.js?v=legacy20260428"></script>
   <script defer src="playground-items-step.js?v=legacy20260428"></script>
-  <script defer src="decisioning-visualizer.js?v=legacy20260431"></script>
+  <script defer src="decisioning-visualizer.js?v=legacy20260432"></script>
 </body>
 </html>
