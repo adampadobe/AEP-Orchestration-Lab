@@ -1,0 +1,96 @@
+/* Google Fonts — serif, sans, and mono */
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+/* Scoped to embedded host so we do not reset the Data viewer page */
+.edp-sandbox {
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --surface-alt: #f5f3ef;
+  --surface-warm: #fbf8f4;
+  --text: #1b1b1b;
+  --text-muted: #807872;
+  --accent: #eb1000;
+  --accent-soft: #fff0ee;
+  --border: #e8e4df;
+  --green: #2d9d78;
+  --blue: #2680eb;
+  --gold: #e68619;
+  --purple: #7c5cfc;
+  --preview-bg: #f9f6f1;
+  --preview-border: #ede8e0;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-sans: 'DM Sans', 'Helvetica Neue', sans-serif;
+  --font-mono: 'DM Mono', Consolas, monospace;
+  box-sizing: border-box;
+  margin: 0;
+  background: var(--bg);
+  font-family: var(--font-sans);
+  color: var(--text);
+  isolation: isolate;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 520px;
+}
+
+.edp-sandbox *,
+.edp-sandbox *::before,
+.edp-sandbox *::after {
+  box-sizing: border-box;
+}
+
+/* Fade-in animation for step transitions */
+@keyframes edpFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Card explorer detail panel slide-in */
+@keyframes edpCardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.edp-sandbox input[type='range'] {
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border);
+}
+
+.edp-sandbox input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: currentColor;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.edp-sandbox button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font: inherit;
+}
+
+.edp-sandbox ::-webkit-scrollbar {
+  width: 4px;
+}
+.edp-sandbox ::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}

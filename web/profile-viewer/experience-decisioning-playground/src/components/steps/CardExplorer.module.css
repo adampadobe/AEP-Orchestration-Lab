@@ -1,0 +1,79 @@
+.root {
+  width: 100%;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.hint {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.hintIcon {
+  display: inline-flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #E4E4E7;
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.layout {
+  max-width: 920px;
+  margin: 0 auto;
+  display: flex;
+  gap: 16px;
+}
+
+.mapCol {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.channels {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.channelBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: #18181B;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.closeBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid #E4E4E7;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #A1A1AA;
+  margin-left: 10px;
+  transition: all 0.2s;
+}

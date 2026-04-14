@@ -1,0 +1,177 @@
+.root {
+  min-height: 100vh;
+  background: var(--bg);
+  font-family: var(--font-sans);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.headerInner {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+}
+
+.logo {
+  flex-shrink: 0;
+}
+
+.divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+}
+
+.appName {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* Dropdown */
+.dropdownWrap {
+  margin-left: auto;
+  position: relative;
+}
+
+.dropdownBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 3px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  z-index: 200;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+
+/* Progress bar */
+.progressTrack {
+  height: 2px;
+  background: var(--border);
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s;
+}
+
+/* Step tabs */
+.tabRow {
+  display: flex;
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 10px 16px;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+}
+
+/* ── CONTENT ── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ── FOOTER ── */
+.footer {
+  position: sticky;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  padding: 8px 20px;
+}
+
+.footerInner {
+  max-width: 1060px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.backBtn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.counter {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.nextBtn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}

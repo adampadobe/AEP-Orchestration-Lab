@@ -49,9 +49,12 @@
   const fullSchemaJsonCache = new Map();
 
   const overviewPanel = document.getElementById('schemaAepPanelOverview');
+  const playgroundPanel = document.getElementById('schemaAepPanelPlayground');
+  const playgroundTabBtn = document.getElementById('schemaAepTabPlayground');
   const browsePanel = document.getElementById('schemaAepPanelBrowse');
   const datasetsPanel = document.getElementById('schemaAepPanelDatasets');
   const audiencesPanel = document.getElementById('schemaAepPanelAudiences');
+  const LS_HIDE_EDP_TAB = 'aepHideDataViewerDecisioningPlayground';
   const datasetTableBody = document.getElementById('datasetTableBody');
   const datasetBrowseCount = document.getElementById('datasetBrowseCount');
   const audienceTableBody = document.getElementById('audienceTableBody');
@@ -1057,6 +1060,20 @@
     });
   }
 
+  function isPlaygroundTabHidden() {
+    try {
+      return localStorage.getItem(LS_HIDE_EDP_TAB) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function applyPlaygroundTabVisibility() {
+    const hide = isPlaygroundTabHidden();
+    if (playgroundTabBtn) playgroundTabBtn.hidden = hide;
+    if (hide && currentAepTab === 'playground') setAepTab('overview');
+  }
+
   async function loadAudiencesFromApi(forceRefresh) {
     if (!audienceTableBody) return;
     const q = buildQuery(forceRefresh ? { refresh: 'true' } : null);
@@ -1096,6 +1113,7 @@
     const onBrowseLike = tab === 'browse';
 
     if (overviewPanel) overviewPanel.hidden = tab !== 'overview';
+    if (playgroundPanel) playgroundPanel.hidden = tab !== 'playground';
     if (browsePanel) browsePanel.hidden = !onBrowseLike;
     if (datasetsPanel) datasetsPanel.hidden = tab !== 'datasets';
     if (audiencesPanel) audiencesPanel.hidden = tab !== 'audiences';
@@ -1737,9 +1755,10 @@
 
   const refreshBtn = document.getElementById('dataViewerRefreshBtn');
   refreshBtn?.addEventListener('click', () => {
+    const tab = currentAepTab || 'overview';
+    if (tab === 'playground') return;
     refreshBtn.disabled = true;
     refreshBtn.textContent = '↻ Refreshing…';
-    const tab = currentAepTab || 'overview';
     const jobs = [];
     if (tab === 'overview') jobs.push(loadOverviewStats(true));
     if (tab === 'browse') jobs.push(refreshBrowseFromApi(null, true));
@@ -1758,6 +1777,11 @@
     initAudienceTableSort();
     initSourceSelectStatic();
     initAepTabs();
+    applyPlaygroundTabVisibility();
+    window.addEventListener('aep-edp-visibility-change', applyPlaygroundTabVisibility);
+    window.addEventListener('storage', (e) => {
+      if (e.key === LS_HIDE_EDP_TAB) applyPlaygroundTabVisibility();
+    });
     await loadSandboxes();
     setAepTab('overview');
     syncSourceUI();

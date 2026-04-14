@@ -1,0 +1,66 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 24px;
+}
+
+.toggleCircle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.peopleGrid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.hint {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2680EB14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--blue);
+  flex-shrink: 0;
+}

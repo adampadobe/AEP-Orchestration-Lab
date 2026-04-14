@@ -12,8 +12,9 @@
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="schema-viewer.css?v=20260406c">
+  <link rel="stylesheet" href="schema-viewer.css?v=20260414a">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css">
 </head>
 <body class="profile-viewer-page schema-viewer-page schema-aep-browse-page home-dashboard-concierge">
   <div class="dashboard-shell">
@@ -53,6 +54,7 @@
 
       <nav class="schema-aep-tabs" aria-label="Data sections">
         <button type="button" class="schema-aep-tab schema-aep-tab--active" data-aep-tab="overview" aria-current="page">Overview</button>
+        <button type="button" class="schema-aep-tab" data-aep-tab="playground" id="schemaAepTabPlayground">Experience decisioning</button>
         <button type="button" class="schema-aep-tab" data-aep-tab="browse">Schemas</button>
         <button type="button" class="schema-aep-tab" data-aep-tab="datasets">Datasets</button>
         <button type="button" class="schema-aep-tab" data-aep-tab="audiences">Audiences</button>
@@ -126,6 +128,18 @@
             <button type="button" class="schema-aep-overview-cta schema-aep-overview-cta--secondary" id="overviewGoAudiences" data-aep-tab-jump="audiences">View audiences</button>
           </div>
         </div>
+      </section>
+
+      <section id="schemaAepPanelPlayground" class="schema-aep-panel schema-aep-panel--edp" hidden aria-labelledby="playgroundHeading">
+        <div class="schema-aep-edp-intro">
+          <h2 id="playgroundHeading" class="schema-aep-edp-title">Experience decisioning</h2>
+          <p class="schema-aep-edp-sub">
+            Step-through demo (schema → items → collections → rules → ranking → strategy → policy → result), aligned with Profile Viewer industries.
+            Original concept: <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">Netlify demo</a>
+            · <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Source</a>.
+          </p>
+        </div>
+        <div id="edp-root" class="schema-aep-edp-root"></div>
       </section>
 
       <p id="schemaBrowseCount" class="schema-aep-meta-line" role="status" hidden></p>
@@ -324,6 +338,7 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260413"></script>
   <script src="schema-viewer.js"></script>
+  <script type="module" src="/profile-viewer/experience-decisioning/assets/edp.js"></script>
   <script defer src="aep-theme.js?v=20260416b"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
 </body>

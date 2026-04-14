@@ -10,6 +10,7 @@
     "profile-viewer": "cd \"aep-prototypes/AEP Profile/03 Profile Viewer\" && npm start",
     "profile-viewer:install": "cd \"aep-prototypes/AEP Profile/00 Adobe Auth\" && npm install && cd \"../03 Profile Viewer\" && npm install",
     "sync-profile-viewer-ui": "rsync -a --delete \"web/profile-viewer/\" \"aep-prototypes/AEP Profile/03 Profile Viewer/public/\"",
-    "upload-live-activities-rtdb": "npx -y firebase-tools@latest database:set /profileViewerConfig/liveActivitiesPostmanCollection \"./web/profile-viewer/data/live-activities.postman_collection.json\" --project aep-orchestration-lab --force"
+    "upload-live-activities-rtdb": "npx -y firebase-tools@latest database:set /profileViewerConfig/liveActivitiesPostmanCollection \"./web/profile-viewer/data/live-activities.postman_collection.json\" --project aep-orchestration-lab --force",
+    "build:edp": "cd \"web/profile-viewer/experience-decisioning-playground\" && npm install && npm run build"
   }
 }

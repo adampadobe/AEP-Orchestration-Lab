@@ -1,0 +1,15 @@
+.tip {
+  margin-top: 18px;
+  padding: 13px 16px;
+  background: var(--surface-alt);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.text {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.6;
+}

@@ -6,6 +6,7 @@ __pycache__/
 
 # Firebase (standalone deploy)
 functions/node_modules/
+web/profile-viewer/experience-decisioning-playground/node_modules/
 .firebase/
 firebase-debug.log
 firebase-debug.*.log

@@ -53,6 +53,16 @@
                 Same as the sidebar control. Stored in this browser as <code>aepTheme</code> (<code>dark</code> or default light).
               </p>
             </div>
+            <div class="aep-edp-global-row" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--aep-border, #e8e4df);">
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Data viewer</label>
+              <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                <input type="checkbox" id="aepHideEdpDataViewer" style="margin-top:3px;" />
+                <span>Hide the <strong>Experience decisioning</strong> tab on the Data viewer page</span>
+              </label>
+              <p class="dashboard-hero-subtitle" style="margin-top: 10px; font-size: 13px;">
+                Stored as <code>aepHideDataViewerDecisioningPlayground</code> (<code>1</code> hides the tab). Open Data viewer in another tab to see changes via storage sync.
+              </p>
+            </div>
           </div>
         </section>
       </main>
@@ -100,6 +110,33 @@
       } else {
         init().then(showStatus);
       }
+    })();
+  </script>
+  <script>
+    (function () {
+      var LS_HIDE = 'aepHideDataViewerDecisioningPlayground';
+      var cb = document.getElementById('aepHideEdpDataViewer');
+      if (!cb) return;
+      function sync() {
+        try {
+          cb.checked = localStorage.getItem(LS_HIDE) === '1';
+        } catch (e) {
+          cb.checked = false;
+        }
+      }
+      sync();
+      cb.addEventListener('change', function () {
+        try {
+          if (cb.checked) localStorage.setItem(LS_HIDE, '1');
+          else localStorage.removeItem(LS_HIDE);
+        } catch (e) {}
+        try {
+          window.dispatchEvent(new CustomEvent('aep-edp-visibility-change'));
+        } catch (e2) {}
+      });
+      window.addEventListener('storage', function (e) {
+        if (e.key === LS_HIDE) sync();
+      });
     })();
   </script>
   <script defer src="aep-theme.js?v=20260416b"></script>

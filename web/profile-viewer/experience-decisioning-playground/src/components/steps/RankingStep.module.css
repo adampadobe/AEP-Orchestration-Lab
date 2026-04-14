@@ -1,0 +1,365 @@
+.title {
+  font-family: var(--font-serif);
+  font-size: clamp(24px, 3.5vw, 36px);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.15;
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+}
+
+.desc {
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin: 0 0 24px;
+  max-width: 580px;
+}
+
+.methodGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.methodName {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 2px;
+}
+
+.methodDesc {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.formulaBox {
+  padding: 10px;
+  background: var(--surface-alt);
+  border-radius: 7px;
+  margin-bottom: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 2;
+}
+
+/* "More formula ideas" divider */
+.formulaDivider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 12px;
+}
+
+.formulaDividerLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.formulaDividerText {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Read-only formula example card */
+.formulaExample {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.formulaExampleHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.formulaExampleTitle {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* XDM → Profile field mapping visual */
+.formulaExampleMapping {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+}
+
+.formulaExampleField {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.formulaFieldLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.formulaFieldValue {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-alt);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* Formula code block inside example card */
+.formulaExampleCode {
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.9;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.formulaExampleDesc {
+  padding: 7px 10px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.aiStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.aiStat {
+  text-align: center;
+  padding: 8px 4px;
+  background: var(--surface-alt);
+  border-radius: 7px;
+}
+
+.aiStatVal {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.aiStatLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--text-muted);
+}
+
+/* AI pipeline — 3-step horizontal flow */
+.aiPipeline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin-bottom: 12px;
+  background: var(--surface-alt);
+  border-radius: 8px;
+  padding: 10px 8px;
+}
+
+.aiPipelineStep {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+}
+
+.aiPipelineIcon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.aiPipelineLabel {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.aiPipelineDesc {
+  font-family: var(--font-sans);
+  font-size: 8.5px;
+  color: var(--text-muted);
+  line-height: 1.3;
+  margin-top: 1px;
+}
+
+.aiPipelineArrow {
+  position: absolute;
+  right: -4px;
+  top: 6px;
+  font-size: 11px;
+  color: var(--border);
+  font-weight: 700;
+}
+
+/* Simulated visitor context */
+.aiVisitor {
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.aiVisitorHeader {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  background: var(--surface-alt);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.aiVisitorTraits {
+  padding: 6px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aiTrait {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.aiTraitKey {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.aiTraitVal {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Signal weights */
+.aiSignals {
+  margin-bottom: 12px;
+}
+
+.aiSignalsTitle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.aiSignalRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.aiSignalLabel {
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  color: var(--text-muted);
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.aiSignalBar {
+  flex: 1;
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.aiSignalFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.aiSignalPct {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text);
+  width: 28px;
+  text-align: right;
+}
+
+.simBtn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 7px;
+  background: var(--accent);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  border: none;
+}
