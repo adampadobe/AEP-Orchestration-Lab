@@ -59,6 +59,23 @@
     syncToggleLabels(getMode());
   }
 
+  function injectFavicon() {
+    var doc = global.document;
+    if (!doc.head || doc.querySelector('link[rel~="icon"][data-aep-favicon]')) return;
+    var href = '/profile-viewer/favicon.png?v=20260414a';
+    var link = doc.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/png';
+    link.href = href;
+    link.setAttribute('data-aep-favicon', '1');
+    doc.head.appendChild(link);
+    var apple = doc.createElement('link');
+    apple.rel = 'apple-touch-icon';
+    apple.href = href;
+    apple.setAttribute('data-aep-favicon', '1');
+    doc.head.appendChild(apple);
+  }
+
   function injectSidebarToggle() {
     var doc = global.document;
     doc.querySelectorAll('.dashboard-sidebar').forEach(function (sidebar) {
@@ -75,6 +92,7 @@
   }
 
   function init() {
+    injectFavicon();
     applyToDocument(getMode());
     injectSidebarToggle();
     bindToggleButtons();
