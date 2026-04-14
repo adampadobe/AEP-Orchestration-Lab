@@ -222,15 +222,14 @@
   background: transparent;
 }
 
-/* ── CONTENT — app grey outside .decisioning-content-surface (decisioning-content-surface.css tokens) ── */
+/* ── CONTENT — same rhythm as #dceVizRoot.dce-viz-core .content ── */
 .content {
   flex: 1;
   overflow-y: auto;
   width: 100%;
   max-width: none;
   margin: 0 auto;
-  padding: var(--decisioning-content-outer-pad-top, 20px) var(--decisioning-content-outer-pad-x, var(--edp-core-pad-x, clamp(1rem, 2.5vw, 1.35rem)))
-    var(--decisioning-content-outer-pad-bottom, 28px);
+  padding: 48px var(--edp-core-pad-x, clamp(1rem, 2.5vw, 1.35rem)) 60px;
   box-sizing: border-box;
   background: var(--bg);
 }

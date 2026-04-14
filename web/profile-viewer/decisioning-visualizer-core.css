@@ -22,8 +22,7 @@
 
   #dceVizRoot.dce-viz-core {
     font-family: 'Outfit', sans-serif;
-    /* App canvas grey — white body sits in .decisioning-content-surface */
-    background: var(--dce-bg, var(--dash-bg, #faf9f7));
+    background: var(--paper);
     color: var(--ink);
     /* overflow-x:hidden makes overflow-y compute to auto (CSS overflow pairing) and clips the industry dropdown */
     overflow: visible;
@@ -59,8 +58,7 @@
     max-width: none;
     width: 100%;
     margin: 0 auto;
-    padding: var(--decisioning-content-outer-pad-top, 20px) var(--decisioning-content-outer-pad-x, var(--dce-core-pad-x))
-      var(--decisioning-content-outer-pad-bottom, 28px);
+    padding: 48px var(--dce-core-pad-x) 60px;
     box-sizing: border-box;
   }
 

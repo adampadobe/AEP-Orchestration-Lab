@@ -563,12 +563,11 @@
     border-bottom-width: 2px;
   }
 
-  /* ── MAIN CONTENT — gutter around shared .decisioning-content-surface (decisioning-content-surface.css) ── */
+  /* ── MAIN CONTENT ── (padding matches decisioning-visualizer-core.css + inner gutters) */
   .decisioning-catalog-page #dceVizRoot.dce-viz-core .content {
     max-width: none;
     margin: 0 auto;
-    padding: var(--decisioning-content-outer-pad-top, 20px) var(--decisioning-content-outer-pad-x, var(--dce-core-pad-x, clamp(1rem, 2.5vw, 1.35rem)))
-      var(--decisioning-content-outer-pad-bottom, 28px);
+    padding: 48px var(--dce-core-pad-x, clamp(1rem, 2.5vw, 1.35rem)) 60px;
     flex: 1 1 auto;
     min-height: 0;
     width: 100%;

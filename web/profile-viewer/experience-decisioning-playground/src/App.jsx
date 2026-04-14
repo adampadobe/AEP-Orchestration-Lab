@@ -11,7 +11,6 @@ import { StrategyStep } from './components/steps/StrategyStep';
 import { PolicyStep } from './components/steps/PolicyStep';
 import { ResultStep } from './components/steps/ResultStep';
 import { IndustryDataProvider } from './IndustryContext.jsx';
-import { ContentSurface } from './components/ContentSurface.jsx';
 import './index.css';
 import styles from './App.module.css';
 
@@ -75,11 +74,9 @@ export default function App() {
           setShowIndustry={setShowIndustry}
           contentRef={contentRef}
         >
-          <ContentSurface>
-            <div key={fadeKey} className={styles.stepInner}>
-              <CurrentStep />
-            </div>
-          </ContentSurface>
+          <div key={fadeKey} className={styles.stepInner}>
+            <CurrentStep />
+          </div>
         </Shell>
       </IndustryDataProvider>
     </div>
