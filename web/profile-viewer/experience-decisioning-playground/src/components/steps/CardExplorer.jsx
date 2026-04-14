@@ -1,4 +1,6 @@
-import { useState, useRef, useEffect, createContext, useContext } from "react";
+import { useState, useRef, useEffect, createContext, useContext, useMemo } from "react";
+import { useIndustryKey } from "../../IndustryContext.jsx";
+import { getChannelsForIndustry, CHANNEL_IDS } from "../../data/channelExplorerCopy.js";
 import {
   ChevronDown, Info, X, Layers, Target, LayoutGrid, Box, Trophy,
   ShieldCheck, Copy, LifeBuoy, Mail, Globe, AppWindow, BellRing,
@@ -90,21 +92,6 @@ const COMPONENTS = {
     },
   },
 };
-
-const CHANNELS = [
-  { id: "email", label: "Email", icon: "Mail", color: "#2D3142",
-    info: { what: "Personalized offer blocks inside AJO email campaigns.", does: "The decisioning engine fills a template placeholder at send time — each recipient gets the offer most relevant to them.", example: 'A weekly newsletter has an "Offer of the Week" block. Each recipient sees a different offer — one gets a data plan upgrade, another a loyalty reward.' } },
-  { id: "web", label: "Web", icon: "Globe", color: "#2D3142",
-    info: { what: "Real-time decisions delivered via Adobe Web SDK.", does: "Offers are injected into the page as the customer browses — hero banners, inline cards, or modal overlays.", example: 'A returning telco customer sees "Welcome Back — Upgrade to 5G" as the homepage hero instead of the generic banner.' } },
-  { id: "app", label: "App", icon: "AppWindow", color: "#2D3142",
-    info: { what: "In-app messages and content cards within mobile applications.", does: "The decisioning engine delivers personalized offers directly inside the app experience — banners, interstitials, or native content cards triggered by user behavior.", example: 'A banking app customer who just completed a transfer sees an in-app card: "You qualify for our Premium Cashback Card" — surfaced by the Decision Policy based on their transaction patterns.' } },
-  { id: "push", label: "Push", icon: "BellRing", color: "#2D3142",
-    info: { what: "Mobile push notifications with personalized offers.", does: "Push campaigns in AJO include a decisioning action. The winning item's push representation is assembled and delivered to the device.", example: 'A customer who abandoned their cart 2 hours ago gets a push: "Free Express Shipping" — selected by the Decision Policy in real time.' } },
-  { id: "sms", label: "SMS", icon: "MessageSquare", color: "#2D3142",
-    info: { what: "Personalized text messages with offer deep links.", does: "SMS campaigns deliver the winning offer as a short message with a deep link to convert.", example: 'A high-value customer receives: "Hi Alex, your exclusive 30% upgrade offer expires tonight" with a link to the upgrade page.' } },
-  { id: "code", label: "Code", icon: "Code", color: "#2D3142",
-    info: { what: "Structured JSON via Edge Decisioning API for any custom channel.", does: "Any downstream system — kiosk, call center, IoT device, or custom app — can consume and render the winning offer.", example: "A call center agent's screen makes an API call when a customer dials in. The response surfaces the best retention offer as a talking-point card." } },
-];
 
 const ICON_MAP = { Layers, Target, LayoutGrid, Box, Trophy, ShieldCheck, Copy, LifeBuoy, Mail, Globe, AppWindow, BellRing, MessageSquare, Code };
 function Ico({ name, size = 16, ...props }) {
@@ -359,6 +346,8 @@ function SideRow({ children }) {
 
 /* ── CardExplorer — the assembled interactive map ── */
 export const CardExplorer = () => {
+  const industryKey = useIndustryKey();
+  const channels = useMemo(() => getChannelsForIndustry(industryKey), [industryKey]);
   const [panelData, setPanelData] = useState(null);
   const [activeId, setActiveId] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -369,6 +358,14 @@ export const CardExplorer = () => {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  useEffect(() => {
+    setPanelData((prev) => {
+      if (!prev?.id || !CHANNEL_IDS.includes(prev.id)) return prev;
+      const next = channels.find((c) => c.id === prev.id);
+      return next ?? prev;
+    });
+  }, [industryKey, channels]);
 
   const openPanel = (id, data) => {
     if (activeId === id) { setPanelData(null); setActiveId(null); }
@@ -424,7 +421,7 @@ export const CardExplorer = () => {
             <Connector label="Winning offer delivered to" />
 
             <div className={styles.channels}>
-              {CHANNELS.map((ch) => {
+              {channels.map((ch) => {
                 const isChActive = activeId === ch.id;
                 return (
                   <button key={ch.id} onClick={() => openChannelPanel(ch)} className={styles.channelBtn}

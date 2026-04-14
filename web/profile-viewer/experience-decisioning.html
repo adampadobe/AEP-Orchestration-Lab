@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="decisioning-edp-shell.css?v=parity20260414">
   <link rel="stylesheet" href="decisioning-visualizer.css?v=parity20260414">
   <link rel="stylesheet" href="experience-decisioning.css?v=20260430">
-  <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=parity20260414">
+  <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260414-channel-explorer">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page decisioning-catalog-page">
   <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public'];var m={telco:'telecommunications',automotive:'sports',healthcare:'public'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -80,7 +80,7 @@
         if (!hide) {
           var s = document.createElement('script');
           s.type = 'module';
-          s.src = '/profile-viewer/experience-decisioning/assets/edp.js?v=parity20260414';
+          s.src = '/profile-viewer/experience-decisioning/assets/edp.js?v=20260414-channel-explorer';
           document.body.appendChild(s);
         }
       }
