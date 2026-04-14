@@ -94,11 +94,11 @@
   position: relative;
 }
 
-.arch-int-viewport--controls-hidden .arch-int-compact-bar {
+.arch-int-viewport--editing-tools-hidden .arch-int-compact-edit {
   display: none !important;
 }
 
-.arch-int-viewport--controls-hidden .arch-editor-dock {
+.arch-int-viewport--editing-tools-hidden .arch-editor-dock {
   display: none !important;
 }
 
@@ -160,6 +160,13 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
+.arch-int-compact-nav-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem 0.75rem;
 }
 

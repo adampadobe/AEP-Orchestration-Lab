@@ -470,7 +470,7 @@
       } catch (e) {}
       var tgl = qs('#archHideControlsToggle');
       if (tgl) tgl.checked = hide;
-      if (archViewport) archViewport.classList.toggle('arch-int-viewport--controls-hidden', hide);
+      if (archViewport) archViewport.classList.toggle('arch-int-viewport--editing-tools-hidden', hide);
       var fab = qs('#archShowControlsFab');
       if (fab) fab.hidden = !hide;
     }
@@ -510,7 +510,7 @@
 
     document.addEventListener('keydown', function (e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
-      if (e.key === 'Escape' && archViewport && archViewport.classList.contains('arch-int-viewport--controls-hidden')) {
+      if (e.key === 'Escape' && archViewport && archViewport.classList.contains('arch-int-viewport--editing-tools-hidden')) {
         e.preventDefault();
         try {
           localStorage.setItem(LS_ARCH_HIDE_UI, '0');
