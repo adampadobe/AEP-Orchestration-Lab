@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script src="aep-head-sync.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Decisioning visualiser – AEP Profile Viewer</title>
+  <title>Decisioning visualiser new (in development) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260425a">
+  <link rel="stylesheet" href="decisioning-visualizer-new.css?v=20260428a">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -31,10 +31,13 @@
       </header>
 
       <main class="dashboard-main profile-viewer-main">
-        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingDceViz">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingDceVizNew">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
-              <h2 id="bannerHeadingDceViz" class="dashboard-hero-title">Decisioning visualiser</h2>
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:4px;">
+                <h2 id="bannerHeadingDceVizNew" class="dashboard-hero-title">Decisioning visualiser new</h2>
+                <span class="dashboard-env-pill" title="Work in progress">In development</span>
+              </div>
               <p class="dashboard-hero-subtitle" data-dce-industry-show="media">
                 Interactive walkthrough of <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — item priority, ranking formulas, AI models, and experimentation.
                 Examples use <strong>media &amp; entertainment</strong> (streaming upgrades, trials, and content). Use the tabs below to explore how eligible offers are ordered.
@@ -102,8 +105,8 @@
         <div class="dce-pg-dropdown-menu dce-pg-customer-menu" id="dce-pg-customer-menu" role="group" aria-label="Steps visible to customer" hidden>
           <p class="dce-pg-customer-hint">Uncheck steps to hide them from tabs, navigation, and the overview shortcuts. At least one step stays on.</p>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="overview" checked> <span>Start</span></label>
-          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="channels" checked> <span>Channels</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="schema" checked> <span>Schema</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="channels" checked> <span>Items</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="collections" checked> <span>Collections</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="rules" checked> <span>Rules</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="journey" checked> <span>Journey</span></label>
@@ -120,8 +123,8 @@
   <div class="dce-pg-header-inner dce-pg-header-inner--tabs">
 <nav class="tab-nav dce-pg-tab-row" aria-label="Experience Decisioning steps">
   <button type="button" class="tab-btn active" data-dce-panel="overview" data-dce-pg-short="Start" style="--active-color: #CC0000">Start</button>
-  <button type="button" class="tab-btn" data-dce-panel="channels" data-dce-pg-short="Channels" style="--active-color: #2D3142">Channels</button>
   <button type="button" class="tab-btn" data-dce-panel="schema" data-dce-pg-short="Schema" style="--active-color: #8B5C8A">Schema</button>
+  <button type="button" class="tab-btn" data-dce-panel="channels" data-dce-pg-short="Items" style="--active-color: #2D3142">Items</button>
   <button type="button" class="tab-btn" data-dce-panel="collections" data-dce-pg-short="Collections" style="--active-color: #7c3aed">Collections</button>
   <button type="button" class="tab-btn" data-dce-panel="rules" data-dce-pg-short="Rules" style="--active-color: #0f766e">Rules</button>
   <button type="button" class="tab-btn" data-dce-panel="journey" data-dce-pg-short="Journey" style="--active-color: #b91c1c">Journey</button>
@@ -155,20 +158,6 @@
     </div>
 
     <div class="overview-grid">
-      <a class="overview-card" data-dce-panel="channels" href="#">
-        <div class="ov-header" style="background: #2D3142;">
-          <div class="ov-name">Channels</div>
-        </div>
-        <div class="ov-body">
-          <div class="ov-best">What this means</div>
-          <div class="ov-desc"><span data-dce-industry-show="media">Decision items and how each renders per channel — email, web, app, push, SMS, code — after the policy picks a winner (same flow as the Experience Decisioning playground Items step).</span><span data-dce-industry-show="travel">Decision items and delivery surfaces — web, app, airport, crew tools — for the winning ancillary or bundle.</span><span data-dce-industry-show="retail">Your offer catalog and channel-ready representations — site, app, email, and more — so shoppers see the right creative in the right place.</span><span data-dce-industry-show="fsi">Regulated offers and compliant channel payloads — authenticated web, mobile banking, messaging — for the selected product.</span><span data-dce-industry-show="telco">Plans and add-ons as decision items across mobile, fibre, SMS, and agent-assisted surfaces.</span><span data-dce-industry-show="automotive">Programmes and incentives rendered on web, app, showroom, and dealer systems for the ranked offer.</span><span data-dce-industry-show="healthcare">Care programmes delivered through app, web, virtual visit, and navigator channels with compliant content.</span></div>
-          <div class="ov-complexity">
-            <div class="complexity-dot" style="background:#2D3142"></div>
-            <div class="complexity-dot" style="background:#e8e0d5"></div>
-            <div class="complexity-dot" style="background:#e8e0d5"></div>
-          </div>
-        </div>
-      </a>
       <a class="overview-card" data-dce-panel="schema" href="#">
         <div class="ov-header" style="background: #8B5C8A;">
           <div class="ov-name">Schema</div>
@@ -178,6 +167,20 @@
           <div class="ov-desc"><span data-dce-industry-show="media">The decision-item blueprint — standard fields plus custom attributes (hero, copy, urgency) that define each streaming offer the engine can rank and deliver.</span><span data-dce-industry-show="travel">Ancillary and bundle attributes — cabin, route, cut-offs, and merchandising tags — that describe each offer in the trip context.</span><span data-dce-industry-show="retail">Product and promo structure — price, inventory, segment, and creative variants — powering merchandising rules and ranking inputs.</span><span data-dce-industry-show="fsi">Regulated product fields — eligibility, intent, rate, and disclosure hooks — so offers stay compliant while still competing in the policy.</span><span data-dce-industry-show="telco">Line, plan, speed, and add-on schema for mobile, home, and business offers in one decision framework.</span><span data-dce-industry-show="automotive">Programme and incentive attributes — stock, region, journey stage, and aftersales — for showroom and digital offers.</span><span data-dce-industry-show="healthcare">Care pathway and benefits metadata — consent, network, SLAs — for clinically appropriate programme ranking.</span></div>
           <div class="ov-complexity">
             <div class="complexity-dot" style="background:#8B5C8A"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+          </div>
+        </div>
+      </a>
+      <a class="overview-card" data-dce-panel="channels" href="#">
+        <div class="ov-header" style="background: #2D3142;">
+          <div class="ov-name">Items</div>
+        </div>
+        <div class="ov-body">
+          <div class="ov-best">What this means</div>
+          <div class="ov-desc"><span data-dce-industry-show="media">Decision items and how each renders per channel — email, web, app, push, SMS, code — after the policy picks a winner (same flow as the Experience Decisioning playground Items step).</span><span data-dce-industry-show="travel">Decision items and delivery surfaces — web, app, airport, crew tools — for the winning ancillary or bundle.</span><span data-dce-industry-show="retail">Your offer catalog and channel-ready representations — site, app, email, and more — so shoppers see the right creative in the right place.</span><span data-dce-industry-show="fsi">Regulated offers and compliant channel payloads — authenticated web, mobile banking, messaging — for the selected product.</span><span data-dce-industry-show="telco">Plans and add-ons as decision items across mobile, fibre, SMS, and agent-assisted surfaces.</span><span data-dce-industry-show="automotive">Programmes and incentives rendered on web, app, showroom, and dealer systems for the ranked offer.</span><span data-dce-industry-show="healthcare">Care programmes delivered through app, web, virtual visit, and navigator channels with compliant content.</span></div>
+          <div class="ov-complexity">
+            <div class="complexity-dot" style="background:#2D3142"></div>
             <div class="complexity-dot" style="background:#e8e0d5"></div>
             <div class="complexity-dot" style="background:#e8e0d5"></div>
           </div>
@@ -340,24 +343,12 @@
     </div>
   </div>
 
-  <!-- ══ CHANNELS (ItemsStep from experience-decisioning-playground — panel id channels) ══ -->
-  <div id="dceViz-panel-channels" class="panel dce-items-panel">
-    <p class="dce-items-step-label">Step 01 — Your offers</p>
-    <h2 class="dce-items-title">Decision items</h2>
-    <p class="dce-items-desc">Click any offer card. Use the channel toggle to preview how it renders — same interaction model as the <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a> Items step and the <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">hosted demo</a>. Catalog changes with your industry selection.</p>
-    <div id="dce-items-channel-mount"></div>
-    <div class="dce-items-main-grid">
-      <div id="dce-items-offer-grid" class="dce-items-offer-grid" role="list"></div>
-      <div id="dce-items-preview-mount" class="dce-items-preview-col" aria-live="polite"></div>
-    </div>
-  </div>
-
-  <!-- ══ OFFER SCHEMA (SchemaStep from experience-decisioning-playground — tree + preview driven in JS) ══ -->
-  <div id="dceViz-panel-schema" class="panel dce-schema-panel dce-schema-panel--playground">
+  <!-- ══ OFFER SCHEMA (blueprint — aligned with AJO Experience Decisioning playground) ══ -->
+  <div id="dceViz-panel-schema" class="panel dce-schema-panel">
     <header class="dce-schema-intro">
-      <p class="dce-schema-step-label" id="dce-schema-step-label">Step 02 — The Blueprint</p>
+      <p class="dce-schema-step-label" id="dce-schema-step-label">Step 01 — The Blueprint</p>
       <h2 class="dce-schema-h2">Offer Schema</h2>
-      <p class="dce-schema-lead">Toggle fields on and off — watch the offer preview build up on the right. Fields marked <span class="dce-schema-custom-pill">custom</span> are attributes you define for your business needs. The field tree matches the <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a>; sample values follow your <strong>industry</strong> selection above.</p>
+      <p class="dce-schema-lead">Toggle fields on and off — watch the offer preview build up on the right. Fields marked <span class="dce-schema-custom-pill">custom</span> are attributes you define for your business needs. Examples follow your <strong>industry</strong> selection above.</p>
       <div class="dce-schema-toolbar" role="toolbar" aria-label="Schema presets">
         <button type="button" class="dce-schema-tool-btn" id="dce-schema-reset">Reset</button>
         <button type="button" class="dce-schema-tool-btn dce-schema-tool-btn--accent" id="dce-schema-enable-custom">Enable Custom</button>
@@ -365,30 +356,275 @@
       </div>
     </header>
 
-    <div class="dce-schema-split dce-schema-split--playground">
+    <div class="dce-schema-split">
       <div class="dce-schema-tree card" aria-label="XDM schema field toggles">
         <div class="dce-schema-tree-top">
           <span class="dce-schema-tree-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg> XDM Schema</span>
-          <span class="dce-schema-tree-hint-static" aria-hidden="true">Toggle fields</span>
+          <button type="button" class="dce-schema-tree-hint-btn" id="dce-schema-toggle-fields" aria-pressed="false" title="Expand or collapse all schema groups">Toggle fields</button>
         </div>
-        <div class="dce-schema-tree-scroll" id="dce-schema-tree-mount"></div>
+        <div class="dce-schema-tree-scroll" id="dce-schema-tree-root">
+          <div class="dce-schema-folder" data-dce-schema-folder="standard">
+            <button type="button" class="dce-schema-folder-head" aria-expanded="true" id="dce-schema-folder-standard">
+              <span class="dce-schema-folder-chev" aria-hidden="true">▼</span>
+              <span class="dce-schema-lock" title="Standard" aria-hidden="true">🔒</span>
+              <span class="dce-schema-folder-title">Standard Fields</span>
+            </button>
+            <div class="dce-schema-folder-body">
+              <label class="dce-schema-row dce-schema-row--standard"><input type="checkbox" checked data-dce-schema-field="itemName"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">itemName</span> <span class="dce-schema-ftype">String</span></label>
+              <label class="dce-schema-row dce-schema-row--standard"><input type="checkbox" checked data-dce-schema-field="priority"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--num" aria-hidden="true"></span> <span class="dce-schema-fname">priority</span> <span class="dce-schema-ftype">Integer</span></label>
+              <label class="dce-schema-row dce-schema-row--standard"><input type="checkbox" checked data-dce-schema-field="startDate"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--date" aria-hidden="true"></span> <span class="dce-schema-fname">startDate</span> <span class="dce-schema-ftype">DateTime</span></label>
+              <label class="dce-schema-row dce-schema-row--standard"><input type="checkbox" checked data-dce-schema-field="endDate"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--date" aria-hidden="true"></span> <span class="dce-schema-fname">endDate</span> <span class="dce-schema-ftype">DateTime</span></label>
+            </div>
+          </div>
+
+          <div class="dce-schema-folder" data-dce-schema-folder="offer-content">
+            <button type="button" class="dce-schema-folder-head" aria-expanded="false" id="dce-schema-folder-offer">
+              <span class="dce-schema-folder-chev" aria-hidden="true">▶</span>
+              <span class="dce-schema-folder-title">Offer Content</span>
+              <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+            </button>
+            <div class="dce-schema-folder-body" hidden>
+              <div class="dce-schema-folder dce-schema-folder--nested" data-dce-schema-folder="media">
+                <button type="button" class="dce-schema-folder-head" aria-expanded="true">
+                  <span class="dce-schema-folder-chev" aria-hidden="true">▼</span>
+                  <span class="dce-schema-folder-title">Media Assets</span>
+                  <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+                </button>
+                <div class="dce-schema-folder-body">
+                  <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="heroImage"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--asset" aria-hidden="true"></span> <span class="dce-schema-fname">heroImage</span> <span class="dce-schema-ftype">Asset</span></label>
+                  <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="thumbnail"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--asset" aria-hidden="true"></span> <span class="dce-schema-fname">thumbnail</span> <span class="dce-schema-ftype">Asset</span></label>
+                </div>
+              </div>
+              <div class="dce-schema-folder dce-schema-folder--nested" data-dce-schema-folder="text">
+                <button type="button" class="dce-schema-folder-head" aria-expanded="true">
+                  <span class="dce-schema-folder-chev" aria-hidden="true">▼</span>
+                  <span class="dce-schema-folder-title">Text Content</span>
+                  <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+                </button>
+                <div class="dce-schema-folder-body">
+                  <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="title"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">title</span> <span class="dce-schema-ftype">String</span></label>
+                  <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="description"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--txt" aria-hidden="true"></span> <span class="dce-schema-fname">description</span> <span class="dce-schema-ftype">String</span></label>
+                  <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="callToAction"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--cta" aria-hidden="true"></span> <span class="dce-schema-fname">callToAction</span> <span class="dce-schema-ftype">String</span></label>
+                </div>
+              </div>
+              <div class="dce-schema-folder dce-schema-folder--nested" data-dce-schema-folder="nav">
+                <button type="button" class="dce-schema-folder-head" aria-expanded="false">
+                  <span class="dce-schema-folder-chev" aria-hidden="true">▶</span>
+                  <span class="dce-schema-folder-title">Navigation</span>
+                  <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+                </button>
+                <div class="dce-schema-folder-body" hidden>
+                  <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="webUrl"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">webUrl</span> <span class="dce-schema-ftype">String</span></label>
+                  <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="deepLink"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">deepLink</span> <span class="dce-schema-ftype">String</span></label>
+                  <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="channelType"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">channelType</span> <span class="dce-schema-ftype">Enum</span></label>
+                </div>
+              </div>
+              <div class="dce-schema-folder dce-schema-folder--nested" data-dce-schema-folder="promo">
+                <button type="button" class="dce-schema-folder-head" aria-expanded="false">
+                  <span class="dce-schema-folder-chev" aria-hidden="true">▶</span>
+                  <span class="dce-schema-folder-title">Promo Elements</span>
+                  <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+                </button>
+                <div class="dce-schema-folder-body" hidden>
+                  <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="promoCode"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">promoCode</span> <span class="dce-schema-ftype">String</span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dce-schema-folder" data-dce-schema-folder="metadata">
+            <button type="button" class="dce-schema-folder-head" aria-expanded="false" id="dce-schema-folder-meta">
+              <span class="dce-schema-folder-chev" aria-hidden="true">▶</span>
+              <span class="dce-schema-folder-title">Offer Metadata</span>
+              <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+            </button>
+            <div class="dce-schema-folder-body" hidden>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="contentType"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">contentType</span> <span class="dce-schema-ftype">Enum</span></label>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="salesStage"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">salesStage</span> <span class="dce-schema-ftype">Enum</span></label>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="journeyStage"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">journeyStage</span> <span class="dce-schema-ftype">Enum</span></label>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="targetSegment"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">targetSegment</span> <span class="dce-schema-ftype">Enum</span></label>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="category"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">category</span> <span class="dce-schema-ftype">String</span></label>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="margin"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">margin</span> <span class="dce-schema-ftype">Enum</span></label>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="dce-schema-preview-col" id="dce-schema-preview-mount" aria-live="polite"></div>
+
+      <div class="dce-schema-preview card" aria-live="polite">
+        <div class="dce-schema-preview-head">
+          <span class="dce-schema-preview-kicker">Offer preview</span>
+          <span class="dce-schema-preview-count" id="dce-schema-count">15 / 19</span>
+        </div>
+        <div class="dce-schema-preview-card">
+          <div class="dce-schema-hero-wrap" data-dce-schema-block="heroImage">
+            <div class="dce-schema-img-placeholder dce-schema-img-placeholder--hero">
+              <span class="dce-schema-img-msg">Hero image — to be provided</span>
+            </div>
+          </div>
+          <div class="dce-schema-preview-body">
+            <div class="dce-schema-thumb-row" data-dce-schema-block="thumbnail">
+              <div class="dce-schema-img-placeholder dce-schema-img-placeholder--thumb">
+                <span class="dce-schema-img-msg">Thumbnail — to be provided</span>
+              </div>
+            </div>
+            <h3 class="dce-schema-offer-title" data-dce-schema-block="title" id="dce-schema-v-title">—</h3>
+            <p class="dce-schema-offer-desc" data-dce-schema-block="description" id="dce-schema-v-desc">—</p>
+            <div data-dce-schema-block="callToAction"><button type="button" class="dce-schema-cta" id="dce-schema-v-cta">Shop Now →</button></div>
+          </div>
+        </div>
+        <div class="dce-schema-preview-section" data-dce-schema-section="standard">
+          <div class="dce-schema-preview-sec-label">Standard attributes</div>
+          <table class="dce-schema-kv" role="presentation">
+            <tbody>
+              <tr data-dce-schema-block="itemName"><td class="dce-schema-k">Name</td><td class="dce-schema-v" id="dce-schema-v-name">—</td></tr>
+              <tr data-dce-schema-block="priority"><td class="dce-schema-k">Priority</td><td class="dce-schema-v" id="dce-schema-v-priority">—</td></tr>
+              <tr data-dce-schema-block="startDate"><td class="dce-schema-k">Start</td><td class="dce-schema-v" id="dce-schema-v-start">—</td></tr>
+              <tr data-dce-schema-block="endDate"><td class="dce-schema-k">End</td><td class="dce-schema-v" id="dce-schema-v-end">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dce-schema-preview-section" data-dce-schema-section="nav" id="dce-schema-nav-block" hidden>
+          <div class="dce-schema-preview-sec-label">Navigation &amp; delivery</div>
+          <table class="dce-schema-kv" role="presentation">
+            <tbody>
+              <tr data-dce-schema-block="webUrl"><td class="dce-schema-k">Web URL</td><td class="dce-schema-v" id="dce-schema-v-weburl">—</td></tr>
+              <tr data-dce-schema-block="deepLink"><td class="dce-schema-k">Deep link</td><td class="dce-schema-v" id="dce-schema-v-deeplink">—</td></tr>
+              <tr data-dce-schema-block="channelType"><td class="dce-schema-k">Channel</td><td class="dce-schema-v" id="dce-schema-v-channeltype">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dce-schema-preview-section" data-dce-schema-section="promo" id="dce-schema-promo-block" hidden>
+          <div class="dce-schema-preview-sec-label">Promo</div>
+          <table class="dce-schema-kv" role="presentation">
+            <tbody>
+              <tr data-dce-schema-block="promoCode"><td class="dce-schema-k">Promo code</td><td class="dce-schema-v" id="dce-schema-v-promo">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dce-schema-preview-section" data-dce-schema-section="meta" id="dce-schema-meta-block">
+          <div class="dce-schema-preview-sec-label">Metadata &amp; classification</div>
+          <table class="dce-schema-kv" role="presentation">
+            <tbody>
+              <tr data-dce-schema-block="contentType"><td class="dce-schema-k">Content type</td><td class="dce-schema-v" id="dce-schema-v-contenttype">—</td></tr>
+              <tr data-dce-schema-block="salesStage"><td class="dce-schema-k">Sales stage</td><td class="dce-schema-v" id="dce-schema-v-salesstage">—</td></tr>
+              <tr data-dce-schema-block="journeyStage"><td class="dce-schema-k">Journey stage</td><td class="dce-schema-v" id="dce-schema-v-journeystage">—</td></tr>
+              <tr data-dce-schema-block="targetSegment"><td class="dce-schema-k">Target</td><td class="dce-schema-v" id="dce-schema-v-target">—</td></tr>
+              <tr data-dce-schema-block="category"><td class="dce-schema-k">Category</td><td class="dce-schema-v" id="dce-schema-v-category">—</td></tr>
+              <tr data-dce-schema-block="margin"><td class="dce-schema-k">Margin</td><td class="dce-schema-v" id="dce-schema-v-margin">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dce-schema-progress-wrap">
+          <div class="dce-schema-progress-track"><div class="dce-schema-progress-fill" id="dce-schema-progress" style="width:79%"></div></div>
+          <span class="dce-schema-progress-pct" id="dce-schema-pct">79%</span>
+        </div>
+      </div>
     </div>
     <div class="dce-schema-footnote card">
       <strong>Why this matters:</strong> Every field you enable becomes available in ranking formulas, eligibility rules, and collections. Richer schema = smarter engine.
     </div>
   </div>
 
+  <!-- ══ ITEMS (decision items + delivery — playground “Items” step; panel id channels for compat) ══ -->
+  <div id="dceViz-panel-channels" class="panel dce-ch-panel">
+    <p class="dce-ch-hint">
+      <strong>Step 02 — Decision items.</strong> After a <strong>decision policy</strong> picks a winning offer, that offer is rendered for the touchpoint you configure.
+      Select a channel to see how delivery works — same pattern as the
+      <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a> Items step and the hosted
+      <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">demo</a>.
+    </p>
+
+    <div class="dce-ch-layout dce-ch-layout--stack">
+      <div class="dce-ch-flow">
+        <div class="dce-ch-policy-card" role="img" aria-label="Decision Policy container">
+          <div class="dce-ch-policy-inner">
+            <span class="dce-ch-policy-accent" aria-hidden="true"></span>
+            <span class="dce-ch-policy-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>
+            </span>
+            <div class="dce-ch-policy-text">
+              <span class="dce-ch-kicker">Container</span>
+              <span class="dce-ch-policy-title">Decision Policy</span>
+            </div>
+            <span class="dce-ch-policy-chevron" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+          </div>
+        </div>
+
+        <div class="dce-ch-connector" aria-hidden="true">
+          <span class="dce-ch-dash"></span>
+        </div>
+        <p class="dce-ch-deliver-label">Winning offer delivered to</p>
+
+        <div class="dce-ch-bridge-wrap" id="dce-ch-bridge-wrap">
+          <svg class="dce-ch-connector-svg" id="dce-ch-connector-svg" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path id="dce-ch-connector-path" class="dce-ch-connector-path" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+
+          <div class="dce-ch-channel-row" role="tablist" aria-label="Delivery channel">
+            <button type="button" class="dce-ch-pill active" role="tab" aria-selected="true" data-dce-channel="email" id="dce-ch-tab-email" aria-controls="dce-ch-detail">
+              <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg></span>
+              Email
+            </button>
+            <button type="button" class="dce-ch-pill" role="tab" aria-selected="false" data-dce-channel="web" id="dce-ch-tab-web" aria-controls="dce-ch-detail">
+              <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span>
+              Web
+            </button>
+            <button type="button" class="dce-ch-pill" role="tab" aria-selected="false" data-dce-channel="app" id="dce-ch-tab-app" aria-controls="dce-ch-detail">
+              <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></svg></span>
+              App
+            </button>
+            <button type="button" class="dce-ch-pill" role="tab" aria-selected="false" data-dce-channel="push" id="dce-ch-tab-push" aria-controls="dce-ch-detail">
+              <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>
+              Push
+            </button>
+            <button type="button" class="dce-ch-pill" role="tab" aria-selected="false" data-dce-channel="sms" id="dce-ch-tab-sms" aria-controls="dce-ch-detail">
+              <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+              SMS
+            </button>
+            <button type="button" class="dce-ch-pill" role="tab" aria-selected="false" data-dce-channel="code" id="dce-ch-tab-code" aria-controls="dce-ch-detail">
+              <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg></span>
+              Code
+            </button>
+          </div>
+
+          <aside class="dce-ch-detail" id="dce-ch-detail" role="tabpanel" aria-labelledby="dce-ch-tab-email">
+            <div class="dce-ch-detail-bar" aria-hidden="true"></div>
+            <div class="dce-ch-detail-hd">
+              <div>
+                <span class="dce-ch-kicker dce-ch-detail-kicker">Channel</span>
+                <h3 class="dce-ch-detail-title" id="dce-ch-detail-name">Email</h3>
+              </div>
+            </div>
+            <div class="dce-ch-detail-body">
+              <div class="dce-ch-block">
+                <span class="dce-ch-block-label">What it is</span>
+                <p class="dce-ch-block-text" id="dce-ch-what">Personalized offer blocks inside AJO email campaigns.</p>
+              </div>
+              <div class="dce-ch-block">
+                <span class="dce-ch-block-label">What it does</span>
+                <p class="dce-ch-block-text" id="dce-ch-does">The decisioning engine fills a template placeholder at send time — each recipient gets the offer most relevant to them.</p>
+              </div>
+              <div class="dce-ch-block dce-ch-block--example">
+                <span class="dce-ch-block-label">Example</span>
+                <p class="dce-ch-example" id="dce-ch-example">A weekly newsletter has an “Offer of the Week” block. Each recipient sees a different offer — one gets a data plan upgrade, another a loyalty reward.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ COLLECTIONS (item pools — AJO Experience Decisioning alignment) ══ -->
   <div id="dceViz-panel-collections" class="panel dce-collections-panel" style="--method-color: #7c3aed;">
-    <p class="dce-items-step-label">Step 03 — Organize</p>
     <div class="section-header">
       <div class="method-number" style="color:#7c3aed;">◆</div>
       <div class="method-meta">
         <div class="method-tag">Item pool</div>
         <div class="method-title">Collections</div>
-        <div class="method-desc">Rule-bound slices of the item pool before ranking — the same collection layer as the <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a> Collections step and Decision Management.</div>
+        <div class="method-desc">Rule-bound slices of the item pool before ranking — the same collection layer you configure in Decision Management.</div>
       </div>
     </div>
     <p class="dce-collections-lead">Collections group items using schema attribute filters — like smart folders. Switch between the pills to see which offers match.</p>
@@ -400,13 +636,12 @@
 
   <!-- ══ DECISION RULES (eligibility — AJO Experience Decisioning alignment) ══ -->
   <div id="dceViz-panel-rules" class="panel dce-rules-panel" style="--method-color: #0f766e;">
-    <p class="dce-items-step-label">Step 04 — Who qualifies</p>
     <div class="section-header">
       <div class="method-number" style="color:#0f766e;">◆</div>
       <div class="method-meta">
         <div class="method-tag">Eligibility</div>
         <div class="method-title">Decision Rules</div>
-        <div class="method-desc">Rules are reusable eligibility conditions. You define them once, then plug them into your selection strategies. Each rule narrows the audience — toggle them on and watch who is left. Same interaction model as the <a href="https://github.com/alexmtmr/experience-decisioning-playground" target="_blank" rel="noopener">Experience Decisioning playground</a> Rules step and the <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">hosted demo</a>.</div>
+        <div class="method-desc">Rules are reusable eligibility conditions. You define them once, then plug them into your selection strategies. Each rule narrows the audience — toggle them on and watch who is left. Same pattern as the <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">Experience Decisioning playground</a>.</div>
       </div>
     </div>
     <div class="dce-rules-split">
@@ -2451,10 +2686,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260428a"></script>
-  <script defer src="playground-schema-tree.js?v=20260425a"></script>
-  <script defer src="playground-items-offers.js?v=20260425a"></script>
-  <script defer src="playground-collections-rules-data.js?v=20260425a"></script>
-  <script defer src="playground-items-step.js?v=20260425a"></script>
-  <script defer src="decisioning-visualizer.js?v=20260425a"></script>
+  <script defer src="decisioning-visualizer-new.js?v=20260428a"></script>
 </body>
 </html>

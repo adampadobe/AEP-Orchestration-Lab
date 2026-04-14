@@ -1,9 +1,9 @@
 /**
- * Decisioning visualiser — interactive ranking methods (decisioning-visualiser.html).
+ * Decisioning visualiser new (in development) — interactive ranking methods (decisioning-visualiser-new.html).
  * Industry context: media (default), travel, retail, FSI, telco, automotive, or healthcare (examples + copy).
  *
- * Flow: Start → Channels → Schema → Collections → Rules → Journey → Ranking …
- * Panel id `channels` is delivery / decision items (playground “Items” step).
+ * Flow aligns with github.com/alexmtmr/experience-decisioning-playground (React): Start → Schema → Items →
+ * Collections → Rules → Journey → Ranking … — we map Items to panel id `channels` (delivery / decision items).
  * Extra steps: Priority, AI, Experimentation. Customer “Show for customer” toggles subset visibility.
  */
 (function () {
@@ -12,7 +12,7 @@
   var LS_INDUSTRY = 'dceVizIndustry';
   var LS_CUSTOMER_STEPS = 'dceVizCustomerSteps';
 
-  var DCE_PANEL_ORDER = ['overview', 'channels', 'schema', 'collections', 'rules', 'journey', 'priority', 'formula', 'ai', 'experiment'];
+  var DCE_PANEL_ORDER = ['overview', 'schema', 'channels', 'collections', 'rules', 'journey', 'priority', 'formula', 'ai', 'experiment'];
 
   var INDUSTRY_LABEL_UI = {
     media: 'Media & entertainment',
@@ -148,6 +148,14 @@
     if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
     var innerContent = root.querySelector('.content');
     if (innerContent) innerContent.scrollTop = 0;
+    if (id === 'channels' && typeof window.dceVizUpdateChannelConnector === 'function') {
+      window.requestAnimationFrame(function () {
+        window.dceVizUpdateChannelConnector();
+        window.requestAnimationFrame(function () {
+          window.dceVizUpdateChannelConnector();
+        });
+      });
+    }
   }
 
   window.dceVizShowPanel = showPanel;
@@ -277,10 +285,144 @@
   }
   bindVizRootClicks();
 
-  // ── CHANNELS TAB (ItemsStep — github.com/alexmtmr/experience-decisioning-playground ItemsStep.jsx) ──
-  // Bound via playground-items-step.js + playground-items-offers.js
+  // ── CHANNELS TAB (decision → delivery copy from AJO Experience Decisioning playground) ──
+  var DCE_CHANNELS = {
+    email: {
+      label: 'Email',
+      what: 'Personalized offer blocks inside AJO email campaigns.',
+      does: 'The decisioning engine fills a template placeholder at send time — each recipient gets the offer most relevant to them.',
+      example: 'A weekly newsletter has an “Offer of the Week” block. Each recipient sees a different offer — one gets a data plan upgrade, another a loyalty reward.',
+    },
+    web: {
+      label: 'Web',
+      what: 'Real-time decisions delivered via Adobe Web SDK.',
+      does: 'Offers are injected into the page as the customer browses — hero banners, inline cards, or modal overlays.',
+      example: 'A returning telco customer sees “Welcome Back — Upgrade to 5G” as the homepage hero instead of the generic banner.',
+    },
+    app: {
+      label: 'App',
+      what: 'In-app messages and content cards within mobile applications.',
+      does: 'The decisioning engine delivers personalized offers directly inside the app experience — banners, interstitials, or native content cards triggered by user behavior.',
+      example: 'A banking app customer who just completed a transfer sees an in-app card: “You qualify for our Premium Cashback Card” — surfaced by the Decision Policy based on their transaction patterns.',
+    },
+    push: {
+      label: 'Push',
+      what: 'Mobile push notifications with personalized offers.',
+      does: 'Push campaigns in AJO include a decisioning action. The winning item’s push representation is assembled and delivered to the device.',
+      example: 'A customer who abandoned their cart 2 hours ago gets a push: “Free Express Shipping” — selected by the Decision Policy in real time.',
+    },
+    sms: {
+      label: 'SMS',
+      what: 'Personalized text messages with offer deep links.',
+      does: 'SMS campaigns deliver the winning offer as a short message with a deep link to convert.',
+      example: 'A high-value customer receives: “Hi Alex, your exclusive 30% upgrade offer expires tonight” with a link to the upgrade page.',
+    },
+    code: {
+      label: 'Code',
+      what: 'Structured JSON via Edge Decisioning API for any custom channel.',
+      does: 'Any downstream system — kiosk, call center, IoT device, or custom app — can consume and render the winning offer.',
+      example: 'A call center agent’s screen makes an API call when a customer dials in. The response surfaces the best retention offer as a talking-point card.',
+    },
+  };
 
-  // ── OFFER SCHEMA TAB (SchemaStep parity — github.com/alexmtmr/experience-decisioning-playground) ──
+  function bindChannelExplainer() {
+    var panel = document.getElementById('dceViz-panel-channels');
+    if (!panel || panel.getAttribute('data-dce-ch-bound') === '1') return;
+    panel.setAttribute('data-dce-ch-bound', '1');
+
+    var nameEl = document.getElementById('dce-ch-detail-name');
+    var whatEl = document.getElementById('dce-ch-what');
+    var doesEl = document.getElementById('dce-ch-does');
+    var exEl = document.getElementById('dce-ch-example');
+    var detail = document.getElementById('dce-ch-detail');
+    if (!nameEl || !whatEl || !doesEl || !exEl || !detail) return;
+
+    var wrap = document.getElementById('dce-ch-bridge-wrap');
+    var svg = document.getElementById('dce-ch-connector-svg');
+    var pathEl = document.getElementById('dce-ch-connector-path');
+
+    function updateChannelConnector() {
+      if (!wrap || !svg || !pathEl || !detail) return;
+      if (!panel.classList.contains('active')) return;
+      var pill = panel.querySelector('.dce-ch-pill.active');
+      if (!pill) return;
+      var wr = wrap.getBoundingClientRect();
+      if (wr.width < 2 || wr.height < 2) {
+        pathEl.setAttribute('d', '');
+        return;
+      }
+      var pr = pill.getBoundingClientRect();
+      var cr = detail.getBoundingClientRect();
+      var x1 = (pr.left + pr.right) / 2 - wr.left;
+      var y1 = pr.bottom - wr.top;
+      var x2 = (cr.left + cr.right) / 2 - wr.left;
+      var y2 = cr.top - wr.top;
+      var yMid = y1 + (y2 - y1) * 0.5;
+      svg.setAttribute('width', String(wr.width));
+      svg.setAttribute('height', String(wr.height));
+      svg.setAttribute('viewBox', '0 0 ' + wr.width + ' ' + wr.height);
+      pathEl.setAttribute(
+        'd',
+        'M ' + x1 + ' ' + y1 + ' L ' + x1 + ' ' + yMid + ' L ' + x2 + ' ' + yMid + ' L ' + x2 + ' ' + y2
+      );
+    }
+
+    function applyChannel(key) {
+      var d = DCE_CHANNELS[key];
+      if (!d) return;
+      nameEl.textContent = d.label;
+      whatEl.textContent = d.what;
+      doesEl.textContent = d.does;
+      exEl.textContent = d.example;
+      panel.querySelectorAll('.dce-ch-pill').forEach(function (btn) {
+        var k = btn.getAttribute('data-dce-channel');
+        var on = k === key;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        if (on && detail) detail.setAttribute('aria-labelledby', btn.id);
+      });
+      detail.classList.add('dce-ch-detail--pulse');
+      window.setTimeout(function () {
+        detail.classList.remove('dce-ch-detail--pulse');
+      }, 320);
+      window.requestAnimationFrame(function () {
+        updateChannelConnector();
+        window.requestAnimationFrame(updateChannelConnector);
+      });
+    }
+
+    panel.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('.dce-ch-pill');
+      if (!btn || !panel.contains(btn)) return;
+      e.preventDefault();
+      var key = btn.getAttribute('data-dce-channel');
+      if (key) applyChannel(key);
+    });
+
+    window.addEventListener('resize', function () {
+      updateChannelConnector();
+    });
+
+    window.dceVizUpdateChannelConnector = updateChannelConnector;
+
+    applyChannel('email');
+  }
+
+  // ── OFFER SCHEMA TAB (blueprint + preview — industry-aware) ────────────────
+  var SCHEMA_STANDARD_FIELDS = ['itemName', 'priority', 'startDate', 'endDate'];
+  var SCHEMA_OPTIONAL_FIELDS = [
+    'heroImage', 'thumbnail', 'title', 'description', 'callToAction',
+    'webUrl', 'deepLink', 'channelType', 'promoCode',
+    'contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin',
+  ];
+  var SCHEMA_TOTAL = 19;
+  /** Custom-tagged offer + metadata fields (excludes Navigation & Promo). */
+  var SCHEMA_CUSTOM_FIELDS = [
+    'heroImage', 'thumbnail', 'title', 'description', 'callToAction',
+    'contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin',
+  ];
+  var SCHEMA_NAV_PROMO_FIELDS = ['webUrl', 'deepLink', 'channelType', 'promoCode'];
+
   var SCHEMA_OFFERS = {
     media: {
       itemName: 'Premium annual — 2 months free',
@@ -301,7 +443,6 @@
       category: 'Subscription',
       margin: 'High',
       accent: '#CC0000',
-      img: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=400&h=240&fit=crop',
     },
     travel: {
       itemName: 'Extra legroom bundle — long-haul',
@@ -322,7 +463,6 @@
       category: 'Ancillary',
       margin: 'High',
       accent: '#005f9e',
-      img: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=240&fit=crop',
     },
     retail: {
       itemName: '20% Off Running Shoes',
@@ -343,7 +483,6 @@
       category: 'Footwear',
       margin: 'Medium',
       accent: '#2D9D78',
-      img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=240&fit=crop',
     },
     fsi: {
       itemName: 'Stocks & Shares ISA — switching bonus',
@@ -364,7 +503,6 @@
       category: 'Wealth',
       margin: 'Medium',
       accent: '#2680EB',
-      img: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&h=240&fit=crop',
     },
     telco: {
       itemName: '5G Unlimited Plus — eSIM & roaming',
@@ -385,7 +523,6 @@
       category: 'Mobile',
       margin: 'High',
       accent: '#E68619',
-      img: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=240&fit=crop',
     },
     automotive: {
       itemName: 'New hybrid SUV — PCP launch event',
@@ -406,7 +543,6 @@
       category: 'Showroom',
       margin: 'Medium',
       accent: '#1a1a1a',
-      img: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=240&fit=crop',
     },
     healthcare: {
       itemName: 'Virtual primary — same-day video',
@@ -427,7 +563,6 @@
       category: 'Virtual care',
       margin: 'Low',
       accent: '#6e4fc7',
-      img: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&h=240&fit=crop',
     },
   };
 
@@ -436,333 +571,247 @@
     if (!panel || panel.getAttribute('data-dce-schema-bound') === '1') return;
     panel.setAttribute('data-dce-schema-bound', '1');
 
-    var treeMount = document.getElementById('dce-schema-tree-mount');
-    var previewMount = document.getElementById('dce-schema-preview-mount');
-    if (!treeMount || !previewMount) {
+    var root = document.getElementById('dce-schema-tree-root');
+    if (!root) {
       window.dceVizApplySchemaIndustry = function () {};
       return;
     }
-
-    var TREE = window.DCE_PLAYGROUND_SCHEMA_TREE;
-    if (!TREE || !TREE.length) {
-      treeMount.innerHTML = '<p class="dce-pg-schema-fallback">Schema tree failed to load.</p>';
-      window.dceVizApplySchemaIndustry = function () {};
-      return;
-    }
-
-    function escS(s) {
-      return String(s == null ? '' : s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/"/g, '&quot;');
-    }
+    var progressEl = document.getElementById('dce-schema-progress');
+    var pctEl = document.getElementById('dce-schema-pct');
+    var countEl = document.getElementById('dce-schema-count');
 
     function getOffer() {
       var k = getIndustry();
-      var o = SCHEMA_OFFERS[k] || SCHEMA_OFFERS.media;
-      if (!o.name) o.name = o.title || o.itemName;
-      if (!o.img) o.img = SCHEMA_OFFERS.retail.img;
-      return o;
+      return SCHEMA_OFFERS[k] || SCHEMA_OFFERS.media;
     }
 
-    function walkLeaves(items, out) {
-      items.forEach(function (n) {
-        if (n.children) walkLeaves(n.children, out);
-        else out.push(n);
+    function setIndustryTexts() {
+      var o = getOffer();
+      var map = [
+        ['dce-schema-v-name', o.itemName],
+        ['dce-schema-v-title', o.title],
+        ['dce-schema-v-desc', o.description],
+        ['dce-schema-v-priority', o.priority],
+        ['dce-schema-v-start', o.start],
+        ['dce-schema-v-end', o.end],
+        ['dce-schema-v-weburl', o.webUrl],
+        ['dce-schema-v-deeplink', o.deepLink],
+        ['dce-schema-v-channeltype', o.channelType],
+        ['dce-schema-v-promo', o.promoCode],
+        ['dce-schema-v-contenttype', o.contentType],
+        ['dce-schema-v-salesstage', o.salesStage],
+        ['dce-schema-v-journeystage', o.journeyStage],
+        ['dce-schema-v-target', o.targetSegment],
+        ['dce-schema-v-category', o.category],
+        ['dce-schema-v-margin', o.margin],
+      ];
+      map.forEach(function (pair) {
+        var el = document.getElementById(pair[0]);
+        if (el) el.textContent = pair[1];
       });
-    }
-
-    function walkEnableCustom(items, enabled) {
-      items.forEach(function (n) {
-        if (n.children) walkEnableCustom(n.children, enabled);
-        else if (n.custom) enabled[n.id] = true;
-      });
-    }
-
-    function walkAllLeaves(items, enabled) {
-      items.forEach(function (n) {
-        if (n.children) walkAllLeaves(n.children, enabled);
-        else enabled[n.id] = true;
-      });
-    }
-
-    function collectOpenGroups(items, open) {
-      items.forEach(function (n) {
-        if (n.group) {
-          open[n.id] = true;
-          if (n.children) collectOpenGroups(n.children, open);
-        }
-      });
-    }
-
-    var allLeaves = [];
-    walkLeaves(TREE, allLeaves);
-    var SCHEMA_LEAF_TOTAL = allLeaves.length;
-
-    if (!panel._dcePlaygroundSchema) {
-      panel._dcePlaygroundSchema = {
-        enabled: { f15: true, f16: true, f17: true, f18: true },
-        open: { s3: true },
-      };
-    }
-    var st = panel._dcePlaygroundSchema;
-
-    function isEn(fid) {
-      return !!st.enabled[fid];
-    }
-
-    function activeFieldList() {
-      return allLeaves.filter(function (f) {
-        return isEn(f.id);
-      });
-    }
-
-    function previewValForField(field, offer) {
-      var id = field.id;
-      if (id === 'f15') return offer.itemName;
-      if (id === 'f16') return offer.priority;
-      if (id === 'f17') return offer.start;
-      if (id === 'f18') return offer.end;
-      if (id === 'f6') return offer.webUrl;
-      if (id === 'f7') return offer.deepLink;
-      if (id === 'f19') return offer.channelType;
-      if (id === 'f8') return offer.promoCode;
-      if (id === 'f9') return offer.contentType;
-      if (id === 'f10') return offer.salesStage;
-      if (id === 'f11') return offer.journeyStage;
-      if (id === 'f12') return offer.targetSegment;
-      if (id === 'f13') return offer.category;
-      if (id === 'f14') return offer.margin;
-      if (field.previewVal) return field.previewVal;
-      return offer.title || offer.itemName;
-    }
-
-    function renderTreeHtml(items, depth) {
-      var html = '';
-      for (var i = 0; i < items.length; i++) {
-        var node = items[i];
-        if (node.group) {
-          var isOpen = !!st.open[node.id];
-          html += '<div class="dce-pg-schema-node">';
-          html +=
-            '<button type="button" class="dce-pg-schema-group" style="padding-left:' +
-            (6 + depth * 14) +
-            'px" data-dce-pg-toggle-group="' +
-            escS(node.id) +
-            '" aria-expanded="' +
-            (isOpen ? 'true' : 'false') +
-            '">';
-          html += '<span class="dce-pg-schema-chev" aria-hidden="true">' + (isOpen ? '▼' : '▶') + '</span>';
-          if (node.locked) html += '<span class="dce-pg-schema-lock" aria-hidden="true">🔒</span>';
-          html += '<span class="dce-pg-schema-gname">' + escS(node.name) + '</span>';
-          if (node.custom) html += '<span class="dce-pg-schema-custom">custom</span>';
-          html += '</button>';
-          if (isOpen) {
-            html +=
-              '<div class="dce-pg-schema-nested" style="margin-left:' +
-              (10 + depth * 14) +
-              'px">';
-            html += renderTreeHtml(node.children, depth + 1);
-            html += '</div>';
-          }
-          html += '</div>';
-        } else {
-          var on = isEn(node.id);
-          html +=
-            '<button type="button" class="dce-pg-schema-field' +
-            (on ? ' is-on' : '') +
-            '" style="padding-left:' +
-            (8 + depth * 14) +
-            'px" data-dce-pg-field="' +
-            escS(node.id) +
-            '" aria-pressed="' +
-            (on ? 'true' : 'false') +
-            '">';
-          html += '<span class="dce-pg-schema-cb" aria-hidden="true"></span>';
-          html +=
-            '<span class="dce-pg-schema-ico dce-pg-schema-ico--' +
-            escS(node.icon || 'type') +
-            '" aria-hidden="true"></span>';
-          html += '<span class="dce-pg-schema-fname">' + escS(node.name) + '</span>';
-          html += '<span class="dce-pg-schema-ftype">' + escS(node.type) + '</span>';
-          html += '</button>';
-        }
+      var cta = document.getElementById('dce-schema-v-cta');
+      if (cta) {
+        cta.textContent = o.cta;
+        cta.style.background = o.accent || '#2D9D78';
       }
-      return html;
     }
 
-    function renderPreviewHtml() {
-      var offer = getOffer();
-      var active = activeFieldList();
-      var n = active.length;
-      var pct = SCHEMA_LEAF_TOTAL ? Math.round((n / SCHEMA_LEAF_TOTAL) * 100) : 0;
+    function isFieldChecked(id) {
+      var cb = root.querySelector('input[data-dce-schema-field="' + id + '"]');
+      return cb && cb.checked;
+    }
 
-      var hasImage = active.some(function (f) {
-        return f.id === 'f1' || f.id === 'f2';
+    function toggleBlocks() {
+      panel.querySelectorAll('[data-dce-schema-block]').forEach(function (el) {
+        var id = el.getAttribute('data-dce-schema-block');
+        if (!id) return;
+        var on = isFieldChecked(id);
+        el.classList.toggle('dce-schema-block--off', !on);
       });
-      var hasTitle = active.some(function (f) {
-        return f.id === 'f3' || f.id === 'f15';
-      });
-      var hasDesc = active.some(function (f) {
-        return f.id === 'f4';
-      });
-      var hasCTA = active.some(function (f) {
-        return f.id === 'f5';
-      });
-
-      var stdFields = active.filter(function (f) {
-        return !f.visual && !f.meta && !f.nav;
-      });
-      var navFields = active.filter(function (f) {
-        return f.nav;
-      });
-      var metaFields = active.filter(function (f) {
-        return f.meta;
-      });
-
-      function fieldRowHtml(f) {
-        var pv = previewValForField(f, offer);
-        return (
-          '<div class="dce-pg-schema-preview-row">' +
-          '<span class="dce-pg-schema-ico dce-pg-schema-ico--' +
-          escS(f.icon || 'type') +
-          '" aria-hidden="true"></span>' +
-          '<span class="dce-pg-schema-plabel">' +
-          escS(f.previewLabel || f.name) +
-          '</span>' +
-          '<span class="dce-pg-schema-pval">' +
-          escS(pv) +
-          '</span></div>'
-        );
-      }
-
-      var mainCard = '';
-      if (n === 0) {
-        mainCard =
-          '<div class="dce-pg-schema-empty"><span class="dce-pg-schema-empty-ico" aria-hidden="true">👁</span>' +
-          '<p class="dce-pg-schema-empty-txt">Toggle fields to build the preview</p></div>';
-      } else {
-        if (hasImage) {
-          mainCard +=
-            '<div class="dce-pg-schema-imgwrap"><img src="' +
-            escS(offer.img) +
-            '" alt="" class="dce-pg-schema-img"/></div>';
-        }
-        mainCard += '<div class="dce-pg-schema-cardpad">';
-        if (hasTitle) {
-          mainCard += '<div class="dce-pg-schema-oname">' + escS(offer.title || offer.itemName) + '</div>';
-        }
-        if (hasDesc) mainCard += '<div class="dce-pg-schema-odesc">' + escS(offer.description) + '</div>';
-        if (hasCTA) {
-          mainCard +=
-            '<div class="dce-pg-schema-octa" style="background:' +
-            escS(offer.accent || '#2D9D78') +
-            '">' +
-            escS(offer.cta || 'Shop Now →') +
-            '</div>';
-        }
-        mainCard += '</div>';
-      }
-
-      var h = '';
-      h += '<div class="dce-pg-schema-preview-inner">';
-      h += '<div class="dce-schema-preview card dce-pg-schema-maincard">';
-      h += '<div class="dce-pg-schema-phdr"><span class="dce-pg-schema-pkick">Offer preview</span>';
-      h += '<span class="dce-pg-schema-pcount">' + n + ' / ' + SCHEMA_LEAF_TOTAL + '</span></div>';
-      h += mainCard;
-      h += '</div>';
-
-      if (stdFields.length) {
-        h += '<div class="dce-schema-preview-section card dce-pg-schema-widget"><div class="dce-schema-preview-sec-label">Standard attributes</div>';
-        h += '<div class="dce-pg-schema-plist">';
-        stdFields.forEach(function (f) {
-          h += fieldRowHtml(f);
+      var stdBlk = panel.querySelector('[data-dce-schema-section="standard"]');
+      if (stdBlk) {
+        var stdOn = SCHEMA_STANDARD_FIELDS.some(function (fid) {
+          return isFieldChecked(fid);
         });
-        h += '</div></div>';
+        stdBlk.hidden = !stdOn;
       }
-      if (navFields.length) {
-        h += '<div class="dce-schema-preview-section card dce-pg-schema-widget"><div class="dce-schema-preview-sec-label">Navigation &amp; delivery</div>';
-        h += '<div class="dce-pg-schema-plist">';
-        navFields.forEach(function (f) {
-          h += fieldRowHtml(f);
+      var navBlk = document.getElementById('dce-schema-nav-block');
+      if (navBlk) {
+        var navOn = isFieldChecked('webUrl') || isFieldChecked('deepLink') || isFieldChecked('channelType');
+        navBlk.hidden = !navOn;
+        navBlk.querySelectorAll('[data-dce-schema-block]').forEach(function (row) {
+          var id = row.getAttribute('data-dce-schema-block');
+          row.classList.toggle('dce-schema-block--off', id && !isFieldChecked(id));
         });
-        h += '</div></div>';
       }
-      if (metaFields.length) {
-        h += '<div class="dce-schema-preview-section card dce-pg-schema-widget dce-pg-schema-widget--meta"><div class="dce-schema-preview-sec-label">Metadata &amp; classification</div>';
-        h += '<div class="dce-pg-schema-plist">';
-        metaFields.forEach(function (f) {
-          h += fieldRowHtml(f);
+      var promoBlk = document.getElementById('dce-schema-promo-block');
+      if (promoBlk) {
+        var pOn = isFieldChecked('promoCode');
+        promoBlk.hidden = !pOn;
+      }
+      var metaBlk = document.getElementById('dce-schema-meta-block');
+      if (metaBlk) {
+        var metaOn = ['contentType', 'salesStage', 'journeyStage', 'targetSegment', 'category', 'margin'].some(function (fid) {
+          return isFieldChecked(fid);
         });
-        h += '</div></div>';
+        metaBlk.hidden = !metaOn;
       }
-
-      h += '<div class="dce-pg-schema-progress">';
-      h += '<div class="dce-pg-schema-ptrack"><div class="dce-pg-schema-pfill" style="width:' + pct + '%"></div></div>';
-      h += '<span class="dce-pg-schema-ppct">' + pct + '%</span></div>';
-      h += '</div>';
-      return h;
     }
 
-    function renderAll() {
-      treeMount.innerHTML = renderTreeHtml(TREE, 0);
-      previewMount.innerHTML = renderPreviewHtml();
+    function countEnabled() {
+      var n = 0;
+      SCHEMA_STANDARD_FIELDS.forEach(function (fid) {
+        if (isFieldChecked(fid)) n++;
+      });
+      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
+        if (isFieldChecked(fid)) n++;
+      });
+      return n;
     }
 
-    treeMount.addEventListener('click', function (e) {
-      var g = e.target.closest && e.target.closest('[data-dce-pg-toggle-group]');
-      if (g && treeMount.contains(g)) {
-        e.preventDefault();
-        var gid = g.getAttribute('data-dce-pg-toggle-group');
-        if (gid) st.open[gid] = !st.open[gid];
-        renderAll();
-        return;
-      }
-      var f = e.target.closest && e.target.closest('[data-dce-pg-field]');
-      if (f && treeMount.contains(f)) {
-        e.preventDefault();
-        var fid = f.getAttribute('data-dce-pg-field');
-        if (fid) st.enabled[fid] = !st.enabled[fid];
-        renderAll();
-      }
+    function updateOfferSchemaPreview() {
+      toggleBlocks();
+      var n = countEnabled();
+      if (countEl) countEl.textContent = n + ' / ' + SCHEMA_TOTAL;
+      var pct = Math.round((n / SCHEMA_TOTAL) * 100);
+      if (pctEl) pctEl.textContent = pct + '%';
+      if (progressEl) progressEl.style.width = pct + '%';
+    }
+
+    function applySchemaIndustry() {
+      setIndustryTexts();
+      updateOfferSchemaPreview();
+    }
+
+    root.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t && t.matches && t.matches('input[data-dce-schema-field]')) updateOfferSchemaPreview();
     });
+
+    function setFolderOpen(folder, open) {
+      var head = folder.querySelector(':scope > .dce-schema-folder-head');
+      var body = folder.querySelector(':scope > .dce-schema-folder-body');
+      if (!head || !body) return;
+      body.hidden = !open;
+      head.setAttribute('aria-expanded', open ? 'true' : 'false');
+      var chev = head.querySelector('.dce-schema-folder-chev');
+      if (chev) chev.textContent = open ? '▼' : '▶';
+    }
+
+    /**
+     * @param {'reset'|'custom'|'all'} preset — reset = standard-only tree; custom = custom fields on, nav/promo folders closed; all = everything expanded
+     */
+    function applySchemaFolderLayout(preset) {
+      root.querySelectorAll('.dce-schema-folder').forEach(function (folder) {
+        var key = folder.getAttribute('data-dce-schema-folder');
+        if (preset === 'all') {
+          setFolderOpen(folder, true);
+          return;
+        }
+        if (preset === 'reset') {
+          if (key === 'standard') setFolderOpen(folder, true);
+          else if (key === 'offer-content' || key === 'metadata') setFolderOpen(folder, false);
+          else if (key === 'media' || key === 'text') setFolderOpen(folder, true);
+          else if (key === 'nav' || key === 'promo') setFolderOpen(folder, false);
+          else setFolderOpen(folder, false);
+          return;
+        }
+        if (preset === 'custom') {
+          if (key === 'standard') setFolderOpen(folder, true);
+          else if (key === 'offer-content' || key === 'metadata') setFolderOpen(folder, true);
+          else if (key === 'media' || key === 'text') setFolderOpen(folder, true);
+          else if (key === 'nav' || key === 'promo') setFolderOpen(folder, false);
+          else setFolderOpen(folder, false);
+        }
+      });
+    }
+
+    function scrollSchemaPresetIntoView(preset) {
+      var treeScroll = document.querySelector('.dce-schema-tree-scroll');
+      if (!treeScroll) return;
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          if (preset === 'all') {
+            treeScroll.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+          }
+          var el = preset === 'reset'
+            ? document.getElementById('dce-schema-folder-standard')
+            : document.getElementById('dce-schema-folder-offer');
+          if (el && typeof el.scrollIntoView === 'function') {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+      });
+    }
 
     var btnReset = document.getElementById('dce-schema-reset');
     var btnEnCust = document.getElementById('dce-schema-enable-custom');
     var btnEnAll = document.getElementById('dce-schema-enable-all');
 
-    if (btnReset) {
-      btnReset.addEventListener('click', function () {
-        st.enabled = { f15: true, f16: true, f17: true, f18: true };
-        st.open = { s3: true };
-        renderAll();
+    if (btnReset) btnReset.addEventListener('click', function () {
+      SCHEMA_STANDARD_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = true;
       });
-    }
-    if (btnEnCust) {
-      btnEnCust.addEventListener('click', function () {
-        var e2 = {};
-        for (var k in st.enabled) {
-          if (Object.prototype.hasOwnProperty.call(st.enabled, k)) e2[k] = st.enabled[k];
-        }
-        walkEnableCustom(TREE, e2);
-        st.enabled = e2;
-        st.open = { s1: true, s1a: true, s1b: true, s1c: true, s1d: true, s2: true, s3: true };
-        renderAll();
+      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = false;
       });
-    }
-    if (btnEnAll) {
-      btnEnAll.addEventListener('click', function () {
-        st.open = {};
-        collectOpenGroups(TREE, st.open);
-        var e3 = {};
-        walkAllLeaves(TREE, e3);
-        st.enabled = e3;
-        renderAll();
-      });
-    }
+      applySchemaFolderLayout('reset');
+      updateOfferSchemaPreview();
+      scrollSchemaPresetIntoView('reset');
+    });
 
-    function applySchemaIndustry() {
-      renderAll();
+    if (btnEnCust) btnEnCust.addEventListener('click', function () {
+      SCHEMA_NAV_PROMO_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = false;
+      });
+      SCHEMA_CUSTOM_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = true;
+      });
+      applySchemaFolderLayout('custom');
+      updateOfferSchemaPreview();
+      scrollSchemaPresetIntoView('custom');
+    });
+
+    if (btnEnAll) btnEnAll.addEventListener('click', function () {
+      SCHEMA_STANDARD_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = true;
+      });
+      SCHEMA_OPTIONAL_FIELDS.forEach(function (fid) {
+        var cb = root.querySelector('input[data-dce-schema-field="' + fid + '"]');
+        if (cb) cb.checked = true;
+      });
+      applySchemaFolderLayout('all');
+      updateOfferSchemaPreview();
+      scrollSchemaPresetIntoView('all');
+    });
+
+    root.addEventListener('click', function (e) {
+      var head = e.target.closest && e.target.closest('.dce-schema-folder-head');
+      if (!head || !root.contains(head)) return;
+      if (e.target.closest('input')) return;
+      e.preventDefault();
+      var folder = head.closest('.dce-schema-folder');
+      if (!folder || !root.contains(folder)) return;
+      var body = folder.querySelector(':scope > .dce-schema-folder-body');
+      if (!body) return;
+      var willOpen = body.hasAttribute('hidden');
+      setFolderOpen(folder, willOpen);
+    });
+
+    var btnToggleFields = document.getElementById('dce-schema-toggle-fields');
+    if (btnToggleFields) {
+      var expandAllMode = false;
+      btnToggleFields.addEventListener('click', function () {
+        expandAllMode = !expandAllMode;
+        btnToggleFields.setAttribute('aria-pressed', expandAllMode ? 'true' : 'false');
+        applySchemaFolderLayout(expandAllMode ? 'all' : 'reset');
+      });
     }
 
     window.dceVizApplySchemaIndustry = applySchemaIndustry;
@@ -817,11 +866,163 @@
   }
 
   /**
-   * Collections UI — from playground-collections-rules-data.js (playground collections.js + per-vertical pools).
+   * Item collections (AJO DPS) — rule-bound slices of the item pool, aligned with playground “Collection” layer.
+   * Each collection references priority-demo offer ids (s1–s3) for the active industry.
+   */
+  /**
+   * Collections UI — schema-filter “smart folders” with pills, rule line, and match grid (industry-specific).
    */
   var DCE_COL_PILL_IX = {};
 
-  var DCE_COLLECTIONS_UI = window.DCE_PLAYGROUND_COLLECTIONS_UI || {};
+  var DCE_COLLECTIONS_UI = {
+    retail: {
+      offers: [
+        { id: 'r1', title: 'Free Express Delivery', icon: '🚚' },
+        { id: 'r2', title: '0% BNPL on Electronics', icon: '💳' },
+        { id: 'r3', title: 'Back-to-School Bundle', icon: '🎁' },
+        { id: 'r4', title: 'New Collection Preview', icon: '👕' },
+        { id: 'r5', title: 'Home — Free Assembly', icon: '🔧' },
+        { id: 'r6', title: '3x Loyalty Points Weekend', icon: '🏅' },
+        { id: 'r7', title: '20% Off Running Shoes', icon: '👟' },
+        { id: 'r8', title: 'Premium Headphones €30 Off', icon: '🎧' },
+        { id: 'r9', title: 'Smart Watch Trade-In', icon: '⌚' },
+        { id: 'r10', title: 'Grocery Flash Sale — 15% Off', icon: '🍴' },
+      ],
+      pills: [
+        { label: 'High-Margin Offers', ruleExpr: 'margin = "High"', description: 'High profit margin offers — prioritized to maximize revenue per impression.', matchIds: ['r1'] },
+        { label: 'Loyalty Rewards', ruleExpr: 'type IN ("Loyalty", "Exclusive")', description: 'For loyalty members — builds retention and lifetime value.', matchIds: ['r1', 'r4', 'r6'] },
+        { label: 'Electronics Deals', ruleExpr: 'category = "Electronics"', description: 'Electronics category — targets tech-interested shoppers.', matchIds: ['r2', 'r8', 'r9'] },
+        { label: 'Discount & Bundles', ruleExpr: 'type IN ("Discount", "Bundle")', description: 'Price-led promotions for price-sensitive segments.', matchIds: ['r3', 'r7', 'r8', 'r10'] },
+        { label: 'All Active Offers', ruleExpr: 'endDate > now()', description: 'Every offer within its validity window — broadest selection.', matchIds: ['r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10'] },
+      ],
+    },
+    media: {
+      offers: [
+        { id: 'm1', title: 'Premium annual — 2 months free', icon: '🎬' },
+        { id: 'm2', title: 'Sports live pass add-on', icon: '⚽' },
+        { id: 'm3', title: 'Kids & family annual', icon: '👨‍👩‍👧' },
+        { id: 'm4', title: '30-day trial — card on file', icon: '🎁' },
+        { id: 'm5', title: '4K UHD tier upgrade', icon: '📺' },
+        { id: 'm6', title: 'Documentary hub monthly', icon: '📚' },
+        { id: 'm7', title: 'Student plan discount', icon: '🎓' },
+        { id: 'm8', title: 'CTV big-screen bundle', icon: '🖥' },
+        { id: 'm9', title: 'Win-back — 50% off 3 mo', icon: '💌' },
+        { id: 'm10', title: 'Streaming + music bundle', icon: '🎵' },
+      ],
+      pills: [
+        { label: 'Premium & high ARPU', ruleExpr: 'margin = "High"', description: 'Top-yield subscription SKUs — annual and tier upgrades first.', matchIds: ['m1', 'm5', 'm6'] },
+        { label: 'Live & sports', ruleExpr: 'genre = "Sports"', description: 'Live events and league passes for sports-heavy profiles.', matchIds: ['m2', 'm8'] },
+        { label: 'Family & kids paths', ruleExpr: 'audience IN ("Family", "Kids")', description: 'Household and parental-control bundles in the same policy.', matchIds: ['m3', 'm7'] },
+        { label: 'Trial & win-back', ruleExpr: 'segment IN ("trial", "win_back")', description: 'Acquisition and re-activation offers with short windows.', matchIds: ['m4', 'm9'] },
+        { label: 'Full active catalogue', ruleExpr: 'endDate > now()', description: 'Everything currently valid — broadest eligible pool.', matchIds: ['m1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10'] },
+      ],
+    },
+    travel: {
+      offers: [
+        { id: 't1', title: 'Extra legroom — long-haul', icon: '✈️' },
+        { id: 't2', title: 'Checked bags — 2×23 kg', icon: '🧳' },
+        { id: 't3', title: 'Priority boarding — Group 1', icon: '⭐' },
+        { id: 't4', title: 'Lounge pass — departure', icon: '☕' },
+        { id: 't5', title: 'Inflight Wi‑Fi streaming', icon: '📶' },
+        { id: 't6', title: 'Chef meal upgrade', icon: '🍽' },
+        { id: 't7', title: 'Carbon offset bundle', icon: '🌱' },
+        { id: 't8', title: 'Twin seat assignment', icon: '💺' },
+        { id: 't9', title: 'Family row bundle', icon: '👨‍👩‍👧' },
+        { id: 't10', title: 'Last-minute upgrade window', icon: '⚡' },
+      ],
+      pills: [
+        { label: 'High-yield ancillaries', ruleExpr: 'yield_tier = "high"', description: 'Seat and service upsells with the strongest route yield.', matchIds: ['t1', 't6', 't10'] },
+        { label: 'Loyalty & status', ruleExpr: 'tier IN ("Gold", "Platinum")', description: 'Tier-based perks that stack with fare rules.', matchIds: ['t3', 't4', 't8'] },
+        { label: 'Long-haul comfort', ruleExpr: 'haul = "long"', description: 'Comfort bundles for intercontinental legs.', matchIds: ['t1', 't5', 't9'] },
+        { label: 'Flash & seasonal', ruleExpr: 'window IN ("flash", "seasonal")', description: 'Time-boxed ancillaries during peaks and campaigns.', matchIds: ['t7', 't10'] },
+        { label: 'All bookable', ruleExpr: 'inventory > 0', description: 'Every ancillary still available for this itinerary.', matchIds: ['t1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10'] },
+      ],
+    },
+    fsi: {
+      offers: [
+        { id: 'f1', title: 'Fixed-rate mortgage — 4.19% 5 yr', icon: '🏠' },
+        { id: 'f2', title: 'Balance-transfer — 0% 24 mo', icon: '💳' },
+        { id: 'f3', title: 'Stocks & Shares ISA — bonus', icon: '📈' },
+        { id: 'f4', title: 'Everyday cashback current', icon: '🏦' },
+        { id: 'f5', title: 'Premium wealth review', icon: '👔' },
+        { id: 'f6', title: 'Student account pack', icon: '🎓' },
+        { id: 'f7', title: 'SMB business tariff', icon: '🏢' },
+        { id: 'f8', title: 'Green retrofit loan', icon: '🌿' },
+        { id: 'f9', title: 'Home insurance bundle', icon: '🛡' },
+        { id: 'f10', title: 'Mobile savings — 4.5% AER', icon: '📱' },
+      ],
+      pills: [
+        { label: 'Mortgage & lending', ruleExpr: 'product_line = "lending"', description: 'Secured lending and regulated mortgage paths.', matchIds: ['f1', 'f8'] },
+        { label: 'Cards & revolving', ruleExpr: 'type IN ("card", "credit")', description: 'Card acquisition and balance mechanics.', matchIds: ['f2', 'f4'] },
+        { label: 'Wealth & invest', ruleExpr: 'segment IN ("wealth", "invest")', description: 'ISA, advisory, and growth-led offers.', matchIds: ['f3', 'f5'] },
+        { label: 'Everyday & acquire', ruleExpr: 'segment = "retail_banking"', description: 'Current accounts, student, and SMB entry bundles.', matchIds: ['f4', 'f6', 'f7'] },
+        { label: 'All approved offers', ruleExpr: 'compliance_status = "approved"', description: 'Everything passing policy and fair-lending checks.', matchIds: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10'] },
+      ],
+    },
+    telco: {
+      offers: [
+        { id: 'z1', title: '5G Unlimited Plus + eSIM', icon: '📱' },
+        { id: 'z2', title: 'Fibre Gigabit + mesh Wi‑Fi', icon: '🏠' },
+        { id: 'z3', title: 'Business multi-line + SD‑WAN', icon: '🏢' },
+        { id: 'z4', title: 'Prepaid data booster', icon: '📶' },
+        { id: 'z5', title: 'Family plan — 5 lines', icon: '👨‍👩‍👧' },
+        { id: 'z6', title: 'Roaming Europe pass', icon: '✈️' },
+        { id: 'z7', title: 'TV + fibre bundle', icon: '📺' },
+        { id: 'z8', title: 'Churn save — 30% off', icon: '💌' },
+        { id: 'z9', title: 'IoT fleet SIM pack', icon: '🚚' },
+        { id: 'z10', title: 'Priority fault repair SLA', icon: '🔧' },
+      ],
+      pills: [
+        { label: 'Mobile & 5G', ruleExpr: 'service = "mobile"', description: 'Handset-led and SIM-first acquisition paths.', matchIds: ['z1', 'z4', 'z5', 'z6'] },
+        { label: 'Fibre & home', ruleExpr: 'service = "fixed"', description: 'Broadband and entertainment convergence.', matchIds: ['z2', 'z7'] },
+        { label: 'SMB & business', ruleExpr: 'segment = "smb"', description: 'B2B connectivity and fleet-style add-ons.', matchIds: ['z3', 'z9'] },
+        { label: 'Retention & save', ruleExpr: 'journey IN ("save", "retention")', description: 'Discounts and SLAs aimed at reducing churn.', matchIds: ['z8', 'z10'] },
+        { label: 'All in-market', ruleExpr: 'status = "active"', description: 'Every SKU currently purchasable in region.', matchIds: ['z1', 'z2', 'z3', 'z4', 'z5', 'z6', 'z7', 'z8', 'z9', 'z10'] },
+      ],
+    },
+    automotive: {
+      offers: [
+        { id: 'a1', title: 'Hybrid SUV PCP weekend', icon: '🚙' },
+        { id: 'a2', title: 'EV bundle — wallbox + tariff', icon: '🔌' },
+        { id: 'a3', title: 'Service plan+ — 36k miles', icon: '🛠' },
+        { id: 'a4', title: 'Winter tyre pack', icon: '❄' },
+        { id: 'a5', title: 'Fleet multi-vehicle lease', icon: '🚚' },
+        { id: 'a6', title: 'EV test-drive incentive', icon: '🎁' },
+        { id: 'a7', title: 'Accessories & retrofit pack', icon: '🧰' },
+        { id: 'a8', title: 'PCP end-of-term upgrade', icon: '🔄' },
+        { id: 'a9', title: 'Certified pre-owned warranty', icon: '✅' },
+        { id: 'a10', title: 'Mobile tyre fitting', icon: '🛞' },
+      ],
+      pills: [
+        { label: 'EV & electrification', ruleExpr: 'powertrain = "EV"', description: 'Charging, tariffs, and EV-first programmes.', matchIds: ['a2', 'a6'] },
+        { label: 'Retail PCP', ruleExpr: 'programme = "retail_pcp"', description: 'Consumer finance and showroom-led vehicles.', matchIds: ['a1', 'a8'] },
+        { label: 'Aftersales & care', ruleExpr: 'journey = "aftersales"', description: 'Service, tyres, and workshop attach.', matchIds: ['a3', 'a4', 'a10'] },
+        { label: 'Fleet & business', ruleExpr: 'segment = "fleet"', description: 'Multi-vehicle and B2B incentives.', matchIds: ['a5', 'a9'] },
+        { label: 'All programmes', ruleExpr: 'stock > 0', description: 'Every offer with available stock in market.', matchIds: ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10'] },
+      ],
+    },
+    healthcare: {
+      offers: [
+        { id: 'h1', title: 'Virtual primary — same-day video', icon: '🩺' },
+        { id: 'h2', title: 'Specialty — cardiology intake', icon: '🏥' },
+        { id: 'h3', title: 'Pharmacy 90-day + coaching', icon: '💊' },
+        { id: 'h4', title: 'Employer biometric screening', icon: '💼' },
+        { id: 'h5', title: 'Urgent care video queue', icon: '⚡' },
+        { id: 'h6', title: 'Chronic care — diabetes pathway', icon: '🫀' },
+        { id: 'h7', title: 'Maternity bundle', icon: '🍼' },
+        { id: 'h8', title: 'Mental health — EAP 6 sessions', icon: '🧠' },
+        { id: 'h9', title: 'Preventive screening kit', icon: '📋' },
+        { id: 'h10', title: 'Dental discount network', icon: '🦷' },
+      ],
+      pills: [
+        { label: 'Virtual & primary', ruleExpr: 'care_mode = "virtual"', description: 'Digital front door and same-day access.', matchIds: ['h1', 'h5'] },
+        { label: 'Specialty & referral', ruleExpr: 'pathway = "specialty"', description: 'Referral-led and specialty queues.', matchIds: ['h2', 'h6'] },
+        { label: 'Pharmacy & wellness', ruleExpr: 'programme IN ("pharmacy", "wellness")', description: 'Medication adherence and prevention.', matchIds: ['h3', 'h9'] },
+        { label: 'Employer & benefits', ruleExpr: 'payer = "employer"', description: 'Sponsored screenings and carve-outs.', matchIds: ['h4', 'h7', 'h8'] },
+        { label: 'All covered', ruleExpr: 'eligible = true', description: 'Full benefits-eligible catalogue for this member.', matchIds: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8', 'h9', 'h10'] },
+      ],
+    },
+  };
 
   var DCE_COL_FILTER_SVG =
     '<svg class="dce-col-filter-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
@@ -831,18 +1032,13 @@
     if (!mount) return;
     var ind = getIndustry();
     var conf = DCE_COLLECTIONS_UI[ind] || DCE_COLLECTIONS_UI.retail;
-    if (!conf || !conf.pills || !conf.pills.length) {
-      mount.innerHTML = '<p class="dce-pg-schema-fallback">Collections data failed to load.</p>';
-      return;
-    }
     var offers = conf.offers || [];
     var pills = conf.pills || [];
     var n = pills.length;
-    var defIx = n > 0 ? n - 1 : 0;
     var ix = DCE_COL_PILL_IX[ind];
     if (typeof ix !== 'number' || ix < 0 || ix >= n) {
-      ix = defIx;
-      DCE_COL_PILL_IX[ind] = defIx;
+      ix = 0;
+      DCE_COL_PILL_IX[ind] = 0;
     } else {
       DCE_COL_PILL_IX[ind] = ix;
     }
@@ -875,11 +1071,9 @@
 
     parts.push('<div class="dce-col-detail card" role="tabpanel" aria-labelledby="dce-col-pill-' + ix + '">');
     parts.push('<div class="dce-col-rule-block">');
-    var ruleCode = active.rule != null && active.rule !== '' ? active.rule : active.ruleExpr;
-    var ruleDesc = active.info != null && active.info !== '' ? active.info : active.description;
     parts.push('<div class="dce-col-rule-row">' + DCE_COL_FILTER_SVG);
-    parts.push('<code class="dce-col-rule-code">' + escColHtml(ruleCode) + '</code></div>');
-    parts.push('<p class="dce-col-rule-desc">' + escColHtml(ruleDesc) + '</p>');
+    parts.push('<code class="dce-col-rule-code">' + escColHtml(active.ruleExpr) + '</code></div>');
+    parts.push('<p class="dce-col-rule-desc">' + escColHtml(active.description) + '</p>');
     parts.push('</div>');
     parts.push('<div class="dce-col-offer-grid">');
     offers.forEach(function (o) {
@@ -924,7 +1118,99 @@
   var DCE_RULES_ON = {};
   var DCE_RULES_TOTAL = 30;
 
-  var DCE_RULES_DATA = window.DCE_PLAYGROUND_RULES_DATA || {};
+  var DCE_RULES_DATA = {
+    retail: {
+      rules: [
+        { title: 'VIP Customers Only', keepsLabel: 'keeps ~20%', logic: 'Profile · loyaltyTier IN ("Platinum", "Gold")', icon: '👑', keepRate: 0.2 },
+        { title: 'Cart Value > €80', keepsLabel: 'keeps ~50%', logic: 'Context · cart.value > 80', icon: '🛒', keepRate: 0.5 },
+        { title: 'Category Browsers', keepsLabel: 'keeps ~70%', logic: 'Event · browsedCategories CONTAINS "…"', icon: '🖥', keepRate: 0.7 },
+        { title: 'Repeat Purchasers', keepsLabel: 'keeps ~40%', logic: 'Computed · purchaseCount ≥ 3 in 90d', icon: '🔁', keepRate: 0.4 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan, 34 · Platinum', pass: [true, true, true, true] },
+        { initials: 'R', line: 'Riley, 27 · No tier', pass: [false, false, true, false] },
+        { initials: 'P', line: 'The Parkers · Silver', pass: [false, true, true, true] },
+      ],
+    },
+    media: {
+      rules: [
+        { title: 'Premium subscribers', keepsLabel: 'keeps ~22%', logic: 'Profile · subscriptionTier IN ("Premium", "Annual")', icon: '⭐', keepRate: 0.22 },
+        { title: 'High engagement viewers', keepsLabel: 'keeps ~48%', logic: 'Computed · watchHours30d ≥ 8', icon: '📺', keepRate: 0.48 },
+        { title: 'Genre affinity match', keepsLabel: 'keeps ~65%', logic: 'Profile · genreAffinity CONTAINS campaign.genre', icon: '🎬', keepRate: 0.65 },
+        { title: 'Win-back cohort', keepsLabel: 'keeps ~35%', logic: 'Segment · churnRisk90d = true', icon: '💌', keepRate: 0.35 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · Premium annual', pass: [true, true, true, false] },
+        { initials: 'R', line: 'Riley · Ad-supported tier', pass: [false, false, true, true] },
+        { initials: 'P', line: 'The Parkers · Family plan', pass: [true, true, false, false] },
+      ],
+    },
+    travel: {
+      rules: [
+        { title: 'Gold & Platinum tier', keepsLabel: 'keeps ~18%', logic: 'Profile · loyaltyTier IN ("Gold", "Platinum")', icon: '✈️', keepRate: 0.18 },
+        { title: 'Long-haul route', keepsLabel: 'keeps ~45%', logic: 'Context · haul = "long"', icon: '🌍', keepRate: 0.45 },
+        { title: 'Ancillary window open', keepsLabel: 'keeps ~72%', logic: 'Context · hoursToDeparture ≤ 48', icon: '⏱', keepRate: 0.72 },
+        { title: 'Repeat route bookers', keepsLabel: 'keeps ~38%', logic: 'Computed · segmentsFlown12m ≥ 3', icon: '🔁', keepRate: 0.38 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · Platinum · LHR→SFO', pass: [true, true, true, true] },
+        { initials: 'R', line: 'Riley · Member · short-haul', pass: [false, false, true, false] },
+        { initials: 'P', line: 'The Parkers · Silver · family', pass: [false, true, true, true] },
+      ],
+    },
+    fsi: {
+      rules: [
+        { title: 'Authenticated session', keepsLabel: 'keeps ~55%', logic: 'Context · channel IN ("mobile_bank", "web_auth")', icon: '🔐', keepRate: 0.55 },
+        { title: 'Wealth & invest intent', keepsLabel: 'keeps ~15%', logic: 'Profile · intentScore ≥ 0.75', icon: '📈', keepRate: 0.15 },
+        { title: 'Product eligible', keepsLabel: 'keeps ~60%', logic: 'Profile · regulatedProduct IN ("mortgage", "isa")', icon: '🏦', keepRate: 0.6 },
+        { title: 'Marketing consent', keepsLabel: 'keeps ~80%', logic: 'Consent · marketing = true', icon: '✉️', keepRate: 0.8 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · Logged-in · mortgage intent', pass: [true, true, true, true] },
+        { initials: 'R', line: 'Riley · Guest · browsing', pass: [false, false, false, false] },
+        { initials: 'P', line: 'The Parkers · ISA · opted in', pass: [true, false, true, true] },
+      ],
+    },
+    telco: {
+      rules: [
+        { title: 'Unlimited mobile plan', keepsLabel: 'keeps ~28%', logic: 'Profile · planType = "unlimited"', icon: '📱', keepRate: 0.28 },
+        { title: 'Fibre-addressable', keepsLabel: 'keeps ~52%', logic: 'Context · serviceability.fibre = true', icon: '🏠', keepRate: 0.52 },
+        { title: 'SMB account', keepsLabel: 'keeps ~12%', logic: 'Segment · accountType = "smb"', icon: '🏢', keepRate: 0.12 },
+        { title: 'Save / retention journey', keepsLabel: 'keeps ~33%', logic: 'Journey · stage IN ("save", "retention")', icon: '💌', keepRate: 0.33 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · Unlimited · fibre-ready', pass: [true, true, false, false] },
+        { initials: 'R', line: 'Riley · Prepaid · urban', pass: [false, true, false, true] },
+        { initials: 'P', line: 'The Parkers · SMB static IP', pass: [false, true, true, false] },
+      ],
+    },
+    automotive: {
+      rules: [
+        { title: 'EV hand-raiser', keepsLabel: 'keeps ~20%', logic: 'Profile · interestTags CONTAINS "EV"', icon: '🔌', keepRate: 0.2 },
+        { title: 'PCP retail eligible', keepsLabel: 'keeps ~45%', logic: 'Context · programme = "retail_pcp"', icon: '🚙', keepRate: 0.45 },
+        { title: 'Service due ≤ 90d', keepsLabel: 'keeps ~58%', logic: 'Vehicle · serviceDueDays ≤ 90', icon: '🛠', keepRate: 0.58 },
+        { title: 'Fleet / business', keepsLabel: 'keeps ~14%', logic: 'Segment · buyer = "fleet"', icon: '🚚', keepRate: 0.14 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · EV configure · PCP', pass: [true, true, true, false] },
+        { initials: 'R', line: 'Riley · First enquiry · cash', pass: [false, false, false, false] },
+        { initials: 'P', line: 'The Parkers · Workshop due · ICE', pass: [false, true, true, false] },
+      ],
+    },
+    healthcare: {
+      rules: [
+        { title: 'Benefits active', keepsLabel: 'keeps ~70%', logic: 'Coverage · status = "active"', icon: '🩺', keepRate: 0.7 },
+        { title: 'Virtual care eligible', keepsLabel: 'keeps ~40%', logic: 'Benefits · virtualVisitsRemaining > 0', icon: '💻', keepRate: 0.4 },
+        { title: 'Chronic programme', keepsLabel: 'keeps ~25%', logic: 'Programme · pathway IN ("diabetes", "heart")', icon: '🫀', keepRate: 0.25 },
+        { title: 'Employer-sponsored', keepsLabel: 'keeps ~35%', logic: 'Payer · type = "employer"', icon: '💼', keepRate: 0.35 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · PPO · diabetes CM', pass: [true, true, true, true] },
+        { initials: 'R', line: 'Riley · Gap coverage · ad-hoc', pass: [false, false, false, false] },
+        { initials: 'P', line: 'The Parkers · Employer HSA', pass: [true, true, false, true] },
+      ],
+    },
+  };
 
   function getRulesOnState(ind) {
     var a = DCE_RULES_ON[ind];
@@ -951,7 +1237,6 @@
   function dceRuleLogicLine(rd) {
     if (!rd) return '';
     if (rd.logic) return rd.logic;
-    if (rd.source && rd.condition) return rd.source + ' · ' + rd.condition;
     var parts = [];
     if (rd.source) parts.push(rd.source);
     if (rd.condition) parts.push(rd.condition);
@@ -979,7 +1264,6 @@
 
     var ind = getIndustry();
     var pack = DCE_RULES_DATA[ind] || DCE_RULES_DATA.retail;
-    if (!pack || !pack.rules || !pack.personas) return;
     var rules = pack.rules;
     var active = getRulesOnState(ind);
     var activeCount = active.filter(function (x) { return x; }).length;
@@ -1087,9 +1371,6 @@
           '<div class="dce-rules-persona-line">' +
           escColHtml(per.line) +
           '</div>' +
-          (per.detail
-            ? '<div class="dce-rules-persona-detail">' + escColHtml(per.detail) + '</div>'
-            : '') +
           '<ul class="dce-rules-checklist">' +
           checkParts.join('') +
           '</ul></div>' +
@@ -2381,7 +2662,6 @@
     applyCollectionsIndustry();
     applyRulesIndustry();
     applyJourneyIndustry();
-    if (typeof window.dceVizApplyItemsIndustry === 'function') window.dceVizApplyItemsIndustry();
   }
 
   function initIndustry() {
@@ -2405,12 +2685,8 @@
     bindCollectionsPills();
     bindRulesPanel();
     bindJourneyPanel();
-    if (typeof window.dceVizBindPlaygroundItemsStep === 'function') {
-      window.dceVizBindPlaygroundItemsStep(getIndustry);
-    } else {
-      window.dceVizApplyItemsIndustry = function () {};
-    }
     initIndustry();
+    bindChannelExplainer();
   } catch (err) {
     console.error('[decisioning-visualizer] init', err);
   }
