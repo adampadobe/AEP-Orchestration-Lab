@@ -19,6 +19,17 @@
   --dce-shadow: var(--dash-shadow);
 }
 
+/* Fill viewport below sidebar: banner keeps natural height; catalog card + results use remaining space */
+body.decisioning-catalog-page.home-dashboard-concierge:not(.home-page) .dashboard-main.profile-viewer-main {
+  display: flex;
+  flex-direction: column;
+  min-height: min(100dvh, 100vh);
+}
+
+body.decisioning-catalog-page .dashboard-hero.dashboard-hero--page-banner {
+  flex-shrink: 0;
+}
+
 /* Same horizontal bounds as `.dashboard-hero` — main already applies tool-page gutters in home.css */
 .decisioning-catalog-page .dce-catalog-layout {
   width: 100%;
@@ -26,6 +37,10 @@
   margin: 0;
   padding: 0 0 1.5rem;
   box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .decisioning-catalog-page .dce-catalog-surface {
@@ -39,6 +54,11 @@
   border-radius: var(--dce-radius);
   box-shadow: var(--dce-shadow);
   padding: 1.25rem clamp(1rem, 2.5vw, 1.35rem) 1.5rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
 }
 
 .decisioning-catalog-page .dce-catalog-surface label {
@@ -108,7 +128,9 @@
 
 .decisioning-catalog-page .dce-catalog-results-wrap {
   margin-top: 0.5rem;
-  overflow-x: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
   max-width: 100%;
 }
 
@@ -130,6 +152,7 @@
   gap: 0.5rem;
   align-items: center;
   margin-bottom: 0.75rem;
+  flex-shrink: 0;
 }
 
 .decisioning-catalog-page .cd-catalog-sandbox-row label {
@@ -151,6 +174,7 @@
   gap: 0;
   border-bottom: 2px solid var(--dce-border);
   margin-bottom: 0.85rem;
+  flex-shrink: 0;
 }
 
 .decisioning-catalog-page .cd-catalog-tab {
@@ -181,6 +205,7 @@
   border-radius: 8px;
   margin-bottom: 0.75rem;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .decisioning-catalog-page .cd-schema-config-summary {
@@ -240,6 +265,7 @@
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .decisioning-catalog-page .cd-catalog-count {
@@ -366,6 +392,10 @@
   margin: 0;
   padding: 0 0 2rem;
   box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .decisioning-catalog-page .dce-viz-section-intro {

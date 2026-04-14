@@ -24,7 +24,8 @@
     font-family: 'Outfit', sans-serif;
     background: var(--paper);
     color: var(--ink);
-    overflow-x: hidden;
+    /* overflow-x:hidden makes overflow-y compute to auto (CSS overflow pairing) and clips the industry dropdown */
+    overflow: visible;
     --dce-core-max: 1200px;
     --dce-core-pad-x: clamp(1rem, 2.5vw, 2rem);
   }
@@ -64,21 +65,53 @@
   #dceVizRoot.dce-viz-core .dce-core-container--tabnav {
     display: flex;
     align-items: stretch;
-    overflow-x: auto;
+    overflow: visible;
     gap: 0;
   }
 
-  #dceVizRoot.dce-viz-core .dce-core-tabnav-industry {
-    flex-shrink: 0;
+  /* Horizontal scroll only the tab buttons — industry dropdown must not be clipped (cf. EDP Shell tabRow) */
+  #dceVizRoot.dce-viz-core .dce-core-tabnav-scroll {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
     display: flex;
-    align-items: center;
-    padding: 0 12px 0 0;
-    margin-right: 4px;
-    border-right: 1px solid var(--line);
+    overflow-x: auto;
+    align-items: stretch;
+    -webkit-overflow-scrolling: touch;
   }
 
-  #dceVizRoot.dce-viz-core .dce-core-tabnav-industry .dce-pg-dropdown-wrap {
+  /* Industry picker — main content (below tab bar), right-aligned with label */
+  #dceVizRoot.dce-viz-core .dce-core-industry-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px 16px;
+    width: 100%;
+    margin-bottom: 28px;
+    position: relative;
+    z-index: 5;
+  }
+
+  #dceVizRoot.dce-viz-core .dce-core-industry-bar-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+
+  #dceVizRoot.dce-viz-core .dce-core-industry-bar-control {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  #dceVizRoot.dce-viz-core .dce-core-industry-bar .dce-pg-dropdown-wrap {
     margin-left: 0;
+  }
+
+  #dceVizRoot.dce-viz-core .dce-core-industry-bar .dce-pg-dropdown-menu {
+    z-index: 600;
   }
 
   #dceVizRoot.dce-viz-core .tab-btn {
@@ -659,6 +692,18 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  #dceVizRoot.dce-viz-core .exp-arm-header--control {
+    background: var(--paper-2);
+  }
+
+  #dceVizRoot.dce-viz-core .exp-arm-header--treatment {
+    background: color-mix(in srgb, #6b3fa0 10%, var(--paper));
+  }
+
+  html[data-aep-theme='dark'] #dceVizRoot.dce-viz-core .exp-arm-header--treatment {
+    background: color-mix(in srgb, #6b3fa0 26%, var(--paper));
   }
 
   #dceVizRoot.dce-viz-core .exp-arm-body { padding: 20px; background: var(--paper); }

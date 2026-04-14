@@ -37,6 +37,11 @@
   min-height: 0;
 }
 
+/* Ranking explorer root: base .dce-viz-scope uses overflow-x:hidden; paired overflow clips the industry dropdown */
+.decisioning-catalog-page #dceVizRoot.dce-viz-scope {
+  overflow: visible;
+}
+
   /* Playground-style shell (ajo-experience-decisioning-playground) */
   .decisioning-catalog-page .dce-viz-scope .dce-pg-header {
     position: sticky;
@@ -550,6 +555,15 @@
     z-index: 200;
     box-shadow: 0 2px 20px rgba(0,0,0,0.06);
     overflow-x: auto;
+  }
+
+  /* Ranking explorer: industry dropdown sits beside tabs — don’t clip the popover (scroll is on .dce-core-tabnav-scroll) */
+  .decisioning-catalog-page #dceVizRoot.dce-viz-core .tab-nav {
+    overflow: visible;
+  }
+
+  .decisioning-catalog-page #dceVizRoot.dce-viz-core .dce-core-industry-bar .dce-pg-dropdown-menu {
+    z-index: 600;
   }
 
   .decisioning-catalog-page .dce-viz-scope .tab-btn {
