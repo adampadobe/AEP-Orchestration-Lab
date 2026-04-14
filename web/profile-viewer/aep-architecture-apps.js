@@ -514,6 +514,82 @@
     }
     archStateHighlightsApply();
 
+    var LS_ARCH_EDIT = 'aepArchDiagramEditMode';
+    var LS_ARCH_DOCK = 'aepArchEditorDockRight';
+
+    function archEditorSetPanel(panelId) {
+      $all('.arch-editor-section').forEach(function (sec) {
+        var match = sec.getAttribute('data-arch-panel') === panelId;
+        sec.hidden = !match;
+        sec.classList.toggle('is-active', match);
+      });
+      $all('.arch-editor-rail-btn').forEach(function (btn) {
+        var match = btn.getAttribute('data-arch-panel') === panelId;
+        btn.classList.toggle('is-active', match);
+        btn.setAttribute('aria-pressed', match ? 'true' : 'false');
+      });
+    }
+
+    function archEditorApplyEditMode() {
+      var on = false;
+      try {
+        if (localStorage.getItem(LS_ARCH_EDIT) === '1') on = true;
+      } catch (e) {}
+      var tgl = qs('#archEditModeToggle');
+      if (tgl) tgl.checked = on;
+      var dock = qs('#archEditorDock');
+      if (dock) dock.hidden = !on;
+      if (archViewport) archViewport.classList.toggle('arch-int-viewport--edit-mode', on);
+    }
+
+    function archEditorApplyDock() {
+      var right = false;
+      try {
+        if (localStorage.getItem(LS_ARCH_DOCK) === '1') right = true;
+      } catch (e) {}
+      if (archViewport) archViewport.classList.toggle('arch-int-viewport--dock-right', right);
+      var dk = qs('#archDockSideToggle');
+      if (dk) {
+        dk.textContent = right ? '⇄ Left' : '⇄ Right';
+        dk.setAttribute('title', right ? 'Dock editor on the left' : 'Dock editor on the right');
+      }
+    }
+
+    archEditorApplyDock();
+    archEditorApplyEditMode();
+    archEditorSetPanel('layout');
+
+    var editModeTgl = qs('#archEditModeToggle');
+    if (editModeTgl) {
+      editModeTgl.addEventListener('change', function () {
+        try {
+          localStorage.setItem(LS_ARCH_EDIT, editModeTgl.checked ? '1' : '0');
+        } catch (e) {}
+        archEditorApplyEditMode();
+      });
+    }
+
+    var dockSideBtn = qs('#archDockSideToggle');
+    if (dockSideBtn) {
+      dockSideBtn.addEventListener('click', function () {
+        var right = !archViewport.classList.contains('arch-int-viewport--dock-right');
+        try {
+          localStorage.setItem(LS_ARCH_DOCK, right ? '1' : '0');
+        } catch (e) {}
+        archEditorApplyDock();
+      });
+    }
+
+    var editorRail = qs('.arch-editor-rail');
+    if (editorRail) {
+      editorRail.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest && e.target.closest('.arch-editor-rail-btn');
+        if (!btn) return;
+        var pid = btn.getAttribute('data-arch-panel');
+        if (pid) archEditorSetPanel(pid);
+      });
+    }
+
     applyState();
   }
 
@@ -2365,7 +2441,7 @@
   function archCustomBoxDrawPointerDownCapture(e) {
     if (!customBoxDrawMode || !archDrag.svg) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
-    if (e.target && e.target.closest && e.target.closest('.arch-int-hud')) return;
+    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
     e.preventDefault();
     e.stopPropagation();
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
@@ -2784,7 +2860,7 @@
       return;
     }
     if (e.button !== 0 && e.pointerType === 'mouse') return;
-    if (e.target && e.target.closest && e.target.closest('.arch-int-hud')) return;
+    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-user-line')) {
       userLines.selectedId = e.target.getAttribute('data-user-line-id');
       archCustomBoxSelectedId = null;

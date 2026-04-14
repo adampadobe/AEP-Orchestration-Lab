@@ -1,8 +1,10 @@
 /* Full-viewport interactive architecture — vanilla JS state machine */
 
 .arch-int-page {
-  --arch-hud-h: 52px;
   --arch-banner-gap: 0.75rem;
+  --arch-editor-rail-w: 2.5rem;
+  --arch-editor-panel-min-w: 14.5rem;
+  --arch-editor-panel-max-w: 22rem;
 }
 
 .arch-int-page .dashboard-main {
@@ -73,6 +75,150 @@
   max-width: 72ch;
 }
 
+.arch-int-viewport-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 0;
+  min-width: 0;
+}
+
+.arch-int-main-column {
+  order: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.arch-int-compact-bar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.45rem 0.65rem;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid var(--dash-border, #e4e6eb);
+  backdrop-filter: blur(6px);
+}
+
+.arch-int-compact-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.arch-int-compact-titles {
+  min-width: 0;
+}
+
+.arch-int-compact-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.arch-dock-flip-btn {
+  font-size: 0.68rem !important;
+  padding: 0.2rem 0.45rem !important;
+  line-height: 1.2;
+}
+
+.arch-int-compact-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
+.arch-editor-dock {
+  order: -1;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  align-items: stretch;
+  max-width: calc(var(--arch-editor-rail-w) + var(--arch-editor-panel-max-w));
+  background: rgba(255, 255, 255, 0.97);
+  border-inline-end: 1px solid var(--dash-border, #e4e6eb);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.arch-int-viewport--dock-right .arch-editor-dock {
+  order: 1;
+  border-inline-end: none;
+  border-inline-start: 1px solid var(--dash-border, #e4e6eb);
+}
+
+.arch-editor-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.4rem 0.25rem;
+  width: var(--arch-editor-rail-w);
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-inline-end: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.arch-editor-rail-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 2.25rem;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: #ffffff;
+  cursor: pointer;
+  color: var(--dash-muted, #6b7280);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.arch-editor-rail-btn:hover {
+  background: #f1f5f9;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.arch-editor-rail-btn.is-active {
+  background: #e0f2fe;
+  border-color: #1473e6;
+  color: #0c4a6e;
+}
+
+.arch-editor-rail-glyph {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.arch-editor-panel-heading {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--dash-text, #1a1d21);
+}
+
+.arch-editor-section {
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.arch-editor-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
 .arch-int-svg-wrap {
   flex: 1;
   min-height: 0;
@@ -138,17 +284,22 @@
   }
 }
 
-/* HUD — flex sibling so it does not cover the SVG */
-.arch-int-hud {
-  flex-shrink: 0;
+/* Editor side panel — scrollable tool stack */
+.arch-editor-panel.arch-int-hud {
+  flex: 1;
+  min-width: var(--arch-editor-panel-min-w);
+  max-width: var(--arch-editor-panel-max-w);
+  min-height: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  padding: 0.5rem 0.75rem;
-  background: rgba(255, 255, 255, 0.92);
-  border-top: 1px solid var(--dash-border, #e4e6eb);
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  padding: 0.5rem 0.65rem 0.65rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(6px);
 }
 
@@ -166,7 +317,7 @@
 }
 
 .arch-int-hud-view {
-  flex-basis: 100%;
+  width: 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -175,7 +326,8 @@
 
 .arch-highlight-picker-wrap,
 .arch-sources-dividers-wrap {
-  flex-basis: 100%;
+  width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--dash-border, #e4e6eb);
   border-radius: 8px;
   padding: 0.35rem 0.5rem;
@@ -515,11 +667,24 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 0.75rem;
-  padding: 0.35rem 0.75rem;
-  margin: 0 0.75rem 0.5rem;
+  padding: 0.35rem 0.5rem;
+  margin: 0.35rem 0 0;
+  width: 100%;
+  box-sizing: border-box;
   background: rgba(20, 115, 230, 0.06);
   border-radius: 8px;
   border: 1px solid rgba(20, 115, 230, 0.2);
+}
+
+.arch-int-hud-file-tools {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.arch-int-hud-file-tools .dashboard-btn-outline,
+.arch-int-hud-file-tools .arch-master-import-label {
+  justify-content: center;
+  text-align: center;
 }
 
 .arch-master-import-label {
@@ -572,9 +737,38 @@ html[data-aep-theme='dark'] .arch-int-state-body {
   color: rgba(226, 232, 240, 0.88);
 }
 
-html[data-aep-theme='dark'] .arch-int-hud {
-  background: rgba(30, 34, 40, 0.95);
-  border-top-color: var(--dash-border);
+html[data-aep-theme='dark'] .arch-int-compact-bar {
+  background: rgba(30, 34, 40, 0.92);
+  border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] .arch-editor-dock {
+  background: rgba(26, 30, 36, 0.98);
+  border-inline-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] .arch-editor-panel.arch-int-hud {
+  background: rgba(26, 30, 36, 0.98);
+}
+
+html[data-aep-theme='dark'] .arch-editor-rail {
+  background: linear-gradient(180deg, #1e2228 0%, #252a32 100%);
+  border-inline-end-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] .arch-editor-rail-btn {
+  background: #2a3038;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+html[data-aep-theme='dark'] .arch-editor-rail-btn:hover {
+  background: #323842;
+}
+
+html[data-aep-theme='dark'] .arch-editor-rail-btn.is-active {
+  background: rgba(20, 115, 230, 0.25);
+  border-color: #1473e6;
+  color: #e0f2fe;
 }
 
 .dashboard-topbar-brand {

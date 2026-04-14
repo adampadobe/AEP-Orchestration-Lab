@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260513">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260514">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -54,7 +54,31 @@
               Collects, standardizes, governs, applies AI insights to, and unifies data to power thoughtful and relevant customer experiences.
             </p>
           </div>
-          <div class="arch-int-svg-wrap">
+          <div class="arch-int-viewport-body">
+            <div class="arch-int-main-column">
+              <div class="arch-int-compact-bar arch-diagram-ui">
+                <div class="arch-int-compact-top">
+                  <div class="arch-int-compact-titles">
+                    <div id="archIntHudTitle" class="arch-int-hud-title">1 — Platform frame</div>
+                    <div id="archIntHudMeta" class="arch-int-hud-meta">State 1 / 16</div>
+                  </div>
+                  <div class="arch-int-compact-edit">
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archEditModeToggle"/>
+                      <span>Edit diagram</span>
+                    </label>
+                    <button type="button" class="dashboard-btn-outline arch-dock-flip-btn" id="archDockSideToggle" title="Dock editor on the right">⇄ Right</button>
+                  </div>
+                </div>
+                <div class="arch-int-compact-nav">
+                  <div class="arch-int-dots" id="archIntDots" role="tablist" aria-label="Diagram state"></div>
+                  <div class="arch-int-hud-nav">
+                    <button type="button" class="dashboard-btn-outline" id="archIntPrev">Previous</button>
+                    <button type="button" class="dashboard-btn-outline" id="archIntNext">Next</button>
+                  </div>
+                </div>
+              </div>
+              <div class="arch-int-svg-wrap">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" preserveAspectRatio="xMidYMid meet">
             <defs>
               <marker id="archUserArrowEnd" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
@@ -341,108 +365,123 @@
             <g id="layer-drag-guides" class="arch-drag-guides-layer" fill="none" pointer-events="none" aria-hidden="true"/>
           </svg>
           </div>
+            </div>
 
-          <div class="arch-int-hud">
-            <div>
-              <div id="archIntHudTitle" class="arch-int-hud-title">1 — Platform frame</div>
-              <div id="archIntHudMeta" class="arch-int-hud-meta">State 1 / 16</div>
-            </div>
-            <div class="arch-int-dots" id="archIntDots" role="tablist" aria-label="Diagram state"></div>
-            <div class="arch-int-hud-view" aria-label="Diagram view">
-              <label class="arch-drag-toggle">
-                <input type="checkbox" id="archStateHighlightsToggle" checked/>
-                <span>Highlight boxes for current state</span>
-              </label>
-            </div>
-            <details class="arch-highlight-picker-wrap" id="archHighlightPickerWrap">
-              <summary class="arch-highlight-picker-summary">Which boxes are highlighted in this state</summary>
-              <p class="arch-highlight-picker-help">Choose boxes for <strong>state <span id="archHighlightStateNum">1</span></strong> (saved in this browser; included in Download JSON).</p>
-              <div id="archHighlightPicker" class="arch-highlight-picker" role="group" aria-label="Boxes to highlight for the current diagram state"></div>
-              <div class="arch-highlight-picker-actions">
-                <button type="button" class="dashboard-btn-outline" id="archHighlightResetState" title="Use Adobe default highlights for this state only">Reset this state to Adobe default</button>
+            <aside class="arch-editor-dock arch-diagram-ui" id="archEditorDock" hidden>
+              <div class="arch-editor-rail" role="tablist" aria-label="Diagram editor tools">
+                <button type="button" class="arch-editor-rail-btn is-active" data-arch-panel="layout" id="archEditorRailLayout" title="Layout tools" aria-pressed="true"><span class="arch-editor-rail-glyph" aria-hidden="true">L</span></button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="highlights" id="archEditorRailHighlights" title="Highlights" aria-pressed="false"><span class="arch-editor-rail-glyph" aria-hidden="true">H</span></button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="sources" id="archEditorRailSources" title="Sources dividers" aria-pressed="false"><span class="arch-editor-rail-glyph" aria-hidden="true">S</span></button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="file" id="archEditorRailFile" title="Save and import" aria-pressed="false"><span class="arch-editor-rail-glyph" aria-hidden="true">F</span></button>
               </div>
-            </details>
-            <details class="arch-sources-dividers-wrap" id="archSourcesDividersWrap">
-              <summary class="arch-highlight-picker-summary">Sources column divider lines</summary>
-              <p class="arch-highlight-picker-help">
-                Horizontal rules between the SDK block and the category rows. Adjust left/right ends to change length; duplicate or remove lines. Saved with layout / JSON.
-              </p>
-              <div id="archSourcesDividersList" class="arch-sources-dividers-list" role="group" aria-label="Sources divider lines"></div>
-              <button type="button" class="dashboard-btn-outline" id="archSourcesDividerAdd">Add divider line</button>
-            </details>
-            <div class="arch-int-hud-tools" aria-label="Diagram layout">
-              <label class="arch-drag-toggle">
-                <input type="checkbox" id="archDragToggle"/>
-                <span>Drag &amp; resize boxes</span>
-              </label>
-              <label class="arch-drag-toggle">
-                <input type="checkbox" id="archLabelToggle"/>
-                <span>Move &amp; edit labels</span>
-              </label>
-              <label class="arch-drag-toggle">
-                <input type="checkbox" id="archUserLineDrawToggle"/>
-                <span>Draw connectors</span>
-              </label>
-              <label class="arch-drag-toggle">
-                <input type="checkbox" id="archCustomBoxDrawToggle"/>
-                <span>Draw custom boxes</span>
-              </label>
-              <span class="arch-int-hud-hint" title="Within ~36px of a box, endpoints snap to that box edge and stay attached when you move or resize the box">Snap to boxes</span>
-              <label class="arch-hud-label">
-                New line color
-                <select id="archUserLineStrokePreset" title="Stroke for next connector" aria-label="Default stroke color for new connectors">
-                  <option value="#308fff">Ingress (blue)</option>
-                  <option value="#7d8a9e">Intra (gray)</option>
-                  <option value="#e34850">Egress (red)</option>
-                  <option value="#111827">Dark</option>
-                  <option value="#059669">Green</option>
-                  <option value="#d97706">Amber</option>
-                  <option value="#7c3aed">Violet</option>
-                </select>
-              </label>
-              <button type="button" class="dashboard-btn-outline" id="archMasterSave" title="Store current diagram as the default for this browser">Save as master layout</button>
-              <button type="button" class="dashboard-btn-outline" id="archMasterDownload" title="Download layout JSON">Download JSON</button>
-              <label class="dashboard-btn-outline arch-master-import-label">
-                Import JSON
-                <input type="file" id="archMasterImport" accept="application/json,.json" class="visually-hidden"/>
-              </label>
-              <button type="button" class="dashboard-btn-outline arch-drag-reset" id="archDragReset" title="Reset positions, labels, and custom lines to Adobe defaults">Restore Adobe defaults</button>
-            </div>
-            <div id="archUserLineProps" class="arch-user-line-props" hidden aria-label="Selected connector">
-              <span class="arch-hud-label">Selected line</span>
-              <label class="arch-hud-label">Color
-                <select id="archUserLineColorSel" aria-label="Selected line color"></select>
-              </label>
-              <label class="arch-drag-toggle">
-                <input type="checkbox" id="archUserLineBidir"/>
-                <span>Bidirectional</span>
-              </label>
-              <button type="button" class="dashboard-btn-outline" id="archUserLineDelete" title="Remove this connector">Delete line</button>
-            </div>
-            <div id="archCustomBoxProps" class="arch-user-line-props arch-custom-box-props" hidden aria-label="Selected custom box">
-              <span class="arch-hud-label">Custom box</span>
-              <label class="arch-hud-label">Name
-                <input type="text" id="archCustomBoxNameInput" class="arch-custom-box-name-input" maxlength="120" autocomplete="off" aria-label="Custom box name"/>
-              </label>
-              <label class="arch-hud-label">Fill
-                <input type="color" id="archCustomBoxFillInput" value="#e5e7eb" aria-label="Custom box fill color"/>
-              </label>
-              <label class="arch-hud-label">Outline
-                <input type="color" id="archCustomBoxStrokeInput" value="#94a3b8" aria-label="Custom box outline color"/>
-              </label>
-              <span class="arch-hud-label arch-custom-box-text-size-row">
-                Label size
-                <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextSmaller" title="Decrease label text size" aria-label="Decrease label text size">−</button>
-                <span id="archCustomBoxFontSizeDisplay" class="arch-custom-box-font-size-display" aria-live="polite">8.5</span>
-                <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextLarger" title="Increase label text size" aria-label="Increase label text size">+</button>
-              </span>
-              <p class="arch-custom-box-text-size-hint">Click the label on the diagram, then use − or +.</p>
-              <button type="button" class="dashboard-btn-outline" id="archCustomBoxDelete" title="Remove this box">Delete box</button>
-            </div>
-            <div class="arch-int-hud-nav">
-              <button type="button" class="dashboard-btn-outline" id="archIntPrev">Previous</button>
-              <button type="button" class="dashboard-btn-outline" id="archIntNext">Next</button>
-            </div>
+              <div class="arch-editor-panel arch-int-hud" id="archEditorPanel">
+                <div class="arch-editor-section is-active" data-arch-panel="layout" id="archEditorSectionLayout" role="tabpanel" aria-labelledby="archEditorRailLayout">
+                  <p class="arch-editor-panel-heading">Layout &amp; drawing</p>
+                  <div class="arch-int-hud-tools" aria-label="Diagram layout">
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archDragToggle"/>
+                      <span>Drag &amp; resize boxes</span>
+                    </label>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archLabelToggle"/>
+                      <span>Move &amp; edit labels</span>
+                    </label>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archUserLineDrawToggle"/>
+                      <span>Draw connectors</span>
+                    </label>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archCustomBoxDrawToggle"/>
+                      <span>Draw custom boxes</span>
+                    </label>
+                    <span class="arch-int-hud-hint" title="Within ~36px of a box, endpoints snap to that box edge and stay attached when you move or resize the box">Snap to boxes</span>
+                    <label class="arch-hud-label">
+                      New line color
+                      <select id="archUserLineStrokePreset" title="Stroke for next connector" aria-label="Default stroke color for new connectors">
+                        <option value="#308fff">Ingress (blue)</option>
+                        <option value="#7d8a9e">Intra (gray)</option>
+                        <option value="#e34850">Egress (red)</option>
+                        <option value="#111827">Dark</option>
+                        <option value="#059669">Green</option>
+                        <option value="#d97706">Amber</option>
+                        <option value="#7c3aed">Violet</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div id="archUserLineProps" class="arch-user-line-props" hidden aria-label="Selected connector">
+                    <span class="arch-hud-label">Selected line</span>
+                    <label class="arch-hud-label">Color
+                      <select id="archUserLineColorSel" aria-label="Selected line color"></select>
+                    </label>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archUserLineBidir"/>
+                      <span>Bidirectional</span>
+                    </label>
+                    <button type="button" class="dashboard-btn-outline" id="archUserLineDelete" title="Remove this connector">Delete line</button>
+                  </div>
+                  <div id="archCustomBoxProps" class="arch-user-line-props arch-custom-box-props" hidden aria-label="Selected custom box">
+                    <span class="arch-hud-label">Custom box</span>
+                    <label class="arch-hud-label">Name
+                      <input type="text" id="archCustomBoxNameInput" class="arch-custom-box-name-input" maxlength="120" autocomplete="off" aria-label="Custom box name"/>
+                    </label>
+                    <label class="arch-hud-label">Fill
+                      <input type="color" id="archCustomBoxFillInput" value="#e5e7eb" aria-label="Custom box fill color"/>
+                    </label>
+                    <label class="arch-hud-label">Outline
+                      <input type="color" id="archCustomBoxStrokeInput" value="#94a3b8" aria-label="Custom box outline color"/>
+                    </label>
+                    <span class="arch-hud-label arch-custom-box-text-size-row">
+                      Label size
+                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextSmaller" title="Decrease label text size" aria-label="Decrease label text size">−</button>
+                      <span id="archCustomBoxFontSizeDisplay" class="arch-custom-box-font-size-display" aria-live="polite">8.5</span>
+                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextLarger" title="Increase label text size" aria-label="Increase label text size">+</button>
+                    </span>
+                    <p class="arch-custom-box-text-size-hint">Click the label on the diagram, then use − or +.</p>
+                    <button type="button" class="dashboard-btn-outline" id="archCustomBoxDelete" title="Remove this box">Delete box</button>
+                  </div>
+                </div>
+                <div class="arch-editor-section" data-arch-panel="highlights" id="archEditorSectionHighlights" role="tabpanel" aria-labelledby="archEditorRailHighlights" hidden>
+                  <p class="arch-editor-panel-heading">Highlights</p>
+                  <div class="arch-int-hud-view" aria-label="Diagram view">
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archStateHighlightsToggle" checked/>
+                      <span>Highlight boxes for current state</span>
+                    </label>
+                  </div>
+                  <details class="arch-highlight-picker-wrap" id="archHighlightPickerWrap">
+                    <summary class="arch-highlight-picker-summary">Which boxes are highlighted in this state</summary>
+                    <p class="arch-highlight-picker-help">Choose boxes for <strong>state <span id="archHighlightStateNum">1</span></strong> (saved in this browser; included in Download JSON).</p>
+                    <div id="archHighlightPicker" class="arch-highlight-picker" role="group" aria-label="Boxes to highlight for the current diagram state"></div>
+                    <div class="arch-highlight-picker-actions">
+                      <button type="button" class="dashboard-btn-outline" id="archHighlightResetState" title="Use Adobe default highlights for this state only">Reset this state to Adobe default</button>
+                    </div>
+                  </details>
+                </div>
+                <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
+                  <p class="arch-editor-panel-heading">Sources column</p>
+                  <details class="arch-sources-dividers-wrap" id="archSourcesDividersWrap">
+                    <summary class="arch-highlight-picker-summary">Sources column divider lines</summary>
+                    <p class="arch-highlight-picker-help">
+                      Horizontal rules between the SDK block and the category rows. Adjust left/right ends to change length; duplicate or remove lines. Saved with layout / JSON.
+                    </p>
+                    <div id="archSourcesDividersList" class="arch-sources-dividers-list" role="group" aria-label="Sources divider lines"></div>
+                    <button type="button" class="dashboard-btn-outline" id="archSourcesDividerAdd">Add divider line</button>
+                  </details>
+                </div>
+                <div class="arch-editor-section" data-arch-panel="file" id="archEditorSectionFile" role="tabpanel" aria-labelledby="archEditorRailFile" hidden>
+                  <p class="arch-editor-panel-heading">Layout file</p>
+                  <div class="arch-int-hud-tools arch-int-hud-file-tools" aria-label="Save and restore layout">
+                    <button type="button" class="dashboard-btn-outline" id="archMasterSave" title="Store current diagram as the default for this browser">Save as master layout</button>
+                    <button type="button" class="dashboard-btn-outline" id="archMasterDownload" title="Download layout JSON">Download JSON</button>
+                    <label class="dashboard-btn-outline arch-master-import-label">
+                      Import JSON
+                      <input type="file" id="archMasterImport" accept="application/json,.json" class="visually-hidden"/>
+                    </label>
+                    <button type="button" class="dashboard-btn-outline arch-drag-reset" id="archDragReset" title="Reset positions, labels, and custom lines to Adobe defaults">Restore Adobe defaults</button>
+                  </div>
+                </div>
+              </div>
+            </aside>
           </div>
         </section>
 
@@ -473,6 +512,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260513"></script>
-  <script defer src="aep-architecture-apps.js?v=20260513"></script>
+  <script defer src="aep-architecture-apps.js?v=20260514"></script>
 </body>
 </html>
