@@ -3,7 +3,7 @@
  * Industry context: media (default), travel, retail, FSI, telco, automotive, or healthcare (examples + copy).
  *
  * Flow aligns with github.com/alexmtmr/experience-decisioning-playground (React): Start → Schema → Items →
- * Collections → Rules → Ranking … — we map Items to panel id `channels` (delivery / decision items).
+ * Collections → Rules → Journey → Ranking … — we map Items to panel id `channels` (delivery / decision items).
  * Extra steps: Priority, AI, Experimentation. Customer “Show for customer” toggles subset visibility.
  */
 (function () {
@@ -12,7 +12,7 @@
   var LS_INDUSTRY = 'dceVizIndustry';
   var LS_CUSTOMER_STEPS = 'dceVizCustomerSteps';
 
-  var DCE_PANEL_ORDER = ['overview', 'schema', 'channels', 'collections', 'rules', 'priority', 'formula', 'ai', 'experiment'];
+  var DCE_PANEL_ORDER = ['overview', 'schema', 'channels', 'collections', 'rules', 'journey', 'priority', 'formula', 'ai', 'experiment'];
 
   var INDUSTRY_LABEL_UI = {
     media: 'Media & entertainment',
@@ -1403,6 +1403,332 @@
     renderRulesPanel();
   }
 
+  /** Journey arbitration — signals weight competing journey candidates (demo scoring). */
+  var DCE_JOURNEY_ON = {};
+
+  var DCE_JOURNEY_DATA = {
+    media: {
+      profile: { initials: 'AC', name: 'Alex Chen', meta: 'Premium annual · San Francisco · Age 29' },
+      formula: 'score = Σ (signal_weight × journey_fit) + base_journey_value',
+      signals: [
+        { title: 'Binge weekend streak?', desc: '12h watched · Fri–Sun', icon: '📺', defaultOn: true, boost: [0.28, 0.06, 0.1, 0.14, 0.04] },
+        { title: 'Drama genre affinity', desc: 'Top genre 90d = drama', icon: '🎬', defaultOn: true, boost: [0.22, 0.05, 0.04, 0.2, 0.03] },
+        { title: 'Kids profile active', desc: 'Family plan · parental controls on', icon: '👨‍👩‍👧', defaultOn: false, boost: [0.04, 0.06, 0.02, 0.08, 0.32] },
+        { title: 'Ad-supported tier', desc: 'Upgrade window open', icon: '📣', defaultOn: false, boost: [0.18, 0.24, 0.26, 0.05, 0.02] },
+        { title: 'High churn risk', desc: 'Login drop · competitor promo seen', icon: '⚠️', defaultOn: false, boost: [0.05, 0.38, 0.04, 0.06, 0.02] },
+      ],
+      journeys: [
+        { title: 'Upgrade & save', subtitle: 'Annual plan · drama bundle', pill: 'Drama fit +22%', base: 0.72, valueNote: '+0.9 ARPU lift' },
+        { title: 'Win-back offer', subtitle: 'Discounted comeback window', pill: 'Churn save +35%', base: 0.55, valueNote: '+0.5 save rate' },
+        { title: 'Trial conversion', subtitle: 'Extended trial · card on file', pill: 'Trial +18%', base: 0.58, valueNote: '+0.6 activation' },
+        { title: 'Content discovery', subtitle: 'Hero rails · continue watching', pill: 'Engage +12%', base: 0.5, valueNote: '+0.3 hours' },
+        { title: 'Family plan pitch', subtitle: 'Add-on seats · kids profile', pill: 'Family +30%', base: 0.48, valueNote: '+0.4 attach' },
+      ],
+      policy: { title: 'Reached push frequency', desc: 'Daily cap hit (3/3) — email fallback only.', warn: true },
+    },
+    travel: {
+      profile: { initials: 'JM', name: 'Jordan Miles', meta: 'Gold · London hub · Age 41' },
+      formula: 'score = Σ (signal_weight × journey_fit) + base_route_value',
+      signals: [
+        { title: 'Upcoming long-haul?', desc: 'LHR → SFO in 9d · wide-body', icon: '✈️', defaultOn: true, boost: [0.32, 0.06, 0.12, 0.05, 0.08] },
+        { title: 'Seat not selected', desc: 'Party of 2 · exit row eligible', icon: '💺', defaultOn: true, boost: [0.26, 0.04, 0.08, 0.14, 0.03] },
+        { title: 'Lounge eligible', desc: 'Gold + long-haul', icon: '🛋', defaultOn: false, boost: [0.14, 0.05, 0.28, 0.2, 0.04] },
+        { title: 'Family trip', desc: 'Child traveller on PNR', icon: '👪', defaultOn: false, boost: [0.08, 0.22, 0.06, 0.18, 0.1] },
+        { title: 'Price-sensitive search', desc: 'Compared 6 fares · 48h', icon: '🔍', defaultOn: false, boost: [0.05, 0.28, 0.04, 0.06, 0.24] },
+      ],
+      journeys: [
+        { title: 'Long-haul ancillaries', subtitle: 'Bags · seats · Wi‑Fi', pill: 'Route +28%', base: 0.74, valueNote: '+£42 ancillary' },
+        { title: 'Short-haul bundles', subtitle: 'City breaks · saver stack', pill: 'Leisure +15%', base: 0.62, valueNote: '+£18 bundle' },
+        { title: 'Loyalty accelerator', subtitle: 'Tier miles · status boost', pill: 'Gold +20%', base: 0.58, valueNote: '+3k miles' },
+        { title: 'Airport retail & parking', subtitle: 'Partner earn', pill: 'Airport +10%', base: 0.45, valueNote: '+£6 retail' },
+        { title: 'Partner earn push', subtitle: 'Hotels · car · experiences', pill: 'Partner +8%', base: 0.42, valueNote: '+£4 partner' },
+      ],
+      policy: { title: 'Contact policy — SMS', desc: 'Transactional only until opt-in marketing.', warn: false },
+    },
+    retail: {
+      profile: { initials: 'ML', name: 'Morgan Lee', meta: 'Platinum · Manchester · Age 32' },
+      formula: 'score = Σ (signal_weight × journey_fit) + base_offer_value',
+      signals: [
+        { title: 'High-intent cart abandon?', desc: '£120 basket · 2h ago', icon: '🛒', defaultOn: true, boost: [0.34, 0.05, 0.22, 0.08, 0.06] },
+        { title: 'Loyalty Platinum', desc: '12-mo rolling · early access', icon: '👑', defaultOn: true, boost: [0.12, 0.3, 0.06, 0.14, 0.05] },
+        { title: 'Mobile-first sessions', desc: '78% traffic on app', icon: '📱', defaultOn: false, boost: [0.2, 0.08, 0.04, 0.18, 0.1] },
+        { title: 'Seasonal campaign match', desc: 'Outerwear browse spike', icon: '🧥', defaultOn: false, boost: [0.06, 0.1, 0.26, 0.2, 0.08] },
+        { title: 'Click & collect pending', desc: 'Order ready — not collected', icon: '📦', defaultOn: false, boost: [0.24, 0.04, 0.08, 0.06, 0.12] },
+      ],
+      journeys: [
+        { title: 'Express checkout recovery', subtitle: 'Free delivery · one tap', pill: 'Cart +32%', base: 0.7, valueNote: '+18% recover' },
+        { title: 'Loyalty rewards lane', subtitle: 'Points burn · tier gift', pill: 'Tier +25%', base: 0.64, valueNote: '+£12 margin' },
+        { title: 'Markdown & clearance', subtitle: 'Matched category sale', pill: 'Promo +20%', base: 0.52, valueNote: '+9% attach' },
+        { title: 'Upsell attach path', subtitle: 'Care · warranty · bundle', pill: 'Attach +14%', base: 0.5, valueNote: '+£8 AOV' },
+        { title: 'Brand stories & editorial', subtitle: 'Inspire · discover', pill: 'Engage +10%', base: 0.44, valueNote: '+0.4 pages' },
+      ],
+      policy: { title: 'Email frequency cap', desc: 'Promo weekly limit reached — app only.', warn: true },
+    },
+    fsi: {
+      profile: { initials: 'SR', name: 'Sarah Reynolds', meta: 'Gold tier · London, UK · Age 34' },
+      formula: 'score = Σ (attribute_weights × journey_fit) + base_journey_value',
+      signals: [
+        { title: 'Reduce my mortgage?', desc: 'Rate lock expiring · £320k outstanding', icon: '🏠', defaultOn: true, boost: [0.48, 0.04, 0.02, 0.06, 0.1] },
+        { title: 'Checked refinance rates', desc: 'Viewed calculator 2h ago', icon: '📊', defaultOn: true, boost: [0.4, 0.08, 0.05, 0.04, 0.06] },
+        { title: 'Improve my rewards?', desc: '£3.2k/mo spend · standard card', icon: '💳', defaultOn: false, boost: [0.05, 0.12, 0.42, 0.06, 0.08] },
+        { title: 'Grow my savings?', desc: 'ISA eligible · idle cash', icon: '🌱', defaultOn: false, boost: [0.04, 0.38, 0.06, 0.14, 0.05] },
+        { title: 'High churn risk', desc: 'Competitor offer detected', icon: '⚠️', defaultOn: false, boost: [0.06, 0.05, 0.08, 0.06, 0.36] },
+      ],
+      journeys: [
+        { title: 'Mortgage refinance', subtitle: 'Highest margin · rate lock window', pill: 'Refi +40%', base: 0.68, valueNote: '+1.5 margin score' },
+        { title: 'Investment advisory', subtitle: 'Wealth · ISA products', pill: 'Wealth +22%', base: 0.62, valueNote: '+1.1 margin score' },
+        { title: 'Credit card upgrade', subtitle: 'Rewards · fee tier', pill: 'Spend +18%', base: 0.55, valueNote: '+0.7 interchange' },
+        { title: 'Insurance cross-sell', subtitle: 'Home · life wrap', pill: 'Cover +12%', base: 0.48, valueNote: '+0.5 premium' },
+        { title: 'Retention & loyalty', subtitle: 'Save offer · service bundle', pill: 'Save +35%', base: 0.45, valueNote: '+0.4 NPS' },
+      ],
+      policy: { title: 'Reached email contact frequency', desc: 'Weekly cap hit (3/3) — cooldown active.', warn: true },
+    },
+    telco: {
+      profile: { initials: 'SO', name: 'Sam Okonkwo', meta: 'Unlimited mobile · Fibre-ready · Age 28' },
+      formula: 'score = Σ (signal_weight × journey_fit) + base_programme_value',
+      signals: [
+        { title: 'High data usage', desc: 'Near unlimited cap · video heavy', icon: '📶', defaultOn: true, boost: [0.14, 0.08, 0.28, 0.06, 0.1] },
+        { title: 'Fibre addressable', desc: 'FTTP live on postcode', icon: '🏠', defaultOn: true, boost: [0.38, 0.06, 0.12, 0.05, 0.04] },
+        { title: 'Contract end window', desc: '≤ 60 days · save risk', icon: '⏱', defaultOn: false, boost: [0.06, 0.42, 0.1, 0.08, 0.12] },
+        { title: 'Multi-line household', desc: '3 lines · family plan', icon: '👪', defaultOn: false, boost: [0.1, 0.06, 0.18, 0.22, 0.06] },
+        { title: 'Open care case', desc: 'Bill dispute · NPS follow-up', icon: '🎧', defaultOn: false, boost: [0.04, 0.36, 0.08, 0.1, 0.14] },
+      ],
+      journeys: [
+        { title: 'Fibre upgrade', subtitle: '1Gb install · self-setup', pill: 'ARPU +24%', base: 0.72, valueNote: '+£18 MRR' },
+        { title: 'Mobile save / retention', subtitle: 'Loyalty discount · add-ons', pill: 'Save path +32%', base: 0.58, valueNote: '+0.6 save rate' },
+        { title: 'Device trade-in', subtitle: 'Early upgrade · recycle', pill: 'Hardware +15%', base: 0.54, valueNote: '+£9 attach' },
+        { title: 'SMB static IP', subtitle: 'Business line · SLA', pill: 'B2B +20%', base: 0.46, valueNote: '+£25 ARPU' },
+        { title: 'Roaming & travel pack', subtitle: 'Trip add-on', pill: 'Roaming +10%', base: 0.44, valueNote: '+£6 pack' },
+      ],
+      policy: { title: 'Marketing consent', desc: 'SMS promos off — in-app only.', warn: false },
+    },
+    automotive: {
+      profile: { initials: 'CT', name: 'Chris Taylor', meta: 'EV configure · PCP eligible · Age 36' },
+      formula: 'score = Σ (signal_weight × journey_fit) + base_programme_value',
+      signals: [
+        { title: 'EV hand-raiser', desc: 'Config saved · test drive open', icon: '🔌', defaultOn: true, boost: [0.4, 0.1, 0.06, 0.14, 0.05] },
+        { title: 'PCP quote started', desc: 'Deposit line not completed', icon: '🚙', defaultOn: true, boost: [0.12, 0.42, 0.08, 0.16, 0.04] },
+        { title: 'Service due ≤ 90d', desc: 'MOT + brake check', icon: '🛠', defaultOn: false, boost: [0.06, 0.08, 0.44, 0.12, 0.05] },
+        { title: 'Fleet / business buyer', desc: 'VAT reg on file', icon: '🏢', defaultOn: false, boost: [0.05, 0.14, 0.06, 0.38, 0.22] },
+        { title: 'Stock match alert', desc: 'Preferred trim inbound', icon: '🔔', defaultOn: false, boost: [0.22, 0.2, 0.04, 0.08, 0.18] },
+      ],
+      journeys: [
+        { title: 'EV test drive', subtitle: 'Local stock · 48h slot', pill: 'EV +30%', base: 0.7, valueNote: '+£2.1k margin' },
+        { title: 'PCP showroom close', subtitle: 'Finance · handover', pill: 'Retail +25%', base: 0.64, valueNote: '+£1.8k F&I' },
+        { title: 'Service & aftersales', subtitle: 'Plans · tyres · MOT', pill: 'Workshop +22%', base: 0.56, valueNote: '+£420 RO' },
+        { title: 'Trade-in uplift', subtitle: 'Part-ex valuation hold', pill: 'Stock +14%', base: 0.5, valueNote: '+£800 trade' },
+        { title: 'Fleet enquiry', subtitle: 'Account manager', pill: 'Fleet +18%', base: 0.45, valueNote: '+£15k TCV' },
+      ],
+      policy: { title: 'Out-of-hours contact', desc: 'Calls routed — SMS booking only.', warn: false },
+    },
+    healthcare: {
+      profile: { initials: 'JE', name: 'Jordan Ellis', meta: 'PPO · Employer HSA · Age 39' },
+      formula: 'score = Σ (signal_weight × pathway_fit) + base_care_value',
+      signals: [
+        { title: 'Virtual visit unused', desc: '2 visits left · plan year', icon: '💻', defaultOn: true, boost: [0.36, 0.08, 0.06, 0.12, 0.1] },
+        { title: 'Specialty search spike', desc: 'Cardiology content 3×', icon: '🫀', defaultOn: true, boost: [0.08, 0.4, 0.06, 0.18, 0.05] },
+        { title: 'Refill due soon', desc: 'Rx maintenance · 7d', icon: '💊', defaultOn: false, boost: [0.06, 0.06, 0.42, 0.1, 0.08] },
+        { title: 'Diabetes care pathway', desc: 'HbA1c due · CM enrolled', icon: '📋', defaultOn: false, boost: [0.1, 0.12, 0.08, 0.38, 0.06] },
+        { title: 'Open enrolment window', desc: 'Employer plan selection', icon: '🏢', defaultOn: false, boost: [0.05, 0.06, 0.05, 0.06, 0.4] },
+      ],
+      journeys: [
+        { title: 'Virtual-first care', subtitle: 'Triage · same-week slot', pill: 'Virtual +28%', base: 0.68, valueNote: '+0.8 utilisation' },
+        { title: 'Specialty referral assist', subtitle: 'In-network · prior auth', pill: 'Specialty +24%', base: 0.62, valueNote: '+12 days faster' },
+        { title: 'Pharmacy adherence', subtitle: 'Mail order · 90d', pill: 'PDC +18%', base: 0.55, valueNote: '+6% adherence' },
+        { title: 'Chronic programme', subtitle: 'Coaching · devices', pill: 'CM +32%', base: 0.52, valueNote: '+0.4 engagement' },
+        { title: 'Wellness incentive', subtitle: 'Steps · screenings', pill: 'Wellness +14%', base: 0.46, valueNote: '+£40 reward' },
+      ],
+      policy: { title: 'Sensitive channel guard', desc: 'No SMS for clinical content — app inbox.', warn: true },
+    },
+  };
+
+  function getJourneyData(ind) {
+    var d = DCE_JOURNEY_DATA[ind];
+    return d || DCE_JOURNEY_DATA.media;
+  }
+
+  function getJourneyOnState(ind, nSignals) {
+    var a = DCE_JOURNEY_ON[ind];
+    var data = getJourneyData(ind);
+    var defs = data.signals;
+    if (!a || a.length !== nSignals) {
+      a = [];
+      for (var i = 0; i < nSignals; i++) {
+        a[i] = defs[i] && defs[i].defaultOn === true;
+      }
+      DCE_JOURNEY_ON[ind] = a;
+    }
+    return a;
+  }
+
+  function computeJourneyScores(ind) {
+    var data = getJourneyData(ind);
+    var nj = data.journeys.length;
+    var st = getJourneyOnState(ind, data.signals.length);
+    var out = [];
+    for (var j = 0; j < nj; j++) {
+      var s = data.journeys[j].base || 0;
+      for (var i = 0; i < data.signals.length; i++) {
+        if (st[i] && data.signals[i].boost && data.signals[i].boost[j] != null) {
+          s += data.signals[i].boost[j];
+        }
+      }
+      out.push(Math.round(s * 100) / 100);
+    }
+    return out;
+  }
+
+  function renderJourneyPanel() {
+    var panel = document.getElementById('dceViz-panel-journey');
+    if (!panel) return;
+    var ind = getIndustry();
+    var data = getJourneyData(ind);
+    var scores = computeJourneyScores(ind);
+    var st = getJourneyOnState(ind, data.signals.length);
+
+    var rank = [];
+    for (var rj = 0; rj < scores.length; rj++) {
+      rank.push({ ix: rj, score: scores[rj], j: data.journeys[rj] });
+    }
+    rank.sort(function (a, b) {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.ix - b.ix;
+    });
+
+    var prof = document.getElementById('dce-journey-profile-mount');
+    if (prof) {
+      prof.innerHTML =
+        '<div class="dce-journey-avatar" aria-hidden="true">' +
+        escColHtml(data.profile.initials) +
+        '</div>' +
+        '<div class="dce-journey-profile-text">' +
+        '<div class="dce-journey-profile-name">' +
+        escColHtml(data.profile.name) +
+        '</div>' +
+        '<div class="dce-journey-profile-meta">' +
+        escColHtml(data.profile.meta) +
+        '</div></div>';
+    }
+
+    var sigMount = document.getElementById('dce-journey-signals-mount');
+    if (sigMount) {
+      var sh = '';
+      for (var si = 0; si < data.signals.length; si++) {
+        var sg = data.signals[si];
+        var on = !!st[si];
+        sh +=
+          '<button type="button" class="dce-journey-signal card' +
+          (on ? ' is-on' : '') +
+          '" data-dce-journey-signal="' +
+          si +
+          '">' +
+          '<span class="dce-journey-signal-ico" aria-hidden="true">' +
+          escColHtml(sg.icon) +
+          '</span>' +
+          '<span class="dce-journey-signal-body">' +
+          '<span class="dce-journey-signal-title">' +
+          escColHtml(sg.title) +
+          '</span>' +
+          '<span class="dce-journey-signal-desc">' +
+          escColHtml(sg.desc) +
+          '</span></span>' +
+          '<span class="dce-journey-signal-switch" aria-hidden="true"></span>' +
+          '</button>';
+      }
+      sigMount.innerHTML = sh;
+    }
+
+    var pol = document.getElementById('dce-journey-policy-mount');
+    if (pol && data.policy) {
+      pol.innerHTML =
+        '<div class="dce-journey-policy card' +
+        (data.policy.warn ? ' dce-journey-policy--warn' : '') +
+        '">' +
+        '<span class="dce-journey-policy-ico" aria-hidden="true">' +
+        (data.policy.warn ? '⛔' : 'ℹ️') +
+        '</span>' +
+        '<div class="dce-journey-policy-text">' +
+        '<div class="dce-journey-policy-title">' +
+        escColHtml(data.policy.title) +
+        '</div>' +
+        '<div class="dce-journey-policy-desc">' +
+        escColHtml(data.policy.desc) +
+        '</div></div></div>';
+      pol.style.display = '';
+    } else if (pol) {
+      pol.innerHTML = '';
+    }
+
+    var fm = document.getElementById('dce-journey-formula');
+    if (fm) fm.textContent = data.formula;
+
+    var rm = document.getElementById('dce-journey-rank-mount');
+    if (rm) {
+      var rh = '';
+      for (var ri = 0; ri < rank.length; ri++) {
+        var row = rank[ri];
+        var jj = row.j;
+        var isWin = ri === 0;
+        rh +=
+          '<div class="dce-journey-card card' +
+          (isWin ? ' dce-journey-card--winner' : '') +
+          '" data-dce-journey-index="' +
+          row.ix +
+          '">' +
+          '<div class="dce-journey-card-top">' +
+          '<span class="dce-journey-card-num" aria-hidden="true">' +
+          (ri + 1) +
+          '</span>' +
+          '<div class="dce-journey-card-main">' +
+          '<div class="dce-journey-card-title">' +
+          escColHtml(jj.title) +
+          '</div>' +
+          '<div class="dce-journey-card-sub">' +
+          escColHtml(jj.subtitle) +
+          '</div>' +
+          (jj.pill
+            ? '<span class="dce-journey-pill">' + escColHtml(jj.pill) + '</span>'
+            : '') +
+          '</div>' +
+          '<div class="dce-journey-card-score-block">' +
+          '<div class="dce-journey-card-score">' +
+          escColHtml(String(row.score)) +
+          '</div>' +
+          '<div class="dce-journey-card-value">' +
+          escColHtml(jj.valueNote || '') +
+          '</div></div></div>' +
+          (isWin
+            ? '<div class="dce-journey-card-hint">Highest score wins — toggle signals on the left to reshuffle.</div>'
+            : '') +
+          '</div>';
+      }
+      rm.innerHTML = rh;
+    }
+  }
+
+  function applyJourneyIndustry() {
+    renderJourneyPanel();
+  }
+
+  function bindJourneyPanel() {
+    var panel = document.getElementById('dceViz-panel-journey');
+    if (!panel || panel.getAttribute('data-dce-journey-bound') === '1') return;
+    panel.setAttribute('data-dce-journey-bound', '1');
+    panel.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('.dce-journey-signal');
+      if (!btn || !panel.contains(btn)) return;
+      e.preventDefault();
+      var raw = btn.getAttribute('data-dce-journey-signal');
+      var ix = raw == null ? NaN : parseInt(raw, 10);
+      if (isNaN(ix)) return;
+      var ind = getIndustry();
+      var data = getJourneyData(ind);
+      var st = getJourneyOnState(ind, data.signals.length);
+      st[ix] = !st[ix];
+      renderJourneyPanel();
+    });
+  }
+
   function escColHtml(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;')
@@ -2335,6 +2661,7 @@
     if (typeof window.dceVizApplySchemaIndustry === 'function') window.dceVizApplySchemaIndustry();
     applyCollectionsIndustry();
     applyRulesIndustry();
+    applyJourneyIndustry();
   }
 
   function initIndustry() {
@@ -2357,6 +2684,7 @@
     bindOfferSchema();
     bindCollectionsPills();
     bindRulesPanel();
+    bindJourneyPanel();
     initIndustry();
     bindChannelExplainer();
   } catch (err) {

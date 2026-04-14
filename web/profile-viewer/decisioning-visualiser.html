@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260420a">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260421a">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -106,6 +106,7 @@
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="channels" checked> <span>Items</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="collections" checked> <span>Collections</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="rules" checked> <span>Rules</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="journey" checked> <span>Journey</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="priority" checked> <span>Priority</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="formula" checked> <span>Ranking</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="ai" checked> <span>AI</span></label>
@@ -123,6 +124,7 @@
   <button type="button" class="tab-btn" data-dce-panel="channels" data-dce-pg-short="Items" style="--active-color: #2D3142">Items</button>
   <button type="button" class="tab-btn" data-dce-panel="collections" data-dce-pg-short="Collections" style="--active-color: #7c3aed">Collections</button>
   <button type="button" class="tab-btn" data-dce-panel="rules" data-dce-pg-short="Rules" style="--active-color: #0f766e">Rules</button>
+  <button type="button" class="tab-btn" data-dce-panel="journey" data-dce-pg-short="Journey" style="--active-color: #b91c1c">Journey</button>
   <button type="button" class="tab-btn" data-dce-panel="priority" data-dce-pg-short="Priority" style="--active-color: #c47b00">Priority</button>
   <button type="button" class="tab-btn" data-dce-panel="formula" data-dce-pg-short="Ranking" style="--active-color: #005f9e">Ranking</button>
   <button type="button" class="tab-btn" data-dce-panel="ai" data-dce-pg-short="AI" style="--active-color: #1a7a4a">AI</button>
@@ -205,6 +207,20 @@
           <div class="ov-complexity">
             <div class="complexity-dot" style="background:#0f766e"></div>
             <div class="complexity-dot" style="background:#14b8a6"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+          </div>
+        </div>
+      </a>
+      <a class="overview-card" data-dce-panel="journey" href="#">
+        <div class="ov-header" style="background: #b91c1c;">
+          <div class="ov-name">Journey arbitration</div>
+        </div>
+        <div class="ov-body">
+          <div class="ov-best">What this means</div>
+          <div class="ov-desc"><span data-dce-industry-show="media">Life goals and engagement signals compete to pick the primary journey — upgrade, win-back, trial, or family — before item ranking.</span><span data-dce-industry-show="travel">Trip and loyalty signals arbitrate which journey path (ancillaries, bundles, earn) is primary for this traveller.</span><span data-dce-industry-show="retail">Behaviour and loyalty signals choose the main journey — recovery, rewards, markdown, or upsell — for the session.</span><span data-dce-industry-show="fsi">Intent and product signals arbitrate which regulated journey (refi, wealth, cards) leads the experience.</span><span data-dce-industry-show="telco">Usage and lifecycle signals pick the dominant journey — fibre, save, device, or business — before offers compete.</span><span data-dce-industry-show="automotive">Hand-raiser and stage signals choose the lead journey — EV, PCP, service, or fleet — for the contact.</span><span data-dce-industry-show="healthcare">Clinical and benefits signals arbitrate the primary care pathway before programme ranking.</span></div>
+          <div class="ov-complexity">
+            <div class="complexity-dot" style="background:#b91c1c"></div>
+            <div class="complexity-dot" style="background:#fecaca"></div>
             <div class="complexity-dot" style="background:#e8e0d5"></div>
           </div>
         </div>
@@ -642,6 +658,38 @@
         </div>
         <p class="dce-rules-kicker">How does this affect real customers?</p>
         <div id="dce-rules-personas-mount" class="dce-rules-personas" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ JOURNEY ARBITRATION ════════════════════════════════════════════════ -->
+  <div id="dceViz-panel-journey" class="panel dce-journey-panel" style="--method-color: #b91c1c;">
+    <div class="section-header">
+      <div class="method-number" style="color:#b91c1c;">◇</div>
+      <div class="method-meta">
+        <div class="method-tag">Orchestration</div>
+        <div class="method-title">Journey arbitration</div>
+        <div class="method-desc">Signals and life goals act as weighted inputs. The engine scores candidate journeys, selects a winner, and downstream ranking applies within that journey — same idea as journey selection before channel or offer optimisation.</div>
+      </div>
+    </div>
+    <div class="dce-journey-split">
+      <div class="dce-journey-col dce-journey-col--left">
+        <p class="dce-journey-kicker">Customer context</p>
+        <div class="dce-journey-profile card" id="dce-journey-profile-wrap">
+          <div id="dce-journey-profile-mount" class="dce-journey-profile-inner" aria-live="polite"></div>
+        </div>
+        <p class="dce-journey-kicker">Life goals &amp; signals</p>
+        <p class="dce-journey-subhint">Toggle signals — each adds weight toward journeys it fits best.</p>
+        <div id="dce-journey-signals-mount" class="dce-journey-signals-stack" aria-live="polite"></div>
+        <div id="dce-journey-policy-mount" class="dce-journey-policy-wrap" aria-live="polite"></div>
+      </div>
+      <div class="dce-journey-col dce-journey-col--right">
+        <div class="dce-journey-step-head">
+          <span class="dce-journey-step-num" aria-hidden="true">1</span>
+          <span class="dce-journey-step-label">Journey selection</span>
+        </div>
+        <div class="dce-journey-formula card" id="dce-journey-formula" role="status"></div>
+        <div id="dce-journey-rank-mount" class="dce-journey-rank-stack" aria-live="polite"></div>
       </div>
     </div>
   </div>
@@ -2635,6 +2683,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="decisioning-visualizer.js?v=20260420a"></script>
+  <script defer src="decisioning-visualizer.js?v=20260421a"></script>
 </body>
 </html>
