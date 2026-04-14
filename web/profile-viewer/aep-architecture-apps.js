@@ -462,6 +462,19 @@
     stateBody = qs('#archIntStateBody');
     archViewport = qs('#archIntViewport');
 
+    var LS_ARCH_HIDE_UI = 'aepArchHideControls';
+    function archApplyHideControls() {
+      var hide = false;
+      try {
+        if (localStorage.getItem(LS_ARCH_HIDE_UI) === '1') hide = true;
+      } catch (e) {}
+      var tgl = qs('#archHideControlsToggle');
+      if (tgl) tgl.checked = hide;
+      if (archViewport) archViewport.classList.toggle('arch-int-viewport--controls-hidden', hide);
+      var fab = qs('#archShowControlsFab');
+      if (fab) fab.hidden = !hide;
+    }
+
     archStateHighlightOverridesLoad();
     archHighlightPickerInit();
     var archHighlightResetBtn = qs('#archHighlightResetState');
@@ -497,6 +510,16 @@
 
     document.addEventListener('keydown', function (e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+      if (e.key === 'Escape' && archViewport && archViewport.classList.contains('arch-int-viewport--controls-hidden')) {
+        e.preventDefault();
+        try {
+          localStorage.setItem(LS_ARCH_HIDE_UI, '0');
+        } catch (err) {}
+        var hct = qs('#archHideControlsToggle');
+        if (hct) hct.checked = false;
+        archApplyHideControls();
+        return;
+      }
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         go(-1);
@@ -557,6 +580,7 @@
 
     archEditorApplyDock();
     archEditorApplyEditMode();
+    archApplyHideControls();
     archEditorSetPanel('layout');
 
     var editModeTgl = qs('#archEditModeToggle');
@@ -587,6 +611,27 @@
         if (!btn) return;
         var pid = btn.getAttribute('data-arch-panel');
         if (pid) archEditorSetPanel(pid);
+      });
+    }
+
+    var hideUiTgl = qs('#archHideControlsToggle');
+    if (hideUiTgl) {
+      hideUiTgl.addEventListener('change', function () {
+        try {
+          localStorage.setItem(LS_ARCH_HIDE_UI, hideUiTgl.checked ? '1' : '0');
+        } catch (e) {}
+        archApplyHideControls();
+      });
+    }
+
+    var showControlsFab = qs('#archShowControlsFab');
+    if (showControlsFab) {
+      showControlsFab.addEventListener('click', function () {
+        try {
+          localStorage.setItem(LS_ARCH_HIDE_UI, '0');
+        } catch (e) {}
+        if (hideUiTgl) hideUiTgl.checked = false;
+        archApplyHideControls();
       });
     }
 

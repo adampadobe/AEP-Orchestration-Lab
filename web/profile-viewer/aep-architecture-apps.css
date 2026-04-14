@@ -91,6 +91,32 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  position: relative;
+}
+
+.arch-int-viewport--controls-hidden .arch-int-compact-bar {
+  display: none !important;
+}
+
+.arch-int-viewport--controls-hidden .arch-editor-dock {
+  display: none !important;
+}
+
+.arch-show-controls-fab {
+  position: absolute;
+  right: 0.65rem;
+  bottom: 0.55rem;
+  z-index: 6;
+  font-size: 0.72rem !important;
+  padding: 0.35rem 0.6rem !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--dash-border, #e4e6eb) !important;
+}
+
+.arch-show-controls-fab:focus-visible {
+  outline: 2px solid #1473e6;
+  outline-offset: 2px;
 }
 
 .arch-int-compact-bar {
@@ -769,6 +795,13 @@ html[data-aep-theme='dark'] .arch-editor-rail-btn.is-active {
   background: rgba(20, 115, 230, 0.25);
   border-color: #1473e6;
   color: #e0f2fe;
+}
+
+html[data-aep-theme='dark'] .arch-show-controls-fab {
+  background: rgba(42, 48, 56, 0.96) !important;
+  border-color: var(--dash-border) !important;
+  color: var(--dash-text, #e8eaed);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
 .dashboard-topbar-brand {

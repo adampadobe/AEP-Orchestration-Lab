@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260514">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260515">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -68,6 +68,10 @@
                       <span>Edit diagram</span>
                     </label>
                     <button type="button" class="dashboard-btn-outline arch-dock-flip-btn" id="archDockSideToggle" title="Dock editor on the right">⇄ Right</button>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archHideControlsToggle"/>
+                      <span>Hide controls</span>
+                    </label>
                   </div>
                 </div>
                 <div class="arch-int-compact-nav">
@@ -365,6 +369,7 @@
             <g id="layer-drag-guides" class="arch-drag-guides-layer" fill="none" pointer-events="none" aria-hidden="true"/>
           </svg>
           </div>
+              <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Show diagram controls">Show controls</button>
             </div>
 
             <aside class="arch-editor-dock arch-diagram-ui" id="archEditorDock" hidden>
@@ -512,6 +517,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260513"></script>
-  <script defer src="aep-architecture-apps.js?v=20260514"></script>
+  <script defer src="aep-architecture-apps.js?v=20260515"></script>
 </body>
 </html>
