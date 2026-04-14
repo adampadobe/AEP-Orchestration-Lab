@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260414f">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260415a">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -376,48 +376,92 @@
       <div class="dce-schema-tree card" aria-label="XDM schema field toggles">
         <div class="dce-schema-tree-top">
           <span class="dce-schema-tree-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg> XDM Schema</span>
-          <span class="dce-schema-tree-hint">Toggle fields</span>
+          <button type="button" class="dce-schema-tree-hint-btn" id="dce-schema-toggle-fields" aria-pressed="false" title="Expand or collapse all schema groups">Toggle fields</button>
         </div>
         <div class="dce-schema-tree-scroll" id="dce-schema-tree-root">
-          <div class="dce-schema-group">
-            <div class="dce-schema-group-label"><span class="dce-schema-lock" title="Standard" aria-hidden="true">🔒</span> Standard Fields</div>
-            <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="itemName"> <span class="dce-schema-fname">itemName</span> <span class="dce-schema-ftype">String</span></label>
-            <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="priority"> <span class="dce-schema-fname">priority</span> <span class="dce-schema-ftype">Integer</span></label>
-            <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="startDate"> <span class="dce-schema-fname">startDate</span> <span class="dce-schema-ftype">DateTime</span></label>
-            <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="endDate"> <span class="dce-schema-fname">endDate</span> <span class="dce-schema-ftype">DateTime</span></label>
-          </div>
-          <div class="dce-schema-group">
-            <div class="dce-schema-group-label dce-schema-group-label--custom">Offer Content</div>
-            <div class="dce-schema-subgroup-label">Media Assets <span class="dce-schema-custom-tag">custom</span></div>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="heroImage"> <span class="dce-schema-fname">heroImage</span> <span class="dce-schema-ftype">Asset</span></label>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="thumbnail"> <span class="dce-schema-fname">thumbnail</span> <span class="dce-schema-ftype">Asset</span></label>
-            <div class="dce-schema-subgroup-label">Text Content <span class="dce-schema-custom-tag">custom</span></div>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="title"> <span class="dce-schema-fname">title</span> <span class="dce-schema-ftype">String</span></label>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="description"> <span class="dce-schema-fname">description</span> <span class="dce-schema-ftype">String</span></label>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="callToAction"> <span class="dce-schema-fname">callToAction</span> <span class="dce-schema-ftype">String</span></label>
-          </div>
-          <div class="dce-schema-group dce-schema-group--collapsible" data-dce-schema-collapsible="nav">
-            <button type="button" class="dce-schema-collapse-btn" aria-expanded="false" id="dce-schema-toggle-nav"><span class="dce-schema-chev" aria-hidden="true">▸</span> Navigation <span class="dce-schema-custom-tag">custom</span></button>
-            <div class="dce-schema-collapse-body" id="dce-schema-body-nav" hidden>
-              <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="webUrl"> <span class="dce-schema-fname">webUrl</span> <span class="dce-schema-ftype">String</span></label>
-              <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="deepLink"> <span class="dce-schema-fname">deepLink</span> <span class="dce-schema-ftype">String</span></label>
-              <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="channelType"> <span class="dce-schema-fname">channelType</span> <span class="dce-schema-ftype">Enum</span></label>
+          <div class="dce-schema-folder" data-dce-schema-folder="standard">
+            <button type="button" class="dce-schema-folder-head" aria-expanded="true" id="dce-schema-folder-standard">
+              <span class="dce-schema-folder-chev" aria-hidden="true">▼</span>
+              <span class="dce-schema-lock" title="Standard" aria-hidden="true">🔒</span>
+              <span class="dce-schema-folder-title">Standard Fields</span>
+            </button>
+            <div class="dce-schema-folder-body">
+              <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="itemName"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">itemName</span> <span class="dce-schema-ftype">String</span></label>
+              <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="priority"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--num" aria-hidden="true"></span> <span class="dce-schema-fname">priority</span> <span class="dce-schema-ftype">Integer</span></label>
+              <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="startDate"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--date" aria-hidden="true"></span> <span class="dce-schema-fname">startDate</span> <span class="dce-schema-ftype">DateTime</span></label>
+              <label class="dce-schema-row dce-schema-row--locked"><input type="checkbox" checked disabled data-dce-schema-field="endDate"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--date" aria-hidden="true"></span> <span class="dce-schema-fname">endDate</span> <span class="dce-schema-ftype">DateTime</span></label>
             </div>
           </div>
-          <div class="dce-schema-group dce-schema-group--collapsible" data-dce-schema-collapsible="promo">
-            <button type="button" class="dce-schema-collapse-btn" aria-expanded="false" id="dce-schema-toggle-promo"><span class="dce-schema-chev" aria-hidden="true">▸</span> Promo Elements <span class="dce-schema-custom-tag">custom</span></button>
-            <div class="dce-schema-collapse-body" id="dce-schema-body-promo" hidden>
-              <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="promoCode"> <span class="dce-schema-fname">promoCode</span> <span class="dce-schema-ftype">String</span></label>
+
+          <div class="dce-schema-folder" data-dce-schema-folder="offer-content">
+            <button type="button" class="dce-schema-folder-head" aria-expanded="false" id="dce-schema-folder-offer">
+              <span class="dce-schema-folder-chev" aria-hidden="true">▶</span>
+              <span class="dce-schema-folder-title">Offer Content</span>
+              <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+            </button>
+            <div class="dce-schema-folder-body" hidden>
+              <div class="dce-schema-folder dce-schema-folder--nested" data-dce-schema-folder="media">
+                <button type="button" class="dce-schema-folder-head" aria-expanded="true">
+                  <span class="dce-schema-folder-chev" aria-hidden="true">▼</span>
+                  <span class="dce-schema-folder-title">Media Assets</span>
+                  <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+                </button>
+                <div class="dce-schema-folder-body">
+                  <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="heroImage"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--asset" aria-hidden="true"></span> <span class="dce-schema-fname">heroImage</span> <span class="dce-schema-ftype">Asset</span></label>
+                  <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="thumbnail"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--asset" aria-hidden="true"></span> <span class="dce-schema-fname">thumbnail</span> <span class="dce-schema-ftype">Asset</span></label>
+                </div>
+              </div>
+              <div class="dce-schema-folder dce-schema-folder--nested" data-dce-schema-folder="text">
+                <button type="button" class="dce-schema-folder-head" aria-expanded="true">
+                  <span class="dce-schema-folder-chev" aria-hidden="true">▼</span>
+                  <span class="dce-schema-folder-title">Text Content</span>
+                  <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+                </button>
+                <div class="dce-schema-folder-body">
+                  <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="title"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">title</span> <span class="dce-schema-ftype">String</span></label>
+                  <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="description"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--txt" aria-hidden="true"></span> <span class="dce-schema-fname">description</span> <span class="dce-schema-ftype">String</span></label>
+                  <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="callToAction"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--cta" aria-hidden="true"></span> <span class="dce-schema-fname">callToAction</span> <span class="dce-schema-ftype">String</span></label>
+                </div>
+              </div>
+              <div class="dce-schema-folder dce-schema-folder--nested" data-dce-schema-folder="nav">
+                <button type="button" class="dce-schema-folder-head" aria-expanded="false">
+                  <span class="dce-schema-folder-chev" aria-hidden="true">▶</span>
+                  <span class="dce-schema-folder-title">Navigation</span>
+                  <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+                </button>
+                <div class="dce-schema-folder-body" hidden>
+                  <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="webUrl"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">webUrl</span> <span class="dce-schema-ftype">String</span></label>
+                  <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="deepLink"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">deepLink</span> <span class="dce-schema-ftype">String</span></label>
+                  <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="channelType"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">channelType</span> <span class="dce-schema-ftype">Enum</span></label>
+                </div>
+              </div>
+              <div class="dce-schema-folder dce-schema-folder--nested" data-dce-schema-folder="promo">
+                <button type="button" class="dce-schema-folder-head" aria-expanded="false">
+                  <span class="dce-schema-folder-chev" aria-hidden="true">▶</span>
+                  <span class="dce-schema-folder-title">Promo Elements</span>
+                  <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+                </button>
+                <div class="dce-schema-folder-body" hidden>
+                  <label class="dce-schema-row"><input type="checkbox" data-dce-schema-field="promoCode"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">promoCode</span> <span class="dce-schema-ftype">String</span></label>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="dce-schema-group">
-            <div class="dce-schema-group-label dce-schema-group-label--custom">Offer Metadata <span class="dce-schema-custom-tag">custom</span></div>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="contentType"> <span class="dce-schema-fname">contentType</span> <span class="dce-schema-ftype">Enum</span></label>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="salesStage"> <span class="dce-schema-fname">salesStage</span> <span class="dce-schema-ftype">Enum</span></label>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="journeyStage"> <span class="dce-schema-fname">journeyStage</span> <span class="dce-schema-ftype">Enum</span></label>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="targetSegment"> <span class="dce-schema-fname">targetSegment</span> <span class="dce-schema-ftype">Enum</span></label>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="category"> <span class="dce-schema-fname">category</span> <span class="dce-schema-ftype">String</span></label>
-            <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="margin"> <span class="dce-schema-fname">margin</span> <span class="dce-schema-ftype">Enum</span></label>
+
+          <div class="dce-schema-folder" data-dce-schema-folder="metadata">
+            <button type="button" class="dce-schema-folder-head" aria-expanded="false" id="dce-schema-folder-meta">
+              <span class="dce-schema-folder-chev" aria-hidden="true">▶</span>
+              <span class="dce-schema-folder-title">Offer Metadata</span>
+              <span class="dce-schema-custom-tag dce-schema-custom-tag--pill">custom</span>
+            </button>
+            <div class="dce-schema-folder-body" hidden>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="contentType"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">contentType</span> <span class="dce-schema-ftype">Enum</span></label>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="salesStage"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">salesStage</span> <span class="dce-schema-ftype">Enum</span></label>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="journeyStage"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">journeyStage</span> <span class="dce-schema-ftype">Enum</span></label>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="targetSegment"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">targetSegment</span> <span class="dce-schema-ftype">Enum</span></label>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="category"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--str" aria-hidden="true"></span> <span class="dce-schema-fname">category</span> <span class="dce-schema-ftype">String</span></label>
+              <label class="dce-schema-row"><input type="checkbox" checked data-dce-schema-field="margin"> <span class="dce-schema-leaf-ico dce-schema-leaf-ico--enum" aria-hidden="true"></span> <span class="dce-schema-fname">margin</span> <span class="dce-schema-ftype">Enum</span></label>
+            </div>
           </div>
         </div>
       </div>
@@ -2486,6 +2530,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="decisioning-visualizer.js?v=20260414f"></script>
+  <script defer src="decisioning-visualizer.js?v=20260415a"></script>
 </body>
 </html>

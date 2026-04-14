@@ -693,31 +693,49 @@
       updateOfferSchemaPreview();
     });
 
-    (function bindNavCollapse() {
-      var btn = document.getElementById('dce-schema-toggle-nav');
-      var body = document.getElementById('dce-schema-body-nav');
-      if (!btn || !body) return;
-      btn.addEventListener('click', function () {
-        var open = body.hasAttribute('hidden');
-        body.hidden = !open;
-        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        var chev = btn.querySelector('.dce-schema-chev');
-        if (chev) chev.textContent = open ? '▾' : '▸';
-      });
-    })();
+    function setFolderOpen(folder, open) {
+      var head = folder.querySelector(':scope > .dce-schema-folder-head');
+      var body = folder.querySelector(':scope > .dce-schema-folder-body');
+      if (!head || !body) return;
+      body.hidden = !open;
+      head.setAttribute('aria-expanded', open ? 'true' : 'false');
+      var chev = head.querySelector('.dce-schema-folder-chev');
+      if (chev) chev.textContent = open ? '▼' : '▶';
+    }
 
-    (function bindPromo() {
-      var btn = document.getElementById('dce-schema-toggle-promo');
-      var body = document.getElementById('dce-schema-body-promo');
-      if (!btn || !body) return;
-      btn.addEventListener('click', function () {
-        var open = body.hasAttribute('hidden');
-        body.hidden = !open;
-        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        var chev = btn.querySelector('.dce-schema-chev');
-        if (chev) chev.textContent = open ? '▾' : '▸';
+    root.addEventListener('click', function (e) {
+      var head = e.target.closest && e.target.closest('.dce-schema-folder-head');
+      if (!head || !root.contains(head)) return;
+      if (e.target.closest('input')) return;
+      e.preventDefault();
+      var folder = head.closest('.dce-schema-folder');
+      if (!folder || !root.contains(folder)) return;
+      var body = folder.querySelector(':scope > .dce-schema-folder-body');
+      if (!body) return;
+      var willOpen = body.hasAttribute('hidden');
+      setFolderOpen(folder, willOpen);
+    });
+
+    var btnToggleFields = document.getElementById('dce-schema-toggle-fields');
+    if (btnToggleFields) {
+      var expandAllMode = false;
+      btnToggleFields.addEventListener('click', function () {
+        expandAllMode = !expandAllMode;
+        btnToggleFields.setAttribute('aria-pressed', expandAllMode ? 'true' : 'false');
+        root.querySelectorAll('.dce-schema-folder').forEach(function (folder) {
+          var key = folder.getAttribute('data-dce-schema-folder');
+          if (expandAllMode) {
+            setFolderOpen(folder, true);
+          } else {
+            if (key === 'standard') setFolderOpen(folder, true);
+            else if (key === 'offer-content' || key === 'metadata') setFolderOpen(folder, false);
+            else if (key === 'media' || key === 'text') setFolderOpen(folder, true);
+            else if (key === 'nav' || key === 'promo') setFolderOpen(folder, false);
+            else setFolderOpen(folder, false);
+          }
+        });
       });
-    })();
+    }
 
     window.dceVizApplySchemaIndustry = applySchemaIndustry;
     applySchemaIndustry();

@@ -1867,11 +1867,109 @@
   .decisioning-catalog-page .dce-viz-scope .dce-schema-tree-title svg {
     color: var(--muted);
   }
-  .decisioning-catalog-page .dce-viz-scope .dce-schema-tree-hint {
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-tree-hint-btn {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
     color: var(--muted);
     letter-spacing: 0.06em;
+    background: none;
+    border: none;
+    padding: 0.2rem 0.35rem;
+    margin: 0;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-tree-hint-btn:hover {
+    color: var(--ink);
+    background: color-mix(in srgb, var(--dce-border) 40%, transparent);
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-folder {
+    margin-bottom: 0.15rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-folder--nested {
+    margin-left: 0.35rem;
+    padding-left: 0.5rem;
+    border-left: 2px solid color-mix(in srgb, var(--dce-border) 70%, transparent);
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-folder-head {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.45rem 0.35rem;
+    margin: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink);
+    font-family: 'Outfit', var(--dce-font), sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-folder-head:hover {
+    background: var(--paper-2);
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-folder-chev {
+    font-size: 9px;
+    color: var(--muted);
+    width: 1rem;
+    flex-shrink: 0;
+    text-align: center;
+    line-height: 1;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-folder-title {
+    flex: 1;
+    min-width: 0;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-folder-head .dce-schema-custom-tag {
+    margin-left: auto;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-folder-body {
+    padding: 0.15rem 0 0.35rem 1.35rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-folder--nested .dce-schema-folder-body {
+    padding-left: 1.1rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-custom-tag--pill {
+    display: inline-block;
+    font-size: 9px;
+    padding: 0.12rem 0.45rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, #c41e3a 12%, var(--dce-bg-panel));
+    border: 1px solid color-mix(in srgb, #c41e3a 28%, transparent);
+    margin-left: 0.35rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-leaf-ico {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.88;
+    font-size: 10px;
+    line-height: 1;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-leaf-ico--asset::before { content: '🖼'; }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-leaf-ico--str::before { content: 'T'; font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 700; color: var(--muted); }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-leaf-ico--txt::before { content: '¶'; font-size: 11px; color: var(--muted); }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-leaf-ico--cta::before { content: '↗'; font-size: 11px; color: var(--muted); }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-leaf-ico--num::before { content: '#'; font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 700; color: var(--muted); }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-leaf-ico--date::before { content: '📅'; font-size: 9px; }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-leaf-ico--enum::before { content: 'E'; font-family: 'DM Mono', monospace; font-size: 8px; font-weight: 700; color: var(--muted); }
+  .decisioning-catalog-page .dce-viz-scope .dce-schema-ftype {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--dce-border) 45%, var(--dce-bg-panel));
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: none;
+    color: var(--muted);
+    flex-shrink: 0;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-schema-tree-scroll {
     max-height: min(520px, 70vh);
@@ -1931,11 +2029,6 @@
     font-size: 11px;
     flex: 1;
     min-width: 0;
-  }
-  .decisioning-catalog-page .dce-viz-scope .dce-schema-ftype {
-    font-size: 10px;
-    color: var(--muted);
-    flex-shrink: 0;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-schema-collapse-btn {
     display: flex;
