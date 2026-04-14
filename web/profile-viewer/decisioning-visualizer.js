@@ -6,6 +6,19 @@
   'use strict';
 
   var LS_INDUSTRY = 'dceVizIndustry';
+  var LS_CUSTOMER_STEPS = 'dceVizCustomerSteps';
+
+  var DCE_PANEL_ORDER = ['overview', 'channels', 'schema', 'priority', 'formula', 'ai', 'experiment'];
+
+  var INDUSTRY_LABEL_UI = {
+    media: 'Media & entertainment',
+    travel: 'Travel · Airline',
+    retail: 'Retail',
+    fsi: 'FSI',
+    telco: 'Telco',
+    automotive: 'Automotive',
+    healthcare: 'Healthcare',
+  };
 
   function getIndustry() {
     var b = document.body && document.body.getAttribute('data-dce-industry');
@@ -13,22 +26,119 @@
     return 'media';
   }
 
+  function defaultCustomerSteps() {
+    var o = {};
+    DCE_PANEL_ORDER.forEach(function (k) { o[k] = true; });
+    return o;
+  }
+
+  function getCustomerStepsState() {
+    var d = defaultCustomerSteps();
+    try {
+      var raw = localStorage.getItem(LS_CUSTOMER_STEPS);
+      if (!raw) return d;
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return d;
+      DCE_PANEL_ORDER.forEach(function (k) {
+        if (typeof parsed[k] === 'boolean') d[k] = parsed[k];
+      });
+    } catch (e) {}
+    return d;
+  }
+
+  function saveCustomerStepsState(state) {
+    try {
+      localStorage.setItem(LS_CUSTOMER_STEPS, JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  function getVisibleOrder() {
+    var st = getCustomerStepsState();
+    var o = DCE_PANEL_ORDER.filter(function (k) { return st[k] !== false; });
+    if (!o.length) return ['overview'];
+    return o;
+  }
+
+  function isCustomerStepOn(id) {
+    return getCustomerStepsState()[id] !== false;
+  }
+
+  function getActivePanelId() {
+    var p = document.querySelector('#dceVizRoot .panel.active');
+    if (!p || !p.id || p.id.indexOf('dceViz-panel-') !== 0) return null;
+    return p.id.replace('dceViz-panel-', '');
+  }
+
+  function updateCustomerButtonLabel() {
+    var el = document.getElementById('dce-pg-customer-label');
+    if (!el) return;
+    var n = getVisibleOrder().length;
+    var total = DCE_PANEL_ORDER.length;
+    el.textContent = n === total ? 'Show for customer' : 'Show for customer (' + n + '/' + total + ')';
+  }
+
+  function applyCustomerStepVisibility() {
+    var root = document.getElementById('dceVizRoot');
+    if (!root) return;
+    var st = getCustomerStepsState();
+    DCE_PANEL_ORDER.forEach(function (id) {
+      var on = st[id] !== false;
+      var tab = root.querySelector('.tab-btn[data-dce-panel="' + id + '"]');
+      var panel = document.getElementById('dceViz-panel-' + id);
+      if (tab) tab.classList.toggle('dce-pg-step-suppressed', !on);
+      if (panel) panel.classList.toggle('dce-pg-step-suppressed', !on);
+    });
+    root.querySelectorAll('a.overview-card[data-dce-panel]').forEach(function (a) {
+      var id = a.getAttribute('data-dce-panel');
+      if (id) a.classList.toggle('dce-pg-step-suppressed', st[id] === false);
+    });
+    updateCustomerButtonLabel();
+  }
+
+  function ensureActivePanelCustomerVisible() {
+    var cur = getActivePanelId();
+    var order = getVisibleOrder();
+    if (!order.length) return;
+    if (!cur || order.indexOf(cur) < 0) showPanel(order[0]);
+    else updatePlaygroundChrome(cur);
+  }
+
   // ── TAB NAVIGATION ────────────────────────────────────────────────────────
+  function updatePlaygroundChrome(panelId) {
+    var order = getVisibleOrder();
+    var idx = order.indexOf(panelId);
+    var fill = document.getElementById('dce-pg-progress-fill');
+    var n = order.length || 1;
+    if (fill && idx >= 0) fill.style.width = ((idx + 1) / n) * 100 + '%';
+    var ctr = document.getElementById('dce-pg-counter');
+    if (ctr && idx >= 0) ctr.textContent = idx + 1 + ' / ' + n;
+    var back = document.getElementById('dce-pg-back');
+    var next = document.getElementById('dce-pg-next');
+    if (back) back.disabled = idx <= 0;
+    if (next) next.disabled = idx < 0 || idx >= n - 1;
+  }
+
   function showPanel(id) {
     var root = document.getElementById('dceVizRoot');
     if (!root) return;
+    if (!isCustomerStepOn(id)) {
+      var order = getVisibleOrder();
+      if (order.length) showPanel(order[0]);
+      return;
+    }
     var panel = document.getElementById('dceViz-panel-' + id);
     if (!panel) return;
-    var order = ['overview', 'channels', 'schema', 'priority', 'formula', 'ai', 'experiment'];
-    var idx = order.indexOf(id);
+    var idx = DCE_PANEL_ORDER.indexOf(id);
     if (idx < 0) return;
 
     root.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
     root.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
     panel.classList.add('active');
 
-    var btns = root.querySelectorAll('.tab-btn');
-    if (btns[idx]) btns[idx].classList.add('active');
+    var tabFor = root.querySelector('.tab-btn[data-dce-panel="' + id + '"]');
+    if (tabFor) tabFor.classList.add('active');
+
+    updatePlaygroundChrome(id);
 
     var sec = document.getElementById('decisioning-visualiser');
     if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -63,6 +173,109 @@
         if (cid) showPanel(cid);
       }
     });
+
+    var pgBack = document.getElementById('dce-pg-back');
+    var pgNext = document.getElementById('dce-pg-next');
+    if (pgBack) {
+      pgBack.addEventListener('click', function () {
+        var order = getVisibleOrder();
+        var cur = getActivePanelId();
+        var i = order.indexOf(cur);
+        if (i > 0) showPanel(order[i - 1]);
+      });
+    }
+    if (pgNext) {
+      pgNext.addEventListener('click', function () {
+        var order = getVisibleOrder();
+        var cur = getActivePanelId();
+        var i = order.indexOf(cur);
+        if (i >= 0 && i < order.length - 1) showPanel(order[i + 1]);
+      });
+    }
+
+    var ddBtn = document.getElementById('dce-pg-industry-btn');
+    var ddMenu = document.getElementById('dce-pg-industry-menu');
+    var custBtn = document.getElementById('dce-pg-customer-btn');
+    var custMenu = document.getElementById('dce-pg-customer-menu');
+
+    function closeIndustryMenu() {
+      if (!ddMenu || !ddBtn) return;
+      ddMenu.hidden = true;
+      ddBtn.setAttribute('aria-expanded', 'false');
+    }
+    function closeCustomerMenu() {
+      if (!custMenu || !custBtn) return;
+      custMenu.hidden = true;
+      custBtn.setAttribute('aria-expanded', 'false');
+    }
+    function closeHeaderDropdowns() {
+      closeIndustryMenu();
+      closeCustomerMenu();
+    }
+    function toggleIndustryMenu() {
+      if (!ddMenu || !ddBtn) return;
+      closeCustomerMenu();
+      ddMenu.hidden = !ddMenu.hidden;
+      ddBtn.setAttribute('aria-expanded', ddMenu.hidden ? 'false' : 'true');
+    }
+    function toggleCustomerMenu() {
+      if (!custMenu || !custBtn) return;
+      closeIndustryMenu();
+      custMenu.hidden = !custMenu.hidden;
+      custBtn.setAttribute('aria-expanded', custMenu.hidden ? 'false' : 'true');
+    }
+    if (ddBtn && ddMenu) {
+      ddBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleIndustryMenu();
+      });
+      ddMenu.querySelectorAll('.dce-pg-dropdown-item').forEach(function (item) {
+        item.addEventListener('click', function () {
+          var k = item.getAttribute('data-dce-industry');
+          if (k) setIndustry(k, true);
+          closeIndustryMenu();
+        });
+      });
+    }
+    if (custBtn && custMenu) {
+      custBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleCustomerMenu();
+      });
+      custMenu.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+    }
+    document.addEventListener('click', closeHeaderDropdowns);
+
+    function initCustomerStepsUi() {
+      if (!custMenu) return;
+      var st = getCustomerStepsState();
+      custMenu.querySelectorAll('.dce-pg-customer-cb').forEach(function (cb) {
+        var id = cb.getAttribute('data-dce-step');
+        if (id && Object.prototype.hasOwnProperty.call(st, id)) {
+          cb.checked = st[id] !== false;
+        }
+        cb.addEventListener('change', function () {
+          var sid = cb.getAttribute('data-dce-step');
+          if (!sid) return;
+          var next = getCustomerStepsState();
+          next[sid] = cb.checked;
+          var count = DCE_PANEL_ORDER.filter(function (k) { return next[k] !== false; }).length;
+          if (count === 0) {
+            cb.checked = true;
+            next[sid] = true;
+            return;
+          }
+          saveCustomerStepsState(next);
+          applyCustomerStepVisibility();
+          ensureActivePanelCustomerVisible();
+        });
+      });
+      applyCustomerStepVisibility();
+      ensureActivePanelCustomerVisible();
+    }
+    initCustomerStepsUi();
   }
   bindVizRootClicks();
 
@@ -1384,8 +1597,12 @@
       try { localStorage.setItem(LS_INDUSTRY, key); } catch (e) {}
     }
 
-    document.querySelectorAll('.dce-viz-industry-btn').forEach(function (b) {
-      b.classList.toggle('active', b.getAttribute('data-dce-industry') === key);
+    var pgLbl = document.getElementById('dce-pg-industry-label');
+    if (pgLbl) pgLbl.textContent = INDUSTRY_LABEL_UI[key] || INDUSTRY_LABEL_UI.media;
+    document.querySelectorAll('.dce-pg-dropdown-item').forEach(function (b) {
+      var on = b.getAttribute('data-dce-industry') === key;
+      b.classList.toggle('dce-pg-dropdown-item--active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
 
     if (key === 'travel') {
@@ -1475,13 +1692,12 @@
       if (s === 'travel' || s === 'media' || s === 'retail' || s === 'fsi' || s === 'telco' || s === 'automotive' || s === 'healthcare') key = s;
     } catch (e) {}
     setIndustry(key, false);
-
-    document.querySelectorAll('.dce-viz-industry-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var k = btn.getAttribute('data-dce-industry');
-        if (k) setIndustry(k, true);
-      });
-    });
+    var activeId = getActivePanelId();
+    if (activeId && isCustomerStepOn(activeId)) updatePlaygroundChrome(activeId);
+    else {
+      var ord = getVisibleOrder();
+      if (ord.length) showPanel(ord[0]);
+    }
   }
 
   // ── INIT ───────────────────────────────────────────────────────────────────

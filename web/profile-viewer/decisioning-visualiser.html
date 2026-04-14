@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260414c">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260414f">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -69,41 +69,63 @@
 
         <section class="dce-viz-section" id="decisioning-visualiser" aria-label="Ranking methods explorer">
 <div id="dceVizRoot" class="dce-viz-scope" role="region" aria-label="Decisioning visualiser">
-<div class="dce-viz-industry-bar" role="group" aria-label="Industry context for examples">
-  <span class="dce-viz-industry-label">Example context</span>
-  <button type="button" class="dce-viz-industry-btn active" data-dce-industry="media">Media &amp; entertainment</button>
-  <button type="button" class="dce-viz-industry-btn" data-dce-industry="travel">Travel · Airline</button>
-  <button type="button" class="dce-viz-industry-btn" data-dce-industry="retail">Retail</button>
-  <button type="button" class="dce-viz-industry-btn" data-dce-industry="fsi">FSI</button>
-  <button type="button" class="dce-viz-industry-btn" data-dce-industry="telco">Telco</button>
-  <button type="button" class="dce-viz-industry-btn" data-dce-industry="automotive">Automotive</button>
-  <button type="button" class="dce-viz-industry-btn" data-dce-industry="healthcare">Healthcare</button>
-</div>
-<script>(function(){try{var k=document.body.getAttribute('data-dce-industry')||'media';document.querySelectorAll('.dce-viz-industry-btn').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-dce-industry')===k);});}catch(e){}})();</script>
-<!-- NAV -->
-<nav class="tab-nav">
-  <button type="button" class="tab-btn active" data-dce-panel="overview" style="--active-color: #CC0000">
-    <span class="tab-icon" style="background:#CC0000"></span> Overview
-  </button>
-  <button type="button" class="tab-btn" data-dce-panel="channels" style="--active-color: #2D3142">
-    <span class="tab-icon" style="background:#2D3142"></span> Channels
-  </button>
-  <button type="button" class="tab-btn" data-dce-panel="schema" style="--active-color: #8B5C8A">
-    <span class="tab-icon" style="background:#8B5C8A"></span> Offer Schema
-  </button>
-  <button type="button" class="tab-btn" data-dce-panel="priority" style="--active-color: #c47b00">
-    <span class="tab-icon" style="background:#c47b00"></span> 01 · Item Priority
-  </button>
-  <button type="button" class="tab-btn" data-dce-panel="formula" style="--active-color: #005f9e">
-    <span class="tab-icon" style="background:#005f9e"></span> 02 · Ranking Formulas
-  </button>
-  <button type="button" class="tab-btn" data-dce-panel="ai" style="--active-color: #1a7a4a">
-    <span class="tab-icon" style="background:#1a7a4a"></span> 03 · AI Models
-  </button>
-  <button type="button" class="tab-btn" data-dce-panel="experiment" style="--active-color: #6b3fa0">
-    <span class="tab-icon" style="background:#6b3fa0"></span> Experimentation
-  </button>
+<!-- Playground-style shell: header + progress + step tabs (matches ajo-experience-decisioning-playground layout) -->
+<header class="dce-pg-header">
+  <div class="dce-pg-header-inner dce-pg-header-inner--top">
+    <div class="dce-pg-topbar">
+      <span class="dce-pg-logo" aria-hidden="true"><svg width="28" height="27" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="#EB1000" d="M13.65 2.1 22 21.9h-5.7l-1.75-4.55h-5.1L7.7 21.9H2L10.35 2.1h3.3Zm-2.2 11.2-1.65-4.3-1.65 4.3h3.3Z"/></svg></span>
+      <span class="dce-pg-divider" aria-hidden="true"></span>
+      <span class="dce-pg-app-name">Experience Decisioning</span>
+      <div class="dce-pg-topbar-actions">
+      <div class="dce-pg-dropdown-wrap">
+        <button type="button" class="dce-pg-dropdown-btn" id="dce-pg-industry-btn" aria-expanded="false" aria-haspopup="listbox" aria-controls="dce-pg-industry-menu">
+          <svg class="dce-pg-pin" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="#EB1000" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg>
+          <span id="dce-pg-industry-label">Media &amp; entertainment</span>
+          <svg class="dce-pg-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="dce-pg-dropdown-menu" id="dce-pg-industry-menu" role="listbox" hidden>
+          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="media">Media &amp; entertainment</button>
+          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="travel">Travel · Airline</button>
+          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="retail">Retail</button>
+          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="fsi">FSI</button>
+          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="telco">Telco</button>
+          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="automotive">Automotive</button>
+          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="healthcare">Healthcare</button>
+        </div>
+      </div>
+      <div class="dce-pg-dropdown-wrap dce-pg-dropdown-wrap--customer">
+        <button type="button" class="dce-pg-dropdown-btn dce-pg-dropdown-btn--customer" id="dce-pg-customer-btn" aria-expanded="false" aria-haspopup="true" aria-controls="dce-pg-customer-menu">
+          <span class="dce-pg-customer-icon" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+          <span id="dce-pg-customer-label">Show for customer</span>
+          <svg class="dce-pg-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="dce-pg-dropdown-menu dce-pg-customer-menu" id="dce-pg-customer-menu" role="group" aria-label="Steps visible to customer" hidden>
+          <p class="dce-pg-customer-hint">Uncheck steps to hide them from tabs, navigation, and the overview shortcuts. At least one step stays on.</p>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="overview" checked> <span>Start</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="channels" checked> <span>Channels</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="schema" checked> <span>Schema</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="priority" checked> <span>Priority</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="formula" checked> <span>Ranking</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="ai" checked> <span>AI</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="experiment" checked> <span>Result</span></label>
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>
+  <div class="dce-pg-progress-track" aria-hidden="true"><div class="dce-pg-progress-fill" id="dce-pg-progress-fill"></div></div>
+  <div class="dce-pg-header-inner dce-pg-header-inner--tabs">
+<nav class="tab-nav dce-pg-tab-row" aria-label="Experience Decisioning steps">
+  <button type="button" class="tab-btn active" data-dce-panel="overview" data-dce-pg-short="Start" style="--active-color: #CC0000">Start</button>
+  <button type="button" class="tab-btn" data-dce-panel="channels" data-dce-pg-short="Channels" style="--active-color: #2D3142">Channels</button>
+  <button type="button" class="tab-btn" data-dce-panel="schema" data-dce-pg-short="Schema" style="--active-color: #8B5C8A">Schema</button>
+  <button type="button" class="tab-btn" data-dce-panel="priority" data-dce-pg-short="Priority" style="--active-color: #c47b00">Priority</button>
+  <button type="button" class="tab-btn" data-dce-panel="formula" data-dce-pg-short="Ranking" style="--active-color: #005f9e">Ranking</button>
+  <button type="button" class="tab-btn" data-dce-panel="ai" data-dce-pg-short="AI" style="--active-color: #1a7a4a">AI</button>
+  <button type="button" class="tab-btn" data-dce-panel="experiment" data-dce-pg-short="Result" style="--active-color: #6b3fa0">Result</button>
 </nav>
+  </div>
+</header>
 
 <div class="content">
 
@@ -341,7 +363,7 @@
   <div id="dceViz-panel-schema" class="panel dce-schema-panel">
     <header class="dce-schema-intro">
       <p class="dce-schema-step-label" id="dce-schema-step-label">Step 01 — The Blueprint</p>
-      <h2 class="dce-schema-h2">Offer Schema</h2>
+      <h2 class="dce-schema-h2">Schema</h2>
       <p class="dce-schema-lead">Toggle fields on and off — watch the offer preview build up on the right. Fields marked <span class="dce-schema-custom-pill">custom</span> are attributes you define for your business needs. Examples follow your <strong>industry</strong> selection above.</p>
       <div class="dce-schema-toolbar" role="toolbar" aria-label="Schema presets">
         <button type="button" class="dce-schema-tool-btn" id="dce-schema-reset">Reset</button>
@@ -2440,8 +2462,21 @@
       </div>
     </div>
   </div>
-
 </div>
+
+<footer class="dce-pg-footer" aria-label="Step navigation">
+  <div class="dce-pg-footer-inner">
+    <button type="button" class="dce-pg-back-btn" id="dce-pg-back">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      Back
+    </button>
+    <span class="dce-pg-counter" id="dce-pg-counter">1 / 7</span>
+    <button type="button" class="dce-pg-next-btn" id="dce-pg-next">
+      Next
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+  </div>
+</footer>
 
 <div class="footer">ADOBE JOURNEY OPTIMIZER · EXPERIENCE DECISIONING · RANKING METHODS EXPLORER</div></div>
         </section>
@@ -2451,6 +2486,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="decisioning-visualizer.js?v=20260414c"></script>
+  <script defer src="decisioning-visualizer.js?v=20260414f"></script>
 </body>
 </html>
