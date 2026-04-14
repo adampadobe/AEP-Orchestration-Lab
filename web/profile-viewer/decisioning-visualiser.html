@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260418a">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260419a">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -105,6 +105,7 @@
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="channels" checked> <span>Channels</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="schema" checked> <span>Schema</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="collections" checked> <span>Collections</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="rules" checked> <span>Rules</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="priority" checked> <span>Priority</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="formula" checked> <span>Ranking</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="ai" checked> <span>AI</span></label>
@@ -121,6 +122,7 @@
   <button type="button" class="tab-btn" data-dce-panel="channels" data-dce-pg-short="Channels" style="--active-color: #2D3142">Channels</button>
   <button type="button" class="tab-btn" data-dce-panel="schema" data-dce-pg-short="Schema" style="--active-color: #8B5C8A">Schema</button>
   <button type="button" class="tab-btn" data-dce-panel="collections" data-dce-pg-short="Collections" style="--active-color: #7c3aed">Collections</button>
+  <button type="button" class="tab-btn" data-dce-panel="rules" data-dce-pg-short="Rules" style="--active-color: #0f766e">Rules</button>
   <button type="button" class="tab-btn" data-dce-panel="priority" data-dce-pg-short="Priority" style="--active-color: #c47b00">Priority</button>
   <button type="button" class="tab-btn" data-dce-panel="formula" data-dce-pg-short="Ranking" style="--active-color: #005f9e">Ranking</button>
   <button type="button" class="tab-btn" data-dce-panel="ai" data-dce-pg-short="AI" style="--active-color: #1a7a4a">AI</button>
@@ -175,6 +177,34 @@
           <div class="ov-complexity">
             <div class="complexity-dot" style="background:#8B5C8A"></div>
             <div class="complexity-dot" style="background:#e8e0d5"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+          </div>
+        </div>
+      </a>
+      <a class="overview-card" data-dce-panel="collections" href="#">
+        <div class="ov-header" style="background: #7c3aed;">
+          <div class="ov-name">Collections</div>
+        </div>
+        <div class="ov-body">
+          <div class="ov-best">What this means</div>
+          <div class="ov-desc"><span data-dce-industry-show="media">Smart folders over the offer pool — filter by schema attributes so only matching items compete in ranking for each context.</span><span data-dce-industry-show="travel">Trip- and fare-aware slices — only ancillaries in the matched collection enter the decision for that itinerary.</span><span data-dce-industry-show="retail">Omnichannel collections — margin, category, and promo type define which offers are in play at checkout.</span><span data-dce-industry-show="fsi">Compliance-friendly groupings — separate pools for lending, cards, and wealth before any ranking.</span><span data-dce-industry-show="telco">Journey-based pools — mobile, fibre, and SMB offers stay in distinct collections per eligibility.</span><span data-dce-industry-show="automotive">Showroom vs aftersales pools — stock and programme type decide which incentives are eligible.</span><span data-dce-industry-show="healthcare">Pathway collections — virtual, specialty, and employer programmes stay separated for safe ranking.</span></div>
+          <div class="ov-complexity">
+            <div class="complexity-dot" style="background:#7c3aed"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+            <div class="complexity-dot" style="background:#e8e0d5"></div>
+          </div>
+        </div>
+      </a>
+      <a class="overview-card" data-dce-panel="rules" href="#">
+        <div class="ov-header" style="background: #0f766e;">
+          <div class="ov-name">Decision rules</div>
+        </div>
+        <div class="ov-body">
+          <div class="ov-best">What this means</div>
+          <div class="ov-desc"><span data-dce-industry-show="media">Reusable eligibility conditions on profile and behaviour — combine them to decide who is in scope before offers are ranked.</span><span data-dce-industry-show="travel">Reusable trip and tier checks — stack rules to limit who sees ancillaries and upgrades.</span><span data-dce-industry-show="retail">Reusable retail guards — loyalty, basket, browse, and repeat-purchase logic narrows the audience.</span><span data-dce-industry-show="fsi">Reusable banking gates — authentication, intent, product line, and consent combine for compliant targeting.</span><span data-dce-industry-show="telco">Reusable service and journey rules — plan type, addressability, segment, and save path tighten eligibility.</span><span data-dce-industry-show="automotive">Reusable programme rules — powertrain, finance path, service timing, and buyer type filter hand-raisers.</span><span data-dce-industry-show="healthcare">Reusable care rules — coverage, modality, pathway, and payer type protect clinically appropriate audiences.</span></div>
+          <div class="ov-complexity">
+            <div class="complexity-dot" style="background:#0f766e"></div>
+            <div class="complexity-dot" style="background:#14b8a6"></div>
             <div class="complexity-dot" style="background:#e8e0d5"></div>
           </div>
         </div>
@@ -581,6 +611,37 @@
     <div id="dce-collections-mount" class="dce-collections-stack" aria-live="polite"></div>
     <div class="dce-collections-footnote card">
       <strong>How filters work:</strong> The rule uses schema attributes (margin, category, type) to decide membership. New offers matching the rule are included automatically. In AJO Decision Management, <strong>item collections</strong> bound to these attributes feed <strong>selection strategies</strong> and ranking — same “Collection” layer as the <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">Experience Decisioning playground</a>.
+    </div>
+  </div>
+
+  <!-- ══ DECISION RULES (eligibility — AJO Experience Decisioning alignment) ══ -->
+  <div id="dceViz-panel-rules" class="panel dce-rules-panel" style="--method-color: #0f766e;">
+    <div class="section-header">
+      <div class="method-number" style="color:#0f766e;">◆</div>
+      <div class="method-meta">
+        <div class="method-tag">Eligibility</div>
+        <div class="method-title">Decision Rules</div>
+        <div class="method-desc">Rules are reusable eligibility conditions. You define them once, then plug them into your selection strategies. Each rule narrows the audience — toggle them on and watch who is left. Same pattern as the <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">Experience Decisioning playground</a>.</div>
+      </div>
+    </div>
+    <div class="dce-rules-split">
+      <div class="dce-rules-col dce-rules-col--left">
+        <p class="dce-rules-kicker">Toggle rules to narrow the audience</p>
+        <div id="dce-rules-toggle-mount" class="dce-rules-toggle-stack" aria-live="polite"></div>
+        <div class="dce-rules-reuse card">
+          <strong>Reusable:</strong> Define a rule once, then attach it to any selection strategy. The same rule can power multiple strategies across different campaigns.
+        </div>
+      </div>
+      <div class="dce-rules-col dce-rules-col--right">
+        <div class="dce-rules-audience card">
+          <h3 class="dce-rules-audience-title" id="dce-rules-audience-head">Your audience — 30 of 30 eligible (100%)</h3>
+          <div class="dce-rules-icons" id="dce-rules-icons" aria-hidden="true"></div>
+          <div class="dce-rules-bar-track"><div class="dce-rules-bar-fill" id="dce-rules-bar-fill" style="width:100%"></div></div>
+          <p class="dce-rules-audience-hint" id="dce-rules-audience-hint">No rules active — everyone qualifies. Toggle rules on the left to narrow the audience.</p>
+        </div>
+        <p class="dce-rules-kicker">How does this affect real customers?</p>
+        <div id="dce-rules-personas-mount" class="dce-rules-personas" aria-live="polite"></div>
+      </div>
     </div>
   </div>
 
@@ -2573,6 +2634,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="decisioning-visualizer.js?v=20260418a"></script>
+  <script defer src="decisioning-visualizer.js?v=20260419a"></script>
 </body>
 </html>

@@ -8,7 +8,7 @@
   var LS_INDUSTRY = 'dceVizIndustry';
   var LS_CUSTOMER_STEPS = 'dceVizCustomerSteps';
 
-  var DCE_PANEL_ORDER = ['overview', 'channels', 'schema', 'collections', 'priority', 'formula', 'ai', 'experiment'];
+  var DCE_PANEL_ORDER = ['overview', 'channels', 'schema', 'collections', 'rules', 'priority', 'formula', 'ai', 'experiment'];
 
   var INDUSTRY_LABEL_UI = {
     media: 'Media & entertainment',
@@ -1109,6 +1109,283 @@
     renderCollectionsPanel();
   }
 
+  var DCE_RULES_ON = {};
+  var DCE_RULES_TOTAL = 30;
+
+  var DCE_RULES_DATA = {
+    retail: {
+      rules: [
+        { title: 'VIP Customers Only', keepsLabel: 'keeps ~20%', logic: 'Profile · loyaltyTier IN ("Platinum", "Gold")', icon: '👑', keepRate: 0.2 },
+        { title: 'Cart Value > €80', keepsLabel: 'keeps ~50%', logic: 'Context · cart.value > 80', icon: '🛒', keepRate: 0.5 },
+        { title: 'Category Browsers', keepsLabel: 'keeps ~70%', logic: 'Event · browsedCategories CONTAINS "…"', icon: '🖥', keepRate: 0.7 },
+        { title: 'Repeat Purchasers', keepsLabel: 'keeps ~40%', logic: 'Computed · purchaseCount ≥ 3 in 90d', icon: '🔁', keepRate: 0.4 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan, 34 · Platinum', pass: [true, true, true, true] },
+        { initials: 'R', line: 'Riley, 27 · No tier', pass: [false, false, true, false] },
+        { initials: 'P', line: 'The Parkers · Silver', pass: [false, true, true, true] },
+      ],
+    },
+    media: {
+      rules: [
+        { title: 'Premium subscribers', keepsLabel: 'keeps ~22%', logic: 'Profile · subscriptionTier IN ("Premium", "Annual")', icon: '⭐', keepRate: 0.22 },
+        { title: 'High engagement viewers', keepsLabel: 'keeps ~48%', logic: 'Computed · watchHours30d ≥ 8', icon: '📺', keepRate: 0.48 },
+        { title: 'Genre affinity match', keepsLabel: 'keeps ~65%', logic: 'Profile · genreAffinity CONTAINS campaign.genre', icon: '🎬', keepRate: 0.65 },
+        { title: 'Win-back cohort', keepsLabel: 'keeps ~35%', logic: 'Segment · churnRisk90d = true', icon: '💌', keepRate: 0.35 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · Premium annual', pass: [true, true, true, false] },
+        { initials: 'R', line: 'Riley · Ad-supported tier', pass: [false, false, true, true] },
+        { initials: 'P', line: 'The Parkers · Family plan', pass: [true, true, false, false] },
+      ],
+    },
+    travel: {
+      rules: [
+        { title: 'Gold & Platinum tier', keepsLabel: 'keeps ~18%', logic: 'Profile · loyaltyTier IN ("Gold", "Platinum")', icon: '✈️', keepRate: 0.18 },
+        { title: 'Long-haul route', keepsLabel: 'keeps ~45%', logic: 'Context · haul = "long"', icon: '🌍', keepRate: 0.45 },
+        { title: 'Ancillary window open', keepsLabel: 'keeps ~72%', logic: 'Context · hoursToDeparture ≤ 48', icon: '⏱', keepRate: 0.72 },
+        { title: 'Repeat route bookers', keepsLabel: 'keeps ~38%', logic: 'Computed · segmentsFlown12m ≥ 3', icon: '🔁', keepRate: 0.38 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · Platinum · LHR→SFO', pass: [true, true, true, true] },
+        { initials: 'R', line: 'Riley · Member · short-haul', pass: [false, false, true, false] },
+        { initials: 'P', line: 'The Parkers · Silver · family', pass: [false, true, true, true] },
+      ],
+    },
+    fsi: {
+      rules: [
+        { title: 'Authenticated session', keepsLabel: 'keeps ~55%', logic: 'Context · channel IN ("mobile_bank", "web_auth")', icon: '🔐', keepRate: 0.55 },
+        { title: 'Wealth & invest intent', keepsLabel: 'keeps ~15%', logic: 'Profile · intentScore ≥ 0.75', icon: '📈', keepRate: 0.15 },
+        { title: 'Product eligible', keepsLabel: 'keeps ~60%', logic: 'Profile · regulatedProduct IN ("mortgage", "isa")', icon: '🏦', keepRate: 0.6 },
+        { title: 'Marketing consent', keepsLabel: 'keeps ~80%', logic: 'Consent · marketing = true', icon: '✉️', keepRate: 0.8 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · Logged-in · mortgage intent', pass: [true, true, true, true] },
+        { initials: 'R', line: 'Riley · Guest · browsing', pass: [false, false, false, false] },
+        { initials: 'P', line: 'The Parkers · ISA · opted in', pass: [true, false, true, true] },
+      ],
+    },
+    telco: {
+      rules: [
+        { title: 'Unlimited mobile plan', keepsLabel: 'keeps ~28%', logic: 'Profile · planType = "unlimited"', icon: '📱', keepRate: 0.28 },
+        { title: 'Fibre-addressable', keepsLabel: 'keeps ~52%', logic: 'Context · serviceability.fibre = true', icon: '🏠', keepRate: 0.52 },
+        { title: 'SMB account', keepsLabel: 'keeps ~12%', logic: 'Segment · accountType = "smb"', icon: '🏢', keepRate: 0.12 },
+        { title: 'Save / retention journey', keepsLabel: 'keeps ~33%', logic: 'Journey · stage IN ("save", "retention")', icon: '💌', keepRate: 0.33 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · Unlimited · fibre-ready', pass: [true, true, false, false] },
+        { initials: 'R', line: 'Riley · Prepaid · urban', pass: [false, true, false, true] },
+        { initials: 'P', line: 'The Parkers · SMB static IP', pass: [false, true, true, false] },
+      ],
+    },
+    automotive: {
+      rules: [
+        { title: 'EV hand-raiser', keepsLabel: 'keeps ~20%', logic: 'Profile · interestTags CONTAINS "EV"', icon: '🔌', keepRate: 0.2 },
+        { title: 'PCP retail eligible', keepsLabel: 'keeps ~45%', logic: 'Context · programme = "retail_pcp"', icon: '🚙', keepRate: 0.45 },
+        { title: 'Service due ≤ 90d', keepsLabel: 'keeps ~58%', logic: 'Vehicle · serviceDueDays ≤ 90', icon: '🛠', keepRate: 0.58 },
+        { title: 'Fleet / business', keepsLabel: 'keeps ~14%', logic: 'Segment · buyer = "fleet"', icon: '🚚', keepRate: 0.14 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · EV configure · PCP', pass: [true, true, true, false] },
+        { initials: 'R', line: 'Riley · First enquiry · cash', pass: [false, false, false, false] },
+        { initials: 'P', line: 'The Parkers · Workshop due · ICE', pass: [false, true, true, false] },
+      ],
+    },
+    healthcare: {
+      rules: [
+        { title: 'Benefits active', keepsLabel: 'keeps ~70%', logic: 'Coverage · status = "active"', icon: '🩺', keepRate: 0.7 },
+        { title: 'Virtual care eligible', keepsLabel: 'keeps ~40%', logic: 'Benefits · virtualVisitsRemaining > 0', icon: '💻', keepRate: 0.4 },
+        { title: 'Chronic programme', keepsLabel: 'keeps ~25%', logic: 'Programme · pathway IN ("diabetes", "heart")', icon: '🫀', keepRate: 0.25 },
+        { title: 'Employer-sponsored', keepsLabel: 'keeps ~35%', logic: 'Payer · type = "employer"', icon: '💼', keepRate: 0.35 },
+      ],
+      personas: [
+        { initials: 'J', line: 'Jordan · PPO · diabetes CM', pass: [true, true, true, true] },
+        { initials: 'R', line: 'Riley · Gap coverage · ad-hoc', pass: [false, false, false, false] },
+        { initials: 'P', line: 'The Parkers · Employer HSA', pass: [true, true, false, true] },
+      ],
+    },
+  };
+
+  function getRulesOnState(ind) {
+    var a = DCE_RULES_ON[ind];
+    if (!a || a.length !== 4) {
+      a = [false, false, false, false];
+      DCE_RULES_ON[ind] = a;
+    }
+    return a;
+  }
+
+  function rulesEligiblePopulation(active, ruleDefs) {
+    var on = 0;
+    for (var i = 0; i < active.length; i++) if (active[i]) on++;
+    if (on === 0) return DCE_RULES_TOTAL;
+    var p = 1;
+    for (var j = 0; j < active.length; j++) {
+      if (active[j]) p *= ruleDefs[j].keepRate;
+    }
+    return Math.max(0, Math.min(DCE_RULES_TOTAL, Math.round(DCE_RULES_TOTAL * p)));
+  }
+
+  function rulesAudienceHint(activeCount, eligible, total) {
+    if (activeCount === 0) {
+      return 'No rules active — everyone qualifies. Toggle rules on the left to narrow the audience.';
+    }
+    var frac = eligible / total;
+    if (frac <= 0.1) return 'Very narrow audience — only the most qualified customers remain.';
+    if (frac <= 0.25) return 'A focused segment — strong guardrails on who sees the offer.';
+    return 'Rules are filtering your audience — adjust toggles to refine reach.';
+  }
+
+  function renderRulesPanel() {
+    var mount = document.getElementById('dce-rules-toggle-mount');
+    var headEl = document.getElementById('dce-rules-audience-head');
+    var iconsEl = document.getElementById('dce-rules-icons');
+    var barEl = document.getElementById('dce-rules-bar-fill');
+    var hintEl = document.getElementById('dce-rules-audience-hint');
+    var personaMount = document.getElementById('dce-rules-personas-mount');
+    if (!mount || !headEl || !iconsEl || !barEl || !hintEl || !personaMount) return;
+
+    var ind = getIndustry();
+    var pack = DCE_RULES_DATA[ind] || DCE_RULES_DATA.retail;
+    var rules = pack.rules;
+    var active = getRulesOnState(ind);
+    var activeCount = active.filter(function (x) { return x; }).length;
+    var eligible = rulesEligiblePopulation(active, rules);
+    var pct = Math.round((eligible / DCE_RULES_TOTAL) * 100);
+
+    headEl.textContent =
+      'Your audience — ' + eligible + ' of ' + DCE_RULES_TOTAL + ' eligible (' + pct + '%)';
+
+    var lit = Math.round((eligible / DCE_RULES_TOTAL) * 10);
+    var iconParts = [];
+    for (var g = 0; g < 10; g++) {
+      iconParts.push(
+        '<span class="dce-rules-person-ico' + (g < lit ? ' is-lit' : '') + '" aria-hidden="true"></span>'
+      );
+    }
+    iconsEl.innerHTML = iconParts.join('');
+    barEl.style.width = pct + '%';
+    hintEl.textContent = rulesAudienceHint(activeCount, eligible, DCE_RULES_TOTAL);
+    if (activeCount === 0) {
+      hintEl.classList.remove('dce-rules-audience-hint--warn');
+    } else if (eligible / DCE_RULES_TOTAL <= 0.1) {
+      hintEl.classList.add('dce-rules-audience-hint--warn');
+    } else {
+      hintEl.classList.remove('dce-rules-audience-hint--warn');
+    }
+
+    var cardParts = [];
+    for (var r = 0; r < rules.length; r++) {
+      var rd = rules[r];
+      var isOn = !!active[r];
+      cardParts.push(
+        '<button type="button" class="dce-rules-card' +
+          (isOn ? ' is-on' : '') +
+          '" data-dce-rule-ix="' +
+          r +
+          '" role="switch" aria-checked="' +
+          (isOn ? 'true' : 'false') +
+          '">' +
+          '<span class="dce-rules-card-ico" aria-hidden="true">' +
+          escColHtml(rd.icon) +
+          '</span>' +
+          '<span class="dce-rules-card-body">' +
+          '<span class="dce-rules-card-title">' +
+          escColHtml(rd.title) +
+          ' <span class="dce-rules-keeps">' +
+          escColHtml(rd.keepsLabel) +
+          '</span></span>' +
+          '<span class="dce-rules-card-logic">' +
+          escColHtml(rd.logic) +
+          '</span></span>' +
+          '<span class="dce-rules-switch" aria-hidden="true"></span>' +
+          '</button>'
+      );
+    }
+    mount.innerHTML = cardParts.join('');
+
+    var pParts = [];
+    pack.personas.forEach(function (per) {
+      var ok = true;
+      if (activeCount > 0) {
+        for (var x = 0; x < active.length; x++) {
+          if (active[x] && !per.pass[x]) ok = false;
+        }
+      }
+      var rowClass = 'dce-rules-persona';
+      if (activeCount === 0) rowClass += ' dce-rules-persona--neutral';
+      else if (ok) rowClass += ' dce-rules-persona--eligible';
+      else rowClass += ' dce-rules-persona--excluded';
+
+      var checkParts = [];
+      if (activeCount === 0) {
+        checkParts.push(
+          '<li class="dce-rules-check dce-rules-check--na">No rule filters applied — everyone in the sample pool.</li>'
+        );
+      } else {
+        for (var c = 0; c < rules.length; c++) {
+          if (!active[c]) continue;
+          var passes = per.pass[c];
+          checkParts.push(
+            '<li class="dce-rules-check' +
+              (passes ? ' dce-rules-check--ok' : ' dce-rules-check--bad') +
+              '">' +
+              (passes ? '✓' : '✗') +
+              ' ' +
+              escColHtml(rules[c].title) +
+              '</li>'
+          );
+        }
+      }
+
+      var verdict;
+      if (activeCount === 0) verdict = '<span class="dce-rules-verdict dce-rules-verdict--muted">—</span>';
+      else if (ok) verdict = '<span class="dce-rules-verdict dce-rules-verdict--ok">Eligible</span>';
+      else verdict = '<span class="dce-rules-verdict dce-rules-verdict--bad">Excluded</span>';
+
+      pParts.push(
+        '<div class="' +
+          rowClass +
+          '">' +
+          '<span class="dce-rules-avatar">' +
+          escColHtml(per.initials) +
+          '</span>' +
+          '<div class="dce-rules-persona-mid">' +
+          '<div class="dce-rules-persona-line">' +
+          escColHtml(per.line) +
+          '</div>' +
+          '<ul class="dce-rules-checklist">' +
+          checkParts.join('') +
+          '</ul></div>' +
+          verdict +
+          '</div>'
+      );
+    });
+    personaMount.innerHTML = pParts.join('');
+  }
+
+  function bindRulesPanel() {
+    var panel = document.getElementById('dceViz-panel-rules');
+    if (!panel || panel._dceRulesBound) return;
+    panel._dceRulesBound = true;
+    panel.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('.dce-rules-card');
+      if (!btn || !panel.contains(btn)) return;
+      e.preventDefault();
+      var raw = btn.getAttribute('data-dce-rule-ix');
+      var ix = raw == null ? NaN : parseInt(raw, 10);
+      if (isNaN(ix)) return;
+      var ind = getIndustry();
+      var st = getRulesOnState(ind);
+      st[ix] = !st[ix];
+      renderRulesPanel();
+    });
+  }
+
+  function applyRulesIndustry() {
+    renderRulesPanel();
+  }
+
   function escColHtml(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;')
@@ -2040,6 +2317,7 @@
 
     if (typeof window.dceVizApplySchemaIndustry === 'function') window.dceVizApplySchemaIndustry();
     applyCollectionsIndustry();
+    applyRulesIndustry();
   }
 
   function initIndustry() {
@@ -2061,6 +2339,7 @@
   try {
     bindOfferSchema();
     bindCollectionsPills();
+    bindRulesPanel();
     initIndustry();
     bindChannelExplainer();
   } catch (err) {
