@@ -280,6 +280,44 @@ const COPY_BY_INDUSTRY = {
         'At a service desk, the CRM loads the top recommended program bundle from decisioning when a case is opened.',
     },
   },
+  healthcare: {
+    email: {
+      what: 'Clinical and wellness journeys with HIPAA-appropriate placeholders in member communications.',
+      does: 'Send-time decisioning picks the best care program, screening, or benefit message for each attributed member.',
+      example:
+        'A monthly care summary includes "Recommended next step": one patient sees a diabetes coaching slot, another a mammography reminder.',
+    },
+    web: {
+      what: 'Patient and member portals using Web SDK on authenticated sessions.',
+      does: 'While members review labs or benefits, decisioning surfaces the right follow-up offer or program tile.',
+      example:
+        'After viewing A1c results, the portal hero promotes a remote monitoring bundle for elevated values.',
+    },
+    app: {
+      what: 'Native payer or provider apps — home, care team, and benefits surfaces.',
+      does: 'In-app cards promote screenings, refills, or digital programs triggered by utilization and risk.',
+      example:
+        'A member who missed a preventive window sees an in-app card for a zero-copay screening slot.',
+    },
+    push: {
+      what: 'Care reminders and nudges that may include optional wellness or pharmacy CTAs.',
+      does: 'When allowed, pushes append the winning program line from decisioning alongside operational text.',
+      example:
+        'A refill-ready alert adds: "Add mail-order — save a trip" for members on maintenance meds.',
+    },
+    sms: {
+      what: 'Short SMS with secure links to book, enroll, or complete e-consent.',
+      does: 'Outbound SMS resolves the best variant and deep link per member segment and channel preference.',
+      example:
+        'A screening SMS ends with a personalized booking link priced to the member’s benefit tier.',
+    },
+    code: {
+      what: 'JSON for EHR hooks, call-center desktops, and connected devices.',
+      does: 'Clinical and service systems request the single best next-best-action for an MRN or member ID.',
+      example:
+        'At nurse triage, the workstation calls decisioning; the API returns the top care-gap closure offer for that encounter.',
+    },
+  },
 };
 
 function normalizeIndustry(industry) {

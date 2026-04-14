@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260414-tabs">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page experimentation-overview-page">
-  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public'];var m={telco:'telecommunications',automotive:'sports',healthcare:'public'};var last=null;function sync(){var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)<0)k='media';if(k!==last){last=k;document.body.setAttribute('data-dce-industry',k);}}sync();setInterval(sync,800);}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
+  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var last=null;function sync(){var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)<0)k='media';if(k!==last){last=k;document.body.setAttribute('data-dce-industry',k);}}sync();setInterval(sync,800);}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
