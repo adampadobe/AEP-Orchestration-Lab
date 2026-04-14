@@ -1264,7 +1264,10 @@ body.home-dashboard-concierge.home-page .dashboard-main {
 /* Text-only banner — tool pages only (home uses .dashboard-hero without --page-banner) */
 .dashboard-hero--page-banner .dashboard-hero-header {
   margin-bottom: 0;
+  margin-left: auto;
+  margin-right: auto;
   max-width: 42rem;
+  text-align: center;
 }
 
 .dashboard-hero--page-banner .dashboard-hero-inner {
@@ -1291,6 +1294,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
   letter-spacing: -0.03em;
   line-height: 1.2;
   margin: 0 0 0.75rem;
+  text-align: center;
 }
 
 .dashboard-hero--page-banner .dashboard-hero-subtitle {
@@ -1300,6 +1304,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
   max-width: 36rem;
   margin-left: auto;
   margin-right: auto;
+  text-align: center;
 }
 
 .dashboard-hero-inner {
