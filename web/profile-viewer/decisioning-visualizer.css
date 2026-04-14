@@ -2516,15 +2516,16 @@
   .decisioning-catalog-page .dce-viz-scope .dce-rules-icons {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px 5px;
     margin-bottom: 10px;
+    max-width: 100%;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-rules-person-ico {
-    width: 12px;
-    height: 16px;
-    border-radius: 3px 3px 2px 2px;
+    width: 9px;
+    height: 12px;
+    border-radius: 2px 2px 2px 2px;
     background: color-mix(in srgb, var(--dce-border) 55%, #ccc);
-    opacity: 0.55;
+    opacity: 0.5;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-rules-person-ico.is-lit {
     background: #0d9488;
@@ -2541,7 +2542,11 @@
     height: 100%;
     border-radius: 4px;
     background: linear-gradient(90deg, #0d9488, #14b8a6);
-    transition: width 0.25s ease;
+    transition: width 0.25s ease, background 0.2s ease;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-rules-bar-fill.dce-rules-bar-fill--neutral {
+    background: color-mix(in srgb, var(--ink) 55%, var(--dce-border));
+    opacity: 0.9;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-rules-audience-hint {
     margin: 0;

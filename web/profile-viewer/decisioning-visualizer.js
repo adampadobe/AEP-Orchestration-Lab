@@ -1,6 +1,10 @@
 /**
  * Decisioning visualiser — interactive ranking methods (decisioning-visualiser.html).
  * Industry context: media (default), travel, retail, FSI, telco, automotive, or healthcare (examples + copy).
+ *
+ * Flow aligns with github.com/alexmtmr/experience-decisioning-playground (React): Start → Schema → Items →
+ * Collections → Rules → Ranking … — we map Items to panel id `channels` (delivery / decision items).
+ * Extra steps: Priority, AI, Experimentation. Customer “Show for customer” toggles subset visibility.
  */
 (function () {
   'use strict';
@@ -8,7 +12,7 @@
   var LS_INDUSTRY = 'dceVizIndustry';
   var LS_CUSTOMER_STEPS = 'dceVizCustomerSteps';
 
-  var DCE_PANEL_ORDER = ['overview', 'channels', 'schema', 'collections', 'rules', 'priority', 'formula', 'ai', 'experiment'];
+  var DCE_PANEL_ORDER = ['overview', 'schema', 'channels', 'collections', 'rules', 'priority', 'formula', 'ai', 'experiment'];
 
   var INDUSTRY_LABEL_UI = {
     media: 'Media & entertainment',
@@ -142,6 +146,8 @@
 
     var sec = document.getElementById('decisioning-visualiser');
     if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    var innerContent = root.querySelector('.content');
+    if (innerContent) innerContent.scrollTop = 0;
     if (id === 'channels' && typeof window.dceVizUpdateChannelConnector === 'function') {
       window.requestAnimationFrame(function () {
         window.dceVizUpdateChannelConnector();
@@ -1223,7 +1229,18 @@
     for (var j = 0; j < active.length; j++) {
       if (active[j]) p *= ruleDefs[j].keepRate;
     }
-    return Math.max(0, Math.min(DCE_RULES_TOTAL, Math.round(DCE_RULES_TOTAL * p)));
+    /* Match experience-decisioning-playground RulesStep: min 1 eligible when any rule is on */
+    var n = Math.round(DCE_RULES_TOTAL * p);
+    return Math.max(1, Math.min(DCE_RULES_TOTAL, n));
+  }
+
+  function dceRuleLogicLine(rd) {
+    if (!rd) return '';
+    if (rd.logic) return rd.logic;
+    var parts = [];
+    if (rd.source) parts.push(rd.source);
+    if (rd.condition) parts.push(rd.condition);
+    return parts.join(' · ');
   }
 
   function rulesAudienceHint(activeCount, eligible, total) {
@@ -1256,19 +1273,19 @@
     headEl.textContent =
       'Your audience — ' + eligible + ' of ' + DCE_RULES_TOTAL + ' eligible (' + pct + '%)';
 
-    var lit = Math.round((eligible / DCE_RULES_TOTAL) * 10);
     var iconParts = [];
-    for (var g = 0; g < 10; g++) {
+    for (var g = 0; g < DCE_RULES_TOTAL; g++) {
       iconParts.push(
-        '<span class="dce-rules-person-ico' + (g < lit ? ' is-lit' : '') + '" aria-hidden="true"></span>'
+        '<span class="dce-rules-person-ico' + (g < eligible ? ' is-lit' : '') + '" aria-hidden="true"></span>'
       );
     }
     iconsEl.innerHTML = iconParts.join('');
     barEl.style.width = pct + '%';
+    barEl.classList.toggle('dce-rules-bar-fill--neutral', activeCount === 0);
     hintEl.textContent = rulesAudienceHint(activeCount, eligible, DCE_RULES_TOTAL);
     if (activeCount === 0) {
       hintEl.classList.remove('dce-rules-audience-hint--warn');
-    } else if (eligible / DCE_RULES_TOTAL <= 0.1) {
+    } else if (eligible / DCE_RULES_TOTAL <= 0.1 || eligible <= 3) {
       hintEl.classList.add('dce-rules-audience-hint--warn');
     } else {
       hintEl.classList.remove('dce-rules-audience-hint--warn');
@@ -1296,7 +1313,7 @@
           escColHtml(rd.keepsLabel) +
           '</span></span>' +
           '<span class="dce-rules-card-logic">' +
-          escColHtml(rd.logic) +
+          escColHtml(dceRuleLogicLine(rd)) +
           '</span></span>' +
           '<span class="dce-rules-switch" aria-hidden="true"></span>' +
           '</button>'
