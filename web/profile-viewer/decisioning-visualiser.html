@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260427">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260414">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -84,6 +84,9 @@
 <nav class="tab-nav">
   <button type="button" class="tab-btn active" data-dce-panel="overview" style="--active-color: #CC0000">
     <span class="tab-icon" style="background:#CC0000"></span> Overview
+  </button>
+  <button type="button" class="tab-btn" data-dce-panel="channels" style="--active-color: #2D3142">
+    <span class="tab-icon" style="background:#2D3142"></span> Channels
   </button>
   <button type="button" class="tab-btn" data-dce-panel="priority" style="--active-color: #c47b00">
     <span class="tab-icon" style="background:#c47b00"></span> 01 · Item Priority
@@ -237,6 +240,91 @@
           </tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ══ CHANNELS (decision → delivery, from Experience Decisioning playground) ══ -->
+  <div id="dceViz-panel-channels" class="panel dce-ch-panel">
+    <p class="dce-ch-hint">
+      After a <strong>decision policy</strong> picks a winning offer, that offer is rendered for the touchpoint you configured.
+      Select a channel to see how the decision shows up — same pattern as the
+      <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">Experience Decisioning playground</a> (Start → Policy).
+    </p>
+
+    <div class="dce-ch-layout">
+      <div class="dce-ch-flow">
+        <div class="dce-ch-policy-card" role="img" aria-label="Decision Policy container">
+          <div class="dce-ch-policy-inner">
+            <span class="dce-ch-policy-accent" aria-hidden="true"></span>
+            <span class="dce-ch-policy-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>
+            </span>
+            <div class="dce-ch-policy-text">
+              <span class="dce-ch-kicker">Container</span>
+              <span class="dce-ch-policy-title">Decision Policy</span>
+            </div>
+            <span class="dce-ch-policy-chevron" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+          </div>
+        </div>
+
+        <div class="dce-ch-connector" aria-hidden="true">
+          <span class="dce-ch-dash"></span>
+        </div>
+        <p class="dce-ch-deliver-label">Winning offer delivered to</p>
+
+        <div class="dce-ch-channel-row" role="tablist" aria-label="Delivery channel">
+          <button type="button" class="dce-ch-pill active" role="tab" aria-selected="true" data-dce-channel="email" id="dce-ch-tab-email" aria-controls="dce-ch-detail">
+            <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg></span>
+            Email
+          </button>
+          <button type="button" class="dce-ch-pill" role="tab" aria-selected="false" data-dce-channel="web" id="dce-ch-tab-web" aria-controls="dce-ch-detail">
+            <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span>
+            Web
+          </button>
+          <button type="button" class="dce-ch-pill" role="tab" aria-selected="false" data-dce-channel="app" id="dce-ch-tab-app" aria-controls="dce-ch-detail">
+            <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></svg></span>
+            App
+          </button>
+          <button type="button" class="dce-ch-pill" role="tab" aria-selected="false" data-dce-channel="push" id="dce-ch-tab-push" aria-controls="dce-ch-detail">
+            <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>
+            Push
+          </button>
+          <button type="button" class="dce-ch-pill" role="tab" aria-selected="false" data-dce-channel="sms" id="dce-ch-tab-sms" aria-controls="dce-ch-detail">
+            <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+            SMS
+          </button>
+          <button type="button" class="dce-ch-pill" role="tab" aria-selected="false" data-dce-channel="code" id="dce-ch-tab-code" aria-controls="dce-ch-detail">
+            <span class="dce-ch-pill-ic" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg></span>
+            Code
+          </button>
+        </div>
+      </div>
+
+      <aside class="dce-ch-detail" id="dce-ch-detail" role="tabpanel" aria-labelledby="dce-ch-tab-email">
+        <div class="dce-ch-detail-bar" aria-hidden="true"></div>
+        <div class="dce-ch-detail-hd">
+          <div>
+            <span class="dce-ch-kicker dce-ch-detail-kicker">Channel</span>
+            <h3 class="dce-ch-detail-title" id="dce-ch-detail-name">Email</h3>
+          </div>
+        </div>
+        <div class="dce-ch-detail-body">
+          <div class="dce-ch-block">
+            <span class="dce-ch-block-label">What it is</span>
+            <p class="dce-ch-block-text" id="dce-ch-what">Personalized offer blocks inside AJO email campaigns.</p>
+          </div>
+          <div class="dce-ch-block">
+            <span class="dce-ch-block-label">What it does</span>
+            <p class="dce-ch-block-text" id="dce-ch-does">The decisioning engine fills a template placeholder at send time — each recipient gets the offer most relevant to them.</p>
+          </div>
+          <div class="dce-ch-block dce-ch-block--example">
+            <span class="dce-ch-block-label">Example</span>
+            <p class="dce-ch-example" id="dce-ch-example">A weekly newsletter has an “Offer of the Week” block. Each recipient sees a different offer — one gets a data plan upgrade, another a loyalty reward.</p>
+          </div>
+        </div>
+      </aside>
     </div>
   </div>
 
@@ -2216,6 +2304,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="decisioning-visualizer.js?v=20260427"></script>
+  <script defer src="decisioning-visualizer.js?v=20260414"></script>
 </body>
 </html>

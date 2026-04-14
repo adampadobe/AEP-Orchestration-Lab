@@ -19,7 +19,7 @@
     if (!root) return;
     var panel = document.getElementById('dceViz-panel-' + id);
     if (!panel) return;
-    var order = ['overview', 'priority', 'formula', 'ai', 'experiment'];
+    var order = ['overview', 'channels', 'priority', 'formula', 'ai', 'experiment'];
     var idx = order.indexOf(id);
     if (idx < 0) return;
 
@@ -57,6 +57,85 @@
     });
   }
   bindVizRootClicks();
+
+  // ── CHANNELS TAB (decision → delivery copy from AJO Experience Decisioning playground) ──
+  var DCE_CHANNELS = {
+    email: {
+      label: 'Email',
+      what: 'Personalized offer blocks inside AJO email campaigns.',
+      does: 'The decisioning engine fills a template placeholder at send time — each recipient gets the offer most relevant to them.',
+      example: 'A weekly newsletter has an “Offer of the Week” block. Each recipient sees a different offer — one gets a data plan upgrade, another a loyalty reward.',
+    },
+    web: {
+      label: 'Web',
+      what: 'Real-time decisions delivered via Adobe Web SDK.',
+      does: 'Offers are injected into the page as the customer browses — hero banners, inline cards, or modal overlays.',
+      example: 'A returning telco customer sees “Welcome Back — Upgrade to 5G” as the homepage hero instead of the generic banner.',
+    },
+    app: {
+      label: 'App',
+      what: 'In-app messages and content cards within mobile applications.',
+      does: 'The decisioning engine delivers personalized offers directly inside the app experience — banners, interstitials, or native content cards triggered by user behavior.',
+      example: 'A banking app customer who just completed a transfer sees an in-app card: “You qualify for our Premium Cashback Card” — surfaced by the Decision Policy based on their transaction patterns.',
+    },
+    push: {
+      label: 'Push',
+      what: 'Mobile push notifications with personalized offers.',
+      does: 'Push campaigns in AJO include a decisioning action. The winning item’s push representation is assembled and delivered to the device.',
+      example: 'A customer who abandoned their cart 2 hours ago gets a push: “Free Express Shipping” — selected by the Decision Policy in real time.',
+    },
+    sms: {
+      label: 'SMS',
+      what: 'Personalized text messages with offer deep links.',
+      does: 'SMS campaigns deliver the winning offer as a short message with a deep link to convert.',
+      example: 'A high-value customer receives: “Hi Alex, your exclusive 30% upgrade offer expires tonight” with a link to the upgrade page.',
+    },
+    code: {
+      label: 'Code',
+      what: 'Structured JSON via Edge Decisioning API for any custom channel.',
+      does: 'Any downstream system — kiosk, call center, IoT device, or custom app — can consume and render the winning offer.',
+      example: 'A call center agent’s screen makes an API call when a customer dials in. The response surfaces the best retention offer as a talking-point card.',
+    },
+  };
+
+  function bindChannelExplainer() {
+    var panel = document.getElementById('dceViz-panel-channels');
+    if (!panel || panel.getAttribute('data-dce-ch-bound') === '1') return;
+    panel.setAttribute('data-dce-ch-bound', '1');
+
+    var nameEl = document.getElementById('dce-ch-detail-name');
+    var whatEl = document.getElementById('dce-ch-what');
+    var doesEl = document.getElementById('dce-ch-does');
+    var exEl = document.getElementById('dce-ch-example');
+    var detail = document.getElementById('dce-ch-detail');
+    if (!nameEl || !whatEl || !doesEl || !exEl || !detail) return;
+
+    function applyChannel(key) {
+      var d = DCE_CHANNELS[key];
+      if (!d) return;
+      nameEl.textContent = d.label;
+      whatEl.textContent = d.what;
+      doesEl.textContent = d.does;
+      exEl.textContent = d.example;
+      panel.querySelectorAll('.dce-ch-pill').forEach(function (btn) {
+        var k = btn.getAttribute('data-dce-channel');
+        var on = k === key;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        if (on && detail) detail.setAttribute('aria-labelledby', btn.id);
+      });
+    }
+
+    panel.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('.dce-ch-pill');
+      if (!btn || !panel.contains(btn)) return;
+      e.preventDefault();
+      var key = btn.getAttribute('data-dce-channel');
+      if (key) applyChannel(key);
+    });
+
+    applyChannel('email');
+  }
 
   // ── INDUSTRY CONFIG ─────────────────────────────────────────────────────────
   var PRIORITY_MEDIA = [
@@ -1033,6 +1112,7 @@
   // ── INIT ───────────────────────────────────────────────────────────────────
   try {
     initIndustry();
+    bindChannelExplainer();
   } catch (err) {
     console.error('[decisioning-visualizer] init', err);
   }
