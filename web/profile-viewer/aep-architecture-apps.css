@@ -173,12 +173,52 @@
   gap: 0.35rem;
 }
 
-.arch-highlight-picker-wrap {
+.arch-highlight-picker-wrap,
+.arch-sources-dividers-wrap {
   flex-basis: 100%;
   border: 1px solid var(--dash-border, #e4e6eb);
   border-radius: 8px;
   padding: 0.35rem 0.5rem;
   background: rgba(255, 255, 255, 0.6);
+}
+
+.arch-sources-dividers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.arch-sources-divider-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(249, 250, 251, 0.9);
+}
+
+.arch-sources-divider-row-title {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--dash-text, #1a1d21);
+  flex-basis: 100%;
+}
+
+.arch-sources-divider-field {
+  margin: 0;
+}
+
+.arch-sources-divider-field input.arch-sources-div-inp {
+  width: 3.75rem;
+  font-size: 0.72rem;
+}
+
+#archSourcesDividerAdd {
+  font-size: 0.68rem !important;
+  padding: 0.2rem 0.45rem !important;
 }
 
 .arch-highlight-picker-summary {
@@ -288,8 +328,48 @@
   cursor: nwse-resize;
 }
 
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='nw'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='se'] {
+  cursor: nwse-resize;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='ne'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='sw'] {
+  cursor: nesw-resize;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='n'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='s'] {
+  cursor: ns-resize;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='w'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--cbox[data-arch-cbox-handle='e'] {
+  cursor: ew-resize;
+}
+
 .arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle {
   cursor: nwse-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='nw'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='se'] {
+  cursor: nwse-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='ne'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='sw'] {
+  cursor: nesw-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='n'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='s'] {
+  cursor: ns-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='w'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='e'] {
+  cursor: ew-resize;
 }
 
 .arch-int-viewport.arch-drag-on.arch-resizing .arch-draggable {
@@ -316,6 +396,77 @@
 
 .arch-int-viewport.arch-user-line-draw svg {
   cursor: crosshair;
+}
+
+.arch-int-viewport.arch-custom-box-draw svg {
+  cursor: crosshair;
+}
+
+.arch-custom-box-preview {
+  pointer-events: none;
+}
+
+.arch-custom-boxes-layer .arch-custom-box--selected rect[data-arch-shell] {
+  stroke: #1473e6 !important;
+  stroke-width: 2.5px !important;
+}
+
+.arch-custom-box-name-input {
+  width: 12rem;
+  max-width: 100%;
+  font-size: 0.72rem;
+}
+
+.arch-custom-box-text-size-row {
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.arch-custom-box-text-size-row .dashboard-btn-outline {
+  font-size: 0.85rem !important;
+  line-height: 1;
+  padding: 0.15rem 0.45rem !important;
+  min-width: 1.75rem;
+}
+
+.arch-custom-box-font-size-display {
+  font-variant-numeric: tabular-nums;
+  min-width: 2.25rem;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-text, #1a1d21);
+}
+
+.arch-custom-box-text-size-hint {
+  margin: 0;
+  width: 100%;
+  flex-basis: 100%;
+  font-size: 0.62rem;
+  line-height: 1.3;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-custom-box-props .arch-custom-box-text-size-hint {
+  margin-top: -0.15rem;
+}
+
+.arch-custom-boxes-layer .arch-custom-box-label {
+  cursor: pointer;
+}
+
+.arch-custom-boxes-layer .arch-custom-box-label--active {
+  outline: 1px dashed rgba(20, 115, 230, 0.85);
+  outline-offset: 1px;
+}
+
+.arch-hud-label input[type='color'] {
+  width: 2.25rem;
+  height: 1.35rem;
+  padding: 0;
+  border: 1px solid var(--dash-border, #e4e6eb);
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .arch-user-lines-layer .arch-user-line {

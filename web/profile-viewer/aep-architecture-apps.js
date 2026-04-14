@@ -365,14 +365,18 @@
     applyState();
   }
 
-  function applyState() {
-    var st = STATES[idx];
-    if (!st) return;
-
+  function archRefreshNodeHighlightClasses() {
     var hilites = archHighlightsForState(idx);
     $all('.arch-node').forEach(function (el) {
       el.classList.toggle('is-highlighted', hilites.indexOf(el.id) >= 0);
     });
+  }
+
+  function applyState() {
+    var st = STATES[idx];
+    if (!st) return;
+
+    archRefreshNodeHighlightClasses();
 
     var activeIds = {};
     st.flows.forEach(function (f) {
@@ -1228,6 +1232,10 @@
   var LS_LABELS = 'aepArchLabelEdits';
   var LS_MASTER = 'aepArchMasterLayout';
   var LS_USER_LINES = 'aepArchUserLines';
+  var LS_SOURCES_DIVIDERS = 'aepArchSourcesDividers';
+
+  /** Horizontal rules in the Sources column (#arch-sources-seps-layer), in node-local coordinates. */
+  var archSourcesDividers = [];
 
   var archLabel = {
     enabled: false,
@@ -1244,6 +1252,52 @@
     selectedId: null,
   };
 
+  /** User-drawn rectangles (world SVG coords). */
+  var archCustomBoxes = [];
+  var archCustomBoxSelectedId = null;
+  /** When set, label size −/+ applies to this box (user clicked the SVG label). */
+  var archCustomBoxLabelActiveId = null;
+  var customBoxDrawMode = false;
+  var customBoxDrawPending = null;
+  var archCustomDrag = { active: null, start: null };
+  var archCustomResize = { active: null, start: null };
+  var LS_CUSTOM_BOXES = 'aepArchCustomBoxes';
+
+  function archCustomBoxNormalize(b) {
+    var o = {
+      id: typeof b.id === 'string' ? b.id : 'cbox-' + Date.now(),
+      x: Number(b.x) || 0,
+      y: Number(b.y) || 0,
+      w: Number(b.w) || 80,
+      h: Number(b.h) || 48,
+      fill: typeof b.fill === 'string' && b.fill ? b.fill : '#e5e7eb',
+      stroke: typeof b.stroke === 'string' && b.stroke ? b.stroke : '#94a3b8',
+      name: typeof b.name === 'string' ? b.name : 'New box',
+    };
+    var lfs = Number(b.labelFontSize);
+    o.labelFontSize = isNaN(lfs) ? 8.5 : archClamp(lfs, 4, 22);
+    o.w = Math.max(ARCH_MIN_NODE_W, Math.min(ARCH_MAX_NODE_W, o.w));
+    o.h = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, o.h));
+    o.x = archClamp(o.x, 0, ARCH_GUIDE_VIEW.w - o.w);
+    o.y = archClamp(o.y, 0, ARCH_GUIDE_VIEW.h - o.h);
+    return o;
+  }
+
+  function archCustomBoxWorldRect(box) {
+    if (!box) return null;
+    var b = archCustomBoxNormalize(box);
+    return {
+      left: b.x,
+      top: b.y,
+      right: b.x + b.w,
+      bottom: b.y + b.h,
+      w: b.w,
+      h: b.h,
+      cx: b.x + b.w / 2,
+      cy: b.y + b.h / 2,
+    };
+  }
+
   /** Pixels from a box edge — clicks within this distance snap to that edge (for anchored connectors). */
   var USER_LINE_SNAP_PX = 36;
 
@@ -1257,8 +1311,7 @@
     return { x: x, y: y, t: t, dist: Math.hypot(px - x, py - y) };
   }
 
-  function archUserLineClosestOnNodeBorder(key, px, py) {
-    var wr = archDragWorldRect(key);
+  function archUserLineClosestOnWorldRectBorder(wr, px, py) {
     if (!wr || wr.w < 4 || wr.h < 4) return null;
     var L = wr.left;
     var R = wr.right;
@@ -1303,31 +1356,50 @@
     return cand[0];
   }
 
+  function archUserLineClosestOnNodeBorder(key, px, py) {
+    var wr = archDragWorldRect(key);
+    return archUserLineClosestOnWorldRectBorder(wr, px, py);
+  }
+
   function archUserLineSnapEndpoint(px, py, targetEl) {
-    var preferred = null;
+    var preferredNode = null;
+    var preferredCbox = null;
     if (targetEl && targetEl.closest) {
       var g = targetEl.closest('g.arch-node');
       if (g && g.id && g.id.indexOf('node-') === 0) {
-        var pk = g.id.slice(5);
-        if (NODE_LAYOUT[pk]) preferred = pk;
+        var rest = g.id.slice(5);
+        if (NODE_LAYOUT[rest]) preferredNode = rest;
+        else if (rest.indexOf('cbox-') === 0) preferredCbox = rest;
       }
     }
     var candidates = [];
     Object.keys(NODE_LAYOUT).forEach(function (key) {
       var c = archUserLineClosestOnNodeBorder(key, px, py);
-      if (c) candidates.push({ key: key, c: c });
+      if (c) candidates.push({ typ: 'node', key: key, c: c });
+    });
+    archCustomBoxes.forEach(function (box) {
+      var wr = archCustomBoxWorldRect(box);
+      var c = archUserLineClosestOnWorldRectBorder(wr, px, py);
+      if (c) candidates.push({ typ: 'cbox', boxId: box.id, c: c });
     });
     candidates.sort(function (a, b) {
       var da = a.c.dist;
       var db = b.c.dist;
-      if (Math.abs(da - db) < 3 && preferred) {
-        if (a.key === preferred) return -1;
-        if (b.key === preferred) return 1;
+      if (Math.abs(da - db) < 3 && preferredNode) {
+        if (a.typ === 'node' && a.key === preferredNode) return -1;
+        if (b.typ === 'node' && b.key === preferredNode) return 1;
+      }
+      if (Math.abs(da - db) < 3 && preferredCbox) {
+        if (a.typ === 'cbox' && a.boxId === preferredCbox) return -1;
+        if (b.typ === 'cbox' && b.boxId === preferredCbox) return 1;
       }
       return da - db;
     });
     var first = candidates[0];
     if (first && first.c.dist <= USER_LINE_SNAP_PX) {
+      if (first.typ === 'cbox') {
+        return { kind: 'cbox', boxId: first.boxId, edge: first.c.edge, t: archClamp(first.c.t, 0, 1) };
+      }
       return { kind: 'anchor', node: first.key, edge: first.c.edge, t: archClamp(first.c.t, 0, 1) };
     }
     return { kind: 'free', x: px, y: py };
@@ -1348,11 +1420,36 @@
     return { x: (L + R) / 2, y: (T + B) / 2 };
   }
 
+  function archCustomBoxEdgeToWorld(boxId, edge, t) {
+    var box = null;
+    for (var i = 0; i < archCustomBoxes.length; i++) {
+      if (archCustomBoxes[i].id === boxId) {
+        box = archCustomBoxes[i];
+        break;
+      }
+    }
+    if (!box) return null;
+    var wr = archCustomBoxWorldRect(box);
+    var tt = archClamp(t, 0, 1);
+    var L = wr.left;
+    var R = wr.right;
+    var T = wr.top;
+    var B = wr.bottom;
+    if (edge === 'n') return { x: L + tt * (R - L), y: T };
+    if (edge === 's') return { x: L + tt * (R - L), y: B };
+    if (edge === 'w') return { x: L, y: T + tt * (B - T) };
+    if (edge === 'e') return { x: R, y: T + tt * (B - T) };
+    return { x: (L + R) / 2, y: (T + B) / 2 };
+  }
+
   function archUserLinePointFromEndpoint(ep) {
     if (!ep) return null;
     if (ep.kind === 'anchor') {
       var aw = archUserLineAnchorToWorld(ep.node, ep.edge, ep.t);
       return aw || null;
+    }
+    if (ep.kind === 'cbox') {
+      return archCustomBoxEdgeToWorld(ep.boxId, ep.edge, ep.t);
     }
     if (ep.kind === 'free' || (ep.x != null && ep.y != null)) return { x: ep.x, y: ep.y };
     return null;
@@ -1614,7 +1711,7 @@
 
   function archLabelPointerDownCapture(e) {
     if (e.target && e.target.closest && e.target.closest('.arch-node-resize-handle')) return;
-    if (userLines.drawMode) return;
+    if (userLines.drawMode || customBoxDrawMode) return;
     if (!archLabel.enabled) return;
     var te = e.target.closest('text');
     if (!te || !te.getAttribute('data-arch-id')) return;
@@ -1689,13 +1786,17 @@
   }
 
   function archResizePointerDown(e) {
-    if (!archDrag.enabled || userLines.drawMode) return;
+    if (!archDrag.enabled || userLines.drawMode || customBoxDrawMode) return;
     if (!e.target || !e.target.classList || !e.target.classList.contains('arch-node-resize-handle')) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     e.preventDefault();
     e.stopPropagation();
     var g = e.target.closest('g.arch-node');
     if (!g || !g.id || g.id.indexOf('node-') !== 0) return;
+    if (g.id.indexOf('node-cbox-') === 0) {
+      archCustomBoxResizePointerDown(e, g);
+      return;
+    }
     var which = g.id.slice(5);
     if (!NODE_LAYOUT[which]) return;
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
@@ -1739,7 +1840,7 @@
 
   function archDragPointerDown(e) {
     if (!archDrag.enabled) return;
-    if (userLines.drawMode) return;
+    if (userLines.drawMode || customBoxDrawMode) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
     if (e.target && e.target.closest && e.target.closest('text')) return;
@@ -1782,15 +1883,710 @@
     } catch (e) {}
   }
 
+  /** Inner bounds of `.arch-sources-shell` (node-local coords inside #node-sources). */
+  var SOURCES_SHELL_L = 22;
+  var SOURCES_SHELL_R = 22 + 118;
+  var SOURCES_SHELL_T = 122;
+  var SOURCES_SHELL_B = 122 + 200;
+
+  function archSourcesDividerClamp(d) {
+    var x1 = Number(d.x1);
+    var x2 = Number(d.x2);
+    var y = Number(d.y);
+    if (isNaN(x1)) x1 = 30;
+    if (isNaN(x2)) x2 = 132;
+    if (isNaN(y)) y = 166;
+    d.x1 = archClamp(x1, SOURCES_SHELL_L, SOURCES_SHELL_R);
+    d.x2 = archClamp(x2, SOURCES_SHELL_L, SOURCES_SHELL_R);
+    if (d.x1 > d.x2) {
+      var t = d.x1;
+      d.x1 = d.x2;
+      d.x2 = t;
+    }
+    d.y = archClamp(y, SOURCES_SHELL_T, SOURCES_SHELL_B);
+    d.stroke = typeof d.stroke === 'string' && d.stroke ? d.stroke : '#d1d5db';
+    var sw = Number(d.strokeWidth);
+    d.strokeWidth = isNaN(sw) || sw <= 0 ? 0.75 : archClamp(sw, 0.25, 4);
+    if (!d.id || typeof d.id !== 'string') d.id = 'sep-' + Date.now();
+    return d;
+  }
+
+  function archSourcesDividersDefaultArray() {
+    return [
+      archSourcesDividerClamp({
+        id: 'sep-default',
+        x1: 30,
+        x2: 132,
+        y: 166,
+        stroke: '#d1d5db',
+        strokeWidth: 0.75,
+      }),
+    ];
+  }
+
+  function archSourcesDividersNormalize(arr) {
+    if (!Array.isArray(arr)) return archSourcesDividersDefaultArray();
+    if (arr.length === 0) return [];
+    return arr.map(function (raw) {
+      return archSourcesDividerClamp(Object.assign({}, raw));
+    });
+  }
+
+  function archSourcesDividersLoad() {
+    try {
+      var r = localStorage.getItem(LS_SOURCES_DIVIDERS);
+      if (r == null || r === '') {
+        archSourcesDividers = archSourcesDividersDefaultArray();
+        return;
+      }
+      var p = JSON.parse(r);
+      archSourcesDividers = archSourcesDividersNormalize(p);
+    } catch (e) {
+      archSourcesDividers = archSourcesDividersDefaultArray();
+    }
+  }
+
+  function archSourcesDividersPersist() {
+    try {
+      localStorage.setItem(LS_SOURCES_DIVIDERS, JSON.stringify(archSourcesDividers));
+    } catch (e) {}
+  }
+
+  function archSourcesDividersRenderSvg() {
+    var layer = qs('#arch-sources-seps-layer');
+    if (!layer) return;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    archSourcesDividers.forEach(function (d) {
+      var line = document.createElementNS(SVG_NS, 'line');
+      line.setAttribute('class', 'arch-sources-sep');
+      line.setAttribute('x1', String(d.x1));
+      line.setAttribute('y1', String(d.y));
+      line.setAttribute('x2', String(d.x2));
+      line.setAttribute('y2', String(d.y));
+      line.setAttribute('stroke', d.stroke || '#d1d5db');
+      line.setAttribute('stroke-width', String(d.strokeWidth != null ? d.strokeWidth : 0.75));
+      line.setAttribute('data-arch-sources-sep', d.id);
+      layer.appendChild(line);
+    });
+  }
+
+  function archSourcesDividersRefreshPanel() {
+    var host = qs('#archSourcesDividersList');
+    if (!host) return;
+    host.innerHTML = '';
+    archSourcesDividers.forEach(function (d, index) {
+      var row = document.createElement('div');
+      row.className = 'arch-sources-divider-row';
+      row.setAttribute('data-sep-index', String(index));
+
+      var title = document.createElement('span');
+      title.className = 'arch-sources-divider-row-title';
+      title.textContent = 'Line ' + (index + 1);
+
+      function addField(label, field, val) {
+        var lab = document.createElement('label');
+        lab.className = 'arch-hud-label arch-sources-divider-field';
+        var inp = document.createElement('input');
+        inp.type = 'number';
+        inp.step = '0.5';
+        inp.className = 'arch-sources-div-inp';
+        inp.setAttribute('data-field', field);
+        inp.value = String(val);
+        lab.appendChild(document.createTextNode(label + ' '));
+        lab.appendChild(inp);
+        row.appendChild(lab);
+      }
+
+      row.appendChild(title);
+      addField('Y', 'y', d.y);
+      addField('Left', 'x1', d.x1);
+      addField('Right', 'x2', d.x2);
+
+      var dup = document.createElement('button');
+      dup.type = 'button';
+      dup.className = 'dashboard-btn-outline arch-sources-div-dup';
+      dup.textContent = 'Duplicate';
+      dup.setAttribute('data-action', 'dup');
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'dashboard-btn-outline arch-sources-div-del';
+      del.textContent = 'Delete';
+      del.setAttribute('data-action', 'del');
+
+      row.appendChild(dup);
+      row.appendChild(del);
+      host.appendChild(row);
+    });
+  }
+
+  function archSourcesDividersOnFieldInput(e) {
+    var inp = e.target;
+    if (!inp || !inp.classList || !inp.classList.contains('arch-sources-div-inp')) return;
+    var row = inp.closest('.arch-sources-divider-row');
+    if (!row) return;
+    var index = parseInt(row.getAttribute('data-sep-index'), 10);
+    var field = inp.getAttribute('data-field');
+    if (!archSourcesDividers[index] || !field) return;
+    var v = parseFloat(inp.value);
+    if (isNaN(v)) return;
+    archSourcesDividers[index][field] = v;
+    archSourcesDividerClamp(archSourcesDividers[index]);
+    row.querySelector('[data-field="y"]').value = String(archSourcesDividers[index].y);
+    row.querySelector('[data-field="x1"]').value = String(archSourcesDividers[index].x1);
+    row.querySelector('[data-field="x2"]').value = String(archSourcesDividers[index].x2);
+    archSourcesDividersPersist();
+    archSourcesDividersRenderSvg();
+  }
+
+  function archSourcesDividersOnPanelClick(e) {
+    var btn = e.target.closest && e.target.closest('button[data-action]');
+    if (!btn || !e.currentTarget.contains(btn)) return;
+    var row = btn.closest('.arch-sources-divider-row');
+    if (!row) return;
+    var idx = parseInt(row.getAttribute('data-sep-index'), 10);
+    if (btn.getAttribute('data-action') === 'dup') {
+      e.preventDefault();
+      archSourcesDividersDuplicate(idx);
+    } else if (btn.getAttribute('data-action') === 'del') {
+      e.preventDefault();
+      archSourcesDividersDelete(idx);
+    }
+  }
+
+  function archSourcesDividersDuplicate(index) {
+    var src = archSourcesDividers[index];
+    if (!src) return;
+    var copy = archSourcesDividerClamp({
+      id: 'sep-' + Date.now(),
+      x1: src.x1,
+      x2: src.x2,
+      y: src.y + 6,
+      stroke: src.stroke,
+      strokeWidth: src.strokeWidth,
+    });
+    archSourcesDividers.splice(index + 1, 0, copy);
+    archSourcesDividersPersist();
+    archSourcesDividersRenderSvg();
+    archSourcesDividersRefreshPanel();
+  }
+
+  function archSourcesDividersDelete(index) {
+    archSourcesDividers.splice(index, 1);
+    archSourcesDividersPersist();
+    archSourcesDividersRenderSvg();
+    archSourcesDividersRefreshPanel();
+  }
+
+  function archSourcesDividersAdd() {
+    var d = archSourcesDividerClamp({
+      id: 'sep-' + Date.now(),
+      x1: 30,
+      x2: 132,
+      y: 180,
+      stroke: '#d1d5db',
+      strokeWidth: 0.75,
+    });
+    archSourcesDividers.push(d);
+    archSourcesDividersPersist();
+    archSourcesDividersRenderSvg();
+    archSourcesDividersRefreshPanel();
+  }
+
+  function archCustomBoxFind(id) {
+    for (var i = 0; i < archCustomBoxes.length; i++) {
+      if (archCustomBoxes[i].id === id) return archCustomBoxes[i];
+    }
+    return null;
+  }
+
+  function archCustomBoxesLoad() {
+    try {
+      var r = localStorage.getItem(LS_CUSTOM_BOXES);
+      if (!r) {
+        archCustomBoxes = [];
+        return;
+      }
+      var p = JSON.parse(r);
+      archCustomBoxes = Array.isArray(p) ? p.map(archCustomBoxNormalize) : [];
+    } catch (e) {
+      archCustomBoxes = [];
+    }
+  }
+
+  function archCustomBoxesPersist() {
+    try {
+      localStorage.setItem(LS_CUSTOM_BOXES, JSON.stringify(archCustomBoxes.map(archCustomBoxNormalize)));
+    } catch (e) {}
+  }
+
+  function archHighlightPickerRefreshCustomBoxes() {
+    var host = qs('#archHighlightPicker');
+    if (!host) return;
+    host.querySelectorAll('[data-custom-cbox="1"]').forEach(function (el) {
+      el.parentNode.removeChild(el);
+    });
+    archCustomBoxes.forEach(function (box) {
+      var b = archCustomBoxNormalize(box);
+      var domId = 'node-cbox-' + b.id;
+      var lab = document.createElement('label');
+      lab.className = 'arch-highlight-picker-item';
+      lab.setAttribute('data-custom-cbox', '1');
+      var inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.setAttribute('data-node-id', domId);
+      inp.addEventListener('change', archHighlightPickerOnChange);
+      var span = document.createElement('span');
+      span.textContent = b.name || 'Custom box';
+      lab.appendChild(inp);
+      lab.appendChild(span);
+      host.appendChild(lab);
+    });
+  }
+
+  function archCustomBoxSyncPropsHud() {
+    var panel = qs('#archCustomBoxProps');
+    var box = archCustomBoxSelectedId ? archCustomBoxFind(archCustomBoxSelectedId) : null;
+    var nameInp = qs('#archCustomBoxNameInput');
+    var fillInp = qs('#archCustomBoxFillInput');
+    var strokeInp = qs('#archCustomBoxStrokeInput');
+    var sm = qs('#archCustomBoxTextSmaller');
+    var lg = qs('#archCustomBoxTextLarger');
+    var disp = qs('#archCustomBoxFontSizeDisplay');
+    if (!panel) return;
+    if (!box) {
+      panel.hidden = true;
+      if (sm) sm.disabled = true;
+      if (lg) lg.disabled = true;
+      return;
+    }
+    panel.hidden = false;
+    if (nameInp) nameInp.value = box.name || '';
+    if (fillInp) fillInp.value = box.fill || '#e5e7eb';
+    if (strokeInp) strokeInp.value = box.stroke || '#94a3b8';
+    var b = archCustomBoxNormalize(box);
+    var labelReady = !!(archCustomBoxLabelActiveId && archCustomBoxLabelActiveId === archCustomBoxSelectedId);
+    if (sm) sm.disabled = !labelReady || b.labelFontSize <= 4;
+    if (lg) lg.disabled = !labelReady || b.labelFontSize >= 22;
+    if (disp) disp.textContent = String(Math.round(b.labelFontSize * 10) / 10);
+  }
+
+  function archCustomBoxAdjustLabelSize(delta) {
+    if (!archCustomBoxLabelActiveId || archCustomBoxLabelActiveId !== archCustomBoxSelectedId) return;
+    var box = archCustomBoxFind(archCustomBoxLabelActiveId);
+    if (!box) return;
+    var b = archCustomBoxNormalize(box);
+    var next = Math.round((b.labelFontSize + delta) * 2) / 2;
+    next = archClamp(next, 4, 22);
+    box.labelFontSize = next;
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+  }
+
+  function archCustomBoxDeleteSelected() {
+    if (!archCustomBoxSelectedId) return;
+    var sid = archCustomBoxSelectedId;
+    archCustomBoxes = archCustomBoxes.filter(function (b) {
+      return b.id !== sid;
+    });
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    Object.keys(archStateHighlightOverrides).forEach(function (k) {
+      var arr = archStateHighlightOverrides[k];
+      if (!Array.isArray(arr)) return;
+      var domId = 'node-cbox-' + sid;
+      archStateHighlightOverrides[k] = arr.filter(function (id) {
+        return id !== domId;
+      });
+    });
+    archCustomBoxesPersist();
+    archStateHighlightOverridesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+  }
+
+  function archCustomBoxesRender() {
+    var layer = qs('#layer-custom-boxes');
+    if (!layer) return;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    archCustomBoxes = archCustomBoxes.map(archCustomBoxNormalize);
+    archCustomBoxes.forEach(function (raw) {
+      var b = archCustomBoxNormalize(raw);
+      var g = document.createElementNS(SVG_NS, 'g');
+      g.setAttribute('id', 'node-cbox-' + b.id);
+      g.setAttribute('class', 'arch-node arch-custom-box');
+      if (archCustomBoxSelectedId === b.id) g.classList.add('arch-custom-box--selected');
+      g.setAttribute('transform', 'translate(' + b.x + ',' + b.y + ')');
+      var shell = document.createElementNS(SVG_NS, 'rect');
+      shell.setAttribute('data-arch-shell', '1');
+      shell.setAttribute('x', '0');
+      shell.setAttribute('y', '0');
+      shell.setAttribute('width', String(b.w));
+      shell.setAttribute('height', String(b.h));
+      shell.setAttribute('rx', '6');
+      shell.setAttribute('fill', b.fill);
+      shell.setAttribute('stroke', b.stroke);
+      shell.setAttribute('stroke-width', '1.25');
+      var tx = document.createElementNS(SVG_NS, 'text');
+      tx.setAttribute('class', 'arch-node-label arch-custom-box-label');
+      if (archCustomBoxLabelActiveId === b.id) tx.classList.add('arch-custom-box-label--active');
+      tx.setAttribute('font-size', String(b.labelFontSize) + 'px');
+      tx.setAttribute('dominant-baseline', 'middle');
+      tx.setAttribute('x', String(b.w / 2));
+      tx.setAttribute('y', String(b.h / 2));
+      tx.setAttribute('text-anchor', 'middle');
+      tx.textContent = b.name || 'Box';
+      var hs = ARCH_RESIZE_HANDLE;
+      var hw = Math.max(0, (b.w - hs) / 2);
+      var hh = Math.max(0, (b.h - hs) / 2);
+      var handleSpecs = [
+        { k: 'nw', x: 0, y: 0 },
+        { k: 'ne', x: b.w - hs, y: 0 },
+        { k: 'sw', x: 0, y: b.h - hs },
+        { k: 'se', x: b.w - hs, y: b.h - hs },
+        { k: 'n', x: hw, y: 0 },
+        { k: 's', x: hw, y: b.h - hs },
+        { k: 'w', x: 0, y: hh },
+        { k: 'e', x: b.w - hs, y: hh },
+      ];
+      g.appendChild(shell);
+      g.appendChild(tx);
+      handleSpecs.forEach(function (sp) {
+        var hEl = document.createElementNS(SVG_NS, 'rect');
+        hEl.setAttribute('class', 'arch-node-resize-handle arch-node-resize-handle--cbox');
+        hEl.setAttribute('data-arch-cbox-handle', sp.k);
+        hEl.setAttribute('width', String(hs));
+        hEl.setAttribute('height', String(hs));
+        hEl.setAttribute('rx', '2');
+        hEl.setAttribute('x', String(sp.x));
+        hEl.setAttribute('y', String(sp.y));
+        hEl.setAttribute('fill', '#ffffff');
+        hEl.setAttribute('stroke', '#1473e6');
+        hEl.setAttribute('stroke-width', '1.25');
+        hEl.setAttribute('tabindex', '-1');
+        hEl.setAttribute('aria-hidden', 'true');
+        g.appendChild(hEl);
+      });
+      g.addEventListener('pointerdown', archCustomBoxDragPointerDown);
+      layer.appendChild(g);
+    });
+    archHighlightPickerRefreshCustomBoxes();
+    archHighlightPickerSync();
+    archRefreshNodeHighlightClasses();
+    archCustomBoxSyncPropsHud();
+  }
+
+  function archCustomBoxSetDrawMode(on) {
+    customBoxDrawMode = !!on;
+    if (archViewport) archViewport.classList.toggle('arch-custom-box-draw', customBoxDrawMode);
+    var tgl = qs('#archCustomBoxDrawToggle');
+    if (tgl) tgl.checked = customBoxDrawMode;
+    if (!customBoxDrawMode) {
+      customBoxDrawPending = null;
+      var pv = qs('#archCustomBoxPreview');
+      if (pv) pv.setAttribute('opacity', '0');
+      window.removeEventListener('pointermove', archCustomBoxDrawPointerMove, true);
+      window.removeEventListener('pointerup', archCustomBoxDrawPointerUp, true);
+    }
+    if (customBoxDrawMode) {
+      userLines.drawMode = false;
+      var lt = qs('#archUserLineDrawToggle');
+      if (lt) lt.checked = false;
+      archUserLineClearPending();
+      archUserLineRemoveDrawListeners();
+      if (archViewport) archViewport.classList.remove('arch-user-line-draw');
+    }
+  }
+
+  function archCustomBoxDrawPointerMove(e) {
+    if (!customBoxDrawPending) return;
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var x0 = customBoxDrawPending.x0;
+    var y0 = customBoxDrawPending.y0;
+    var x = Math.min(x0, p.x);
+    var y = Math.min(y0, p.y);
+    var w = Math.abs(p.x - x0);
+    var h = Math.abs(p.y - y0);
+    var pv = qs('#archCustomBoxPreview');
+    if (pv) {
+      pv.setAttribute('x', String(x));
+      pv.setAttribute('y', String(y));
+      pv.setAttribute('width', String(w));
+      pv.setAttribute('height', String(h));
+      pv.setAttribute('opacity', '0.75');
+    }
+  }
+
+  function archCustomBoxDrawPointerUp(e) {
+    window.removeEventListener('pointermove', archCustomBoxDrawPointerMove, true);
+    window.removeEventListener('pointerup', archCustomBoxDrawPointerUp, true);
+    var pv = qs('#archCustomBoxPreview');
+    if (pv) pv.setAttribute('opacity', '0');
+    if (!customBoxDrawPending) return;
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var x0 = customBoxDrawPending.x0;
+    var y0 = customBoxDrawPending.y0;
+    customBoxDrawPending = null;
+    var x = Math.min(x0, p.x);
+    var y = Math.min(y0, p.y);
+    var w = Math.abs(p.x - x0);
+    var h = Math.abs(p.y - y0);
+    if (w < ARCH_MIN_NODE_W || h < ARCH_MIN_NODE_H) return;
+    x = archClamp(x, 0, ARCH_GUIDE_VIEW.w - w);
+    y = archClamp(y, 0, ARCH_GUIDE_VIEW.h - h);
+    var nb = archCustomBoxNormalize({
+      id: 'cbox-' + Date.now(),
+      x: x,
+      y: y,
+      w: w,
+      h: h,
+      name: 'New box',
+    });
+    archCustomBoxes.push(nb);
+    archCustomBoxSelectedId = nb.id;
+    archCustomBoxLabelActiveId = null;
+    var domId = 'node-cbox-' + nb.id;
+    var curH = archHighlightsForState(idx).slice();
+    if (curH.indexOf(domId) < 0) curH.push(domId);
+    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    if (archHighlightArraysEqual(curH, defH)) {
+      delete archStateHighlightOverrides[idx];
+      delete archStateHighlightOverrides[String(idx)];
+    } else {
+      archStateHighlightOverrides[String(idx)] = curH;
+    }
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+  }
+
+  function archCustomBoxDrawPointerDownCapture(e) {
+    if (!customBoxDrawMode || !archDrag.svg) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (e.target && e.target.closest && e.target.closest('.arch-int-hud')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    customBoxDrawPending = { x0: p.x, y0: p.y };
+    window.addEventListener('pointermove', archCustomBoxDrawPointerMove, true);
+    window.addEventListener('pointerup', archCustomBoxDrawPointerUp, true);
+  }
+
+  function archCustomBoxDragPointerMoveWin(e) {
+    if (!archCustomDrag.active || !archCustomDrag.start) return;
+    e.preventDefault();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var dx = p.x - archCustomDrag.start.mx;
+    var dy = p.y - archCustomDrag.start.my;
+    var box = archCustomBoxFind(archCustomDrag.active);
+    if (!box) return;
+    var nx = archCustomDrag.start.ox + dx;
+    var ny = archCustomDrag.start.oy + dy;
+    var b = archCustomBoxNormalize(box);
+    nx = archClamp(nx, 0, ARCH_GUIDE_VIEW.w - b.w);
+    ny = archClamp(ny, 0, ARCH_GUIDE_VIEW.h - b.h);
+    box.x = nx;
+    box.y = ny;
+    archCustomBoxesRender();
+    archUserLineRender();
+  }
+
+  function archCustomBoxDragPointerUpWin() {
+    if (!archCustomDrag.active) return;
+    archCustomDrag.active = null;
+    archCustomDrag.start = null;
+    if (archViewport) archViewport.classList.remove('arch-dragging');
+    window.removeEventListener('pointermove', archCustomBoxDragPointerMoveWin, true);
+    window.removeEventListener('pointerup', archCustomBoxDragPointerUpWin, true);
+    window.removeEventListener('pointercancel', archCustomBoxDragPointerUpWin, true);
+    archCustomBoxesPersist();
+  }
+
+  function archCustomBoxDragPointerDown(e) {
+    if (userLines.drawMode || customBoxDrawMode) return;
+    var g = e.currentTarget;
+    if (!g.id || g.id.indexOf('node-cbox-') !== 0) return;
+    var rawId = g.id.replace(/^node-cbox-/, '');
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
+    var box = archCustomBoxFind(rawId);
+    if (!box) return;
+
+    var labelHit = e.target && e.target.closest && e.target.closest('.arch-custom-box-label');
+
+    if (!archDrag.enabled) {
+      userLines.selectedId = null;
+      archUserLineRender();
+      archUserLineSyncPropsHud();
+      archCustomBoxSelectedId = rawId;
+      archCustomBoxLabelActiveId = labelHit ? rawId : null;
+      archCustomBoxesRender();
+      e.stopPropagation();
+      return;
+    }
+
+    if (labelHit) {
+      userLines.selectedId = null;
+      archUserLineRender();
+      archUserLineSyncPropsHud();
+      archCustomBoxSelectedId = rawId;
+      archCustomBoxLabelActiveId = rawId;
+      archCustomBoxesRender();
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    userLines.selectedId = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    archCustomBoxSelectedId = rawId;
+    archCustomBoxLabelActiveId = null;
+    e.preventDefault();
+    e.stopPropagation();
+    archCustomDrag.active = rawId;
+    archCustomDrag.start = {
+      ox: box.x,
+      oy: box.y,
+      mx: svgClientToSvg(archDrag.svg, e.clientX, e.clientY).x,
+      my: svgClientToSvg(archDrag.svg, e.clientX, e.clientY).y,
+    };
+    if (archViewport) archViewport.classList.add('arch-dragging');
+    window.addEventListener('pointermove', archCustomBoxDragPointerMoveWin, true);
+    window.addEventListener('pointerup', archCustomBoxDragPointerUpWin, true);
+    window.addEventListener('pointercancel', archCustomBoxDragPointerUpWin, true);
+  }
+
+  function archCustomBoxResizePointerMoveWin(e) {
+    if (!archCustomResize.active || !archCustomResize.start) return;
+    e.preventDefault();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var s = archCustomResize.start;
+    var dx = p.x - s.mx;
+    var dy = p.y - s.my;
+    var box = archCustomBoxFind(archCustomResize.active);
+    if (!box || !s.handle) return;
+    var ox = s.ox;
+    var oy = s.oy;
+    var ow = s.ow;
+    var oh = s.oh;
+    var nx = ox;
+    var ny = oy;
+    var nw = ow;
+    var nh = oh;
+    switch (s.handle) {
+      case 'se':
+        nw = ow + dx;
+        nh = oh + dy;
+        break;
+      case 'sw':
+        nx = ox + dx;
+        nw = ow - dx;
+        nh = oh + dy;
+        break;
+      case 'ne':
+        ny = oy + dy;
+        nw = ow + dx;
+        nh = oh - dy;
+        break;
+      case 'nw':
+        nx = ox + dx;
+        ny = oy + dy;
+        nw = ow - dx;
+        nh = oh - dy;
+        break;
+      case 'n':
+        ny = oy + dy;
+        nh = oh - dy;
+        break;
+      case 's':
+        nh = oh + dy;
+        break;
+      case 'w':
+        nx = ox + dx;
+        nw = ow - dx;
+        break;
+      case 'e':
+        nw = ow + dx;
+        break;
+      default:
+        nw = ow + dx;
+        nh = oh + dy;
+    }
+    nw = Math.max(ARCH_MIN_NODE_W, Math.min(ARCH_MAX_NODE_W, nw));
+    nh = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, nh));
+    nx = archClamp(nx, 0, ARCH_GUIDE_VIEW.w - nw);
+    ny = archClamp(ny, 0, ARCH_GUIDE_VIEW.h - nh);
+    if (nx + nw > ARCH_GUIDE_VIEW.w) nw = ARCH_GUIDE_VIEW.w - nx;
+    if (ny + nh > ARCH_GUIDE_VIEW.h) nh = ARCH_GUIDE_VIEW.h - ny;
+    nw = Math.max(ARCH_MIN_NODE_W, nw);
+    nh = Math.max(ARCH_MIN_NODE_H, nh);
+    box.x = nx;
+    box.y = ny;
+    box.w = nw;
+    box.h = nh;
+    archCustomBoxesRender();
+    archUserLineRender();
+  }
+
+  function archCustomBoxResizePointerUpWin() {
+    if (!archCustomResize.active) return;
+    archCustomResize.active = null;
+    archCustomResize.start = null;
+    if (archViewport) archViewport.classList.remove('arch-resizing');
+    window.removeEventListener('pointermove', archCustomBoxResizePointerMoveWin, true);
+    window.removeEventListener('pointerup', archCustomBoxResizePointerUpWin, true);
+    window.removeEventListener('pointercancel', archCustomBoxResizePointerUpWin, true);
+    archCustomBoxesPersist();
+  }
+
+  function archCustomBoxResizePointerDown(e, g) {
+    if (!archDrag.enabled || userLines.drawMode || customBoxDrawMode) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    var handle = e.target && e.target.getAttribute && e.target.getAttribute('data-arch-cbox-handle');
+    if (!handle) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var rawId = g.id.replace(/^node-cbox-/, '');
+    var box = archCustomBoxFind(rawId);
+    if (!box) return;
+    var b = archCustomBoxNormalize(box);
+    var p0 = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    archCustomResize.active = rawId;
+    archCustomResize.start = {
+      handle: handle,
+      mx: p0.x,
+      my: p0.y,
+      ox: box.x,
+      oy: box.y,
+      ow: b.w,
+      oh: b.h,
+    };
+    archCustomBoxSelectedId = rawId;
+    archCustomBoxLabelActiveId = null;
+    if (archViewport) archViewport.classList.add('arch-resizing');
+    window.addEventListener('pointermove', archCustomBoxResizePointerMoveWin, true);
+    window.addEventListener('pointerup', archCustomBoxResizePointerUpWin, true);
+    window.addEventListener('pointercancel', archCustomBoxResizePointerUpWin, true);
+  }
+
   function archMasterSerialize() {
-    return {
-      version: 5,
+    var payload = {
+      version: 8,
       savedAt: new Date().toISOString(),
       nodes: archDrag.pos,
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
       userLines: userLines.lines.map(archUserLineMigrateLegacy),
       stateHighlightOverrides: JSON.parse(JSON.stringify(archStateHighlightOverrides)),
+      sourcesDividers: JSON.parse(JSON.stringify(archSourcesDividers)),
+      customBoxes: JSON.parse(JSON.stringify(archCustomBoxes.map(archCustomBoxNormalize))),
     };
+    if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.legacyToScene) {
+      payload.scene = window.AEPDiagram.model.legacyToScene(payload);
+    }
+    return payload;
   }
 
   function archMasterApply(data) {
@@ -1820,6 +2616,12 @@
         if (Array.isArray(v)) archStateHighlightOverrides[k] = v.slice();
       });
     }
+    if (Array.isArray(data.sourcesDividers)) {
+      archSourcesDividers = archSourcesDividersNormalize(data.sourcesDividers);
+    }
+    if (Array.isArray(data.customBoxes)) {
+      archCustomBoxes = data.customBoxes.map(archCustomBoxNormalize);
+    }
   }
 
   function archMasterTryLoad() {
@@ -1827,6 +2629,9 @@
       var raw = localStorage.getItem(LS_MASTER);
       if (!raw) return false;
       var data = JSON.parse(raw);
+      if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.migrateLayout) {
+        data = window.AEPDiagram.model.migrateLayout(data);
+      }
       archMasterApply(data);
       return true;
     } catch (e) {
@@ -1944,6 +2749,9 @@
       bidirectional: false,
     });
     userLines.selectedId = id;
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    archCustomBoxesRender();
     archUserLineRender();
     archUserLinePersist();
     archUserLineSyncPropsHud();
@@ -1961,10 +2769,14 @@
   }
 
   function archUserLineOnPointerDown(e) {
+    if (customBoxDrawMode) return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
     if (!userLines.drawMode) {
       if (e.target && e.target.classList && e.target.classList.contains('arch-user-line')) {
         userLines.selectedId = e.target.getAttribute('data-user-line-id');
+        archCustomBoxSelectedId = null;
+        archCustomBoxLabelActiveId = null;
+        archCustomBoxesRender();
         archUserLineRender();
         archUserLineSyncPropsHud();
         e.stopPropagation();
@@ -1975,6 +2787,9 @@
     if (e.target && e.target.closest && e.target.closest('.arch-int-hud')) return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-user-line')) {
       userLines.selectedId = e.target.getAttribute('data-user-line-id');
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
+      archCustomBoxesRender();
       archUserLineRender();
       archUserLineSyncPropsHud();
       e.stopPropagation();
@@ -2004,12 +2819,28 @@
       archUserLineClearPending();
       archUserLineRemoveDrawListeners();
     }
+    if (userLines.drawMode) {
+      customBoxDrawMode = false;
+      var ct = qs('#archCustomBoxDrawToggle');
+      if (ct) ct.checked = false;
+      if (archViewport) archViewport.classList.remove('arch-custom-box-draw');
+      customBoxDrawPending = null;
+      var pv = qs('#archCustomBoxPreview');
+      if (pv) pv.setAttribute('opacity', '0');
+      window.removeEventListener('pointermove', archCustomBoxDrawPointerMove, true);
+      window.removeEventListener('pointerup', archCustomBoxDrawPointerUp, true);
+    }
   }
 
   function archUserLineOnGlobalDelete(e) {
     if (e.key !== 'Delete' && e.key !== 'Backspace') return;
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT'))
       return;
+    if (archCustomBoxSelectedId) {
+      e.preventDefault();
+      archCustomBoxDeleteSelected();
+      return;
+    }
     if (userLines.selectedId) {
       e.preventDefault();
       archUserLineDeleteSelected();
@@ -2023,6 +2854,8 @@
       archDragSave();
       archLabelSave();
       archUserLinePersist();
+      archSourcesDividersPersist();
+      archCustomBoxesPersist();
       archStateHighlightOverridesPersist();
     } catch (err) {}
     if (liveRegion) {
@@ -2036,9 +2869,13 @@
       localStorage.removeItem(LS_NODES);
       localStorage.removeItem(LS_LABELS);
       localStorage.removeItem(LS_USER_LINES);
+      localStorage.removeItem(LS_SOURCES_DIVIDERS);
+      localStorage.removeItem(LS_CUSTOM_BOXES);
       localStorage.removeItem('aepArchDragTags');
       localStorage.removeItem('aepArchDragSources');
       localStorage.removeItem(LS_STATE_HILITE_OVERRIDES);
+      localStorage.removeItem('aepDiagramUndoStack');
+      localStorage.removeItem('aepDiagramSelection');
     } catch (e) {}
     window.location.reload();
   }
@@ -2060,15 +2897,35 @@
     r.onload = function () {
       try {
         var data = JSON.parse(r.result);
+        if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.migrateLayout) {
+          data = window.AEPDiagram.model.migrateLayout(data);
+        }
+        archSourcesDividers = archSourcesDividersDefaultArray();
+        archCustomBoxes = [];
         archMasterApply(data);
+        if (!Array.isArray(data.sourcesDividers)) {
+          archSourcesDividersLoad();
+        }
+        if (!Array.isArray(data.customBoxes)) {
+          archCustomBoxesLoad();
+        }
         archLabelApplyAll();
         archDragApply();
         archUserLineRender();
+        archSourcesDividersRenderSvg();
+        archSourcesDividersRefreshPanel();
+        archCustomBoxesRender();
         archDragSave();
         archLabelSave();
         archUserLinePersist();
+        archSourcesDividersPersist();
+        archCustomBoxesPersist();
         archStateHighlightOverridesPersist();
-        localStorage.setItem(LS_MASTER, JSON.stringify(data));
+        try {
+          localStorage.setItem(LS_MASTER, JSON.stringify(archMasterSerialize()));
+        } catch (e3) {
+          localStorage.setItem(LS_MASTER, JSON.stringify(data));
+        }
         applyState();
         if (liveRegion) liveRegion.textContent = 'Imported master layout applied.';
       } catch (err) {
@@ -2084,17 +2941,40 @@
 
     archAssignTextIdsAndDefaults();
     archEnsureResizeHandles();
+    archSourcesDividers = archSourcesDividersDefaultArray();
+    archCustomBoxes = [];
     if (!archMasterTryLoad()) {
       archLabelLoad();
       archDragLoad();
       archUserLineLoad();
+      archSourcesDividersLoad();
+      archCustomBoxesLoad();
+    } else {
+      try {
+        var rawM = localStorage.getItem(LS_MASTER);
+        var md = rawM ? JSON.parse(rawM) : {};
+        if (!Array.isArray(md.sourcesDividers)) {
+          archSourcesDividersLoad();
+        }
+        if (!Array.isArray(md.customBoxes)) {
+          archCustomBoxesLoad();
+        }
+      } catch (e2) {
+        archSourcesDividersLoad();
+        archCustomBoxesLoad();
+      }
     }
     archLabelApplyAll();
     archDragApply();
     archUserLineRender();
+    archSourcesDividersRenderSvg();
+    archSourcesDividersRefreshPanel();
+    archCustomBoxesRender();
     archDragSave();
     archLabelSave();
     archUserLinePersist();
+    archSourcesDividersPersist();
+    archCustomBoxesPersist();
 
     var colorSel = qs('#archUserLineColorSel');
     if (colorSel && !colorSel.getAttribute('data-arch-ready')) {
@@ -2105,6 +2985,7 @@
     var toggle = qs('#archDragToggle');
     var labelToggle = qs('#archLabelToggle');
     var lineDrawToggle = qs('#archUserLineDrawToggle');
+    var customBoxDrawToggle = qs('#archCustomBoxDrawToggle');
     var reset = qs('#archDragReset');
     var masterSave = qs('#archMasterSave');
     var masterDl = qs('#archMasterDownload');
@@ -2130,11 +3011,17 @@
         archUserLineSetDrawMode(lineDrawToggle.checked);
       });
     }
+    if (customBoxDrawToggle) {
+      customBoxDrawToggle.checked = false;
+      customBoxDrawToggle.addEventListener('change', function () {
+        archCustomBoxSetDrawMode(customBoxDrawToggle.checked);
+      });
+    }
     if (reset) {
       reset.addEventListener('click', function () {
         if (
           window.confirm(
-            'Restore the original Adobe diagram and clear all custom layout, labels, connectors, and per-state highlight choices in this browser?'
+            'Restore the original Adobe diagram and clear all custom layout, labels, connectors, custom boxes, and per-state highlight choices in this browser?'
           )
         ) {
           archFactoryReset();
@@ -2178,8 +3065,63 @@
       lineDel.addEventListener('click', archUserLineDeleteSelected);
     }
 
+    var cboxName = qs('#archCustomBoxNameInput');
+    var cboxFill = qs('#archCustomBoxFillInput');
+    var cboxStroke = qs('#archCustomBoxStrokeInput');
+    var cboxDel = qs('#archCustomBoxDelete');
+    function archCustomBoxApplyEditsFromHud() {
+      if (!archCustomBoxSelectedId) return;
+      var box = archCustomBoxFind(archCustomBoxSelectedId);
+      if (!box) return;
+      if (cboxName) box.name = cboxName.value || 'Box';
+      if (cboxFill) box.fill = cboxFill.value;
+      if (cboxStroke) box.stroke = cboxStroke.value;
+      archCustomBoxesPersist();
+      archCustomBoxesRender();
+      archUserLineRender();
+    }
+    if (cboxName) {
+      cboxName.addEventListener('input', archCustomBoxApplyEditsFromHud);
+      cboxName.addEventListener('change', archCustomBoxApplyEditsFromHud);
+    }
+    if (cboxFill) {
+      cboxFill.addEventListener('input', archCustomBoxApplyEditsFromHud);
+      cboxFill.addEventListener('change', archCustomBoxApplyEditsFromHud);
+    }
+    if (cboxStroke) {
+      cboxStroke.addEventListener('input', archCustomBoxApplyEditsFromHud);
+      cboxStroke.addEventListener('change', archCustomBoxApplyEditsFromHud);
+    }
+    if (cboxDel) {
+      cboxDel.addEventListener('click', archCustomBoxDeleteSelected);
+    }
+    var cboxTextSm = qs('#archCustomBoxTextSmaller');
+    var cboxTextLg = qs('#archCustomBoxTextLarger');
+    if (cboxTextSm) {
+      cboxTextSm.addEventListener('click', function () {
+        archCustomBoxAdjustLabelSize(-0.5);
+      });
+    }
+    if (cboxTextLg) {
+      cboxTextLg.addEventListener('click', function () {
+        archCustomBoxAdjustLabelSize(0.5);
+      });
+    }
+
+    var sepList = qs('#archSourcesDividersList');
+    if (sepList && !sepList.getAttribute('data-arch-ready')) {
+      sepList.setAttribute('data-arch-ready', '1');
+      sepList.addEventListener('input', archSourcesDividersOnFieldInput);
+      sepList.addEventListener('click', archSourcesDividersOnPanelClick);
+    }
+    var sepAdd = qs('#archSourcesDividerAdd');
+    if (sepAdd) {
+      sepAdd.addEventListener('click', archSourcesDividersAdd);
+    }
+
     document.addEventListener('keydown', archUserLineOnGlobalDelete);
 
+    archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
     archDrag.svg.addEventListener('dblclick', archLabelDblClick, true);
     archDrag.svg.addEventListener('pointerdown', archResizePointerDown, false);
