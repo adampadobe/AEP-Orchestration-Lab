@@ -7,11 +7,10 @@
   --arch-editor-panel-max-w: 22rem;
 }
 
-.arch-int-page .dashboard-main {
+.arch-int-page .dashboard-main.app-page {
   display: flex;
   flex-direction: column;
   min-height: calc(100dvh - 4rem);
-  padding-bottom: 0.75rem;
 }
 
 .arch-int-page .dashboard-hero--page-banner {

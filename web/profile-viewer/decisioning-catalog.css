@@ -20,8 +20,8 @@
 }
 
 /* Fill viewport below sidebar: banner keeps natural height; catalog card + results use remaining space.
-   Horizontal gutters come from home.css .dashboard-main (dashboard-tool-layout / profile-viewer-main) — do not re-max-width main here (avoids narrow centered column vs Generate Profiles). */
-body.decisioning-catalog-page.home-dashboard-concierge:not(.home-page) .dashboard-main.profile-viewer-main {
+   Horizontal gutters + max-width come from home.css main.dashboard-main.app-page — do not re-max-width main here. */
+body.decisioning-catalog-page.home-dashboard-concierge:not(.home-page) .dashboard-main.app-page {
   display: flex;
   flex-direction: column;
   min-height: min(100dvh, 100vh);

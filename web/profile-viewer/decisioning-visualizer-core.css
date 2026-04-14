@@ -26,7 +26,7 @@
     color: var(--ink);
     /* overflow-x:hidden makes overflow-y compute to auto (CSS overflow pairing) and clips the industry dropdown */
     overflow: visible;
-    /* Side padding comes from main.dashboard-main (home.css); avoid a second max-width here */
+    /* Side padding + max-width come from main.dashboard-main.app-page (home.css); avoid a second max-width here */
     --dce-core-pad-x: 0;
   }
 

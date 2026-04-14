@@ -1,6 +1,6 @@
 /* Experience decisioning page — shell uses home.css / aep-theme; React app uses --dash-* via .edp-sandbox */
 
-/* Mount uses full width; horizontal gutters come from main.dashboard-tool-layout (home.css) */
+/* Mount uses full width; horizontal gutters + max-width come from main.dashboard-main.app-page (home.css) */
 
 .experience-decisioning-page .edp-mount {
   width: 100%;
