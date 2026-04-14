@@ -2,7 +2,7 @@
 
 ## Overview
 
-Split `current-artifact.jsx` (single 1100+ line React file) into a Vite + React project with CSS Modules. Every component, data file, and style gets its own file. The source of truth for what works is `current-artifact.jsx` — don't reinvent, extract.
+Split `reference-current-artifact.jsx` (single 1100+ line React file) into a Vite + React project with CSS Modules. Every component, data file, and style gets its own file. The source of truth for what works is `reference-current-artifact.jsx` — don't reinvent, extract.
 
 ---
 
