@@ -26,11 +26,11 @@
     color: var(--ink);
     /* overflow-x:hidden makes overflow-y compute to auto (CSS overflow pairing) and clips the industry dropdown */
     overflow: visible;
-    /* Side padding + max-width come from main.dashboard-main.app-page (home.css); avoid a second max-width here */
-    --dce-core-pad-x: 0;
+    /* Page column: main.dashboard-main.app-page (home.css). Inner gutters inside this white card — match catalog surface rhythm */
+    --dce-core-pad-x: clamp(1rem, 2.5vw, 1.35rem);
   }
 
-  /* Full width inside main — gutters owned by outer tool layout only */
+  /* Tab row uses .dce-core-container; body uses .content — both share --dce-core-pad-x */
   #dceVizRoot.dce-viz-core .dce-core-container {
     width: 100%;
     max-width: none;
@@ -155,7 +155,7 @@
     max-width: none;
     width: 100%;
     margin: 0 auto;
-    padding: 48px 0 60px;
+    padding: 48px var(--dce-core-pad-x) 60px;
     box-sizing: border-box;
   }
 
