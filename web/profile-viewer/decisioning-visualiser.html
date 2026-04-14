@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260415c">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260416a">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -104,6 +104,7 @@
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="overview" checked> <span>Start</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="channels" checked> <span>Channels</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="schema" checked> <span>Schema</span></label>
+          <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="collections" checked> <span>Collections</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="priority" checked> <span>Priority</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="formula" checked> <span>Ranking</span></label>
           <label class="dce-pg-customer-row"><input type="checkbox" class="dce-pg-customer-cb" data-dce-step="ai" checked> <span>AI</span></label>
@@ -119,6 +120,7 @@
   <button type="button" class="tab-btn active" data-dce-panel="overview" data-dce-pg-short="Start" style="--active-color: #CC0000">Start</button>
   <button type="button" class="tab-btn" data-dce-panel="channels" data-dce-pg-short="Channels" style="--active-color: #2D3142">Channels</button>
   <button type="button" class="tab-btn" data-dce-panel="schema" data-dce-pg-short="Schema" style="--active-color: #8B5C8A">Schema</button>
+  <button type="button" class="tab-btn" data-dce-panel="collections" data-dce-pg-short="Collections" style="--active-color: #7c3aed">Collections</button>
   <button type="button" class="tab-btn" data-dce-panel="priority" data-dce-pg-short="Priority" style="--active-color: #c47b00">Priority</button>
   <button type="button" class="tab-btn" data-dce-panel="formula" data-dce-pg-short="Ranking" style="--active-color: #005f9e">Ranking</button>
   <button type="button" class="tab-btn" data-dce-panel="ai" data-dce-pg-short="AI" style="--active-color: #1a7a4a">AI</button>
@@ -538,6 +540,23 @@
     </div>
     <div class="dce-schema-footnote card">
       <strong>Why this matters:</strong> Every field you enable becomes available in ranking formulas, eligibility rules, and collections. Richer schema = smarter engine.
+    </div>
+  </div>
+
+  <!-- ══ COLLECTIONS (item pools — AJO Experience Decisioning alignment) ══ -->
+  <div id="dceViz-panel-collections" class="panel dce-collections-panel">
+    <div class="section-header">
+      <div class="method-number" style="color:#7c3aed;">◆</div>
+      <div class="method-meta">
+        <div class="method-tag">Item pool</div>
+        <div class="method-title">Collections</div>
+        <div class="method-desc">Rule-bound groupings of offer items. The policy only ranks offers that belong to the collection matched for this profile and context — same “Collection” layer as in the <a href="https://ajo-experience-decisioning-playground.netlify.app/" target="_blank" rel="noopener">Experience Decisioning playground</a>.</div>
+      </div>
+    </div>
+    <p class="dce-collections-lead" id="dce-collections-lead"></p>
+    <div id="dce-collections-mount" class="dce-collections-stack" aria-live="polite"></div>
+    <div class="dce-collections-footnote card">
+      <strong>How this maps to AJO:</strong> In Decision Management, <strong>item collections</strong> reference eligible items; <strong>selection strategies</strong> and ranking run on that pool. Switch <strong>industry</strong> above to see how the same three demo offers are split into realistic collection rules per vertical.
     </div>
   </div>
 
@@ -2514,7 +2533,7 @@
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
       Back
     </button>
-    <span class="dce-pg-counter" id="dce-pg-counter">1 / 7</span>
+    <span class="dce-pg-counter" id="dce-pg-counter">1 / 8</span>
     <button type="button" class="dce-pg-next-btn" id="dce-pg-next">
       Next
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
@@ -2530,6 +2549,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260415"></script>
-  <script defer src="decisioning-visualizer.js?v=20260415c"></script>
+  <script defer src="decisioning-visualizer.js?v=20260416a"></script>
 </body>
 </html>

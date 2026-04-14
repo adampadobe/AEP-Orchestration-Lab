@@ -8,7 +8,7 @@
   var LS_INDUSTRY = 'dceVizIndustry';
   var LS_CUSTOMER_STEPS = 'dceVizCustomerSteps';
 
-  var DCE_PANEL_ORDER = ['overview', 'channels', 'schema', 'priority', 'formula', 'ai', 'experiment'];
+  var DCE_PANEL_ORDER = ['overview', 'channels', 'schema', 'collections', 'priority', 'formula', 'ai', 'experiment'];
 
   var INDUSTRY_LABEL_UI = {
     media: 'Media & entertainment',
@@ -848,6 +848,125 @@
     { name: '🏥 Specialty expedited — cardiology intake', sub: 'Clinical pathway · SLAs & capacity', id: 's2' },
     { name: '💊 Pharmacy + wellness — 90-day + coaching', sub: 'Adherence · chronic & prevention', id: 's3' },
   ];
+
+  function getPriorityListForIndustry(key) {
+    if (key === 'travel') return PRIORITY_TRAVEL;
+    if (key === 'retail') return PRIORITY_RETAIL;
+    if (key === 'fsi') return PRIORITY_FSI;
+    if (key === 'telco') return PRIORITY_TELCO;
+    if (key === 'automotive') return PRIORITY_AUTOMOTIVE;
+    if (key === 'healthcare') return PRIORITY_HEALTHCARE;
+    return PRIORITY_MEDIA;
+  }
+
+  /**
+   * Item collections (AJO DPS) — rule-bound slices of the item pool, aligned with playground “Collection” layer.
+   * Each collection references priority-demo offer ids (s1–s3) for the active industry.
+   */
+  var DCE_COLLECTIONS_BY_INDUSTRY = {
+    media: {
+      lead: 'Item collections group eligible offers before ranking runs. Rules combine profile, channel, and consent — only items in the matched collection compete for the placement.',
+      collections: [
+        { name: 'Homepage & CTV — signed-in subscribers', rule: 'Channel in (Web, CTV app) AND subscription_state = active AND marketable = true', items: ['s1', 's2', 's3'] },
+        { name: 'Upgrade runway — high engagement viewers', rule: 'Watch hours (30d) ≥ 12 AND completion_rate ≥ 0.4 AND genre_affinity matches scripted drama', items: ['s1', 's2'] },
+        { name: 'Acquisition & trials cohort', rule: 'Segment in (new_visitor, free_tier) OR win_back_90d = true', items: ['s3'] },
+      ],
+    },
+    travel: {
+      lead: 'Collections narrow ancillaries by trip phase and fare rules. Eligible items from the matched pool feed the same decision policy you use in Experience Decisioning.',
+      collections: [
+        { name: 'Pre-departure — seat & service upsell', rule: 'Trip_phase = pre_departure AND cabin in (Y, W) AND inventory > 0', items: ['s1', 's2', 's3'] },
+        { name: 'Loyalty & premium cabin path', rule: 'Tier ≥ Gold OR corporate_contract = true AND route = long_haul', items: ['s1', 's2'] },
+        { name: 'Baggage & priority flash window', rule: 'Hours_to_departure ≤ 48 AND ancillaries_open = true', items: ['s2', 's3'] },
+      ],
+    },
+    retail: {
+      lead: 'Retail collections tie promos to cart value, channel, and loyalty — the engine only ranks offers that pass the collection’s eligibility constraints.',
+      collections: [
+        { name: 'Checkout & paid media recovery', rule: 'Surface in (checkout, cart_drawer, paid_social_rt) AND stock > 0', items: ['s1', 's2', 's3'] },
+        { name: 'Member & loyalty exclusives', rule: 'Loyalty_tier ≥ Silver OR app_authenticated = true', items: ['s1', 's2'] },
+        { name: 'BNPL & big-ticket save paths', rule: 'Basket_value ≥ threshold_electronics OR financing_eligible = true', items: ['s3'] },
+      ],
+    },
+    fsi: {
+      lead: 'Collections respect product permissions and fair-lending context. Items are grouped so only compliant offers enter the ranking for each profile.',
+      collections: [
+        { name: 'Authenticated digital offers hub', rule: 'Channel in (mobile_banking, web_logged_in) AND marketing_consent = true', items: ['s1', 's2', 's3'] },
+        { name: 'Wealth & mortgage intent', rule: 'Intent_score ≥ 0.72 OR pre_approval = true AND regulated_product = mortgage', items: ['s1'] },
+        { name: 'Everyday banking & acquisition', rule: 'Segment in (everyday, student, switcher) OR card_hold = false', items: ['s2', 's3'] },
+      ],
+    },
+    telco: {
+      lead: 'Collections split mobile, home, and SMB journeys so acquisition and save offers are not mixed in the same eligible pool.',
+      collections: [
+        { name: 'Omni-channel acquisition stack', rule: 'Journey in (acquisition, upgrade) AND credit_pass = true', items: ['s1', 's2', 's3'] },
+        { name: 'Mobile & device upgrade', rule: 'Line_type = mobile AND handset_eligible = true', items: ['s1'] },
+        { name: 'Fibre & SMB connectivity', rule: 'Address_serviceable = true AND segment in (home, smb)', items: ['s2', 's3'] },
+      ],
+    },
+    automotive: {
+      lead: 'Collections align showroom, EV, and aftersales programmes so each funnel only sees offers that match stock, region, and hand-raiser stage.',
+      collections: [
+        { name: 'Showroom & digital hand-raiser', rule: 'Lead_stage in (configure, test_drive_booked) AND dealer_region matches profile', items: ['s1', 's2', 's3'] },
+        { name: 'New vehicle & PCP priority', rule: 'Programme_type = retail_pcp AND stock_available = true', items: ['s1', 's2'] },
+        { name: 'EV bundle & aftersales attach', rule: 'Interest_tags contains EV OR workshop_due_within_90d = true', items: ['s2', 's3'] },
+      ],
+    },
+    healthcare: {
+      lead: 'Clinical and benefits collections keep programmes separated by pathway, network, and employer rules before any ranking or ML step.',
+      collections: [
+        { name: 'Benefits-eligible care programmes', rule: 'Coverage_active = true AND consent_care_comms = true', items: ['s1', 's2', 's3'] },
+        { name: 'Virtual access & same-day entry', rule: 'Care_path in (primary_virtual, urgent_care) AND state_license ok', items: ['s1', 's3'] },
+        { name: 'Specialty & pharmacy continuity', rule: 'Referral_open = true OR chronic_programme = true', items: ['s2', 's3'] },
+      ],
+    },
+  };
+
+  function escColHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderCollectionsPanel() {
+    var mount = document.getElementById('dce-collections-mount');
+    var leadEl = document.getElementById('dce-collections-lead');
+    if (!mount) return;
+    var ind = getIndustry();
+    var conf = DCE_COLLECTIONS_BY_INDUSTRY[ind] || DCE_COLLECTIONS_BY_INDUSTRY.media;
+    var list = getPriorityListForIndustry(ind);
+    var byId = {};
+    list.forEach(function (o) { byId[o.id] = o; });
+    if (leadEl) leadEl.textContent = conf.lead || '';
+    var parts = [];
+    (conf.collections || []).forEach(function (c, i) {
+      var letter = String.fromCharCode(65 + i);
+      var lis = [];
+      (c.items || []).forEach(function (oid) {
+        var o = byId[oid];
+        if (!o) return;
+        lis.push(
+          '<li class="dce-col-li"><span class="dce-col-offer-name">' + escColHtml(o.name) + '</span>' +
+          '<span class="dce-col-offer-sub">' + escColHtml(o.sub) + '</span></li>'
+        );
+      });
+      parts.push(
+        '<div class="dce-col-card card">' +
+        '<div class="dce-col-card-head">' +
+        '<span class="dce-col-ix" aria-hidden="true">' + escColHtml(letter) + '</span>' +
+        '<div><h3 class="dce-col-name">' + escColHtml(c.name) + '</h3>' +
+        '<p class="dce-col-rule"><span class="dce-col-rule-k">Rule</span> · ' + escColHtml(c.rule) + '</p></div></div>' +
+        '<div class="dce-col-items"><span class="dce-col-items-label">Offers in this collection</span>' +
+        '<ul class="dce-col-ul">' + lis.join('') + '</ul></div></div>'
+      );
+    });
+    mount.innerHTML = parts.join('');
+  }
+
+  function applyCollectionsIndustry() {
+    renderCollectionsPanel();
+  }
 
   var FORMULA_MEDIA = [
     { name: 'Drama Series — Annual Plan', category: 'drama', baseScore: 75, expiresIn: 20 },
@@ -1772,6 +1891,7 @@
     updateFormula();
 
     if (typeof window.dceVizApplySchemaIndustry === 'function') window.dceVizApplySchemaIndustry();
+    applyCollectionsIndustry();
   }
 
   function initIndustry() {

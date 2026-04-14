@@ -2229,3 +2229,127 @@
   .decisioning-catalog-page .dce-viz-scope .dce-schema-block--off {
     display: none !important;
   }
+
+  /* ── Collections panel (item pools / DPS collections) ───────────────────── */
+  .decisioning-catalog-page .dce-viz-scope .dce-collections-panel {
+    padding-bottom: 0.5rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-collections-lead {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 0 0 1.25rem;
+    max-width: 46rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-collections-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-card {
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-card:hover {
+    border-color: color-mix(in srgb, #7c3aed 35%, var(--line));
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.08);
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-card-head {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 1rem 1rem 0.75rem;
+    background: color-mix(in srgb, #7c3aed 6%, var(--dce-bg-panel));
+    border-bottom: 1px solid var(--line);
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-ix {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(145deg, #7c3aed, #5b21b6);
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-name {
+    font-family: 'Outfit', var(--dce-font), sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 0.35rem;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-rule {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--muted);
+    margin: 0;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-rule-k {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7c3aed;
+    font-weight: 600;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-items {
+    padding: 0.75rem 1rem 1rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-items-label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.75rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--dce-border) 50%, transparent);
+    font-size: 13px;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-li:last-child {
+    border-bottom: none;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-offer-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-col-offer-sub {
+    font-size: 11px;
+    color: var(--muted);
+    flex: 1;
+    min-width: 8rem;
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-collections-footnote {
+    margin-top: 1.25rem;
+    padding: 0.85rem 1rem;
+    font-size: 13px;
+    line-height: 1.55;
+    color: color-mix(in srgb, var(--ink) 85%, var(--muted));
+    background: color-mix(in srgb, var(--dce-border) 18%, var(--dce-bg-panel));
+  }
+  .decisioning-catalog-page .dce-viz-scope .dce-collections-footnote a {
+    color: #5b21b6;
+    font-weight: 500;
+  }
