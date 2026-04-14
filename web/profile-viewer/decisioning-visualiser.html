@@ -12,11 +12,12 @@
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260426">
-  <link rel="stylesheet" href="decisioning-visualizer-core.css?v=core20260426">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=core20260426">
+  <link rel="stylesheet" href="decisioning-visualizer-core.css?v=core20260428">
+  <link rel="stylesheet" href="decisioning-edp-shell.css?v=20260428">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=core20260428">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
-  <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
+  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public'];var m={telco:'telecommunications',automotive:'sports',healthcare:'public'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -52,17 +53,17 @@
                 Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>financial services</strong> examples: accounts, cards, lending, wealth, and insurance.
                 Use the tabs below to explore how eligible offers are ordered for customers.
               </p>
-              <p class="dashboard-hero-subtitle" data-dce-industry-show="telco">
-                Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>telco</strong> examples: mobile, fibre, SMB connectivity, roaming, and device bundles.
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="telecommunications">
+                Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>telecommunications</strong> examples: mobile, fibre, SMB connectivity, roaming, and device bundles.
                 Use the tabs below to explore how eligible offers are ordered for subscribers.
               </p>
-              <p class="dashboard-hero-subtitle" data-dce-industry-show="automotive">
-                Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>automotive</strong> examples: retail showroom, electrification, aftersales, fleet, and finance.
-                Use the tabs below to explore how eligible offers are ordered for drivers and buyers.
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="sports">
+                Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>sports</strong> examples: ticketing, memberships, merch, broadcast bundles, and fan engagement.
+                Use the tabs below to explore how eligible offers are ordered for fans and partners.
               </p>
-              <p class="dashboard-hero-subtitle" data-dce-industry-show="healthcare">
-                Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>healthcare</strong> examples: virtual care, specialty access, pharmacy, employer wellness, and benefits.
-                Use the tabs below to explore how eligible programmes are ordered for members and patients.
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="public">
+                Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>public sector</strong> examples: citizen services, benefits, permits, transit, and program eligibility.
+                Use the tabs below to explore how eligible services are ordered for residents and cases.
               </p>
             </header>
           </div>
@@ -70,52 +71,39 @@
 
                                 <section class="dce-viz-section" id="decisioning-visualiser" aria-label="Ranking methods explorer">
           <div id="dceVizRoot" class="dce-viz-scope dce-viz-core" role="region" aria-label="Decisioning visualiser">
-<!-- NAV -->
-<nav class="tab-nav" aria-label="Ranking methods">
-  <div class="dce-core-container dce-core-container--tabnav">
-  <div class="dce-core-tabnav-scroll">
-  <button type="button" class="tab-btn active" data-dce-core-panel="overview" onclick="dceVizShowPanel('overview')" style="--active-color: #CC0000">
-    <span class="tab-icon" style="background:#CC0000"></span> Overview
-  </button>
-  <button type="button" class="tab-btn" data-dce-core-panel="priority" onclick="dceVizShowPanel('priority')" style="--active-color: #c47b00">
-    <span class="tab-icon" style="background:#c47b00"></span> 01 · Item Priority
-  </button>
-  <button type="button" class="tab-btn" data-dce-core-panel="formula" onclick="dceVizShowPanel('formula')" style="--active-color: #005f9e">
-    <span class="tab-icon" style="background:#005f9e"></span> 02 · Ranking Formulas
-  </button>
-  <button type="button" class="tab-btn" data-dce-core-panel="ai" onclick="dceVizShowPanel('ai')" style="--active-color: #1a7a4a">
-    <span class="tab-icon" style="background:#1a7a4a"></span> 03 · AI Models
-  </button>
-  <button type="button" class="tab-btn" data-dce-core-panel="experiment" onclick="dceVizShowPanel('experiment')" style="--active-color: #6b3fa0">
-    <span class="tab-icon" style="background:#6b3fa0"></span> Experimentation
-  </button>
+<!-- NAV — layout mirrors Decision overview (EDP Shell): progress + industry | tabs -->
+<div class="dce-edp-shell-header">
+  <div class="dce-edp-progress" aria-hidden="true">
+    <div class="dce-edp-progress-track">
+      <div id="dce-edp-progress-fill" class="dce-edp-progress-fill" style="width:20%"></div>
+    </div>
   </div>
-  </div>
-</nav>
-
-<div class="content">
-  <div class="dce-core-industry-bar" role="group" aria-labelledby="dce-core-industry-bar-title">
-    <span id="dce-core-industry-bar-title" class="dce-core-industry-bar-label">Select your industry</span>
-    <div class="dce-core-industry-bar-control">
-      <div class="dce-pg-dropdown-wrap">
-        <button type="button" class="dce-pg-dropdown-btn" id="dce-pg-industry-btn" aria-expanded="false" aria-haspopup="listbox" aria-controls="dce-pg-industry-menu" aria-label="Industry">
-          <svg class="dce-pg-pin" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="#EB1000" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg>
-          <span id="dce-pg-industry-label">Media &amp; entertainment</span>
-          <svg class="dce-pg-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <div class="dce-pg-dropdown-menu" id="dce-pg-industry-menu" role="listbox" hidden>
-          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="media">Media &amp; entertainment</button>
-          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="travel">Travel · Airline</button>
-          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="retail">Retail</button>
-          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="fsi">FSI</button>
-          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="telco">Telco</button>
-          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="automotive">Automotive</button>
-          <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="healthcare">Healthcare</button>
+  <nav class="tab-nav dce-edp-shell-tabs" aria-label="Ranking methods">
+    <div class="dce-edp-header-inner">
+      <div class="dce-edp-tab-bar-row">
+        <div class="dce-edp-tab-industry">
+          <div class="dce-edp-dropdown-wrap">
+            <button type="button" class="dce-edp-dropdown-btn" id="dce-pg-industry-btn" aria-expanded="false" aria-haspopup="listbox" aria-controls="dce-pg-industry-menu" aria-label="Industry">
+              <span id="dce-edp-industry-ico" class="dce-edp-industry-ico" aria-hidden="true"></span>
+              <span id="dce-pg-industry-label">Media</span>
+              <svg class="dce-edp-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="dce-edp-dropdown-menu" id="dce-pg-industry-menu" role="listbox" hidden></div>
+          </div>
+        </div>
+        <div class="dce-edp-tab-scroll">
+          <button type="button" class="tab-btn active" data-dce-core-panel="overview" onclick="dceVizShowPanel('overview')">Overview</button>
+          <button type="button" class="tab-btn" data-dce-core-panel="priority" onclick="dceVizShowPanel('priority')">01 · Item Priority</button>
+          <button type="button" class="tab-btn" data-dce-core-panel="formula" onclick="dceVizShowPanel('formula')">02 · Ranking Formulas</button>
+          <button type="button" class="tab-btn" data-dce-core-panel="ai" onclick="dceVizShowPanel('ai')">03 · AI Models</button>
+          <button type="button" class="tab-btn" data-dce-core-panel="experiment" onclick="dceVizShowPanel('experiment')">Experimentation</button>
         </div>
       </div>
     </div>
-  </div>
+  </nav>
+</div>
 
+<div class="content">
   <!-- ══ OVERVIEW ══════════════════════════════════════════════════════════ -->
   <div id="panel-overview" class="panel active">
     <div style="margin-bottom: 48px;">
@@ -123,16 +111,16 @@
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="travel">When many ancillaries and upgrades compete for the same traveller, how does the engine decide?</div>
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="retail">When several promotions and add-ons could appear in the same journey, how does the engine decide?</div>
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="fsi">When multiple regulated products could be in scope for the same customer, how does the engine decide?</div>
-      <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="telco">When mobile, broadband, and business offers could all be eligible for the same subscriber, how does the engine decide?</div>
-      <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="automotive">When showroom, EV, aftersales, and fleet programmes could all be in play for the same contact, how does the engine decide?</div>
-      <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="healthcare">When virtual, specialty, pharmacy, and employer programmes could all be eligible for the same member, how does the engine decide?</div>
+      <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="telecommunications">When mobile, broadband, and business offers could all be eligible for the same subscriber, how does the engine decide?</div>
+      <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="sports">When tickets, bundles, and partner offers could all surface for the same fan, how does the engine decide?</div>
+      <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="public">When multiple programmes could help the same resident or case, how does the engine decide?</div>
       <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="media">Each ranking method answers that question differently — from fixed editorial priority to engagement-aware formulas and ML — pick what fits your streaming product, content roadmap, and growth stage.</h2>
       <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="travel">Each ranking method answers that question differently — from fixed commercial rules to trip-aware logic and ML — pick what fits your airline’s maturity.</h2>
       <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="retail">Each ranking method answers that question differently — from fixed merchandising rules to behavioural formulas and ML — pick what fits your retail maturity.</h2>
       <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="fsi">Each ranking method answers that question differently — from policy-driven priority to intent-aware formulas and ML — pick what fits your risk and compliance posture.</h2>
-      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="telco">Each ranking method answers that question differently — from commercial priority stacks to usage-aware formulas and ML — pick what fits your network and subscriber strategy.</h2>
-      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="automotive">Each ranking method answers that question differently — from fixed programme priority to journey formulas and ML — pick what fits your brand, channel mix, and stock strategy.</h2>
-      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="healthcare">Each ranking method answers that question differently — from clinical priority rules to pathway-aware formulas and ML — pick what fits your access model and compliance posture.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="telecommunications">Each ranking method answers that question differently — from commercial priority stacks to usage-aware formulas and ML — pick what fits your network and subscriber strategy.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="sports">Each ranking method answers that question differently — from fixed commercial priority to engagement-aware formulas and ML — pick what fits your league, venue calendar, and fan segments.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="public">Each ranking method answers that question differently — from policy-driven priority to eligibility-aware formulas and ML — pick what fits your service mandate and equitable access goals.</h2>
     </div>
 
     <div class="overview-grid">
@@ -202,7 +190,7 @@
     <div class="card" style="overflow-x:auto;">
       <div class="card-label">Side-by-side comparison</div>
       <p class="dce-overview-lead" style="font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.55;">
-        <span data-dce-industry-show="media">Dimensions are universal; your <strong>media &amp; entertainment</strong> examples (streaming upgrades, genre fit, watch history) live in each method tab.</span><span data-dce-industry-show="travel">Dimensions are universal; your <strong>airline</strong> examples (ancillaries, cut-offs, loyalty) live in each method tab.</span><span data-dce-industry-show="retail">Dimensions are universal; your <strong>retail</strong> examples (promos, basket, channel) live in each method tab.</span><span data-dce-industry-show="fsi">Dimensions are universal; your <strong>FSI</strong> examples (intent, eligibility, rate windows) live in each method tab.</span><span data-dce-industry-show="telco">Dimensions are universal; your <strong>telco</strong> examples (mobile, fibre, SMB) live in each method tab.</span><span data-dce-industry-show="automotive">Dimensions are universal; your <strong>automotive</strong> examples (showroom, EV, fleet) live in each method tab.</span><span data-dce-industry-show="healthcare">Dimensions are universal; your <strong>healthcare</strong> examples (virtual, specialty, employer) live in each method tab.</span>
+        <span data-dce-industry-show="media">Dimensions are universal; your <strong>media</strong> examples (streaming upgrades, genre fit, watch history) live in each method tab.</span><span data-dce-industry-show="travel">Dimensions are universal; your <strong>travel</strong> examples (flights, ancillaries, loyalty) live in each method tab.</span><span data-dce-industry-show="retail">Dimensions are universal; your <strong>retail</strong> examples (promos, basket, channel) live in each method tab.</span><span data-dce-industry-show="fsi">Dimensions are universal; your <strong>FSI</strong> examples (intent, eligibility, rate windows) live in each method tab.</span><span data-dce-industry-show="telecommunications">Dimensions are universal; your <strong>telecommunications</strong> examples (mobile, fibre, SMB) live in each method tab.</span><span data-dce-industry-show="sports">Dimensions are universal; your <strong>sports</strong> examples (ticketing, memberships, merch, broadcast) live in each method tab.</span><span data-dce-industry-show="public">Dimensions are universal; your <strong>public sector</strong> examples (benefits, permits, transit, services) live in each method tab.</span>
       </p>
       <table style="width:100%; border-collapse:collapse; font-size:13px;">
         <thead>
@@ -274,9 +262,9 @@
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="travel">An airline is promoting three ancillaries on the pre-trip website and app. Revenue management sets priority scores so the highest commercial-value bundle surfaces first to every eligible traveller.</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="retail">A retailer is running three concurrent checkout and homepage promotions. Merchandising sets priority scores so the highest-margin or strategic offer surfaces first for every eligible shopper.</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="fsi">A bank is promoting three products on mobile and web — mortgage, card, and ISA. Marketing and risk set priority scores so the commercially aligned, eligible offer surfaces first for every customer in scope.</div>
-        <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="telco">A telco is promoting three concurrent acquisition offers — unlimited mobile, gigabit fibre, and SMB connectivity. Marketing and wholesale set priority scores so the strategic, eligible offer surfaces first for every subscriber in scope.</div>
-        <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="automotive">An OEM and dealer group are promoting three concurrent programmes — new-car PCP, EV charger bundle, and inclusive service plan. Sales and aftersales set priority scores so the commercially aligned, eligible offer surfaces first for every contact in scope.</div>
-        <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="healthcare">A health system and plan are promoting three concurrent programmes — virtual primary access, expedited specialty intake, and pharmacy + wellness. Care navigation and benefits set priority scores so the clinically appropriate, eligible programme surfaces first for every member in scope.</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="telecommunications">A communications provider is promoting three concurrent offers — unlimited mobile, gigabit fibre, and SMB connectivity. Marketing and wholesale set priority scores so the strategic, eligible offer surfaces first for every subscriber in scope.</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="sports">A league and venue group are promoting three concurrent offers — season seats, matchday bundles, and streaming add-ons. Ticketing and partnerships set priority scores so the right offer surfaces first for every fan in scope.</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="public">A public agency is promoting three concurrent programmes — transit benefits, housing support, and skills grants. Policy owners set priority scores so the eligible service surfaces first for every resident in scope.</div>
         <div class="slider-row">
           <div class="slider-meta">
             <span id="priority-s1-label">🎬 Annual Plan — 2 months free</span>
@@ -820,8 +808,8 @@
         </div>
         </div>
 
-        <div class="dce-profile-stack" data-dce-industry-show="telco">
-        <div class="profile-card selected" data-dce-profile-industry="telco" onclick="window.dceVizSelectProfile(0, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+        <div class="dce-profile-stack" data-dce-industry-show="telecommunications">
+        <div class="profile-card selected" data-dce-profile-industry="telecommunications" onclick="window.dceVizSelectProfile(0, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
           <div class="profile-avatar" style="flex-shrink:0; margin:0;">📱</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -837,7 +825,7 @@
           </div>
         </div>
 
-        <div class="profile-card" data-dce-profile-industry="telco" onclick="window.dceVizSelectProfile(1, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+        <div class="profile-card" data-dce-profile-industry="telecommunications" onclick="window.dceVizSelectProfile(1, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
           <div class="profile-avatar" style="flex-shrink:0; margin:0;">🏠</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -853,7 +841,7 @@
           </div>
         </div>
 
-        <div class="profile-card" data-dce-profile-industry="telco" onclick="window.dceVizSelectProfile(2, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+        <div class="profile-card" data-dce-profile-industry="telecommunications" onclick="window.dceVizSelectProfile(2, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
           <div class="profile-avatar" style="flex-shrink:0; margin:0;">🧑‍💼</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -870,8 +858,8 @@
         </div>
         </div>
 
-        <div class="dce-profile-stack" data-dce-industry-show="automotive">
-        <div class="profile-card selected" data-dce-profile-industry="automotive" onclick="window.dceVizSelectProfile(0, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+        <div class="dce-profile-stack" data-dce-industry-show="sports">
+        <div class="profile-card selected" data-dce-profile-industry="sports" onclick="window.dceVizSelectProfile(0, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
           <div class="profile-avatar" style="flex-shrink:0; margin:0;">🚗</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -887,7 +875,7 @@
           </div>
         </div>
 
-        <div class="profile-card" data-dce-profile-industry="automotive" onclick="window.dceVizSelectProfile(1, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+        <div class="profile-card" data-dce-profile-industry="sports" onclick="window.dceVizSelectProfile(1, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
           <div class="profile-avatar" style="flex-shrink:0; margin:0;">🔌</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -903,7 +891,7 @@
           </div>
         </div>
 
-        <div class="profile-card" data-dce-profile-industry="automotive" onclick="window.dceVizSelectProfile(2, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+        <div class="profile-card" data-dce-profile-industry="sports" onclick="window.dceVizSelectProfile(2, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
           <div class="profile-avatar" style="flex-shrink:0; margin:0;">🧑‍💼</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -920,8 +908,8 @@
         </div>
         </div>
 
-        <div class="dce-profile-stack" data-dce-industry-show="healthcare">
-        <div class="profile-card selected" data-dce-profile-industry="healthcare" onclick="window.dceVizSelectProfile(0, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+        <div class="dce-profile-stack" data-dce-industry-show="public">
+        <div class="profile-card selected" data-dce-profile-industry="public" onclick="window.dceVizSelectProfile(0, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
           <div class="profile-avatar" style="flex-shrink:0; margin:0;">🩺</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -937,7 +925,7 @@
           </div>
         </div>
 
-        <div class="profile-card" data-dce-profile-industry="healthcare" onclick="window.dceVizSelectProfile(1, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+        <div class="profile-card" data-dce-profile-industry="public" onclick="window.dceVizSelectProfile(1, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
           <div class="profile-avatar" style="flex-shrink:0; margin:0;">🫀</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -953,7 +941,7 @@
           </div>
         </div>
 
-        <div class="profile-card" data-dce-profile-industry="healthcare" onclick="window.dceVizSelectProfile(2, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+        <div class="profile-card" data-dce-profile-industry="public" onclick="window.dceVizSelectProfile(2, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
           <div class="profile-avatar" style="flex-shrink:0; margin:0;">🧑‍💼</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -1005,15 +993,15 @@
           <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
           Uptake probability · trained on applications, holds, and servicing events
         </div>
-        <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;" data-dce-industry-show="telco">
+        <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;" data-dce-industry-show="telecommunications">
           <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
           Attach probability · trained on usage, care, install, and upgrade events
         </div>
-        <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;" data-dce-industry-show="automotive">
+        <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;" data-dce-industry-show="sports">
           <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
           Conversion probability · trained on configure, test-drive, handover, and workshop events
         </div>
-        <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;" data-dce-industry-show="healthcare">
+        <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;" data-dce-industry-show="public">
           <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
           Completion probability · trained on booking, refill, risk screen, and benefits events
         </div>
@@ -1266,7 +1254,7 @@
           </div>
         </div>
 
-        <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="telco">
+        <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="telecommunications">
           <div class="exp-arm">
             <div class="exp-arm-header exp-arm-header--control">
               <span>Control — Ranking Formula</span>
@@ -1317,7 +1305,7 @@
           </div>
         </div>
 
-        <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="automotive">
+        <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="sports">
           <div class="exp-arm">
             <div class="exp-arm-header exp-arm-header--control">
               <span>Control — Ranking Formula</span>
@@ -1368,7 +1356,7 @@
           </div>
         </div>
 
-        <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="healthcare">
+        <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="public">
           <div class="exp-arm">
             <div class="exp-arm-header exp-arm-header--control">
               <span>Control — Ranking Formula</span>
@@ -1447,21 +1435,21 @@
             <div class="lift-text" style="margin-top:8px;">Product owners could read lift by intent (everyday vs wealth vs SMB) — not a single product hierarchy.</div>
           </div>
         </div>
-        <div class="lift-banner" data-dce-industry-show="telco">
+        <div class="lift-banner" data-dce-industry-show="telecommunications">
           <div class="lift-number">+8%</div>
           <div>
             <div class="lift-text"><strong>Personalized offer ranking outperformed the static formula arm</strong> by 8% on incremental ARPU from upgrades after a 6-week experiment.</div>
             <div class="lift-text" style="margin-top:8px;">Marketing could read lift by line (mobile vs home vs business) — not a single sitewide upgrade hero.</div>
           </div>
         </div>
-        <div class="lift-banner" data-dce-industry-show="automotive">
+        <div class="lift-banner" data-dce-industry-show="sports">
           <div class="lift-number">+7%</div>
           <div>
             <div class="lift-text"><strong>Personalized programme ranking outperformed the static formula arm</strong> by 7% on qualified test-drive bookings after a 5-week experiment.</div>
             <div class="lift-text" style="margin-top:8px;">Retail and national could read lift by buyer segment (showroom vs EV vs fleet) — not a single campaign hero.</div>
           </div>
         </div>
-        <div class="lift-banner" data-dce-industry-show="healthcare">
+        <div class="lift-banner" data-dce-industry-show="public">
           <div class="lift-number">+6%</div>
           <div>
             <div class="lift-text"><strong>Personalized programme ranking outperformed the static formula arm</strong> by 6% on completed next-care-step bookings after a 4-week experiment.</div>
@@ -1485,17 +1473,17 @@
           <div class="story-eyebrow">📖 FSI — proof in the policy</div>
           <div class="story-text">"Product and digital teams split: keep a fixed product ladder or let the model reorder by intent and eligibility? They ran an experiment in the same decision policy on the logged-in home path. After four weeks, the ML arm lifted qualified starts without increasing decline rates on the control cohort. Proof replaced the org chart."</div>
         </div>
-        <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="telco">
-          <div class="story-eyebrow">📖 Telco — proof in the policy</div>
+        <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="telecommunications">
+          <div class="story-eyebrow">📖 Telecommunications — proof in the policy</div>
           <div class="story-text">"Consumer and wholesale teams disagreed: keep a fixed upgrade ladder or let the model reorder by usage and line? They ran an experiment in the same decision policy on the app upgrade path. After six weeks, the ML arm lifted incremental ARPU without higher churn on the holdout. Proof replaced the tariff slide."</div>
         </div>
-        <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="automotive">
-          <div class="story-eyebrow">📖 Automotive — proof in the policy</div>
-          <div class="story-text">"OEM and dealer councils split: keep a fixed incentive ladder or let the model reorder by journey stage? They ran an experiment in the same decision policy on the digital hand-raiser path. After five weeks, the ML arm lifted qualified test drives without lower margin on the control cohort. Proof replaced the one-size brochure."</div>
+        <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="sports">
+          <div class="story-eyebrow">📖 Sports — proof in the policy</div>
+          <div class="story-text">"Ticketing and partnerships split: keep a fixed bundle ladder or let the model reorder by fan segment and inventory? They ran an experiment in the same decision policy on the matchday checkout path. After five weeks, the ML arm lifted attach rate on bundles without lower yield on the control cohort. Proof replaced the one-size promo strip."</div>
         </div>
-        <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="healthcare">
-          <div class="story-eyebrow">📖 Healthcare — proof in the policy</div>
-          <div class="story-text">"Clinical operations and digital health split: keep a fixed programme ladder or let the model reorder by care path and benefits context? They ran an experiment in the same decision policy on the member app home path. After four weeks, the ML arm lifted completed bookings without higher abrasion on the control cohort. Proof replaced the one-size wellness tile."</div>
+        <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="public">
+          <div class="story-eyebrow">📖 Public sector — proof in the policy</div>
+          <div class="story-text">"Policy and digital service teams split: keep a fixed programme ladder or let the model reorder by eligibility and case context? They ran an experiment in the same decision policy on the resident benefits path. After four weeks, the ML arm lifted completed applications without higher drop-off on the control cohort. Proof replaced the one-size tile."</div>
         </div>
 
     <div class="card" style="margin-top:24px;">
@@ -1529,6 +1517,6 @@
 
   <script defer src="aep-theme.js?v=20260416b"></script>
   <script defer src="aep-lab-nav.js?v=20260415b"></script>
-  <script defer src="decisioning-visualizer.js?v=core20260414"></script>
+  <script defer src="decisioning-visualizer.js?v=core20260428"></script>
 </body>
 </html>

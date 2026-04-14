@@ -1,0 +1,211 @@
+/**
+ * Decisioning visualiser — shell chrome aligned with Experience Decisioning (EDP) Shell.module.css:
+ * thin progress bar + sticky row (industry dropdown | scrollable step tabs).
+ * Scoped to #dceVizRoot; uses dashboard tokens (--dash-*, --dce-*).
+ */
+#dceVizRoot.dce-viz-core .dce-edp-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 210;
+  background: color-mix(in srgb, var(--dce-bg-panel, var(--dash-surface)) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--dce-border, var(--dash-border));
+  box-sizing: border-box;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-progress-track {
+  height: 2px;
+  background: var(--dce-border, var(--dash-border));
+  width: 100%;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-progress-fill {
+  height: 100%;
+  background: var(--dash-blue, #1473e6);
+  transition: width 0.35s ease;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-header-inner {
+  max-width: none;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 clamp(12px, 2vw, 20px);
+  box-sizing: border-box;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-tab-bar-row {
+  display: flex;
+  align-items: stretch;
+  min-height: 44px;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-tab-industry {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding-right: 12px;
+  margin-right: 4px;
+  border-right: 1px solid var(--dce-border, var(--dash-border));
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-dropdown-wrap {
+  position: relative;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--dce-bg-hover, var(--dash-hover));
+  border: 1px solid var(--dce-border, var(--dash-border));
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--dce-text, var(--dash-text));
+  cursor: pointer;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-dropdown-btn:hover {
+  filter: brightness(0.98);
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-industry-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--dash-blue, #1473e6);
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-industry-ico svg {
+  display: block;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-chev {
+  flex-shrink: 0;
+  opacity: 0.75;
+  color: var(--dce-muted, var(--dash-muted));
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 3px;
+  background: var(--dce-bg-panel, var(--dash-surface));
+  border: 1px solid var(--dce-border, var(--dash-border));
+  border-radius: 9px;
+  padding: 3px;
+  box-shadow: var(--dce-shadow, var(--dash-shadow));
+  min-width: 200px;
+  z-index: 600;
+  box-sizing: border-box;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-dropdown-menu[hidden] {
+  display: none !important;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--dce-text, var(--dash-text));
+  background: transparent;
+  border: none;
+  box-sizing: border-box;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-dropdown-item:hover {
+  background: var(--dce-bg-hover, var(--dash-hover));
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-dropdown-item.dce-edp-dropdown-item--active {
+  font-weight: 600;
+  color: var(--dash-blue, #1473e6);
+  background: color-mix(in srgb, var(--dash-blue, #1473e6) 10%, transparent);
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-menu-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--dash-blue, #1473e6);
+  opacity: 0.95;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-menu-label {
+  flex: 1;
+  min-width: 0;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-dropdown-item:not(.dce-edp-dropdown-item--active) .dce-edp-menu-ico {
+  color: var(--dce-muted, var(--dash-muted));
+  opacity: 1;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-tab-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  overflow-x: auto;
+  align-items: stretch;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tabs — match EDP Shell tab row (compact, bottom border accent) */
+#dceVizRoot.dce-viz-core .dce-edp-shell-tabs.tab-nav {
+  display: block;
+  box-shadow: none;
+  overflow: visible;
+  background: transparent;
+  border-bottom: none;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-shell-tabs .tab-btn {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: normal;
+  color: var(--dce-muted, var(--dash-muted));
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-shell-tabs .tab-btn:hover {
+  color: var(--dce-text, var(--dash-text));
+  background: color-mix(in srgb, var(--dce-bg-hover, var(--dash-hover)) 65%, transparent);
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-shell-tabs .tab-btn.active {
+  font-weight: 600;
+  color: var(--dash-blue, #1473e6);
+  border-bottom-color: var(--dash-blue, #1473e6);
+  background: transparent;
+}
+
+#dceVizRoot.dce-viz-core .dce-edp-shell-tabs .tab-icon {
+  display: none;
+}
+
+html[data-aep-theme='dark'] #dceVizRoot.dce-viz-core .dce-edp-shell-header {
+  background: color-mix(in srgb, var(--dce-bg-panel) 92%, transparent);
+}

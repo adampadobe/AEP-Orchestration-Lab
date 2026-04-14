@@ -5,30 +5,93 @@
   'use strict';
 
   var LS_INDUSTRY = 'dceVizIndustry';
+  var LS_EDP_INDUSTRY = 'aepEdpIndustry';
 
+  /* Labels + order match web/profile-viewer/dce-shared-industries.js (Decision overview / EDP) */
   var INDUSTRY_LABEL_UI = {
-    media: 'Media & entertainment',
-    travel: 'Travel · Airline',
     retail: 'Retail',
     fsi: 'FSI',
-    telco: 'Telco',
-    automotive: 'Automotive',
-    healthcare: 'Healthcare',
+    travel: 'Travel',
+    media: 'Media',
+    sports: 'Sports',
+    telecommunications: 'Telecommunications',
+    public: 'Public',
   };
 
+  var INDUSTRY_ORDER = ['retail', 'fsi', 'travel', 'media', 'sports', 'telecommunications', 'public'];
+
+  /* Lucide icon inner markup (lucide-static ISC) — same icons as EDP Shell */
+  var INDUSTRY_ICON_INNER = {
+    retail:
+      '<circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />',
+    fsi:
+      '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" />',
+    travel:
+      '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />',
+    media: '<rect width="20" height="15" x="2" y="7" rx="2" ry="2" /><polyline points="17 2 12 7 7 2" />',
+    sports:
+      '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />',
+    telecommunications: '<rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" />',
+    public:
+      '<line x1="3" x2="21" y1="22" y2="22" /><line x1="6" x2="6" y1="18" y2="11" /><line x1="10" x2="10" y1="18" y2="11" /><line x1="14" x2="14" y1="18" y2="11" /><line x1="18" x2="18" y1="18" y2="11" /><polygon points="12 2 20 7 4 7" />',
+  };
+
+  function industryIconMarkup(key) {
+    var inner = INDUSTRY_ICON_INNER[key] || INDUSTRY_ICON_INNER.media;
+    return (
+      '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        inner +
+        '</svg>'
+    );
+  }
+
+  function migrateIndustryKey(k) {
+    if (!k) return 'media';
+    var leg = { telco: 'telecommunications', automotive: 'sports', healthcare: 'public' };
+    return leg[k] || k;
+  }
+
+  function isValidIndustry(k) {
+    return INDUSTRY_ORDER.indexOf(k) >= 0;
+  }
+
   function getIndustry() {
-    var b = document.body && document.body.getAttribute('data-dce-industry');
-    if (
-      b === 'travel' ||
-      b === 'retail' ||
-      b === 'fsi' ||
-      b === 'telco' ||
-      b === 'automotive' ||
-      b === 'healthcare'
-    ) {
-      return b;
-    }
+    var b = migrateIndustryKey(document.body && document.body.getAttribute('data-dce-industry'));
+    if (isValidIndustry(b)) return b;
     return 'media';
+  }
+
+  function dceVizBuildIndustryDropdown() {
+    var menu = document.getElementById('dce-pg-industry-menu');
+    if (!menu || menu.getAttribute('data-dce-built') === '1') return;
+    menu.setAttribute('data-dce-built', '1');
+    menu.innerHTML = '';
+    INDUSTRY_ORDER.forEach(function (key) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('role', 'option');
+      btn.className = 'dce-edp-dropdown-item';
+      btn.setAttribute('data-dce-industry', key);
+      var ico = document.createElement('span');
+      ico.className = 'dce-edp-menu-ico';
+      ico.innerHTML = industryIconMarkup(key);
+      var lab = document.createElement('span');
+      lab.className = 'dce-edp-menu-label';
+      lab.textContent = INDUSTRY_LABEL_UI[key];
+      btn.appendChild(ico);
+      btn.appendChild(lab);
+      menu.appendChild(btn);
+    });
+  }
+
+  function dceVizSyncIndustryChrome(key) {
+    var ico = document.getElementById('dce-edp-industry-ico');
+    if (ico) ico.innerHTML = industryIconMarkup(key);
+    document.querySelectorAll('#dce-pg-industry-menu .dce-edp-dropdown-item').forEach(function (b) {
+      var on = b.getAttribute('data-dce-industry') === key;
+      b.classList.toggle('dce-edp-dropdown-item--active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
   }
   // ── INDUSTRY CONFIG ─────────────────────────────────────────────────────────
   var PRIORITY_MEDIA = [
@@ -51,29 +114,29 @@
     { name: '💳 Balance-transfer card — 0% 24 months', sub: 'Acquisition · broad eligibility', id: 's2' },
     { name: '📈 Stocks & Shares ISA — £150 switching bonus', sub: 'Mid-term savings · cross-sell', id: 's3' },
   ];
-  var PRIORITY_TELCO = [
+  var PRIORITY_TELECOMMUNICATIONS = [
     { name: '📱 5G Unlimited Plus — roaming & eSIM', sub: 'Highest ARPU · strategic mobile growth', id: 's1' },
     { name: '🏠 Fibre Max 1Gbps — mesh Wi‑Fi included', sub: 'Home broadband · acquisition & churn save', id: 's2' },
     { name: '🧑‍💼 Business multi-line — static IP & SD‑WAN trial', sub: 'SMB connectivity · B2B attach', id: 's3' },
   ];
-  var PRIORITY_AUTOMOTIVE = [
-    { name: '🚙 New hybrid SUV — PCP launch event', sub: 'Volume target · Q4 registration push', id: 's1' },
-    { name: '🔌 EV bundle — wallbox + off-peak tariff', sub: 'Electrification · OEM programme', id: 's2' },
-    { name: '🛠️ Service plan+ — 3 years / 36k miles', sub: 'Aftersales · retention & fixed ops', id: 's3' },
+  var PRIORITY_SPORTS = [
+    { name: '🏟️ Season ticket renewals — early-bird window', sub: 'Seat upgrades · loyalty tiers', id: 's1' },
+    { name: '🎽 Kit + merch bundle — matchday pickup', sub: 'Retail attach · fan engagement', id: 's2' },
+    { name: '📺 Streaming add-on — out-of-market games', sub: 'Broadcast rights · incremental ARPU', id: 's3' },
   ];
-  var PRIORITY_HEALTHCARE = [
-    { name: '🩺 Virtual primary — same-day video (£0 copay)', sub: 'Digital front door · access & triage', id: 's1' },
-    { name: '🏥 Specialty expedited — cardiology intake', sub: 'Clinical pathway · SLAs & capacity', id: 's2' },
-    { name: '💊 Pharmacy + wellness — 90-day + coaching', sub: 'Adherence · chronic & prevention', id: 's3' },
+  var PRIORITY_PUBLIC = [
+    { name: '🏛️ Transit pass — reduced fare pilot', sub: 'Eligibility rules · income bands', id: 's1' },
+    { name: '📋 Permit fast-track — digital submission', sub: 'SLA · queue priority', id: 's2' },
+    { name: '🧑‍🎓 Skills grant — cohort intake', sub: 'Workforce programme · regional cap', id: 's3' },
   ];
 
   function getPriorityListForIndustry(key) {
     if (key === 'travel') return PRIORITY_TRAVEL;
     if (key === 'retail') return PRIORITY_RETAIL;
     if (key === 'fsi') return PRIORITY_FSI;
-    if (key === 'telco') return PRIORITY_TELCO;
-    if (key === 'automotive') return PRIORITY_AUTOMOTIVE;
-    if (key === 'healthcare') return PRIORITY_HEALTHCARE;
+    if (key === 'telecommunications') return PRIORITY_TELECOMMUNICATIONS;
+    if (key === 'sports') return PRIORITY_SPORTS;
+    if (key === 'public') return PRIORITY_PUBLIC;
     return PRIORITY_MEDIA;
   }
   var FORMULA_MEDIA = [
@@ -96,20 +159,20 @@
     { name: 'Everyday — cashback current account', category: 'everyday', baseScore: 85, expiresIn: 36 },
     { name: 'Business banking — fee-free 12 months', category: 'smb', baseScore: 78, expiresIn: 10 },
   ];
-  var FORMULA_TELCO = [
+  var FORMULA_TELECOMMUNICATIONS = [
     { name: 'Mobile — 5G device + unlimited bundle', category: 'mobile', baseScore: 75, expiresIn: 20 },
     { name: 'Home & fibre — gigabit + mesh upgrade', category: 'home', baseScore: 85, expiresIn: 36 },
     { name: 'Business lines — multi-line + static IP pack', category: 'smb', baseScore: 78, expiresIn: 10 },
   ];
-  var FORMULA_AUTOMOTIVE = [
-    { name: 'Showroom — hybrid SUV PCP weekend', category: 'showroom', baseScore: 75, expiresIn: 20 },
-    { name: 'EV bundle — test drive + home charger', category: 'ev', baseScore: 85, expiresIn: 36 },
-    { name: 'Fleet care — multi-vehicle service plan', category: 'fleet', baseScore: 78, expiresIn: 10 },
+  var FORMULA_SPORTS = [
+    { name: 'Season seats — renewal offer', category: 'season', baseScore: 75, expiresIn: 20 },
+    { name: 'VIP hospitality — playoff pack', category: 'vip', baseScore: 85, expiresIn: 36 },
+    { name: 'Youth academy camp — summer slots', category: 'youth', baseScore: 78, expiresIn: 10 },
   ];
-  var FORMULA_HEALTHCARE = [
-    { name: 'Virtual visit — same-day primary video', category: 'virtual', baseScore: 85, expiresIn: 36 },
-    { name: 'Specialty slot — expedited referral window', category: 'specialty', baseScore: 75, expiresIn: 20 },
-    { name: 'Employer screening — biometric kit', category: 'employer', baseScore: 78, expiresIn: 10 },
+  var FORMULA_PUBLIC = [
+    { name: 'Housing support — first-time applicant', category: 'housing', baseScore: 75, expiresIn: 20 },
+    { name: 'Benefits check — universal screening', category: 'benefits', baseScore: 85, expiresIn: 36 },
+    { name: 'Mobility pass — senior eligibility', category: 'mobility', baseScore: 78, expiresIn: 10 },
   ];
 
   var offers = PRIORITY_MEDIA.slice();
@@ -271,7 +334,7 @@
     },
   ];
 
-  var profilesTelco = [
+  var profilesTelecommunications = [
     {
       reasoning: '🧠 <strong>Model reasoning:</strong> Priya burns 40GB+/month with roaming and sports streaming on 5G. The model predicts handset upgrades and unlimited tiers over home fibre upsells — she’s rarely on Wi‑Fi during the day.',
       ranks: [
@@ -310,80 +373,86 @@
     },
   ];
 
-  var profilesAutomotive = [
+  var profilesSports = [
     {
-      reasoning: '🧠 <strong>Model reasoning:</strong> Hannah is mid-funnel on a family SUV with two dealer visits and a part-exchange valuation saved. The model predicts showroom PCP and stock-led offers before EV-only bundles — she’s not yet on a BEV shortlist.',
+      reasoning:
+        '🧠 <strong>Model reasoning:</strong> Alex renewed seats last season and opened the app on matchday morning — strong loyalty and upsell signals. The model predicts season renewals and bundle ladders before single-game discounts.',
       ranks: [
-        { name: 'New hybrid SUV — PCP launch event', why: 'Config + test-drive signals → strongest close probability', conf: 93 },
-        { name: 'Approved used — warranty extension', why: 'Cross-shopped CPO in same session', conf: 72 },
-        { name: 'Part-exchange boost — this month', why: 'Valuation saved · trade-in intent', conf: 58 },
-        { name: 'Service plan+ — 3 years / 36k miles', why: 'Post-handover attach opportunity', conf: 41 },
-        { name: 'EV bundle — wallbox + off-peak tariff', why: 'Weaker — no charging research yet', conf: 22 },
-        { name: 'Winter tyre + alignment pack', why: 'Seasonal · secondary to purchase', conf: 11 },
-        { name: 'Business contract hire — 18 months', why: 'Personal PCP path · no fleet ID', conf: 5 },
+        { name: '🏟️ Season ticket renewals — early-bird window', why: 'Tenure + match attendance → strongest conversion', conf: 93 },
+        { name: '🎽 Kit + merch bundle — matchday pickup', why: 'Basket affinity from prior purchases', conf: 72 },
+        { name: '📺 Streaming add-on — out-of-market games', why: 'Geo + device signals for broadcast upsell', conf: 58 },
+        { name: 'VIP hospitality — playoff pack', why: 'Premium cohort · lower on mass ladder', conf: 41 },
+        { name: 'Youth academy camp — summer slots', why: 'Household kids flag · secondary on adult path', conf: 22 },
+        { name: 'Single-game flash — tonight only', why: 'Inventory risk · behind renewals', conf: 11 },
+        { name: 'Partner credit card — points x2', why: 'Financial product · weak on gameday path', conf: 5 },
       ],
     },
     {
-      reasoning: '🧠 <strong>Model reasoning:</strong> Omar has browsed range calculators and wallbox installers — clear electrification intent. The model prioritises EV bundles and charger logistics before ICE showroom stock.',
+      reasoning:
+        '🧠 <strong>Model reasoning:</strong> Jordan browsed out-of-market streaming and device compatibility pages — broadcast-first intent. The model prioritises streaming add-ons and device bundles before in-venue merch.',
       ranks: [
-        { name: 'EV bundle — wallbox + off-peak tariff', why: 'Charging + tariff pages → top predictor', conf: 94 },
-        { name: 'EV test drive — priority slot', why: 'High intent · low friction next step', conf: 77 },
-        { name: 'Home charger install — fast track', why: 'Installer funnel started from app', conf: 52 },
-        { name: 'New hybrid SUV — PCP launch event', why: 'Fallback if BEV stock waitlisted', conf: 28 },
-        { name: 'Service plan+ — 3 years / 36k miles', why: 'Post-purchase · lower on acquisition path', conf: 14 },
-        { name: 'Approved used — warranty extension', why: 'New-car preference in profile', conf: 8 },
-        { name: 'Part-exchange boost — this month', why: 'Lease return not ICE trade-in', conf: 4 },
+        { name: '📺 Streaming add-on — out-of-market games', why: 'Geo + device research → top predictor', conf: 94 },
+        { name: 'VIP hospitality — playoff pack', why: 'Premium experience attach for cord-cutters', conf: 77 },
+        { name: '🏟️ Season ticket renewals — early-bird window', why: 'Fallback if renewal window closed', conf: 52 },
+        { name: '🎽 Kit + merch bundle — matchday pickup', why: 'Retail path · secondary to broadcast', conf: 28 },
+        { name: 'Youth academy camp — summer slots', why: 'Different household segment', conf: 14 },
+        { name: 'Season seats — renewal offer', why: 'Formula sim label overlap · lower fit here', conf: 8 },
+        { name: 'Single-game flash — tonight only', why: 'Impulse path · weaker for research-heavy user', conf: 4 },
       ],
     },
     {
-      reasoning: '🧠 <strong>Model reasoning:</strong> Claire manages 22 registered vehicles and an open service RFP. The model prioritises fleet service plans and contract terms over retail weekend PCP creatives.',
+      reasoning:
+        '🧠 <strong>Model reasoning:</strong> Sam runs partnership marketing for a league sponsor — B2B2C goals and inventory commitments. The model prioritises hospitality packs and youth programmes over retail single-game.',
       ranks: [
-        { name: 'Fleet care — multi-vehicle service plan', why: 'Fleet ID + mileage pattern → B2B predictor', conf: 95 },
-        { name: 'Business contract hire — 18 months', why: 'Replacement cycle in procurement calendar', conf: 73 },
-        { name: 'Telematics safety pack — fleet', why: 'Duty-of-care keyword in enquiry', conf: 46 },
-        { name: 'Service plan+ — 3 years / 36k miles', why: 'Applicable to mixed car/van parc', conf: 24 },
-        { name: 'New hybrid SUV — PCP launch event', why: 'Consumer creative — weak for fleet gate', conf: 12 },
-        { name: 'EV bundle — wallbox + off-peak tariff', why: 'Depot charging already contracted', conf: 7 },
-        { name: 'Part-exchange boost — this month', why: 'Not a retail part-ex journey', conf: 3 },
+        { name: 'VIP hospitality — playoff pack', why: 'Sponsor ID + inventory hold → B2B predictor', conf: 95 },
+        { name: 'Youth academy camp — summer slots', why: 'Grassroots programme commitments', conf: 73 },
+        { name: '🏟️ Season ticket renewals — early-bird window', why: 'Partner bundle allocation', conf: 46 },
+        { name: '🎽 Kit + merch bundle — matchday pickup', why: 'Licensing attach · secondary to hospitality', conf: 24 },
+        { name: '📺 Streaming add-on — out-of-market games', why: 'Rights window not in sponsor brief', conf: 12 },
+        { name: 'Single-game flash — tonight only', why: 'Not a partner-managed path', conf: 7 },
+        { name: 'Partner credit card — points x2', why: 'Different acquisition funnel', conf: 3 },
       ],
     },
   ];
 
-  var profilesHealthcare = [
+  var profilesPublic = [
     {
-      reasoning: '🧠 <strong>Model reasoning:</strong> Morgan books video visits for minor illness and manages two chronic meds through the app. The model predicts virtual primary and pharmacy bundles before specialty intake — no cardiology signals in her history.',
+      reasoning:
+        '🧠 <strong>Model reasoning:</strong> Riley started a benefits pre-check and uploaded income proof — strong eligibility workflow. The model predicts housing and benefits bundles before mobility add-ons.',
       ranks: [
-        { name: 'Virtual primary — same-day video (£0 copay)', why: 'Digital-first usage + refill pattern → strongest fit', conf: 93 },
-        { name: 'Urgent care video — under 30 min wait', why: 'After-hours symptom checker path', conf: 74 },
-        { name: 'Pharmacy + wellness — 90-day + coaching', why: 'Adherence programme eligibility', conf: 58 },
-        { name: 'Chronic care coach — diabetes programme', why: 'Condition in file · secondary on this journey', conf: 41 },
-        { name: 'Mental health — therapist match', why: 'Weaker — no BH screen this session', conf: 22 },
-        { name: 'Specialty expedited — cardiology intake', why: 'No cardiac risk flags in profile', conf: 11 },
-        { name: 'Employer screening — biometric kit', why: 'Individual plan · no employer ID', conf: 5 },
+        { name: 'Housing support — first-time applicant', why: 'Income + household signals → strongest fit', conf: 93 },
+        { name: 'Benefits check — universal screening', why: 'Completed wizard steps', conf: 74 },
+        { name: 'Mobility pass — senior eligibility', why: 'Age flag · secondary on this journey', conf: 58 },
+        { name: '🏛️ Transit pass — reduced fare pilot', why: 'Different programme gate', conf: 41 },
+        { name: '📋 Permit fast-track — digital submission', why: 'No permit type selected yet', conf: 22 },
+        { name: '🧑‍🎓 Skills grant — cohort intake', why: 'Education segment · later nurture', conf: 11 },
+        { name: 'Community volunteer stipend', why: 'Out of scope for this intake', conf: 5 },
       ],
     },
     {
-      reasoning: '🧠 <strong>Model reasoning:</strong> James searched chest discomfort and completed a cardiac risk screener — high urgency for structured specialty access. The model prioritises expedited cardiology over retail pharmacy promos.',
+      reasoning:
+        '🧠 <strong>Model reasoning:</strong> Casey needs a construction permit with a hard deadline — urgency and document completeness dominate. The model prioritises fast-track permits before grant programmes.',
       ranks: [
-        { name: 'Specialty expedited — cardiology intake', why: 'Screener + keyword intent → top predictor', conf: 95 },
-        { name: 'Cardiac imaging — fast booking', why: 'Referral pathway started in same session', conf: 76 },
-        { name: 'Virtual primary — same-day video (£0 copay)', why: 'Triage step — not replacement for specialty', conf: 42 },
-        { name: 'Pharmacy + wellness — 90-day + coaching', why: 'Post-diagnosis opportunity · lower on acute path', conf: 28 },
-        { name: 'Chronic care coach — diabetes programme', why: 'Different condition cluster', conf: 14 },
-        { name: 'Employer screening — biometric kit', why: 'No workforce benefits match', conf: 8 },
-        { name: 'Mental health — therapist match', why: 'Deferred vs somatic chief complaint', conf: 4 },
+        { name: '📋 Permit fast-track — digital submission', why: 'Deadline + doc completeness → top predictor', conf: 95 },
+        { name: '🏛️ Transit pass — reduced fare pilot', why: 'Complementary mobility benefit', conf: 76 },
+        { name: 'Housing support — first-time applicant', why: 'Weaker — different service line', conf: 42 },
+        { name: 'Benefits check — universal screening', why: 'Triage step · not replacement for permit SLA', conf: 28 },
+        { name: 'Mobility pass — senior eligibility', why: 'Different cohort rules', conf: 14 },
+        { name: '🧑‍🎓 Skills grant — cohort intake', why: 'Not a workforce journey this session', conf: 8 },
+        { name: 'Community volunteer stipend', why: 'Irrelevant to permit path', conf: 4 },
       ],
     },
     {
-      reasoning: '🧠 <strong>Model reasoning:</strong> Taylor administers an employer plan with open enrolment and onsite screening targets. The model prioritises employer wellness and biometric programmes over individual virtual retail offers.',
+      reasoning:
+        '🧠 <strong>Model reasoning:</strong> Admin for a regional skills programme is enrolling a summer cohort — education policy goals. The model prioritises skills grants and partner employers before transit retail offers.',
       ranks: [
-        { name: 'Employer screening — biometric kit', why: 'HR admin + group ID → B2B2C predictor', conf: 94 },
-        { name: 'Wellness challenge — team leaderboard', why: 'Open enrolment campaign in calendar', conf: 71 },
-        { name: 'Virtual primary — same-day video (£0 copay)', why: 'Employee benefit · secondary to population programme', conf: 38 },
-        { name: 'Pharmacy + wellness — 90-day + coaching', why: 'Formulary education slot in webinar', conf: 24 },
-        { name: 'Specialty expedited — cardiology intake', why: 'Population health · not individual acute path', conf: 12 },
-        { name: 'Chronic care coach — diabetes programme', why: 'Segmented later in nurture', conf: 7 },
-        { name: 'Urgent care video — under 30 min wait', why: 'B2B gate · not employee retail journey', conf: 3 },
+        { name: '🧑‍🎓 Skills grant — cohort intake', why: 'Programme admin + roster ID → predictor', conf: 94 },
+        { name: 'Benefits check — universal screening', why: 'Eligibility cross-check for stipend', conf: 71 },
+        { name: 'Housing support — first-time applicant', why: 'Secondary — different intake', conf: 38 },
+        { name: '🏛️ Transit pass — reduced fare pilot', why: 'Student subsidy overlap', conf: 24 },
+        { name: '📋 Permit fast-track — digital submission', why: 'Not a construction journey', conf: 12 },
+        { name: 'Mobility pass — senior eligibility', why: 'Age rules don’t match cohort', conf: 7 },
+        { name: 'Community volunteer stipend', why: 'Different budget line', conf: 3 },
       ],
     },
   ];
@@ -500,9 +569,9 @@
     if (ind === 'travel') return '🎯 +30 trip match';
     if (ind === 'retail') return '🎯 +30 segment match';
     if (ind === 'fsi') return '🎯 +30 intent match';
-    if (ind === 'telco') return '🎯 +30 line match';
-    if (ind === 'automotive') return '🎯 +30 program match';
-    if (ind === 'healthcare') return '🎯 +30 path match';
+    if (ind === 'telecommunications') return '🎯 +30 line match';
+    if (ind === 'sports') return '🎯 +30 fan match';
+    if (ind === 'public') return '🎯 +30 case match';
     return '🎯 +30 genre';
   }
 
@@ -512,9 +581,9 @@
     if (ind === 'travel') tail = ' (trip preference → offer.tripType)';
     if (ind === 'retail') tail = ' (segment → offer.segment)';
     if (ind === 'fsi') tail = ' (intent → offer.line)';
-    if (ind === 'telco') tail = ' (line intent → offer.planType)';
-    if (ind === 'automotive') tail = ' (program intent → offer.program)';
-    if (ind === 'healthcare') tail = ' (path → offer.pathway)';
+    if (ind === 'telecommunications') tail = ' (line intent → offer.planType)';
+    if (ind === 'sports') tail = ' (program intent → offer.program)';
+    if (ind === 'public') tail = ' (path → offer.pathway)';
     return currentInterest + tail;
   }
 
@@ -916,6 +985,9 @@
     if (order.indexOf(id) < 0) return;
     var root = document.getElementById('dceVizRoot');
     if (!root) return;
+    var idx = order.indexOf(id);
+    var fill = document.getElementById('dce-edp-progress-fill');
+    if (fill) fill.style.width = ((idx + 1) / order.length) * 100 + '%';
     order.forEach(function (p) {
       var panel = document.getElementById('panel-' + p);
       var tab = root.querySelector('[data-dce-core-panel="' + p + '"]');
@@ -933,6 +1005,7 @@
     var root = document.getElementById('dceVizRoot');
     if (!root || root.getAttribute('data-dce-core-bound') === '1') return;
     root.setAttribute('data-dce-core-bound', '1');
+    dceVizBuildIndustryDropdown();
     root.addEventListener('click', function (e) {
       var tab = e.target.closest && e.target.closest('.tab-nav .tab-btn');
       if (tab && root.contains(tab)) {
@@ -965,8 +1038,8 @@
     ddMenu.querySelectorAll('[data-dce-industry]').forEach(function (item) {
       item.addEventListener('click', function (e) {
         e.preventDefault();
-        var key = item.getAttribute('data-dce-industry');
-        if (key) setIndustry(key, true);
+        var key = migrateIndustryKey(item.getAttribute('data-dce-industry'));
+        if (key && isValidIndustry(key)) setIndustry(key, true);
         closeIndustryMenu();
       });
     });
@@ -979,30 +1052,11 @@
   }
 
   function setIndustry(key, persist) {
-    if (
-      key !== 'travel' &&
-      key !== 'media' &&
-      key !== 'retail' &&
-      key !== 'fsi' &&
-      key !== 'telco' &&
-      key !== 'automotive' &&
-      key !== 'healthcare'
-    ) {
-      key = 'media';
-    }
+    key = migrateIndustryKey(key);
+    if (!isValidIndustry(key)) key = 'media';
 
-    var prev = document.body.getAttribute('data-dce-industry') || 'media';
-    if (
-      prev !== 'travel' &&
-      prev !== 'media' &&
-      prev !== 'retail' &&
-      prev !== 'fsi' &&
-      prev !== 'telco' &&
-      prev !== 'automotive' &&
-      prev !== 'healthcare'
-    ) {
-      prev = 'media';
-    }
+    var prev = migrateIndustryKey(document.body.getAttribute('data-dce-industry') || 'media');
+    if (!isValidIndustry(prev)) prev = 'media';
 
     var hs = document.getElementById('hours-slider');
     var v = 48;
@@ -1012,16 +1066,13 @@
     if (persist) {
       try {
         localStorage.setItem(LS_INDUSTRY, key);
+        localStorage.setItem(LS_EDP_INDUSTRY, key);
       } catch (e) {}
     }
 
     var pgLbl = document.getElementById('dce-pg-industry-label');
     if (pgLbl) pgLbl.textContent = INDUSTRY_LABEL_UI[key] || INDUSTRY_LABEL_UI.media;
-    document.querySelectorAll('#dce-pg-industry-menu .dce-pg-dropdown-item').forEach(function (b) {
-      var on = b.getAttribute('data-dce-industry') === key;
-      b.classList.toggle('dce-pg-dropdown-item--active', on);
-      b.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
+    dceVizSyncIndustryChrome(key);
 
     if (key === 'travel') {
       offers = PRIORITY_TRAVEL.slice();
@@ -1038,21 +1089,21 @@
       formulaOffers = FORMULA_FSI.slice();
       profiles = profilesFSI;
       currentInterest = 'everyday';
-    } else if (key === 'telco') {
-      offers = PRIORITY_TELCO.slice();
-      formulaOffers = FORMULA_TELCO.slice();
-      profiles = profilesTelco;
+    } else if (key === 'telecommunications') {
+      offers = PRIORITY_TELECOMMUNICATIONS.slice();
+      formulaOffers = FORMULA_TELECOMMUNICATIONS.slice();
+      profiles = profilesTelecommunications;
       currentInterest = 'mobile';
-    } else if (key === 'automotive') {
-      offers = PRIORITY_AUTOMOTIVE.slice();
-      formulaOffers = FORMULA_AUTOMOTIVE.slice();
-      profiles = profilesAutomotive;
-      currentInterest = 'showroom';
-    } else if (key === 'healthcare') {
-      offers = PRIORITY_HEALTHCARE.slice();
-      formulaOffers = FORMULA_HEALTHCARE.slice();
-      profiles = profilesHealthcare;
-      currentInterest = 'virtual';
+    } else if (key === 'sports') {
+      offers = PRIORITY_SPORTS.slice();
+      formulaOffers = FORMULA_SPORTS.slice();
+      profiles = profilesSports;
+      currentInterest = 'season';
+    } else if (key === 'public') {
+      offers = PRIORITY_PUBLIC.slice();
+      formulaOffers = FORMULA_PUBLIC.slice();
+      profiles = profilesPublic;
+      currentInterest = 'housing';
     } else {
       offers = PRIORITY_MEDIA.slice();
       formulaOffers = FORMULA_MEDIA.slice();
@@ -1095,18 +1146,10 @@
   function initIndustry() {
     var key = 'media';
     try {
-      var s = localStorage.getItem(LS_INDUSTRY);
-      if (
-        s === 'travel' ||
-        s === 'media' ||
-        s === 'retail' ||
-        s === 'fsi' ||
-        s === 'telco' ||
-        s === 'automotive' ||
-        s === 'healthcare'
-      ) {
-        key = s;
-      }
+      var edp = migrateIndustryKey(localStorage.getItem(LS_EDP_INDUSTRY));
+      var legacy = migrateIndustryKey(localStorage.getItem(LS_INDUSTRY));
+      if (isValidIndustry(edp)) key = edp;
+      else if (isValidIndustry(legacy)) key = legacy;
     } catch (e) {}
     setIndustry(key, false);
   }

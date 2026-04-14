@@ -1,12 +1,10 @@
 import { ShoppingCart, Building2, Plane, Tv, Trophy, Smartphone, Landmark } from 'lucide-react';
+import { DCE_INDUSTRIES } from '../../../dce-shared-industries.js';
 
-/* Aligned with Profile generation industry list */
-export const INDUSTRIES = [
-  { key: 'retail', label: 'Retail', icon: ShoppingCart },
-  { key: 'fsi', label: 'FSI', icon: Building2 },
-  { key: 'travel', label: 'Travel', icon: Plane },
-  { key: 'media', label: 'Media', icon: Tv },
-  { key: 'sports', label: 'Sports', icon: Trophy },
-  { key: 'telecommunications', label: 'Telecommunications', icon: Smartphone },
-  { key: 'public', label: 'Public', icon: Landmark },
-];
+const ICONS = [ShoppingCart, Building2, Plane, Tv, Trophy, Smartphone, Landmark];
+
+/* Icons aligned 1:1 with DCE_INDUSTRIES order — see ../../../dce-shared-industries.js */
+export const INDUSTRIES = DCE_INDUSTRIES.map((row, i) => ({
+  ...row,
+  icon: ICONS[i],
+}));
