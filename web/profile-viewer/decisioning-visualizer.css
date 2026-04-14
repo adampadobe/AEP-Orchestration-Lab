@@ -1720,14 +1720,6 @@
     margin-bottom: 1.25rem;
     max-width: 48rem;
   }
-  .decisioning-catalog-page .dce-viz-scope .dce-schema-step-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 0 0 0.35rem;
-  }
   .decisioning-catalog-page .dce-viz-scope .dce-schema-h2 {
     font-family: 'DM Serif Display', Georgia, serif;
     font-size: clamp(1.75rem, 3vw, 2.25rem);
@@ -3194,14 +3186,6 @@
   /* ── Items step (playground ItemsStep.jsx) — decision items + channel previews ── */
   .decisioning-catalog-page .dce-viz-scope .dce-items-panel {
     max-width: 1100px;
-  }
-  .decisioning-catalog-page .dce-viz-scope .dce-items-step-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 0 0 8px;
   }
   .decisioning-catalog-page .dce-viz-scope .dce-items-title {
     font-family: 'DM Serif Display', serif;
