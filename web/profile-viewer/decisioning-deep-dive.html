@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260411">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260412">
-  <link rel="stylesheet" href="decisioning-deep-dive.css?v=20260426a">
+  <link rel="stylesheet" href="decisioning-deep-dive.css?v=20260426b">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
   <script>(function(){try{var k=localStorage.getItem('dceVizIndustry');if(k==='travel'||k==='media'||k==='retail'||k==='fsi'||k==='telco'||k==='automotive'||k==='healthcare')document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -45,31 +45,30 @@
         <section class="dce-viz-section" id="decisioning-deep-dive" aria-label="Decisioning deep dive">
           <p class="dce-dd-back"><a href="decisioning-visualiser.html">← Decisioning visualiser</a></p>
 
-          <div class="dce-dd-toolbar">
-            <div class="dce-dd-dropdown-wrap">
-              <span class="dce-dd-toolbar-label">Industry</span>
-              <button type="button" class="dce-dd-dropdown-btn" id="dce-dd-industry-btn" aria-expanded="false" aria-haspopup="listbox" aria-controls="dce-dd-industry-menu">
-                <span id="dce-dd-industry-label">Media &amp; entertainment</span>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-              </button>
-              <div class="dce-dd-dropdown-menu" id="dce-dd-industry-menu" role="listbox" hidden>
-                <button type="button" class="dce-dd-industry-item" role="option" data-dce-industry="media">Media &amp; entertainment</button>
-                <button type="button" class="dce-dd-industry-item" role="option" data-dce-industry="travel">Travel · Airline</button>
-                <button type="button" class="dce-dd-industry-item" role="option" data-dce-industry="retail">Retail</button>
-                <button type="button" class="dce-dd-industry-item" role="option" data-dce-industry="fsi">FSI</button>
-                <button type="button" class="dce-dd-industry-item" role="option" data-dce-industry="telco">Telco</button>
-                <button type="button" class="dce-dd-industry-item" role="option" data-dce-industry="automotive">Automotive</button>
-                <button type="button" class="dce-dd-industry-item" role="option" data-dce-industry="healthcare">Healthcare</button>
-              </div>
-            </div>
-            <label class="dce-dd-conv">
-              <input type="checkbox" id="dce-dd-conversation-toggle" aria-describedby="dce-dd-conv-hint">
-              Conversation context
-            </label>
-            <span id="dce-dd-conv-hint" class="dashboard-muted" style="font-size:12px;max-width:28rem;">Show per-industry notes for how teams discuss schemas, catalogs, and eligibility.</span>
-          </div>
-
           <div id="dceDeepDiveRoot" class="dce-viz-scope" role="region" aria-label="Playground topics">
+            <div class="dce-dd-toolbar">
+              <div class="dce-pg-dropdown-wrap">
+                <button type="button" class="dce-pg-dropdown-btn" id="dce-pg-industry-btn" aria-expanded="false" aria-haspopup="listbox" aria-controls="dce-pg-industry-menu">
+                  <svg class="dce-pg-pin" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path fill="#EB1000" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg>
+                  <span id="dce-pg-industry-label">Media &amp; entertainment</span>
+                  <svg class="dce-pg-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="dce-pg-dropdown-menu" id="dce-pg-industry-menu" role="listbox" hidden>
+                  <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="media">Media &amp; entertainment</button>
+                  <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="travel">Travel · Airline</button>
+                  <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="retail">Retail</button>
+                  <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="fsi">FSI</button>
+                  <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="telco">Telco</button>
+                  <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="automotive">Automotive</button>
+                  <button type="button" class="dce-pg-dropdown-item" role="option" data-dce-industry="healthcare">Healthcare</button>
+                </div>
+              </div>
+              <label class="dce-dd-conv">
+                <input type="checkbox" id="dce-dd-conversation-toggle" aria-describedby="dce-dd-conv-hint">
+                Conversation context
+              </label>
+              <span id="dce-dd-conv-hint" class="dashboard-muted" style="font-size:12px;max-width:28rem;">Show per-industry notes for how teams discuss schemas, catalogs, and eligibility.</span>
+            </div>
             <nav class="dce-dd-tabs" aria-label="Deep dive steps">
               <button type="button" class="dce-dd-tab active" data-dce-dd-panel="dceViz-panel-channels" role="tab" aria-selected="true">Items</button>
               <button type="button" class="dce-dd-tab" data-dce-dd-panel="dceViz-panel-schema" role="tab" aria-selected="false">Schema</button>
@@ -199,6 +198,6 @@
   <script defer src="playground-items-offers.js?v=20260426a"></script>
   <script defer src="playground-collections-rules-data.js?v=20260426a"></script>
   <script defer src="playground-items-step.js?v=20260426a"></script>
-  <script defer src="decisioning-deep-dive.js?v=20260426a"></script>
+  <script defer src="decisioning-deep-dive.js?v=20260426b"></script>
 </body>
 </html>

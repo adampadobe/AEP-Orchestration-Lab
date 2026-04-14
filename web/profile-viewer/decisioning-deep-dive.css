@@ -3598,7 +3598,7 @@
     font-size: 12px;
   }
 
-  /* ── Decisioning deep dive page shell (outside dce-viz-scope) ── */
+  /* ── Decisioning deep dive page shell (toolbar lives inside .dce-viz-scope for dce-pg-* styles) ── */
   .dce-dd-back {
     font-size: 13px;
     margin-bottom: 12px;
@@ -3621,12 +3621,6 @@
     border-radius: 12px;
     background: var(--paper);
   }
-  .dce-dd-toolbar-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-    margin-right: 8px;
-  }
   .dce-dd-conv {
     display: inline-flex;
     align-items: center;
@@ -3638,52 +3632,6 @@
   .dce-dd-conv input {
     width: 16px;
     height: 16px;
-  }
-  .dce-dd-dropdown-wrap {
-    position: relative;
-  }
-  .dce-dd-dropdown-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--line);
-    background: var(--paper-2);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .dce-dd-dropdown-menu {
-    position: absolute;
-    z-index: 20;
-    top: 100%;
-    left: 0;
-    margin-top: 6px;
-    min-width: 220px;
-    padding: 6px;
-    border-radius: 10px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  }
-  .dce-dd-industry-item {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 8px 10px;
-    border: none;
-    border-radius: 6px;
-    background: transparent;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .dce-dd-industry-item:hover {
-    background: var(--paper-2);
-  }
-  .dce-dd-industry-item--active {
-    font-weight: 700;
-    color: var(--red);
   }
   .dce-dd-tabs {
     display: flex;

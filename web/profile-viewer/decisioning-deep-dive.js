@@ -68,26 +68,31 @@
       }
     });
 
-    var ddBtn = document.getElementById('dce-dd-industry-btn');
-    var ddMenu = document.getElementById('dce-dd-industry-menu');
+    var ddBtn = document.getElementById('dce-pg-industry-btn');
+    var ddMenu = document.getElementById('dce-pg-industry-menu');
+    function closeIndustryMenu() {
+      if (!ddMenu || !ddBtn) return;
+      ddMenu.hidden = true;
+      ddBtn.setAttribute('aria-expanded', 'false');
+    }
+    function toggleIndustryMenu() {
+      if (!ddMenu || !ddBtn) return;
+      ddMenu.hidden = !ddMenu.hidden;
+      ddBtn.setAttribute('aria-expanded', ddMenu.hidden ? 'false' : 'true');
+    }
     if (ddBtn && ddMenu) {
       ddBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        ddMenu.hidden = !ddMenu.hidden;
-        ddBtn.setAttribute('aria-expanded', ddMenu.hidden ? 'false' : 'true');
+        toggleIndustryMenu();
       });
-      ddMenu.querySelectorAll('.dce-dd-industry-item').forEach(function (el) {
-        el.addEventListener('click', function () {
-          var k = el.getAttribute('data-dce-industry');
+      ddMenu.querySelectorAll('.dce-pg-dropdown-item').forEach(function (item) {
+        item.addEventListener('click', function () {
+          var k = item.getAttribute('data-dce-industry');
           if (k && typeof window.dceDdSetIndustry === 'function') window.dceDdSetIndustry(k, true);
-          ddMenu.hidden = true;
-          ddBtn.setAttribute('aria-expanded', 'false');
+          closeIndustryMenu();
         });
       });
-      document.addEventListener('click', function () {
-        ddMenu.hidden = true;
-        ddBtn.setAttribute('aria-expanded', 'false');
-      });
+      document.addEventListener('click', closeIndustryMenu);
     }
 
     var conv = document.getElementById('dce-dd-conversation-toggle');
@@ -891,11 +896,11 @@
         localStorage.setItem(LS_INDUSTRY, key);
       } catch (e) {}
     }
-    var pgLbl = document.getElementById('dce-dd-industry-label');
+    var pgLbl = document.getElementById('dce-pg-industry-label');
     if (pgLbl) pgLbl.textContent = INDUSTRY_LABEL_UI[key] || INDUSTRY_LABEL_UI.media;
-    document.querySelectorAll('#dceDeepDiveRoot .dce-dd-industry-item').forEach(function (b) {
+    document.querySelectorAll('#dceDeepDiveRoot .dce-pg-dropdown-item').forEach(function (b) {
       var on = b.getAttribute('data-dce-industry') === key;
-      b.classList.toggle('dce-dd-industry-item--active', on);
+      b.classList.toggle('dce-pg-dropdown-item--active', on);
       b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     if (typeof window.dceVizApplySchemaIndustry === 'function') window.dceVizApplySchemaIndustry();
