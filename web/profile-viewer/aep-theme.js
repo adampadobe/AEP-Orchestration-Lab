@@ -61,18 +61,25 @@
 
   function injectFavicon() {
     var doc = global.document;
-    if (!doc.head || doc.querySelector('link[rel~="icon"][data-aep-favicon]')) return;
-    var href = '/profile-viewer/favicon.png?v=20260414a';
-    var link = doc.createElement('link');
-    link.rel = 'icon';
-    link.type = 'image/png';
-    link.href = href;
-    link.setAttribute('data-aep-favicon', '1');
-    doc.head.appendChild(link);
+    if (!doc.head || doc.querySelector('link[data-aep-favicon="icon"]')) return;
+    var v = '20260416a';
+    var svg = doc.createElement('link');
+    svg.rel = 'icon';
+    svg.type = 'image/svg+xml';
+    svg.href = '/profile-viewer/favicon.svg?v=' + v;
+    svg.setAttribute('data-aep-favicon', 'icon');
+    doc.head.appendChild(svg);
+    var png = doc.createElement('link');
+    png.rel = 'icon';
+    png.type = 'image/png';
+    png.setAttribute('sizes', '32x32');
+    png.href = '/profile-viewer/favicon.png?v=' + v;
+    png.setAttribute('data-aep-favicon', 'png');
+    doc.head.appendChild(png);
     var apple = doc.createElement('link');
     apple.rel = 'apple-touch-icon';
-    apple.href = href;
-    apple.setAttribute('data-aep-favicon', '1');
+    apple.href = '/profile-viewer/apple-touch-icon.png?v=' + v;
+    apple.setAttribute('data-aep-favicon', 'apple');
     doc.head.appendChild(apple);
   }
 
