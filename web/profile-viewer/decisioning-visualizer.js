@@ -575,6 +575,53 @@
     return '🎯 +30 genre';
   }
 
+  /** Profile-side attribute name in the formula builder (matches industry-specific profile schema). */
+  function profileMatchFormulaAttrName() {
+    var ind = getIndustry();
+    if (ind === 'retail') return 'shopperSegment';
+    if (ind === 'fsi') return 'bankingIntent';
+    if (ind === 'travel') return 'tripPreference';
+    if (ind === 'telecommunications') return 'lineIntent';
+    if (ind === 'sports') return 'fanAffinity';
+    if (ind === 'public') return 'servicePathway';
+    return 'preferredGenre';
+  }
+
+  /** Helper text under the profile match toggle in "Simulate — set the context". */
+  function profileMatchSimulateHint() {
+    var ind = getIndustry();
+    if (ind === 'retail') return 'Which loyalty or shopping segment best describes this customer?';
+    if (ind === 'fsi') return 'Which banking or wealth line is this customer most focused on?';
+    if (ind === 'travel') return 'What kind of trip does this traveler usually book?';
+    if (ind === 'telecommunications') return 'What connectivity need is this subscriber optimizing for?';
+    if (ind === 'sports') return 'Which program or product line is this fan most aligned with?';
+    if (ind === 'public') return 'Which service pathway is this resident navigating?';
+    return 'What content does this viewer primarily watch?';
+  }
+
+  function syncProfileMatchFormulaLabels() {
+    var name = profileMatchFormulaAttrName();
+    var hint = profileMatchSimulateHint();
+    var ra = document.getElementById('dce-formula-rule-profile-attr');
+    if (ra) ra.textContent = name;
+    var sim = document.getElementById('dce-formula-profile-simulate-attr');
+    if (sim) sim.textContent = name;
+    var h = document.getElementById('dce-formula-profile-simulate-hint');
+    if (h) h.textContent = hint;
+  }
+
+  /** Short label for the serving breakdown line (winner score). */
+  function profileMatchBreakdownFragment() {
+    var ind = getIndustry();
+    if (ind === 'travel') return ' + trip(+30)';
+    if (ind === 'retail') return ' + segment(+30)';
+    if (ind === 'fsi') return ' + intent(+30)';
+    if (ind === 'telecommunications') return ' + line(+30)';
+    if (ind === 'sports') return ' + fan(+30)';
+    if (ind === 'public') return ' + pathway(+30)';
+    return ' + genre(+30)';
+  }
+
   function interestRuleDisplay() {
     var ind = getIndustry();
     var tail = ' (viewer genre → item.genre)';
@@ -654,6 +701,7 @@
 
     var ruleInterest = document.getElementById('rule-interest');
     if (ruleInterest) ruleInterest.classList.add('active-rule');
+    syncProfileMatchFormulaLabels();
   }
 
   function dceFormulaPickInterest(cat, btn) {
@@ -830,7 +878,7 @@
 
     var breakdown = 'base(' + winner.baseScore + ')';
     if (winner.urgency) breakdown += ' × urgency(×2)';
-    if (winner.match) breakdown += ' + match(+30)';
+    if (winner.match) breakdown += profileMatchBreakdownFragment();
     if (winner.highPropensity) breakdown += ' × propensity(×1.5)';
     if (winner.campaignMatch) breakdown += ' + campaign(+50)';
     breakdown += ' = ' + winner.score;

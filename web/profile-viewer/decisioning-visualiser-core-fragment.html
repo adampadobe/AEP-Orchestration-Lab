@@ -326,13 +326,13 @@
             <span class="rule-connector-label">+ IF</span>
           </div>
 
-          <!-- Rule 2: Genre match -->
+          <!-- Rule 2: Profile ↔ item match (labels set per industry in decisioning-visualizer.js) -->
           <div class="formula-rule">
             <div class="rule-block" id="rule-interest">
               <div class="rule-source-tag" style="background:#edf7f2; color:#1a7a4a;">
                 <div class="rule-source-dot" style="background:#1a7a4a;"></div>Profile
               </div>
-              <div class="rule-attribute">preferredGenre</div>
+              <div class="rule-attribute" id="dce-formula-rule-profile-attr">preferredGenre</div>
               <div class="rule-operator">equals</div>
               <div class="rule-value">
                 <span id="interest-val-display" style="font-family:'DM Mono',monospace; font-size:13px; color:#1a7a4a; font-weight:600;">item.genre</span>
@@ -401,10 +401,10 @@
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
-              Profile attribute · <span style="font-family:'DM Mono',monospace;">preferredGenre</span>
+              Profile attribute · <span id="dce-formula-profile-simulate-attr" style="font-family:'DM Mono',monospace;">preferredGenre</span>
             </span>
           </div>
-          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">What content does this viewer primarily watch?</div>
+          <div id="dce-formula-profile-simulate-hint" style="font-size:13px; color:var(--muted); margin-bottom:12px;">What content does this viewer primarily watch?</div>
           <div class="toggle-pill" id="dce-formula-interest-pill"></div>
         </div>
 
