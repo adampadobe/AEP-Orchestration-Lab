@@ -114,12 +114,6 @@
     var fill = document.getElementById('dce-pg-progress-fill');
     var n = order.length || 1;
     if (fill && idx >= 0) fill.style.width = ((idx + 1) / n) * 100 + '%';
-    var ctr = document.getElementById('dce-pg-counter');
-    if (ctr && idx >= 0) ctr.textContent = idx + 1 + ' / ' + n;
-    var back = document.getElementById('dce-pg-back');
-    var next = document.getElementById('dce-pg-next');
-    if (back) back.disabled = idx <= 0;
-    if (next) next.disabled = idx < 0 || idx >= n - 1;
   }
 
   function showPanel(id) {
@@ -171,25 +165,6 @@
         if (cid) showPanel(cid);
       }
     });
-
-    var pgBack = document.getElementById('dce-pg-back');
-    var pgNext = document.getElementById('dce-pg-next');
-    if (pgBack) {
-      pgBack.addEventListener('click', function () {
-        var order = getVisibleOrder();
-        var cur = getActivePanelId();
-        var i = order.indexOf(cur);
-        if (i > 0) showPanel(order[i - 1]);
-      });
-    }
-    if (pgNext) {
-      pgNext.addEventListener('click', function () {
-        var order = getVisibleOrder();
-        var cur = getActivePanelId();
-        var i = order.indexOf(cur);
-        if (i >= 0 && i < order.length - 1) showPanel(order[i + 1]);
-      });
-    }
 
     var ddBtn = document.getElementById('dce-pg-industry-btn');
     var ddMenu = document.getElementById('dce-pg-industry-menu');
