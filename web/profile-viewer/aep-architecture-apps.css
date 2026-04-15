@@ -224,32 +224,6 @@
   line-height: 1.2;
 }
 
-/* Top bar — mirrors “Draw” in reference UIs: toggles floating line bar with panel checkbox */
-.arch-line-draw-compact-toggle {
-  flex-wrap: nowrap;
-  gap: 0.3rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.arch-line-draw-compact-toggle input[type='checkbox']:not(:disabled):checked + span {
-  color: #1473e6;
-}
-
-html[data-aep-theme='dark'] .arch-line-draw-compact-toggle input[type='checkbox']:not(:disabled):checked + span {
-  color: #93c5fd;
-}
-
-.arch-line-draw-compact--off {
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-.arch-line-draw-compact-toggle input:disabled + span {
-  opacity: 0.65;
-}
-
 .arch-int-compact-nav {
   display: flex;
   flex-wrap: wrap;
@@ -586,47 +560,12 @@ html[data-aep-theme='dark'] .arch-line-draw-compact-toggle input[type='checkbox'
   margin: 0.35rem 0 0;
 }
 
-.arch-tool-toggle-line-draw {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0 0 0.5rem;
-  padding: 0.5rem 0.55rem;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(255, 255, 255, 0.92);
-  box-sizing: border-box;
-  width: 100%;
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--dash-muted, #4b5563);
-  cursor: pointer;
-  user-select: none;
-}
-
-.arch-tool-toggle-line-draw input {
-  width: 0.9rem;
-  height: 0.9rem;
-  accent-color: #1473e6;
-  flex-shrink: 0;
-}
-
-/* Spectrum Workflow S2_Icon_PenBrush_20_N — line drawing / connectors */
+/* Spectrum Workflow S2_Icon_PenBrush_20_N — line drawing / connectors (rail, float bar) */
 .arch-spectrum-pen-brush-icon {
   display: block;
   width: 1.125rem;
   height: 1.125rem;
   flex-shrink: 0;
-}
-
-.arch-tool-toggle-line-draw .arch-tool-toggle-line-draw-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  line-height: 0;
-  color: inherit;
 }
 
 .arch-line-format {
@@ -1771,12 +1710,6 @@ html[data-aep-theme='dark'] .arch-tool-group {
 
 html[data-aep-theme='dark'] .arch-tool-group-heading {
   color: var(--dash-text, #e8eaed);
-}
-
-html[data-aep-theme='dark'] .arch-tool-toggle-line-draw {
-  background: rgba(42, 48, 56, 0.92);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(226, 232, 240, 0.88);
 }
 
 html[data-aep-theme='dark'] .arch-tool-mode-body {
