@@ -602,6 +602,23 @@
   flex-shrink: 0;
 }
 
+/* Spectrum Workflow S2_Icon_PenBrush_20_N — line drawing / connectors */
+.arch-spectrum-pen-brush-icon {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
+.arch-tool-toggle-line-draw .arch-tool-toggle-line-draw-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+  color: inherit;
+}
+
 .arch-line-format {
   margin-top: 0.45rem;
 }
