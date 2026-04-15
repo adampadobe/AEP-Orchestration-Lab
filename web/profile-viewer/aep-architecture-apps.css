@@ -34,8 +34,15 @@
   border-radius: 0;
 }
 
-.arch-int-compact-nav-actions .arch-fullscreen-btn {
+/* Top bar — always outside .arch-int-compact-edit so it stays visible when tools are hidden */
+.arch-int-fullscreen-btn {
+  flex: 0 0 auto;
+  align-self: center;
   white-space: nowrap;
+  font-size: 0.72rem !important;
+  padding: 0.32rem 0.7rem !important;
+  border-color: rgba(20, 115, 230, 0.45);
+  background: rgba(255, 255, 255, 0.98);
 }
 
 .arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-compact-bar {
@@ -186,9 +193,18 @@
 .arch-int-compact-top {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
+.arch-int-compact-top-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem 1rem;
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 .arch-int-compact-titles {
@@ -1415,6 +1431,11 @@ html[data-aep-theme='dark'] .arch-int-state-body {
 html[data-aep-theme='dark'] .arch-int-compact-bar {
   background: rgba(30, 34, 40, 0.92);
   border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] .arch-int-fullscreen-btn {
+  background: rgba(42, 48, 56, 0.95);
+  border-color: rgba(56, 189, 248, 0.45);
 }
 
 html[data-aep-theme='dark'] .arch-editor-dock {
