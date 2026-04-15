@@ -213,6 +213,12 @@
   }
 
   function buildGroup(def, filename, gStates) {
+    var visibleItems = [];
+    def.items.forEach(function (item) {
+      if (shouldShowNavItem(item)) visibleItems.push(item);
+    });
+    if (visibleItems.length === 0) return null;
+
     var expanded = gStates[def.id] !== false;
     var wrap = mk('div', 'dashboard-nav-group' + (expanded ? ' dashboard-nav-group--expanded' : ''), {
       'data-group': def.id,
@@ -232,8 +238,7 @@
     wrap.appendChild(toggle);
 
     var items = mk('div', 'dashboard-nav-group-items');
-    def.items.forEach(function (item) {
-      if (!shouldShowNavItem(item)) return;
+    visibleItems.forEach(function (item) {
       items.appendChild(buildItem(item, filename));
     });
     wrap.appendChild(items);
@@ -335,8 +340,12 @@
     var nav = mk('nav', 'dashboard-sidebar-nav');
     NAV.forEach(function (entry) {
       if (entry.id === 'demos' && !isDemosNavVisible()) return;
-      if (entry.group) nav.appendChild(buildGroup(entry, filename, gStates));
-      else nav.appendChild(buildItem(entry, filename));
+      if (entry.group) {
+        var grp = buildGroup(entry, filename, gStates);
+        if (grp) nav.appendChild(grp);
+      } else {
+        nav.appendChild(buildItem(entry, filename));
+      }
     });
     sidebar.appendChild(nav);
 
