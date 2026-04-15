@@ -1134,57 +1134,13 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   gap: 0.35rem;
 }
 
-.arch-highlight-picker-wrap,
-.arch-sources-dividers-wrap {
+.arch-highlight-picker-wrap {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid var(--dash-border, #e4e6eb);
   border-radius: 8px;
   padding: 0.35rem 0.5rem;
   background: rgba(255, 255, 255, 0.6);
-}
-
-.arch-sources-dividers-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.arch-sources-divider-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.65rem;
-  padding: 0.35rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(249, 250, 251, 0.9);
-}
-
-.arch-sources-divider-row-title {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--dash-text, #1a1d21);
-  flex-basis: 100%;
-}
-
-.arch-sources-divider-field {
-  margin: 0;
-}
-
-.arch-sources-divider-field input.arch-sources-div-inp {
-  width: 3.75rem;
-  font-size: 0.72rem;
-}
-
-#archSourcesDividerAdd {
-  font-size: 0.68rem !important;
-  padding: 0.2rem 0.45rem !important;
-}
-
-.arch-sources-pointer-toggle {
-  user-select: none;
 }
 
 .arch-highlight-picker-summary {
@@ -1912,24 +1868,6 @@ html[data-aep-theme='dark'] .arch-show-controls-fab {
   font-size: 6.25px;
   font-weight: 600;
   fill: #374151;
-}
-
-.arch-sources-sep {
-  vector-effect: non-scaling-stroke;
-}
-
-.arch-sources-sep-hit {
-  vector-effect: non-scaling-stroke;
-  cursor: ns-resize;
-}
-
-.arch-sources-sep-handle {
-  cursor: ew-resize;
-  pointer-events: all;
-}
-
-.arch-int-viewport.arch-sources-sep-dragging {
-  cursor: grabbing !important;
 }
 
 .arch-src-lbl {

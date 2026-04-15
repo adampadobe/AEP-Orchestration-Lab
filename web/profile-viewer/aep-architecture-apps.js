@@ -459,10 +459,8 @@
     }
     archLabelApplyAll();
     archDragApply();
+    archSourcesDividersMigrateToUserLines();
     archUserLineRender();
-    archSourcesSepPointerLoad();
-    archSourcesDividersRenderSvg();
-    archSourcesDividersRefreshPanel();
     archCustomBoxesRender();
     archDragSave();
     archLabelSave();
@@ -615,6 +613,9 @@
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
     var ni = archUserLineInsertBendNear(ln, p.x, p.y);
     if (ni < 0) return;
+    if (ln.sourcesDividerLocal) {
+      delete ln.sourcesDividerLocal;
+    }
     userLines.selectedHandleIdx = ni;
     e.preventDefault();
     e.stopPropagation();
@@ -1789,6 +1790,7 @@
       });
     });
     archDragRebuildFlows();
+    archUserLineSyncSourcesDividerLocals();
     if (userLines.lines.length) archUserLineRender();
   }
 
@@ -1861,15 +1863,11 @@
   var LS_MASTER = 'aepArchMasterLayout';
   var LS_USER_LINES = 'aepArchUserLines';
   var LS_SOURCES_DIVIDERS = 'aepArchSourcesDividers';
-  var LS_SOURCES_DIV_POINTER = 'aepArchSourcesDividerPointer';
   /** Session + localStorage defaults for the Lines floating toolbar (new-line defaults). */
   var LS_LINE_TOOLBAR_DEFAULTS = 'aepArchLineToolbarDefaults';
 
-  /** Horizontal rules in the Sources column (#arch-sources-seps-layer), in node-local coordinates. */
+  /** Legacy horizontal rules loaded from layout JSON; consumed into `userLines` at runtime (see archSourcesDividersMigrateToUserLines). */
   var archSourcesDividers = [];
-
-  /** When enabled, diagram shows draggable hit areas and handles for divider lines. */
-  var archSourcesSepPointer = { enabled: false, active: null };
 
   var archLabel = {
     enabled: false,
@@ -2362,27 +2360,6 @@
     window.addEventListener('pointermove', archUserFreehandPointerMove, true);
     window.addEventListener('pointerup', archUserFreehandPointerUp, true);
     window.addEventListener('pointercancel', archUserFreehandPointerUp, true);
-  }
-
-  function archSourcesDividersAddAtWorld(pWorld, strokeHex, strokeW) {
-    var pLocal = archSourcesWorldToLocal(pWorld);
-    if (pLocal.x < SOURCES_SHELL_L || pLocal.x > SOURCES_SHELL_R) return false;
-    if (pLocal.y < SOURCES_SHELL_T || pLocal.y > SOURCES_SHELL_B) return false;
-    var d = archSourcesDividerClamp({
-      id: 'sep-' + Date.now(),
-      x1: 30,
-      x2: 132,
-      y: pLocal.y,
-      stroke: strokeHex || '#d1d5db',
-      strokeWidth: strokeW != null ? strokeW : 0.75,
-    });
-    archSourcesDividers.push(d);
-    archSourcesDividersPersist();
-    archSourcesDividersRenderSvg();
-    archSourcesDividersRefreshPanel();
-    archUndoMaybePushSnapshot();
-    if (liveRegion) liveRegion.textContent = 'Added Sources divider.';
-    return true;
   }
 
   function archLineFloatInit() {
@@ -2974,6 +2951,16 @@
     return ln.bidirectional ? 'both' : 'end';
   }
 
+  function archSourcesDividerLocalPreserveInto(fromLn, toLn) {
+    if (!fromLn || !toLn || !fromLn.sourcesDividerLocal || typeof fromLn.sourcesDividerLocal !== 'object') return;
+    var loc = fromLn.sourcesDividerLocal;
+    toLn.sourcesDividerLocal = {
+      x1: Number(loc.x1),
+      x2: Number(loc.x2),
+      y: Number(loc.y),
+    };
+  }
+
   function archUserLineMigrateLegacy(ln) {
     if (!ln) return ln;
     if (ln.points && Array.isArray(ln.points) && ln.points.length >= 2 && !ln.from && !ln.to) {
@@ -2999,6 +2986,11 @@
       if (c.points && Array.isArray(c.points) && c.points.length >= 2) {
         c.points = c.points.map(archUserLinePointXY);
         archUserLineConnectorSyncEndpoints(c);
+        if (c.points.length > 2) {
+          delete c.sourcesDividerLocal;
+        } else {
+          archSourcesDividerLocalPreserveInto(ln, c);
+        }
         return c;
       }
       if (a && b) {
@@ -3012,6 +3004,11 @@
           { x: 0, y: 0 },
           { x: 0, y: 0 },
         ];
+      }
+      if (c.points.length > 2) {
+        delete c.sourcesDividerLocal;
+      } else {
+        archSourcesDividerLocalPreserveInto(ln, c);
       }
       return c;
     }
@@ -3562,7 +3559,7 @@
   var SOURCES_SHELL_T = 122;
   var SOURCES_SHELL_B = 122 + 200;
 
-  /** Root SVG coords → #node-sources local coords (same space as divider x1/x2/y). */
+  /** Root SVG coords → #node-sources local coords (same space as legacy divider x1/x2/y). */
   function archSourcesWorldToLocal(pt) {
     var src = archDrag.pos.sources || { x: 0, y: 0 };
     var bx = NODE_LAYOUT.sources.base[0] + src.x;
@@ -3570,96 +3567,70 @@
     return { x: pt.x - bx, y: pt.y - by };
   }
 
-  function archSourcesSepPointerApplyViewportClass() {
-    if (!archViewport) return;
-    archViewport.classList.toggle('arch-sources-divider-pointer-on', archSourcesSepPointer.enabled);
+  /** #node-sources local coords → root SVG (inverse of archSourcesWorldToLocal). */
+  function archSourcesLocalToWorld(lx, ly) {
+    var src = archDrag.pos.sources || { x: 0, y: 0 };
+    var bx = NODE_LAYOUT.sources.base[0] + src.x;
+    var by = NODE_LAYOUT.sources.base[1] + src.y;
+    return { x: lx + bx, y: ly + by };
   }
 
-  function archSourcesSepPointerSetEnabled(on) {
-    archSourcesSepPointer.enabled = !!on;
-    try {
-      localStorage.setItem(LS_SOURCES_DIV_POINTER, archSourcesSepPointer.enabled ? '1' : '0');
-    } catch (e) {}
-    var tgl = qs('#archSourcesDividerPointerToggle');
-    if (tgl) tgl.checked = archSourcesSepPointer.enabled;
-    archSourcesSepPointerApplyViewportClass();
-    archSourcesDividersRenderSvg();
-  }
-
-  function archSourcesSepPointerLoad() {
-    try {
-      archSourcesSepPointer.enabled = localStorage.getItem(LS_SOURCES_DIV_POINTER) === '1';
-    } catch (e) {
-      archSourcesSepPointer.enabled = false;
+  /** Legacy `sourcesDividers` entries become normal connectors; keeps `sourcesDividerLocal` so lines track the Sources tile. */
+  function archSourcesDividersMigrateToUserLines() {
+    if (!archSourcesDividers || archSourcesDividers.length === 0) return;
+    var taken = {};
+    userLines.lines.forEach(function (ln) {
+      if (ln && typeof ln.id === 'string' && ln.id.indexOf('ul-mig-') === 0) {
+        taken[ln.id] = true;
+      }
+    });
+    archSourcesDividers.forEach(function (d) {
+      if (!d || !d.id) return;
+      var sid = 'ul-mig-' + String(d.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+      if (taken[sid]) return;
+      var w1 = archSourcesLocalToWorld(d.x1, d.y);
+      var w2 = archSourcesLocalToWorld(d.x2, d.y);
+      var sw = Number(d.strokeWidth);
+      var lineW = isNaN(sw) || sw <= 0 ? 1 : archClamp(Math.max(1, Math.round(sw * 2)), 1, 4);
+      userLines.lines.push({
+        id: sid,
+        sourcesDividerLocal: { x1: d.x1, x2: d.x2, y: d.y },
+        from: { kind: 'free', x: w1.x, y: w1.y },
+        to: { kind: 'free', x: w2.x, y: w2.y },
+        points: [{ x: w1.x, y: w1.y }, { x: w2.x, y: w2.y }],
+        stroke: typeof d.stroke === 'string' && d.stroke ? d.stroke : '#d1d5db',
+        strokeWidth: lineW,
+        lineArrows: 'none',
+        bidirectional: false,
+        dashStyle: 'solid',
+      });
+    });
+    archSourcesDividers = [];
+    var layer = qs('#arch-sources-seps-layer');
+    if (layer) {
+      while (layer.firstChild) layer.removeChild(layer.firstChild);
     }
-    var tgl = qs('#archSourcesDividerPointerToggle');
-    if (tgl) tgl.checked = archSourcesSepPointer.enabled;
-    archSourcesSepPointerApplyViewportClass();
   }
 
-  function archSourcesSepPointerMoveWin(e) {
-    if (!archSourcesSepPointer.active || !archDrag.svg) return;
-    e.preventDefault();
-    var a = archSourcesSepPointer.active;
-    var d = archSourcesDividers[a.index];
-    if (!d) return;
-    var pWorld = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
-    var pLocal = archSourcesWorldToLocal(pWorld);
-    if (a.mode === 'move') {
-      var dy = pLocal.y - a.startLocal.y;
-      d.y = a.orig.y + dy;
-    } else if (a.mode === 'left') {
-      d.x1 = pLocal.x;
-    } else if (a.mode === 'right') {
-      d.x2 = pLocal.x;
-    }
-    archSourcesDividerClamp(d);
-    archSourcesDividersPersist();
-    archSourcesDividersRenderSvg();
-  }
-
-  function archSourcesSepPointerUpWin(e) {
-    if (!archSourcesSepPointer.active) return;
-    archSourcesSepPointer.active = null;
-    if (archViewport) archViewport.classList.remove('arch-sources-sep-dragging');
-    window.removeEventListener('pointermove', archSourcesSepPointerMoveWin, true);
-    window.removeEventListener('pointerup', archSourcesSepPointerUpWin, true);
-    window.removeEventListener('pointercancel', archSourcesSepPointerUpWin, true);
-    archSourcesDividersRefreshPanel();
-    archUndoMaybePushSnapshot();
-  }
-
-  function archSourcesSepPointerDownCapture(e) {
-    if (!archSourcesSepPointer.enabled || !archDrag.svg) return;
-    if (userLines.drawMode || customBoxDrawMode) return;
-    if (e.button !== 0 && e.pointerType === 'mouse') return;
-    var t = e.target;
-    if (!t || !t.closest) return;
-    var g = t.closest('.arch-sources-sep-g');
-    if (!g) return;
-    var idx = parseInt(g.getAttribute('data-sep-index'), 10);
-    if (isNaN(idx) || !archSourcesDividers[idx]) return;
-    var mode = 'move';
-    if (t.classList && t.classList.contains('arch-sources-sep-handle')) {
-      mode = t.getAttribute('data-end') === 'right' ? 'right' : 'left';
-    } else if (!t.classList || !t.classList.contains('arch-sources-sep-hit')) {
-      return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-    var pWorld = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
-    var pLocal = archSourcesWorldToLocal(pWorld);
-    var orig = archSourcesDividers[idx];
-    archSourcesSepPointer.active = {
-      index: idx,
-      mode: mode,
-      startLocal: { x: pLocal.x, y: pLocal.y },
-      orig: { x1: orig.x1, x2: orig.x2, y: orig.y },
-    };
-    if (archViewport) archViewport.classList.add('arch-sources-sep-dragging');
-    window.addEventListener('pointermove', archSourcesSepPointerMoveWin, true);
-    window.addEventListener('pointerup', archSourcesSepPointerUpWin, true);
-    window.addEventListener('pointercancel', archSourcesSepPointerUpWin, true);
+  /** Recompute world endpoints for connectors still tied to legacy Sources-column geometry (when the Sources node moves). */
+  function archUserLineSyncSourcesDividerLocals() {
+    userLines.lines.forEach(function (ln) {
+      if (!ln || !ln.sourcesDividerLocal || typeof ln.sourcesDividerLocal !== 'object') return;
+      if (!archUserLineIsConnector(ln) || !ln.points || ln.points.length !== 2) {
+        delete ln.sourcesDividerLocal;
+        return;
+      }
+      var loc = ln.sourcesDividerLocal;
+      var x1 = Number(loc.x1);
+      var x2 = Number(loc.x2);
+      var y = Number(loc.y);
+      if (isNaN(x1) || isNaN(x2) || isNaN(y)) return;
+      var w1 = archSourcesLocalToWorld(x1, y);
+      var w2 = archSourcesLocalToWorld(x2, y);
+      ln.from = { kind: 'free', x: w1.x, y: w1.y };
+      ln.to = { kind: 'free', x: w2.x, y: w2.y };
+      archUserLineConnectorSyncEndpoints(ln);
+    });
   }
 
   function archSourcesDividerClamp(d) {
@@ -3723,178 +3694,6 @@
     try {
       localStorage.setItem(LS_SOURCES_DIVIDERS, JSON.stringify(archSourcesDividers));
     } catch (e) {}
-  }
-
-  function archSourcesDividersRenderSvg() {
-    var layer = qs('#arch-sources-seps-layer');
-    if (!layer) return;
-    while (layer.firstChild) layer.removeChild(layer.firstChild);
-    archSourcesDividers.forEach(function (d, index) {
-      var g = document.createElementNS(SVG_NS, 'g');
-      g.setAttribute('class', 'arch-sources-sep-g');
-      g.setAttribute('data-sep-index', String(index));
-      g.setAttribute('data-arch-sources-sep', d.id);
-
-      var vis = document.createElementNS(SVG_NS, 'line');
-      vis.setAttribute('class', 'arch-sources-sep');
-      vis.setAttribute('x1', String(d.x1));
-      vis.setAttribute('y1', String(d.y));
-      vis.setAttribute('x2', String(d.x2));
-      vis.setAttribute('y2', String(d.y));
-      vis.setAttribute('stroke', d.stroke || '#d1d5db');
-      vis.setAttribute('stroke-width', String(d.strokeWidth != null ? d.strokeWidth : 0.75));
-      vis.setAttribute('pointer-events', archSourcesSepPointer.enabled ? 'none' : 'auto');
-      g.appendChild(vis);
-
-      if (archSourcesSepPointer.enabled) {
-        var hit = document.createElementNS(SVG_NS, 'line');
-        hit.setAttribute('class', 'arch-sources-sep-hit');
-        hit.setAttribute('x1', String(d.x1));
-        hit.setAttribute('y1', String(d.y));
-        hit.setAttribute('x2', String(d.x2));
-        hit.setAttribute('y2', String(d.y));
-        hit.setAttribute('stroke', 'transparent');
-        hit.setAttribute('stroke-width', '14');
-        hit.setAttribute('pointer-events', 'stroke');
-        g.appendChild(hit);
-        ['left', 'right'].forEach(function (end) {
-          var cx = end === 'left' ? d.x1 : d.x2;
-          var c = document.createElementNS(SVG_NS, 'circle');
-          c.setAttribute('class', 'arch-sources-sep-handle');
-          c.setAttribute('data-end', end);
-          c.setAttribute('cx', String(cx));
-          c.setAttribute('cy', String(d.y));
-          c.setAttribute('r', '4');
-          c.setAttribute('tabindex', '-1');
-          c.setAttribute('aria-hidden', 'true');
-          g.appendChild(c);
-        });
-      }
-      layer.appendChild(g);
-    });
-  }
-
-  function archSourcesDividersRefreshPanel() {
-    var host = qs('#archSourcesDividersList');
-    if (!host) return;
-    host.innerHTML = '';
-    archSourcesDividers.forEach(function (d, index) {
-      var row = document.createElement('div');
-      row.className = 'arch-sources-divider-row';
-      row.setAttribute('data-sep-index', String(index));
-
-      var title = document.createElement('span');
-      title.className = 'arch-sources-divider-row-title';
-      title.textContent = 'Line ' + (index + 1);
-
-      function addField(label, field, val) {
-        var lab = document.createElement('label');
-        lab.className = 'arch-hud-label arch-sources-divider-field';
-        var inp = document.createElement('input');
-        inp.type = 'number';
-        inp.step = '0.5';
-        inp.className = 'arch-sources-div-inp';
-        inp.setAttribute('data-field', field);
-        inp.value = String(val);
-        lab.appendChild(document.createTextNode(label + ' '));
-        lab.appendChild(inp);
-        row.appendChild(lab);
-      }
-
-      row.appendChild(title);
-      addField('Y', 'y', d.y);
-      addField('Left', 'x1', d.x1);
-      addField('Right', 'x2', d.x2);
-
-      var dup = document.createElement('button');
-      dup.type = 'button';
-      dup.className = 'dashboard-btn-outline arch-sources-div-dup';
-      dup.textContent = 'Duplicate';
-      dup.setAttribute('data-action', 'dup');
-
-      var del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'dashboard-btn-outline arch-sources-div-del';
-      del.textContent = 'Delete';
-      del.setAttribute('data-action', 'del');
-
-      row.appendChild(dup);
-      row.appendChild(del);
-      host.appendChild(row);
-    });
-  }
-
-  function archSourcesDividersOnFieldInput(e) {
-    var inp = e.target;
-    if (!inp || !inp.classList || !inp.classList.contains('arch-sources-div-inp')) return;
-    var row = inp.closest('.arch-sources-divider-row');
-    if (!row) return;
-    var index = parseInt(row.getAttribute('data-sep-index'), 10);
-    var field = inp.getAttribute('data-field');
-    if (!archSourcesDividers[index] || !field) return;
-    var v = parseFloat(inp.value);
-    if (isNaN(v)) return;
-    archSourcesDividers[index][field] = v;
-    archSourcesDividerClamp(archSourcesDividers[index]);
-    row.querySelector('[data-field="y"]').value = String(archSourcesDividers[index].y);
-    row.querySelector('[data-field="x1"]').value = String(archSourcesDividers[index].x1);
-    row.querySelector('[data-field="x2"]').value = String(archSourcesDividers[index].x2);
-    archSourcesDividersPersist();
-    archSourcesDividersRenderSvg();
-  }
-
-  function archSourcesDividersOnPanelClick(e) {
-    var btn = e.target.closest && e.target.closest('button[data-action]');
-    if (!btn || !e.currentTarget.contains(btn)) return;
-    var row = btn.closest('.arch-sources-divider-row');
-    if (!row) return;
-    var idx = parseInt(row.getAttribute('data-sep-index'), 10);
-    if (btn.getAttribute('data-action') === 'dup') {
-      e.preventDefault();
-      archSourcesDividersDuplicate(idx);
-    } else if (btn.getAttribute('data-action') === 'del') {
-      e.preventDefault();
-      archSourcesDividersDelete(idx);
-    }
-  }
-
-  function archSourcesDividersDuplicate(index) {
-    var src = archSourcesDividers[index];
-    if (!src) return;
-    var copy = archSourcesDividerClamp({
-      id: 'sep-' + Date.now(),
-      x1: src.x1,
-      x2: src.x2,
-      y: src.y + 6,
-      stroke: src.stroke,
-      strokeWidth: src.strokeWidth,
-    });
-    archSourcesDividers.splice(index + 1, 0, copy);
-    archSourcesDividersPersist();
-    archSourcesDividersRenderSvg();
-    archSourcesDividersRefreshPanel();
-  }
-
-  function archSourcesDividersDelete(index) {
-    archSourcesDividers.splice(index, 1);
-    archSourcesDividersPersist();
-    archSourcesDividersRenderSvg();
-    archSourcesDividersRefreshPanel();
-  }
-
-  function archSourcesDividersAdd() {
-    var d = archSourcesDividerClamp({
-      id: 'sep-' + Date.now(),
-      x1: 30,
-      x2: 132,
-      y: 180,
-      stroke: '#d1d5db',
-      strokeWidth: 0.75,
-    });
-    archSourcesDividers.push(d);
-    archSourcesDividersPersist();
-    archSourcesDividersRenderSvg();
-    archSourcesDividersRefreshPanel();
   }
 
   function archCustomBoxFind(id) {
@@ -4514,7 +4313,7 @@
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
       userLines: userLines.lines.map(archUserLineMigrateLegacy),
       stateHighlightOverrides: JSON.parse(JSON.stringify(archStateHighlightOverrides)),
-      sourcesDividers: JSON.parse(JSON.stringify(archSourcesDividers)),
+      sourcesDividers: [],
       customBoxes: JSON.parse(JSON.stringify(archCustomBoxes.map(archCustomBoxNormalize))),
     };
     if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.legacyToScene) {
@@ -4704,6 +4503,7 @@
 
   function archUserLineHandlePointerUp(e) {
     if (!archUserLineEditDrag.active) return;
+    var doneLineId = archUserLineEditDrag.lineId;
     archUserLineEditDrag.active = false;
     window.removeEventListener('pointermove', archUserLineHandlePointerMove, true);
     window.removeEventListener('pointerup', archUserLineHandlePointerUp, true);
@@ -4714,6 +4514,10 @@
     archUserLineEditDrag.pointerId = null;
     archUserLineEditDrag.handleIndex = -1;
     archUserLineEditDrag.lineId = '';
+    var lnDone = doneLineId ? archUserLineFindById(doneLineId) : null;
+    if (lnDone && lnDone.sourcesDividerLocal) {
+      delete lnDone.sourcesDividerLocal;
+    }
     if (el && pid != null && el.releasePointerCapture) {
       try {
         el.releasePointerCapture(pid);
@@ -5064,12 +4868,6 @@
     e.stopPropagation();
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
     var tool = archLineFloatGetTool();
-    if (tool === 'divider') {
-      var fw = archLineFloatGetStrokeW();
-      var divW = Math.min(1.85, Math.max(0.55, fw * 0.36));
-      archSourcesDividersAddAtWorld(p, archLineFloatGetHex(), divW);
-      return;
-    }
     if (tool === 'freehand') {
       archUserFreehandPointerDown(e);
       return;
@@ -5187,6 +4985,7 @@
       localStorage.removeItem(LS_LABELS);
       localStorage.removeItem(LS_USER_LINES);
       localStorage.removeItem(LS_SOURCES_DIVIDERS);
+      localStorage.removeItem('aepArchSourcesDividerPointer');
       localStorage.removeItem(LS_CUSTOM_BOXES);
       localStorage.removeItem('aepArchDragTags');
       localStorage.removeItem('aepArchDragSources');
@@ -5271,10 +5070,8 @@
     }
     archLabelApplyAll();
     archDragApply();
+    archSourcesDividersMigrateToUserLines();
     archUserLineRender();
-    archSourcesSepPointerLoad();
-    archSourcesDividersRenderSvg();
-    archSourcesDividersRefreshPanel();
     archCustomBoxesRender();
     archDragSave();
     archLabelSave();
@@ -5384,24 +5181,6 @@
       });
     }
 
-    var sepList = qs('#archSourcesDividersList');
-    if (sepList && !sepList.getAttribute('data-arch-ready')) {
-      sepList.setAttribute('data-arch-ready', '1');
-      sepList.addEventListener('input', archSourcesDividersOnFieldInput);
-      sepList.addEventListener('click', archSourcesDividersOnPanelClick);
-    }
-    var sepAdd = qs('#archSourcesDividerAdd');
-    if (sepAdd) {
-      sepAdd.addEventListener('click', archSourcesDividersAdd);
-    }
-    var sepPtrTgl = qs('#archSourcesDividerPointerToggle');
-    if (sepPtrTgl && !sepPtrTgl.getAttribute('data-arch-ready')) {
-      sepPtrTgl.setAttribute('data-arch-ready', '1');
-      sepPtrTgl.addEventListener('change', function () {
-        archSourcesSepPointerSetEnabled(!!sepPtrTgl.checked);
-      });
-    }
-
     document.addEventListener('keydown', archUserLineOnGlobalDelete);
 
     if (!document.documentElement.getAttribute('data-arch-lines-esc')) {
@@ -5440,7 +5219,6 @@
     }
 
     archDrag.svg.addEventListener('pointerdown', archUserLineHandlePointerDown, true);
-    archDrag.svg.addEventListener('pointerdown', archSourcesSepPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
     archDrag.svg.addEventListener('dblclick', archUserLineOnConnectorDblClick, true);

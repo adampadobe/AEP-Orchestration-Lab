@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260414d">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260414e">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -463,7 +463,7 @@
                   <span class="arch-editor-rail-label" aria-hidden="true">States</span>
                   <span class="visually-hidden">States — highlights per step</span>
                 </button>
-                <button type="button" class="arch-editor-rail-btn" data-arch-panel="sources" id="archEditorRailSources" title="Diagram connectors and Sources column divider lines" aria-pressed="false">
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="sources" id="archEditorRailSources" title="Diagram connectors (Lines tool)" aria-pressed="false">
                   <span class="arch-editor-rail-icon" aria-hidden="true">
                     <!-- Spectrum Workflow: S2_Icon_PenBrush_20_N.svg (Apache-2.0) -->
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" focusable="false" class="arch-spectrum-pen-brush-icon">
@@ -472,7 +472,7 @@
                     </svg>
                   </span>
                   <span class="arch-editor-rail-label" aria-hidden="true">Lines</span>
-                  <span class="visually-hidden">Lines — connectors and Sources dividers</span>
+                  <span class="visually-hidden">Lines — connectors</span>
                 </button>
                 <button type="button" class="arch-editor-rail-btn" data-arch-panel="spectrum-icons" id="archEditorRailSpectrumIcons" title="Browse Adobe Spectrum workflow icons (Apache-2.0)" aria-pressed="false">
                   <span class="arch-editor-rail-label" aria-hidden="true">Icons</span>
@@ -610,24 +610,8 @@
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
                   <div class="arch-lines-dock-chrome-hide-when-active">
                     <p class="arch-editor-panel-heading">Lines</p>
-                    <p class="arch-tool-lead">Use the <strong>floating toolbar</strong> on the canvas for connectors (stroke, arrows, freehand). Press <strong>Esc</strong> or the close control on the bar to leave Lines mode. Sources <strong>column dividers</strong> are added from this panel (below); divider list and on-diagram adjust are below.</p>
-                    <div class="arch-tool-group arch-tool-group--sources-dividers">
-                      <h3 class="arch-tool-group-heading">Sources column dividers</h3>
-                      <p class="arch-tool-micro">Add with <strong>Add divider line</strong> below (then tap in the Sources column), or fine-tune here. Drag on-diagram when <strong>Adjust on diagram</strong> is on.</p>
-                    </div>
+                    <p class="arch-tool-lead">Use the <strong>floating toolbar</strong> on the canvas for connectors (stroke, arrows, freehand). Press <strong>Esc</strong> or the close control on the bar to leave Lines mode. Horizontal rules in the Sources column are edited like any other line (select, drag handles, bends).</p>
                   </div>
-                  <details class="arch-sources-dividers-wrap" id="archSourcesDividersWrap">
-                    <summary class="arch-highlight-picker-summary">Divider line list &amp; numbers</summary>
-                    <p class="arch-highlight-picker-help">
-                      Horizontal rules between the SDK block and the category rows. Adjust left/right ends to change length; duplicate or remove lines. Saved with layout / JSON.
-                    </p>
-                    <label class="arch-sources-pointer-toggle" style="display:flex; gap:8px; align-items:flex-start; margin-bottom:10px; font-size:0.75rem; line-height:1.35; cursor:pointer;">
-                      <input type="checkbox" id="archSourcesDividerPointerToggle" style="margin-top:2px;" />
-                      <span><strong>Adjust on diagram</strong> — drag the line to move it up or down; drag the blue handles to change length.</span>
-                    </label>
-                    <div id="archSourcesDividersList" class="arch-sources-dividers-list" role="group" aria-label="Sources divider lines"></div>
-                    <button type="button" class="dashboard-btn-outline" id="archSourcesDividerAdd">Add divider line</button>
-                  </details>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
                   <p class="arch-editor-panel-heading">Adobe Spectrum icons</p>
@@ -688,6 +672,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260414d"></script>
+  <script defer src="aep-architecture-apps.js?v=20260414e"></script>
 </body>
 </html>
