@@ -140,13 +140,15 @@
   </div>
 
   <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260418-empty-groups"></script>
+  <script defer src="aep-lab-nav.js?v=20260419-demos-ctrl"></script>
   <script>
     (function () {
       function syncHomeDemos() {
         try {
           var s = (localStorage.getItem('aepGlobalSandboxName') || '').trim().toLowerCase();
-          var show = s === 'apalmer' || s === 'kirkham';
+          var dev = s === 'apalmer' || s === 'kirkham';
+          var demosHidden = localStorage.getItem('aepNavHideInDev_demos') === '1';
+          var show = dev && !demosHidden;
           document.querySelectorAll('.home-demos-only').forEach(function (el) {
             if (show) el.removeAttribute('hidden');
             else el.setAttribute('hidden', '');
@@ -170,11 +172,11 @@
       document.addEventListener('DOMContentLoaded', syncHome);
       syncHomeDemos();
       window.addEventListener('aep-global-sandbox-change', syncHome);
-      window.addEventListener('aep-nav-indev-visibility-change', syncHomeInDevLinks);
+      window.addEventListener('aep-nav-indev-visibility-change', syncHome);
       window.addEventListener('storage', function (e) {
         if (!e.key) return;
         if (e.key === 'aepGlobalSandboxName') syncHome();
-        if (e.key.indexOf('aepNavHideInDev_') === 0 || e.key === 'aepHideDataViewerDecisioningPlayground') syncHomeInDevLinks();
+        if (e.key.indexOf('aepNavHideInDev_') === 0 || e.key === 'aepHideDataViewerDecisioningPlayground') syncHome();
       });
     })();
   </script>

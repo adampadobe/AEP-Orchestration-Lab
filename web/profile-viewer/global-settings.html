@@ -91,9 +91,13 @@
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="aepArchitectureApps" style="margin-top:3px;" />
                   <span>Hide <strong>AEP &amp; Apps</strong> (Architecture)</span>
                 </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="demos" style="margin-top:3px;" />
+                  <span>Hide <strong>Demos</strong> (Donate demo, Race for Life)</span>
+                </label>
               </div>
               <p class="dashboard-hero-subtitle" style="margin-top: 12px; font-size: 13px;">
-                Stored per key <code>aepNavHideInDev_&lt;name&gt;</code> (<code>1</code> = hidden). <strong>Decisioning overview</strong> also syncs the legacy key <code>aepHideDataViewerDecisioningPlayground</code> for older tabs.
+                Stored per key <code>aepNavHideInDev_&lt;name&gt;</code> (<code>1</code> = hidden). <strong>Decisioning overview</strong> also syncs the legacy key <code>aepHideDataViewerDecisioningPlayground</code> for older tabs. <strong>Demos</strong> only applies when your sandbox is apalmer or kirkham.
               </p>
             </div>
           </div>
@@ -268,6 +272,6 @@
     })();
   </script>
   <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260418-empty-groups"></script>
+  <script defer src="aep-lab-nav.js?v=20260419-demos-ctrl"></script>
 </body>
 </html>

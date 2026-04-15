@@ -25,9 +25,9 @@
     }
   }
 
-  /** Demos (donate / Race for Life) only for developer sandboxes */
+  /** Demos (donate / Race for Life): developer sandboxes only, unless hidden via Global values (aepNavHideInDev_demos) */
   function isDemosNavVisible() {
-    return isDeveloperSandbox();
+    return isDeveloperSandbox() && !isNavInDevHidden('demos');
   }
 
   /** Global values / sidebar: hide when key set (developers); legacy EDP key counts for decisioningOverview */
@@ -423,6 +423,10 @@
         if (!navHideKey) return true;
         if (!isDeveloperSandbox()) return false;
         return !isNavInDevHidden(navHideKey);
+      },
+      /** Demos group (Donate / Race for Life): apalmer/kirkham only, unless hidden in Global values */
+      shouldShowDemosMenu: function () {
+        return isDemosNavVisible();
       },
     };
   } catch (e3) {}
