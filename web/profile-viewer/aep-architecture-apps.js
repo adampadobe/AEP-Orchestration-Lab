@@ -257,6 +257,11 @@
   var archViewport;
   var dotButtons = [];
 
+  /** Full-layout undo (snapshots via AEPDiagram.undo). */
+  var archUndoStack = null;
+  /** Multi-select for platform nodes in Edit mode (AEPDiagram.selection). */
+  var archSelection = null;
+
   /** True when "Edit diagram" is on — state stepping must not advance (playback paused). */
   function archIsEditMode() {
     return !!(archViewport && archViewport.classList.contains('arch-int-viewport--edit-mode'));
@@ -272,6 +277,137 @@
     dotButtons.forEach(function (b) {
       b.disabled = blocked;
     });
+    if (blocked || !archSelection) return;
+    archSelection.clear();
+    archSelectionRefreshDom();
+  }
+
+  function archSelectionRefreshDom() {
+    if (!archSelection) return;
+    $all('.arch-int-svg-wrap g.arch-node').forEach(function (g) {
+      if (g.classList.contains('arch-custom-box')) return;
+      var id = g.id;
+      if (!id || id.indexOf('node-') !== 0 || id.indexOf('node-cbox-') === 0) return;
+      g.classList.toggle('arch-node--selected', archSelection.has(id));
+    });
+  }
+
+  function archEditSelectionInit() {
+    if (archSelection || !(window.AEPDiagram && window.AEPDiagram.selection)) return;
+    archSelection = window.AEPDiagram.selection.create();
+  }
+
+  /** Snapshot without `savedAt` so identical layouts dedupe in the undo stack. */
+  function archSnapshotForUndo() {
+    var p = archMasterSerialize();
+    delete p.savedAt;
+    return p;
+  }
+
+  function archUndoSnapshotsEqual(a, b) {
+    if (!a || !b) return false;
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+
+  function archUndoSyncUi() {
+    var ub = qs('#archUndoBtn');
+    var rb = qs('#archRedoBtn');
+    if (ub) ub.disabled = !archUndoStack || !archUndoStack.canUndo();
+    if (rb) rb.disabled = !archUndoStack || !archUndoStack.canRedo();
+  }
+
+  function archUndoInitOnce() {
+    if (archUndoStack || !(window.AEPDiagram && window.AEPDiagram.undo)) return;
+    archUndoStack = window.AEPDiagram.undo.createStack({ max: 80 });
+    archUndoStack.resetWithSnapshot(archSnapshotForUndo());
+    archUndoSyncUi();
+  }
+
+  /** Call after a user edit; pushes only if the layout actually changed. */
+  function archUndoMaybePushSnapshot() {
+    if (!archUndoStack) return;
+    var s = archSnapshotForUndo();
+    var cur = archUndoStack.peek();
+    if (cur && archUndoSnapshotsEqual(cur, s)) return;
+    archUndoStack.push(s);
+    archUndoSyncUi();
+  }
+
+  function archApplyLayoutSnapshot(snap) {
+    if (!snap || typeof snap !== 'object') return;
+    archSourcesDividers = archSourcesDividersDefaultArray();
+    archCustomBoxes = [];
+    archMasterApply(snap);
+    if (!Array.isArray(snap.sourcesDividers)) {
+      archSourcesDividersLoad();
+    }
+    if (!Array.isArray(snap.customBoxes)) {
+      archCustomBoxesLoad();
+    }
+    archLabelApplyAll();
+    archDragApply();
+    archUserLineRender();
+    archSourcesSepPointerLoad();
+    archSourcesDividersRenderSvg();
+    archSourcesDividersRefreshPanel();
+    archCustomBoxesRender();
+    archDragSave();
+    archLabelSave();
+    archUserLinePersist();
+    archSourcesDividersPersist();
+    archCustomBoxesPersist();
+    archStateHighlightOverridesPersist();
+    try {
+      localStorage.setItem(LS_MASTER, JSON.stringify(archMasterSerialize()));
+    } catch (e) {}
+    applyState();
+  }
+
+  function archUndoRun() {
+    if (!archUndoStack) return;
+    var snap = archUndoStack.undo();
+    if (!snap) return;
+    archApplyLayoutSnapshot(snap);
+    archUndoSyncUi();
+    if (archSelection) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
+    if (liveRegion) liveRegion.textContent = 'Undo: layout restored.';
+  }
+
+  function archRedoRun() {
+    if (!archUndoStack) return;
+    var snap = archUndoStack.redo();
+    if (!snap) return;
+    archApplyLayoutSnapshot(snap);
+    archUndoSyncUi();
+    if (archSelection) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
+    if (liveRegion) liveRegion.textContent = 'Redo: layout restored.';
+  }
+
+  function archEditSelectionOnSvgClick(e) {
+    if (!archIsEditMode() || !archSelection) return;
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
+    if (userLines.drawMode || customBoxDrawMode) return;
+    var g = e.target.closest && e.target.closest('g.arch-node');
+    if (g && g.classList.contains('arch-custom-box')) return;
+    if (g && g.id && g.id.indexOf('node-') === 0 && g.id.indexOf('node-cbox-') !== 0) {
+      var key = g.id.slice(5);
+      if (!NODE_LAYOUT[key]) return;
+      e.stopPropagation();
+      if (e.shiftKey) archSelection.toggle(g.id, true);
+      else archSelection.setSingle(g.id);
+      archSelectionRefreshDom();
+      return;
+    }
+    if (!e.shiftKey) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
   }
 
   function qs(sel, root) {
@@ -1926,9 +2062,15 @@
     window.removeEventListener('pointermove', archDragPointerMoveWin, true);
     window.removeEventListener('pointerup', archDragPointerUpWin, true);
     window.removeEventListener('pointercancel', archDragPointerUpWin, true);
+    var endedKey = archDrag.active;
     archDrag.active = null;
     archDrag.start = null;
     archDragSave();
+    archUndoMaybePushSnapshot();
+    if (archIsEditMode() && archSelection && endedKey) {
+      archSelection.setSingle('node-' + endedKey);
+      archSelectionRefreshDom();
+    }
   }
 
   function archResizePointerDown(e) {
@@ -1975,6 +2117,7 @@
 
   function archResizePointerUpWin() {
     if (!archResize.active) return;
+    var endedKey = archResize.active;
     archResize.active = null;
     archResize.start = null;
     if (archViewport) archViewport.classList.remove('arch-resizing');
@@ -1982,6 +2125,11 @@
     window.removeEventListener('pointerup', archResizePointerUpWin, true);
     window.removeEventListener('pointercancel', archResizePointerUpWin, true);
     archDragSave();
+    archUndoMaybePushSnapshot();
+    if (archIsEditMode() && archSelection && endedKey) {
+      archSelection.setSingle('node-' + endedKey);
+      archSelectionRefreshDom();
+    }
   }
 
   function archDragPointerDown(e) {
@@ -2099,6 +2247,7 @@
     window.removeEventListener('pointerup', archSourcesSepPointerUpWin, true);
     window.removeEventListener('pointercancel', archSourcesSepPointerUpWin, true);
     archSourcesDividersRefreshPanel();
+    archUndoMaybePushSnapshot();
   }
 
   function archSourcesSepPointerDownCapture(e) {
@@ -2480,6 +2629,7 @@
     archStateHighlightOverridesPersist();
     archCustomBoxesRender();
     archUserLineRender();
+    archUndoMaybePushSnapshot();
   }
 
   function archCustomBoxesRender() {
@@ -2678,6 +2828,7 @@
     window.removeEventListener('pointerup', archCustomBoxDragPointerUpWin, true);
     window.removeEventListener('pointercancel', archCustomBoxDragPointerUpWin, true);
     archCustomBoxesPersist();
+    archUndoMaybePushSnapshot();
   }
 
   function archCustomBoxDragPointerDown(e) {
@@ -2816,6 +2967,7 @@
     window.removeEventListener('pointerup', archCustomBoxResizePointerUpWin, true);
     window.removeEventListener('pointercancel', archCustomBoxResizePointerUpWin, true);
     archCustomBoxesPersist();
+    archUndoMaybePushSnapshot();
   }
 
   function archCustomBoxResizePointerDown(e, g) {
@@ -3031,6 +3183,7 @@
     archUserLineRender();
     archUserLinePersist();
     archUserLineSyncPropsHud();
+    archUndoMaybePushSnapshot();
   }
 
   function archUserLineDeleteSelected() {
@@ -3042,6 +3195,7 @@
     archUserLineRender();
     archUserLinePersist();
     archUserLineSyncPropsHud();
+    archUndoMaybePushSnapshot();
   }
 
   function archUserLineOnPointerDown(e) {
@@ -3172,38 +3326,24 @@
     var r = new FileReader();
     r.onload = function () {
       try {
-        var data = JSON.parse(r.result);
-        if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.migrateLayout) {
-          data = window.AEPDiagram.model.migrateLayout(data);
+        var raw = JSON.parse(r.result);
+        var EM = window.AEPDiagram && window.AEPDiagram.editorModel;
+        if (!EM) {
+          window.alert('Diagram editor module missing. Reload the page.');
+          return;
         }
-        archSourcesDividers = archSourcesDividersDefaultArray();
-        archCustomBoxes = [];
-        archMasterApply(data);
-        if (!Array.isArray(data.sourcesDividers)) {
-          archSourcesDividersLoad();
+        var model = EM.fromMasterPayload(raw);
+        var v = EM.validateDiagramModel(model);
+        if (!v.ok) {
+          window.alert('Invalid layout JSON:\n' + v.errors.slice(0, 16).join('\n'));
+          return;
         }
-        if (!Array.isArray(data.customBoxes)) {
-          archCustomBoxesLoad();
+        archApplyLayoutSnapshot(model);
+        archUndoMaybePushSnapshot();
+        if (archSelection) {
+          archSelection.clear();
+          archSelectionRefreshDom();
         }
-        archLabelApplyAll();
-        archDragApply();
-        archUserLineRender();
-        archSourcesSepPointerLoad();
-        archSourcesDividersRenderSvg();
-        archSourcesDividersRefreshPanel();
-        archCustomBoxesRender();
-        archDragSave();
-        archLabelSave();
-        archUserLinePersist();
-        archSourcesDividersPersist();
-        archCustomBoxesPersist();
-        archStateHighlightOverridesPersist();
-        try {
-          localStorage.setItem(LS_MASTER, JSON.stringify(archMasterSerialize()));
-        } catch (e3) {
-          localStorage.setItem(LS_MASTER, JSON.stringify(data));
-        }
-        applyState();
         if (liveRegion) liveRegion.textContent = 'Imported master layout applied.';
       } catch (err) {
         window.alert('Could not import: invalid JSON.');
@@ -3416,6 +3556,45 @@
     $all('.arch-int-svg-wrap g.arch-node').forEach(function (g) {
       g.addEventListener('pointerdown', archDragPointerDown);
     });
+
+    archEditSelectionInit();
+    archUndoInitOnce();
+
+    if (!document.documentElement.getAttribute('data-arch-undo-keys')) {
+      document.documentElement.setAttribute('data-arch-undo-keys', '1');
+      document.addEventListener(
+        'keydown',
+        function (e) {
+          if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable))
+            return;
+          var mod = e.metaKey || e.ctrlKey;
+          if (mod && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) archRedoRun();
+            else archUndoRun();
+            return;
+          }
+          if (e.ctrlKey && !e.metaKey && (e.key === 'y' || e.key === 'Y')) {
+            e.preventDefault();
+            archRedoRun();
+          }
+        },
+        true
+      );
+    }
+
+    var undoBtn = qs('#archUndoBtn');
+    var redoBtn = qs('#archRedoBtn');
+    if (undoBtn && !undoBtn.getAttribute('data-arch-ready')) {
+      undoBtn.setAttribute('data-arch-ready', '1');
+      undoBtn.addEventListener('click', archUndoRun);
+    }
+    if (redoBtn && !redoBtn.getAttribute('data-arch-ready')) {
+      redoBtn.setAttribute('data-arch-ready', '1');
+      redoBtn.addEventListener('click', archRedoRun);
+    }
+
+    archDrag.svg.addEventListener('click', archEditSelectionOnSvgClick, false);
 
     archStateHighlightOverridesPersist();
     applyState();

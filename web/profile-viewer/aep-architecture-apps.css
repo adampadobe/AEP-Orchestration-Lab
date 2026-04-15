@@ -729,6 +729,17 @@
   align-items: center;
 }
 
+.arch-file-undo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.arch-int-viewport--edit-mode .arch-node:not(.arch-custom-box).arch-node--selected {
+  filter: drop-shadow(0 0 2px rgba(20, 115, 230, 0.95));
+}
+
 .arch-int-dots {
   display: flex;
   flex-wrap: wrap;

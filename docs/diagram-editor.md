@@ -162,9 +162,11 @@ These are serialized in **master layout JSON** (`archMasterSerialize` / `archMas
 
 ## 10) Implemented (incremental)
 
-- **`diagram/editor-model.js`:** `AEPDiagram.editorModel` — `fromMasterPayload` (delegates to `migrateLayout`), `toSerializablePayload`, `validateDiagramModel`. Used for import/export validation and future inspector wiring.
+- **`diagram/editor-model.js`:** `AEPDiagram.editorModel` — `fromMasterPayload` (delegates to `migrateLayout`), `toSerializablePayload`, `validateDiagramModel`. **Import JSON** rejects invalid payloads with an alert listing validation errors.
 - **Edit diagram toggle (`#archEditModeToggle`):** When on, **playback is paused**: `go` / `goTo` no-op, Arrow Left/Right do not advance states (after Escape-for-reveal-tools handling), Previous/Next and state dots are **disabled**. Visuals for the current state stay as-is until the user turns Edit off. Default (toggle off) matches prior behavior.
+- **Undo / redo:** `AEPDiagram.undo.createStack` — snapshots omit `savedAt` so identical layouts dedupe. **Undo / Redo** buttons in the Layout file panel; **⌘/Ctrl+Z** and **⌘/Ctrl+Shift+Z** (redo). Pushes after node drag/resize, Sources divider edits, custom box move/resize/delete, user line add/delete, and successful import.
+- **Selection (Edit mode):** `AEPDiagram.selection` — click platform `g.arch-node` (not custom boxes) to select; **Shift+click** multi-select; click empty SVG to clear. **Layout drag** still updates selection to the node you moved. Selection clears when leaving Edit mode.
 
 ---
 
-*Last updated: editor-model module + playback gating while Edit diagram is on.*
+*Last updated: validated import, undo/redo, edit-mode selection.*
