@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260417a">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260414b">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -380,9 +380,6 @@
                   <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="freehand" title="Freehand — drag to sketch a path">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 17c2.5-6 8-12 14.5-9S22 17 16 19c-4 1.5-7-1-9-4"/></svg>
                   </button>
-                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="divider" title="Sources divider — tap inside the Sources column">
-                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 12h14"/></svg>
-                  </button>
                   <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="plain" title="Straight segment — no arrowheads, click start then end">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 12h14"/></svg>
                   </button>
@@ -396,7 +393,11 @@
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-dasharray="3 3" aria-hidden="true"><path d="M5 12h14"/><path d="M16 9l3 3-3 3"/></svg>
                   </button>
                 </div>
-                <span class="arch-line-float-vr" aria-hidden="true"></span>
+                <div class="arch-line-float-seg arch-line-float-seg--bidir" role="group" aria-label="Connector ends">
+                  <button type="button" class="arch-line-float-btn arch-line-float-bidir" id="archLineFloatBidir" title="Bidirectional arrows" aria-pressed="false" disabled>
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 8l-3 4 3 4"/><path d="M16 8l3 4-3 4"/><path d="M9 12h6"/></svg>
+                  </button>
+                </div>
                 <div id="archLineFloatWWrap" class="arch-line-float-w-wrap">
                   <button type="button" class="arch-line-float-w-trigger" id="archLineFloatWTrigger" aria-expanded="false" aria-haspopup="listbox" aria-controls="archLineFloatWMenu" title="Line weight">
                     <span class="arch-line-float-w-trigger-bar" id="archLineFloatWTriggerBar" aria-hidden="true"></span>
@@ -410,13 +411,6 @@
                     <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="8" aria-selected="false"><span class="arch-line-float-w-opt-preview" style="height:8px"></span><span class="arch-line-float-w-opt-label">8px</span></button>
                   </div>
                 </div>
-                <span class="arch-line-float-vr" aria-hidden="true"></span>
-                <div class="arch-line-float-seg arch-line-float-seg--bidir" role="group" aria-label="Connector ends">
-                  <button type="button" class="arch-line-float-btn arch-line-float-bidir" id="archLineFloatBidir" title="Bidirectional arrows" aria-pressed="false" disabled>
-                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 8l-3 4 3 4"/><path d="M16 8l3 4-3 4"/><path d="M9 12h6"/></svg>
-                  </button>
-                </div>
-                <span class="arch-line-float-vr" aria-hidden="true"></span>
                 <div class="arch-line-float-seg arch-line-float-colors" role="group" aria-label="Stroke colour">
                   <div class="arch-line-float-color-wrap" id="archLineFloatColorWrap">
                     <button type="button" class="arch-line-float-color-btn" id="archLineFloatColorBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="archLineFloatColorPopover" title="Colour"></button>
@@ -435,7 +429,6 @@
                     </div>
                   </div>
                 </div>
-                <span class="arch-line-float-vr" aria-hidden="true"></span>
                 <div class="arch-line-float-seg arch-line-float-actions" role="group" aria-label="Actions">
                   <button type="button" class="arch-line-float-btn" id="archLineFloatUndo" title="Undo last layout change">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 014 4v0"/></svg>
@@ -443,12 +436,10 @@
                   <button type="button" class="arch-line-float-btn" id="archLineFloatDelete" title="Delete selected line" disabled>
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
                   </button>
-                  <button type="button" class="arch-line-float-btn" id="archLineFloatClose" title="Exit Lines tool (same as Select tool)">
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatClose" title="Exit Lines tool (Escape)">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
                   </button>
                 </div>
-                <span class="arch-line-float-vr" aria-hidden="true"></span>
-                <button type="button" class="arch-line-float-select-tool" id="archLineFloatSelectTool">Select tool</button>
               </div>
               <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Show editing tools">Show editing tools</button>
             </div>
@@ -618,10 +609,10 @@
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
                   <div class="arch-lines-dock-chrome-hide-when-active">
                     <p class="arch-editor-panel-heading">Lines</p>
-                    <p class="arch-tool-lead">Use the <strong>floating toolbar</strong> on the canvas for connectors (stroke, arrows, freehand, dividers). Switch rail tabs or press <strong>Esc</strong> to leave Lines mode. Divider list and on-diagram adjust are below.</p>
+                    <p class="arch-tool-lead">Use the <strong>floating toolbar</strong> on the canvas for connectors (stroke, arrows, freehand). Press <strong>Esc</strong> or the close control on the bar to leave Lines mode. Sources <strong>column dividers</strong> are added from this panel (below); divider list and on-diagram adjust are below.</p>
                     <div class="arch-tool-group arch-tool-group--sources-dividers">
                       <h3 class="arch-tool-group-heading">Sources column dividers</h3>
-                      <p class="arch-tool-micro">Add with the <strong>divider</strong> tool on the floating bar (tap in the Sources column), or fine-tune here. Drag on-diagram when <strong>Adjust on diagram</strong> is on.</p>
+                      <p class="arch-tool-micro">Add with <strong>Add divider line</strong> below (then tap in the Sources column), or fine-tune here. Drag on-diagram when <strong>Adjust on diagram</strong> is on.</p>
                     </div>
                   </div>
                   <details class="arch-sources-dividers-wrap" id="archSourcesDividersWrap">
@@ -696,6 +687,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260417a"></script>
+  <script defer src="aep-architecture-apps.js?v=20260414b"></script>
 </body>
 </html>

@@ -1980,6 +1980,10 @@
         lineDefaults.strokeWidth = sw;
       }
       if (typeof o.lineTool === 'string' && o.lineTool) lineDefaults.lineTool = o.lineTool;
+      if (lineDefaults.lineTool === 'divider') {
+        lineDefaults.lineTool = 'arrow';
+        archLineDefaultsSave();
+      }
     } catch (e) {}
   }
 
@@ -2471,12 +2475,6 @@
     var cl = qs('#archLineFloatClose');
     if (cl) {
       cl.addEventListener('click', function () {
-        archSetActiveTool('select');
-      });
-    }
-    var selTool = qs('#archLineFloatSelectTool');
-    if (selTool) {
-      selTool.addEventListener('click', function () {
         archSetActiveTool('select');
       });
     }
