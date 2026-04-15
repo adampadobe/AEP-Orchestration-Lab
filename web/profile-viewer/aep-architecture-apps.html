@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260526">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260527">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -487,29 +487,28 @@
                   <p class="arch-tool-lead">Two kinds of lines: <strong>connectors</strong> between diagram boxes (click–drag–click), and <strong>Sources dividers</strong> in the Sources column (horizontal rules). Both are saved with your layout.</p>
                   <div class="arch-tool-group arch-tool-group--diagram-connectors">
                     <h3 class="arch-tool-group-heading">Diagram connectors</h3>
-                    <p class="arch-tool-micro">Click–drag–click between boxes; endpoints snap to edges. Turn on <strong>Draw connectors</strong>, then use the diagram.</p>
+                    <p class="arch-tool-micro">Turn on <strong>Draw connectors</strong>, then click–drag–click on the diagram. Pick a default stroke below.</p>
                     <label class="arch-drag-toggle arch-tool-toggle-line-draw" title="Click–drag–click on the canvas to add a connector between boxes.">
                       <input type="checkbox" id="archUserLineDrawToggle"/>
                       <span>Draw connectors</span>
                     </label>
-                    <label class="arch-hud-label arch-hud-label--block arch-tool-group--connector-preset">
-                      Default connector color
-                      <select id="archUserLineStrokePreset" title="Stroke for the next new connector" aria-label="Default stroke color for new connectors">
-                        <option value="#308fff">Ingress (blue)</option>
-                        <option value="#7d8a9e">Intra (gray)</option>
-                        <option value="#e34850">Egress (red)</option>
-                        <option value="#111827">Dark</option>
-                        <option value="#059669">Green</option>
-                        <option value="#d97706">Amber</option>
-                        <option value="#7c3aed">Violet</option>
-                      </select>
-                    </label>
+                    <div class="arch-line-format">
+                      <div class="arch-line-format-preview-wrap">
+                        <span class="arch-line-stroke-caption">Next connector preview</span>
+                        <div class="arch-line-format-preview" id="archUserLineNextStrokePreview" aria-hidden="true"></div>
+                      </div>
+                      <div class="arch-line-stroke-row">
+                        <span class="arch-line-stroke-caption">New connectors</span>
+                        <div id="archUserLineStrokePresetSwatches" class="arch-line-swatches"></div>
+                      </div>
+                    </div>
                   </div>
                   <div id="archUserLineProps" class="arch-user-line-props arch-tool-group--selected" hidden aria-label="Selected connector">
                     <h3 class="arch-tool-group-heading">Selected connector</h3>
-                    <label class="arch-hud-label arch-hud-label--block">Stroke color
-                      <select id="archUserLineColorSel" aria-label="Selected line color"></select>
-                    </label>
+                    <div class="arch-line-stroke-row">
+                      <span class="arch-line-stroke-caption">This line</span>
+                      <div id="archUserLineColorSwatches" class="arch-line-swatches"></div>
+                    </div>
                     <label class="arch-drag-toggle">
                       <input type="checkbox" id="archUserLineBidir"/>
                       <span>Bidirectional arrows</span>
@@ -583,6 +582,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260526"></script>
+  <script defer src="aep-architecture-apps.js?v=20260527"></script>
 </body>
 </html>

@@ -367,8 +367,78 @@
   flex-shrink: 0;
 }
 
-.arch-tool-group--connector-preset {
-  margin-top: 0.15rem;
+.arch-line-format {
+  margin-top: 0.45rem;
+}
+
+.arch-line-format-preview-wrap {
+  margin-bottom: 0.15rem;
+}
+
+.arch-line-format-preview {
+  height: 7px;
+  border-radius: 4px;
+  margin-top: 0.3rem;
+  background-color: #308fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.arch-line-stroke-caption {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-line-stroke-row {
+  margin-top: 0.45rem;
+}
+
+.arch-line-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.arch-line-swatch {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.14),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.arch-line-swatch:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.22),
+    0 2px 6px rgba(20, 115, 230, 0.18);
+}
+
+.arch-line-swatch[aria-checked='true'] {
+  border-color: #1473e6;
+  box-shadow:
+    0 0 0 1px #1473e6,
+    inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.arch-line-swatch:focus-visible {
+  outline: 2px solid #1473e6;
+  outline-offset: 2px;
+}
+
+.arch-user-line-props .arch-line-stroke-row {
+  margin-top: 0;
 }
 
 .arch-hud-label--block {
@@ -1136,6 +1206,29 @@ html[data-aep-theme='dark'] .arch-tool-toggle-line-draw {
   background: rgba(42, 48, 56, 0.92);
   border-color: rgba(255, 255, 255, 0.1);
   color: rgba(226, 232, 240, 0.88);
+}
+
+html[data-aep-theme='dark'] .arch-line-format-preview {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+html[data-aep-theme='dark'] .arch-line-swatch {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+html[data-aep-theme='dark'] .arch-line-swatch:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+html[data-aep-theme='dark'] .arch-line-swatch[aria-checked='true'] {
+  border-color: #38bdf8;
+  box-shadow:
+    0 0 0 1px #38bdf8,
+    inset 0 0 0 1px rgba(0, 0, 0, 0.25);
 }
 
 html[data-aep-theme='dark'] .arch-show-controls-fab {

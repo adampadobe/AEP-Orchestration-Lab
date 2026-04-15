@@ -1635,6 +1635,80 @@
     selectedId: null,
   };
 
+  /** Preset stroke colors for user-drawn connectors (visual swatches + tooltips). */
+  var ARCH_USER_LINE_PRESETS = [
+    { hex: '#308fff', label: 'Ingress — blue' },
+    { hex: '#7d8a9e', label: 'Intra — gray' },
+    { hex: '#e34850', label: 'Egress — red' },
+    { hex: '#111827', label: 'Dark' },
+    { hex: '#059669', label: 'Green' },
+    { hex: '#d97706', label: 'Amber' },
+    { hex: '#7c3aed', label: 'Violet' },
+  ];
+
+  function archLineStrokeNormalizeHex(h) {
+    if (!h || typeof h !== 'string') return '';
+    return h.trim().toLowerCase();
+  }
+
+  function archLineSwatchesApplySelection(container, hex) {
+    if (!container) return;
+    var norm = archLineStrokeNormalizeHex(hex);
+    var buttons = $all('.arch-line-swatch', container);
+    var any = false;
+    buttons.forEach(function (btn) {
+      var v = archLineStrokeNormalizeHex(btn.getAttribute('data-stroke') || '');
+      var on = norm && v === norm;
+      if (on) any = true;
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    if (!any && buttons.length) {
+      buttons.forEach(function (btn) {
+        btn.setAttribute('aria-checked', 'false');
+      });
+    }
+  }
+
+  function archLineSwatchesGetValue(container) {
+    if (!container) return ARCH_USER_LINE_PRESETS[0].hex;
+    var on = qs('.arch-line-swatch[aria-checked="true"]', container);
+    if (on) return on.getAttribute('data-stroke') || ARCH_USER_LINE_PRESETS[0].hex;
+    var first = qs('.arch-line-swatch', container);
+    return first ? first.getAttribute('data-stroke') || ARCH_USER_LINE_PRESETS[0].hex : ARCH_USER_LINE_PRESETS[0].hex;
+  }
+
+  function archLineNextStrokePreviewSet(hex) {
+    var el = qs('#archUserLineNextStrokePreview');
+    if (!el) return;
+    var h = hex || ARCH_USER_LINE_PRESETS[0].hex;
+    el.style.backgroundColor = h;
+  }
+
+  function archLineSwatchesMount(container, opts) {
+    opts = opts || {};
+    if (!container || container.getAttribute('data-arch-swatches') === '1') return;
+    container.setAttribute('data-arch-swatches', '1');
+    container.setAttribute('role', 'radiogroup');
+    if (opts.ariaLabel) container.setAttribute('aria-label', opts.ariaLabel);
+    ARCH_USER_LINE_PRESETS.forEach(function (p) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'arch-line-swatch';
+      b.setAttribute('data-stroke', p.hex);
+      b.setAttribute('title', p.label);
+      b.setAttribute('aria-label', p.label);
+      b.setAttribute('role', 'radio');
+      b.style.backgroundColor = p.hex;
+      b.addEventListener('click', function () {
+        archLineSwatchesApplySelection(container, p.hex);
+        if (opts.onPick) opts.onPick(p.hex);
+      });
+      container.appendChild(b);
+    });
+    var initial = opts.initialHex || ARCH_USER_LINE_PRESETS[0].hex;
+    archLineSwatchesApplySelection(container, initial);
+  }
+
   /** User-drawn rectangles (world SVG coords). */
   var archCustomBoxes = [];
   var archCustomBoxSelectedId = null;
@@ -3311,18 +3385,6 @@
     return null;
   }
 
-  function archUserLineStrokeOptionsHtml() {
-    return (
-      '<option value="#308fff">Ingress (blue)</option>' +
-      '<option value="#7d8a9e">Intra (gray)</option>' +
-      '<option value="#e34850">Egress (red)</option>' +
-      '<option value="#111827">Dark</option>' +
-      '<option value="#059669">Green</option>' +
-      '<option value="#d97706">Amber</option>' +
-      '<option value="#7c3aed">Violet</option>'
-    );
-  }
-
   function archUserLineSyncPropsHud() {
     var panel = qs('#archUserLineProps');
     var sel = archUserLineGetSelected();
@@ -3333,8 +3395,8 @@
     }
     panel.hidden = false;
     archEditorSetPanel('sources');
-    var colorSel = qs('#archUserLineColorSel');
-    if (colorSel) colorSel.value = sel.stroke || '#308fff';
+    var colorHost = qs('#archUserLineColorSwatches');
+    if (colorHost) archLineSwatchesApplySelection(colorHost, sel.stroke || '#308fff');
     var bi = qs('#archUserLineBidir');
     if (bi) bi.checked = !!sel.bidirectional;
   }
@@ -3376,8 +3438,8 @@
   }
 
   function archUserLineAdd(ep1, ep2) {
-    var preset = qs('#archUserLineStrokePreset');
-    var stroke = (preset && preset.value) || '#308fff';
+    var presetHost = qs('#archUserLineStrokePresetSwatches');
+    var stroke = archLineSwatchesGetValue(presetHost);
     var id = 'ul-' + Date.now();
     userLines.lines.push({
       id: id,
@@ -3606,11 +3668,26 @@
     archSourcesDividersPersist();
     archCustomBoxesPersist();
 
-    var colorSel = qs('#archUserLineColorSel');
-    if (colorSel && !colorSel.getAttribute('data-arch-ready')) {
-      colorSel.innerHTML = archUserLineStrokeOptionsHtml();
-      colorSel.setAttribute('data-arch-ready', '1');
-    }
+    var presetSw = qs('#archUserLineStrokePresetSwatches');
+    archLineSwatchesMount(presetSw, {
+      ariaLabel: 'Default stroke color for new connectors',
+      initialHex: ARCH_USER_LINE_PRESETS[0].hex,
+      onPick: archLineNextStrokePreviewSet,
+    });
+    if (presetSw) archLineNextStrokePreviewSet(archLineSwatchesGetValue(presetSw));
+    var selSw = qs('#archUserLineColorSwatches');
+    archLineSwatchesMount(selSw, {
+      ariaLabel: 'Stroke color for the selected connector',
+      initialHex: ARCH_USER_LINE_PRESETS[0].hex,
+      onPick: function (hex) {
+        var ln = archUserLineGetSelected();
+        if (!ln) return;
+        ln.stroke = hex;
+        archUserLineRender();
+        archUserLinePersist();
+        archUndoMaybePushSnapshot();
+      },
+    });
 
     var toggle = qs('#archDragToggle');
     var labelToggle = qs('#archLabelToggle');
@@ -3671,15 +3748,6 @@
         var f = masterImport.files && masterImport.files[0];
         if (f) archMasterImportFile(f);
         masterImport.value = '';
-      });
-    }
-    if (colorSel) {
-      colorSel.addEventListener('change', function () {
-        var ln = archUserLineGetSelected();
-        if (!ln) return;
-        ln.stroke = colorSel.value;
-        archUserLineRender();
-        archUserLinePersist();
       });
     }
     if (lineBi) {
