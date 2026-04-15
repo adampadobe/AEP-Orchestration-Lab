@@ -755,6 +755,16 @@
   outline-offset: 2px;
 }
 
+.arch-int-dot:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.arch-diagram-ui .dashboard-btn-outline:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 html[data-aep-theme='dark'] .arch-int-viewport {
   background: linear-gradient(180deg, #1e2228 0%, #252a32 100%);
   border-color: var(--dash-border);

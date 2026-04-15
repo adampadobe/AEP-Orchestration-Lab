@@ -38,6 +38,21 @@
       console.assert(rects[0].x === 10 && rects[1].x === 10, 'align left');
     }
 
+    var EM = global.AEPDiagram && global.AEPDiagram.editorModel;
+    if (EM) {
+      var v7n = { version: 7, nodes: { aep: { x: 1, y: 2 } } };
+      var migrated = EM.fromMasterPayload(v7n);
+      console.assert(migrated.version === EM.VERSION, 'editorModel fromMasterPayload migrates version');
+      var okVal = EM.validateDiagramModel(migrated);
+      console.assert(okVal.ok, 'editorModel validate migrated: ' + (okVal.errors && okVal.errors.join('; ')));
+      var badNodes = EM.validateDiagramModel({ version: EM.VERSION, nodes: { x: { x: NaN, y: 0 } } });
+      console.assert(!badNodes.ok, 'editorModel rejects bad node coords');
+      var round = EM.toSerializablePayload(migrated);
+      console.assert(round.version === EM.VERSION && round.nodes && round.nodes.aep.x === 1, 'editorModel roundtrip shape');
+    } else {
+      console.warn('[diagram.tests] AEPDiagram.editorModel missing');
+    }
+
     console.info('[diagram.tests] OK');
   }
 
