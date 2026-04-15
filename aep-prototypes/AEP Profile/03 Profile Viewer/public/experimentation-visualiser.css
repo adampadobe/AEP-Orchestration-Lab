@@ -346,12 +346,8 @@ html[data-aep-theme='dark'] .experimentation-visualiser-page .exp-flow-viz {
   border: 2px solid transparent;
   border-radius: 12px;
   transition: border-color 0.35s ease, box-shadow 0.35s ease;
-  /* Percent of frame; full white email card in emailsubjecta.png (header → CTA) */
-  left: 4%;
-  right: 4%;
-  top: 2.5%;
-  bottom: 3%;
-  height: auto;
+  /* Flush to rendered image bounds (Subject A shell); hugs full art including logo + CTA */
+  inset: 0;
 }
 
 .experimentation-visualiser-page .exp-email-feature-ring--winner {
@@ -380,7 +376,20 @@ html[data-aep-theme='dark'] .experimentation-visualiser-page .exp-flow-viz {
 .experimentation-visualiser-page .exp-email-preview-img-shell {
   position: relative;
   display: block;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Subject A: shrink-wrap so winner ring matches image edges (not full column width). */
+.experimentation-visualiser-page .exp-email-preview-img-shell .exp-email-preview-img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: min(520px, 62vh);
+  object-fit: contain;
+  object-position: top center;
 }
 
 .experimentation-visualiser-page .exp-email-preview-img {
