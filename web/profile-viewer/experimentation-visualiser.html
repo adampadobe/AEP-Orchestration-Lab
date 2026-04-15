@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="experimentation-visualiser.css?v=20260430">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-visualiser-page">
   <div class="dashboard-shell">
@@ -32,9 +33,150 @@
             <header class="dashboard-hero-header">
               <h2 id="expVisHeading" class="dashboard-hero-title">Experimentation visualiser (in development)</h2>
               <p class="dashboard-hero-subtitle">
-                Placeholder for experimentation flows and visualisations. Content will be added here.
+                Animated allocation view: profiles move from an audience into a multi-armed experiment and split across treatments. The leading treatment is highlighted when the run completes (sample numbers).
               </p>
             </header>
+          </div>
+        </section>
+
+        <section class="exp-flow-section" aria-labelledby="expFlowHeading">
+          <h3 id="expFlowHeading" class="visually-hidden">Experiment allocation flow</h3>
+          <p class="exp-flow-intro">
+            Illustrative flow inspired by a multi-armed web experiment. Profile dots travel along path thickness that reflects relative allocation; Treatment B receives the largest share in this example.
+          </p>
+          <div class="exp-flow-toolbar">
+            <button type="button" class="exp-flow-replay" id="expFlowReplay">Replay animation</button>
+            <span id="expFlowLive" class="visually-hidden" role="status" aria-live="polite"></span>
+          </div>
+
+          <div class="exp-flow-viz">
+            <svg class="exp-flow-svg" viewBox="0 0 920 340" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true">
+              <defs>
+                <linearGradient id="exp-thumb-a" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#2d2d35"/>
+                  <stop offset="100%" stop-color="#1a1a22"/>
+                </linearGradient>
+                <linearGradient id="exp-thumb-b" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#e85d04"/>
+                  <stop offset="50%" stop-color="#dc2f02"/>
+                  <stop offset="100%" stop-color="#9d0208"/>
+                </linearGradient>
+                <linearGradient id="exp-thumb-c" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#f8f9fa"/>
+                  <stop offset="100%" stop-color="#dee2e6"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Ribbon paths (stroke ≈ relative volume) -->
+              <path id="exp-path-main" d="M 172 166 C 236 166 258 154 322 154 L 486 154" fill="none" stroke="#95d5b2" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+              <path id="exp-path-a" d="M 486 154 C 548 154 588 72 644 60" fill="none" stroke="#95d5b2" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+              <path id="exp-path-b" d="M 486 154 L 644 162" fill="none" stroke="#52b788" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>
+              <path id="exp-path-c" d="M 486 154 C 548 154 588 248 644 264" fill="none" stroke="#95d5b2" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+
+              <!-- Count pills on paths -->
+              <rect x="292" y="118" width="88" height="26" rx="13" fill="#1b4332"/>
+              <text x="336" y="135" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">108,089</text>
+
+              <rect x="512" y="38" width="72" height="22" rx="11" fill="#1b4332"/>
+              <text x="548" y="53" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">10,618</text>
+
+              <rect x="520" y="118" width="72" height="22" rx="11" fill="#1b4332"/>
+              <text x="556" y="133" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">62,453</text>
+
+              <rect x="512" y="228" width="72" height="22" rx="11" fill="#1b4332"/>
+              <text x="548" y="243" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">35,018</text>
+
+              <!-- Audience -->
+              <rect x="28" y="112" width="144" height="96" rx="16" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
+              <text x="48" y="148" font-family="Inter, system-ui, sans-serif" font-size="22">👤</text>
+              <text x="78" y="148" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="700" fill="#1b1b1b">New customers</text>
+              <text x="78" y="168" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#6c757d">Audience</text>
+
+              <!-- Experiment -->
+              <rect x="314" y="88" width="176" height="124" rx="16" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
+              <text x="334" y="124" font-family="Inter, system-ui, sans-serif" font-size="22">⚗</text>
+              <text x="364" y="124" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="700" fill="#1b1b1b">Experiment</text>
+              <text x="364" y="144" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#6c757d">Multi-armed</text>
+              <line x1="330" y1="158" x2="474" y2="158" stroke="#e9ecef"/>
+              <text x="334" y="188" font-family="Inter, system-ui, sans-serif" font-size="11" fill="#495057">Action type:</text>
+              <text x="402" y="188" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600" fill="#1b1b1b">🌐 Web</text>
+
+              <!-- Treatment A -->
+              <g id="exp-treatment-a">
+                <rect class="exp-flow-treat-frame" x="638" y="12" width="214" height="96" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
+                <rect x="650" y="44" width="190" height="52" rx="6" fill="url(#exp-thumb-a)"/>
+                <text x="650" y="34" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment A — control</text>
+              </g>
+
+              <!-- Treatment B (winner) -->
+              <g id="exp-treatment-b">
+                <rect class="exp-flow-treat-frame" x="638" y="116" width="214" height="96" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
+                <text x="746" y="110" text-anchor="middle" class="exp-flow-winner-badge" font-family="Inter, system-ui, sans-serif" font-size="10" font-weight="700" fill="#b8860b">Leading allocation</text>
+                <rect x="650" y="148" width="190" height="52" rx="6" fill="url(#exp-thumb-b)"/>
+                <text x="650" y="138" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment B</text>
+              </g>
+
+              <!-- Treatment C -->
+              <g id="exp-treatment-c">
+                <rect class="exp-flow-treat-frame" x="638" y="220" width="214" height="96" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
+                <rect x="650" y="252" width="190" height="52" rx="6" fill="url(#exp-thumb-c)"/>
+                <text x="650" y="242" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment C</text>
+              </g>
+
+              <!-- Flowing profile dots (animateMotion) -->
+              <g fill="#1b4332" opacity="0.92">
+                <circle r="4.5">
+                  <animateMotion dur="2.8s" repeatCount="indefinite" rotate="auto" begin="0s">
+                    <mpath xlink:href="#exp-path-main" href="#exp-path-main"/>
+                  </animateMotion>
+                </circle>
+                <circle r="4.5">
+                  <animateMotion dur="2.8s" repeatCount="indefinite" rotate="auto" begin="0.35s">
+                    <mpath xlink:href="#exp-path-main" href="#exp-path-main"/>
+                  </animateMotion>
+                </circle>
+                <circle r="4.5">
+                  <animateMotion dur="2.8s" repeatCount="indefinite" rotate="auto" begin="0.7s">
+                    <mpath xlink:href="#exp-path-main" href="#exp-path-main"/>
+                  </animateMotion>
+                </circle>
+                <circle r="3.8" fill="#40916c">
+                  <animateMotion dur="3.2s" repeatCount="indefinite" rotate="auto" begin="2.6s">
+                    <mpath xlink:href="#exp-path-a" href="#exp-path-a"/>
+                  </animateMotion>
+                </circle>
+                <circle r="3.8" fill="#40916c">
+                  <animateMotion dur="3.2s" repeatCount="indefinite" rotate="auto" begin="2.95s">
+                    <mpath xlink:href="#exp-path-a" href="#exp-path-a"/>
+                  </animateMotion>
+                </circle>
+                <circle r="5" fill="#2d6a4f">
+                  <animateMotion dur="2.6s" repeatCount="indefinite" rotate="auto" begin="2.5s">
+                    <mpath xlink:href="#exp-path-b" href="#exp-path-b"/>
+                  </animateMotion>
+                </circle>
+                <circle r="5" fill="#2d6a4f">
+                  <animateMotion dur="2.6s" repeatCount="indefinite" rotate="auto" begin="2.85s">
+                    <mpath xlink:href="#exp-path-b" href="#exp-path-b"/>
+                  </animateMotion>
+                </circle>
+                <circle r="5" fill="#2d6a4f">
+                  <animateMotion dur="2.6s" repeatCount="indefinite" rotate="auto" begin="3.2s">
+                    <mpath xlink:href="#exp-path-b" href="#exp-path-b"/>
+                  </animateMotion>
+                </circle>
+                <circle r="3.8" fill="#40916c">
+                  <animateMotion dur="3.2s" repeatCount="indefinite" rotate="auto" begin="2.55s">
+                    <mpath xlink:href="#exp-path-c" href="#exp-path-c"/>
+                  </animateMotion>
+                </circle>
+                <circle r="3.8" fill="#40916c">
+                  <animateMotion dur="3.2s" repeatCount="indefinite" rotate="auto" begin="2.9s">
+                    <mpath xlink:href="#exp-path-c" href="#exp-path-c"/>
+                  </animateMotion>
+                </circle>
+              </g>
+            </svg>
           </div>
         </section>
       </main>
@@ -43,5 +185,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260419-demos-ctrl"></script>
+  <script defer src="experimentation-visualiser.js?v=20260430"></script>
 </body>
 </html>

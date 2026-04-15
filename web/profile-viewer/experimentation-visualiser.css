@@ -1,0 +1,103 @@
+/* Experimentation visualiser — animated allocation flow (scoped) */
+
+.experimentation-visualiser-page .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.experimentation-visualiser-page .exp-flow-section {
+  max-width: 1100px;
+  margin: 0 auto 3rem;
+  padding: 0 1.25rem 2rem;
+  box-sizing: border-box;
+}
+
+.experimentation-visualiser-page .exp-flow-intro {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--dash-muted, #6e6e6e);
+  margin: 0 0 1.25rem;
+  max-width: 52rem;
+}
+
+.experimentation-visualiser-page .exp-flow-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.experimentation-visualiser-page .exp-flow-replay {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border, #e0dde4);
+  background: var(--dash-surface, #fff);
+  color: var(--dash-text, #222);
+  cursor: pointer;
+}
+
+.experimentation-visualiser-page .exp-flow-replay:hover {
+  background: var(--dash-hover, #f4f4f5);
+}
+
+.experimentation-visualiser-page .exp-flow-replay:focus-visible {
+  outline: 2px solid var(--dash-blue, #1473e6);
+  outline-offset: 2px;
+}
+
+.experimentation-visualiser-page .exp-flow-viz {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--dash-border, #e8e8e8);
+  background: linear-gradient(180deg, #f3f4f2 0%, #eceeea 100%);
+  box-shadow: var(--dash-shadow, 0 1px 3px rgba(15, 15, 25, 0.06));
+  padding: 1.25rem 1rem 1.5rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.experimentation-visualiser-page .exp-flow-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(420px, 70vh);
+}
+
+/* Winner state applied via JS to #exp-treatment-b group */
+.experimentation-visualiser-page .exp-flow-treatment--winner .exp-flow-treat-frame {
+  stroke: #b8860b;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 14px rgba(184, 134, 11, 0.45));
+}
+
+.experimentation-visualiser-page .exp-flow-winner-badge {
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.experimentation-visualiser-page .exp-flow-treatment--winner .exp-flow-winner-badge {
+  opacity: 1;
+}
+
+html[data-aep-theme='dark'] .experimentation-visualiser-page .exp-flow-viz {
+  background: linear-gradient(180deg, #1a1d24 0%, #14161b 100%);
+  border-color: var(--dash-border, #2a3038);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .experimentation-visualiser-page .exp-flow-svg animateMotion,
+  .experimentation-visualiser-page .exp-flow-svg animate {
+    display: none;
+  }
+}
