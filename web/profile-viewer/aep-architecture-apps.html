@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260525">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260526">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -384,9 +384,9 @@
                   <span class="arch-editor-rail-label" aria-hidden="true">States</span>
                   <span class="visually-hidden">States — highlights per step</span>
                 </button>
-                <button type="button" class="arch-editor-rail-btn" data-arch-panel="sources" id="archEditorRailSources" title="Horizontal lines in the Sources column" aria-pressed="false">
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="sources" id="archEditorRailSources" title="Diagram connectors and Sources column divider lines" aria-pressed="false">
                   <span class="arch-editor-rail-label" aria-hidden="true">Lines</span>
-                  <span class="visually-hidden">Lines — Sources column dividers</span>
+                  <span class="visually-hidden">Lines — connectors and Sources dividers</span>
                 </button>
                 <button type="button" class="arch-editor-rail-btn" data-arch-panel="file" id="archEditorRailFile" title="Save, import, undo, reset" aria-pressed="false">
                   <span class="arch-editor-rail-label" aria-hidden="true">File</span>
@@ -396,7 +396,7 @@
               <div class="arch-editor-panel arch-int-hud" id="archEditorPanel">
                 <div class="arch-editor-section is-active" data-arch-panel="layout" id="archEditorSectionLayout" role="tabpanel" aria-labelledby="archEditorRailLayout">
                   <p class="arch-editor-panel-heading">Canvas &amp; drawing</p>
-                  <p class="arch-tool-lead">Turn on a <strong>tool mode</strong> below, then act on the diagram. <strong>Undo</strong> lives under <strong>File</strong>.</p>
+                  <p class="arch-tool-lead">Use <strong>tool modes</strong> below for boxes and labels. Open <strong>Lines</strong> to draw connectors between boxes or edit Sources dividers. <strong>Undo</strong> is under <strong>File</strong>.</p>
                   <div id="archEditSelectionPanel" class="arch-edit-selection-panel" hidden>
                     <p class="arch-edit-selection-heading">Selection</p>
                     <p id="archEditSelectionText" class="arch-edit-selection-text" aria-live="polite">—</p>
@@ -421,7 +421,7 @@
                   </div>
                   <div class="arch-tool-group">
                     <h3 class="arch-tool-group-heading">Tool modes <span class="arch-tool-group-hint">(one at a time is easiest)</span></h3>
-                    <div class="arch-tool-toggle-grid" aria-label="Drawing and editing modes">
+                    <div class="arch-tool-toggle-grid arch-tool-toggle-grid--canvas-modes" aria-label="Box and label editing modes">
                       <label class="arch-drag-toggle arch-tool-toggle-cell" title="Drag and resize the built-in Adobe tiles and custom boxes.">
                         <input type="checkbox" id="archDragToggle"/>
                         <span>Move &amp; resize</span>
@@ -430,46 +430,15 @@
                         <input type="checkbox" id="archLabelToggle"/>
                         <span>Labels</span>
                       </label>
-                      <label class="arch-drag-toggle arch-tool-toggle-cell" title="Click–drag–click to draw a new connector between boxes.">
-                        <input type="checkbox" id="archUserLineDrawToggle"/>
-                        <span>Draw connectors</span>
-                      </label>
                       <label class="arch-drag-toggle arch-tool-toggle-cell" title="Drag a rectangle on the canvas to add a blank custom box.">
                         <input type="checkbox" id="archCustomBoxDrawToggle"/>
                         <span>Draw custom box</span>
                       </label>
                     </div>
                   </div>
-                  <div class="arch-tool-group arch-tool-group--connectors">
-                    <h3 class="arch-tool-group-heading">Connectors</h3>
-                    <p class="arch-tool-micro">Default stroke for the <em>next</em> connector you draw. Endpoints snap to box edges when you click near them.</p>
-                    <label class="arch-hud-label arch-hud-label--block">
-                      Default connector color
-                      <select id="archUserLineStrokePreset" title="Stroke for the next new connector" aria-label="Default stroke color for new connectors">
-                        <option value="#308fff">Ingress (blue)</option>
-                        <option value="#7d8a9e">Intra (gray)</option>
-                        <option value="#e34850">Egress (red)</option>
-                        <option value="#111827">Dark</option>
-                        <option value="#059669">Green</option>
-                        <option value="#d97706">Amber</option>
-                        <option value="#7c3aed">Violet</option>
-                      </select>
-                    </label>
-                  </div>
                   <div class="arch-tool-group">
                     <h3 class="arch-tool-group-heading">Built-in Adobe boxes</h3>
-                    <p class="arch-tool-micro">The large gray architecture tiles (not custom boxes). Use <strong>Move &amp; resize</strong> and <strong>Labels</strong> above.</p>
-                  </div>
-                  <div id="archUserLineProps" class="arch-user-line-props arch-tool-group--selected" hidden aria-label="Selected connector">
-                    <h3 class="arch-tool-group-heading">Selected connector</h3>
-                    <label class="arch-hud-label arch-hud-label--block">Stroke color
-                      <select id="archUserLineColorSel" aria-label="Selected line color"></select>
-                    </label>
-                    <label class="arch-drag-toggle">
-                      <input type="checkbox" id="archUserLineBidir"/>
-                      <span>Bidirectional arrows</span>
-                    </label>
-                    <button type="button" class="dashboard-btn-outline" id="archUserLineDelete" title="Remove this connector">Delete connector</button>
+                    <p class="arch-tool-micro">The large gray architecture tiles (not custom boxes). Use <strong>Move &amp; resize</strong> and <strong>Labels</strong> above. Connectors live under <strong>Lines</strong>.</p>
                   </div>
                   <div id="archCustomBoxProps" class="arch-user-line-props arch-custom-box-props arch-tool-group--selected" hidden aria-label="Selected custom box">
                     <h3 class="arch-tool-group-heading">Selected custom box</h3>
@@ -514,8 +483,43 @@
                   </details>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
-                  <p class="arch-editor-panel-heading">Sources dividers</p>
-                  <p class="arch-tool-lead">Horizontal lines between the SDK block and category rows in the Sources column.</p>
+                  <p class="arch-editor-panel-heading">Lines</p>
+                  <p class="arch-tool-lead">Two kinds of lines: <strong>connectors</strong> between diagram boxes (click–drag–click), and <strong>Sources dividers</strong> in the Sources column (horizontal rules). Both are saved with your layout.</p>
+                  <div class="arch-tool-group arch-tool-group--diagram-connectors">
+                    <h3 class="arch-tool-group-heading">Diagram connectors</h3>
+                    <p class="arch-tool-micro">Click–drag–click between boxes; endpoints snap to edges. Turn on <strong>Draw connectors</strong>, then use the diagram.</p>
+                    <label class="arch-drag-toggle arch-tool-toggle-line-draw" title="Click–drag–click on the canvas to add a connector between boxes.">
+                      <input type="checkbox" id="archUserLineDrawToggle"/>
+                      <span>Draw connectors</span>
+                    </label>
+                    <label class="arch-hud-label arch-hud-label--block arch-tool-group--connector-preset">
+                      Default connector color
+                      <select id="archUserLineStrokePreset" title="Stroke for the next new connector" aria-label="Default stroke color for new connectors">
+                        <option value="#308fff">Ingress (blue)</option>
+                        <option value="#7d8a9e">Intra (gray)</option>
+                        <option value="#e34850">Egress (red)</option>
+                        <option value="#111827">Dark</option>
+                        <option value="#059669">Green</option>
+                        <option value="#d97706">Amber</option>
+                        <option value="#7c3aed">Violet</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div id="archUserLineProps" class="arch-user-line-props arch-tool-group--selected" hidden aria-label="Selected connector">
+                    <h3 class="arch-tool-group-heading">Selected connector</h3>
+                    <label class="arch-hud-label arch-hud-label--block">Stroke color
+                      <select id="archUserLineColorSel" aria-label="Selected line color"></select>
+                    </label>
+                    <label class="arch-drag-toggle">
+                      <input type="checkbox" id="archUserLineBidir"/>
+                      <span>Bidirectional arrows</span>
+                    </label>
+                    <button type="button" class="dashboard-btn-outline" id="archUserLineDelete" title="Remove this connector">Delete connector</button>
+                  </div>
+                  <div class="arch-tool-group arch-tool-group--sources-dividers">
+                    <h3 class="arch-tool-group-heading">Sources column dividers</h3>
+                    <p class="arch-tool-micro">Horizontal rules between the SDK block and the category rows — separate from diagram connectors.</p>
+                  </div>
                   <details class="arch-sources-dividers-wrap" id="archSourcesDividersWrap">
                     <summary class="arch-highlight-picker-summary">Divider line list &amp; numbers</summary>
                     <p class="arch-highlight-picker-help">
@@ -579,6 +583,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260525"></script>
+  <script defer src="aep-architecture-apps.js?v=20260526"></script>
 </body>
 </html>

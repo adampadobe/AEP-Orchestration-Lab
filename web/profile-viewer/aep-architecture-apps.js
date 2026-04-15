@@ -517,6 +517,20 @@
     return Array.prototype.slice.call((root || document).querySelectorAll(sel));
   }
 
+  /** Switch diagram editor rail tab (layout | highlights | sources | file). */
+  function archEditorSetPanel(panelId) {
+    $all('.arch-editor-section').forEach(function (sec) {
+      var match = sec.getAttribute('data-arch-panel') === panelId;
+      sec.hidden = !match;
+      sec.classList.toggle('is-active', match);
+    });
+    $all('.arch-editor-rail-btn').forEach(function (btn) {
+      var match = btn.getAttribute('data-arch-panel') === panelId;
+      btn.classList.toggle('is-active', match);
+      btn.setAttribute('aria-pressed', match ? 'true' : 'false');
+    });
+  }
+
   function archHighlightsForState(stateIndex) {
     var o = archStateHighlightOverrides[stateIndex];
     if (o === undefined) o = archStateHighlightOverrides[String(stateIndex)];
@@ -794,19 +808,6 @@
 
     var LS_ARCH_EDIT = 'aepArchDiagramEditMode';
     var LS_ARCH_DOCK = 'aepArchEditorDockRight';
-
-    function archEditorSetPanel(panelId) {
-      $all('.arch-editor-section').forEach(function (sec) {
-        var match = sec.getAttribute('data-arch-panel') === panelId;
-        sec.hidden = !match;
-        sec.classList.toggle('is-active', match);
-      });
-      $all('.arch-editor-rail-btn').forEach(function (btn) {
-        var match = btn.getAttribute('data-arch-panel') === panelId;
-        btn.classList.toggle('is-active', match);
-        btn.setAttribute('aria-pressed', match ? 'true' : 'false');
-      });
-    }
 
     function archEditorApplyEditMode() {
       var on = false;
@@ -3331,6 +3332,7 @@
       return;
     }
     panel.hidden = false;
+    archEditorSetPanel('sources');
     var colorSel = qs('#archUserLineColorSel');
     if (colorSel) colorSel.value = sel.stroke || '#308fff';
     var bi = qs('#archUserLineBidir');
@@ -3454,6 +3456,7 @@
     if (archViewport) archViewport.classList.toggle('arch-user-line-draw', userLines.drawMode);
     var tgl = qs('#archUserLineDrawToggle');
     if (tgl) tgl.checked = userLines.drawMode;
+    if (userLines.drawMode) archEditorSetPanel('sources');
     if (!userLines.drawMode) {
       archUserLineClearPending();
       archUserLineRemoveDrawListeners();
