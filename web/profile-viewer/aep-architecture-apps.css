@@ -1506,6 +1506,15 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   cursor: move;
 }
 
+.arch-user-line-handles-layer .arch-user-line-handle.is-active {
+  stroke: #0f5cbf;
+  stroke-width: 2.25;
+}
+
+html[data-aep-theme='dark'] .arch-user-line-handles-layer .arch-user-line-handle.is-active {
+  stroke: #bfdbfe;
+}
+
 html[data-aep-theme='dark'] .arch-user-line-handles-layer .arch-user-line-handle {
   fill: rgba(30, 41, 59, 0.98);
   stroke: #93c5fd;

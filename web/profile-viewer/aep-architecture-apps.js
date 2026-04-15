@@ -526,6 +526,7 @@
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
       userLines.selectedId = null;
+      userLines.selectedHandleIdx = null;
       archSelection.clear();
       archCustomBoxesRender();
       archUserLineRender();
@@ -551,6 +552,7 @@
       var lid = ul.getAttribute('data-user-line-id');
       if (lid) {
         userLines.selectedId = lid;
+        userLines.selectedHandleIdx = null;
         archCustomBoxSelectedId = null;
         archCustomBoxLabelActiveId = null;
         if (archSelection) archSelection.clear();
@@ -570,6 +572,7 @@
       var rawId = g.id.replace(/^node-cbox-/, '');
       if (!rawId) return;
       userLines.selectedId = null;
+      userLines.selectedHandleIdx = null;
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = null;
       if (archSelection) archSelection.clear();
@@ -584,6 +587,7 @@
     var key = g.id.slice(5);
     if (!NODE_LAYOUT[key]) return;
     userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
     if (e.shiftKey && archSelection) archSelection.toggle(g.id, true);
@@ -593,6 +597,32 @@
     archUserLineSyncPropsHud();
     archSelectionRefreshDom();
     if (liveRegion) liveRegion.textContent = 'Tile selected — drag to move, corners to resize.';
+  }
+
+  /** Double-click on a selected connector stroke inserts a bend vertex on the nearest segment. */
+  function archUserLineOnConnectorDblClick(e) {
+    if (!archIsEditMode()) return;
+    if (userLines.drawMode || customBoxDrawMode) return;
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
+    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
+    if (e.target && e.target.closest && e.target.closest('.arch-user-line-handle')) return;
+    var hit = e.target.closest && e.target.closest('.arch-user-line-hit, .arch-user-line');
+    if (!hit) return;
+    var lid = hit.getAttribute('data-user-line-id');
+    if (!lid || lid !== userLines.selectedId) return;
+    var ln = archUserLineFindById(lid);
+    if (!ln || !archUserLineIsConnector(ln) || !archDrag.svg) return;
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var ni = archUserLineInsertBendNear(ln, p.x, p.y);
+    if (ni < 0) return;
+    userLines.selectedHandleIdx = ni;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    archUserLinePersist();
+    archUndoMaybePushSnapshot();
+    archUserLineRender();
+    if (liveRegion) liveRegion.textContent = 'Added bend point — drag handles to reshape.';
   }
 
   function qs(sel, root) {
@@ -1854,12 +1884,14 @@
     drawMode: false,
     pendingStart: null,
     selectedId: null,
+    /** Selected vertex index on the active connector (0 .. n-1), or null. */
+    selectedHandleIdx: null,
   };
 
-  /** Dragging connector bend or endpoints (Edit mode). */
+  /** Dragging connector vertex handles (Edit mode). */
   var archUserLineEditDrag = {
     active: false,
-    kind: '',
+    handleIndex: -1,
     lineId: '',
     pointerId: null,
     el: null,
@@ -2311,6 +2343,7 @@
       bidirectional: false,
     });
     userLines.selectedId = id;
+    userLines.selectedHandleIdx = null;
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
     archCustomBoxesRender();
@@ -2604,6 +2637,7 @@
     archCustomBoxSelectedId = nb.id;
     archCustomBoxLabelActiveId = null;
     userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
     archUserLineRender();
     archUserLineSyncPropsHud();
     if (archSelection) {
@@ -2676,7 +2710,10 @@
   /** Min half-width (px) for invisible stroke hit-testing along connector paths. */
   var USER_LINE_HIT_STROKE_MIN = 12;
 
-  /** Bend segment snaps to 45° by default; Shift disables. Alt snaps the other segment (end → bend). */
+  /** Max distance (SVG user units) from click to segment for double-click insert. */
+  var USER_LINE_INSERT_MAX_DIST = 14;
+
+  /** Interior bend drag: 45° snap from previous vertex when Shift held; Alt uses next vertex as origin. */
   var ARCH_BEND_SNAP_RAD = Math.PI / 4;
 
   function archUserLineClosestPointOnSeg(px, py, x1, y1, x2, y2) {
@@ -2699,6 +2736,14 @@
     return !!(ln && ln.from && ln.to);
   }
 
+  /** Normalize a stored point to `{ x, y }` (connector / paste). */
+  function archUserLinePointXY(pt) {
+    if (!pt) return { x: 0, y: 0 };
+    if (typeof pt.x === 'number' && typeof pt.y === 'number') return { x: pt.x, y: pt.y };
+    if (Array.isArray(pt) && pt.length >= 2) return { x: Number(pt[0]) || 0, y: Number(pt[1]) || 0 };
+    return { x: 0, y: 0 };
+  }
+
   /**
    * Snap (x,y) so the ray from (ox,oy) keeps length r but angle snaps to stepRad multiples.
    * When disableSnap, returns the raw target.
@@ -2714,22 +2759,39 @@
     return { x: ox + r * Math.cos(snapped), y: oy + r * Math.sin(snapped) };
   }
 
-  /** World-space [start, bend, end] for anchored connectors (bend is stored on `ln.bend`). */
-  function archUserLineConnectorWorldPoints(ln) {
-    if (!archUserLineIsConnector(ln)) return null;
-    var p1 = archUserLinePointFromEndpoint(ln.from);
-    var p2 = archUserLinePointFromEndpoint(ln.to);
-    if (!p1 || !p2) return null;
-    var bx;
-    var by;
-    if (ln.bend && typeof ln.bend.x === 'number' && typeof ln.bend.y === 'number') {
-      bx = ln.bend.x;
-      by = ln.bend.y;
-    } else {
-      bx = (p1.x + p2.x) / 2;
-      by = (p1.y + p2.y) / 2;
+  /** Keep first/last polyline vertices aligned with anchored endpoints (world space). */
+  function archUserLineConnectorSyncEndpoints(ln) {
+    if (!archUserLineIsConnector(ln) || !ln.points || ln.points.length < 2) return;
+    var p0 = archUserLinePointFromEndpoint(ln.from);
+    var pN = archUserLinePointFromEndpoint(ln.to);
+    if (!p0 || !pN) return;
+    ln.points[0] = { x: p0.x, y: p0.y };
+    ln.points[ln.points.length - 1] = { x: pN.x, y: pN.y };
+  }
+
+  /** Double-click: insert a vertex on the nearest segment; returns new index or -1. */
+  function archUserLineInsertBendNear(ln, wx, wy) {
+    if (!archUserLineIsConnector(ln)) return -1;
+    archUserLineConnectorSyncEndpoints(ln);
+    var pts = ln.points;
+    if (!pts || pts.length < 2) return -1;
+    var bestI = -1;
+    var bestD = Infinity;
+    var bestProj = null;
+    for (var i = 0; i < pts.length - 1; i++) {
+      var a = archUserLinePointXY(pts[i]);
+      var b = archUserLinePointXY(pts[i + 1]);
+      var c = archUserLineClosestPointOnSeg(wx, wy, a.x, a.y, b.x, b.y);
+      if (c.dist < bestD) {
+        bestD = c.dist;
+        bestI = i;
+        bestProj = { x: c.x, y: c.y };
+      }
     }
-    return [p1, { x: bx, y: by }, p2];
+    if (bestI < 0 || !bestProj || bestD > USER_LINE_INSERT_MAX_DIST) return -1;
+    if (bestD < 2) return -1;
+    pts.splice(bestI + 1, 0, { x: bestProj.x, y: bestProj.y });
+    return bestI + 1;
   }
 
   function archUserLinePathDFromLine(ln) {
@@ -2742,24 +2804,16 @@
       return { d: d, kind: 'freehand' };
     }
     if (archUserLineIsConnector(ln)) {
-      var tri = archUserLineConnectorWorldPoints(ln);
-      if (!tri) return null;
-      return {
-        d:
-          'M ' +
-          tri[0].x +
-          ' ' +
-          tri[0].y +
-          ' L ' +
-          tri[1].x +
-          ' ' +
-          tri[1].y +
-          ' L ' +
-          tri[2].x +
-          ' ' +
-          tri[2].y,
-        kind: 'connector',
-      };
+      archUserLineConnectorSyncEndpoints(ln);
+      var pp = ln.points;
+      if (!pp || pp.length < 2) return null;
+      var p0 = archUserLinePointXY(pp[0]);
+      var d2 = 'M ' + p0.x + ' ' + p0.y;
+      for (var pj = 1; pj < pp.length; pj++) {
+        var pjxy = archUserLinePointXY(pp[pj]);
+        d2 += ' L ' + pjxy.x + ' ' + pjxy.y;
+      }
+      return { d: d2, kind: 'connector' };
     }
     return null;
   }
@@ -2934,6 +2988,7 @@
     if (ln.from && ln.to) {
       var c = Object.assign({}, ln);
       delete c.d;
+      delete c.bend;
       if (!c.dashStyle) c.dashStyle = 'solid';
       if (c.lineArrows !== 'none' && c.lineArrows !== 'end' && c.lineArrows !== 'both') {
         c.lineArrows = c.bidirectional ? 'both' : 'end';
@@ -2941,12 +2996,22 @@
       c.bidirectional = c.lineArrows === 'both';
       var a = archUserLinePointFromEndpoint(c.from);
       var b = archUserLinePointFromEndpoint(c.to);
+      if (c.points && Array.isArray(c.points) && c.points.length >= 2) {
+        c.points = c.points.map(archUserLinePointXY);
+        archUserLineConnectorSyncEndpoints(c);
+        return c;
+      }
       if (a && b) {
-        if (!c.bend || typeof c.bend.x !== 'number' || typeof c.bend.y !== 'number') {
-          c.bend = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        if (ln.bend && typeof ln.bend.x === 'number' && typeof ln.bend.y === 'number') {
+          c.points = [{ x: a.x, y: a.y }, { x: ln.bend.x, y: ln.bend.y }, { x: b.x, y: b.y }];
+        } else {
+          c.points = [{ x: a.x, y: a.y }, { x: b.x, y: b.y }];
         }
-      } else if (!c.bend || typeof c.bend.x !== 'number') {
-        c.bend = { x: 0, y: 0 };
+      } else {
+        c.points = [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ];
       }
       return c;
     }
@@ -2966,15 +3031,17 @@
       out.lineArrows = out.bidirectional ? 'both' : 'end';
     }
     out.bidirectional = out.lineArrows === 'both';
+    delete out.bend;
     if (out.from && out.to) {
       var ax = archUserLinePointFromEndpoint(out.from);
       var bx = archUserLinePointFromEndpoint(out.to);
       if (ax && bx) {
-        if (!out.bend || typeof out.bend.x !== 'number' || typeof out.bend.y !== 'number') {
-          out.bend = { x: (ax.x + bx.x) / 2, y: (ax.y + bx.y) / 2 };
-        }
-      } else if (!out.bend || typeof out.bend.x !== 'number') {
-        out.bend = { x: 0, y: 0 };
+        out.points = [{ x: ax.x, y: ax.y }, { x: bx.x, y: bx.y }];
+      } else {
+        out.points = [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ];
       }
     }
     return out;
@@ -3943,6 +4010,7 @@
     archCustomBoxSelectedId = nb.id;
     archCustomBoxLabelActiveId = null;
     userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
     archUserLineRender();
     archUserLineSyncPropsHud();
     var domId = 'node-cbox-' + nb.id;
@@ -4198,6 +4266,7 @@
     archCustomBoxSelectedId = nb.id;
     archCustomBoxLabelActiveId = null;
     userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
     archUserLineRender();
     archUserLineSyncPropsHud();
     if (archSelection) {
@@ -4279,6 +4348,7 @@
 
     if (!archDrag.enabled) {
       userLines.selectedId = null;
+      userLines.selectedHandleIdx = null;
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = labelHit ? rawId : null;
       archUserLineRender();
@@ -4290,6 +4360,7 @@
 
     if (labelHit) {
       userLines.selectedId = null;
+      userLines.selectedHandleIdx = null;
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = rawId;
       archUserLineRender();
@@ -4301,6 +4372,7 @@
     }
 
     userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
     archCustomBoxSelectedId = rawId;
     archCustomBoxLabelActiveId = null;
     archUserLineRender();
@@ -4508,21 +4580,30 @@
     if (!archIsEditMode()) return;
     var ln = archUserLineGetSelected();
     if (!ln || !archUserLineIsConnector(ln)) return;
-    var tri = archUserLineConnectorWorldPoints(ln);
-    if (!tri) return;
+    archUserLineConnectorSyncEndpoints(ln);
+    var pp = ln.points;
+    if (!pp || pp.length < 2) return;
     var lid = ln.id;
-    var pts = [
-      ['from', tri[0].x, tri[0].y],
-      ['bend', tri[1].x, tri[1].y],
-      ['to', tri[2].x, tri[2].y],
-    ];
-    for (var hi = 0; hi < pts.length; hi++) {
+    var n = pp.length;
+    if (userLines.selectedHandleIdx != null && (userLines.selectedHandleIdx < 0 || userLines.selectedHandleIdx >= n)) {
+      userLines.selectedHandleIdx = null;
+    }
+    var selIdx = userLines.selectedHandleIdx;
+    for (var hi = 0; hi < n; hi++) {
+      var xy = archUserLinePointXY(pp[hi]);
+      var role = hi === 0 ? 'from' : hi === n - 1 ? 'to' : 'bend';
       var c = document.createElementNS(SVG_NS, 'circle');
-      c.setAttribute('cx', String(pts[hi][1]));
-      c.setAttribute('cy', String(pts[hi][2]));
+      c.setAttribute('cx', String(xy.x));
+      c.setAttribute('cy', String(xy.y));
       c.setAttribute('r', '6');
-      c.setAttribute('class', 'arch-user-line-handle arch-user-line-handle--' + pts[hi][0]);
-      c.setAttribute('data-arch-handle', pts[hi][0]);
+      c.setAttribute(
+        'class',
+        'arch-user-line-handle arch-user-line-handle--' +
+          role +
+          (selIdx != null && selIdx === hi ? ' is-active' : '')
+      );
+      c.setAttribute('data-arch-handle', role);
+      c.setAttribute('data-handle-index', String(hi));
       c.setAttribute('data-user-line-id', lid);
       c.setAttribute('pointer-events', 'all');
       hg.appendChild(c);
@@ -4597,27 +4678,26 @@
     e.preventDefault();
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
     var tgt = document.elementFromPoint(e.clientX, e.clientY);
-    var kind = archUserLineEditDrag.kind;
-    if (kind === 'from') {
+    var idx = archUserLineEditDrag.handleIndex;
+    if (idx < 0) return;
+    archUserLineConnectorSyncEndpoints(ln);
+    var pts = ln.points;
+    if (!pts || pts.length < 2) return;
+    var last = pts.length - 1;
+    if (idx === 0) {
       ln.from = archUserLineSnapEndpoint(p.x, p.y, tgt);
-    } else if (kind === 'to') {
+      archUserLineConnectorSyncEndpoints(ln);
+    } else if (idx === last) {
       ln.to = archUserLineSnapEndpoint(p.x, p.y, tgt);
-    } else if (kind === 'bend') {
-      var tri = archUserLineConnectorWorldPoints(ln);
-      if (!tri) return;
-      var ox = tri[0].x;
-      var oy = tri[0].y;
-      var ex = tri[2].x;
-      var ey = tri[2].y;
-      var disableSnap = !!e.shiftKey;
-      var useEndOrigin = !!e.altKey;
-      var nb;
-      if (useEndOrigin) {
-        nb = archSnapRadialFromOrigin(ex, ey, p.x, p.y, ARCH_BEND_SNAP_RAD, disableSnap);
-      } else {
-        nb = archSnapRadialFromOrigin(ox, oy, p.x, p.y, ARCH_BEND_SNAP_RAD, disableSnap);
-      }
-      ln.bend = { x: nb.x, y: nb.y };
+      archUserLineConnectorSyncEndpoints(ln);
+    } else {
+      var prev = archUserLinePointXY(pts[idx - 1]);
+      var next = archUserLinePointXY(pts[idx + 1]);
+      var useNext = !!e.altKey;
+      var origin = useNext ? next : prev;
+      var disableSnap = !e.shiftKey;
+      var nb = archSnapRadialFromOrigin(origin.x, origin.y, p.x, p.y, ARCH_BEND_SNAP_RAD, disableSnap);
+      pts[idx] = { x: nb.x, y: nb.y };
     }
     archUserLineRender();
   }
@@ -4632,7 +4712,7 @@
     var pid = archUserLineEditDrag.pointerId;
     archUserLineEditDrag.el = null;
     archUserLineEditDrag.pointerId = null;
-    archUserLineEditDrag.kind = '';
+    archUserLineEditDrag.handleIndex = -1;
     archUserLineEditDrag.lineId = '';
     if (el && pid != null && el.releasePointerCapture) {
       try {
@@ -4649,15 +4729,18 @@
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     var t = e.target;
     if (!t || !t.classList || !t.classList.contains('arch-user-line-handle')) return;
-    var kind = t.getAttribute('data-arch-handle');
+    var hix = t.getAttribute('data-handle-index');
     var lid = t.getAttribute('data-user-line-id');
-    if (!kind || !lid) return;
+    if (hix == null || !lid) return;
+    var hi = parseInt(hix, 10);
+    if (isNaN(hi)) return;
     var ln = archUserLineFindById(lid);
     if (!ln || !archUserLineIsConnector(ln)) return;
     e.preventDefault();
     e.stopImmediatePropagation();
+    userLines.selectedHandleIdx = hi;
     archUserLineEditDrag.active = true;
-    archUserLineEditDrag.kind = kind;
+    archUserLineEditDrag.handleIndex = hi;
     archUserLineEditDrag.lineId = lid;
     archUserLineEditDrag.pointerId = e.pointerId;
     archUserLineEditDrag.el = t;
@@ -4797,6 +4880,7 @@
       archCustomBoxSelectedId = nb.id;
       archCustomBoxLabelActiveId = null;
       userLines.selectedId = null;
+      userLines.selectedHandleIdx = null;
       if (archSelection) archSelection.clear();
       var domId = 'node-cbox-' + nb.id;
       var curH = archHighlightsForState(idx).slice();
@@ -4821,7 +4905,7 @@
       var dx = 20;
       var dy = 20;
       var id = 'ul-' + Date.now();
-      if (L.points && Array.isArray(L.points) && L.points.length >= 2) {
+      if (L.points && Array.isArray(L.points) && L.points.length >= 2 && !L.from && !L.to) {
         var pts = L.points.map(function (pt) {
           return [(Number(pt && pt[0]) || 0) + dx, (Number(pt && pt[1]) || 0) + dy];
         });
@@ -4844,17 +4928,31 @@
         var tEp = archUserLineEndpointPasteOffset(L.to, dx, dy);
         var pA = archUserLinePointFromEndpoint(fEp);
         var pB = archUserLinePointFromEndpoint(tEp);
-        var bendPaste =
-          L.bend && typeof L.bend.x === 'number' && typeof L.bend.y === 'number'
-            ? { x: L.bend.x + dx, y: L.bend.y + dy }
-            : pA && pB
-              ? { x: (pA.x + pB.x) / 2, y: (pA.y + pB.y) / 2 }
-              : { x: 0, y: 0 };
+        var ptsPaste = null;
+        if (L.points && Array.isArray(L.points) && L.points.length >= 2 && L.from && L.to) {
+          ptsPaste = L.points.map(function (pt) {
+            var o = archUserLinePointXY(pt);
+            return { x: o.x + dx, y: o.y + dy };
+          });
+        } else if (L.bend && typeof L.bend.x === 'number' && typeof L.bend.y === 'number' && pA && pB) {
+          ptsPaste = [
+            { x: pA.x, y: pA.y },
+            { x: L.bend.x + dx, y: L.bend.y + dy },
+            { x: pB.x, y: pB.y },
+          ];
+        } else if (pA && pB) {
+          ptsPaste = [{ x: pA.x, y: pA.y }, { x: pB.x, y: pB.y }];
+        } else {
+          ptsPaste = [
+            { x: 0, y: 0 },
+            { x: 0, y: 0 },
+          ];
+        }
         userLines.lines.push({
           id: id,
           from: fEp,
           to: tEp,
-          bend: bendPaste,
+          points: ptsPaste,
           stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
           strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2,
           lineArrows: lar,
@@ -4863,6 +4961,7 @@
         });
       }
       userLines.selectedId = id;
+      userLines.selectedHandleIdx = null;
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
       if (archSelection) archSelection.clear();
@@ -4886,15 +4985,18 @@
     var id = 'ul-' + Date.now();
     var wp1 = archUserLinePointFromEndpoint(ep1);
     var wp2 = archUserLinePointFromEndpoint(ep2);
-    var bend =
+    var ptsNew =
       wp1 && wp2
-        ? { x: (wp1.x + wp2.x) / 2, y: (wp1.y + wp2.y) / 2 }
-        : { x: 0, y: 0 };
+        ? [{ x: wp1.x, y: wp1.y }, { x: wp2.x, y: wp2.y }]
+        : [
+            { x: 0, y: 0 },
+            { x: 0, y: 0 },
+          ];
     userLines.lines.push({
       id: id,
       from: ep1,
       to: ep2,
-      bend: bend,
+      points: ptsNew,
       stroke: archLineFloatGetHex(),
       strokeWidth: archLineFloatGetStrokeW(),
       lineArrows: lineArrows,
@@ -4902,6 +5004,7 @@
       dashStyle: dashStyle,
     });
     userLines.selectedId = id;
+    userLines.selectedHandleIdx = null;
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
     archCustomBoxesRender();
@@ -4917,6 +5020,7 @@
       return x.id !== userLines.selectedId;
     });
     userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
     archUserLineRender();
     archUserLinePersist();
     archUserLineSyncPropsHud();
@@ -4932,6 +5036,7 @@
       e.target.closest('.arch-user-line, .arch-user-line-hit');
     if (!userLines.drawMode) {
       if (lineHit) {
+        userLines.selectedHandleIdx = null;
         userLines.selectedId = lineHit.getAttribute('data-user-line-id');
         archCustomBoxSelectedId = null;
         archCustomBoxLabelActiveId = null;
@@ -4945,6 +5050,7 @@
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
     if (lineHit) {
+      userLines.selectedHandleIdx = null;
       userLines.selectedId = lineHit.getAttribute('data-user-line-id');
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
@@ -5031,6 +5137,28 @@
       return;
     }
     if (userLines.selectedId) {
+      var lnDel = archUserLineGetSelected();
+      if (
+        lnDel &&
+        archUserLineIsConnector(lnDel) &&
+        lnDel.points &&
+        lnDel.points.length > 2 &&
+        userLines.selectedHandleIdx != null
+      ) {
+        var k = userLines.selectedHandleIdx;
+        if (k > 0 && k < lnDel.points.length - 1) {
+          e.preventDefault();
+          lnDel.points.splice(k, 1);
+          userLines.selectedHandleIdx = null;
+          archUserLineConnectorSyncEndpoints(lnDel);
+          archUserLineRender();
+          archUserLinePersist();
+          archUserLineSyncPropsHud();
+          archUndoMaybePushSnapshot();
+          if (liveRegion) liveRegion.textContent = 'Removed bend point from connector.';
+          return;
+        }
+      }
       e.preventDefault();
       archUserLineDeleteSelected();
     }
@@ -5315,6 +5443,7 @@
     archDrag.svg.addEventListener('pointerdown', archSourcesSepPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
+    archDrag.svg.addEventListener('dblclick', archUserLineOnConnectorDblClick, true);
     archDrag.svg.addEventListener('dblclick', archDiagramDblClickSelect, true);
     archDrag.svg.addEventListener('dblclick', archLabelDblClick, true);
     archDrag.svg.addEventListener('pointerdown', archResizePointerDown, false);
