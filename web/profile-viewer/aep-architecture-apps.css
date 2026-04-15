@@ -405,6 +405,10 @@
   padding: 0.2rem 0.45rem !important;
 }
 
+.arch-sources-pointer-toggle {
+  user-select: none;
+}
+
 .arch-highlight-picker-summary {
   cursor: pointer;
   font-size: 0.72rem;
@@ -839,6 +843,20 @@ html[data-aep-theme='dark'] .arch-show-controls-fab {
 
 .arch-sources-sep {
   vector-effect: non-scaling-stroke;
+}
+
+.arch-sources-sep-hit {
+  vector-effect: non-scaling-stroke;
+  cursor: ns-resize;
+}
+
+.arch-sources-sep-handle {
+  cursor: ew-resize;
+  pointer-events: all;
+}
+
+.arch-int-viewport.arch-sources-sep-dragging {
+  cursor: grabbing !important;
 }
 
 .arch-src-lbl {

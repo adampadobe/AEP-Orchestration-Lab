@@ -1354,9 +1354,13 @@
   var LS_MASTER = 'aepArchMasterLayout';
   var LS_USER_LINES = 'aepArchUserLines';
   var LS_SOURCES_DIVIDERS = 'aepArchSourcesDividers';
+  var LS_SOURCES_DIV_POINTER = 'aepArchSourcesDividerPointer';
 
   /** Horizontal rules in the Sources column (#arch-sources-seps-layer), in node-local coordinates. */
   var archSourcesDividers = [];
+
+  /** When enabled, diagram shows draggable hit areas and handles for divider lines. */
+  var archSourcesSepPointer = { enabled: false, active: null };
 
   var archLabel = {
     enabled: false,
@@ -2010,6 +2014,105 @@
   var SOURCES_SHELL_T = 122;
   var SOURCES_SHELL_B = 122 + 200;
 
+  /** Root SVG coords → #node-sources local coords (same space as divider x1/x2/y). */
+  function archSourcesWorldToLocal(pt) {
+    var src = archDrag.pos.sources || { x: 0, y: 0 };
+    var bx = NODE_LAYOUT.sources.base[0] + src.x;
+    var by = NODE_LAYOUT.sources.base[1] + src.y;
+    return { x: pt.x - bx, y: pt.y - by };
+  }
+
+  function archSourcesSepPointerApplyViewportClass() {
+    if (!archViewport) return;
+    archViewport.classList.toggle('arch-sources-divider-pointer-on', archSourcesSepPointer.enabled);
+  }
+
+  function archSourcesSepPointerSetEnabled(on) {
+    archSourcesSepPointer.enabled = !!on;
+    try {
+      localStorage.setItem(LS_SOURCES_DIV_POINTER, archSourcesSepPointer.enabled ? '1' : '0');
+    } catch (e) {}
+    var tgl = qs('#archSourcesDividerPointerToggle');
+    if (tgl) tgl.checked = archSourcesSepPointer.enabled;
+    archSourcesSepPointerApplyViewportClass();
+    archSourcesDividersRenderSvg();
+  }
+
+  function archSourcesSepPointerLoad() {
+    try {
+      archSourcesSepPointer.enabled = localStorage.getItem(LS_SOURCES_DIV_POINTER) === '1';
+    } catch (e) {
+      archSourcesSepPointer.enabled = false;
+    }
+    var tgl = qs('#archSourcesDividerPointerToggle');
+    if (tgl) tgl.checked = archSourcesSepPointer.enabled;
+    archSourcesSepPointerApplyViewportClass();
+  }
+
+  function archSourcesSepPointerMoveWin(e) {
+    if (!archSourcesSepPointer.active || !archDrag.svg) return;
+    e.preventDefault();
+    var a = archSourcesSepPointer.active;
+    var d = archSourcesDividers[a.index];
+    if (!d) return;
+    var pWorld = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var pLocal = archSourcesWorldToLocal(pWorld);
+    if (a.mode === 'move') {
+      var dy = pLocal.y - a.startLocal.y;
+      d.y = a.orig.y + dy;
+    } else if (a.mode === 'left') {
+      d.x1 = pLocal.x;
+    } else if (a.mode === 'right') {
+      d.x2 = pLocal.x;
+    }
+    archSourcesDividerClamp(d);
+    archSourcesDividersPersist();
+    archSourcesDividersRenderSvg();
+  }
+
+  function archSourcesSepPointerUpWin(e) {
+    if (!archSourcesSepPointer.active) return;
+    archSourcesSepPointer.active = null;
+    if (archViewport) archViewport.classList.remove('arch-sources-sep-dragging');
+    window.removeEventListener('pointermove', archSourcesSepPointerMoveWin, true);
+    window.removeEventListener('pointerup', archSourcesSepPointerUpWin, true);
+    window.removeEventListener('pointercancel', archSourcesSepPointerUpWin, true);
+    archSourcesDividersRefreshPanel();
+  }
+
+  function archSourcesSepPointerDownCapture(e) {
+    if (!archSourcesSepPointer.enabled || !archDrag.svg) return;
+    if (userLines.drawMode || customBoxDrawMode) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var g = t.closest('.arch-sources-sep-g');
+    if (!g) return;
+    var idx = parseInt(g.getAttribute('data-sep-index'), 10);
+    if (isNaN(idx) || !archSourcesDividers[idx]) return;
+    var mode = 'move';
+    if (t.classList && t.classList.contains('arch-sources-sep-handle')) {
+      mode = t.getAttribute('data-end') === 'right' ? 'right' : 'left';
+    } else if (!t.classList || !t.classList.contains('arch-sources-sep-hit')) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    var pWorld = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var pLocal = archSourcesWorldToLocal(pWorld);
+    var orig = archSourcesDividers[idx];
+    archSourcesSepPointer.active = {
+      index: idx,
+      mode: mode,
+      startLocal: { x: pLocal.x, y: pLocal.y },
+      orig: { x1: orig.x1, x2: orig.x2, y: orig.y },
+    };
+    if (archViewport) archViewport.classList.add('arch-sources-sep-dragging');
+    window.addEventListener('pointermove', archSourcesSepPointerMoveWin, true);
+    window.addEventListener('pointerup', archSourcesSepPointerUpWin, true);
+    window.addEventListener('pointercancel', archSourcesSepPointerUpWin, true);
+  }
+
   function archSourcesDividerClamp(d) {
     var x1 = Number(d.x1);
     var x2 = Number(d.x2);
@@ -2077,17 +2180,48 @@
     var layer = qs('#arch-sources-seps-layer');
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
-    archSourcesDividers.forEach(function (d) {
-      var line = document.createElementNS(SVG_NS, 'line');
-      line.setAttribute('class', 'arch-sources-sep');
-      line.setAttribute('x1', String(d.x1));
-      line.setAttribute('y1', String(d.y));
-      line.setAttribute('x2', String(d.x2));
-      line.setAttribute('y2', String(d.y));
-      line.setAttribute('stroke', d.stroke || '#d1d5db');
-      line.setAttribute('stroke-width', String(d.strokeWidth != null ? d.strokeWidth : 0.75));
-      line.setAttribute('data-arch-sources-sep', d.id);
-      layer.appendChild(line);
+    archSourcesDividers.forEach(function (d, index) {
+      var g = document.createElementNS(SVG_NS, 'g');
+      g.setAttribute('class', 'arch-sources-sep-g');
+      g.setAttribute('data-sep-index', String(index));
+      g.setAttribute('data-arch-sources-sep', d.id);
+
+      var vis = document.createElementNS(SVG_NS, 'line');
+      vis.setAttribute('class', 'arch-sources-sep');
+      vis.setAttribute('x1', String(d.x1));
+      vis.setAttribute('y1', String(d.y));
+      vis.setAttribute('x2', String(d.x2));
+      vis.setAttribute('y2', String(d.y));
+      vis.setAttribute('stroke', d.stroke || '#d1d5db');
+      vis.setAttribute('stroke-width', String(d.strokeWidth != null ? d.strokeWidth : 0.75));
+      vis.setAttribute('pointer-events', archSourcesSepPointer.enabled ? 'none' : 'auto');
+      g.appendChild(vis);
+
+      if (archSourcesSepPointer.enabled) {
+        var hit = document.createElementNS(SVG_NS, 'line');
+        hit.setAttribute('class', 'arch-sources-sep-hit');
+        hit.setAttribute('x1', String(d.x1));
+        hit.setAttribute('y1', String(d.y));
+        hit.setAttribute('x2', String(d.x2));
+        hit.setAttribute('y2', String(d.y));
+        hit.setAttribute('stroke', 'transparent');
+        hit.setAttribute('stroke-width', '14');
+        hit.setAttribute('pointer-events', 'stroke');
+        g.appendChild(hit);
+        ['left', 'right'].forEach(function (end) {
+          var cx = end === 'left' ? d.x1 : d.x2;
+          var c = document.createElementNS(SVG_NS, 'circle');
+          c.setAttribute('class', 'arch-sources-sep-handle');
+          c.setAttribute('data-end', end);
+          c.setAttribute('cx', String(cx));
+          c.setAttribute('cy', String(d.y));
+          c.setAttribute('r', '4');
+          c.setAttribute('tabindex', '-1');
+          c.setAttribute('aria-hidden', 'true');
+          g.appendChild(c);
+        });
+      }
+      layer.appendChild(g);
     });
   }
 
@@ -3033,6 +3167,7 @@
         archLabelApplyAll();
         archDragApply();
         archUserLineRender();
+        archSourcesSepPointerLoad();
         archSourcesDividersRenderSvg();
         archSourcesDividersRefreshPanel();
         archCustomBoxesRender();
@@ -3088,6 +3223,7 @@
     archLabelApplyAll();
     archDragApply();
     archUserLineRender();
+    archSourcesSepPointerLoad();
     archSourcesDividersRenderSvg();
     archSourcesDividersRefreshPanel();
     archCustomBoxesRender();
@@ -3239,9 +3375,17 @@
     if (sepAdd) {
       sepAdd.addEventListener('click', archSourcesDividersAdd);
     }
+    var sepPtrTgl = qs('#archSourcesDividerPointerToggle');
+    if (sepPtrTgl && !sepPtrTgl.getAttribute('data-arch-ready')) {
+      sepPtrTgl.setAttribute('data-arch-ready', '1');
+      sepPtrTgl.addEventListener('change', function () {
+        archSourcesSepPointerSetEnabled(!!sepPtrTgl.checked);
+      });
+    }
 
     document.addEventListener('keydown', archUserLineOnGlobalDelete);
 
+    archDrag.svg.addEventListener('pointerdown', archSourcesSepPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
     archDrag.svg.addEventListener('dblclick', archLabelDblClick, true);

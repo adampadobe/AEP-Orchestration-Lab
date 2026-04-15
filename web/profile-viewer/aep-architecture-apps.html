@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260517">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260518">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -471,6 +471,10 @@
                     <p class="arch-highlight-picker-help">
                       Horizontal rules between the SDK block and the category rows. Adjust left/right ends to change length; duplicate or remove lines. Saved with layout / JSON.
                     </p>
+                    <label class="arch-sources-pointer-toggle" style="display:flex; gap:8px; align-items:flex-start; margin-bottom:10px; font-size:0.75rem; line-height:1.35; cursor:pointer;">
+                      <input type="checkbox" id="archSourcesDividerPointerToggle" style="margin-top:2px;" />
+                      <span><strong>Adjust on diagram</strong> — drag the line to move it up or down; drag the blue handles to change length.</span>
+                    </label>
                     <div id="archSourcesDividersList" class="arch-sources-dividers-list" role="group" aria-label="Sources divider lines"></div>
                     <button type="button" class="dashboard-btn-outline" id="archSourcesDividerAdd">Add divider line</button>
                   </details>
@@ -519,6 +523,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260513"></script>
-  <script defer src="aep-architecture-apps.js?v=20260516"></script>
+  <script defer src="aep-architecture-apps.js?v=20260518"></script>
 </body>
 </html>
