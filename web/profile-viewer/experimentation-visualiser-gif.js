@@ -7,7 +7,14 @@
   var EXTRA_TAIL_MS = 500;
   var H2C_SCALE = 0.52;
   var GIF_QUALITY = 15;
-  var GIF_WORKER = 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js';
+  /** Same-origin only — cross-origin worker URLs are blocked by the browser. */
+  var GIF_WORKER = (function () {
+    var el = document.querySelector('script[src*="experimentation-visualiser-gif.js"]');
+    if (el && el.getAttribute('src')) {
+      return new URL('experimentation-visualiser-gif.worker.js', el.src).href;
+    }
+    return new URL('experimentation-visualiser-gif.worker.js', window.location.href).href;
+  })();
 
   function sleep(ms) {
     return new Promise(function (resolve) {
