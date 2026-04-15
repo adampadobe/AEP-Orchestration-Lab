@@ -2690,6 +2690,9 @@
   /** Max distance (SVG user units) from click to segment for double-click insert. */
   var USER_LINE_INSERT_MAX_DIST = 14;
 
+  /** Min distance (px) from an insert point to existing segment endpoints — avoids duplicate vertices. */
+  var USER_LINE_INSERT_MIN_FROM_VERTEX = 6;
+
   /** Interior bend drag: 45° snap from previous vertex when Shift held; Alt uses next vertex as origin. */
   var ARCH_BEND_SNAP_RAD = Math.PI / 4;
 
@@ -2766,7 +2769,11 @@
       }
     }
     if (bestI < 0 || !bestProj || bestD > USER_LINE_INSERT_MAX_DIST) return -1;
-    if (bestD < 2) return -1;
+    var aIns = archUserLinePointXY(pts[bestI]);
+    var bIns = archUserLinePointXY(pts[bestI + 1]);
+    var dFromA = Math.hypot(bestProj.x - aIns.x, bestProj.y - aIns.y);
+    var dFromB = Math.hypot(bestProj.x - bIns.x, bestProj.y - bIns.y);
+    if (dFromA < USER_LINE_INSERT_MIN_FROM_VERTEX || dFromB < USER_LINE_INSERT_MIN_FROM_VERTEX) return -1;
     pts.splice(bestI + 1, 0, { x: bestProj.x, y: bestProj.y });
     return bestI + 1;
   }
