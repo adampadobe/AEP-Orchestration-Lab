@@ -58,6 +58,10 @@
               <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
                 Only the <strong>apalmer</strong> and <strong>kirkham</strong> sandboxes see this section. Other users always get a menu without work-in-progress links. Check a row to <strong>hide</strong> that page from the sidebar (this browser only).
               </p>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:center;">
+                <button type="button" class="dashboard-btn-outline" id="aepNavInDevHideAll">Hide all</button>
+                <button type="button" class="dashboard-btn-outline" id="aepNavInDevShowAll">Show all</button>
+              </div>
               <div class="aep-nav-indev-checklist" style="display: flex; flex-direction: column; gap: 10px;">
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="profileGeneration" style="margin-top:3px;" />
@@ -205,9 +209,36 @@
         } catch (e2) {}
       }
 
+      function forEachInDevKey(fn) {
+        document.querySelectorAll('.aep-nav-indev-hide-cb').forEach(function (cb) {
+          var key = cb.getAttribute('data-aep-nav-hide-key');
+          if (key) fn(key);
+        });
+      }
+
+      function hideAllInDevNav() {
+        forEachInDevKey(function (key) {
+          setHiddenKey(key, true);
+        });
+        syncCheckboxes();
+        dispatchNavChange();
+      }
+
+      function showAllInDevNav() {
+        forEachInDevKey(function (key) {
+          setHiddenKey(key, false);
+        });
+        syncCheckboxes();
+        dispatchNavChange();
+      }
+
       function init() {
         syncSection();
         syncCheckboxes();
+        var btnHideAll = document.getElementById('aepNavInDevHideAll');
+        var btnShowAll = document.getElementById('aepNavInDevShowAll');
+        if (btnHideAll) btnHideAll.addEventListener('click', hideAllInDevNav);
+        if (btnShowAll) btnShowAll.addEventListener('click', showAllInDevNav);
         document.querySelectorAll('.aep-nav-indev-hide-cb').forEach(function (cb) {
           cb.addEventListener('change', function () {
             var key = cb.getAttribute('data-aep-nav-hide-key');
