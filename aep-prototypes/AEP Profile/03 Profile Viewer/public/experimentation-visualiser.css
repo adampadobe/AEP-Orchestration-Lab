@@ -309,15 +309,21 @@ html[data-aep-theme='dark'] .experimentation-visualiser-page .exp-flow-viz {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--dash-border, #e8e8e8);
-  background: #fff;
-  aspect-ratio: 320 / 200;
+  background: #f1f3f5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: min(420px, 52vw);
+  padding: 0.5rem;
+  box-sizing: border-box;
 }
 
 .experimentation-visualiser-page .exp-email-preview-img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  max-height: min(520px, 62vh);
+  object-fit: contain;
   object-position: top center;
 }
 
