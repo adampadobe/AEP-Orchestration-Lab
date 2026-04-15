@@ -1831,6 +1831,8 @@
   var LS_USER_LINES = 'aepArchUserLines';
   var LS_SOURCES_DIVIDERS = 'aepArchSourcesDividers';
   var LS_SOURCES_DIV_POINTER = 'aepArchSourcesDividerPointer';
+  /** Session + localStorage defaults for the Lines floating toolbar (new-line defaults). */
+  var LS_LINE_TOOLBAR_DEFAULTS = 'aepArchLineToolbarDefaults';
 
   /** Horizontal rules in the Sources column (#arch-sources-seps-layer), in node-local coordinates. */
   var archSourcesDividers = [];
@@ -1853,27 +1855,18 @@
     selectedId: null,
   };
 
-  /** Floating line toolbar (icon tools — no nested text menus). */
-  var lineFloatTool = 'arrow';
-  var lineFloatStrokeW = 2;
-  var lineFloatHex = '#308fff';
+  /** Floating line toolbar defaults (also persisted under LS_LINE_TOOLBAR_DEFAULTS). */
+  var lineDefaults = {
+    strokeColorHex: '#308FFF',
+    strokeWidth: 2,
+    lineTool: 'arrow',
+  };
   var freehandSession = null;
   /** Stroke width presets (px) — matches weight popover. */
   var ARCH_LINE_FLOAT_W_PRESETS = [1, 2, 3, 5, 8];
 
-  /** Preset stroke colors — float bar shows full row; first matches diagram key where applicable. */
-  var ARCH_USER_LINE_PRESETS = [
-    { hex: '#e34850', label: 'Red' },
-    { hex: '#f97316', label: 'Orange' },
-    { hex: '#eab308', label: 'Yellow' },
-    { hex: '#22c55e', label: 'Green' },
-    { hex: '#06b6d4', label: 'Cyan' },
-    { hex: '#308fff', label: 'Blue — ingress' },
-    { hex: '#a855f7', label: 'Purple' },
-    { hex: '#ec4899', label: 'Pink' },
-    { hex: '#111827', label: 'Black' },
-    { hex: '#ffffff', label: 'White' },
-  ];
+  /** Legacy swatch mount (e.g. dynamic panels): single default chip only — float bar uses Colour button + popover. */
+  var ARCH_USER_LINE_PRESETS = [{ hex: '#308fff', label: 'Stroke' }];
 
   function archLineStrokeNormalizeHex(h) {
     if (!h || typeof h !== 'string') return '';
@@ -1938,15 +1931,69 @@
     archLineSwatchesApplySelection(container, initial);
   }
 
+  /** Parse #RGB or #RRGGBB → uppercase #RRGGBB; invalid → null. */
+  function archLineHexParseStrict(str) {
+    if (str == null || typeof str !== 'string') return null;
+    var s = str.trim();
+    if (!s) return null;
+    if (s[0] !== '#') s = '#' + s;
+    var body = s.slice(1);
+    if (/^[0-9a-fA-F]{3}$/.test(body)) {
+      return ('#' + body[0] + body[0] + body[1] + body[1] + body[2] + body[2]).toUpperCase();
+    }
+    if (/^[0-9a-fA-F]{6}$/.test(body)) {
+      return ('#' + body.toUpperCase());
+    }
+    return null;
+  }
+
+  /** Fallback normalizer for legacy callers — returns valid #RRGGBB uppercase. */
   function archLineFloatNormalizeHex(h) {
-    var x = archLineStrokeNormalizeHex(h);
-    if (!x) return '#308fff';
-    if (x[0] !== '#') x = '#' + x;
-    return x.length === 7 ? x : '#308fff';
+    var p = archLineHexParseStrict(String(h || ''));
+    return p || '#308FFF';
   }
 
   function archLineFloatGetHex() {
-    return archLineFloatNormalizeHex(lineFloatHex);
+    return archLineFloatNormalizeHex(lineDefaults.strokeColorHex);
+  }
+
+  function archLineHexLuminance(hex7) {
+    if (!hex7 || hex7.length !== 7 || hex7[0] !== '#') return 0;
+    var r = parseInt(hex7.slice(1, 3), 16) / 255;
+    var g = parseInt(hex7.slice(3, 5), 16) / 255;
+    var b = parseInt(hex7.slice(5, 7), 16) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  function archLineDefaultsLoad() {
+    try {
+      var raw = localStorage.getItem(LS_LINE_TOOLBAR_DEFAULTS);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      if (!o || typeof o !== 'object') return;
+      if (typeof o.strokeColorHex === 'string') {
+        var c = archLineHexParseStrict(o.strokeColorHex);
+        if (c) lineDefaults.strokeColorHex = c;
+      }
+      if (o.strokeWidth != null) {
+        var sw = archLineFloatNearestPresetW(Number(o.strokeWidth));
+        lineDefaults.strokeWidth = sw;
+      }
+      if (typeof o.lineTool === 'string' && o.lineTool) lineDefaults.lineTool = o.lineTool;
+    } catch (e) {}
+  }
+
+  function archLineDefaultsSave() {
+    try {
+      localStorage.setItem(
+        LS_LINE_TOOLBAR_DEFAULTS,
+        JSON.stringify({
+          strokeColorHex: lineDefaults.strokeColorHex,
+          strokeWidth: lineDefaults.strokeWidth,
+          lineTool: lineDefaults.lineTool,
+        })
+      );
+    } catch (e) {}
   }
 
   function archLineFloatNearestPresetW(w) {
@@ -1966,39 +2013,41 @@
   }
 
   function archLineFloatGetStrokeW() {
-    var w = Number(lineFloatStrokeW);
+    var w = Number(lineDefaults.strokeWidth);
     if (isNaN(w) || w <= 0) return 2;
     return archClamp(archLineFloatNearestPresetW(w), 1, 8);
   }
 
   function archLineFloatGetTool() {
-    return lineFloatTool || 'arrow';
+    return lineDefaults.lineTool || 'arrow';
   }
 
   function archLineFloatSetTool(t) {
-    lineFloatTool = t || 'arrow';
+    lineDefaults.lineTool = t || 'arrow';
+    archLineDefaultsSave();
     var bar = qs('#archLineFloatBar');
     if (bar) {
       $all('.arch-line-float-tool', bar).forEach(function (b) {
-        b.classList.toggle('is-active', b.getAttribute('data-arch-line-tool') === lineFloatTool);
+        b.classList.toggle('is-active', b.getAttribute('data-arch-line-tool') === lineDefaults.lineTool);
       });
     }
   }
 
   function archLineFloatSetW(w) {
-    lineFloatStrokeW = archLineFloatNearestPresetW(w);
+    lineDefaults.strokeWidth = archLineFloatNearestPresetW(w);
+    archLineDefaultsSave();
     var bar = qs('#archLineFloatBar');
     var label = qs('#archLineFloatWLabel');
     var tbar = qs('#archLineFloatWTriggerBar');
-    if (label) label.textContent = lineFloatStrokeW + 'px';
+    if (label) label.textContent = lineDefaults.strokeWidth + 'px';
     if (tbar) {
-      var vis = Math.min(8, Math.max(1, lineFloatStrokeW));
+      var vis = Math.min(8, Math.max(1, lineDefaults.strokeWidth));
       tbar.style.height = vis + 'px';
     }
     if (bar) {
       $all('.arch-line-float-w-option', bar).forEach(function (b) {
         var bw = parseFloat(b.getAttribute('data-arch-line-w'), 10);
-        var on = bw === lineFloatStrokeW;
+        var on = bw === lineDefaults.strokeWidth;
         b.classList.toggle('is-active', on);
         b.setAttribute('aria-selected', on ? 'true' : 'false');
       });
@@ -2013,6 +2062,7 @@
   }
 
   function archLineFloatWeightMenuOpen() {
+    archLineFloatColorPopoverClose();
     var menu = qs('#archLineFloatWMenu');
     var tr = qs('#archLineFloatWTrigger');
     if (menu) menu.hidden = false;
@@ -2036,8 +2086,73 @@
 
   function archLineFloatWeightMenuEscape(e) {
     if (e.key !== 'Escape') return;
+    var cpop = qs('#archLineFloatColorPopover');
+    if (cpop && !cpop.hidden) {
+      archLineFloatColorPopoverClose();
+      e.preventDefault();
+      return;
+    }
     var menu = qs('#archLineFloatWMenu');
     if (menu && !menu.hidden) archLineFloatWeightMenuClose();
+  }
+
+  function archLineFloatColorPopoverClose() {
+    var pop = qs('#archLineFloatColorPopover');
+    var btn = qs('#archLineFloatColorBtn');
+    if (pop) pop.hidden = true;
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    var err = qs('#archLineFloatColorHexErr');
+    if (err) err.hidden = true;
+  }
+
+  function archLineFloatColorPopoverOpen() {
+    var pop = qs('#archLineFloatColorPopover');
+    var btn = qs('#archLineFloatColorBtn');
+    if (!pop || !btn) return;
+    archLineFloatWeightMenuClose();
+    pop.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    archLineFloatSyncColorPopoverInputs();
+  }
+
+  function archLineFloatColorPopoverToggle() {
+    var pop = qs('#archLineFloatColorPopover');
+    if (!pop) return;
+    if (pop.hidden) archLineFloatColorPopoverOpen();
+    else archLineFloatColorPopoverClose();
+  }
+
+  function archLineFloatSyncColorPopoverInputs() {
+    var hx = archLineFloatGetHex();
+    var pick = qs('#archLineFloatColorPicker');
+    var txt = qs('#archLineFloatColorHexInput');
+    if (pick) {
+      try {
+        pick.value = hx.toLowerCase();
+      } catch (e1) {}
+    }
+    if (txt && document.activeElement !== txt) txt.value = hx;
+    var err = qs('#archLineFloatColorHexErr');
+    if (err && document.activeElement !== txt) err.hidden = true;
+  }
+
+  function archLineFloatSyncColorButtonUi() {
+    var btn = qs('#archLineFloatColorBtn');
+    if (!btn) return;
+    var hx = archLineFloatGetHex();
+    btn.style.backgroundColor = hx;
+    btn.setAttribute('data-current-hex', hx);
+    btn.classList.toggle('arch-line-float-color-btn--light', archLineHexLuminance(hx) > 0.92);
+    btn.classList.remove('arch-line-float-color-btn--mixed');
+  }
+
+  function archLineFloatFloatMenusDocDown(e) {
+    archLineFloatWeightMenuDocDown(e);
+    var cwrap = qs('#archLineFloatColorWrap');
+    var cpop = qs('#archLineFloatColorPopover');
+    if (!cwrap || !cpop || cpop.hidden) return;
+    if (cwrap.contains(e.target)) return;
+    archLineFloatColorPopoverClose();
   }
 
   function archLineFloatSyncBidirUi(sel) {
@@ -2063,23 +2178,18 @@
   }
 
   function archLineFloatSetHex(hex) {
-    lineFloatHex = archLineFloatNormalizeHex(hex);
-    var inp = qs('#archLineFloatColorHex');
-    if (inp) {
-      try {
-        inp.value = lineFloatHex.length === 7 ? lineFloatHex : '#308fff';
-      } catch (e2) {}
-    }
+    var n = archLineHexParseStrict(String(hex || ''));
+    if (!n) n = '#308FFF';
+    lineDefaults.strokeColorHex = n;
+    archLineDefaultsSave();
     var bar = qs('#archLineFloatBar');
     if (bar) {
       try {
-        bar.style.setProperty('--arch-line-float-stroke', lineFloatHex);
+        bar.style.setProperty('--arch-line-float-stroke', n);
       } catch (e3) {}
-      $all('.arch-line-float-swatch', bar).forEach(function (b) {
-        var h = archLineStrokeNormalizeHex(b.getAttribute('data-arch-line-hex') || '');
-        b.classList.toggle('is-active', h && h === archLineStrokeNormalizeHex(lineFloatHex));
-      });
     }
+    archLineFloatSyncColorButtonUi();
+    archLineFloatSyncColorPopoverInputs();
   }
 
   function archLineFloatSyncFromLine(ln) {
@@ -2107,7 +2217,7 @@
       archUndoMaybePushSnapshot();
       return;
     }
-    var t = lineFloatTool;
+    var t = lineDefaults.lineTool;
     if (t !== 'divider' && t !== 'freehand') {
       if (t === 'dotted') ln.dashStyle = 'dotted';
       else ln.dashStyle = 'solid';
@@ -2132,6 +2242,7 @@
     if (del) del.disabled = !show || !userLines.selectedId;
     if (!show) {
       archLineFloatWeightMenuClose();
+      archLineFloatColorPopoverClose();
       freehandSession = null;
       var pv = qs('#archUserLineFreehandPreview');
       if (pv) {
@@ -2231,9 +2342,10 @@
     var bar = qs('#archLineFloatBar');
     if (!bar || bar.getAttribute('data-arch-float-init') === '1') return;
     bar.setAttribute('data-arch-float-init', '1');
-    archLineFloatSetTool(lineFloatTool);
-    archLineFloatSetW(lineFloatStrokeW);
-    archLineFloatSetHex(lineFloatHex);
+    archLineDefaultsLoad();
+    archLineFloatSetTool(lineDefaults.lineTool);
+    archLineFloatSetW(lineDefaults.strokeWidth);
+    archLineFloatSetHex(lineDefaults.strokeColorHex);
     bar.addEventListener('click', function (e) {
       var tbtn = e.target.closest && e.target.closest('.arch-line-float-tool[data-arch-line-tool]');
       if (tbtn) {
@@ -2253,13 +2365,15 @@
         if (userLines.selectedId) archLineFloatApplySelectedFromBar();
         return;
       }
-      var sw = e.target.closest && e.target.closest('.arch-line-float-swatch[data-arch-line-hex]');
-      if (sw) {
-        archLineFloatSetHex(sw.getAttribute('data-arch-line-hex'));
-        if (userLines.selectedId) archLineFloatApplySelectedFromBar();
-        return;
-      }
     });
+    var cBtn = qs('#archLineFloatColorBtn');
+    if (cBtn && !cBtn.getAttribute('data-arch-cbtn')) {
+      cBtn.setAttribute('data-arch-cbtn', '1');
+      cBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        archLineFloatColorPopoverToggle();
+      });
+    }
     var wTrig = qs('#archLineFloatWTrigger');
     if (wTrig && !wTrig.getAttribute('data-arch-w-trig')) {
       wTrig.setAttribute('data-arch-w-trig', '1');
@@ -2270,14 +2384,58 @@
     }
     if (!bar.getAttribute('data-arch-w-doc')) {
       bar.setAttribute('data-arch-w-doc', '1');
-      document.addEventListener('pointerdown', archLineFloatWeightMenuDocDown, true);
+      document.addEventListener('pointerdown', archLineFloatFloatMenusDocDown, true);
       window.addEventListener('keydown', archLineFloatWeightMenuEscape);
     }
-    var hexInp = qs('#archLineFloatColorHex');
-    if (hexInp) {
-      hexInp.addEventListener('input', function () {
-        archLineFloatSetHex(hexInp.value);
+    var pickInp = qs('#archLineFloatColorPicker');
+    if (pickInp) {
+      pickInp.addEventListener('input', function () {
+        archLineFloatSetHex(pickInp.value);
         if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+      });
+    }
+    var hexTxt = qs('#archLineFloatColorHexInput');
+    if (hexTxt) {
+      function hexTextApply() {
+        var v = hexTxt.value.trim();
+        var err = qs('#archLineFloatColorHexErr');
+        if (!v) {
+          if (err) err.hidden = true;
+          return;
+        }
+        var p = archLineHexParseStrict(v);
+        if (p) {
+          if (err) err.hidden = true;
+          archLineFloatSetHex(p);
+          if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+        } else {
+          if (err) err.hidden = v.length < 4;
+        }
+      }
+      hexTxt.addEventListener('input', hexTextApply);
+      hexTxt.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          hexTextApply();
+        }
+      });
+      hexTxt.addEventListener('blur', function () {
+        var v = hexTxt.value.trim();
+        var p = archLineHexParseStrict(v);
+        var err = qs('#archLineFloatColorHexErr');
+        if (!v) {
+          archLineFloatSyncColorPopoverInputs();
+          if (err) err.hidden = true;
+          return;
+        }
+        if (p) {
+          archLineFloatSetHex(p);
+          if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+          if (err) err.hidden = true;
+        } else {
+          archLineFloatSyncColorPopoverInputs();
+          if (err) err.hidden = false;
+        }
       });
     }
     var bdir = qs('#archLineFloatBidir');
@@ -4672,6 +4830,7 @@
       localStorage.removeItem(LS_STATE_HILITE_OVERRIDES);
       localStorage.removeItem('aepDiagramUndoStack');
       localStorage.removeItem('aepDiagramSelection');
+      localStorage.removeItem(LS_LINE_TOOLBAR_DEFAULTS);
     } catch (e) {}
     window.location.reload();
   }
@@ -4889,6 +5048,12 @@
         function (e) {
           if (e.key !== 'Escape') return;
           if (!archIsEditMode() || archGetActiveTool() !== 'lines') return;
+          var cpop = qs('#archLineFloatColorPopover');
+          if (cpop && !cpop.hidden) {
+            archLineFloatColorPopoverClose();
+            e.preventDefault();
+            return;
+          }
           if (
             e.target &&
             (e.target.tagName === 'INPUT' ||

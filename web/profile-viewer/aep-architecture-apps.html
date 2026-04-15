@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260416c">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260417a">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -417,21 +417,23 @@
                   </button>
                 </div>
                 <span class="arch-line-float-vr" aria-hidden="true"></span>
-                <div class="arch-line-float-seg arch-line-float-colors" role="group" aria-label="Stroke color">
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#e34850" style="background:#e34850" title="Red" aria-label="Red"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#f97316" style="background:#f97316" title="Orange" aria-label="Orange"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#eab308" style="background:#eab308" title="Yellow" aria-label="Yellow"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#22c55e" style="background:#22c55e" title="Green" aria-label="Green"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#06b6d4" style="background:#06b6d4" title="Cyan" aria-label="Cyan"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#308fff" style="background:#308fff" title="Blue" aria-label="Blue"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#a855f7" style="background:#a855f7" title="Purple" aria-label="Purple"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#ec4899" style="background:#ec4899" title="Pink" aria-label="Pink"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#111827" style="background:#111827" title="Black" aria-label="Black"></button>
-                  <button type="button" class="arch-line-float-swatch arch-line-float-swatch--white" data-arch-line-hex="#ffffff" style="background:#ffffff" title="White" aria-label="White"></button>
-                  <label class="arch-line-float-color-label" title="Custom color">
-                    <span class="visually-hidden">Custom hex color</span>
-                    <input type="color" id="archLineFloatColorHex" class="arch-line-float-color-hex arch-diagram-ui" value="#308fff" aria-label="Custom color"/>
-                  </label>
+                <div class="arch-line-float-seg arch-line-float-colors" role="group" aria-label="Stroke colour">
+                  <div class="arch-line-float-color-wrap" id="archLineFloatColorWrap">
+                    <button type="button" class="arch-line-float-color-btn" id="archLineFloatColorBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="archLineFloatColorPopover" title="Colour"></button>
+                    <div id="archLineFloatColorPopover" class="arch-line-float-color-popover arch-diagram-ui" hidden role="dialog" aria-label="Stroke colour">
+                      <div class="arch-line-float-color-popover-inner">
+                        <label class="arch-line-float-popover-field">
+                          <span class="arch-line-float-popover-label">Picker</span>
+                          <input type="color" id="archLineFloatColorPicker" class="arch-line-float-color-picker-native arch-diagram-ui" value="#308fff"/>
+                        </label>
+                        <label class="arch-line-float-popover-field">
+                          <span class="arch-line-float-popover-label">Hex</span>
+                          <input type="text" id="archLineFloatColorHexInput" class="arch-line-float-hex-text arch-diagram-ui" spellcheck="false" maxlength="9" placeholder="#RRGGBB" autocomplete="off"/>
+                        </label>
+                        <p class="arch-line-float-hex-error" id="archLineFloatColorHexErr" hidden role="alert">Use #RGB or #RRGGBB (hex digits only).</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <span class="arch-line-float-vr" aria-hidden="true"></span>
                 <div class="arch-line-float-seg arch-line-float-actions" role="group" aria-label="Actions">
@@ -694,6 +696,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260416c"></script>
+  <script defer src="aep-architecture-apps.js?v=20260417a"></script>
 </body>
 </html>
