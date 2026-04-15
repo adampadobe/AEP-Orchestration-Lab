@@ -1833,6 +1833,9 @@
   var archCustomResize = { active: null, start: null };
   var LS_CUSTOM_BOXES = 'aepArchCustomBoxes';
 
+  /** In-memory clipboard for Edit mode copy/paste (custom boxes + connectors). */
+  var archDiagramClipboard = null;
+
   /** Vendored Apache-2.0 SVGs from @adobe/spectrum-css-workflow-icons (see npm run vendor:spectrum-icons). */
   var ARCH_SPECTRUM_ICON_PREFIX = 'vendor/spectrum-workflow-icons/';
   var archSpectrumIconsDataPromise = null;
@@ -3793,6 +3796,113 @@
     if (archViewport) archViewport.classList.remove('arch-user-line-draw-pending');
   }
 
+  /** Deep-clone a connector endpoint and offset free points (for paste). */
+  function archUserLineEndpointPasteOffset(ep, dx, dy) {
+    if (!ep) return ep;
+    var o = JSON.parse(JSON.stringify(ep));
+    if (o.kind === 'free') {
+      o.x = (Number(o.x) || 0) + dx;
+      o.y = (Number(o.y) || 0) + dy;
+    }
+    return o;
+  }
+
+  function archDiagramCopySelection() {
+    if (!archIsEditMode()) return;
+    if (archCustomBoxSelectedId) {
+      var box = archCustomBoxFind(archCustomBoxSelectedId);
+      if (!box) return;
+      var b = archCustomBoxNormalize(box);
+      archDiagramClipboard = { kind: 'cbox', box: JSON.parse(JSON.stringify(b)) };
+      delete archDiagramClipboard.box.id;
+      if (liveRegion) liveRegion.textContent = 'Copied shape — Ctrl+V or ⌘V to paste.';
+      return;
+    }
+    if (userLines.selectedId) {
+      var ln = archUserLineGetSelected();
+      if (!ln) return;
+      archDiagramClipboard = { kind: 'line', line: JSON.parse(JSON.stringify(ln)) };
+      delete archDiagramClipboard.line.id;
+      if (liveRegion) liveRegion.textContent = 'Copied connector — Ctrl+V or ⌘V to paste.';
+      return;
+    }
+    if (liveRegion) liveRegion.textContent = 'Select a custom shape or connector to copy.';
+  }
+
+  function archDiagramPasteClipboard() {
+    if (!archIsEditMode()) return;
+    if (!archDiagramClipboard) {
+      if (liveRegion) liveRegion.textContent = 'Nothing to paste — copy a custom shape or connector first.';
+      return;
+    }
+    if (archDiagramClipboard.kind === 'cbox') {
+      var raw = archDiagramClipboard.box;
+      var b = archCustomBoxNormalize(raw);
+      var nb = archCustomBoxNormalize({
+        id: 'cbox-' + Date.now(),
+        x: b.x + 28,
+        y: b.y + 28,
+        w: b.w,
+        h: b.h,
+        name: (b.name || 'Box') + ' (copy)',
+        fill: b.fill,
+        stroke: b.stroke,
+        labelFontSize: b.labelFontSize,
+        kind: b.kind,
+        iconFile: b.iconFile,
+      });
+      nb.x = archClamp(nb.x, 0, ARCH_GUIDE_VIEW.w - nb.w);
+      nb.y = archClamp(nb.y, 0, ARCH_GUIDE_VIEW.h - nb.h);
+      archCustomBoxes.push(nb);
+      archCustomBoxSelectedId = nb.id;
+      archCustomBoxLabelActiveId = null;
+      userLines.selectedId = null;
+      if (archSelection) archSelection.clear();
+      var domId = 'node-cbox-' + nb.id;
+      var curH = archHighlightsForState(idx).slice();
+      if (curH.indexOf(domId) < 0) curH.push(domId);
+      var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+      if (archHighlightArraysEqual(curH, defH)) {
+        delete archStateHighlightOverrides[idx];
+        delete archStateHighlightOverrides[String(idx)];
+      } else {
+        archStateHighlightOverrides[String(idx)] = curH;
+      }
+      archStateHighlightOverridesPersist();
+      archCustomBoxesPersist();
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUndoMaybePushSnapshot();
+      if (liveRegion) liveRegion.textContent = 'Pasted shape.';
+      return;
+    }
+    if (archDiagramClipboard.kind === 'line') {
+      var L = archDiagramClipboard.line;
+      var dx = 20;
+      var dy = 20;
+      var id = 'ul-' + Date.now();
+      userLines.lines.push({
+        id: id,
+        from: archUserLineEndpointPasteOffset(L.from, dx, dy),
+        to: archUserLineEndpointPasteOffset(L.to, dx, dy),
+        stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
+        strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2.2,
+        bidirectional: !!L.bidirectional,
+      });
+      userLines.selectedId = id;
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
+      if (archSelection) archSelection.clear();
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLinePersist();
+      archUserLineSyncPropsHud();
+      archSelectionRefreshDom();
+      archUndoMaybePushSnapshot();
+      if (liveRegion) liveRegion.textContent = 'Pasted connector.';
+    }
+  }
+
   function archUserLineAdd(ep1, ep2) {
     var presetHost = qs('#archUserLineStrokePresetSwatches');
     var stroke = archLineSwatchesGetValue(presetHost);
@@ -4232,6 +4342,17 @@
           if (e.ctrlKey && !e.metaKey && (e.key === 'y' || e.key === 'Y')) {
             e.preventDefault();
             archRedoRun();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'c') {
+            e.preventDefault();
+            archDiagramCopySelection();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'v') {
+            e.preventDefault();
+            archDiagramPasteClipboard();
+            return;
           }
         },
         true
