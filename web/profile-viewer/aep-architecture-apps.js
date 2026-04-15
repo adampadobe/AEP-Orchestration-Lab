@@ -2090,7 +2090,7 @@
   function archLineFloatUpdateVisibility() {
     var bar = qs('#archLineFloatBar');
     if (!bar) return;
-    /** Floating bar only after enabling "Draw lines" in the Lines panel — not when a line is merely selected. */
+    /** Floating bar when Edit + Lines rail + line draw mode; visibility uses #archLineFloatBar[hidden] + CSS. */
     var show = archIsEditMode() && userLines.drawMode;
     bar.hidden = !show;
     if (!show) {

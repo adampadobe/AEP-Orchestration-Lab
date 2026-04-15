@@ -721,6 +721,16 @@
   justify-content: center;
 }
 
+/*
+ * Critical: .arch-line-float-bar sets display:flex with higher specificity than the
+ * bare [hidden] attribute, so the bar stayed visible even when JS set hidden=true.
+ * Tie display:none to [hidden] explicitly (same pattern as event-tool.css / audit-events.css).
+ */
+.arch-line-float-bar[hidden],
+#archLineFloatBar[hidden] {
+  display: none !important;
+}
+
 html[data-aep-theme='dark'] .arch-line-float-bar {
   background: rgba(30, 41, 59, 0.96);
   border-color: rgba(148, 163, 184, 0.35);
