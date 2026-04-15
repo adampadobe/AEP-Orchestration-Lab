@@ -35,6 +35,19 @@
   margin: 0 0 24px;
 }
 
+.introStack {
+  max-width: 520px;
+  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.introStack .intro {
+  margin: 0;
+}
+
 .storyRow {
   display: flex;
   align-items: center;

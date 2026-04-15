@@ -75,7 +75,7 @@ export default function App() {
           contentRef={contentRef}
         >
           <div key={fadeKey} className={styles.stepInner}>
-            <CurrentStep />
+            <CurrentStep industry={industry} />
           </div>
         </Shell>
       </IndustryDataProvider>
