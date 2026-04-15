@@ -167,8 +167,9 @@ These are serialized in **master layout JSON** (`archMasterSerialize` / `archMas
 - **Undo / redo:** `AEPDiagram.undo.createStack` — snapshots omit `savedAt` so identical layouts dedupe. **Undo / Redo** buttons in the Layout file panel; **⌘/Ctrl+Z** and **⌘/Ctrl+Shift+Z** (redo). Pushes after node drag/resize, Sources divider edits, custom box move/resize/delete, user line add/delete, and successful import.
 - **Selection (Edit mode):** `AEPDiagram.selection` — click platform `g.arch-node` (not custom boxes) to select; **Shift+click** multi-select; click empty SVG to clear. **Layout drag** still updates selection to the node you moved. Selection clears when leaving Edit mode.
 - **Inspector:** With exactly **one** platform node selected, the Layout panel shows key, title (`ARCH_NODE_LABELS`), and element id plus a tip for label editing.
-- **Palette:** **Add shape** — Process, Data store, External system — inserts a **custom box** with preset size/colors near the diagram center (staggered), adds it to the current state’s highlight overrides when needed, and records **undo**.
+- **Palette:** **Add shape** — Process, Data store, External system — inserts a **custom box** with preset size/colors near the diagram center (staggered), adds it to the current state’s highlight overrides when needed, and records **undo**. **Text note** adds a wide, low box for annotations.
+- **Custom box:** **Duplicate** next to Delete; selection readout lists platform nodes and/or the active custom box; inspector prioritizes the custom box when one is selected.
 
 ---
 
-*Last updated: inspector + palette presets.*
+*Last updated: text note preset, duplicate, unified selection/inspector for custom boxes.*

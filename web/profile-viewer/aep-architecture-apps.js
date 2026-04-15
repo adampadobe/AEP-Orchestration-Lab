@@ -303,21 +303,58 @@
       return;
     }
     panel.hidden = false;
-    if (!archSelection || archSelection.count() === 0) {
-      txt.textContent = 'None — click a node (Shift+click for multi-select).';
-      archInspectorSync();
-      return;
+    var parts = [];
+    if (archSelection && archSelection.count() > 0) {
+      parts.push('Nodes: ' + archSelection.toArray().join(', '));
     }
-    txt.textContent = archSelection.toArray().join(', ');
+    if (archCustomBoxSelectedId) {
+      var bx = archCustomBoxFind(archCustomBoxSelectedId);
+      parts.push(
+        'Custom: ' + (bx && bx.name ? bx.name : archCustomBoxSelectedId) + ' (node-cbox-' + archCustomBoxSelectedId + ')'
+      );
+    }
+    if (parts.length === 0) {
+      txt.textContent = 'None — click a platform node (Shift+click) or a custom box.';
+    } else {
+      txt.textContent = parts.join('\n');
+    }
     archInspectorSync();
   }
 
-  /** Single platform-node metadata when exactly one arch node is selected (Edit mode). */
+  /** Inspector: custom box (if selected) else single platform node (Edit mode). */
   function archInspectorSync() {
     var ins = qs('#archEditInspector');
     var body = qs('#archEditInspectorBody');
     if (!ins || !body) return;
-    if (!archIsEditMode() || !archSelection || archSelection.count() !== 1) {
+    if (!archIsEditMode()) {
+      ins.hidden = true;
+      return;
+    }
+    if (archCustomBoxSelectedId) {
+      var cbox = archCustomBoxFind(archCustomBoxSelectedId);
+      if (cbox) {
+        var cb = archCustomBoxNormalize(cbox);
+        ins.hidden = false;
+        body.textContent =
+          'Custom box\nName: ' +
+          (cb.name || '') +
+          '\nId: ' +
+          cb.id +
+          '\nDOM id: node-cbox-' +
+          cb.id +
+          '\nPosition: ' +
+          Math.round(cb.x) +
+          ', ' +
+          Math.round(cb.y) +
+          '\nSize: ' +
+          Math.round(cb.w) +
+          ' × ' +
+          Math.round(cb.h) +
+          '\n\nUse the fields below for fill, outline, and name.';
+        return;
+      }
+    }
+    if (!archSelection || archSelection.count() !== 1) {
       ins.hidden = true;
       return;
     }
@@ -451,13 +488,23 @@
       var key = g.id.slice(5);
       if (!NODE_LAYOUT[key]) return;
       e.stopPropagation();
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
       if (e.shiftKey) archSelection.toggle(g.id, true);
       else archSelection.setSingle(g.id);
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
       archSelectionRefreshDom();
       return;
     }
     if (!e.shiftKey) {
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
       archSelection.clear();
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
       archSelectionRefreshDom();
     }
   }
@@ -2121,7 +2168,12 @@
     archDragSave();
     archUndoMaybePushSnapshot();
     if (archIsEditMode() && archSelection && endedKey) {
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
       archSelection.setSingle('node-' + endedKey);
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
       archSelectionRefreshDom();
     }
   }
@@ -2180,7 +2232,12 @@
     archDragSave();
     archUndoMaybePushSnapshot();
     if (archIsEditMode() && archSelection && endedKey) {
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
       archSelection.setSingle('node-' + endedKey);
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
       archSelectionRefreshDom();
     }
   }
@@ -2636,6 +2693,7 @@
       panel.hidden = true;
       if (sm) sm.disabled = true;
       if (lg) lg.disabled = true;
+      archSelectionPanelSync();
       return;
     }
     panel.hidden = false;
@@ -2647,6 +2705,49 @@
     if (sm) sm.disabled = !labelReady || b.labelFontSize <= 4;
     if (lg) lg.disabled = !labelReady || b.labelFontSize >= 22;
     if (disp) disp.textContent = String(Math.round(b.labelFontSize * 10) / 10);
+    archSelectionPanelSync();
+  }
+
+  function archCustomBoxDuplicateSelected() {
+    if (!archCustomBoxSelectedId) return;
+    var src = archCustomBoxFind(archCustomBoxSelectedId);
+    if (!src) return;
+    var b = archCustomBoxNormalize(src);
+    var nb = archCustomBoxNormalize({
+      id: 'cbox-' + Date.now(),
+      x: b.x + 28,
+      y: b.y + 28,
+      w: b.w,
+      h: b.h,
+      name: (b.name || 'Box') + ' (copy)',
+      fill: b.fill,
+      stroke: b.stroke,
+      labelFontSize: b.labelFontSize,
+    });
+    nb.x = archClamp(nb.x, 0, ARCH_GUIDE_VIEW.w - nb.w);
+    nb.y = archClamp(nb.y, 0, ARCH_GUIDE_VIEW.h - nb.h);
+    archCustomBoxes.push(nb);
+    archCustomBoxSelectedId = nb.id;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    var domId = 'node-cbox-' + nb.id;
+    var curH = archHighlightsForState(idx).slice();
+    if (curH.indexOf(domId) < 0) curH.push(domId);
+    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    if (archHighlightArraysEqual(curH, defH)) {
+      delete archStateHighlightOverrides[idx];
+      delete archStateHighlightOverrides[String(idx)];
+    } else {
+      archStateHighlightOverrides[String(idx)] = curH;
+    }
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) liveRegion.textContent = 'Duplicated custom box.';
   }
 
   function archCustomBoxAdjustLabelSize(delta) {
@@ -2846,6 +2947,7 @@
     process: { name: 'Process', w: 120, h: 56, fill: '#eff6ff', stroke: '#2563eb' },
     datastore: { name: 'Data store', w: 100, h: 72, fill: '#ecfdf5', stroke: '#059669' },
     external: { name: 'External system', w: 140, h: 48, fill: '#fef3c7', stroke: '#d97706' },
+    textnote: { name: 'Text note', w: 200, h: 40, fill: '#fffefb', stroke: '#c4c9d4' },
   };
 
   function archPaletteAddPreset(presetKey) {
@@ -3604,6 +3706,7 @@
       archCustomBoxesPersist();
       archCustomBoxesRender();
       archUserLineRender();
+      archSelectionPanelSync();
     }
     if (cboxName) {
       cboxName.addEventListener('input', archCustomBoxApplyEditsFromHud);
@@ -3619,6 +3722,10 @@
     }
     if (cboxDel) {
       cboxDel.addEventListener('click', archCustomBoxDeleteSelected);
+    }
+    var cboxDup = qs('#archCustomBoxDuplicate');
+    if (cboxDup) {
+      cboxDup.addEventListener('click', archCustomBoxDuplicateSelected);
     }
     var cboxTextSm = qs('#archCustomBoxTextSmaller');
     var cboxTextLg = qs('#archCustomBoxTextLarger');

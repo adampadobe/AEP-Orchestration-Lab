@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260522">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260523">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -399,6 +399,9 @@
                       <button type="button" class="dashboard-btn-outline arch-palette-btn" data-arch-palette="datastore" title="Add data store cylinder-style box">Data store</button>
                       <button type="button" class="dashboard-btn-outline arch-palette-btn" data-arch-palette="external" title="Add external system box">External</button>
                     </div>
+                    <div class="arch-palette-row arch-palette-row--second">
+                      <button type="button" class="dashboard-btn-outline arch-palette-btn" data-arch-palette="textnote" title="Add wide text annotation box">Text note</button>
+                    </div>
                     <p class="arch-palette-hint">Adds a preset custom box near the diagram center; drag it into place.</p>
                   </div>
                   <div class="arch-int-hud-tools" aria-label="Diagram layout">
@@ -461,7 +464,10 @@
                       <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextLarger" title="Increase label text size" aria-label="Increase label text size">+</button>
                     </span>
                     <p class="arch-custom-box-text-size-hint">Click the label on the diagram, then use − or +.</p>
-                    <button type="button" class="dashboard-btn-outline" id="archCustomBoxDelete" title="Remove this box">Delete box</button>
+                    <div class="arch-custom-box-actions">
+                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxDuplicate" title="Duplicate this box">Duplicate</button>
+                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxDelete" title="Remove this box">Delete box</button>
+                    </div>
                   </div>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="highlights" id="archEditorSectionHighlights" role="tabpanel" aria-labelledby="archEditorRailHighlights" hidden>
@@ -545,6 +551,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260522"></script>
+  <script defer src="aep-architecture-apps.js?v=20260523"></script>
 </body>
 </html>

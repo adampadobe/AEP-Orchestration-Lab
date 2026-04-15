@@ -812,6 +812,17 @@ html[data-aep-theme='dark'] .arch-edit-selection-panel {
   gap: 6px;
 }
 
+.arch-palette-row--second {
+  margin-top: 6px;
+}
+
+.arch-custom-box-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .arch-palette-hint {
   margin: 8px 0 0;
   font-size: 0.68rem;
