@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="experimentation-visualiser.css?v=20260433">
+  <link rel="stylesheet" href="experimentation-visualiser.css?v=20260434">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-visualiser-page">
   <div class="dashboard-shell">
@@ -33,7 +33,7 @@
             <header class="dashboard-hero-header">
               <h2 id="expVisHeading" class="dashboard-hero-title">Experimentation visualiser (in development)</h2>
               <p class="dashboard-hero-subtitle">
-                Animated allocation view: profiles flow from the audience through the experiment; path counts and click counters run up together. Treatment B shows Winner above its count when all click targets are reached.
+                Two samples: path allocation (profiles through treatments) and email A/B subject test (click share donuts, then Subject A marked Winner). Each block has its own replay control.
               </p>
             </header>
           </div>
@@ -185,12 +185,93 @@
             </svg>
           </div>
         </section>
+
+        <section class="exp-flow-section exp-email-section" aria-labelledby="expEmailHeading">
+          <h3 id="expEmailHeading" class="exp-email-section-title">Email subject A/B (sample)</h3>
+          <p class="exp-flow-intro">
+            Subject lines drive the creative; click share animates on the donuts (Email A → 80%, Email B → 20%). Previews below mirror each variant. When the run finishes, Subject A is marked Winner.
+          </p>
+          <div class="exp-flow-toolbar">
+            <button type="button" class="exp-flow-replay" id="expEmailReplay">Replay animation</button>
+            <span id="expEmailLive" class="visually-hidden" role="status" aria-live="polite"></span>
+          </div>
+
+          <div class="exp-email-viz exp-flow-viz">
+            <div class="exp-email-top">
+              <div class="exp-email-controls">
+                <button type="button" class="exp-email-generate" id="expEmailGenerate" disabled aria-disabled="true">✨ Generate Email</button>
+                <div class="exp-email-subjects-card">
+                  <div class="exp-email-subject-field" id="expEmailSubjectBlockA">
+                    <span class="exp-email-subject-label">Subject Line A</span>
+                    <div class="exp-email-subject-box">Enjoy 20% off</div>
+                  </div>
+                  <div class="exp-email-subject-field" id="expEmailSubjectBlockB">
+                    <span class="exp-email-subject-label">Subject Line B</span>
+                    <div class="exp-email-subject-box">Buy 1, get 1 half off</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="exp-email-results-card" aria-label="Click share by variant">
+                <p class="exp-email-results-kicker">Clicks</p>
+                <div class="exp-email-donuts" role="img" aria-label="Donut charts showing animated click percentage per email">
+                  <div class="exp-email-donut-col" id="expEmailDonutColA">
+                    <div class="exp-email-donut-svg-wrap">
+                      <svg class="exp-email-donut-svg" viewBox="0 0 120 120" aria-hidden="true">
+                        <circle class="exp-email-donut-track" cx="60" cy="60" r="46" fill="none" stroke="#e8eaed" stroke-width="12"/>
+                        <circle class="exp-email-donut-arc exp-email-donut-arc--a" id="expEmailDonutArcA" cx="60" cy="60" r="46" fill="none" stroke="#e91e8c" stroke-width="12" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="0 100" pathLength="100"/>
+                      </svg>
+                      <span class="exp-email-donut-pct" id="expEmailPctA">0%</span>
+                    </div>
+                    <span class="exp-email-donut-caption">Email A</span>
+                    <span class="exp-email-winner-pill" id="expEmailWinnerPill">Winner</span>
+                  </div>
+                  <div class="exp-email-donut-col" id="expEmailDonutColB">
+                    <div class="exp-email-donut-svg-wrap">
+                      <svg class="exp-email-donut-svg" viewBox="0 0 120 120" aria-hidden="true">
+                        <circle class="exp-email-donut-track" cx="60" cy="60" r="46" fill="none" stroke="#e8eaed" stroke-width="12"/>
+                        <circle class="exp-email-donut-arc exp-email-donut-arc--b" id="expEmailDonutArcB" cx="60" cy="60" r="46" fill="none" stroke="#7c3aed" stroke-width="12" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="0 100" pathLength="100"/>
+                      </svg>
+                      <span class="exp-email-donut-pct" id="expEmailPctB">0%</span>
+                    </div>
+                    <span class="exp-email-donut-caption">Email B</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="exp-email-previews">
+              <figure class="exp-email-preview">
+                <div class="exp-email-preview-frame">
+                  <img class="exp-email-preview-img" src="https://contenthosting.web.app/experiments/email-preview-a.png" width="320" height="200" alt="" loading="lazy"/>
+                  <div class="exp-email-preview-fallback" aria-hidden="true">
+                    <span class="exp-email-preview-fallback-bar"></span>
+                    <span class="exp-email-preview-fallback-subj">Enjoy 20% off</span>
+                    <span class="exp-email-preview-fallback-body"></span>
+                  </div>
+                </div>
+                <figcaption class="exp-email-preview-caption">Subject A — Enjoy 20% off</figcaption>
+              </figure>
+              <figure class="exp-email-preview">
+                <div class="exp-email-preview-frame">
+                  <img class="exp-email-preview-img" src="https://contenthosting.web.app/experiments/email-preview-b.png" width="320" height="200" alt="" loading="lazy"/>
+                  <div class="exp-email-preview-fallback" aria-hidden="true">
+                    <span class="exp-email-preview-fallback-bar"></span>
+                    <span class="exp-email-preview-fallback-subj">Buy 1, get 1 half off</span>
+                    <span class="exp-email-preview-fallback-body"></span>
+                  </div>
+                </div>
+                <figcaption class="exp-email-preview-caption">Subject B — Buy 1, get 1 half off</figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   </div>
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260419-demos-ctrl"></script>
-  <script defer src="experimentation-visualiser.js?v=20260433"></script>
+  <script defer src="experimentation-visualiser.js?v=20260434"></script>
 </body>
 </html>
