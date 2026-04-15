@@ -918,6 +918,13 @@
       var dock = qs('#archEditorDock');
       if (dock) dock.hidden = !on;
       if (archViewport) archViewport.classList.toggle('arch-int-viewport--edit-mode', on);
+      if (!on) {
+        archUserLineSetDrawMode(false);
+      }
+      var drawTop = qs('#archUserLineDrawTopToggle');
+      if (drawTop) drawTop.disabled = !on;
+      var drawTopLbl = qs('#archLineDrawCompactLabel');
+      if (drawTopLbl) drawTopLbl.classList.toggle('arch-line-draw-compact--off', !on);
       archSyncPlaybackNav();
       archSelectionPanelSync();
       archLineFloatUpdateVisibility();
@@ -3791,9 +3798,12 @@
       userLines.drawMode = false;
       var lt = qs('#archUserLineDrawToggle');
       if (lt) lt.checked = false;
+      var ltt = qs('#archUserLineDrawTopToggle');
+      if (ltt) ltt.checked = false;
       archUserLineClearPending();
       archUserLineRemoveDrawListeners();
       if (archViewport) archViewport.classList.remove('arch-user-line-draw');
+      archLineFloatUpdateVisibility();
     }
   }
 
@@ -4552,6 +4562,8 @@
     if (archViewport) archViewport.classList.toggle('arch-user-line-draw', userLines.drawMode);
     var tgl = qs('#archUserLineDrawToggle');
     if (tgl) tgl.checked = userLines.drawMode;
+    var tglTop = qs('#archUserLineDrawTopToggle');
+    if (tglTop) tgl.checked = userLines.drawMode;
     if (userLines.drawMode) archEditorSetPanel('sources');
     if (!userLines.drawMode) {
       archUserLineClearPending();
@@ -4739,6 +4751,12 @@
         archUserLineSetDrawMode(lineDrawToggle.checked);
       });
     }
+    var lineDrawTopToggle = qs('#archUserLineDrawTopToggle');
+    if (lineDrawTopToggle) {
+      lineDrawTopToggle.addEventListener('change', function () {
+        archUserLineSetDrawMode(!!lineDrawTopToggle.checked);
+      });
+    }
     if (customBoxDrawToggle) {
       customBoxDrawToggle.checked = false;
       customBoxDrawToggle.addEventListener('change', function () {
@@ -4850,6 +4868,11 @@
     $all('.arch-int-svg-wrap g.arch-node').forEach(function (g) {
       g.addEventListener('pointerdown', archDragPointerDown);
     });
+
+    var _drawTopTgl = qs('#archUserLineDrawTopToggle');
+    var _drawTopLbl = qs('#archLineDrawCompactLabel');
+    if (_drawTopTgl) _drawTopTgl.disabled = !archIsEditMode();
+    if (_drawTopLbl) _drawTopLbl.classList.toggle('arch-line-draw-compact--off', !archIsEditMode());
 
     archEditSelectionInit();
     archUndoInitOnce();

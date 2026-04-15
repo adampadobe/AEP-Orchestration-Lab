@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260415e">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260415g">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -69,6 +69,10 @@
                         <span>Edit diagram</span>
                       </label>
                       <button type="button" class="dashboard-btn-outline arch-dock-flip-btn" id="archDockSideToggle" title="Move the tool panel to the left or right side">⇄ Side</button>
+                      <label class="arch-drag-toggle arch-line-draw-compact-toggle" id="archLineDrawCompactLabel" title="Draw lines and connectors — shows the floating bar (turn on Edit diagram first)">
+                        <input type="checkbox" id="archUserLineDrawTopToggle" disabled/>
+                        <span>Draw lines</span>
+                      </label>
                     </div>
                   </div>
                   <button type="button" class="dashboard-btn-outline arch-fullscreen-btn arch-int-fullscreen-btn" id="archPresentationFullscreenBtn" title="Fill the screen with the diagram (hides site menu and page title). Press Esc to exit.">Fullscreen</button>
@@ -607,7 +611,7 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
                   <p class="arch-editor-panel-heading">Lines</p>
-                  <p class="arch-tool-lead">The <strong>floating line bar</strong> on the diagram appears only while <strong>Draw lines</strong> below is on (it does not open just from selecting a connector). Use it for line type, weight, colors, undo, delete, and exit. Two-click tools: start then end; freehand: drag; dividers: one tap in Sources.</p>
+                  <p class="arch-tool-lead">The <strong>floating line bar</strong> appears only while <strong>Draw lines</strong> is on (same as the <strong>Draw lines</strong> control next to Edit diagram in the bar above, or this checkbox). Turn it off to hide the floating bar. Two-click tools: start then end; freehand: drag; dividers: one tap in Sources.</p>
                   <div class="arch-tool-group arch-tool-group--diagram-connectors">
                     <h3 class="arch-tool-group-heading">Diagram connectors</h3>
                     <label class="arch-drag-toggle arch-tool-toggle-line-draw" title="Required to show the floating line bar on the canvas and to draw or edit with it">
@@ -697,6 +701,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260415f"></script>
+  <script defer src="aep-architecture-apps.js?v=20260415g"></script>
 </body>
 </html>

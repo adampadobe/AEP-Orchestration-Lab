@@ -224,6 +224,32 @@
   line-height: 1.2;
 }
 
+/* Top bar — mirrors “Draw” in reference UIs: toggles floating line bar with panel checkbox */
+.arch-line-draw-compact-toggle {
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.arch-line-draw-compact-toggle input[type='checkbox']:not(:disabled):checked + span {
+  color: #1473e6;
+}
+
+html[data-aep-theme='dark'] .arch-line-draw-compact-toggle input[type='checkbox']:not(:disabled):checked + span {
+  color: #93c5fd;
+}
+
+.arch-line-draw-compact--off {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.arch-line-draw-compact-toggle input:disabled + span {
+  opacity: 0.65;
+}
+
 .arch-int-compact-nav {
   display: flex;
   flex-wrap: wrap;
