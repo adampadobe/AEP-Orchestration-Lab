@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260416b">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260416c">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -418,10 +418,16 @@
                 </div>
                 <span class="arch-line-float-vr" aria-hidden="true"></span>
                 <div class="arch-line-float-seg arch-line-float-colors" role="group" aria-label="Stroke color">
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#308fff" style="background:#308fff" title="Ingress" aria-label="Ingress blue"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#7d8a9e" style="background:#7d8a9e" title="Intra" aria-label="Intra gray"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#e34850" style="background:#e34850" title="Egress" aria-label="Egress red"></button>
-                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#111827" style="background:#111827" title="Dark" aria-label="Dark"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#e34850" style="background:#e34850" title="Red" aria-label="Red"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#f97316" style="background:#f97316" title="Orange" aria-label="Orange"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#eab308" style="background:#eab308" title="Yellow" aria-label="Yellow"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#22c55e" style="background:#22c55e" title="Green" aria-label="Green"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#06b6d4" style="background:#06b6d4" title="Cyan" aria-label="Cyan"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#308fff" style="background:#308fff" title="Blue" aria-label="Blue"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#a855f7" style="background:#a855f7" title="Purple" aria-label="Purple"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#ec4899" style="background:#ec4899" title="Pink" aria-label="Pink"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#111827" style="background:#111827" title="Black" aria-label="Black"></button>
+                  <button type="button" class="arch-line-float-swatch arch-line-float-swatch--white" data-arch-line-hex="#ffffff" style="background:#ffffff" title="White" aria-label="White"></button>
                   <label class="arch-line-float-color-label" title="Custom color">
                     <span class="visually-hidden">Custom hex color</span>
                     <input type="color" id="archLineFloatColorHex" class="arch-line-float-color-hex arch-diagram-ui" value="#308fff" aria-label="Custom color"/>
@@ -432,13 +438,15 @@
                   <button type="button" class="arch-line-float-btn" id="archLineFloatUndo" title="Undo last layout change">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 014 4v0"/></svg>
                   </button>
-                  <button type="button" class="arch-line-float-btn" id="archLineFloatDelete" title="Delete selected line">
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatDelete" title="Delete selected line" disabled>
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
                   </button>
-                  <button type="button" class="arch-line-float-btn" id="archLineFloatClose" title="Exit line mode">
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatClose" title="Exit Lines tool (same as Select tool)">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
                   </button>
                 </div>
+                <span class="arch-line-float-vr" aria-hidden="true"></span>
+                <button type="button" class="arch-line-float-select-tool" id="archLineFloatSelectTool">Select tool</button>
               </div>
               <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Show editing tools">Show editing tools</button>
             </div>
@@ -606,11 +614,13 @@
                   </details>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
-                  <p class="arch-editor-panel-heading">Lines</p>
-                  <p class="arch-tool-lead">Select <strong>Lines</strong> on the right rail to show the <strong>floating line bar</strong> and draw on the canvas. Choose another rail tab or close the bar to hide it. Two-click tools: start then end; freehand: drag; dividers: one tap in Sources.</p>
-                  <div class="arch-tool-group arch-tool-group--sources-dividers">
-                    <h3 class="arch-tool-group-heading">Sources column dividers</h3>
-                    <p class="arch-tool-micro">Add with the <strong>divider</strong> tool on the floating bar (tap in Sources), or fine-tune here. Drag on-diagram when <strong>Adjust on diagram</strong> is on.</p>
+                  <div class="arch-lines-dock-chrome-hide-when-active">
+                    <p class="arch-editor-panel-heading">Lines</p>
+                    <p class="arch-tool-lead">Use the <strong>floating toolbar</strong> on the canvas for connectors (stroke, arrows, freehand, dividers). Switch rail tabs or press <strong>Esc</strong> to leave Lines mode. Divider list and on-diagram adjust are below.</p>
+                    <div class="arch-tool-group arch-tool-group--sources-dividers">
+                      <h3 class="arch-tool-group-heading">Sources column dividers</h3>
+                      <p class="arch-tool-micro">Add with the <strong>divider</strong> tool on the floating bar (tap in the Sources column), or fine-tune here. Drag on-diagram when <strong>Adjust on diagram</strong> is on.</p>
+                    </div>
                   </div>
                   <details class="arch-sources-dividers-wrap" id="archSourcesDividersWrap">
                     <summary class="arch-highlight-picker-summary">Divider line list &amp; numbers</summary>
@@ -684,6 +694,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260416b"></script>
+  <script defer src="aep-architecture-apps.js?v=20260416c"></script>
 </body>
 </html>

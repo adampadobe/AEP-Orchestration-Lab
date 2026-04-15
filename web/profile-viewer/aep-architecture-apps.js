@@ -605,9 +605,36 @@
   /** Active diagram editor rail tab (layout | highlights | sources | spectrum-icons | file). */
   var archEditorActivePanelId = 'layout';
 
+  /** Diagram edit tool: `lines` while Lines rail (sources) is active; otherwise `select`. Mirrors rail — use archSetActiveTool to switch. */
+  var LS_ARCH_ACTIVE_TOOL = 'aepArchActiveTool';
+
+  function archGetActiveTool() {
+    return archEditorActivePanelId === 'sources' ? 'lines' : 'select';
+  }
+
+  /** Switch to Lines tool (sources panel) or Select / canvas tools (any other panel). */
+  function archSetActiveTool(tool) {
+    if (tool === 'lines') {
+      archEditorSetPanel('sources');
+    } else {
+      archEditorSetPanel('layout');
+    }
+  }
+
+  /** Hide left Lines dock chrome while Lines tab is active — connectors are edited from the floating bar. */
+  function archEditorSyncLinesDockChrome() {
+    var sec = qs('#archEditorSectionSources');
+    if (!sec) return;
+    var hideChrome = !!(archIsEditMode() && archEditorActivePanelId === 'sources');
+    sec.classList.toggle('arch-editor-section--lines-float-active', hideChrome);
+  }
+
   /** Switch diagram editor rail tab (layout | highlights | sources | spectrum-icons | file). */
   function archEditorSetPanel(panelId) {
     archEditorActivePanelId = panelId || 'layout';
+    try {
+      localStorage.setItem(LS_ARCH_ACTIVE_TOOL, archGetActiveTool());
+    } catch (e) {}
     $all('.arch-editor-section').forEach(function (sec) {
       var match = sec.getAttribute('data-arch-panel') === archEditorActivePanelId;
       sec.hidden = !match;
@@ -620,6 +647,7 @@
     });
     if (archEditorActivePanelId === 'spectrum-icons') archSpectrumIconsPanelInit();
     archUserLineSyncDrawModeFromEditor();
+    archEditorSyncLinesDockChrome();
   }
 
   function archHighlightsForState(stateIndex) {
@@ -924,6 +952,7 @@
       if (dock) dock.hidden = !on;
       if (archViewport) archViewport.classList.toggle('arch-int-viewport--edit-mode', on);
       archUserLineSyncDrawModeFromEditor();
+      archEditorSyncLinesDockChrome();
       archSyncPlaybackNav();
       archSelectionPanelSync();
       archLineFloatUpdateVisibility();
@@ -1832,12 +1861,18 @@
   /** Stroke width presets (px) — matches weight popover. */
   var ARCH_LINE_FLOAT_W_PRESETS = [1, 2, 3, 5, 8];
 
-  /** Preset stroke colors (Ingress / Intra / Egress / Dark — matches diagram key). */
+  /** Preset stroke colors — float bar shows full row; first matches diagram key where applicable. */
   var ARCH_USER_LINE_PRESETS = [
-    { hex: '#308fff', label: 'Ingress — blue' },
-    { hex: '#7d8a9e', label: 'Intra — gray' },
-    { hex: '#e34850', label: 'Egress — red' },
-    { hex: '#111827', label: 'Dark' },
+    { hex: '#e34850', label: 'Red' },
+    { hex: '#f97316', label: 'Orange' },
+    { hex: '#eab308', label: 'Yellow' },
+    { hex: '#22c55e', label: 'Green' },
+    { hex: '#06b6d4', label: 'Cyan' },
+    { hex: '#308fff', label: 'Blue — ingress' },
+    { hex: '#a855f7', label: 'Purple' },
+    { hex: '#ec4899', label: 'Pink' },
+    { hex: '#111827', label: 'Black' },
+    { hex: '#ffffff', label: 'White' },
   ];
 
   function archLineStrokeNormalizeHex(h) {
@@ -2090,9 +2125,11 @@
   function archLineFloatUpdateVisibility() {
     var bar = qs('#archLineFloatBar');
     if (!bar) return;
-    /** Floating bar when Edit + Lines rail + line draw mode; visibility uses #archLineFloatBar[hidden] + CSS. */
+    /** Floating bar when Edit mode + Lines tool (sources rail) + line draw; visibility uses #archLineFloatBar[hidden] + CSS. */
     var show = archIsEditMode() && userLines.drawMode;
     bar.hidden = !show;
+    var del = qs('#archLineFloatDelete');
+    if (del) del.disabled = !show || !userLines.selectedId;
     if (!show) {
       archLineFloatWeightMenuClose();
       freehandSession = null;
@@ -2276,7 +2313,13 @@
     var cl = qs('#archLineFloatClose');
     if (cl) {
       cl.addEventListener('click', function () {
-        archEditorSetPanel('layout');
+        archSetActiveTool('select');
+      });
+    }
+    var selTool = qs('#archLineFloatSelectTool');
+    if (selTool) {
+      selTool.addEventListener('click', function () {
+        archSetActiveTool('select');
       });
     }
   }
@@ -4574,7 +4617,7 @@
   }
 
   function archUserLineSyncDrawModeFromEditor() {
-    var on = !!(archIsEditMode() && archEditorActivePanelId === 'sources' && !customBoxDrawMode);
+    var on = !!(archIsEditMode() && archGetActiveTool() === 'lines' && !customBoxDrawMode);
     archUserLineApplyDrawState(on);
   }
 
@@ -4839,6 +4882,35 @@
 
     document.addEventListener('keydown', archUserLineOnGlobalDelete);
 
+    if (!document.documentElement.getAttribute('data-arch-lines-esc')) {
+      document.documentElement.setAttribute('data-arch-lines-esc', '1');
+      document.addEventListener(
+        'keydown',
+        function (e) {
+          if (e.key !== 'Escape') return;
+          if (!archIsEditMode() || archGetActiveTool() !== 'lines') return;
+          if (
+            e.target &&
+            (e.target.tagName === 'INPUT' ||
+              e.target.tagName === 'TEXTAREA' ||
+              e.target.tagName === 'SELECT' ||
+              e.target.isContentEditable ||
+              (e.target.closest && e.target.closest('[contenteditable="true"]')))
+          )
+            return;
+          var menu = qs('#archLineFloatWMenu');
+          if (menu && !menu.hidden) {
+            archLineFloatWeightMenuClose();
+            e.preventDefault();
+            return;
+          }
+          e.preventDefault();
+          archSetActiveTool('select');
+        },
+        true
+      );
+    }
+
     archDrag.svg.addEventListener('pointerdown', archSourcesSepPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
@@ -4852,6 +4924,7 @@
     });
 
     archUserLineSyncDrawModeFromEditor();
+    archEditorSyncLinesDockChrome();
 
     archEditSelectionInit();
     archUndoInitOnce();
