@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260520">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260521">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -384,6 +384,10 @@
               <div class="arch-editor-panel arch-int-hud" id="archEditorPanel">
                 <div class="arch-editor-section is-active" data-arch-panel="layout" id="archEditorSectionLayout" role="tabpanel" aria-labelledby="archEditorRailLayout">
                   <p class="arch-editor-panel-heading">Layout &amp; drawing</p>
+                  <div id="archEditSelectionPanel" class="arch-edit-selection-panel" hidden>
+                    <p class="arch-edit-selection-heading">Selection</p>
+                    <p id="archEditSelectionText" class="arch-edit-selection-text" aria-live="polite">—</p>
+                  </div>
                   <div class="arch-int-hud-tools" aria-label="Diagram layout">
                     <label class="arch-drag-toggle">
                       <input type="checkbox" id="archDragToggle"/>
@@ -528,6 +532,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260520"></script>
+  <script defer src="aep-architecture-apps.js?v=20260521"></script>
 </body>
 </html>

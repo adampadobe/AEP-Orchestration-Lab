@@ -290,11 +290,29 @@
       if (!id || id.indexOf('node-') !== 0 || id.indexOf('node-cbox-') === 0) return;
       g.classList.toggle('arch-node--selected', archSelection.has(id));
     });
+    archSelectionPanelSync();
+  }
+
+  function archSelectionPanelSync() {
+    var panel = qs('#archEditSelectionPanel');
+    var txt = qs('#archEditSelectionText');
+    if (!panel || !txt) return;
+    if (!archIsEditMode()) {
+      panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    if (!archSelection || archSelection.count() === 0) {
+      txt.textContent = 'None — click a node (Shift+click for multi-select).';
+      return;
+    }
+    txt.textContent = archSelection.toArray().join(', ');
   }
 
   function archEditSelectionInit() {
     if (archSelection || !(window.AEPDiagram && window.AEPDiagram.selection)) return;
     archSelection = window.AEPDiagram.selection.create();
+    archSelectionPanelSync();
   }
 
   /** Snapshot without `savedAt` so identical layouts dedupe in the undo stack. */
@@ -720,6 +738,7 @@
       if (dock) dock.hidden = !on;
       if (archViewport) archViewport.classList.toggle('arch-int-viewport--edit-mode', on);
       archSyncPlaybackNav();
+      archSelectionPanelSync();
     }
 
     function archEditorApplyDock() {

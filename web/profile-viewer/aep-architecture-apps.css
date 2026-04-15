@@ -736,6 +736,36 @@
   margin-top: 8px;
 }
 
+.arch-edit-selection-panel {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border, #e5e7eb);
+  background: rgba(249, 250, 251, 0.9);
+}
+
+.arch-edit-selection-heading {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-edit-selection-text {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--dash-text, #111827);
+  word-break: break-word;
+}
+
+html[data-aep-theme='dark'] .arch-edit-selection-panel {
+  background: rgba(30, 34, 40, 0.85);
+  border-color: var(--dash-border);
+}
+
 .arch-int-viewport--edit-mode .arch-node:not(.arch-custom-box).arch-node--selected {
   filter: drop-shadow(0 0 2px rgba(20, 115, 230, 0.95));
 }
