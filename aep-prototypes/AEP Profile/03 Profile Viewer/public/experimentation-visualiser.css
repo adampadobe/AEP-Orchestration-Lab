@@ -82,12 +82,11 @@
 }
 
 .experimentation-visualiser-page .exp-flow-winner-badge {
-  opacity: 0;
-  transition: opacity 0.45s ease;
+  transition: fill 0.35s ease;
 }
 
 .experimentation-visualiser-page .exp-flow-treatment--winner .exp-flow-winner-badge {
-  opacity: 1;
+  fill: #b8860b;
 }
 
 html[data-aep-theme='dark'] .experimentation-visualiser-page .exp-flow-viz {
