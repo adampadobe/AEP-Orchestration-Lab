@@ -243,6 +243,20 @@
   hyphens: auto;
 }
 
+.arch-editor-rail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.arch-editor-rail-tools-logo {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
 .arch-editor-panel-heading {
   margin: 0 0 0.4rem;
   font-size: 0.72rem;
