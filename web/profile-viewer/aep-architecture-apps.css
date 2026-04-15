@@ -1491,6 +1491,26 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   pointer-events: stroke;
 }
 
+.arch-user-lines-layer .arch-user-line-hit {
+  cursor: pointer;
+}
+
+.arch-user-line-handles-layer .arch-user-line-handle {
+  fill: #fff;
+  stroke: #1473e6;
+  stroke-width: 1.5;
+  cursor: grab;
+}
+
+.arch-user-line-handles-layer .arch-user-line-handle--bend {
+  cursor: move;
+}
+
+html[data-aep-theme='dark'] .arch-user-line-handles-layer .arch-user-line-handle {
+  fill: rgba(30, 41, 59, 0.98);
+  stroke: #93c5fd;
+}
+
 .arch-user-lines-layer .arch-user-line--selected {
   filter: drop-shadow(0 0 2px rgba(20, 115, 230, 0.6));
 }

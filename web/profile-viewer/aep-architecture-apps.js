@@ -525,6 +525,7 @@
     if (!e.shiftKey) {
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
+      userLines.selectedId = null;
       archSelection.clear();
       archCustomBoxesRender();
       archUserLineRender();
@@ -1855,6 +1856,15 @@
     selectedId: null,
   };
 
+  /** Dragging connector bend or endpoints (Edit mode). */
+  var archUserLineEditDrag = {
+    active: false,
+    kind: '',
+    lineId: '',
+    pointerId: null,
+    el: null,
+  };
+
   /** Floating line toolbar defaults (also persisted under LS_LINE_TOOLBAR_DEFAULTS). */
   var lineDefaults = {
     strokeColorHex: '#308FFF',
@@ -2162,7 +2172,7 @@
   function archLineFloatSyncBidirUi(sel) {
     var btn = qs('#archLineFloatBidir');
     if (!btn) return;
-    if (!sel || (sel.points && sel.points.length >= 2)) {
+    if (!sel || archUserLineIsFreehandLine(sel)) {
       btn.disabled = true;
       btn.setAttribute('aria-pressed', 'false');
       btn.classList.remove('is-active');
@@ -2200,7 +2210,7 @@
     if (!ln) return;
     archLineFloatSetHex(ln.stroke || '#308fff');
     archLineFloatSetW(ln.strokeWidth != null ? ln.strokeWidth : 2);
-    if (ln.points && ln.points.length >= 2) archLineFloatSetTool('freehand');
+    if (archUserLineIsFreehandLine(ln)) archLineFloatSetTool('freehand');
     else if (ln.dashStyle === 'dotted') archLineFloatSetTool('dotted');
     else {
       var la = archUserLineGetLineArrows(ln);
@@ -2215,7 +2225,7 @@
     if (!ln) return;
     ln.stroke = archLineFloatGetHex();
     ln.strokeWidth = archLineFloatGetStrokeW();
-    if (ln.points && ln.points.length >= 2) {
+    if (archUserLineIsFreehandLine(ln)) {
       archUserLineRender();
       archUserLinePersist();
       archUndoMaybePushSnapshot();
@@ -2448,7 +2458,7 @@
       bdir.addEventListener('click', function (e) {
         e.stopPropagation();
         var ln = archUserLineGetSelected();
-        if (!ln || (ln.points && ln.points.length >= 2)) return;
+        if (!ln || archUserLineIsFreehandLine(ln)) return;
         var la = archUserLineGetLineArrows(ln);
         if (la === 'none' || la === null) return;
         ln.lineArrows = la === 'both' ? 'end' : 'both';
@@ -2663,6 +2673,12 @@
   /** Pixels from a box edge — clicks within this distance snap to that edge (for anchored connectors). */
   var USER_LINE_SNAP_PX = 36;
 
+  /** Min half-width (px) for invisible stroke hit-testing along connector paths. */
+  var USER_LINE_HIT_STROKE_MIN = 12;
+
+  /** Bend segment snaps to 45° by default; Shift disables. Alt snaps the other segment (end → bend). */
+  var ARCH_BEND_SNAP_RAD = Math.PI / 4;
+
   function archUserLineClosestPointOnSeg(px, py, x1, y1, x2, y2) {
     var dx = x2 - x1;
     var dy = y2 - y1;
@@ -2671,6 +2687,81 @@
     var x = x1 + t * dx;
     var y = y1 + t * dy;
     return { x: x, y: y, t: t, dist: Math.hypot(px - x, py - y) };
+  }
+
+  /** Freehand sketch paths: `points` only, no anchor endpoints. */
+  function archUserLineIsFreehandLine(ln) {
+    return !!(ln && ln.points && ln.points.length >= 2 && !ln.from && !ln.to);
+  }
+
+  /** Anchored two-click connectors (with optional bend vertex). */
+  function archUserLineIsConnector(ln) {
+    return !!(ln && ln.from && ln.to);
+  }
+
+  /**
+   * Snap (x,y) so the ray from (ox,oy) keeps length r but angle snaps to stepRad multiples.
+   * When disableSnap, returns the raw target.
+   */
+  function archSnapRadialFromOrigin(ox, oy, tx, ty, stepRad, disableSnap) {
+    var dx = tx - ox;
+    var dy = ty - oy;
+    var r = Math.hypot(dx, dy);
+    if (r < 0.5) return { x: ox, y: oy };
+    if (disableSnap) return { x: tx, y: ty };
+    var ang = Math.atan2(dy, dx);
+    var snapped = Math.round(ang / stepRad) * stepRad;
+    return { x: ox + r * Math.cos(snapped), y: oy + r * Math.sin(snapped) };
+  }
+
+  /** World-space [start, bend, end] for anchored connectors (bend is stored on `ln.bend`). */
+  function archUserLineConnectorWorldPoints(ln) {
+    if (!archUserLineIsConnector(ln)) return null;
+    var p1 = archUserLinePointFromEndpoint(ln.from);
+    var p2 = archUserLinePointFromEndpoint(ln.to);
+    if (!p1 || !p2) return null;
+    var bx;
+    var by;
+    if (ln.bend && typeof ln.bend.x === 'number' && typeof ln.bend.y === 'number') {
+      bx = ln.bend.x;
+      by = ln.bend.y;
+    } else {
+      bx = (p1.x + p2.x) / 2;
+      by = (p1.y + p2.y) / 2;
+    }
+    return [p1, { x: bx, y: by }, p2];
+  }
+
+  function archUserLinePathDFromLine(ln) {
+    if (archUserLineIsFreehandLine(ln)) {
+      var pts = ln.points;
+      var d = 'M ' + pts[0][0] + ' ' + pts[0][1];
+      for (var pi = 1; pi < pts.length; pi++) {
+        d += ' L ' + pts[pi][0] + ' ' + pts[pi][1];
+      }
+      return { d: d, kind: 'freehand' };
+    }
+    if (archUserLineIsConnector(ln)) {
+      var tri = archUserLineConnectorWorldPoints(ln);
+      if (!tri) return null;
+      return {
+        d:
+          'M ' +
+          tri[0].x +
+          ' ' +
+          tri[0].y +
+          ' L ' +
+          tri[1].x +
+          ' ' +
+          tri[1].y +
+          ' L ' +
+          tri[2].x +
+          ' ' +
+          tri[2].y,
+        kind: 'connector',
+      };
+    }
+    return null;
   }
 
   function archUserLineClosestOnWorldRectBorder(wr, px, py) {
@@ -2823,7 +2914,7 @@
    */
   function archUserLineGetLineArrows(ln) {
     if (!ln) return 'end';
-    if (ln.points && ln.points.length >= 2) return null;
+    if (archUserLineIsFreehandLine(ln)) return null;
     var la = ln.lineArrows;
     if (la === 'none' || la === 'end' || la === 'both') return la;
     return ln.bidirectional ? 'both' : 'end';
@@ -2831,7 +2922,7 @@
 
   function archUserLineMigrateLegacy(ln) {
     if (!ln) return ln;
-    if (ln.points && Array.isArray(ln.points) && ln.points.length >= 2) {
+    if (ln.points && Array.isArray(ln.points) && ln.points.length >= 2 && !ln.from && !ln.to) {
       var poly = Object.assign({}, ln);
       poly.points = ln.points.map(function (pt) {
         return [Number(pt && pt[0]) || 0, Number(pt && pt[1]) || 0];
@@ -2848,6 +2939,15 @@
         c.lineArrows = c.bidirectional ? 'both' : 'end';
       }
       c.bidirectional = c.lineArrows === 'both';
+      var a = archUserLinePointFromEndpoint(c.from);
+      var b = archUserLinePointFromEndpoint(c.to);
+      if (a && b) {
+        if (!c.bend || typeof c.bend.x !== 'number' || typeof c.bend.y !== 'number') {
+          c.bend = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        }
+      } else if (!c.bend || typeof c.bend.x !== 'number') {
+        c.bend = { x: 0, y: 0 };
+      }
       return c;
     }
     var out = Object.assign({}, ln);
@@ -2866,6 +2966,17 @@
       out.lineArrows = out.bidirectional ? 'both' : 'end';
     }
     out.bidirectional = out.lineArrows === 'both';
+    if (out.from && out.to) {
+      var ax = archUserLinePointFromEndpoint(out.from);
+      var bx = archUserLinePointFromEndpoint(out.to);
+      if (ax && bx) {
+        if (!out.bend || typeof out.bend.x !== 'number' || typeof out.bend.y !== 'number') {
+          out.bend = { x: (ax.x + bx.x) / 2, y: (ax.y + bx.y) / 2 };
+        }
+      } else if (!out.bend || typeof out.bend.x !== 'number') {
+        out.bend = { x: 0, y: 0 };
+      }
+    }
     return out;
   }
 
@@ -4390,25 +4501,45 @@
     }
   }
 
+  function archUserLineHandlesRefresh() {
+    var hg = qs('#layer-user-line-handles');
+    if (!hg) return;
+    while (hg.firstChild) hg.removeChild(hg.firstChild);
+    if (!archIsEditMode()) return;
+    var ln = archUserLineGetSelected();
+    if (!ln || !archUserLineIsConnector(ln)) return;
+    var tri = archUserLineConnectorWorldPoints(ln);
+    if (!tri) return;
+    var lid = ln.id;
+    var pts = [
+      ['from', tri[0].x, tri[0].y],
+      ['bend', tri[1].x, tri[1].y],
+      ['to', tri[2].x, tri[2].y],
+    ];
+    for (var hi = 0; hi < pts.length; hi++) {
+      var c = document.createElementNS(SVG_NS, 'circle');
+      c.setAttribute('cx', String(pts[hi][1]));
+      c.setAttribute('cy', String(pts[hi][2]));
+      c.setAttribute('r', '6');
+      c.setAttribute('class', 'arch-user-line-handle arch-user-line-handle--' + pts[hi][0]);
+      c.setAttribute('data-arch-handle', pts[hi][0]);
+      c.setAttribute('data-user-line-id', lid);
+      c.setAttribute('pointer-events', 'all');
+      hg.appendChild(c);
+    }
+  }
+
   function archUserLineRender() {
     var g = qs('#layer-user-lines');
     if (!g) return;
     userLines.lines = userLines.lines.map(archUserLineMigrateLegacy);
     while (g.firstChild) g.removeChild(g.firstChild);
     userLines.lines.forEach(function (ln) {
-      var d = '';
-      var isPoly = ln.points && ln.points.length >= 2;
-      if (isPoly) {
-        d = 'M ' + ln.points[0][0] + ' ' + ln.points[0][1];
-        for (var pi = 1; pi < ln.points.length; pi++) {
-          d += ' L ' + ln.points[pi][0] + ' ' + ln.points[pi][1];
-        }
-      } else {
-        var pt1 = archUserLinePointFromEndpoint(ln.from);
-        var pt2 = archUserLinePointFromEndpoint(ln.to);
-        if (!pt1 || !pt2) return;
-        d = 'M ' + pt1.x + ' ' + pt1.y + ' L ' + pt2.x + ' ' + pt2.y;
-      }
+      var meta = archUserLinePathDFromLine(ln);
+      if (!meta) return;
+      var d = meta.d;
+      var isFree = meta.kind === 'freehand';
+      var isConn = meta.kind === 'connector';
       var p = document.createElementNS(SVG_NS, 'path');
       p.setAttribute('d', d);
       p.setAttribute('stroke', ln.stroke || '#308fff');
@@ -4425,10 +4556,11 @@
       p.setAttribute(
         'class',
         'arch-user-line' +
-          (isPoly ? ' arch-user-line--poly' : '') +
+          (isFree ? ' arch-user-line--poly' : '') +
+          (isConn ? ' arch-user-line--connector' : '') +
           (userLines.selectedId === ln.id ? ' arch-user-line--selected' : '')
       );
-      if (!isPoly) {
+      if (isConn) {
         var la = archUserLineGetLineArrows(ln);
         if (la === 'end' || la === 'both') {
           p.setAttribute('marker-end', 'url(#archUserArrowEnd)');
@@ -4438,18 +4570,105 @@
         }
       }
       g.appendChild(p);
-      if (isPoly) {
-        var hit = document.createElementNS(SVG_NS, 'path');
-        hit.setAttribute('d', d);
-        hit.setAttribute('stroke', 'transparent');
-        hit.setAttribute('stroke-width', String(Math.max(10, Number(sw) + 8)));
-        hit.setAttribute('fill', 'none');
-        hit.setAttribute('pointer-events', 'stroke');
-        hit.setAttribute('data-user-line-id', ln.id);
-        hit.setAttribute('class', 'arch-user-line-hit');
-        g.appendChild(hit);
-      }
+      var hit = document.createElementNS(SVG_NS, 'path');
+      hit.setAttribute('d', d);
+      hit.setAttribute('stroke', 'transparent');
+      hit.setAttribute('stroke-width', String(Math.max(USER_LINE_HIT_STROKE_MIN, Number(sw) + 8)));
+      hit.setAttribute('fill', 'none');
+      hit.setAttribute('pointer-events', 'stroke');
+      hit.setAttribute('data-user-line-id', ln.id);
+      hit.setAttribute('class', 'arch-user-line-hit');
+      g.appendChild(hit);
     });
+    archUserLineHandlesRefresh();
+  }
+
+  function archUserLineFindById(id) {
+    for (var i = 0; i < userLines.lines.length; i++) {
+      if (userLines.lines[i].id === id) return userLines.lines[i];
+    }
+    return null;
+  }
+
+  function archUserLineHandlePointerMove(e) {
+    if (!archUserLineEditDrag.active || !archDrag.svg) return;
+    var ln = archUserLineFindById(archUserLineEditDrag.lineId);
+    if (!ln || !archUserLineIsConnector(ln)) return;
+    e.preventDefault();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var tgt = document.elementFromPoint(e.clientX, e.clientY);
+    var kind = archUserLineEditDrag.kind;
+    if (kind === 'from') {
+      ln.from = archUserLineSnapEndpoint(p.x, p.y, tgt);
+    } else if (kind === 'to') {
+      ln.to = archUserLineSnapEndpoint(p.x, p.y, tgt);
+    } else if (kind === 'bend') {
+      var tri = archUserLineConnectorWorldPoints(ln);
+      if (!tri) return;
+      var ox = tri[0].x;
+      var oy = tri[0].y;
+      var ex = tri[2].x;
+      var ey = tri[2].y;
+      var disableSnap = !!e.shiftKey;
+      var useEndOrigin = !!e.altKey;
+      var nb;
+      if (useEndOrigin) {
+        nb = archSnapRadialFromOrigin(ex, ey, p.x, p.y, ARCH_BEND_SNAP_RAD, disableSnap);
+      } else {
+        nb = archSnapRadialFromOrigin(ox, oy, p.x, p.y, ARCH_BEND_SNAP_RAD, disableSnap);
+      }
+      ln.bend = { x: nb.x, y: nb.y };
+    }
+    archUserLineRender();
+  }
+
+  function archUserLineHandlePointerUp(e) {
+    if (!archUserLineEditDrag.active) return;
+    archUserLineEditDrag.active = false;
+    window.removeEventListener('pointermove', archUserLineHandlePointerMove, true);
+    window.removeEventListener('pointerup', archUserLineHandlePointerUp, true);
+    window.removeEventListener('pointercancel', archUserLineHandlePointerUp, true);
+    var el = archUserLineEditDrag.el;
+    var pid = archUserLineEditDrag.pointerId;
+    archUserLineEditDrag.el = null;
+    archUserLineEditDrag.pointerId = null;
+    archUserLineEditDrag.kind = '';
+    archUserLineEditDrag.lineId = '';
+    if (el && pid != null && el.releasePointerCapture) {
+      try {
+        el.releasePointerCapture(pid);
+      } catch (err) {}
+    }
+    archUserLinePersist();
+    archUndoMaybePushSnapshot();
+    archUserLineRender();
+  }
+
+  function archUserLineHandlePointerDown(e) {
+    if (!archIsEditMode()) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('arch-user-line-handle')) return;
+    var kind = t.getAttribute('data-arch-handle');
+    var lid = t.getAttribute('data-user-line-id');
+    if (!kind || !lid) return;
+    var ln = archUserLineFindById(lid);
+    if (!ln || !archUserLineIsConnector(ln)) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    archUserLineEditDrag.active = true;
+    archUserLineEditDrag.kind = kind;
+    archUserLineEditDrag.lineId = lid;
+    archUserLineEditDrag.pointerId = e.pointerId;
+    archUserLineEditDrag.el = t;
+    if (t.setPointerCapture) {
+      try {
+        t.setPointerCapture(e.pointerId);
+      } catch (err2) {}
+    }
+    window.addEventListener('pointermove', archUserLineHandlePointerMove, true);
+    window.addEventListener('pointerup', archUserLineHandlePointerUp, true);
+    window.addEventListener('pointercancel', archUserLineHandlePointerUp, true);
   }
 
   function archUserLineGetSelected() {
@@ -4621,10 +4840,21 @@
             : L.bidirectional
               ? 'both'
               : 'end';
+        var fEp = archUserLineEndpointPasteOffset(L.from, dx, dy);
+        var tEp = archUserLineEndpointPasteOffset(L.to, dx, dy);
+        var pA = archUserLinePointFromEndpoint(fEp);
+        var pB = archUserLinePointFromEndpoint(tEp);
+        var bendPaste =
+          L.bend && typeof L.bend.x === 'number' && typeof L.bend.y === 'number'
+            ? { x: L.bend.x + dx, y: L.bend.y + dy }
+            : pA && pB
+              ? { x: (pA.x + pB.x) / 2, y: (pA.y + pB.y) / 2 }
+              : { x: 0, y: 0 };
         userLines.lines.push({
           id: id,
-          from: archUserLineEndpointPasteOffset(L.from, dx, dy),
-          to: archUserLineEndpointPasteOffset(L.to, dx, dy),
+          from: fEp,
+          to: tEp,
+          bend: bendPaste,
           stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
           strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2,
           lineArrows: lar,
@@ -4654,10 +4884,17 @@
     else if (tool === 'plain') lineArrows = 'none';
     else if (tool === 'arrow' || tool === 'dotted') lineArrows = 'end';
     var id = 'ul-' + Date.now();
+    var wp1 = archUserLinePointFromEndpoint(ep1);
+    var wp2 = archUserLinePointFromEndpoint(ep2);
+    var bend =
+      wp1 && wp2
+        ? { x: (wp1.x + wp2.x) / 2, y: (wp1.y + wp2.y) / 2 }
+        : { x: 0, y: 0 };
     userLines.lines.push({
       id: id,
       from: ep1,
       to: ep2,
+      bend: bend,
       stroke: archLineFloatGetHex(),
       strokeWidth: archLineFloatGetStrokeW(),
       lineArrows: lineArrows,
@@ -5074,6 +5311,7 @@
       );
     }
 
+    archDrag.svg.addEventListener('pointerdown', archUserLineHandlePointerDown, true);
     archDrag.svg.addEventListener('pointerdown', archSourcesSepPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
