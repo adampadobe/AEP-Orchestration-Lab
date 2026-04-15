@@ -56,6 +56,40 @@
   outline-offset: 2px;
 }
 
+.experimentation-visualiser-page .exp-flow-gif-download {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: 1px dashed var(--dash-border, #c8c4cf);
+  background: transparent;
+  color: var(--dash-muted, #555);
+  cursor: pointer;
+}
+
+.experimentation-visualiser-page .exp-flow-gif-download:hover:not(:disabled) {
+  background: var(--dash-hover, #f4f4f5);
+  border-style: solid;
+}
+
+.experimentation-visualiser-page .exp-flow-gif-download:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.experimentation-visualiser-page .exp-flow-gif-download:focus-visible {
+  outline: 2px solid var(--dash-blue, #1473e6);
+  outline-offset: 2px;
+}
+
+.experimentation-visualiser-page .exp-gif-export-status {
+  font-size: 0.8125rem;
+  color: var(--dash-muted, #6e6e6e);
+  margin: 0.75rem 0 0;
+  min-height: 1.25rem;
+}
+
 .experimentation-visualiser-page .exp-flow-viz {
   width: 100%;
   border-radius: 16px;

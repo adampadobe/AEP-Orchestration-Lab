@@ -231,3 +231,9 @@
     run();
   }
 })();
+
+/** Durations for GIF export (keep in sync with animation DURATION_MS values above). */
+window.__expVisExport = {
+  pathDurationMs: 4800,
+  emailDurationMs: 4200,
+};
