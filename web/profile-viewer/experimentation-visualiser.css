@@ -336,6 +336,16 @@ html[data-aep-theme='dark'] .experimentation-visualiser-page .exp-flow-viz {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 0.35rem;
+  box-sizing: border-box;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.experimentation-visualiser-page .exp-email-preview--winner {
+  border-color: #b8860b;
+  box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.18);
 }
 
 .experimentation-visualiser-page .exp-email-preview-frame {

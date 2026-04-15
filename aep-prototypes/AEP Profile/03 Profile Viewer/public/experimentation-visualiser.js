@@ -133,6 +133,7 @@
     pctB: document.getElementById('expEmailPctB'),
     colA: document.getElementById('expEmailDonutColA'),
     subjectA: document.getElementById('expEmailSubjectBlockA'),
+    previewA: document.getElementById('expEmailPreviewA'),
     pill: document.getElementById('expEmailWinnerPill'),
     live: document.getElementById('expEmailLive'),
     replay: document.getElementById('expEmailReplay'),
@@ -155,6 +156,7 @@
   function setWinner(on) {
     if (els.colA) els.colA.classList.toggle('exp-email-donut-col--winner', !!on);
     if (els.subjectA) els.subjectA.classList.toggle('exp-email-subject-field--winner', !!on);
+    if (els.previewA) els.previewA.classList.toggle('exp-email-preview--winner', !!on);
     if (els.pill) els.pill.classList.toggle('exp-email-winner-pill--visible', !!on);
     if (on) announce('Click shares updated. Subject A is the Winner.');
   }
