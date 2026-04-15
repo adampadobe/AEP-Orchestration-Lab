@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260527">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260528">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -396,7 +396,7 @@
               <div class="arch-editor-panel arch-int-hud" id="archEditorPanel">
                 <div class="arch-editor-section is-active" data-arch-panel="layout" id="archEditorSectionLayout" role="tabpanel" aria-labelledby="archEditorRailLayout">
                   <p class="arch-editor-panel-heading">Canvas &amp; drawing</p>
-                  <p class="arch-tool-lead">Use <strong>tool modes</strong> below for boxes and labels. Open <strong>Lines</strong> to draw connectors between boxes or edit Sources dividers. <strong>Undo</strong> is under <strong>File</strong>.</p>
+                  <p class="arch-tool-lead arch-tool-lead--compact">Choose a mode, then use the diagram. <span class="arch-tool-lead-links">Connectors: <strong>Lines</strong> · Undo: <strong>File</strong></span></p>
                   <div id="archEditSelectionPanel" class="arch-edit-selection-panel" hidden>
                     <p class="arch-edit-selection-heading">Selection</p>
                     <p id="archEditSelectionText" class="arch-edit-selection-text" aria-live="polite">—</p>
@@ -405,40 +405,71 @@
                       <p id="archEditInspectorBody" class="arch-edit-inspector-body"></p>
                     </div>
                   </div>
+                  <div class="arch-tool-group arch-tool-group--modes">
+                    <h3 class="arch-tool-group-heading">Modes</h3>
+                    <div class="arch-tool-modes" role="toolbar" aria-label="Canvas interaction modes">
+                      <label class="arch-tool-mode" title="Drag and resize built-in Adobe tiles and custom boxes">
+                        <input type="checkbox" id="archDragToggle" class="visually-hidden arch-tool-mode-input"/>
+                        <span class="arch-tool-mode-body">
+                          <svg class="arch-tool-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/>
+                          </svg>
+                          <span class="arch-tool-mode-text">Move</span>
+                        </span>
+                      </label>
+                      <label class="arch-tool-mode" title="Drag label text, double-click to edit; built-in tiles and custom boxes">
+                        <input type="checkbox" id="archLabelToggle" class="visually-hidden arch-tool-mode-input"/>
+                        <span class="arch-tool-mode-body">
+                          <svg class="arch-tool-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-9a3.375 3.375 0 00-3.375 3.375V19.5m12.75-5.25v4.875a1.875 1.875 0 01-1.875 1.875H5.25A1.875 1.875 0 013.75 19.125v-4.875M9 4.875h6M9 4.875a1.875 1.875 0 00-1.875 1.875V9.75h7.5V6.75A1.875 1.875 0 0015 4.875H9z"/>
+                          </svg>
+                          <span class="arch-tool-mode-text">Labels</span>
+                        </span>
+                      </label>
+                      <label class="arch-tool-mode" title="Drag on the canvas to draw a new custom box">
+                        <input type="checkbox" id="archCustomBoxDrawToggle" class="visually-hidden arch-tool-mode-input"/>
+                        <span class="arch-tool-mode-body">
+                          <svg class="arch-tool-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v12a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18V6z"/>
+                            <path d="M8.25 12.75h7.5"/>
+                          </svg>
+                          <span class="arch-tool-mode-text">Draw box</span>
+                        </span>
+                      </label>
+                    </div>
+                    <p class="arch-tool-hint" role="note">Built-in gray tiles use <strong>Move</strong> and <strong>Labels</strong>. Freeform outline: <strong>Draw box</strong>.</p>
+                  </div>
                   <div class="arch-tool-group">
                     <h3 class="arch-tool-group-heading">Add shapes</h3>
-                    <p class="arch-tool-micro">Quick presets (custom boxes you can drag). For a freeform rectangle, use <strong>Draw custom box</strong> below.</p>
+                    <p class="arch-tool-hint arch-tool-hint--below-heading">Tap to drop a draggable custom shape. Icons match common diagram conventions.</p>
                     <div class="arch-palette-block" aria-label="Preset shapes">
-                      <div class="arch-palette-row">
-                        <button type="button" class="dashboard-btn-outline arch-palette-btn" data-arch-palette="process" title="Add process-style box">Process</button>
-                        <button type="button" class="dashboard-btn-outline arch-palette-btn" data-arch-palette="datastore" title="Add data store cylinder-style box">Data store</button>
-                        <button type="button" class="dashboard-btn-outline arch-palette-btn" data-arch-palette="external" title="Add external system box">External</button>
-                      </div>
-                      <div class="arch-palette-row arch-palette-row--second">
-                        <button type="button" class="dashboard-btn-outline arch-palette-btn" data-arch-palette="textnote" title="Add wide text annotation box">Text note</button>
+                      <div class="arch-palette-grid">
+                        <button type="button" class="arch-palette-tile arch-diagram-ui" data-arch-palette="process" title="Add process-style box (rounded rectangle)">
+                          <span class="arch-palette-tile-graphic" aria-hidden="true">
+                            <svg viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="34" height="18" rx="5" stroke="currentColor" stroke-width="2"/></svg>
+                          </span>
+                          <span class="arch-palette-tile-label">Process</span>
+                        </button>
+                        <button type="button" class="arch-palette-tile arch-diagram-ui" data-arch-palette="datastore" title="Add data store (cylinder)">
+                          <span class="arch-palette-tile-graphic" aria-hidden="true">
+                            <svg viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="20" cy="6" rx="14" ry="4" stroke="currentColor" stroke-width="2"/><path d="M6 6v16c0 2.2 6.27 4 14 4s14-1.8 14-4V6" stroke="currentColor" stroke-width="2"/></svg>
+                          </span>
+                          <span class="arch-palette-tile-label">Data store</span>
+                        </button>
+                        <button type="button" class="arch-palette-tile arch-diagram-ui" data-arch-palette="external" title="Add external system box">
+                          <span class="arch-palette-tile-graphic" aria-hidden="true">
+                            <svg viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 22L16 6h20l-6 16H10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                          </span>
+                          <span class="arch-palette-tile-label">External</span>
+                        </button>
+                        <button type="button" class="arch-palette-tile arch-palette-tile--wide arch-diagram-ui" data-arch-palette="textnote" title="Add wide text annotation box">
+                          <span class="arch-palette-tile-graphic" aria-hidden="true">
+                            <svg viewBox="0 0 56 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="52" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11h40M8 16h28" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                          </span>
+                          <span class="arch-palette-tile-label">Text note</span>
+                        </button>
                       </div>
                     </div>
-                  </div>
-                  <div class="arch-tool-group">
-                    <h3 class="arch-tool-group-heading">Tool modes <span class="arch-tool-group-hint">(one at a time is easiest)</span></h3>
-                    <div class="arch-tool-toggle-grid arch-tool-toggle-grid--canvas-modes" aria-label="Box and label editing modes">
-                      <label class="arch-drag-toggle arch-tool-toggle-cell" title="Drag and resize the built-in Adobe tiles and custom boxes.">
-                        <input type="checkbox" id="archDragToggle"/>
-                        <span>Move &amp; resize</span>
-                      </label>
-                      <label class="arch-drag-toggle arch-tool-toggle-cell" title="Reposition or edit text on labels.">
-                        <input type="checkbox" id="archLabelToggle"/>
-                        <span>Labels</span>
-                      </label>
-                      <label class="arch-drag-toggle arch-tool-toggle-cell" title="Drag a rectangle on the canvas to add a blank custom box.">
-                        <input type="checkbox" id="archCustomBoxDrawToggle"/>
-                        <span>Draw custom box</span>
-                      </label>
-                    </div>
-                  </div>
-                  <div class="arch-tool-group">
-                    <h3 class="arch-tool-group-heading">Built-in Adobe boxes</h3>
-                    <p class="arch-tool-micro">The large gray architecture tiles (not custom boxes). Use <strong>Move &amp; resize</strong> and <strong>Labels</strong> above. Connectors live under <strong>Lines</strong>.</p>
                   </div>
                   <div id="archCustomBoxProps" class="arch-user-line-props arch-custom-box-props arch-tool-group--selected" hidden aria-label="Selected custom box">
                     <h3 class="arch-tool-group-heading">Selected custom box</h3>
@@ -582,6 +613,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260527"></script>
+  <script defer src="aep-architecture-apps.js?v=20260528"></script>
 </body>
 </html>
