@@ -314,7 +314,8 @@
       );
     }
     if (parts.length === 0) {
-      txt.textContent = 'None — click a platform node (Shift+click) or a custom box.';
+      txt.textContent =
+        'None — click or double-click a tile, custom box, or connector. Double-click turns on Move; double-click label text also enables Labels for editing.';
     } else {
       txt.textContent = parts.join('\n');
     }
@@ -507,6 +508,73 @@
       archUserLineSyncPropsHud();
       archSelectionRefreshDom();
     }
+  }
+
+  /**
+   * Double-click (Edit mode) selects a platform node, custom box, or connector.
+   * Turns on Move so you can drag/resize immediately; if you double-click editable label
+   * text, Labels mode is enabled so the existing label editor can open on the same gesture.
+   */
+  function archDiagramDblClickSelect(e) {
+    if (!archIsEditMode()) return;
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
+    if (userLines.drawMode || customBoxDrawMode) return;
+    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
+    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
+    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle--cbox')) return;
+
+    var te = e.target.closest && e.target.closest('text[data-arch-id]');
+    if (te) archLabelSetEnabled(true);
+
+    var ul = e.target.closest && e.target.closest('.arch-user-line');
+    if (ul && ul.getAttribute) {
+      var lid = ul.getAttribute('data-user-line-id');
+      if (lid) {
+        userLines.selectedId = lid;
+        archCustomBoxSelectedId = null;
+        archCustomBoxLabelActiveId = null;
+        if (archSelection) archSelection.clear();
+        archCustomBoxesRender();
+        archUserLineRender();
+        archUserLineSyncPropsHud();
+        archSelectionRefreshDom();
+        if (liveRegion) liveRegion.textContent = 'Connector selected — Delete or Backspace removes it.';
+        return;
+      }
+    }
+
+    var g = e.target.closest && e.target.closest('g.arch-node');
+    if (!g || !g.id || g.id.indexOf('node-') !== 0) return;
+
+    archDragSetEnabled(true);
+
+    if (g.classList.contains('arch-custom-box')) {
+      var rawId = g.id.replace(/^node-cbox-/, '');
+      if (!rawId) return;
+      userLines.selectedId = null;
+      archCustomBoxSelectedId = rawId;
+      archCustomBoxLabelActiveId = null;
+      if (archSelection) archSelection.clear();
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
+      archSelectionRefreshDom();
+      if (liveRegion) liveRegion.textContent = 'Shape selected — drag to move, handles to resize, Delete to remove.';
+      return;
+    }
+
+    var key = g.id.slice(5);
+    if (!NODE_LAYOUT[key]) return;
+    userLines.selectedId = null;
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    if (e.shiftKey && archSelection) archSelection.toggle(g.id, true);
+    else if (archSelection) archSelection.setSingle(g.id);
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    archSelectionRefreshDom();
+    if (liveRegion) liveRegion.textContent = 'Tile selected — drag to move, corners to resize.';
   }
 
   function qs(sel, root) {
@@ -3807,7 +3875,14 @@
 
   function archUserLineOnGlobalDelete(e) {
     if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT'))
+    if (
+      e.target &&
+      (e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.tagName === 'SELECT' ||
+        e.target.isContentEditable ||
+        (e.target.closest && e.target.closest('[contenteditable="true"]')))
+    )
       return;
     if (archCustomBoxSelectedId) {
       e.preventDefault();
@@ -4103,6 +4178,7 @@
     archDrag.svg.addEventListener('pointerdown', archSourcesSepPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
+    archDrag.svg.addEventListener('dblclick', archDiagramDblClickSelect, true);
     archDrag.svg.addEventListener('dblclick', archLabelDblClick, true);
     archDrag.svg.addEventListener('pointerdown', archResizePointerDown, false);
     archDrag.svg.addEventListener('pointerdown', archUserLineOnPointerDown, false);
@@ -4119,10 +4195,16 @@
       document.addEventListener(
         'keydown',
         function (e) {
-          if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable))
+          if (
+            e.target &&
+            (e.target.tagName === 'INPUT' ||
+              e.target.tagName === 'TEXTAREA' ||
+              e.target.isContentEditable ||
+              (e.target.closest && e.target.closest('[contenteditable="true"]')))
+          )
             return;
           var mod = e.metaKey || e.ctrlKey;
-          if (mod && e.key.toLowerCase() === 'z') {
+          if (mod && (e.key.toLowerCase() === 'z' || e.code === 'KeyZ')) {
             e.preventDefault();
             if (e.shiftKey) archRedoRun();
             else archUndoRun();

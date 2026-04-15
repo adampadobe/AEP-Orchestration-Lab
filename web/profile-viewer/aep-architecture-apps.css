@@ -353,6 +353,22 @@
   margin: 0 0 0.5rem;
 }
 
+.arch-tool-hint--shortcuts {
+  max-width: none;
+}
+
+.arch-tool-hint--shortcuts kbd {
+  display: inline-block;
+  padding: 0.06rem 0.28rem;
+  margin: 0 0.04rem;
+  font-size: 0.68rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  color: #334155;
+}
+
 .arch-tool-group--modes .arch-tool-hint {
   margin-top: 0.5rem;
 }
@@ -1421,6 +1437,12 @@ html[data-aep-theme='dark'] .arch-tool-lead-links {
 html[data-aep-theme='dark'] .arch-tool-hint strong,
 html[data-aep-theme='dark'] .arch-tool-lead-links strong {
   color: var(--dash-text, #e8eaed);
+}
+
+html[data-aep-theme='dark'] .arch-tool-hint--shortcuts kbd {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(148, 163, 184, 0.45);
+  color: #e2e8f0;
 }
 
 html[data-aep-theme='dark'] .arch-palette-tile {
