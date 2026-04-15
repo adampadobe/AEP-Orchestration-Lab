@@ -735,6 +735,147 @@
   height: 100%;
 }
 
+/* Floating line toolbar (Edit mode — draw lines or selected connector) */
+.arch-line-float-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 0.65rem;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0.35rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid var(--dash-border, #e4e6eb);
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.1);
+  max-width: calc(100% - 1.25rem);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-bar {
+  background: rgba(30, 41, 59, 0.96);
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.arch-line-float-seg {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.arch-line-float-vr {
+  width: 1px;
+  align-self: stretch;
+  min-height: 1.75rem;
+  margin: 0 0.35rem;
+  background: var(--dash-border, #e4e6eb);
+}
+
+html[data-aep-theme='dark'] .arch-line-float-vr {
+  background: rgba(148, 163, 184, 0.35);
+}
+
+.arch-line-float-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dash-text, #1a1d21);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-btn {
+  color: #e5e7eb;
+}
+
+.arch-line-float-btn:hover {
+  background: rgba(20, 115, 230, 0.08);
+}
+
+html[data-aep-theme='dark'] .arch-line-float-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.arch-line-float-btn.is-active {
+  background: rgba(20, 115, 230, 0.14);
+  color: #1473e6;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-btn.is-active {
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+}
+
+.arch-line-float-ico {
+  width: 1.25rem;
+  height: 1.25rem;
+  display: block;
+}
+
+.arch-line-float-wbar {
+  display: block;
+  width: 1.25rem;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.arch-line-float-wbar--thin {
+  height: 2px;
+}
+
+.arch-line-float-wbar--mid {
+  height: 3px;
+}
+
+.arch-line-float-wbar--thick {
+  height: 5px;
+}
+
+.arch-line-float-swatch {
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.arch-line-float-swatch.is-active {
+  border-color: #1473e6;
+  box-shadow: 0 0 0 1px rgba(20, 115, 230, 0.35);
+}
+
+.arch-line-float-colors {
+  gap: 0.35rem;
+}
+
+.arch-line-float-color-label {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.15rem;
+}
+
+.arch-line-float-color-hex {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid var(--dash-border, #d1d5db);
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+}
+
 /* Nodes */
 .arch-node rect,
 .arch-node path[fill] {
@@ -1183,11 +1324,9 @@
 
 .arch-user-lines-layer .arch-user-line {
   pointer-events: stroke;
-  stroke-width: 2.2;
 }
 
 .arch-user-lines-layer .arch-user-line--selected {
-  stroke-width: 3.2;
   filter: drop-shadow(0 0 2px rgba(20, 115, 230, 0.6));
 }
 

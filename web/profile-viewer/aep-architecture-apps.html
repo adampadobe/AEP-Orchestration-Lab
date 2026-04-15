@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260415b">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260415c">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -370,10 +370,59 @@
             <!-- User-drawn connectors (Lucid-style); rendered on top for interaction -->
             <g id="layer-user-lines" class="arch-user-lines-layer" fill="none" stroke-linecap="round" stroke-linejoin="round" pointer-events="stroke"/>
             <line id="archUserLinePreview" class="arch-user-line-preview" x1="0" y1="0" x2="0" y2="0" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5 4" opacity="0" pointer-events="none"/>
+            <path id="archUserLineFreehandPreview" class="arch-user-line-preview" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="" opacity="0" pointer-events="none"/>
             <!-- PowerPoint-style alignment guides while dragging a box -->
             <g id="layer-drag-guides" class="arch-drag-guides-layer" fill="none" pointer-events="none" aria-hidden="true"/>
           </svg>
           </div>
+              <div id="archLineFloatBar" class="arch-line-float-bar arch-diagram-ui" hidden role="toolbar" aria-label="Lines and connectors">
+                <div class="arch-line-float-seg arch-line-float-tools" role="group" aria-label="Line type">
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="freehand" title="Freehand — drag to sketch a path">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 17c2.5-6 8-12 14.5-9S22 17 16 19c-4 1.5-7-1-9-4"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="divider" title="Sources divider — tap inside the Sources column">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 12h14"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool is-active" data-arch-line-tool="arrow" title="Connector — click start, then end (arrow)">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 12h12"/><path d="M14 8l4 4-4 4"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="doubleArrow" title="Connector — both ends">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 8l-3 4 3 4"/><path d="M16 8l3 4-3 4"/><path d="M9 12h6"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="dotted" title="Dotted connector — click start, then end">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-dasharray="3 3" aria-hidden="true"><path d="M5 12h14"/><path d="M16 9l3 3-3 3"/></svg>
+                  </button>
+                </div>
+                <span class="arch-line-float-vr" aria-hidden="true"></span>
+                <div class="arch-line-float-seg arch-line-float-widths" role="group" aria-label="Line weight">
+                  <button type="button" class="arch-line-float-btn arch-line-float-w" data-arch-line-w="1.4" title="Thin stroke" aria-label="Thin"><span class="arch-line-float-wbar arch-line-float-wbar--thin"></span></button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-w is-active" data-arch-line-w="2.2" title="Medium stroke" aria-label="Medium"><span class="arch-line-float-wbar arch-line-float-wbar--mid"></span></button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-w" data-arch-line-w="3.2" title="Thick stroke" aria-label="Thick"><span class="arch-line-float-wbar arch-line-float-wbar--thick"></span></button>
+                </div>
+                <span class="arch-line-float-vr" aria-hidden="true"></span>
+                <div class="arch-line-float-seg arch-line-float-colors" role="group" aria-label="Stroke color">
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#308fff" style="background:#308fff" title="Ingress" aria-label="Ingress blue"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#7d8a9e" style="background:#7d8a9e" title="Intra" aria-label="Intra gray"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#e34850" style="background:#e34850" title="Egress" aria-label="Egress red"></button>
+                  <button type="button" class="arch-line-float-swatch" data-arch-line-hex="#111827" style="background:#111827" title="Dark" aria-label="Dark"></button>
+                  <label class="arch-line-float-color-label" title="Custom color">
+                    <span class="visually-hidden">Custom hex color</span>
+                    <input type="color" id="archLineFloatColorHex" class="arch-line-float-color-hex arch-diagram-ui" value="#308fff" aria-label="Custom color"/>
+                  </label>
+                </div>
+                <span class="arch-line-float-vr" aria-hidden="true"></span>
+                <div class="arch-line-float-seg arch-line-float-actions" role="group" aria-label="Actions">
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatUndo" title="Undo last layout change">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 014 4v0"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatDelete" title="Delete selected line">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatClose" title="Exit line mode">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
               <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Show editing tools">Show editing tools</button>
             </div>
 
@@ -541,11 +590,10 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
                   <p class="arch-editor-panel-heading">Lines</p>
-                  <p class="arch-tool-lead">Two kinds of lines: <strong>connectors</strong> between diagram boxes (click–drag–click), and <strong>Sources dividers</strong> in the Sources column (horizontal rules). Both are saved with your layout.</p>
+                  <p class="arch-tool-lead">Turn on drawing to show the <strong>floating bar</strong> on the diagram: pick line type (freehand, divider, arrows, dotted), weight, and colors (Ingress / Intra / Egress / Dark + custom). Connectors use two clicks; freehand uses drag; dividers use one tap in the Sources column.</p>
                   <div class="arch-tool-group arch-tool-group--diagram-connectors">
                     <h3 class="arch-tool-group-heading">Diagram connectors</h3>
-                    <p class="arch-tool-micro">Turn on <strong>Draw connectors</strong>, then click–drag–click on the diagram. Pick a default stroke below.</p>
-                    <label class="arch-drag-toggle arch-tool-toggle-line-draw" title="Click–drag–click on the canvas to add a connector between boxes.">
+                    <label class="arch-drag-toggle arch-tool-toggle-line-draw" title="Show the floating line bar and draw on the canvas">
                       <input type="checkbox" id="archUserLineDrawToggle"/>
                       <span class="arch-tool-toggle-line-draw-icon" aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" focusable="false" class="arch-spectrum-pen-brush-icon">
@@ -553,25 +601,12 @@
                           <path fill="currentColor" d="m18.08105,6.65137c-.43359-.36328-.97656-.53711-1.54883-.48535-.56445.05078-1.07617.31738-1.44824.76367-.05566.06982-3.11377,3.83691-4.36475,5.34033-.24365.0177-.48975.0553-.73584.12354-1.56738.43457-2.12109,1.74316-2.60938,2.89648-.36328.85645-.70508,1.66504-1.41895,2.05176-.28613.1543-.43945.47656-.37988.79688.05957.31934.31836.56445.6416.60645.70703.09082,1.49316.15723,2.28711.15723,1.65918,0,3.35156-.28906,4.41992-1.24219.73633-.65723,1.10156-1.53906,1.08691-2.62305-.00049-.02673-.00928-.05176-.01025-.07837.95996-1.15503,3.0354-3.70667,3.93311-4.80933l.41504-.51074c.36328-.43457.53613-.98438.48535-1.54883s-.31738-1.07617-.75293-1.43848Zm-6.15625,9.88965c-.69922.62207-2.08984.91797-3.92188.85156.31543-.4873.54102-1.01855.75195-1.51758.47168-1.11328.80273-1.80664,1.62891-2.03613.60059-.16602,1.18262-.0791,1.60352.23438.32715.24609.51855.60449.52344.98535.00879.6377-.18262,1.12305-.58594,1.48242Zm5.2793-7.87109c-.00879.01074-.17188.21094-.43457.5332-.75049.92261-2.33057,2.86401-3.38672,4.14893-.14453-.17505-.30762-.33777-.49609-.479-.15137-.11328-.31958-.19678-.48804-.27942,1.44067-1.7489,3.83545-4.70044,3.84546-4.71375.10645-.12695.25586-.20508.42188-.21973.1543-.01758.3252.03613.4541.1416.12695.10645.20508.25586.21973.42188.01465.16504-.03516.32617-.13574.44629Z"/>
                         </svg>
                       </span>
-                      <span>Draw connectors</span>
+                      <span>Draw lines</span>
                     </label>
-                    <div class="arch-line-format">
-                      <div class="arch-line-format-preview-wrap">
-                        <span class="arch-line-stroke-caption">Next connector preview</span>
-                        <div class="arch-line-format-preview" id="archUserLineNextStrokePreview" aria-hidden="true"></div>
-                      </div>
-                      <div class="arch-line-stroke-row">
-                        <span class="arch-line-stroke-caption">New connectors</span>
-                        <div id="archUserLineStrokePresetSwatches" class="arch-line-swatches"></div>
-                      </div>
-                    </div>
                   </div>
                   <div id="archUserLineProps" class="arch-user-line-props arch-tool-group--selected" hidden aria-label="Selected connector">
                     <h3 class="arch-tool-group-heading">Selected connector</h3>
-                    <div class="arch-line-stroke-row">
-                      <span class="arch-line-stroke-caption">This line</span>
-                      <div id="archUserLineColorSwatches" class="arch-line-swatches"></div>
-                    </div>
+                    <p class="arch-tool-micro">Adjust color and weight in the floating bar, or use the options below.</p>
                     <label class="arch-drag-toggle">
                       <input type="checkbox" id="archUserLineBidir"/>
                       <span>Bidirectional arrows</span>
@@ -580,7 +615,7 @@
                   </div>
                   <div class="arch-tool-group arch-tool-group--sources-dividers">
                     <h3 class="arch-tool-group-heading">Sources column dividers</h3>
-                    <p class="arch-tool-micro">Horizontal rules between the SDK block and the category rows — separate from diagram connectors.</p>
+                    <p class="arch-tool-micro">Add with the <strong>divider</strong> tool on the floating bar (tap in Sources), or fine-tune here. Drag on-diagram when <strong>Adjust on diagram</strong> is on.</p>
                   </div>
                   <details class="arch-sources-dividers-wrap" id="archSourcesDividersWrap">
                     <summary class="arch-highlight-picker-summary">Divider line list &amp; numbers</summary>
@@ -654,6 +689,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260415b"></script>
+  <script defer src="aep-architecture-apps.js?v=20260415c"></script>
 </body>
 </html>

@@ -545,7 +545,7 @@
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle--cbox')) return;
 
-    var ul = e.target.closest && e.target.closest('.arch-user-line');
+    var ul = e.target.closest && e.target.closest('.arch-user-line, .arch-user-line-hit');
     if (ul && ul.getAttribute) {
       var lid = ul.getAttribute('data-user-line-id');
       if (lid) {
@@ -920,6 +920,7 @@
       if (archViewport) archViewport.classList.toggle('arch-int-viewport--edit-mode', on);
       archSyncPlaybackNav();
       archSelectionPanelSync();
+      archLineFloatUpdateVisibility();
     }
 
     function archEditorApplyDock() {
@@ -1817,15 +1818,18 @@
     selectedId: null,
   };
 
-  /** Preset stroke colors for user-drawn connectors (visual swatches + tooltips). */
+  /** Floating line toolbar (icon tools — no nested text menus). */
+  var lineFloatTool = 'arrow';
+  var lineFloatStrokeW = 2.2;
+  var lineFloatHex = '#308fff';
+  var freehandSession = null;
+
+  /** Preset stroke colors (Ingress / Intra / Egress / Dark — matches diagram key). */
   var ARCH_USER_LINE_PRESETS = [
     { hex: '#308fff', label: 'Ingress — blue' },
     { hex: '#7d8a9e', label: 'Intra — gray' },
     { hex: '#e34850', label: 'Egress — red' },
     { hex: '#111827', label: 'Dark' },
-    { hex: '#059669', label: 'Green' },
-    { hex: '#d97706', label: 'Amber' },
-    { hex: '#7c3aed', label: 'Violet' },
   ];
 
   function archLineStrokeNormalizeHex(h) {
@@ -1889,6 +1893,261 @@
     });
     var initial = opts.initialHex || ARCH_USER_LINE_PRESETS[0].hex;
     archLineSwatchesApplySelection(container, initial);
+  }
+
+  function archLineFloatNormalizeHex(h) {
+    var x = archLineStrokeNormalizeHex(h);
+    if (!x) return '#308fff';
+    if (x[0] !== '#') x = '#' + x;
+    return x.length === 7 ? x : '#308fff';
+  }
+
+  function archLineFloatGetHex() {
+    return archLineFloatNormalizeHex(lineFloatHex);
+  }
+
+  function archLineFloatGetStrokeW() {
+    var w = Number(lineFloatStrokeW);
+    if (isNaN(w) || w <= 0) return 2.2;
+    return archClamp(w, 0.8, 6);
+  }
+
+  function archLineFloatGetTool() {
+    return lineFloatTool || 'arrow';
+  }
+
+  function archLineFloatSetTool(t) {
+    lineFloatTool = t || 'arrow';
+    var bar = qs('#archLineFloatBar');
+    if (bar) {
+      $all('.arch-line-float-tool', bar).forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-arch-line-tool') === lineFloatTool);
+      });
+    }
+  }
+
+  function archLineFloatSetW(w) {
+    lineFloatStrokeW = w;
+    var bar = qs('#archLineFloatBar');
+    if (bar) {
+      $all('.arch-line-float-w', bar).forEach(function (b) {
+        var bw = parseFloat(b.getAttribute('data-arch-line-w'), 10);
+        b.classList.toggle('is-active', Math.abs(bw - Number(lineFloatStrokeW)) < 0.06);
+      });
+    }
+  }
+
+  function archLineFloatSetHex(hex) {
+    lineFloatHex = archLineFloatNormalizeHex(hex);
+    var inp = qs('#archLineFloatColorHex');
+    if (inp) {
+      try {
+        inp.value = lineFloatHex.length === 7 ? lineFloatHex : '#308fff';
+      } catch (e2) {}
+    }
+    var bar = qs('#archLineFloatBar');
+    if (bar) {
+      $all('.arch-line-float-swatch', bar).forEach(function (b) {
+        var h = archLineStrokeNormalizeHex(b.getAttribute('data-arch-line-hex') || '');
+        b.classList.toggle('is-active', h && h === archLineStrokeNormalizeHex(lineFloatHex));
+      });
+    }
+  }
+
+  function archLineFloatSyncFromLine(ln) {
+    if (!ln) return;
+    archLineFloatSetHex(ln.stroke || '#308fff');
+    archLineFloatSetW(ln.strokeWidth != null ? ln.strokeWidth : 2.2);
+    if (ln.points && ln.points.length >= 2) archLineFloatSetTool('freehand');
+    else if (ln.dashStyle === 'dotted') archLineFloatSetTool('dotted');
+    else if (ln.bidirectional) archLineFloatSetTool('doubleArrow');
+    else archLineFloatSetTool('arrow');
+  }
+
+  function archLineFloatApplySelectedFromBar() {
+    var ln = archUserLineGetSelected();
+    if (!ln) return;
+    ln.stroke = archLineFloatGetHex();
+    ln.strokeWidth = archLineFloatGetStrokeW();
+    if (ln.points && ln.points.length >= 2) {
+      archUserLineRender();
+      archUserLinePersist();
+      archUndoMaybePushSnapshot();
+      return;
+    }
+    var t = lineFloatTool;
+    if (t !== 'divider' && t !== 'freehand') {
+      if (t === 'dotted') ln.dashStyle = 'dotted';
+      else ln.dashStyle = 'solid';
+      if (t === 'doubleArrow') ln.bidirectional = true;
+      else if (t === 'arrow' || t === 'dotted') ln.bidirectional = false;
+    }
+    var bi = qs('#archUserLineBidir');
+    if (bi) bi.checked = !!ln.bidirectional;
+    archUserLineRender();
+    archUserLinePersist();
+    archUndoMaybePushSnapshot();
+  }
+
+  function archLineFloatUpdateVisibility() {
+    var bar = qs('#archLineFloatBar');
+    if (!bar) return;
+    var show = archIsEditMode() && (userLines.drawMode || !!userLines.selectedId);
+    bar.hidden = !show;
+    if (!show) {
+      freehandSession = null;
+      var pv = qs('#archUserLineFreehandPreview');
+      if (pv) {
+        pv.setAttribute('d', '');
+        pv.setAttribute('opacity', '0');
+      }
+    }
+  }
+
+  function archUserFreehandPointerMove(e) {
+    if (!freehandSession || !archDrag.svg) return;
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var pts = freehandSession.points;
+    var last = pts[pts.length - 1];
+    var dx = p.x - last[0];
+    var dy = p.y - last[1];
+    if (dx * dx + dy * dy < 16) return;
+    pts.push([p.x, p.y]);
+    var d = 'M ' + pts[0][0] + ' ' + pts[0][1];
+    for (var i = 1; i < pts.length; i++) {
+      d += ' L ' + pts[i][0] + ' ' + pts[i][1];
+    }
+    var pv = qs('#archUserLineFreehandPreview');
+    if (pv) {
+      pv.setAttribute('d', d);
+      pv.setAttribute('stroke', archLineFloatGetHex());
+      pv.setAttribute('stroke-width', String(archLineFloatGetStrokeW()));
+      pv.setAttribute('opacity', '0.9');
+    }
+  }
+
+  function archUserFreehandPointerUp() {
+    window.removeEventListener('pointermove', archUserFreehandPointerMove, true);
+    window.removeEventListener('pointerup', archUserFreehandPointerUp, true);
+    window.removeEventListener('pointercancel', archUserFreehandPointerUp, true);
+    if (!freehandSession) return;
+    var pts = freehandSession.points;
+    freehandSession = null;
+    var pv = qs('#archUserLineFreehandPreview');
+    if (pv) {
+      pv.setAttribute('d', '');
+      pv.setAttribute('opacity', '0');
+    }
+    if (pts.length < 2) return;
+    var id = 'ul-' + Date.now();
+    userLines.lines.push({
+      id: id,
+      points: pts,
+      stroke: archLineFloatGetHex(),
+      strokeWidth: archLineFloatGetStrokeW(),
+      dashStyle: 'solid',
+      bidirectional: false,
+    });
+    userLines.selectedId = id;
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUserLinePersist();
+    archUserLineSyncPropsHud();
+    archUndoMaybePushSnapshot();
+  }
+
+  function archUserFreehandPointerDown(e) {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (!archDrag.svg) return;
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    freehandSession = { points: [[p.x, p.y]] };
+    e.preventDefault();
+    window.addEventListener('pointermove', archUserFreehandPointerMove, true);
+    window.addEventListener('pointerup', archUserFreehandPointerUp, true);
+    window.addEventListener('pointercancel', archUserFreehandPointerUp, true);
+  }
+
+  function archSourcesDividersAddAtWorld(pWorld, strokeHex, strokeW) {
+    var pLocal = archSourcesWorldToLocal(pWorld);
+    if (pLocal.x < SOURCES_SHELL_L || pLocal.x > SOURCES_SHELL_R) return false;
+    if (pLocal.y < SOURCES_SHELL_T || pLocal.y > SOURCES_SHELL_B) return false;
+    var d = archSourcesDividerClamp({
+      id: 'sep-' + Date.now(),
+      x1: 30,
+      x2: 132,
+      y: pLocal.y,
+      stroke: strokeHex || '#d1d5db',
+      strokeWidth: strokeW != null ? strokeW : 0.75,
+    });
+    archSourcesDividers.push(d);
+    archSourcesDividersPersist();
+    archSourcesDividersRenderSvg();
+    archSourcesDividersRefreshPanel();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) liveRegion.textContent = 'Added Sources divider.';
+    return true;
+  }
+
+  function archLineFloatInit() {
+    var bar = qs('#archLineFloatBar');
+    if (!bar || bar.getAttribute('data-arch-float-init') === '1') return;
+    bar.setAttribute('data-arch-float-init', '1');
+    archLineFloatSetTool(lineFloatTool);
+    archLineFloatSetW(lineFloatStrokeW);
+    archLineFloatSetHex(lineFloatHex);
+    bar.addEventListener('click', function (e) {
+      var tbtn = e.target.closest && e.target.closest('.arch-line-float-tool[data-arch-line-tool]');
+      if (tbtn) {
+        archLineFloatSetTool(tbtn.getAttribute('data-arch-line-tool'));
+        if (userLines.selectedId) {
+          var ln0 = archUserLineGetSelected();
+          archLineFloatApplySelectedFromBar();
+          if (ln0) archLineFloatSyncFromLine(ln0);
+        }
+        return;
+      }
+      var wbtn = e.target.closest && e.target.closest('.arch-line-float-w[data-arch-line-w]');
+      if (wbtn) {
+        archLineFloatSetW(parseFloat(wbtn.getAttribute('data-arch-line-w'), 10));
+        if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+        return;
+      }
+      var sw = e.target.closest && e.target.closest('.arch-line-float-swatch[data-arch-line-hex]');
+      if (sw) {
+        archLineFloatSetHex(sw.getAttribute('data-arch-line-hex'));
+        if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+        return;
+      }
+    });
+    var hexInp = qs('#archLineFloatColorHex');
+    if (hexInp) {
+      hexInp.addEventListener('input', function () {
+        archLineFloatSetHex(hexInp.value);
+        if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+      });
+    }
+    var u = qs('#archLineFloatUndo');
+    if (u) {
+      u.addEventListener('click', function () {
+        archUndoRun();
+      });
+    }
+    var del = qs('#archLineFloatDelete');
+    if (del) {
+      del.addEventListener('click', function () {
+        archUserLineDeleteSelected();
+      });
+    }
+    var cl = qs('#archLineFloatClose');
+    if (cl) {
+      cl.addEventListener('click', function () {
+        archUserLineSetDrawMode(false);
+        var tg = qs('#archUserLineDrawToggle');
+        if (tg) tg.checked = false;
+      });
+    }
   }
 
   /** User-drawn rectangles (world SVG coords). */
@@ -2230,9 +2489,19 @@
 
   function archUserLineMigrateLegacy(ln) {
     if (!ln) return ln;
+    if (ln.points && Array.isArray(ln.points) && ln.points.length >= 2) {
+      var poly = Object.assign({}, ln);
+      poly.points = ln.points.map(function (pt) {
+        return [Number(pt && pt[0]) || 0, Number(pt && pt[1]) || 0];
+      });
+      if (!poly.dashStyle) poly.dashStyle = 'solid';
+      delete poly.d;
+      return poly;
+    }
     if (ln.from && ln.to) {
       var c = Object.assign({}, ln);
       delete c.d;
+      if (!c.dashStyle) c.dashStyle = 'solid';
       return c;
     }
     var out = Object.assign({}, ln);
@@ -2246,6 +2515,7 @@
     if (!out.from) out.from = { kind: 'free', x: 0, y: 0 };
     if (!out.to) out.to = { kind: 'free', x: 0, y: 0 };
     delete out.d;
+    if (!out.dashStyle) out.dashStyle = 'solid';
     return out;
   }
 
@@ -3783,23 +4053,54 @@
     userLines.lines = userLines.lines.map(archUserLineMigrateLegacy);
     while (g.firstChild) g.removeChild(g.firstChild);
     userLines.lines.forEach(function (ln) {
-      var pt1 = archUserLinePointFromEndpoint(ln.from);
-      var pt2 = archUserLinePointFromEndpoint(ln.to);
-      if (!pt1 || !pt2) return;
-      var d = 'M ' + pt1.x + ' ' + pt1.y + ' L ' + pt2.x + ' ' + pt2.y;
+      var d = '';
+      var isPoly = ln.points && ln.points.length >= 2;
+      if (isPoly) {
+        d = 'M ' + ln.points[0][0] + ' ' + ln.points[0][1];
+        for (var pi = 1; pi < ln.points.length; pi++) {
+          d += ' L ' + ln.points[pi][0] + ' ' + ln.points[pi][1];
+        }
+      } else {
+        var pt1 = archUserLinePointFromEndpoint(ln.from);
+        var pt2 = archUserLinePointFromEndpoint(ln.to);
+        if (!pt1 || !pt2) return;
+        d = 'M ' + pt1.x + ' ' + pt1.y + ' L ' + pt2.x + ' ' + pt2.y;
+      }
       var p = document.createElementNS(SVG_NS, 'path');
       p.setAttribute('d', d);
       p.setAttribute('stroke', ln.stroke || '#308fff');
-      p.setAttribute('stroke-width', ln.strokeWidth != null ? String(ln.strokeWidth) : '2.2');
+      var baseW = ln.strokeWidth != null ? ln.strokeWidth : 2.2;
+      var sw = userLines.selectedId === ln.id ? baseW + 1 : baseW;
+      p.setAttribute('stroke-width', String(sw));
       p.setAttribute('fill', 'none');
+      p.setAttribute('stroke-linecap', 'round');
+      p.setAttribute('stroke-linejoin', 'round');
+      if (ln.dashStyle === 'dotted') {
+        p.setAttribute('stroke-dasharray', '5 4');
+      }
       p.setAttribute('data-user-line-id', ln.id);
       p.setAttribute(
         'class',
-        'arch-user-line' + (userLines.selectedId === ln.id ? ' arch-user-line--selected' : '')
+        'arch-user-line' +
+          (isPoly ? ' arch-user-line--poly' : '') +
+          (userLines.selectedId === ln.id ? ' arch-user-line--selected' : '')
       );
-      p.setAttribute('marker-end', 'url(#archUserArrowEnd)');
-      if (ln.bidirectional) p.setAttribute('marker-start', 'url(#archUserArrowStart)');
+      if (!isPoly) {
+        p.setAttribute('marker-end', 'url(#archUserArrowEnd)');
+        if (ln.bidirectional) p.setAttribute('marker-start', 'url(#archUserArrowStart)');
+      }
       g.appendChild(p);
+      if (isPoly) {
+        var hit = document.createElementNS(SVG_NS, 'path');
+        hit.setAttribute('d', d);
+        hit.setAttribute('stroke', 'transparent');
+        hit.setAttribute('stroke-width', String(Math.max(10, Number(sw) + 8)));
+        hit.setAttribute('fill', 'none');
+        hit.setAttribute('pointer-events', 'stroke');
+        hit.setAttribute('data-user-line-id', ln.id);
+        hit.setAttribute('class', 'arch-user-line-hit');
+        g.appendChild(hit);
+      }
     });
   }
 
@@ -3814,6 +4115,8 @@
   function archUserLineSyncPropsHud() {
     var panel = qs('#archUserLineProps');
     var sel = archUserLineGetSelected();
+    archLineFloatUpdateVisibility();
+    if (sel) archLineFloatSyncFromLine(sel);
     if (!panel) return;
     if (!sel) {
       panel.hidden = true;
@@ -3822,10 +4125,12 @@
     }
     panel.hidden = false;
     archEditorSetPanel('sources');
-    var colorHost = qs('#archUserLineColorSwatches');
-    if (colorHost) archLineSwatchesApplySelection(colorHost, sel.stroke || '#308fff');
     var bi = qs('#archUserLineBidir');
-    if (bi) bi.checked = !!sel.bidirectional;
+    if (bi) {
+      var isPoly = !!(sel.points && sel.points.length >= 2);
+      bi.disabled = isPoly;
+      bi.checked = !!sel.bidirectional;
+    }
     archEditorApplyModesForCurrentSelection();
   }
 
@@ -3847,6 +4152,13 @@
       pv.setAttribute('y1', p1.y);
       pv.setAttribute('x2', p2.x);
       pv.setAttribute('y2', p2.y);
+      pv.setAttribute('stroke', archLineFloatGetHex());
+      pv.setAttribute('stroke-width', String(archLineFloatGetStrokeW()));
+      if (archLineFloatGetTool() === 'dotted') {
+        pv.setAttribute('stroke-dasharray', '5 4');
+      } else {
+        pv.removeAttribute('stroke-dasharray');
+      }
       pv.setAttribute('opacity', '0.85');
     }
   }
@@ -3861,7 +4173,10 @@
   function archUserLineClearPending() {
     userLines.pendingStart = null;
     var pv = qs('#archUserLinePreview');
-    if (pv) pv.setAttribute('opacity', '0');
+    if (pv) {
+      pv.setAttribute('opacity', '0');
+      pv.removeAttribute('stroke-dasharray');
+    }
     if (archViewport) archViewport.classList.remove('arch-user-line-draw-pending');
   }
 
@@ -3950,14 +4265,29 @@
       var dx = 20;
       var dy = 20;
       var id = 'ul-' + Date.now();
-      userLines.lines.push({
-        id: id,
-        from: archUserLineEndpointPasteOffset(L.from, dx, dy),
-        to: archUserLineEndpointPasteOffset(L.to, dx, dy),
-        stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
-        strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2.2,
-        bidirectional: !!L.bidirectional,
-      });
+      if (L.points && Array.isArray(L.points) && L.points.length >= 2) {
+        var pts = L.points.map(function (pt) {
+          return [(Number(pt && pt[0]) || 0) + dx, (Number(pt && pt[1]) || 0) + dy];
+        });
+        userLines.lines.push({
+          id: id,
+          points: pts,
+          stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
+          strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2.2,
+          dashStyle: L.dashStyle === 'dotted' ? 'dotted' : 'solid',
+          bidirectional: false,
+        });
+      } else {
+        userLines.lines.push({
+          id: id,
+          from: archUserLineEndpointPasteOffset(L.from, dx, dy),
+          to: archUserLineEndpointPasteOffset(L.to, dx, dy),
+          stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
+          strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2.2,
+          bidirectional: !!L.bidirectional,
+          dashStyle: L.dashStyle === 'dotted' ? 'dotted' : 'solid',
+        });
+      }
       userLines.selectedId = id;
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
@@ -3973,16 +4303,18 @@
   }
 
   function archUserLineAdd(ep1, ep2) {
-    var presetHost = qs('#archUserLineStrokePresetSwatches');
-    var stroke = archLineSwatchesGetValue(presetHost);
+    var tool = archLineFloatGetTool();
+    var dashStyle = tool === 'dotted' ? 'dotted' : 'solid';
+    var bidir = tool === 'doubleArrow';
     var id = 'ul-' + Date.now();
     userLines.lines.push({
       id: id,
       from: ep1,
       to: ep2,
-      stroke: stroke,
-      strokeWidth: 2.2,
-      bidirectional: false,
+      stroke: archLineFloatGetHex(),
+      strokeWidth: archLineFloatGetStrokeW(),
+      bidirectional: bidir,
+      dashStyle: dashStyle,
     });
     userLines.selectedId = id;
     archCustomBoxSelectedId = null;
@@ -4009,9 +4341,13 @@
   function archUserLineOnPointerDown(e) {
     if (customBoxDrawMode) return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
+    var lineHit =
+      e.target &&
+      e.target.closest &&
+      e.target.closest('.arch-user-line, .arch-user-line-hit');
     if (!userLines.drawMode) {
-      if (e.target && e.target.classList && e.target.classList.contains('arch-user-line')) {
-        userLines.selectedId = e.target.getAttribute('data-user-line-id');
+      if (lineHit) {
+        userLines.selectedId = lineHit.getAttribute('data-user-line-id');
         archCustomBoxSelectedId = null;
         archCustomBoxLabelActiveId = null;
         archCustomBoxesRender();
@@ -4023,8 +4359,8 @@
     }
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
-    if (e.target && e.target.classList && e.target.classList.contains('arch-user-line')) {
-      userLines.selectedId = e.target.getAttribute('data-user-line-id');
+    if (lineHit) {
+      userLines.selectedId = lineHit.getAttribute('data-user-line-id');
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
       archCustomBoxesRender();
@@ -4036,6 +4372,17 @@
     e.preventDefault();
     e.stopPropagation();
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var tool = archLineFloatGetTool();
+    if (tool === 'divider') {
+      var fw = archLineFloatGetStrokeW();
+      var divW = Math.min(1.85, Math.max(0.55, fw * 0.36));
+      archSourcesDividersAddAtWorld(p, archLineFloatGetHex(), divW);
+      return;
+    }
+    if (tool === 'freehand') {
+      archUserFreehandPointerDown(e);
+      return;
+    }
     if (!userLines.pendingStart) {
       userLines.pendingStart = { ep: archUserLineSnapEndpoint(p.x, p.y, e.target) };
       if (archViewport) archViewport.classList.add('arch-user-line-draw-pending');
@@ -4069,6 +4416,7 @@
       window.removeEventListener('pointermove', archCustomBoxDrawPointerMove, true);
       window.removeEventListener('pointerup', archCustomBoxDrawPointerUp, true);
     }
+    archLineFloatUpdateVisibility();
   }
 
   function archUserLineOnGlobalDelete(e) {
@@ -4210,26 +4558,8 @@
     archSourcesDividersPersist();
     archCustomBoxesPersist();
 
-    var presetSw = qs('#archUserLineStrokePresetSwatches');
-    archLineSwatchesMount(presetSw, {
-      ariaLabel: 'Default stroke color for new connectors',
-      initialHex: ARCH_USER_LINE_PRESETS[0].hex,
-      onPick: archLineNextStrokePreviewSet,
-    });
-    if (presetSw) archLineNextStrokePreviewSet(archLineSwatchesGetValue(presetSw));
-    var selSw = qs('#archUserLineColorSwatches');
-    archLineSwatchesMount(selSw, {
-      ariaLabel: 'Stroke color for the selected connector',
-      initialHex: ARCH_USER_LINE_PRESETS[0].hex,
-      onPick: function (hex) {
-        var ln = archUserLineGetSelected();
-        if (!ln) return;
-        ln.stroke = hex;
-        archUserLineRender();
-        archUserLinePersist();
-        archUndoMaybePushSnapshot();
-      },
-    });
+    archLineFloatInit();
+    archLineFloatUpdateVisibility();
 
     var toggle = qs('#archDragToggle');
     var labelToggle = qs('#archLabelToggle');
@@ -4296,9 +4626,13 @@
       lineBi.addEventListener('change', function () {
         var ln = archUserLineGetSelected();
         if (!ln) return;
+        if (ln.points && ln.points.length >= 2) return;
         ln.bidirectional = lineBi.checked;
+        if (lineBi.checked) archLineFloatSetTool('doubleArrow');
+        else archLineFloatSetTool(ln.dashStyle === 'dotted' ? 'dotted' : 'arrow');
         archUserLineRender();
         archUserLinePersist();
+        archUndoMaybePushSnapshot();
       });
     }
     if (lineDel) {
