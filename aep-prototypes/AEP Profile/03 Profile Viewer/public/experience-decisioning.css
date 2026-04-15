@@ -72,3 +72,38 @@ html[data-aep-theme='dark'] .experience-decisioning-page .edp-blocked {
   width: 100%;
   min-height: min(80vh, 900px);
 }
+
+/*
+ * Experimentation overview — one continuous white card for the embedded EDP (intro + 3 boxes + explorer),
+ * matching Decisioning overview’s panel treatment. Shell uses --dash-bg inside .edp-sandbox; lift to --dash-surface here only.
+ */
+.experience-decisioning-page.experimentation-overview-page #edp-root.dce-viz-scope {
+  background: var(--dash-surface, #ffffff);
+  border: 1px solid var(--dash-border, #e8e8e8);
+  border-radius: var(--dash-radius-sm, 12px);
+  box-shadow: var(--dash-shadow, 0 1px 3px rgba(15, 15, 25, 0.08));
+}
+
+.experience-decisioning-page.experimentation-overview-page #edp-root .edp-sandbox {
+  background: var(--dash-surface, #ffffff);
+}
+
+.experience-decisioning-page.experimentation-overview-page #edp-root .edp-sandbox .edp-shell-root,
+.experience-decisioning-page.experimentation-overview-page #edp-root .edp-sandbox .edp-shell-content {
+  background: var(--dash-surface, #ffffff);
+}
+
+html[data-aep-theme='dark'] .experience-decisioning-page.experimentation-overview-page #edp-root.dce-viz-scope,
+html[data-aep-theme='dark'] .experience-decisioning-page.experimentation-overview-page #edp-root .edp-sandbox,
+html[data-aep-theme='dark']
+  .experience-decisioning-page.experimentation-overview-page
+  #edp-root
+  .edp-sandbox
+  .edp-shell-root,
+html[data-aep-theme='dark']
+  .experience-decisioning-page.experimentation-overview-page
+  #edp-root
+  .edp-sandbox
+  .edp-shell-content {
+  background: var(--dash-surface, #14161b);
+}

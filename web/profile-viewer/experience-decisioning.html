@@ -16,8 +16,8 @@
   <link rel="stylesheet" href="decisioning-visualizer-core.css?v=parity20260414">
   <link rel="stylesheet" href="decisioning-edp-shell.css?v=parity20260414">
   <link rel="stylesheet" href="decisioning-visualizer.css?v=parity20260414-healthcare">
-  <link rel="stylesheet" href="experience-decisioning.css?v=20260430c">
-  <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260414-story-split">
+  <link rel="stylesheet" href="experience-decisioning.css?v=20260430d">
+  <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260414-exp-white">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page decisioning-catalog-page">
   <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
@@ -83,7 +83,7 @@
         if (!hide) {
           var s = document.createElement('script');
           s.type = 'module';
-          s.src = '/profile-viewer/experience-decisioning/assets/edp.js?v=20260414-story-split';
+          s.src = '/profile-viewer/experience-decisioning/assets/edp.js?v=20260414-exp-white';
           document.body.appendChild(s);
         }
       }

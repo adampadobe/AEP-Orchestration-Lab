@@ -12,7 +12,7 @@ export const Shell = ({ step, goToStep, industry, setIndustry, showIndustry, set
   const IndustryIcon = currentIndustry.icon;
 
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} edp-shell-root`}>
       <div className={styles.header}>
         <div className={styles.progressTrack}>
           <div className={styles.progressFill} style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
@@ -82,7 +82,7 @@ export const Shell = ({ step, goToStep, industry, setIndustry, showIndustry, set
 
       <div
         ref={contentRef}
-        className={`${styles.content} content`}
+        className={`${styles.content} content edp-shell-content`}
         onClick={() => showIndustry && setShowIndustry(false)}
       >
         {children}
