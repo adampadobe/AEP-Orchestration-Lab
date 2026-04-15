@@ -1540,33 +1540,60 @@
         shell.setAttribute('width', String(wh.w));
         shell.setAttribute('height', String(wh.h));
       }
-      var hEl = g.querySelector('.arch-node-resize-handle');
-      if (hEl) {
-        var wh2 = archNodeEffectiveWH(key);
-        var hs = ARCH_RESIZE_HANDLE;
-        hEl.setAttribute('x', String(L.rect[0] + wh2.w - hs));
-        hEl.setAttribute('y', String(L.rect[1] + wh2.h - hs));
-      }
+      var wh2 = archNodeEffectiveWH(key);
+      var hs = ARCH_RESIZE_HANDLE;
+      var rl = L.rect[0];
+      var rt = L.rect[1];
+      var rw = wh2.w;
+      var rh = wh2.h;
+      var hw = Math.max(0, (rw - hs) / 2);
+      var hh = Math.max(0, (rh - hs) / 2);
+      var handlePos = [
+        { k: 'nw', x: rl, y: rt },
+        { k: 'ne', x: rl + rw - hs, y: rt },
+        { k: 'sw', x: rl, y: rt + rh - hs },
+        { k: 'se', x: rl + rw - hs, y: rt + rh - hs },
+        { k: 'n', x: rl + hw, y: rt },
+        { k: 's', x: rl + hw, y: rt + rh - hs },
+        { k: 'w', x: rl, y: rt + hh },
+        { k: 'e', x: rl + rw - hs, y: rt + hh },
+      ];
+      handlePos.forEach(function (sp) {
+        var hEl = g.querySelector('.arch-node-resize-handle[data-arch-node-handle="' + sp.k + '"]');
+        if (hEl) {
+          hEl.setAttribute('x', String(sp.x));
+          hEl.setAttribute('y', String(sp.y));
+        }
+      });
     });
     archDragRebuildFlows();
     if (userLines.lines.length) archUserLineRender();
   }
 
   function archEnsureResizeHandles() {
+    var hs = ARCH_RESIZE_HANDLE;
+    var keys = ['nw', 'ne', 'sw', 'se', 'n', 's', 'w', 'e'];
     Object.keys(NODE_LAYOUT).forEach(function (key) {
       var g = qs('#node-' + key);
-      if (!g || g.querySelector('.arch-node-resize-handle')) return;
-      var h = document.createElementNS(SVG_NS, 'rect');
-      h.setAttribute('class', 'arch-node-resize-handle');
-      h.setAttribute('width', String(ARCH_RESIZE_HANDLE));
-      h.setAttribute('height', String(ARCH_RESIZE_HANDLE));
-      h.setAttribute('rx', '2');
-      h.setAttribute('fill', '#ffffff');
-      h.setAttribute('stroke', '#1473e6');
-      h.setAttribute('stroke-width', '1.25');
-      h.setAttribute('tabindex', '-1');
-      h.setAttribute('aria-hidden', 'true');
-      g.appendChild(h);
+      if (!g) return;
+      if (g.querySelector('.arch-node-resize-handle[data-arch-node-handle]')) return;
+      $all('.arch-node-resize-handle:not(.arch-node-resize-handle--cbox)', g).forEach(function (el) {
+        el.parentNode.removeChild(el);
+      });
+      keys.forEach(function (hk) {
+        var h = document.createElementNS(SVG_NS, 'rect');
+        h.setAttribute('class', 'arch-node-resize-handle arch-node-resize-handle--node');
+        h.setAttribute('data-arch-node-handle', hk);
+        h.setAttribute('width', String(hs));
+        h.setAttribute('height', String(hs));
+        h.setAttribute('rx', '2');
+        h.setAttribute('fill', '#ffffff');
+        h.setAttribute('stroke', '#1473e6');
+        h.setAttribute('stroke-width', '1.25');
+        h.setAttribute('tabindex', '-1');
+        h.setAttribute('aria-hidden', 'true');
+        g.appendChild(h);
+      });
     });
   }
 
@@ -2267,10 +2294,16 @@
     }
     var which = g.id.slice(5);
     if (!NODE_LAYOUT[which]) return;
+    var handle = e.target.getAttribute('data-arch-node-handle');
+    if (!handle) return;
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
-    var eff = archNodeEffectiveWH(which);
     archResize.active = which;
-    archResize.start = { mx: p.x, my: p.y, ow: eff.w, oh: eff.h };
+    archResize.start = {
+      handle: handle,
+      mx: p.x,
+      my: p.y,
+      world0: archDragWorldRect(which),
+    };
     if (!archDrag.pos[which]) archDrag.pos[which] = { x: 0, y: 0 };
     if (archViewport) archViewport.classList.add('arch-resizing');
     window.addEventListener('pointermove', archResizePointerMoveWin, true);
@@ -2282,16 +2315,90 @@
     if (!archResize.active || !archResize.start) return;
     e.preventDefault();
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
-    var dx = p.x - archResize.start.mx;
-    var dy = p.y - archResize.start.my;
+    var s = archResize.start;
+    var dx = p.x - s.mx;
+    var dy = p.y - s.my;
     var k = archResize.active;
-    var newW = archResize.start.ow + dx;
-    var newH = archResize.start.oh + dy;
-    newW = Math.max(ARCH_MIN_NODE_W, Math.min(ARCH_MAX_NODE_W, newW));
-    newH = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, newH));
+    var L = NODE_LAYOUT[k];
+    if (!L || !s.world0) return;
+    var h = s.handle || 'se';
+    var wr0 = s.world0;
+    var wl = wr0.left;
+    var wt = wr0.top;
+    var ww = wr0.w;
+    var wh = wr0.h;
+    var nwl;
+    var nwt;
+    var nww;
+    var nwh;
+    switch (h) {
+      case 'se':
+        nwl = wl;
+        nwt = wt;
+        nww = ww + dx;
+        nwh = wh + dy;
+        break;
+      case 'sw':
+        nwl = wl + dx;
+        nwt = wt;
+        nww = ww - dx;
+        nwh = wh + dy;
+        break;
+      case 'ne':
+        nwl = wl;
+        nwt = wt + dy;
+        nww = ww + dx;
+        nwh = wh - dy;
+        break;
+      case 'nw':
+        nwl = wl + dx;
+        nwt = wt + dy;
+        nww = ww - dx;
+        nwh = wh - dy;
+        break;
+      case 'n':
+        nwl = wl;
+        nwt = wt + dy;
+        nww = ww;
+        nwh = wh - dy;
+        break;
+      case 's':
+        nwl = wl;
+        nwt = wt;
+        nww = ww;
+        nwh = wh + dy;
+        break;
+      case 'w':
+        nwl = wl + dx;
+        nwt = wt;
+        nww = ww - dx;
+        nwh = wh;
+        break;
+      case 'e':
+        nwl = wl;
+        nwt = wt;
+        nww = ww + dx;
+        nwh = wh;
+        break;
+      default:
+        nwl = wl;
+        nwt = wt;
+        nww = ww + dx;
+        nwh = wh + dy;
+    }
+    nww = Math.max(ARCH_MIN_NODE_W, Math.min(ARCH_MAX_NODE_W, nww));
+    nwh = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, nwh));
+    nwl = archClamp(nwl, 0, ARCH_GUIDE_VIEW.w - nww);
+    nwt = archClamp(nwt, 0, ARCH_GUIDE_VIEW.h - nwh);
+    if (nwl + nww > ARCH_GUIDE_VIEW.w) nww = ARCH_GUIDE_VIEW.w - nwl;
+    if (nwt + nwh > ARCH_GUIDE_VIEW.h) nwh = ARCH_GUIDE_VIEW.h - nwt;
+    nww = Math.max(ARCH_MIN_NODE_W, nww);
+    nwh = Math.max(ARCH_MIN_NODE_H, nwh);
     if (!archDrag.pos[k]) archDrag.pos[k] = { x: 0, y: 0 };
-    archDrag.pos[k].w = newW;
-    archDrag.pos[k].h = newH;
+    archDrag.pos[k].x = nwl - L.base[0] - L.rect[0];
+    archDrag.pos[k].y = nwt - L.base[1] - L.rect[1];
+    archDrag.pos[k].w = nww;
+    archDrag.pos[k].h = nwh;
     archDragApply();
   }
 

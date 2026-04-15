@@ -907,6 +907,27 @@
   cursor: ew-resize;
 }
 
+/* Built-in Adobe tiles — same handle geometry as custom boxes */
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='nw'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='se'] {
+  cursor: nwse-resize;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='ne'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='sw'] {
+  cursor: nesw-resize;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='n'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='s'] {
+  cursor: ns-resize;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='w'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='e'] {
+  cursor: ew-resize;
+}
+
 .arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle {
   cursor: nwse-resize;
 }
@@ -928,6 +949,26 @@
 
 .arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='w'],
 .arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--cbox[data-arch-cbox-handle='e'] {
+  cursor: ew-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='nw'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='se'] {
+  cursor: nwse-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='ne'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='sw'] {
+  cursor: nesw-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='n'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='s'] {
+  cursor: ns-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='w'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='e'] {
   cursor: ew-resize;
 }
 
