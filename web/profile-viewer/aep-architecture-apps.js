@@ -600,19 +600,32 @@
   /** Double-click on a selected connector stroke inserts a bend vertex on the nearest segment. */
   function archUserLineOnConnectorDblClick(e) {
     if (!archIsEditMode()) return;
-    if (userLines.drawMode || customBoxDrawMode) return;
+    if (customBoxDrawMode) return;
     if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
     if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
     if (e.target && e.target.closest && e.target.closest('.arch-user-line-handle')) return;
     var hit = e.target.closest && e.target.closest('.arch-user-line-hit, .arch-user-line');
     if (!hit) return;
     var lid = hit.getAttribute('data-user-line-id');
-    if (!lid || lid !== userLines.selectedId) return;
+    if (!lid) return;
+    if (lid !== userLines.selectedId) {
+      userLines.selectedId = lid;
+      userLines.selectedHandleIdx = null;
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
+      if (archSelection) archSelection.clear();
+      archCustomBoxesRender();
+      archUserLineSyncPropsHud();
+      archSelectionRefreshDom();
+    }
     var ln = archUserLineFindById(lid);
     if (!ln || !archUserLineIsConnector(ln) || !archDrag.svg) return;
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
     var ni = archUserLineInsertBendNear(ln, p.x, p.y);
-    if (ni < 0) return;
+    if (ni < 0) {
+      archUserLineRender();
+      return;
+    }
     if (ln.sourcesDividerLocal) {
       delete ln.sourcesDividerLocal;
     }
