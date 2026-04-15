@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260415d">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260415e">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -383,6 +383,9 @@
                   <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="divider" title="Sources divider — tap inside the Sources column">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 12h14"/></svg>
                   </button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="plain" title="Straight segment — no arrowheads, click start then end">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 12h14"/></svg>
+                  </button>
                   <button type="button" class="arch-line-float-btn arch-line-float-tool is-active" data-arch-line-tool="arrow" title="Connector — click start, then end (arrow)">
                     <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 12h12"/><path d="M14 8l4 4-4 4"/></svg>
                   </button>
@@ -604,7 +607,7 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
                   <p class="arch-editor-panel-heading">Lines</p>
-                  <p class="arch-tool-lead">Turn on drawing to show the <strong>floating bar</strong> on the diagram: line type, weight (popover), bidirectional ends, colors, undo, delete, and exit. Connectors use two clicks; freehand uses drag; dividers use one tap in the Sources column.</p>
+                  <p class="arch-tool-lead">Turn on drawing to show the <strong>floating bar</strong> on the diagram: line type (including plain segments without arrowheads), weight (popover), bidirectional ends when arrows are on, colors, undo, delete, and exit. Two-click tools use start then end; freehand uses drag; dividers use one tap in Sources.</p>
                   <div class="arch-tool-group arch-tool-group--diagram-connectors">
                     <h3 class="arch-tool-group-heading">Diagram connectors</h3>
                     <label class="arch-drag-toggle arch-tool-toggle-line-draw" title="Show the floating line bar and draw on the canvas">
@@ -694,6 +697,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260415d"></script>
+  <script defer src="aep-architecture-apps.js?v=20260415e"></script>
 </body>
 </html>

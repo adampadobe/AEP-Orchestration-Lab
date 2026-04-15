@@ -2008,8 +2008,15 @@
       btn.classList.remove('is-active');
       return;
     }
+    var la = archUserLineGetLineArrows(sel);
+    if (la === 'none') {
+      btn.disabled = true;
+      btn.setAttribute('aria-pressed', 'false');
+      btn.classList.remove('is-active');
+      return;
+    }
     btn.disabled = false;
-    var on = !!sel.bidirectional;
+    var on = la === 'both';
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     btn.classList.toggle('is-active', on);
   }
@@ -2040,8 +2047,12 @@
     archLineFloatSetW(ln.strokeWidth != null ? ln.strokeWidth : 2);
     if (ln.points && ln.points.length >= 2) archLineFloatSetTool('freehand');
     else if (ln.dashStyle === 'dotted') archLineFloatSetTool('dotted');
-    else if (ln.bidirectional) archLineFloatSetTool('doubleArrow');
-    else archLineFloatSetTool('arrow');
+    else {
+      var la = archUserLineGetLineArrows(ln);
+      if (la === 'both') archLineFloatSetTool('doubleArrow');
+      else if (la === 'none') archLineFloatSetTool('plain');
+      else archLineFloatSetTool('arrow');
+    }
   }
 
   function archLineFloatApplySelectedFromBar() {
@@ -2059,8 +2070,10 @@
     if (t !== 'divider' && t !== 'freehand') {
       if (t === 'dotted') ln.dashStyle = 'dotted';
       else ln.dashStyle = 'solid';
-      if (t === 'doubleArrow') ln.bidirectional = true;
-      else if (t === 'arrow' || t === 'dotted') ln.bidirectional = false;
+      if (t === 'doubleArrow') ln.lineArrows = 'both';
+      else if (t === 'plain') ln.lineArrows = 'none';
+      else if (t === 'arrow' || t === 'dotted') ln.lineArrows = 'end';
+      ln.bidirectional = ln.lineArrows === 'both';
     }
     archLineFloatSyncBidirUi(ln);
     archUserLineRender();
@@ -2230,8 +2243,11 @@
         e.stopPropagation();
         var ln = archUserLineGetSelected();
         if (!ln || (ln.points && ln.points.length >= 2)) return;
-        ln.bidirectional = !ln.bidirectional;
-        archLineFloatSetTool(ln.bidirectional ? 'doubleArrow' : ln.dashStyle === 'dotted' ? 'dotted' : 'arrow');
+        var la = archUserLineGetLineArrows(ln);
+        if (la === 'none' || la === null) return;
+        ln.lineArrows = la === 'both' ? 'end' : 'both';
+        ln.bidirectional = ln.lineArrows === 'both';
+        archLineFloatSetTool(ln.lineArrows === 'both' ? 'doubleArrow' : ln.dashStyle === 'dotted' ? 'dotted' : 'arrow');
         archUserLineRender();
         archUserLinePersist();
         archUndoMaybePushSnapshot();
@@ -2597,6 +2613,18 @@
     return null;
   }
 
+  /**
+   * Straight connectors only: `none` | `end` | `both`. Polylines return null.
+   * Legacy lines without `lineArrows` infer from `bidirectional`.
+   */
+  function archUserLineGetLineArrows(ln) {
+    if (!ln) return 'end';
+    if (ln.points && ln.points.length >= 2) return null;
+    var la = ln.lineArrows;
+    if (la === 'none' || la === 'end' || la === 'both') return la;
+    return ln.bidirectional ? 'both' : 'end';
+  }
+
   function archUserLineMigrateLegacy(ln) {
     if (!ln) return ln;
     if (ln.points && Array.isArray(ln.points) && ln.points.length >= 2) {
@@ -2612,6 +2640,10 @@
       var c = Object.assign({}, ln);
       delete c.d;
       if (!c.dashStyle) c.dashStyle = 'solid';
+      if (c.lineArrows !== 'none' && c.lineArrows !== 'end' && c.lineArrows !== 'both') {
+        c.lineArrows = c.bidirectional ? 'both' : 'end';
+      }
+      c.bidirectional = c.lineArrows === 'both';
       return c;
     }
     var out = Object.assign({}, ln);
@@ -2626,6 +2658,10 @@
     if (!out.to) out.to = { kind: 'free', x: 0, y: 0 };
     delete out.d;
     if (!out.dashStyle) out.dashStyle = 'solid';
+    if (out.lineArrows !== 'none' && out.lineArrows !== 'end' && out.lineArrows !== 'both') {
+      out.lineArrows = out.bidirectional ? 'both' : 'end';
+    }
+    out.bidirectional = out.lineArrows === 'both';
     return out;
   }
 
@@ -4196,8 +4232,13 @@
           (userLines.selectedId === ln.id ? ' arch-user-line--selected' : '')
       );
       if (!isPoly) {
-        p.setAttribute('marker-end', 'url(#archUserArrowEnd)');
-        if (ln.bidirectional) p.setAttribute('marker-start', 'url(#archUserArrowStart)');
+        var la = archUserLineGetLineArrows(ln);
+        if (la === 'end' || la === 'both') {
+          p.setAttribute('marker-end', 'url(#archUserArrowEnd)');
+        }
+        if (la === 'both') {
+          p.setAttribute('marker-start', 'url(#archUserArrowStart)');
+        }
       }
       g.appendChild(p);
       if (isPoly) {
@@ -4377,13 +4418,20 @@
           bidirectional: false,
         });
       } else {
+        var lar =
+          L.lineArrows === 'none' || L.lineArrows === 'end' || L.lineArrows === 'both'
+            ? L.lineArrows
+            : L.bidirectional
+              ? 'both'
+              : 'end';
         userLines.lines.push({
           id: id,
           from: archUserLineEndpointPasteOffset(L.from, dx, dy),
           to: archUserLineEndpointPasteOffset(L.to, dx, dy),
           stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
           strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2,
-          bidirectional: !!L.bidirectional,
+          lineArrows: lar,
+          bidirectional: lar === 'both',
           dashStyle: L.dashStyle === 'dotted' ? 'dotted' : 'solid',
         });
       }
@@ -4404,7 +4452,10 @@
   function archUserLineAdd(ep1, ep2) {
     var tool = archLineFloatGetTool();
     var dashStyle = tool === 'dotted' ? 'dotted' : 'solid';
-    var bidir = tool === 'doubleArrow';
+    var lineArrows = 'end';
+    if (tool === 'doubleArrow') lineArrows = 'both';
+    else if (tool === 'plain') lineArrows = 'none';
+    else if (tool === 'arrow' || tool === 'dotted') lineArrows = 'end';
     var id = 'ul-' + Date.now();
     userLines.lines.push({
       id: id,
@@ -4412,7 +4463,8 @@
       to: ep2,
       stroke: archLineFloatGetHex(),
       strokeWidth: archLineFloatGetStrokeW(),
-      bidirectional: bidir,
+      lineArrows: lineArrows,
+      bidirectional: lineArrows === 'both',
       dashStyle: dashStyle,
     });
     userLines.selectedId = id;
