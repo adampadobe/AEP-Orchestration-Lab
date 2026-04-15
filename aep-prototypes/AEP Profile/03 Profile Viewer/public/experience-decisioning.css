@@ -76,20 +76,40 @@ html[data-aep-theme='dark'] .experience-decisioning-page .edp-blocked {
 /*
  * Experimentation overview — one continuous white card for the embedded EDP (intro + 3 boxes + explorer),
  * matching Decisioning overview’s panel treatment. Shell uses --dash-bg inside .edp-sandbox; lift to --dash-surface here only.
+ * Height: override global .schema-aep-edp-root min-height, .edp-sandbox min-height, and Shell full-viewport flex so the card hugs content.
  */
+.experience-decisioning-page.experimentation-overview-page #edp-root.schema-aep-edp-root {
+  min-height: 0;
+  height: auto;
+}
+
 .experience-decisioning-page.experimentation-overview-page #edp-root.dce-viz-scope {
   background: var(--dash-surface, #ffffff);
   border: 1px solid var(--dash-border, #e8e8e8);
-  border-radius: var(--dash-radius-sm, 12px);
+  border-radius: 20px;
   box-shadow: var(--dash-shadow, 0 1px 3px rgba(15, 15, 25, 0.08));
+  min-height: 0;
+  height: auto;
 }
 
 .experience-decisioning-page.experimentation-overview-page #edp-root .edp-sandbox {
+  flex: 0 1 auto;
+  background: var(--dash-surface, #ffffff);
+  min-height: 0;
+  border-radius: 20px;
+}
+
+/* Shell defaults stretch to 100vh + flex-grow content; collapse to content height on this page only */
+.experience-decisioning-page.experimentation-overview-page #edp-root .edp-sandbox .edp-shell-root {
+  min-height: 0;
+  height: auto;
   background: var(--dash-surface, #ffffff);
 }
 
-.experience-decisioning-page.experimentation-overview-page #edp-root .edp-sandbox .edp-shell-root,
 .experience-decisioning-page.experimentation-overview-page #edp-root .edp-sandbox .edp-shell-content {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: visible;
   background: var(--dash-surface, #ffffff);
 }
 
