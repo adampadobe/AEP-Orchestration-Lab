@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="experimentation-visualiser.css?v=20260432">
+  <link rel="stylesheet" href="experimentation-visualiser.css?v=20260433">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-visualiser-page">
   <div class="dashboard-shell">
@@ -50,24 +50,24 @@
           </div>
 
           <div class="exp-flow-viz">
-            <svg class="exp-flow-svg" viewBox="0 0 1040 448" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true">
+            <svg class="exp-flow-svg" viewBox="0 0 1020 448" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true">
               <defs>
                 <clipPath id="exp-clip-thumb-a" clipPathUnits="userSpaceOnUse">
-                  <rect x="650" y="44" width="190" height="88" rx="6"/>
+                  <rect x="706" y="44" width="190" height="88" rx="6"/>
                 </clipPath>
                 <clipPath id="exp-clip-thumb-b" clipPathUnits="userSpaceOnUse">
-                  <rect x="650" y="184" width="190" height="88" rx="6"/>
+                  <rect x="706" y="184" width="190" height="88" rx="6"/>
                 </clipPath>
                 <clipPath id="exp-clip-thumb-c" clipPathUnits="userSpaceOnUse">
-                  <rect x="650" y="324" width="190" height="88" rx="6"/>
+                  <rect x="706" y="324" width="190" height="88" rx="6"/>
                 </clipPath>
               </defs>
 
-              <!-- Ribbon paths (stroke ≈ relative volume) — audience right x=212 -->
+              <!-- Ribbon paths (stroke ≈ relative volume) — audience right x=212; treatments start x≈694 -->
               <path id="exp-path-main" d="M 212 210 C 268 210 288 198 330 198 L 506 198" fill="none" stroke="#95d5b2" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
-              <path id="exp-path-a" d="M 506 198 C 560 198 596 90 644 78" fill="none" stroke="#95d5b2" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
-              <path id="exp-path-b" d="M 506 198 L 644 218" fill="none" stroke="#52b788" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>
-              <path id="exp-path-c" d="M 506 198 C 560 198 596 318 644 358" fill="none" stroke="#95d5b2" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+              <path id="exp-path-a" d="M 506 198 C 560 198 596 90 694 78" fill="none" stroke="#95d5b2" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+              <path id="exp-path-b" d="M 506 198 L 694 218" fill="none" stroke="#52b788" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>
+              <path id="exp-path-c" d="M 506 198 C 560 198 596 318 694 358" fill="none" stroke="#95d5b2" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
 
               <!-- Audience — wider box so “New customers” fits -->
               <rect x="24" y="156" width="188" height="96" rx="16" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
@@ -86,47 +86,47 @@
 
               <!-- Treatment A -->
               <g id="exp-treatment-a">
-                <rect class="exp-flow-treat-frame" x="638" y="12" width="214" height="132" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
-                <text x="650" y="34" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment A — control</text>
-                <image xlink:href="https://contenthosting.web.app/experiments/treatmenta.png" href="https://contenthosting.web.app/experiments/treatmenta.png" x="650" y="44" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-a)"/>
+                <rect class="exp-flow-treat-frame" x="694" y="12" width="214" height="132" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
+                <text x="706" y="34" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment A — control</text>
+                <image xlink:href="https://contenthosting.web.app/experiments/treatmenta.png" href="https://contenthosting.web.app/experiments/treatmenta.png" x="706" y="44" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-a)"/>
               </g>
 
               <!-- Treatment B -->
               <g id="exp-treatment-b">
-                <rect class="exp-flow-treat-frame" x="638" y="152" width="214" height="132" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
-                <text x="650" y="174" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment B</text>
-                <image xlink:href="https://contenthosting.web.app/experiments/treatmentb.png" href="https://contenthosting.web.app/experiments/treatmentb.png" x="650" y="184" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-b)"/>
+                <rect class="exp-flow-treat-frame" x="694" y="152" width="214" height="132" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
+                <text x="706" y="174" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment B</text>
+                <image xlink:href="https://contenthosting.web.app/experiments/treatmentb.png" href="https://contenthosting.web.app/experiments/treatmentb.png" x="706" y="184" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-b)"/>
               </g>
 
               <!-- Treatment C -->
               <g id="exp-treatment-c">
-                <rect class="exp-flow-treat-frame" x="638" y="292" width="214" height="132" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
-                <text x="650" y="314" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment C</text>
-                <image xlink:href="https://contenthosting.web.app/experiments/treatmentc.png" href="https://contenthosting.web.app/experiments/treatmentc.png" x="650" y="324" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-c)"/>
+                <rect class="exp-flow-treat-frame" x="694" y="292" width="214" height="132" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
+                <text x="706" y="314" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment C</text>
+                <image xlink:href="https://contenthosting.web.app/experiments/treatmentc.png" href="https://contenthosting.web.app/experiments/treatmentc.png" x="706" y="324" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-c)"/>
               </g>
 
-              <!-- Click counters (right of treatments) — updated by JS -->
-              <text x="868" y="58" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#6c757d">Clicks</text>
-              <text id="exp-counter-a" class="exp-flow-counter" x="868" y="82" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="700" fill="#1b4332" font-variant-numeric="tabular-nums">0</text>
-              <text x="868" y="198" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#6c757d">Clicks</text>
-              <text id="exp-flow-b-badge" class="exp-flow-winner-badge" x="868" y="222" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="700" fill="#b8860b"></text>
-              <text id="exp-counter-b" class="exp-flow-counter" x="868" y="246" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="700" fill="#1b4332" font-variant-numeric="tabular-nums">0</text>
-              <text x="868" y="338" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#6c757d">Clicks</text>
-              <text id="exp-counter-c" class="exp-flow-counter" x="868" y="362" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="700" fill="#1b4332" font-variant-numeric="tabular-nums">0</text>
+              <!-- Click counters (right of treatments; start anchors avoid overlap with card edges) -->
+              <text x="928" y="58" text-anchor="start" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#6c757d">Clicks</text>
+              <text id="exp-counter-a" class="exp-flow-counter" x="928" y="82" text-anchor="start" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="700" fill="#1b4332" font-variant-numeric="tabular-nums">0</text>
+              <text x="928" y="198" text-anchor="start" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#6c757d">Clicks</text>
+              <text id="exp-flow-b-badge" class="exp-flow-winner-badge" x="928" y="222" text-anchor="start" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="700" fill="#b8860b"></text>
+              <text id="exp-counter-b" class="exp-flow-counter" x="928" y="246" text-anchor="start" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="700" fill="#1b4332" font-variant-numeric="tabular-nums">0</text>
+              <text x="928" y="338" text-anchor="start" font-family="Inter, system-ui, sans-serif" font-size="10" fill="#6c757d">Clicks</text>
+              <text id="exp-counter-c" class="exp-flow-counter" x="928" y="362" text-anchor="start" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="700" fill="#1b4332" font-variant-numeric="tabular-nums">0</text>
 
               <!-- Path count pills (drawn LAST so they sit above cards) -->
               <g id="exp-flow-pills">
                 <rect x="228" y="110" width="100" height="28" rx="14" fill="#1b4332"/>
                 <text id="exp-pill-total" x="278" y="129" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">0</text>
 
-                <rect x="512" y="58" width="76" height="24" rx="12" fill="#1b4332"/>
-                <text id="exp-pill-a" x="550" y="74" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">0</text>
+                <rect x="548" y="58" width="76" height="24" rx="12" fill="#1b4332"/>
+                <text id="exp-pill-a" x="586" y="74" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">0</text>
 
-                <rect x="520" y="178" width="76" height="24" rx="12" fill="#1b4332"/>
-                <text id="exp-pill-b" x="558" y="194" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">0</text>
+                <rect x="556" y="178" width="76" height="24" rx="12" fill="#1b4332"/>
+                <text id="exp-pill-b" x="594" y="194" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">0</text>
 
-                <rect x="512" y="318" width="76" height="24" rx="12" fill="#1b4332"/>
-                <text id="exp-pill-c" x="550" y="334" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">0</text>
+                <rect x="548" y="318" width="76" height="24" rx="12" fill="#1b4332"/>
+                <text id="exp-pill-c" x="586" y="334" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">0</text>
               </g>
 
               <!-- Flowing profile dots -->
@@ -191,6 +191,6 @@
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-lab-nav.js?v=20260419-demos-ctrl"></script>
-  <script defer src="experimentation-visualiser.js?v=20260432"></script>
+  <script defer src="experimentation-visualiser.js?v=20260433"></script>
 </body>
 </html>
