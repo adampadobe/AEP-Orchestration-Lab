@@ -336,16 +336,30 @@ html[data-aep-theme='dark'] .experimentation-visualiser-page .exp-flow-viz {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  border: 2px solid transparent;
-  border-radius: 14px;
-  padding: 0.35rem;
-  box-sizing: border-box;
-  transition: border-color 0.35s ease, box-shadow 0.35s ease;
 }
 
-.experimentation-visualiser-page .exp-email-preview--winner {
+.experimentation-visualiser-page .exp-email-feature-ring {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+  /* Percent of frame; tuned for emailsubjecta.png “What you get” block */
+  left: 5.5%;
+  right: 5.5%;
+  top: 46%;
+  height: 30%;
+}
+
+.experimentation-visualiser-page .exp-email-feature-ring--winner {
   border-color: #b8860b;
   box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.18);
+}
+
+.experimentation-visualiser-page .exp-email-preview-frame--fallback .exp-email-feature-ring {
+  display: none;
 }
 
 .experimentation-visualiser-page .exp-email-preview-frame {

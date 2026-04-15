@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="experimentation-visualiser.css?v=20260439">
+  <link rel="stylesheet" href="experimentation-visualiser.css?v=20260440">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-visualiser-page">
   <div class="dashboard-shell">
@@ -245,8 +245,10 @@
 
             <div class="exp-email-previews">
               <figure class="exp-email-preview" id="expEmailPreviewA">
-                <div class="exp-email-preview-frame">
+                <div class="exp-email-preview-frame" id="expEmailPreviewFrameA">
                   <img class="exp-email-preview-img" src="https://contenthosting.web.app/experiments/emailsubjecta.png" width="320" height="200" alt="" loading="lazy"/>
+                  <!-- Ring position tuned for emailsubjecta.png “What you get” feature block -->
+                  <div class="exp-email-feature-ring" id="expEmailFeatureRing" aria-hidden="true"></div>
                   <div class="exp-email-preview-fallback" aria-hidden="true">
                     <span class="exp-email-preview-fallback-bar"></span>
                     <span class="exp-email-preview-fallback-subj">Enjoy 20% off</span>
@@ -277,7 +279,7 @@
   <script defer src="aep-lab-nav.js?v=20260419-demos-ctrl"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js" crossorigin="anonymous"></script>
-  <script defer src="experimentation-visualiser.js?v=20260439"></script>
+  <script defer src="experimentation-visualiser.js?v=20260440"></script>
   <script defer src="experimentation-visualiser-gif.js?v=20260438"></script>
 </body>
 </html>
