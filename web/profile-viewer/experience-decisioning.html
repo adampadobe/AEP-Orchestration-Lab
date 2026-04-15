@@ -66,10 +66,13 @@
   <script>
     (function () {
       var LS_HIDE = 'aepHideDataViewerDecisioningPlayground';
+      var LS_NAV = 'aepNavHideInDev_decisioningOverview';
       function applyVisibility() {
         var hide = false;
         try {
-          hide = localStorage.getItem(LS_HIDE) === '1';
+          hide =
+            localStorage.getItem(LS_HIDE) === '1' ||
+            localStorage.getItem(LS_NAV) === '1';
         } catch (e) {}
         var blocked = document.getElementById('edpBlocked');
         var mount = document.getElementById('decisioning-overview');
@@ -88,12 +91,15 @@
       window.addEventListener('aep-edp-visibility-change', function () {
         window.location.reload();
       });
+      window.addEventListener('aep-nav-indev-visibility-change', function () {
+        window.location.reload();
+      });
       window.addEventListener('storage', function (e) {
-        if (e.key === LS_HIDE) window.location.reload();
+        if (e.key === LS_HIDE || e.key === LS_NAV) window.location.reload();
       });
     })();
   </script>
   <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260430"></script>
+  <script defer src="aep-lab-nav.js?v=20260416-indev"></script>
 </body>
 </html>

@@ -53,14 +53,39 @@
                 Same as the sidebar control. Stored in this browser as <code>aepTheme</code> (<code>dark</code> or default light).
               </p>
             </div>
-            <div class="aep-edp-global-row" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--aep-border, #e8e4df);">
-              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Decisioning</label>
-              <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                <input type="checkbox" id="aepHideEdpDataViewer" style="margin-top:3px;" />
-                <span>Hide <strong>Decisioning overview</strong> from the sidebar (under Decisioning)</span>
-              </label>
-              <p class="dashboard-hero-subtitle" style="margin-top: 10px; font-size: 13px;">
-                Stored as <code>aepHideDataViewerDecisioningPlayground</code> (<code>1</code> hides the nav item). Other tabs pick up the change via storage sync.
+            <div id="aepNavInDevSection" class="aep-nav-indev-global-row" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--aep-border, #e8e4df);" hidden>
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">In-development pages (sidebar)</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
+                Only the <strong>apalmer</strong> and <strong>kirkham</strong> sandboxes see this section. Other users always get a menu without work-in-progress links. Check a row to <strong>hide</strong> that page from the sidebar (this browser only).
+              </p>
+              <div class="aep-nav-indev-checklist" style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="profileGeneration" style="margin-top:3px;" />
+                  <span>Hide <strong>Profile generation</strong> (Tools)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="firebaseImages" style="margin-top:3px;" />
+                  <span>Hide <strong>Firebase images</strong> (Tools)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="decisioningLab" style="margin-top:3px;" />
+                  <span>Hide <strong>Decisioning lab</strong> (Decisioning)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="decisioningOverview" style="margin-top:3px;" />
+                  <span>Hide <strong>Decisioning overview</strong> (Decisioning)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="experimentationOverview" style="margin-top:3px;" />
+                  <span>Hide <strong>Experimentation overview</strong> (Experimentation)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="aepArchitectureApps" style="margin-top:3px;" />
+                  <span>Hide <strong>AEP &amp; Apps</strong> (Architecture)</span>
+                </label>
+              </div>
+              <p class="dashboard-hero-subtitle" style="margin-top: 12px; font-size: 13px;">
+                Stored per key <code>aepNavHideInDev_&lt;name&gt;</code> (<code>1</code> = hidden). <strong>Decisioning overview</strong> also syncs the legacy key <code>aepHideDataViewerDecisioningPlayground</code> for older tabs.
               </p>
             </div>
           </div>
@@ -114,32 +139,100 @@
   </script>
   <script>
     (function () {
-      var LS_HIDE = 'aepHideDataViewerDecisioningPlayground';
-      var cb = document.getElementById('aepHideEdpDataViewer');
-      if (!cb) return;
-      function sync() {
+      var LS_PREFIX = 'aepNavHideInDev_';
+      var LS_HIDE_EDP_LEGACY = 'aepHideDataViewerDecisioningPlayground';
+      var LS_SANDBOX = 'aepGlobalSandboxName';
+
+      function isDeveloperSandbox() {
         try {
-          cb.checked = localStorage.getItem(LS_HIDE) === '1';
+          var s = String(localStorage.getItem(LS_SANDBOX) || '').trim().toLowerCase();
+          return s === 'apalmer' || s === 'kirkham';
         } catch (e) {
-          cb.checked = false;
+          return false;
         }
       }
-      sync();
-      cb.addEventListener('change', function () {
+
+      function isHiddenKey(key) {
         try {
-          if (cb.checked) localStorage.setItem(LS_HIDE, '1');
-          else localStorage.removeItem(LS_HIDE);
+          if (localStorage.getItem(LS_PREFIX + key) === '1') return true;
+          if (key === 'decisioningOverview' && localStorage.getItem(LS_HIDE_EDP_LEGACY) === '1') return true;
+        } catch (e) {}
+        return false;
+      }
+
+      function setHiddenKey(key, hide) {
+        try {
+          if (key === 'decisioningOverview') {
+            if (hide) {
+              localStorage.setItem(LS_PREFIX + key, '1');
+              localStorage.setItem(LS_HIDE_EDP_LEGACY, '1');
+            } else {
+              localStorage.removeItem(LS_PREFIX + key);
+              localStorage.removeItem(LS_HIDE_EDP_LEGACY);
+            }
+          } else {
+            if (hide) localStorage.setItem(LS_PREFIX + key, '1');
+            else localStorage.removeItem(LS_PREFIX + key);
+          }
+        } catch (e) {}
+      }
+
+      function syncSection() {
+        var sec = document.getElementById('aepNavInDevSection');
+        if (!sec) return;
+        if (isDeveloperSandbox()) sec.removeAttribute('hidden');
+        else sec.setAttribute('hidden', '');
+      }
+
+      function syncCheckboxes() {
+        document.querySelectorAll('.aep-nav-indev-hide-cb').forEach(function (cb) {
+          var key = cb.getAttribute('data-aep-nav-hide-key');
+          if (!key) return;
+          cb.checked = isHiddenKey(key);
+        });
+      }
+
+      function dispatchNavChange() {
+        try {
+          window.dispatchEvent(new CustomEvent('aep-nav-indev-visibility-change'));
         } catch (e) {}
         try {
           window.dispatchEvent(new CustomEvent('aep-edp-visibility-change'));
         } catch (e2) {}
-      });
-      window.addEventListener('storage', function (e) {
-        if (e.key === LS_HIDE) sync();
-      });
+      }
+
+      function init() {
+        syncSection();
+        syncCheckboxes();
+        document.querySelectorAll('.aep-nav-indev-hide-cb').forEach(function (cb) {
+          cb.addEventListener('change', function () {
+            var key = cb.getAttribute('data-aep-nav-hide-key');
+            if (!key) return;
+            setHiddenKey(key, cb.checked);
+            dispatchNavChange();
+          });
+        });
+        window.addEventListener('aep-global-sandbox-change', function () {
+          syncSection();
+          syncCheckboxes();
+        });
+        window.addEventListener('storage', function (e) {
+          if (!e.key) return;
+          if (e.key === LS_SANDBOX || e.key.indexOf(LS_PREFIX) === 0 || e.key === LS_HIDE_EDP_LEGACY) {
+            syncSection();
+            syncCheckboxes();
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
     })();
   </script>
   <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260430"></script>
+  <script defer src="aep-lab-nav.js?v=20260416-indev"></script>
 </body>
 </html>

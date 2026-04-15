@@ -100,17 +100,17 @@
                 <li><a href="audience-membership.html">Audience</a></li>
                 <li><a href="consent.html">Consent</a></li>
                 <li class="dashboard-link-list-heading">Decisioning</li>
-                <li><a href="content-decision-live.html">Decisioning lab (in development)</a></li>
+                <li data-aep-nav-indev-li="decisioningLab"><a href="content-decision-live.html">Decisioning lab (in development)</a></li>
                 <li><a href="decisioning-catalog.html">Decisioning catalog</a></li>
                 <li><a href="decisioning-visualiser.html">Decisioning visualiser</a></li>
                 <li class="dashboard-link-list-heading">Architecture</li>
-                <li><a href="aep-architecture-apps.html">AEP &amp; Apps (in development)</a></li>
+                <li data-aep-nav-indev-li="aepArchitectureApps"><a href="aep-architecture-apps.html">AEP &amp; Apps (in development)</a></li>
                 <li class="dashboard-link-list-heading">Tools</li>
                 <li><a href="journeys.html">Journeys</a></li>
-                <li><a href="profile-generation.html">Profile generation (in development)</a></li>
+                <li data-aep-nav-indev-li="profileGeneration"><a href="profile-generation.html">Profile generation (in development)</a></li>
                 <li><a href="event-tool.html">Event tool</a></li>
                 <li><a href="live-activities.html">Live activities</a></li>
-                <li><a href="firebase-hosting.html">Firebase images (in development)</a></li>
+                <li data-aep-nav-indev-li="firebaseImages"><a href="firebase-hosting.html">Firebase images (in development)</a></li>
                 <li><a href="firebase-database.html">Real-time database</a></li>
                 <li><a href="audit-events.html">Audit events</a></li>
                 <li class="dashboard-link-list-heading home-demos-only" hidden>Demos</li>
@@ -140,7 +140,7 @@
   </div>
 
   <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260430"></script>
+  <script defer src="aep-lab-nav.js?v=20260416-indev"></script>
   <script>
     (function () {
       function syncHomeDemos() {
@@ -153,10 +153,28 @@
           });
         } catch (e) {}
       }
+      function syncHomeInDevLinks() {
+        try {
+          var api = window.AepNavInDev;
+          if (!api || typeof api.shouldShowMenuItem !== 'function') return;
+          document.querySelectorAll('[data-aep-nav-indev-li]').forEach(function (li) {
+            var key = li.getAttribute('data-aep-nav-indev-li');
+            li.hidden = !api.shouldShowMenuItem(key);
+          });
+        } catch (e) {}
+      }
+      function syncHome() {
+        syncHomeDemos();
+        syncHomeInDevLinks();
+      }
+      document.addEventListener('DOMContentLoaded', syncHome);
       syncHomeDemos();
-      window.addEventListener('aep-global-sandbox-change', syncHomeDemos);
+      window.addEventListener('aep-global-sandbox-change', syncHome);
+      window.addEventListener('aep-nav-indev-visibility-change', syncHomeInDevLinks);
       window.addEventListener('storage', function (e) {
-        if (e.key === 'aepGlobalSandboxName') syncHomeDemos();
+        if (!e.key) return;
+        if (e.key === 'aepGlobalSandboxName') syncHome();
+        if (e.key.indexOf('aepNavHideInDev_') === 0 || e.key === 'aepHideDataViewerDecisioningPlayground') syncHomeInDevLinks();
       });
     })();
   </script>

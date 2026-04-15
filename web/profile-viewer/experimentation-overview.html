@@ -78,7 +78,7 @@
           <p style="margin:0 0 0.75rem;">
             This page is hidden from the sidebar. Turn it back on under
             <a href="global-settings.html"><strong>Global values</strong></a>
-            (uncheck “Hide Decisioning overview”).
+            (uncheck “Hide Experimentation overview”).
           </p>
         </div>
 
@@ -91,11 +91,11 @@
 
   <script>
     (function () {
-      var LS_HIDE = 'aepHideDataViewerDecisioningPlayground';
+      var LS_NAV = 'aepNavHideInDev_experimentationOverview';
       function applyVisibility() {
         var hide = false;
         try {
-          hide = localStorage.getItem(LS_HIDE) === '1';
+          hide = localStorage.getItem(LS_NAV) === '1';
         } catch (e) {}
         var blocked = document.getElementById('edpBlocked');
         var mount = document.getElementById('edpMount');
@@ -111,15 +111,15 @@
         }
       }
       applyVisibility();
-      window.addEventListener('aep-edp-visibility-change', function () {
+      window.addEventListener('aep-nav-indev-visibility-change', function () {
         window.location.reload();
       });
       window.addEventListener('storage', function (e) {
-        if (e.key === LS_HIDE) window.location.reload();
+        if (e.key === LS_NAV) window.location.reload();
       });
     })();
   </script>
   <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260430"></script>
+  <script defer src="aep-lab-nav.js?v=20260416-indev"></script>
 </body>
 </html>
