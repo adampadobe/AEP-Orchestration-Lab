@@ -2,19 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script src="aep-head-sync.js"></script>
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Decisioning overview – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="experience-decisioning.css?v=20260430">
-  <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260414-surface">
+  <link rel="stylesheet" href="decisioning-catalog.css?v=20260426">
+  <link rel="stylesheet" href="decisioning-visualizer-core.css?v=parity20260414">
+  <link rel="stylesheet" href="decisioning-edp-shell.css?v=parity20260414">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=parity20260414-healthcare">
+  <link rel="stylesheet" href="experience-decisioning.css?v=20260430c">
+  <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260414-story-split">
 </head>
-<body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page">
+<body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page decisioning-catalog-page">
+  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -22,14 +28,14 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Local learning tool">Local</span>
+          <span class="dashboard-env-pill" title="AEP sandbox APIs">AEP</span>
           <a href="https://experienceleague.adobe.com/docs/journey-optimizer/using/ajo-orchestration/decision-management/decision-management.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Decision management</a>
           <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
-          <a href="schema-viewer.html" class="dashboard-topbar-icon" title="Data viewer">◧</a>
+          <a href="content-decision-live.html" class="dashboard-topbar-icon" title="Decisioning lab (in development)">◇</a>
         </div>
       </header>
 
-      <main class="dashboard-main app-page">
+      <main class="dashboard-main profile-viewer-main app-page">
         <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingEdp">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
@@ -50,9 +56,9 @@
           </p>
         </div>
 
-        <div id="edpMount" class="edp-mount">
-          <div id="edp-root" class="schema-aep-edp-root"></div>
-        </div>
+        <section class="dce-viz-section" id="decisioning-overview" aria-label="Decisioning overview">
+          <div id="edp-root" class="dce-viz-scope dce-viz-core schema-aep-edp-root" role="region" aria-label="Decisioning overview"></div>
+        </section>
       </main>
     </div>
   </div>
@@ -60,13 +66,16 @@
   <script>
     (function () {
       var LS_HIDE = 'aepHideDataViewerDecisioningPlayground';
+      var LS_NAV = 'aepNavHideInDev_decisioningOverview';
       function applyVisibility() {
         var hide = false;
         try {
-          hide = localStorage.getItem(LS_HIDE) === '1';
+          hide =
+            localStorage.getItem(LS_HIDE) === '1' ||
+            localStorage.getItem(LS_NAV) === '1';
         } catch (e) {}
         var blocked = document.getElementById('edpBlocked');
-        var mount = document.getElementById('edpMount');
+        var mount = document.getElementById('decisioning-overview');
         if (blocked && mount) {
           blocked.hidden = !hide;
           mount.hidden = hide;
@@ -74,7 +83,7 @@
         if (!hide) {
           var s = document.createElement('script');
           s.type = 'module';
-          s.src = '/profile-viewer/experience-decisioning/assets/edp.js?v=20260414-surface';
+          s.src = '/profile-viewer/experience-decisioning/assets/edp.js?v=20260414-story-split';
           document.body.appendChild(s);
         }
       }
@@ -82,12 +91,15 @@
       window.addEventListener('aep-edp-visibility-change', function () {
         window.location.reload();
       });
+      window.addEventListener('aep-nav-indev-visibility-change', function () {
+        window.location.reload();
+      });
       window.addEventListener('storage', function (e) {
-        if (e.key === LS_HIDE) window.location.reload();
+        if (e.key === LS_HIDE || e.key === LS_NAV) window.location.reload();
       });
     })();
   </script>
   <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260430"></script>
+  <script defer src="aep-lab-nav.js?v=20260418-empty-groups"></script>
 </body>
 </html>
