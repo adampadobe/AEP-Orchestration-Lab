@@ -1,5 +1,5 @@
 /**
- * Experimentation visualiser — count-up for path pills + exposure counters; Winner on B when all targets reached.
+ * Experimentation visualiser — count-up for path pills + click counters; Winner above B’s total when all targets reached.
  */
 (function () {
   var DURATION_MS = 4800;
@@ -42,9 +42,10 @@
   function setWinnerState(on) {
     if (els.winnerGroup) els.winnerGroup.classList.toggle('exp-flow-treatment--winner', !!on);
     if (els.badge) {
-      els.badge.textContent = on ? 'Winner' : 'Leading allocation';
+      els.badge.textContent = on ? 'Winner' : '';
+      els.badge.classList.toggle('exp-flow-winner-badge--visible', !!on);
     }
-    if (on) announce('All exposure targets reached. Treatment B is the Winner.');
+    if (on) announce('All click targets reached. Treatment B is the Winner.');
   }
 
   function setFinalNumbers() {
@@ -101,7 +102,7 @@
       setWinnerState(true);
       return;
     }
-    announce('Counting up allocations and exposures.');
+    announce('Counting up allocations and clicks.');
     rafId = window.requestAnimationFrame(tick);
   }
 

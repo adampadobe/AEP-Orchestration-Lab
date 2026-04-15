@@ -71,7 +71,7 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: min(420px, 70vh);
+  max-height: min(520px, 78vh);
 }
 
 /* Winner state applied via JS to #exp-treatment-b group */
@@ -82,7 +82,13 @@
 }
 
 .experimentation-visualiser-page .exp-flow-winner-badge {
-  transition: fill 0.35s ease;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease, fill 0.35s ease;
+}
+
+.experimentation-visualiser-page .exp-flow-winner-badge--visible {
+  opacity: 1;
 }
 
 .experimentation-visualiser-page .exp-flow-treatment--winner .exp-flow-winner-badge {
