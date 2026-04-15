@@ -299,14 +299,48 @@
     if (!panel || !txt) return;
     if (!archIsEditMode()) {
       panel.hidden = true;
+      archInspectorSync();
       return;
     }
     panel.hidden = false;
     if (!archSelection || archSelection.count() === 0) {
       txt.textContent = 'None — click a node (Shift+click for multi-select).';
+      archInspectorSync();
       return;
     }
     txt.textContent = archSelection.toArray().join(', ');
+    archInspectorSync();
+  }
+
+  /** Single platform-node metadata when exactly one arch node is selected (Edit mode). */
+  function archInspectorSync() {
+    var ins = qs('#archEditInspector');
+    var body = qs('#archEditInspectorBody');
+    if (!ins || !body) return;
+    if (!archIsEditMode() || !archSelection || archSelection.count() !== 1) {
+      ins.hidden = true;
+      return;
+    }
+    var id = archSelection.primary;
+    if (!id || id.indexOf('node-') !== 0 || id.indexOf('node-cbox-') === 0) {
+      ins.hidden = true;
+      return;
+    }
+    var key = id.slice(5);
+    if (!NODE_LAYOUT[key]) {
+      ins.hidden = true;
+      return;
+    }
+    ins.hidden = false;
+    var human = ARCH_NODE_LABELS[key] || key;
+    body.textContent =
+      'Key: ' +
+      key +
+      '\nTitle: ' +
+      human +
+      '\nElement id: ' +
+      id +
+      '\n\nTip: turn on “Move & edit labels” to change text on the diagram.';
   }
 
   function archEditSelectionInit() {
@@ -2807,6 +2841,60 @@
     archUserLineRender();
   }
 
+  /** Preset custom boxes (Visio-like palette). Keys match data-arch-palette on buttons. */
+  var ARCH_PALETTE_PRESETS = {
+    process: { name: 'Process', w: 120, h: 56, fill: '#eff6ff', stroke: '#2563eb' },
+    datastore: { name: 'Data store', w: 100, h: 72, fill: '#ecfdf5', stroke: '#059669' },
+    external: { name: 'External system', w: 140, h: 48, fill: '#fef3c7', stroke: '#d97706' },
+  };
+
+  function archPaletteAddPreset(presetKey) {
+    if (!archIsEditMode() || !archDrag.svg) return;
+    var preset = ARCH_PALETTE_PRESETS[presetKey];
+    if (!preset) return;
+    var n = archCustomBoxes.length;
+    var x = 400 + (n % 6) * 32;
+    var y = 200 + (n % 5) * 26;
+    x = archClamp(x, 0, ARCH_GUIDE_VIEW.w - preset.w);
+    y = archClamp(y, 0, ARCH_GUIDE_VIEW.h - preset.h);
+    var nb = archCustomBoxNormalize({
+      id: 'cbox-' + Date.now(),
+      x: x,
+      y: y,
+      w: preset.w,
+      h: preset.h,
+      name: preset.name,
+      fill: preset.fill,
+      stroke: preset.stroke,
+    });
+    archCustomBoxes.push(nb);
+    archCustomBoxSelectedId = nb.id;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    if (archSelection) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
+    var domId = 'node-cbox-' + nb.id;
+    var curH = archHighlightsForState(idx).slice();
+    if (curH.indexOf(domId) < 0) curH.push(domId);
+    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    if (archHighlightArraysEqual(curH, defH)) {
+      delete archStateHighlightOverrides[idx];
+      delete archStateHighlightOverrides[String(idx)];
+    } else {
+      archStateHighlightOverrides[String(idx)] = curH;
+    }
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) liveRegion.textContent = 'Added ' + preset.name + ' shape.';
+  }
+
   function archCustomBoxDrawPointerDownCapture(e) {
     if (!customBoxDrawMode || !archDrag.svg) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -3614,6 +3702,17 @@
     }
 
     archDrag.svg.addEventListener('click', archEditSelectionOnSvgClick, false);
+
+    var editorPanelPal = qs('#archEditorPanel');
+    if (editorPanelPal && !editorPanelPal.getAttribute('data-arch-palette-ready')) {
+      editorPanelPal.setAttribute('data-arch-palette-ready', '1');
+      editorPanelPal.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('[data-arch-palette]');
+        if (!btn) return;
+        var k = btn.getAttribute('data-arch-palette');
+        if (k) archPaletteAddPreset(k);
+      });
+    }
 
     archStateHighlightOverridesPersist();
     applyState();

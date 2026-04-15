@@ -766,6 +766,64 @@ html[data-aep-theme='dark'] .arch-edit-selection-panel {
   border-color: var(--dash-border);
 }
 
+.arch-edit-inspector {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dash-border, #e5e7eb);
+}
+
+.arch-edit-inspector-heading {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-edit-inspector-body {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--dash-text, #111827);
+  white-space: pre-line;
+}
+
+.arch-palette-block {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--dash-border, #d1d5db);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.arch-palette-heading {
+  margin: 0 0 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-palette-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.arch-palette-hint {
+  margin: 8px 0 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--dash-muted, #6b7280);
+}
+
+html[data-aep-theme='dark'] .arch-palette-block {
+  background: rgba(30, 34, 40, 0.55);
+  border-color: var(--dash-border);
+}
+
 .arch-int-viewport--edit-mode .arch-node:not(.arch-custom-box).arch-node--selected {
   filter: drop-shadow(0 0 2px rgba(20, 115, 230, 0.95));
 }

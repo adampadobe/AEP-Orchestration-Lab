@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260521">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260522">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -387,6 +387,19 @@
                   <div id="archEditSelectionPanel" class="arch-edit-selection-panel" hidden>
                     <p class="arch-edit-selection-heading">Selection</p>
                     <p id="archEditSelectionText" class="arch-edit-selection-text" aria-live="polite">—</p>
+                    <div id="archEditInspector" class="arch-edit-inspector" hidden>
+                      <p class="arch-edit-inspector-heading">Inspector</p>
+                      <p id="archEditInspectorBody" class="arch-edit-inspector-body"></p>
+                    </div>
+                  </div>
+                  <div class="arch-palette-block" aria-label="Add preset shapes">
+                    <p class="arch-palette-heading">Add shape</p>
+                    <div class="arch-palette-row">
+                      <button type="button" class="dashboard-btn-outline arch-palette-btn" data-arch-palette="process" title="Add process-style box">Process</button>
+                      <button type="button" class="dashboard-btn-outline arch-palette-btn" data-arch-palette="datastore" title="Add data store cylinder-style box">Data store</button>
+                      <button type="button" class="dashboard-btn-outline arch-palette-btn" data-arch-palette="external" title="Add external system box">External</button>
+                    </div>
+                    <p class="arch-palette-hint">Adds a preset custom box near the diagram center; drag it into place.</p>
                   </div>
                   <div class="arch-int-hud-tools" aria-label="Diagram layout">
                     <label class="arch-drag-toggle">
@@ -532,6 +545,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260521"></script>
+  <script defer src="aep-architecture-apps.js?v=20260522"></script>
 </body>
 </html>
