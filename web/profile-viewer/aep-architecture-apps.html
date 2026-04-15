@@ -396,6 +396,10 @@
                   <span class="arch-editor-rail-label" aria-hidden="true">Lines</span>
                   <span class="visually-hidden">Lines — connectors and Sources dividers</span>
                 </button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="spectrum-icons" id="archEditorRailSpectrumIcons" title="Browse Adobe Spectrum workflow icons (Apache-2.0)" aria-pressed="false">
+                  <span class="arch-editor-rail-label" aria-hidden="true">Icons</span>
+                  <span class="visually-hidden">Icons — Adobe Spectrum workflow</span>
+                </button>
                 <button type="button" class="arch-editor-rail-btn" data-arch-panel="file" id="archEditorRailFile" title="Save, import, undo, reset" aria-pressed="false">
                   <span class="arch-editor-rail-label" aria-hidden="true">File</span>
                   <span class="visually-hidden">File — save and layout data</span>
@@ -445,7 +449,7 @@
                         </span>
                       </label>
                     </div>
-                    <p class="arch-tool-hint" role="note">Built-in gray tiles use <strong>Move</strong> and <strong>Labels</strong>. Freeform outline: <strong>Draw box</strong>.</p>
+                    <p class="arch-tool-hint" role="note">Built-in gray tiles use <strong>Move</strong> and <strong>Labels</strong> (turn on Labels, then <strong>double-click</strong> label text to edit; row icons are fixed). Freeform outline: <strong>Draw box</strong>.</p>
                   </div>
                   <div class="arch-tool-group">
                     <h3 class="arch-tool-group-heading">Add shapes</h3>
@@ -484,12 +488,15 @@
                     <label class="arch-hud-label arch-hud-label--block">Name
                       <input type="text" id="archCustomBoxNameInput" class="arch-custom-box-name-input" maxlength="120" autocomplete="off" aria-label="Custom box name"/>
                     </label>
+                    <div id="archCustomBoxNormalColorFields">
                     <label class="arch-hud-label arch-hud-label--block">Fill
                       <input type="color" id="archCustomBoxFillInput" value="#e5e7eb" aria-label="Custom box fill color"/>
                     </label>
                     <label class="arch-hud-label arch-hud-label--block">Outline
                       <input type="color" id="archCustomBoxStrokeInput" value="#94a3b8" aria-label="Custom box outline color"/>
                     </label>
+                    </div>
+                    <div id="archCustomBoxNormalLabelFields">
                     <span class="arch-hud-label arch-custom-box-text-size-row">
                       Label size
                       <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextSmaller" title="Decrease label text size" aria-label="Decrease label text size">−</button>
@@ -497,6 +504,7 @@
                       <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextLarger" title="Increase label text size" aria-label="Increase label text size">+</button>
                     </span>
                     <p class="arch-custom-box-text-size-hint">Click the label on the diagram, then use − or +.</p>
+                    </div>
                     <div class="arch-custom-box-actions">
                       <button type="button" class="dashboard-btn-outline" id="archCustomBoxDuplicate" title="Duplicate this box">Duplicate</button>
                       <button type="button" class="dashboard-btn-outline" id="archCustomBoxDelete" title="Remove this box">Delete box</button>
@@ -570,6 +578,15 @@
                     <div id="archSourcesDividersList" class="arch-sources-dividers-list" role="group" aria-label="Sources divider lines"></div>
                     <button type="button" class="dashboard-btn-outline" id="archSourcesDividerAdd">Add divider line</button>
                   </details>
+                </div>
+                <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
+                  <p class="arch-editor-panel-heading">Adobe Spectrum icons</p>
+                  <p class="arch-tool-lead arch-tool-lead--compact">Workflow icons from <a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum CSS Workflow Icons</a> (Apache-2.0, vendored under <code>vendor/spectrum-workflow-icons/</code>). Turn on <strong>Move</strong>, tap an icon to place it, then drag corners or edges to resize.</p>
+                  <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
+                    <input type="search" id="archSpectrumIconSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter by name…" autocomplete="off" aria-label="Filter Spectrum icons"/>
+                  </label>
+                  <div id="archSpectrumIconGrid" class="arch-spectrum-icons-grid" role="listbox" aria-label="Spectrum workflow icons"></div>
+                  <p id="archSpectrumIconStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="file" id="archEditorSectionFile" role="tabpanel" aria-labelledby="archEditorRailFile" hidden>
                   <p class="arch-editor-panel-heading">Save &amp; layout data</p>

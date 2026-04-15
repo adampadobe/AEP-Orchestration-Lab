@@ -1004,6 +1004,17 @@
   cursor: move;
 }
 
+/* Sources column: icons/images paint above text and would steal hits; let clicks reach labels. */
+.arch-int-viewport.arch-label-edit-on .arch-src-ico,
+.arch-int-viewport.arch-label-edit-on .arch-sources-sdk image {
+  pointer-events: none;
+}
+
+.arch-int-viewport.arch-label-edit-on svg text.arch-src-lbl,
+.arch-int-viewport.arch-label-edit-on svg text.arch-src-sdk-title {
+  pointer-events: all;
+}
+
 .arch-int-viewport.arch-label-edit-on.arch-label-dragging svg text {
   cursor: grabbing;
 }
@@ -1515,3 +1526,75 @@ html[data-aep-theme='dark'] .arch-show-controls-fab {
 }
 
 /* Sources: highlight only the shell (rect[data-arch-shell]); inner labels/icons keep base styles */
+
+/* Adobe Spectrum workflow icons picker (vendored SVGs, Apache-2.0) */
+.arch-spectrum-icons-search-label {
+  margin-bottom: 0.35rem;
+}
+
+.arch-spectrum-icons-search {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.arch-spectrum-icons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.35rem;
+  max-height: min(52vh, 28rem);
+  overflow: auto;
+  padding: 4px;
+  margin: 0.25rem 0 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.arch-spectrum-icons-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.35rem 0.2rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  color: #334155;
+  text-align: center;
+  word-break: break-word;
+}
+
+.arch-spectrum-icons-tile:hover,
+.arch-spectrum-icons-tile:focus-visible {
+  border-color: #1473e6;
+  outline: none;
+}
+
+.arch-spectrum-icons-tile-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+}
+
+.arch-spectrum-icons-tile-cap {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.arch-spectrum-icons-status {
+  margin: 0;
+}
+
+.arch-custom-box--spectrum-icon .arch-custom-box-spectrum-img {
+  pointer-events: none;
+}

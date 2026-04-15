@@ -13,3 +13,6 @@ firebase-debug.*.log
 
 # Vendored prototypes (npm)
 aep-prototypes/**/node_modules/
+
+# Root npm (repo scripts: vendor:spectrum-icons, etc.)
+node_modules/

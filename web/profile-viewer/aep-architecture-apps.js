@@ -517,7 +517,7 @@
     return Array.prototype.slice.call((root || document).querySelectorAll(sel));
   }
 
-  /** Switch diagram editor rail tab (layout | highlights | sources | file). */
+  /** Switch diagram editor rail tab (layout | highlights | sources | spectrum-icons | file). */
   function archEditorSetPanel(panelId) {
     $all('.arch-editor-section').forEach(function (sec) {
       var match = sec.getAttribute('data-arch-panel') === panelId;
@@ -529,6 +529,7 @@
       btn.classList.toggle('is-active', match);
       btn.setAttribute('aria-pressed', match ? 'true' : 'false');
     });
+    if (panelId === 'spectrum-icons') archSpectrumIconsPanelInit();
   }
 
   function archHighlightsForState(stateIndex) {
@@ -1747,6 +1748,130 @@
   var archCustomResize = { active: null, start: null };
   var LS_CUSTOM_BOXES = 'aepArchCustomBoxes';
 
+  /** Vendored Apache-2.0 SVGs from @adobe/spectrum-css-workflow-icons (see npm run vendor:spectrum-icons). */
+  var ARCH_SPECTRUM_ICON_PREFIX = 'vendor/spectrum-workflow-icons/';
+  var archSpectrumIconsDataPromise = null;
+
+  function archSpectrumIconsPanelInit() {
+    var grid = qs('#archSpectrumIconGrid');
+    var status = qs('#archSpectrumIconStatus');
+    if (!grid || grid.getAttribute('data-arch-built') === '1') return;
+    if (!archSpectrumIconsDataPromise) {
+      archSpectrumIconsDataPromise = fetch('data/spectrum-workflow-icons.json').then(function (r) {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      });
+    }
+    archSpectrumIconsDataPromise
+      .then(function (data) {
+        if (!grid.parentNode) return;
+        if (!data || !Array.isArray(data.icons)) return;
+        grid.textContent = '';
+        var base = ARCH_SPECTRUM_ICON_PREFIX;
+        data.icons.forEach(function (item) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'arch-spectrum-icons-tile arch-diagram-ui';
+          btn.setAttribute('role', 'option');
+          btn.setAttribute('data-arch-spectrum-file', item.file);
+          btn.setAttribute('data-arch-spectrum-label', item.label || item.file);
+          btn.title = item.label || item.file;
+          var wrap = document.createElement('span');
+          wrap.className = 'arch-spectrum-icons-tile-img-wrap';
+          var im = document.createElement('img');
+          im.src = base + item.file;
+          im.alt = '';
+          im.loading = 'lazy';
+          im.width = 20;
+          im.height = 20;
+          wrap.appendChild(im);
+          var cap = document.createElement('span');
+          cap.className = 'arch-spectrum-icons-tile-cap';
+          cap.textContent = item.label || item.file;
+          btn.appendChild(wrap);
+          btn.appendChild(cap);
+          grid.appendChild(btn);
+        });
+        grid.setAttribute('data-arch-built', '1');
+        var qinp = qs('#archSpectrumIconSearch');
+        archSpectrumIconsApplyFilter(qinp ? qinp.value : '');
+        if (status) status.textContent = data.icons.length + ' icons — use search to filter.';
+      })
+      .catch(function () {
+        if (status) {
+          status.textContent =
+            'Could not load icon list. From the repo run npm run vendor:spectrum-icons, then redeploy.';
+        }
+      });
+  }
+
+  function archSpectrumIconsApplyFilter(q) {
+    var grid = qs('#archSpectrumIconGrid');
+    if (!grid || grid.getAttribute('data-arch-built') !== '1') return;
+    var needle = (q || '').trim().toLowerCase();
+    var tiles = grid.querySelectorAll('.arch-spectrum-icons-tile');
+    var n = 0;
+    for (var i = 0; i < tiles.length; i++) {
+      var btn = tiles[i];
+      var lab =
+        (btn.getAttribute('data-arch-spectrum-label') || '') + ' ' + (btn.getAttribute('data-arch-spectrum-file') || '');
+      var show = !needle || lab.toLowerCase().indexOf(needle) >= 0;
+      btn.hidden = !show;
+      if (show) n++;
+    }
+    var status = qs('#archSpectrumIconStatus');
+    if (status) status.textContent = n + ' shown' + (needle ? ' (filtered)' : '') + '.';
+  }
+
+  function archSpectrumIconPlace(file, label) {
+    if (!archIsEditMode() || !archDrag.svg) return;
+    if (!file) return;
+    var n = archCustomBoxes.length;
+    var defaultSize = 40;
+    var x = 360 + (n % 10) * 24;
+    var y = 160 + (n % 8) * 24;
+    x = archClamp(x, 0, ARCH_GUIDE_VIEW.w - defaultSize);
+    y = archClamp(y, 0, ARCH_GUIDE_VIEW.h - defaultSize);
+    var nb = archCustomBoxNormalize({
+      id: 'cbox-' + Date.now(),
+      x: x,
+      y: y,
+      w: defaultSize,
+      h: defaultSize,
+      name: label || file.replace(/\.svg$/i, ''),
+      kind: 'spectrumIcon',
+      iconFile: file,
+      fill: 'none',
+      stroke: 'transparent',
+    });
+    archCustomBoxes.push(nb);
+    archCustomBoxSelectedId = nb.id;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    if (archSelection) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
+    var domId = 'node-cbox-' + nb.id;
+    var curH = archHighlightsForState(idx).slice();
+    if (curH.indexOf(domId) < 0) curH.push(domId);
+    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    if (archHighlightArraysEqual(curH, defH)) {
+      delete archStateHighlightOverrides[idx];
+      delete archStateHighlightOverrides[String(idx)];
+    } else {
+      archStateHighlightOverrides[String(idx)] = curH;
+    }
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) liveRegion.textContent = 'Added Spectrum icon: ' + (label || file) + '.';
+  }
+
   function archCustomBoxNormalize(b) {
     var o = {
       id: typeof b.id === 'string' ? b.id : 'cbox-' + Date.now(),
@@ -1760,6 +1885,13 @@
     };
     var lfs = Number(b.labelFontSize);
     o.labelFontSize = isNaN(lfs) ? 8.5 : archClamp(lfs, 4, 22);
+    o.kind = b && b.kind === 'spectrumIcon' ? 'spectrumIcon' : null;
+    o.iconFile = o.kind === 'spectrumIcon' && typeof b.iconFile === 'string' && b.iconFile ? b.iconFile : '';
+    if (o.kind === 'spectrumIcon' && !o.iconFile) o.kind = null;
+    if (o.kind === 'spectrumIcon') {
+      o.fill = typeof b.fill === 'string' && b.fill ? b.fill : 'none';
+      o.stroke = typeof b.stroke === 'string' && b.stroke ? b.stroke : 'transparent';
+    }
     o.w = Math.max(ARCH_MIN_NODE_W, Math.min(ARCH_MAX_NODE_W, o.w));
     o.h = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, o.h));
     o.x = archClamp(o.x, 0, ARCH_GUIDE_VIEW.w - o.w);
@@ -2875,6 +3007,10 @@
       panel.hidden = true;
       if (sm) sm.disabled = true;
       if (lg) lg.disabled = true;
+      var cfClear = qs('#archCustomBoxNormalColorFields');
+      var lfClear = qs('#archCustomBoxNormalLabelFields');
+      if (cfClear) cfClear.hidden = false;
+      if (lfClear) lfClear.hidden = false;
       archSelectionPanelSync();
       return;
     }
@@ -2883,6 +3019,11 @@
     if (fillInp) fillInp.value = box.fill || '#e5e7eb';
     if (strokeInp) strokeInp.value = box.stroke || '#94a3b8';
     var b = archCustomBoxNormalize(box);
+    var isSpectrum = b.kind === 'spectrumIcon' && b.iconFile;
+    var colorFields = qs('#archCustomBoxNormalColorFields');
+    var labelFields = qs('#archCustomBoxNormalLabelFields');
+    if (colorFields) colorFields.hidden = !!isSpectrum;
+    if (labelFields) labelFields.hidden = !!isSpectrum;
     var labelReady = !!(archCustomBoxLabelActiveId && archCustomBoxLabelActiveId === archCustomBoxSelectedId);
     if (sm) sm.disabled = !labelReady || b.labelFontSize <= 4;
     if (lg) lg.disabled = !labelReady || b.labelFontSize >= 22;
@@ -2905,6 +3046,8 @@
       fill: b.fill,
       stroke: b.stroke,
       labelFontSize: b.labelFontSize,
+      kind: b.kind,
+      iconFile: b.iconFile,
     });
     nb.x = archClamp(nb.x, 0, ARCH_GUIDE_VIEW.w - nb.w);
     nb.y = archClamp(nb.y, 0, ARCH_GUIDE_VIEW.h - nb.h);
@@ -2977,7 +3120,8 @@
       var b = archCustomBoxNormalize(raw);
       var g = document.createElementNS(SVG_NS, 'g');
       g.setAttribute('id', 'node-cbox-' + b.id);
-      g.setAttribute('class', 'arch-node arch-custom-box');
+      var isSpectrum = b.kind === 'spectrumIcon' && b.iconFile;
+      g.setAttribute('class', 'arch-node arch-custom-box' + (isSpectrum ? ' arch-custom-box--spectrum-icon' : ''));
       if (archCustomBoxSelectedId === b.id) g.classList.add('arch-custom-box--selected');
       g.setAttribute('transform', 'translate(' + b.x + ',' + b.y + ')');
       var shell = document.createElementNS(SVG_NS, 'rect');
@@ -2986,19 +3130,25 @@
       shell.setAttribute('y', '0');
       shell.setAttribute('width', String(b.w));
       shell.setAttribute('height', String(b.h));
-      shell.setAttribute('rx', '6');
-      shell.setAttribute('fill', b.fill);
-      shell.setAttribute('stroke', b.stroke);
-      shell.setAttribute('stroke-width', '1.25');
-      var tx = document.createElementNS(SVG_NS, 'text');
-      tx.setAttribute('class', 'arch-node-label arch-custom-box-label');
-      if (archCustomBoxLabelActiveId === b.id) tx.classList.add('arch-custom-box-label--active');
-      tx.setAttribute('font-size', String(b.labelFontSize) + 'px');
-      tx.setAttribute('dominant-baseline', 'middle');
-      tx.setAttribute('x', String(b.w / 2));
-      tx.setAttribute('y', String(b.h / 2));
-      tx.setAttribute('text-anchor', 'middle');
-      tx.textContent = b.name || 'Box';
+      shell.setAttribute('rx', isSpectrum ? '4' : '6');
+      shell.setAttribute('fill', isSpectrum ? 'none' : b.fill);
+      shell.setAttribute('stroke', isSpectrum ? 'transparent' : b.stroke);
+      shell.setAttribute('stroke-width', isSpectrum ? '0' : '1.25');
+      var tx = null;
+      if (!isSpectrum) {
+        tx = document.createElementNS(SVG_NS, 'text');
+        tx.setAttribute('class', 'arch-node-label arch-custom-box-label');
+        if (archCustomBoxLabelActiveId === b.id) tx.classList.add('arch-custom-box-label--active');
+        tx.setAttribute('font-size', String(b.labelFontSize) + 'px');
+        tx.setAttribute('dominant-baseline', 'middle');
+        tx.setAttribute('x', String(b.w / 2));
+        tx.setAttribute('y', String(b.h / 2));
+        tx.setAttribute('text-anchor', 'middle');
+        tx.textContent = b.name || 'Box';
+      }
+      var svgTitle = document.createElementNS(SVG_NS, 'title');
+      svgTitle.textContent = b.name || (isSpectrum ? b.iconFile : 'Box');
+      g.appendChild(svgTitle);
       var hs = ARCH_RESIZE_HANDLE;
       var hw = Math.max(0, (b.w - hs) / 2);
       var hh = Math.max(0, (b.h - hs) / 2);
@@ -3013,7 +3163,19 @@
         { k: 'e', x: b.w - hs, y: hh },
       ];
       g.appendChild(shell);
-      g.appendChild(tx);
+      if (isSpectrum) {
+        var imgEl = document.createElementNS(SVG_NS, 'image');
+        imgEl.setAttribute('class', 'arch-custom-box-spectrum-img');
+        imgEl.setAttribute('href', ARCH_SPECTRUM_ICON_PREFIX + b.iconFile);
+        imgEl.setAttribute('x', '0');
+        imgEl.setAttribute('y', '0');
+        imgEl.setAttribute('width', String(b.w));
+        imgEl.setAttribute('height', String(b.h));
+        imgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        g.appendChild(imgEl);
+      } else {
+        g.appendChild(tx);
+      }
       handleSpecs.forEach(function (sp) {
         var hEl = document.createElementNS(SVG_NS, 'rect');
         hEl.setAttribute('class', 'arch-node-resize-handle arch-node-resize-handle--cbox');
@@ -3393,7 +3555,7 @@
 
   function archMasterSerialize() {
     var payload = {
-      version: 8,
+      version: 9,
       savedAt: new Date().toISOString(),
       nodes: archDrag.pos,
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
@@ -3996,6 +4158,25 @@
         if (!btn) return;
         var k = btn.getAttribute('data-arch-palette');
         if (k) archPaletteAddPreset(k);
+      });
+    }
+
+    var spectGrid = qs('#archSpectrumIconGrid');
+    if (spectGrid && !spectGrid.getAttribute('data-arch-click-ready')) {
+      spectGrid.setAttribute('data-arch-click-ready', '1');
+      spectGrid.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.arch-spectrum-icons-tile');
+        if (!btn || btn.hidden) return;
+        var f = btn.getAttribute('data-arch-spectrum-file');
+        var lab = btn.getAttribute('data-arch-spectrum-label');
+        if (f) archSpectrumIconPlace(f, lab);
+      });
+    }
+    var spectSearch = qs('#archSpectrumIconSearch');
+    if (spectSearch && !spectSearch.getAttribute('data-arch-ready')) {
+      spectSearch.setAttribute('data-arch-ready', '1');
+      spectSearch.addEventListener('input', function () {
+        archSpectrumIconsApplyFilter(spectSearch.value);
       });
     }
 
