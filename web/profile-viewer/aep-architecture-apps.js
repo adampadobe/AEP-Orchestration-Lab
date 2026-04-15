@@ -1820,9 +1820,11 @@
 
   /** Floating line toolbar (icon tools — no nested text menus). */
   var lineFloatTool = 'arrow';
-  var lineFloatStrokeW = 2.2;
+  var lineFloatStrokeW = 2;
   var lineFloatHex = '#308fff';
   var freehandSession = null;
+  /** Stroke width presets (px) — matches weight popover. */
+  var ARCH_LINE_FLOAT_W_PRESETS = [1, 2, 3, 5, 8];
 
   /** Preset stroke colors (Ingress / Intra / Egress / Dark — matches diagram key). */
   var ARCH_USER_LINE_PRESETS = [
@@ -1906,10 +1908,26 @@
     return archLineFloatNormalizeHex(lineFloatHex);
   }
 
+  function archLineFloatNearestPresetW(w) {
+    var x = Number(w);
+    if (isNaN(x) || x <= 0) return 2;
+    var best = ARCH_LINE_FLOAT_W_PRESETS[0];
+    var bd = Infinity;
+    for (var wi = 0; wi < ARCH_LINE_FLOAT_W_PRESETS.length; wi++) {
+      var p = ARCH_LINE_FLOAT_W_PRESETS[wi];
+      var d = Math.abs(p - x);
+      if (d < bd) {
+        bd = d;
+        best = p;
+      }
+    }
+    return best;
+  }
+
   function archLineFloatGetStrokeW() {
     var w = Number(lineFloatStrokeW);
-    if (isNaN(w) || w <= 0) return 2.2;
-    return archClamp(w, 0.8, 6);
+    if (isNaN(w) || w <= 0) return 2;
+    return archClamp(archLineFloatNearestPresetW(w), 1, 8);
   }
 
   function archLineFloatGetTool() {
@@ -1927,14 +1945,73 @@
   }
 
   function archLineFloatSetW(w) {
-    lineFloatStrokeW = w;
+    lineFloatStrokeW = archLineFloatNearestPresetW(w);
     var bar = qs('#archLineFloatBar');
+    var label = qs('#archLineFloatWLabel');
+    var tbar = qs('#archLineFloatWTriggerBar');
+    if (label) label.textContent = lineFloatStrokeW + 'px';
+    if (tbar) {
+      var vis = Math.min(8, Math.max(1, lineFloatStrokeW));
+      tbar.style.height = vis + 'px';
+    }
     if (bar) {
-      $all('.arch-line-float-w', bar).forEach(function (b) {
+      $all('.arch-line-float-w-option', bar).forEach(function (b) {
         var bw = parseFloat(b.getAttribute('data-arch-line-w'), 10);
-        b.classList.toggle('is-active', Math.abs(bw - Number(lineFloatStrokeW)) < 0.06);
+        var on = bw === lineFloatStrokeW;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
       });
     }
+  }
+
+  function archLineFloatWeightMenuClose() {
+    var menu = qs('#archLineFloatWMenu');
+    var tr = qs('#archLineFloatWTrigger');
+    if (menu) menu.hidden = true;
+    if (tr) tr.setAttribute('aria-expanded', 'false');
+  }
+
+  function archLineFloatWeightMenuOpen() {
+    var menu = qs('#archLineFloatWMenu');
+    var tr = qs('#archLineFloatWTrigger');
+    if (menu) menu.hidden = false;
+    if (tr) tr.setAttribute('aria-expanded', 'true');
+  }
+
+  function archLineFloatWeightMenuToggle() {
+    var menu = qs('#archLineFloatWMenu');
+    if (!menu) return;
+    if (menu.hidden) archLineFloatWeightMenuOpen();
+    else archLineFloatWeightMenuClose();
+  }
+
+  function archLineFloatWeightMenuDocDown(e) {
+    var wrap = qs('#archLineFloatWWrap');
+    var menu = qs('#archLineFloatWMenu');
+    if (!wrap || !menu || menu.hidden) return;
+    if (wrap.contains(e.target)) return;
+    archLineFloatWeightMenuClose();
+  }
+
+  function archLineFloatWeightMenuEscape(e) {
+    if (e.key !== 'Escape') return;
+    var menu = qs('#archLineFloatWMenu');
+    if (menu && !menu.hidden) archLineFloatWeightMenuClose();
+  }
+
+  function archLineFloatSyncBidirUi(sel) {
+    var btn = qs('#archLineFloatBidir');
+    if (!btn) return;
+    if (!sel || (sel.points && sel.points.length >= 2)) {
+      btn.disabled = true;
+      btn.setAttribute('aria-pressed', 'false');
+      btn.classList.remove('is-active');
+      return;
+    }
+    btn.disabled = false;
+    var on = !!sel.bidirectional;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.classList.toggle('is-active', on);
   }
 
   function archLineFloatSetHex(hex) {
@@ -1947,6 +2024,9 @@
     }
     var bar = qs('#archLineFloatBar');
     if (bar) {
+      try {
+        bar.style.setProperty('--arch-line-float-stroke', lineFloatHex);
+      } catch (e3) {}
       $all('.arch-line-float-swatch', bar).forEach(function (b) {
         var h = archLineStrokeNormalizeHex(b.getAttribute('data-arch-line-hex') || '');
         b.classList.toggle('is-active', h && h === archLineStrokeNormalizeHex(lineFloatHex));
@@ -1957,7 +2037,7 @@
   function archLineFloatSyncFromLine(ln) {
     if (!ln) return;
     archLineFloatSetHex(ln.stroke || '#308fff');
-    archLineFloatSetW(ln.strokeWidth != null ? ln.strokeWidth : 2.2);
+    archLineFloatSetW(ln.strokeWidth != null ? ln.strokeWidth : 2);
     if (ln.points && ln.points.length >= 2) archLineFloatSetTool('freehand');
     else if (ln.dashStyle === 'dotted') archLineFloatSetTool('dotted');
     else if (ln.bidirectional) archLineFloatSetTool('doubleArrow');
@@ -1982,8 +2062,7 @@
       if (t === 'doubleArrow') ln.bidirectional = true;
       else if (t === 'arrow' || t === 'dotted') ln.bidirectional = false;
     }
-    var bi = qs('#archUserLineBidir');
-    if (bi) bi.checked = !!ln.bidirectional;
+    archLineFloatSyncBidirUi(ln);
     archUserLineRender();
     archUserLinePersist();
     archUndoMaybePushSnapshot();
@@ -1995,6 +2074,7 @@
     var show = archIsEditMode() && (userLines.drawMode || !!userLines.selectedId);
     bar.hidden = !show;
     if (!show) {
+      archLineFloatWeightMenuClose();
       freehandSession = null;
       var pv = qs('#archUserLineFreehandPreview');
       if (pv) {
@@ -2108,9 +2188,11 @@
         }
         return;
       }
-      var wbtn = e.target.closest && e.target.closest('.arch-line-float-w[data-arch-line-w]');
-      if (wbtn) {
-        archLineFloatSetW(parseFloat(wbtn.getAttribute('data-arch-line-w'), 10));
+      var wopt = e.target.closest && e.target.closest('.arch-line-float-w-option[data-arch-line-w]');
+      if (wopt) {
+        e.stopPropagation();
+        archLineFloatSetW(parseFloat(wopt.getAttribute('data-arch-line-w'), 10));
+        archLineFloatWeightMenuClose();
         if (userLines.selectedId) archLineFloatApplySelectedFromBar();
         return;
       }
@@ -2121,11 +2203,39 @@
         return;
       }
     });
+    var wTrig = qs('#archLineFloatWTrigger');
+    if (wTrig && !wTrig.getAttribute('data-arch-w-trig')) {
+      wTrig.setAttribute('data-arch-w-trig', '1');
+      wTrig.addEventListener('click', function (e) {
+        e.stopPropagation();
+        archLineFloatWeightMenuToggle();
+      });
+    }
+    if (!bar.getAttribute('data-arch-w-doc')) {
+      bar.setAttribute('data-arch-w-doc', '1');
+      document.addEventListener('pointerdown', archLineFloatWeightMenuDocDown, true);
+      window.addEventListener('keydown', archLineFloatWeightMenuEscape);
+    }
     var hexInp = qs('#archLineFloatColorHex');
     if (hexInp) {
       hexInp.addEventListener('input', function () {
         archLineFloatSetHex(hexInp.value);
         if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+      });
+    }
+    var bdir = qs('#archLineFloatBidir');
+    if (bdir && !bdir.getAttribute('data-arch-bidir')) {
+      bdir.setAttribute('data-arch-bidir', '1');
+      bdir.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var ln = archUserLineGetSelected();
+        if (!ln || (ln.points && ln.points.length >= 2)) return;
+        ln.bidirectional = !ln.bidirectional;
+        archLineFloatSetTool(ln.bidirectional ? 'doubleArrow' : ln.dashStyle === 'dotted' ? 'dotted' : 'arrow');
+        archUserLineRender();
+        archUserLinePersist();
+        archUndoMaybePushSnapshot();
+        archLineFloatSyncBidirUi(ln);
       });
     }
     var u = qs('#archLineFloatUndo');
@@ -4069,7 +4179,7 @@
       var p = document.createElementNS(SVG_NS, 'path');
       p.setAttribute('d', d);
       p.setAttribute('stroke', ln.stroke || '#308fff');
-      var baseW = ln.strokeWidth != null ? ln.strokeWidth : 2.2;
+      var baseW = ln.strokeWidth != null ? ln.strokeWidth : 2;
       var sw = userLines.selectedId === ln.id ? baseW + 1 : baseW;
       p.setAttribute('stroke-width', String(sw));
       p.setAttribute('fill', 'none');
@@ -4113,24 +4223,13 @@
   }
 
   function archUserLineSyncPropsHud() {
-    var panel = qs('#archUserLineProps');
     var sel = archUserLineGetSelected();
     archLineFloatUpdateVisibility();
-    if (sel) archLineFloatSyncFromLine(sel);
-    if (!panel) return;
-    if (!sel) {
-      panel.hidden = true;
-      archEditorApplyModesForCurrentSelection();
-      return;
+    if (sel) {
+      archEditorSetPanel('sources');
+      archLineFloatSyncFromLine(sel);
     }
-    panel.hidden = false;
-    archEditorSetPanel('sources');
-    var bi = qs('#archUserLineBidir');
-    if (bi) {
-      var isPoly = !!(sel.points && sel.points.length >= 2);
-      bi.disabled = isPoly;
-      bi.checked = !!sel.bidirectional;
-    }
+    archLineFloatSyncBidirUi(sel);
     archEditorApplyModesForCurrentSelection();
   }
 
@@ -4273,7 +4372,7 @@
           id: id,
           points: pts,
           stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
-          strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2.2,
+          strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2,
           dashStyle: L.dashStyle === 'dotted' ? 'dotted' : 'solid',
           bidirectional: false,
         });
@@ -4283,7 +4382,7 @@
           from: archUserLineEndpointPasteOffset(L.from, dx, dy),
           to: archUserLineEndpointPasteOffset(L.to, dx, dy),
           stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
-          strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2.2,
+          strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2,
           bidirectional: !!L.bidirectional,
           dashStyle: L.dashStyle === 'dotted' ? 'dotted' : 'solid',
         });
@@ -4569,9 +4668,6 @@
     var masterSave = qs('#archMasterSave');
     var masterDl = qs('#archMasterDownload');
     var masterImport = qs('#archMasterImport');
-    var lineDel = qs('#archUserLineDelete');
-    var lineBi = qs('#archUserLineBidir');
-
     if (toggle) {
       toggle.checked = false;
       toggle.addEventListener('change', function () {
@@ -4622,23 +4718,6 @@
         masterImport.value = '';
       });
     }
-    if (lineBi) {
-      lineBi.addEventListener('change', function () {
-        var ln = archUserLineGetSelected();
-        if (!ln) return;
-        if (ln.points && ln.points.length >= 2) return;
-        ln.bidirectional = lineBi.checked;
-        if (lineBi.checked) archLineFloatSetTool('doubleArrow');
-        else archLineFloatSetTool(ln.dashStyle === 'dotted' ? 'dotted' : 'arrow');
-        archUserLineRender();
-        archUserLinePersist();
-        archUndoMaybePushSnapshot();
-      });
-    }
-    if (lineDel) {
-      lineDel.addEventListener('click', archUserLineDeleteSelected);
-    }
-
     var cboxName = qs('#archCustomBoxNameInput');
     var cboxFill = qs('#archCustomBoxFillInput');
     var cboxStroke = qs('#archCustomBoxStrokeInput');

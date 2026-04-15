@@ -737,6 +737,7 @@
 
 /* Floating line toolbar (Edit mode — draw lines or selected connector) */
 .arch-line-float-bar {
+  --arch-line-float-stroke: #308fff;
   position: absolute;
   left: 50%;
   bottom: 0.65rem;
@@ -816,29 +817,150 @@ html[data-aep-theme='dark'] .arch-line-float-btn.is-active {
   color: #93c5fd;
 }
 
+.arch-line-float-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.arch-line-float-btn:disabled:hover {
+  background: transparent;
+}
+
 .arch-line-float-ico {
   width: 1.25rem;
   height: 1.25rem;
   display: block;
 }
 
-.arch-line-float-wbar {
+/* Stroke weight — compact trigger + popover (saves toolbar width) */
+.arch-line-float-w-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.arch-line-float-w-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.45rem;
+  min-height: 2rem;
+  border-radius: 999px;
+  border: 1px solid var(--dash-border, #e4e6eb);
+  background: rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+  color: var(--dash-text, #1a1d21);
+  box-sizing: border-box;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-trigger {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #e5e7eb;
+}
+
+.arch-line-float-w-trigger:hover {
+  background: rgba(20, 115, 230, 0.08);
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-trigger:hover {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.arch-line-float-w-trigger:focus-visible {
+  outline: 2px solid #1473e6;
+  outline-offset: 2px;
+}
+
+.arch-line-float-w-trigger-bar {
   display: block;
-  width: 1.25rem;
+  width: 1.35rem;
+  min-width: 1.35rem;
   border-radius: 1px;
-  background: currentColor;
+  background: var(--arch-line-float-stroke, #308fff);
 }
 
-.arch-line-float-wbar--thin {
-  height: 2px;
+.arch-line-float-w-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
 }
 
-.arch-line-float-wbar--mid {
-  height: 3px;
+.arch-line-float-w-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 132px;
+  padding: 0.35rem 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--dash-border, #e4e6eb);
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.14);
+  z-index: 24;
 }
 
-.arch-line-float-wbar--thick {
-  height: 5px;
+html[data-aep-theme='dark'] .arch-line-float-w-menu {
+  background: rgba(30, 41, 59, 0.98);
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.45);
+}
+
+.arch-line-float-w-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.42rem 0.7rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--dash-text, #374151);
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-option {
+  color: #e5e7eb;
+}
+
+.arch-line-float-w-option:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.arch-line-float-w-option.is-active {
+  background: rgba(20, 115, 230, 0.12);
+  color: #1473e6;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-option.is-active {
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
+}
+
+.arch-line-float-w-opt-preview {
+  display: block;
+  width: 28px;
+  flex-shrink: 0;
+  align-self: center;
+  border-radius: 1px;
+  background: var(--arch-line-float-stroke, #308fff);
+  min-height: 1px;
+}
+
+.arch-line-float-w-opt-label {
+  flex: 1;
+}
+
+.arch-line-float-seg--bidir {
+  gap: 0;
 }
 
 .arch-line-float-swatch {

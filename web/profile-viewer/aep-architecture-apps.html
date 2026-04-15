@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260426">
   <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260415c">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260415d">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -394,10 +394,24 @@
                   </button>
                 </div>
                 <span class="arch-line-float-vr" aria-hidden="true"></span>
-                <div class="arch-line-float-seg arch-line-float-widths" role="group" aria-label="Line weight">
-                  <button type="button" class="arch-line-float-btn arch-line-float-w" data-arch-line-w="1.4" title="Thin stroke" aria-label="Thin"><span class="arch-line-float-wbar arch-line-float-wbar--thin"></span></button>
-                  <button type="button" class="arch-line-float-btn arch-line-float-w is-active" data-arch-line-w="2.2" title="Medium stroke" aria-label="Medium"><span class="arch-line-float-wbar arch-line-float-wbar--mid"></span></button>
-                  <button type="button" class="arch-line-float-btn arch-line-float-w" data-arch-line-w="3.2" title="Thick stroke" aria-label="Thick"><span class="arch-line-float-wbar arch-line-float-wbar--thick"></span></button>
+                <div id="archLineFloatWWrap" class="arch-line-float-w-wrap">
+                  <button type="button" class="arch-line-float-w-trigger" id="archLineFloatWTrigger" aria-expanded="false" aria-haspopup="listbox" aria-controls="archLineFloatWMenu" title="Line weight">
+                    <span class="arch-line-float-w-trigger-bar" id="archLineFloatWTriggerBar" aria-hidden="true"></span>
+                    <span class="arch-line-float-w-label" id="archLineFloatWLabel">2px</span>
+                  </button>
+                  <div class="arch-line-float-w-menu arch-diagram-ui" id="archLineFloatWMenu" role="listbox" hidden aria-label="Line weight">
+                    <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="1" aria-selected="false"><span class="arch-line-float-w-opt-preview" style="height:1px"></span><span class="arch-line-float-w-opt-label">1px</span></button>
+                    <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="2" aria-selected="true"><span class="arch-line-float-w-opt-preview" style="height:2px"></span><span class="arch-line-float-w-opt-label">2px</span></button>
+                    <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="3" aria-selected="false"><span class="arch-line-float-w-opt-preview" style="height:3px"></span><span class="arch-line-float-w-opt-label">3px</span></button>
+                    <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="5" aria-selected="false"><span class="arch-line-float-w-opt-preview" style="height:5px"></span><span class="arch-line-float-w-opt-label">5px</span></button>
+                    <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="8" aria-selected="false"><span class="arch-line-float-w-opt-preview" style="height:8px"></span><span class="arch-line-float-w-opt-label">8px</span></button>
+                  </div>
+                </div>
+                <span class="arch-line-float-vr" aria-hidden="true"></span>
+                <div class="arch-line-float-seg arch-line-float-seg--bidir" role="group" aria-label="Connector ends">
+                  <button type="button" class="arch-line-float-btn arch-line-float-bidir" id="archLineFloatBidir" title="Bidirectional arrows" aria-pressed="false" disabled>
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 8l-3 4 3 4"/><path d="M16 8l3 4-3 4"/><path d="M9 12h6"/></svg>
+                  </button>
                 </div>
                 <span class="arch-line-float-vr" aria-hidden="true"></span>
                 <div class="arch-line-float-seg arch-line-float-colors" role="group" aria-label="Stroke color">
@@ -590,7 +604,7 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
                   <p class="arch-editor-panel-heading">Lines</p>
-                  <p class="arch-tool-lead">Turn on drawing to show the <strong>floating bar</strong> on the diagram: pick line type (freehand, divider, arrows, dotted), weight, and colors (Ingress / Intra / Egress / Dark + custom). Connectors use two clicks; freehand uses drag; dividers use one tap in the Sources column.</p>
+                  <p class="arch-tool-lead">Turn on drawing to show the <strong>floating bar</strong> on the diagram: line type, weight (popover), bidirectional ends, colors, undo, delete, and exit. Connectors use two clicks; freehand uses drag; dividers use one tap in the Sources column.</p>
                   <div class="arch-tool-group arch-tool-group--diagram-connectors">
                     <h3 class="arch-tool-group-heading">Diagram connectors</h3>
                     <label class="arch-drag-toggle arch-tool-toggle-line-draw" title="Show the floating line bar and draw on the canvas">
@@ -603,15 +617,6 @@
                       </span>
                       <span>Draw lines</span>
                     </label>
-                  </div>
-                  <div id="archUserLineProps" class="arch-user-line-props arch-tool-group--selected" hidden aria-label="Selected connector">
-                    <h3 class="arch-tool-group-heading">Selected connector</h3>
-                    <p class="arch-tool-micro">Adjust color and weight in the floating bar, or use the options below.</p>
-                    <label class="arch-drag-toggle">
-                      <input type="checkbox" id="archUserLineBidir"/>
-                      <span>Bidirectional arrows</span>
-                    </label>
-                    <button type="button" class="dashboard-btn-outline" id="archUserLineDelete" title="Remove this connector">Delete connector</button>
                   </div>
                   <div class="arch-tool-group arch-tool-group--sources-dividers">
                     <h3 class="arch-tool-group-heading">Sources column dividers</h3>
@@ -689,6 +694,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260415c"></script>
+  <script defer src="aep-architecture-apps.js?v=20260415d"></script>
 </body>
 </html>
