@@ -293,6 +293,28 @@
     archSelectionPanelSync();
   }
 
+  /** When a diagram object is selected, turn on Move (and Labels when the object has editable text). */
+  function archEditorApplyModesForCurrentSelection() {
+    if (!archIsEditMode()) return;
+    var hasPlatform = archSelection && archSelection.count() > 0;
+    var hasCbox = !!archCustomBoxSelectedId;
+    var lineOnly = !!(userLines && userLines.selectedId) && !hasPlatform && !hasCbox;
+    if (lineOnly) return;
+    if (!hasPlatform && !hasCbox) return;
+
+    archDragSetEnabled(true);
+
+    if (hasPlatform) {
+      archLabelSetEnabled(true);
+      return;
+    }
+
+    var cbox = archCustomBoxFind(archCustomBoxSelectedId);
+    var cb = cbox ? archCustomBoxNormalize(cbox) : null;
+    var isSpectrum = cb && cb.kind === 'spectrumIcon' && cb.iconFile;
+    archLabelSetEnabled(!isSpectrum);
+  }
+
   function archSelectionPanelSync() {
     var panel = qs('#archEditSelectionPanel');
     var txt = qs('#archEditSelectionText');
@@ -315,11 +337,12 @@
     }
     if (parts.length === 0) {
       txt.textContent =
-        'None — click or double-click a tile, custom box, or connector. Double-click turns on Move; double-click label text also enables Labels for editing.';
+        'None — click a tile, custom box, or connector to select it (Move and Labels turn on automatically when needed).';
     } else {
       txt.textContent = parts.join('\n');
     }
     archInspectorSync();
+    archEditorApplyModesForCurrentSelection();
   }
 
   /** Inspector: custom box (if selected) else single platform node (Edit mode). */
@@ -378,7 +401,7 @@
       human +
       '\nElement id: ' +
       id +
-      '\n\nTip: turn on “Move & edit labels” to change text on the diagram.';
+      '\n\nMove and Labels are enabled while this tile is selected — drag to move, corners to resize, double-click text to edit.';
   }
 
   function archEditSelectionInit() {
@@ -512,8 +535,7 @@
 
   /**
    * Double-click (Edit mode) selects a platform node, custom box, or connector.
-   * Turns on Move so you can drag/resize immediately; if you double-click editable label
-   * text, Labels mode is enabled so the existing label editor can open on the same gesture.
+   * archSelectionPanelSync enables Move / Labels via archEditorApplyModesForCurrentSelection.
    */
   function archDiagramDblClickSelect(e) {
     if (!archIsEditMode()) return;
@@ -522,9 +544,6 @@
     if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle--cbox')) return;
-
-    var te = e.target.closest && e.target.closest('text[data-arch-id]');
-    if (te) archLabelSetEnabled(true);
 
     var ul = e.target.closest && e.target.closest('.arch-user-line');
     if (ul && ul.getAttribute) {
@@ -545,8 +564,6 @@
 
     var g = e.target.closest && e.target.closest('g.arch-node');
     if (!g || !g.id || g.id.indexOf('node-') !== 0) return;
-
-    archDragSetEnabled(true);
 
     if (g.classList.contains('arch-custom-box')) {
       var rawId = g.id.replace(/^node-cbox-/, '');
@@ -3466,10 +3483,10 @@
 
     if (!archDrag.enabled) {
       userLines.selectedId = null;
-      archUserLineRender();
-      archUserLineSyncPropsHud();
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = labelHit ? rawId : null;
+      archUserLineRender();
+      archUserLineSyncPropsHud();
       archCustomBoxesRender();
       e.stopPropagation();
       return;
@@ -3477,10 +3494,10 @@
 
     if (labelHit) {
       userLines.selectedId = null;
-      archUserLineRender();
-      archUserLineSyncPropsHud();
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = rawId;
+      archUserLineRender();
+      archUserLineSyncPropsHud();
       archCustomBoxesRender();
       e.preventDefault();
       e.stopPropagation();
@@ -3488,10 +3505,10 @@
     }
 
     userLines.selectedId = null;
-    archUserLineRender();
-    archUserLineSyncPropsHud();
     archCustomBoxSelectedId = rawId;
     archCustomBoxLabelActiveId = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
     e.preventDefault();
     e.stopPropagation();
     archCustomDrag.active = rawId;
@@ -3728,6 +3745,7 @@
     if (!panel) return;
     if (!sel) {
       panel.hidden = true;
+      archEditorApplyModesForCurrentSelection();
       return;
     }
     panel.hidden = false;
@@ -3736,6 +3754,7 @@
     if (colorHost) archLineSwatchesApplySelection(colorHost, sel.stroke || '#308fff');
     var bi = qs('#archUserLineBidir');
     if (bi) bi.checked = !!sel.bidirectional;
+    archEditorApplyModesForCurrentSelection();
   }
 
   function archUserLineRemoveDrawListeners() {
