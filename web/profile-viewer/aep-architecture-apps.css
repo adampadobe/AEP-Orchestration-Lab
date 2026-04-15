@@ -13,6 +13,60 @@
   min-height: calc(100dvh - 4rem);
 }
 
+/* Fullscreen presentation: <main> is the fullscreen element — browser hides sidebar & topbar (outside main) */
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs {
+  min-height: 100%;
+  justify-content: stretch;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .dashboard-hero--page-banner {
+  display: none !important;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-state-copy {
+  display: none !important;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-viewport {
+  flex: 1;
+  min-height: 0;
+  min-height: min(92dvh, 100%);
+  border-radius: 0;
+}
+
+.arch-int-compact-edit .arch-fullscreen-btn {
+  white-space: nowrap;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-compact-bar {
+  flex-shrink: 0;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-svg-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-main-column {
+  min-height: 0;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-viewport-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-svg-wrap svg {
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+}
+
 .arch-int-page .dashboard-hero--page-banner {
   flex-shrink: 0;
 }

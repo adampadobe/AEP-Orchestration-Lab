@@ -815,6 +815,16 @@
     stateHeadline = qs('#archIntStateHeadline');
     stateBody = qs('#archIntStateBody');
     archViewport = qs('#archIntViewport');
+    var mainPresentationEl = qs('main.dashboard-main.app-page');
+
+    function archIsPresentationFullscreen() {
+      return !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
+    }
 
     var LS_ARCH_HIDE_UI = 'aepArchHideControls';
     function archApplyHideControls() {
@@ -864,6 +874,9 @@
 
     document.addEventListener('keydown', function (e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+      if (e.key === 'Escape' && archIsPresentationFullscreen()) {
+        return;
+      }
       if (e.key === 'Escape' && archViewport && archViewport.classList.contains('arch-int-viewport--editing-tools-hidden')) {
         e.preventDefault();
         try {
@@ -978,6 +991,62 @@
         archApplyHideControls();
       });
     }
+
+    var archPresentationFsBtn = qs('#archPresentationFullscreenBtn');
+    function archPresentationFsSync() {
+      var on = archIsPresentationFullscreen();
+      if (mainPresentationEl) mainPresentationEl.classList.toggle('arch-main--presentation-fs', on);
+      if (archPresentationFsBtn) {
+        archPresentationFsBtn.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+        archPresentationFsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        archPresentationFsBtn.setAttribute(
+          'title',
+          on
+            ? 'Leave fullscreen (or press Esc).'
+            : 'Fill the screen with the diagram (hides site menu and page title). Press Esc to exit.'
+        );
+      }
+    }
+    function archEnterPresentationFs() {
+      var el = mainPresentationEl;
+      if (!el) return;
+      var req =
+        el.requestFullscreen ||
+        el.webkitRequestFullscreen ||
+        el.mozRequestFullScreen ||
+        el.msRequestFullscreen;
+      if (!req) return;
+      var p = req.call(el);
+      if (p && typeof p.catch === 'function') {
+        p.catch(function () {});
+      }
+    }
+    function archExitPresentationFs() {
+      if (!archIsPresentationFullscreen()) return;
+      var ex =
+        document.exitFullscreen ||
+        document.webkitExitFullscreen ||
+        document.webkitCancelFullScreen ||
+        document.mozCancelFullScreen ||
+        document.msExitFullscreen;
+      if (!ex) return;
+      var p = ex.call(document);
+      if (p && typeof p.catch === 'function') {
+        p.catch(function () {});
+      }
+    }
+    if (archPresentationFsBtn && mainPresentationEl) {
+      archPresentationFsBtn.setAttribute('type', 'button');
+      archPresentationFsBtn.setAttribute('aria-pressed', 'false');
+      archPresentationFsBtn.addEventListener('click', function () {
+        if (archIsPresentationFullscreen()) archExitPresentationFs();
+        else archEnterPresentationFs();
+      });
+    }
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(function (ev) {
+      document.addEventListener(ev, archPresentationFsSync);
+    });
+    archPresentationFsSync();
 
     applyState();
   }
