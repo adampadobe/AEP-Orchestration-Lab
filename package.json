@@ -12,9 +12,11 @@
     "sync-profile-viewer-ui": "rsync -a --delete \"web/profile-viewer/\" \"aep-prototypes/AEP Profile/03 Profile Viewer/public/\"",
     "upload-live-activities-rtdb": "npx -y firebase-tools@latest database:set /profileViewerConfig/liveActivitiesPostmanCollection \"./web/profile-viewer/data/live-activities.postman_collection.json\" --project aep-orchestration-lab --force",
     "build:edp": "cd \"web/profile-viewer/experience-decisioning-playground\" && npm install && npm run build",
-    "vendor:spectrum-icons": "node scripts/build-spectrum-workflow-icons.cjs"
+    "vendor:spectrum-icons": "node scripts/build-spectrum-workflow-icons.cjs",
+    "test:arch-line-e2e": "node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs"
   },
   "devDependencies": {
-    "@adobe/spectrum-css-workflow-icons": "^5.0.0"
+    "@adobe/spectrum-css-workflow-icons": "^5.0.0",
+    "playwright": "^1.49.1"
   }
 }
