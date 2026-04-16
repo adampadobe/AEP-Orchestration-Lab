@@ -308,10 +308,84 @@
   background: #f8fafc;
 }
 
-#hero-banner:not(:empty),
-#ContentCardContainer:not(:empty) {
+#hero-banner:not(:empty) {
   padding: 0.75rem 0;
   box-sizing: border-box;
+}
+
+/* Keep hero (incl. AJO card) above the Find an event band when layers collide */
+body.race-page section.race-hero {
+  position: relative;
+  z-index: 2;
+}
+
+body.race-page section.race-find {
+  position: relative;
+  z-index: 1;
+}
+
+/* Launch-injected content card: stacking + flex so copy is not hidden under the image or the page h2 band */
+#ContentCardContainer {
+  position: relative;
+  isolation: isolate;
+}
+
+#ContentCardContainer:not(:empty) {
+  z-index: 4;
+  padding: 0.75rem 0;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+#ContentCardContainer .Banner,
+#ContentCardContainer [class^='Banner'] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: 100%;
+  min-height: 0;
+}
+
+#ContentCardContainer .Image,
+#ContentCardContainer [class*='Image'] {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+#ContentCardContainer .Banner__content,
+#ContentCardContainer [class*='Banner__content'] {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  margin-top: 0 !important;
+  padding: 16px 20px !important;
+  background: #fff !important;
+  color: #0f172a !important;
+}
+
+#ContentCardContainer strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+/* Launch uses <h2> for body — reset so it never mimics .race-find-inner h2 */
+#ContentCardContainer h2 {
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  line-height: 1.45 !important;
+  margin: 0.35rem 0 0 !important;
+  padding: 0 !important;
 }
 
 /* AJO JSON content cards: imageURL + title + fullDescription */

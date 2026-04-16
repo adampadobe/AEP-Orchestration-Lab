@@ -485,7 +485,9 @@
       })
       .then(function () {
         mountsEl() && mountsEl().classList.add('race-ajo--requested');
-        promoteBareImageUrlsInContentCard(document.getElementById('ContentCardContainer'));
+        var ccr = document.getElementById('ContentCardContainer');
+        normalizeContentCardLayout(ccr);
+        promoteBareImageUrlsInContentCard(ccr);
       })
       .catch(function (err) {
         var msg = err && err.message ? err.message : String(err);
@@ -519,11 +521,19 @@
     }
   }
 
+  /** Launch often sets a fixed height; that clips / stacks badly with flex + images. */
+  function normalizeContentCardLayout(root) {
+    if (!root || !root.style) return;
+    root.style.removeProperty('height');
+    root.style.removeProperty('min-height');
+  }
+
   function mountContentCardBareUrlFix() {
     var el = document.getElementById('ContentCardContainer');
     if (!el || el.__raceAjoBareUrlFix) return;
     el.__raceAjoBareUrlFix = true;
     function run() {
+      normalizeContentCardLayout(el);
       promoteBareImageUrlsInContentCard(el);
     }
     run();
