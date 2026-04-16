@@ -13,6 +13,8 @@
     'aepIdentityNamespace',
     'aepDetailsChannelTab',
     'aep-profile-viewer-recent-search-terms',
+    'aepMenuPalette',
+    'aepBgPreset',
   ];
 
   var pushTimer = null;

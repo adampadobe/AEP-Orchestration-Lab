@@ -51,6 +51,7 @@
       else localStorage.setItem(LS_MENU, v);
     } catch (e) {}
     applyToDocument();
+    notifySandboxSyncDirty();
   }
 
   function setBgPreset(id) {
@@ -61,6 +62,15 @@
       else localStorage.setItem(LS_BG, v);
     } catch (e) {}
     applyToDocument();
+    notifySandboxSyncDirty();
+  }
+
+  function notifySandboxSyncDirty() {
+    try {
+      if (global.AepLabSandboxSync && typeof global.AepLabSandboxSync.notifyDirty === 'function') {
+        global.AepLabSandboxSync.notifyDirty();
+      }
+    } catch (e) {}
   }
 
   function bindPicker(rootEl) {
@@ -105,6 +115,12 @@
     applyToDocument();
     global.document.querySelectorAll('[data-aep-theme-prefs]').forEach(function (el) {
       bindPicker(el);
+    });
+    global.addEventListener('aep-lab-sandbox-keys-applied', function () {
+      applyToDocument();
+      global.document.querySelectorAll('[data-aep-theme-prefs]').forEach(function (el) {
+        syncPickerUi(el);
+      });
     });
   }
 

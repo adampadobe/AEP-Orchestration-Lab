@@ -21,7 +21,7 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">Global values</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Stored in this browser">Browser</span>
+          <span class="dashboard-env-pill" title="Stored in browser + Firebase">Browser</span>
           <a href="https://experienceleague.adobe.com/docs/experience-platform/sandbox/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Sandbox docs</a>
         </div>
       </header>
@@ -73,7 +73,7 @@
                 <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-bg-preset-choice="contrast">Contrast</button>
               </div>
               <p class="dashboard-hero-subtitle" style="margin-top: 12px; font-size: 13px;">
-                Stored as <code>aepMenuPalette</code> and <code>aepBgPreset</code> (omit or <code>default</code> for built-in tokens).
+                Saved per sandbox (local keys <code>aepMenuPalette</code> / <code>aepBgPreset</code>) and synced to Firebase after anonymous sign-in.
               </p>
             </div>
             <div id="aepNavInDevSection" class="aep-nav-indev-global-row" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--aep-border, #e8e4df);" hidden>
@@ -133,7 +133,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="aep-lab-sandbox-sync.js?v=20260413"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260416d"></script>
   <script>
     (function () {
       var sel = document.getElementById('globalSandboxSelect');
@@ -295,7 +295,7 @@
     })();
   </script>
   <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-theme-prefs.js?v=20260416c"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260419-demos-ctrl"></script>
 </body>
 </html>
