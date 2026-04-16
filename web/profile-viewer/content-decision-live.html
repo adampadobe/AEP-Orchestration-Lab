@@ -644,7 +644,7 @@
           <section class="hero-stage" aria-label="Content decision preview">
         <div class="cd-hero-layout">
           <aside class="cd-hero-rail" aria-label="Quick run">
-            <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Uses email, namespace, Cloud Run URL, wait (seconds), and banner layout from Workflow &amp; controls">
+            <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Uses email, sandbox, Cloud Run URL, wait (seconds), and banner layout from Workflow &amp; controls">
               Run content decision
             </button>
             <p id="cdPipelineStatus" class="status" aria-live="polite"></p>
@@ -672,15 +672,15 @@
         <div class="workflow-drawer-scroll">
           <div class="panel">
             <h2>Profile &amp; <code>get.decisions</code></h2>
+            <div class="cd-sandbox-row">
+              <label for="sandboxSelect">Sandbox</label>
+              <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                <option value="">Loading sandboxes…</option>
+              </select>
+            </div>
             <label for="cdLiveEmail">Email (identity value)</label>
             <input id="cdLiveEmail" type="email" autocomplete="email" placeholder="adamp.adobedemo+010426-4@gmail.com">
-            <div class="row2">
-              <div>
-                <label for="cdLiveNs">Namespace code</label>
-                <input id="cdLiveNs" type="text" value="Email" autocomplete="off">
-              </div>
-            </div>
-            <p class="hint">Platform sandbox (<code>x-sandbox-name</code>) is set on the server in <code>functions/index.js</code> (<code>DEFAULT_ADOBE_SANDBOX</code> / env <code>ADOBE_SANDBOX_NAME</code> at deploy).</p>
+            <p class="hint">Profile UPS calls use <code>x-sandbox-name</code> from your selection (via <code>/api/aep</code>). Empty = server default (<code>ADOBE_SANDBOX_NAME</code>). Identity is always <strong>Email</strong> namespace for fetch and for the <code>get.decisions</code> event payload.</p>
             <label for="firebaseEventUrl">Experience event endpoint (Cloud Run)</label>
             <input id="firebaseEventUrl" type="url" autocomplete="off">
             <div class="actions">
@@ -790,14 +790,17 @@
 
   <script defer src="aep-theme.js?v=20260416b"></script>
   <script defer src="aep-lab-nav.js?v=20260419-demos-ctrl"></script>
+  <script src="aep-global-sandbox.js?v=20260408"></script>
   <script>
 (function () {
+
+  /** UPS / events: Email namespace only (no custom namespace UI). */
+  const CD_IDENTITY_NS = 'Email';
 
   const WEBHOOK_FILTER_CUSTOM_NAME = 'Content Decision';
   const WEBHOOK_LISTENER_DIRECT_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
   const CD_BANNER_LS = 'aep-cd-banner-editor';
   const LS_EMAIL = 'aep-cd-live-email';
-  const LS_NS = 'aep-cd-live-ns';
   const LS_FIREBASE_URL = 'aep-cd-live-firebase-event-url';
   const LS_WEBHOOK_DELAY_SEC = 'aep-cd-live-webhook-delay-sec';
   const DEFAULT_WEBHOOK_DELAY_SEC = 2;
@@ -831,10 +834,8 @@
 
   function persistLiveIdentity() {
     const em = document.getElementById('cdLiveEmail').value.trim();
-    const ns = document.getElementById('cdLiveNs').value.trim();
     try {
       if (em) localStorage.setItem(LS_EMAIL, em); else localStorage.removeItem(LS_EMAIL);
-      if (ns) localStorage.setItem(LS_NS, ns); else localStorage.removeItem(LS_NS);
     } catch (e) {}
   }
   function persistFirebaseEventUrl() {
@@ -867,9 +868,7 @@
   (function initFields() {
     try {
       var em = localStorage.getItem(LS_EMAIL);
-      var ns = localStorage.getItem(LS_NS);
       if (em) document.getElementById('cdLiveEmail').value = em;
-      if (ns) document.getElementById('cdLiveNs').value = ns;
       var fu = localStorage.getItem(LS_FIREBASE_URL);
       document.getElementById('firebaseEventUrl').value = fu || DEFAULT_EXPERIENCE_EVENT_POST_URL;
       var del = localStorage.getItem(LS_WEBHOOK_DELAY_SEC);
@@ -880,6 +879,15 @@
     } catch (e) {}
   })();
 
+  (function initSandboxSelect() {
+    var sel = document.getElementById('sandboxSelect');
+    if (!sel || typeof AepGlobalSandbox === 'undefined') return;
+    AepGlobalSandbox.loadSandboxesIntoSelect(sel).then(function () {
+      AepGlobalSandbox.onSandboxSelectChange(sel);
+      AepGlobalSandbox.attachStorageSync(sel);
+    });
+  })();
+
   (function initAutoWebhookDelayControls() {
     var el = document.getElementById('autoWebhookDelaySec');
     if (!el) return;
@@ -888,10 +896,24 @@
   })();
 
   document.getElementById('cdLiveEmail').addEventListener('blur', persistLiveIdentity);
-  document.getElementById('cdLiveNs').addEventListener('blur', persistLiveIdentity);
   document.getElementById('firebaseEventUrl').addEventListener('blur', persistFirebaseEventUrl);
 
+  function withSandboxPlatformHeaders(payload) {
+    var base = payload && typeof payload === 'object' ? payload : {};
+    var sb = '';
+    try {
+      if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
+        sb = String(AepGlobalSandbox.getSandboxName() || '').trim();
+      }
+    } catch (e) {}
+    if (!sb) return base;
+    var ph = Object.assign({}, base.platform_headers || {});
+    ph['x-sandbox-name'] = sb;
+    return Object.assign({}, base, { platform_headers: ph });
+  }
+
   async function aepCall(payload) {
+    payload = withSandboxPlatformHeaders(payload);
     cdLog('UPS proxy →', payload.method || 'POST', payload.path || '', payload.params || {});
     let res;
     try {
@@ -1411,8 +1433,14 @@
     var evSt = document.getElementById('eventStatus');
     var payload = buildGetDecisionsExperienceEventPayload(email);
     var body = { type: 'experience-event', payload: payload };
+    try {
+      if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
+        var sbx = String(AepGlobalSandbox.getSandboxName() || '').trim();
+        if (sbx) body.sandbox = sbx;
+      }
+    } catch (e) {}
     var xdm = payload.body && payload.body.xdmEntity;
-    cdLog('Cloud Run → POST', url, { type: body.type, eventType: xdm && xdm.eventType, xdm_id: xdm && xdm._id });
+    cdLog('Cloud Run → POST', url, { type: body.type, eventType: xdm && xdm.eventType, xdm_id: xdm && xdm._id, sandbox: body.sandbox || '(default)' });
     evSt.textContent = 'Sending experience event…';
     evSt.className = 'status';
     try {
@@ -1462,10 +1490,9 @@
     runOpts = runOpts || {};
     persistLiveIdentity();
     var email = document.getElementById('cdLiveEmail').value.trim();
-    var ns = document.getElementById('cdLiveNs').value.trim() || 'Email';
     var st = document.getElementById('profileStatus');
     var evSt = document.getElementById('eventStatus');
-    cdLog('Profile + get.decisions: start', { namespace: ns });
+    cdLog('Profile + get.decisions: start', { namespace: CD_IDENTITY_NS });
     evSt.textContent = '';
     evSt.className = 'status';
     if (!email) {
@@ -1476,12 +1503,12 @@
     }
     st.textContent = 'Fetching profile…';
     st.className = 'status';
-    var r = await fetchProfileByIdentity(ns, email);
+    var r = await fetchProfileByIdentity(CD_IDENTITY_NS, email);
     lastUpsPayload = r.data;
     document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
     if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
       cdLog('Profile + get.decisions ✗ stopped: profile failed', { httpOk: r.httpOk });
-      st.textContent = 'Stop: profile failed — fix identity before sending event.';
+      st.textContent = 'Stop: profile failed — check email and sandbox before sending event.';
       st.className = 'status err';
       return false;
     }
@@ -1533,10 +1560,9 @@
   document.getElementById('btnFetchProfile').addEventListener('click', async function () {
     persistLiveIdentity();
     var email = document.getElementById('cdLiveEmail').value.trim();
-    var ns = document.getElementById('cdLiveNs').value.trim() || 'Email';
     var st = document.getElementById('profileStatus');
     var hint = document.getElementById('ecidHint');
-    cdLog('Fetch profile only: start', { namespace: ns, identity: email ? '(set)' : '(empty)' });
+    cdLog('Fetch profile only: start', { namespace: CD_IDENTITY_NS, identity: email ? '(set)' : '(empty)' });
     st.textContent = 'Loading…';
     st.className = 'status';
     if (!email) {
@@ -1545,12 +1571,12 @@
       st.className = 'status err';
       return;
     }
-    var r = await fetchProfileByIdentity(ns, email);
+    var r = await fetchProfileByIdentity(CD_IDENTITY_NS, email);
     lastUpsPayload = r.data;
     document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
     if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
       cdLog('Fetch profile only ✗ UPS not successful', { httpOk: r.httpOk });
-      st.textContent = 'Profile not found or UPS error — check namespace/value.';
+      st.textContent = 'Profile not found or UPS error — check email and sandbox.';
       st.className = 'status err';
       hint.textContent = '';
       return;
