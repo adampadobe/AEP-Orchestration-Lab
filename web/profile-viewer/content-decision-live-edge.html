@@ -128,10 +128,60 @@
       min-width: 0;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
       gap: 1rem;
       width: 100%;
     }
+
+    .cd-edge-mounts {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .cd-edge-mount {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .cd-edge-mount-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .cd-edge-mount-body {
+      min-height: 3.25rem;
+      padding: 0.75rem 1rem;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-panel);
+      font-size: 0.8125rem;
+      color: var(--text);
+      box-sizing: border-box;
+    }
+    .cd-edge-mount-body:empty::before {
+      content: '—';
+      color: var(--muted);
+      opacity: 0.7;
+    }
+    .cd-edge-mount-body.cd-edge-mount-body--hero:empty::before {
+      content: 'No hero proposition yet.';
+    }
+    #cd-edge-topRibbon:empty::before { content: 'No top ribbon proposition yet.'; }
+    #cd-edge-contentCard:empty::before { content: 'No content card proposition yet.'; }
+    .cd-edge-mount-body--hero.cd-banner-wrap {
+      border-style: solid;
+      padding: 0;
+      overflow: hidden;
+    }
+    .cd-edge-ajo-card-inner { display: flex; flex-direction: column; gap: 0.5rem; }
+    .cd-edge-ajo-card-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 4px; }
+    .cd-edge-ajo-card-title { font-size: 1rem; margin: 0; font-weight: 600; }
+    .cd-edge-ajo-card-desc { font-size: 0.875rem; margin: 0; color: var(--muted); }
+    .cd-edge-ajo-iframe { width: 100%; min-height: 180px; border: 0; border-radius: 4px; }
 
     .hero-placeholder {
       width: 100%; max-width: 960px; border: 2px dashed var(--border); border-radius: var(--radius);
@@ -617,8 +667,7 @@
   <script>
     window.dataLayer = window.dataLayer || [];
   </script>
-  <!-- Web SDK loaded by Adobe Launch (datastream / Edge config in the Launch Web SDK extension). Library URL matches Experience Decisioning lab. -->
-  <script src="https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js" async></script>
+  <!-- Adobe Launch is injected per sandbox after aep-global-sandbox.js (Alan: apalmer → Race for Life property + AJO datastream; default → Profile Viewer dev). -->
 </head>
 <body class="home-dashboard-concierge cd-page">
   <div class="dashboard-shell">
@@ -637,17 +686,27 @@
           <section class="hero-stage" aria-label="Content decision preview (Edge lab)">
         <div class="cd-hero-layout">
           <aside class="cd-hero-rail" aria-label="Quick run">
-            <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Fetch UPS profile, call Edge via Web SDK (Launch), render banner from decisions/propositions">
+            <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Fetch UPS profile, call Edge via Web SDK (Launch), render decisions into the three areas below">
               Run content decision
             </button>
             <p id="cdPipelineStatus" class="status" aria-live="polite"></p>
+            <p id="cdEdgeModeHint" class="hint" style="font-size:0.65rem;margin-top:0.35rem;line-height:1.35;"></p>
           </aside>
           <div class="cd-hero-main">
-            <div id="cdHeroPlaceholder" class="hero-placeholder">
-              <strong>No preview yet.</strong><br>
-              Use <strong>Run content decision</strong> (left) after configuring <strong>Workflow &amp; controls</strong> (Edge + email). Personalization comes from <strong>Adobe Launch / Web SDK</strong> on this origin — not the streaming inlet.
+            <div class="cd-edge-mounts" id="cdEdgeMounts" aria-label="Personalization mounts">
+              <div class="cd-edge-mount">
+                <span class="cd-edge-mount-label">Top ribbon</span>
+                <div id="cd-edge-topRibbon" class="cd-edge-mount-body" role="region" aria-label="Top ribbon"></div>
+              </div>
+              <div class="cd-edge-mount">
+                <span class="cd-edge-mount-label">Hero banner</span>
+                <div id="cd-edge-hero" class="cd-edge-mount-body cd-edge-mount-body--hero" role="region" aria-label="Hero banner"></div>
+              </div>
+              <div class="cd-edge-mount">
+                <span class="cd-edge-mount-label">Content card</span>
+                <div id="cd-edge-contentCard" class="cd-edge-mount-body" role="region" aria-label="Content card"></div>
+              </div>
             </div>
-            <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Content decision banner"></div>
           </div>
         </div>
       </section>
@@ -665,7 +724,7 @@
         <div class="workflow-drawer-scroll">
           <div class="panel">
             <h2>Profile &amp; Edge (Web SDK)</h2>
-            <p class="hint">Loads <strong>Adobe Launch</strong> → Web SDK here only (<code>/index.html</code> does not embed the tag anymore). Same script URL and default datastream as the former Experience Decisioning lab flow. Status below updates on page load. UPS must succeed; then <code>alloy('sendEvent')</code> uses the profile <code>identityMap</code> and <strong>decision scopes</strong> for this host.</p>
+            <p class="hint"><strong>Sandbox <code>apalmer</code>:</strong> Alan’s Launch + <code>surfaces</code> / <code>applyPropositions</code> (Race for Life demo pattern). <strong>Other sandboxes:</strong> Profile Viewer Launch + <code>decisionScopes</code>. Changing between these reloads the page to swap the Launch library. UPS must succeed; then Edge runs after profile load.</p>
             <div class="cd-sandbox-row">
               <label for="sandboxSelect">Sandbox</label>
               <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
@@ -793,6 +852,7 @@
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
   <script src="aep-global-sandbox.js?v=20260408"></script>
+  <script src="content-decision-edge-mounts.js?v=20260216"></script>
   <script>
 (function () {
 
@@ -802,7 +862,18 @@
   const CD_BANNER_LS = 'aep-cd-banner-editor';
   const LS_EMAIL = 'aep-cd-live-email';
   const DEFAULT_EDGE_CONFIG_ID = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
-  const ADOBE_LAUNCH_SRC = 'https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js';
+  /** Alan / Race for Life demo — same Launch + datastream as race-for-life-demo.html */
+  const CD_EDGE_ALAN_SANDBOX = 'apalmer';
+  const EDGE_LAUNCH_ALAN = {
+    mode: 'alan',
+    src: 'https://assets.adobedtm.com/60e5fd51ad90/1e9ecb8bbc4a/launch-2070346dc211-development.min.js',
+    datastream: '46677fd7-9db0-4f16-898c-b424d0245c38',
+  };
+  const EDGE_LAUNCH_DEFAULT = {
+    mode: 'default',
+    src: 'https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js',
+    datastream: 'ef0ee758-260c-4596-8a97-d8474d11c0ca',
+  };
   const HERO_CHANNEL_LOCATION = 'travel-hero-banner';
   const EDGE_LAB_PATH = '/profile-viewer/content-decision-live-edge.html';
   /** DevTools: filter console by this string */
@@ -841,10 +912,55 @@
     return location.origin + EDGE_LAB_PATH;
   }
 
+  function edgeLabIsAlanSandbox() {
+    try {
+      return (
+        typeof AepGlobalSandbox !== 'undefined' &&
+        String(AepGlobalSandbox.getSandboxName() || '').trim() === CD_EDGE_ALAN_SANDBOX
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function getEdgeLabLaunchConfig() {
+    return edgeLabIsAlanSandbox() ? EDGE_LAUNCH_ALAN : EDGE_LAUNCH_DEFAULT;
+  }
+
+  function injectLaunchScript(cfg) {
+    return new Promise(function (resolve, reject) {
+      var existing = document.getElementById('cd-edge-launch-script');
+      if (existing) existing.remove();
+      var s = document.createElement('script');
+      s.id = 'cd-edge-launch-script';
+      s.async = true;
+      s.src = cfg.src;
+      s.onload = function () {
+        resolve(cfg);
+      };
+      s.onerror = function () {
+        reject(new Error('Failed to load Adobe Launch: ' + cfg.src));
+      };
+      document.head.appendChild(s);
+    });
+  }
+
+  function clearEdgeMounts() {
+    ['cd-edge-topRibbon', 'cd-edge-hero', 'cd-edge-contentCard'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = '';
+      el.classList.remove('cd-banner-wrap');
+    });
+  }
+
   function getEdgeLabDecisionScopes() {
     if (typeof location === 'undefined') return [];
-    var h = location.host;
-    var base = 'web://' + h + '/profile-viewer/content-decision-live-edge';
+    var loc = location;
+    var h = loc.host;
+    var path = loc.pathname || EDGE_LAB_PATH;
+    if (path.indexOf('/') !== 0) path = '/' + path;
+    var base = 'web://' + h + path.split('?')[0];
     return [base + '#' + HERO_CHANNEL_LOCATION, base + '#TopRibbon'];
   }
 
@@ -940,6 +1056,7 @@
 
   function waitForAlloy(timeoutMs) {
     var t = timeoutMs || 25000;
+    var launchSrc = (window.__cdEdgeLaunchCfg && window.__cdEdgeLaunchCfg.src) || '';
     return new Promise(function (resolve, reject) {
       if (typeof alloy === 'function') return resolve();
       var start = Date.now();
@@ -949,22 +1066,29 @@
           resolve();
         } else if (Date.now() - start > t) {
           clearInterval(id);
-          reject(new Error('Alloy not available after Launch load. ' + ADOBE_LAUNCH_SRC));
+          reject(new Error('Alloy not available after Launch load. ' + launchSrc));
         }
       }, 50);
     });
   }
 
   /**
-   * Same bootstrap as Experience Decisioning lab (/index.html): Launch loads Alloy early.
-   * Optional page-load alloy('configure') when “Also call alloy(configure)” is checked (avoids duplicate when off).
+   * After dynamic Launch inject: optional alloy('configure') from the Edge field when forced.
    */
-  (function primeWebSdkOnLoad() {
+  function primeWebSdkOnLoad() {
     function setInit(msg, cls) {
       var el = document.getElementById('webSdkInitStatus');
       if (!el) return;
       el.textContent = msg || '';
       el.className = 'status' + (cls ? ' ' + cls : '');
+    }
+    var modeHint = document.getElementById('cdEdgeModeHint');
+    if (modeHint && window.__cdEdgeLaunchCfg) {
+      var c = window.__cdEdgeLaunchCfg;
+      modeHint.textContent =
+        c.mode === 'alan'
+          ? 'Edge mode: apalmer — surfaces + applyPropositions (Alan). Datastream ' + c.datastream + '.'
+          : 'Edge mode: default — decisionScopes. Datastream ' + c.datastream + '.';
     }
     waitForAlloy()
       .then(function () {
@@ -996,16 +1120,34 @@
       .catch(function (e) {
         setInit(String(e.message || e), 'err');
       });
-  })();
+  }
 
-  (function initSandboxSelect() {
+  function initSandboxSelectWithReload() {
     var sel = document.getElementById('sandboxSelect');
     if (!sel || typeof AepGlobalSandbox === 'undefined') return;
+    var modeAtLoad = window.__cdEdgeLaunchMode;
     AepGlobalSandbox.loadSandboxesIntoSelect(sel).then(function () {
       AepGlobalSandbox.onSandboxSelectChange(sel);
       AepGlobalSandbox.attachStorageSync(sel);
+      sel.addEventListener('change', function () {
+        var n = String(AepGlobalSandbox.getSandboxName() || '').trim();
+        var nowAlan = n === CD_EDGE_ALAN_SANDBOX;
+        var wasAlan = modeAtLoad === 'alan';
+        if (nowAlan !== wasAlan) {
+          location.reload();
+        }
+      });
     });
-  })();
+  }
+
+  function beginAfterLaunchInject(cfg) {
+    window.__cdEdgeLaunchCfg = cfg;
+    window.__cdEdgeLaunchMode = cfg.mode;
+    var ec = document.getElementById('edgeConfigId');
+    if (ec) ec.value = cfg.datastream;
+    primeWebSdkOnLoad();
+    initSandboxSelectWithReload();
+  }
 
   document.getElementById('cdLiveEmail').addEventListener('blur', persistLiveIdentity);
   document.getElementById('edgeConfigId').addEventListener('blur', persistEdgeFields);
@@ -1146,9 +1288,59 @@
     });
   }
 
+  async function runEdgePropositionsAlanStyle(opts) {
+    opts = opts || {};
+    persistEdgeFields();
+    clearEdgeMounts();
+    await waitForAlloy();
+    var email = document.getElementById('cdLiveEmail').value.trim();
+    var ecidRaw =
+      opts.profileEcid !== undefined && opts.profileEcid !== null
+        ? String(opts.profileEcid).trim()
+        : (lastProfileEcid || '').trim();
+    var profile = { ecid: ecidRaw || null, email: email || null };
+    var identityMap = CdEdgeMounts.buildIdentityMap(profile, email, 'email');
+    lastIdentityMapSentForDebug = identityMap;
+    var surfaces = CdEdgeMounts.buildSurfacesForEdgeLabPage();
+    var href = typeof location !== 'undefined' ? location.href.split('?')[0] : '';
+    var sendOpts = {
+      renderDecisions: true,
+      personalization: {
+        surfaces: surfaces,
+        schemas: CdEdgeMounts.PERSONALIZATION_SCHEMAS,
+      },
+      xdm: {
+        identityMap: identityMap,
+        web: {
+          webPageDetails: {
+            URL: href,
+            name: 'Decisioning lab (Edge)',
+            viewName: 'Decisioning lab (Edge)',
+          },
+        },
+      },
+    };
+    var result = await alloy('sendEvent', sendOpts);
+    var propositions = (result && (result.propositions || result.decisions)) || [];
+    try {
+      if (typeof alloy === 'function' && propositions.length) {
+        await alloy('applyPropositions', { propositions: propositions });
+      }
+    } catch (e) {
+      cdLog('applyPropositions', String(e && e.message ? e.message : e));
+    }
+    CdEdgeMounts.applyPropositionsManually(propositions);
+    fireLaunchDirectCallAfterSendEvent(result);
+    return result;
+  }
+
   async function runEdgePropositions(opts) {
     opts = opts || {};
     persistEdgeFields();
+    clearEdgeMounts();
+    if (edgeLabIsAlanSandbox()) {
+      return runEdgePropositionsAlanStyle(opts);
+    }
     await waitForAlloy();
     var edgeConfigId = document.getElementById('edgeConfigId').value.trim();
     var forceCfg = document.getElementById('edgeForceConfigure').checked;
@@ -1220,6 +1412,10 @@
     }
     var result = await alloy('sendEvent', sendOpts);
     fireLaunchDirectCallAfterSendEvent(result);
+    var propositionsOut = (result && (result.propositions || result.decisions)) || [];
+    if (typeof CdEdgeMounts !== 'undefined' && CdEdgeMounts.applyPropositionsManually) {
+      CdEdgeMounts.applyPropositionsManually(propositionsOut);
+    }
     return result;
   }
 
@@ -1365,7 +1561,7 @@
   }
 
   function applyCdBannerEditorStyles() {
-    var wrap = document.getElementById('journeyContentDecisionBanner');
+    var wrap = document.getElementById('cd-edge-hero');
     if (!wrap || wrap.hidden) return;
     var st = readCdBannerEditorForm();
     var banner = wrap.querySelector('.cd-banner');
@@ -1443,19 +1639,16 @@
   }
 
   function renderJourneyContentDecisionBanner(jd) {
-    var wrap = document.getElementById('journeyContentDecisionBanner');
-    var ph = document.getElementById('cdHeroPlaceholder');
+    var wrap = document.getElementById('cd-edge-hero');
     if (!wrap) return;
     wrap.innerHTML = '';
+    wrap.classList.remove('cd-banner-wrap');
     if (!jd) {
       cdLog('Banner render: cleared (no data)');
-      wrap.hidden = true;
-      if (ph) ph.hidden = false;
       return;
     }
     cdLog('Banner render: DOM updated', { slots: [!!jd.bannerTitle, !!jd.fullDescription, !!jd.bannerCTA].filter(Boolean).length + '/3' });
-    if (ph) ph.hidden = true;
-    wrap.hidden = false;
+    wrap.classList.add('cd-banner-wrap');
     var banner = document.createElement('div');
     banner.className = 'cd-banner' + (jd.imageUrl ? '' : ' cd-banner--no-image');
     var figure = document.createElement('div');
@@ -1562,11 +1755,14 @@
         }
       }
       var jd = journeyVisualFromEdgeResult(edgeResult);
-      if (jd) {
+      var heroMount = document.getElementById('cd-edge-hero');
+      if (jd && heroMount && !heroMount.querySelector('.cd-banner')) {
         renderJourneyContentDecisionBanner(withBannerImageCacheBust(jd));
-        cdLog('Profile → Edge ✓ banner from Edge payload');
+        cdLog('Profile → Edge ✓ structured hero from Edge payload (mount was empty)');
+      } else if (jd) {
+        cdLog('Profile → Edge ✓ (structured hero skipped — mount already has proposition content)');
       } else {
-        cdLog('Profile → Edge ✓ (no offer-shaped items for hero banner — check raw JSON)');
+        cdLog('Profile → Edge ✓ (no structured offer hero — check mounts + raw JSON)');
       }
       edgeSt.textContent = 'Edge response received.';
       edgeSt.className = 'status ok';
@@ -1595,7 +1791,7 @@
       setPipe('Stopped — check Profile / Edge status below.', 'err');
       return;
     }
-    setPipe('Done — hero updates from Edge when offer content was returned.');
+    setPipe('Done — check Top ribbon, Hero, and Content card mounts above.');
   }
 
   document.getElementById('btnFetchProfile').addEventListener('click', async function () {
@@ -1730,7 +1926,19 @@
     }
   })();
 
-  cdLog('initialized (filter console by tag above)');
+  injectLaunchScript(getEdgeLabLaunchConfig())
+    .then(function (cfg) {
+      beginAfterLaunchInject(cfg);
+      cdLog('initialized — Launch injected, filter console by', LOG_PREFIX);
+    })
+    .catch(function (e) {
+      var st = document.getElementById('webSdkInitStatus');
+      if (st) {
+        st.textContent = String(e.message || e);
+        st.className = 'status err';
+      }
+      cdLog('Launch inject failed', String(e.message || e));
+    });
 })();
   </script>
 </body>
