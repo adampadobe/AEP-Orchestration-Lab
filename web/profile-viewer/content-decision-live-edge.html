@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Content Decision Lab – AEP Profile Viewer</title>
+  <title>Decisioning lab (Edge) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
@@ -636,13 +636,13 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Local tool">Local</span>
+          <span class="dashboard-env-pill" title="Decisioning lab (Edge)">Edge</span>
         </div>
       </header>
 
       <main class="dashboard-main cd-main app-page">
         <div class="cd-content">
-          <section class="hero-stage" aria-label="Content decision preview">
+          <section class="hero-stage" aria-label="Content decision preview (Edge lab)">
         <div class="cd-hero-layout">
           <aside class="cd-hero-rail" aria-label="Quick run">
             <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Uses email, sandbox, Cloud Run URL, wait (seconds), and banner layout from Workflow &amp; controls">
@@ -815,7 +815,7 @@
   const EG_SCHEMA_CT = 'application/vnd.adobe.xed-full+json;version=1';
   const EG_TENANT = '_demoemea';
   /** DevTools: filter console by this string */
-  const LOG_PREFIX = '[content-decision-live]';
+  const LOG_PREFIX = '[content-decision-live-edge]';
   function cdLog() {
     var args = Array.prototype.slice.call(arguments);
     args.unshift(LOG_PREFIX);
