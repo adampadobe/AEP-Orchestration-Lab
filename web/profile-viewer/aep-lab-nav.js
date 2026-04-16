@@ -19,7 +19,7 @@
   function isDeveloperSandbox() {
     try {
       var s = String(localStorage.getItem(LS_SANDBOX) || '').trim().toLowerCase();
-      return s === 'apalmer' || s === 'kirkham';
+      return s === 'apalmer' || s === 'kirkham' || s === 'mihais';
     } catch (e) {
       return false;
     }
@@ -40,7 +40,7 @@
     return false;
   }
 
-  /** Sidebar: show “(in development)” items only in apalmer/kirkham, and only if not hidden per Global values */
+  /** Sidebar: show “(in development)” items only in apalmer/kirkham/mihais, and only if not hidden per Global values */
   function shouldShowNavItem(item) {
     if (!item.inDevelopment) return true;
     if (!isDeveloperSandbox()) return false;
@@ -424,7 +424,7 @@
         if (!isDeveloperSandbox()) return false;
         return !isNavInDevHidden(navHideKey);
       },
-      /** Demos group (Donate / Race for Life): apalmer/kirkham only, unless hidden in Global values */
+      /** Demos group (Donate / Race for Life): developer sandboxes only, unless hidden in Global values */
       shouldShowDemosMenu: function () {
         return isDemosNavVisible();
       },
