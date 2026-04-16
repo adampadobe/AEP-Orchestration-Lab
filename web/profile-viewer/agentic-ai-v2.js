@@ -14,6 +14,7 @@
   var coordRoot = document.getElementById('diagramBoardV2');
   var svg = document.getElementById('arrowLayerV2');
   var playBtn = document.getElementById('agenticV2PlayBtn');
+  var stepBtn = document.getElementById('agenticV2StepBtn');
   var resetBtn = document.getElementById('agenticV2ResetBtn');
   var delayInput = document.getElementById('agenticV2DelayMs');
   var delayLabel = document.getElementById('agenticV2DelayLabel');
@@ -28,19 +29,14 @@
   if (!coordRoot || !svg) return;
 
   /**
-   * Play / step reveal order (do not reorder without updating drawArrowsForStep indices).
-   * 1 Agent Orchestrator → 2 Chat Service → 3 AI Assistant → 4 Prompt → 5 Coordinator
-   * → 6 Non Agent Query → 7 Agent Executor → 8 Plan Generator → 9 Plan Executor
-   * → 10 Agent Execution → 11 Brand Experience Agent → 12 Product Knowledge Agent
-   * → 13 Operational Insights Agent → 14 Field Discovery Agent → 15 Audience Agent
-   * → 16 Journey Agent → 17 Data Insights Agent → 18 Product Support Agent
-   *
-   * HTML stack is Assistant → Chat → Orchestrator (top to bottom) so vertical arrows match geometry.
+   * Reveal order matches DOM top → bottom so each block appears in its final slot (no upward reflow).
+   * AI Assistant → Chat → Orchestrator shell → Prompt → Coordinator → … → agents.
+   * drawArrowsForStep(justFinishedIndex) indices follow this array.
    */
   var STEP_NODE_IDS = [
-    'node-orch-v2',
-    'node-chat-v2',
     'node-assistant-v2',
+    'node-chat-v2',
+    'node-orch-v2',
     'node-prompt-v2',
     'node-coordinator-v2',
     'node-nonAgent-v2',
@@ -360,8 +356,8 @@
     var rc = chat ? relRect(chat) : null;
     var rp = prompt ? relRect(prompt) : null;
 
-    /* AI Assistant ↔ CHAT SERVICE: parallel verticals, green stems + dark heads (image ref) */
-    if (justFinishedIndex === 2 && assistant && chat) {
+    /* AI Assistant ↔ CHAT SERVICE: parallel verticals (after Chat is revealed, index 1) */
+    if (justFinishedIndex === 1 && assistant && chat) {
       var ax = anchorXBetweenRects(ra, rc);
       var pairA = verticalBidirStraight(ra, rc, ax);
       if (pairA) {
@@ -430,38 +426,58 @@
     });
   }
 
-  function resetDiagram() {
+  function cancelAutoAdvance() {
     if (timerId) {
       clearTimeout(timerId);
       timerId = null;
     }
-    stepIndex = 0;
-    setAllNodesVisible(false);
-    clearArrows();
     if (playBtn) playBtn.disabled = false;
   }
 
-  function runStep() {
+  function syncStepControls() {
+    var atEnd = stepIndex >= STEP_NODE_IDS.length;
+    if (stepBtn) stepBtn.disabled = atEnd;
+  }
+
+  function resetDiagram() {
+    cancelAutoAdvance();
+    stepIndex = 0;
+    setAllNodesVisible(false);
+    clearArrows();
+    syncStepControls();
+  }
+
+  /**
+   * @param {boolean} autoContinue - if true, schedule next step after delay (Play); if false, one step only (Step)
+   */
+  function runStep(autoContinue) {
     if (stepIndex >= STEP_NODE_IDS.length) {
-      timerId = null;
-      if (playBtn) playBtn.disabled = false;
+      cancelAutoAdvance();
+      syncStepControls();
       return;
     }
-    var id = STEP_NODE_IDS[stepIndex];
+    var current = stepIndex;
+    var id = STEP_NODE_IDS[current];
     var el = $(id);
     if (el) el.classList.add('is-visible');
 
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        drawArrowsForStep(stepIndex);
-        /* Defer reflow-sensitive arrow fix until after layout settles when the orchestrator grows. */
-        if (stepIndex > 2) {
+        drawArrowsForStep(current);
+        if (current > 2) {
           setTimeout(function () {
             redrawAssistantChatArrows(false);
           }, 48);
         }
-        stepIndex += 1;
-        timerId = setTimeout(runStep, getDelayMs() + STEP_AFTER_DRAW_MS);
+        stepIndex = current + 1;
+        syncStepControls();
+        if (autoContinue && stepIndex < STEP_NODE_IDS.length) {
+          timerId = setTimeout(function () {
+            runStep(true);
+          }, getDelayMs() + STEP_AFTER_DRAW_MS);
+        } else {
+          cancelAutoAdvance();
+        }
       });
     });
   }
@@ -469,11 +485,17 @@
   function play() {
     resetDiagram();
     if (playBtn) playBtn.disabled = true;
-    stepIndex = 0;
-    runStep();
+    runStep(true);
+  }
+
+  function stepOnce() {
+    cancelAutoAdvance();
+    if (stepIndex >= STEP_NODE_IDS.length) return;
+    runStep(false);
   }
 
   if (playBtn) playBtn.addEventListener('click', play);
+  if (stepBtn) stepBtn.addEventListener('click', stepOnce);
   if (resetBtn) resetBtn.addEventListener('click', resetDiagram);
 
   window.addEventListener(
@@ -490,4 +512,5 @@
   );
 
   syncSvgSize();
+  syncStepControls();
 })();

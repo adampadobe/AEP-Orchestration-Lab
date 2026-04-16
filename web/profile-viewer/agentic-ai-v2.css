@@ -140,8 +140,20 @@ body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
   max-width: min(100%, 1720px);
 }
 
+/* Match .agentic-v2-diagram-wrap horizontal inset (1.5rem) so title, lead, toolbar, and Fullscreen align with the canvas column */
 .agentic-ai-v2-hero {
   margin-bottom: 2.25rem;
+  box-sizing: border-box;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.agentic-ai-v2-hero-head {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
 }
 
 .agentic-ai-v2-badge {
@@ -173,7 +185,9 @@ body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
 
 .agentic-ai-v2-lead-block {
   margin: 0 0 1.1rem;
-  max-width: 52rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .agentic-ai-v2-lead-line {
