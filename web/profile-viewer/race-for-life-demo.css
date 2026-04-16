@@ -248,6 +248,19 @@
   font-size: 0.98rem;
 }
 
+/* AJO mount points: same column as .race-copy-card; wrapper adds no vertical gap when sections are empty. */
+.race-ajo-mounts {
+  margin: 0 auto;
+  width: min(86%, 840px);
+  max-width: 840px;
+  position: relative;
+  z-index: 2;
+}
+
+.race-ajo-mounts .race-ajo-hero + .race-ajo-content-cards {
+  margin-top: 0.75rem;
+}
+
 .race-join {
   margin: 0 2.5rem;
   color: #0f172a;
@@ -368,6 +381,10 @@
 
   .race-copy-card {
     margin-top: -3.5rem;
+    width: min(92%, 840px);
+  }
+
+  .race-ajo-mounts {
     width: min(92%, 840px);
   }
 
