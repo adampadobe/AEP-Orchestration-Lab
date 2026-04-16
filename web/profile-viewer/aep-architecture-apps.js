@@ -959,6 +959,8 @@
       archSyncPlaybackNav();
       archSelectionPanelSync();
       archLineFloatUpdateVisibility();
+      /** Re-sync connector handles: they only exist in edit mode; without a render they stay in the DOM when edit is turned off. */
+      archUserLineRender();
     }
 
     function archEditorApplyDock() {
