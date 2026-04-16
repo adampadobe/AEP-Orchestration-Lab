@@ -314,6 +314,47 @@
   box-sizing: border-box;
 }
 
+/* AJO JSON content cards: imageURL + title + fullDescription */
+.race-ajo-content-card-inner {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.race-ajo-content-card--hero .race-ajo-content-card-img {
+  max-height: 220px;
+}
+
+.race-ajo-content-card-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 180px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.race-ajo-content-card-body {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.race-ajo-content-card-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #051a78;
+  line-height: 1.25;
+}
+
+.race-ajo-content-card-desc {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: #1f2937;
+}
+
 .race-join {
   margin: 0 2.5rem;
   color: #0f172a;

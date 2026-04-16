@@ -127,19 +127,116 @@
     return s.indexOf('#' + fragment) !== -1 || s.indexOf(fragment) !== -1;
   }
 
+  function parseJsonStringMaybe(val) {
+    if (typeof val !== 'string') return null;
+    var t = val.trim();
+    if (t.length < 2 || (t[0] !== '{' && t[0] !== '[')) return null;
+    try {
+      return JSON.parse(t);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * AJO JSON / content-card style payloads: { imageURL, title, fullDescription } (sometimes inside data.content).
+   */
+  function normalizeContentCardPayload(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    if (raw.imageURL != null || raw.imageUrl != null || raw.title != null || raw.fullDescription != null) {
+      return {
+        imageURL: raw.imageURL != null ? raw.imageURL : raw.imageUrl,
+        title: raw.title,
+        fullDescription: raw.fullDescription,
+      };
+    }
+    if (typeof raw.content === 'string') {
+      var parsed = parseJsonStringMaybe(raw.content);
+      if (parsed && typeof parsed === 'object' && (parsed.imageURL != null || parsed.title != null || parsed.fullDescription != null)) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
+  function getItemData(item) {
+    if (!item) return null;
+    return item.data || item.characteristics || item;
+  }
+
+  /**
+   * Renders image + title + body text for AJO content-card JSON (no innerHTML for user text).
+   */
+  function renderContentCardPayload(el, payload) {
+    if (!el || !payload) return false;
+    var imgUrl = payload.imageURL != null ? String(payload.imageURL).trim() : '';
+    var title = payload.title != null ? String(payload.title) : '';
+    var desc = payload.fullDescription != null ? String(payload.fullDescription) : '';
+
+    el.textContent = '';
+    el.classList.add('race-ajo-content-card');
+    if (el.id === 'hero-banner') el.classList.add('race-ajo-content-card--hero');
+
+    var inner = document.createElement('div');
+    inner.className = 'race-ajo-content-card-inner';
+
+    if (imgUrl) {
+      var img = document.createElement('img');
+      img.className = 'race-ajo-content-card-img';
+      img.src = imgUrl;
+      img.alt = title || 'Personalized offer';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      inner.appendChild(img);
+    }
+
+    var body = document.createElement('div');
+    body.className = 'race-ajo-content-card-body';
+    if (title) {
+      var h = document.createElement('h3');
+      h.className = 'race-ajo-content-card-title';
+      h.textContent = title;
+      body.appendChild(h);
+    }
+    if (desc) {
+      var p = document.createElement('p');
+      p.className = 'race-ajo-content-card-desc';
+      p.textContent = desc;
+      body.appendChild(p);
+    }
+    inner.appendChild(body);
+    el.appendChild(inner);
+    return !!(imgUrl || title || desc);
+  }
+
   function applyItemToElement(el, item) {
     if (!el || !item) return false;
-    var data = item.data || item;
+    var data = getItemData(item);
+    if (!data) return false;
+
+    var cardPayload = normalizeContentCardPayload(data);
+    if (cardPayload) {
+      return renderContentCardPayload(el, cardPayload);
+    }
+
     if (typeof data === 'string') {
       el.innerHTML = data;
       return true;
     }
-    if (data && typeof data.content === 'string') {
+    if (typeof data.content === 'string') {
+      var parsedCard = parseJsonStringMaybe(data.content);
+      if (parsedCard && typeof parsedCard === 'object') {
+        var again = normalizeContentCardPayload(parsedCard);
+        if (again) return renderContentCardPayload(el, again);
+      }
       el.innerHTML = data.content;
       return true;
     }
     if (data && data.deliveryURL) {
-      el.innerHTML = '<iframe class="race-ajo-iframe" title="Personalized content" src="' + String(data.deliveryURL).replace(/"/g, '') + '"></iframe>';
+      el.innerHTML =
+        '<iframe class="race-ajo-iframe" title="Personalized content" src="' +
+        String(data.deliveryURL).replace(/"/g, '') +
+        '"></iframe>';
       return true;
     }
     return false;
@@ -225,5 +322,7 @@
   global.RaceForLifeAjo = {
     refreshFromProfile: refreshFromProfile,
     buildSurfaces: buildSurfaces,
+    /** Exposed for QA: e.g. RaceForLifeAjo.renderContentCardPayload(document.getElementById('ContentCardContainer'), { imageURL, title, fullDescription }) */
+    renderContentCardPayload: renderContentCardPayload,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
