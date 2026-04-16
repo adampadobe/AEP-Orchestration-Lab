@@ -204,15 +204,13 @@
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="home-layout.js?v=20260416a"></script>
-  <script defer src="aep-lab-nav.js?v=20260421-prisacar-dev"></script>
+  <script defer src="aep-lab-nav.js?v=20260426-indev-toggle"></script>
   <script>
     (function () {
       function syncHomeDemos() {
         try {
-          var s = (localStorage.getItem('aepGlobalSandboxName') || '').trim().toLowerCase();
-          var dev = s === 'apalmer' || s === 'kirkham' || s === 'mihais' || s === 'prisacar';
-          var demosHidden = localStorage.getItem('aepNavHideInDev_demos') === '1';
-          var show = dev && !demosHidden;
+          var api = window.AepNavInDev;
+          var show = api && typeof api.shouldShowDemosMenu === 'function' && api.shouldShowDemosMenu();
           document.querySelectorAll('.home-demos-only').forEach(function (el) {
             if (show) el.removeAttribute('hidden');
             else el.setAttribute('hidden', '');
@@ -240,7 +238,13 @@
       window.addEventListener('storage', function (e) {
         if (!e.key) return;
         if (e.key === 'aepGlobalSandboxName') syncHome();
-        if (e.key.indexOf('aepNavHideInDev_') === 0 || e.key === 'aepHideDataViewerDecisioningPlayground') syncHome();
+        if (
+          e.key.indexOf('aepNavHideInDev_') === 0 ||
+          e.key.indexOf('aepShowInDevCapabilities_') === 0 ||
+          e.key === 'aepHideDataViewerDecisioningPlayground'
+        ) {
+          syncHome();
+        }
       });
     })();
   </script>

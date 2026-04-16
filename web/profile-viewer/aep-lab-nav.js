@@ -13,21 +13,35 @@
   var LS_SANDBOX   = 'aepGlobalSandboxName';
   /** Legacy — Decisioning overview; kept in sync with navHideKey decisioningOverview in global-settings */
   var LS_HIDE_EDP  = 'aepHideDataViewerDecisioningPlayground';
-  /** Per–in-development nav item: localStorage key = LS_NAV_HIDE_PREFIX + navHideKey → "1" hides from sidebar (developers only) */
+  /** Per–in-development nav item: localStorage key = LS_NAV_HIDE_PREFIX + navHideKey → "1" hides from sidebar when in-dev is enabled */
   var LS_NAV_HIDE_PREFIX = 'aepNavHideInDev_';
+  /** Master switch per sandbox: aepShowInDevCapabilities_<slug> === '1' shows all in-development nav (subject to per-item hides). Missing key = off. */
+  var LS_SHOW_INDEV_PREFIX = 'aepShowInDevCapabilities_';
 
-  function isDeveloperSandbox() {
+  function sandboxSlugForInDev() {
     try {
       var s = String(localStorage.getItem(LS_SANDBOX) || '').trim().toLowerCase();
-      return s === 'apalmer' || s === 'kirkham' || s === 'mihais' || s === 'prisacar';
+      return s || '__default__';
+    } catch (e) {
+      return '__default__';
+    }
+  }
+
+  function showInDevCapabilitiesStorageKey() {
+    return LS_SHOW_INDEV_PREFIX + sandboxSlugForInDev();
+  }
+
+  function isInDevCapabilitiesEnabled() {
+    try {
+      return localStorage.getItem(showInDevCapabilitiesStorageKey()) === '1';
     } catch (e) {
       return false;
     }
   }
 
-  /** Demos (donate / Race for Life): developer sandboxes only, unless hidden via Global values (aepNavHideInDev_demos) */
+  /** Demos (donate / Race for Life): visible when in-dev capabilities are on for this sandbox, unless hidden via Global values */
   function isDemosNavVisible() {
-    return isDeveloperSandbox() && !isNavInDevHidden('demos');
+    return isInDevCapabilitiesEnabled() && !isNavInDevHidden('demos');
   }
 
   /** Global values / sidebar: hide when key set (developers); legacy EDP key counts for decisioningOverview */
@@ -40,10 +54,10 @@
     return false;
   }
 
-  /** Sidebar: show “(in development)” items only in whitelisted dev sandboxes, and only if not hidden per Global values */
+  /** Sidebar: show “(in development)” items when the per-sandbox master toggle is on, and not hidden per Global values */
   function shouldShowNavItem(item) {
     if (!item.inDevelopment) return true;
-    if (!isDeveloperSandbox()) return false;
+    if (!isInDevCapabilitiesEnabled()) return false;
     if (!item.navHideKey) return true;
     return !isNavInDevHidden(item.navHideKey);
   }
@@ -422,7 +436,12 @@
   try {
     window.addEventListener('storage', function (e) {
       if (!e.key) return;
-      if (e.key.indexOf(LS_NAV_HIDE_PREFIX) === 0 || e.key === LS_HIDE_EDP || e.key === LS_SANDBOX) {
+      if (
+        e.key.indexOf(LS_NAV_HIDE_PREFIX) === 0 ||
+        e.key.indexOf(LS_SHOW_INDEV_PREFIX) === 0 ||
+        e.key === LS_HIDE_EDP ||
+        e.key === LS_SANDBOX
+      ) {
         document.querySelectorAll('.dashboard-sidebar').forEach(buildSidebar);
       }
     });
@@ -432,15 +451,18 @@
     window.AepNavInDev = {
       LS_PREFIX: LS_NAV_HIDE_PREFIX,
       LEGACY_EDP: LS_HIDE_EDP,
-      isDeveloperSandbox: isDeveloperSandbox,
+      LS_SHOW_INDEV_PREFIX: LS_SHOW_INDEV_PREFIX,
+      sandboxSlugForInDev: sandboxSlugForInDev,
+      showInDevCapabilitiesStorageKey: showInDevCapabilitiesStorageKey,
+      isInDevCapabilitiesEnabled: isInDevCapabilitiesEnabled,
       isNavInDevHidden: isNavInDevHidden,
       /** True if this in-development link should appear in the sidebar / home quick paths */
       shouldShowMenuItem: function (navHideKey) {
         if (!navHideKey) return true;
-        if (!isDeveloperSandbox()) return false;
+        if (!isInDevCapabilitiesEnabled()) return false;
         return !isNavInDevHidden(navHideKey);
       },
-      /** Demos group (Donate / Race for Life): developer sandboxes only, unless hidden in Global values */
+      /** Demos group (Donate / Race for Life): when in-dev capabilities are on, unless hidden in Global values */
       shouldShowDemosMenu: function () {
         return isDemosNavVisible();
       },
