@@ -110,6 +110,14 @@
           ico:
             '<svg width="16" height="16" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M8.7875,8.915,1.4435,5.1755c-.1205-.0615-.1205-.1615,0-.223l7.344-3.74a.47149.47149,0,0,1,.425,0L16.5565,4.95c.1205.0615.1205.1615,0,.223L9.2125,8.915A.468.468,0,0,1,8.7875,8.915Z"/><path fill="currentColor" d="M16.557,12.9525l-2.3-1.1705L9,14.459,3.742,11.782l-2.3,1.1705c-.1205.0615-.1205.1615,0,.223L8.7875,16.915a.468.468,0,0,0,.425,0l7.3445-3.7395C16.677,13.114,16.677,13.014,16.557,12.9525Z"/><path fill="currentColor" d="M16.557,8.9525l-2.3-1.1705L9,10.459,3.742,7.782l-2.3,1.1705c-.1205.0615-.1205.1615,0,.223L8.7875,12.915a.468.468,0,0,0,.425,0L16.557,9.1755C16.677,9.114,16.677,9.014,16.557,8.9525Z"/></svg>',
         },
+        {
+          label: 'Agentic layer (in development)',
+          href: 'agentic-ai.html',
+          inDevelopment: true,
+          navHideKey: 'agenticLayerArchitecture',
+          ico:
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>',
+        },
       ],
     },
     {

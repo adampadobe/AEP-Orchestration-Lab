@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="aep-head-sync.js?v=20260416c"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agentic layer (in development) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="agentic-ai.css">
+</head>
+<body class="agentic-ai-page home-dashboard-concierge home-dashboard-ajo">
+  <div class="dashboard-shell dashboard-shell--ajo">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap dashboard-main-wrap--ajo">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local learning tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main dashboard-main--ajo consent-main agentic-ai-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="agenticBannerHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="agenticBannerHeading" class="dashboard-hero-title">Agentic layer (in development)</h2>
+              <p class="dashboard-hero-subtitle">
+                Animated reference diagram from the lab: components appear in build order; connectors draw as the model comes into view.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <div id="agenticBlocked" class="edp-blocked" hidden>
+          <p style="margin:0 0 0.75rem;">
+            This page is hidden from the sidebar. Turn it back on under
+            <a href="global-settings.html"><strong>Global values</strong></a>
+            (uncheck “Hide Agentic layer”).
+          </p>
+        </div>
+
+        <div class="ajo-page-inner agentic-ai-inner" id="agenticMount">
+          <section class="agentic-ai-hero" aria-labelledby="agenticAiHeading">
+            <header class="agentic-ai-hero-head">
+              <h1 id="agenticAiHeading" class="agentic-ai-title">Agentic AI architecture</h1>
+              <p class="agentic-ai-lead">
+                Use <strong>Play</strong> to step through the stack; <strong>Reset</strong> clears the canvas. Tune step delay to match your walkthrough pace.
+              </p>
+              <div class="agentic-ai-toolbar">
+                <button type="button" class="btn btn-primary" id="agenticPlayBtn">Play</button>
+                <button type="button" class="btn btn-secondary" id="agenticResetBtn">Reset</button>
+                <label class="agentic-ai-speed">
+                  <span>Step delay</span>
+                  <input type="range" id="agenticDelayMs" min="200" max="1400" step="100" value="550" aria-label="Milliseconds between steps">
+                  <span id="agenticDelayLabel" class="agentic-ai-speed-val">550 ms</span>
+                </label>
+              </div>
+            </header>
+          </section>
+
+          <div class="agentic-diagram-wrap" id="diagramWrap">
+            <svg class="agentic-arrow-layer" id="arrowLayer" aria-hidden="true"></svg>
+            <div class="agentic-board" id="diagramBoard">
+              <div class="agentic-stack">
+                <div class="agentic-node agentic-node--white agentic-node--sm" id="node-assistant" data-step="assistant">
+                  <span>AI Assistant</span>
+                </div>
+                <div class="agentic-node agentic-node--white agentic-node--wide" id="node-chat" data-step="chat">
+                  <span>Chat Service</span>
+                </div>
+                <div class="agentic-orch" id="node-orch" data-step="orchestrator">
+                  <div class="agentic-orch-head">
+                    <span class="agentic-orch-title">AGENT ORCHESTRATOR</span>
+                  </div>
+                  <div class="agentic-orch-body">
+                    <div class="agentic-row agentic-row--prompt">
+                      <div class="agentic-node agentic-node--white agentic-node--prompt" id="node-prompt" data-step="prompt">
+                        <span>Prompt</span>
+                      </div>
+                    </div>
+                    <div class="agentic-node agentic-node--green agentic-node--coord" id="node-coordinator" data-step="coordinator">
+                      <span>Coordinator</span>
+                    </div>
+                    <div class="agentic-mid-grid">
+                      <div class="agentic-node agentic-node--red agentic-node--compact" id="node-nonAgent" data-step="nonAgent">
+                        <span>Non Agent Query</span>
+                      </div>
+                      <div class="agentic-node agentic-node--purple agentic-node--compact" id="node-agentExecutor" data-step="agentExecutor">
+                        <span>Agent Executor</span>
+                      </div>
+                      <div class="agentic-plan-pair">
+                        <div class="agentic-node agentic-node--yellow agentic-node--compact" id="node-planGenerator" data-step="planGenerator">
+                          <span>Plan Generator</span>
+                        </div>
+                        <div class="agentic-node agentic-node--yellow agentic-node--compact" id="node-planExecutor" data-step="planExecutor">
+                          <span>Plan Executor</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="agentic-node agentic-node--magenta-zone" id="node-agentExecution" data-step="agentExecution">
+                      <span class="agentic-magenta-label">AGENT EXECUTION</span>
+                    </div>
+                    <div class="agentic-agents-row" id="agenticAgentsRow">
+                      <div class="agentic-node agentic-node--magenta agentic-node--agent" id="node-agent-brand" data-step="agent-brand"><span>Brand Experience Agent</span></div>
+                      <div class="agentic-node agentic-node--magenta agentic-node--agent" id="node-agent-product" data-step="agent-product"><span>Product Knowledge Agent</span></div>
+                      <div class="agentic-node agentic-node--magenta agentic-node--agent" id="node-agent-operational" data-step="agent-operational"><span>Operational Insights Agent</span></div>
+                      <div class="agentic-node agentic-node--magenta agentic-node--agent" id="node-agent-field" data-step="agent-field"><span>Field Discovery Agent</span></div>
+                      <div class="agentic-node agentic-node--magenta agentic-node--agent" id="node-agent-audience" data-step="agent-audience"><span>Audience Agent</span></div>
+                      <div class="agentic-node agentic-node--magenta agentic-node--agent" id="node-agent-journey" data-step="agent-journey"><span>Journey Agent</span></div>
+                      <div class="agentic-node agentic-node--magenta agentic-node--agent" id="node-agent-data" data-step="agent-data"><span>Data Insights Agent</span></div>
+                      <div class="agentic-node agentic-node--magenta agentic-node--agent" id="node-agent-support" data-step="agent-support"><span>Product Support Agent</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var LS_NAV = 'aepNavHideInDev_agenticLayerArchitecture';
+      function applyVisibility() {
+        var hide = false;
+        try {
+          hide = localStorage.getItem(LS_NAV) === '1';
+        } catch (e) {}
+        var blocked = document.getElementById('agenticBlocked');
+        var mount = document.getElementById('agenticMount');
+        if (blocked && mount) {
+          blocked.hidden = !hide;
+          mount.hidden = hide;
+        }
+      }
+      applyVisibility();
+      window.addEventListener('aep-nav-indev-visibility-change', function () {
+        window.location.reload();
+      });
+      window.addEventListener('storage', function (e) {
+        if (e.key === LS_NAV) window.location.reload();
+      });
+    })();
+  </script>
+  <script defer src="agentic-ai.js"></script>
+  <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260421-prisacar-dev"></script>
+</body>
+</html>
