@@ -15,6 +15,8 @@
     'aep-profile-viewer-recent-search-terms',
     'aepMenuPalette',
     'aepBgPreset',
+    'aepHomeDashboardLayoutBg',
+    'aepHomeDashboardSidebarTheme',
   ];
 
   var pushTimer = null;

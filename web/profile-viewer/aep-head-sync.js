@@ -1,7 +1,7 @@
 /*!
  * Paint-time sync for theme + sidebar + palette prefs (must match aep-theme.js / aep-lab-nav / aep-theme-prefs.js).
  * Include in <head> without defer/async so CSS sees html[data-*] before paint.
- * Keys: aepTheme | aepSidebarCollapsed | aepMenuPalette | aepBgPreset
+ * Keys: aepTheme | aepSidebarCollapsed | aepMenuPalette | aepBgPreset | aepHomeDashboardSidebarTheme
  */
 (function () {
   try {
@@ -22,5 +22,8 @@
     var bp = localStorage.getItem('aepBgPreset');
     if (bp && bp !== 'default') d.setAttribute('data-aep-bg-preset', bp);
     else d.removeAttribute('data-aep-bg-preset');
+    var st = localStorage.getItem('aepHomeDashboardSidebarTheme');
+    if (st === 'light') d.setAttribute('data-ajo-sidebar', 'light');
+    else d.setAttribute('data-ajo-sidebar', 'dark');
   } catch (e) { /* private mode / quota */ }
 })();

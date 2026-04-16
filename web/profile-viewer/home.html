@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');}catch(e){}})();</script>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,11 +14,70 @@
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
 </head>
-<body class="home-page home-dashboard-concierge">
+<body class="home-page home-dashboard-concierge home-dashboard-ajo">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
-    <div class="dashboard-main-wrap">
+    <div class="dashboard-main-wrap dashboard-main-wrap--layout">
+      <button
+        type="button"
+        class="home-ajo-layout-edit"
+        id="homeLayoutEditBtn"
+        aria-expanded="false"
+        aria-controls="homeLayoutDrawer"
+        title="Layout"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+      </button>
+      <div class="home-ajo-layout-backdrop" id="homeLayoutBackdrop" hidden aria-hidden="true"></div>
+      <aside
+        class="home-ajo-layout-drawer"
+        id="homeLayoutDrawer"
+        aria-hidden="true"
+        aria-labelledby="homeLayoutDrawerTitle"
+      >
+        <div class="home-ajo-layout-drawer-head">
+          <h2 class="home-ajo-layout-drawer-title" id="homeLayoutDrawerTitle">Layout</h2>
+          <button type="button" class="home-ajo-layout-drawer-close" id="homeLayoutDrawerClose" aria-label="Close layout panel">
+            ×
+          </button>
+        </div>
+        <p class="home-ajo-layout-hint">Choose background, sidebar, and image options.</p>
+        <div class="home-ajo-layout-section">
+          <p class="home-ajo-layout-section-title">Sidebar</p>
+          <div class="home-ajo-swatch-grid home-ajo-swatch-grid--sidebar">
+            <button type="button" class="home-ajo-swatch" data-sidebar-theme="dark"></button>
+            <button type="button" class="home-ajo-swatch" data-sidebar-theme="light"></button>
+          </div>
+          <p class="home-ajo-layout-section-title">Colors</p>
+          <div class="home-ajo-swatch-grid">
+            <button type="button" class="home-ajo-swatch home-ajo-swatch--none" data-layout-color="none">×</button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="peach"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="mint"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="lavender"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="rose"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="grad-blue"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="grad-sun"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="grad-sea"></button>
+            <button type="button" class="home-ajo-swatch" data-layout-color="grad-forest"></button>
+          </div>
+          <p class="home-ajo-layout-section-title">Images</p>
+          <div class="home-ajo-thumb-grid">
+            <button type="button" class="home-ajo-thumb" data-layout-image="beach"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="abstract-pink"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="mountains-red"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="mountains-blue"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="forest"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="galaxy"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="sand"></button>
+            <button type="button" class="home-ajo-thumb" data-layout-image="city-dusk"></button>
+          </div>
+        </div>
+      </aside>
+
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
@@ -142,6 +201,7 @@
 
   <script defer src="aep-theme.js?v=20260416b"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="home-layout.js?v=20260416a"></script>
   <script defer src="aep-lab-nav.js?v=20260419-demos-ctrl"></script>
   <script>
     (function () {

@@ -8,6 +8,28 @@
 
 /* ── Menu palettes (sidebar + nav chrome only; main content keeps global --dash-text) ── */
 
+html[data-ajo-sidebar='dark'] body.home-dashboard-concierge {
+  --dash-sidebar: #0e1628;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #f8fafc;
+  --menu-fg-muted: rgba(248, 250, 252, 0.66);
+  --menu-accent: #38bdf8;
+  --menu-nav-active-bg: rgba(248, 250, 252, 0.2);
+  --menu-nav-active-fg: #ffffff;
+  --menu-hover: rgba(248, 250, 252, 0.12);
+}
+
+html[data-ajo-sidebar='light'] body.home-dashboard-concierge {
+  --dash-sidebar: #f8f8f8;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #0f172a;
+  --menu-fg-muted: #475569;
+  --menu-accent: #1d4ed8;
+  --menu-nav-active-bg: #e2e8f0;
+  --menu-nav-active-fg: #0f172a;
+  --menu-hover: rgba(15, 23, 42, 0.08);
+}
+
 html[data-aep-menu-palette='slate'] body.home-dashboard-concierge {
   --dash-sidebar: #d2dae6;
   --menu-bg: var(--dash-sidebar);
