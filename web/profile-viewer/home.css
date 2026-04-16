@@ -1428,9 +1428,10 @@ body.home-dashboard-concierge .dashboard-topbar {
   box-sizing: border-box;
 }
 
-/* Home shell: same left/right/bottom gutter as tool pages (narrower gap beside sidebar than default .dashboard-main) */
+/* Home shell: match tool pages — same app-page gutters (symmetric horizontal + top spacing for hero banner) */
 body.home-dashboard-concierge.home-page .dashboard-main {
-  padding: 0 clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
+  padding: var(--app-page-pad-top) var(--app-page-pad-x) var(--app-page-pad-bottom);
+  max-width: var(--app-page-max-width);
 }
 
 .dashboard-hero {
@@ -1956,7 +1957,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
   }
 
   body.home-dashboard-concierge.home-page .dashboard-main {
-    padding: 0 clamp(1rem, 2.5vw, 2rem) 2.5rem clamp(0.75rem, 1.5vw, 1.25rem);
+    padding: 1rem 1rem 2rem;
   }
 
   .dashboard-hero-inner {
