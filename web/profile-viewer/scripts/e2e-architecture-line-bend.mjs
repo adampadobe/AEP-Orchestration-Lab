@@ -1,5 +1,5 @@
 /**
- * Smoke test: Lines tool — draw a connector, double-click to add bend(s).
+ * Smoke test: Lines tool — draw a connector, single-click the stroke to add bend(s).
  * Run from repo root: node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs
  * Requires: npm install -D playwright (chromium will download on first run).
  */
@@ -49,10 +49,9 @@ async function main() {
   }
 
   /**
-   * Fire dblclick with correct clientX/Y on the hit path (Playwright mouse alone was unreliable;
-   * the app reads e.clientX/Y for SVG coords in archUserLineOnConnectorDblClick).
+   * Fire click with correct clientX/Y on the hit path (matches archUserLineOnConnectorStrokeClick).
    */
-  async function dblclickOnHitPathFraction(frac) {
+  async function clickOnHitPathFraction(frac) {
     const ok = await page.evaluate((f) => {
       const list = document.querySelectorAll('#layer-user-lines .arch-user-line-hit');
       const el = list[list.length - 1];
@@ -67,7 +66,7 @@ async function main() {
       const ctm = el.getScreenCTM();
       if (!ctm) return false;
       const scr = ptSvg.matrixTransform(ctm);
-      const ev = new MouseEvent('dblclick', {
+      const ev = new MouseEvent('click', {
         bubbles: true,
         cancelable: true,
         view: window,
@@ -78,18 +77,19 @@ async function main() {
       el.dispatchEvent(ev);
       return true;
     }, frac);
-    if (!ok) throw new Error('Could not dispatch dblclick on hit path');
+    if (!ok) throw new Error('Could not dispatch click on hit path');
     await page.waitForTimeout(400);
   }
 
-  await dblclickOnHitPathFraction(0.5);
+  // Line is selected after draw — first stroke click adds a bend (skip only applies when changing selection).
+  await clickOnHitPathFraction(0.5);
 
   const afterBend1 = await page.locator('#layer-user-line-handles .arch-user-line-handle').count();
   if (afterBend1 < 3) {
-    throw new Error(`Expected >=3 handles after double-click bend insert, got ${afterBend1}`);
+    throw new Error(`Expected >=3 handles after first bend insert, got ${afterBend1}`);
   }
 
-  await dblclickOnHitPathFraction(0.28);
+  await clickOnHitPathFraction(0.28);
 
   const afterBend2 = await page.locator('#layer-user-line-handles .arch-user-line-handle').count();
   if (afterBend2 < 4) {

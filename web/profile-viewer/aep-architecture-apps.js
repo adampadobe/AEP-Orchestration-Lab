@@ -597,8 +597,12 @@
     if (liveRegion) liveRegion.textContent = 'Tile selected — drag to move, corners to resize.';
   }
 
-  /** Double-click on a selected connector stroke inserts a bend vertex on the nearest segment. */
-  function archUserLineOnConnectorDblClick(e) {
+  /**
+   * Single-click on a selected connector stroke inserts a bend (junction) on the nearest segment.
+   * The first click after changing which line is selected only selects — use a second click on the
+   * stroke to add a bend (pointerdown sets archUserLineConnectorBendSkipNextClick).
+   */
+  function archUserLineOnConnectorStrokeClick(e) {
     if (!archIsEditMode()) return;
     if (customBoxDrawMode) return;
     if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
@@ -607,17 +611,8 @@
     var hit = e.target.closest && e.target.closest('.arch-user-line-hit, .arch-user-line');
     if (!hit) return;
     var lid = hit.getAttribute('data-user-line-id');
-    if (!lid) return;
-    if (lid !== userLines.selectedId) {
-      userLines.selectedId = lid;
-      userLines.selectedHandleIdx = null;
-      archCustomBoxSelectedId = null;
-      archCustomBoxLabelActiveId = null;
-      if (archSelection) archSelection.clear();
-      archCustomBoxesRender();
-      archUserLineSyncPropsHud();
-      archSelectionRefreshDom();
-    }
+    if (!lid || lid !== userLines.selectedId) return;
+    if (archUserLineConnectorBendSkipNextClick) return;
     var ln = archUserLineFindById(lid);
     if (!ln || !archUserLineIsConnector(ln) || !archDrag.svg) return;
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
@@ -632,7 +627,6 @@
     userLines.selectedHandleIdx = ni;
     e.preventDefault();
     e.stopPropagation();
-    e.stopImmediatePropagation();
     archUserLinePersist();
     archUndoMaybePushSnapshot();
     archUserLineRender();
@@ -1898,6 +1892,12 @@
     /** Selected vertex index on the active connector (0 .. n-1), or null. */
     selectedHandleIdx: null,
   };
+
+  /**
+   * Set on pointerdown when the hit line differs from the prior selection — the following click
+   * only finalizes selection, it must not insert a bend (cleared on document click, bubble).
+   */
+  var archUserLineConnectorBendSkipNextClick = false;
 
   /** Dragging connector vertex handles (Edit mode). */
   var archUserLineEditDrag = {
@@ -4860,8 +4860,10 @@
       e.target.closest('.arch-user-line, .arch-user-line-hit');
     if (!userLines.drawMode) {
       if (lineHit) {
+        var lidPick = lineHit.getAttribute('data-user-line-id');
+        archUserLineConnectorBendSkipNextClick = !!(lidPick && userLines.selectedId !== lidPick);
         userLines.selectedHandleIdx = null;
-        userLines.selectedId = lineHit.getAttribute('data-user-line-id');
+        userLines.selectedId = lidPick;
         archCustomBoxSelectedId = null;
         archCustomBoxLabelActiveId = null;
         archCustomBoxesRender();
@@ -4874,8 +4876,10 @@
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
     if (lineHit) {
+      var lidPickDm = lineHit.getAttribute('data-user-line-id');
+      archUserLineConnectorBendSkipNextClick = !!(lidPickDm && userLines.selectedId !== lidPickDm);
       userLines.selectedHandleIdx = null;
-      userLines.selectedId = lineHit.getAttribute('data-user-line-id');
+      userLines.selectedId = lidPickDm;
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
       archCustomBoxesRender();
@@ -5241,7 +5245,17 @@
     archDrag.svg.addEventListener('pointerdown', archUserLineHandlePointerDown, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
-    archDrag.svg.addEventListener('dblclick', archUserLineOnConnectorDblClick, true);
+    archDrag.svg.addEventListener('click', archUserLineOnConnectorStrokeClick, false);
+    if (!document.documentElement.getAttribute('data-arch-line-stroke-click-reset')) {
+      document.documentElement.setAttribute('data-arch-line-stroke-click-reset', '1');
+      document.addEventListener(
+        'click',
+        function () {
+          archUserLineConnectorBendSkipNextClick = false;
+        },
+        false
+      );
+    }
     archDrag.svg.addEventListener('dblclick', archDiagramDblClickSelect, true);
     archDrag.svg.addEventListener('dblclick', archLabelDblClick, true);
     archDrag.svg.addEventListener('pointerdown', archResizePointerDown, false);
