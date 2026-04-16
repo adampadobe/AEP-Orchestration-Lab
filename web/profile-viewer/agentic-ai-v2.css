@@ -1,0 +1,826 @@
+/* Agentic AI v2 — experiment / dashboard aesthetic (light canvas, green flow, white cards) */
+
+.agentic-ai-v2-page .edp-blocked {
+  box-sizing: border-box;
+  margin: 0 0 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--aep-border, #e8e4df);
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--aep-text, #1e1e1e);
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.agentic-ai-v2-page .edp-blocked a {
+  color: var(--aep-link, #0265dc);
+}
+
+html[data-aep-theme='dark'] .agentic-ai-v2-page .edp-blocked {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--aep-text, #e6e6e6);
+}
+
+.agentic-ai-v2-page {
+  background: #f2f2f2;
+}
+
+.agentic-ai-v2-page .agentic-ai-v2-main {
+  --v2-canvas: #f2f2f2;
+  --v2-flow: #2d9d6c;
+  --v2-flow-muted: #5a9e7a;
+  --v2-forest: #1d3b2f;
+  --v2-purple: #6a41a5;
+  --v2-purple-soft: rgba(106, 65, 165, 0.1);
+  --v2-ink: #0f172a;
+  --v2-muted: #64748b;
+  --v2-card: #ffffff;
+  --v2-border: rgba(15, 23, 42, 0.08);
+  --v2-gold: #c5890e;
+  /* Mid-row banner palette (reference: ochre → blue → green → purple) */
+  --v2-mid-ochre: #b45309;
+  --v2-mid-ochre-deep: #92400e;
+  --v2-mid-blue: #1d4ed8;
+  --v2-mid-blue-deep: #1e3a8a;
+  --v2-mid-green: #15803d;
+  --v2-mid-green-deep: #14532d;
+  --v2-mid-violet: #7c3aed;
+  --v2-mid-violet-deep: #5b21b6;
+  /* Agent Orchestrator (lavender card reference) */
+  --v2-orch-lavender: #f8f7fa;
+  --v2-orch-lavender-deep: #f0eef5;
+  --v2-orch-purple: #5d4b8e;
+  /* Chat Service (dark forest + mint reference) */
+  --v2-chat-bg-a: #0a2a1a;
+  --v2-chat-bg-b: #0d3d2a;
+  --v2-chat-bg-c: #0f172a;
+  --v2-chat-mint: #a8ffc4;
+  --v2-chat-muted: #86a89a;
+  --v2-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+  --v2-shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.1);
+  /* Generous vertical rhythm so bus connectors can show clear stems (see reference T + horizontal + drops) */
+  --v2-section-vertical: 3.75rem;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.agentic-ai-v2-inner {
+  max-width: min(100%, 1720px);
+  margin: 0 auto;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  box-sizing: border-box;
+}
+
+/* Widen tool column on this page so eight agent cards fit without scrolling */
+body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
+  max-width: min(100%, 1720px);
+}
+
+.agentic-ai-v2-hero {
+  margin-bottom: 2.25rem;
+}
+
+.agentic-ai-v2-badge {
+  display: inline-block;
+  margin: 0 0 0.4rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--v2-forest);
+  background: rgba(45, 157, 108, 0.12);
+  border: 1px solid rgba(45, 157, 108, 0.25);
+  border-radius: 999px;
+}
+
+.agentic-ai-v2-title {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.4rem;
+  color: var(--v2-ink);
+}
+
+.agentic-ai-v2-title-accent {
+  color: var(--v2-flow);
+}
+
+.agentic-ai-v2-lead {
+  margin: 0 0 1.1rem;
+  max-width: 52rem;
+  color: var(--v2-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.agentic-ai-v2-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.agentic-ai-v2-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--v2-muted);
+}
+
+.agentic-ai-v2-speed-val {
+  font-variant-numeric: tabular-nums;
+  min-width: 4rem;
+}
+
+.agentic-v2-diagram-wrap {
+  position: relative;
+  border-radius: 20px;
+  padding: 2.65rem 1.5rem 3.35rem;
+  overflow: visible;
+  background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 50%, #eef6f2 100%);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: var(--v2-shadow-lg);
+}
+
+.agentic-v2-diagram-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+/* SVG is last child of .agentic-v2-board; same coordinate system as nodes */
+.agentic-v2-arrow-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+  overflow: visible;
+}
+
+.agentic-v2-board {
+  position: relative;
+  z-index: 0;
+  overflow: visible;
+}
+
+.agentic-v2-stack {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--v2-section-vertical);
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Room for vertical bidirectional connectors between Assistant and Chat */
+.agentic-v2-stack > .agentic-v2-assistant-wrap.is-visible {
+  margin-bottom: 1.2rem;
+}
+
+.agentic-v2-assistant-wrap:not(.is-visible),
+.agentic-orch:not(.is-visible),
+.agentic-v2-agent-card:not(.is-visible) {
+  display: none;
+}
+
+/* Must win over component-specific display:flex (e.g. chat, coordinator) until step runs */
+.agentic-node:not(.is-visible) {
+  display: none !important;
+}
+
+.agentic-v2-assistant-wrap.is-visible {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  animation: agentic-v2-in 0.45s ease forwards;
+}
+
+.agentic-node.is-visible,
+.agentic-orch.is-visible,
+.agentic-v2-agent-card.is-visible {
+  animation: agentic-v2-in 0.45s ease forwards;
+}
+
+.agentic-node.is-visible {
+  display: flex;
+}
+
+.agentic-orch.is-visible {
+  display: block;
+}
+
+.agentic-v2-agent-card.is-visible {
+  display: flex;
+}
+
+@keyframes agentic-v2-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.agentic-v2-assistant-card {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.65rem;
+  width: 100%;
+  max-width: 720px;
+  padding: 0.65rem 0.75rem;
+  border-radius: 16px;
+  background: var(--v2-card);
+  border: 1px solid var(--v2-border);
+  box-shadow: var(--v2-shadow);
+  border-top: 3px solid var(--v2-flow);
+  box-sizing: border-box;
+}
+
+.agentic-v2-assistant-card__title {
+  flex: 0 0 30%;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--v2-forest);
+  line-height: 1.2;
+}
+
+.agentic-v2-assistant-card__thumb {
+  flex: 1;
+  min-width: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agentic-v2-assistant-card__thumb img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  object-fit: contain;
+  object-position: center;
+}
+
+@media (max-width: 520px) {
+  .agentic-v2-assistant-card {
+    flex-direction: column;
+    max-width: 100%;
+  }
+
+  .agentic-v2-assistant-card__title {
+    flex: none;
+    padding: 0.25rem 0;
+  }
+}
+
+.agentic-v2-node.agentic-node {
+  border-radius: 14px;
+  border-width: 1px;
+  background: var(--v2-card);
+  color: var(--v2-ink);
+  box-shadow: var(--v2-shadow);
+}
+
+.agentic-node--white.agentic-v2-node {
+  border-color: var(--v2-border);
+  background: #fff;
+}
+
+/* Chat Service — horizontal dark gradient, centered copy (display:flex when .is-visible only) */
+.agentic-v2-chat.agentic-v2-node.is-visible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agentic-v2-chat.agentic-v2-node {
+  text-align: center;
+  min-height: 5.75rem;
+  padding: 0;
+  border: 1px solid rgba(20, 50, 35, 0.65);
+  border-radius: 14px;
+  background: linear-gradient(90deg, #0a2e1f 0%, #0a1f18 42%, #070f14 100%);
+  box-shadow:
+    0 4px 24px rgba(10, 42, 26, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.agentic-v2-chat__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.15rem 1.5rem 1.2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.agentic-v2-chat__title {
+  margin: 0 0 0.35rem;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.08rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f8fafc;
+  line-height: 1.25;
+}
+
+.agentic-v2-chat__sub {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: rgba(226, 245, 234, 0.88);
+}
+
+.agentic-v2-orch.agentic-orch {
+  margin-top: 0.65rem;
+  padding: 1.35rem 1.35rem 1.4rem;
+  border-radius: 15px;
+  border: 1px solid rgba(93, 75, 142, 0.12);
+  background: linear-gradient(180deg, #fdfcfe 0%, var(--v2-orch-lavender) 38%, var(--v2-orch-lavender-deep) 100%);
+  box-shadow:
+    0 8px 32px rgba(93, 75, 142, 0.1),
+    0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.agentic-v2-orch-head.agentic-orch-head {
+  border-bottom-color: rgba(93, 75, 142, 0.14);
+}
+
+.agentic-v2-orch .agentic-orch-title {
+  font-family: 'Plus Jakarta Sans', Georgia, serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--v2-orch-purple);
+}
+
+.agentic-orch-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--v2-forest);
+}
+
+.agentic-v2-orch .agentic-orch-body {
+  gap: var(--v2-section-vertical);
+}
+
+/* Prompt — blue score-style card (reference: medium blue, left label + mono, right serif metric) */
+.agentic-v2-prompt.agentic-node--prompt.agentic-v2-node.is-visible {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.agentic-v2-prompt.agentic-node--prompt.agentic-v2-node {
+  align-self: stretch;
+  width: 100%;
+  max-width: none;
+  min-height: 5rem;
+  margin: 0 0 0.35rem;
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, #1e4a8c 0%, #1a3f78 48%, #152d5c 100%);
+  box-shadow: 0 8px 28px rgba(26, 58, 120, 0.35);
+  color: #fff;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.agentic-v2-prompt__left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.agentic-v2-prompt__eyebrow {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.agentic-v2-prompt__mono {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.agentic-node--prompt.agentic-v2-node:not(.agentic-v2-prompt) {
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+}
+
+/* Coordinator — cream card, ochre border, bottom accent (typography matches Chat Service) */
+.agentic-v2-coordinator.agentic-node--coord.agentic-v2-node.is-visible {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.agentic-v2-coordinator.agentic-node--coord.agentic-v2-node {
+  width: 100%;
+  min-height: 4.25rem;
+  padding: 0.85rem 1rem 0.55rem;
+  border: 1.5px solid #b8953c;
+  border-radius: 14px;
+  background: #fdfaf3;
+  color: #1c1917;
+  box-shadow: 0 4px 18px rgba(28, 25, 23, 0.1);
+}
+
+.agentic-v2-coordinator__label {
+  display: block;
+  text-align: center;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+
+.agentic-v2-coordinator__accent {
+  height: 5px;
+  margin-top: 0.65rem;
+  margin-left: 0.35rem;
+  margin-right: 0.35rem;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #b8953c 0%, #a67c2e 100%);
+}
+
+.agentic-node--coord.agentic-v2-node:not(.agentic-v2-coordinator) {
+  border-color: rgba(45, 157, 108, 0.35);
+  background: rgba(232, 245, 239, 0.85);
+}
+
+/* Default tints (overridden in mid grid by solid banner styles) */
+.agentic-node--red.agentic-v2-node {
+  border-color: rgba(225, 29, 72, 0.35);
+  background: rgba(255, 241, 242, 0.8);
+}
+
+.agentic-node--purple.agentic-v2-node {
+  border-color: rgba(124, 58, 237, 0.3);
+  background: rgba(245, 243, 255, 0.9);
+}
+
+.agentic-node--yellow.agentic-v2-node {
+  border-color: rgba(217, 119, 6, 0.35);
+  color: #92400e;
+  background: rgba(254, 252, 232, 0.95);
+}
+
+/* Mid row: wide cards, gutters for arrows, fully rounded corners */
+.agentic-v2-mid-grid .agentic-v2-mid-cell {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border-width: 1px;
+  border-style: solid;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.2);
+}
+
+.agentic-v2-mid-grid .agentic-v2-mid-cell > span {
+  position: relative;
+  z-index: 1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.agentic-v2-mid-grid .agentic-v2-mid-cell:nth-child(1) {
+  background: linear-gradient(155deg, var(--v2-mid-ochre) 0%, var(--v2-mid-ochre-deep) 100%);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.agentic-v2-mid-grid .agentic-v2-mid-cell:nth-child(2) {
+  background: linear-gradient(155deg, var(--v2-mid-blue) 0%, var(--v2-mid-blue-deep) 100%);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.agentic-v2-mid-grid .agentic-v2-mid-cell:nth-child(3) {
+  background: linear-gradient(155deg, var(--v2-mid-green) 0%, var(--v2-mid-green-deep) 100%);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.agentic-v2-mid-grid .agentic-v2-mid-cell:nth-child(4) {
+  background: linear-gradient(155deg, var(--v2-mid-violet) 0%, var(--v2-mid-violet-deep) 100%);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.agentic-v2-zone.agentic-node--magenta-zone {
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #5b21b6 0%, #312e81 42%, #1e293b 100%);
+  box-shadow: 0 8px 28px rgba(49, 46, 129, 0.38);
+  margin-bottom: 0.35rem;
+}
+
+.agentic-magenta-label {
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: none;
+}
+
+/* Fan-out stems use the shared orch-body gap; avoid stacking extra margin on top */
+.agentic-v2-zone + .agentic-v2-agents-row.agentic-agents-row {
+  margin-top: 0;
+}
+
+/* Eight execution agents: equal columns, no horizontal scrollbar */
+.agentic-v2-agents-row.agentic-agents-row {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.55rem;
+  align-items: stretch;
+  overflow: visible;
+  padding: 1.1rem 0 0.6rem;
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
+  .agentic-v2-agents-row.agentic-agents-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .agentic-v2-agents-row.agentic-agents-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.agentic-v2-agent-card {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.45rem;
+  padding: 0.5rem 0.45rem;
+  border-radius: 14px;
+  background: var(--v2-card);
+  border: 1px solid var(--v2-border);
+  border-top: 3px solid var(--v2-flow);
+  box-shadow: var(--v2-shadow);
+}
+
+.agentic-v2-agent-card__label {
+  flex: 0 0 46%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--v2-forest);
+  padding: 0.15rem;
+}
+
+.agentic-v2-agent-card__thumb {
+  flex: 1;
+  min-width: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agentic-v2-agent-card__thumb img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 92px;
+  object-fit: contain;
+  object-position: center;
+}
+
+.agentic-v2-agent-card__thumb--empty {
+  min-height: 72px;
+  background: linear-gradient(145deg, #f8fafc, #f1f5f9);
+  border-style: dashed;
+  border-color: #cbd5e1;
+}
+
+/* layout: shared with v1 */
+.agentic-node {
+  position: relative;
+  box-sizing: border-box;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.45rem 0.6rem;
+  line-height: 1.25;
+  align-items: center;
+  justify-content: center;
+}
+
+.agentic-node--sm {
+  align-self: center;
+  max-width: 200px;
+  width: 100%;
+}
+
+.agentic-node--wide {
+  width: 100%;
+}
+
+.agentic-node--prompt {
+  align-self: flex-start;
+  max-width: 160px;
+  margin-bottom: 0.65rem;
+}
+
+.agentic-v2-orch .agentic-row--prompt {
+  width: 100%;
+}
+
+.agentic-v2-orch .agentic-node--prompt.agentic-v2-node:not(.agentic-v2-prompt) {
+  margin-bottom: 1rem;
+}
+
+.agentic-orch-head {
+  text-align: center;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dashed rgba(94, 53, 177, 0.25);
+}
+
+.agentic-orch-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.agentic-row--prompt {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.agentic-node--coord {
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+}
+
+.agentic-mid-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 0.65rem;
+  align-items: stretch;
+}
+
+@media (min-width: 720px) {
+  .agentic-mid-grid {
+    grid-template-columns: 1fr 1fr 1.2fr;
+  }
+}
+
+/* v2: wider cards + generous gutters for connector arrows */
+.agentic-v2-mid-grid.agentic-mid-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 212px));
+  justify-content: center;
+  align-items: stretch;
+  column-gap: 2.35rem;
+  row-gap: 1.35rem;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .agentic-v2-mid-grid.agentic-mid-grid {
+    grid-template-columns: repeat(2, minmax(0, 220px));
+    column-gap: 2rem;
+    row-gap: 1.15rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .agentic-v2-mid-grid.agentic-mid-grid {
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 1rem;
+  }
+}
+
+.agentic-v2-mid-cell.agentic-node--compact {
+  min-height: 5.1rem;
+  width: 100%;
+  max-width: 212px;
+  box-sizing: border-box;
+  padding: 0.65rem 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .agentic-v2-mid-cell.agentic-node--compact {
+    max-width: 220px;
+  }
+}
+
+@media (max-width: 520px) {
+  .agentic-v2-mid-cell.agentic-node--compact {
+    max-width: none;
+  }
+}
+
+.agentic-plan-pair {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: stretch;
+}
+
+@media (min-width: 720px) {
+  .agentic-plan-pair {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+}
+
+.agentic-node--compact {
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agentic-node--magenta-zone {
+  min-height: 3.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.agentic-agents-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.agentic-node--agent {
+  flex: 1 1 140px;
+  min-width: min(140px, 100%);
+  font-size: 0.68rem;
+  padding: 0.35rem 0.4rem;
+}
+
+.agentic-v2-arrow-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.98;
+}

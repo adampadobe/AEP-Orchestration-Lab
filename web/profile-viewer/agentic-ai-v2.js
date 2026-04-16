@@ -1,0 +1,480 @@
+/**
+ * Agentic AI v2 — same animation flow as v1, unique DOM ids.
+ * Connectors stay in gutters: endpoints inset from box edges; bidirectional pairs use parallel X offsets.
+ */
+(function () {
+  'use strict';
+
+  try {
+    if (localStorage.getItem('aepNavHideInDev_agenticLayerArchitectureV2') === '1') return;
+  } catch (e) {}
+
+  var NS = 'http://www.w3.org/2000/svg';
+  /** Coordinate system for nodes + SVG (must match where #arrowLayerV2 lives) */
+  var coordRoot = document.getElementById('diagramBoardV2');
+  var svg = document.getElementById('arrowLayerV2');
+  var playBtn = document.getElementById('agenticV2PlayBtn');
+  var resetBtn = document.getElementById('agenticV2ResetBtn');
+  var delayInput = document.getElementById('agenticV2DelayMs');
+  var delayLabel = document.getElementById('agenticV2DelayLabel');
+
+  /** Inset from rect edges so strokes and markers sit in the gap, not on card faces */
+  var EDGE_PAD = 15;
+  /** Horizontal separation between two parallel bidirectional paths (left=down, right=up) */
+  var BIDIR_OFFSET = 14;
+  /** Offset so Non Agent return (orange) does not paint on top of the green coord→Non Agent down stroke */
+  var RETURN_OFFSET_X = 12;
+
+  if (!coordRoot || !svg) return;
+
+  /**
+   * Play / step reveal order (do not reorder without updating drawArrowsForStep indices).
+   * 1 Agent Orchestrator → 2 Chat Service → 3 AI Assistant → 4 Prompt → 5 Coordinator
+   * → 6 Non Agent Query → 7 Agent Executor → 8 Plan Generator → 9 Plan Executor
+   * → 10 Agent Execution → 11 Brand Experience Agent → 12 Product Knowledge Agent
+   * → 13 Operational Insights Agent → 14 Field Discovery Agent → 15 Audience Agent
+   * → 16 Journey Agent → 17 Data Insights Agent → 18 Product Support Agent
+   *
+   * HTML stack is Assistant → Chat → Orchestrator (top to bottom) so vertical arrows match geometry.
+   */
+  var STEP_NODE_IDS = [
+    'node-orch-v2',
+    'node-chat-v2',
+    'node-assistant-v2',
+    'node-prompt-v2',
+    'node-coordinator-v2',
+    'node-nonAgent-v2',
+    'node-agentExecutor-v2',
+    'node-planGenerator-v2',
+    'node-planExecutor-v2',
+    'node-agentExecution-v2',
+    'node-agent-brand-v2',
+    'node-agent-product-v2',
+    'node-agent-operational-v2',
+    'node-agent-field-v2',
+    'node-agent-audience-v2',
+    'node-agent-journey-v2',
+    'node-agent-data-v2',
+    'node-agent-support-v2'
+  ];
+
+  var timerId = null;
+  var stepIndex = 0;
+
+  function getDelayMs() {
+    return delayInput ? parseInt(delayInput.value, 10) || 550 : 550;
+  }
+
+  if (delayInput && delayLabel) {
+    delayInput.addEventListener('input', function () {
+      delayLabel.textContent = delayInput.value + ' ms';
+    });
+  }
+
+  function relRect(el) {
+    var e = el.getBoundingClientRect();
+    var c = coordRoot.getBoundingClientRect();
+    return {
+      left: e.left - c.left,
+      top: e.top - c.top,
+      right: e.right - c.left,
+      bottom: e.bottom - c.top,
+      width: e.width,
+      height: e.height,
+      cx: e.left - c.left + e.width / 2,
+      cy: e.top - c.top + e.height / 2
+    };
+  }
+
+  /** Shared X in the horizontal overlap of two rects (fallback: average cx) */
+  function anchorXBetweenRects(a, b) {
+    var lo = Math.max(a.left, b.left);
+    var hi = Math.min(a.right, b.right);
+    if (hi > lo + 4) return (lo + hi) / 2;
+    return (a.cx + b.cx) / 2;
+  }
+
+  /**
+   * Straight vertical bidirectional pair (no horizontal jog).
+   * Left stroke: down (toward lower box). Right stroke: up (toward upper box).
+   */
+  /** Order by screen position so callers are not sensitive to DOM order. */
+  function verticalBidirStraight(rectA, rectB, xCenter) {
+    var upper = rectA.top <= rectB.top ? rectA : rectB;
+    var lower = rectA.top <= rectB.top ? rectB : rectA;
+    var half = BIDIR_OFFSET / 2;
+    var xL = xCenter - half;
+    var xR = xCenter + half;
+    var y1 = upper.bottom + EDGE_PAD;
+    var y2 = lower.top - EDGE_PAD;
+    if (!(y2 > y1 + 2)) return null;
+    return {
+      down: 'M ' + xL + ' ' + y1 + ' L ' + xL + ' ' + y2,
+      up: 'M ' + xR + ' ' + y2 + ' L ' + xR + ' ' + y1
+    };
+  }
+
+  /** Chat ↔ Prompt: vertical lines hugging the left side of the Prompt box */
+  function verticalBidirChatPromptLeft(chatRect, promptRect) {
+    var upper = chatRect.top <= promptRect.top ? chatRect : promptRect;
+    var lower = chatRect.top <= promptRect.top ? promptRect : chatRect;
+    var xL = promptRect.left + 10;
+    var xR = xL + BIDIR_OFFSET;
+    var y1 = upper.bottom + EDGE_PAD;
+    var y2 = lower.top - EDGE_PAD;
+    if (!(y2 > y1 + 2)) return null;
+    return {
+      down: 'M ' + xL + ' ' + y1 + ' L ' + xL + ' ' + y2,
+      up: 'M ' + xR + ' ' + y2 + ' L ' + xR + ' ' + y1
+    };
+  }
+
+  /** Plan Generator → Plan Executor: single horizontal segment (reference sketch). */
+  function leftToRight(fromEl, toEl) {
+    var a = relRect(fromEl);
+    var b = relRect(toEl);
+    var x1 = a.right + EDGE_PAD;
+    var x2 = b.left - EDGE_PAD;
+    var y = (a.cy + b.cy) / 2;
+    return 'M ' + x1 + ' ' + y + ' L ' + x2 + ' ' + y;
+  }
+
+  function zoneToAgent(zoneEl, agentEl) {
+    var z = relRect(zoneEl);
+    var a = relRect(agentEl);
+    var x1 = z.cx;
+    var y1 = z.bottom + EDGE_PAD;
+    var x2 = a.cx;
+    var y2 = a.top - EDGE_PAD;
+    if (Math.abs(x1 - x2) < 3) {
+      return 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
+    }
+    var midY = (y1 + y2) / 2;
+    return 'M ' + x1 + ' ' + y1 + ' L ' + x1 + ' ' + midY + ' L ' + x2 + ' ' + midY + ' L ' + x2 + ' ' + y2;
+  }
+
+  /** Single downward vertical, centered between Prompt and Coordinator */
+  function promptVerticalDownCentered(promptEl, coordEl) {
+    var p = relRect(promptEl);
+    var k = relRect(coordEl);
+    var x = (p.cx + k.cx) / 2;
+    var y1 = p.bottom + EDGE_PAD;
+    var y2 = k.top - EDGE_PAD;
+    if (y2 <= y1 + 2) return null;
+    return 'M ' + x + ' ' + y1 + ' L ' + x + ' ' + y2;
+  }
+
+  /**
+   * Coordinator → each mid cell: one vertical down per column (reference: four separate drops).
+   */
+  function coordinatorToMidRowVerticals(coordEl, nonEl, aexEl, planGEl, planEEl) {
+    var c = relRect(coordEl);
+    var cells = [nonEl, aexEl, planGEl, planEEl];
+    var y0 = c.bottom + EDGE_PAD;
+    var paths = [];
+    for (var i = 0; i < cells.length; i++) {
+      var r = relRect(cells[i]);
+      var y1 = r.top - EDGE_PAD;
+      if (y1 > y0 + 2) {
+        paths.push('M ' + r.cx + ' ' + y0 + ' L ' + r.cx + ' ' + y1);
+      }
+    }
+    return paths;
+  }
+
+  /**
+   * Agent Executor & Plan Executor → Agent Execution: one vertical down each (reference sketch).
+   */
+  function planExecutorsToZoneVerticals(aexEl, planEEl, zoneEl) {
+    var z = relRect(zoneEl);
+    var yZ = z.top - EDGE_PAD;
+    var paths = [];
+    [aexEl, planEEl].forEach(function (el) {
+      var r = relRect(el);
+      var y0 = r.bottom + EDGE_PAD;
+      if (yZ > y0 + 2) {
+        paths.push('M ' + r.cx + ' ' + y0 + ' L ' + r.cx + ' ' + yZ);
+      }
+    });
+    return paths;
+  }
+
+  /** Non Agent Query → Coordinator: straight up, offset so it does not cover the green coord→Non Agent down stroke */
+  function nonAgentReturnUp(nonEl, coordEl) {
+    var lo = relRect(nonEl);
+    var co = relRect(coordEl);
+    var x = lo.cx + RETURN_OFFSET_X;
+    var yLo = lo.top - EDGE_PAD;
+    var yHi = co.bottom + EDGE_PAD;
+    if (!(yLo > yHi + 2)) return null;
+    return 'M ' + x + ' ' + yLo + ' L ' + x + ' ' + yHi;
+  }
+
+  function ensureDefs() {
+    if (svg.querySelector('defs')) return;
+    var defs = document.createElementNS(NS, 'defs');
+    var mk = document.createElementNS(NS, 'marker');
+    mk.setAttribute('id', 'agentic-arr-v2-dark');
+    mk.setAttribute('markerWidth', '5');
+    mk.setAttribute('markerHeight', '5');
+    mk.setAttribute('refX', '4.5');
+    mk.setAttribute('refY', '2.5');
+    mk.setAttribute('orient', 'auto');
+    var poly = document.createElementNS(NS, 'path');
+    poly.setAttribute('d', 'M0,0 L5,2.5 L0,5 z');
+    poly.setAttribute('fill', '#0f172a');
+    mk.appendChild(poly);
+    defs.appendChild(mk);
+    svg.insertBefore(defs, svg.firstChild);
+  }
+
+  var PATH_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+  var PAIR_STAGGER_MS = 240;
+
+  function addPath(d, color, durationMs, delayMs, markerId, omitMarkerEnd, extraClass) {
+    delayMs = delayMs || 0;
+    markerId = markerId || 'agentic-arr-v2-dark';
+    function run() {
+      ensureDefs();
+      var path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', color);
+      path.setAttribute('stroke-width', '2.35');
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-linejoin', 'round');
+      path.setAttribute(
+        'class',
+        extraClass ? 'agentic-v2-arrow-path ' + extraClass : 'agentic-v2-arrow-path'
+      );
+      if (!omitMarkerEnd) {
+        path.setAttribute('marker-end', 'url(#' + markerId + ')');
+      }
+      svg.appendChild(path);
+      try {
+        var len = path.getTotalLength();
+        path.style.strokeDasharray = String(len);
+        path.style.strokeDashoffset = String(len);
+        path.getBoundingClientRect();
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            path.style.transition =
+              'stroke-dashoffset ' + (durationMs || 520) + 'ms ' + PATH_EASE;
+            path.style.strokeDashoffset = '0';
+          });
+        });
+      } catch (e) {
+        path.style.strokeDasharray = 'none';
+      }
+    }
+    if (delayMs > 0) {
+      setTimeout(run, delayMs);
+    } else {
+      run();
+    }
+  }
+
+  function clearArrows() {
+    var paths = svg.querySelectorAll('path.agentic-v2-arrow-path');
+    for (var i = 0; i < paths.length; i++) {
+      paths[i].parentNode.removeChild(paths[i]);
+    }
+  }
+
+  function removeAssistantChatArrows() {
+    var paths = svg.querySelectorAll('path.agentic-v2-arrow-assistant-chat');
+    for (var i = 0; i < paths.length; i++) {
+      paths[i].parentNode.removeChild(paths[i]);
+    }
+  }
+
+  /**
+   * Chat moves when the orchestrator body grows; refresh this pair without redrawing everything.
+   */
+  function redrawAssistantChatArrows(animated) {
+    var assistant = $('node-assistant-v2');
+    var chat = $('node-chat-v2');
+    if (!assistant || !chat || !assistant.classList.contains('is-visible') || !chat.classList.contains('is-visible')) {
+      return;
+    }
+    var flow = '#2d9d6c';
+    var flowAlt = '#3d9d72';
+    var dur = animated ? 560 : 0;
+    var stagger = animated ? PAIR_STAGGER_MS : 0;
+    removeAssistantChatArrows();
+    syncSvgSize();
+    var ra = relRect(assistant);
+    var rc = relRect(chat);
+    var ax = anchorXBetweenRects(ra, rc);
+    var pairA = verticalBidirStraight(ra, rc, ax);
+    if (pairA) {
+      addPath(pairA.down, flow, dur, 0, 'agentic-arr-v2-dark', false, 'agentic-v2-arrow-assistant-chat');
+      addPath(pairA.up, flowAlt, dur, stagger, 'agentic-arr-v2-dark', false, 'agentic-v2-arrow-assistant-chat');
+    }
+  }
+
+  function syncSvgSize() {
+    var r = coordRoot.getBoundingClientRect();
+    var w = Math.max(1, Math.ceil(r.width));
+    var h = Math.max(1, Math.ceil(r.height));
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+  }
+
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+  function drawArrowsForStep(justFinishedIndex) {
+    syncSvgSize();
+    var assistant = $('node-assistant-v2');
+    var chat = $('node-chat-v2');
+    var prompt = $('node-prompt-v2');
+    var coord = $('node-coordinator-v2');
+    var nonA = $('node-nonAgent-v2');
+    var aex = $('node-agentExecutor-v2');
+    var planG = $('node-planGenerator-v2');
+    var planE = $('node-planExecutor-v2');
+    var zone = $('node-agentExecution-v2');
+
+    var flow = '#2d9d6c';
+    var flowAlt = '#3d9d72';
+    /* Ochre / violet accents align with mid-row banner palette */
+    var accentReturn = '#ea580c';
+    var planLink = '#ca8a04';
+    var zoneAgentColor = '#7c3aed';
+
+    var ra = assistant ? relRect(assistant) : null;
+    var rc = chat ? relRect(chat) : null;
+    var rp = prompt ? relRect(prompt) : null;
+
+    /* AI Assistant ↔ CHAT SERVICE: parallel verticals, green stems + dark heads (image ref) */
+    if (justFinishedIndex === 2 && assistant && chat) {
+      var ax = anchorXBetweenRects(ra, rc);
+      var pairA = verticalBidirStraight(ra, rc, ax);
+      if (pairA) {
+        addPath(pairA.down, flow, 560, 0, 'agentic-arr-v2-dark', false, 'agentic-v2-arrow-assistant-chat');
+        addPath(pairA.up, flowAlt, 560, PAIR_STAGGER_MS, 'agentic-arr-v2-dark', false, 'agentic-v2-arrow-assistant-chat');
+      }
+    }
+    /* CHAT SERVICE ↔ Prompt: straight verticals along left side of Prompt */
+    if (justFinishedIndex === 3 && chat && prompt) {
+      var pairC = verticalBidirChatPromptLeft(rc, rp);
+      if (pairC) {
+        addPath(pairC.down, flow, 580, 0);
+        addPath(pairC.up, flowAlt, 580, PAIR_STAGGER_MS);
+      }
+    }
+    /* Prompt → Coordinator: single downward arrow, centered */
+    if (justFinishedIndex === 4 && prompt && coord) {
+      var pr = promptVerticalDownCentered(prompt, coord);
+      if (pr) addPath(pr, flow, 580, 0);
+    }
+    /* Non Agent Query → Coordinator: single upward return (offset from green down stroke) */
+    if (justFinishedIndex === 5 && coord && nonA) {
+      var retUp = nonAgentReturnUp(nonA, coord);
+      if (retUp) addPath(retUp, accentReturn, 500, 0);
+    }
+    /* Coordinator → four mid cells: one vertical per column; then Plan Generator → Plan Executor */
+    if (justFinishedIndex === 8 && coord && nonA && aex && planG && planE) {
+      var downs = coordinatorToMidRowVerticals(coord, nonA, aex, planG, planE);
+      for (var bi = 0; bi < downs.length; bi++) {
+        addPath(downs[bi], flow, 480, bi * 75);
+      }
+      addPath(leftToRight(planG, planE), planLink, 450, downs.length * 75 + 60);
+    }
+    /* Agent Executor & Plan Executor → Agent Execution: one vertical each */
+    if (justFinishedIndex === 9 && zone && aex && planE) {
+      var dz = planExecutorsToZoneVerticals(aex, planE, zone);
+      for (var zi = 0; zi < dz.length; zi++) {
+        addPath(dz[zi], flow, 520, zi * 80);
+      }
+    }
+    if (justFinishedIndex >= 10 && zone) {
+      var agentIds = [
+        'node-agent-brand-v2',
+        'node-agent-product-v2',
+        'node-agent-operational-v2',
+        'node-agent-field-v2',
+        'node-agent-audience-v2',
+        'node-agent-journey-v2',
+        'node-agent-data-v2',
+        'node-agent-support-v2'
+      ];
+      var ai = justFinishedIndex - 10;
+      if (ai >= 0 && ai < agentIds.length) {
+        var ag = $(agentIds[ai]);
+        if (ag) addPath(zoneToAgent(zone, ag), zoneAgentColor, 440);
+      }
+    }
+  }
+
+  function setAllNodesVisible(flag) {
+    STEP_NODE_IDS.forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      if (flag) el.classList.add('is-visible');
+      else el.classList.remove('is-visible');
+    });
+  }
+
+  function resetDiagram() {
+    if (timerId) {
+      clearTimeout(timerId);
+      timerId = null;
+    }
+    stepIndex = 0;
+    setAllNodesVisible(false);
+    clearArrows();
+    if (playBtn) playBtn.disabled = false;
+  }
+
+  function runStep() {
+    if (stepIndex >= STEP_NODE_IDS.length) {
+      timerId = null;
+      if (playBtn) playBtn.disabled = false;
+      return;
+    }
+    var id = STEP_NODE_IDS[stepIndex];
+    var el = $(id);
+    if (el) el.classList.add('is-visible');
+
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        drawArrowsForStep(stepIndex);
+        /* After the orchestrator gains Prompt / Coordinator / …, Chat shifts: fix this pair only. */
+        if (stepIndex > 2) {
+          redrawAssistantChatArrows(false);
+        }
+        stepIndex += 1;
+        timerId = setTimeout(runStep, getDelayMs());
+      });
+    });
+  }
+
+  function play() {
+    resetDiagram();
+    if (playBtn) playBtn.disabled = true;
+    stepIndex = 0;
+    runStep();
+  }
+
+  if (playBtn) playBtn.addEventListener('click', play);
+  if (resetBtn) resetBtn.addEventListener('click', resetDiagram);
+
+  window.addEventListener(
+    'resize',
+    function () {
+      if (stepIndex <= 0) return;
+      var max = stepIndex > 0 ? stepIndex - 1 : -1;
+      clearArrows();
+      for (var i = 0; i <= max; i++) {
+        drawArrowsForStep(i);
+      }
+    },
+    { passive: true }
+  );
+
+  syncSvgSize();
+})();
