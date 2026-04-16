@@ -188,12 +188,19 @@ async function trimEvents(db, sandboxKey) {
   }
 }
 
+function publicOrigin(req) {
+  const xfHost = req.get('x-forwarded-host');
+  const host = (xfHost && String(xfHost).split(',')[0].trim()) || req.get('host') || 'localhost';
+  const xfProto = req.get('x-forwarded-proto');
+  const proto =
+    (xfProto && String(xfProto).split(',')[0].trim()) || (req.secure ? 'https' : 'http');
+  return `${proto}://${host}`;
+}
+
 async function handleConfig(req, res, db) {
   const sandboxKey = sanitizeSandboxKey(req.query.sandbox);
   const cfg = await ensureConfig(db, sandboxKey);
-  const host = req.get('host') || 'localhost';
-  const proto = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
-  const base = `${proto}://${host}`;
+  const base = publicOrigin(req);
   const webhookUrl = `${base}/api/webhooks/r/${encodeURIComponent(sandboxKey)}/${cfg.receiveToken}`;
 
   res.status(200).json({
