@@ -536,14 +536,6 @@
       min-width: 0;
     }
 
-    .workflow-drawer-scroll .auto-webhook-delay input[type="number"] {
-      width: 3.5rem;
-      margin-bottom: 0;
-      padding: 0.35rem 0.45rem;
-      text-align: center;
-      font-variant-numeric: tabular-nums;
-    }
-
     .workflow-drawer[open] .workflow-drawer-scroll {
       height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
       max-height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
@@ -594,19 +586,6 @@
     }
     label.chk { display: flex; align-items: flex-start; gap: 0.5rem; cursor: pointer; font-size: 0.8125rem; color: var(--text); margin-top: 0.5rem; }
     label.chk input { width: auto; margin: 0.15rem 0 0 0; accent-color: var(--accent); }
-    .auto-webhook-row {
-      display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem;
-      margin-top: 0.5rem; font-size: 0.8125rem; color: var(--text);
-    }
-    .auto-webhook-row label.chk { margin-top: 0; cursor: pointer; }
-    .auto-webhook-delay {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-    }
-    .auto-webhook-delay input[type="number"] {
-      width: 3.5rem; margin-bottom: 0; padding: 0.35rem 0.45rem; text-align: center;
-      font-variant-numeric: tabular-nums;
-    }
-    .auto-webhook-delay .auto-webhook-delay-unit { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
 
     .cd-banner-editor.panel { margin-top: 0.75rem; margin-bottom: 0; }
     .cd-banner-editor > summary { cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text); margin-bottom: 0.65rem; list-style: none; }
@@ -626,7 +605,16 @@
     .cd-color-row input[type='text'] { flex: 1; min-width: 0; width: auto; margin-bottom: 0; padding: 0.35rem 0.5rem; font-family: ui-monospace, monospace; font-size: 0.75rem; box-sizing: border-box; }
     .cd-editor-actions { margin-top: 0.65rem; }
     .cd-editor-block--full { grid-column: 1 / -1; }
+    .cd-edge-settings { margin-top: 0.75rem; padding: 0.75rem 0 0; border-top: 1px solid var(--border); }
+    .cd-edge-settings > summary { cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text); margin-bottom: 0.65rem; list-style: none; }
+    .cd-edge-settings > summary::-webkit-details-marker { display: none; }
+    .cd-edge-settings .cd-edge-field { margin-bottom: 0.65rem; }
+    .cd-edge-settings label.chk { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.5rem; }
+    .cd-edge-settings label.chk input { width: auto; margin: 3px 0 0 0; flex-shrink: 0; }
+    .cd-edge-settings .status.err { font-size: 0.8rem; }
   </style>
+  <script>window.dataLayer = window.dataLayer || [];</script>
+  <script src="https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js" async></script>
 </head>
 <body class="home-dashboard-concierge cd-page">
   <div class="dashboard-shell">
@@ -645,7 +633,7 @@
           <section class="hero-stage" aria-label="Content decision preview (Edge lab)">
         <div class="cd-hero-layout">
           <aside class="cd-hero-rail" aria-label="Quick run">
-            <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Uses email, sandbox, Cloud Run URL, wait (seconds), and banner layout from Workflow &amp; controls">
+            <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Fetch UPS profile, call Edge via Web SDK (Launch), render banner from decisions/propositions">
               Run content decision
             </button>
             <p id="cdPipelineStatus" class="status" aria-live="polite"></p>
@@ -653,7 +641,7 @@
           <div class="cd-hero-main">
             <div id="cdHeroPlaceholder" class="hero-placeholder">
               <strong>No preview yet.</strong><br>
-              Use <strong>Run content decision</strong> (left). Move the pointer to the <strong>bottom edge</strong> to reveal <strong>Workflow &amp; controls</strong>, then click to expand.
+              Use <strong>Run content decision</strong> (left) after configuring <strong>Workflow &amp; controls</strong> (Edge + email). Personalization comes from <strong>Adobe Launch / Web SDK</strong> on this origin — not the streaming inlet.
             </div>
             <div id="journeyContentDecisionBanner" class="cd-banner-wrap" hidden aria-label="Content decision banner"></div>
           </div>
@@ -672,7 +660,8 @@
         </summary>
         <div class="workflow-drawer-scroll">
           <div class="panel">
-            <h2>Profile &amp; <code>get.decisions</code></h2>
+            <h2>Profile &amp; Edge (Web SDK)</h2>
+            <p class="hint">Loads <strong>Adobe Launch</strong> (same embed as <a href="/index.html" target="_blank" rel="noopener">Experience Decisioning lab</a>). UPS must succeed; then <code>alloy('sendEvent')</code> uses the profile <code>identityMap</code> and <strong>decision scopes</strong> for this host. No Cloud Run / streaming inlet for the primary flow.</p>
             <div class="cd-sandbox-row">
               <label for="sandboxSelect">Sandbox</label>
               <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
@@ -681,31 +670,53 @@
             </div>
             <label for="cdLiveEmail">Email (identity value)</label>
             <input id="cdLiveEmail" type="email" autocomplete="email" placeholder="adamp.adobedemo+010426-4@gmail.com">
-            <p class="hint">Profile UPS calls use <code>x-sandbox-name</code> from your selection (via <code>/api/aep</code>). Empty = server default (<code>ADOBE_SANDBOX_NAME</code>). Identity is always <strong>Email</strong> namespace for fetch and for the <code>get.decisions</code> event payload.</p>
-            <label for="firebaseEventUrl">Experience event endpoint (Cloud Run)</label>
-            <input id="firebaseEventUrl" type="url" autocomplete="off">
+            <p class="hint">Profile calls use <code>x-sandbox-name</code> (via <code>/api/aep</code>). Edge <code>sendEvent</code> aligns namespaces with UPS (<code>ecid</code> → <code>ECID</code>) plus this email.</p>
+
+            <details class="cd-edge-settings" id="cdEdgeSettings" open>
+              <summary>Edge &amp; Launch</summary>
+              <div class="cd-edge-field">
+                <label for="edgeConfigId">Datastream ID (reference — match Launch Web SDK extension)</label>
+                <input id="edgeConfigId" type="text" placeholder="ef0ee758-260c-4596-8a97-d8474d11c0ca" value="ef0ee758-260c-4596-8a97-d8474d11c0ca" autocomplete="off">
+              </div>
+              <label class="chk"><input type="checkbox" id="edgeForceConfigure"> <span>Also call <code>alloy('configure')</code> with the datastream above (usually <strong>off</strong> — Launch configures Alloy)</span></label>
+              <div class="cd-edge-field">
+                <label for="decisionScopes">Decision scopes (optional)</label>
+                <input id="decisionScopes" type="text" placeholder="Empty = defaults for Profile Viewer lab URL" autocomplete="off">
+              </div>
+              <label class="chk"><input type="checkbox" id="localChannelPath" checked> <span><strong>Profile Viewer lab URL</strong> — default scopes <code>web://&lt;host&gt;/profile-viewer/content-decision-live-edge#…</code> and page URL for Edge</span></label>
+              <label class="chk"><input type="checkbox" id="spoofDsnWebContext"> <span><strong>Spoof DSN</strong> web context (<code>apalmer-I018</code>)</span></label>
+              <div class="cd-edge-field">
+                <label for="spoofDsnPageUrl">Spoof page URL</label>
+                <input id="spoofDsnPageUrl" type="url" value="https://dsn.adobe.com/web/apalmer-I018/home" autocomplete="off">
+              </div>
+              <p class="status err" id="spoofUrlMismatchHint" hidden style="margin:0 0 0.5rem;font-size:0.8rem;"></p>
+              <label class="chk"><input type="checkbox" id="directCallAfterSendEvent" checked> <span>After <code>sendEvent</code>, fire Launch Direct Call with <code>decisions</code> / <code>propositions</code></span></label>
+              <div class="cd-edge-field">
+                <label for="directCallRuleIdEdgeDecisioning">Direct Call rule id (after Edge)</label>
+                <input id="directCallRuleIdEdgeDecisioning" type="text" value="experience-decisioning-lab" autocomplete="off">
+              </div>
+            </details>
+
             <div class="actions">
               <button type="button" class="secondary" id="btnFetchProfile">Fetch profile only</button>
-              <button type="button" class="primary" id="btnProfileAndSendEvent">Fetch profile + send <code>get.decisions</code></button>
+              <button type="button" class="primary" id="btnProfileAndEdge">Profile → Edge + render</button>
             </div>
             <p class="status" id="profileStatus"></p>
-            <p class="status" id="eventStatus" style="margin-top:4px;"></p>
+            <p class="status" id="edgeStatus" style="margin-top:4px;"></p>
             <p class="hint" id="ecidHint"></p>
-            <div class="auto-webhook-row">
-              <label class="chk"><input type="checkbox" id="autoFetchWebhook" checked> <span>After a successful event send, auto-fetch webhooks after</span></label>
-              <div class="auto-webhook-delay">
-                <input type="number" id="autoWebhookDelaySec" min="1" max="120" step="1" value="2" inputmode="numeric" aria-label="Seconds to wait before webhook fetch" title="Use the arrows or type 1–120">
-                <span class="auto-webhook-delay-unit">seconds</span>
-              </div>
-            </div>
             <details>
               <summary>Profile response (raw)</summary>
               <pre id="profileRaw">{}</pre>
             </details>
+            <details style="margin-top:0.5rem;">
+              <summary>Last Edge response (raw)</summary>
+              <pre id="edgeResultRaw" style="max-height:240px;overflow:auto;">{}</pre>
+            </details>
           </div>
 
           <div class="panel">
-            <h2>Webhook</h2>
+            <h2>Webhook (optional)</h2>
+            <p class="hint">Journey actions that POST to the listener still appear here. Primary banner content is from <strong>Edge</strong> above.</p>
             <div class="actions">
               <button type="button" class="primary" id="btnFetchWebhook">Fetch webhooks</button>
               <button type="button" class="secondary" id="btnShowBanner" disabled>Show content banner</button>
@@ -803,17 +814,15 @@
   const WEBHOOK_LISTENER_DIRECT_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
   const CD_BANNER_LS = 'aep-cd-banner-editor';
   const LS_EMAIL = 'aep-cd-live-email';
-  const LS_FIREBASE_URL = 'aep-cd-live-firebase-event-url';
-  const LS_WEBHOOK_DELAY_SEC = 'aep-cd-live-webhook-delay-sec';
-  const DEFAULT_WEBHOOK_DELAY_SEC = 2;
-  /** Same Cloud Run target as firebaseFunctions experience-events.html */
-  const DEFAULT_EXPERIENCE_EVENT_POST_URL = 'https://createadobeprofile-pscg5c4cja-uc.a.run.app';
-  /** Hidden defaults from experience-events.html (orgId, datasetId, schemaRef) */
-  const EG_IMS_ORG = 'BF9C27AA6464801C0A495FD0@AdobeOrg';
-  const EG_DATASET_ID = '68231dbb0c05072aef38b7f2';
-  const EG_SCHEMA_ID = 'https://ns.adobe.com/demoemea/schemas/2b314523710861bbdc32c9558110fff24e032fa499fe5deb';
-  const EG_SCHEMA_CT = 'application/vnd.adobe.xed-full+json;version=1';
-  const EG_TENANT = '_demoemea';
+  const DEFAULT_EDGE_CONFIG_ID = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
+  const ADOBE_LAUNCH_SRC = 'https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js';
+  const DSN_SPOOF_DEFAULT_PAGE_URL = 'https://dsn.adobe.com/web/apalmer-I018/home';
+  const HERO_CHANNEL_LOCATION = 'travel-hero-banner';
+  const DSN_SPOOF_DECISION_SCOPES = [
+    'web://dsn.adobe.com/apalmer-I018#' + HERO_CHANNEL_LOCATION,
+    'web://dsn.adobe.com/apalmer-I018#TopRibbon',
+  ];
+  const EDGE_LAB_PATH = '/profile-viewer/content-decision-live-edge.html';
   /** DevTools: filter console by this string */
   const LOG_PREFIX = '[content-decision-live-edge]';
   function cdLog() {
@@ -832,7 +841,12 @@
   };
 
   let lastUpsPayload = null;
+  let lastUpsClientData = null;
+  let lastProfileEcid = '';
   let lastWebhookRaw = null;
+  let lastEdgeResult = null;
+  let alloyConfiguredFor = '';
+  let lastIdentityMapSentForDebug = null;
 
   function persistLiveIdentity() {
     const em = document.getElementById('cdLiveEmail').value.trim();
@@ -840,46 +854,182 @@
       if (em) localStorage.setItem(LS_EMAIL, em); else localStorage.removeItem(LS_EMAIL);
     } catch (e) {}
   }
-  function persistFirebaseEventUrl() {
-    var v = document.getElementById('firebaseEventUrl').value.trim();
-    try {
-      if (v) localStorage.setItem(LS_FIREBASE_URL, v);
-      else localStorage.removeItem(LS_FIREBASE_URL);
-    } catch (e) {}
+
+  function getEdgeLabPageUrl() {
+    if (typeof location === 'undefined') return '';
+    return location.origin + EDGE_LAB_PATH;
   }
 
-  function clampWebhookDelaySec(n) {
-    if (typeof n !== 'number' || isNaN(n)) n = DEFAULT_WEBHOOK_DELAY_SEC;
-    return Math.max(1, Math.min(120, Math.round(n)));
-  }
-
-  function persistWebhookDelay() {
-    var el = document.getElementById('autoWebhookDelaySec');
-    if (!el) return;
-    var n = clampWebhookDelaySec(parseInt(el.value, 10));
-    el.value = String(n);
-    try { localStorage.setItem(LS_WEBHOOK_DELAY_SEC, String(n)); } catch (e) {}
-  }
-
-  function getAutoWebhookDelayMs() {
-    var el = document.getElementById('autoWebhookDelaySec');
-    var n = el ? parseInt(el.value, 10) : DEFAULT_WEBHOOK_DELAY_SEC;
-    return clampWebhookDelaySec(n) * 1000;
+  function getEdgeLabDecisionScopes() {
+    if (typeof location === 'undefined') return [];
+    var h = location.host;
+    var base = 'web://' + h + '/profile-viewer/content-decision-live-edge';
+    return [base + '#' + HERO_CHANNEL_LOCATION, base + '#TopRibbon'];
   }
 
   (function initFields() {
     try {
       var em = localStorage.getItem(LS_EMAIL);
       if (em) document.getElementById('cdLiveEmail').value = em;
-      var fu = localStorage.getItem(LS_FIREBASE_URL);
-      document.getElementById('firebaseEventUrl').value = fu || DEFAULT_EXPERIENCE_EVENT_POST_URL;
-      var del = localStorage.getItem(LS_WEBHOOK_DELAY_SEC);
-      if (del != null) {
-        var ds = clampWebhookDelaySec(parseInt(del, 10));
-        document.getElementById('autoWebhookDelaySec').value = String(ds);
-      }
     } catch (e) {}
   })();
+
+  (function initEdgeFieldsFromStorage() {
+    try {
+      migrateLegacyDsnSiteIdInStorage();
+      var ec = localStorage.getItem('aep-edge-config-id');
+      var sc = localStorage.getItem('aep-decision-scopes');
+      var fc = localStorage.getItem('aep-edge-force-configure');
+      var spoof = localStorage.getItem('aep-spoof-dsn');
+      var spoofUrl = localStorage.getItem('aep-spoof-dsn-url');
+      var dcEn = localStorage.getItem('aep-direct-call-enabled');
+      var dcEdge = localStorage.getItem('aep-direct-call-edge-id');
+      var localPath = localStorage.getItem('aep-cd-edge-local-path');
+      document.getElementById('edgeConfigId').value = ec || DEFAULT_EDGE_CONFIG_ID;
+      if (sc) document.getElementById('decisionScopes').value = sc;
+      if (fc === '1') document.getElementById('edgeForceConfigure').checked = true;
+      if (localPath === '0') {
+        document.getElementById('localChannelPath').checked = false;
+        if (spoof === '1') document.getElementById('spoofDsnWebContext').checked = true;
+      } else if (spoof === '1') {
+        document.getElementById('spoofDsnWebContext').checked = true;
+        document.getElementById('localChannelPath').checked = false;
+      }
+      if (spoofUrl) document.getElementById('spoofDsnPageUrl').value = spoofUrl;
+      if (dcEn === '0') document.getElementById('directCallAfterSendEvent').checked = false;
+      else if (dcEn === '1') document.getElementById('directCallAfterSendEvent').checked = true;
+      if (dcEdge) document.getElementById('directCallRuleIdEdgeDecisioning').value = dcEdge;
+    } catch (e) {}
+  })();
+
+  function migrateLegacyDsnSiteIdInStorage() {
+    var typo = 'apalmer-l018';
+    var urlKey = 'aep-spoof-dsn-url';
+    var u = localStorage.getItem(urlKey);
+    if (u && u.indexOf(typo) !== -1) {
+      localStorage.setItem(urlKey, u.replace(/apalmer-l018/g, 'apalmer-I018'));
+    }
+    var scKey = 'aep-decision-scopes';
+    var sc = localStorage.getItem(scKey);
+    if (sc && sc.indexOf(typo) !== -1) {
+      sc = sc.replace(/apalmer-l018/g, 'apalmer-I018');
+      localStorage.setItem(scKey, sc);
+    }
+  }
+
+  function persistEdgeFields() {
+    var ec = document.getElementById('edgeConfigId').value.trim();
+    var sc = document.getElementById('decisionScopes').value.trim();
+    var fc = document.getElementById('edgeForceConfigure').checked;
+    var spoof = document.getElementById('spoofDsnWebContext').checked;
+    var spoofUrl = document.getElementById('spoofDsnPageUrl').value.trim();
+    var localCh = document.getElementById('localChannelPath').checked;
+    if (ec) localStorage.setItem('aep-edge-config-id', ec);
+    else localStorage.removeItem('aep-edge-config-id');
+    if (sc) localStorage.setItem('aep-decision-scopes', sc);
+    else localStorage.removeItem('aep-decision-scopes');
+    localStorage.setItem('aep-edge-force-configure', fc ? '1' : '0');
+    localStorage.setItem('aep-cd-edge-local-path', localCh ? '1' : '0');
+    localStorage.setItem('aep-spoof-dsn', spoof ? '1' : '0');
+    if (spoofUrl) localStorage.setItem('aep-spoof-dsn-url', spoofUrl);
+    else localStorage.removeItem('aep-spoof-dsn-url');
+    var dcEdge = document.getElementById('directCallRuleIdEdgeDecisioning').value.trim();
+    var dcAfter = document.getElementById('directCallAfterSendEvent').checked;
+    localStorage.setItem('aep-direct-call-enabled', dcAfter ? '1' : '0');
+    if (dcEdge) localStorage.setItem('aep-direct-call-edge-id', dcEdge);
+    else localStorage.removeItem('aep-direct-call-edge-id');
+  }
+
+  function getExpectedDsnSitePathFromScopes() {
+    var s = DSN_SPOOF_DECISION_SCOPES[0];
+    var m = s && s.match(/^web:\/\/dsn\.adobe\.com\/([^#]+)#/);
+    return m ? m[1] : null;
+  }
+
+  function updateSpoofUrlMismatchHint() {
+    var el = document.getElementById('spoofUrlMismatchHint');
+    if (!el) return;
+    var spoofOn = document.getElementById('spoofDsnWebContext').checked;
+    var url = document.getElementById('spoofDsnPageUrl').value.trim();
+    var path = getExpectedDsnSitePathFromScopes();
+    if (!spoofOn || !path) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    if (url.indexOf(path) !== -1) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.hidden = false;
+    el.textContent =
+      'Spoof URL should contain “' + path + '” to match default AJO scopes.';
+  }
+
+  function parseScopes() {
+    var raw = document.getElementById('decisionScopes').value.trim();
+    return raw ? raw.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+  }
+
+  function getPersonalizationPayloads(edgeResult) {
+    if (!edgeResult) return { source: 'none', payloads: [] };
+    if (Array.isArray(edgeResult.decisions) && edgeResult.decisions.length) {
+      return { source: 'decisions', payloads: edgeResult.decisions };
+    }
+    if (Array.isArray(edgeResult.propositions) && edgeResult.propositions.length) {
+      return { source: 'propositions', payloads: edgeResult.propositions };
+    }
+    return { source: 'none', payloads: [] };
+  }
+
+  function launchDirectCallTrack(ruleId, data) {
+    if (!ruleId) return false;
+    if (typeof window._satellite === 'undefined' || typeof window._satellite.track !== 'function') {
+      cdLog('Direct Call skipped: _satellite.track unavailable');
+      return false;
+    }
+    try {
+      if (data && typeof data === 'object' && Object.keys(data).length) {
+        window._satellite.track(ruleId, data);
+      } else {
+        window._satellite.track(ruleId);
+      }
+      return true;
+    } catch (err) {
+      cdLog('_satellite.track failed', err);
+      return false;
+    }
+  }
+
+  function fireLaunchDirectCallAfterSendEvent(edgeResult) {
+    var enabled = document.getElementById('directCallAfterSendEvent').checked;
+    var ruleId = document.getElementById('directCallRuleIdEdgeDecisioning').value.trim();
+    if (!enabled || !ruleId) return;
+    var payload = {};
+    if (edgeResult && typeof edgeResult === 'object') {
+      if (Array.isArray(edgeResult.decisions)) payload.decisions = edgeResult.decisions;
+      if (Array.isArray(edgeResult.propositions)) payload.propositions = edgeResult.propositions;
+    }
+    launchDirectCallTrack(ruleId, Object.keys(payload).length ? payload : undefined);
+  }
+
+  function waitForAlloy(timeoutMs) {
+    var t = timeoutMs || 25000;
+    return new Promise(function (resolve, reject) {
+      if (typeof alloy === 'function') return resolve();
+      var start = Date.now();
+      var id = setInterval(function () {
+        if (typeof alloy === 'function') {
+          clearInterval(id);
+          resolve();
+        } else if (Date.now() - start > t) {
+          clearInterval(id);
+          reject(new Error('Alloy not available after Launch load. ' + ADOBE_LAUNCH_SRC));
+        }
+      }, 50);
+    });
+  }
 
   (function initSandboxSelect() {
     var sel = document.getElementById('sandboxSelect');
@@ -890,15 +1040,24 @@
     });
   })();
 
-  (function initAutoWebhookDelayControls() {
-    var el = document.getElementById('autoWebhookDelaySec');
-    if (!el) return;
-    el.addEventListener('change', persistWebhookDelay);
-    el.addEventListener('blur', persistWebhookDelay);
-  })();
-
   document.getElementById('cdLiveEmail').addEventListener('blur', persistLiveIdentity);
-  document.getElementById('firebaseEventUrl').addEventListener('blur', persistFirebaseEventUrl);
+  document.getElementById('edgeConfigId').addEventListener('blur', persistEdgeFields);
+  document.getElementById('decisionScopes').addEventListener('blur', persistEdgeFields);
+  document.getElementById('edgeForceConfigure').addEventListener('change', persistEdgeFields);
+  document.getElementById('directCallRuleIdEdgeDecisioning').addEventListener('blur', persistEdgeFields);
+  document.getElementById('directCallAfterSendEvent').addEventListener('change', persistEdgeFields);
+  document.getElementById('localChannelPath').addEventListener('change', function () {
+    if (this.checked) document.getElementById('spoofDsnWebContext').checked = false;
+    persistEdgeFields();
+    updateSpoofUrlMismatchHint();
+  });
+  document.getElementById('spoofDsnWebContext').addEventListener('change', function () {
+    if (this.checked) document.getElementById('localChannelPath').checked = false;
+    persistEdgeFields();
+    updateSpoofUrlMismatchHint();
+  });
+  document.getElementById('spoofDsnPageUrl').addEventListener('input', updateSpoofUrlMismatchHint);
+  updateSpoofUrlMismatchHint();
 
   function withSandboxPlatformHeaders(payload) {
     var base = payload && typeof payload === 'object' ? payload : {};
@@ -931,43 +1090,58 @@
     return { httpOk: res.ok, data };
   }
 
-  function randomUuidV4() {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      var r = (Math.random() * 16) | 0, v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
+  function extractEntityFromUpsClientData(clientData) {
+    if (!clientData || typeof clientData !== 'object') return null;
+    var root = clientData.platform_response != null ? clientData.platform_response : clientData;
+    if (!root || typeof root !== 'object') return null;
+    for (var vi = 0; vi < Object.keys(root).length; vi++) {
+      var v = root[Object.keys(root)[vi]];
+      if (v && typeof v === 'object' && v.entity && typeof v.entity === 'object') return v.entity;
+    }
+    if (root.entity && typeof root.entity === 'object') return root.entity;
+    return null;
   }
 
-  /**
-   * Minimal xdmEntityCreate for eventType get.decisions — same envelope shape as
-   * firebaseFunctions experience-events.html buildExperienceEventPayload(), without flight fields.
-   */
-  function buildGetDecisionsExperienceEventPayload(email) {
-    var schemaRef = { id: EG_SCHEMA_ID, contentType: EG_SCHEMA_CT };
-    var xdmEntity = {
-      _id: 'joTestModeEvent_' + randomUuidV4(),
-      eventType: 'get.decisions',
-      timestamp: new Date().toISOString(),
-    };
-    xdmEntity[EG_TENANT] = { identification: { core: { email: email } } };
-    return {
-      header: {
-        msgType: 'xdmEntityCreate',
-        msgId: randomUuidV4(),
-        msgVersion: '1.0',
-        xactionId: randomUuidV4(),
-        datasetId: EG_DATASET_ID,
-        imsOrgId: EG_IMS_ORG,
-        schemaRef: schemaRef,
-        source: { name: 'Journeys' },
-        strictValidation: true,
-      },
-      body: {
-        xdmMeta: { schemaRef: schemaRef },
-        xdmEntity: xdmEntity,
-      },
-    };
+  function buildIdentityMapFromUpsEntity(entity, fallbackEmail) {
+    var im = entity && entity.identityMap;
+    var out = {};
+    if (im && typeof im === 'object') {
+      for (var rawKey in im) {
+        if (!Object.prototype.hasOwnProperty.call(im, rawKey)) continue;
+        var arr = im[rawKey];
+        if (!Array.isArray(arr) || !arr.length) continue;
+        var pick = null;
+        for (var i = 0; i < arr.length; i++) {
+          if (arr[i] && arr[i].id) { pick = arr[i]; break; }
+        }
+        if (!pick || !pick.id) continue;
+        var nsKey = rawKey;
+        if (/^ecid$/i.test(rawKey)) nsKey = 'ECID';
+        var entry = { id: String(pick.id).trim(), authenticatedState: pick.authenticatedState || 'ambiguous' };
+        if (pick.primary === true || pick.primary === false) entry.primary = pick.primary;
+        out[nsKey] = [entry];
+      }
+    }
+    var fe = (fallbackEmail || '').trim();
+    if (fe && !Object.keys(out).some(function (k) { return /^email$/i.test(k); })) {
+      out.email = [{ id: fe, authenticatedState: 'ambiguous' }];
+    }
+    var keys = Object.keys(out);
+    if (!keys.length) return null;
+    var hasEcid = keys.indexOf('ECID') !== -1;
+    keys.forEach(function (k) {
+      var arr = out[k];
+      if (!arr || !arr[0]) return;
+      if (hasEcid) arr[0].primary = k === 'ECID';
+      else arr[0].primary = true;
+    });
+    return out;
+  }
+
+  function recordEcidFromUpsProfile(clientData) {
+    var ecid = extractEcidFromUpsApiResponse(clientData);
+    lastProfileEcid = ecid || '';
+    return ecid || '';
   }
 
   function isUpsProfileSuccess(data) {
@@ -1014,6 +1188,119 @@
       path: '/data/core/ups/access/entities',
       params: { 'schema.name': '_xdm.context.profile', entityId: id, entityIdNS: ns },
     });
+  }
+
+  async function runEdgePropositions(opts) {
+    opts = opts || {};
+    persistEdgeFields();
+    await waitForAlloy();
+    var edgeConfigId = document.getElementById('edgeConfigId').value.trim();
+    var forceCfg = document.getElementById('edgeForceConfigure').checked;
+    var decisionScopes = parseScopes();
+    var localLab = document.getElementById('localChannelPath').checked;
+    var spoofDsn = document.getElementById('spoofDsnWebContext').checked;
+    var spoofPageUrl = document.getElementById('spoofDsnPageUrl').value.trim() || DSN_SPOOF_DEFAULT_PAGE_URL;
+    if (localLab && !decisionScopes.length) {
+      decisionScopes = getEdgeLabDecisionScopes();
+    } else if (spoofDsn && !decisionScopes.length) {
+      decisionScopes = DSN_SPOOF_DECISION_SCOPES.slice();
+    }
+    var email = document.getElementById('cdLiveEmail').value.trim();
+    var ecidRaw =
+      opts.profileEcid !== undefined && opts.profileEcid !== null
+        ? String(opts.profileEcid).trim()
+        : (lastProfileEcid || '').trim();
+    lastIdentityMapSentForDebug = null;
+    updateSpoofUrlMismatchHint();
+    if (forceCfg && edgeConfigId) {
+      if (alloyConfiguredFor !== edgeConfigId) {
+        try {
+          await alloy('configure', { edgeConfigId: edgeConfigId });
+        } catch (e) {
+          var msg = e && e.message ? String(e.message) : String(e);
+          if (!/already been configured|only be configured once/i.test(msg)) throw e;
+        }
+        alloyConfiguredFor = edgeConfigId;
+      }
+    }
+    var pageUrl = localLab
+      ? getEdgeLabPageUrl()
+      : spoofDsn && spoofPageUrl
+        ? spoofPageUrl
+        : typeof location !== 'undefined'
+          ? location.href
+          : '';
+    var xdm = {
+      eventType: 'web.webpagedetails.pageViews',
+      web: {
+        webPageDetails: {
+          URL: pageUrl,
+          name: localLab
+            ? 'AEP Profile Viewer — Decisioning lab (Edge)'
+            : spoofDsn
+              ? 'DSN home (spoofed)'
+              : 'AEP Profile Viewer',
+        },
+      },
+    };
+    var upsForIdentity =
+      opts.upsClientData !== undefined && opts.upsClientData !== null ? opts.upsClientData : lastUpsClientData;
+    var identityMapBuilt = null;
+    if (upsForIdentity) {
+      var ent = extractEntityFromUpsClientData(upsForIdentity);
+      if (ent) identityMapBuilt = buildIdentityMapFromUpsEntity(ent, email);
+    }
+    if (!identityMapBuilt && (email || ecidRaw)) {
+      identityMapBuilt = {};
+      if (email) {
+        identityMapBuilt.email = [{ id: email, authenticatedState: 'ambiguous', primary: true }];
+      }
+      if (ecidRaw) {
+        identityMapBuilt.ECID = [{ id: ecidRaw, authenticatedState: 'ambiguous', primary: !email }];
+      }
+      if (identityMapBuilt.ECID && identityMapBuilt.email) {
+        identityMapBuilt.ECID[0].primary = true;
+        identityMapBuilt.email[0].primary = false;
+      }
+    }
+    if (identityMapBuilt && Object.keys(identityMapBuilt).length) {
+      xdm.identityMap = identityMapBuilt;
+      lastIdentityMapSentForDebug = identityMapBuilt;
+    }
+    var sendOpts = { renderDecisions: false, xdm: xdm };
+    if (decisionScopes.length) {
+      sendOpts.personalization = { decisionScopes: decisionScopes };
+    }
+    var result = await alloy('sendEvent', sendOpts);
+    fireLaunchDirectCallAfterSendEvent(result);
+    return result;
+  }
+
+  function journeyVisualFromEdgeResult(edgeResult) {
+    var pay = getPersonalizationPayloads(edgeResult);
+    var payloads = pay.payloads || [];
+    for (var pi = 0; pi < payloads.length; pi++) {
+      var prop = payloads[pi];
+      var items = prop.items || [];
+      for (var ii = 0; ii < items.length; ii++) {
+        var item = items[ii];
+        var cand = item.data;
+        if (cand && typeof cand === 'object') {
+          var jd = extractJourneyContentDecision(cand);
+          if (jd) return jd;
+          if (cand.content) {
+            jd = extractJourneyContentDecision({ content: cand.content });
+            if (jd) return jd;
+          }
+        }
+        var nested = deepFindOfferContentNode(item, 0);
+        if (nested) {
+          jd = extractJourneyContentDecision({ content: nested });
+          if (jd) return jd;
+        }
+      }
+    }
+    return null;
   }
 
   function getWebhookPayloadObject(entry) {
@@ -1408,97 +1695,16 @@
     }
   }
 
-  function scheduleAutoWebhook() {
-    if (!document.getElementById('autoFetchWebhook').checked) {
-      cdLog('Auto webhook fetch skipped (checkbox off)');
-      return;
-    }
-    persistWebhookDelay();
-    var ms = getAutoWebhookDelayMs();
-    var sec = ms / 1000;
-    cdLog('Auto webhook fetch scheduled in ' + sec + 's');
-    setTimeout(function () { runFetchWebhook(); }, ms);
-  }
-
-  /**
-   * Same request body as experience-events.html sendExperienceEvent():
-   * fetch(url, { body: JSON.stringify({ payload, type: 'experience-event' }) })
-   */
-  /**
-   * @param {string} email
-   * @param {{ skipScheduleAutoWebhook?: boolean }} [opts] Set when a caller will fetch the webhook separately (e.g. Run content decision).
-   */
-  async function sendGetDecisionsViaCloudRun(email, opts) {
-    opts = opts || {};
-    persistFirebaseEventUrl();
-    var url = document.getElementById('firebaseEventUrl').value.trim() || DEFAULT_EXPERIENCE_EVENT_POST_URL;
-    var evSt = document.getElementById('eventStatus');
-    var payload = buildGetDecisionsExperienceEventPayload(email);
-    var body = { type: 'experience-event', payload: payload };
-    try {
-      if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
-        var sbx = String(AepGlobalSandbox.getSandboxName() || '').trim();
-        if (sbx) body.sandbox = sbx;
-      }
-    } catch (e) {}
-    var xdm = payload.body && payload.body.xdmEntity;
-    cdLog('Cloud Run → POST', url, { type: body.type, eventType: xdm && xdm.eventType, xdm_id: xdm && xdm._id, sandbox: body.sandbox || '(default)' });
-    evSt.textContent = 'Sending experience event…';
-    evSt.className = 'status';
-    try {
-      var res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        mode: 'cors',
-      });
-      var txt = await res.text();
-      var data;
-      try {
-        data = txt ? JSON.parse(txt) : {};
-      } catch (e) {
-        cdLog('Cloud Run ← non-JSON HTTP', res.status, (txt || '').slice(0, 120));
-        evSt.textContent = 'Non-JSON response (HTTP ' + res.status + '): ' + (txt || '').slice(0, 160);
-        evSt.className = 'status err';
-        return false;
-      }
-      if (data.success) {
-        cdLog('Cloud Run ← success', { http: res.status, success: data.success });
-        evSt.textContent = 'Cloud Run accepted event (get.decisions).';
-        evSt.className = 'status ok';
-        if (!opts.skipScheduleAutoWebhook) {
-          scheduleAutoWebhook();
-        }
-        return true;
-      }
-      cdLog('Cloud Run ← rejected', { http: res.status, error: data.error, keys: Object.keys(data || {}) });
-      evSt.textContent = (data.error ? String(data.error) : 'Event not accepted') + ' (HTTP ' + res.status + ')';
-      evSt.className = 'status err';
-      return false;
-    } catch (e) {
-      cdLog('Cloud Run ✗ fetch error', String(e.message || e));
-      evSt.textContent = 'Request failed (CORS/network?): ' + String(e.message || e);
-      evSt.className = 'status err';
-      return false;
-    }
-  }
-
-  /**
-   * Profile UPS + get.decisions via Cloud Run. Reused by drawer button and Run content decision.
-   * @param {{ skipScheduleAutoWebhook?: boolean }} [runOpts]
-   * @returns {Promise<boolean>} true if event accepted
-   */
-  async function runProfileAndSendGetDecisionsCore(runOpts) {
-    runOpts = runOpts || {};
+  async function runProfileAndEdgeDecisions() {
     persistLiveIdentity();
     var email = document.getElementById('cdLiveEmail').value.trim();
     var st = document.getElementById('profileStatus');
-    var evSt = document.getElementById('eventStatus');
-    cdLog('Profile + get.decisions: start', { namespace: CD_IDENTITY_NS });
-    evSt.textContent = '';
-    evSt.className = 'status';
+    var edgeSt = document.getElementById('edgeStatus');
+    var rawEdge = document.getElementById('edgeResultRaw');
+    cdLog('Profile → Edge: start');
+    edgeSt.textContent = '';
+    edgeSt.className = 'status';
     if (!email) {
-      cdLog('Profile + get.decisions ✗ missing email');
       st.textContent = 'Enter an email.';
       st.className = 'status err';
       return false;
@@ -1507,24 +1713,56 @@
     st.className = 'status';
     var r = await fetchProfileByIdentity(CD_IDENTITY_NS, email);
     lastUpsPayload = r.data;
+    lastUpsClientData = r.data;
     document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
     if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
-      cdLog('Profile + get.decisions ✗ stopped: profile failed', { httpOk: r.httpOk });
-      st.textContent = 'Stop: profile failed — check email and sandbox before sending event.';
+      cdLog('Profile → Edge ✗ profile failed');
+      st.textContent = 'Profile failed — check email and sandbox.';
       st.className = 'status err';
+      lastUpsClientData = null;
+      lastProfileEcid = '';
+      document.getElementById('ecidHint').textContent = '';
+      if (rawEdge) rawEdge.textContent = '{}';
       return false;
     }
-    var ecid = extractEcidFromUpsApiResponse(r.data);
-    document.getElementById('ecidHint').textContent = ecid ? 'ECID: ' + ecid : 'No ECID in payload.';
-    cdLog('Profile + get.decisions: profile OK', { ecidPrefix: ecid ? ecid.slice(0, 8) + '…' : null });
-    st.textContent = 'Profile OK — calling Event Generator Cloud Run…';
-    var ok = await sendGetDecisionsViaCloudRun(email, {
-      skipScheduleAutoWebhook: !!runOpts.skipScheduleAutoWebhook,
-    });
-    cdLog('Profile + get.decisions: done', { cloudRunOk: ok });
-    if (ok) st.textContent = 'Profile OK + get.decisions event sent via Cloud Run.';
-    st.className = ok ? 'status ok' : 'status err';
-    return ok;
+    var ecid = recordEcidFromUpsProfile(r.data);
+    document.getElementById('ecidHint').textContent = ecid
+      ? 'ECID from UPS (sent on Edge): ' + ecid
+      : 'No ECID in payload — Edge may use email only.';
+    st.textContent = 'Profile OK — requesting Edge…';
+    st.className = 'status ok';
+    edgeSt.textContent = 'Loading Alloy / Edge…';
+    try {
+      var edgeResult = await runEdgePropositions({ upsClientData: r.data, profileEcid: ecid });
+      lastEdgeResult = edgeResult;
+      if (rawEdge) {
+        try {
+          rawEdge.textContent = JSON.stringify(edgeResult, null, 2);
+        } catch (e) {
+          rawEdge.textContent = String(edgeResult);
+        }
+      }
+      var jd = journeyVisualFromEdgeResult(edgeResult);
+      var btnBanner = document.getElementById('btnShowBanner');
+      if (jd) {
+        renderJourneyContentDecisionBanner(withBannerImageCacheBust(jd));
+        if (btnBanner) btnBanner.disabled = false;
+        cdLog('Profile → Edge ✓ banner from Edge payload');
+      } else {
+        cdLog('Profile → Edge ✓ (no offer-shaped items for hero banner — check raw JSON)');
+      }
+      edgeSt.textContent = 'Edge response received.';
+      edgeSt.className = 'status ok';
+      return true;
+    } catch (e) {
+      var msg = e && e.message ? e.message : String(e);
+      cdLog('Profile → Edge ✗', msg);
+      edgeSt.textContent = msg;
+      edgeSt.className = 'status err';
+      if (rawEdge) rawEdge.textContent = JSON.stringify({ error: msg }, null, 2);
+      lastEdgeResult = null;
+      return false;
+    }
   }
 
   async function runFullContentDecisionPipeline() {
@@ -1535,28 +1773,12 @@
       pipe.className = 'status' + (cls ? ' ' + cls : '');
     }
     setPipe('Starting…');
-    var ok = await runProfileAndSendGetDecisionsCore({ skipScheduleAutoWebhook: true });
+    var ok = await runProfileAndEdgeDecisions();
     if (!ok) {
-      setPipe('Stopped — check Profile / event status below.', 'err');
+      setPipe('Stopped — check Profile / Edge status below.', 'err');
       return;
     }
-    persistWebhookDelay();
-    var sec = getAutoWebhookDelayMs() / 1000;
-    setPipe('Waiting ' + sec + 's (webhook delay)…');
-    cdLog('Full pipeline: delay', sec + 's');
-    await new Promise(function (resolve) {
-      setTimeout(resolve, getAutoWebhookDelayMs());
-    });
-    setPipe('Fetching webhook & updating preview…');
-    await runFetchWebhook({ showBanner: true });
-    var ws = document.getElementById('webhookStatus');
-    if (ws && ws.classList.contains('ok')) {
-      setPipe('Done.');
-    } else if (ws && ws.classList.contains('err')) {
-      setPipe(ws.textContent || 'Webhook step failed.', 'err');
-    } else {
-      setPipe('');
-    }
+    setPipe('Done — hero updates from Edge when offer content was returned.');
   }
 
   document.getElementById('btnFetchProfile').addEventListener('click', async function () {
@@ -1575,23 +1797,26 @@
     }
     var r = await fetchProfileByIdentity(CD_IDENTITY_NS, email);
     lastUpsPayload = r.data;
+    lastUpsClientData = r.data;
     document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
     if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
       cdLog('Fetch profile only ✗ UPS not successful', { httpOk: r.httpOk });
       st.textContent = 'Profile not found or UPS error — check email and sandbox.';
       st.className = 'status err';
       hint.textContent = '';
+      lastUpsClientData = null;
+      lastProfileEcid = '';
       return;
     }
-    var ecid = extractEcidFromUpsApiResponse(r.data);
+    var ecid = recordEcidFromUpsProfile(r.data);
     cdLog('Fetch profile only ✓', { ecid: ecid ? ecid.slice(0, 8) + '…' : null });
     st.textContent = 'Profile loaded.';
     st.className = 'status ok';
     hint.textContent = ecid ? 'ECID in profile: ' + ecid : 'No ECID in identityMap; journey may still key on email.';
   });
 
-  document.getElementById('btnProfileAndSendEvent').addEventListener('click', async function () {
-    await runProfileAndSendGetDecisionsCore({});
+  document.getElementById('btnProfileAndEdge').addEventListener('click', async function () {
+    await runProfileAndEdgeDecisions();
   });
 
   document.getElementById('btnRunFullContentDecision').addEventListener('click', async function () {
@@ -1617,18 +1842,20 @@
   });
 
   document.getElementById('btnShowBanner').addEventListener('click', function () {
-    if (!lastWebhookRaw) {
-      cdLog('Show banner: skipped (no webhook payload)');
+    var jd = null;
+    if (lastEdgeResult) {
+      jd = journeyVisualFromEdgeResult(lastEdgeResult);
+    }
+    if (!jd && lastWebhookRaw) {
+      jd = extractJourneyContentDecision(lastWebhookRaw);
+    }
+    if (!jd) {
+      cdLog('Show banner: no Edge or webhook content to render');
       return;
     }
-    var jd = extractJourneyContentDecision(lastWebhookRaw);
-    if (jd) {
-      jd = withBannerImageCacheBust(jd);
-      cdLog('Show banner: rendering (hero image cache-bust)', { title: jd.bannerTitle && jd.bannerTitle.slice(0, 40) });
-      renderJourneyContentDecisionBanner(jd);
-    } else {
-      cdLog('Show banner: no extractable content node');
-    }
+    jd = withBannerImageCacheBust(jd);
+    cdLog('Show banner: rendering', { title: jd.bannerTitle && jd.bannerTitle.slice(0, 40) });
+    renderJourneyContentDecisionBanner(jd);
   });
 
   initCdBannerEditor();
