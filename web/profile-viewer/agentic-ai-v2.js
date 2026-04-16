@@ -29,14 +29,14 @@
   if (!coordRoot || !svg) return;
 
   /**
-   * Reveal order matches DOM top → bottom so each block appears in its final slot (no upward reflow).
-   * AI Assistant → Chat → Orchestrator shell → Prompt → Coordinator → … → agents.
-   * drawArrowsForStep(justFinishedIndex) indices follow this array.
+   * Narrative reveal order (matches v1 / product story).
+   * 1 Orchestrator → 2 Chat → 3 Assistant → 4 Prompt → 5 Coordinator → 6 Non Agent → 7–9 executors/plan
+   * → 10 Agent Execution → 11–18 specialist agents. drawArrowsForStep(justFinishedIndex) follows this array.
    */
   var STEP_NODE_IDS = [
-    'node-assistant-v2',
-    'node-chat-v2',
     'node-orch-v2',
+    'node-chat-v2',
+    'node-assistant-v2',
     'node-prompt-v2',
     'node-coordinator-v2',
     'node-nonAgent-v2',
@@ -356,8 +356,8 @@
     var rc = chat ? relRect(chat) : null;
     var rp = prompt ? relRect(prompt) : null;
 
-    /* AI Assistant ↔ CHAT SERVICE: parallel verticals (after Chat is revealed, index 1) */
-    if (justFinishedIndex === 1 && assistant && chat) {
+    /* AI Assistant ↔ CHAT SERVICE: parallel verticals (after Assistant is revealed, index 2) */
+    if (justFinishedIndex === 2 && assistant && chat) {
       var ax = anchorXBetweenRects(ra, rc);
       var pairA = verticalBidirStraight(ra, rc, ax);
       if (pairA) {
