@@ -62,7 +62,15 @@
   var stepIndex = 0;
 
   function getDelayMs() {
-    return delayInput ? parseInt(delayInput.value, 10) || 550 : 550;
+    return delayInput ? parseInt(delayInput.value, 10) || 700 : 700;
+  }
+
+  function prefersReducedMotion() {
+    try {
+      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch (e) {
+      return false;
+    }
   }
 
   if (delayInput && delayLabel) {
@@ -228,8 +236,11 @@
     svg.insertBefore(defs, svg.firstChild);
   }
 
-  var PATH_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
-  var PAIR_STAGGER_MS = 240;
+  var PATH_EASE = 'cubic-bezier(0.33, 1, 0.68, 1)';
+  /** Tighter stagger so paired bidirectional traces feel like one gesture */
+  var PAIR_STAGGER_MS = 100;
+  /** Extra ms after each step so path draw can finish before the next card appears (slider is the base pause). */
+  var STEP_AFTER_DRAW_MS = 140;
 
   function addPath(d, color, durationMs, delayMs, markerId, omitMarkerEnd, extraClass) {
     delayMs = delayMs || 0;
@@ -258,8 +269,8 @@
         path.getBoundingClientRect();
         requestAnimationFrame(function () {
           requestAnimationFrame(function () {
-            path.style.transition =
-              'stroke-dashoffset ' + (durationMs || 520) + 'ms ' + PATH_EASE;
+            var dur = prefersReducedMotion() ? 0 : durationMs || 520;
+            path.style.transition = 'stroke-dashoffset ' + dur + 'ms ' + PATH_EASE;
             path.style.strokeDashoffset = '0';
           });
         });
@@ -443,12 +454,14 @@
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
         drawArrowsForStep(stepIndex);
-        /* After the orchestrator gains Prompt / Coordinator / …, Chat shifts: fix this pair only. */
+        /* Defer reflow-sensitive arrow fix until after layout settles when the orchestrator grows. */
         if (stepIndex > 2) {
-          redrawAssistantChatArrows(false);
+          setTimeout(function () {
+            redrawAssistantChatArrows(false);
+          }, 48);
         }
         stepIndex += 1;
-        timerId = setTimeout(runStep, getDelayMs());
+        timerId = setTimeout(runStep, getDelayMs() + STEP_AFTER_DRAW_MS);
       });
     });
   }

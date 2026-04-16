@@ -7,7 +7,7 @@
   <title>Agentic layer v2 (in development) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
@@ -64,16 +64,21 @@
             <header class="agentic-ai-v2-hero-head">
               <p class="agentic-ai-v2-badge">Architecture</p>
               <h1 id="agenticV2Heading" class="agentic-ai-v2-title">Agentic AI <span class="agentic-ai-v2-title-accent">v2</span></h1>
-              <p class="agentic-ai-v2-lead">
-                Same step-by-step flow as the original diagram. The canvas uses a light experiment-dashboard style: white cards, forest-green labels, and green flow lines when you press Play.
-              </p>
+              <div class="agentic-ai-v2-lead-block" role="doc-subtitle">
+                <p class="agentic-ai-v2-lead-line">
+                  Adobe Agentic AI is Adobe’s agentic orchestration layer — assistants that reason over your context, invoke tools and services, and advance multi-step work inside the policies and guardrails you set.
+                </p>
+                <p class="agentic-ai-v2-lead-line">
+                  Press Play to reveal the diagram in order and trace the green flows; drag Step delay to slow or speed the build, and use Reset to start over.
+                </p>
+              </div>
               <div class="agentic-ai-v2-toolbar">
                 <button type="button" class="btn btn-primary" id="agenticV2PlayBtn">Play</button>
                 <button type="button" class="btn btn-secondary" id="agenticV2ResetBtn">Reset</button>
                 <label class="agentic-ai-v2-speed">
                   <span>Step delay</span>
-                  <input type="range" id="agenticV2DelayMs" min="200" max="1400" step="100" value="550" aria-label="Milliseconds between steps">
-                  <span id="agenticV2DelayLabel" class="agentic-ai-v2-speed-val">550 ms</span>
+                  <input type="range" id="agenticV2DelayMs" min="200" max="1400" step="100" value="700" aria-label="Milliseconds between steps">
+                  <span id="agenticV2DelayLabel" class="agentic-ai-v2-speed-val">700 ms</span>
                 </label>
               </div>
             </header>
