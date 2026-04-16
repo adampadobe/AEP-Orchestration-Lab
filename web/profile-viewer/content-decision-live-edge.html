@@ -689,12 +689,6 @@
                 <input id="decisionScopes" type="text" placeholder="Empty = defaults for Profile Viewer lab URL" autocomplete="off">
               </div>
               <label class="chk"><input type="checkbox" id="localChannelPath" checked> <span><strong>Profile Viewer lab URL</strong> — default scopes <code>web://&lt;host&gt;/profile-viewer/content-decision-live-edge#…</code> and page URL for Edge</span></label>
-              <label class="chk"><input type="checkbox" id="spoofDsnWebContext"> <span><strong>Spoof DSN</strong> web context (<code>apalmer-I018</code>)</span></label>
-              <div class="cd-edge-field">
-                <label for="spoofDsnPageUrl">Spoof page URL</label>
-                <input id="spoofDsnPageUrl" type="url" value="https://dsn.adobe.com/web/apalmer-I018/home" autocomplete="off">
-              </div>
-              <p class="status err" id="spoofUrlMismatchHint" hidden style="margin:0 0 0.5rem;font-size:0.8rem;"></p>
               <label class="chk"><input type="checkbox" id="directCallAfterSendEvent" checked> <span>After <code>sendEvent</code>, fire Launch Direct Call with <code>decisions</code> / <code>propositions</code></span></label>
               <div class="cd-edge-field">
                 <label for="directCallRuleIdEdgeDecisioning">Direct Call rule id (after Edge)</label>
@@ -809,12 +803,7 @@
   const LS_EMAIL = 'aep-cd-live-email';
   const DEFAULT_EDGE_CONFIG_ID = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
   const ADOBE_LAUNCH_SRC = 'https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js';
-  const DSN_SPOOF_DEFAULT_PAGE_URL = 'https://dsn.adobe.com/web/apalmer-I018/home';
   const HERO_CHANNEL_LOCATION = 'travel-hero-banner';
-  const DSN_SPOOF_DECISION_SCOPES = [
-    'web://dsn.adobe.com/apalmer-I018#' + HERO_CHANNEL_LOCATION,
-    'web://dsn.adobe.com/apalmer-I018#TopRibbon',
-  ];
   const EDGE_LAB_PATH = '/profile-viewer/content-decision-live-edge.html';
   /** DevTools: filter console by this string */
   const LOG_PREFIX = '[content-decision-live-edge]';
@@ -868,53 +857,26 @@
 
   (function initEdgeFieldsFromStorage() {
     try {
-      migrateLegacyDsnSiteIdInStorage();
       var ec = localStorage.getItem('aep-edge-config-id');
       var sc = localStorage.getItem('aep-decision-scopes');
       var fc = localStorage.getItem('aep-edge-force-configure');
-      var spoof = localStorage.getItem('aep-spoof-dsn');
-      var spoofUrl = localStorage.getItem('aep-spoof-dsn-url');
       var dcEn = localStorage.getItem('aep-direct-call-enabled');
       var dcEdge = localStorage.getItem('aep-direct-call-edge-id');
       var localPath = localStorage.getItem('aep-cd-edge-local-path');
       document.getElementById('edgeConfigId').value = ec || DEFAULT_EDGE_CONFIG_ID;
       if (sc) document.getElementById('decisionScopes').value = sc;
       if (fc === '1') document.getElementById('edgeForceConfigure').checked = true;
-      if (localPath === '0') {
-        document.getElementById('localChannelPath').checked = false;
-        if (spoof === '1') document.getElementById('spoofDsnWebContext').checked = true;
-      } else if (spoof === '1') {
-        document.getElementById('spoofDsnWebContext').checked = true;
-        document.getElementById('localChannelPath').checked = false;
-      }
-      if (spoofUrl) document.getElementById('spoofDsnPageUrl').value = spoofUrl;
+      if (localPath === '0') document.getElementById('localChannelPath').checked = false;
       if (dcEn === '0') document.getElementById('directCallAfterSendEvent').checked = false;
       else if (dcEn === '1') document.getElementById('directCallAfterSendEvent').checked = true;
       if (dcEdge) document.getElementById('directCallRuleIdEdgeDecisioning').value = dcEdge;
     } catch (e) {}
   })();
 
-  function migrateLegacyDsnSiteIdInStorage() {
-    var typo = 'apalmer-l018';
-    var urlKey = 'aep-spoof-dsn-url';
-    var u = localStorage.getItem(urlKey);
-    if (u && u.indexOf(typo) !== -1) {
-      localStorage.setItem(urlKey, u.replace(/apalmer-l018/g, 'apalmer-I018'));
-    }
-    var scKey = 'aep-decision-scopes';
-    var sc = localStorage.getItem(scKey);
-    if (sc && sc.indexOf(typo) !== -1) {
-      sc = sc.replace(/apalmer-l018/g, 'apalmer-I018');
-      localStorage.setItem(scKey, sc);
-    }
-  }
-
   function persistEdgeFields() {
     var ec = document.getElementById('edgeConfigId').value.trim();
     var sc = document.getElementById('decisionScopes').value.trim();
     var fc = document.getElementById('edgeForceConfigure').checked;
-    var spoof = document.getElementById('spoofDsnWebContext').checked;
-    var spoofUrl = document.getElementById('spoofDsnPageUrl').value.trim();
     var localCh = document.getElementById('localChannelPath').checked;
     if (ec) localStorage.setItem('aep-edge-config-id', ec);
     else localStorage.removeItem('aep-edge-config-id');
@@ -922,41 +884,11 @@
     else localStorage.removeItem('aep-decision-scopes');
     localStorage.setItem('aep-edge-force-configure', fc ? '1' : '0');
     localStorage.setItem('aep-cd-edge-local-path', localCh ? '1' : '0');
-    localStorage.setItem('aep-spoof-dsn', spoof ? '1' : '0');
-    if (spoofUrl) localStorage.setItem('aep-spoof-dsn-url', spoofUrl);
-    else localStorage.removeItem('aep-spoof-dsn-url');
     var dcEdge = document.getElementById('directCallRuleIdEdgeDecisioning').value.trim();
     var dcAfter = document.getElementById('directCallAfterSendEvent').checked;
     localStorage.setItem('aep-direct-call-enabled', dcAfter ? '1' : '0');
     if (dcEdge) localStorage.setItem('aep-direct-call-edge-id', dcEdge);
     else localStorage.removeItem('aep-direct-call-edge-id');
-  }
-
-  function getExpectedDsnSitePathFromScopes() {
-    var s = DSN_SPOOF_DECISION_SCOPES[0];
-    var m = s && s.match(/^web:\/\/dsn\.adobe\.com\/([^#]+)#/);
-    return m ? m[1] : null;
-  }
-
-  function updateSpoofUrlMismatchHint() {
-    var el = document.getElementById('spoofUrlMismatchHint');
-    if (!el) return;
-    var spoofOn = document.getElementById('spoofDsnWebContext').checked;
-    var url = document.getElementById('spoofDsnPageUrl').value.trim();
-    var path = getExpectedDsnSitePathFromScopes();
-    if (!spoofOn || !path) {
-      el.hidden = true;
-      el.textContent = '';
-      return;
-    }
-    if (url.indexOf(path) !== -1) {
-      el.hidden = true;
-      el.textContent = '';
-      return;
-    }
-    el.hidden = false;
-    el.textContent =
-      'Spoof URL should contain “' + path + '” to match default AJO scopes.';
   }
 
   function parseScopes() {
@@ -1081,18 +1013,7 @@
   document.getElementById('edgeForceConfigure').addEventListener('change', persistEdgeFields);
   document.getElementById('directCallRuleIdEdgeDecisioning').addEventListener('blur', persistEdgeFields);
   document.getElementById('directCallAfterSendEvent').addEventListener('change', persistEdgeFields);
-  document.getElementById('localChannelPath').addEventListener('change', function () {
-    if (this.checked) document.getElementById('spoofDsnWebContext').checked = false;
-    persistEdgeFields();
-    updateSpoofUrlMismatchHint();
-  });
-  document.getElementById('spoofDsnWebContext').addEventListener('change', function () {
-    if (this.checked) document.getElementById('localChannelPath').checked = false;
-    persistEdgeFields();
-    updateSpoofUrlMismatchHint();
-  });
-  document.getElementById('spoofDsnPageUrl').addEventListener('input', updateSpoofUrlMismatchHint);
-  updateSpoofUrlMismatchHint();
+  document.getElementById('localChannelPath').addEventListener('change', persistEdgeFields);
 
   function withSandboxPlatformHeaders(payload) {
     var base = payload && typeof payload === 'object' ? payload : {};
@@ -1233,12 +1154,8 @@
     var forceCfg = document.getElementById('edgeForceConfigure').checked;
     var decisionScopes = parseScopes();
     var localLab = document.getElementById('localChannelPath').checked;
-    var spoofDsn = document.getElementById('spoofDsnWebContext').checked;
-    var spoofPageUrl = document.getElementById('spoofDsnPageUrl').value.trim() || DSN_SPOOF_DEFAULT_PAGE_URL;
     if (localLab && !decisionScopes.length) {
       decisionScopes = getEdgeLabDecisionScopes();
-    } else if (spoofDsn && !decisionScopes.length) {
-      decisionScopes = DSN_SPOOF_DECISION_SCOPES.slice();
     }
     var email = document.getElementById('cdLiveEmail').value.trim();
     var ecidRaw =
@@ -1246,7 +1163,6 @@
         ? String(opts.profileEcid).trim()
         : (lastProfileEcid || '').trim();
     lastIdentityMapSentForDebug = null;
-    updateSpoofUrlMismatchHint();
     if (forceCfg && edgeConfigId) {
       if (alloyConfiguredFor !== edgeConfigId) {
         try {
@@ -1260,11 +1176,9 @@
     }
     var pageUrl = localLab
       ? getEdgeLabPageUrl()
-      : spoofDsn && spoofPageUrl
-        ? spoofPageUrl
-        : typeof location !== 'undefined'
-          ? location.href
-          : '';
+      : typeof location !== 'undefined'
+        ? location.href
+        : '';
     var xdm = {
       eventType: 'web.webpagedetails.pageViews',
       web: {
@@ -1272,9 +1186,7 @@
           URL: pageUrl,
           name: localLab
             ? 'AEP Profile Viewer — Decisioning lab (Edge)'
-            : spoofDsn
-              ? 'DSN home (spoofed)'
-              : 'AEP Profile Viewer',
+            : 'AEP Profile Viewer',
         },
       },
     };

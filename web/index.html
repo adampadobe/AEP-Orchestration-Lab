@@ -668,7 +668,7 @@
         <h2>3. Content decisioning (Edge)</h2>
         <p class="hint">Adobe Launch and the Web SDK are embedded <strong>only</strong> on
           <a href="/profile-viewer/content-decision-live-edge.html">Decisioning lab (Edge)</a>
-          (they used to load on this <code>index.html</code> page). Edge UI — datastream, scopes, DSN spoof, <code>sendEvent</code>, hero preview — runs there. Hidden inputs below keep the same localStorage keys in sync for tooling that still reads this page.</p>
+          (they used to load on this <code>index.html</code> page). Edge UI — datastream, scopes, <code>sendEvent</code>, hero preview — runs there. Hidden inputs below keep the same localStorage keys in sync for tooling that still reads this page.</p>
         <div class="actions">
           <a class="primary" href="/profile-viewer/content-decision-live-edge.html">Open Decisioning lab (Edge)</a>
         </div>
@@ -677,9 +677,6 @@
           <input id="edgeForceConfigure" type="checkbox" tabindex="-1">
           <input id="decisionScopes" type="text" autocomplete="off" tabindex="-1">
           <input id="localChannelPath" type="checkbox" tabindex="-1">
-          <input id="spoofDsnWebContext" type="checkbox" tabindex="-1">
-          <input id="spoofDsnPageUrl" type="url" value="https://dsn.adobe.com/web/apalmer-I018/home" autocomplete="off" tabindex="-1">
-          <p id="spoofUrlMismatchHint" class="status err" hidden></p>
           <input id="directCallAfterSendEvent" type="checkbox" checked tabindex="-1">
           <input id="directCallRuleIdEdgeDecisioning" type="text" value="experience-decisioning-lab" autocomplete="off" tabindex="-1">
           <input id="directCallRuleIdGetDecisions" type="text" value="get.decisions" autocomplete="off" tabindex="-1">
@@ -875,12 +872,7 @@
 
     const DEFAULT_EDGE_CONFIG_ID = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
     const ADOBE_LAUNCH_SRC = 'https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js';
-    const DSN_SPOOF_DEFAULT_PAGE_URL = 'https://dsn.adobe.com/web/apalmer-I018/home';
     const HERO_CHANNEL_LOCATION = 'travel-hero-banner';
-    const DSN_SPOOF_DECISION_SCOPES = [
-      'web://dsn.adobe.com/apalmer-I018#' + HERO_CHANNEL_LOCATION,
-      'web://dsn.adobe.com/apalmer-I018#TopRibbon',
-    ];
     const LOCAL_LAB_PATH_SEGMENT = 'aep-decisioning-lab';
 
     function getLocalLabPageUrl() {
@@ -894,20 +886,16 @@
       const base = `web://${h}/${LOCAL_LAB_PATH_SEGMENT}`;
       return [`${base}#${HERO_CHANNEL_LOCATION}`, `${base}#TopRibbon`];
     }
-    /** Fix typo: live DSN uses apalmer-I018 (capital I); older lab used apalmer-l018 (lowercase L). */
+    /** Fix typo in saved scopes: apalmer-I018 vs apalmer-l018; normalize hero fragment name. */
     function migrateLegacyDsnSiteIdInStorage() {
       const typo = 'apalmer-l018';
-      const urlKey = 'aep-spoof-dsn-url';
-      const u = localStorage.getItem(urlKey);
-      if (u && u.includes(typo)) {
-        localStorage.setItem(urlKey, u.replace(/apalmer-l018/g, 'apalmer-I018'));
-      }
       const scKey = 'aep-decision-scopes';
       let sc = localStorage.getItem(scKey);
       if (sc && sc.includes(typo)) {
         sc = sc.replace(/apalmer-l018/g, 'apalmer-I018');
         localStorage.setItem(scKey, sc);
       }
+      sc = localStorage.getItem(scKey);
       if (sc && sc.includes('#hero-banner') && !sc.includes('travel-hero-banner')) {
         sc = sc.replace(/#hero-banner/g, '#travel-hero-banner');
         localStorage.setItem(scKey, sc);
@@ -918,8 +906,6 @@
       const ec = localStorage.getItem('aep-edge-config-id');
       const sc = localStorage.getItem('aep-decision-scopes');
       const fc = localStorage.getItem('aep-edge-force-configure');
-      const spoof = localStorage.getItem('aep-spoof-dsn');
-      const spoofUrl = localStorage.getItem('aep-spoof-dsn-url');
       const dcEn = localStorage.getItem('aep-direct-call-enabled');
       const dcEdge = localStorage.getItem('aep-direct-call-edge-id');
       const dcGet = localStorage.getItem('aep-direct-call-get-decisions-id');
@@ -930,11 +916,7 @@
       if (fc === '1') document.getElementById('edgeForceConfigure').checked = true;
       if (localPath === '1') {
         document.getElementById('localChannelPath').checked = true;
-        document.getElementById('spoofDsnWebContext').checked = false;
-      } else if (spoof === '1') {
-        document.getElementById('spoofDsnWebContext').checked = true;
       }
-      if (spoofUrl) document.getElementById('spoofDsnPageUrl').value = spoofUrl;
       if (dcEn === '0') document.getElementById('directCallAfterSendEvent').checked = false;
       else if (dcEn === '1') document.getElementById('directCallAfterSendEvent').checked = true;
       if (dcEdge) document.getElementById('directCallRuleIdEdgeDecisioning').value = dcEdge;
@@ -1226,8 +1208,6 @@
       const ec = document.getElementById('edgeConfigId').value.trim();
       const sc = document.getElementById('decisionScopes').value.trim();
       const fc = document.getElementById('edgeForceConfigure').checked;
-      const spoof = document.getElementById('spoofDsnWebContext').checked;
-      const spoofUrl = document.getElementById('spoofDsnPageUrl').value.trim();
       const localCh = document.getElementById('localChannelPath').checked;
       if (ec) localStorage.setItem('aep-edge-config-id', ec);
       else localStorage.removeItem('aep-edge-config-id');
@@ -1235,9 +1215,6 @@
       else localStorage.removeItem('aep-decision-scopes');
       localStorage.setItem('aep-edge-force-configure', fc ? '1' : '0');
       localStorage.setItem('aep-local-lab-path', localCh ? '1' : '0');
-      localStorage.setItem('aep-spoof-dsn', spoof ? '1' : '0');
-      if (spoofUrl) localStorage.setItem('aep-spoof-dsn-url', spoofUrl);
-      else localStorage.removeItem('aep-spoof-dsn-url');
       const dcEdge = document.getElementById('directCallRuleIdEdgeDecisioning').value.trim();
       const dcGet = document.getElementById('directCallRuleIdGetDecisions').value.trim();
       const dcAfter = document.getElementById('directCallAfterSendEvent').checked;
@@ -1291,11 +1268,7 @@
     document.getElementById('directCallRuleIdEdgeDecisioning').addEventListener('blur', persistEdgeFields);
     document.getElementById('directCallRuleIdGetDecisions').addEventListener('blur', persistEdgeFields);
     document.getElementById('directCallAfterSendEvent').addEventListener('change', persistEdgeFields);
-    document.getElementById('localChannelPath').addEventListener('change', function () {
-      if (this.checked) document.getElementById('spoofDsnWebContext').checked = false;
-      persistEdgeFields();
-      updateSpoofUrlMismatchHint();
-    });
+    document.getElementById('localChannelPath').addEventListener('change', persistEdgeFields);
     document.getElementById('edgeConfigId').addEventListener('blur', persistEdgeFields);
     document.getElementById('decisionScopes').addEventListener('blur', persistEdgeFields);
     document.getElementById('edgeForceConfigure').addEventListener('change', persistEdgeFields);
@@ -1311,45 +1284,6 @@
       document.getElementById(id).addEventListener('blur', persistStreamingFields);
     });
     document.getElementById('streamingStrictValidation').addEventListener('change', persistStreamingFields);
-
-    function getExpectedDsnSitePathFromScopes() {
-      const s = DSN_SPOOF_DECISION_SCOPES[0];
-      const m = s && s.match(/^web:\/\/dsn\.adobe\.com\/([^#]+)#/);
-      return m ? m[1] : null;
-    }
-
-    function updateSpoofUrlMismatchHint() {
-      const el = document.getElementById('spoofUrlMismatchHint');
-      if (!el) return;
-      const spoofOn = document.getElementById('spoofDsnWebContext').checked;
-      const url = document.getElementById('spoofDsnPageUrl').value.trim();
-      const path = getExpectedDsnSitePathFromScopes();
-      if (!spoofOn || !path) {
-        el.hidden = true;
-        el.textContent = '';
-        return;
-      }
-      if (url.includes(path)) {
-        el.hidden = true;
-        el.textContent = '';
-        return;
-      }
-      el.hidden = false;
-      el.textContent =
-        'Spoof URL should contain “' +
-        path +
-        '” to match the default AJO scopes. Typos (e.g. truncated site id, or l018 vs I018) prevent matching the same surfaces as on DSN.';
-    }
-
-    document.getElementById('spoofDsnWebContext').addEventListener('change', function () {
-      if (this.checked) document.getElementById('localChannelPath').checked = false;
-      persistEdgeFields();
-      updateSpoofUrlMismatchHint();
-    });
-    document.getElementById('spoofDsnPageUrl').addEventListener('input', updateSpoofUrlMismatchHint);
-    document.getElementById('spoofDsnPageUrl').addEventListener('change', updateSpoofUrlMismatchHint);
-    document.getElementById('spoofDsnPageUrl').addEventListener('blur', updateSpoofUrlMismatchHint);
-    updateSpoofUrlMismatchHint();
 
     function parseScopes() {
       const raw = document.getElementById('decisionScopes').value.trim();
@@ -2117,7 +2051,7 @@
         wrap.hidden = true;
         empty.hidden = false;
         empty.textContent =
-          'No decisions[] or propositions[] in this response. Check spoof URL vs scope site id (e.g. apalmer-I018), identity, and eligibility. If the console shows a 502 / xdm.segmentation error, that is an Edge-side failure — retry later or switch sandbox.';
+          'No decisions[] or propositions[] in this response. Check decision scopes vs your channel config, identity, and eligibility. If the console shows a 502 / xdm.segmentation error, that is an Edge-side failure — retry later or switch sandbox.';
         return;
       }
       empty.hidden = true;
@@ -2168,12 +2102,8 @@
       const forceCfg = document.getElementById('edgeForceConfigure').checked;
       let decisionScopes = parseScopes();
       const localLab = document.getElementById('localChannelPath').checked;
-      const spoofDsn = document.getElementById('spoofDsnWebContext').checked;
-      const spoofPageUrl = document.getElementById('spoofDsnPageUrl').value.trim() || DSN_SPOOF_DEFAULT_PAGE_URL;
       if (localLab && !decisionScopes.length) {
         decisionScopes = getLocalLabDecisionScopes();
-      } else if (spoofDsn && !decisionScopes.length) {
-        decisionScopes = DSN_SPOOF_DECISION_SCOPES.slice();
       }
       const email = document.getElementById('nsValue').value.trim();
       const ecidRaw =
@@ -2182,7 +2112,6 @@
           : (lastProfileEcid || '').trim();
       const ecid = ecidRaw;
       lastIdentityMapSentForDebug = null;
-      updateSpoofUrlMismatchHint();
       if (forceCfg && edgeConfigId) {
         if (alloyConfiguredFor !== edgeConfigId) {
           try {
@@ -2196,11 +2125,9 @@
       }
       const pageUrl = localLab
         ? getLocalLabPageUrl()
-        : spoofDsn && spoofPageUrl
-          ? spoofPageUrl
-          : typeof location !== 'undefined'
-            ? location.href
-            : '';
+        : typeof location !== 'undefined'
+          ? location.href
+          : '';
       const xdm = {
         eventType: 'web.webpagedetails.pageViews',
         web: {
@@ -2208,9 +2135,7 @@
             URL: pageUrl,
             name: localLab
               ? 'AEP Decisioning lab (local channel path)'
-              : spoofDsn
-                ? 'DSN home (spoofed for lab)'
-                : 'AEP Decisioning lab',
+              : 'AEP Decisioning lab',
           },
         },
       };
