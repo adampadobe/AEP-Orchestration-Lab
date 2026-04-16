@@ -597,42 +597,6 @@
     if (liveRegion) liveRegion.textContent = 'Tile selected — drag to move, corners to resize.';
   }
 
-  /**
-   * Single-click on a selected connector stroke inserts a bend (junction) on the nearest segment.
-   * The first click after changing which line is selected only selects — use a second click on the
-   * stroke to add a bend (pointerdown sets archUserLineConnectorBendSkipNextClick).
-   */
-  function archUserLineOnConnectorStrokeClick(e) {
-    if (!archIsEditMode()) return;
-    if (customBoxDrawMode) return;
-    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
-    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
-    if (e.target && e.target.closest && e.target.closest('.arch-user-line-handle')) return;
-    var hit = e.target.closest && e.target.closest('.arch-user-line-hit, .arch-user-line');
-    if (!hit) return;
-    var lid = hit.getAttribute('data-user-line-id');
-    if (!lid || lid !== userLines.selectedId) return;
-    if (archUserLineConnectorBendSkipNextClick) return;
-    var ln = archUserLineFindById(lid);
-    if (!ln || !archUserLineIsConnector(ln) || !archDrag.svg) return;
-    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
-    var ni = archUserLineInsertBendNear(ln, p.x, p.y);
-    if (ni < 0) {
-      archUserLineRender();
-      return;
-    }
-    if (ln.sourcesDividerLocal) {
-      delete ln.sourcesDividerLocal;
-    }
-    userLines.selectedHandleIdx = ni;
-    e.preventDefault();
-    e.stopPropagation();
-    archUserLinePersist();
-    archUndoMaybePushSnapshot();
-    archUserLineRender();
-    if (liveRegion) liveRegion.textContent = 'Added bend point — drag handles to reshape.';
-  }
-
   function qs(sel, root) {
     return (root || document).querySelector(sel);
   }
@@ -1893,12 +1857,6 @@
     selectedHandleIdx: null,
   };
 
-  /**
-   * Set on pointerdown when the hit line differs from the prior selection — the following click
-   * only finalizes selection, it must not insert a bend (cleared on document click, bubble).
-   */
-  var archUserLineConnectorBendSkipNextClick = false;
-
   /** Dragging connector vertex handles (Edit mode). */
   var archUserLineEditDrag = {
     active: false,
@@ -2081,6 +2039,11 @@
 
   function archLineFloatSetTool(t) {
     lineDefaults.lineTool = t || 'arrow';
+    if (lineDefaults.lineTool === 'junction') {
+      archUserLineClearPending();
+      archUserLineRemoveDrawListeners();
+      if (archViewport) archViewport.classList.remove('arch-user-line-draw-pending');
+    }
     archLineDefaultsSave();
     var bar = qs('#archLineFloatBar');
     if (bar) {
@@ -2212,28 +2175,6 @@
     archLineFloatColorPopoverClose();
   }
 
-  function archLineFloatSyncBidirUi(sel) {
-    var btn = qs('#archLineFloatBidir');
-    if (!btn) return;
-    if (!sel || archUserLineIsFreehandLine(sel)) {
-      btn.disabled = true;
-      btn.setAttribute('aria-pressed', 'false');
-      btn.classList.remove('is-active');
-      return;
-    }
-    var la = archUserLineGetLineArrows(sel);
-    if (la === 'none') {
-      btn.disabled = true;
-      btn.setAttribute('aria-pressed', 'false');
-      btn.classList.remove('is-active');
-      return;
-    }
-    btn.disabled = false;
-    var on = la === 'both';
-    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    btn.classList.toggle('is-active', on);
-  }
-
   function archLineFloatSetHex(hex) {
     var n = archLineHexParseStrict(String(hex || ''));
     if (!n) n = '#308FFF';
@@ -2253,6 +2194,7 @@
     if (!ln) return;
     archLineFloatSetHex(ln.stroke || '#308fff');
     archLineFloatSetW(ln.strokeWidth != null ? ln.strokeWidth : 2);
+    if (archLineFloatGetTool() === 'junction') return;
     if (archUserLineIsFreehandLine(ln)) archLineFloatSetTool('freehand');
     else if (ln.dashStyle === 'dotted') archLineFloatSetTool('dotted');
     else {
@@ -2275,6 +2217,12 @@
       return;
     }
     var t = lineDefaults.lineTool;
+    if (t === 'junction') {
+      archUserLineRender();
+      archUserLinePersist();
+      archUndoMaybePushSnapshot();
+      return;
+    }
     if (t !== 'divider' && t !== 'freehand') {
       if (t === 'dotted') ln.dashStyle = 'dotted';
       else ln.dashStyle = 'solid';
@@ -2283,7 +2231,6 @@
       else if (t === 'arrow' || t === 'dotted') ln.lineArrows = 'end';
       ln.bidirectional = ln.lineArrows === 'both';
     }
-    archLineFloatSyncBidirUi(ln);
     archUserLineRender();
     archUserLinePersist();
     archUndoMaybePushSnapshot();
@@ -2386,8 +2333,9 @@
     bar.addEventListener('click', function (e) {
       var tbtn = e.target.closest && e.target.closest('.arch-line-float-tool[data-arch-line-tool]');
       if (tbtn) {
-        archLineFloatSetTool(tbtn.getAttribute('data-arch-line-tool'));
-        if (userLines.selectedId) {
+        var nt = tbtn.getAttribute('data-arch-line-tool');
+        archLineFloatSetTool(nt);
+        if (userLines.selectedId && nt !== 'junction') {
           var ln0 = archUserLineGetSelected();
           archLineFloatApplySelectedFromBar();
           if (ln0) archLineFloatSyncFromLine(ln0);
@@ -2473,24 +2421,6 @@
           archLineFloatSyncColorPopoverInputs();
           if (err) err.hidden = false;
         }
-      });
-    }
-    var bdir = qs('#archLineFloatBidir');
-    if (bdir && !bdir.getAttribute('data-arch-bidir')) {
-      bdir.setAttribute('data-arch-bidir', '1');
-      bdir.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var ln = archUserLineGetSelected();
-        if (!ln || archUserLineIsFreehandLine(ln)) return;
-        var la = archUserLineGetLineArrows(ln);
-        if (la === 'none' || la === null) return;
-        ln.lineArrows = la === 'both' ? 'end' : 'both';
-        ln.bidirectional = ln.lineArrows === 'both';
-        archLineFloatSetTool(ln.lineArrows === 'both' ? 'doubleArrow' : ln.dashStyle === 'dotted' ? 'dotted' : 'arrow');
-        archUserLineRender();
-        archUserLinePersist();
-        archUndoMaybePushSnapshot();
-        archLineFloatSyncBidirUi(ln);
       });
     }
     var u = qs('#archLineFloatUndo');
@@ -2789,6 +2719,26 @@
     if (dFromA < USER_LINE_INSERT_MIN_FROM_VERTEX || dFromB < USER_LINE_INSERT_MIN_FROM_VERTEX) return -1;
     pts.splice(bestI + 1, 0, { x: bestProj.x, y: bestProj.y });
     return bestI + 1;
+  }
+
+  /** Inserts a bend on `ln` at clientX/clientY; updates selection handle and persists. Returns true if inserted. */
+  function archUserLineTryInsertBendAtClient(ln, clientX, clientY) {
+    if (!ln || !archUserLineIsConnector(ln) || !archDrag.svg) return false;
+    var p = svgClientToSvg(archDrag.svg, clientX, clientY);
+    var ni = archUserLineInsertBendNear(ln, p.x, p.y);
+    if (ni < 0) {
+      archUserLineRender();
+      return false;
+    }
+    if (ln.sourcesDividerLocal) delete ln.sourcesDividerLocal;
+    userLines.selectedHandleIdx = ni;
+    archUserLinePersist();
+    archUndoMaybePushSnapshot();
+    archUserLineRender();
+    if (liveRegion) {
+      liveRegion.textContent = 'Corner point added — drag to bend (hold Shift for 45° snaps).';
+    }
+    return true;
   }
 
   function archUserLinePathDFromLine(ln) {
@@ -4593,7 +4543,6 @@
       archEditorSetPanel('sources');
       archLineFloatSyncFromLine(sel);
     }
-    archLineFloatSyncBidirUi(sel);
     archEditorApplyModesForCurrentSelection();
   }
 
@@ -4861,7 +4810,6 @@
     if (!userLines.drawMode) {
       if (lineHit) {
         var lidPick = lineHit.getAttribute('data-user-line-id');
-        archUserLineConnectorBendSkipNextClick = !!(lidPick && userLines.selectedId !== lidPick);
         userLines.selectedHandleIdx = null;
         userLines.selectedId = lidPick;
         archCustomBoxSelectedId = null;
@@ -4875,9 +4823,12 @@
     }
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
+    var floatTool = archLineFloatGetTool();
+    if (floatTool === 'junction' && !lineHit) {
+      return;
+    }
     if (lineHit) {
       var lidPickDm = lineHit.getAttribute('data-user-line-id');
-      archUserLineConnectorBendSkipNextClick = !!(lidPickDm && userLines.selectedId !== lidPickDm);
       userLines.selectedHandleIdx = null;
       userLines.selectedId = lidPickDm;
       archCustomBoxSelectedId = null;
@@ -4885,6 +4836,10 @@
       archCustomBoxesRender();
       archUserLineRender();
       archUserLineSyncPropsHud();
+      if (floatTool === 'junction') {
+        var lnJ = archUserLineFindById(lidPickDm);
+        if (lnJ) archUserLineTryInsertBendAtClient(lnJ, e.clientX, e.clientY);
+      }
       e.stopPropagation();
       return;
     }
@@ -5245,17 +5200,6 @@
     archDrag.svg.addEventListener('pointerdown', archUserLineHandlePointerDown, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
-    archDrag.svg.addEventListener('click', archUserLineOnConnectorStrokeClick, false);
-    if (!document.documentElement.getAttribute('data-arch-line-stroke-click-reset')) {
-      document.documentElement.setAttribute('data-arch-line-stroke-click-reset', '1');
-      document.addEventListener(
-        'click',
-        function () {
-          archUserLineConnectorBendSkipNextClick = false;
-        },
-        false
-      );
-    }
     archDrag.svg.addEventListener('dblclick', archDiagramDblClickSelect, true);
     archDrag.svg.addEventListener('dblclick', archLabelDblClick, true);
     archDrag.svg.addEventListener('pointerdown', archResizePointerDown, false);

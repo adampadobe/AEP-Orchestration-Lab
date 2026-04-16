@@ -1,5 +1,5 @@
 /**
- * Smoke test: Lines tool — draw a connector, single-click the stroke to add bend(s).
+ * Smoke test: Lines tool — draw a connector, Junction tool, click stroke to add bend(s).
  * Run from repo root: node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs
  * Requires: npm install -D playwright (chromium will download on first run).
  */
@@ -48,40 +48,32 @@ async function main() {
     throw new Error(`Expected 2 endpoint handles after two-click draw, got ${afterDraw}`);
   }
 
-  /**
-   * Fire click with correct clientX/Y on the hit path (matches archUserLineOnConnectorStrokeClick).
-   */
+  await page.locator('#archLineFloatBar [data-arch-line-tool="junction"]').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#archLineFloatBar [data-arch-line-tool="junction"]').click();
+
+  /** Full mouse click on hit path (pointerdown inserts bend in junction mode). */
   async function clickOnHitPathFraction(frac) {
-    const ok = await page.evaluate((f) => {
+    const coords = await page.evaluate((f) => {
       const list = document.querySelectorAll('#layer-user-lines .arch-user-line-hit');
       const el = list[list.length - 1];
-      if (!el) return false;
+      if (!el) return null;
       const len = el.getTotalLength();
       const p = el.getPointAtLength(len * f);
       const svg = el.ownerSVGElement;
-      if (!svg) return false;
+      if (!svg) return null;
       const ptSvg = svg.createSVGPoint();
       ptSvg.x = p.x;
       ptSvg.y = p.y;
       const ctm = el.getScreenCTM();
-      if (!ctm) return false;
+      if (!ctm) return null;
       const scr = ptSvg.matrixTransform(ctm);
-      const ev = new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        clientX: scr.x,
-        clientY: scr.y,
-        button: 0,
-      });
-      el.dispatchEvent(ev);
-      return true;
+      return { x: scr.x, y: scr.y };
     }, frac);
-    if (!ok) throw new Error('Could not dispatch click on hit path');
+    if (!coords) throw new Error('Could not resolve hit path screen coords');
+    await page.mouse.click(coords.x, coords.y);
     await page.waitForTimeout(400);
   }
 
-  // Line is selected after draw — first stroke click adds a bend (skip only applies when changing selection).
   await clickOnHitPathFraction(0.5);
 
   const afterBend1 = await page.locator('#layer-user-line-handles .arch-user-line-handle').count();
