@@ -316,33 +316,8 @@
   }
 
   function archSelectionPanelSync() {
-    var panel = qs('#archEditSelectionPanel');
-    var txt = qs('#archEditSelectionText');
-    if (!panel || !txt) return;
-    if (!archIsEditMode()) {
-      panel.hidden = true;
-      archInspectorSync();
-      return;
-    }
-    panel.hidden = false;
-    var parts = [];
-    if (archSelection && archSelection.count() > 0) {
-      parts.push('Nodes: ' + archSelection.toArray().join(', '));
-    }
-    if (archCustomBoxSelectedId) {
-      var bx = archCustomBoxFind(archCustomBoxSelectedId);
-      parts.push(
-        'Custom: ' + (bx && bx.name ? bx.name : archCustomBoxSelectedId) + ' (node-cbox-' + archCustomBoxSelectedId + ')'
-      );
-    }
-    if (parts.length === 0) {
-      txt.textContent =
-        'None — click a tile, custom box, or connector to select it (Move and Labels turn on automatically when needed).';
-    } else {
-      txt.textContent = parts.join('\n');
-    }
-    archInspectorSync();
     archEditorApplyModesForCurrentSelection();
+    archInspectorSync();
   }
 
   /** Inspector: custom box (if selected) else single platform node (Edit mode). */
@@ -374,7 +349,7 @@
           Math.round(cb.w) +
           ' × ' +
           Math.round(cb.h) +
-          '\n\nUse the fields below for fill, outline, and name.';
+          '\n\nUse the floating Tools bar on the diagram for fill, outline, and name.';
         return;
       }
     }
@@ -401,7 +376,7 @@
       human +
       '\nElement id: ' +
       id +
-      '\n\nMove and Labels are enabled while this tile is selected — drag to move, corners to resize, double-click text to edit.';
+      '\n\nDrag to move, corners to resize, double-click text to edit.';
   }
 
   function archEditSelectionInit() {
@@ -632,12 +607,43 @@
     sec.classList.toggle('arch-editor-section--lines-float-active', hideChrome);
   }
 
+  /** Floating Canvas Tools bar (shapes + selected custom box) — opens from rail Tools tab. */
+  var archToolsFloatOpen = false;
+
+  function archToolsFloatSyncLineOffsetClass() {
+    if (!archViewport) return;
+    var lineBar = qs('#archLineFloatBar');
+    var lineVis = !!(lineBar && !lineBar.hidden && archIsEditMode());
+    archViewport.classList.toggle('arch-int-viewport--tools-float-line-offset', lineVis);
+  }
+
+  function archToolsFloatSyncPosition() {
+    archToolsFloatSyncLineOffsetClass();
+  }
+
+  function archToolsFloatSetOpen(on) {
+    archToolsFloatOpen = !!on;
+    var bar = qs('#archToolsFloatBar');
+    if (bar) bar.hidden = !archToolsFloatOpen;
+    if (archToolsFloatOpen) archToolsFloatSyncPosition();
+    if (archViewport) archViewport.classList.toggle('arch-int-viewport--tools-float-open', archToolsFloatOpen);
+  }
+
+  function archToolsFloatToggle() {
+    archToolsFloatSetOpen(!archToolsFloatOpen);
+  }
+
   /** Switch diagram editor rail tab (layout | highlights | sources | spectrum-icons | file). */
   function archEditorSetPanel(panelId) {
+    var prev = archEditorActivePanelId;
     archEditorActivePanelId = panelId || 'layout';
     try {
       localStorage.setItem(LS_ARCH_ACTIVE_TOOL, archGetActiveTool());
     } catch (e) {}
+    var editorPanel = qs('#archEditorPanel');
+    if (editorPanel) {
+      editorPanel.classList.toggle('arch-editor-panel--layout-float-only', archEditorActivePanelId === 'layout');
+    }
     $all('.arch-editor-section').forEach(function (sec) {
       var match = sec.getAttribute('data-arch-panel') === archEditorActivePanelId;
       sec.hidden = !match;
@@ -651,6 +657,11 @@
     if (archEditorActivePanelId === 'spectrum-icons') archSpectrumIconsPanelInit();
     archUserLineSyncDrawModeFromEditor();
     archEditorSyncLinesDockChrome();
+    if (archEditorActivePanelId !== 'layout') {
+      archToolsFloatSetOpen(false);
+    } else if (prev !== 'layout') {
+      archToolsFloatSetOpen(true);
+    }
   }
 
   function archHighlightsForState(stateIndex) {
@@ -954,6 +965,9 @@
       var dock = qs('#archEditorDock');
       if (dock) dock.hidden = !on;
       if (archViewport) archViewport.classList.toggle('arch-int-viewport--edit-mode', on);
+      archDragSetEnabled(on);
+      archLabelSetEnabled(on);
+      if (!on) archToolsFloatSetOpen(false);
       archUserLineSyncDrawModeFromEditor();
       archEditorSyncLinesDockChrome();
       archSyncPlaybackNav();
@@ -1008,7 +1022,14 @@
         var btn = e.target && e.target.closest && e.target.closest('.arch-editor-rail-btn');
         if (!btn) return;
         var pid = btn.getAttribute('data-arch-panel');
-        if (pid) archEditorSetPanel(pid);
+        if (!pid) return;
+        var prev = archEditorActivePanelId;
+        if (pid === 'layout' && prev === 'layout') {
+          archToolsFloatToggle();
+          return;
+        }
+        archEditorSetPanel(pid);
+        if (pid === 'layout') archToolsFloatSetOpen(true);
       });
     }
 
@@ -2256,6 +2277,7 @@
         pv.setAttribute('opacity', '0');
       }
     }
+    archToolsFloatSyncLineOffsetClass();
   }
 
   function archUserFreehandPointerMove(e) {
@@ -4059,6 +4081,7 @@
     archCustomBoxesRender();
     archUserLineRender();
     archUndoMaybePushSnapshot();
+    archToolsFloatSetOpen(true);
     if (liveRegion) liveRegion.textContent = 'Added ' + preset.name + ' shape.';
   }
 
@@ -5063,31 +5086,10 @@
     archLineFloatInit();
     archLineFloatUpdateVisibility();
 
-    var toggle = qs('#archDragToggle');
-    var labelToggle = qs('#archLabelToggle');
-    var customBoxDrawToggle = qs('#archCustomBoxDrawToggle');
     var reset = qs('#archDragReset');
     var masterSave = qs('#archMasterSave');
     var masterDl = qs('#archMasterDownload');
     var masterImport = qs('#archMasterImport');
-    if (toggle) {
-      toggle.checked = false;
-      toggle.addEventListener('change', function () {
-        archDragSetEnabled(toggle.checked);
-      });
-    }
-    if (labelToggle) {
-      labelToggle.checked = false;
-      labelToggle.addEventListener('change', function () {
-        archLabelSetEnabled(labelToggle.checked);
-      });
-    }
-    if (customBoxDrawToggle) {
-      customBoxDrawToggle.checked = false;
-      customBoxDrawToggle.addEventListener('change', function () {
-        archCustomBoxSetDrawMode(customBoxDrawToggle.checked);
-      });
-    }
     if (reset) {
       reset.addEventListener('click', function () {
         if (
@@ -5170,7 +5172,14 @@
         'keydown',
         function (e) {
           if (e.key !== 'Escape') return;
-          if (!archIsEditMode() || archGetActiveTool() !== 'lines') return;
+          if (!archIsEditMode()) return;
+          if (archToolsFloatOpen) {
+            if (e.target && e.target.closest && e.target.closest('#archToolsFloatBar')) return;
+            archToolsFloatSetOpen(false);
+            e.preventDefault();
+            return;
+          }
+          if (archGetActiveTool() !== 'lines') return;
           var cpop = qs('#archLineFloatColorPopover');
           if (cpop && !cpop.hidden) {
             archLineFloatColorPopoverClose();
@@ -5270,15 +5279,37 @@
 
     archDrag.svg.addEventListener('click', archEditSelectionOnSvgClick, false);
 
-    var editorPanelPal = qs('#archEditorPanel');
-    if (editorPanelPal && !editorPanelPal.getAttribute('data-arch-palette-ready')) {
-      editorPanelPal.setAttribute('data-arch-palette-ready', '1');
-      editorPanelPal.addEventListener('click', function (e) {
+    var toolsFloatPal = qs('#archToolsFloatBar');
+    if (toolsFloatPal && !toolsFloatPal.getAttribute('data-arch-palette-ready')) {
+      toolsFloatPal.setAttribute('data-arch-palette-ready', '1');
+      toolsFloatPal.addEventListener('click', function (e) {
         var btn = e.target.closest && e.target.closest('[data-arch-palette]');
         if (!btn) return;
         var k = btn.getAttribute('data-arch-palette');
         if (k) archPaletteAddPreset(k);
       });
+    }
+
+    var tfClose = qs('#archToolsFloatClose');
+    if (tfClose && !tfClose.getAttribute('data-arch-tf-close')) {
+      tfClose.setAttribute('data-arch-tf-close', '1');
+      tfClose.addEventListener('click', function () {
+        archToolsFloatSetOpen(false);
+      });
+    }
+
+    if (!document.documentElement.getAttribute('data-arch-tools-float-dismiss')) {
+      document.documentElement.setAttribute('data-arch-tools-float-dismiss', '1');
+      document.addEventListener(
+        'pointerdown',
+        function (e) {
+          if (!archToolsFloatOpen || !archIsEditMode()) return;
+          if (e.target && e.target.closest && e.target.closest('#archToolsFloatBar')) return;
+          if (e.target && e.target.closest && e.target.closest('.arch-editor-rail')) return;
+          archToolsFloatSetOpen(false);
+        },
+        false
+      );
     }
 
     var spectGrid = qs('#archSpectrumIconGrid');

@@ -441,12 +441,59 @@
                   </button>
                 </div>
               </div>
+              <div id="archToolsFloatBar" class="arch-line-float-bar arch-tools-float-bar arch-diagram-ui" hidden role="toolbar" aria-label="Canvas tools">
+                <div class="arch-line-float-seg arch-tools-float-shapes" role="group" aria-label="Add shapes">
+                  <button type="button" class="arch-line-float-btn" data-arch-palette="process" title="Add process (rounded box)">
+                    <span class="arch-tools-float-palette-ico" aria-hidden="true"><svg viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="3" width="24" height="14" rx="4" stroke="currentColor" stroke-width="1.75"/></svg></span>
+                  </button>
+                  <button type="button" class="arch-line-float-btn" data-arch-palette="datastore" title="Add data store">
+                    <span class="arch-tools-float-palette-ico" aria-hidden="true"><svg viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="14" cy="4.5" rx="10" ry="3" stroke="currentColor" stroke-width="1.5"/><path d="M4 4.5v11c0 1.7 4.5 3.5 10 3.5s10-1.8 10-3.5V4.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
+                  </button>
+                  <button type="button" class="arch-line-float-btn" data-arch-palette="external" title="Add external system">
+                    <span class="arch-tools-float-palette-ico" aria-hidden="true"><svg viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 16l5-14h14l-5 14H6z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg></span>
+                  </button>
+                  <button type="button" class="arch-line-float-btn" data-arch-palette="textnote" title="Add text note">
+                    <span class="arch-tools-float-palette-ico" aria-hidden="true"><svg viewBox="0 0 32 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="3" width="30" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 8h20M6 11.5h14" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg></span>
+                  </button>
+                </div>
+                <div id="archCustomBoxProps" class="arch-line-float-seg arch-tools-float-selected arch-diagram-ui" hidden aria-label="Selected shape">
+                  <label class="arch-tools-float-name-wrap"><span class="visually-hidden">Name</span>
+                    <input type="text" id="archCustomBoxNameInput" class="arch-tools-float-name-input arch-diagram-ui" maxlength="120" autocomplete="off" placeholder="Name" aria-label="Shape name"/>
+                  </label>
+                  <div id="archCustomBoxNormalColorFields" class="arch-tools-float-color-row">
+                    <label class="arch-tools-float-color-lab" title="Fill"><span class="visually-hidden">Fill</span>
+                      <input type="color" id="archCustomBoxFillInput" class="arch-tools-float-color-inp" value="#e5e7eb" aria-label="Fill color"/>
+                    </label>
+                    <label class="arch-tools-float-color-lab" title="Outline"><span class="visually-hidden">Outline</span>
+                      <input type="color" id="archCustomBoxStrokeInput" class="arch-tools-float-color-inp" value="#94a3b8" aria-label="Outline color"/>
+                    </label>
+                  </div>
+                  <div id="archCustomBoxNormalLabelFields" class="arch-tools-float-label-row" role="group" aria-label="Label size">
+                    <button type="button" class="arch-line-float-btn" id="archCustomBoxTextSmaller" title="Smaller label" aria-label="Decrease label size">−</button>
+                    <span id="archCustomBoxFontSizeDisplay" class="arch-tools-float-font-disp" aria-live="polite">8.5</span>
+                    <button type="button" class="arch-line-float-btn" id="archCustomBoxTextLarger" title="Larger label" aria-label="Increase label size">+</button>
+                  </div>
+                  <div class="arch-line-float-seg arch-tools-float-sel-actions" role="group" aria-label="Shape actions">
+                    <button type="button" class="arch-line-float-btn" id="archCustomBoxDuplicate" title="Duplicate">
+                      <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 012-2h10"/></svg>
+                    </button>
+                    <button type="button" class="arch-line-float-btn" id="archCustomBoxDelete" title="Delete">
+                      <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="arch-line-float-seg arch-line-float-actions" role="group" aria-label="Close">
+                  <button type="button" class="arch-line-float-btn" id="archToolsFloatClose" title="Close (Escape)">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
               <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Show editing tools">Show editing tools</button>
             </div>
 
             <aside class="arch-editor-dock arch-diagram-ui" id="archEditorDock" hidden>
               <div class="arch-editor-rail" role="tablist" aria-label="Diagram editor tools">
-                <button type="button" class="arch-editor-rail-btn is-active" data-arch-panel="layout" id="archEditorRailLayout" title="Draw, add shapes, and adjust boxes" aria-pressed="true">
+                <button type="button" class="arch-editor-rail-btn is-active" data-arch-panel="layout" id="archEditorRailLayout" title="Canvas tools — floating menu on the diagram" aria-pressed="true">
                   <span class="arch-editor-rail-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" focusable="false" class="arch-editor-rail-tools-logo">
                       <g fill="currentColor">
@@ -484,109 +531,7 @@
               </div>
               <div class="arch-editor-panel arch-int-hud" id="archEditorPanel">
                 <div class="arch-editor-section is-active" data-arch-panel="layout" id="archEditorSectionLayout" role="tabpanel" aria-labelledby="archEditorRailLayout">
-                  <p class="arch-editor-panel-heading">Canvas &amp; drawing</p>
-                  <p class="arch-tool-lead arch-tool-lead--compact">Choose a mode, then use the diagram. <span class="arch-tool-lead-links">Connectors: <strong>Lines</strong> · Undo: <strong>File</strong></span></p>
-                  <div id="archEditSelectionPanel" class="arch-edit-selection-panel" hidden>
-                    <p class="arch-edit-selection-heading">Selection</p>
-                    <p id="archEditSelectionText" class="arch-edit-selection-text" aria-live="polite">—</p>
-                    <div id="archEditInspector" class="arch-edit-inspector" hidden>
-                      <p class="arch-edit-inspector-heading">Inspector</p>
-                      <p id="archEditInspectorBody" class="arch-edit-inspector-body"></p>
-                    </div>
-                  </div>
-                  <div class="arch-tool-group arch-tool-group--modes">
-                    <h3 class="arch-tool-group-heading">Modes</h3>
-                    <div class="arch-tool-modes" role="toolbar" aria-label="Canvas interaction modes">
-                      <label class="arch-tool-mode" title="Drag and resize built-in Adobe tiles and custom boxes">
-                        <input type="checkbox" id="archDragToggle" class="visually-hidden arch-tool-mode-input"/>
-                        <span class="arch-tool-mode-body">
-                          <svg class="arch-tool-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/>
-                          </svg>
-                          <span class="arch-tool-mode-text">Move</span>
-                        </span>
-                      </label>
-                      <label class="arch-tool-mode" title="Drag label text, double-click to edit; built-in tiles and custom boxes">
-                        <input type="checkbox" id="archLabelToggle" class="visually-hidden arch-tool-mode-input"/>
-                        <span class="arch-tool-mode-body">
-                          <svg class="arch-tool-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-9a3.375 3.375 0 00-3.375 3.375V19.5m12.75-5.25v4.875a1.875 1.875 0 01-1.875 1.875H5.25A1.875 1.875 0 013.75 19.125v-4.875M9 4.875h6M9 4.875a1.875 1.875 0 00-1.875 1.875V9.75h7.5V6.75A1.875 1.875 0 0015 4.875H9z"/>
-                          </svg>
-                          <span class="arch-tool-mode-text">Labels</span>
-                        </span>
-                      </label>
-                      <label class="arch-tool-mode" title="Drag on the canvas to draw a new custom box">
-                        <input type="checkbox" id="archCustomBoxDrawToggle" class="visually-hidden arch-tool-mode-input"/>
-                        <span class="arch-tool-mode-body">
-                          <svg class="arch-tool-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v12a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18V6z"/>
-                            <path d="M8.25 12.75h7.5"/>
-                          </svg>
-                          <span class="arch-tool-mode-text">Draw box</span>
-                        </span>
-                      </label>
-                    </div>
-                    <p class="arch-tool-hint" role="note">Built-in gray tiles use <strong>Move</strong> and <strong>Labels</strong> (turn on Labels, then <strong>double-click</strong> label text to edit; row icons are fixed). Freeform outline: <strong>Draw box</strong>.</p>
-                  </div>
-                  <div class="arch-tool-group">
-                    <h3 class="arch-tool-group-heading">Add shapes</h3>
-                    <p class="arch-tool-hint arch-tool-hint--below-heading">Tap to drop a draggable custom shape. Icons match common diagram conventions.</p>
-                    <div class="arch-palette-block" aria-label="Preset shapes">
-                      <div class="arch-palette-grid">
-                        <button type="button" class="arch-palette-tile arch-diagram-ui" data-arch-palette="process" title="Add process-style box (rounded rectangle)">
-                          <span class="arch-palette-tile-graphic" aria-hidden="true">
-                            <svg viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="34" height="18" rx="5" stroke="currentColor" stroke-width="2"/></svg>
-                          </span>
-                          <span class="arch-palette-tile-label">Process</span>
-                        </button>
-                        <button type="button" class="arch-palette-tile arch-diagram-ui" data-arch-palette="datastore" title="Add data store (cylinder)">
-                          <span class="arch-palette-tile-graphic" aria-hidden="true">
-                            <svg viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="20" cy="6" rx="14" ry="4" stroke="currentColor" stroke-width="2"/><path d="M6 6v16c0 2.2 6.27 4 14 4s14-1.8 14-4V6" stroke="currentColor" stroke-width="2"/></svg>
-                          </span>
-                          <span class="arch-palette-tile-label">Data store</span>
-                        </button>
-                        <button type="button" class="arch-palette-tile arch-diagram-ui" data-arch-palette="external" title="Add external system box">
-                          <span class="arch-palette-tile-graphic" aria-hidden="true">
-                            <svg viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 22L16 6h20l-6 16H10z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                          </span>
-                          <span class="arch-palette-tile-label">External</span>
-                        </button>
-                        <button type="button" class="arch-palette-tile arch-palette-tile--wide arch-diagram-ui" data-arch-palette="textnote" title="Add wide text annotation box">
-                          <span class="arch-palette-tile-graphic" aria-hidden="true">
-                            <svg viewBox="0 0 56 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="52" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11h40M8 16h28" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                          </span>
-                          <span class="arch-palette-tile-label">Text note</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div id="archCustomBoxProps" class="arch-user-line-props arch-custom-box-props arch-tool-group--selected" hidden aria-label="Selected custom box">
-                    <h3 class="arch-tool-group-heading">Selected custom box</h3>
-                    <label class="arch-hud-label arch-hud-label--block">Name
-                      <input type="text" id="archCustomBoxNameInput" class="arch-custom-box-name-input" maxlength="120" autocomplete="off" aria-label="Custom box name"/>
-                    </label>
-                    <div id="archCustomBoxNormalColorFields">
-                    <label class="arch-hud-label arch-hud-label--block">Fill
-                      <input type="color" id="archCustomBoxFillInput" value="#e5e7eb" aria-label="Custom box fill color"/>
-                    </label>
-                    <label class="arch-hud-label arch-hud-label--block">Outline
-                      <input type="color" id="archCustomBoxStrokeInput" value="#94a3b8" aria-label="Custom box outline color"/>
-                    </label>
-                    </div>
-                    <div id="archCustomBoxNormalLabelFields">
-                    <span class="arch-hud-label arch-custom-box-text-size-row">
-                      Label size
-                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextSmaller" title="Decrease label text size" aria-label="Decrease label text size">−</button>
-                      <span id="archCustomBoxFontSizeDisplay" class="arch-custom-box-font-size-display" aria-live="polite">8.5</span>
-                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextLarger" title="Increase label text size" aria-label="Increase label text size">+</button>
-                    </span>
-                    <p class="arch-custom-box-text-size-hint">Click the label on the diagram, then use − or +.</p>
-                    </div>
-                    <div class="arch-custom-box-actions">
-                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxDuplicate" title="Duplicate this box">Duplicate</button>
-                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxDelete" title="Remove this box">Delete box</button>
-                    </div>
-                  </div>
+                  <p class="arch-tool-micro arch-tools-layout-hint">Shapes and selection controls are on the <strong>floating Tools bar</strong> on the diagram (rail: Tools). Connectors: <strong>Lines</strong> · Undo: <strong>File</strong>.</p>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="highlights" id="archEditorSectionHighlights" role="tabpanel" aria-labelledby="archEditorRailHighlights" hidden>
                   <p class="arch-editor-panel-heading">Tour highlights</p>
@@ -614,7 +559,7 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
                   <p class="arch-editor-panel-heading">Adobe Spectrum icons</p>
-                  <p class="arch-tool-lead arch-tool-lead--compact">Workflow icons from <a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum CSS Workflow Icons</a> (Apache-2.0, vendored under <code>vendor/spectrum-workflow-icons/</code>). Turn on <strong>Move</strong>, tap an icon to place it, then drag corners or edges to resize.</p>
+                  <p class="arch-tool-lead arch-tool-lead--compact">Workflow icons from <a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum CSS Workflow Icons</a> (Apache-2.0, vendored under <code>vendor/spectrum-workflow-icons/</code>). With <strong>Edit diagram</strong> on, tap an icon to place it, then drag corners or edges to resize.</p>
                   <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
                     <input type="search" id="archSpectrumIconSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter by name…" autocomplete="off" aria-label="Filter Spectrum icons"/>
                   </label>

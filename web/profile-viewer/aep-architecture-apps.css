@@ -727,7 +727,115 @@
  * Tie display:none to [hidden] explicitly (same pattern as event-tool.css / audit-events.css).
  */
 .arch-line-float-bar[hidden],
-#archLineFloatBar[hidden] {
+#archLineFloatBar[hidden],
+#archToolsFloatBar[hidden] {
+  display: none !important;
+}
+
+/* Canvas Tools — same shell as Lines; position stacked above Lines bar when both visible */
+.arch-tools-float-bar {
+  bottom: 0.65rem;
+  flex-wrap: wrap;
+  max-width: min(96vw, 42rem);
+  row-gap: 0.2rem;
+}
+
+.arch-int-viewport--tools-float-line-offset .arch-tools-float-bar:not([hidden]) {
+  bottom: 3.65rem;
+}
+
+.arch-tools-float-shapes {
+  gap: 0.08rem;
+}
+
+.arch-tools-float-palette-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  color: inherit;
+}
+
+.arch-tools-float-palette-ico svg {
+  width: 100%;
+  height: 100%;
+}
+
+.arch-tools-float-selected {
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.arch-tools-float-name-wrap {
+  flex: 1 1 7rem;
+  min-width: 6rem;
+  max-width: 12rem;
+}
+
+.arch-tools-float-name-input {
+  width: 100%;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border, #e4e6eb);
+  background: var(--dash-surface, #fff);
+  color: var(--dash-text, #1a1d21);
+}
+
+.arch-tools-float-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.arch-tools-float-color-lab {
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--dash-border, #e4e6eb);
+}
+
+.arch-tools-float-color-inp {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.arch-tools-float-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.arch-tools-float-font-disp {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 1.5rem;
+  text-align: center;
+  color: var(--dash-muted, #64748b);
+}
+
+.arch-tools-float-sel-actions {
+  gap: 0.08rem;
+}
+
+.arch-tools-layout-hint {
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+/* Layout tab: no side panel — only rail */
+#archEditorPanel.arch-editor-panel--layout-float-only {
   display: none !important;
 }
 
@@ -735,6 +843,12 @@ html[data-aep-theme='dark'] .arch-line-float-bar {
   background: rgba(30, 41, 59, 0.96);
   border-color: rgba(148, 163, 184, 0.35);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+html[data-aep-theme='dark'] .arch-tools-float-name-input {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #e5e7eb;
 }
 
 .arch-line-float-seg {
