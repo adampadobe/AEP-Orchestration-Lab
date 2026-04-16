@@ -67,12 +67,13 @@
   }
 
   function clearEdgeMounts() {
-    ['cd-edge-topRibbon', 'cd-edge-hero', 'cd-edge-contentCard'].forEach(function (id) {
-      var node = document.getElementById(id);
-      if (!node) return;
-      node.innerHTML = '';
-      node.classList.remove('cd-banner-wrap');
-    });
+    var wrap = document.getElementById('cdEdgeMounts');
+    if (!wrap) return;
+    var bodies = wrap.querySelectorAll('.cd-edge-mount-body');
+    for (var i = 0; i < bodies.length; i++) {
+      bodies[i].innerHTML = '';
+      bodies[i].classList.remove('cd-banner-wrap');
+    }
   }
 
   (function initFields() {
@@ -851,7 +852,7 @@
       setPipe('Stopped — check Profile / Edge status below.', 'err');
       return;
     }
-    setPipe('Done — check Top ribbon, Hero, and Content card mounts above.');
+    setPipe('Done — check the preview placement mounts above.');
   }
 
   function initWorkflowDock() {

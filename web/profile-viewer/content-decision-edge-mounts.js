@@ -305,7 +305,8 @@
     var preferHtml =
       el.id === 'cd-edge-hero' ||
       el.id === 'cd-edge-topRibbon' ||
-      (el.id && String(el.id).indexOf('cd-edge-topRibbon') === 0);
+      (el.id && String(el.id).indexOf('cd-edge-topRibbon') === 0) ||
+      (el.classList && el.classList.contains('cd-edge-prefer-html'));
     if (preferHtml) {
       if (looksLikeHtmlString(data)) {
         el.innerHTML = data;

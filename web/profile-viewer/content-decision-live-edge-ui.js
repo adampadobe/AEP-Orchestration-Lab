@@ -1,8 +1,20 @@
 /**
  * Decision lab Edge — workflow: provision (schema/dataset), save config, load Launch URL from Firebase.
+ * Placement fragments: dynamic rows → preview mounts (cd-edge-{key}).
  */
 (function (global) {
   'use strict';
+
+  /** Aligned with functions/decisionLabConfigStore.js sanitizePlacements (max 8). */
+  var MAX_PLACEMENTS = 8;
+
+  var DEFAULT_PLACEMENTS = [
+    { key: 'topRibbon', fragment: 'TopRibbon', label: 'Top ribbon' },
+    { key: 'hero', fragment: 'hero-banner', label: 'Hero banner' },
+    { key: 'contentCard', fragment: 'ContentCardContainer', label: 'Content card' },
+  ];
+
+  var placementRowSeq = 0;
 
   function el(id) {
     return document.getElementById(id);
@@ -33,42 +45,258 @@
     return fetch(url, opts || {});
   }
 
-  function getPlacementsFromForm() {
-    return [
-      {
-        key: 'topRibbon',
-        fragment: (el('cdLabFragTop') && el('cdLabFragTop').value.trim()) || 'TopRibbon',
-        label: (el('cdMountLabelTopRibbon') && el('cdMountLabelTopRibbon').textContent) || 'Top ribbon',
-      },
-      {
-        key: 'hero',
-        fragment: (el('cdLabFragHero') && el('cdLabFragHero').value.trim()) || 'hero-banner',
-        label: (el('cdMountLabelHero') && el('cdMountLabelHero').textContent) || 'Hero banner',
-      },
-      {
-        key: 'contentCard',
-        fragment: (el('cdLabFragCard') && el('cdLabFragCard').value.trim()) || 'ContentCardContainer',
-        label: (el('cdMountLabelContentCard') && el('cdMountLabelContentCard').textContent) || 'Content card',
-      },
-    ];
+  function sanitizeKey(raw) {
+    return String(raw || '')
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, '');
   }
 
-  function syncMountLabelsFromForm() {
-    var t = el('cdLabFragTop');
-    var h = el('cdLabFragHero');
-    var c = el('cdLabFragCard');
-    if (el('cdMountLabelTopRibbon') && t) el('cdMountLabelTopRibbon').textContent = 'Top ribbon — #' + t.value.trim();
-    if (el('cdMountLabelHero') && h) el('cdMountLabelHero').textContent = 'Hero — #' + h.value.trim();
-    if (el('cdMountLabelContentCard') && c) {
-      el('cdMountLabelContentCard').textContent = 'Content card — #' + c.value.trim();
+  /** Ensure unique sanitized keys (server + DOM id safety). */
+  function dedupePlacementKeys(rows) {
+    var seen = {};
+    return rows.map(function (r) {
+      var base = sanitizeKey(r.key) || 'slot';
+      var k = base;
+      var n = 1;
+      while (seen[k]) {
+        k = base + '_' + n++;
+      }
+      seen[k] = true;
+      return {
+        key: k,
+        fragment: String(r.fragment || '')
+          .trim()
+          .replace(/^#/, ''),
+        label: String(r.label || r.key || '')
+          .trim()
+          .slice(0, 128),
+      };
+    });
+  }
+
+  function readRowsFromDom() {
+    var list = el('cdLabPlacementsList');
+    if (!list) return [];
+    var rows = list.querySelectorAll('.cd-lab-placement-row');
+    var out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var keyIn = row.querySelector('.cd-lab-placement-key');
+      var fragIn = row.querySelector('.cd-lab-placement-fragment');
+      var labIn = row.querySelector('.cd-lab-placement-label');
+      out.push({
+        key: keyIn ? keyIn.value : '',
+        fragment: fragIn ? fragIn.value : '',
+        label: labIn ? labIn.value : '',
+      });
     }
+    return out;
+  }
+
+  function getPlacementsFromForm() {
+    var raw = readRowsFromDom();
+    var normalized = raw
+      .map(function (r) {
+        return {
+          key: r.key,
+          fragment: String(r.fragment || '')
+            .trim()
+            .replace(/^#/, ''),
+          label: String(r.label || '').trim(),
+        };
+      })
+      .filter(function (r) {
+        return r.fragment.length > 0;
+      });
+    if (!normalized.length) {
+      normalized = DEFAULT_PLACEMENTS.slice();
+    }
+    return dedupePlacementKeys(normalized);
+  }
+
+  function validatePlacementKeysForSave() {
+    var raw = readRowsFromDom();
+    var keys = raw.map(function (r) {
+      return sanitizeKey(r.key) || 'slot';
+    });
+    var seen = {};
+    for (var i = 0; i < keys.length; i++) {
+      if (seen[keys[i]]) {
+        return { ok: false, msg: 'Duplicate placement key after sanitizing: ' + keys[i] + '. Edit keys so each is unique.' };
+      }
+      seen[keys[i]] = true;
+    }
+    return { ok: true };
+  }
+
+  function rebuildPreviewMounts() {
+    var wrap = el('cdEdgeMounts');
+    if (!wrap) return;
+    var placements = getPlacementsFromForm();
+    wrap.textContent = '';
+    var i;
+    for (i = 0; i < placements.length; i++) {
+      var p = placements[i];
+      var key = p.key;
+      var fragment = p.fragment || '';
+      var lab = p.label || key;
+      var outer = document.createElement('div');
+      outer.className = 'cd-edge-mount';
+      var labEl = document.createElement('span');
+      labEl.className = 'cd-edge-mount-label';
+      labEl.id = 'cdMountLabel-' + key;
+      labEl.textContent = lab + (fragment ? ' — #' + fragment : '');
+      var body = document.createElement('div');
+      body.id = 'cd-edge-' + key;
+      body.className = 'cd-edge-mount-body';
+      body.setAttribute('role', 'region');
+      body.setAttribute('aria-label', lab);
+      var lk = String(key).toLowerCase();
+      if (lk === 'hero') {
+        body.classList.add('cd-edge-mount-body--hero');
+      }
+      var isCardSlot =
+        lk === 'contentcard' || /contentcard|content-card/i.test(fragment);
+      if (!isCardSlot) {
+        body.classList.add('cd-edge-prefer-html');
+      }
+      outer.appendChild(labEl);
+      outer.appendChild(body);
+      wrap.appendChild(outer);
+    }
+  }
+
+  function createPlacementRow(p) {
+    p = p || { key: '', fragment: '', label: '' };
+    var row = document.createElement('div');
+    row.className = 'cd-lab-placement-row';
+    var uid = 'cdpl_' + ++placementRowSeq;
+
+    function field(labelText, className, value, ph) {
+      var wrap = document.createElement('div');
+      var lab = document.createElement('label');
+      lab.setAttribute('for', uid + '_' + className);
+      lab.textContent = labelText;
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.id = uid + '_' + className;
+      input.className = className;
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+      input.value = value != null ? value : '';
+      if (ph) input.placeholder = ph;
+      wrap.appendChild(lab);
+      wrap.appendChild(input);
+      return wrap;
+    }
+
+    row.appendChild(field('Key', 'cd-lab-placement-key', p.key, 'e.g. topRibbon'));
+    row.appendChild(field('Fragment (hash)', 'cd-lab-placement-fragment', p.fragment, 'e.g. hero-banner'));
+    row.appendChild(field('Label', 'cd-lab-placement-label', p.label, 'Preview title'));
+
+    var rm = document.createElement('button');
+    rm.type = 'button';
+    rm.className = 'secondary cd-lab-placement-row-remove';
+    rm.setAttribute('aria-label', 'Remove placement');
+    rm.textContent = 'Remove';
+    row.appendChild(rm);
+
+    return row;
+  }
+
+  function renderPlacementRows(arr) {
+    var list = el('cdLabPlacementsList');
+    if (!list) return;
+    list.textContent = '';
+    var source = arr && arr.length ? arr : DEFAULT_PLACEMENTS.slice();
+    var i;
+    for (i = 0; i < source.length; i++) {
+      list.appendChild(
+        createPlacementRow({
+          key: source[i].key || '',
+          fragment: source[i].fragment || '',
+          label: source[i].label || '',
+        })
+      );
+    }
+    if (!list.querySelector('.cd-lab-placement-row')) {
+      list.appendChild(createPlacementRow(DEFAULT_PLACEMENTS[0]));
+    }
+    updateRemoveButtonsEnabled();
+  }
+
+  function placementRowCount() {
+    var list = el('cdLabPlacementsList');
+    if (!list) return 0;
+    return list.querySelectorAll('.cd-lab-placement-row').length;
+  }
+
+  function updateRemoveButtonsEnabled() {
+    var list = el('cdLabPlacementsList');
+    if (!list) return;
+    var n = placementRowCount();
+    var rows = list.querySelectorAll('.cd-lab-placement-row');
+    for (var i = 0; i < rows.length; i++) {
+      var btn = rows[i].querySelector('.cd-lab-placement-row-remove');
+      if (btn) btn.disabled = n <= 1;
+    }
+    var addBtn = el('cdLabAddPlacementBtn');
+    if (addBtn) {
+      addBtn.disabled = n >= MAX_PLACEMENTS;
+      addBtn.title =
+        n >= MAX_PLACEMENTS
+          ? 'Maximum ' + MAX_PLACEMENTS + ' placements (same limit as saved config).'
+          : 'Add another preview region and surface fragment.';
+    }
+  }
+
+  function onPlacementsListClick(ev) {
+    var t = ev.target;
+    if (!t || !t.closest) return;
+    var rm = t.closest('.cd-lab-placement-row-remove');
+    if (!rm || rm.disabled) return;
+    var row = rm.closest('.cd-lab-placement-row');
+    if (!row) return;
+    if (placementRowCount() <= 1) return;
+    row.remove();
+    updateRemoveButtonsEnabled();
+    applyPlacementsToMountsModule();
+  }
+
+  function onPlacementsListInput() {
+    setMsg(el('cdLabPlacementKeyMsg'), '', '');
+    applyPlacementsToMountsModule();
+  }
+
+  function wirePlacementList() {
+    var list = el('cdLabPlacementsList');
+    if (!list) return;
+    list.addEventListener('click', onPlacementsListClick);
+    list.addEventListener('input', onPlacementsListInput);
+    list.addEventListener('change', onPlacementsListInput);
+  }
+
+  function addPlacementRow() {
+    var list = el('cdLabPlacementsList');
+    if (!list) return;
+    if (placementRowCount() >= MAX_PLACEMENTS) return;
+    var n = placementRowCount() + 1;
+    list.appendChild(
+      createPlacementRow({
+        key: 'slot' + n,
+        fragment: 'placement-' + n,
+        label: 'Placement ' + n,
+      })
+    );
+    updateRemoveButtonsEnabled();
+    applyPlacementsToMountsModule();
   }
 
   function applyPlacementsToMountsModule() {
+    rebuildPreviewMounts();
     if (typeof CdEdgeMounts !== 'undefined' && CdEdgeMounts.setPlacements) {
       CdEdgeMounts.setPlacements(getPlacementsFromForm());
     }
-    syncMountLabelsFromForm();
   }
 
   function toggleScopesRow() {
@@ -89,11 +317,9 @@
     }
     var pl = rec.placements;
     if (Array.isArray(pl) && pl.length) {
-      pl.forEach(function (p) {
-        if (p.key === 'topRibbon' && el('cdLabFragTop')) el('cdLabFragTop').value = p.fragment || '';
-        if (p.key === 'hero' && el('cdLabFragHero')) el('cdLabFragHero').value = p.fragment || '';
-        if (p.key === 'contentCard' && el('cdLabFragCard')) el('cdLabFragCard').value = p.fragment || '';
-      });
+      renderPlacementRows(pl.slice(0, MAX_PLACEMENTS));
+    } else {
+      renderPlacementRows(DEFAULT_PLACEMENTS);
     }
     applyPlacementsToMountsModule();
     toggleScopesRow();
@@ -121,6 +347,12 @@
       setMsg(el('cdLabSaveStatus'), 'Select a sandbox first.', 'err');
       return;
     }
+    var keyCheck = validatePlacementKeysForSave();
+    if (!keyCheck.ok) {
+      setMsg(el('cdLabPlacementKeyMsg'), keyCheck.msg, 'err');
+      return;
+    }
+    setMsg(el('cdLabPlacementKeyMsg'), '', '');
     setMsg(el('cdLabSaveStatus'), 'Saving…', '');
     var body = {
       datastreamId: el('edgeConfigId') && el('edgeConfigId').value.trim(),
@@ -233,19 +465,29 @@
   }
 
   function wireFormListeners() {
-    ['cdLabFragTop', 'cdLabFragHero', 'cdLabFragCard'].forEach(function (id) {
-      var n = el(id);
-      if (n) n.addEventListener('change', applyPlacementsToMountsModule);
-      if (n) n.addEventListener('blur', applyPlacementsToMountsModule);
-    });
+    wirePlacementList();
     if (el('cdLabEdgeMode')) el('cdLabEdgeMode').addEventListener('change', toggleScopesRow);
+    if (el('cdLabAddPlacementBtn')) {
+      el('cdLabAddPlacementBtn').addEventListener('click', function () {
+        addPlacementRow();
+      });
+    }
+  }
+
+  function earlyInitPlacements() {
+    var list = el('cdLabPlacementsList');
+    if (!list || list.querySelector('.cd-lab-placement-row')) return;
+    renderPlacementRows(DEFAULT_PLACEMENTS);
+    applyPlacementsToMountsModule();
   }
 
   var __lastLaunchInjected = '';
 
   global.CdLabUi = {
+    DEFAULT_PLACEMENTS: DEFAULT_PLACEMENTS,
     getPlacementsFromForm: getPlacementsFromForm,
     applyPlacementsToMountsModule: applyPlacementsToMountsModule,
+    rebuildPreviewMounts: rebuildPreviewMounts,
     getLaunchScriptUrl: function () {
       return el('cdLabLaunchUrl') ? el('cdLabLaunchUrl').value.trim() : '';
     },
@@ -258,6 +500,9 @@
     bootstrapAfterAuth: async function () {
       wireFormListeners();
       toggleScopesRow();
+      if (!el('cdLabPlacementsList') || !el('cdLabPlacementsList').querySelector('.cd-lab-placement-row')) {
+        renderPlacementRows(DEFAULT_PLACEMENTS);
+      }
       applyPlacementsToMountsModule();
 
       if (el('cdLabCreateSchemaBtn')) el('cdLabCreateSchemaBtn').addEventListener('click', createSchemaStep);
@@ -269,7 +514,6 @@
       await fetchConfigFromFirebase();
       __lastLaunchInjected = global.CdLabUi.getLaunchScriptUrl();
     },
-    /** Call after inline script defines injectLaunchScript */
     noteLaunchInjected: function (url) {
       __lastLaunchInjected = String(url || '').trim();
     },
@@ -277,4 +521,10 @@
       return __lastLaunchInjected;
     },
   };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', earlyInitPlacements);
+  } else {
+    earlyInitPlacements();
+  }
 })(typeof window !== 'undefined' ? window : globalThis);

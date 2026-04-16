@@ -667,6 +667,31 @@
     .cd-lab-step-title { font-size: 0.8125rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--text); }
     .cd-lab-frag-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
     @media (max-width: 720px) { .cd-lab-frag-grid { grid-template-columns: 1fr; } }
+    .cd-lab-placements-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.35rem; }
+    .cd-lab-placement-row {
+      display: grid;
+      grid-template-columns: minmax(4.5rem, 0.85fr) minmax(5rem, 1.1fr) minmax(4rem, 1fr) auto;
+      gap: 0.45rem;
+      align-items: end;
+      padding: 0.65rem 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-sizing: border-box;
+    }
+    .cd-lab-placement-row label { margin-bottom: 0.25rem; }
+    .cd-lab-placement-row input { margin-bottom: 0; }
+    .cd-lab-placement-row-remove {
+      padding: 0.45rem 0.65rem;
+      font-size: 0.8125rem;
+      margin-bottom: 0;
+    }
+    @media (max-width: 720px) {
+      .cd-lab-placement-row {
+        grid-template-columns: 1fr 1fr;
+      }
+      .cd-lab-placement-row-remove { grid-column: 1 / -1; justify-self: end; }
+    }
   </style>
   <!-- Launch rules sometimes push to dataLayer (GTM-style); define before Launch to avoid ReferenceError — same as /index.html -->
   <script>
@@ -691,7 +716,7 @@
           <section class="hero-stage" aria-label="Content decision preview (Edge lab)">
         <div class="cd-hero-layout">
           <aside class="cd-hero-rail" aria-label="Quick run">
-            <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Fetch UPS profile, call Edge via Web SDK (Launch), render decisions into the three areas below">
+            <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Fetch UPS profile, call Edge via Web SDK (Launch), render decisions into the preview areas below">
               Run content decision
             </button>
             <p id="cdPipelineStatus" class="status" aria-live="polite"></p>
@@ -699,18 +724,7 @@
           </aside>
           <div class="cd-hero-main">
             <div class="cd-edge-mounts" id="cdEdgeMounts" aria-label="Personalization mounts">
-              <div class="cd-edge-mount">
-                <span class="cd-edge-mount-label" id="cdMountLabelTopRibbon">Top ribbon</span>
-                <div id="cd-edge-topRibbon" class="cd-edge-mount-body" role="region" aria-label="Top ribbon"></div>
-              </div>
-              <div class="cd-edge-mount">
-                <span class="cd-edge-mount-label" id="cdMountLabelHero">Hero banner</span>
-                <div id="cd-edge-hero" class="cd-edge-mount-body cd-edge-mount-body--hero" role="region" aria-label="Hero banner"></div>
-              </div>
-              <div class="cd-edge-mount">
-                <span class="cd-edge-mount-label" id="cdMountLabelContentCard">Content card</span>
-                <div id="cd-edge-contentCard" class="cd-edge-mount-body" role="region" aria-label="Content card"></div>
-              </div>
+              <!-- Filled by content-decision-live-edge-ui.js from placement rows (default: topRibbon, hero, contentCard). -->
             </div>
           </div>
         </div>
@@ -782,20 +796,11 @@
 
             <section class="cd-lab-step">
               <h3 class="cd-lab-step-title">3. Placement fragments (AJO surface hash)</h3>
-              <p class="hint">These must match your channel / code-based configuration in Journey Optimizer for this page path. Keys map to the three preview regions.</p>
-              <div class="cd-lab-frag-grid">
-                <div>
-                  <label for="cdLabFragTop">Top ribbon <span class="hint">(key: topRibbon)</span></label>
-                  <input type="text" id="cdLabFragTop" value="TopRibbon" autocomplete="off" spellcheck="false">
-                </div>
-                <div>
-                  <label for="cdLabFragHero">Hero <span class="hint">(key: hero)</span></label>
-                  <input type="text" id="cdLabFragHero" value="hero-banner" autocomplete="off" spellcheck="false">
-                </div>
-                <div>
-                  <label for="cdLabFragCard">Content card <span class="hint">(key: contentCard)</span></label>
-                  <input type="text" id="cdLabFragCard" value="ContentCardContainer" autocomplete="off" spellcheck="false">
-                </div>
+              <p class="hint">Each row is a preview region. <strong>Key</strong> becomes the DOM id <code>cd-edge-…</code> and must stay unique. <strong>Fragment</strong> is the hash in <code>web://host/path#fragment</code> and must match your Journey Optimizer code-based channel for this page.</p>
+              <p class="status" id="cdLabPlacementKeyMsg" role="status" aria-live="polite" hidden></p>
+              <div id="cdLabPlacementsList" class="cd-lab-placements-list" aria-label="Placement fragments"></div>
+              <div class="actions" style="margin-top:0.35rem;">
+                <button type="button" class="secondary" id="cdLabAddPlacementBtn">Add placement</button>
               </div>
               <div class="actions" style="margin-top:0.65rem;">
                 <button type="button" class="primary" id="cdLabSaveConfigBtn">Save configuration to Firebase</button>
@@ -859,9 +864,9 @@
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
-  <script src="content-decision-edge-mounts.js?v=20260216"></script>
+  <script src="content-decision-edge-mounts.js?v=20260416-placements"></script>
   <script src="content-decision-lab-config.js?v=20260216"></script>
-  <script src="content-decision-live-edge-ui.js?v=20260416-edge-lab"></script>
-  <script src="content-decision-live-edge-inline.js?v=20260416-edge-lab"></script>
+  <script src="content-decision-live-edge-ui.js?v=20260416-placements"></script>
+  <script src="content-decision-live-edge-inline.js?v=20260416-placements"></script>
 </body>
 </html>
