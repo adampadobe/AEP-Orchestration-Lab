@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="agentic-ai-v2.css">
+  <link rel="stylesheet" href="agentic-ai-v2-dock.css?v=20260446">
 </head>
 <body class="reporting-page agentic-ai-v2-page home-dashboard-concierge home-dashboard-ajo">
   <div class="dashboard-shell dashboard-shell--ajo">
@@ -201,6 +202,51 @@
             </div>
             </div>
           </div>
+
+        <div id="agenticV2DockOuter" class="workflow-dock-outer" aria-label="Customise dock">
+          <div class="workflow-dock-slide">
+            <details class="workflow-drawer" id="agenticV2CustomiseDrawer">
+              <summary class="workflow-summary" aria-label="Customise">
+                <span class="workflow-summary__row">
+                  <span class="workflow-summary__label">Customise</span>
+                  <span class="workflow-summary__icon" aria-hidden="true"></span>
+                </span>
+              </summary>
+              <div class="workflow-drawer-scroll">
+                <div class="panel">
+                  <h2>Agentic layer agent links</h2>
+                  <p class="hint">
+                    Optional URLs for each specialist agent card. Values are saved per <strong>AEP sandbox</strong> and this signed-in lab session (same as other Profile Viewer tools).
+                    Leave a field blank until you add a link; when set, clicking the matching card in the diagram opens it in a new tab.
+                  </p>
+                  <label for="agenticV2SandboxSelect">Sandbox</label>
+                  <select id="agenticV2SandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox"></select>
+                  <label for="agenticV2UrlBrand">Brand Experience Agent URL</label>
+                  <input id="agenticV2UrlBrand" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlProduct">Product Knowledge Agent URL</label>
+                  <input id="agenticV2UrlProduct" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlOperational">Operational Insights Agent URL</label>
+                  <input id="agenticV2UrlOperational" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlField">Field Discovery Agent URL</label>
+                  <input id="agenticV2UrlField" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlAudience">Audience Agent URL</label>
+                  <input id="agenticV2UrlAudience" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlJourney">Journey Agent URL</label>
+                  <input id="agenticV2UrlJourney" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlData">Data Insights Agent URL</label>
+                  <input id="agenticV2UrlData" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlSupport">Product Support Agent URL</label>
+                  <input id="agenticV2UrlSupport" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <div class="actions">
+                    <button type="button" class="primary" id="agenticV2CustomiseUpdate">Update</button>
+                  </div>
+                  <p id="agenticV2CustomiseStatus" class="status" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+            </details>
+          </div>
+          <div class="workflow-dock-hit" id="agenticV2DockHit" role="presentation" aria-hidden="true" title="Move pointer to bottom edge to reveal Customise"></div>
+        </div>
         </div>
       </main>
     </div>
@@ -230,8 +276,14 @@
       });
     })();
   </script>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260446"></script>
   <script defer src="agentic-presentation-fs.js"></script>
   <script defer src="agentic-ai-v2.js"></script>
+  <script defer src="agentic-ai-v2-customise.js?v=20260446"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-indev-toggle"></script>

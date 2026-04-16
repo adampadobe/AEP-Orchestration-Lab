@@ -19,6 +19,7 @@
     'aepHomeDashboardLayoutBg',
     'aepHomeDashboardSidebarTheme',
     'aepExpVizImageUrls',
+    'aepAgenticV2AgentUrls',
   ];
 
   var pushTimer = null;
