@@ -51,6 +51,16 @@
 
         <div class="ajo-page-inner agentic-ai-v2-inner" id="agenticV2Mount">
           <section class="agentic-ai-v2-hero" aria-labelledby="agenticV2Heading">
+            <div class="agentic-presentation-bar">
+              <button
+                type="button"
+                class="dashboard-btn-outline arch-fullscreen-btn arch-int-fullscreen-btn"
+                id="agenticPresentationFullscreenBtn"
+                title="Fill the screen with the diagram (hides site menu and page title). Press Esc to exit."
+              >
+                Fullscreen
+              </button>
+            </div>
             <header class="agentic-ai-v2-hero-head">
               <p class="agentic-ai-v2-badge">Architecture</p>
               <h1 id="agenticV2Heading" class="agentic-ai-v2-title">Agentic AI <span class="agentic-ai-v2-title-accent">v2</span></h1>
@@ -212,6 +222,7 @@
       });
     })();
   </script>
+  <script defer src="agentic-presentation-fs.js"></script>
   <script defer src="agentic-ai-v2.js"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
