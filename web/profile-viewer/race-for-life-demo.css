@@ -355,6 +355,15 @@
   color: #1f2937;
 }
 
+/* Injected when Launch outputs a bare URL as text inside .Image */
+.race-ajo-launch-img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
 .race-join {
   margin: 0 2.5rem;
   color: #0f172a;

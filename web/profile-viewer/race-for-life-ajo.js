@@ -187,6 +187,31 @@
     }
   }
 
+  /** Flat card: needs image/description, or both title+description — not title alone (hero code-based often has only title). */
+  function isFlatContentCardShape(raw) {
+    if (!raw || typeof raw !== 'object') return false;
+    if (raw.imageURL != null || raw.imageUrl != null || raw.fullDescription != null) return true;
+    if (raw.title != null && raw.fullDescription != null) return true;
+    return false;
+  }
+
+  /** Launch Tags template: nested title/body with .content, or image.url — distinct from hero JSON. */
+  function isLaunchNestedContentCardShape(content) {
+    if (!content || typeof content !== 'object') return false;
+    var img = content.image;
+    var hasImg = img && typeof img === 'object' && (img.url != null || img.src != null);
+    var t = content.title;
+    var b = content.body;
+    var hasNestedPair =
+      t &&
+      typeof t === 'object' &&
+      t.content != null &&
+      b &&
+      typeof b === 'object' &&
+      b.content != null;
+    return hasImg || hasNestedPair;
+  }
+
   /**
    * Launch / AJO nested template: item.data.content = { title: { content }, body: { content }, image: { url } }.
    */
@@ -227,7 +252,7 @@
    */
   function normalizeContentCardPayload(raw) {
     if (!raw || typeof raw !== 'object') return null;
-    if (raw.imageURL != null || raw.imageUrl != null || raw.title != null || raw.fullDescription != null) {
+    if (isFlatContentCardShape(raw)) {
       return {
         imageURL: raw.imageURL != null ? raw.imageURL : raw.imageUrl,
         title: raw.title,
@@ -236,28 +261,30 @@
     }
     if (raw.content != null && typeof raw.content === 'object') {
       var cObj = raw.content;
-      var nested = normalizeFromNestedContentShape(cObj);
-      if (nested) return nested;
-      if (cObj.imageURL != null || cObj.imageUrl != null || cObj.title != null || cObj.fullDescription != null) {
+      if (isFlatContentCardShape(cObj)) {
         return {
           imageURL: cObj.imageURL != null ? cObj.imageURL : cObj.imageUrl,
           title: cObj.title,
           fullDescription: cObj.fullDescription,
         };
       }
+      if (isLaunchNestedContentCardShape(cObj)) {
+        return normalizeFromNestedContentShape(cObj);
+      }
     }
     if (typeof raw.content === 'string') {
       if (raw.content === 'undefined') return null;
       var parsedObj = parseJsonStringMaybe(raw.content);
       if (parsedObj && typeof parsedObj === 'object') {
-        var fromNestedStr = normalizeFromNestedContentShape(parsedObj);
-        if (fromNestedStr) return fromNestedStr;
-        if (parsedObj.imageURL != null || parsedObj.title != null || parsedObj.fullDescription != null) {
+        if (isFlatContentCardShape(parsedObj)) {
           return {
             imageURL: parsedObj.imageURL != null ? parsedObj.imageURL : parsedObj.imageUrl,
             title: parsedObj.title,
             fullDescription: parsedObj.fullDescription,
           };
+        }
+        if (isLaunchNestedContentCardShape(parsedObj)) {
+          return normalizeFromNestedContentShape(parsedObj);
         }
       }
     }
@@ -314,10 +341,35 @@
     return !!(imgUrl || title || desc);
   }
 
+  function looksLikeHtmlString(s) {
+    if (typeof s !== 'string') return false;
+    var t = s.trim();
+    return t.length > 0 && t.charAt(0) === '<';
+  }
+
   function applyItemToElement(el, item) {
     if (!el || !item) return false;
     var data = getItemData(item);
     if (!data) return false;
+
+    /* Hero decisioning: prefer raw HTML / iframe before content-card heuristics. */
+    if (el.id === 'hero-banner') {
+      if (looksLikeHtmlString(data)) {
+        el.innerHTML = data;
+        return true;
+      }
+      if (typeof data.content === 'string' && looksLikeHtmlString(data.content)) {
+        el.innerHTML = data.content;
+        return true;
+      }
+      if (data && data.deliveryURL) {
+        el.innerHTML =
+          '<iframe class="race-ajo-iframe" title="Personalized content" src="' +
+          String(data.deliveryURL).replace(/"/g, '') +
+          '"></iframe>';
+        return true;
+      }
+    }
 
     var cardPayload = normalizeContentCardPayload(data);
     if (cardPayload) {
@@ -433,6 +485,7 @@
       })
       .then(function () {
         mountsEl() && mountsEl().classList.add('race-ajo--requested');
+        promoteBareImageUrlsInContentCard(document.getElementById('ContentCardContainer'));
       })
       .catch(function (err) {
         var msg = err && err.message ? err.message : String(err);
@@ -443,10 +496,54 @@
       });
   }
 
+  /** Launch custom code sometimes injects the image URL as plain text; replace with <img> when a div only contains a URL. */
+  var BARE_URL_IN_TEXT_RE = /^https?:\/\/\S+$/i;
+
+  function promoteBareImageUrlsInContentCard(root) {
+    if (!root || !root.querySelectorAll) return;
+    var nodes = root.querySelectorAll('.Image, [class*="Image"]');
+    var k;
+    for (k = 0; k < nodes.length; k++) {
+      var div = nodes[k];
+      if (div.querySelector('img')) continue;
+      var text = (div.textContent || '').trim();
+      if (!BARE_URL_IN_TEXT_RE.test(text)) continue;
+      div.textContent = '';
+      var img = document.createElement('img');
+      img.src = text;
+      img.alt = '';
+      img.className = 'race-ajo-launch-img';
+      img.setAttribute('loading', 'lazy');
+      img.setAttribute('decoding', 'async');
+      div.appendChild(img);
+    }
+  }
+
+  function mountContentCardBareUrlFix() {
+    var el = document.getElementById('ContentCardContainer');
+    if (!el || el.__raceAjoBareUrlFix) return;
+    el.__raceAjoBareUrlFix = true;
+    function run() {
+      promoteBareImageUrlsInContentCard(el);
+    }
+    run();
+    var obs = new MutationObserver(run);
+    obs.observe(el, { childList: true, subtree: true });
+  }
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', mountContentCardBareUrlFix);
+    } else {
+      mountContentCardBareUrlFix();
+    }
+  }
+
   global.RaceForLifeAjo = {
     refreshFromProfile: refreshFromProfile,
     buildSurfaces: buildSurfaces,
     /** Exposed for QA: e.g. RaceForLifeAjo.renderContentCardPayload(document.getElementById('ContentCardContainer'), { imageURL, title, fullDescription }) */
     renderContentCardPayload: renderContentCardPayload,
+    promoteBareImageUrlsInContentCard: promoteBareImageUrlsInContentCard,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
