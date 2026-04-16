@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="webhooks.css?v=20260416-wh-modal-readability">
+    <link rel="stylesheet" href="webhooks.css?v=20260416-wh-sandbox-in-url-box">
 </head>
 <body class="webhooks-tool-page home-dashboard-concierge">
   <div class="dashboard-shell">
@@ -34,12 +34,8 @@
             <header class="dashboard-hero-header">
               <h2 id="whBannerHeading" class="dashboard-hero-title">Webhook monitor</h2>
               <p class="dashboard-hero-subtitle">
-                Each AEP sandbox has its own webhook URL and inbox. Switch sandbox to change the endpoint and captured requests.
+                Each AEP sandbox has its own webhook URL and inbox. Choose your sandbox in the Webhook Endpoint section below to see the URL and captured requests for that environment.
               </p>
-              <div class="wh-sandbox-row">
-                <label for="sandboxSelect">Sandbox</label>
-                <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox"></select>
-              </div>
             </header>
           </div>
         </section>
@@ -54,6 +50,10 @@
             <div class="webhook-url-header">
                 <h3>🎯 Webhook Endpoint</h3>
                 <span style="color: var(--success-color); font-size: 0.9rem;">● Active</span>
+            </div>
+            <div class="wh-sandbox-row wh-sandbox-row--webhook-url">
+                <label for="sandboxSelect">Sandbox</label>
+                <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox"></select>
             </div>
             <div class="webhook-url-container">
                 <input type="text" class="webhook-url-text" id="webhookUrl" value="https://webhooklistener-pscg5c4cja-uc.a.run.app" readonly>
