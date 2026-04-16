@@ -1,7 +1,7 @@
 /*!
- * Paint-time sync for theme + sidebar (must match aep-theme.js / aep-lab-nav).
- * Include in <head> without defer/async so CSS sees html[data-aep-theme] before paint.
- * Keys: localStorage aepTheme === 'dark' | aepSidebarCollapsed === '1'
+ * Paint-time sync for theme + sidebar + palette prefs (must match aep-theme.js / aep-lab-nav / aep-theme-prefs.js).
+ * Include in <head> without defer/async so CSS sees html[data-*] before paint.
+ * Keys: aepTheme | aepSidebarCollapsed | aepMenuPalette | aepBgPreset
  */
 (function () {
   try {
@@ -16,5 +16,11 @@
     } else {
       d.removeAttribute('data-sidebar-collapsed');
     }
+    var mp = localStorage.getItem('aepMenuPalette');
+    if (mp && mp !== 'default') d.setAttribute('data-aep-menu-palette', mp);
+    else d.removeAttribute('data-aep-menu-palette');
+    var bp = localStorage.getItem('aepBgPreset');
+    if (bp && bp !== 'default') d.setAttribute('data-aep-bg-preset', bp);
+    else d.removeAttribute('data-aep-bg-preset');
   } catch (e) { /* private mode / quota */ }
 })();

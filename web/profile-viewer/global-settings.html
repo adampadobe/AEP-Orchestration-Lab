@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Global values – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260426">
-  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
 <body class="home-dashboard-concierge">
   <div class="dashboard-shell">
@@ -51,6 +52,28 @@
               <button type="button" class="aep-theme-toggle-btn" aria-label="Toggle color theme">Dark mode</button>
               <p class="dashboard-hero-subtitle" style="margin-top: 12px; font-size: 13px;">
                 Same as the sidebar control. Stored in this browser as <code>aepTheme</code> (<code>dark</code> or default light).
+              </p>
+            </div>
+            <div class="aep-theme-global-row" data-aep-theme-prefs>
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Menu palette</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">Sidebar and navigation colors. Each option has light and dark values in <code>aep-theme-palettes.css</code>.</p>
+              <div class="aep-theme-pref-swatches" role="group" aria-label="Menu color palette">
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-menu-palette-choice="default">Default</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-menu-palette-choice="slate">Slate</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-menu-palette-choice="ocean">Ocean</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-menu-palette-choice="ember">Ember</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-menu-palette-choice="violet">Violet</button>
+              </div>
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;margin-top:16px;font-weight:600;">Background</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">Page and card surface tones (hero gradient included).</p>
+              <div class="aep-theme-pref-swatches" role="group" aria-label="Background preset">
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-bg-preset-choice="default">Default</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-bg-preset-choice="warm">Warm</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-bg-preset-choice="cool">Cool</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-bg-preset-choice="contrast">Contrast</button>
+              </div>
+              <p class="dashboard-hero-subtitle" style="margin-top: 12px; font-size: 13px;">
+                Stored as <code>aepMenuPalette</code> and <code>aepBgPreset</code> (omit or <code>default</code> for built-in tokens).
               </p>
             </div>
             <div id="aepNavInDevSection" class="aep-nav-indev-global-row" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--aep-border, #e8e4df);" hidden>
@@ -272,6 +295,7 @@
     })();
   </script>
   <script defer src="aep-theme.js?v=20260416b"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416c"></script>
   <script defer src="aep-lab-nav.js?v=20260419-demos-ctrl"></script>
 </body>
 </html>

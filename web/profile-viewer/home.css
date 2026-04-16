@@ -1,4 +1,4 @@
-@import url('aep-theme.css?v=20260404');
+/* Theme sheets (aep-theme.css, aep-theme-palettes.css) are linked from HTML after this file — do not @import them here. */
 
 /* Home page – Vodafone-inspired look and feel */
 
@@ -718,6 +718,18 @@ body.home-dashboard-concierge {
   --dash-shadow: 0 2px 14px rgba(15, 15, 25, 0.07);
   --dash-shadow-hover: 0 8px 28px rgba(15, 15, 25, 0.1);
 
+  /* Menu / shell aliases (sidebar + nav); overridden per palette in aep-theme-palettes.css */
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: var(--dash-text);
+  --menu-fg-muted: var(--dash-muted);
+  --menu-accent: var(--dash-blue);
+  --menu-nav-active-bg: var(--dash-text);
+  --menu-nav-active-fg: #ffffff;
+  --menu-hover: rgba(0, 0, 0, 0.05);
+  --app-bg: var(--dash-bg);
+  --panel-bg: var(--dash-surface);
+  --panel-bg-alt: var(--dash-surface-alt);
+
   /* Global app layout contract — use class .app-page on main.dashboard-main (single owner: max-width + center + gutters) */
   --app-page-max-width: min(1600px, 100%);
   --app-page-pad-x: clamp(0.75rem, 2.5vw, 2rem);
@@ -727,7 +739,7 @@ body.home-dashboard-concierge {
   margin: 0;
   min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--dash-bg);
+  background: var(--app-bg);
   color: var(--dash-text);
 }
 
@@ -757,7 +769,7 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   --sidebar-w-collapsed: 56px;
   width: var(--sidebar-w);
   flex-shrink: 0;
-  background: var(--dash-sidebar);
+  background: var(--menu-bg);
   border-right: 1px solid var(--dash-border);
   padding: 1rem 0.5rem 1.25rem;
   display: flex;
@@ -832,7 +844,7 @@ body.home-dashboard-concierge .dashboard-server-warning a {
 .dashboard-sidebar-sub {
   font-size: 0.68rem;
   font-weight: 500;
-  color: var(--dash-muted);
+  color: var(--menu-fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -846,7 +858,7 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: var(--dash-muted);
+  color: var(--menu-fg-muted);
   cursor: pointer;
   flex-shrink: 0;
   padding: 0;
@@ -855,7 +867,7 @@ body.home-dashboard-concierge .dashboard-server-warning a {
 
 .dashboard-sidebar-toggle:hover {
   background: rgba(0, 0, 0, 0.06);
-  color: var(--dash-text);
+  color: var(--menu-fg);
 }
 
 .dashboard-sidebar-toggle-ico {
@@ -898,7 +910,7 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   padding: 0.45rem 0.75rem;
   border-radius: 8px;
   text-decoration: none;
-  color: var(--dash-text);
+  color: var(--menu-fg);
   font-size: 0.84rem;
   font-weight: 500;
   position: relative;
@@ -906,17 +918,17 @@ body.home-dashboard-concierge .dashboard-server-warning a {
 }
 
 .dashboard-nav-item:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--menu-hover);
 }
 
 .dashboard-nav-item--active {
-  background: var(--dash-text);
-  color: #fff;
+  background: var(--menu-nav-active-bg);
+  color: var(--menu-nav-active-fg);
 }
 
 .dashboard-nav-item--active:hover {
-  background: #1a1a1a;
-  color: #fff;
+  filter: brightness(0.96);
+  color: var(--menu-nav-active-fg);
 }
 
 .dashboard-nav-ico {
@@ -1001,7 +1013,7 @@ body.home-dashboard-concierge .dashboard-server-warning a {
   width: 100%;
   border: none;
   background: transparent;
-  color: var(--dash-muted);
+  color: var(--menu-fg-muted);
   cursor: pointer;
   font-family: inherit;
   font-size: 0.66rem;
@@ -1014,7 +1026,7 @@ body.home-dashboard-concierge .dashboard-server-warning a {
 }
 
 .dashboard-nav-group-toggle:hover {
-  color: var(--dash-text);
+  color: var(--menu-fg);
 }
 
 .dashboard-nav-group-chevron {
@@ -1150,8 +1162,8 @@ html[data-sidebar-collapsed] .dashboard-sidebar .dashboard-nav-group + .dashboar
 .dashboard-nav-tooltip {
   position: fixed;
   transform: translateY(-50%);
-  background: var(--dash-text, #2c2c2c);
-  color: var(--dash-bg, #fff);
+  background: var(--menu-nav-active-bg, var(--dash-text, #2c2c2c));
+  color: var(--menu-nav-active-fg, var(--dash-bg, #fff));
   padding: 0.35rem 0.7rem;
   border-radius: 6px;
   font-size: 0.8rem;
@@ -1429,7 +1441,7 @@ body.home-dashboard-concierge.home-page .dashboard-main {
 }
 
 .dashboard-action-card {
-  background: var(--dash-surface);
+  background: var(--panel-bg);
   border-radius: var(--dash-radius-sm);
   padding: 1.15rem 1.25rem 1.25rem;
   box-shadow: var(--dash-shadow);
