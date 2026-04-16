@@ -51,6 +51,7 @@ const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
 const eventConfigStore = lazyRequireMod('./eventConfigStore');
 const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
+const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
@@ -1758,6 +1759,15 @@ function serializeEventConfigRecord(doc) {
   return o;
 }
 
+function serializeDecisionLabRecord(doc) {
+  if (!doc || typeof doc !== 'object') return null;
+  const o = { ...doc };
+  if (o.updatedAt && typeof o.updatedAt.toDate === 'function') {
+    o.updatedAt = o.updatedAt.toDate().toISOString();
+  }
+  return o;
+}
+
 /** POST /api/events/edge — build XDM, send to Edge Network */
 exports.eventEdgeProxy = onRequest(
   {
@@ -1907,6 +1917,67 @@ exports.catalogConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) =
         schemaId: body.schemaId,
       });
       res.status(200).json({ ok: true, sandbox, record, storage: 'user' });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+    return;
+  }
+  res.status(405).json({ error: 'Method not allowed' });
+});
+
+/** GET/POST /api/decision-lab/config — per-sandbox Decisioning lab Edge setup (Firestore) */
+exports.decisionLabConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  const sandbox = req.method === 'POST' && req.body?.sandbox
+    ? String(req.body.sandbox).trim()
+    : resolveSandboxFromQuery(req);
+
+  const uid = await labUserSandboxStore.verifyIdTokenFromRequest(req);
+
+  if (req.method === 'GET') {
+    try {
+      const record = await decisionLabConfigStore.getEffectiveDecisionLabConfig(sandbox, uid);
+      res.status(200).json({
+        ok: true,
+        sandbox,
+        record: serializeDecisionLabRecord(record),
+        storage: uid ? 'user' : 'shared',
+      });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+    return;
+  }
+  if (req.method === 'POST') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    try {
+      if (!uid) {
+        res.status(401).json({
+          ok: false,
+          error: 'Sign in required to save Decision lab config (anonymous sign-in is enough).',
+          sandbox,
+        });
+        return;
+      }
+      const record = await decisionLabConfigStore.saveEffectiveDecisionLabConfig(sandbox, uid, {
+        launchScriptUrl: body.launchScriptUrl,
+        datastreamId: body.datastreamId,
+        schemaTitle: body.schemaTitle,
+        datasetName: body.datasetName,
+        edgePersonalizationMode: body.edgePersonalizationMode,
+        placements: body.placements,
+      });
+      res.status(200).json({
+        ok: true,
+        sandbox,
+        record: serializeDecisionLabRecord(record),
+        storage: 'user',
+      });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
     }

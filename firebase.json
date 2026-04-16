@@ -232,6 +232,13 @@
         }
       },
       {
+        "source": "/api/decision-lab/config",
+        "function": {
+          "functionId": "decisionLabConfigStore",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/sandbox-state",
         "function": {
           "functionId": "labUserSandboxState",

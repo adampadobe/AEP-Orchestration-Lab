@@ -12,19 +12,66 @@
     'https://ns.adobe.com/personalization/dom-action',
   ];
 
+  var DEFAULT_PLACEMENTS = [
+    { key: 'topRibbon', fragment: 'TopRibbon', label: 'Top ribbon' },
+    { key: 'hero', fragment: 'hero-banner', label: 'Hero banner' },
+    { key: 'contentCard', fragment: 'ContentCardContainer', label: 'Content card' },
+  ];
+
+  var _placements = DEFAULT_PLACEMENTS.slice();
+
+  /**
+   * @param {Array<{ key: string, fragment: string, label?: string }>} arr
+   */
+  function setPlacements(arr) {
+    if (!arr || !Array.isArray(arr) || !arr.length) return;
+    var next = [];
+    for (var i = 0; i < Math.min(arr.length, 8); i++) {
+      var p = arr[i];
+      if (!p || typeof p !== 'object') continue;
+      var key = String(p.key || '')
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]/g, '');
+      if (!key) key = 'slot' + i;
+      var fragment = String(p.fragment || '')
+        .trim()
+        .replace(/^#/, '');
+      if (!fragment) continue;
+      next.push({
+        key: key,
+        fragment: fragment,
+        label: String(p.label || fragment).trim().slice(0, 128),
+      });
+    }
+    if (next.length) _placements = next;
+  }
+
+  function getPlacements() {
+    return _placements.slice();
+  }
+
   function buildSurfacesForEdgeLabPage() {
     var loc = global.location || {};
     var host = loc.host || '';
-    var path = loc.pathname || '/';
-    if (!host) return ['#TopRibbon', '#hero-banner', '#ContentCardContainer'];
-    var base = 'web://' + host + path.split('?')[0];
-    return [
-      base + '#TopRibbon',
-      base + '#hero-banner',
-      base + '#travel-hero-banner',
-      base + '#ContentCardContainer',
-      '#ContentCardContainer',
-    ];
+    var path = (loc.pathname || '/').split('?')[0];
+    if (!host) {
+      return _placements.map(function (p) {
+        return '#' + String(p.fragment).replace(/^#/, '');
+      });
+    }
+    var base = 'web://' + host + path;
+    var out = [];
+    var i;
+    for (i = 0; i < _placements.length; i++) {
+      out.push(base + '#' + String(_placements[i].fragment).replace(/^#/, ''));
+    }
+    for (i = 0; i < _placements.length; i++) {
+      if (/contentcard/i.test(_placements[i].fragment)) {
+        out.push('#' + String(_placements[i].fragment).replace(/^#/, ''));
+        break;
+      }
+    }
+    return out;
   }
 
   function namespaceToIdentityKey(ns) {
@@ -84,23 +131,17 @@
     return out;
   }
 
-  function resolveTargetForProposition(p, topEl, heroEl, cardsEl) {
+  function resolveTargetForProposition(p, mountByKey) {
     var scopes = collectScopeStrings(p);
-    var i;
-    for (i = 0; i < scopes.length; i++) {
-      if (scopeMatchesFragment(scopes[i], 'ContentCardContainer')) return cardsEl;
-    }
-    for (i = 0; i < scopes.length; i++) {
-      if (scopeMatchesFragment(scopes[i], 'TopRibbon') || scopeMatchesFragment(scopes[i], 'topRibbon')) {
-        return topEl;
-      }
-    }
-    for (i = 0; i < scopes.length; i++) {
-      if (
-        scopeMatchesFragment(scopes[i], 'hero-banner') ||
-        scopeMatchesFragment(scopes[i], 'travel-hero-banner')
-      ) {
-        return heroEl;
+    var pi;
+    var si;
+    for (pi = 0; pi < _placements.length; pi++) {
+      var frag = _placements[pi].fragment;
+      var k = _placements[pi].key;
+      for (si = 0; si < scopes.length; si++) {
+        if (scopeMatchesFragment(scopes[si], frag)) {
+          return mountByKey[k] || null;
+        }
       }
     }
     return null;
@@ -261,7 +302,10 @@
     var data = getItemData(item);
     if (!data) return false;
 
-    var preferHtml = el.id === 'cd-edge-hero' || el.id === 'cd-edge-topRibbon';
+    var preferHtml =
+      el.id === 'cd-edge-hero' ||
+      el.id === 'cd-edge-topRibbon' ||
+      (el.id && String(el.id).indexOf('cd-edge-topRibbon') === 0);
     if (preferHtml) {
       if (looksLikeHtmlString(data)) {
         el.innerHTML = data;
@@ -311,12 +355,30 @@
     return el && !el.querySelector('.cd-edge-ajo-card-inner, .cd-banner, iframe');
   }
 
-  function applyPropositionsManually(propositions, mountIds) {
-    mountIds = mountIds || {};
-    var top = document.getElementById(mountIds.top || 'cd-edge-topRibbon');
-    var hero = document.getElementById(mountIds.hero || 'cd-edge-hero');
-    var cards = document.getElementById(mountIds.cards || 'cd-edge-contentCard');
+  function buildMountByKey() {
+    var mountByKey = {};
+    var i;
+    for (i = 0; i < _placements.length; i++) {
+      var k = _placements[i].key;
+      mountByKey[k] = document.getElementById('cd-edge-' + k);
+    }
+    return mountByKey;
+  }
+
+  function firstContentCardMount(mountByKey) {
+    var i;
+    for (i = 0; i < _placements.length; i++) {
+      if (/contentcard|content.card/i.test(_placements[i].fragment)) {
+        return mountByKey[_placements[i].key] || null;
+      }
+    }
+    return mountByKey.contentCard || null;
+  }
+
+  function applyPropositionsManually(propositions) {
     if (!propositions || !propositions.length) return;
+    var mountByKey = buildMountByKey();
+    var cards = firstContentCardMount(mountByKey);
     var i;
     var j;
     var p;
@@ -325,7 +387,7 @@
     for (i = 0; i < propositions.length; i++) {
       p = propositions[i];
       items = p.items || [];
-      target = resolveTargetForProposition(p, top, hero, cards);
+      target = resolveTargetForProposition(p, mountByKey);
       if (!target) continue;
       for (j = 0; j < items.length; j++) {
         if (applyItemToElement(target, items[j])) break;
@@ -333,7 +395,7 @@
     }
     for (i = 0; i < propositions.length; i++) {
       p = propositions[i];
-      if (resolveTargetForProposition(p, top, hero, cards)) continue;
+      if (resolveTargetForProposition(p, mountByKey)) continue;
       items = p.items || [];
       for (j = 0; j < items.length; j++) {
         var data = getItemData(items[j]);
@@ -348,6 +410,9 @@
 
   global.CdEdgeMounts = {
     PERSONALIZATION_SCHEMAS: SCHEMAS,
+    DEFAULT_PLACEMENTS: DEFAULT_PLACEMENTS,
+    setPlacements: setPlacements,
+    getPlacements: getPlacements,
     buildSurfacesForEdgeLabPage: buildSurfacesForEdgeLabPage,
     buildIdentityMap: buildIdentityMap,
     applyPropositionsManually: applyPropositionsManually,

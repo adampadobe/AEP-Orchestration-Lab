@@ -662,6 +662,11 @@
     .cd-edge-settings label.chk { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.5rem; }
     .cd-edge-settings label.chk input { width: auto; margin: 3px 0 0 0; flex-shrink: 0; }
     .cd-edge-settings .status.err { font-size: 0.8rem; }
+    .cd-lab-step { margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border); }
+    .cd-lab-step:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+    .cd-lab-step-title { font-size: 0.8125rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--text); }
+    .cd-lab-frag-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
+    @media (max-width: 720px) { .cd-lab-frag-grid { grid-template-columns: 1fr; } }
   </style>
   <!-- Launch rules sometimes push to dataLayer (GTM-style); define before Launch to avoid ReferenceError — same as /index.html -->
   <script>
@@ -695,15 +700,15 @@
           <div class="cd-hero-main">
             <div class="cd-edge-mounts" id="cdEdgeMounts" aria-label="Personalization mounts">
               <div class="cd-edge-mount">
-                <span class="cd-edge-mount-label">Top ribbon</span>
+                <span class="cd-edge-mount-label" id="cdMountLabelTopRibbon">Top ribbon</span>
                 <div id="cd-edge-topRibbon" class="cd-edge-mount-body" role="region" aria-label="Top ribbon"></div>
               </div>
               <div class="cd-edge-mount">
-                <span class="cd-edge-mount-label">Hero banner</span>
+                <span class="cd-edge-mount-label" id="cdMountLabelHero">Hero banner</span>
                 <div id="cd-edge-hero" class="cd-edge-mount-body cd-edge-mount-body--hero" role="region" aria-label="Hero banner"></div>
               </div>
               <div class="cd-edge-mount">
-                <span class="cd-edge-mount-label">Content card</span>
+                <span class="cd-edge-mount-label" id="cdMountLabelContentCard">Content card</span>
                 <div id="cd-edge-contentCard" class="cd-edge-mount-body" role="region" aria-label="Content card"></div>
               </div>
             </div>
@@ -723,122 +728,118 @@
         </summary>
         <div class="workflow-drawer-scroll">
           <div class="panel">
-            <h2>Profile &amp; Edge (Web SDK)</h2>
-            <p class="hint"><strong>Sandbox <code>apalmer</code>:</strong> Alan’s Launch + <code>surfaces</code> / <code>applyPropositions</code> (Race for Life demo pattern). <strong>Other sandboxes:</strong> Profile Viewer Launch + <code>decisionScopes</code>. Changing between these reloads the page to swap the Launch library. UPS must succeed; then Edge runs after profile load.</p>
+            <h2>Decisioning lab setup</h2>
+            <p class="hint" id="cdLabIntroHint">
+              Configure once per <strong>sandbox</strong> (saved to Firebase — sign in anonymously). Same <strong>schema → dataset → datastream</strong> flow as the
+              <a href="event-tool.html">Event tool</a>; then paste your <strong>Adobe Tags</strong> Launch script URL and surface <strong>fragments</strong> that match Journey Optimizer code-based surfaces (<code>web://…#fragment</code>).
+            </p>
+            <p class="status" id="cdLabSaveStatus" role="status" aria-live="polite"></p>
             <div class="cd-sandbox-row">
               <label for="sandboxSelect">Sandbox</label>
               <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
                 <option value="">Loading sandboxes…</option>
               </select>
             </div>
-            <label for="cdLiveEmail">Email (identity value)</label>
-            <input id="cdLiveEmail" type="email" autocomplete="email" placeholder="adamp.adobedemo+010426-4@gmail.com">
-            <p class="hint">Profile calls use <code>x-sandbox-name</code> (via <code>/api/aep</code>). Edge <code>sendEvent</code> aligns namespaces with UPS (<code>ecid</code> → <code>ECID</code>) plus this email.</p>
-            <p class="status" id="webSdkInitStatus" aria-live="polite">Loading Web SDK (Launch)…</p>
 
-            <details class="cd-edge-settings" id="cdEdgeSettings" open>
-              <summary>Edge &amp; Launch</summary>
-              <div class="cd-edge-field">
-                <label for="edgeConfigId">Datastream ID (reference — match Launch Web SDK extension)</label>
-                <input id="edgeConfigId" type="text" placeholder="ef0ee758-260c-4596-8a97-d8474d11c0ca" value="ef0ee758-260c-4596-8a97-d8474d11c0ca" autocomplete="off">
+            <section class="cd-lab-step">
+              <h3 class="cd-lab-step-title">1. ExperienceEvent schema &amp; dataset</h3>
+              <p class="hint">Calls <code>/api/events/infra/step</code> — identical to the Event tool. Create the datastream in <a href="https://experience.adobe.com/#/data-collection/datastreams" target="_blank" rel="noopener">Data Collection</a> with Experience Platform + this dataset; enable AJO / personalization services as needed.</p>
+              <label for="cdLabSchemaTitle">Schema name</label>
+              <input type="text" id="cdLabSchemaTitle" placeholder="e.g. AEP Lab - Edge Events" autocomplete="off" spellcheck="false">
+              <div class="actions" style="margin-top:0.35rem;">
+                <button type="button" class="secondary" id="cdLabCreateSchemaBtn">Create schema</button>
               </div>
-              <label class="chk"><input type="checkbox" id="edgeForceConfigure"> <span>Also call <code>alloy('configure')</code> with the datastream above (usually <strong>off</strong> — Launch configures Alloy)</span></label>
-              <div class="cd-edge-field">
-                <label for="decisionScopes">Decision scopes (optional)</label>
-                <input id="decisionScopes" type="text" placeholder="Empty = defaults for Profile Viewer lab URL" autocomplete="off">
+              <p class="status" id="cdLabSchemaMsg" role="status" aria-live="polite"></p>
+              <label for="cdLabDatasetName">Dataset name</label>
+              <input type="text" id="cdLabDatasetName" placeholder="e.g. AEP Lab - Edge Events Dataset" autocomplete="off" spellcheck="false">
+              <div class="actions" style="margin-top:0.35rem;">
+                <button type="button" class="secondary" id="cdLabCreateDatasetBtn">Create dataset</button>
               </div>
-              <label class="chk"><input type="checkbox" id="localChannelPath" checked> <span><strong>Profile Viewer lab URL</strong> — default scopes <code>web://&lt;host&gt;/profile-viewer/content-decision-live-edge#…</code> and page URL for Edge</span></label>
-              <label class="chk"><input type="checkbox" id="directCallAfterSendEvent" checked> <span>After <code>sendEvent</code>, fire Launch Direct Call with <code>decisions</code> / <code>propositions</code></span></label>
-              <div class="cd-edge-field">
-                <label for="directCallRuleIdEdgeDecisioning">Direct Call rule id (after Edge)</label>
-                <input id="directCallRuleIdEdgeDecisioning" type="text" value="experience-decisioning-lab" autocomplete="off">
+              <p class="status" id="cdLabDatasetMsg" role="status" aria-live="polite"></p>
+              <div class="actions" style="margin-top:0.5rem;">
+                <button type="button" class="secondary" id="cdLabCheckInfraBtn">Check sandbox status</button>
               </div>
-            </details>
+              <p class="status" id="cdLabInfraMsg" role="status" aria-live="polite"></p>
+            </section>
 
-            <div class="actions">
-              <button type="button" class="secondary" id="btnFetchProfile">Fetch profile only</button>
-              <button type="button" class="primary" id="btnProfileAndEdge">Profile → Edge + render</button>
-            </div>
-            <p class="status" id="profileStatus"></p>
-            <p class="status" id="edgeStatus" style="margin-top:4px;"></p>
-            <p class="hint" id="ecidHint"></p>
-            <details>
-              <summary>Profile response (raw)</summary>
-              <pre id="profileRaw">{}</pre>
-            </details>
-            <details style="margin-top:0.5rem;">
-              <summary>Last Edge response (raw)</summary>
-              <pre id="edgeResultRaw" style="max-height:240px;overflow:auto;">{}</pre>
-            </details>
+            <section class="cd-lab-step">
+              <h3 class="cd-lab-step-title">2. Datastream, Launch &amp; Edge mode</h3>
+              <label for="edgeConfigId">Datastream ID (Edge config — match Web SDK extension in Tags)</label>
+              <input id="edgeConfigId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+              <label for="cdLabLaunchUrl">Launch script URL</label>
+              <input id="cdLabLaunchUrl" type="url" placeholder="https://assets.adobedtm.com/.../launch-....min.js" autocomplete="off" spellcheck="false">
+              <label for="cdLabEdgeMode">Personalization API</label>
+              <select id="cdLabEdgeMode" class="sandbox-select" aria-label="Edge personalization mode">
+                <option value="surfaces" selected><code>surfaces</code> + <code>applyPropositions</code> (AJO / code-based)</option>
+                <option value="decisionScopes"><code>decisionScopes</code> (explicit scopes)</option>
+              </select>
+              <label class="chk"><input type="checkbox" id="edgeForceConfigure"> <span>Also call <code>alloy('configure')</code> with the datastream ID above (usually off if Launch already configures Web SDK)</span></label>
+              <div class="cd-edge-field" id="cdLabScopesRow">
+                <label for="decisionScopes">Extra decision scopes (optional, comma-separated)</label>
+                <input id="decisionScopes" type="text" placeholder="Leave empty to use placement fragments + this page URL" autocomplete="off">
+              </div>
+            </section>
+
+            <section class="cd-lab-step">
+              <h3 class="cd-lab-step-title">3. Placement fragments (AJO surface hash)</h3>
+              <p class="hint">These must match your channel / code-based configuration in Journey Optimizer for this page path. Keys map to the three preview regions.</p>
+              <div class="cd-lab-frag-grid">
+                <div>
+                  <label for="cdLabFragTop">Top ribbon <span class="hint">(key: topRibbon)</span></label>
+                  <input type="text" id="cdLabFragTop" value="TopRibbon" autocomplete="off" spellcheck="false">
+                </div>
+                <div>
+                  <label for="cdLabFragHero">Hero <span class="hint">(key: hero)</span></label>
+                  <input type="text" id="cdLabFragHero" value="hero-banner" autocomplete="off" spellcheck="false">
+                </div>
+                <div>
+                  <label for="cdLabFragCard">Content card <span class="hint">(key: contentCard)</span></label>
+                  <input type="text" id="cdLabFragCard" value="ContentCardContainer" autocomplete="off" spellcheck="false">
+                </div>
+              </div>
+              <div class="actions" style="margin-top:0.65rem;">
+                <button type="button" class="primary" id="cdLabSaveConfigBtn">Save configuration to Firebase</button>
+                <button type="button" class="secondary" id="cdLabLoadConfigBtn">Reload from Firebase</button>
+              </div>
+            </section>
+
+            <section class="cd-lab-step">
+              <h3 class="cd-lab-step-title">4. Profile &amp; run</h3>
+              <div class="row2" style="margin-bottom:0.5rem;">
+                <div>
+                  <label for="cdNs">Namespace</label>
+                  <select id="cdNs" class="sandbox-select" aria-label="Identity namespace">
+                    <option value="email">Email</option>
+                    <option value="ecid">ECID</option>
+                    <option value="crmId">CRM ID</option>
+                    <option value="loyaltyId">Loyalty ID</option>
+                    <option value="phone">Phone</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="cdLiveEmail">Identifier value</label>
+                  <input id="cdLiveEmail" type="text" autocomplete="off" placeholder="Profile identifier" spellcheck="false">
+                </div>
+              </div>
+              <p class="hint">UPS uses <code>/api/aep</code> with the selected sandbox. Edge uses the same identity for <code>sendEvent</code>.</p>
+              <p class="status" id="webSdkInitStatus" aria-live="polite">Loading…</p>
+              <div class="actions">
+                <button type="button" class="secondary" id="btnFetchProfile">Fetch profile only</button>
+                <button type="button" class="primary" id="btnProfileAndEdge">Profile → Edge + render</button>
+              </div>
+              <p class="status" id="profileStatus"></p>
+              <p class="status" id="edgeStatus" style="margin-top:4px;"></p>
+              <p class="hint" id="ecidHint"></p>
+              <details>
+                <summary>Profile response (raw)</summary>
+                <pre id="profileRaw">{}</pre>
+              </details>
+              <details style="margin-top:0.5rem;">
+                <summary>Last Edge response (raw)</summary>
+                <pre id="edgeResultRaw" style="max-height:240px;overflow:auto;">{}</pre>
+              </details>
+            </section>
           </div>
-
-          <details class="cd-banner-editor panel" id="journeyBannerEditor" open>
-            <summary>Banner layout &amp; colors</summary>
-            <div class="cd-editor-grid">
-              <div class="cd-editor-block cd-editor-block--full">
-                <strong>Text vs image</strong>
-                <label for="cdLayoutMode">Placement</label>
-                <select id="cdLayoutMode">
-                  <option value="overlay" selected>On image (overlay)</option>
-                  <option value="half">Half overlaid (card on seam)</option>
-                  <option value="below">Below image</option>
-                </select>
-              </div>
-              <div class="cd-editor-block">
-                <strong>Copy block</strong>
-                <label for="cdBlockY">Vertical on banner</label>
-                <select id="cdBlockY" data-cd-key="blockY">
-                  <option value="flex-start">Top</option>
-                  <option value="center">Middle</option>
-                  <option value="flex-end" selected>Bottom</option>
-                </select>
-              </div>
-              <div class="cd-editor-block">
-                <strong>Title</strong>
-                <label for="cdTitleH">Horizontal</label>
-                <select id="cdTitleH"><option value="flex-start">Left</option><option value="center" selected>Center</option><option value="flex-end">Right</option></select>
-                <label for="cdTitleV">Vertical</label>
-                <select id="cdTitleV"><option value="flex-start" selected>Top</option><option value="center">Middle</option><option value="flex-end">Bottom</option></select>
-                <label>Text color</label>
-                <div class="cd-color-row">
-                  <input type="color" id="cdTitleColorPick" value="#e6e9ef">
-                  <input type="text" id="cdTitleColorHex" value="#e6e9ef" maxlength="9">
-                </div>
-              </div>
-              <div class="cd-editor-block">
-                <strong>Description</strong>
-                <label for="cdDescH">Horizontal</label>
-                <select id="cdDescH"><option value="flex-start">Left</option><option value="center" selected>Center</option><option value="flex-end">Right</option></select>
-                <label for="cdDescV">Vertical</label>
-                <select id="cdDescV"><option value="flex-start">Top</option><option value="center" selected>Middle</option><option value="flex-end">Bottom</option></select>
-                <label>Text color</label>
-                <div class="cd-color-row">
-                  <input type="color" id="cdDescColorPick" value="#c5c9d3">
-                  <input type="text" id="cdDescColorHex" value="#c5c9d3" maxlength="9">
-                </div>
-              </div>
-              <div class="cd-editor-block">
-                <strong>Button</strong>
-                <label for="cdCtaH">Horizontal</label>
-                <select id="cdCtaH"><option value="flex-start">Left</option><option value="center" selected>Center</option><option value="flex-end">Right</option></select>
-                <label for="cdCtaV">Vertical</label>
-                <select id="cdCtaV"><option value="flex-start">Top</option><option value="center">Middle</option><option value="flex-end" selected>Bottom</option></select>
-                <label>Background</label>
-                <div class="cd-color-row">
-                  <input type="color" id="cdCtaBgPick" value="#f0f2f6">
-                  <input type="text" id="cdCtaBgHex" value="#f0f2f6" maxlength="9">
-                </div>
-                <label>Button text</label>
-                <div class="cd-color-row">
-                  <input type="color" id="cdCtaTextPick" value="#1a1d23">
-                  <input type="text" id="cdCtaTextHex" value="#1a1d23" maxlength="9">
-                </div>
-              </div>
-            </div>
-            <div class="cd-editor-actions">
-              <button type="button" class="secondary" id="cdBannerResetStyles">Reset banner styles</button>
-            </div>
-          </details>
         </div>
       </details>
         </div>
@@ -851,1095 +852,16 @@
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js?v=20260408"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
   <script src="content-decision-edge-mounts.js?v=20260216"></script>
-  <script>
-(function () {
-
-  /** UPS / events: Email namespace only (no custom namespace UI). */
-  const CD_IDENTITY_NS = 'Email';
-
-  const CD_BANNER_LS = 'aep-cd-banner-editor';
-  const LS_EMAIL = 'aep-cd-live-email';
-  const DEFAULT_EDGE_CONFIG_ID = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
-  /** Alan / Race for Life demo — same Launch + datastream as race-for-life-demo.html */
-  const CD_EDGE_ALAN_SANDBOX = 'apalmer';
-  const EDGE_LAUNCH_ALAN = {
-    mode: 'alan',
-    src: 'https://assets.adobedtm.com/60e5fd51ad90/1e9ecb8bbc4a/launch-2070346dc211-development.min.js',
-    datastream: '46677fd7-9db0-4f16-898c-b424d0245c38',
-  };
-  const EDGE_LAUNCH_DEFAULT = {
-    mode: 'default',
-    src: 'https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js',
-    datastream: 'ef0ee758-260c-4596-8a97-d8474d11c0ca',
-  };
-  const HERO_CHANNEL_LOCATION = 'travel-hero-banner';
-  const EDGE_LAB_PATH = '/profile-viewer/content-decision-live-edge.html';
-  /** DevTools: filter console by this string */
-  const LOG_PREFIX = '[content-decision-live-edge]';
-  function cdLog() {
-    var args = Array.prototype.slice.call(arguments);
-    args.unshift(LOG_PREFIX);
-    console.log.apply(console, args);
-  }
-
-  const CD_BANNER_DEFAULTS = {
-    layoutMode: 'overlay',
-    blockY: 'flex-end',
-    titleH: 'center', titleV: 'flex-start',
-    descH: 'center', descV: 'center',
-    ctaH: 'center', ctaV: 'flex-end',
-    titleColor: '#e6e9ef', descColor: '#c5c9d3', ctaBg: '#f0f2f6', ctaText: '#1a1d23',
-  };
-
-  let lastUpsPayload = null;
-  let lastUpsClientData = null;
-  let lastProfileEcid = '';
-  let lastEdgeResult = null;
-  let alloyConfiguredFor = '';
-  let lastIdentityMapSentForDebug = null;
-
-  function persistLiveIdentity() {
-    const em = document.getElementById('cdLiveEmail').value.trim();
-    try {
-      if (em) localStorage.setItem(LS_EMAIL, em); else localStorage.removeItem(LS_EMAIL);
-    } catch (e) {}
-  }
-
-  function getEdgeLabPageUrl() {
-    if (typeof location === 'undefined') return '';
-    return location.origin + EDGE_LAB_PATH;
-  }
-
-  function edgeLabIsAlanSandbox() {
-    try {
-      return (
-        typeof AepGlobalSandbox !== 'undefined' &&
-        String(AepGlobalSandbox.getSandboxName() || '').trim() === CD_EDGE_ALAN_SANDBOX
-      );
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function getEdgeLabLaunchConfig() {
-    return edgeLabIsAlanSandbox() ? EDGE_LAUNCH_ALAN : EDGE_LAUNCH_DEFAULT;
-  }
-
-  function injectLaunchScript(cfg) {
-    return new Promise(function (resolve, reject) {
-      var existing = document.getElementById('cd-edge-launch-script');
-      if (existing) existing.remove();
-      var s = document.createElement('script');
-      s.id = 'cd-edge-launch-script';
-      s.async = true;
-      s.src = cfg.src;
-      s.onload = function () {
-        resolve(cfg);
-      };
-      s.onerror = function () {
-        reject(new Error('Failed to load Adobe Launch: ' + cfg.src));
-      };
-      document.head.appendChild(s);
-    });
-  }
-
-  function clearEdgeMounts() {
-    ['cd-edge-topRibbon', 'cd-edge-hero', 'cd-edge-contentCard'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.innerHTML = '';
-      el.classList.remove('cd-banner-wrap');
-    });
-  }
-
-  function getEdgeLabDecisionScopes() {
-    if (typeof location === 'undefined') return [];
-    var loc = location;
-    var h = loc.host;
-    var path = loc.pathname || EDGE_LAB_PATH;
-    if (path.indexOf('/') !== 0) path = '/' + path;
-    var base = 'web://' + h + path.split('?')[0];
-    return [base + '#' + HERO_CHANNEL_LOCATION, base + '#TopRibbon'];
-  }
-
-  (function initFields() {
-    try {
-      var em = localStorage.getItem(LS_EMAIL);
-      if (em) document.getElementById('cdLiveEmail').value = em;
-    } catch (e) {}
-  })();
-
-  (function initEdgeFieldsFromStorage() {
-    try {
-      var ec = localStorage.getItem('aep-edge-config-id');
-      var sc = localStorage.getItem('aep-decision-scopes');
-      var fc = localStorage.getItem('aep-edge-force-configure');
-      var dcEn = localStorage.getItem('aep-direct-call-enabled');
-      var dcEdge = localStorage.getItem('aep-direct-call-edge-id');
-      var localPath = localStorage.getItem('aep-cd-edge-local-path');
-      document.getElementById('edgeConfigId').value = ec || DEFAULT_EDGE_CONFIG_ID;
-      if (sc) document.getElementById('decisionScopes').value = sc;
-      if (fc === '1') document.getElementById('edgeForceConfigure').checked = true;
-      if (localPath === '0') document.getElementById('localChannelPath').checked = false;
-      if (dcEn === '0') document.getElementById('directCallAfterSendEvent').checked = false;
-      else if (dcEn === '1') document.getElementById('directCallAfterSendEvent').checked = true;
-      if (dcEdge) document.getElementById('directCallRuleIdEdgeDecisioning').value = dcEdge;
-    } catch (e) {}
-  })();
-
-  function persistEdgeFields() {
-    var ec = document.getElementById('edgeConfigId').value.trim();
-    var sc = document.getElementById('decisionScopes').value.trim();
-    var fc = document.getElementById('edgeForceConfigure').checked;
-    var localCh = document.getElementById('localChannelPath').checked;
-    if (ec) localStorage.setItem('aep-edge-config-id', ec);
-    else localStorage.removeItem('aep-edge-config-id');
-    if (sc) localStorage.setItem('aep-decision-scopes', sc);
-    else localStorage.removeItem('aep-decision-scopes');
-    localStorage.setItem('aep-edge-force-configure', fc ? '1' : '0');
-    localStorage.setItem('aep-cd-edge-local-path', localCh ? '1' : '0');
-    var dcEdge = document.getElementById('directCallRuleIdEdgeDecisioning').value.trim();
-    var dcAfter = document.getElementById('directCallAfterSendEvent').checked;
-    localStorage.setItem('aep-direct-call-enabled', dcAfter ? '1' : '0');
-    if (dcEdge) localStorage.setItem('aep-direct-call-edge-id', dcEdge);
-    else localStorage.removeItem('aep-direct-call-edge-id');
-  }
-
-  function parseScopes() {
-    var raw = document.getElementById('decisionScopes').value.trim();
-    return raw ? raw.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
-  }
-
-  function getPersonalizationPayloads(edgeResult) {
-    if (!edgeResult) return { source: 'none', payloads: [] };
-    if (Array.isArray(edgeResult.decisions) && edgeResult.decisions.length) {
-      return { source: 'decisions', payloads: edgeResult.decisions };
-    }
-    if (Array.isArray(edgeResult.propositions) && edgeResult.propositions.length) {
-      return { source: 'propositions', payloads: edgeResult.propositions };
-    }
-    return { source: 'none', payloads: [] };
-  }
-
-  function launchDirectCallTrack(ruleId, data) {
-    if (!ruleId) return false;
-    if (typeof window._satellite === 'undefined' || typeof window._satellite.track !== 'function') {
-      cdLog('Direct Call skipped: _satellite.track unavailable');
-      return false;
-    }
-    try {
-      if (data && typeof data === 'object' && Object.keys(data).length) {
-        window._satellite.track(ruleId, data);
-      } else {
-        window._satellite.track(ruleId);
-      }
-      return true;
-    } catch (err) {
-      cdLog('_satellite.track failed', err);
-      return false;
-    }
-  }
-
-  function fireLaunchDirectCallAfterSendEvent(edgeResult) {
-    var enabled = document.getElementById('directCallAfterSendEvent').checked;
-    var ruleId = document.getElementById('directCallRuleIdEdgeDecisioning').value.trim();
-    if (!enabled || !ruleId) return;
-    var payload = {};
-    if (edgeResult && typeof edgeResult === 'object') {
-      if (Array.isArray(edgeResult.decisions)) payload.decisions = edgeResult.decisions;
-      if (Array.isArray(edgeResult.propositions)) payload.propositions = edgeResult.propositions;
-    }
-    launchDirectCallTrack(ruleId, Object.keys(payload).length ? payload : undefined);
-  }
-
-  function waitForAlloy(timeoutMs) {
-    var t = timeoutMs || 25000;
-    var launchSrc = (window.__cdEdgeLaunchCfg && window.__cdEdgeLaunchCfg.src) || '';
-    return new Promise(function (resolve, reject) {
-      if (typeof alloy === 'function') return resolve();
-      var start = Date.now();
-      var id = setInterval(function () {
-        if (typeof alloy === 'function') {
-          clearInterval(id);
-          resolve();
-        } else if (Date.now() - start > t) {
-          clearInterval(id);
-          reject(new Error('Alloy not available after Launch load. ' + launchSrc));
-        }
-      }, 50);
-    });
-  }
-
-  /**
-   * After dynamic Launch inject: optional alloy('configure') from the Edge field when forced.
-   */
-  function primeWebSdkOnLoad() {
-    function setInit(msg, cls) {
-      var el = document.getElementById('webSdkInitStatus');
-      if (!el) return;
-      el.textContent = msg || '';
-      el.className = 'status' + (cls ? ' ' + cls : '');
-    }
-    var modeHint = document.getElementById('cdEdgeModeHint');
-    if (modeHint && window.__cdEdgeLaunchCfg) {
-      var c = window.__cdEdgeLaunchCfg;
-      modeHint.textContent =
-        c.mode === 'alan'
-          ? 'Edge mode: apalmer — surfaces + applyPropositions (Alan). Datastream ' + c.datastream + '.'
-          : 'Edge mode: default — decisionScopes. Datastream ' + c.datastream + '.';
-    }
-    waitForAlloy()
-      .then(function () {
-        var edgeConfigId = document.getElementById('edgeConfigId').value.trim();
-        var forceCfg = document.getElementById('edgeForceConfigure').checked;
-        if (!forceCfg || !edgeConfigId) {
-          setInit('Web SDK ready — Alloy loaded via Launch (datastream from Web SDK extension).', 'ok');
-          return;
-        }
-        if (alloyConfiguredFor === edgeConfigId) {
-          setInit('Web SDK ready — Alloy already configured for this datastream.', 'ok');
-          return;
-        }
-        return alloy('configure', { edgeConfigId: edgeConfigId })
-          .then(function () {
-            alloyConfiguredFor = edgeConfigId;
-            setInit('Web SDK ready — alloy(configure) applied with datastream from this page.', 'ok');
-          })
-          .catch(function (e) {
-            var msg = e && e.message ? String(e.message) : String(e);
-            if (/already been configured|only be configured once/i.test(msg)) {
-              alloyConfiguredFor = edgeConfigId;
-              setInit('Web SDK ready — Launch already configured Alloy (skipped duplicate configure).', 'ok');
-              return;
-            }
-            setInit(msg, 'err');
-          });
-      })
-      .catch(function (e) {
-        setInit(String(e.message || e), 'err');
-      });
-  }
-
-  function initSandboxSelectWithReload() {
-    var sel = document.getElementById('sandboxSelect');
-    if (!sel || typeof AepGlobalSandbox === 'undefined') return;
-    var modeAtLoad = window.__cdEdgeLaunchMode;
-    AepGlobalSandbox.loadSandboxesIntoSelect(sel).then(function () {
-      AepGlobalSandbox.onSandboxSelectChange(sel);
-      AepGlobalSandbox.attachStorageSync(sel);
-      sel.addEventListener('change', function () {
-        var n = String(AepGlobalSandbox.getSandboxName() || '').trim();
-        var nowAlan = n === CD_EDGE_ALAN_SANDBOX;
-        var wasAlan = modeAtLoad === 'alan';
-        if (nowAlan !== wasAlan) {
-          location.reload();
-        }
-      });
-    });
-  }
-
-  function beginAfterLaunchInject(cfg) {
-    window.__cdEdgeLaunchCfg = cfg;
-    window.__cdEdgeLaunchMode = cfg.mode;
-    var ec = document.getElementById('edgeConfigId');
-    if (ec) ec.value = cfg.datastream;
-    primeWebSdkOnLoad();
-    initSandboxSelectWithReload();
-  }
-
-  document.getElementById('cdLiveEmail').addEventListener('blur', persistLiveIdentity);
-  document.getElementById('edgeConfigId').addEventListener('blur', persistEdgeFields);
-  document.getElementById('decisionScopes').addEventListener('blur', persistEdgeFields);
-  document.getElementById('edgeForceConfigure').addEventListener('change', persistEdgeFields);
-  document.getElementById('directCallRuleIdEdgeDecisioning').addEventListener('blur', persistEdgeFields);
-  document.getElementById('directCallAfterSendEvent').addEventListener('change', persistEdgeFields);
-  document.getElementById('localChannelPath').addEventListener('change', persistEdgeFields);
-
-  function withSandboxPlatformHeaders(payload) {
-    var base = payload && typeof payload === 'object' ? payload : {};
-    var sb = '';
-    try {
-      if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
-        sb = String(AepGlobalSandbox.getSandboxName() || '').trim();
-      }
-    } catch (e) {}
-    if (!sb) return base;
-    var ph = Object.assign({}, base.platform_headers || {});
-    ph['x-sandbox-name'] = sb;
-    return Object.assign({}, base, { platform_headers: ph });
-  }
-
-  async function aepCall(payload) {
-    payload = withSandboxPlatformHeaders(payload);
-    cdLog('UPS proxy →', payload.method || 'POST', payload.path || '', payload.params || {});
-    let res;
-    try {
-      res = await fetch('/api/aep', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    } catch (e) {
-      cdLog('UPS proxy ✗ network', String(e.message || e));
-      return { httpOk: false, data: { error: 'Network error calling /api/aep', detail: String(e.message || e) } };
-    }
-    const text = await res.text();
-    let data;
-    try { data = text ? JSON.parse(text) : {}; } catch { data = { error: 'Non-JSON from proxy', detail: text.slice(0, 200) }; }
-    cdLog('UPS proxy ← HTTP', res.status, res.ok ? 'ok' : 'error');
-    return { httpOk: res.ok, data };
-  }
-
-  function extractEntityFromUpsClientData(clientData) {
-    if (!clientData || typeof clientData !== 'object') return null;
-    var root = clientData.platform_response != null ? clientData.platform_response : clientData;
-    if (!root || typeof root !== 'object') return null;
-    for (var vi = 0; vi < Object.keys(root).length; vi++) {
-      var v = root[Object.keys(root)[vi]];
-      if (v && typeof v === 'object' && v.entity && typeof v.entity === 'object') return v.entity;
-    }
-    if (root.entity && typeof root.entity === 'object') return root.entity;
-    return null;
-  }
-
-  function buildIdentityMapFromUpsEntity(entity, fallbackEmail) {
-    var im = entity && entity.identityMap;
-    var out = {};
-    if (im && typeof im === 'object') {
-      for (var rawKey in im) {
-        if (!Object.prototype.hasOwnProperty.call(im, rawKey)) continue;
-        var arr = im[rawKey];
-        if (!Array.isArray(arr) || !arr.length) continue;
-        var pick = null;
-        for (var i = 0; i < arr.length; i++) {
-          if (arr[i] && arr[i].id) { pick = arr[i]; break; }
-        }
-        if (!pick || !pick.id) continue;
-        var nsKey = rawKey;
-        if (/^ecid$/i.test(rawKey)) nsKey = 'ECID';
-        var entry = { id: String(pick.id).trim(), authenticatedState: pick.authenticatedState || 'ambiguous' };
-        if (pick.primary === true || pick.primary === false) entry.primary = pick.primary;
-        out[nsKey] = [entry];
-      }
-    }
-    var fe = (fallbackEmail || '').trim();
-    if (fe && !Object.keys(out).some(function (k) { return /^email$/i.test(k); })) {
-      out.email = [{ id: fe, authenticatedState: 'ambiguous' }];
-    }
-    var keys = Object.keys(out);
-    if (!keys.length) return null;
-    var hasEcid = keys.indexOf('ECID') !== -1;
-    keys.forEach(function (k) {
-      var arr = out[k];
-      if (!arr || !arr[0]) return;
-      if (hasEcid) arr[0].primary = k === 'ECID';
-      else arr[0].primary = true;
-    });
-    return out;
-  }
-
-  function recordEcidFromUpsProfile(clientData) {
-    var ecid = extractEcidFromUpsApiResponse(clientData);
-    lastProfileEcid = ecid || '';
-    return ecid || '';
-  }
-
-  function isUpsProfileSuccess(data) {
-    if (data == null || typeof data !== 'object') return false;
-    if (typeof data.status === 'number' && data.status >= 400) return false;
-    var t = data.type;
-    if (typeof t === 'string' && (t.indexOf('/errors/') !== -1 || t.indexOf('problem') !== -1)) return false;
-    return true;
-  }
-
-  function extractEcidFromUpsApiResponse(clientData) {
-    if (!clientData || typeof clientData !== 'object') return '';
-    var root = clientData.platform_response != null ? clientData.platform_response : clientData;
-    var seen = new WeakSet();
-    function walk(node, depth) {
-      if (!node || typeof node !== 'object' || depth > 10) return '';
-      if (seen.has(node)) return '';
-      seen.add(node);
-      var im = node.identityMap;
-      if (im && typeof im === 'object') {
-        for (var k in im) {
-          if (!/^ecid$/i.test(k)) continue;
-          var arr = im[k];
-          if (!Array.isArray(arr)) continue;
-          for (var i = 0; i < arr.length; i++) {
-            if (arr[i] && arr[i].id) return String(arr[i].id).trim();
-          }
-        }
-      }
-      for (var v of Object.values(node)) {
-        if (v && typeof v === 'object') {
-          var f = walk(v, depth + 1);
-          if (f) return f;
-        }
-      }
-      return '';
-    }
-    return walk(root, 0);
-  }
-
-  async function fetchProfileByIdentity(ns, id) {
-    return aepCall({
-      method: 'GET',
-      path: '/data/core/ups/access/entities',
-      params: { 'schema.name': '_xdm.context.profile', entityId: id, entityIdNS: ns },
-    });
-  }
-
-  async function runEdgePropositionsAlanStyle(opts) {
-    opts = opts || {};
-    persistEdgeFields();
-    clearEdgeMounts();
-    await waitForAlloy();
-    var email = document.getElementById('cdLiveEmail').value.trim();
-    var ecidRaw =
-      opts.profileEcid !== undefined && opts.profileEcid !== null
-        ? String(opts.profileEcid).trim()
-        : (lastProfileEcid || '').trim();
-    var profile = { ecid: ecidRaw || null, email: email || null };
-    var identityMap = CdEdgeMounts.buildIdentityMap(profile, email, 'email');
-    lastIdentityMapSentForDebug = identityMap;
-    var surfaces = CdEdgeMounts.buildSurfacesForEdgeLabPage();
-    var href = typeof location !== 'undefined' ? location.href.split('?')[0] : '';
-    var sendOpts = {
-      renderDecisions: true,
-      personalization: {
-        surfaces: surfaces,
-        schemas: CdEdgeMounts.PERSONALIZATION_SCHEMAS,
-      },
-      xdm: {
-        identityMap: identityMap,
-        web: {
-          webPageDetails: {
-            URL: href,
-            name: 'Decisioning lab (Edge)',
-            viewName: 'Decisioning lab (Edge)',
-          },
-        },
-      },
-    };
-    var result = await alloy('sendEvent', sendOpts);
-    var propositions = (result && (result.propositions || result.decisions)) || [];
-    try {
-      if (typeof alloy === 'function' && propositions.length) {
-        await alloy('applyPropositions', { propositions: propositions });
-      }
-    } catch (e) {
-      cdLog('applyPropositions', String(e && e.message ? e.message : e));
-    }
-    CdEdgeMounts.applyPropositionsManually(propositions);
-    fireLaunchDirectCallAfterSendEvent(result);
-    return result;
-  }
-
-  async function runEdgePropositions(opts) {
-    opts = opts || {};
-    persistEdgeFields();
-    clearEdgeMounts();
-    if (edgeLabIsAlanSandbox()) {
-      return runEdgePropositionsAlanStyle(opts);
-    }
-    await waitForAlloy();
-    var edgeConfigId = document.getElementById('edgeConfigId').value.trim();
-    var forceCfg = document.getElementById('edgeForceConfigure').checked;
-    var decisionScopes = parseScopes();
-    var localLab = document.getElementById('localChannelPath').checked;
-    if (localLab && !decisionScopes.length) {
-      decisionScopes = getEdgeLabDecisionScopes();
-    }
-    var email = document.getElementById('cdLiveEmail').value.trim();
-    var ecidRaw =
-      opts.profileEcid !== undefined && opts.profileEcid !== null
-        ? String(opts.profileEcid).trim()
-        : (lastProfileEcid || '').trim();
-    lastIdentityMapSentForDebug = null;
-    if (forceCfg && edgeConfigId) {
-      if (alloyConfiguredFor !== edgeConfigId) {
-        try {
-          await alloy('configure', { edgeConfigId: edgeConfigId });
-        } catch (e) {
-          var msg = e && e.message ? String(e.message) : String(e);
-          if (!/already been configured|only be configured once/i.test(msg)) throw e;
-        }
-        alloyConfiguredFor = edgeConfigId;
-      }
-    }
-    var pageUrl = localLab
-      ? getEdgeLabPageUrl()
-      : typeof location !== 'undefined'
-        ? location.href
-        : '';
-    var xdm = {
-      eventType: 'web.webpagedetails.pageViews',
-      web: {
-        webPageDetails: {
-          URL: pageUrl,
-          name: localLab
-            ? 'AEP Profile Viewer — Decisioning lab (Edge)'
-            : 'AEP Profile Viewer',
-        },
-      },
-    };
-    var upsForIdentity =
-      opts.upsClientData !== undefined && opts.upsClientData !== null ? opts.upsClientData : lastUpsClientData;
-    var identityMapBuilt = null;
-    if (upsForIdentity) {
-      var ent = extractEntityFromUpsClientData(upsForIdentity);
-      if (ent) identityMapBuilt = buildIdentityMapFromUpsEntity(ent, email);
-    }
-    if (!identityMapBuilt && (email || ecidRaw)) {
-      identityMapBuilt = {};
-      if (email) {
-        identityMapBuilt.email = [{ id: email, authenticatedState: 'ambiguous', primary: true }];
-      }
-      if (ecidRaw) {
-        identityMapBuilt.ECID = [{ id: ecidRaw, authenticatedState: 'ambiguous', primary: !email }];
-      }
-      if (identityMapBuilt.ECID && identityMapBuilt.email) {
-        identityMapBuilt.ECID[0].primary = true;
-        identityMapBuilt.email[0].primary = false;
-      }
-    }
-    if (identityMapBuilt && Object.keys(identityMapBuilt).length) {
-      xdm.identityMap = identityMapBuilt;
-      lastIdentityMapSentForDebug = identityMapBuilt;
-    }
-    var sendOpts = { renderDecisions: false, xdm: xdm };
-    if (decisionScopes.length) {
-      sendOpts.personalization = { decisionScopes: decisionScopes };
-    }
-    var result = await alloy('sendEvent', sendOpts);
-    fireLaunchDirectCallAfterSendEvent(result);
-    var propositionsOut = (result && (result.propositions || result.decisions)) || [];
-    if (typeof CdEdgeMounts !== 'undefined' && CdEdgeMounts.applyPropositionsManually) {
-      CdEdgeMounts.applyPropositionsManually(propositionsOut);
-    }
-    return result;
-  }
-
-  function journeyVisualFromEdgeResult(edgeResult) {
-    var pay = getPersonalizationPayloads(edgeResult);
-    var payloads = pay.payloads || [];
-    for (var pi = 0; pi < payloads.length; pi++) {
-      var prop = payloads[pi];
-      var items = prop.items || [];
-      for (var ii = 0; ii < items.length; ii++) {
-        var item = items[ii];
-        var cand = item.data;
-        if (cand && typeof cand === 'object') {
-          var jd = extractJourneyContentDecision(cand);
-          if (jd) return jd;
-          if (cand.content) {
-            jd = extractJourneyContentDecision({ content: cand.content });
-            if (jd) return jd;
-          }
-        }
-        var nested = deepFindOfferContentNode(item, 0);
-        if (nested) {
-          jd = extractJourneyContentDecision({ content: nested });
-          if (jd) return jd;
-        }
-      }
-    }
-    return null;
-  }
-
-  function deepFindOfferContentNode(obj, depth) {
-    if (depth > 14 || obj == null || typeof obj !== 'object') return null;
-    if (Array.isArray(obj)) {
-      for (var i = 0; i < obj.length; i++) {
-        var f = deepFindOfferContentNode(obj[i], depth + 1);
-        if (f) return f;
-      }
-      return null;
-    }
-    var c = obj.content;
-    if (c && c.mediaAssets && typeof c.mediaAssets === 'object' && c.textContent && typeof c.textContent === 'object') return c;
-    var keys = Object.keys(obj);
-    for (var ki = 0; ki < keys.length; ki++) {
-      var f2 = deepFindOfferContentNode(obj[keys[ki]], depth + 1);
-      if (f2) return f2;
-    }
-    return null;
-  }
-
-  function pickHeroSourceUrlFromMediaAssets(mediaAssets) {
-    if (!mediaAssets || typeof mediaAssets !== 'object') return '';
-    var order = ['imageHighRes', 'imageMediumRes', 'imageSmallRes', 'thumbnail', 'videoAsset'];
-    for (var oi = 0; oi < order.length; oi++) {
-      var a = mediaAssets[order[oi]];
-      if (a && a.sourceURL) return String(a.sourceURL).trim();
-    }
-    for (var ki = 0; ki < Object.keys(mediaAssets).length; ki++) {
-      var k = Object.keys(mediaAssets)[ki];
-      var a2 = mediaAssets[k];
-      if (a2 && a2.sourceURL) return String(a2.sourceURL).trim();
-    }
-    return '';
-  }
-
-  function extractJourneyContentDecision(raw) {
-    var obj = raw;
-    if (typeof obj === 'string') {
-      try { obj = JSON.parse(obj); } catch (e) { return null; }
-    }
-    if (!obj || typeof obj !== 'object') return null;
-    var content = deepFindOfferContentNode(obj, 0);
-    if (!content) return null;
-    var tc = content.textContent || {};
-    var ma = content.mediaAssets || {};
-    var nav = content.navigation || {};
-    var imageUrl = pickHeroSourceUrlFromMediaAssets(ma);
-    var ctaHref = '';
-    if (ma.imageHighRes && ma.imageHighRes.destinationURL) ctaHref = String(ma.imageHighRes.destinationURL).trim();
-    if (!ctaHref && nav.webUrl) ctaHref = String(nav.webUrl).trim();
-    if (!ctaHref && nav.internalUrl) ctaHref = String(nav.internalUrl).trim();
-    var bannerTitle = tc.bannerTitle != null ? String(tc.bannerTitle) : '';
-    var fullDescription = tc.fullDescription != null ? String(tc.fullDescription) : (tc.fullTitle != null ? String(tc.fullTitle) : '');
-    var bannerCTA = tc.bannerCTA != null ? String(tc.bannerCTA) : (tc.fullCTA != null ? String(tc.fullCTA) : 'Learn more');
-    if (!imageUrl && !bannerTitle && !fullDescription) return null;
-    return { imageUrl: imageUrl, bannerTitle: bannerTitle, fullDescription: fullDescription, bannerCTA: bannerCTA, ctaHref: ctaHref };
-  }
-
-  function normalizeCdHex(s) {
-    var t = String(s == null ? '' : s).trim();
-    if (!t) return null;
-    if (t[0] !== '#') t = '#' + t;
-    if (/^#([0-9a-fA-F]{3})$/.test(t)) {
-      var h = t.slice(1);
-      t = '#' + h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-    }
-    if (/^#([0-9a-fA-F]{6})$/.test(t)) return t.toLowerCase();
-    return null;
-  }
-
-  function loadCdBannerEditorFromStorage() {
-    try {
-      var raw = localStorage.getItem(CD_BANNER_LS);
-      if (!raw) return Object.assign({}, CD_BANNER_DEFAULTS);
-      return Object.assign({}, CD_BANNER_DEFAULTS, JSON.parse(raw));
-    } catch (e) { return Object.assign({}, CD_BANNER_DEFAULTS); }
-  }
-
-  function saveCdBannerEditorToStorage(state) {
-    try { localStorage.setItem(CD_BANNER_LS, JSON.stringify(state)); } catch (e) {}
-  }
-
-  function readCdBannerEditorForm() {
-    function g(id) { var el = document.getElementById(id); return el ? el.value : ''; }
-    var lm = g('cdLayoutMode');
-    if (lm !== 'overlay' && lm !== 'half' && lm !== 'below') lm = CD_BANNER_DEFAULTS.layoutMode;
-    return {
-      layoutMode: lm,
-      blockY: g('cdBlockY') || CD_BANNER_DEFAULTS.blockY,
-      titleH: g('cdTitleH') || CD_BANNER_DEFAULTS.titleH,
-      titleV: g('cdTitleV') || CD_BANNER_DEFAULTS.titleV,
-      descH: g('cdDescH') || CD_BANNER_DEFAULTS.descH,
-      descV: g('cdDescV') || CD_BANNER_DEFAULTS.descV,
-      ctaH: g('cdCtaH') || CD_BANNER_DEFAULTS.ctaH,
-      ctaV: g('cdCtaV') || CD_BANNER_DEFAULTS.ctaV,
-      titleColor: normalizeCdHex(g('cdTitleColorHex')) || CD_BANNER_DEFAULTS.titleColor,
-      descColor: normalizeCdHex(g('cdDescColorHex')) || CD_BANNER_DEFAULTS.descColor,
-      ctaBg: normalizeCdHex(g('cdCtaBgHex')) || CD_BANNER_DEFAULTS.ctaBg,
-      ctaText: normalizeCdHex(g('cdCtaTextHex')) || CD_BANNER_DEFAULTS.ctaText,
-    };
-  }
-
-  function writeCdBannerEditorForm(state) {
-    function set(id, val) { var el = document.getElementById(id); if (el) el.value = val; }
-    set('cdLayoutMode', state.layoutMode || CD_BANNER_DEFAULTS.layoutMode);
-    set('cdBlockY', state.blockY);
-    set('cdTitleH', state.titleH); set('cdTitleV', state.titleV);
-    set('cdDescH', state.descH); set('cdDescV', state.descV);
-    set('cdCtaH', state.ctaH); set('cdCtaV', state.ctaV);
-    set('cdTitleColorHex', state.titleColor); set('cdTitleColorPick', state.titleColor);
-    set('cdDescColorHex', state.descColor); set('cdDescColorPick', state.descColor);
-    set('cdCtaBgHex', state.ctaBg); set('cdCtaBgPick', state.ctaBg);
-    set('cdCtaTextHex', state.ctaText); set('cdCtaTextPick', state.ctaText);
-  }
-
-  function applyCdBannerEditorStyles() {
-    var wrap = document.getElementById('cd-edge-hero');
-    if (!wrap || wrap.hidden) return;
-    var st = readCdBannerEditorForm();
-    var banner = wrap.querySelector('.cd-banner');
-    if (banner) {
-      var mode = st.layoutMode;
-      if (mode !== 'overlay' && mode !== 'half' && mode !== 'below') mode = CD_BANNER_DEFAULTS.layoutMode;
-      banner.classList.remove('cd-banner--overlay', 'cd-banner--half', 'cd-banner--below');
-      banner.classList.add('cd-banner--' + mode);
-      wrap.classList.toggle('cd-banner-wrap--half-bridge', mode === 'half');
-    }
-    var copyEl = wrap.querySelector('.cd-banner-copy');
-    if (copyEl) copyEl.style.setProperty('--cd-block-justify', st.blockY);
-    wrap.style.setProperty('--cd-title-color', st.titleColor);
-    wrap.style.setProperty('--cd-desc-color', st.descColor);
-    wrap.style.setProperty('--cd-cta-bg', st.ctaBg);
-    wrap.style.setProperty('--cd-cta-text', st.ctaText);
-    var titleSlot = wrap.querySelector('.cd-slot--title');
-    var descSlot = wrap.querySelector('.cd-slot--desc');
-    var ctaSlot = wrap.querySelector('.cd-slot--cta');
-    if (titleSlot) {
-      titleSlot.style.setProperty('--cd-slot-justify', st.titleH);
-      titleSlot.style.setProperty('--cd-slot-align', st.titleV);
-    }
-    if (descSlot) {
-      descSlot.style.setProperty('--cd-slot-justify', st.descH);
-      descSlot.style.setProperty('--cd-slot-align', st.descV);
-    }
-    if (ctaSlot) {
-      ctaSlot.style.setProperty('--cd-slot-justify', st.ctaH);
-      ctaSlot.style.setProperty('--cd-slot-align', st.ctaV);
-    }
-  }
-
-  function initCdBannerEditor() {
-    writeCdBannerEditorForm(loadCdBannerEditorFromStorage());
-    function onChange() {
-      saveCdBannerEditorToStorage(readCdBannerEditorForm());
-      applyCdBannerEditorStyles();
-    }
-    ['cdLayoutMode', 'cdBlockY', 'cdTitleH', 'cdTitleV', 'cdDescH', 'cdDescV', 'cdCtaH', 'cdCtaV'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.addEventListener('change', onChange);
-    });
-    function bindPair(pickId, hexId) {
-      var pick = document.getElementById(pickId);
-      var hex = document.getElementById(hexId);
-      if (!pick || !hex) return;
-      pick.addEventListener('input', function () { hex.value = pick.value; onChange(); });
-      hex.addEventListener('change', function () {
-        var n = normalizeCdHex(hex.value);
-        if (n) { hex.value = n; pick.value = n; } else { hex.value = pick.value; }
-        onChange();
-      });
-    }
-    bindPair('cdTitleColorPick', 'cdTitleColorHex');
-    bindPair('cdDescColorPick', 'cdDescColorHex');
-    bindPair('cdCtaBgPick', 'cdCtaBgHex');
-    bindPair('cdCtaTextPick', 'cdCtaTextHex');
-    document.getElementById('cdBannerResetStyles').addEventListener('click', function () {
-      writeCdBannerEditorForm(CD_BANNER_DEFAULTS);
-      saveCdBannerEditorToStorage(CD_BANNER_DEFAULTS);
-      applyCdBannerEditorStyles();
-    });
-  }
-
-  /** Fresh background-image fetch when user clicks Show banner (HTTP URLs only; skips data:/blob:). */
-  function withBannerImageCacheBust(jd) {
-    if (!jd || !jd.imageUrl) return jd;
-    var u = String(jd.imageUrl).trim();
-    if (!u) return jd;
-    var lower = u.slice(0, 5).toLowerCase();
-    if (lower === 'data:' || lower === 'blob:') return jd;
-    var sep = u.indexOf('?') >= 0 ? '&' : '?';
-    return Object.assign({}, jd, { imageUrl: u + sep + '_cdcb=' + Date.now() });
-  }
-
-  function renderJourneyContentDecisionBanner(jd) {
-    var wrap = document.getElementById('cd-edge-hero');
-    if (!wrap) return;
-    wrap.innerHTML = '';
-    wrap.classList.remove('cd-banner-wrap');
-    if (!jd) {
-      cdLog('Banner render: cleared (no data)');
-      return;
-    }
-    cdLog('Banner render: DOM updated', { slots: [!!jd.bannerTitle, !!jd.fullDescription, !!jd.bannerCTA].filter(Boolean).length + '/3' });
-    wrap.classList.add('cd-banner-wrap');
-    var banner = document.createElement('div');
-    banner.className = 'cd-banner' + (jd.imageUrl ? '' : ' cd-banner--no-image');
-    var figure = document.createElement('div');
-    figure.className = 'cd-banner-figure' + (jd.imageUrl ? '' : ' cd-banner-figure--empty');
-    if (jd.imageUrl) {
-      figure.setAttribute('role', 'img');
-      figure.setAttribute('aria-label', jd.bannerTitle ? 'Hero: ' + jd.bannerTitle : 'Hero image');
-      figure.style.backgroundImage = 'url(' + JSON.stringify(jd.imageUrl) + ')';
-    }
-    var scrim = document.createElement('div');
-    scrim.className = 'cd-banner-scrim';
-    scrim.setAttribute('aria-hidden', 'true');
-    var copy = document.createElement('div');
-    copy.className = 'cd-banner-copy';
-    if (jd.bannerTitle) {
-      var st = document.createElement('div');
-      st.className = 'cd-slot cd-slot--title';
-      var h = document.createElement('h2');
-      h.className = 'cd-banner-title';
-      h.textContent = jd.bannerTitle;
-      st.appendChild(h);
-      copy.appendChild(st);
-    }
-    if (jd.fullDescription) {
-      var sd = document.createElement('div');
-      sd.className = 'cd-slot cd-slot--desc';
-      var p = document.createElement('p');
-      p.className = 'cd-banner-desc';
-      p.textContent = jd.fullDescription;
-      sd.appendChild(p);
-      copy.appendChild(sd);
-    }
-    if (jd.bannerCTA) {
-      var sc = document.createElement('div');
-      sc.className = 'cd-slot cd-slot--cta';
-      if (jd.ctaHref) {
-        var a = document.createElement('a');
-        a.className = 'cd-banner-cta';
-        a.href = jd.ctaHref;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.textContent = jd.bannerCTA;
-        sc.appendChild(a);
-      } else {
-        var span = document.createElement('span');
-        span.className = 'cd-banner-cta cd-banner-cta--ghost';
-        span.textContent = jd.bannerCTA;
-        sc.appendChild(span);
-      }
-      copy.appendChild(sc);
-    }
-    banner.appendChild(figure);
-    banner.appendChild(scrim);
-    banner.appendChild(copy);
-    wrap.appendChild(banner);
-    applyCdBannerEditorStyles();
-  }
-
-  async function runProfileAndEdgeDecisions() {
-    persistLiveIdentity();
-    var email = document.getElementById('cdLiveEmail').value.trim();
-    var st = document.getElementById('profileStatus');
-    var edgeSt = document.getElementById('edgeStatus');
-    var rawEdge = document.getElementById('edgeResultRaw');
-    cdLog('Profile → Edge: start');
-    edgeSt.textContent = '';
-    edgeSt.className = 'status';
-    if (!email) {
-      st.textContent = 'Enter an email.';
-      st.className = 'status err';
-      return false;
-    }
-    st.textContent = 'Fetching profile…';
-    st.className = 'status';
-    var r = await fetchProfileByIdentity(CD_IDENTITY_NS, email);
-    lastUpsPayload = r.data;
-    lastUpsClientData = r.data;
-    document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
-    if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
-      cdLog('Profile → Edge ✗ profile failed');
-      st.textContent = 'Profile failed — check email and sandbox.';
-      st.className = 'status err';
-      lastUpsClientData = null;
-      lastProfileEcid = '';
-      document.getElementById('ecidHint').textContent = '';
-      if (rawEdge) rawEdge.textContent = '{}';
-      return false;
-    }
-    var ecid = recordEcidFromUpsProfile(r.data);
-    document.getElementById('ecidHint').textContent = ecid
-      ? 'ECID from UPS (sent on Edge): ' + ecid
-      : 'No ECID in payload — Edge may use email only.';
-    st.textContent = 'Profile OK — requesting Edge…';
-    st.className = 'status ok';
-    edgeSt.textContent = 'Loading Alloy / Edge…';
-    try {
-      var edgeResult = await runEdgePropositions({ upsClientData: r.data, profileEcid: ecid });
-      lastEdgeResult = edgeResult;
-      if (rawEdge) {
-        try {
-          rawEdge.textContent = JSON.stringify(edgeResult, null, 2);
-        } catch (e) {
-          rawEdge.textContent = String(edgeResult);
-        }
-      }
-      var jd = journeyVisualFromEdgeResult(edgeResult);
-      var heroMount = document.getElementById('cd-edge-hero');
-      if (jd && heroMount && !heroMount.querySelector('.cd-banner')) {
-        renderJourneyContentDecisionBanner(withBannerImageCacheBust(jd));
-        cdLog('Profile → Edge ✓ structured hero from Edge payload (mount was empty)');
-      } else if (jd) {
-        cdLog('Profile → Edge ✓ (structured hero skipped — mount already has proposition content)');
-      } else {
-        cdLog('Profile → Edge ✓ (no structured offer hero — check mounts + raw JSON)');
-      }
-      edgeSt.textContent = 'Edge response received.';
-      edgeSt.className = 'status ok';
-      return true;
-    } catch (e) {
-      var msg = e && e.message ? e.message : String(e);
-      cdLog('Profile → Edge ✗', msg);
-      edgeSt.textContent = msg;
-      edgeSt.className = 'status err';
-      if (rawEdge) rawEdge.textContent = JSON.stringify({ error: msg }, null, 2);
-      lastEdgeResult = null;
-      return false;
-    }
-  }
-
-  async function runFullContentDecisionPipeline() {
-    var pipe = document.getElementById('cdPipelineStatus');
-    function setPipe(msg, cls) {
-      if (!pipe) return;
-      pipe.textContent = msg || '';
-      pipe.className = 'status' + (cls ? ' ' + cls : '');
-    }
-    setPipe('Starting…');
-    var ok = await runProfileAndEdgeDecisions();
-    if (!ok) {
-      setPipe('Stopped — check Profile / Edge status below.', 'err');
-      return;
-    }
-    setPipe('Done — check Top ribbon, Hero, and Content card mounts above.');
-  }
-
-  document.getElementById('btnFetchProfile').addEventListener('click', async function () {
-    persistLiveIdentity();
-    var email = document.getElementById('cdLiveEmail').value.trim();
-    var st = document.getElementById('profileStatus');
-    var hint = document.getElementById('ecidHint');
-    cdLog('Fetch profile only: start', { namespace: CD_IDENTITY_NS, identity: email ? '(set)' : '(empty)' });
-    st.textContent = 'Loading…';
-    st.className = 'status';
-    if (!email) {
-      cdLog('Fetch profile only ✗ missing email');
-      st.textContent = 'Enter an email.';
-      st.className = 'status err';
-      return;
-    }
-    var r = await fetchProfileByIdentity(CD_IDENTITY_NS, email);
-    lastUpsPayload = r.data;
-    lastUpsClientData = r.data;
-    document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
-    if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
-      cdLog('Fetch profile only ✗ UPS not successful', { httpOk: r.httpOk });
-      st.textContent = 'Profile not found or UPS error — check email and sandbox.';
-      st.className = 'status err';
-      hint.textContent = '';
-      lastUpsClientData = null;
-      lastProfileEcid = '';
-      return;
-    }
-    var ecid = recordEcidFromUpsProfile(r.data);
-    cdLog('Fetch profile only ✓', { ecid: ecid ? ecid.slice(0, 8) + '…' : null });
-    st.textContent = 'Profile loaded.';
-    st.className = 'status ok';
-    hint.textContent = ecid ? 'ECID in profile: ' + ecid : 'No ECID in identityMap; journey may still key on email.';
-  });
-
-  document.getElementById('btnProfileAndEdge').addEventListener('click', async function () {
-    await runProfileAndEdgeDecisions();
-  });
-
-  document.getElementById('btnRunFullContentDecision').addEventListener('click', async function () {
-    var btn = this;
-    if (btn.disabled) return;
-    btn.disabled = true;
-    try {
-      await runFullContentDecisionPipeline();
-    } catch (e) {
-      cdLog('Full pipeline ✗', String(e.message || e));
-      var p = document.getElementById('cdPipelineStatus');
-      if (p) {
-        p.textContent = String(e.message || e);
-        p.className = 'status err';
-      }
-    } finally {
-      btn.disabled = false;
-    }
-  });
-
-  initCdBannerEditor();
-
-  (function initWorkflowDock() {
-    var mainEl = document.querySelector('main.dashboard-main.cd-main');
-    var dockOuter = document.getElementById('workflowDockOuter');
-    var drawer = document.getElementById('workflowDrawer');
-    var hit = document.getElementById('workflowDockHit');
-    if (!mainEl || !dockOuter) return;
-
-    var PEEK_PX = 40;
-    var peekRaf = null;
-    var lastX = 0;
-    var lastY = 0;
-
-    function alignWorkflowDock() {
-      var r = mainEl.getBoundingClientRect();
-      dockOuter.style.left = Math.max(0, r.left) + 'px';
-      dockOuter.style.width = Math.min(r.width, window.innerWidth) + 'px';
-    }
-
-    function setPeekFromPoint(clientX, clientY) {
-      if (drawer && drawer.open) {
-        dockOuter.classList.add('workflow-dock-outer--peek');
-        return;
-      }
-      var r = mainEl.getBoundingClientRect();
-      var nearBottom = clientY >= window.innerHeight - PEEK_PX;
-      var inMain = clientX >= r.left && clientX <= r.right;
-      if (nearBottom && inMain) {
-        dockOuter.classList.add('workflow-dock-outer--peek');
-      } else {
-        dockOuter.classList.remove('workflow-dock-outer--peek');
-      }
-    }
-
-    function onMouseMove(e) {
-      lastX = e.clientX;
-      lastY = e.clientY;
-      if (peekRaf) return;
-      peekRaf = window.requestAnimationFrame(function () {
-        peekRaf = null;
-        setPeekFromPoint(lastX, lastY);
-      });
-    }
-
-    alignWorkflowDock();
-    try {
-      var ro = new ResizeObserver(alignWorkflowDock);
-      ro.observe(mainEl);
-    } catch (e) {}
-    window.addEventListener('resize', alignWorkflowDock);
-
-    document.addEventListener('mousemove', onMouseMove, { passive: true });
-    document.documentElement.addEventListener('mouseleave', function () {
-      if (drawer && !drawer.open) {
-        dockOuter.classList.remove('workflow-dock-outer--peek');
-      }
-    });
-
-    if (drawer) {
-      drawer.addEventListener('toggle', function () {
-        if (drawer.open) {
-          dockOuter.classList.add('workflow-dock-outer--peek');
-        } else {
-          setPeekFromPoint(lastX, lastY);
-        }
-      });
-    }
-
-    if (hit) {
-      hit.addEventListener('touchstart', function () {
-        dockOuter.classList.add('workflow-dock-outer--peek');
-      }, { passive: true });
-    }
-  })();
-
-  injectLaunchScript(getEdgeLabLaunchConfig())
-    .then(function (cfg) {
-      beginAfterLaunchInject(cfg);
-      cdLog('initialized — Launch injected, filter console by', LOG_PREFIX);
-    })
-    .catch(function (e) {
-      var st = document.getElementById('webSdkInitStatus');
-      if (st) {
-        st.textContent = String(e.message || e);
-        st.className = 'status err';
-      }
-      cdLog('Launch inject failed', String(e.message || e));
-    });
-})();
-  </script>
+  <script src="content-decision-lab-config.js?v=20260216"></script>
+  <script src="content-decision-live-edge-ui.js?v=20260416-edge-lab"></script>
+  <script src="content-decision-live-edge-inline.js?v=20260416-edge-lab"></script>
 </body>
 </html>
