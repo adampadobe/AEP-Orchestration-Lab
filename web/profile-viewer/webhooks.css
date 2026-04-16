@@ -560,153 +560,297 @@ body.webhooks-tool-page.home-dashboard-concierge .wh-monitor {
              color: var(--text-secondary);
          }
 
-         /* Modal Styles */
-         .modal-overlay {
+         /* Modal — portaled to body: must use --dash-* directly (outside .wh-monitor) */
+         body.home-dashboard-concierge .wh-webhook-modal {
              position: fixed;
-             top: 0;
-             left: 0;
-             right: 0;
-             bottom: 0;
-             background: rgba(0,0,0,0.6);
-             z-index: 1000;
+             inset: 0;
+             z-index: 10000;
              display: flex;
              align-items: center;
              justify-content: center;
-             padding: 20px;
-             backdrop-filter: blur(2px);
+             padding: max(12px, env(safe-area-inset-top)) 16px 16px;
+             box-sizing: border-box;
+             background: rgba(15, 17, 20, 0.78);
+             -webkit-backdrop-filter: blur(4px);
+             backdrop-filter: blur(4px);
          }
 
-         .modal-content {
-             background: var(--bg-card);
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal {
+             background: rgba(0, 0, 0, 0.82);
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .modal-content {
+             background: var(--dash-surface, #fff);
+             color: var(--dash-text, #2c2c2c);
              border-radius: 12px;
              padding: 0;
              max-width: 900px;
-             max-height: 90vh;
+             max-height: min(90vh, 900px);
              width: 100%;
-             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+             box-shadow: var(--dash-shadow-hover, 0 20px 48px rgba(0, 0, 0, 0.35));
+             border: 1px solid var(--dash-border, #e6e4ea);
              overflow: hidden;
              display: flex;
              flex-direction: column;
+             isolation: isolate;
          }
 
-         .modal-header {
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .modal-content {
+             border-color: var(--dash-border, #2a3038);
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .modal-header {
              display: flex;
              justify-content: space-between;
              align-items: center;
-             padding: 20px 25px;
-             border-bottom: 1px solid var(--border-color);
-             background: var(--bg-secondary);
+             padding: 18px 22px;
+             border-bottom: 1px solid var(--dash-border, #e6e4ea);
+             background: var(--dash-surface-alt, #f8f9fa);
+             flex-shrink: 0;
          }
 
-         .modal-header h3 {
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .modal-header {
+             background: var(--dash-surface-alt, #14161b);
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .modal-header h3 {
              margin: 0;
-             color: var(--text-primary);
-             font-size: 1.2rem;
+             color: var(--dash-text, #2c2c2c);
+             font-size: 1.15rem;
+             font-weight: 700;
          }
 
-         .modal-close {
-             background: none;
+         body.home-dashboard-concierge .wh-webhook-modal .modal-close {
+             background: transparent;
              border: none;
-             font-size: 1.8rem;
+             font-size: 1.6rem;
+             line-height: 1;
              cursor: pointer;
-             color: var(--text-secondary);
-             padding: 0;
-             width: 30px;
-             height: 30px;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             border-radius: 50%;
-             transition: all 0.2s ease;
+             color: var(--dash-text-secondary, #555);
+             padding: 4px 8px;
+             border-radius: 8px;
+             transition: background 0.15s ease, color 0.15s ease;
          }
 
-         .modal-close:hover {
-             background: var(--border-color);
-             color: var(--text-primary);
+         body.home-dashboard-concierge .wh-webhook-modal .modal-close:hover {
+             background: var(--dash-hover, #f3f5f7);
+             color: var(--dash-text, #2c2c2c);
          }
 
-         .modal-body {
-             padding: 25px;
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .modal-close:hover {
+             background: rgba(255, 255, 255, 0.08);
+             color: var(--dash-text, #e8eaed);
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .modal-body {
+             padding: 20px 22px 24px;
              overflow-y: auto;
+             overflow-x: hidden;
              flex: 1;
+             min-height: 0;
+             background: var(--dash-surface, #fff);
+             color: var(--dash-text, #2c2c2c);
+             scrollbar-color: var(--dash-border, #ccc) var(--dash-surface-alt, #f0f0f0);
+             scrollbar-width: thin;
          }
 
-         .webhook-summary {
+         body.home-dashboard-concierge .wh-webhook-modal .modal-body::-webkit-scrollbar {
+             width: 10px;
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .modal-body::-webkit-scrollbar-track {
+             background: var(--dash-surface-alt, #f0f0f0);
+             border-radius: 6px;
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .modal-body::-webkit-scrollbar-thumb {
+             background: var(--dash-border, #c8c8c8);
+             border-radius: 6px;
+             border: 2px solid var(--dash-surface-alt, #f0f0f0);
+         }
+
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .modal-body::-webkit-scrollbar-track {
+             background: var(--dash-surface-alt, #14161b);
+         }
+
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .modal-body::-webkit-scrollbar-thumb {
+             background: var(--dash-border, #3a4048);
+             border-color: var(--dash-surface-alt, #14161b);
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .webhook-summary {
              display: grid;
              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
              gap: 15px;
-             margin-bottom: 25px;
-             padding: 20px;
-             background: var(--bg-secondary);
-             border-radius: 8px;
-             border-left: 4px solid var(--accent-color);
+             margin-bottom: 22px;
+             padding: 18px;
+             background: var(--dash-surface-alt, #f8f9fa);
+             border-radius: 10px;
+             border-left: 4px solid var(--dash-blue, #1473e6);
          }
 
-         .summary-item {
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .webhook-summary {
+             background: var(--dash-surface-alt, #14161b);
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .summary-item {
              display: flex;
              flex-direction: column;
+             gap: 4px;
          }
 
-         .summary-label {
-             font-size: 0.8rem;
-             color: var(--text-secondary);
+         body.home-dashboard-concierge .wh-webhook-modal .summary-label {
+             font-size: 0.72rem;
+             color: var(--dash-text-secondary, #555);
              text-transform: uppercase;
              font-weight: 600;
-             letter-spacing: 0.5px;
-             margin-bottom: 5px;
+             letter-spacing: 0.06em;
          }
 
-         .summary-value {
+         body.home-dashboard-concierge .wh-webhook-modal .summary-value {
              font-weight: 600;
-             color: var(--text-primary);
+             color: var(--dash-text, #2c2c2c);
              display: flex;
              align-items: center;
              gap: 8px;
+             font-size: 0.92rem;
          }
 
-         .json-section {
-             margin-bottom: 25px;
-             border: 1px solid var(--border-color);
-             border-radius: 8px;
+         body.home-dashboard-concierge .wh-webhook-modal .json-section {
+             margin-bottom: 20px;
+             border: 1px solid var(--dash-border, #e6e4ea);
+             border-radius: 10px;
              overflow: hidden;
+             background: var(--dash-surface, #fff);
          }
 
-         .section-header {
+         body.home-dashboard-concierge .wh-webhook-modal .section-header {
              display: flex;
              justify-content: space-between;
              align-items: center;
-             padding: 15px 20px;
-             background: var(--bg-secondary);
-             border-bottom: 1px solid var(--border-color);
+             gap: 12px;
+             padding: 12px 16px;
+             background: var(--dash-surface-alt, #f8f9fa);
+             border-bottom: 1px solid var(--dash-border, #e6e4ea);
          }
 
-         .section-header h4 {
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .section-header {
+             background: var(--dash-surface-alt, #14161b);
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .section-header h4 {
              margin: 0;
-             color: var(--text-primary);
-             font-size: 1rem;
+             color: var(--dash-text, #2c2c2c);
+             font-size: 0.95rem;
+             font-weight: 600;
          }
 
-         .section-description {
-             color: var(--text-secondary);
-             font-size: 0.9rem;
+         body.home-dashboard-concierge .wh-webhook-modal .section-description {
+             color: var(--dash-text-secondary, #555);
+             font-size: 0.88rem;
              margin: 0;
-             padding: 10px 20px;
-             background: var(--bg-card);
-             border-bottom: 1px solid var(--border-color);
+             padding: 10px 16px;
+             background: var(--dash-surface, #fff);
+             border-bottom: 1px solid var(--dash-border, #e6e4ea);
          }
 
-         .json-display {
-             background: var(--bg-card);
-             padding: 20px;
+         body.home-dashboard-concierge .wh-webhook-modal .json-display {
+             background: var(--dash-code-bg, #f0f0f0);
+             padding: 16px;
              font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-             font-size: 0.85rem;
-             max-height: 400px;
+             font-size: 0.82rem;
+             max-height: 360px;
              overflow-y: auto;
-             line-height: 1.4;
+             overflow-x: auto;
+             line-height: 1.45;
              white-space: pre-wrap;
-             color: var(--text-primary);
+             word-break: break-word;
+             color: var(--dash-text, #2c2c2c);
+             scrollbar-color: var(--dash-border, #ccc) var(--dash-code-bg, #f0f0f0);
+             scrollbar-width: thin;
          }
 
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .json-display {
+             background: var(--dash-code-bg, #0f1114);
+             color: var(--dash-text, #e8eaed);
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .json-display::-webkit-scrollbar {
+             width: 8px;
+             height: 8px;
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .json-display::-webkit-scrollbar-thumb {
+             background: var(--dash-border, #aaa);
+             border-radius: 4px;
+         }
+
+         /* JSON syntax — modal is outside .wh-monitor; duplicate dark/light rules */
+         body.home-dashboard-concierge .wh-webhook-modal .json-key {
+             color: #0451a5;
+             font-weight: 600;
+         }
+
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .json-key {
+             color: #79b8ff;
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .json-string {
+             color: #0a3069;
+         }
+
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .json-string {
+             color: #9ecbff;
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .json-number {
+             color: #098658;
+         }
+
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .json-number {
+             color: #85e89d;
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .json-boolean {
+             color: #0969da;
+             font-weight: 600;
+         }
+
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .json-boolean {
+             color: #79b8ff;
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .json-null {
+             color: #656d76;
+             font-style: italic;
+         }
+
+         html[data-aep-theme='dark'] body.home-dashboard-concierge .wh-webhook-modal .json-null {
+             color: #8b949e;
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .copy-button {
+             background: var(--dash-blue, #1473e6);
+             color: #fff;
+             border: none;
+             padding: 8px 14px;
+             border-radius: 8px;
+             cursor: pointer;
+             font-size: 0.8rem;
+             font-weight: 600;
+             flex-shrink: 0;
+             transition: filter 0.15s ease, transform 0.15s ease;
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .copy-button:hover {
+             filter: brightness(1.06);
+         }
+
+         body.home-dashboard-concierge .wh-webhook-modal .copy-button.copied {
+             background: var(--dash-success-border, #2d8c6f);
+         }
+
+         /* Legacy class names still used in page for non-modal JSON if any */
          .json-key {
              color: #0451a5;
              font-weight: 600;
