@@ -127,6 +127,33 @@
       font-family: var(--font-family);
     }
     button.primary:hover { background: var(--blue-500); }
+    a.primary {
+      display: inline-block;
+      background: var(--blue-600);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-family);
+      text-decoration: none;
+    }
+    a.primary:hover { background: var(--blue-500); }
+    a.secondary {
+      display: inline-block;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: var(--font-family);
+      text-decoration: none;
+    }
+    a.secondary:hover { filter: brightness(0.97); }
     .badge {
       display: inline-block;
       font-size: 11px;
@@ -537,19 +564,14 @@
       flex-wrap: wrap;
     }
   </style>
-  <!-- Launch rules sometimes push to dataLayer (GTM-style); define before Launch to avoid ReferenceError -->
-  <script>
-    window.dataLayer = window.dataLayer || [];
-  </script>
-  <!-- Web SDK loaded by Adobe Launch (datastream set in the Launch Web SDK extension) -->
-  <script src="https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js" async></script>
+  <!-- Adobe Launch / Web SDK loads only on profile-viewer/content-decision-live-edge.html (see callout in main). -->
 </head>
 <body>
   <header>
     <div class="header-content">
       <div>
         <h1>Experience Decisioning lab <span class="badge new">DPS REST</span></h1>
-        <p class="subtitle">Profile (UPS) + DPS REST + Edge via Adobe Launch / Web SDK · <a href="content-decision-live.html">Content decision (simple)</a> · <a href="http://localhost:3333/home.html" target="_blank" rel="noopener">AEP Profile Viewer (local :3333)</a> · <a href="edge-test.html">standalone Edge page</a> · <a href="launch-direct-call-smoke.html">Direct Call smoke test</a></p>
+        <p class="subtitle">Profile (UPS) + DPS REST · Edge / Web SDK: <a href="/profile-viewer/content-decision-live-edge.html">Decisioning lab (Edge)</a> · <a href="content-decision-live.html">Content decision (simple)</a> · <a href="http://localhost:3333/home.html" target="_blank" rel="noopener">AEP Profile Viewer (local :3333)</a> · <a href="edge-test.html">standalone Edge page</a> · <a href="launch-direct-call-smoke.html">Direct Call smoke test</a></p>
         <p class="hint">Profile Viewer: run <code>npm run profile-viewer</code> from repo root. Uses the same Adobe credentials as <code>proxy_server.py</code> (<code>~/.config/adobe-ims/credentials.env</code> or repo root <code>.env</code>); set <code>ADOBE_SANDBOX_NAME=apalmer</code> there. See <code>docs/COLLEAGUE_PROFILE_VIEWER.md</code>.</p>
         <p class="nav-links">Docs: <code>docs/DECISIONING_APIS.md</code> · <code>docs/EDGE_TESTING.md</code></p>
       </div>
@@ -560,6 +582,11 @@
     </div>
   </header>
   <main>
+    <div class="callout" style="margin-bottom: var(--spacing-md); background: var(--bg-tertiary); border: 1px solid var(--border);">
+      <strong>Adobe Launch / Web SDK</strong> is embedded only on
+      <a href="/profile-viewer/content-decision-live-edge.html"><code>profile-viewer/content-decision-live-edge.html</code></a>
+      (Profile Viewer <strong>Decisioning lab (Edge)</strong>). This <code>index.html</code> page does not load the tag. Edge personalization, <code>alloy('sendEvent')</code>, and Launch Direct Call flows that used to run here are on that page; shared Edge settings use the same localStorage keys via hidden fields below.
+    </div>
     <div class="callout">
       <strong>Offer Decisioning</strong> (legacy) uses <code>/offers?offer-type=…</code>.
       <strong>Experience Decisioning</strong> (current) uses <code>/offer-items</code>, <code>/item-collections</code>, <code>/selection-strategies</code>, etc. Same host <code>/data/core/dps</code>, different resources — see docs.
@@ -567,7 +594,7 @@
     <div class="grid cols-3">
       <section class="card">
         <h2>1. Profile by identity</h2>
-        <p class="hint">UPS access API — confirms the identity exists. <strong>Profile → Edge</strong> copies the profile <code>entity.identityMap</code> into <code>sendEvent</code> (namespace <code>ecid</code> → <code>ECID</code>, same email id as UPS). That aligns Edge with the profile lookup; empty propositions usually mean wrong <strong>decision scopes / spoof URL</strong> for the site where experiences are published, or Edge errors — not a missing ECID.</p>
+        <p class="hint">UPS access API — confirms the identity exists. For <strong>Edge</strong> / Web SDK, open <strong>Decisioning lab (Edge)</strong> — the profile <code>identityMap</code> is passed on <code>sendEvent</code> there (<code>ecid</code> → <code>ECID</code>, plus email).</p>
         <label for="nsCode">Identity namespace code</label>
         <input id="nsCode" type="text" value="Email" autocomplete="off">
         <label for="nsValue">Identity value</label>
@@ -580,14 +607,14 @@
           <option value="telco">Telco</option>
         </select>
         <div class="actions">
-          <button type="button" class="primary" id="btnProfileAndContent" title="UPS profile must succeed before Edge sendEvent and DOM render">Profile → Edge decisions + render</button>
+          <a class="primary" href="/profile-viewer/content-decision-live-edge.html" title="Opens Profile Viewer — Web SDK loads only on this page">Decisioning lab (Edge) — Profile + Web SDK</a>
           <button type="button" class="secondary" id="btnProfile">Fetch profile only</button>
         </div>
         <p class="status" id="profileStatus"></p>
         <p class="hint" id="profileEcidHint" style="margin-top:8px;"></p>
-        <p class="hint" style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border);">Uses the <strong>get.decisions</strong> Direct Call identifier in §3 (not <code>experience-decisioning-lab</code>). Fetches UPS, then <code>_satellite.track</code> with UPS + <code>eventType: 'get.decisions'</code> + <code>identityMap</code> when parseable.</p>
+        <p class="hint" style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border);">The <strong>get.decisions</strong> Direct Call identifier (and related fields) still sync via localStorage with the Edge lab. Adobe Launch / <code>_satellite</code> load only on that page — this index no longer runs the old “Profile + Direct Call” button.</p>
         <div class="actions">
-          <button type="button" class="secondary" id="btnProfileAndDirectCall" title="Requires Launch; _satellite.track('get.decisions', …)">Profile + Direct Call</button>
+          <a class="secondary" href="/profile-viewer/content-decision-live-edge.html" title="Web SDK and Launch load on this Profile Viewer page">Open Decisioning lab (Edge)</a>
         </div>
         <p class="status" id="profileDirectCallStatus"></p>
         <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
@@ -639,45 +666,25 @@
       </section>
       <section class="card">
         <h2>3. Content decisioning (Edge)</h2>
-        <p class="hint">Loads <strong>Adobe Launch</strong> (development). For the main flow, use <strong>Profile → Edge decisions + render</strong> in section 1: Edge <code>sendEvent</code> runs only after UPS returns a profile. Email above is sent in <code>identityMap</code> on that call.</p>
-        <label for="edgeConfigId">Datastream ID (reference — should match Launch Web SDK extension)</label>
-        <input id="edgeConfigId" type="text" placeholder="ef0ee758-260c-4596-8a97-d8474d11c0ca" value="ef0ee758-260c-4596-8a97-d8474d11c0ca" autocomplete="off">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;">
-          <input type="checkbox" id="edgeForceConfigure" style="width:auto;margin:0;">
-          <span>Also call <code>alloy('configure')</code> with the datastream above (almost always leave <strong>off</strong> when Launch is loaded — Launch already configures Alloy; a second call errors)</span>
-        </label>
-        <label for="decisionScopes">Decision scopes (optional on this page)</label>
-        <input id="decisionScopes" type="text" placeholder="Leave empty to send identity only — like a full site where Launch already requests personalization" autocomplete="off">
-        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:12px;margin-bottom:8px;">
-          <input type="checkbox" id="localChannelPath" style="width:auto;margin:4px 0 0 0;">
-          <span><strong>Local AJO channel</strong> — use path <code>aep-decisioning-lab</code>: set <code>xdm.web.webPageDetails.URL</code> to <code>…/aep-decisioning-lab/home</code> (this origin) and, if scopes are empty, default scopes <code>web://&lt;host&gt;/aep-decisioning-lab#…</code>. Open the lab at <code>/aep-decisioning-lab/home</code> so the address bar matches. <strong>Off</strong> when spoofing DSN.</span>
-        </label>
-        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:12px;margin-bottom:8px;">
-          <input type="checkbox" id="spoofDsnWebContext" style="width:auto;margin:4px 0 0 0;">
-          <span>Spoof <strong>DSN</strong> web context for AJO surfaces (<code>apalmer-I018</code>): send DSN home URL in <code>xdm.web.webPageDetails.URL</code> and, if scopes are empty, request <code>web://dsn.adobe.com/apalmer-I018#travel-hero-banner</code> + <code>#TopRibbon</code>.</span>
-        </label>
-        <label for="spoofDsnPageUrl">Spoof page URL</label>
-        <input id="spoofDsnPageUrl" type="url" value="https://dsn.adobe.com/web/apalmer-I018/home" autocomplete="off" title="Must align with how your AJO web channel builds web://… URIs">
-        <p class="status err" id="spoofUrlMismatchHint" hidden style="margin-top:8px;"></p>
-        <p class="hint" style="margin-top:-8px;">On real <strong>DSN</strong>, Launch sets scopes from the page; on localhost this mimics that URL so Edge can match the same channel config. The path must include the same site id as in <code>web://dsn.adobe.com/<em>…</em>#…</code> (e.g. <code>apalmer-I018</code>, not a truncated <code>I01</code>). If you enter scopes above, those win; leave scopes empty to use the two defaults.</p>
-        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:12px;margin-bottom:8px;">
-          <input type="checkbox" id="directCallAfterSendEvent" checked style="width:auto;margin:4px 0 0 0;">
-          <span>After Web SDK <code>sendEvent</code> resolves, fire Launch Direct Call <code>experience-decisioning-lab</code> (below) with <code>decisions</code> / <code>propositions</code> when present.</span>
-        </label>
-        <label for="directCallRuleIdEdgeDecisioning">Direct Call — Edge decisioning (after <code>sendEvent</code>)</label>
-        <input id="directCallRuleIdEdgeDecisioning" type="text" value="experience-decisioning-lab" placeholder="experience-decisioning-lab" autocomplete="off">
-        <p class="hint" style="margin-top:-8px;">Tags rule: <strong>Direct Call</strong> identifier <code>experience-decisioning-lab</code> — map Edge payloads into the page (channel DOM, etc.). Payload includes <code>decisions</code> / <code>propositions</code> from the Web SDK result when available.</p>
-        <label for="directCallRuleIdGetDecisions" style="margin-top:12px;">Direct Call — <code>get.decisions</code> (§1 profile button)</label>
-        <input id="directCallRuleIdGetDecisions" type="text" value="get.decisions" placeholder="get.decisions" autocomplete="off">
-        <p class="hint" style="margin-top:-8px;">Separate Tags rule: <strong>Direct Call</strong> identifier <code>get.decisions</code> — fired by <strong>Profile + Direct Call</strong> in §1 with UPS + <code>eventType</code> in the payload (your rule logs/sends XDM to AEP).</p>
-        <details class="legacy" style="margin-top: var(--spacing-md);">
-          <summary>Debug: Edge without UPS check</summary>
-          <p class="hint" style="margin-top: var(--spacing-sm);">Calls <code>sendEvent</code> even if profile was not loaded. If you used <strong>Fetch profile only</strong> first, the last UPS <code>ECID</code> is included with email when present.</p>
-          <div class="actions">
-            <button type="button" class="secondary" id="btnEdge">Send identity to Edge / fetch decisions</button>
-          </div>
-        </details>
-        <p class="status" id="edgeStatus"></p>
+        <p class="hint">Adobe Launch and the Web SDK are embedded <strong>only</strong> on
+          <a href="/profile-viewer/content-decision-live-edge.html">Decisioning lab (Edge)</a>
+          (they used to load on this <code>index.html</code> page). Edge UI — datastream, scopes, DSN spoof, <code>sendEvent</code>, hero preview — runs there. Hidden inputs below keep the same localStorage keys in sync for tooling that still reads this page.</p>
+        <div class="actions">
+          <a class="primary" href="/profile-viewer/content-decision-live-edge.html">Open Decisioning lab (Edge)</a>
+        </div>
+        <div id="aepEdgeLabHiddenSync" hidden aria-hidden="true">
+          <input id="edgeConfigId" type="text" value="ef0ee758-260c-4596-8a97-d8474d11c0ca" autocomplete="off" tabindex="-1">
+          <input id="edgeForceConfigure" type="checkbox" tabindex="-1">
+          <input id="decisionScopes" type="text" autocomplete="off" tabindex="-1">
+          <input id="localChannelPath" type="checkbox" tabindex="-1">
+          <input id="spoofDsnWebContext" type="checkbox" tabindex="-1">
+          <input id="spoofDsnPageUrl" type="url" value="https://dsn.adobe.com/web/apalmer-I018/home" autocomplete="off" tabindex="-1">
+          <p id="spoofUrlMismatchHint" class="status err" hidden></p>
+          <input id="directCallAfterSendEvent" type="checkbox" checked tabindex="-1">
+          <input id="directCallRuleIdEdgeDecisioning" type="text" value="experience-decisioning-lab" autocomplete="off" tabindex="-1">
+          <input id="directCallRuleIdGetDecisions" type="text" value="get.decisions" autocomplete="off" tabindex="-1">
+          <p id="edgeStatus" class="status"></p>
+        </div>
       </section>
     </div>
     <details class="legacy">
@@ -700,12 +707,12 @@
     </details>
     <section class="card" style="margin-top: var(--spacing-lg);">
       <h2>Content preview (Edge)</h2>
-      <p class="hint">Shows <code>event.decisions</code> or <code>propositions</code> from <code>sendEvent</code> — same shape your Launch rule iterates.</p>
+      <p class="hint">Edge <code>sendEvent</code> previews now run on <a href="/profile-viewer/content-decision-live-edge.html">Decisioning lab (Edge)</a>. This section still shows payloads when present (e.g. from webhook preview below).</p>
       <div id="contentPreview" class="content-preview" hidden>
         <h3 id="contentPreviewTitle">Decisions / propositions</h3>
         <div id="contentPreviewBody"></div>
       </div>
-      <p class="hint" id="contentPreviewEmpty">Run <strong>Profile → Edge decisions + render</strong> (after UPS returns a profile), or use <strong>Debug: Edge without UPS check</strong> in section 3.</p>
+      <p class="hint" id="contentPreviewEmpty">Use <a href="/profile-viewer/content-decision-live-edge.html">Decisioning lab (Edge)</a> for Web SDK decisions/propositions, or fetch webhooks below.</p>
     </section>
     <section class="card" style="margin-top: var(--spacing-lg);">
       <h2>Journey webhook feed (poll)</h2>
@@ -725,7 +732,7 @@
       <h2>Channel config → DOM (your AJO setup)</h2>
       <p class="hint">These two surfaces match your Experience Decisioning <strong>channel configurations</strong> and the Launch rule that maps schema payloads into the page.</p>
       <div class="channel-label" style="margin-top: 0">Journey: Content Decision (webhook)</div>
-      <p class="hint" id="journeyBannerPlaceholder">After <strong>Profile → Edge</strong> (or your journey) triggers the webhook, use <strong>Fetch webhooks</strong> then <strong>Preview</strong> or <strong>Show content banner</strong> on a Content Decision row. Text and CTA render over the hero <code>imageHighRes.sourceURL</code> (or next available asset).</p>
+      <p class="hint" id="journeyBannerPlaceholder">After your journey triggers the webhook, use <strong>Fetch webhooks</strong> then <strong>Preview</strong> or <strong>Show content banner</strong> on a Content Decision row. For Edge-driven hero content, use <a href="/profile-viewer/content-decision-live-edge.html">Decisioning lab (Edge)</a>.</p>
       <details class="cd-banner-editor" id="journeyBannerEditor" open>
         <summary>Style the content banner (alignment &amp; colors)</summary>
         <p class="hint" style="margin-top:0">Each row has its own <strong>horizontal</strong> and <strong>vertical</strong> alignment inside its area. The <strong>whole block</strong> control moves title + description + button together to the top, middle, or bottom of the hero. Colors use the pickers or hex fields. Settings are saved in this browser.</p>
@@ -1011,7 +1018,7 @@
     })();
 
     let alloyConfiguredFor = '';
-    /** ECID from the last successful UPS profile response; also passed explicitly on Profile → Edge. */
+    /** ECID from the last successful UPS profile response (use on Decisioning lab Edge page). */
     let lastProfileEcid = '';
     /** Full proxy JSON from last successful UPS call — used to rebuild identityMap for Edge like the profile. */
     let lastUpsClientData = null;
@@ -1118,10 +1125,10 @@
       if (!el) return;
       if (ecid) {
         el.textContent =
-          'ECID from UPS identityMap (included on Edge sendEvent with email): ' + ecid;
+          'ECID from UPS identityMap (use on Decisioning lab Edge page for sendEvent): ' + ecid;
       } else {
         el.textContent =
-          'No ECID in this UPS payload’s identityMap — Edge uses email only. If DSN shows a different ECID, identities may not be stitched the same on localhost.';
+          'No ECID in this UPS payload’s identityMap — Edge lab may use email only.';
       }
     }
 
@@ -2638,7 +2645,7 @@
       st.textContent = ok
         ? 'Profile returned (UPS).'
         : httpOk
-          ? 'UPS responded but body looks like an error — Edge gated flow will not run.'
+          ? 'UPS responded but body looks like an error.'
           : 'Proxy or network error.';
       st.className = 'status ' + (ok ? 'ok' : 'err');
       if (ok) {
@@ -2649,177 +2656,6 @@
         lastUpsClientData = null;
         document.getElementById('profileEcidHint').textContent = '';
       }
-    });
-
-    document.getElementById('btnEdge').addEventListener('click', async () => {
-      const st = document.getElementById('edgeStatus');
-      st.textContent = 'Loading Edge…';
-      st.className = 'status';
-      try {
-        const result = await runEdgePropositions();
-        const combined = { edge: result, profile: null };
-        if (lastIdentityMapSentForDebug) combined.identityMap_used_on_sendEvent = lastIdentityMapSentForDebug;
-        showOut(combined);
-        renderContentPreview(result);
-        applyPersonalizationToDemoDom(result);
-        st.textContent = 'Edge response received.';
-        st.className = 'status ok';
-      } catch (e) {
-        const msg = e && e.message ? e.message : String(e);
-        showOut({ edge_error: msg });
-        renderContentPreview({});
-        st.textContent = msg;
-        st.className = 'status err';
-      }
-    });
-
-    document.getElementById('btnProfileAndContent').addEventListener('click', async () => {
-      const stP = document.getElementById('profileStatus');
-      const stE = document.getElementById('edgeStatus');
-      stP.textContent = 'Loading profile…';
-      stE.textContent = 'Waiting for profile…';
-      stP.className = 'status';
-      stE.className = 'status';
-      const ns = document.getElementById('nsCode').value.trim();
-      const id = document.getElementById('nsValue').value.trim();
-      if (!ns || !id) {
-        stP.textContent = 'Enter namespace and identity value.';
-        stP.className = 'status err';
-        stE.textContent = '';
-        return;
-      }
-      persistIdentityFields();
-      const { httpOk, data: profileData } = await fetchProfileByIdentity(ns, id);
-      const profileOk = httpOk && isUpsProfileSuccess(profileData);
-
-      if (!profileOk) {
-        lastProfileEcid = '';
-        lastUpsClientData = null;
-        stP.textContent = httpOk
-          ? 'UPS error body or no entity — Edge skipped.'
-          : 'Profile request failed — Edge skipped.';
-        stP.className = 'status err';
-        stE.textContent = 'Skipped: personalization runs only after a successful profile response.';
-        stE.className = 'status err';
-        document.getElementById('profileEcidHint').textContent = '';
-        showOut({ profile: profileData, edge_skipped: 'UPS did not return a usable profile.' });
-        renderContentPreview({});
-        clearDemoPersonalizationDom();
-        return;
-      }
-
-      lastUpsClientData = profileData;
-      const ecidForEdge = recordEcidFromUpsProfile(profileData);
-      updateProfileEcidHint(ecidForEdge);
-
-      stP.textContent = 'Profile returned. Requesting Edge decisions…';
-      stP.className = 'status ok';
-      stE.textContent = 'Loading Edge…';
-      try {
-        const edgeResult = await runEdgePropositions({ upsClientData: profileData });
-        showOut({
-          profile: profileData,
-          edge: edgeResult,
-          identityMap_used_on_sendEvent: lastIdentityMapSentForDebug,
-          ecid_from_ups_hint: ecidForEdge || null,
-        });
-        renderContentPreview(edgeResult);
-        applyPersonalizationToDemoDom(edgeResult);
-        stE.textContent = 'Edge response applied (preview + channel DOM).';
-        stE.className = 'status ok';
-      } catch (e) {
-        const msg = e && e.message ? e.message : String(e);
-        showOut({ profile: profileData, edge_error: msg });
-        renderContentPreview({});
-        clearDemoPersonalizationDom();
-        stE.textContent = msg;
-        stE.className = 'status err';
-      }
-    });
-
-    document.getElementById('btnProfileAndDirectCall').addEventListener('click', async () => {
-      const stP = document.getElementById('profileStatus');
-      const stE = document.getElementById('edgeStatus');
-      const stDc = document.getElementById('profileDirectCallStatus');
-      stP.textContent = 'Loading profile…';
-      stDc.textContent = '';
-      stP.className = 'status';
-      stDc.className = 'status';
-      if (stE) stE.textContent = '';
-      const ns = document.getElementById('nsCode').value.trim();
-      const id = document.getElementById('nsValue').value.trim();
-      if (!ns || !id) {
-        stP.textContent = 'Enter namespace and identity value.';
-        stP.className = 'status err';
-        return;
-      }
-      persistIdentityFields();
-      persistEdgeFields();
-      const ruleId = document.getElementById('directCallRuleIdGetDecisions').value.trim();
-      if (!ruleId) {
-        stDc.textContent = 'Set the get.decisions Direct Call identifier in §3 first.';
-        stDc.className = 'status err';
-        stP.textContent = '';
-        return;
-      }
-      const { httpOk, data: profileData } = await fetchProfileByIdentity(ns, id);
-      const profileOk = httpOk && isUpsProfileSuccess(profileData);
-      if (!profileOk) {
-        lastProfileEcid = '';
-        lastUpsClientData = null;
-        stP.textContent = httpOk
-          ? 'UPS error body or no entity — Direct Call skipped.'
-          : 'Profile request failed — Direct Call skipped.';
-        stP.className = 'status err';
-        document.getElementById('profileEcidHint').textContent = '';
-        showOut({ profile: profileData, direct_call_skipped: 'UPS did not return a usable profile.' });
-        return;
-      }
-      lastUpsClientData = profileData;
-      const ecidForEdge = recordEcidFromUpsProfile(profileData);
-      updateProfileEcidHint(ecidForEdge);
-      stP.textContent = 'Profile returned.';
-      stP.className = 'status ok';
-      try {
-        await waitForSatellite();
-      } catch (e) {
-        const msg = e && e.message ? e.message : String(e);
-        stDc.textContent = msg;
-        stDc.className = 'status err';
-        showOut({ profile: profileData, direct_call_error: msg });
-        return;
-      }
-      const email = document.getElementById('nsValue').value.trim();
-      const ent = extractEntityFromUpsClientData(profileData);
-      let identityMapForRule = null;
-      if (ent) identityMapForRule = buildIdentityMapFromUpsEntity(ent, email);
-      if (identityMapForRule && Object.keys(identityMapForRule).length) {
-        lastIdentityMapSentForDebug = identityMapForRule;
-      }
-      const payload = {
-        eventType: 'get.decisions',
-        source: 'aep-decisioning-lab',
-        profile: profileData,
-      };
-      if (identityMapForRule && Object.keys(identityMapForRule).length) {
-        payload.identityMap = identityMapForRule;
-      }
-      const ok = launchDirectCallTrack(ruleId, payload);
-      if (!ok) {
-        stDc.textContent = 'Direct Call failed — see console (_satellite.track).';
-        stDc.className = 'status err';
-        showOut({ profile: profileData, direct_call_fired: false, direct_call_rule_id: ruleId, direct_call_payload: payload });
-        return;
-      }
-      stDc.textContent = 'Direct Call fired: ' + ruleId + ' (payload includes eventType get.decisions + UPS + identityMap).';
-      stDc.className = 'status ok';
-      showOut({
-        profile: profileData,
-        direct_call_fired: true,
-        direct_call_rule_id: ruleId,
-        direct_call_payload: payload,
-        ecid_from_ups_hint: ecidForEdge || null,
-      });
     });
 
     document.getElementById('btnProfileAndStreamingIngest').addEventListener('click', async () => {
