@@ -105,6 +105,13 @@
     global.addEventListener('aep-theme-change', function () {
       applyToDocument(getMode());
     });
+    global.addEventListener('aep-lab-sandbox-keys-applied', function () {
+      var m = getMode();
+      try {
+        localStorage.setItem('aep-decisioning-theme', m);
+      } catch (e) {}
+      applyToDocument(m);
+    });
   }
 
   global.AepTheme = {
