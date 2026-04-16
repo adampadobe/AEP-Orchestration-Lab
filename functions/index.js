@@ -56,6 +56,7 @@ const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
 const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
 const easterEggNotify = lazyRequireMod('./easterEggNotify');
+const { sandboxWebhookTool } = require('./sandboxWebhookTool');
 const eventInfraService = lazyRequireMod('./eventInfraService');
 const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
@@ -1466,6 +1467,9 @@ exports.journeyNameProxy = onRequest(profileFnOpts, async (req, res) => {
     res.status(500).json({ error: String(e.message || e), name: null });
   }
 });
+
+/** GET /api/webhooks/config|feed|stats, POST /api/webhooks/clear, ALL /api/webhooks/r/:sandbox/:token — per-sandbox webhook inbox (Firestore). */
+exports.sandboxWebhookTool = onRequest(CONSENT_STORE_FN_OPTS, sandboxWebhookTool);
 
 exports.webhookListenerProxy = onRequest(
   {

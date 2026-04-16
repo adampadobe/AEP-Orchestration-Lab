@@ -122,6 +122,13 @@
         }
       },
       {
+        "source": "/api/webhooks/**",
+        "function": {
+          "functionId": "sandboxWebhookTool",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/provisioning/tenant-schemas",
         "function": {
           "functionId": "provisioningTenantSchemas",
