@@ -91,6 +91,125 @@ body.webhooks-tool-page.home-dashboard-concierge .wh-monitor {
             transition: all 0.3s ease;
         }
 
+        /* Facebook / WhatsApp verification — collapsed by default */
+        .wh-monitor details.webhook-url-section.wh-fb-verify-details {
+            padding: 0;
+        }
+
+        .wh-monitor .wh-fb-verify-summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 18px 20px;
+            cursor: pointer;
+            user-select: none;
+            color: var(--text-primary);
+        }
+
+        .wh-monitor .wh-fb-verify-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .wh-monitor .wh-fb-verify-summary::marker {
+            content: '';
+        }
+
+        .wh-monitor .wh-fb-verify-summary::after {
+            content: '';
+            width: 0.5rem;
+            height: 0.5rem;
+            border-right: 2px solid var(--text-secondary);
+            border-bottom: 2px solid var(--text-secondary);
+            transform: rotate(45deg);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .wh-monitor details.wh-fb-verify-details[open] > .wh-fb-verify-summary::after {
+            transform: rotate(-135deg);
+            margin-top: 4px;
+        }
+
+        .wh-monitor .wh-fb-verify-summary-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .wh-monitor .wh-fb-verify-summary h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .wh-monitor .wh-fb-verify-status {
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .wh-monitor .wh-fb-verify-tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.5rem;
+            height: 1.5rem;
+            padding: 0 0.35rem;
+            border-radius: 999px;
+            color: var(--accent-color);
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            font-size: 0.7rem;
+            font-weight: 700;
+            font-family: inherit;
+            flex-shrink: 0;
+            cursor: help;
+            line-height: 1;
+        }
+
+        .wh-monitor .wh-fb-verify-tooltip-icon:hover,
+        .wh-monitor .wh-fb-verify-tooltip-icon:focus-visible {
+            background: var(--dash-hover, rgba(0, 0, 0, 0.04));
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(20, 115, 230, 0.25);
+        }
+
+        html[data-aep-theme='dark'] .wh-monitor .wh-fb-verify-tooltip-icon:hover,
+        html[data-aep-theme='dark'] .wh-monitor .wh-fb-verify-tooltip-icon:focus-visible {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .wh-monitor .wh-fb-verify-body {
+            padding: 0 20px 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .wh-monitor .wh-fb-verify-intro {
+            margin-bottom: 15px;
+        }
+
+        .wh-monitor .wh-fb-verify-intro p {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            background: var(--bg-secondary);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .wh-monitor .wh-fb-verify-footnote {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin: 12px 0 0;
+        }
+
         .webhook-url-header {
             display: flex;
             align-items: center;

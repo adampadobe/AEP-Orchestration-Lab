@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="webhooks.css?v=20260416-wh-theme">
+    <link rel="stylesheet" href="webhooks.css?v=20260416-wh-fb-collapse">
 </head>
 <body class="webhooks-tool-page home-dashboard-concierge">
   <div class="dashboard-shell">
@@ -61,28 +61,41 @@
             </div>
         </div>
 
-        <div class="webhook-url-section">
-            <div class="webhook-url-header">
-                <h3>📘 Facebook Webhook Verification</h3>
-                <span style="color: var(--accent-color); font-size: 0.9rem;">● Supported</span>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <div style="background: var(--bg-secondary); padding: 15px; border-radius: 8px; border-left: 4px solid var(--accent-color);">
-                    <p style="margin: 0; color: var(--text-primary); font-size: 0.9rem;">
-                        <strong>Facebook Webhook Setup:</strong> This webhook endpoint supports Facebook webhook verification. Use the verify token below when configuring your Facebook webhook.
+        <details class="webhook-url-section wh-fb-verify-details">
+            <summary
+                class="wh-fb-verify-summary"
+                title="Used for WhatsApp Business (Meta): enter this verify token when Meta/Facebook asks during WhatsApp Cloud API webhook setup."
+                aria-label="Facebook webhook verification for WhatsApp Business. Expand to copy verify token."
+            >
+                <div class="wh-fb-verify-summary-row">
+                    <h3>📘 Facebook Webhook Verification</h3>
+                    <span class="wh-fb-verify-status" aria-hidden="true">● Supported</span>
+                </div>
+                <span
+                    class="wh-fb-verify-tooltip-icon"
+                    role="img"
+                    tabindex="0"
+                    title="Used for WhatsApp Business (Meta): paste this verify token when configuring WhatsApp Cloud API webhooks in Meta Business Suite."
+                    aria-label="Tooltip: used for WhatsApp Business webhook verification."
+                    onclick="event.stopPropagation();"
+                    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();}"
+                >?</span>
+            </summary>
+            <div class="wh-fb-verify-body">
+                <div class="wh-fb-verify-intro">
+                    <p>
+                        <strong>Facebook Webhook Setup:</strong> This endpoint supports Meta/Facebook webhook verification. Use the verify token below when configuring your webhook (including <strong>WhatsApp Business</strong> / WhatsApp Cloud API).
                     </p>
                 </div>
-            </div>
-            <div class="webhook-url-container">
-                <input type="text" class="webhook-url-text" id="facebookToken" value="sandwichWhatsAppPalmer" readonly>
-                <button class="copy-url-button" onclick="copyFacebookToken(this)">📋 Copy Token</button>
-            </div>
-            <div style="margin-top: 10px;">
-                <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">
-                    <i class="fas fa-info-circle"></i> Facebook verification only affects GET requests with hub.mode=subscribe. All other webhook functionality remains unchanged.
+                <div class="webhook-url-container">
+                    <input type="text" class="webhook-url-text" id="facebookToken" value="sandwichWhatsAppPalmer" readonly>
+                    <button type="button" class="copy-url-button" onclick="copyFacebookToken(this)">📋 Copy Token</button>
+                </div>
+                <p class="wh-fb-verify-footnote">
+                    <i class="fas fa-info-circle" aria-hidden="true"></i> Facebook verification only affects GET requests with hub.mode=subscribe. All other webhook behaviour is unchanged.
                 </p>
             </div>
-        </div>
+        </details>
 
         <div class="charts-section">
             <div class="chart-container">
