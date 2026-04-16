@@ -188,7 +188,42 @@
   }
 
   /**
-   * AJO JSON / content-card style payloads: { imageURL, title, fullDescription } (sometimes inside data.content).
+   * Launch / AJO nested template: item.data.content = { title: { content }, body: { content }, image: { url } }.
+   */
+  function normalizeFromNestedContentShape(content) {
+    if (!content || typeof content !== 'object') return null;
+    var titleNode = content.title;
+    var bodyNode = content.body;
+    var imageNode = content.image;
+    if (titleNode == null && bodyNode == null && imageNode == null) return null;
+    var titleVal =
+      titleNode && typeof titleNode === 'object' && titleNode.content != null
+        ? titleNode.content
+        : titleNode != null
+          ? titleNode
+          : null;
+    var bodyVal =
+      bodyNode && typeof bodyNode === 'object' && bodyNode.content != null
+        ? bodyNode.content
+        : bodyNode != null
+          ? bodyNode
+          : null;
+    var imageUrl = null;
+    if (imageNode && typeof imageNode === 'object') {
+      imageUrl = imageNode.url != null ? imageNode.url : imageNode.src;
+    } else if (typeof imageNode === 'string') {
+      imageUrl = imageNode;
+    }
+    if (titleVal == null && bodyVal == null && imageUrl == null) return null;
+    return {
+      imageURL: imageUrl != null ? String(imageUrl) : '',
+      title: titleVal != null ? String(titleVal) : '',
+      fullDescription: bodyVal != null ? String(bodyVal) : '',
+    };
+  }
+
+  /**
+   * AJO JSON / content-card payloads: flat { imageURL, title, fullDescription } or nested under data.content.
    */
   function normalizeContentCardPayload(raw) {
     if (!raw || typeof raw !== 'object') return null;
@@ -199,10 +234,31 @@
         fullDescription: raw.fullDescription,
       };
     }
+    if (raw.content != null && typeof raw.content === 'object') {
+      var cObj = raw.content;
+      var nested = normalizeFromNestedContentShape(cObj);
+      if (nested) return nested;
+      if (cObj.imageURL != null || cObj.imageUrl != null || cObj.title != null || cObj.fullDescription != null) {
+        return {
+          imageURL: cObj.imageURL != null ? cObj.imageURL : cObj.imageUrl,
+          title: cObj.title,
+          fullDescription: cObj.fullDescription,
+        };
+      }
+    }
     if (typeof raw.content === 'string') {
-      var parsed = parseJsonStringMaybe(raw.content);
-      if (parsed && typeof parsed === 'object' && (parsed.imageURL != null || parsed.title != null || parsed.fullDescription != null)) {
-        return parsed;
+      if (raw.content === 'undefined') return null;
+      var parsedObj = parseJsonStringMaybe(raw.content);
+      if (parsedObj && typeof parsedObj === 'object') {
+        var fromNestedStr = normalizeFromNestedContentShape(parsedObj);
+        if (fromNestedStr) return fromNestedStr;
+        if (parsedObj.imageURL != null || parsedObj.title != null || parsedObj.fullDescription != null) {
+          return {
+            imageURL: parsedObj.imageURL != null ? parsedObj.imageURL : parsedObj.imageUrl,
+            title: parsedObj.title,
+            fullDescription: parsedObj.fullDescription,
+          };
+        }
       }
     }
     return null;
