@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="experimentation-visualiser.css?v=20260442">
+  <link rel="stylesheet" href="experimentation-visualiser-dock.css?v=20260443">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-visualiser-page">
   <div class="dashboard-shell">
@@ -91,21 +92,21 @@
               <g id="exp-treatment-a">
                 <rect class="exp-flow-treat-frame" x="694" y="12" width="214" height="132" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
                 <text x="706" y="34" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment A — control</text>
-                <image xlink:href="https://contenthosting.web.app/experiments/treatmenta.png" href="https://contenthosting.web.app/experiments/treatmenta.png" x="706" y="44" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-a)"/>
+                <image id="expVizImgTreatmentA" xlink:href="https://contenthosting.web.app/experiments/treatmenta.png" href="https://contenthosting.web.app/experiments/treatmenta.png" x="706" y="44" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-a)"/>
               </g>
 
               <!-- Treatment B -->
               <g id="exp-treatment-b">
                 <rect class="exp-flow-treat-frame" x="694" y="152" width="214" height="132" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
                 <text x="706" y="174" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment B</text>
-                <image xlink:href="https://contenthosting.web.app/experiments/treatmentb.png" href="https://contenthosting.web.app/experiments/treatmentb.png" x="706" y="184" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-b)"/>
+                <image id="expVizImgTreatmentB" xlink:href="https://contenthosting.web.app/experiments/treatmentb.png" href="https://contenthosting.web.app/experiments/treatmentb.png" x="706" y="184" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-b)"/>
               </g>
 
               <!-- Treatment C -->
               <g id="exp-treatment-c">
                 <rect class="exp-flow-treat-frame" x="694" y="292" width="214" height="132" rx="14" fill="#fff" stroke="#d8e2dc" stroke-width="1.5"/>
                 <text x="706" y="314" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="700" fill="#1b1b1b">Treatment C</text>
-                <image xlink:href="https://contenthosting.web.app/experiments/treatmentc.png" href="https://contenthosting.web.app/experiments/treatmentc.png" x="706" y="324" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-c)"/>
+                <image id="expVizImgTreatmentC" xlink:href="https://contenthosting.web.app/experiments/treatmentc.png" href="https://contenthosting.web.app/experiments/treatmentc.png" x="706" y="324" width="190" height="88" preserveAspectRatio="xMidYMid meet" clip-path="url(#exp-clip-thumb-c)"/>
               </g>
 
               <!-- Click counters (right of treatments; start anchors avoid overlap with card edges) -->
@@ -248,7 +249,7 @@
               <figure class="exp-email-preview" id="expEmailPreviewA">
                 <div class="exp-email-preview-frame" id="expEmailPreviewFrameA">
                   <div class="exp-email-preview-img-shell">
-                    <img class="exp-email-preview-img" src="https://contenthosting.web.app/experiments/emailsubjecta.png" width="320" height="200" alt="" loading="lazy"/>
+                    <img id="expVizImgEmailA" class="exp-email-preview-img" src="https://contenthosting.web.app/experiments/emailsubjecta.png" width="320" height="200" alt="" loading="lazy"/>
                     <!-- Ring matches full white card in image (logo through CTA); % are of rendered image box -->
                     <div class="exp-email-feature-ring" id="expEmailFeatureRing" aria-hidden="true"></div>
                   </div>
@@ -262,7 +263,7 @@
               </figure>
               <figure class="exp-email-preview">
                 <div class="exp-email-preview-frame">
-                  <img class="exp-email-preview-img" src="https://contenthosting.web.app/experiments/emailsubjectb.png" width="320" height="200" alt="" loading="lazy"/>
+                  <img id="expVizImgEmailB" class="exp-email-preview-img" src="https://contenthosting.web.app/experiments/emailsubjectb.png" width="320" height="200" alt="" loading="lazy"/>
                   <div class="exp-email-preview-fallback" aria-hidden="true">
                     <span class="exp-email-preview-fallback-bar"></span>
                     <span class="exp-email-preview-fallback-subj">Save 40%</span>
@@ -274,16 +275,62 @@
             </div>
           </div>
         </section>
+
+        <div id="expVizDockOuter" class="workflow-dock-outer" aria-label="Customise dock">
+          <div class="workflow-dock-slide">
+            <details class="workflow-drawer" id="expVizCustomiseDrawer">
+              <summary class="workflow-summary" aria-label="Customise">
+                <span class="workflow-summary__row">
+                  <span class="workflow-summary__label">Customise</span>
+                  <span class="workflow-summary__icon" aria-hidden="true"></span>
+                </span>
+              </summary>
+              <div class="workflow-drawer-scroll">
+                <div class="panel">
+                  <h2>Experimentation visuals</h2>
+                  <p class="hint">
+                    Image URLs are saved per <strong>AEP sandbox</strong> and this signed-in lab session (same as other Profile Viewer tools).
+                    Leave a field empty to use the default asset. Use https URLs; images must allow cross-origin use for GIF export.
+                  </p>
+                  <label for="expVizSandboxSelect">Sandbox</label>
+                  <select id="expVizSandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox"></select>
+                  <label for="expVizUrlTreatmentA">Treatment A image URL</label>
+                  <input id="expVizUrlTreatmentA" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expVizUrlTreatmentB">Treatment B image URL</label>
+                  <input id="expVizUrlTreatmentB" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expVizUrlTreatmentC">Treatment C image URL</label>
+                  <input id="expVizUrlTreatmentC" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expVizUrlEmailA">Email preview — Subject A image URL</label>
+                  <input id="expVizUrlEmailA" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expVizUrlEmailB">Email preview — Subject B image URL</label>
+                  <input id="expVizUrlEmailB" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <div class="actions">
+                    <button type="button" class="primary" id="expVizCustomiseUpdate">Update</button>
+                  </div>
+                  <p id="expVizCustomiseStatus" class="status" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+            </details>
+          </div>
+          <div class="workflow-dock-hit" id="expVizDockHit" role="presentation" aria-hidden="true" title="Move pointer to bottom edge to reveal Customise"></div>
+        </div>
       </main>
     </div>
   </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260443"></script>
 
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260421-prisacar-dev"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js" crossorigin="anonymous"></script>
-  <script defer src="experimentation-visualiser.js?v=20260441"></script>
+  <script defer src="experimentation-visualiser-customise.js?v=20260443"></script>
+  <script defer src="experimentation-visualiser.js?v=20260443"></script>
   <script defer src="experimentation-visualiser-gif.js?v=20260438"></script>
 </body>
 </html>

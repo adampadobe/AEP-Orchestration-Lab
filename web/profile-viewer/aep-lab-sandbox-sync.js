@@ -18,6 +18,7 @@
     'aepBgPreset',
     'aepHomeDashboardLayoutBg',
     'aepHomeDashboardSidebarTheme',
+    'aepExpVizImageUrls',
   ];
 
   var pushTimer = null;

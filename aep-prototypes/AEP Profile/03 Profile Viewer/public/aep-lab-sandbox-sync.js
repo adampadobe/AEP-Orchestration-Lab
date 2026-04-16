@@ -13,6 +13,12 @@
     'aepIdentityNamespace',
     'aepDetailsChannelTab',
     'aep-profile-viewer-recent-search-terms',
+    'aepTheme',
+    'aepMenuPalette',
+    'aepBgPreset',
+    'aepHomeDashboardLayoutBg',
+    'aepHomeDashboardSidebarTheme',
+    'aepExpVizImageUrls',
   ];
 
   var pushTimer = null;
@@ -140,6 +146,11 @@
         return pullForSandbox(next);
       }).then(function () {
         lastKnownSandbox = next;
+        try {
+          global.dispatchEvent(
+            new CustomEvent('aep-lab-sandbox-synced', { detail: { sandbox: next, previous: prev } })
+          );
+        } catch (e) {}
       });
     } else {
       lastKnownSandbox = next || lastKnownSandbox;
