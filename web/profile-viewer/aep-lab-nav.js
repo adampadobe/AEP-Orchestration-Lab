@@ -19,7 +19,7 @@
   function isDeveloperSandbox() {
     try {
       var s = String(localStorage.getItem(LS_SANDBOX) || '').trim().toLowerCase();
-      return s === 'apalmer' || s === 'kirkham' || s === 'mihais';
+      return s === 'apalmer' || s === 'kirkham' || s === 'mihais' || s === 'prisacar';
     } catch (e) {
       return false;
     }
@@ -40,7 +40,7 @@
     return false;
   }
 
-  /** Sidebar: show “(in development)” items only in apalmer/kirkham/mihais, and only if not hidden per Global values */
+  /** Sidebar: show “(in development)” items only in whitelisted dev sandboxes, and only if not hidden per Global values */
   function shouldShowNavItem(item) {
     if (!item.inDevelopment) return true;
     if (!isDeveloperSandbox()) return false;

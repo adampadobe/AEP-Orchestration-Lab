@@ -79,7 +79,7 @@
             <div id="aepNavInDevSection" class="aep-nav-indev-global-row" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--aep-border, #e8e4df);" hidden>
               <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">In-development pages (sidebar)</label>
               <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
-                Only the <strong>apalmer</strong>, <strong>kirkham</strong>, and <strong>mihais</strong> sandboxes see this section. Other users always get a menu without work-in-progress links. Check a row to <strong>hide</strong> that page from the sidebar (this browser only).
+                Only the <strong>apalmer</strong>, <strong>kirkham</strong>, <strong>mihais</strong>, and <strong>prisacar</strong> (Mihai) sandboxes see this section. Other users always get a menu without work-in-progress links. Check a row to <strong>hide</strong> that page from the sidebar (this browser only).
               </p>
               <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:center;">
                 <button type="button" class="dashboard-btn-outline" id="aepNavInDevHideAll">Hide all</button>
@@ -120,7 +120,7 @@
                 </label>
               </div>
               <p class="dashboard-hero-subtitle" style="margin-top: 12px; font-size: 13px;">
-                Stored per key <code>aepNavHideInDev_&lt;name&gt;</code> (<code>1</code> = hidden). <strong>Decisioning overview</strong> also syncs the legacy key <code>aepHideDataViewerDecisioningPlayground</code> for older tabs. <strong>Demos</strong> only applies when your sandbox is apalmer, kirkham, or mihais.
+                Stored per key <code>aepNavHideInDev_&lt;name&gt;</code> (<code>1</code> = hidden). <strong>Decisioning overview</strong> also syncs the legacy key <code>aepHideDataViewerDecisioningPlayground</code> for older tabs. <strong>Demos</strong> only applies for the developer sandboxes above (apalmer, kirkham, mihais, prisacar).
               </p>
             </div>
           </div>
@@ -195,7 +195,7 @@
       function isDeveloperSandbox() {
         try {
           var s = String(localStorage.getItem(LS_SANDBOX) || '').trim().toLowerCase();
-          return s === 'apalmer' || s === 'kirkham' || s === 'mihais';
+          return s === 'apalmer' || s === 'kirkham' || s === 'mihais' || s === 'prisacar';
         } catch (e) {
           return false;
         }
@@ -310,6 +310,6 @@
   </script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260420-mihais-dev"></script>
+  <script defer src="aep-lab-nav.js?v=20260421-prisacar-dev"></script>
 </body>
 </html>
