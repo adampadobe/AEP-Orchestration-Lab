@@ -613,7 +613,11 @@
     .cd-edge-settings label.chk input { width: auto; margin: 3px 0 0 0; flex-shrink: 0; }
     .cd-edge-settings .status.err { font-size: 0.8rem; }
   </style>
-  <script>window.dataLayer = window.dataLayer || [];</script>
+  <!-- Launch rules sometimes push to dataLayer (GTM-style); define before Launch to avoid ReferenceError — same as /index.html -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+  </script>
+  <!-- Web SDK loaded by Adobe Launch (datastream / Edge config in the Launch Web SDK extension). Library URL matches Experience Decisioning lab. -->
   <script src="https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js" async></script>
 </head>
 <body class="home-dashboard-concierge cd-page">
@@ -661,7 +665,7 @@
         <div class="workflow-drawer-scroll">
           <div class="panel">
             <h2>Profile &amp; Edge (Web SDK)</h2>
-            <p class="hint">Loads <strong>Adobe Launch</strong> (same embed as <a href="/index.html" target="_blank" rel="noopener">Experience Decisioning lab</a>). UPS must succeed; then <code>alloy('sendEvent')</code> uses the profile <code>identityMap</code> and <strong>decision scopes</strong> for this host. No Cloud Run / streaming inlet for the primary flow.</p>
+            <p class="hint">Loads <strong>Adobe Launch</strong> → Web SDK (same script URL and default datastream as <a href="/index.html" target="_blank" rel="noopener">Experience Decisioning lab</a>). Status below updates on page load. UPS must succeed; then <code>alloy('sendEvent')</code> uses the profile <code>identityMap</code> and <strong>decision scopes</strong> for this host.</p>
             <div class="cd-sandbox-row">
               <label for="sandboxSelect">Sandbox</label>
               <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
@@ -671,6 +675,7 @@
             <label for="cdLiveEmail">Email (identity value)</label>
             <input id="cdLiveEmail" type="email" autocomplete="email" placeholder="adamp.adobedemo+010426-4@gmail.com">
             <p class="hint">Profile calls use <code>x-sandbox-name</code> (via <code>/api/aep</code>). Edge <code>sendEvent</code> aligns namespaces with UPS (<code>ecid</code> → <code>ECID</code>) plus this email.</p>
+            <p class="status" id="webSdkInitStatus" aria-live="polite">Loading Web SDK (Launch)…</p>
 
             <details class="cd-edge-settings" id="cdEdgeSettings" open>
               <summary>Edge &amp; Launch</summary>
@@ -1017,6 +1022,49 @@
       }, 50);
     });
   }
+
+  /**
+   * Same bootstrap as Experience Decisioning lab (/index.html): Launch loads Alloy early.
+   * Optional page-load alloy('configure') when “Also call alloy(configure)” is checked (avoids duplicate when off).
+   */
+  (function primeWebSdkOnLoad() {
+    function setInit(msg, cls) {
+      var el = document.getElementById('webSdkInitStatus');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.className = 'status' + (cls ? ' ' + cls : '');
+    }
+    waitForAlloy()
+      .then(function () {
+        var edgeConfigId = document.getElementById('edgeConfigId').value.trim();
+        var forceCfg = document.getElementById('edgeForceConfigure').checked;
+        if (!forceCfg || !edgeConfigId) {
+          setInit('Web SDK ready — Alloy loaded via Launch (datastream from Web SDK extension).', 'ok');
+          return;
+        }
+        if (alloyConfiguredFor === edgeConfigId) {
+          setInit('Web SDK ready — Alloy already configured for this datastream.', 'ok');
+          return;
+        }
+        return alloy('configure', { edgeConfigId: edgeConfigId })
+          .then(function () {
+            alloyConfiguredFor = edgeConfigId;
+            setInit('Web SDK ready — alloy(configure) applied with datastream from this page.', 'ok');
+          })
+          .catch(function (e) {
+            var msg = e && e.message ? String(e.message) : String(e);
+            if (/already been configured|only be configured once/i.test(msg)) {
+              alloyConfiguredFor = edgeConfigId;
+              setInit('Web SDK ready — Launch already configured Alloy (skipped duplicate configure).', 'ok');
+              return;
+            }
+            setInit(msg, 'err');
+          });
+      })
+      .catch(function (e) {
+        setInit(String(e.message || e), 'err');
+      });
+  })();
 
   (function initSandboxSelect() {
     var sel = document.getElementById('sandboxSelect');
