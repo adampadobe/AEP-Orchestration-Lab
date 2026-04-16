@@ -24,7 +24,8 @@
     var path = loc.pathname || '/';
     if (!host) return ['#hero-banner', '#ContentCardContainer'];
     var base = 'web://' + host + path;
-    return [base + '#hero-banner', base + '#ContentCardContainer'];
+    /* Full web:// URIs match most AJO code-based surfaces; hash-only #ContentCardContainer covers some Content Card configs that do not use the web:// prefix. */
+    return [base + '#hero-banner', base + '#ContentCardContainer', '#ContentCardContainer'];
   }
 
   function namespaceToIdentityKey(ns) {
@@ -121,10 +122,58 @@
     });
   }
 
-  function scopeMatchesSurface(scope, fragment) {
-    if (!scope) return false;
-    var s = String(scope);
-    return s.indexOf('#' + fragment) !== -1 || s.indexOf(fragment) !== -1;
+  /**
+   * Edge/AJO may return scopes with different casing (#contentCardContainer vs #ContentCardContainer)
+   * or put the surface on scopeDetails instead of scope.
+   */
+  function scopeMatchesFragment(scopeStr, fragment) {
+    if (!scopeStr || !fragment) return false;
+    var s = String(scopeStr).toLowerCase();
+    var f = String(fragment).toLowerCase();
+    return s.indexOf('#' + f) !== -1 || s.indexOf(f) !== -1;
+  }
+
+  function collectScopeStrings(p) {
+    var out = [];
+    if (!p) return out;
+    if (p.scope) out.push(String(p.scope));
+    var sd = p.scopeDetails;
+    if (sd && typeof sd === 'object') {
+      if (sd.scope) out.push(String(sd.scope));
+      if (sd.name) out.push(String(sd.name));
+      if (sd.activity && sd.activity.id) out.push(String(sd.activity.id));
+      if (sd.characteristics && sd.characteristics.surface) out.push(String(sd.characteristics.surface));
+    }
+    return out;
+  }
+
+  /**
+   * Prefer content-card surface over hero so similar paths don't mis-route.
+   */
+  function resolveTargetForProposition(p, heroEl, cardsEl) {
+    var scopes = collectScopeStrings(p);
+    var i;
+    for (i = 0; i < scopes.length; i++) {
+      if (scopeMatchesFragment(scopes[i], 'ContentCardContainer')) return cardsEl;
+    }
+    for (i = 0; i < scopes.length; i++) {
+      if (scopeMatchesFragment(scopes[i], 'hero-banner')) return heroEl;
+    }
+    return null;
+  }
+
+  function debugLogPropositions(propositions) {
+    try {
+      if (!global.localStorage || global.localStorage.getItem('aepRaceAjoDebug') !== '1') return;
+      if (!global.console || !global.console.debug) return;
+      global.console.debug('[RaceForLifeAjo] propositions', propositions);
+    } catch (e) {
+      /* noop */
+    }
+  }
+
+  function surfaceNotYetRendered(el) {
+    return el && !el.querySelector('.race-ajo-content-card-inner');
   }
 
   function parseJsonStringMaybe(val) {
@@ -245,16 +294,35 @@
   /** Fallback when renderDecisions does not populate our sections (code-based JSON/HTML items). */
   function applyPropositionsManually(propositions) {
     if (!propositions || !propositions.length) return;
+    debugLogPropositions(propositions);
     var hero = document.getElementById('hero-banner');
     var cards = document.getElementById('ContentCardContainer');
-    for (var i = 0; i < propositions.length; i++) {
-      var p = propositions[i];
-      var scope = p.scope || p.id || '';
-      var items = p.items || [];
-      var target = scopeMatchesSurface(scope, 'hero-banner') ? hero : scopeMatchesSurface(scope, 'ContentCardContainer') ? cards : null;
+    var i;
+    var j;
+    var p;
+    var items;
+    var target;
+    for (i = 0; i < propositions.length; i++) {
+      p = propositions[i];
+      items = p.items || [];
+      target = resolveTargetForProposition(p, hero, cards);
       if (!target) continue;
-      for (var j = 0; j < items.length; j++) {
+      for (j = 0; j < items.length; j++) {
         if (applyItemToElement(target, items[j])) break;
+      }
+    }
+    /* Content Card journeys sometimes return scopes that omit or alter the #ContentCardContainer fragment; if the payload is card-shaped JSON and the card mount is still empty, place it there. */
+    for (i = 0; i < propositions.length; i++) {
+      p = propositions[i];
+      if (resolveTargetForProposition(p, hero, cards)) continue;
+      items = p.items || [];
+      for (j = 0; j < items.length; j++) {
+        var data = getItemData(items[j]);
+        if (!normalizeContentCardPayload(data)) continue;
+        if (cards && surfaceNotYetRendered(cards)) {
+          applyItemToElement(cards, items[j]);
+          break;
+        }
       }
     }
   }
