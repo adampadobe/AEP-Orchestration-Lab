@@ -58,6 +58,9 @@ html[data-aep-theme='dark'] .agentic-ai-v2-page .arch-int-fullscreen-btn {
 .agentic-ai-v2-page .dashboard-main.app-page.arch-main--presentation-fs {
   min-height: 100%;
   justify-content: stretch;
+  box-sizing: border-box;
+  overflow: hidden;
+  max-height: 100%;
 }
 
 .agentic-ai-v2-page .dashboard-main.app-page.arch-main--presentation-fs .dashboard-hero--page-banner {
@@ -77,6 +80,7 @@ html[data-aep-theme='dark'] .agentic-ai-v2-page .arch-int-fullscreen-btn {
   flex-direction: column;
   max-width: none;
   width: 100%;
+  overflow: hidden;
 }
 
 .agentic-ai-v2-page .dashboard-main.app-page.arch-main--presentation-fs .agentic-ai-v2-hero {
@@ -86,7 +90,24 @@ html[data-aep-theme='dark'] .agentic-ai-v2-page .arch-int-fullscreen-btn {
 .agentic-ai-v2-page .dashboard-main.app-page.arch-main--presentation-fs .agentic-v2-diagram-wrap {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.agentic-ai-v2-page .dashboard-main.app-page.arch-main--presentation-fs .agentic-v2-diagram-scale {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.agentic-v2-diagram-scale {
+  width: 100%;
 }
 
 .agentic-ai-v2-page .agentic-ai-v2-main {
@@ -275,32 +296,40 @@ body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
   margin: 0 auto;
 }
 
-/* Room for vertical bidirectional connectors between Assistant and Chat */
-.agentic-v2-stack > .agentic-v2-assistant-wrap.is-visible {
-  margin-bottom: 1.2rem;
-}
-
-.agentic-v2-assistant-wrap:not(.is-visible),
-.agentic-orch:not(.is-visible),
-.agentic-v2-agent-card:not(.is-visible) {
-  display: none;
-}
-
-/* Must win over component-specific display:flex (e.g. chat, coordinator) until step runs */
-.agentic-node:not(.is-visible) {
-  display: none !important;
-}
-
-.agentic-v2-assistant-wrap.is-visible {
+/*
+ * Layout-preserving reveal: nodes keep final box geometry while hidden (visibility + opacity),
+ * so narrative order (Orchestrator → Chat → Assistant → …) does not reflow the stack.
+ */
+.agentic-v2-stack > .agentic-v2-assistant-wrap {
   display: flex;
   justify-content: center;
   width: 100%;
+  margin-bottom: 1.2rem;
+}
+
+.agentic-v2-stack > .agentic-v2-assistant-wrap:not(.is-visible),
+.agentic-v2-stack > .agentic-orch:not(.is-visible) {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.agentic-v2-board .agentic-node:not(.is-visible),
+.agentic-v2-board .agentic-v2-agent-card:not(.is-visible) {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.agentic-v2-assistant-wrap.is-visible {
+  visibility: visible;
   animation: agentic-v2-in 0.42s cubic-bezier(0.33, 1, 0.68, 1) forwards;
 }
 
 .agentic-node.is-visible,
 .agentic-orch.is-visible,
 .agentic-v2-agent-card.is-visible {
+  visibility: visible;
   animation: agentic-v2-in 0.42s cubic-bezier(0.33, 1, 0.68, 1) forwards;
 }
 
@@ -310,29 +339,20 @@ body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
   .agentic-orch.is-visible,
   .agentic-v2-agent-card.is-visible {
     animation: none;
+    opacity: 1;
   }
 }
 
-.agentic-node.is-visible {
-  display: flex;
-}
-
-.agentic-orch.is-visible {
+.agentic-orch.agentic-v2-orch {
   display: block;
-}
-
-.agentic-v2-agent-card.is-visible {
-  display: flex;
 }
 
 @keyframes agentic-v2-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -413,14 +433,11 @@ body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
   background: #fff;
 }
 
-/* Chat Service — horizontal dark gradient, centered copy (display:flex when .is-visible only) */
-.agentic-v2-chat.agentic-v2-node.is-visible {
+/* Chat Service — horizontal dark gradient, centered copy */
+.agentic-v2-chat.agentic-v2-node {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.agentic-v2-chat.agentic-v2-node {
   text-align: center;
   min-height: 5.75rem;
   padding: 0;
@@ -497,14 +514,11 @@ body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
 }
 
 /* Prompt — blue score-style card (reference: medium blue, left label + mono, right serif metric) */
-.agentic-v2-prompt.agentic-node--prompt.agentic-v2-node.is-visible {
+.agentic-v2-prompt.agentic-node--prompt.agentic-v2-node {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-}
-
-.agentic-v2-prompt.agentic-node--prompt.agentic-v2-node {
   align-self: stretch;
   width: 100%;
   max-width: none;
@@ -549,14 +563,11 @@ body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
 }
 
 /* Coordinator — cream card, ochre border, bottom accent (typography matches Chat Service) */
-.agentic-v2-coordinator.agentic-node--coord.agentic-v2-node.is-visible {
+.agentic-v2-coordinator.agentic-node--coord.agentic-v2-node {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: stretch;
-}
-
-.agentic-v2-coordinator.agentic-node--coord.agentic-v2-node {
   width: 100%;
   min-height: 4.25rem;
   padding: 0.85rem 1rem 0.55rem;
@@ -693,6 +704,7 @@ body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
 }
 
 .agentic-v2-agent-card {
+  display: flex;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;

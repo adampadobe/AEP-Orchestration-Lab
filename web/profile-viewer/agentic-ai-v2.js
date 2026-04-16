@@ -18,6 +18,9 @@
   var resetBtn = document.getElementById('agenticV2ResetBtn');
   var delayInput = document.getElementById('agenticV2DelayMs');
   var delayLabel = document.getElementById('agenticV2DelayLabel');
+  var diagramWrap = document.getElementById('diagramWrapV2');
+  var diagramScale = document.getElementById('diagramScaleV2');
+  var mainPageEl = document.querySelector('main.dashboard-main.app-page');
 
   /** Inset from rect edges so strokes and markers sit in the gap, not on card faces */
   var EDGE_PAD = 15;
@@ -329,6 +332,77 @@
     svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
   }
 
+  var fsScaleTimer = null;
+  function debouncedScaleAndRedrawArrows() {
+    if (fsScaleTimer) clearTimeout(fsScaleTimer);
+    fsScaleTimer = setTimeout(function () {
+      fsScaleTimer = null;
+      syncAgenticFullscreenScale();
+      if (stepIndex <= 0) return;
+      var max = stepIndex > 0 ? stepIndex - 1 : -1;
+      clearArrows();
+      for (var i = 0; i <= max; i++) {
+        drawArrowsForStep(i);
+      }
+    }, 50);
+  }
+
+  function clearAgenticFsBoardStyles() {
+    var board = coordRoot;
+    if (!board) return;
+    board.style.zoom = '';
+    board.style.transform = '';
+    board.style.transformOrigin = '';
+    if (diagramScale) {
+      diagramScale.style.height = '';
+      diagramScale.style.minHeight = '';
+      diagramScale.style.overflow = '';
+    }
+  }
+
+  /**
+   * In presentation fullscreen, shrink the diagram (zoom / scale) so it fits the viewport without scrolling.
+   * Runs synchronously — call after layout (e.g. double rAF after toggling nodes) so arrow geometry matches the scaled board.
+   */
+  function syncAgenticFullscreenScale() {
+    var board = coordRoot;
+    if (!board || !diagramWrap) return;
+    var fs = mainPageEl && mainPageEl.classList.contains('arch-main--presentation-fs');
+    if (!fs) {
+      clearAgenticFsBoardStyles();
+      syncSvgSize();
+      return;
+    }
+
+    clearAgenticFsBoardStyles();
+    void board.offsetHeight;
+    var nh = board.offsetHeight;
+    var nw = board.offsetWidth;
+    if (nh < 2 || nw < 2) {
+      syncSvgSize();
+      return;
+    }
+    var pad = 16;
+    var availBox = diagramScale || diagramWrap;
+    var availH = Math.max(80, availBox.clientHeight - pad);
+    var availW = Math.max(80, availBox.clientWidth - pad);
+    var s = Math.min(1, availH / nh, availW / nw);
+    /* Chromium supports CSS zoom; Firefox/Safari fall back to transform (layout height adjusted on #diagramScaleV2). */
+    if ('zoom' in board.style) {
+      board.style.zoom = s === 1 ? '' : String(s);
+      board.style.transform = '';
+    } else {
+      board.style.zoom = '';
+      board.style.transform = s === 1 ? '' : 'scale(' + s + ')';
+      board.style.transformOrigin = 'top center';
+      if (diagramScale && s < 1) {
+        diagramScale.style.height = nh * s + 'px';
+        diagramScale.style.overflow = 'hidden';
+      }
+    }
+    syncSvgSize();
+  }
+
   function $(id) {
     return document.getElementById(id);
   }
@@ -445,6 +519,11 @@
     setAllNodesVisible(false);
     clearArrows();
     syncStepControls();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        syncAgenticFullscreenScale();
+      });
+    });
   }
 
   /**
@@ -463,6 +542,7 @@
 
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
+        syncAgenticFullscreenScale();
         drawArrowsForStep(current);
         if (current > 2) {
           setTimeout(function () {
@@ -498,19 +578,17 @@
   if (stepBtn) stepBtn.addEventListener('click', stepOnce);
   if (resetBtn) resetBtn.addEventListener('click', resetDiagram);
 
-  window.addEventListener(
-    'resize',
-    function () {
-      if (stepIndex <= 0) return;
-      var max = stepIndex > 0 ? stepIndex - 1 : -1;
-      clearArrows();
-      for (var i = 0; i <= max; i++) {
-        drawArrowsForStep(i);
-      }
-    },
-    { passive: true }
-  );
+  window.addEventListener('resize', debouncedScaleAndRedrawArrows, { passive: true });
+
+  ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(function (ev) {
+    document.addEventListener(ev, debouncedScaleAndRedrawArrows);
+  });
 
   syncSvgSize();
   syncStepControls();
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      syncAgenticFullscreenScale();
+    });
+  });
 })();
