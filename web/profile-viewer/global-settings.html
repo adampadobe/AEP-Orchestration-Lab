@@ -133,7 +133,21 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="aep-lab-sandbox-sync.js?v=20260416d"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260417"></script>
+  <script>
+    (function () {
+      window.addEventListener('aep-lab-sandbox-synced', function () {
+        if (!document.getElementById('globalSandboxSelect')) return;
+        try {
+          var u = new URL(window.location.href);
+          u.searchParams.set('_cb', String(Date.now()));
+          window.location.replace(u.toString());
+        } catch (e) {
+          window.location.reload();
+        }
+      });
+    })();
+  </script>
   <script>
     (function () {
       var sel = document.getElementById('globalSandboxSelect');
