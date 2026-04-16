@@ -102,7 +102,14 @@ queryProfileBtn &&
       return;
     }
     setRaceMessage('Looking up profile...', '');
-    await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    const ok = await DemoProfileDrawer.loadProfileDataForDrawer(email, { updateMessage: true });
+    if (ok && typeof RaceForLifeAjo !== 'undefined' && typeof RaceForLifeAjo.refreshFromProfile === 'function') {
+      const ns =
+        typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function'
+          ? AepIdentityPicker.getNamespace('customerEmail')
+          : 'email';
+      void RaceForLifeAjo.refreshFromProfile(DemoProfileDrawer.getLastLookedUpProfile(), email, ns);
+    }
     scheduleAutoAbandonAfterLookup();
   });
 
