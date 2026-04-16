@@ -2,7 +2,10 @@
  * After profile lookup, requests Journey Optimizer / Edge personalization for the Race for Life
  * surfaces and applies results to #hero-banner and #ContentCardContainer.
  *
- * Requires the Adobe Web SDK (alloy) from your Launch property on the same page.
+ * Requires the Adobe Web SDK (alloy) from your Launch property on the same page. The datastream
+ * (Edge configuration) ID is set in the Launch Web SDK extension — for this lab:
+ * 46677fd7-9db0-4f16-898c-b424d0245c38 — not in this file.
+ *
  * AJO channel surfaces must match the URIs built in buildSurfaces() (typically web://host/path#fragment).
  */
 (function (global) {
