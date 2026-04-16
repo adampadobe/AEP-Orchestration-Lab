@@ -714,16 +714,6 @@
             </details>
           </div>
 
-          <div class="panel">
-            <h2>Webhook (optional)</h2>
-            <p class="hint">Journey actions that POST to the listener still appear here. Primary banner content is from <strong>Edge</strong> above.</p>
-            <div class="actions">
-              <button type="button" class="primary" id="btnFetchWebhook">Fetch webhooks</button>
-              <button type="button" class="secondary" id="btnShowBanner" disabled>Show content banner</button>
-            </div>
-            <p class="status" id="webhookStatus"></p>
-          </div>
-
           <details class="cd-banner-editor panel" id="journeyBannerEditor" open>
             <summary>Banner layout &amp; colors</summary>
             <div class="cd-editor-grid">
@@ -810,8 +800,6 @@
   /** UPS / events: Email namespace only (no custom namespace UI). */
   const CD_IDENTITY_NS = 'Email';
 
-  const WEBHOOK_FILTER_CUSTOM_NAME = 'Content Decision';
-  const WEBHOOK_LISTENER_DIRECT_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
   const CD_BANNER_LS = 'aep-cd-banner-editor';
   const LS_EMAIL = 'aep-cd-live-email';
   const DEFAULT_EDGE_CONFIG_ID = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
@@ -843,7 +831,6 @@
   let lastUpsPayload = null;
   let lastUpsClientData = null;
   let lastProfileEcid = '';
-  let lastWebhookRaw = null;
   let lastEdgeResult = null;
   let alloyConfiguredFor = '';
   let lastIdentityMapSentForDebug = null;
@@ -1303,27 +1290,6 @@
     return null;
   }
 
-  function getWebhookPayloadObject(entry) {
-    var raw = entry && (entry.body != null ? entry.body : entry);
-    if (typeof raw === 'string') {
-      try { raw = JSON.parse(raw); } catch (e) { return null; }
-    }
-    if (raw == null || typeof raw !== 'object') return null;
-    return raw;
-  }
-
-  function webhookPayloadHasCustomName(raw, customName) {
-    if (raw == null || typeof raw !== 'object') return false;
-    function match(o) {
-      return o && o.config && String(o.config.customName || '') === customName;
-    }
-    if (match(raw)) return true;
-    var arr = raw.data;
-    if (!Array.isArray(arr)) return false;
-    for (var i = 0; i < arr.length; i++) if (match(arr[i])) return true;
-    return false;
-  }
-
   function deepFindOfferContentNode(obj, depth) {
     if (depth > 14 || obj == null || typeof obj !== 'object') return null;
     if (Array.isArray(obj)) {
@@ -1588,113 +1554,6 @@
     applyCdBannerEditorStyles();
   }
 
-  async function fetchWebhookListenerDirect() {
-    try {
-      var res = await fetch(WEBHOOK_LISTENER_DIRECT_URL, { method: 'GET', mode: 'cors', credentials: 'omit', headers: { Accept: 'application/json' } });
-      var text = await res.text();
-      var payload;
-      try { payload = text ? JSON.parse(text) : {}; } catch (e) {
-        return { ok: false, error: 'Listener non-JSON', detail: text.slice(0, 200) };
-      }
-      if (!res.ok) return { ok: false, error: 'HTTP ' + res.status, detail: JSON.stringify(payload).slice(0, 200) };
-      return { ok: true, data: payload, via_direct: true };
-    } catch (e) {
-      return { ok: false, error: 'Direct fetch failed', detail: String(e.message || e) };
-    }
-  }
-
-  async function fetchWebhookFeed() {
-    var res;
-    try {
-      cdLog('Webhook feed → /api/webhook-listener');
-      res = await fetch('/api/webhook-listener');
-    } catch (e) {
-      cdLog('Webhook feed: proxy unreachable, trying direct listener', String(e.message || e));
-      var d = await fetchWebhookListenerDirect();
-      if (d.ok) {
-        cdLog('Webhook feed ← direct listener OK');
-        return { ok: true, data: d.data, via_direct: true };
-      }
-      return { ok: false, error: 'Proxy and direct failed', detail: String(e.message || e) };
-    }
-    var text = await res.text();
-    var data;
-    try { data = text ? JSON.parse(text) : {}; } catch (e) {
-      cdLog('Webhook feed: proxy returned non-JSON, trying direct listener');
-      var d2 = await fetchWebhookListenerDirect();
-      if (d2.ok) {
-        cdLog('Webhook feed ← direct listener OK');
-        return { ok: true, data: d2.data, via_direct: true };
-      }
-      return { ok: false, error: 'Not JSON from proxy' };
-    }
-    if (data && data.ok === false) {
-      cdLog('Webhook feed ← proxy body ok:false', data.error || '');
-      return data;
-    }
-    if (!res.ok) {
-      cdLog('Webhook feed: proxy HTTP', res.status, '→ trying direct listener');
-      var d3 = await fetchWebhookListenerDirect();
-      if (d3.ok) {
-        cdLog('Webhook feed ← direct listener OK');
-        return { ok: true, data: d3.data, via_direct: true };
-      }
-      return { ok: false, error: data.error || 'HTTP ' + res.status };
-    }
-    cdLog('Webhook feed ← proxy OK');
-    return { ok: true, data: data.data != null ? data.data : data };
-  }
-
-  function filterContentDecisionHooks(data) {
-    var hooks = data && Array.isArray(data.webhooks) ? data.webhooks : [];
-    return hooks.filter(function (h) {
-      return webhookPayloadHasCustomName(getWebhookPayloadObject(h), WEBHOOK_FILTER_CUSTOM_NAME);
-    });
-  }
-
-  /**
-   * @param {{ showBanner?: boolean }} [fetchOpts] showBanner: also render hero preview (same as Show content banner).
-   */
-  async function runFetchWebhook(fetchOpts) {
-    fetchOpts = fetchOpts || {};
-    var showBanner = !!fetchOpts.showBanner;
-    cdLog('Fetch webhooks: start', showBanner ? '(+ show banner)' : '');
-    var st = document.getElementById('webhookStatus');
-    var btnBanner = document.getElementById('btnShowBanner');
-    st.textContent = 'Loading…';
-    st.className = 'status';
-    lastWebhookRaw = null;
-    btnBanner.disabled = true;
-    var env = await fetchWebhookFeed();
-    if (!env.ok) {
-      cdLog('Fetch webhooks ✗', env.error || 'Failed', env.detail || '');
-      st.textContent = env.error || 'Failed';
-      st.className = 'status err';
-      return;
-    }
-    var hooks = env.data && Array.isArray(env.data.webhooks) ? env.data.webhooks : [];
-    cdLog('Fetch webhooks: total hooks in feed', hooks.length, env.via_direct ? '(via direct)' : '(via proxy)');
-    var filtered = filterContentDecisionHooks(env.data);
-    cdLog('Fetch webhooks: after filter “' + WEBHOOK_FILTER_CUSTOM_NAME + '”', filtered.length);
-    if (!filtered.length) {
-      cdLog('Fetch webhooks ✗ no matching rows');
-      st.textContent = 'No “Content Decision” webhooks in feed.';
-      st.className = 'status err';
-      return;
-    }
-    var first = filtered[0];
-    lastWebhookRaw = getWebhookPayloadObject(first);
-    var jd = extractJourneyContentDecision(lastWebhookRaw);
-    cdLog('Fetch webhooks ✓ using first row; banner extract', jd ? { titleLen: (jd.bannerTitle || '').length, descLen: (jd.fullDescription || '').length, hasImage: !!jd.imageUrl, hasCtaHref: !!jd.ctaHref } : null);
-    st.textContent = 'Loaded first Content Decision row' + (env.via_direct ? ' (direct to listener).' : '.') + (jd ? (showBanner ? ' Preview updated.' : ' Ready to show banner.') : ' Payload has no mediaAssets/textContent for banner.');
-    st.className = 'status ok';
-    btnBanner.disabled = !jd;
-    if (showBanner && jd) {
-      renderJourneyContentDecisionBanner(withBannerImageCacheBust(jd));
-      cdLog('Fetch webhooks: banner rendered (full pipeline)');
-    }
-  }
-
   async function runProfileAndEdgeDecisions() {
     persistLiveIdentity();
     var email = document.getElementById('cdLiveEmail').value.trim();
@@ -1743,10 +1602,8 @@
         }
       }
       var jd = journeyVisualFromEdgeResult(edgeResult);
-      var btnBanner = document.getElementById('btnShowBanner');
       if (jd) {
         renderJourneyContentDecisionBanner(withBannerImageCacheBust(jd));
-        if (btnBanner) btnBanner.disabled = false;
         cdLog('Profile → Edge ✓ banner from Edge payload');
       } else {
         cdLog('Profile → Edge ✓ (no offer-shaped items for hero banner — check raw JSON)');
@@ -1835,27 +1692,6 @@
     } finally {
       btn.disabled = false;
     }
-  });
-
-  document.getElementById('btnFetchWebhook').addEventListener('click', function () {
-    runFetchWebhook({});
-  });
-
-  document.getElementById('btnShowBanner').addEventListener('click', function () {
-    var jd = null;
-    if (lastEdgeResult) {
-      jd = journeyVisualFromEdgeResult(lastEdgeResult);
-    }
-    if (!jd && lastWebhookRaw) {
-      jd = extractJourneyContentDecision(lastWebhookRaw);
-    }
-    if (!jd) {
-      cdLog('Show banner: no Edge or webhook content to render');
-      return;
-    }
-    jd = withBannerImageCacheBust(jd);
-    cdLog('Show banner: rendering', { title: jd.bannerTitle && jd.bannerTitle.slice(0, 40) });
-    renderJourneyContentDecisionBanner(jd);
   });
 
   initCdBannerEditor();
