@@ -2091,7 +2091,7 @@ exports.eventInfraStatus = onRequest(profileFnOpts, async (req, res) => {
   }
 });
 
-/** POST /api/events/infra/step — { step: "createSchema"|"createDataset", schemaTitle, datasetName? } */
+/** POST /api/events/infra/step — createSchema | createDataset | createDatastream | probeTagsApi */
 exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
@@ -2106,6 +2106,7 @@ exports.eventInfraStep = onRequest(profileFnOpts, async (req, res) => {
     const result = await eventInfraService.runEventInfraStep(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), step, {
       schemaTitle: body.schemaTitle,
       datasetName: body.datasetName,
+      datastreamName: body.datastreamName,
     });
     res.status(200).json(result);
   } catch (e) {

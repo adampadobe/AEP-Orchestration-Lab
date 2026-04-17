@@ -432,6 +432,80 @@
     }
   }
 
+  async function createDatastreamStep() {
+    var schemaTitle = el('cdLabSchemaTitle') && el('cdLabSchemaTitle').value.trim();
+    var datasetName = el('cdLabDatasetName') && el('cdLabDatasetName').value.trim();
+    var dsTitle = el('cdLabDatastreamTitle') && el('cdLabDatastreamTitle').value.trim();
+    if (!schemaTitle || !datasetName) {
+      setMsg(el('cdLabDatastreamMsg'), 'Enter schema name and dataset name first.', 'err');
+      return;
+    }
+    if (!sandboxName()) {
+      setMsg(el('cdLabDatastreamMsg'), 'Select a sandbox first.', 'err');
+      return;
+    }
+    setMsg(el('cdLabDatastreamMsg'), 'Creating datastream via Edge API…', '');
+    try {
+      var res = await labFetch('/api/events/infra/step' + sandboxQs(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          step: 'createDatastream',
+          schemaTitle: schemaTitle,
+          datasetName: datasetName,
+          datastreamName: dsTitle || undefined,
+        }),
+      });
+      var data = await res.json().catch(function () {
+        return {};
+      });
+      if (!data.ok) {
+        var errParts = data.error || 'Failed.';
+        if (data.errors && data.errors.length) {
+          errParts += ' First error: ' + JSON.stringify(data.errors[0]).slice(0, 280);
+        }
+        setMsg(el('cdLabDatastreamMsg'), errParts, 'err');
+        return;
+      }
+      if (data.datastreamId && el('edgeConfigId')) {
+        el('edgeConfigId').value = data.datastreamId;
+      }
+      setMsg(el('cdLabDatastreamMsg'), data.message || 'Datastream created.', 'ok');
+    } catch (e) {
+      setMsg(el('cdLabDatastreamMsg'), e.message || 'Network error', 'err');
+    }
+  }
+
+  async function probeTagsApiStep() {
+    if (!sandboxName()) {
+      setMsg(el('cdLabTagsApiMsg'), 'Select a sandbox first.', 'err');
+      return;
+    }
+    setMsg(el('cdLabTagsApiMsg'), 'Calling Reactor API…', '');
+    try {
+      var res = await labFetch('/api/events/infra/step' + sandboxQs(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 'probeTagsApi' }),
+      });
+      var data = await res.json().catch(function () {
+        return {};
+      });
+      if (data.ok && data.authorized) {
+        setMsg(
+          el('cdLabTagsApiMsg'),
+          (data.hint || 'Tags API OK.') + (data.companiesCount != null ? ' Companies visible: ' + data.companiesCount + '.' : ''),
+          'ok'
+        );
+        return;
+      }
+      var msg = data.hint || data.detail || data.error || 'Tags API check failed.';
+      setMsg(el('cdLabTagsApiMsg'), msg, 'err');
+    } catch (e) {
+      setMsg(el('cdLabTagsApiMsg'), e.message || 'Network error', 'err');
+    }
+  }
+
   async function checkInfra() {
     var st = el('cdLabSchemaTitle') && el('cdLabSchemaTitle').value.trim();
     var ds = el('cdLabDatasetName') && el('cdLabDatasetName').value.trim();
@@ -508,6 +582,8 @@
       if (el('cdLabCreateSchemaBtn')) el('cdLabCreateSchemaBtn').addEventListener('click', createSchemaStep);
       if (el('cdLabCreateDatasetBtn')) el('cdLabCreateDatasetBtn').addEventListener('click', createDatasetStep);
       if (el('cdLabCheckInfraBtn')) el('cdLabCheckInfraBtn').addEventListener('click', checkInfra);
+      if (el('cdLabCreateDatastreamBtn')) el('cdLabCreateDatastreamBtn').addEventListener('click', createDatastreamStep);
+      if (el('cdLabProbeTagsBtn')) el('cdLabProbeTagsBtn').addEventListener('click', probeTagsApiStep);
       if (el('cdLabSaveConfigBtn')) el('cdLabSaveConfigBtn').addEventListener('click', saveConfigToFirebase);
       if (el('cdLabLoadConfigBtn')) el('cdLabLoadConfigBtn').addEventListener('click', fetchConfigFromFirebase);
 

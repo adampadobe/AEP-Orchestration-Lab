@@ -28,6 +28,11 @@
     datasetName:      document.getElementById('etDatasetName'),
     createDatasetBtn: document.getElementById('etCreateDatasetBtn'),
     datasetMsg:       document.getElementById('etDatasetMsg'),
+    datastreamTitle:  document.getElementById('etDatastreamTitle'),
+    createDatastreamBtn: document.getElementById('etCreateDatastreamBtn'),
+    datastreamProvisionMsg: document.getElementById('etDatastreamProvisionMsg'),
+    probeTagsBtn:     document.getElementById('etProbeTagsBtn'),
+    tagsApiMsg:       document.getElementById('etTagsApiMsg'),
     dsInput:          document.getElementById('etManualDs'),
     saveConfigBtn:    document.getElementById('etSaveConfigBtn'),
     connectionMsg:    document.getElementById('etConnectionMsg'),
@@ -512,6 +517,76 @@
       dom.createDatasetBtn.disabled = false;
     }
   });
+
+  /* ═══════════ Step 2b — Create datastream (Edge API) ═══════════ */
+
+  if (dom.createDatastreamBtn) {
+    dom.createDatastreamBtn.addEventListener('click', async () => {
+      const schemaTitle = (dom.schemaTitle.value || '').trim();
+      const datasetName = (dom.datasetName.value || '').trim();
+      const datastreamName = (dom.datastreamTitle && dom.datastreamTitle.value || '').trim();
+      if (!schemaTitle || !datasetName) {
+        setMsg(dom.datastreamProvisionMsg, 'Enter schema name and dataset name first.', 'error');
+        return;
+      }
+      const sandbox = getSandboxName();
+      if (!sandbox) { setMsg(dom.datastreamProvisionMsg, 'Select a sandbox first.', 'error'); return; }
+      dom.createDatastreamBtn.disabled = true;
+      setMsg(dom.datastreamProvisionMsg, 'Creating datastream…', '');
+      try {
+        const res = await fetch('/api/events/infra/step' + sandboxQs(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            step: 'createDatastream',
+            schemaTitle,
+            datasetName,
+            datastreamName: datastreamName || undefined,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!data.ok) {
+          let detail = data.error || 'Failed.';
+          if (data.errors && data.errors[0]) detail += ' ' + JSON.stringify(data.errors[0]).slice(0, 240);
+          setMsg(dom.datastreamProvisionMsg, detail, 'error');
+          return;
+        }
+        if (data.datastreamId && dom.dsInput) dom.dsInput.value = data.datastreamId;
+        setMsg(dom.datastreamProvisionMsg, data.message || 'Datastream created.', 'success');
+        saveConfigField({ datastreamId: data.datastreamId });
+      } catch (e) {
+        setMsg(dom.datastreamProvisionMsg, e.message || 'Network error', 'error');
+      } finally {
+        dom.createDatastreamBtn.disabled = false;
+      }
+    });
+  }
+
+  if (dom.probeTagsBtn) {
+    dom.probeTagsBtn.addEventListener('click', async () => {
+      const sandbox = getSandboxName();
+      if (!sandbox) { setMsg(dom.tagsApiMsg, 'Select a sandbox first.', 'error'); return; }
+      dom.probeTagsBtn.disabled = true;
+      setMsg(dom.tagsApiMsg, 'Checking Tags API…', '');
+      try {
+        const res = await fetch('/api/events/infra/step' + sandboxQs(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: 'probeTagsApi' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.ok && data.authorized) {
+          setMsg(dom.tagsApiMsg, (data.hint || 'OK') + (data.companiesCount != null ? ' Companies: ' + data.companiesCount : ''), 'success');
+        } else {
+          setMsg(dom.tagsApiMsg, data.hint || data.detail || data.error || 'Check failed.', 'error');
+        }
+      } catch (e) {
+        setMsg(dom.tagsApiMsg, e.message || 'Network error', 'error');
+      } finally {
+        dom.probeTagsBtn.disabled = false;
+      }
+    });
+  }
 
   /* ═══════════ Step 3 — Save Datastream ID ═══════════ */
 

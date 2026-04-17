@@ -757,7 +757,7 @@
 
             <section class="cd-lab-step">
               <h3 class="cd-lab-step-title">1. ExperienceEvent schema &amp; dataset</h3>
-              <p class="hint">Calls <code>/api/events/infra/step</code> — identical to the Event tool. Create the datastream in <a href="https://experience.adobe.com/#/data-collection/datastreams" target="_blank" rel="noopener">Data Collection</a> with Experience Platform + this dataset; enable AJO / personalization services as needed.</p>
+              <p class="hint">Calls <code>/api/events/infra/step</code> — same as the Event tool. After schema + dataset exist, you can <strong>Create datastream</strong> (Edge API) or create one manually in <a href="https://experience.adobe.com/#/data-collection/datastreams" target="_blank" rel="noopener">Data Collection</a> and enable AEP + your dataset (add AJO / personalization services as needed).</p>
               <label for="cdLabSchemaTitle">Schema name</label>
               <input type="text" id="cdLabSchemaTitle" placeholder="e.g. AEP Lab - Edge Events" autocomplete="off" spellcheck="false">
               <div class="actions" style="margin-top:0.35rem;">
@@ -774,6 +774,12 @@
                 <button type="button" class="secondary" id="cdLabCheckInfraBtn">Check sandbox status</button>
               </div>
               <p class="status" id="cdLabInfraMsg" role="status" aria-live="polite"></p>
+              <label for="cdLabDatastreamTitle">Datastream display name (optional — for API create)</label>
+              <input type="text" id="cdLabDatastreamTitle" placeholder="e.g. AEP Lab — Decisioning" autocomplete="off" spellcheck="false">
+              <div class="actions" style="margin-top:0.35rem;">
+                <button type="button" class="secondary" id="cdLabCreateDatastreamBtn">Create datastream (Edge API)</button>
+              </div>
+              <p class="status" id="cdLabDatastreamMsg" role="status" aria-live="polite"></p>
             </section>
 
             <section class="cd-lab-step">
@@ -792,6 +798,13 @@
                 <label for="decisionScopes">Extra decision scopes (optional, comma-separated)</label>
                 <input id="decisionScopes" type="text" placeholder="Leave empty to use placement fragments + this page URL" autocomplete="off">
               </div>
+              <p class="hint" style="margin-top:0.65rem;">
+                <strong>Tags (Launch):</strong> the embed script is created in <a href="https://experience.adobe.com/data-collection/tags" target="_blank" rel="noopener">Tags</a> (property → Web SDK extension → set Edge Config ID above → Development environment). This does not auto-create a property; use <strong>Test Tags API</strong> to verify your IMS token can reach Reactor.
+              </p>
+              <div class="actions" style="margin-top:0.35rem;">
+                <button type="button" class="secondary" id="cdLabProbeTagsBtn">Test Tags API access</button>
+              </div>
+              <p class="status" id="cdLabTagsApiMsg" role="status" aria-live="polite"></p>
             </section>
 
             <section class="cd-lab-step">

@@ -9,6 +9,9 @@ const CATALOG_BASE = 'https://platform.adobe.io/data/foundation/catalog';
 
 const XDM_EXPERIENCE_EVENT_CLASS = 'https://ns.adobe.com/xdm/context/experienceevent';
 
+const eventEdgeService = require('./eventEdgeService');
+const tagsReactorService = require('./tagsReactorService');
+
 function log(sandbox, phase, detail = {}) {
   try { console.log('[eventInfra]', JSON.stringify({ sandbox, phase, ...detail })); }
   catch { console.log('[eventInfra]', sandbox, phase); }
@@ -215,11 +218,62 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       ok: true, sandbox, step, datasetCreated: true,
       schemaId: schema.$id,
       datasetId: dsRes.id,
-      message: `Dataset "${datasetName}" created (not Profile-enabled). Now create a Datastream in AEP Data Collection pointing to this dataset.`,
+      message: `Dataset "${datasetName}" created (not Profile-enabled). You can create a datastream via the button below or in AEP Data Collection.`,
     };
   }
 
-  return { ok: false, error: `Unknown step: ${step}. Use createSchema or createDataset.` };
+  if (step === 'createDatastream') {
+    const schemaTitle = String(opts.schemaTitle || '').trim();
+    const datasetName = String(opts.datasetName || '').trim();
+    const datastreamName = String(opts.datastreamName || '').trim() || `AEP Lab Datastream — ${sandbox}`;
+    if (!schemaTitle) return { ok: false, error: 'schemaTitle is required.' };
+    if (!datasetName) return { ok: false, error: 'datasetName is required.' };
+
+    const schema = await findSchemaByTitle(token, clientId, orgId, sandbox, schemaTitle);
+    if (!schema) {
+      return { ok: false, error: `Schema "${schemaTitle}" not found. Create the schema first.` };
+    }
+    const ds = await findDatasetByName(token, clientId, orgId, sandbox, datasetName);
+    if (!ds || !ds.id) {
+      return { ok: false, error: `Dataset "${datasetName}" not found. Create the dataset first.` };
+    }
+
+    const created = await eventEdgeService.createDatastreamConfig(token, clientId, orgId, sandbox, {
+      name: datastreamName,
+      mappingSchemaId: schema.$id,
+      datasetId: ds.id,
+    });
+    if (!created.ok) {
+      return {
+        ok: false,
+        sandbox,
+        step,
+        error: created.error || 'createDatastream failed',
+        errors: created.errors,
+      };
+    }
+    return {
+      ok: true,
+      sandbox,
+      step,
+      datastreamCreated: true,
+      datastreamId: created.datastreamId,
+      schemaId: schema.$id,
+      datasetId: ds.id,
+      message: `Datastream created. Edge ID: ${created.datastreamId}. In Tags, add the AEP Web SDK extension and set this Edge Configuration ID, then paste the embed URL into the lab.`,
+      apiDetail: created.used || null,
+    };
+  }
+
+  if (step === 'probeTagsApi') {
+    const r = await tagsReactorService.probeTagsApiAccess(token, clientId, orgId);
+    return { sandbox, step, ...r };
+  }
+
+  return {
+    ok: false,
+    error: `Unknown step: ${step}. Use createSchema, createDataset, createDatastream, or probeTagsApi.`,
+  };
 }
 
 /* ── Fetch eventType enum from schema ── */

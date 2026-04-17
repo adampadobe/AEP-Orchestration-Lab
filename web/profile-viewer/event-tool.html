@@ -130,12 +130,36 @@
                   <div id="etDatasetMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
                 </div>
 
+                <!-- Step 2b — Create datastream (API) -->
+                <div class="et-config-step">
+                  <h4 class="et-config-step-title">Step 2b — Create datastream (optional)</h4>
+                  <p class="field-hint">
+                    Calls the Edge Configuration API from the same server credentials as schema/dataset. If this fails (scopes or payload), create the datastream in
+                    <a href="https://experience.adobe.com/#/data-collection/datastreams" target="_blank" rel="noopener">Data Collection</a> and paste the ID in step 3.
+                  </p>
+                  <div class="et-config-step-row">
+                    <div class="form-row">
+                      <label for="etDatastreamTitle">Datastream display name</label>
+                      <input type="text" id="etDatastreamTitle" placeholder="e.g. AEP Lab — Edge events" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="form-row form-row--action">
+                      <button type="button" id="etCreateDatastreamBtn" class="btn btn-secondary">Create datastream</button>
+                    </div>
+                  </div>
+                  <div id="etDatastreamProvisionMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+                  <div class="form-row form-row--action" style="margin-top:0.5rem;">
+                    <button type="button" id="etProbeTagsBtn" class="btn btn-secondary btn-sm">Test Tags API access</button>
+                  </div>
+                  <div id="etTagsApiMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></div>
+                </div>
+
                 <!-- Step 3 — Datastream -->
                 <div class="et-config-step">
                   <h4 class="et-config-step-title">Step 3 — Set the Datastream ID</h4>
                   <p class="field-hint">
-                    In <a href="https://experience.adobe.com/#/data-collection/datastreams" target="_blank" rel="noopener">AEP Data Collection → Datastreams</a>,
+                    If you did not use <strong>Create datastream</strong> above: in <a href="https://experience.adobe.com/#/data-collection/datastreams" target="_blank" rel="noopener">AEP Data Collection → Datastreams</a>,
                     create a datastream using the schema above, enable <strong>Adobe Experience Platform</strong> with the dataset, then paste the Datastream ID here.
+                    For the Launch embed URL, use <a href="https://experience.adobe.com/data-collection/tags" target="_blank" rel="noopener">Tags</a> (Web SDK extension → Edge Config = this ID).
                   </p>
                   <div class="et-config-step-row">
                     <div class="form-row et-ds-id-row">
