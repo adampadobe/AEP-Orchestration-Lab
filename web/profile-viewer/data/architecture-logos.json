@@ -337,14 +337,14 @@
       "description": "Smock menu / navigation."
     },
     {
-      "file": "images/smock-show-all-layers-18.svg",
+      "file": "vendor/spectrum-workflow-icons/S2_Icon_Layers_20_N.svg",
       "label": "Layers",
-      "description": "Smock layers / stack."
+      "description": "Spectrum workflow Layers icon (used here instead of the Smock SVG so the grid preview works reliably in all browsers)."
     },
     {
-      "file": "images/Smock_LocationBasedEvent_18_N.svg",
+      "file": "vendor/spectrum-workflow-icons/S2_Icon_Location_20_N.svg",
       "label": "Location event",
-      "description": "Smock location-based event."
+      "description": "Spectrum workflow Location icon (used here instead of the Smock SVG so the grid preview works reliably in all browsers)."
     },
     {
       "file": "images/aep-architecture-slide1.svg",
