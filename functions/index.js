@@ -59,6 +59,7 @@ const journeyBrowseCache = lazyRequireMod('./journeyBrowseCacheStore');
 const easterEggNotify = lazyRequireMod('./easterEggNotify');
 const { sandboxWebhookTool } = require('./sandboxWebhookTool');
 const eventInfraService = lazyRequireMod('./eventInfraService');
+const tagsReactorService = lazyRequireMod('./tagsReactorService');
 const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
@@ -2034,6 +2035,63 @@ exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) 
 
   res.status(405).json({ error: 'Method not allowed' });
 });
+
+/** GET /api/tags/reactor — Reactor (Tags) JSON:API: resource=companies | properties&companyId= | allProperties */
+exports.tagsReactorProxy = onRequest(
+  {
+    region: REGION,
+    secrets: PROFILE_FN_SECRETS,
+    environmentVariables: { ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX },
+    invoker: 'public',
+    timeoutSeconds: 300,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'GET') { res.status(405).json({ error: 'GET only' }); return; }
+
+    const sandbox = resolveSandboxFromQuery(req);
+    const resource = String(req.query.resource || 'companies').trim().toLowerCase();
+    const companyId = String(req.query.companyId || '').trim();
+
+    let accessToken;
+    try { accessToken = await getAdobeAccessToken(); }
+    catch (e) { res.status(500).json({ ok: false, error: 'Auth failed', detail: String(e.message || e) }); return; }
+
+    const clientId = ADOBE_CLIENT_ID.value();
+    const orgId = ADOBE_IMS_ORG.value();
+
+    try {
+      if (resource === 'companies') {
+        const r = await tagsReactorService.listCompanies(accessToken, clientId, orgId);
+        res.status(200).json({ ok: r.ok, sandbox, resource: 'companies', ...r });
+        return;
+      }
+      if (resource === 'properties') {
+        if (!companyId) {
+          res.status(400).json({ ok: false, error: 'companyId query param is required for resource=properties', sandbox });
+          return;
+        }
+        const r = await tagsReactorService.listProperties(accessToken, clientId, orgId, companyId);
+        res.status(200).json({ ok: r.ok, sandbox, resource: 'properties', companyId, ...r });
+        return;
+      }
+      if (resource === 'allproperties') {
+        const r = await tagsReactorService.listAllPropertiesAcrossCompanies(accessToken, clientId, orgId);
+        res.status(200).json({ ok: r.ok, sandbox, resource: 'allProperties', ...r });
+        return;
+      }
+      res.status(400).json({
+        ok: false,
+        error: 'Invalid resource. Use companies, properties (with companyId), or allProperties.',
+        sandbox,
+      });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+  },
+);
 
 /** GET /api/events/datastreams — list datastreams from Edge API */
 exports.eventDatastreamsProxy = onRequest(

@@ -116,6 +116,19 @@
       ],
     },
     {
+      group: 'Data Collection', id: 'dataCollection',
+      items: [
+        {
+          label: 'Tags (in development)',
+          href: 'tags.html',
+          inDevelopment: true,
+          navHideKey: 'dataCollectionTags',
+          ico:
+            '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" d="M3 7l7-3 7 3v8l-7 3-7-3V7z"/><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M3 7l7 3 7-3"/><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M10 10v8"/></svg>',
+        },
+      ],
+    },
+    {
       group: 'Architecture', id: 'architecture',
       items: [
         {

@@ -246,6 +246,13 @@
         }
       },
       {
+        "source": "/api/tags/reactor",
+        "function": {
+          "functionId": "tagsReactorProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/events/datastreams",
         "function": {
           "functionId": "eventDatastreamsProxy",
