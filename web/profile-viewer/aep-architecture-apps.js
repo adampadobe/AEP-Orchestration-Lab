@@ -2522,9 +2522,6 @@
   var ARCH_SPECTRUM_ICON_PREFIX = 'vendor/spectrum-workflow-icons/';
   var archSpectrumIconsDataPromise = null;
 
-  /** Product / diagram assets (paths relative to this page — see data/architecture-logos.json). */
-  var archArchitectureLogosDataPromise = null;
-
   function archCustomBoxIsIconAsset(box) {
     if (!box) return false;
     var n = archCustomBoxNormalize(box);
@@ -2607,14 +2604,13 @@
   function archArchitectureLogosPanelInit() {
     var grid = qs('#archArchitectureLogoGrid');
     var status = qs('#archArchitectureLogoStatus');
-    if (!grid || grid.getAttribute('data-arch-built') === '1') return;
-    if (!archArchitectureLogosDataPromise) {
-      archArchitectureLogosDataPromise = fetch('data/architecture-logos.json').then(function (r) {
+    if (!grid) return;
+    /* Fresh fetch each time (avoids stale CDN/browser cache after JSON updates). */
+    fetch('data/architecture-logos.json', { cache: 'no-store' })
+      .then(function (r) {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
-      });
-    }
-    archArchitectureLogosDataPromise
+      })
       .then(function (data) {
         if (!grid.parentNode) return;
         if (!data || !Array.isArray(data.logos)) return;
@@ -2648,7 +2644,10 @@
         grid.setAttribute('data-arch-built', '1');
         var qinp = qs('#archArchitectureLogoSearch');
         archArchitectureLogosApplyFilter(qinp ? qinp.value : '');
-        if (status) status.textContent = data.logos.length + ' logos — expand sections to browse; hover a tile for details.';
+        if (status) {
+          status.textContent =
+            data.logos.length + ' logos — Corporate Express pack is listed first; hover a tile for details.';
+        }
       })
       .catch(function () {
         if (status) {

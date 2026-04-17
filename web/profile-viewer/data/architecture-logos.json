@@ -2,121 +2,6 @@
   "note": "Diagram and product assets under web/profile-viewer/images. For batch export from Adobe Express, prefer Download → pptx, then run scripts/extract-pptx-media.sh on the file and copy from ppt/media/ into images/. label + description power hover tooltips on the canvas.",
   "logos": [
     {
-      "file": "images/adobe-experience-platform-logo-tags.png",
-      "label": "Adobe Experience Platform",
-      "description": "Experience Platform wordmark with tags — hero logo in the architecture diagram."
-    },
-    {
-      "file": "images/adobe-logo-spectrum-site.svg",
-      "label": "Adobe",
-      "description": "Adobe corporate logo (SVG, Spectrum documentation style)."
-    },
-    {
-      "file": "images/adobe-brand-mark.png",
-      "label": "Adobe brand mark",
-      "description": "Adobe red A brand mark."
-    },
-    {
-      "file": "images/creative-cloud-app-icon.png",
-      "label": "Creative Cloud",
-      "description": "Adobe Creative Cloud application icon — used on the diagram canvas."
-    },
-    {
-      "file": "images/cruk-logo.svg",
-      "label": "Sample partner logo",
-      "description": "Example third-party / campaign logo (SVG)."
-    },
-    {
-      "file": "images/smock-device-laptop-18.svg",
-      "label": "Laptop",
-      "description": "Smock laptop device icon — Data Collection / web."
-    },
-    {
-      "file": "images/smock-device-phone-18.svg",
-      "label": "Phone",
-      "description": "Smock mobile device icon — apps / mobile data collection."
-    },
-    {
-      "file": "images/smock-realtime-customer-profile-18.svg",
-      "label": "Real-Time Customer Profile",
-      "description": "Smock icon for Profile — real-time unified profile."
-    },
-    {
-      "file": "images/smock-image-profile-18.svg",
-      "label": "Profile image",
-      "description": "Smock profile / identity visual."
-    },
-    {
-      "file": "images/smock-segmentation-18.svg",
-      "label": "Segmentation",
-      "description": "Smock segmentation — audiences and segments."
-    },
-    {
-      "file": "images/smock-journey-event-18.svg",
-      "label": "Journey event",
-      "description": "Smock journey / orchestration event."
-    },
-    {
-      "file": "images/smock-journey-data-18.svg",
-      "label": "Journey data",
-      "description": "Smock journey data flow."
-    },
-    {
-      "file": "images/smock-events-18.svg",
-      "label": "Events",
-      "description": "Smock events — experience events and triggers."
-    },
-    {
-      "file": "images/smock-data-add-18.svg",
-      "label": "Add data",
-      "description": "Smock add data / ingestion."
-    },
-    {
-      "file": "images/smock-globe-check-18.svg",
-      "label": "Global / verified",
-      "description": "Smock globe with check — global readiness or validation."
-    },
-    {
-      "file": "images/smock-images-18.svg",
-      "label": "Images",
-      "description": "Smock images / assets."
-    },
-    {
-      "file": "images/smock-home-18.svg",
-      "label": "Home",
-      "description": "Smock home / entry."
-    },
-    {
-      "file": "images/smock-show-menu-18.svg",
-      "label": "Menu",
-      "description": "Smock menu / navigation."
-    },
-    {
-      "file": "images/smock-show-all-layers-18.svg",
-      "label": "Layers",
-      "description": "Smock layers / stack."
-    },
-    {
-      "file": "images/Smock_LocationBasedEvent_18_N.svg",
-      "label": "Location event",
-      "description": "Smock location-based event."
-    },
-    {
-      "file": "images/aep-architecture-slide1.svg",
-      "label": "Architecture slide (vector)",
-      "description": "Reference slide artwork — SVG export of architecture overview."
-    },
-    {
-      "file": "images/aep-architecture-diagram.svg",
-      "label": "Architecture diagram (full SVG)",
-      "description": "Full reference architecture diagram as a single SVG asset."
-    },
-    {
-      "file": "images/aep-architecture-diagram-reference.png",
-      "label": "Architecture diagram (preview PNG)",
-      "description": "Raster preview of the architecture diagram — use for thumbnails or slides."
-    },
-    {
       "file": "images/corporate-express-product-logos/image1.png",
       "label": "Express template logo 1",
       "description": "Embedded PNG image1.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
@@ -360,6 +245,121 @@
       "file": "images/corporate-express-product-logos/image49.png",
       "label": "Express template logo 49",
       "description": "Embedded PNG image49.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+    },
+    {
+      "file": "images/adobe-experience-platform-logo-tags.png",
+      "label": "Adobe Experience Platform",
+      "description": "Experience Platform wordmark with tags — hero logo in the architecture diagram."
+    },
+    {
+      "file": "images/adobe-logo-spectrum-site.svg",
+      "label": "Adobe",
+      "description": "Adobe corporate logo (SVG, Spectrum documentation style)."
+    },
+    {
+      "file": "images/adobe-brand-mark.png",
+      "label": "Adobe brand mark",
+      "description": "Adobe red A brand mark."
+    },
+    {
+      "file": "images/creative-cloud-app-icon.png",
+      "label": "Creative Cloud",
+      "description": "Adobe Creative Cloud application icon — used on the diagram canvas."
+    },
+    {
+      "file": "images/cruk-logo.svg",
+      "label": "Sample partner logo",
+      "description": "Example third-party / campaign logo (SVG)."
+    },
+    {
+      "file": "images/smock-device-laptop-18.svg",
+      "label": "Laptop",
+      "description": "Smock laptop device icon — Data Collection / web."
+    },
+    {
+      "file": "images/smock-device-phone-18.svg",
+      "label": "Phone",
+      "description": "Smock mobile device icon — apps / mobile data collection."
+    },
+    {
+      "file": "images/smock-realtime-customer-profile-18.svg",
+      "label": "Real-Time Customer Profile",
+      "description": "Smock icon for Profile — real-time unified profile."
+    },
+    {
+      "file": "images/smock-image-profile-18.svg",
+      "label": "Profile image",
+      "description": "Smock profile / identity visual."
+    },
+    {
+      "file": "images/smock-segmentation-18.svg",
+      "label": "Segmentation",
+      "description": "Smock segmentation — audiences and segments."
+    },
+    {
+      "file": "images/smock-journey-event-18.svg",
+      "label": "Journey event",
+      "description": "Smock journey / orchestration event."
+    },
+    {
+      "file": "images/smock-journey-data-18.svg",
+      "label": "Journey data",
+      "description": "Smock journey data flow."
+    },
+    {
+      "file": "images/smock-events-18.svg",
+      "label": "Events",
+      "description": "Smock events — experience events and triggers."
+    },
+    {
+      "file": "images/smock-data-add-18.svg",
+      "label": "Add data",
+      "description": "Smock add data / ingestion."
+    },
+    {
+      "file": "images/smock-globe-check-18.svg",
+      "label": "Global / verified",
+      "description": "Smock globe with check — global readiness or validation."
+    },
+    {
+      "file": "images/smock-images-18.svg",
+      "label": "Images",
+      "description": "Smock images / assets."
+    },
+    {
+      "file": "images/smock-home-18.svg",
+      "label": "Home",
+      "description": "Smock home / entry."
+    },
+    {
+      "file": "images/smock-show-menu-18.svg",
+      "label": "Menu",
+      "description": "Smock menu / navigation."
+    },
+    {
+      "file": "images/smock-show-all-layers-18.svg",
+      "label": "Layers",
+      "description": "Smock layers / stack."
+    },
+    {
+      "file": "images/Smock_LocationBasedEvent_18_N.svg",
+      "label": "Location event",
+      "description": "Smock location-based event."
+    },
+    {
+      "file": "images/aep-architecture-slide1.svg",
+      "label": "Architecture slide (vector)",
+      "description": "Reference slide artwork — SVG export of architecture overview."
+    },
+    {
+      "file": "images/aep-architecture-diagram.svg",
+      "label": "Architecture diagram (full SVG)",
+      "description": "Full reference architecture diagram as a single SVG asset."
+    },
+    {
+      "file": "images/aep-architecture-diagram-reference.png",
+      "label": "Architecture diagram (preview PNG)",
+      "description": "Raster preview of the architecture diagram — use for thumbnails or slides."
     }
   ]
 }
