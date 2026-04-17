@@ -135,3 +135,12 @@
   font-size: 12px;
   word-break: break-all;
 }
+
+.tags-page.profile-generation-page .tags-single-company-note {
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.tags-page.profile-generation-page .tags-single-company-note code {
+  font-size: 12px;
+}

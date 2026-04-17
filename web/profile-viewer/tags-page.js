@@ -403,10 +403,109 @@
     hideDataElementsPanel();
   }
 
-  async function loadCompanies() {
-    setMsg('Loading companies…', '');
+  function companyDisplayName(c) {
+    if (!c) return '';
+    var id = c.id || '';
+    return (c.attributes && (c.attributes.name || c.attributes.title)) || id;
+  }
+
+  /**
+   * @returns {Array<object>} items
+   */
+  function ingestCompaniesResponse(data) {
+    var items = data && Array.isArray(data.items) ? data.items : [];
+    var sel = el('tagsCompanySelect');
+    if (sel) {
+      sel.innerHTML = '<option value="">— Select a company —</option>';
+      items.forEach(function (c) {
+        var id = c.id || '';
+        var name = companyDisplayName(c);
+        var opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = name + ' (' + id + ')';
+        sel.appendChild(opt);
+      });
+      if (items.length === 1 && items[0] && items[0].id) {
+        sel.value = String(items[0].id);
+      }
+    }
+    var tbody = el('tagsCompaniesBody');
+    if (tbody) {
+      tbody.innerHTML = '';
+      items.forEach(function (c) {
+        var tr = document.createElement('tr');
+        var id = c.id || '';
+        var name = companyDisplayName(c) || '—';
+        tr.innerHTML =
+          '<td><code>' +
+          escapeHtml(id) +
+          '</code></td><td>' +
+          escapeHtml(String(name)) +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+    return items;
+  }
+
+  /**
+   * @param {number} n - company count
+   * @param {Array<object>} items - raw JSON:API company resources
+   */
+  function setTagsCompanyUiMode(n, items) {
+    items = items || [];
+    var multi = el('tagsMultiCompanyControls');
+    var singleNote = el('tagsSingleCompanyNote');
+    var companiesPanel = el('tagsCompaniesPanel');
+    var loadPropsBtn = el('tagsLoadPropertiesBtn');
+    var loadAllBtn = el('tagsLoadAllBtn');
+    if (n === 1) {
+      if (multi) multi.hidden = true;
+      if (companiesPanel) companiesPanel.hidden = true;
+      if (loadPropsBtn) loadPropsBtn.hidden = true;
+      if (singleNote) {
+        var c0 = items[0];
+        var nid = c0 && c0.id ? String(c0.id) : '';
+        var nname = companyDisplayName(c0);
+        singleNote.innerHTML =
+          'Using company <strong>' +
+          escapeHtml(nname) +
+          '</strong> — <code>' +
+          escapeHtml(nid) +
+          '</code>. Use <strong>Load all properties</strong> below.';
+        singleNote.hidden = false;
+      }
+      if (loadAllBtn) {
+        loadAllBtn.classList.remove('btn-secondary');
+        loadAllBtn.classList.add('btn-primary');
+      }
+    } else {
+      if (multi) multi.hidden = false;
+      if (companiesPanel) companiesPanel.hidden = false;
+      if (loadPropsBtn) loadPropsBtn.hidden = false;
+      if (singleNote) {
+        singleNote.hidden = true;
+        singleNote.textContent = '';
+      }
+      if (loadAllBtn) {
+        loadAllBtn.classList.add('btn-secondary');
+        loadAllBtn.classList.remove('btn-primary');
+      }
+    }
+  }
+
+  var tagsCompaniesFetchInFlight = false;
+
+  async function fetchAndApplyTagsCompanies(opts) {
+    opts = opts || {};
+    if (tagsCompaniesFetchInFlight) return;
+    tagsCompaniesFetchInFlight = true;
+    setMsg(opts.loadingMsg || 'Loading companies…', '');
     clearTables();
-    el('tagsLoadCompaniesBtn').disabled = true;
+    var refreshBtn = el('tagsLoadCompaniesBtn');
+    var loadAllBtn = el('tagsLoadAllBtn');
+    if (refreshBtn) refreshBtn.disabled = true;
+    if (loadAllBtn) loadAllBtn.disabled = true;
     try {
       var res = await fetch(tagsApiUrl('companies'));
       var data = await res.json().catch(function () {
@@ -414,42 +513,44 @@
       });
       if (!data.ok) {
         setMsg(data.error || data.detail || 'Request failed.', 'err');
+        ingestCompaniesResponse({ items: [] });
+        setTagsCompanyUiMode(0, []);
         return;
       }
-      var items = data.items || [];
-      var sel = el('tagsCompanySelect');
-      if (sel) {
-        sel.innerHTML = '<option value="">— Select a company —</option>';
-        items.forEach(function (c) {
-          var id = c.id || '';
-          var name = (c.attributes && (c.attributes.name || c.attributes.title)) || id;
-          var opt = document.createElement('option');
-          opt.value = id;
-          opt.textContent = name + ' (' + id + ')';
-          sel.appendChild(opt);
-        });
-      }
-      var tbody = el('tagsCompaniesBody');
-      if (tbody) {
-        items.forEach(function (c) {
-          var tr = document.createElement('tr');
-          var id = c.id || '';
-          var name = (c.attributes && (c.attributes.name || c.attributes.title)) || '—';
-          tr.innerHTML =
-            '<td><code>' +
-            escapeHtml(id) +
-            '</code></td><td>' +
-            escapeHtml(String(name)) +
-            '</td>';
-          tbody.appendChild(tr);
-        });
-      }
-      setMsg('Loaded ' + items.length + ' compan' + (items.length === 1 ? 'y' : 'ies') + (data.pagesFetched ? ' · pages: ' + data.pagesFetched : '') + '.', 'ok');
+      var items = ingestCompaniesResponse(data);
+      setTagsCompanyUiMode(items.length, items);
+      var suffix = data.pagesFetched ? ' · pages: ' + data.pagesFetched : '';
+      setMsg(
+        (opts.doneVerb || 'Loaded') +
+          ' ' +
+          items.length +
+          ' compan' +
+          (items.length === 1 ? 'y' : 'ies') +
+          suffix +
+          '.',
+        'ok'
+      );
     } catch (e) {
       setMsg(e.message || 'Network error', 'err');
+      ingestCompaniesResponse({ items: [] });
+      setTagsCompanyUiMode(0, []);
     } finally {
-      el('tagsLoadCompaniesBtn').disabled = false;
+      tagsCompaniesFetchInFlight = false;
+      if (refreshBtn) refreshBtn.disabled = false;
+      if (loadAllBtn) loadAllBtn.disabled = false;
     }
+  }
+
+  function loadCompaniesManualRefresh() {
+    fetchAndApplyTagsCompanies({ loadingMsg: 'Refreshing companies…', doneVerb: 'Refreshed' });
+  }
+
+  function bootstrapTagsCompanies() {
+    fetchAndApplyTagsCompanies({ loadingMsg: 'Loading companies…', doneVerb: 'Loaded' });
+  }
+
+  async function loadCompanies() {
+    loadCompaniesManualRefresh();
   }
 
   async function loadPropertiesForSelected() {
@@ -499,9 +600,13 @@
   }
 
   async function loadAllProperties() {
-    if (!window.confirm('This may take a while: it loads every Tag property for each company in your org. Continue?')) return;
+    var singleCompanyUi = el('tagsMultiCompanyControls') && el('tagsMultiCompanyControls').hidden;
+    var confirmMsg = singleCompanyUi
+      ? 'Load all Tag properties for this company? This may take a little while.'
+      : 'This may take a while: it loads every Tag property for each company in your org. Continue?';
+    if (!window.confirm(confirmMsg)) return;
     setPropertiesHeadMode('all');
-    setMsg('Loading all properties (all companies)…', '');
+    setMsg(singleCompanyUi ? 'Loading all properties…' : 'Loading all properties (all companies)…', '');
     hideDataElementsPanel();
     el('tagsCompaniesBody').innerHTML = '';
     el('tagsPropertiesBody').innerHTML = '';
@@ -564,6 +669,15 @@
     if (sb && window.AepGlobalSandbox && AepGlobalSandbox.loadSandboxesIntoSelect) {
       window.AepGlobalSandbox.loadSandboxesIntoSelect(sb).then(function () {
         if (window.AepGlobalSandbox.onSandboxSelectChange) window.AepGlobalSandbox.onSandboxSelectChange(sb);
+        bootstrapTagsCompanies();
+      });
+    } else {
+      bootstrapTagsCompanies();
+    }
+
+    if (sb) {
+      sb.addEventListener('change', function () {
+        bootstrapTagsCompanies();
       });
     }
 

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
-  <link rel="stylesheet" href="tags-page.css?v=20260427e">
+  <link rel="stylesheet" href="tags-page.css?v=20260427f">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -56,19 +56,22 @@
                     <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox"></select>
                   </div>
                 </div>
-                <div class="config-row">
+                <div class="config-row tags-company-controls-multi" id="tagsMultiCompanyControls">
                   <div class="form-row form-row--action profile-gen-actions">
-                    <button type="button" class="btn btn-primary" id="tagsLoadCompaniesBtn">Load companies</button>
+                    <button type="button" class="btn btn-secondary" id="tagsLoadCompaniesBtn">Refresh companies</button>
                   </div>
                   <div class="form-row tags-company-field">
                     <label for="tagsCompanySelect">Company</label>
                     <select id="tagsCompanySelect" class="sandbox-select" aria-label="Tags company">
-                      <option value="">— Load companies first —</option>
+                      <option value="">— Loading… —</option>
                     </select>
                   </div>
-                  <div class="form-row form-row--action profile-gen-actions tags-actions-row">
-                    <button type="button" class="btn btn-secondary" id="tagsLoadPropertiesBtn">Load properties</button>
-                    <button type="button" class="btn btn-secondary" id="tagsLoadAllBtn">Load all properties (org)</button>
+                </div>
+                <p id="tagsSingleCompanyNote" class="field-hint tags-single-company-note" hidden></p>
+                <div class="config-row">
+                  <div class="form-row form-row--action profile-gen-actions tags-actions-row" id="tagsPropertiesActionsRow">
+                    <button type="button" class="btn btn-secondary" id="tagsLoadPropertiesBtn">Load properties (selected company)</button>
+                    <button type="button" class="btn btn-secondary" id="tagsLoadAllBtn">Load all properties</button>
                   </div>
                 </div>
                 <p id="tagsMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
@@ -167,7 +170,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
-  <script src="tags-page.js?v=20260427e"></script>
+  <script src="tags-page.js?v=20260427f"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260427-tags-data-collection"></script>
