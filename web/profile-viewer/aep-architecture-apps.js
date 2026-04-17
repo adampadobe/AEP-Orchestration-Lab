@@ -2640,6 +2640,83 @@
     { id: 'partner', label: 'Partner' },
   ];
 
+  /** Accordion groups for Adobe logos — first matching tag wins (order matters). */
+  var ARCH_ADOBE_MENU_GROUPS = [
+    { id: 'core', label: 'Core Adobe marks', matchAny: ['adobe-core'] },
+    { id: 'exp', label: 'Experience Cloud', matchAny: ['experience-cloud'] },
+    { id: 'catalog', label: 'Creative Cloud catalog', matchAny: ['adobe-catalog'] },
+    { id: 'other', label: 'Other', matchAny: [] },
+  ];
+
+  /** Accordion groups for product / ecosystem logos — first matching tag wins. */
+  var ARCH_OTHER_MENU_GROUPS = [
+    { id: 'eco-data', label: 'Data warehouse & infrastructure', matchAny: ['ecosystem-data'] },
+    { id: 'eco-analytics', label: 'Analytics', matchAny: ['ecosystem-analytics'] },
+    { id: 'eco-activation', label: 'Activation & channels', matchAny: ['ecosystem-activation'] },
+    { id: 'data-coll', label: 'Data collection', matchAny: ['data-collection'] },
+    { id: 'profile', label: 'Profile & audiences', matchAny: ['profile-audiences'] },
+    { id: 'journey', label: 'Journeys', matchAny: ['journeys'] },
+    { id: 'diagram', label: 'Diagram assets', matchAny: ['diagram-reference'] },
+    { id: 'pres', label: 'Presentation & UI icons', matchAny: ['presentation-icons'] },
+    { id: 'partner', label: 'Partner', matchAny: ['partner'] },
+    { id: 'other', label: 'Other', matchAny: [] },
+  ];
+
+  function archPartitionLogoItemsIntoGroups(items, groupDefs) {
+    var buckets = groupDefs.map(function () {
+      return [];
+    });
+    var last = groupDefs.length - 1;
+    items.forEach(function (item) {
+      var tags = Array.isArray(item.tags) ? item.tags : [];
+      var placed = false;
+      for (var gi = 0; gi < last; gi++) {
+        var m = groupDefs[gi].matchAny || [];
+        for (var j = 0; j < m.length; j++) {
+          if (tags.indexOf(m[j]) >= 0) {
+            buckets[gi].push(item);
+            placed = true;
+            break;
+          }
+        }
+        if (placed) break;
+      }
+      if (!placed) buckets[last].push(item);
+    });
+    return buckets;
+  }
+
+  /** Build nested `<details>` sections with sub-grids (empty groups omitted). */
+  function archRenderArchitectureLogoMenu(mount, buckets, groupDefs) {
+    if (!mount) return;
+    mount.textContent = '';
+    for (var i = 0; i < groupDefs.length; i++) {
+      var list = buckets[i];
+      if (!list.length) continue;
+      var det = document.createElement('details');
+      det.className = 'arch-logo-menu-group arch-diagram-ui';
+      det.open = true;
+      var sum = document.createElement('summary');
+      sum.className = 'arch-logo-menu-summary arch-diagram-ui';
+      var lab = document.createElement('span');
+      lab.className = 'arch-logo-menu-summary-label';
+      lab.textContent = groupDefs[i].label;
+      var cnt = document.createElement('span');
+      cnt.className = 'arch-logo-menu-count';
+      cnt.setAttribute('data-arch-base-count', String(list.length));
+      cnt.textContent = String(list.length);
+      sum.appendChild(lab);
+      sum.appendChild(cnt);
+      var inner = document.createElement('div');
+      inner.className = 'arch-spectrum-icons-grid arch-architecture-logo-grid arch-logo-menu-subgrid';
+      inner.setAttribute('role', 'group');
+      archRenderArchitectureLogoTiles(inner, list);
+      det.appendChild(sum);
+      det.appendChild(inner);
+      mount.appendChild(det);
+    }
+  }
+
   function archArchitectureLogoIsAdobeSection(item) {
     var f = (item && item.file) || '';
     if (f.indexOf('corporate-express-product-logos') >= 0) return true;
@@ -2681,8 +2758,8 @@
   }
 
   function archArchitectureLogosPanelInit() {
-    var gridAdobe = qs('#archAdobeLogoGrid');
-    var gridOther = qs('#archArchitectureLogoGrid');
+    var gridAdobe = qs('#archAdobeLogoMenuMount');
+    var gridOther = qs('#archArchitectureLogoMenuMount');
     var stAdobe = qs('#archAdobeLogoStatus');
     var stOther = qs('#archArchitectureLogoStatus');
     if (!gridAdobe || !gridOther) return;
@@ -2713,8 +2790,10 @@
           var nb = parseInt((fb.match(/image(\d+)\.png/i) || [])[1] || '0', 10);
           return na - nb;
         });
-        archRenderArchitectureLogoTiles(gridAdobe, adobe);
-        archRenderArchitectureLogoTiles(gridOther, other);
+        var bucketsAdobe = archPartitionLogoItemsIntoGroups(adobe, ARCH_ADOBE_MENU_GROUPS);
+        var bucketsOther = archPartitionLogoItemsIntoGroups(other, ARCH_OTHER_MENU_GROUPS);
+        archRenderArchitectureLogoMenu(gridAdobe, bucketsAdobe, ARCH_ADOBE_MENU_GROUPS);
+        archRenderArchitectureLogoMenu(gridOther, bucketsOther, ARCH_OTHER_MENU_GROUPS);
         gridAdobe.setAttribute('data-arch-built', '1');
         gridOther.setAttribute('data-arch-built', '1');
         gridAdobe.setAttribute('data-arch-active-tag', '');
@@ -2784,6 +2863,21 @@
       if (show) n++;
     }
     var filtered = !!(activeTag || needle);
+    var groups = grid.querySelectorAll('.arch-logo-menu-group');
+    for (var g = 0; g < groups.length; g++) {
+      var det = groups[g];
+      var gtiles = det.querySelectorAll('.arch-architecture-logo-tile');
+      var vis = 0;
+      var total = gtiles.length;
+      for (var t = 0; t < gtiles.length; t++) {
+        if (!gtiles[t].hidden) vis++;
+      }
+      det.hidden = total > 0 && vis === 0;
+      var countEl = det.querySelector('.arch-logo-menu-count');
+      if (countEl && total > 0) {
+        countEl.textContent = filtered ? vis + '/' + total : String(total);
+      }
+    }
     if (statusEl) statusEl.textContent = n + ' shown' + (filtered ? ' (filtered)' : '') + '.';
   }
 
@@ -5840,14 +5934,14 @@
     if (adobeLogoSearch && !adobeLogoSearch.getAttribute('data-arch-ready')) {
       adobeLogoSearch.setAttribute('data-arch-ready', '1');
       adobeLogoSearch.addEventListener('input', function () {
-        archArchitectureLogosApplyFilter(qs('#archAdobeLogoGrid'), qs('#archAdobeLogoStatus'), adobeLogoSearch.value);
+        archArchitectureLogosApplyFilter(qs('#archAdobeLogoMenuMount'), qs('#archAdobeLogoStatus'), adobeLogoSearch.value);
       });
     }
     var logoSearch = qs('#archArchitectureLogoSearch');
     if (logoSearch && !logoSearch.getAttribute('data-arch-ready')) {
       logoSearch.setAttribute('data-arch-ready', '1');
       logoSearch.addEventListener('input', function () {
-        archArchitectureLogosApplyFilter(qs('#archArchitectureLogoGrid'), qs('#archArchitectureLogoStatus'), logoSearch.value);
+        archArchitectureLogosApplyFilter(qs('#archArchitectureLogoMenuMount'), qs('#archArchitectureLogoStatus'), logoSearch.value);
       });
     }
 

@@ -2135,6 +2135,73 @@ html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
   margin: 0;
 }
 
+/* Grouped logo picker (accordion by taxonomy, Martech-style) */
+.arch-logo-menu-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-height: min(56vh, 32rem);
+  overflow: auto;
+  padding: 2px 0;
+}
+
+.arch-logo-menu-group {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.arch-logo-menu-group > .arch-logo-menu-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+}
+
+.arch-logo-menu-group > .arch-logo-menu-summary::-webkit-details-marker {
+  display: none;
+}
+
+.arch-logo-menu-group > .arch-logo-menu-summary::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #64748b;
+  flex-shrink: 0;
+  transition: transform 0.12s ease;
+}
+
+.arch-logo-menu-group:not([open]) > .arch-logo-menu-summary::before {
+  transform: rotate(-90deg);
+}
+
+.arch-logo-menu-summary-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.arch-logo-menu-count {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.arch-logo-menu-subgrid {
+  max-height: min(36vh, 18rem);
+  margin: 0 0 0.35rem;
+  border-top: none;
+  border-radius: 0 0 5px 5px;
+}
+
 .arch-custom-box--spectrum-icon .arch-custom-box-spectrum-img,
 .arch-custom-box--product-logo .arch-custom-box-spectrum-img {
   pointer-events: none;
