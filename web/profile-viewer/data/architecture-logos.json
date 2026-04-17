@@ -3,248 +3,248 @@
   "logos": [
     {
       "file": "images/corporate-express-product-logos/image1.png",
-      "label": "Express template logo 1",
-      "description": "Embedded PNG image1.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Creative Cloud",
+      "description": "Creative Cloud — master logo (infinity mark). Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image2.png",
-      "label": "Express template logo 2",
-      "description": "Embedded PNG image2.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Express",
+      "description": "Creative Cloud — quick design and social content. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image3.png",
-      "label": "Express template logo 3",
-      "description": "Embedded PNG image3.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Firefly",
+      "description": "Creative Cloud — generative AI. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image4.png",
-      "label": "Express template logo 4",
-      "description": "Embedded PNG image4.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Photoshop",
+      "description": "Creative Cloud — imaging and compositing. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image5.png",
-      "label": "Express template logo 5",
-      "description": "Embedded PNG image5.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Photoshop Express",
+      "description": "Creative Cloud — lightweight photo editing on mobile/web. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image6.png",
-      "label": "Express template logo 6",
-      "description": "Embedded PNG image6.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Photoshop Camera",
+      "description": "Creative Cloud — camera app with Photoshop lenses. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image7.png",
-      "label": "Express template logo 7",
-      "description": "Embedded PNG image7.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Photoshop Lightroom",
+      "description": "Creative Cloud — cloud-centric photo workflow. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image8.png",
-      "label": "Express template logo 8",
-      "description": "Embedded PNG image8.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Photoshop Lightroom Classic",
+      "description": "Creative Cloud — desktop-centric photo workflow. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image9.png",
-      "label": "Express template logo 9",
-      "description": "Embedded PNG image9.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Fresco",
+      "description": "Creative Cloud — drawing and painting. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image10.png",
-      "label": "Express template logo 10",
-      "description": "Embedded PNG image10.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Premiere Pro",
+      "description": "Creative Cloud — professional video editing. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image11.png",
-      "label": "Express template logo 11",
-      "description": "Embedded PNG image11.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe After Effects",
+      "description": "Creative Cloud — motion graphics and VFX. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image12.png",
-      "label": "Express template logo 12",
-      "description": "Embedded PNG image12.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Audition",
+      "description": "Creative Cloud — audio production. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image13.png",
-      "label": "Express template logo 13",
-      "description": "Embedded PNG image13.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Animate",
+      "description": "Creative Cloud — animation for web and video. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image14.png",
-      "label": "Express template logo 14",
-      "description": "Embedded PNG image14.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Character Animator",
+      "description": "Creative Cloud — performance-based character animation. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image15.png",
-      "label": "Express template logo 15",
-      "description": "Embedded PNG image15.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Premiere Rush",
+      "description": "Creative Cloud — quick social video editing. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image16.png",
-      "label": "Express template logo 16",
-      "description": "Embedded PNG image16.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Media Encoder",
+      "description": "Creative Cloud — export and transcoding for video pipelines. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image17.png",
-      "label": "Express template logo 17",
-      "description": "Embedded PNG image17.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Frame.io",
+      "description": "Creative Cloud — video review and collaboration (Adobe). Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image18.png",
-      "label": "Express template logo 18",
-      "description": "Embedded PNG image18.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Illustrator",
+      "description": "Creative Cloud — vector graphics and illustration. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image19.png",
-      "label": "Express template logo 19",
-      "description": "Embedded PNG image19.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe InDesign",
+      "description": "Creative Cloud — layout and publishing. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image20.png",
-      "label": "Express template logo 20",
-      "description": "Embedded PNG image20.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe InCopy",
+      "description": "Creative Cloud — copywriting with InDesign layouts. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image21.png",
-      "label": "Express template logo 21",
-      "description": "Embedded PNG image21.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Dreamweaver",
+      "description": "Creative Cloud — web design and development. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image22.png",
-      "label": "Express template logo 22",
-      "description": "Embedded PNG image22.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe XD",
+      "description": "Creative Cloud — UX/UI design and prototyping. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image23.png",
-      "label": "Express template logo 23",
-      "description": "Embedded PNG image23.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Substance 3D",
+      "description": "Creative Cloud — 3D content suite (umbrella). Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image24.png",
-      "label": "Express template logo 24",
-      "description": "Embedded PNG image24.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Substance 3D Modeler",
+      "description": "Creative Cloud — 3D sculpting and modeling. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image25.png",
-      "label": "Express template logo 25",
-      "description": "Embedded PNG image25.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Substance 3D Sampler",
+      "description": "Creative Cloud — materials from photos and scans. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image26.png",
-      "label": "Express template logo 26",
-      "description": "Embedded PNG image26.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Substance 3D Designer",
+      "description": "Creative Cloud — parametric materials and patterns. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image27.png",
-      "label": "Express template logo 27",
-      "description": "Embedded PNG image27.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Substance 3D Painter",
+      "description": "Creative Cloud — 3D texture painting. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image28.png",
-      "label": "Express template logo 28",
-      "description": "Embedded PNG image28.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Substance 3D Stager",
+      "description": "Creative Cloud — scene staging and rendering. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image29.png",
-      "label": "Express template logo 29",
-      "description": "Embedded PNG image29.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Substance 3D Assets",
+      "description": "Creative Cloud — 3D asset library. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image30.png",
-      "label": "Express template logo 30",
-      "description": "Embedded PNG image30.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Aero",
+      "description": "Creative Cloud — augmented reality authoring. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image31.png",
-      "label": "Express template logo 31",
-      "description": "Embedded PNG image31.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Stock",
+      "description": "Creative Cloud — stock assets marketplace. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image32.png",
-      "label": "Express template logo 32",
-      "description": "Embedded PNG image32.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Behance",
+      "description": "Creative Cloud — creative community and portfolios. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image33.png",
-      "label": "Express template logo 33",
-      "description": "Embedded PNG image33.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Bridge",
+      "description": "Creative Cloud — asset browsing and workflow hub. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image34.png",
-      "label": "Express template logo 34",
-      "description": "Embedded PNG image34.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Capture",
+      "description": "Creative Cloud — capture colors, shapes, and brushes on mobile. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image35.png",
-      "label": "Express template logo 35",
-      "description": "Embedded PNG image35.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Portfolio",
+      "description": "Creative Cloud — portfolio websites. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image36.png",
-      "label": "Express template logo 36",
-      "description": "Embedded PNG image36.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Fonts",
+      "description": "Creative Cloud — font library and licensing. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image37.png",
-      "label": "Express template logo 37",
-      "description": "Embedded PNG image37.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Document Cloud",
+      "description": "Document Cloud — master logo (Acrobat loop family). Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image38.png",
-      "label": "Express template logo 38",
-      "description": "Embedded PNG image38.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Acrobat",
+      "description": "Document Cloud — PDF viewing, editing, and workflows (Reader / Pro family). Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image39.png",
-      "label": "Express template logo 39",
-      "description": "Embedded PNG image39.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Acrobat Classic",
+      "description": "Document Cloud — classic Acrobat experience. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image40.png",
-      "label": "Express template logo 40",
-      "description": "Embedded PNG image40.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Acrobat Sign",
+      "description": "Document Cloud — e-signatures. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image41.png",
-      "label": "Express template logo 41",
-      "description": "Embedded PNG image41.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Scan",
+      "description": "Document Cloud — mobile scanning to PDF. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image42.png",
-      "label": "Express template logo 42",
-      "description": "Embedded PNG image42.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Experience Cloud",
+      "description": "Experience Cloud — master logo. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image43.png",
-      "label": "Express template logo 43",
-      "description": "Embedded PNG image43.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Experience Platform",
+      "description": "Experience Cloud — customer data foundation and real-time profiles. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image44.png",
-      "label": "Express template logo 44",
-      "description": "Embedded PNG image44.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Experience Manager",
+      "description": "Experience Cloud — web content and digital asset management. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image45.png",
-      "label": "Express template logo 45",
-      "description": "Embedded PNG image45.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Commerce",
+      "description": "Experience Cloud — commerce storefronts and operations. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image46.png",
-      "label": "Express template logo 46",
-      "description": "Embedded PNG image46.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Workfront",
+      "description": "Experience Cloud — work management and marketing operations. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image47.png",
-      "label": "Express template logo 47",
-      "description": "Embedded PNG image47.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe GenStudio for Performance Marketing",
+      "description": "Experience Cloud — generative AI for performance marketing content. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image48.png",
-      "label": "Express template logo 48",
-      "description": "Embedded PNG image48.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Journey Optimizer",
+      "description": "Experience Cloud — orchestrated customer journeys. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/corporate-express-product-logos/image49.png",
-      "label": "Express template logo 49",
-      "description": "Embedded PNG image49.png from Corporate Express Template-6-Product Logos.pptx. Update this label in data/architecture-logos.json once you identify the product."
+      "label": "Adobe Marketo Engage",
+      "description": "Experience Cloud — B2B marketing automation. Sourced from the Corporate Express product logo chart."
     },
     {
       "file": "images/adobe-experience-platform-logo-tags.png",
