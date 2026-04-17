@@ -114,6 +114,13 @@
     }
   }
 
+  function rowMatchesPlatform(row, platformSel) {
+    if (!platformSel) return true;
+    var p = row.platform != null ? String(row.platform).trim() : '';
+    if (platformSel === '__none__') return !p;
+    return p === platformSel;
+  }
+
   function rowMatchesFilter(row, q) {
     if (!q) return true;
     var dev = row.development ? 'yes development' : 'no production';
@@ -134,6 +141,42 @@
     return hay.indexOf(q) >= 0;
   }
 
+  function rebuildPlatformDropdown() {
+    var sel = el('tagsPropertiesPlatformFilter');
+    if (!sel) return;
+    var prev = sel.value;
+    var hasEmpty = false;
+    var distinct = {};
+    tagsPropertyCache.forEach(function (r) {
+      var p = r.platform != null ? String(r.platform).trim() : '';
+      if (!p) hasEmpty = true;
+      else distinct[p] = true;
+    });
+    var keys = Object.keys(distinct).sort(function (a, b) {
+      return a.localeCompare(b);
+    });
+    sel.innerHTML = '';
+    var o0 = document.createElement('option');
+    o0.value = '';
+    o0.textContent = 'All platforms';
+    sel.appendChild(o0);
+    if (hasEmpty) {
+      var on = document.createElement('option');
+      on.value = '__none__';
+      on.textContent = '(not set)';
+      sel.appendChild(on);
+    }
+    keys.forEach(function (p) {
+      var o = document.createElement('option');
+      o.value = p;
+      o.textContent = p;
+      sel.appendChild(o);
+    });
+    if (prev === '__none__' && hasEmpty) sel.value = prev;
+    else if (prev && distinct[prev]) sel.value = prev;
+    else sel.value = '';
+  }
+
   function updateFilterCount(shown, total) {
     var n = el('tagsPropertiesFilterCount');
     if (!n) return;
@@ -148,9 +191,10 @@
     var tbody = el('tagsPropertiesBody');
     if (!tbody) return;
     var q = (el('tagsPropertiesFilter') && el('tagsPropertiesFilter').value || '').trim().toLowerCase();
+    var platformSel = (el('tagsPropertiesPlatformFilter') && el('tagsPropertiesPlatformFilter').value) || '';
     var total = tagsPropertyCache.length;
     var rows = tagsPropertyCache.filter(function (r) {
-      return rowMatchesFilter(r, q);
+      return rowMatchesPlatform(r, platformSel) && rowMatchesFilter(r, q);
     });
     tbody.innerHTML = '';
     rows.forEach(function (row) {
@@ -217,6 +261,15 @@
   function resetPropertyFilterUi() {
     var f = el('tagsPropertiesFilter');
     if (f) f.value = '';
+    var plat = el('tagsPropertiesPlatformFilter');
+    if (plat) {
+      plat.innerHTML = '';
+      var o = document.createElement('option');
+      o.value = '';
+      o.textContent = 'All platforms';
+      plat.appendChild(o);
+      plat.value = '';
+    }
     updateFilterCount(0, 0);
   }
 
@@ -314,6 +367,7 @@
           normalizePropertyResource(p, { companyId: cid, companyName: cname })
         );
       });
+      rebuildPlatformDropdown();
       renderPropertiesFromCache();
       setMsg('Loaded ' + items.length + ' propert' + (items.length === 1 ? 'y' : 'ies') + ' for company ' + cid + '.', 'ok');
     } catch (e) {
@@ -358,6 +412,7 @@
           updatedBy: r.updatedBy != null ? String(r.updatedBy) : '',
         });
       });
+      rebuildPlatformDropdown();
       renderPropertiesFromCache();
       var failNote = '';
       if (data.failures && data.failures.length) {
@@ -397,6 +452,12 @@
     var filt = el('tagsPropertiesFilter');
     if (filt) {
       filt.addEventListener('input', function () {
+        renderPropertiesFromCache();
+      });
+    }
+    var platF = el('tagsPropertiesPlatformFilter');
+    if (platF) {
+      platF.addEventListener('change', function () {
         renderPropertiesFromCache();
       });
     }

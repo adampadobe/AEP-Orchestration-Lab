@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
-  <link rel="stylesheet" href="tags-page.css?v=20260427c">
+  <link rel="stylesheet" href="tags-page.css?v=20260427d">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -109,6 +109,10 @@
                     spellcheck="false"
                     aria-describedby="tagsPropertiesFilterCount"
                   />
+                  <label for="tagsPropertiesPlatformFilter" class="tags-filter-label tags-filter-label--platform">Platform</label>
+                  <select id="tagsPropertiesPlatformFilter" class="sandbox-select tags-properties-platform-select" aria-label="Filter by platform">
+                    <option value="">All platforms</option>
+                  </select>
                   <span id="tagsPropertiesFilterCount" class="tags-filter-count" aria-live="polite"></span>
                 </div>
                 <div class="tags-table-wrap">
@@ -135,7 +139,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
-  <script src="tags-page.js?v=20260427c"></script>
+  <script src="tags-page.js?v=20260427d"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260427-tags-data-collection"></script>

@@ -72,6 +72,16 @@
   max-width: 520px;
 }
 
+.tags-page.profile-generation-page .tags-filter-label--platform {
+  margin-left: 0.25rem;
+}
+
+.tags-page.profile-generation-page .tags-properties-platform-select {
+  flex: 0 1 200px;
+  min-width: min(100%, 160px);
+  max-width: 280px;
+}
+
 .tags-page.profile-generation-page .tags-filter-count {
   font-size: 13px;
   color: var(--dash-text-secondary, #5c6570);
