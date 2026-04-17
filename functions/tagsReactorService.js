@@ -98,6 +98,56 @@ async function listProperties(token, clientId, orgId, companyId) {
 }
 
 /**
+ * Data elements for a Tag property (Reactor: GET /properties/{id}/data_elements).
+ */
+function mapDataElementResource(d) {
+  const a = d.attributes && typeof d.attributes === 'object' ? d.attributes : {};
+  let settingsPreview = '';
+  const rawSettings = a.settings;
+  if (rawSettings != null) {
+    const s = typeof rawSettings === 'string' ? rawSettings : JSON.stringify(rawSettings);
+    settingsPreview = s.length > 240 ? `${s.slice(0, 237)}…` : s;
+  }
+  const rel = d.relationships && typeof d.relationships === 'object' ? d.relationships : {};
+  let extensionId = '';
+  if (rel.extension && rel.extension.data && rel.extension.data.id) {
+    extensionId = String(rel.extension.data.id);
+  } else if (rel.extension_package && rel.extension_package.data && rel.extension_package.data.id) {
+    extensionId = String(rel.extension_package.data.id);
+  }
+  return {
+    elementId: d.id != null ? String(d.id) : '',
+    name: a.name != null ? String(a.name) : '',
+    delegateDescriptorId: a.delegate_descriptor_id != null ? String(a.delegate_descriptor_id) : '',
+    enabled: a.enabled !== false,
+    dirty: a.dirty === true,
+    createdAt: a.created_at != null ? String(a.created_at) : '',
+    updatedAt: a.updated_at != null ? String(a.updated_at) : '',
+    extensionId,
+    settingsPreview,
+  };
+}
+
+async function listDataElements(token, clientId, orgId, propertyId) {
+  const id = String(propertyId || '').trim();
+  if (!id) {
+    return { ok: false, httpStatus: 400, error: 'propertyId is required', items: [], pagesFetched: 0 };
+  }
+  const enc = encodeURIComponent(id);
+  const result = await reactorPaginate(
+    token,
+    clientId,
+    orgId,
+    `/properties/${enc}/data_elements?page[size]=100`,
+  );
+  if (!result.ok) return result;
+  return {
+    ...result,
+    items: Array.isArray(result.items) ? result.items.map(mapDataElementResource) : [],
+  };
+}
+
+/**
  * All Tags “properties” across every company visible to the credentials (may be slow).
  */
 async function listAllPropertiesAcrossCompanies(token, clientId, orgId) {
@@ -187,5 +237,6 @@ module.exports = {
   listCompanies,
   listProperties,
   listAllPropertiesAcrossCompanies,
+  listDataElements,
   probeTagsApiAccess,
 };

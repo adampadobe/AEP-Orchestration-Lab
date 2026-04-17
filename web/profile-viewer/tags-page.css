@@ -94,3 +94,44 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.tags-page.profile-generation-page tr.tags-property-row {
+  cursor: pointer;
+}
+
+.tags-page.profile-generation-page tr.tags-property-row:hover {
+  background: var(--dash-surface-hover, rgba(0, 0, 0, 0.04));
+}
+
+.tags-page.profile-generation-page .tags-data-elements-box-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.tags-page.profile-generation-page .tags-data-elements-box-header .profile-box-title {
+  margin-bottom: 0;
+}
+
+.tags-page.profile-generation-page .tags-data-elements-context {
+  margin: 0 0 0.5rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dash-text-secondary, #5c6570);
+}
+
+.tags-page.profile-generation-page .tags-cell-settings {
+  max-width: 18rem;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.tags-page.profile-generation-page .tags-cell-delegate {
+  max-width: 12rem;
+  font-size: 12px;
+  word-break: break-all;
+}

@@ -2036,7 +2036,7 @@ exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) 
   res.status(405).json({ error: 'Method not allowed' });
 });
 
-/** GET /api/tags/reactor — Reactor (Tags) JSON:API: resource=companies | properties&companyId= | allProperties */
+/** GET /api/tags/reactor — Reactor (Tags) JSON:API: companies | properties&companyId= | allProperties | dataElements&propertyId= */
 exports.tagsReactorProxy = onRequest(
   {
     region: REGION,
@@ -2054,6 +2054,7 @@ exports.tagsReactorProxy = onRequest(
     const sandbox = resolveSandboxFromQuery(req);
     const resource = String(req.query.resource || 'companies').trim().toLowerCase();
     const companyId = String(req.query.companyId || '').trim();
+    const propertyId = String(req.query.propertyId || '').trim();
 
     let accessToken;
     try { accessToken = await getAdobeAccessToken(); }
@@ -2082,9 +2083,32 @@ exports.tagsReactorProxy = onRequest(
         res.status(200).json({ ok: r.ok, sandbox, resource: 'allProperties', ...r });
         return;
       }
+      if (resource === 'dataelements') {
+        if (!propertyId) {
+          res.status(400).json({
+            ok: false,
+            error: 'propertyId query param is required for resource=dataElements',
+            sandbox,
+          });
+          return;
+        }
+        const r = await tagsReactorService.listDataElements(accessToken, clientId, orgId, propertyId);
+        res.status(200).json({
+          ok: r.ok,
+          sandbox,
+          resource: 'dataElements',
+          propertyId,
+          items: r.items,
+          pagesFetched: r.pagesFetched,
+          meta: r.meta,
+          httpStatus: r.httpStatus,
+          error: r.error,
+        });
+        return;
+      }
       res.status(400).json({
         ok: false,
-        error: 'Invalid resource. Use companies, properties (with companyId), or allProperties.',
+        error: 'Invalid resource. Use companies, properties (with companyId), allProperties, or dataElements (with propertyId).',
         sandbox,
       });
     } catch (e) {

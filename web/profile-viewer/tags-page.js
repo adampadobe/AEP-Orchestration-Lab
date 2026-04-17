@@ -1,5 +1,5 @@
 /**
- * Data Collection — Tags (Reactor): list companies and Tag properties via /api/tags/reactor.
+ * Data Collection — Tags (Reactor): companies, properties, and property data elements via /api/tags/reactor.
  */
 (function () {
   'use strict';
@@ -13,7 +13,7 @@
     return document.getElementById(id);
   }
 
-  function tagsApiUrl(resource, companyId) {
+  function tagsApiUrl(resource, companyId, propertyId) {
     var p = new URLSearchParams();
     if (window.AepGlobalSandbox && AepGlobalSandbox.getSandboxName) {
       var sb = String(AepGlobalSandbox.getSandboxName() || '').trim();
@@ -21,6 +21,7 @@
     }
     p.set('resource', resource);
     if (companyId) p.set('companyId', companyId);
+    if (propertyId) p.set('propertyId', propertyId);
     return '/api/tags/reactor?' + p.toString();
   }
 
@@ -255,7 +256,125 @@
         ub +
         '</td>';
     }
+    tr.classList.add('tags-property-row');
+    tr.title = 'Double-click to view data elements';
+    tr.dataset.propertyId = row.propertyId || '';
+    tr.dataset.propertyName = row.propertyName || '';
+    tr.dataset.companyId = row.companyId || '';
+    tr.dataset.companyName = row.companyName || '';
     return tr;
+  }
+
+  function hideDataElementsPanel() {
+    var panel = el('tagsDataElementsPanel');
+    var msg = el('tagsDataElementsMsg');
+    var tbody = el('tagsDataElementsBody');
+    var ctx = el('tagsDataElementsContext');
+    if (panel) panel.hidden = true;
+    if (msg) {
+      msg.textContent = '';
+      msg.hidden = true;
+    }
+    if (tbody) tbody.innerHTML = '';
+    if (ctx) ctx.textContent = '';
+  }
+
+  function truncateText(s, max) {
+    var t = s == null ? '' : String(s);
+    var n = max > 0 ? max : 80;
+    if (t.length <= n) return t;
+    return t.slice(0, n - 1) + '…';
+  }
+
+  async function loadDataElementsForProperty(ctx) {
+    ctx = ctx || {};
+    var propertyId = ctx.propertyId ? String(ctx.propertyId).trim() : '';
+    var panel = el('tagsDataElementsPanel');
+    var tbody = el('tagsDataElementsBody');
+    var ctxEl = el('tagsDataElementsContext');
+    var msg = el('tagsDataElementsMsg');
+    if (!propertyId || !panel || !tbody) return;
+
+    panel.hidden = false;
+    if (ctxEl) {
+      var parts = [];
+      if (ctx.companyName) parts.push(String(ctx.companyName));
+      parts.push(ctx.propertyName ? String(ctx.propertyName) : propertyId);
+      parts.push('(' + propertyId + ')');
+      ctxEl.textContent = parts.join(' · ');
+    }
+    tbody.innerHTML = '';
+    if (msg) {
+      msg.textContent = 'Loading data elements…';
+      msg.hidden = false;
+      msg.className = 'consent-message consent-message--below-btn';
+    }
+
+    try {
+      var res = await fetch(tagsApiUrl('dataElements', '', propertyId));
+      var data = await res.json().catch(function () {
+        return {};
+      });
+      if (!data.ok) {
+        if (msg) {
+          msg.textContent = data.error || data.detail || 'Request failed.';
+          msg.hidden = false;
+          msg.className = 'consent-message consent-message--below-btn error';
+        }
+        return;
+      }
+      var items = data.items || [];
+      if (msg) {
+        msg.textContent =
+          String(items.length) +
+          ' data element' +
+          (items.length === 1 ? '' : 's') +
+          (data.pagesFetched ? ' · pages fetched: ' + String(data.pagesFetched) : '') +
+          '.';
+        msg.hidden = false;
+        msg.className = 'consent-message consent-message--below-btn success';
+      }
+      items.forEach(function (row) {
+        var tr = document.createElement('tr');
+        var settingsPrev = row.settingsPreview || '';
+        var settingsShow = truncateText(settingsPrev, 72);
+        var extCell = row.extensionId
+          ? '<code>' + escapeHtml(row.extensionId) + '</code>'
+          : '—';
+        tr.innerHTML =
+          '<td>' +
+          escapeHtml(row.name || '—') +
+          '</td><td><code>' +
+          escapeHtml(row.elementId || '') +
+          '</code></td><td>' +
+          extCell +
+          '</td><td class="tags-cell-settings" title="' +
+          escapeHtml(settingsPrev) +
+          '">' +
+          escapeHtml(settingsShow || '—') +
+          '</td><td class="tags-cell-delegate">' +
+          escapeHtml(truncateText(row.delegateDescriptorId || '', 48)) +
+          '</td><td>' +
+          escapeHtml(row.enabled ? 'Yes' : 'No') +
+          '</td><td>' +
+          escapeHtml(row.dirty ? 'Yes' : 'No') +
+          '</td><td>' +
+          formatDateTime(row.updatedAt) +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+      try {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (eScroll) {
+        panel.scrollIntoView();
+      }
+    } catch (e) {
+      if (msg) {
+        msg.textContent = e.message || 'Network error';
+        msg.hidden = false;
+        msg.className = 'consent-message consent-message--below-btn error';
+      }
+    }
   }
 
   function resetPropertyFilterUi() {
@@ -281,6 +400,7 @@
     tagsPropertyCache = [];
     resetPropertyFilterUi();
     setPropertiesHeadMode('one');
+    hideDataElementsPanel();
   }
 
   async function loadCompanies() {
@@ -348,6 +468,7 @@
     }
     setPropertiesHeadMode('one');
     setMsg('Loading properties…', '');
+    hideDataElementsPanel();
     el('tagsPropertiesBody').innerHTML = '';
     tagsPropertyCache = [];
     resetPropertyFilterUi();
@@ -381,6 +502,7 @@
     if (!window.confirm('This may take a while: it loads every Tag property for each company in your org. Continue?')) return;
     setPropertiesHeadMode('all');
     setMsg('Loading all properties (all companies)…', '');
+    hideDataElementsPanel();
     el('tagsCompaniesBody').innerHTML = '';
     el('tagsPropertiesBody').innerHTML = '';
     tagsPropertyCache = [];
@@ -460,6 +582,26 @@
       platF.addEventListener('change', function () {
         renderPropertiesFromCache();
       });
+    }
+
+    var propBody = el('tagsPropertiesBody');
+    if (propBody) {
+      propBody.addEventListener('dblclick', function (e) {
+        var tr = e.target && e.target.closest ? e.target.closest('tr.tags-property-row') : null;
+        if (!tr || !propBody.contains(tr)) return;
+        var pid = tr.dataset.propertyId;
+        if (!pid) return;
+        loadDataElementsForProperty({
+          propertyId: pid,
+          propertyName: tr.dataset.propertyName || '',
+          companyId: tr.dataset.companyId || '',
+          companyName: tr.dataset.companyName || '',
+        });
+      });
+    }
+
+    if (el('tagsDataElementsClose')) {
+      el('tagsDataElementsClose').addEventListener('click', hideDataElementsPanel);
     }
   }
 
