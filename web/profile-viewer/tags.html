@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
-  <link rel="stylesheet" href="tags-page.css?v=20260427b">
+  <link rel="stylesheet" href="tags-page.css?v=20260427c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -95,6 +95,22 @@
             <div class="profile-box tags-results-box" id="tagsPropertiesPanel">
               <h3 class="profile-box-title">Tag properties</h3>
               <div class="profile-box-content">
+                <p class="field-hint tags-properties-meta-hint">
+                  Columns use the Reactor property resource: <strong>created_at</strong> / <strong>updated_at</strong>, <strong>platform</strong>, <strong>development</strong>, <strong>domains</strong>. “Last updated by” appears only if your tenant returns actor fields on the resource (often empty).
+                </p>
+                <div class="tags-properties-toolbar">
+                  <label for="tagsPropertiesFilter" class="tags-filter-label">Filter</label>
+                  <input
+                    type="search"
+                    id="tagsPropertiesFilter"
+                    class="sandbox-select tags-properties-filter-input"
+                    placeholder="Filter by name, id, company, platform, domain, date…"
+                    autocomplete="off"
+                    spellcheck="false"
+                    aria-describedby="tagsPropertiesFilterCount"
+                  />
+                  <span id="tagsPropertiesFilterCount" class="tags-filter-count" aria-live="polite"></span>
+                </div>
                 <div class="tags-table-wrap">
                   <table class="tags-table" aria-label="Tag properties">
                     <thead>
@@ -119,7 +135,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
-  <script src="tags-page.js?v=20260427b"></script>
+  <script src="tags-page.js?v=20260427c"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260427-tags-data-collection"></script>

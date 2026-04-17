@@ -5,6 +5,25 @@
 
 const REACTOR_BASE = 'https://reactor.adobe.io';
 
+/** Best-effort display string if Reactor adds actor fields on the property resource. */
+function pickUpdatedBy(attrs) {
+  if (!attrs || typeof attrs !== 'object') return '';
+  const keys = [
+    'updated_by_email',
+    'updated_by_name',
+    'updated_by_username',
+    'last_updated_by_email',
+    'last_updated_by_name',
+    'revised_by_user_email',
+    'revised_by_email',
+  ];
+  for (const k of keys) {
+    const v = attrs[k];
+    if (v != null && String(v).trim()) return String(v).trim();
+  }
+  return '';
+}
+
 function reactorHeaders(token, clientId, orgId) {
   return {
     Accept: 'application/vnd.api+json;revision=1',
@@ -97,11 +116,18 @@ async function listAllPropertiesAcrossCompanies(token, clientId, orgId) {
     }
     const cname = (c.attributes && (c.attributes.name || c.attributes.title)) || cid;
     for (const p of pr.items) {
+      const a = p.attributes && typeof p.attributes === 'object' ? p.attributes : {};
       rows.push({
         companyId: cid,
         companyName: String(cname),
         propertyId: p.id,
-        propertyName: (p.attributes && p.attributes.name) || p.id,
+        propertyName: a.name || p.id,
+        platform: a.platform != null ? String(a.platform) : '',
+        development: a.development === true,
+        domains: Array.isArray(a.domains) ? a.domains.slice(0) : [],
+        createdAt: a.created_at != null ? String(a.created_at) : '',
+        updatedAt: a.updated_at != null ? String(a.updated_at) : '',
+        updatedBy: pickUpdatedBy(a),
       });
     }
   }

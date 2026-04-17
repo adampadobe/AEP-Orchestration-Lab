@@ -46,3 +46,41 @@
 .tags-page.profile-generation-page .tags-table tr:last-child td {
   border-bottom: none;
 }
+
+.tags-page.profile-generation-page .tags-properties-meta-hint {
+  margin: 0 0 0.75rem;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.tags-page.profile-generation-page .tags-properties-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-bottom: 0.75rem;
+}
+
+.tags-page.profile-generation-page .tags-filter-label {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.tags-page.profile-generation-page .tags-properties-filter-input {
+  flex: 1 1 220px;
+  min-width: min(100%, 260px);
+  max-width: 520px;
+}
+
+.tags-page.profile-generation-page .tags-filter-count {
+  font-size: 13px;
+  color: var(--dash-text-secondary, #5c6570);
+  white-space: nowrap;
+}
+
+.tags-page.profile-generation-page .tags-cell-domains {
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
