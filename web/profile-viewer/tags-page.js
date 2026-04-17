@@ -230,15 +230,15 @@
     var iconFile = mapped ? mapped.file : 'S2_Icon_Apps_20_N.svg';
     var tooltip = mapped ? mapped.label : raw;
     var src = TAGS_PLATFORM_ICON_DIR + iconFile;
-    // title on <img> so native tooltip shows when hovering the icon (row-level title would override).
+    // Instant label via CSS ::after + data attr (native title tooltips are delayed ~1s in browsers).
     return (
       '<td class="tags-platform-cell">' +
-      '<span class="tags-platform-icon-wrap">' +
+      '<span class="tags-platform-icon-wrap" data-tags-platform-tip="' +
+      escapeHtml(tooltip) +
+      '">' +
       '<img class="tags-platform-icon-img" src="' +
       escapeHtml(src) +
-      '" width="20" height="20" alt="" role="img" draggable="false" title="' +
-      escapeHtml(tooltip) +
-      '" aria-label="' +
+      '" width="20" height="20" alt="" role="img" draggable="false" aria-label="' +
       escapeHtml(tooltip) +
       '" />' +
       '</span></td>'
