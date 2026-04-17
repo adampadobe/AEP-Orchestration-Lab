@@ -1,5 +1,5 @@
 /**
- * Data Collection — Tags (Reactor): companies, properties, and property data elements via /api/tags/reactor.
+ * Data Collection — Tags (Reactor): companies, properties, and property drill-down via /api/tags/reactor.
  */
 (function () {
   'use strict';
@@ -9,11 +9,26 @@
   /** @type {'one'|'all'} */
   var tagsPropertyViewMode = 'one';
 
+  /** Lazy cache: propertyId -> sectionId -> items array */
+  var tagsExplorerCache = {};
+
+  /** @type {{ propertyId: string, propertyName: string, companyId: string, companyName: string, activeSection: string } | null} */
+  var tagsExplorerContext = null;
+
+  var TAGS_DRILL_SECTIONS = [
+    { id: 'dataElements', label: 'Data elements', resource: 'dataElements' },
+    { id: 'extensions', label: 'Extensions', resource: 'extensions' },
+    { id: 'rules', label: 'Rules', resource: 'rules' },
+    { id: 'hosts', label: 'Hosts', resource: 'hosts' },
+    { id: 'environments', label: 'Environments', resource: 'environments' },
+    { id: 'libraries', label: 'Libraries', resource: 'libraries' },
+  ];
+
   function el(id) {
     return document.getElementById(id);
   }
 
-  function tagsApiUrl(resource, companyId, propertyId) {
+  function tagsApiUrl(resource, companyId, propertyId, ruleId) {
     var p = new URLSearchParams();
     if (window.AepGlobalSandbox && AepGlobalSandbox.getSandboxName) {
       var sb = String(AepGlobalSandbox.getSandboxName() || '').trim();
@@ -22,6 +37,7 @@
     p.set('resource', resource);
     if (companyId) p.set('companyId', companyId);
     if (propertyId) p.set('propertyId', propertyId);
+    if (ruleId) p.set('ruleId', ruleId);
     return '/api/tags/reactor?' + p.toString();
   }
 
@@ -257,6 +273,11 @@
     var devCell = '<td>' + escapeHtml(row.development ? 'Yes' : 'No') + '</td>';
     var platCell = buildPlatformCellHtml(row.platform);
     var ub = row.updatedBy ? escapeHtml(row.updatedBy) : '—';
+    var nameCell =
+      '<td class="tags-property-name-cell">' +
+      '<button type="button" class="tags-property-name-btn">' +
+      escapeHtml(row.propertyName || '') +
+      '</button></td>';
 
     if (tagsPropertyViewMode === 'all') {
       tr.innerHTML =
@@ -266,9 +287,8 @@
         escapeHtml(row.companyName || '') +
         '</td><td><code>' +
         escapeHtml(row.propertyId || '') +
-        '</code></td><td>' +
-        escapeHtml(row.propertyName || '') +
-        '</td>' +
+        '</code></td>' +
+        nameCell +
         platCell +
         devCell +
         domCell +
@@ -283,9 +303,8 @@
       tr.innerHTML =
         '<td><code>' +
         escapeHtml(row.propertyId || '') +
-        '</code></td><td>' +
-        escapeHtml(row.propertyName || '') +
-        '</td>' +
+        '</code></td>' +
+        nameCell +
         platCell +
         devCell +
         domCell +
@@ -305,82 +324,92 @@
     return tr;
   }
 
-  function hideDataElementsPanel() {
-    var panel = el('tagsDataElementsPanel');
-    var msg = el('tagsDataElementsMsg');
-    var tbody = el('tagsDataElementsBody');
-    var ctx = el('tagsDataElementsContext');
+  function explorerCacheKey(propertyId, sectionId) {
+    return String(propertyId || '') + '::' + String(sectionId || '');
+  }
+
+  function getExplorerCached(propertyId, sectionId) {
+    var m = tagsExplorerCache[explorerCacheKey(propertyId, sectionId)];
+    return m != null ? m : null;
+  }
+
+  function setExplorerCached(propertyId, sectionId, items) {
+    tagsExplorerCache[explorerCacheKey(propertyId, sectionId)] = items;
+  }
+
+  function hidePropertyExplorerPanel() {
+    var panel = el('tagsPropertyExplorerPanel');
+    var msg = el('tagsExplorerMsg');
+    var tbody = el('tagsExplorerBody');
+    var thead = el('tagsExplorerHead');
+    var ctx = el('tagsExplorerContext');
+    var pills = el('tagsExplorerPills');
+    var ruleWrap = el('tagsExplorerRuleWrap');
+    var ruleBody = el('tagsExplorerRuleBody');
+    var ruleHead = el('tagsExplorerRuleHead');
     if (panel) panel.hidden = true;
     if (msg) {
       msg.textContent = '';
       msg.hidden = true;
     }
     if (tbody) tbody.innerHTML = '';
+    if (thead) thead.innerHTML = '';
     if (ctx) ctx.textContent = '';
+    if (pills) pills.innerHTML = '';
+    if (ruleWrap) ruleWrap.hidden = true;
+    if (ruleBody) ruleBody.innerHTML = '';
+    if (ruleHead) ruleHead.innerHTML = '';
+    tagsExplorerContext = null;
   }
 
-  function truncateText(s, max) {
-    var t = s == null ? '' : String(s);
-    var n = max > 0 ? max : 80;
-    if (t.length <= n) return t;
-    return t.slice(0, n - 1) + '…';
-  }
-
-  async function loadDataElementsForProperty(ctx) {
-    ctx = ctx || {};
-    var propertyId = ctx.propertyId ? String(ctx.propertyId).trim() : '';
-    var panel = el('tagsDataElementsPanel');
-    var tbody = el('tagsDataElementsBody');
-    var ctxEl = el('tagsDataElementsContext');
-    var msg = el('tagsDataElementsMsg');
-    if (!propertyId || !panel || !tbody) return;
-
-    panel.hidden = false;
-    if (ctxEl) {
-      var parts = [];
-      if (ctx.companyName) parts.push(String(ctx.companyName));
-      parts.push(ctx.propertyName ? String(ctx.propertyName) : propertyId);
-      parts.push('(' + propertyId + ')');
-      ctxEl.textContent = parts.join(' · ');
+  function setExplorerPillsActive(sectionId) {
+    var pills = el('tagsExplorerPills');
+    if (!pills) return;
+    var btns = pills.querySelectorAll('button[data-tags-section]');
+    for (var i = 0; i < btns.length; i++) {
+      var b = btns[i];
+      var on = b.getAttribute('data-tags-section') === sectionId;
+      b.classList.toggle('tags-explorer-pill--active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
     }
+  }
+
+  function buildExplorerPills() {
+    var pills = el('tagsExplorerPills');
+    if (!pills) return;
+    pills.innerHTML = '';
+    TAGS_DRILL_SECTIONS.forEach(function (sec) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-secondary tags-explorer-pill';
+      btn.setAttribute('data-tags-section', sec.id);
+      btn.setAttribute('role', 'tab');
+      btn.setAttribute('aria-selected', 'false');
+      btn.textContent = sec.label;
+      pills.appendChild(btn);
+    });
+  }
+
+  function renderExplorerMainTable(sectionId, items) {
+    var thead = el('tagsExplorerHead');
+    var tbody = el('tagsExplorerBody');
+    if (!thead || !tbody) return;
     tbody.innerHTML = '';
-    if (msg) {
-      msg.textContent = 'Loading data elements…';
-      msg.hidden = false;
-      msg.className = 'consent-message consent-message--below-btn';
-    }
-
-    try {
-      var res = await fetch(tagsApiUrl('dataElements', '', propertyId));
-      var data = await res.json().catch(function () {
-        return {};
-      });
-      if (!data.ok) {
-        if (msg) {
-          msg.textContent = data.error || data.detail || 'Request failed.';
-          msg.hidden = false;
-          msg.className = 'consent-message consent-message--below-btn error';
-        }
-        return;
-      }
-      var items = data.items || [];
-      if (msg) {
-        msg.textContent =
-          String(items.length) +
-          ' data element' +
-          (items.length === 1 ? '' : 's') +
-          (data.pagesFetched ? ' · pages fetched: ' + String(data.pagesFetched) : '') +
-          '.';
-        msg.hidden = false;
-        msg.className = 'consent-message consent-message--below-btn success';
-      }
-      items.forEach(function (row) {
-        var tr = document.createElement('tr');
+    var i;
+    var tr;
+    if (sectionId === 'dataElements') {
+      thead.innerHTML =
+        '<tr>' +
+        '<th scope="col">Name</th><th scope="col">Element ID</th><th scope="col">Extension</th>' +
+        '<th scope="col">Settings (preview)</th><th scope="col">Delegate descriptor</th>' +
+        '<th scope="col">Enabled</th><th scope="col">Dirty</th><th scope="col">Updated</th>' +
+        '</tr>';
+      for (i = 0; i < items.length; i++) {
+        var row = items[i];
+        tr = document.createElement('tr');
         var settingsPrev = row.settingsPreview || '';
         var settingsShow = truncateText(settingsPrev, 72);
-        var extCell = row.extensionId
-          ? '<code>' + escapeHtml(row.extensionId) + '</code>'
-          : '—';
+        var extCell = row.extensionId ? '<code>' + escapeHtml(row.extensionId) + '</code>' : '—';
         tr.innerHTML =
           '<td>' +
           escapeHtml(row.name || '—') +
@@ -402,11 +431,190 @@
           formatDateTime(row.updatedAt) +
           '</td>';
         tbody.appendChild(tr);
+      }
+      return;
+    }
+    if (sectionId === 'extensions') {
+      thead.innerHTML =
+        '<tr><th scope="col">Name</th><th scope="col">Extension ID</th><th scope="col">Package</th>' +
+        '<th scope="col">Delegate descriptor</th><th scope="col">Enabled</th><th scope="col">Updated</th></tr>';
+      for (i = 0; i < items.length; i++) {
+        var ex = items[i];
+        tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' +
+          escapeHtml(ex.name || '—') +
+          '</td><td><code>' +
+          escapeHtml(ex.extensionId || '') +
+          '</code></td><td><code>' +
+          escapeHtml(ex.packageId || '—') +
+          '</code></td><td>' +
+          escapeHtml(truncateText(ex.delegateDescriptorId || '', 40)) +
+          '</td><td>' +
+          escapeHtml(ex.enabled ? 'Yes' : 'No') +
+          '</td><td>' +
+          formatDateTime(ex.updatedAt) +
+          '</td>';
+        tbody.appendChild(tr);
+      }
+      return;
+    }
+    if (sectionId === 'rules') {
+      thead.innerHTML =
+        '<tr><th scope="col">Name</th><th scope="col">Rule ID</th><th scope="col">Enabled</th>' +
+        '<th scope="col">Updated</th><th scope="col">Components</th></tr>';
+      for (i = 0; i < items.length; i++) {
+        var ru = items[i];
+        tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' +
+          escapeHtml(ru.name || '—') +
+          '</td><td><code>' +
+          escapeHtml(ru.ruleId || '') +
+          '</code></td><td>' +
+          escapeHtml(ru.enabled ? 'Yes' : 'No') +
+          '</td><td>' +
+          formatDateTime(ru.updatedAt) +
+          '</td><td><button type="button" class="btn btn-secondary tags-rule-components-btn" data-rule-id="' +
+          escapeHtml(ru.ruleId || '') +
+          '">Load</button></td>';
+        tbody.appendChild(tr);
+      }
+      return;
+    }
+    if (sectionId === 'hosts') {
+      thead.innerHTML =
+        '<tr><th scope="col">Name</th><th scope="col">Host ID</th><th scope="col">Type</th>' +
+        '<th scope="col">Status</th><th scope="col">Updated</th></tr>';
+      for (i = 0; i < items.length; i++) {
+        var h = items[i];
+        tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' +
+          escapeHtml(h.name || '—') +
+          '</td><td><code>' +
+          escapeHtml(h.hostId || '') +
+          '</code></td><td>' +
+          escapeHtml(h.typeOf || '—') +
+          '</td><td>' +
+          escapeHtml(h.status || '—') +
+          '</td><td>' +
+          formatDateTime(h.updatedAt) +
+          '</td>';
+        tbody.appendChild(tr);
+      }
+      return;
+    }
+    if (sectionId === 'environments') {
+      thead.innerHTML =
+        '<tr><th scope="col">Name</th><th scope="col">Environment ID</th><th scope="col">Stage</th>' +
+        '<th scope="col">Path</th><th scope="col">Archive</th><th scope="col">Updated</th></tr>';
+      for (i = 0; i < items.length; i++) {
+        var env = items[i];
+        tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' +
+          escapeHtml(env.name || '—') +
+          '</td><td><code>' +
+          escapeHtml(env.environmentId || '') +
+          '</code></td><td>' +
+          escapeHtml(env.stage || '—') +
+          '</td><td class="tags-cell-settings">' +
+          escapeHtml(truncateText(env.path || '', 48)) +
+          '</td><td>' +
+          escapeHtml(env.archive ? 'Yes' : 'No') +
+          '</td><td>' +
+          formatDateTime(env.updatedAt) +
+          '</td>';
+        tbody.appendChild(tr);
+      }
+      return;
+    }
+    if (sectionId === 'libraries') {
+      thead.innerHTML =
+        '<tr><th scope="col">Name</th><th scope="col">Library ID</th><th scope="col">State</th><th scope="col">Updated</th></tr>';
+      for (i = 0; i < items.length; i++) {
+        var lib = items[i];
+        tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' +
+          escapeHtml(lib.name || '—') +
+          '</td><td><code>' +
+          escapeHtml(lib.libraryId || '') +
+          '</code></td><td>' +
+          escapeHtml(lib.state || '—') +
+          '</td><td>' +
+          formatDateTime(lib.updatedAt) +
+          '</td>';
+        tbody.appendChild(tr);
+      }
+    }
+  }
+
+  async function loadDrillSection(sectionId, forceRefresh) {
+    if (!tagsExplorerContext) return;
+    var propertyId = tagsExplorerContext.propertyId;
+    var msg = el('tagsExplorerMsg');
+    var ruleWrap = el('tagsExplorerRuleWrap');
+    if (ruleWrap) ruleWrap.hidden = true;
+
+    var secDef = TAGS_DRILL_SECTIONS.filter(function (s) {
+      return s.id === sectionId;
+    })[0];
+    if (!secDef) return;
+
+    if (forceRefresh) {
+      delete tagsExplorerCache[explorerCacheKey(propertyId, sectionId)];
+    }
+    if (!forceRefresh) {
+      var cached = getExplorerCached(propertyId, sectionId);
+      if (cached) {
+        renderExplorerMainTable(sectionId, cached);
+        if (msg) {
+          msg.textContent = String(cached.length) + ' row(s) (cached).';
+          msg.hidden = false;
+          msg.className = 'consent-message consent-message--below-btn success';
+        }
+        setExplorerPillsActive(sectionId);
+        tagsExplorerContext.activeSection = sectionId;
+        return;
+      }
+    }
+
+    if (msg) {
+      msg.textContent = 'Loading…';
+      msg.hidden = false;
+      msg.className = 'consent-message consent-message--below-btn';
+    }
+    el('tagsExplorerHead').innerHTML = '';
+    el('tagsExplorerBody').innerHTML = '';
+
+    try {
+      var res = await fetch(tagsApiUrl(secDef.resource, '', propertyId));
+      var data = await res.json().catch(function () {
+        return {};
       });
-      try {
-        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (eScroll) {
-        panel.scrollIntoView();
+      if (!data.ok) {
+        if (msg) {
+          msg.textContent = data.error || data.detail || 'Request failed.';
+          msg.hidden = false;
+          msg.className = 'consent-message consent-message--below-btn error';
+        }
+        return;
+      }
+      var items = data.items || [];
+      setExplorerCached(propertyId, sectionId, items);
+      renderExplorerMainTable(sectionId, items);
+      tagsExplorerContext.activeSection = sectionId;
+      setExplorerPillsActive(sectionId);
+      if (msg) {
+        msg.textContent =
+          String(items.length) +
+          ' row(s)' +
+          (data.pagesFetched ? ' · pages: ' + String(data.pagesFetched) : '') +
+          '.';
+        msg.hidden = false;
+        msg.className = 'consent-message consent-message--below-btn success';
       }
     } catch (e) {
       if (msg) {
@@ -415,6 +623,154 @@
         msg.className = 'consent-message consent-message--below-btn error';
       }
     }
+  }
+
+  async function loadRuleComponentsForRule(ruleId) {
+    var msg = el('tagsExplorerMsg');
+    var wrap = el('tagsExplorerRuleWrap');
+    var thead = el('tagsExplorerRuleHead');
+    var tbody = el('tagsExplorerRuleBody');
+    var label = el('tagsExplorerRuleIdLabel');
+    if (!ruleId || !wrap || !thead || !tbody) return;
+    wrap.hidden = false;
+    if (label) label.textContent = ruleId;
+    thead.innerHTML =
+      '<tr><th scope="col">Name</th><th scope="col">Component ID</th><th scope="col">Delegate descriptor</th>' +
+      '<th scope="col">Order</th><th scope="col">Enabled</th><th scope="col">Updated</th></tr>';
+    tbody.innerHTML = '';
+    if (msg) {
+      msg.textContent = 'Loading rule components…';
+      msg.hidden = false;
+      msg.className = 'consent-message consent-message--below-btn';
+    }
+    try {
+      var res = await fetch(tagsApiUrl('ruleComponents', '', '', ruleId));
+      var data = await res.json().catch(function () {
+        return {};
+      });
+      if (!data.ok) {
+        if (msg) {
+          msg.textContent = data.error || data.detail || 'Request failed.';
+          msg.className = 'consent-message consent-message--below-btn error';
+        }
+        return;
+      }
+      var items = data.items || [];
+      items.forEach(function (rc) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' +
+          escapeHtml(rc.name || '—') +
+          '</td><td><code>' +
+          escapeHtml(rc.componentId || '') +
+          '</code></td><td class="tags-cell-delegate">' +
+          escapeHtml(truncateText(rc.delegateDescriptorId || '', 40)) +
+          '</td><td>' +
+          escapeHtml(rc.order != null ? String(rc.order) : '—') +
+          '</td><td>' +
+          escapeHtml(rc.enabled ? 'Yes' : 'No') +
+          '</td><td>' +
+          formatDateTime(rc.updatedAt) +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+      if (msg) {
+        msg.textContent = String(items.length) + ' component(s) for rule ' + ruleId + '.';
+        msg.className = 'consent-message consent-message--below-btn success';
+      }
+      try {
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (e1) {
+        wrap.scrollIntoView();
+      }
+    } catch (e) {
+      if (msg) {
+        msg.textContent = e.message || 'Network error';
+        msg.className = 'consent-message consent-message--below-btn error';
+      }
+    }
+  }
+
+  /**
+   * @param {{ propertyId: string, propertyName?: string, companyId?: string, companyName?: string }} ctx
+   * @param {string|null} initialSection - TAGS_DRILL id or null (name click: pick tab first)
+   * @param {boolean} forceRefreshFirst
+   */
+  function openPropertyExplorerPanel(ctx, initialSection, forceRefreshFirst) {
+    ctx = ctx || {};
+    var propertyId = ctx.propertyId ? String(ctx.propertyId).trim() : '';
+    if (!propertyId) return;
+    var panel = el('tagsPropertyExplorerPanel');
+    var ctxEl = el('tagsExplorerContext');
+    if (!panel) return;
+
+    tagsExplorerCache = {};
+
+    tagsExplorerContext = {
+      propertyId: propertyId,
+      propertyName: ctx.propertyName != null ? String(ctx.propertyName) : '',
+      companyId: ctx.companyId != null ? String(ctx.companyId) : '',
+      companyName: ctx.companyName != null ? String(ctx.companyName) : '',
+      activeSection: '',
+    };
+
+    if (ctxEl) {
+      var parts = [];
+      if (tagsExplorerContext.companyName) parts.push(tagsExplorerContext.companyName);
+      parts.push(tagsExplorerContext.propertyName || propertyId);
+      parts.push('(' + propertyId + ')');
+      ctxEl.textContent = parts.join(' · ');
+    }
+
+    buildExplorerPills();
+    panel.hidden = false;
+
+    var pills = el('tagsExplorerPills');
+    if (pills) {
+      pills.onclick = function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest('button[data-tags-section]') : null;
+        if (!btn || !pills.contains(btn)) return;
+        ev.preventDefault();
+        var sid = btn.getAttribute('data-tags-section');
+        if (sid) loadDrillSection(sid, false);
+      };
+    }
+
+    el('tagsExplorerHead').innerHTML = '';
+    el('tagsExplorerBody').innerHTML = '';
+    var ruleWrap = el('tagsExplorerRuleWrap');
+    if (ruleWrap) ruleWrap.hidden = true;
+
+    var msg = el('tagsExplorerMsg');
+    if (initialSection) {
+      loadDrillSection(initialSection, !!forceRefreshFirst);
+    } else {
+      if (msg) {
+        msg.textContent = 'Choose a resource type above (data loads when you pick one).';
+        msg.hidden = false;
+        msg.className = 'consent-message consent-message--below-btn';
+      }
+      TAGS_DRILL_SECTIONS.forEach(function (s) {
+        var b = el('tagsExplorerPills') && el('tagsExplorerPills').querySelector('[data-tags-section="' + s.id + '"]');
+        if (b) {
+          b.classList.remove('tags-explorer-pill--active');
+          b.setAttribute('aria-selected', 'false');
+        }
+      });
+    }
+
+    try {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (e2) {
+      panel.scrollIntoView();
+    }
+  }
+
+  function truncateText(s, max) {
+    var t = s == null ? '' : String(s);
+    var n = max > 0 ? max : 80;
+    if (t.length <= n) return t;
+    return t.slice(0, n - 1) + '…';
   }
 
   function resetPropertyFilterUi() {
@@ -440,7 +796,7 @@
     tagsPropertyCache = [];
     resetPropertyFilterUi();
     setPropertiesHeadMode('one');
-    hideDataElementsPanel();
+    hidePropertyExplorerPanel();
   }
 
   function companyDisplayName(c) {
@@ -609,7 +965,7 @@
     }
     setPropertiesHeadMode('one');
     setMsg('Loading properties…', '');
-    hideDataElementsPanel();
+    hidePropertyExplorerPanel();
     el('tagsPropertiesBody').innerHTML = '';
     tagsPropertyCache = [];
     resetPropertyFilterUi();
@@ -647,7 +1003,7 @@
     if (!window.confirm(confirmMsg)) return;
     setPropertiesHeadMode('all');
     setMsg(singleCompanyUi ? 'Loading all properties…' : 'Loading all properties (all companies)…', '');
-    hideDataElementsPanel();
+    hidePropertyExplorerPanel();
     el('tagsCompaniesBody').innerHTML = '';
     el('tagsPropertiesBody').innerHTML = '';
     tagsPropertyCache = [];
@@ -740,22 +1096,58 @@
 
     var propBody = el('tagsPropertiesBody');
     if (propBody) {
+      propBody.addEventListener('click', function (e) {
+        var nameBtn = e.target && e.target.closest ? e.target.closest('.tags-property-name-btn') : null;
+        if (!nameBtn || !propBody.contains(nameBtn)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var tr = nameBtn.closest('tr.tags-property-row');
+        if (!tr) return;
+        var pid = tr.dataset.propertyId;
+        if (!pid) return;
+        openPropertyExplorerPanel(
+          {
+            propertyId: pid,
+            propertyName: tr.dataset.propertyName || '',
+            companyId: tr.dataset.companyId || '',
+            companyName: tr.dataset.companyName || '',
+          },
+          null,
+          false
+        );
+      });
       propBody.addEventListener('dblclick', function (e) {
+        if (e.target && e.target.closest && e.target.closest('.tags-property-name-btn')) return;
         var tr = e.target && e.target.closest ? e.target.closest('tr.tags-property-row') : null;
         if (!tr || !propBody.contains(tr)) return;
         var pid = tr.dataset.propertyId;
         if (!pid) return;
-        loadDataElementsForProperty({
-          propertyId: pid,
-          propertyName: tr.dataset.propertyName || '',
-          companyId: tr.dataset.companyId || '',
-          companyName: tr.dataset.companyName || '',
-        });
+        openPropertyExplorerPanel(
+          {
+            propertyId: pid,
+            propertyName: tr.dataset.propertyName || '',
+            companyId: tr.dataset.companyId || '',
+            companyName: tr.dataset.companyName || '',
+          },
+          'dataElements',
+          false
+        );
       });
     }
 
-    if (el('tagsDataElementsClose')) {
-      el('tagsDataElementsClose').addEventListener('click', hideDataElementsPanel);
+    var explorerBody = el('tagsExplorerBody');
+    if (explorerBody) {
+      explorerBody.addEventListener('click', function (e) {
+        var b = e.target && e.target.closest ? e.target.closest('.tags-rule-components-btn') : null;
+        if (!b || !explorerBody.contains(b)) return;
+        e.preventDefault();
+        var rid = b.getAttribute('data-rule-id');
+        if (rid) loadRuleComponentsForRule(rid);
+      });
+    }
+
+    if (el('tagsExplorerClose')) {
+      el('tagsExplorerClose').addEventListener('click', hidePropertyExplorerPanel);
     }
   }
 

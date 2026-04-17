@@ -2036,7 +2036,7 @@ exports.labUserSandboxState = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) 
   res.status(405).json({ error: 'Method not allowed' });
 });
 
-/** GET /api/tags/reactor — Reactor (Tags) JSON:API: companies | properties&companyId= | allProperties | dataElements&propertyId= */
+/** GET /api/tags/reactor — Reactor JSON:API: companies, properties, allProperties, property-scoped lists, ruleComponents&ruleId= */
 exports.tagsReactorProxy = onRequest(
   {
     region: REGION,
@@ -2055,6 +2055,7 @@ exports.tagsReactorProxy = onRequest(
     const resource = String(req.query.resource || 'companies').trim().toLowerCase();
     const companyId = String(req.query.companyId || '').trim();
     const propertyId = String(req.query.propertyId || '').trim();
+    const ruleId = String(req.query.ruleId || '').trim();
 
     let accessToken;
     try { accessToken = await getAdobeAccessToken(); }
@@ -2106,9 +2107,65 @@ exports.tagsReactorProxy = onRequest(
         });
         return;
       }
+      const propertyScoped = [
+        ['extensions', () => tagsReactorService.listExtensions(accessToken, clientId, orgId, propertyId)],
+        ['rules', () => tagsReactorService.listRules(accessToken, clientId, orgId, propertyId)],
+        ['hosts', () => tagsReactorService.listHosts(accessToken, clientId, orgId, propertyId)],
+        ['environments', () => tagsReactorService.listEnvironments(accessToken, clientId, orgId, propertyId)],
+        ['libraries', () => tagsReactorService.listLibraries(accessToken, clientId, orgId, propertyId)],
+      ];
+      for (const [resName, fn] of propertyScoped) {
+        if (resource === resName) {
+          if (!propertyId) {
+            res.status(400).json({
+              ok: false,
+              error: `propertyId query param is required for resource=${resName}`,
+              sandbox,
+            });
+            return;
+          }
+          const r = await fn();
+          res.status(200).json({
+            ok: r.ok,
+            sandbox,
+            resource: resName,
+            propertyId,
+            items: r.items,
+            pagesFetched: r.pagesFetched,
+            meta: r.meta,
+            httpStatus: r.httpStatus,
+            error: r.error,
+          });
+          return;
+        }
+      }
+      if (resource === 'rulecomponents') {
+        if (!ruleId) {
+          res.status(400).json({
+            ok: false,
+            error: 'ruleId query param is required for resource=ruleComponents',
+            sandbox,
+          });
+          return;
+        }
+        const r = await tagsReactorService.listRuleComponents(accessToken, clientId, orgId, ruleId);
+        res.status(200).json({
+          ok: r.ok,
+          sandbox,
+          resource: 'ruleComponents',
+          ruleId,
+          items: r.items,
+          pagesFetched: r.pagesFetched,
+          meta: r.meta,
+          httpStatus: r.httpStatus,
+          error: r.error,
+        });
+        return;
+      }
       res.status(400).json({
         ok: false,
-        error: 'Invalid resource. Use companies, properties (with companyId), allProperties, or dataElements (with propertyId).',
+        error:
+          'Invalid resource. Use companies, properties (companyId), allProperties, dataElements|extensions|rules|hosts|environments|libraries (propertyId), or ruleComponents (ruleId).',
         sandbox,
       });
     } catch (e) {

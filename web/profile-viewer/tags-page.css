@@ -208,3 +208,55 @@
   --iconPrimary: var(--dash-text-primary, #2d2d2d);
 }
 
+.tags-page.profile-generation-page .tags-property-name-cell {
+  max-width: 18rem;
+}
+
+.tags-page.profile-generation-page .tags-property-name-btn {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--dash-link, #0265dc);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tags-page.profile-generation-page .tags-property-name-btn:hover {
+  color: var(--dash-link-hover, #0150b3);
+}
+
+.tags-page.profile-generation-page .tags-property-explorer-box .tags-explorer-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 0.75rem;
+}
+
+.tags-page.profile-generation-page .tags-explorer-pill {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.tags-page.profile-generation-page .tags-explorer-pill--active {
+  font-weight: 600;
+  box-shadow: inset 0 0 0 2px var(--dash-link, #0265dc);
+}
+
+.tags-page.profile-generation-page .tags-explorer-rule-wrap {
+  margin: 0 0 1rem;
+  padding: 0 0 0.75rem;
+  border-bottom: 1px solid var(--dash-border, #eee);
+}
+
+.tags-page.profile-generation-page .tags-explorer-subhead {
+  margin: 0 0 0.5rem;
+  font-size: 14px;
+  font-weight: 600;
+}
+

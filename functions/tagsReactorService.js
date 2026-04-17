@@ -147,6 +147,144 @@ async function listDataElements(token, clientId, orgId, propertyId) {
   };
 }
 
+function mapExtensionResource(d) {
+  const a = d.attributes && typeof d.attributes === 'object' ? d.attributes : {};
+  const rel = d.relationships && typeof d.relationships === 'object' ? d.relationships : {};
+  let packageId = '';
+  if (rel.extension_package && rel.extension_package.data && rel.extension_package.data.id) {
+    packageId = String(rel.extension_package.data.id);
+  }
+  const name = a.display_name != null ? String(a.display_name) : a.name != null ? String(a.name) : '';
+  return {
+    extensionId: d.id != null ? String(d.id) : '',
+    name,
+    delegateDescriptorId: a.delegate_descriptor_id != null ? String(a.delegate_descriptor_id) : '',
+    packageId,
+    enabled: a.enabled !== false,
+    updatedAt: a.updated_at != null ? String(a.updated_at) : '',
+  };
+}
+
+function mapRuleResource(d) {
+  const a = d.attributes && typeof d.attributes === 'object' ? d.attributes : {};
+  return {
+    ruleId: d.id != null ? String(d.id) : '',
+    name: a.name != null ? String(a.name) : '',
+    enabled: a.enabled !== false,
+    updatedAt: a.updated_at != null ? String(a.updated_at) : '',
+  };
+}
+
+function mapHostResource(d) {
+  const a = d.attributes && typeof d.attributes === 'object' ? d.attributes : {};
+  return {
+    hostId: d.id != null ? String(d.id) : '',
+    name: a.name != null ? String(a.name) : '',
+    typeOf: a.type_of != null ? String(a.type_of) : a.type != null ? String(a.type) : '',
+    status: a.status != null ? String(a.status) : '',
+    updatedAt: a.updated_at != null ? String(a.updated_at) : '',
+  };
+}
+
+function mapEnvironmentResource(d) {
+  const a = d.attributes && typeof d.attributes === 'object' ? d.attributes : {};
+  return {
+    environmentId: d.id != null ? String(d.id) : '',
+    name: a.name != null ? String(a.name) : '',
+    stage: a.stage != null ? String(a.stage) : '',
+    archive: a.archive === true,
+    path: a.path != null ? String(a.path) : '',
+    updatedAt: a.updated_at != null ? String(a.updated_at) : '',
+  };
+}
+
+function mapLibraryResource(d) {
+  const a = d.attributes && typeof d.attributes === 'object' ? d.attributes : {};
+  return {
+    libraryId: d.id != null ? String(d.id) : '',
+    name: a.name != null ? String(a.name) : '',
+    state: a.state != null ? String(a.state) : '',
+    updatedAt: a.updated_at != null ? String(a.updated_at) : '',
+  };
+}
+
+function mapRuleComponentResource(d) {
+  const a = d.attributes && typeof d.attributes === 'object' ? d.attributes : {};
+  return {
+    componentId: d.id != null ? String(d.id) : '',
+    name: a.name != null ? String(a.name) : '',
+    delegateDescriptorId: a.delegate_descriptor_id != null ? String(a.delegate_descriptor_id) : '',
+    order: a.order != null ? Number(a.order) : null,
+    enabled: a.enabled !== false,
+    updatedAt: a.updated_at != null ? String(a.updated_at) : '',
+  };
+}
+
+async function listPropertySubpath(
+  token,
+  clientId,
+  orgId,
+  propertyId,
+  subpath,
+  mapper,
+) {
+  const id = String(propertyId || '').trim();
+  if (!id) {
+    return { ok: false, httpStatus: 400, error: 'propertyId is required', items: [], pagesFetched: 0 };
+  }
+  const enc = encodeURIComponent(id);
+  const result = await reactorPaginate(
+    token,
+    clientId,
+    orgId,
+    `/properties/${enc}/${subpath}?page[size]=100`,
+  );
+  if (!result.ok) return result;
+  return {
+    ...result,
+    items: Array.isArray(result.items) ? result.items.map(mapper) : [],
+  };
+}
+
+async function listExtensions(token, clientId, orgId, propertyId) {
+  return listPropertySubpath(token, clientId, orgId, propertyId, 'extensions', mapExtensionResource);
+}
+
+async function listRules(token, clientId, orgId, propertyId) {
+  return listPropertySubpath(token, clientId, orgId, propertyId, 'rules', mapRuleResource);
+}
+
+async function listHosts(token, clientId, orgId, propertyId) {
+  return listPropertySubpath(token, clientId, orgId, propertyId, 'hosts', mapHostResource);
+}
+
+async function listEnvironments(token, clientId, orgId, propertyId) {
+  return listPropertySubpath(token, clientId, orgId, propertyId, 'environments', mapEnvironmentResource);
+}
+
+async function listLibraries(token, clientId, orgId, propertyId) {
+  return listPropertySubpath(token, clientId, orgId, propertyId, 'libraries', mapLibraryResource);
+}
+
+async function listRuleComponents(token, clientId, orgId, ruleId) {
+  const id = String(ruleId || '').trim();
+  if (!id) {
+    return { ok: false, httpStatus: 400, error: 'ruleId is required', items: [], pagesFetched: 0 };
+  }
+  const enc = encodeURIComponent(id);
+  const result = await reactorPaginate(
+    token,
+    clientId,
+    orgId,
+    `/rules/${enc}/rule_components?page[size]=100`,
+  );
+  if (!result.ok) return result;
+  return {
+    ...result,
+    items: Array.isArray(result.items) ? result.items.map(mapRuleComponentResource) : [],
+  };
+}
+
 /**
  * All Tags “properties” across every company visible to the credentials (may be slow).
  */
@@ -238,5 +376,11 @@ module.exports = {
   listProperties,
   listAllPropertiesAcrossCompanies,
   listDataElements,
+  listExtensions,
+  listRules,
+  listHosts,
+  listEnvironments,
+  listLibraries,
+  listRuleComponents,
   probeTagsApiAccess,
 };

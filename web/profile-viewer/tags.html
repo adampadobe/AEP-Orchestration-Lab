@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
-  <link rel="stylesheet" href="tags-page.css?v=20260427i">
+  <link rel="stylesheet" href="tags-page.css?v=20260428b">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -99,7 +99,7 @@
               <h3 class="profile-box-title">Tag properties</h3>
               <div class="profile-box-content">
                 <p class="field-hint tags-properties-meta-hint">
-                  Columns use the Reactor property resource: <strong>created_at</strong> / <strong>updated_at</strong>, <strong>platform</strong>, <strong>development</strong>, <strong>domains</strong>. “Last updated by” appears only if your tenant returns actor fields on the resource (often empty). <strong>Double-click a row</strong> to load <strong>data elements</strong> for that property (Reactor <code>/properties/{id}/data_elements</code>).
+                  Columns use the Reactor property resource: <strong>created_at</strong> / <strong>updated_at</strong>, <strong>platform</strong>, <strong>development</strong>, <strong>domains</strong>. <strong>Click a property name</strong> to open the explorer and pick <strong>data elements</strong>, <strong>extensions</strong>, <strong>rules</strong>, <strong>hosts</strong>, <strong>environments</strong>, or <strong>libraries</strong> (loaded on demand). <strong>Double-click a row</strong> opens the explorer on data elements.
                 </p>
                 <div class="tags-properties-toolbar">
                   <label for="tagsPropertiesFilter" class="tags-filter-label">Filter</label>
@@ -132,29 +132,28 @@
               </div>
             </div>
 
-            <div class="profile-box tags-results-box tags-data-elements-box" id="tagsDataElementsPanel" hidden>
+            <div class="profile-box tags-results-box tags-property-explorer-box" id="tagsPropertyExplorerPanel" hidden>
               <div class="tags-data-elements-box-header">
-                <h3 class="profile-box-title"><span class="profile-box-icon">◇</span> Data elements</h3>
-                <button type="button" class="btn btn-secondary" id="tagsDataElementsClose">Close</button>
+                <h3 class="profile-box-title"><span class="profile-box-icon">◇</span> Property explorer</h3>
+                <button type="button" class="btn btn-secondary" id="tagsExplorerClose">Close</button>
               </div>
               <div class="profile-box-content">
-                <p id="tagsDataElementsContext" class="tags-data-elements-context"></p>
-                <p id="tagsDataElementsMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+                <p id="tagsExplorerContext" class="tags-data-elements-context"></p>
+                <div id="tagsExplorerPills" class="tags-explorer-pills" role="tablist" aria-label="Reactor resources for this property"></div>
+                <p id="tagsExplorerMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+                <div id="tagsExplorerRuleWrap" class="tags-explorer-rule-wrap" hidden>
+                  <h4 class="tags-explorer-subhead">Rule components <code id="tagsExplorerRuleIdLabel"></code></h4>
+                  <div class="tags-table-wrap">
+                    <table class="tags-table" aria-label="Rule components">
+                      <thead id="tagsExplorerRuleHead"></thead>
+                      <tbody id="tagsExplorerRuleBody"></tbody>
+                    </table>
+                  </div>
+                </div>
                 <div class="tags-table-wrap">
-                  <table class="tags-table" aria-label="Tag data elements">
-                    <thead>
-                      <tr>
-                        <th scope="col">Name</th>
-                        <th scope="col">Element ID</th>
-                        <th scope="col">Extension</th>
-                        <th scope="col">Settings (preview)</th>
-                        <th scope="col">Delegate descriptor</th>
-                        <th scope="col">Enabled</th>
-                        <th scope="col">Dirty</th>
-                        <th scope="col">Updated</th>
-                      </tr>
-                    </thead>
-                    <tbody id="tagsDataElementsBody"></tbody>
+                  <table class="tags-table" aria-label="Selected resource">
+                    <thead id="tagsExplorerHead"></thead>
+                    <tbody id="tagsExplorerBody"></tbody>
                   </table>
                 </div>
               </div>
@@ -170,7 +169,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
-  <script src="tags-page.js?v=20260427j"></script>
+  <script src="tags-page.js?v=20260428b"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260427-tags-data-collection"></script>
