@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Infer optional `tags` on architecture-logos.json entries (Phase 1 taxonomy).
+"""Infer optional `tags` on architecture-logos.json entries (Phase 1–2 taxonomy).
 
 Run from repo root: python3 scripts/tag-architecture-logos.py
 Writes web/profile-viewer/data/architecture-logos.json
@@ -49,6 +49,40 @@ _EXP_CLOUD_NEG = (
 )
 
 # Digital Experience / Experience Cloud–adjacent products (Corporate Express chart).
+_ECOSYSTEM_DATA = frozenset(
+    {
+        "snowflake",
+        "databricks",
+        "googlebigquery",
+        "amazonaws",
+        "googlecloud",
+        "microsoftazure",
+        "mongodb",
+        "postgresql",
+        "mysql",
+        "elasticsearch",
+        "redis",
+        "apachekafka",
+        "kubernetes",
+        "docker",
+        "microsoftsqlserver",
+    }
+)
+_ECOSYSTEM_ANALYTICS = frozenset({"googleanalytics", "looker", "tableau"})
+_ECOSYSTEM_ACTIVATION = frozenset(
+    {
+        "salesforce",
+        "hubspot",
+        "twilio",
+        "zendesk",
+        "meta",
+        "facebook",
+        "instagram",
+        "linkedin",
+        "tiktok",
+    }
+)
+
 _EXP_CLOUD_POS = (
     "experience cloud",
     "experience platform",
@@ -132,6 +166,17 @@ def infer_tags(entry: dict) -> list[str]:
     if "aep-architecture" in f:
         return ["diagram-reference"]
 
+    # Phase 2: Simple Icons vendor marks (see images/ecosystem-vendor-logos/)
+    if "ecosystem-vendor-logos/" in f:
+        stem = Path(f).stem.lower()
+        if stem in _ECOSYSTEM_DATA:
+            return ["ecosystem-data"]
+        if stem in _ECOSYSTEM_ANALYTICS:
+            return ["ecosystem-analytics"]
+        if stem in _ECOSYSTEM_ACTIVATION:
+            return ["ecosystem-activation"]
+        return ["ecosystem-data"]
+
     return []
 
 
@@ -145,14 +190,6 @@ def main() -> None:
         if not isinstance(entry, dict):
             continue
         entry["tags"] = infer_tags(entry)
-
-    note = data.get("note", "")
-    tag_hint = (
-        " Optional `tags` array per entry (Phase 1): adobe-catalog, adobe-core, experience-cloud, "
-        "data-collection, profile-audiences, journeys, diagram-reference, presentation-icons, partner."
-    )
-    if tag_hint.strip() not in note:
-        data["note"] = (note.rstrip() + tag_hint).strip()
 
     JSON_PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Updated {len(logos)} entries in {JSON_PATH}")

@@ -2634,6 +2634,9 @@
     { id: 'journeys', label: 'Journeys' },
     { id: 'diagram-reference', label: 'Diagram assets' },
     { id: 'presentation-icons', label: 'Presentation & UI icons' },
+    { id: 'ecosystem-data', label: 'Ecosystem · data' },
+    { id: 'ecosystem-analytics', label: 'Ecosystem · analytics' },
+    { id: 'ecosystem-activation', label: 'Ecosystem · activation' },
     { id: 'partner', label: 'Partner' },
   ];
 

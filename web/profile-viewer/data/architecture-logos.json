@@ -1,5 +1,5 @@
 {
-  "note": "Diagram and product assets under web/profile-viewer/images. For batch export from Adobe Express, prefer Download → pptx, then run scripts/extract-pptx-media.sh on the file and copy from ppt/media/ into images/. Adobe Presentation Template deck: slide 59 (dark-on-white) and slide 60 (light-on-dark) icons live under images/adobe-presentation-template-icons/. label + description power hover tooltips on the canvas. Optional `tags` array per entry (Phase 1): adobe-catalog, adobe-core, experience-cloud, data-collection, profile-audiences, journeys, diagram-reference, presentation-icons, partner.",
+  "note": "Diagram assets under web/profile-viewer/images. Adobe Express batch export: scripts/extract-pptx-media.sh. Template deck icons: images/adobe-presentation-template-icons/. Ecosystem vendor SVGs: images/ecosystem-vendor-logos/ (Simple Icons CC0; run scripts/append-ecosystem-vendor-logos.py after adding files). Optional `tags` on each entry — adobe-catalog, adobe-core, experience-cloud, data-collection, profile-audiences, journeys, diagram-reference, presentation-icons, partner, ecosystem-data, ecosystem-analytics, ecosystem-activation — inferred via scripts/tag-architecture-logos.py. label + description drive canvas hovers.",
   "logos": [
     {
       "file": "images/corporate-express-product-logos/image1.png",
@@ -4104,6 +4104,222 @@
       "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media.",
       "tags": [
         "presentation-icons"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/amazonaws.svg",
+      "label": "Amazon Web Services",
+      "description": "Amazon Web Services — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/apachekafka.svg",
+      "label": "Apache Kafka",
+      "description": "Apache Kafka — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/databricks.svg",
+      "label": "Databricks",
+      "description": "Databricks — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/docker.svg",
+      "label": "Docker",
+      "description": "Docker — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/elasticsearch.svg",
+      "label": "Elasticsearch",
+      "description": "Elasticsearch — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/facebook.svg",
+      "label": "Facebook",
+      "description": "Facebook — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-activation"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/googleanalytics.svg",
+      "label": "Google Analytics",
+      "description": "Google Analytics — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-analytics"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/googlebigquery.svg",
+      "label": "Google BigQuery",
+      "description": "Google BigQuery — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/googlecloud.svg",
+      "label": "Google Cloud",
+      "description": "Google Cloud — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/hubspot.svg",
+      "label": "HubSpot",
+      "description": "HubSpot — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-activation"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/instagram.svg",
+      "label": "Instagram",
+      "description": "Instagram — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-activation"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/kubernetes.svg",
+      "label": "Kubernetes",
+      "description": "Kubernetes — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/linkedin.svg",
+      "label": "LinkedIn",
+      "description": "LinkedIn — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-activation"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/looker.svg",
+      "label": "Looker",
+      "description": "Looker — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-analytics"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/meta.svg",
+      "label": "Meta",
+      "description": "Meta — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-activation"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/microsoftazure.svg",
+      "label": "Microsoft Azure",
+      "description": "Microsoft Azure — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/microsoftsqlserver.svg",
+      "label": "Microsoft SQL Server",
+      "description": "Microsoft SQL Server — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/mongodb.svg",
+      "label": "MongoDB",
+      "description": "MongoDB — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/mysql.svg",
+      "label": "MySQL",
+      "description": "MySQL — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/postgresql.svg",
+      "label": "PostgreSQL",
+      "description": "PostgreSQL — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/redis.svg",
+      "label": "Redis",
+      "description": "Redis — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/salesforce.svg",
+      "label": "Salesforce",
+      "description": "Salesforce — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-activation"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/snowflake.svg",
+      "label": "Snowflake",
+      "description": "Snowflake — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-data"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/tableau.svg",
+      "label": "Tableau",
+      "description": "Tableau — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-analytics"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/tiktok.svg",
+      "label": "TikTok",
+      "description": "TikTok — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-activation"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/twilio.svg",
+      "label": "Twilio",
+      "description": "Twilio — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-activation"
+      ]
+    },
+    {
+      "file": "images/ecosystem-vendor-logos/zendesk.svg",
+      "label": "Zendesk",
+      "description": "Zendesk — vendor mark for architecture diagrams. Icon from Simple Icons (CC0); confirm brand use against your org’s guidelines.",
+      "tags": [
+        "ecosystem-activation"
       ]
     }
   ]
