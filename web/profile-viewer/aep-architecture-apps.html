@@ -576,13 +576,26 @@
                   </div>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
-                  <p class="arch-editor-panel-heading">Adobe Spectrum icons</p>
-                  <p class="arch-tool-lead arch-tool-lead--compact">Workflow icons from <a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum CSS Workflow Icons</a> (Apache-2.0, vendored under <code>vendor/spectrum-workflow-icons/</code>). With <strong>Edit diagram</strong> on, tap an icon to place it, then drag corners or edges to resize.</p>
-                  <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
-                    <input type="search" id="archSpectrumIconSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter by name…" autocomplete="off" aria-label="Filter Spectrum icons"/>
-                  </label>
-                  <div id="archSpectrumIconGrid" class="arch-spectrum-icons-grid" role="listbox" aria-label="Spectrum workflow icons"></div>
-                  <p id="archSpectrumIconStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
+                  <p class="arch-editor-panel-heading">Icons &amp; logos</p>
+                  <p class="arch-tool-lead arch-tool-lead--compact">With <strong>Edit diagram</strong> on, expand a section below, tap an item to place it on the diagram, then drag corners or edges to resize. Canvas hovers use each asset’s <strong>label</strong> and <strong>description</strong> (see <code>data/architecture-logos.json</code>).</p>
+                  <details class="arch-icon-panel-details">
+                    <summary class="arch-icon-panel-summary">Spectrum workflow icons</summary>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">From <a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum CSS Workflow Icons</a> (Apache-2.0, <code>vendor/spectrum-workflow-icons/</code>).</p>
+                    <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
+                      <input type="search" id="archSpectrumIconSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter by name…" autocomplete="off" aria-label="Filter Spectrum icons"/>
+                    </label>
+                    <div id="archSpectrumIconGrid" class="arch-spectrum-icons-grid" role="listbox" aria-label="Spectrum workflow icons"></div>
+                    <p id="archSpectrumIconStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
+                  </details>
+                  <details class="arch-icon-panel-details">
+                    <summary class="arch-icon-panel-summary">Product &amp; diagram logos</summary>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Raster and SVG assets from <code>images/</code> (see <code>data/architecture-logos.json</code>). Add files from your Adobe Express deck to <code>images/</code> and append entries to the JSON.</p>
+                    <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
+                      <input type="search" id="archArchitectureLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter logos…" autocomplete="off" aria-label="Filter architecture logos"/>
+                    </label>
+                    <div id="archArchitectureLogoGrid" class="arch-spectrum-icons-grid arch-architecture-logo-grid" role="listbox" aria-label="Architecture logos and diagram assets"></div>
+                    <p id="archArchitectureLogoStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
+                  </details>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="file" id="archEditorSectionFile" role="tabpanel" aria-labelledby="archEditorRailFile" hidden>
                   <p class="arch-editor-panel-heading">Save &amp; layout data</p>

@@ -312,8 +312,7 @@
 
     var cbox = archCustomBoxFind(archCustomBoxSelectedId);
     var cb = cbox ? archCustomBoxNormalize(cbox) : null;
-    var isSpectrum = cb && cb.kind === 'spectrumIcon' && cb.iconFile;
-    archLabelSetEnabled(!isSpectrum);
+    archLabelSetEnabled(!archCustomBoxIsIconAsset(cb));
   }
 
   function archSelectionPanelSync() {
@@ -335,9 +334,16 @@
       if (cbox) {
         var cb = archCustomBoxNormalize(cbox);
         ins.hidden = false;
+        var insExtra = '';
+        if (cb.kind === 'productLogo' && cb.logoDescription) {
+          insExtra = '\nDescription (hover): ' + cb.logoDescription;
+        } else if (cb.kind === 'spectrumIcon' && cb.iconFile) {
+          insExtra = '\nSpectrum file: ' + cb.iconFile;
+        }
         body.textContent =
           'Custom box\nName: ' +
           (cb.name || '') +
+          insExtra +
           '\nId: ' +
           cb.id +
           '\nDOM id: node-cbox-' +
@@ -670,7 +676,10 @@
       btn.classList.toggle('is-active', match);
       btn.setAttribute('aria-pressed', match ? 'true' : 'false');
     });
-    if (archEditorActivePanelId === 'spectrum-icons') archSpectrumIconsPanelInit();
+    if (archEditorActivePanelId === 'spectrum-icons') {
+      archSpectrumIconsPanelInit();
+      archArchitectureLogosPanelInit();
+    }
     archUserLineSyncDrawModeFromEditor();
     var selectToolOn = !!(archIsEditMode() && archGetActiveTool() === 'select');
     archDragSetEnabled(selectToolOn);
@@ -2513,6 +2522,17 @@
   var ARCH_SPECTRUM_ICON_PREFIX = 'vendor/spectrum-workflow-icons/';
   var archSpectrumIconsDataPromise = null;
 
+  /** Product / diagram assets (paths relative to this page — see data/architecture-logos.json). */
+  var archArchitectureLogosDataPromise = null;
+
+  function archCustomBoxIsIconAsset(box) {
+    if (!box) return false;
+    var n = archCustomBoxNormalize(box);
+    return (
+      (n.kind === 'spectrumIcon' && n.iconFile) || (n.kind === 'productLogo' && n.logoFile)
+    );
+  }
+
   function archSpectrumIconsPanelInit() {
     var grid = qs('#archSpectrumIconGrid');
     var status = qs('#archSpectrumIconStatus');
@@ -2584,6 +2604,133 @@
     if (status) status.textContent = n + ' shown' + (needle ? ' (filtered)' : '') + '.';
   }
 
+  function archArchitectureLogosPanelInit() {
+    var grid = qs('#archArchitectureLogoGrid');
+    var status = qs('#archArchitectureLogoStatus');
+    if (!grid || grid.getAttribute('data-arch-built') === '1') return;
+    if (!archArchitectureLogosDataPromise) {
+      archArchitectureLogosDataPromise = fetch('data/architecture-logos.json').then(function (r) {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      });
+    }
+    archArchitectureLogosDataPromise
+      .then(function (data) {
+        if (!grid.parentNode) return;
+        if (!data || !Array.isArray(data.logos)) return;
+        grid.textContent = '';
+        data.logos.forEach(function (item) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'arch-spectrum-icons-tile arch-diagram-ui arch-architecture-logo-tile';
+          btn.setAttribute('role', 'option');
+          btn.setAttribute('data-arch-logo-file', item.file);
+          btn.setAttribute('data-arch-logo-label', item.label || item.file);
+          btn.setAttribute('data-arch-logo-desc', item.description || '');
+          var hover = (item.label || '') + (item.description ? ' — ' + item.description : '');
+          btn.title = hover || item.file;
+          var wrap = document.createElement('span');
+          wrap.className = 'arch-spectrum-icons-tile-img-wrap';
+          var im = document.createElement('img');
+          im.src = item.file;
+          im.alt = '';
+          im.loading = 'lazy';
+          im.width = 32;
+          im.height = 32;
+          wrap.appendChild(im);
+          var cap = document.createElement('span');
+          cap.className = 'arch-spectrum-icons-tile-cap';
+          cap.textContent = item.label || item.file;
+          btn.appendChild(wrap);
+          btn.appendChild(cap);
+          grid.appendChild(btn);
+        });
+        grid.setAttribute('data-arch-built', '1');
+        var qinp = qs('#archArchitectureLogoSearch');
+        archArchitectureLogosApplyFilter(qinp ? qinp.value : '');
+        if (status) status.textContent = data.logos.length + ' logos — expand sections to browse; hover a tile for details.';
+      })
+      .catch(function () {
+        if (status) {
+          status.textContent =
+            'Could not load architecture logo list. Ensure data/architecture-logos.json is deployed.';
+        }
+      });
+  }
+
+  function archArchitectureLogosApplyFilter(q) {
+    var grid = qs('#archArchitectureLogoGrid');
+    if (!grid || grid.getAttribute('data-arch-built') !== '1') return;
+    var needle = (q || '').trim().toLowerCase();
+    var tiles = grid.querySelectorAll('.arch-architecture-logo-tile');
+    var n = 0;
+    for (var i = 0; i < tiles.length; i++) {
+      var btn = tiles[i];
+      var lab =
+        (btn.getAttribute('data-arch-logo-label') || '') +
+        ' ' +
+        (btn.getAttribute('data-arch-logo-file') || '') +
+        ' ' +
+        (btn.getAttribute('data-arch-logo-desc') || '');
+      var show = !needle || lab.toLowerCase().indexOf(needle) >= 0;
+      btn.hidden = !show;
+      if (show) n++;
+    }
+    var status = qs('#archArchitectureLogoStatus');
+    if (status) status.textContent = n + ' shown' + (needle ? ' (filtered)' : '') + '.';
+  }
+
+  function archProductLogoPlace(file, label, description) {
+    if (!archIsEditMode() || !archDrag.svg) return;
+    if (!file) return;
+    var n = archCustomBoxes.length;
+    var defaultSize = 48;
+    var x = 380 + (n % 10) * 24;
+    var y = 180 + (n % 8) * 24;
+    x = archClamp(x, 0, ARCH_GUIDE_VIEW.w - defaultSize);
+    y = archClamp(y, 0, ARCH_GUIDE_VIEW.h - defaultSize);
+    var nb = archCustomBoxNormalize({
+      id: 'cbox-' + Date.now(),
+      x: x,
+      y: y,
+      w: defaultSize,
+      h: defaultSize,
+      name: label || file.replace(/^.*\//, ''),
+      kind: 'productLogo',
+      logoFile: file,
+      logoDescription: description || '',
+      fill: 'none',
+      stroke: 'transparent',
+    });
+    archCustomBoxes.push(nb);
+    archCustomBoxSelectedId = nb.id;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    if (archSelection) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
+    var domId = 'node-cbox-' + nb.id;
+    var curH = archHighlightsForState(idx).slice();
+    if (curH.indexOf(domId) < 0) curH.push(domId);
+    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    if (archHighlightArraysEqual(curH, defH)) {
+      delete archStateHighlightOverrides[idx];
+      delete archStateHighlightOverrides[String(idx)];
+    } else {
+      archStateHighlightOverrides[String(idx)] = curH;
+    }
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUndoMaybePushSnapshot();
+    if (liveRegion) liveRegion.textContent = 'Added logo: ' + (label || file) + '.';
+  }
+
   function archSpectrumIconPlace(file, label) {
     if (!archIsEditMode() || !archDrag.svg) return;
     if (!file) return;
@@ -2647,10 +2794,21 @@
     };
     var lfs = Number(b.labelFontSize);
     o.labelFontSize = isNaN(lfs) ? 8.5 : archClamp(lfs, 4, 22);
-    o.kind = b && b.kind === 'spectrumIcon' ? 'spectrumIcon' : null;
-    o.iconFile = o.kind === 'spectrumIcon' && typeof b.iconFile === 'string' && b.iconFile ? b.iconFile : '';
+    o.kind = null;
+    o.iconFile = '';
+    o.logoFile = '';
+    o.logoDescription =
+      typeof b.logoDescription === 'string' && b.logoDescription.trim() ? b.logoDescription.trim() : '';
+    if (b && b.kind === 'spectrumIcon' && typeof b.iconFile === 'string' && b.iconFile) {
+      o.kind = 'spectrumIcon';
+      o.iconFile = b.iconFile;
+    } else if (b && b.kind === 'productLogo' && typeof b.logoFile === 'string' && b.logoFile) {
+      o.kind = 'productLogo';
+      o.logoFile = b.logoFile;
+    }
     if (o.kind === 'spectrumIcon' && !o.iconFile) o.kind = null;
-    if (o.kind === 'spectrumIcon') {
+    if (o.kind === 'productLogo' && !o.logoFile) o.kind = null;
+    if (o.kind === 'spectrumIcon' || o.kind === 'productLogo') {
       o.fill = typeof b.fill === 'string' && b.fill ? b.fill : 'none';
       o.stroke = typeof b.stroke === 'string' && b.stroke ? b.stroke : 'transparent';
     }
@@ -3795,11 +3953,11 @@
     if (fillInp) fillInp.value = box.fill || '#e5e7eb';
     if (strokeInp) strokeInp.value = box.stroke || '#94a3b8';
     var b = archCustomBoxNormalize(box);
-    var isSpectrum = b.kind === 'spectrumIcon' && b.iconFile;
+    var isIcon = archCustomBoxIsIconAsset(b);
     var colorFields = qs('#archCustomBoxNormalColorFields');
     var labelFields = qs('#archCustomBoxNormalLabelFields');
-    if (colorFields) colorFields.hidden = !!isSpectrum;
-    if (labelFields) labelFields.hidden = !!isSpectrum;
+    if (colorFields) colorFields.hidden = !!isIcon;
+    if (labelFields) labelFields.hidden = !!isIcon;
     var labelReady = !!(archCustomBoxLabelActiveId && archCustomBoxLabelActiveId === archCustomBoxSelectedId);
     if (sm) sm.disabled = !labelReady || b.labelFontSize <= 4;
     if (lg) lg.disabled = !labelReady || b.labelFontSize >= 22;
@@ -3824,6 +3982,8 @@
       labelFontSize: b.labelFontSize,
       kind: b.kind,
       iconFile: b.iconFile,
+      logoFile: b.logoFile,
+      logoDescription: b.logoDescription,
     });
     nb.x = archClamp(nb.x, 0, ARCH_GUIDE_VIEW.w - nb.w);
     nb.y = archClamp(nb.y, 0, ARCH_GUIDE_VIEW.h - nb.h);
@@ -3898,7 +4058,14 @@
       var g = document.createElementNS(SVG_NS, 'g');
       g.setAttribute('id', 'node-cbox-' + b.id);
       var isSpectrum = b.kind === 'spectrumIcon' && b.iconFile;
-      g.setAttribute('class', 'arch-node arch-custom-box' + (isSpectrum ? ' arch-custom-box--spectrum-icon' : ''));
+      var isProductLogo = b.kind === 'productLogo' && b.logoFile;
+      var isIconAsset = isSpectrum || isProductLogo;
+      var gClass =
+        'arch-node arch-custom-box' +
+        (isIconAsset ? ' arch-custom-box--icon-asset' : '') +
+        (isSpectrum ? ' arch-custom-box--spectrum-icon' : '') +
+        (isProductLogo ? ' arch-custom-box--product-logo' : '');
+      g.setAttribute('class', gClass);
       if (archCustomBoxSelectedId === b.id) g.classList.add('arch-custom-box--selected');
       g.setAttribute('transform', 'translate(' + b.x + ',' + b.y + ')');
       var shell = document.createElementNS(SVG_NS, 'rect');
@@ -3907,12 +4074,12 @@
       shell.setAttribute('y', '0');
       shell.setAttribute('width', String(b.w));
       shell.setAttribute('height', String(b.h));
-      shell.setAttribute('rx', isSpectrum ? '4' : '6');
-      shell.setAttribute('fill', isSpectrum ? 'none' : b.fill);
-      shell.setAttribute('stroke', isSpectrum ? 'transparent' : b.stroke);
-      shell.setAttribute('stroke-width', isSpectrum ? '0' : '1.25');
+      shell.setAttribute('rx', isIconAsset ? '4' : '6');
+      shell.setAttribute('fill', isIconAsset ? 'none' : b.fill);
+      shell.setAttribute('stroke', isIconAsset ? 'transparent' : b.stroke);
+      shell.setAttribute('stroke-width', isIconAsset ? '0' : '1.25');
       var tx = null;
-      if (!isSpectrum) {
+      if (!isIconAsset) {
         tx = document.createElementNS(SVG_NS, 'text');
         tx.setAttribute('class', 'arch-node-label arch-custom-box-label');
         if (archCustomBoxLabelActiveId === b.id) tx.classList.add('arch-custom-box-label--active');
@@ -3924,7 +4091,13 @@
         tx.textContent = b.name || 'Box';
       }
       var svgTitle = document.createElementNS(SVG_NS, 'title');
-      svgTitle.textContent = b.name || (isSpectrum ? b.iconFile : 'Box');
+      var titleText = b.name || 'Box';
+      if (isSpectrum) titleText = b.name || b.iconFile;
+      else if (isProductLogo) {
+        titleText =
+          (b.logoDescription ? (b.name || '') + ' — ' + b.logoDescription : b.name || '') || b.logoFile;
+      }
+      svgTitle.textContent = titleText;
       g.appendChild(svgTitle);
       var hs = ARCH_RESIZE_HANDLE;
       var hw = Math.max(0, (b.w - hs) / 2);
@@ -3940,10 +4113,11 @@
         { k: 'e', x: b.w - hs, y: hh },
       ];
       g.appendChild(shell);
-      if (isSpectrum) {
+      if (isIconAsset) {
         var imgEl = document.createElementNS(SVG_NS, 'image');
         imgEl.setAttribute('class', 'arch-custom-box-spectrum-img');
-        imgEl.setAttribute('href', ARCH_SPECTRUM_ICON_PREFIX + b.iconFile);
+        var href = isSpectrum ? ARCH_SPECTRUM_ICON_PREFIX + b.iconFile : b.logoFile;
+        imgEl.setAttribute('href', href);
         imgEl.setAttribute('x', '0');
         imgEl.setAttribute('y', '0');
         imgEl.setAttribute('width', String(b.w));
@@ -4699,6 +4873,8 @@
         labelFontSize: b.labelFontSize,
         kind: b.kind,
         iconFile: b.iconFile,
+        logoFile: b.logoFile,
+        logoDescription: b.logoDescription,
       });
       nb.x = archClamp(nb.x, 0, ARCH_GUIDE_VIEW.w - nb.w);
       nb.y = archClamp(nb.y, 0, ARCH_GUIDE_VIEW.h - nb.h);
@@ -5356,6 +5532,26 @@
       spectSearch.setAttribute('data-arch-ready', '1');
       spectSearch.addEventListener('input', function () {
         archSpectrumIconsApplyFilter(spectSearch.value);
+      });
+    }
+
+    var logoGrid = qs('#archArchitectureLogoGrid');
+    if (logoGrid && !logoGrid.getAttribute('data-arch-click-ready')) {
+      logoGrid.setAttribute('data-arch-click-ready', '1');
+      logoGrid.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.arch-architecture-logo-tile');
+        if (!btn || btn.hidden) return;
+        var f = btn.getAttribute('data-arch-logo-file');
+        var lab = btn.getAttribute('data-arch-logo-label');
+        var desc = btn.getAttribute('data-arch-logo-desc') || '';
+        if (f) archProductLogoPlace(f, lab, desc);
+      });
+    }
+    var logoSearch = qs('#archArchitectureLogoSearch');
+    if (logoSearch && !logoSearch.getAttribute('data-arch-ready')) {
+      logoSearch.setAttribute('data-arch-ready', '1');
+      logoSearch.addEventListener('input', function () {
+        archArchitectureLogosApplyFilter(logoSearch.value);
       });
     }
 
