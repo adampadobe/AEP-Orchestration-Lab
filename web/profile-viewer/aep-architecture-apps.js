@@ -296,6 +296,7 @@
   /** When a diagram object is selected, turn on Move (and Labels when the object has editable text). */
   function archEditorApplyModesForCurrentSelection() {
     if (!archIsEditMode()) return;
+    if (archGetActiveTool() !== 'select') return;
     var hasPlatform = archSelection && archSelection.count() > 0;
     var hasCbox = !!archCustomBoxSelectedId;
     var lineOnly = !!(userLines && userLines.selectedId) && !hasPlatform && !hasCbox;
@@ -583,11 +584,13 @@
   /** Active diagram editor rail tab (layout | highlights | sources | spectrum-icons | file). */
   var archEditorActivePanelId = 'layout';
 
-  /** Diagram edit tool: `lines` while Lines rail (sources) is active; otherwise `select`. Mirrors rail — use archSetActiveTool to switch. */
+  /** Diagram edit tool: `lines` (sources), `select` (layout), or `none` (no active edit tool). Mirrors rail — use archSetActiveTool to switch. */
   var LS_ARCH_ACTIVE_TOOL = 'aepArchActiveTool';
 
   function archGetActiveTool() {
-    return archEditorActivePanelId === 'sources' ? 'lines' : 'select';
+    if (archEditorActivePanelId === 'sources') return 'lines';
+    if (archEditorActivePanelId === 'layout') return 'select';
+    return 'none';
   }
 
   /** Switch to Lines tool (sources panel) or Select / canvas tools (any other panel). */
@@ -633,10 +636,19 @@
     archToolsFloatSetOpen(!archToolsFloatOpen);
   }
 
-  /** Switch diagram editor rail tab (layout | highlights | sources | spectrum-icons | file). */
+  function archEditorClearNodeAndBoxSelection() {
+    if (archSelection) archSelection.clear();
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    archSelectionRefreshDom();
+    archCustomBoxesRender();
+  }
+
+  /** Switch diagram editor rail tab (layout | highlights | sources | spectrum-icons | file | none). */
   function archEditorSetPanel(panelId) {
     var prev = archEditorActivePanelId;
-    archEditorActivePanelId = panelId || 'layout';
+    var valid = ['layout', 'highlights', 'sources', 'spectrum-icons', 'file'];
+    archEditorActivePanelId = valid.indexOf(panelId) >= 0 ? panelId : null;
     try {
       localStorage.setItem(LS_ARCH_ACTIVE_TOOL, archGetActiveTool());
     } catch (e) {}
@@ -645,17 +657,21 @@
       editorPanel.classList.toggle('arch-editor-panel--layout-float-only', archEditorActivePanelId === 'layout');
     }
     $all('.arch-editor-section').forEach(function (sec) {
-      var match = sec.getAttribute('data-arch-panel') === archEditorActivePanelId;
+      var match = !!archEditorActivePanelId && sec.getAttribute('data-arch-panel') === archEditorActivePanelId;
       sec.hidden = !match;
       sec.classList.toggle('is-active', match);
     });
     $all('.arch-editor-rail-btn').forEach(function (btn) {
-      var match = btn.getAttribute('data-arch-panel') === archEditorActivePanelId;
+      var match = !!archEditorActivePanelId && btn.getAttribute('data-arch-panel') === archEditorActivePanelId;
       btn.classList.toggle('is-active', match);
       btn.setAttribute('aria-pressed', match ? 'true' : 'false');
     });
     if (archEditorActivePanelId === 'spectrum-icons') archSpectrumIconsPanelInit();
     archUserLineSyncDrawModeFromEditor();
+    var selectToolOn = !!(archIsEditMode() && archGetActiveTool() === 'select');
+    archDragSetEnabled(selectToolOn);
+    archLabelSetEnabled(selectToolOn);
+    if (archGetActiveTool() !== 'select') archEditorClearNodeAndBoxSelection();
     archEditorSyncLinesDockChrome();
     if (archEditorActivePanelId !== 'layout') {
       archToolsFloatSetOpen(false);
@@ -954,6 +970,7 @@
 
     var LS_ARCH_EDIT = 'aepArchDiagramEditMode';
     var LS_ARCH_DOCK = 'aepArchEditorDockRight';
+    var archEditModeWasOn = false;
 
     function archEditorApplyEditMode() {
       var on = false;
@@ -965,8 +982,12 @@
       var dock = qs('#archEditorDock');
       if (dock) dock.hidden = !on;
       if (archViewport) archViewport.classList.toggle('arch-int-viewport--edit-mode', on);
-      archDragSetEnabled(on);
-      archLabelSetEnabled(on);
+      if (on && !archEditModeWasOn) {
+        archEditorSetPanel(null);
+      }
+      var selectToolOn = !!(on && archGetActiveTool() === 'select');
+      archDragSetEnabled(selectToolOn);
+      archLabelSetEnabled(selectToolOn);
       if (!on) archToolsFloatSetOpen(false);
       archUserLineSyncDrawModeFromEditor();
       archEditorSyncLinesDockChrome();
@@ -975,6 +996,8 @@
       archLineFloatUpdateVisibility();
       /** Re-sync connector handles: they only exist in edit mode; without a render they stay in the DOM when edit is turned off. */
       archUserLineRender();
+      if (!on) archEditorClearNodeAndBoxSelection();
+      archEditModeWasOn = on;
     }
 
     function archEditorApplyDock() {
@@ -993,7 +1016,7 @@
     archEditorApplyDock();
     archEditorApplyEditMode();
     archApplyHideControls();
-    archEditorSetPanel('layout');
+    archEditorSetPanel(null);
 
     var editModeTgl = qs('#archEditModeToggle');
     if (editModeTgl) {
@@ -1024,8 +1047,9 @@
         var pid = btn.getAttribute('data-arch-panel');
         if (!pid) return;
         var prev = archEditorActivePanelId;
-        if (pid === 'layout' && prev === 'layout') {
-          archToolsFloatToggle();
+        if (pid === prev) {
+          archEditorSetPanel(null);
+          archToolsFloatSetOpen(false);
           return;
         }
         archEditorSetPanel(pid);
