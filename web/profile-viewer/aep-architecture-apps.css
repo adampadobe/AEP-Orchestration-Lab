@@ -2202,6 +2202,179 @@ html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
   border-radius: 0 0 5px 5px;
 }
 
+.arch-architecture-logo-tile--custom {
+  box-shadow: inset 0 0 0 1px rgba(20, 115, 230, 0.35);
+  border-radius: 4px;
+  cursor: grab;
+}
+
+.arch-architecture-logo-tile--custom:active {
+  cursor: grabbing;
+}
+
+.arch-architecture-logo-tile--dragging {
+  opacity: 0.55;
+}
+
+.arch-logo-menu-group--dnd-hover {
+  outline: 2px dashed rgba(20, 115, 230, 0.55);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.arch-custom-logo-dock {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.arch-custom-logo-dock-lead {
+  margin: 0 0 0.5rem;
+  color: #475569;
+}
+
+.arch-custom-logo-purge-drop {
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.6rem;
+  border: 2px dashed #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+}
+
+.arch-custom-logo-purge-drop--dnd-hover {
+  border-color: #1473e6;
+  background: rgba(20, 115, 230, 0.08);
+  color: #0f172a;
+}
+
+.arch-custom-logo-pending-wrap {
+  margin-top: 0.25rem;
+}
+
+.arch-custom-logo-list-item--pending {
+  flex-wrap: wrap;
+}
+
+.arch-custom-logo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.arch-custom-logo-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.arch-custom-logo-field-half {
+  flex: 1;
+  min-width: 9rem;
+}
+
+.arch-custom-logo-form-status {
+  margin: 0;
+  min-height: 1.1em;
+}
+
+.arch-custom-logo-saved-heading {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.arch-custom-logo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 10rem;
+  overflow: auto;
+}
+
+.arch-custom-logo-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.75rem;
+}
+
+.arch-custom-logo-list-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #334155;
+}
+
+button.arch-custom-logo-remove {
+  flex-shrink: 0;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.65rem;
+}
+
+.arch-custom-logo-edit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.arch-custom-logo-edit-dialog {
+  width: 100%;
+  max-width: 22rem;
+  max-height: min(90vh, 32rem);
+  overflow: auto;
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+}
+
+.arch-custom-logo-edit-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.arch-custom-logo-edit-hint {
+  margin: 0 0 0.75rem;
+  color: #64748b;
+}
+
+.arch-custom-logo-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .arch-custom-box--spectrum-icon .arch-custom-box-spectrum-img,
 .arch-custom-box--product-logo .arch-custom-box-spectrum-img {
   pointer-events: none;

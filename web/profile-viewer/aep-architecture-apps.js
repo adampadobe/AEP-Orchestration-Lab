@@ -689,6 +689,7 @@
     if (archEditorActivePanelId === 'spectrum-icons') {
       archSpectrumIconsPanelInit();
       archArchitectureLogosPanelInit();
+      archCustomLogoUploadFormInit();
     }
     archUserLineSyncDrawModeFromEditor();
     var selectToolOn = !!(archIsEditMode() && archGetActiveTool() === 'select');
@@ -2662,6 +2663,209 @@
     { id: 'other', label: 'Other', matchAny: [] },
   ];
 
+  var ARCH_CUSTOM_LOGOS_KEY = 'aepArchCustomLogoLibrary';
+  /** Rough cap for data URL length in localStorage (base64 expands size). */
+  var ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS = 2000000;
+  /** Delay before placing a custom logo so double-click can open the editor. */
+  var ARCH_CUSTOM_LOGO_PLACE_DELAY_MS = 320;
+  /** Pending removals are purged after this grace period (browser-local only). */
+  var ARCH_CUSTOM_LOGO_DELETE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+  var archArchitectureLogosRemoteCache = null;
+  var archCustomLogoDragId = null;
+
+  function archCustomLogoLibraryLoad() {
+    try {
+      var raw = localStorage.getItem(ARCH_CUSTOM_LOGOS_KEY);
+      if (!raw) return [];
+      var o = JSON.parse(raw);
+      return Array.isArray(o.items) ? o.items : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function archCustomLogoMigrateLibrary() {
+    var items = archCustomLogoLibraryLoad();
+    var next = items.map(function (e, i) {
+      var o = Object.assign({}, e);
+      if (typeof o.order !== 'number') o.order = Date.now() + i;
+      return o;
+    });
+    var changed = items.some(function (e, i) {
+      return !e || typeof e.order !== 'number';
+    });
+    if (changed) {
+      try {
+        archCustomLogoLibrarySave(next);
+      } catch (err) {}
+    }
+  }
+
+  function archCustomLogoPurgeExpired() {
+    var now = Date.now();
+    var grace = ARCH_CUSTOM_LOGO_DELETE_GRACE_MS;
+    var items = archCustomLogoLibraryLoad();
+    var next = items.filter(function (e) {
+      if (!e || !e.deletedAt) return true;
+      return now - e.deletedAt < grace;
+    });
+    if (next.length !== items.length) {
+      try {
+        archCustomLogoLibrarySave(next);
+      } catch (err) {}
+    }
+  }
+
+  function archCustomLogoLibrarySave(items) {
+    localStorage.setItem(ARCH_CUSTOM_LOGOS_KEY, JSON.stringify({ version: 1, items: items }));
+  }
+
+  function archCustomLogoGroupIdToTags(panel, groupId) {
+    var groups = panel === 'adobe' ? ARCH_ADOBE_MENU_GROUPS : ARCH_OTHER_MENU_GROUPS;
+    for (var i = 0; i < groups.length; i++) {
+      if (groups[i].id === groupId) return (groups[i].matchAny || []).slice();
+    }
+    return [];
+  }
+
+  function archCustomLogoEntryToCatalogItem(entry) {
+    return {
+      file: entry.fileDataUrl,
+      label: entry.label || 'Uploaded logo',
+      description: typeof entry.description === 'string' ? entry.description : '',
+      tags: archCustomLogoGroupIdToTags(entry.panel, entry.groupId),
+      _archCustomId: entry.id,
+      _sortOrder: typeof entry.order === 'number' ? entry.order : 0,
+    };
+  }
+
+  function archMergeCustomLogosIntoPanels(adobe, other) {
+    archCustomLogoLibraryLoad().forEach(function (e) {
+      if (!e || !e.fileDataUrl || !e.id) return;
+      if (e.deletedAt) return;
+      var item = archCustomLogoEntryToCatalogItem(e);
+      if (e.panel === 'adobe') adobe.push(item);
+      else other.push(item);
+    });
+  }
+
+  function archFinalizeLogoBucketsCustomOrder(buckets) {
+    buckets.forEach(function (bucket) {
+      var head = [];
+      var tail = [];
+      bucket.forEach(function (it) {
+        if (it && it._archCustomId) tail.push(it);
+        else head.push(it);
+      });
+      tail.sort(function (a, b) {
+        return (a._sortOrder || 0) - (b._sortOrder || 0);
+      });
+      bucket.length = 0;
+      head.forEach(function (x) {
+        bucket.push(x);
+      });
+      tail.forEach(function (x) {
+        bucket.push(x);
+      });
+    });
+  }
+
+  function archCustomLogoNextOrderForGroup(panel, groupId) {
+    var max = 0;
+    archCustomLogoLibraryLoad().forEach(function (e) {
+      if (!e || e.deletedAt) return;
+      if (e.panel !== panel || String(e.groupId) !== String(groupId)) return;
+      if (typeof e.order === 'number' && e.order > max) max = e.order;
+    });
+    return max + 1000;
+  }
+
+  function archCustomLogoMoveToGroup(id, panel, groupId) {
+    var ord = archCustomLogoNextOrderForGroup(panel, groupId);
+    var items = archCustomLogoLibraryLoad().map(function (e) {
+      if (e.id !== id) return e;
+      return Object.assign({}, e, {
+        panel: panel,
+        groupId: groupId,
+        order: ord,
+      });
+    });
+    archCustomLogoLibrarySave(items);
+  }
+
+  function archCustomLogoDropOnTile(dragId, targetId) {
+    if (dragId === targetId) return;
+    var items = archCustomLogoLibraryLoad();
+    var dragE;
+    var tgtE;
+    items.forEach(function (e) {
+      if (e.id === dragId) dragE = e;
+      if (e.id === targetId) tgtE = e;
+    });
+    if (!dragE || !tgtE || dragE.deletedAt || tgtE.deletedAt) return;
+    var panel = tgtE.panel;
+    var gid = tgtE.groupId;
+    var updated = items.map(function (e) {
+      if (e.id !== dragId) return e;
+      return Object.assign({}, e, { panel: panel, groupId: gid });
+    });
+    var inGroup = updated.filter(function (e) {
+      return !e.deletedAt && e.panel === panel && String(e.groupId) === String(gid);
+    });
+    inGroup.sort(function (a, b) {
+      return (a.order || 0) - (b.order || 0);
+    });
+    var ids = inGroup.map(function (g) {
+      return g.id;
+    });
+    ids = ids.filter(function (id) {
+      return id !== dragId;
+    });
+    var ti = ids.indexOf(targetId);
+    if (ti < 0) return;
+    ids.splice(ti, 0, dragId);
+    var idToOrder = {};
+    ids.forEach(function (id, idx) {
+      idToOrder[id] = 1000 * (idx + 1);
+    });
+    var next = updated.map(function (e) {
+      if (idToOrder[e.id] != null) {
+        return Object.assign({}, e, {
+          order: idToOrder[e.id],
+          panel: panel,
+          groupId: gid,
+        });
+      }
+      return e;
+    });
+    archCustomLogoLibrarySave(next);
+  }
+
+  function archCustomLogoQueueDeletion(id) {
+    var items = archCustomLogoLibraryLoad().map(function (e) {
+      if (e.id !== id) return e;
+      return Object.assign({}, e, { deletedAt: Date.now() });
+    });
+    archCustomLogoLibrarySave(items);
+  }
+
+  function archCustomLogoRestore(id) {
+    var items = archCustomLogoLibraryLoad().map(function (e) {
+      if (e.id !== id) return e;
+      var o = Object.assign({}, e);
+      delete o.deletedAt;
+      return o;
+    });
+    archCustomLogoLibrarySave(items);
+  }
+
+  function archCustomLogoDeleteForever(id) {
+    var items = archCustomLogoLibraryLoad().filter(function (x) {
+      return x.id !== id;
+    });
+    archCustomLogoLibrarySave(items);
+  }
+
   function archPartitionLogoItemsIntoGroups(items, groupDefs) {
     var buckets = groupDefs.map(function () {
       return [];
@@ -2687,15 +2891,21 @@
   }
 
   /** Build nested `<details>` sections with sub-grids (empty groups omitted). */
-  function archRenderArchitectureLogoMenu(mount, buckets, groupDefs) {
+  function archRenderArchitectureLogoMenu(mount, buckets, groupDefs, panelKey) {
     if (!mount) return;
+    var pk =
+      panelKey ||
+      (mount.getAttribute && mount.getAttribute('data-arch-logo-panel')) ||
+      'other';
     mount.textContent = '';
     for (var i = 0; i < groupDefs.length; i++) {
       var list = buckets[i];
       if (!list.length) continue;
       var det = document.createElement('details');
       det.className = 'arch-logo-menu-group arch-diagram-ui';
-      det.open = true;
+      det.setAttribute('data-arch-drop-panel', pk);
+      det.setAttribute('data-arch-drop-group-id', groupDefs[i].id);
+      det.open = false;
       var sum = document.createElement('summary');
       sum.className = 'arch-logo-menu-summary arch-diagram-ui';
       var lab = document.createElement('span');
@@ -2751,10 +2961,108 @@
       var cap = document.createElement('span');
       cap.className = 'arch-spectrum-icons-tile-cap';
       cap.textContent = item.label || item.file;
+      if (item._archCustomId) {
+        btn.setAttribute('data-arch-custom-logo-id', item._archCustomId);
+        btn.setAttribute('draggable', 'true');
+        btn.classList.add('arch-architecture-logo-tile--custom');
+        btn.title =
+          (hover || item.file) +
+          ' — Double-click to edit. Drag to another submenu or to “Pending removal”.';
+        btn.addEventListener('dragstart', function (e) {
+          try {
+            e.dataTransfer.setData('text/plain', item._archCustomId);
+            e.dataTransfer.effectAllowed = 'move';
+          } catch (err) {}
+          archCustomLogoDragId = item._archCustomId;
+          btn.classList.add('arch-architecture-logo-tile--dragging');
+        });
+        btn.addEventListener('dragend', function () {
+          archCustomLogoDragId = null;
+          btn.classList.remove('arch-architecture-logo-tile--dragging');
+        });
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          if (btn._archLogoPlaceTimer) clearTimeout(btn._archLogoPlaceTimer);
+          btn._archLogoPlaceTimer = setTimeout(function () {
+            btn._archLogoPlaceTimer = null;
+            var f = btn.getAttribute('data-arch-logo-file');
+            var lab = btn.getAttribute('data-arch-logo-label');
+            var desc = btn.getAttribute('data-arch-logo-desc') || '';
+            if (f) archProductLogoPlace(f, lab, desc);
+          }, ARCH_CUSTOM_LOGO_PLACE_DELAY_MS);
+        });
+        btn.addEventListener('dblclick', function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          if (btn._archLogoPlaceTimer) {
+            clearTimeout(btn._archLogoPlaceTimer);
+            btn._archLogoPlaceTimer = null;
+          }
+          archCustomLogoMetadataEditorOpen(item._archCustomId);
+        });
+      }
       btn.appendChild(wrap);
       btn.appendChild(cap);
       grid.appendChild(btn);
     });
+  }
+
+  function archArchitectureLogosRenderFromRemoteData(data) {
+    var gridAdobe = qs('#archAdobeLogoMenuMount');
+    var gridOther = qs('#archArchitectureLogoMenuMount');
+    var stAdobe = qs('#archAdobeLogoStatus');
+    var stOther = qs('#archArchitectureLogoStatus');
+    if (!gridAdobe || !gridOther || !data || !Array.isArray(data.logos)) return;
+    archCustomLogoPurgeExpired();
+    archCustomLogoMigrateLibrary();
+    var prevATag = gridAdobe.getAttribute('data-arch-built') === '1' ? gridAdobe.getAttribute('data-arch-active-tag') || '' : '';
+    var prevOTag = gridOther.getAttribute('data-arch-built') === '1' ? gridOther.getAttribute('data-arch-active-tag') || '' : '';
+    var qA = qs('#archAdobeLogoSearch');
+    var qO = qs('#archArchitectureLogoSearch');
+    var adobe = [];
+    var other = [];
+    data.logos.forEach(function (item) {
+      if (archArchitectureLogoIsAdobeSection(item)) adobe.push(item);
+      else other.push(item);
+    });
+    adobe.sort(function (a, b) {
+      var fa = (a && a.file) || '';
+      var fb = (b && b.file) || '';
+      var ia = ARCH_ADOBE_LOGO_FILES.indexOf(fa);
+      var ib = ARCH_ADOBE_LOGO_FILES.indexOf(fb);
+      if (ia >= 0 && ib >= 0) return ia - ib;
+      if (ia >= 0) return -1;
+      if (ib >= 0) return 1;
+      var na = parseInt((fa.match(/image(\d+)\.png/i) || [])[1] || '0', 10);
+      var nb = parseInt((fb.match(/image(\d+)\.png/i) || [])[1] || '0', 10);
+      return na - nb;
+    });
+    archMergeCustomLogosIntoPanels(adobe, other);
+    var bucketsAdobe = archPartitionLogoItemsIntoGroups(adobe, ARCH_ADOBE_MENU_GROUPS);
+    var bucketsOther = archPartitionLogoItemsIntoGroups(other, ARCH_OTHER_MENU_GROUPS);
+    archFinalizeLogoBucketsCustomOrder(bucketsAdobe);
+    archFinalizeLogoBucketsCustomOrder(bucketsOther);
+    archRenderArchitectureLogoMenu(gridAdobe, bucketsAdobe, ARCH_ADOBE_MENU_GROUPS, 'adobe');
+    archRenderArchitectureLogoMenu(gridOther, bucketsOther, ARCH_OTHER_MENU_GROUPS, 'other');
+    gridAdobe.setAttribute('data-arch-built', '1');
+    gridOther.setAttribute('data-arch-built', '1');
+    gridAdobe.setAttribute('data-arch-active-tag', '');
+    gridOther.setAttribute('data-arch-active-tag', '');
+    archArchitectureLogoTagBarInit(qs('#archAdobeLogoTagRow'), gridAdobe, stAdobe, qA, ARCH_LOGO_TAG_CHIPS_ADOBE);
+    archArchitectureLogoTagBarInit(qs('#archOtherLogoTagRow'), gridOther, stOther, qO, ARCH_LOGO_TAG_CHIPS_OTHER);
+    archArchitectureLogoTagBarActivate(qs('#archAdobeLogoTagRow'), gridAdobe, prevATag);
+    archArchitectureLogoTagBarActivate(qs('#archOtherLogoTagRow'), gridOther, prevOTag);
+    archArchitectureLogosApplyFilter(gridAdobe, stAdobe, qA ? qA.value : '');
+    archArchitectureLogosApplyFilter(gridOther, stOther, qO ? qO.value : '');
+  }
+
+  function archArchitectureLogosRefreshMerged() {
+    if (!archArchitectureLogosRemoteCache || !Array.isArray(archArchitectureLogosRemoteCache.logos)) {
+      archArchitectureLogosPanelInit();
+      return;
+    }
+    archArchitectureLogosRenderFromRemoteData(archArchitectureLogosRemoteCache);
   }
 
   function archArchitectureLogosPanelInit() {
@@ -2772,44 +3080,30 @@
       .then(function (data) {
         if (!gridOther.parentNode) return;
         if (!data || !Array.isArray(data.logos)) return;
-        var adobe = [];
-        var other = [];
-        data.logos.forEach(function (item) {
-          if (archArchitectureLogoIsAdobeSection(item)) adobe.push(item);
-          else other.push(item);
-        });
-        adobe.sort(function (a, b) {
-          var fa = (a && a.file) || '';
-          var fb = (b && b.file) || '';
-          var ia = ARCH_ADOBE_LOGO_FILES.indexOf(fa);
-          var ib = ARCH_ADOBE_LOGO_FILES.indexOf(fb);
-          if (ia >= 0 && ib >= 0) return ia - ib;
-          if (ia >= 0) return -1;
-          if (ib >= 0) return 1;
-          var na = parseInt((fa.match(/image(\d+)\.png/i) || [])[1] || '0', 10);
-          var nb = parseInt((fb.match(/image(\d+)\.png/i) || [])[1] || '0', 10);
-          return na - nb;
-        });
-        var bucketsAdobe = archPartitionLogoItemsIntoGroups(adobe, ARCH_ADOBE_MENU_GROUPS);
-        var bucketsOther = archPartitionLogoItemsIntoGroups(other, ARCH_OTHER_MENU_GROUPS);
-        archRenderArchitectureLogoMenu(gridAdobe, bucketsAdobe, ARCH_ADOBE_MENU_GROUPS);
-        archRenderArchitectureLogoMenu(gridOther, bucketsOther, ARCH_OTHER_MENU_GROUPS);
-        gridAdobe.setAttribute('data-arch-built', '1');
-        gridOther.setAttribute('data-arch-built', '1');
-        gridAdobe.setAttribute('data-arch-active-tag', '');
-        gridOther.setAttribute('data-arch-active-tag', '');
-        var qA = qs('#archAdobeLogoSearch');
-        var qO = qs('#archArchitectureLogoSearch');
-        archArchitectureLogoTagBarInit(qs('#archAdobeLogoTagRow'), gridAdobe, stAdobe, qA, ARCH_LOGO_TAG_CHIPS_ADOBE);
-        archArchitectureLogoTagBarInit(qs('#archOtherLogoTagRow'), gridOther, stOther, qO, ARCH_LOGO_TAG_CHIPS_OTHER);
-        archArchitectureLogosApplyFilter(gridAdobe, stAdobe, qA ? qA.value : '');
-        archArchitectureLogosApplyFilter(gridOther, stOther, qO ? qO.value : '');
+        archArchitectureLogosRemoteCache = data;
+        archArchitectureLogosRenderFromRemoteData(data);
       })
       .catch(function () {
+        archArchitectureLogosRemoteCache = null;
         var msg = 'Could not load architecture logo list. Ensure data/architecture-logos.json is deployed.';
         if (stAdobe) stAdobe.textContent = msg;
         if (stOther) stOther.textContent = msg;
       });
+  }
+
+  function archArchitectureLogoTagBarActivate(container, grid, tagId) {
+    if (!container || !grid) return;
+    var id = (tagId || '').trim();
+    if (!id) return;
+    var ok = false;
+    container.querySelectorAll('.arch-logo-tag-chip').forEach(function (c) {
+      if (c.getAttribute('data-arch-tag-id') === id) ok = true;
+    });
+    if (!ok) return;
+    grid.setAttribute('data-arch-active-tag', id);
+    container.querySelectorAll('.arch-logo-tag-chip').forEach(function (c) {
+      c.setAttribute('aria-pressed', c.getAttribute('data-arch-tag-id') === id ? 'true' : 'false');
+    });
   }
 
   function archArchitectureLogoTagBarInit(container, grid, statusEl, searchInput, defs) {
@@ -2879,6 +3173,408 @@
       }
     }
     if (statusEl) statusEl.textContent = n + ' shown' + (filtered ? ' (filtered)' : '') + '.';
+  }
+
+  function archCustomLogoEnsurePanelSelectOptions(sel) {
+    if (!sel || sel.options.length) return;
+    [
+      { v: 'other', t: 'Product & diagram logos' },
+      { v: 'adobe', t: 'Adobe Logos' },
+    ].forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.v;
+      opt.textContent = o.t;
+      sel.appendChild(opt);
+    });
+  }
+
+  function archCustomLogoPopulateGroupSelectEl(selEl, panel) {
+    if (!selEl) return;
+    var groups = panel === 'adobe' ? ARCH_ADOBE_MENU_GROUPS : ARCH_OTHER_MENU_GROUPS;
+    selEl.textContent = '';
+    groups.forEach(function (g) {
+      var opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = g.label;
+      selEl.appendChild(opt);
+    });
+  }
+
+  function archCustomLogoPopulateGroupSelect(panel) {
+    archCustomLogoPopulateGroupSelectEl(qs('#archCustomLogoGroup'), panel);
+  }
+
+  var archCustomLogoEditingId = null;
+
+  function archCustomLogoMetadataEditorClose() {
+    var ov = qs('#archCustomLogoEditOverlay');
+    if (ov) ov.hidden = true;
+    archCustomLogoEditingId = null;
+  }
+
+  function archCustomLogoMetadataEditorOpen(id) {
+    var items = archCustomLogoLibraryLoad();
+    var entry = null;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].id === id) {
+        entry = items[i];
+        break;
+      }
+    }
+    if (!entry) return;
+    if (entry.deletedAt) return;
+    archCustomLogoEditingId = id;
+    var ov = qs('#archCustomLogoEditOverlay');
+    var lab = qs('#archCustomLogoEditLabel');
+    var desc = qs('#archCustomLogoEditDesc');
+    var ps = qs('#archCustomLogoEditPanel');
+    var gs = qs('#archCustomLogoEditGroup');
+    if (!ov || !lab || !desc || !ps || !gs) return;
+    archCustomLogoEnsurePanelSelectOptions(ps);
+    lab.value = entry.label || '';
+    desc.value = typeof entry.description === 'string' ? entry.description : '';
+    ps.value = entry.panel === 'adobe' ? 'adobe' : 'other';
+    archCustomLogoPopulateGroupSelectEl(gs, ps.value === 'adobe' ? 'adobe' : 'other');
+    var gid = entry.groupId;
+    if (gid) {
+      var hasG = false;
+      for (var oi = 0; oi < gs.options.length; oi++) {
+        if (gs.options[oi].value === gid) {
+          hasG = true;
+          break;
+        }
+      }
+      gs.value = hasG ? gid : gs.options[0] ? gs.options[0].value : '';
+    } else if (gs.options[0]) gs.value = gs.options[0].value;
+    ov.hidden = false;
+    lab.focus();
+    lab.select();
+  }
+
+  function archCustomLogoMetadataEditorSave() {
+    if (!archCustomLogoEditingId) return;
+    var labIn = qs('#archCustomLogoEditLabel');
+    var descIn = qs('#archCustomLogoEditDesc');
+    var ps = qs('#archCustomLogoEditPanel');
+    var gs = qs('#archCustomLogoEditGroup');
+    var label = (labIn && labIn.value && labIn.value.trim()) || '';
+    if (!label) return;
+    var items = archCustomLogoLibraryLoad();
+    var next = items.map(function (e) {
+      if (e.id !== archCustomLogoEditingId) return e;
+      return Object.assign({}, e, {
+        label: label,
+        description: (descIn && descIn.value && descIn.value.trim()) || '',
+        panel: ps && ps.value === 'adobe' ? 'adobe' : 'other',
+        groupId: gs ? gs.value : e.groupId,
+      });
+    });
+    try {
+      archCustomLogoLibrarySave(next);
+    } catch (err) {
+      return;
+    }
+    archCustomLogoMetadataEditorClose();
+    archCustomLogoRefreshLists();
+    archArchitectureLogosRefreshMerged();
+  }
+
+  function archCustomLogoEditDialogInit() {
+    var ov = qs('#archCustomLogoEditOverlay');
+    if (!ov || ov.getAttribute('data-arch-custom-logo-edit') === '1') return;
+    ov.setAttribute('data-arch-custom-logo-edit', '1');
+    var dlg = ov.querySelector('.arch-custom-logo-edit-dialog');
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov) archCustomLogoMetadataEditorClose();
+    });
+    if (dlg) {
+      dlg.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+    }
+    var cancel = qs('#archCustomLogoEditCancel');
+    var save = qs('#archCustomLogoEditSave');
+    var ps = qs('#archCustomLogoEditPanel');
+    if (cancel) cancel.addEventListener('click', archCustomLogoMetadataEditorClose);
+    if (save) save.addEventListener('click', archCustomLogoMetadataEditorSave);
+    if (ps) {
+      ps.addEventListener('change', function () {
+        archCustomLogoPopulateGroupSelectEl(qs('#archCustomLogoEditGroup'), ps.value === 'adobe' ? 'adobe' : 'other');
+      });
+    }
+    document.addEventListener(
+      'keydown',
+      function (e) {
+        if (e.key !== 'Escape') return;
+        if (!ov || ov.hidden) return;
+        e.preventDefault();
+        archCustomLogoMetadataEditorClose();
+      },
+      true
+    );
+  }
+
+  function archCustomLogoRefreshLists() {
+    archCustomLogoListRender();
+    archCustomLogoPendingListRender();
+  }
+
+  function archCustomLogoListRender() {
+    var ul = qs('#archCustomLogoList');
+    if (!ul) return;
+    ul.textContent = '';
+    archCustomLogoLibraryLoad().forEach(function (e) {
+      if (!e || !e.id || e.deletedAt) return;
+      var li = document.createElement('li');
+      li.className = 'arch-custom-logo-list-item';
+      var span = document.createElement('span');
+      span.className = 'arch-custom-logo-list-label';
+      span.textContent = e.label || e.id;
+      span.title = 'Double-click to edit metadata';
+      span.style.cursor = 'pointer';
+      span.addEventListener('dblclick', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        archCustomLogoMetadataEditorOpen(e.id);
+      });
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dashboard-btn-outline arch-custom-logo-remove';
+      btn.setAttribute('data-arch-custom-logo-queue-delete', e.id);
+      btn.setAttribute('aria-label', 'Queue removal for ' + (e.label || 'logo') + ' (7-day grace)');
+      btn.textContent = 'Remove from menu';
+      li.appendChild(span);
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+  }
+
+  function archCustomLogoPendingListRender() {
+    var ul = qs('#archCustomLogoPendingList');
+    var empty = qs('#archCustomLogoPendingEmpty');
+    if (!ul) return;
+    ul.textContent = '';
+    var now = Date.now();
+    var grace = ARCH_CUSTOM_LOGO_DELETE_GRACE_MS;
+    var pending = archCustomLogoLibraryLoad().filter(function (e) {
+      return e && e.id && e.deletedAt && now - e.deletedAt < grace;
+    });
+    if (empty) empty.hidden = pending.length > 0;
+    pending.forEach(function (e) {
+      var left = Math.max(0, grace - (now - e.deletedAt));
+      var days = Math.ceil(left / (24 * 60 * 60 * 1000));
+      var li = document.createElement('li');
+      li.className = 'arch-custom-logo-list-item arch-custom-logo-list-item--pending';
+      var span = document.createElement('span');
+      span.className = 'arch-custom-logo-list-label';
+      span.textContent = (e.label || e.id) + ' — ' + days + ' day' + (days === 1 ? '' : 's') + ' left';
+      var restore = document.createElement('button');
+      restore.type = 'button';
+      restore.className = 'dashboard-btn-outline arch-custom-logo-restore';
+      restore.setAttribute('data-arch-custom-logo-restore', e.id);
+      restore.setAttribute('aria-label', 'Restore ' + (e.label || 'logo'));
+      restore.textContent = 'Restore';
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'dashboard-btn-outline arch-custom-logo-purge-now';
+      del.setAttribute('data-arch-custom-logo-purge-now', e.id);
+      del.setAttribute('aria-label', 'Delete ' + (e.label || 'logo') + ' permanently');
+      del.textContent = 'Delete now';
+      li.appendChild(span);
+      li.appendChild(restore);
+      li.appendChild(del);
+      ul.appendChild(li);
+    });
+  }
+
+  function archCustomLogoAddFromForm() {
+    var status = qs('#archCustomLogoFormStatus');
+    var fileInput = qs('#archCustomLogoFile');
+    var labelIn = qs('#archCustomLogoLabel');
+    var descIn = qs('#archCustomLogoDesc');
+    var panel = qs('#archCustomLogoPanel');
+    var groupSel = qs('#archCustomLogoGroup');
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+      if (status) status.textContent = 'Choose an image file.';
+      return;
+    }
+    var label = (labelIn && labelIn.value && labelIn.value.trim()) || '';
+    if (!label) {
+      if (status) status.textContent = 'Enter a label.';
+      return;
+    }
+    if (!panel || !groupSel) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      var dataUrl = fr.result;
+      if (typeof dataUrl !== 'string' || dataUrl.indexOf('data:') !== 0) {
+        if (status) status.textContent = 'Could not read image.';
+        return;
+      }
+      if (dataUrl.length > ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS) {
+        if (status) status.textContent = 'Image is too large for browser storage (try a file under about 1 MB).';
+        return;
+      }
+      var items = archCustomLogoLibraryLoad();
+      var pv = panel.value === 'adobe' ? 'adobe' : 'other';
+      var gid = groupSel.value;
+      items.push({
+        id: 'ucl-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+        fileDataUrl: dataUrl,
+        label: label,
+        description: (descIn && descIn.value && descIn.value.trim()) || '',
+        panel: pv,
+        groupId: gid,
+        order: archCustomLogoNextOrderForGroup(pv, gid),
+      });
+      try {
+        archCustomLogoLibrarySave(items);
+      } catch (err) {
+        if (status) status.textContent = 'Could not save (storage may be full). Remove an upload or use a smaller image.';
+        return;
+      }
+      if (status) status.textContent = 'Added “' + label + '”.';
+      fileInput.value = '';
+      if (labelIn) labelIn.value = '';
+      if (descIn) descIn.value = '';
+      archCustomLogoRefreshLists();
+      archArchitectureLogosRefreshMerged();
+    };
+    fr.onerror = function () {
+      if (status) status.textContent = 'Failed to read file.';
+    };
+    fr.readAsDataURL(fileInput.files[0]);
+  }
+
+  function archCustomLogoDragDropInit() {
+    var sec = qs('#archEditorSectionSpectrumIcons');
+    if (!sec || sec.getAttribute('data-arch-custom-dnd') === '1') return;
+    sec.setAttribute('data-arch-custom-dnd', '1');
+    sec.addEventListener('dragover', function (e) {
+      if (!archCustomLogoDragId) return;
+      var group = e.target.closest && e.target.closest('.arch-logo-menu-group');
+      var purge = e.target.closest && e.target.closest('#archCustomLogoPurgeDrop');
+      var tile = e.target.closest && e.target.closest('.arch-architecture-logo-tile[data-arch-custom-logo-id]');
+      if (group || purge || tile) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      }
+      document.querySelectorAll('.arch-logo-menu-group--dnd-hover').forEach(function (el) {
+        el.classList.remove('arch-logo-menu-group--dnd-hover');
+      });
+      var pz = qs('#archCustomLogoPurgeDrop');
+      if (pz) pz.classList.remove('arch-custom-logo-purge-drop--dnd-hover');
+      if (purge && pz) pz.classList.add('arch-custom-logo-purge-drop--dnd-hover');
+      else if (group) group.classList.add('arch-logo-menu-group--dnd-hover');
+    });
+    sec.addEventListener(
+      'drop',
+      function (e) {
+        var dragId = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || archCustomLogoDragId || '';
+        dragId = (dragId || '').trim();
+        if (!dragId) return;
+        var purge = e.target.closest && e.target.closest('#archCustomLogoPurgeDrop');
+        if (purge) {
+          e.preventDefault();
+          archCustomLogoQueueDeletion(dragId);
+          archCustomLogoRefreshLists();
+          archArchitectureLogosRefreshMerged();
+          return;
+        }
+        var tile = e.target.closest && e.target.closest('.arch-architecture-logo-tile[data-arch-custom-logo-id]');
+        if (tile) {
+          e.preventDefault();
+          var tid = tile.getAttribute('data-arch-custom-logo-id');
+          if (tid && tid !== dragId) {
+            archCustomLogoDropOnTile(dragId, tid);
+            archArchitectureLogosRefreshMerged();
+          }
+          return;
+        }
+        var anyTile = e.target.closest && e.target.closest('.arch-architecture-logo-tile');
+        if (anyTile && !anyTile.getAttribute('data-arch-custom-logo-id')) {
+          return;
+        }
+        var group = e.target.closest && e.target.closest('.arch-logo-menu-group');
+        if (group) {
+          e.preventDefault();
+          var panel = group.getAttribute('data-arch-drop-panel');
+          var gid = group.getAttribute('data-arch-drop-group-id');
+          if (panel && gid) {
+            archCustomLogoMoveToGroup(dragId, panel, gid);
+            archArchitectureLogosRefreshMerged();
+          }
+        }
+      },
+      false
+    );
+    sec.addEventListener('dragend', function () {
+      document.querySelectorAll('.arch-logo-menu-group--dnd-hover').forEach(function (el) {
+        el.classList.remove('arch-logo-menu-group--dnd-hover');
+      });
+      var pz = qs('#archCustomLogoPurgeDrop');
+      if (pz) pz.classList.remove('arch-custom-logo-purge-drop--dnd-hover');
+      archCustomLogoDragId = null;
+    });
+  }
+
+  function archCustomLogoUploadFormInit() {
+    var root = qs('#archCustomLogoUploadDetails');
+    if (!root || root.getAttribute('data-arch-custom-logo-form') === '1') return;
+    root.setAttribute('data-arch-custom-logo-form', '1');
+    archCustomLogoEditDialogInit();
+    archCustomLogoDragDropInit();
+    var panelSel = qs('#archCustomLogoPanel');
+    archCustomLogoEnsurePanelSelectOptions(panelSel);
+    archCustomLogoPopulateGroupSelect(panelSel && panelSel.value === 'adobe' ? 'adobe' : 'other');
+    if (panelSel) {
+      panelSel.addEventListener('change', function () {
+        archCustomLogoPopulateGroupSelect(panelSel.value === 'adobe' ? 'adobe' : 'other');
+      });
+    }
+    var addBtn = qs('#archCustomLogoAdd');
+    if (addBtn) addBtn.addEventListener('click', archCustomLogoAddFromForm);
+    var list = qs('#archCustomLogoList');
+    if (list) {
+      list.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('[data-arch-custom-logo-queue-delete]');
+        if (!btn) return;
+        e.preventDefault();
+        var id = btn.getAttribute('data-arch-custom-logo-queue-delete');
+        if (id) {
+          archCustomLogoQueueDeletion(id);
+          archCustomLogoRefreshLists();
+          archArchitectureLogosRefreshMerged();
+        }
+      });
+    }
+    var pend = qs('#archCustomLogoPendingList');
+    if (pend) {
+      pend.addEventListener('click', function (e) {
+        var rs = e.target.closest && e.target.closest('[data-arch-custom-logo-restore]');
+        var dn = e.target.closest && e.target.closest('[data-arch-custom-logo-purge-now]');
+        if (rs) {
+          e.preventDefault();
+          var rid = rs.getAttribute('data-arch-custom-logo-restore');
+          if (rid) {
+            archCustomLogoRestore(rid);
+            archCustomLogoRefreshLists();
+            archArchitectureLogosRefreshMerged();
+          }
+          return;
+        }
+        if (dn) {
+          e.preventDefault();
+          var pid = dn.getAttribute('data-arch-custom-logo-purge-now');
+          if (pid) {
+            archCustomLogoDeleteForever(pid);
+            archCustomLogoRefreshLists();
+            archArchitectureLogosRefreshMerged();
+          }
+        }
+      });
+    }
+    archCustomLogoRefreshLists();
   }
 
   function archProductLogoPlace(file, label, description) {
