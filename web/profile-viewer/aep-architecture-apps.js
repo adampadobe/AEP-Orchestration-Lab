@@ -654,7 +654,11 @@
     } catch (e) {}
     var editorPanel = qs('#archEditorPanel');
     if (editorPanel) {
-      editorPanel.classList.toggle('arch-editor-panel--layout-float-only', archEditorActivePanelId === 'layout');
+      /* Tools + Lines: floating bars only; no empty side column (same as layout rail). */
+      editorPanel.classList.toggle(
+        'arch-editor-panel--layout-float-only',
+        archEditorActivePanelId === 'layout' || archEditorActivePanelId === 'sources'
+      );
     }
     $all('.arch-editor-section').forEach(function (sec) {
       var match = !!archEditorActivePanelId && sec.getAttribute('data-arch-panel') === archEditorActivePanelId;

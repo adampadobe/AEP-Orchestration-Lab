@@ -837,7 +837,7 @@
   line-height: 1.35;
 }
 
-/* Layout tab: no side panel — only rail */
+/* Tools + Lines rails: no side panel — only rail (floating bars on canvas) */
 #archEditorPanel.arch-editor-panel--layout-float-only {
   display: none !important;
 }
