@@ -589,7 +589,8 @@
                   </details>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Adobe Logos</summary>
-                    <p class="arch-tool-micro arch-icon-panel-details-lead">Core <strong>Adobe</strong> marks (Experience Platform, Adobe, brand mark, Creative Cloud), plus product logos from your <strong>Corporate Express</strong> deck under <code>images/corporate-express-product-logos/</code>. See <code>data/architecture-logos.json</code>.</p>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Core <strong>Adobe</strong> marks (Experience Platform, Adobe, brand mark, Creative Cloud), plus product logos from your <strong>Corporate Express</strong> deck under <code>images/corporate-express-product-logos/</code>. See <code>data/architecture-logos.json</code>. Use <strong>category</strong> chips to narrow the grid, then search.</p>
+                    <div id="archAdobeLogoTagRow" class="arch-logo-tag-chip-row arch-diagram-ui" role="toolbar" aria-label="Filter Adobe logos by category"></div>
                     <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
                       <input type="search" id="archAdobeLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter Adobe logos…" autocomplete="off" aria-label="Filter Adobe logos"/>
                     </label>
@@ -598,7 +599,8 @@
                   </details>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Product &amp; diagram logos</summary>
-                    <p class="arch-tool-micro arch-icon-panel-details-lead">Other raster and SVG diagram assets from <code>images/</code> and <code>vendor/spectrum-workflow-icons/</code> (see <code>data/architecture-logos.json</code>). Add new files under <code>images/</code> and append entries to the JSON.</p>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Other raster and SVG diagram assets from <code>images/</code> and <code>vendor/spectrum-workflow-icons/</code> (see <code>data/architecture-logos.json</code>). Add new files under <code>images/</code> and append entries with optional <code>tags</code>. Use <strong>category</strong> chips, then search.</p>
+                    <div id="archOtherLogoTagRow" class="arch-logo-tag-chip-row arch-diagram-ui" role="toolbar" aria-label="Filter diagram logos by category"></div>
                     <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
                       <input type="search" id="archArchitectureLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter logos…" autocomplete="off" aria-label="Filter diagram and product logos"/>
                     </label>

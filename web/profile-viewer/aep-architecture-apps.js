@@ -2619,6 +2619,24 @@
     'images/creative-cloud-app-icon.png',
   ];
 
+  /** Phase 1: optional `tags` on each catalog entry — filter chips per grid (see architecture-logos.json). */
+  var ARCH_LOGO_TAG_CHIPS_ADOBE = [
+    { id: '', label: 'All' },
+    { id: 'adobe-catalog', label: 'Catalog' },
+    { id: 'experience-cloud', label: 'Experience Cloud' },
+    { id: 'adobe-core', label: 'Core marks' },
+  ];
+
+  var ARCH_LOGO_TAG_CHIPS_OTHER = [
+    { id: '', label: 'All' },
+    { id: 'data-collection', label: 'Data collection' },
+    { id: 'profile-audiences', label: 'Profile & audiences' },
+    { id: 'journeys', label: 'Journeys' },
+    { id: 'diagram-reference', label: 'Diagram assets' },
+    { id: 'presentation-icons', label: 'Presentation & UI icons' },
+    { id: 'partner', label: 'Partner' },
+  ];
+
   function archArchitectureLogoIsAdobeSection(item) {
     var f = (item && item.file) || '';
     if (f.indexOf('corporate-express-product-logos') >= 0) return true;
@@ -2637,6 +2655,8 @@
       btn.setAttribute('data-arch-logo-file', item.file);
       btn.setAttribute('data-arch-logo-label', item.label || item.file);
       btn.setAttribute('data-arch-logo-desc', item.description || '');
+      var tagList = Array.isArray(item.tags) ? item.tags.filter(function (t) { return t; }) : [];
+      btn.setAttribute('data-arch-logo-tags', tagList.join(' '));
       var hover = (item.label || '') + (item.description ? ' — ' + item.description : '');
       btn.title = hover || item.file;
       var wrap = document.createElement('span');
@@ -2694,16 +2714,14 @@
         archRenderArchitectureLogoTiles(gridOther, other);
         gridAdobe.setAttribute('data-arch-built', '1');
         gridOther.setAttribute('data-arch-built', '1');
+        gridAdobe.setAttribute('data-arch-active-tag', '');
+        gridOther.setAttribute('data-arch-active-tag', '');
         var qA = qs('#archAdobeLogoSearch');
         var qO = qs('#archArchitectureLogoSearch');
+        archArchitectureLogoTagBarInit(qs('#archAdobeLogoTagRow'), gridAdobe, stAdobe, qA, ARCH_LOGO_TAG_CHIPS_ADOBE);
+        archArchitectureLogoTagBarInit(qs('#archOtherLogoTagRow'), gridOther, stOther, qO, ARCH_LOGO_TAG_CHIPS_OTHER);
         archArchitectureLogosApplyFilter(gridAdobe, stAdobe, qA ? qA.value : '');
         archArchitectureLogosApplyFilter(gridOther, stOther, qO ? qO.value : '');
-        if (stAdobe) {
-          stAdobe.textContent = adobe.length + ' Adobe logos — hover a tile for details.';
-        }
-        if (stOther) {
-          stOther.textContent = other.length + ' logos — hover a tile for details.';
-        }
       })
       .catch(function () {
         var msg = 'Could not load architecture logo list. Ensure data/architecture-logos.json is deployed.';
@@ -2712,9 +2730,34 @@
       });
   }
 
+  function archArchitectureLogoTagBarInit(container, grid, statusEl, searchInput, defs) {
+    if (!container || !grid || !Array.isArray(defs)) return;
+    container.textContent = '';
+    grid.setAttribute('data-arch-active-tag', '');
+    defs.forEach(function (def, idx) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'arch-logo-tag-chip arch-diagram-ui';
+      chip.setAttribute('data-arch-tag-id', def.id);
+      chip.setAttribute('aria-pressed', idx === 0 ? 'true' : 'false');
+      chip.setAttribute('aria-label', 'Filter: ' + (def.label || 'All'));
+      chip.textContent = def.label || 'All';
+      chip.addEventListener('click', function () {
+        var id = def.id || '';
+        grid.setAttribute('data-arch-active-tag', id);
+        container.querySelectorAll('.arch-logo-tag-chip').forEach(function (c) {
+          c.setAttribute('aria-pressed', c.getAttribute('data-arch-tag-id') === id ? 'true' : 'false');
+        });
+        archArchitectureLogosApplyFilter(grid, statusEl, searchInput ? searchInput.value : '');
+      });
+      container.appendChild(chip);
+    });
+  }
+
   function archArchitectureLogosApplyFilter(grid, statusEl, q) {
     if (!grid || grid.getAttribute('data-arch-built') !== '1') return;
     var needle = (q || '').trim().toLowerCase();
+    var activeTag = (grid.getAttribute('data-arch-active-tag') || '').trim();
     var tiles = grid.querySelectorAll('.arch-architecture-logo-tile');
     var n = 0;
     for (var i = 0; i < tiles.length; i++) {
@@ -2725,11 +2768,20 @@
         (btn.getAttribute('data-arch-logo-file') || '') +
         ' ' +
         (btn.getAttribute('data-arch-logo-desc') || '');
-      var show = !needle || lab.toLowerCase().indexOf(needle) >= 0;
+      var tagsStr = btn.getAttribute('data-arch-logo-tags') || '';
+      var tagOk =
+        !activeTag ||
+        (tagsStr &&
+          tagsStr.split(/\s+/).filter(function (t) {
+            return t;
+          }).indexOf(activeTag) >= 0);
+      var textOk = !needle || lab.toLowerCase().indexOf(needle) >= 0;
+      var show = tagOk && textOk;
       btn.hidden = !show;
       if (show) n++;
     }
-    if (statusEl) statusEl.textContent = n + ' shown' + (needle ? ' (filtered)' : '') + '.';
+    var filtered = !!(activeTag || needle);
+    if (statusEl) statusEl.textContent = n + ' shown' + (filtered ? ' (filtered)' : '') + '.';
   }
 
   function archProductLogoPlace(file, label, description) {

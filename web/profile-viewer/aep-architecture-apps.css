@@ -2023,6 +2023,50 @@ html[data-aep-theme='dark'] .arch-icon-panel-details {
   border-color: var(--dash-border);
 }
 
+/* Architecture logo catalog — Phase 1 category chips (matches optional `tags` in architecture-logos.json) */
+.arch-logo-tag-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+}
+
+.arch-logo-tag-chip {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.arch-logo-tag-chip:hover,
+.arch-logo-tag-chip:focus-visible {
+  border-color: #1473e6;
+  outline: none;
+}
+
+.arch-logo-tag-chip[aria-pressed='true'] {
+  border-color: #1473e6;
+  background: rgba(20, 115, 230, 0.12);
+  color: #0f172a;
+  font-weight: 600;
+}
+
+html[data-aep-theme='dark'] .arch-logo-tag-chip {
+  border-color: var(--dash-border, #475569);
+  background: rgba(30, 41, 59, 0.6);
+  color: var(--text-primary, #e2e8f0);
+}
+
+html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  color: #f8fafc;
+}
+
 /* Adobe Spectrum workflow icons picker (vendored SVGs, Apache-2.0) */
 .arch-spectrum-icons-search-label {
   margin-bottom: 0.35rem;
