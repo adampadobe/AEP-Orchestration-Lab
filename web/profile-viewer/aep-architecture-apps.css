@@ -561,7 +561,8 @@
 }
 
 /* Spectrum Workflow S2_Icon_PenBrush_20_N — line drawing / connectors (rail, float bar) */
-.arch-spectrum-pen-brush-icon {
+.arch-spectrum-pen-brush-icon,
+.arch-spectrum-archive-icon {
   display: block;
   width: 1.125rem;
   height: 1.125rem;
