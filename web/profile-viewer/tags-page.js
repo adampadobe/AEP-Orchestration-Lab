@@ -204,6 +204,47 @@
     updateFilterCount(rows.length, total);
   }
 
+  /** Spectrum workflow icons under profile-viewer/vendor (relative to tags.html). */
+  var TAGS_PLATFORM_ICON_DIR = 'vendor/spectrum-workflow-icons/';
+  var TAGS_PLATFORM_ICON_MAP = {
+    web: { file: 'S2_Icon_DeviceDesktop_20_N.svg', label: 'Web' },
+    mobile: { file: 'S2_Icon_DeviceMobile_20_N.svg', label: 'Mobile' },
+    edge: { file: 'S2_Icon_Cloud_20_N.svg', label: 'Edge' },
+  };
+
+  /**
+   * @returns {string} HTML for one <td> with icon + tooltip (platform name).
+   */
+  function buildPlatformCellHtml(platformRaw) {
+    var raw = platformRaw != null ? String(platformRaw).trim() : '';
+    if (!raw) {
+      return '<td class="tags-platform-cell tags-platform-cell--empty"><span class="tags-platform-dash">—</span></td>';
+    }
+    var key = raw.toLowerCase();
+    var mapped = TAGS_PLATFORM_ICON_MAP[key];
+    if (!mapped) {
+      if (key.indexOf('mobile') >= 0) mapped = TAGS_PLATFORM_ICON_MAP.mobile;
+      else if (key.indexOf('web') >= 0) mapped = TAGS_PLATFORM_ICON_MAP.web;
+      else if (key.indexOf('edge') >= 0) mapped = TAGS_PLATFORM_ICON_MAP.edge;
+    }
+    var iconFile = mapped ? mapped.file : 'S2_Icon_Apps_20_N.svg';
+    var tooltip = mapped ? mapped.label : raw;
+    var src = TAGS_PLATFORM_ICON_DIR + iconFile;
+    return (
+      '<td class="tags-platform-cell">' +
+      '<span class="tags-platform-icon-wrap" title="' +
+      escapeHtml(tooltip) +
+      '">' +
+      '<img class="tags-platform-icon-img" src="' +
+      escapeHtml(src) +
+      '" width="20" height="20" alt="" draggable="false" />' +
+      '<span class="tags-platform-sr-only">' +
+      escapeHtml(tooltip) +
+      '</span>' +
+      '</span></td>'
+    );
+  }
+
   function buildPropertyRowTr(row) {
     var tr = document.createElement('tr');
     var domText = row.domainsDisplay || '';
@@ -214,7 +255,7 @@
       escapeHtml(domText.length > 80 ? domText.slice(0, 77) + '…' : domText || '—') +
       '</td>';
     var devCell = '<td>' + escapeHtml(row.development ? 'Yes' : 'No') + '</td>';
-    var platCell = '<td>' + escapeHtml(row.platform || '—') + '</td>';
+    var platCell = buildPlatformCellHtml(row.platform);
     var ub = row.updatedBy ? escapeHtml(row.updatedBy) : '—';
 
     if (tagsPropertyViewMode === 'all') {

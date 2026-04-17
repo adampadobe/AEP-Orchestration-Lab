@@ -144,3 +144,47 @@
 .tags-page.profile-generation-page .tags-single-company-note code {
   font-size: 12px;
 }
+
+.tags-page.profile-generation-page .tags-platform-cell {
+  text-align: center;
+  vertical-align: middle;
+  width: 3.25rem;
+}
+
+.tags-page.profile-generation-page .tags-platform-cell--empty {
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.tags-page.profile-generation-page .tags-platform-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  line-height: 0;
+  cursor: default;
+}
+
+.tags-page.profile-generation-page .tags-platform-icon-wrap:hover {
+  background: var(--dash-surface-hover, rgba(0, 0, 0, 0.06));
+}
+
+.tags-page.profile-generation-page .tags-platform-icon-img {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  --iconPrimary: var(--dash-text-primary, #2d2d2d);
+}
+
+.tags-page.profile-generation-page .tags-platform-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
