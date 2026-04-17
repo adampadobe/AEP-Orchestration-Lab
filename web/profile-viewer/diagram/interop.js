@@ -85,10 +85,80 @@
     };
   }
 
+  /**
+   * @param {Array<*>} logos — architecture-logos.json `logos` array
+   * @returns {Record<string, string[]>} map asset path → tag ids
+   */
+  function buildCatalogTagMapFromLogos(logos) {
+    var m = {};
+    if (!Array.isArray(logos)) return m;
+    logos.forEach(function (e) {
+      if (!e || typeof e.file !== 'string' || !e.file) return;
+      var tags = Array.isArray(e.tags) ? e.tags.filter(Boolean) : [];
+      if (tags.length) m[e.file] = tags.slice();
+    });
+    return m;
+  }
+
+  /**
+   * Mutates summary.vendors in place: adds catalogTags when assetPath matches architecture-logos.json.
+   * @param {*} summary
+   * @param {Record<string, string[]>} tagMap
+   */
+  function enrichStackSummaryWithCatalogTags(summary, tagMap) {
+    if (!summary || typeof summary !== 'object' || !tagMap || typeof tagMap !== 'object') return;
+    var vendors = summary.vendors;
+    if (!Array.isArray(vendors)) return;
+    vendors.forEach(function (v) {
+      if (!v || typeof v.assetPath !== 'string') return;
+      var t = tagMap[v.assetPath];
+      if (t && t.length) v.catalogTags = t.slice();
+    });
+  }
+
+  /**
+   * @param {*} raw — parsed JSON
+   * @returns {{ ok: boolean, errors: string[] }}
+   */
+  function validateStackSummaryForImport(raw) {
+    var errors = [];
+    if (!raw || typeof raw !== 'object') {
+      errors.push('payload must be an object');
+      return { ok: false, errors: errors };
+    }
+    if (raw.format !== FORMAT_ID) {
+      errors.push('format must be "' + FORMAT_ID + '"');
+    }
+    if (raw.formatVersion !== FORMAT_VERSION) {
+      errors.push('formatVersion must be ' + FORMAT_VERSION);
+    }
+    if (raw.vendors != null && !Array.isArray(raw.vendors)) {
+      errors.push('vendors must be an array when present');
+    } else if (Array.isArray(raw.vendors)) {
+      raw.vendors.forEach(function (v, i) {
+        if (!v || typeof v !== 'object') {
+          errors.push('vendors[' + i + '] must be an object');
+          return;
+        }
+        if (typeof v.assetPath !== 'string' || !v.assetPath) {
+          errors.push('vendors[' + i + '].assetPath is required');
+        }
+        var k = v.kind;
+        if (k !== 'productLogo' && k !== 'spectrumIcon') {
+          errors.push('vendors[' + i + '].kind must be productLogo or spectrumIcon');
+        }
+      });
+    }
+    return { ok: errors.length === 0, errors: errors };
+  }
+
   global.AEPDiagram = global.AEPDiagram || {};
   global.AEPDiagram.interop = {
     FORMAT_ID: FORMAT_ID,
     FORMAT_VERSION: FORMAT_VERSION,
     exportStackSummaryFromPayload: exportStackSummaryFromPayload,
+    buildCatalogTagMapFromLogos: buildCatalogTagMapFromLogos,
+    enrichStackSummaryWithCatalogTags: enrichStackSummaryWithCatalogTags,
+    validateStackSummaryForImport: validateStackSummaryForImport,
   };
 })(typeof window !== 'undefined' ? window : this);

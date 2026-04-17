@@ -80,6 +80,25 @@
       console.assert(sum.formatVersion === Io.FORMAT_VERSION, 'interop format version');
       console.assert(Array.isArray(sum.vendors) && sum.vendors.length === 1, 'interop vendors');
       console.assert(sum.vendors[0].assetPath.indexOf('snowflake') >= 0, 'interop asset path');
+      var tagMap = Io.buildCatalogTagMapFromLogos([
+        { file: 'images/ecosystem-vendor-logos/snowflake.svg', tags: ['ecosystem-data'] },
+      ]);
+      Io.enrichStackSummaryWithCatalogTags(sum, tagMap);
+      console.assert(sum.vendors[0].catalogTags && sum.vendors[0].catalogTags[0] === 'ecosystem-data', 'interop catalogTags enrich');
+      var badImp = Io.validateStackSummaryForImport({ format: 'wrong' });
+      console.assert(!badImp.ok, 'interop rejects bad import');
+      var okImp = Io.validateStackSummaryForImport({
+        format: Io.FORMAT_ID,
+        formatVersion: Io.FORMAT_VERSION,
+        vendors: [
+          {
+            kind: 'productLogo',
+            assetPath: 'images/x.svg',
+            name: 'X',
+          },
+        ],
+      });
+      console.assert(okImp.ok, 'interop accepts valid import: ' + (okImp.errors && okImp.errors.join('; ')));
     } else {
       console.warn('[diagram.tests] AEPDiagram.interop missing');
     }

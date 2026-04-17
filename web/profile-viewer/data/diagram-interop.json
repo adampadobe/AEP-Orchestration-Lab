@@ -22,11 +22,13 @@
     "role": "Lightweight export for external tools, spreadsheets, or glue scripts — not a substitute for master JSON import.",
     "formatId": "aep-orchestration-lab-stack-summary",
     "formatVersion": 1,
-    "implementation": "diagram/interop.js exportStackSummaryFromPayload",
+    "implementation": "diagram/interop.js exportStackSummaryFromPayload, enrichStackSummaryWithCatalogTags",
     "downloadFileHint": "aep-architecture-stack-summary.json",
     "downloadUi": "Save & layout → Download stack summary (interop)",
+    "importUi": "Save & layout → Import stack summary (vendor/icon entries only; connectors not restored)",
     "contains": [
       "vendors[] — productLogo / spectrumIcon asset paths and canvas positions",
+      "vendors[].catalogTags — optional; added on download when assetPath matches data/architecture-logos.json",
       "connectors[] — user line ids, strokes, points/endpoints when present",
       "source.masterLayoutVersion — original payload.version",
       "source.canonicalNodeIds — keys from the base diagram node position map"

@@ -32,6 +32,9 @@ jobs:
       - name: Validate architecture logo tags vs taxonomy
         run: python3 scripts/validate-architecture-logos-tags.py
 
+      - name: Validate ecosystem vendor index vs SVG files
+        run: python3 scripts/validate-ecosystem-vendor-index.py
+
       - name: JSON well-formed
         run: |
           python <<'PY'

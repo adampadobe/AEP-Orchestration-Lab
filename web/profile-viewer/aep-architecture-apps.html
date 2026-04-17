@@ -615,6 +615,10 @@
                     <button type="button" class="dashboard-btn-outline" id="archMasterSave" title="Store current diagram as the default for this browser">Save as master layout</button>
                     <button type="button" class="dashboard-btn-outline" id="archMasterDownload" title="Download layout JSON">Download JSON</button>
                     <button type="button" class="dashboard-btn-outline" id="archStackSummaryDownload" title="Vendor and connector summary for tooling (not a full layout import)">Download stack summary (interop)</button>
+                    <label class="dashboard-btn-outline arch-master-import-label" title="Adds logos/icons from a stack summary file; use Download JSON for full layout">
+                      Import stack summary
+                      <input type="file" id="archStackSummaryImport" accept="application/json,.json" class="visually-hidden"/>
+                    </label>
                     <label class="dashboard-btn-outline arch-master-import-label">
                       Import JSON
                       <input type="file" id="archMasterImport" accept="application/json,.json" class="visually-hidden"/>
@@ -656,7 +660,7 @@
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
   <script defer src="diagram/model.js?v=20260513"></script>
   <script defer src="diagram/editor-model.js?v=20260520"></script>
-  <script defer src="diagram/interop.js?v=20260417"></script>
+  <script defer src="diagram/interop.js?v=20260418"></script>
   <script defer src="diagram/selection.js?v=20260513"></script>
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>

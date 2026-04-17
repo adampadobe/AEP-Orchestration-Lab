@@ -66,6 +66,12 @@ The **Validate** workflow (`.github/workflows/validate.yml`) installs Node from 
 
 Firebase Hosting serves static files from **`web/`**. The lab nav, themes, and assets under **`web/profile-viewer/`** are **canonical**. The Express prototype at **`aep-prototypes/AEP Profile/03 Profile Viewer/public/`** is a **mirror**: after you edit **`web/profile-viewer/`**, run **`npm run sync-profile-viewer-ui`** (see [Sync between prototypes and hosting](#sync-between-prototypes-and-hosting)). Running sync **from prototype → `web/`** in the wrong direction has overwritten Hosting in the past.
 
+### Architecture diagram (`aep-architecture-apps`) — logos & martech taxonomy
+
+The interactive SVG diagram uses **`data/architecture-logos.json`** for the icon/logo picker. Optional **`tags`** on each entry are validated against **`data/martech-taxonomy-reference.json`** (`npm run validate:architecture-logos-tags`, also in CI). Ecosystem vendor SVGs live under **`web/profile-viewer/images/ecosystem-vendor-logos/`**; **`vendorIndex`** in the taxonomy file must match those files (`npm run validate:ecosystem-vendor-index`). Regenerate tags after bulk catalog edits with **`python3 scripts/tag-architecture-logos.py`**.
+
+**Interop:** Full layout round-trip uses **Download JSON** / **Import JSON**. The smaller **stack summary** format is defined in **`data/diagram-interop.json`** and implemented in **`web/profile-viewer/diagram/interop.js`** (export includes **`catalogTags`** when asset paths match the logo catalog). **Import stack summary** adds vendor/icon boxes only; it does not restore connectors or canonical node positions.
+
 ---
 
 ## Architecture overview

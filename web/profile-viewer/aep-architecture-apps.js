@@ -5335,19 +5335,163 @@
       window.alert('Interop module missing. Reload the page.');
       return;
     }
-    var payload = I.exportStackSummaryFromPayload(archMasterSerialize());
-    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'aep-architecture-stack-summary.json';
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
-    if (liveRegion) {
-      liveRegion.textContent = 'Stack summary (interop JSON) downloaded.';
+    var snap = archMasterSerialize();
+    function downloadSummary(summary) {
+      var blob = new Blob([JSON.stringify(summary, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'aep-architecture-stack-summary.json';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
     }
+    var base = I.exportStackSummaryFromPayload(snap);
+    if (typeof I.buildCatalogTagMapFromLogos !== 'function' || typeof I.enrichStackSummaryWithCatalogTags !== 'function') {
+      downloadSummary(base);
+      if (liveRegion) liveRegion.textContent = 'Stack summary (interop JSON) downloaded.';
+      return;
+    }
+    fetch('data/architecture-logos.json', { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then(function (cat) {
+        var tagMap = I.buildCatalogTagMapFromLogos(cat && cat.logos);
+        var summary = I.exportStackSummaryFromPayload(archMasterSerialize());
+        I.enrichStackSummaryWithCatalogTags(summary, tagMap);
+        downloadSummary(summary);
+        if (liveRegion) {
+          liveRegion.textContent = 'Stack summary downloaded (catalog tags added when paths match the logo catalog).';
+        }
+      })
+      .catch(function () {
+        downloadSummary(base);
+        if (liveRegion) {
+          liveRegion.textContent =
+            'Stack summary downloaded (catalog tags skipped — logo catalog unavailable).';
+        }
+      });
+  }
+
+  /** Import vendor/icon entries from a stack summary JSON (connectors not restored). */
+  function archApplyStackSummaryVendors(data) {
+    var vendors = data && Array.isArray(data.vendors) ? data.vendors : [];
+    var baseIdx = archCustomBoxes.length;
+    vendors.forEach(function (v, i) {
+      if (!v || typeof v.assetPath !== 'string' || !v.assetPath) return;
+      if (v.kind !== 'productLogo' && v.kind !== 'spectrumIcon') return;
+      var defW = v.kind === 'spectrumIcon' ? 40 : 48;
+      var defH = v.kind === 'spectrumIcon' ? 40 : 48;
+      var w =
+        typeof v.w === 'number' && isFinite(v.w) ? v.w : defW;
+      var h =
+        typeof v.h === 'number' && isFinite(v.h) ? v.h : defH;
+      w = Math.max(ARCH_MIN_NODE_W, Math.min(ARCH_MAX_NODE_W, w));
+      h = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, h));
+      var x =
+        typeof v.x === 'number' && isFinite(v.x)
+          ? v.x
+          : 380 + ((baseIdx + i) % 10) * 24;
+      var y =
+        typeof v.y === 'number' && isFinite(v.y)
+          ? v.y
+          : 180 + ((baseIdx + i) % 8) * 24;
+      x = archClamp(x, 0, ARCH_GUIDE_VIEW.w - w);
+      y = archClamp(y, 0, ARCH_GUIDE_VIEW.h - h);
+      var bid = typeof v.boxId === 'string' && v.boxId && !archCustomBoxFind(v.boxId) ? v.boxId : null;
+      var id =
+        bid || 'cbox-' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 9);
+      var nb;
+      if (v.kind === 'spectrumIcon') {
+        nb = archCustomBoxNormalize({
+          id: id,
+          x: x,
+          y: y,
+          w: w,
+          h: h,
+          name: v.name || v.caption || 'Icon',
+          kind: 'spectrumIcon',
+          iconFile: v.assetPath,
+          fill: 'none',
+          stroke: 'transparent',
+        });
+      } else {
+        nb = archCustomBoxNormalize({
+          id: id,
+          x: x,
+          y: y,
+          w: w,
+          h: h,
+          name: v.name || v.caption || 'Logo',
+          kind: 'productLogo',
+          logoFile: v.assetPath,
+          logoDescription: typeof v.caption === 'string' ? v.caption : '',
+          fill: 'none',
+          stroke: 'transparent',
+        });
+      }
+      archCustomBoxes.push(nb);
+      var domId = 'node-cbox-' + nb.id;
+      var curH = archHighlightsForState(idx).slice();
+      if (curH.indexOf(domId) < 0) curH.push(domId);
+      var defHil = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+      if (archHighlightArraysEqual(curH, defHil)) {
+        delete archStateHighlightOverrides[idx];
+        delete archStateHighlightOverrides[String(idx)];
+      } else {
+        archStateHighlightOverrides[String(idx)] = curH;
+      }
+    });
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archSelectionPanelSync();
+  }
+
+  function archStackSummaryImportFile(file) {
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var raw = JSON.parse(r.result);
+        var I = window.AEPDiagram && window.AEPDiagram.interop;
+        if (!I || typeof I.validateStackSummaryForImport !== 'function') {
+          window.alert('Interop module missing. Reload the page.');
+          return;
+        }
+        var v = I.validateStackSummaryForImport(raw);
+        if (!v.ok) {
+          window.alert('Not a valid stack summary:\n' + v.errors.slice(0, 12).join('\n'));
+          return;
+        }
+        if (!archIsEditMode()) {
+          window.alert('Turn on Edit diagram first.');
+          return;
+        }
+        var vendors = raw.vendors || [];
+        if (vendors.length === 0) {
+          window.alert('No vendors in this file.');
+          return;
+        }
+        if (
+          vendors.length > 24 &&
+          !window.confirm('Import ' + vendors.length + ' icons/logos onto the canvas?')
+        ) {
+          return;
+        }
+        archApplyStackSummaryVendors(raw);
+        archUndoMaybePushSnapshot();
+        if (liveRegion) {
+          liveRegion.textContent = 'Imported ' + vendors.length + ' vendor(s) from stack summary.';
+        }
+      } catch (err) {
+        window.alert('Could not import: invalid JSON.');
+      }
+    };
+    r.readAsText(file);
   }
 
   function archMasterImportFile(file) {
@@ -5427,6 +5571,7 @@
     var masterSave = qs('#archMasterSave');
     var masterDl = qs('#archMasterDownload');
     var stackSummaryDl = qs('#archStackSummaryDownload');
+    var stackSummaryImport = qs('#archStackSummaryImport');
     var masterImport = qs('#archMasterImport');
     if (reset) {
       reset.addEventListener('click', function () {
@@ -5449,6 +5594,13 @@
     }
     if (stackSummaryDl) {
       stackSummaryDl.addEventListener('click', archStackSummaryDownload);
+    }
+    if (stackSummaryImport) {
+      stackSummaryImport.addEventListener('change', function () {
+        var f = stackSummaryImport.files && stackSummaryImport.files[0];
+        if (f) archStackSummaryImportFile(f);
+        stackSummaryImport.value = '';
+      });
     }
     if (masterImport) {
       masterImport.addEventListener('change', function () {

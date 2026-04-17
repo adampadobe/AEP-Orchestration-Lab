@@ -14,7 +14,8 @@
     "build:edp": "cd \"web/profile-viewer/experience-decisioning-playground\" && npm install && npm run build",
     "vendor:spectrum-icons": "node scripts/build-spectrum-workflow-icons.cjs",
     "test:arch-line-e2e": "node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs",
-    "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py"
+    "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",
+    "validate:ecosystem-vendor-index": "python3 scripts/validate-ecosystem-vendor-index.py"
   },
   "devDependencies": {
     "@adobe/spectrum-css-workflow-icons": "^5.0.0",
