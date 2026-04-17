@@ -1,5 +1,5 @@
 {
-  "note": "Diagram and product assets under web/profile-viewer/images. Replace or extend this list when you export logos from your Adobe Express deck into images/ (same filenames or update paths). label + description power hover tooltips on the canvas.",
+  "note": "Diagram and product assets under web/profile-viewer/images. For batch export from Adobe Express, prefer Download → pptx, then run scripts/extract-pptx-media.sh on the file and copy from ppt/media/ into images/. label + description power hover tooltips on the canvas.",
   "logos": [
     {
       "file": "images/adobe-experience-platform-logo-tags.png",
