@@ -588,12 +588,21 @@
                     <p id="archSpectrumIconStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
                   </details>
                   <details class="arch-icon-panel-details">
-                    <summary class="arch-icon-panel-summary">Product &amp; diagram logos</summary>
-                    <p class="arch-tool-micro arch-icon-panel-details-lead">Raster and SVG assets from <code>images/</code> (see <code>data/architecture-logos.json</code>). The <strong>Corporate Express</strong> product logos from your deck are listed <strong>first</strong> in the grid; older diagram assets follow. Add new files under <code>images/</code> and append entries to the JSON.</p>
+                    <summary class="arch-icon-panel-summary">Adobe Logos</summary>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Product logos from your <strong>Corporate Express</strong> deck (<code>images/corporate-express-product-logos/</code>). Metadata in <code>data/architecture-logos.json</code>.</p>
                     <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
-                      <input type="search" id="archArchitectureLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter logos…" autocomplete="off" aria-label="Filter architecture logos"/>
+                      <input type="search" id="archAdobeLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter Adobe logos…" autocomplete="off" aria-label="Filter Adobe logos"/>
                     </label>
-                    <div id="archArchitectureLogoGrid" class="arch-spectrum-icons-grid arch-architecture-logo-grid" role="listbox" aria-label="Architecture logos and diagram assets"></div>
+                    <div id="archAdobeLogoGrid" class="arch-spectrum-icons-grid arch-architecture-logo-grid" role="listbox" aria-label="Adobe product logos"></div>
+                    <p id="archAdobeLogoStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
+                  </details>
+                  <details class="arch-icon-panel-details">
+                    <summary class="arch-icon-panel-summary">Product &amp; diagram logos</summary>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Other raster and SVG diagram assets from <code>images/</code> and <code>vendor/spectrum-workflow-icons/</code> (see <code>data/architecture-logos.json</code>). Add new files under <code>images/</code> and append entries to the JSON.</p>
+                    <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
+                      <input type="search" id="archArchitectureLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter logos…" autocomplete="off" aria-label="Filter diagram and product logos"/>
+                    </label>
+                    <div id="archArchitectureLogoGrid" class="arch-spectrum-icons-grid arch-architecture-logo-grid" role="listbox" aria-label="Diagram logos and assets"></div>
                     <p id="archArchitectureLogoStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
                   </details>
                 </div>

@@ -2601,10 +2601,44 @@
     if (status) status.textContent = n + ' shown' + (needle ? ' (filtered)' : '') + '.';
   }
 
-  function archArchitectureLogosPanelInit() {
-    var grid = qs('#archArchitectureLogoGrid');
-    var status = qs('#archArchitectureLogoStatus');
+  /** Populate one logo grid from catalog items (shared tile markup). */
+  function archRenderArchitectureLogoTiles(grid, items) {
     if (!grid) return;
+    grid.textContent = '';
+    items.forEach(function (item) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'arch-spectrum-icons-tile arch-diagram-ui arch-architecture-logo-tile';
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('data-arch-logo-file', item.file);
+      btn.setAttribute('data-arch-logo-label', item.label || item.file);
+      btn.setAttribute('data-arch-logo-desc', item.description || '');
+      var hover = (item.label || '') + (item.description ? ' — ' + item.description : '');
+      btn.title = hover || item.file;
+      var wrap = document.createElement('span');
+      wrap.className = 'arch-spectrum-icons-tile-img-wrap';
+      var im = document.createElement('img');
+      im.src = item.file;
+      im.alt = '';
+      im.loading = 'lazy';
+      im.width = 32;
+      im.height = 32;
+      wrap.appendChild(im);
+      var cap = document.createElement('span');
+      cap.className = 'arch-spectrum-icons-tile-cap';
+      cap.textContent = item.label || item.file;
+      btn.appendChild(wrap);
+      btn.appendChild(cap);
+      grid.appendChild(btn);
+    });
+  }
+
+  function archArchitectureLogosPanelInit() {
+    var gridAdobe = qs('#archAdobeLogoGrid');
+    var gridOther = qs('#archArchitectureLogoGrid');
+    var stAdobe = qs('#archAdobeLogoStatus');
+    var stOther = qs('#archArchitectureLogoStatus');
+    if (!gridAdobe || !gridOther) return;
     /* Fresh fetch each time (avoids stale CDN/browser cache after JSON updates). */
     fetch('data/architecture-logos.json', { cache: 'no-store' })
       .then(function (r) {
@@ -2612,53 +2646,38 @@
         return r.json();
       })
       .then(function (data) {
-        if (!grid.parentNode) return;
+        if (!gridOther.parentNode) return;
         if (!data || !Array.isArray(data.logos)) return;
-        grid.textContent = '';
+        var adobe = [];
+        var other = [];
         data.logos.forEach(function (item) {
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'arch-spectrum-icons-tile arch-diagram-ui arch-architecture-logo-tile';
-          btn.setAttribute('role', 'option');
-          btn.setAttribute('data-arch-logo-file', item.file);
-          btn.setAttribute('data-arch-logo-label', item.label || item.file);
-          btn.setAttribute('data-arch-logo-desc', item.description || '');
-          var hover = (item.label || '') + (item.description ? ' — ' + item.description : '');
-          btn.title = hover || item.file;
-          var wrap = document.createElement('span');
-          wrap.className = 'arch-spectrum-icons-tile-img-wrap';
-          var im = document.createElement('img');
-          im.src = item.file;
-          im.alt = '';
-          im.loading = 'lazy';
-          im.width = 32;
-          im.height = 32;
-          wrap.appendChild(im);
-          var cap = document.createElement('span');
-          cap.className = 'arch-spectrum-icons-tile-cap';
-          cap.textContent = item.label || item.file;
-          btn.appendChild(wrap);
-          btn.appendChild(cap);
-          grid.appendChild(btn);
+          var f = item.file || '';
+          if (f.indexOf('corporate-express-product-logos') >= 0) adobe.push(item);
+          else other.push(item);
         });
-        grid.setAttribute('data-arch-built', '1');
-        var qinp = qs('#archArchitectureLogoSearch');
-        archArchitectureLogosApplyFilter(qinp ? qinp.value : '');
-        if (status) {
-          status.textContent =
-            data.logos.length + ' logos — Corporate Express pack is listed first; hover a tile for details.';
+        archRenderArchitectureLogoTiles(gridAdobe, adobe);
+        archRenderArchitectureLogoTiles(gridOther, other);
+        gridAdobe.setAttribute('data-arch-built', '1');
+        gridOther.setAttribute('data-arch-built', '1');
+        var qA = qs('#archAdobeLogoSearch');
+        var qO = qs('#archArchitectureLogoSearch');
+        archArchitectureLogosApplyFilter(gridAdobe, stAdobe, qA ? qA.value : '');
+        archArchitectureLogosApplyFilter(gridOther, stOther, qO ? qO.value : '');
+        if (stAdobe) {
+          stAdobe.textContent = adobe.length + ' Adobe logos — hover a tile for details.';
+        }
+        if (stOther) {
+          stOther.textContent = other.length + ' logos — hover a tile for details.';
         }
       })
       .catch(function () {
-        if (status) {
-          status.textContent =
-            'Could not load architecture logo list. Ensure data/architecture-logos.json is deployed.';
-        }
+        var msg = 'Could not load architecture logo list. Ensure data/architecture-logos.json is deployed.';
+        if (stAdobe) stAdobe.textContent = msg;
+        if (stOther) stOther.textContent = msg;
       });
   }
 
-  function archArchitectureLogosApplyFilter(q) {
-    var grid = qs('#archArchitectureLogoGrid');
+  function archArchitectureLogosApplyFilter(grid, statusEl, q) {
     if (!grid || grid.getAttribute('data-arch-built') !== '1') return;
     var needle = (q || '').trim().toLowerCase();
     var tiles = grid.querySelectorAll('.arch-architecture-logo-tile');
@@ -2675,8 +2694,7 @@
       btn.hidden = !show;
       if (show) n++;
     }
-    var status = qs('#archArchitectureLogoStatus');
-    if (status) status.textContent = n + ' shown' + (needle ? ' (filtered)' : '') + '.';
+    if (statusEl) statusEl.textContent = n + ' shown' + (needle ? ' (filtered)' : '') + '.';
   }
 
   function archProductLogoPlace(file, label, description) {
@@ -5534,10 +5552,10 @@
       });
     }
 
-    var logoGrid = qs('#archArchitectureLogoGrid');
-    if (logoGrid && !logoGrid.getAttribute('data-arch-click-ready')) {
-      logoGrid.setAttribute('data-arch-click-ready', '1');
-      logoGrid.addEventListener('click', function (e) {
+    var logoSection = qs('#archEditorSectionSpectrumIcons');
+    if (logoSection && !logoSection.getAttribute('data-arch-logo-click-ready')) {
+      logoSection.setAttribute('data-arch-logo-click-ready', '1');
+      logoSection.addEventListener('click', function (e) {
         var btn = e.target.closest && e.target.closest('.arch-architecture-logo-tile');
         if (!btn || btn.hidden) return;
         var f = btn.getAttribute('data-arch-logo-file');
@@ -5546,11 +5564,18 @@
         if (f) archProductLogoPlace(f, lab, desc);
       });
     }
+    var adobeLogoSearch = qs('#archAdobeLogoSearch');
+    if (adobeLogoSearch && !adobeLogoSearch.getAttribute('data-arch-ready')) {
+      adobeLogoSearch.setAttribute('data-arch-ready', '1');
+      adobeLogoSearch.addEventListener('input', function () {
+        archArchitectureLogosApplyFilter(qs('#archAdobeLogoGrid'), qs('#archAdobeLogoStatus'), adobeLogoSearch.value);
+      });
+    }
     var logoSearch = qs('#archArchitectureLogoSearch');
     if (logoSearch && !logoSearch.getAttribute('data-arch-ready')) {
       logoSearch.setAttribute('data-arch-ready', '1');
       logoSearch.addEventListener('input', function () {
-        archArchitectureLogosApplyFilter(logoSearch.value);
+        archArchitectureLogosApplyFilter(qs('#archArchitectureLogoGrid'), qs('#archArchitectureLogoStatus'), logoSearch.value);
       });
     }
 
