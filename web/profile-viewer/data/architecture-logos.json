@@ -1,5 +1,5 @@
 {
-  "note": "Diagram and product assets under web/profile-viewer/images. For batch export from Adobe Express, prefer Download → pptx, then run scripts/extract-pptx-media.sh on the file and copy from ppt/media/ into images/. label + description power hover tooltips on the canvas.",
+  "note": "Diagram and product assets under web/profile-viewer/images. For batch export from Adobe Express, prefer Download → pptx, then run scripts/extract-pptx-media.sh on the file and copy from ppt/media/ into images/. Adobe Presentation Template deck: slide 59 (dark-on-white) and slide 60 (light-on-dark) icons live under images/adobe-presentation-template-icons/. label + description power hover tooltips on the canvas.",
   "logos": [
     {
       "file": "images/corporate-express-product-logos/image1.png",
@@ -360,6 +360,2206 @@
       "file": "images/aep-architecture-diagram-reference.png",
       "label": "Architecture diagram (preview PNG)",
       "description": "Raster preview of the architecture diagram — use for thumbnails or slides."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image100.svg",
+      "label": "Calendar",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: calendar icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image102.svg",
+      "label": "Location",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: location icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image104.svg",
+      "label": "Home",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: home icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image106.svg",
+      "label": "Enterprise",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: enterprise icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image108.svg",
+      "label": "Small business",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: small business icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image110.svg",
+      "label": "Earth",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: earth icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image112.svg",
+      "label": "User",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: user icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image114.svg",
+      "label": "Two users",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: two users icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image116.svg",
+      "label": "Team",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: team icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image118.svg",
+      "label": "Avatar",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: avatar icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image120.svg",
+      "label": "Code",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: code icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image122.svg",
+      "label": "Tag",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: tag icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image124.svg",
+      "label": "Page",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: page icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image126.svg",
+      "label": "App",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: app icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image128.svg",
+      "label": "Wire globe",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: wire globe icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image130.svg",
+      "label": "Link",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: link icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image132.svg",
+      "label": "Lock",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: lock icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image134.svg",
+      "label": "Unlock",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: unlock icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image136.svg",
+      "label": "Loud megaphone",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: loud megaphone icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image138.svg",
+      "label": "Binoculars",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: binoculars icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image140.svg",
+      "label": "No eye",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: no eye icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image142.svg",
+      "label": "Eye",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: eye icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image144.svg",
+      "label": "Megaphone",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: megaphone icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image146.svg",
+      "label": "Target",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: target icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image148.svg",
+      "label": "Reticle",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: reticle icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image150.svg",
+      "label": "Template icon (image150)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image152.svg",
+      "label": "Template icon (image152)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image154.svg",
+      "label": "Template icon (image154)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image156.svg",
+      "label": "Template icon (image156)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image158.svg",
+      "label": "Template icon (image158)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image160.svg",
+      "label": "Template icon (image160)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image162.svg",
+      "label": "Magnifying glass",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: magnifying glass icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image164.svg",
+      "label": "Gear",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: gear icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image166.svg",
+      "label": "Circle slash",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: circle slash icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image168.svg",
+      "label": "Award",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: award icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image170.svg",
+      "label": "Party",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: party icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image172.svg",
+      "label": "Bright lightbulb",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: bright lightbulb icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image174.svg",
+      "label": "Lightbulb",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: lightbulb icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image176.svg",
+      "label": "Paper plane",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: paper plane icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image178.svg",
+      "label": "Bolt",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: bolt icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image180.svg",
+      "label": "Sparkles",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: sparkles icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image182.svg",
+      "label": "Template icon (image182)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image184.svg",
+      "label": "Template icon (image184)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image186.svg",
+      "label": "Template icon (image186)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image188.svg",
+      "label": "Template icon (image188)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image190.svg",
+      "label": "Template icon (image190)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image192.svg",
+      "label": "Template icon (image192)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image194.svg",
+      "label": "Rocket",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: rocket icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image196.svg",
+      "label": "Toolbox",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: toolbox icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image198.svg",
+      "label": "Clipboard",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: clipboard icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image200.svg",
+      "label": "Education",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: education icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image202.svg",
+      "label": "Pushpin",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: pushpin icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image204.svg",
+      "label": "Paperclip",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: paperclip icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image206.svg",
+      "label": "Trashcan",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: trashcan icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image208.svg",
+      "label": "Plugin",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: plugin icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image210.svg",
+      "label": "Layers",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: layers icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image212.svg",
+      "label": "Cc libraries",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: cc libraries icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image214.svg",
+      "label": "Template icon (image214)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image216.svg",
+      "label": "Template icon (image216)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image218.svg",
+      "label": "Template icon (image218)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image220.svg",
+      "label": "Template icon (image220)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image222.svg",
+      "label": "Template icon (image222)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image224.svg",
+      "label": "Template icon (image224)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image226.svg",
+      "label": "Filter",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: filter icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image228.svg",
+      "label": "Alert notice",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: Alert notice icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image230.svg",
+      "label": "Check circle",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: check circle icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image232.svg",
+      "label": "Info circle",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: info circle icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image234.svg",
+      "label": "Question mark circle",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: question mark circle icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image236.svg",
+      "label": "X circle",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: x circle icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image238.svg",
+      "label": "Template icon (image238)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image240.svg",
+      "label": "Template icon (image240)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image242.svg",
+      "label": "Warning",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: warning icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image244.svg",
+      "label": "Arrow up",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: arrow up icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image246.svg",
+      "label": "Arrow left",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: arrow left icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image248.svg",
+      "label": "Template icon (image248)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image250.svg",
+      "label": "Switch arrows",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: switch arrows icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image252.svg",
+      "label": "Arrow right",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: arrow right icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image254.svg",
+      "label": "Arrow down",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: arrow down icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image256.svg",
+      "label": "Remix",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: remix icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image258.svg",
+      "label": "Rotate cw",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: rotate cw icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image260.svg",
+      "label": "Rotate ccw",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: rotate ccw icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image262.svg",
+      "label": "Update",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: update icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image264.svg",
+      "label": "Template icon (image264)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image266.svg",
+      "label": "Template icon (image266)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image268.svg",
+      "label": "Template icon (image268)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image270.svg",
+      "label": "Template icon (image270)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image272.svg",
+      "label": "Template icon (image272)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image274.svg",
+      "label": "Template icon (image274)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image276.svg",
+      "label": "Template icon (image276)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image278.svg",
+      "label": "Template icon (image278)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image280.svg",
+      "label": "Template icon (image280)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image282.svg",
+      "label": "Image",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: image icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image284.svg",
+      "label": "Image stack",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: image stack icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image286.svg",
+      "label": "Play",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: play icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image288.svg",
+      "label": "Template icon (image288)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image290.svg",
+      "label": "Template icon (image290)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image292.svg",
+      "label": "Template icon (image292)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image294.svg",
+      "label": "Record",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: record icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image296.svg",
+      "label": "Template icon (image296)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image298.svg",
+      "label": "Play video",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: play video icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image300.svg",
+      "label": "Step forward",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: step forward icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image302.svg",
+      "label": "Pause",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: pause icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image304.svg",
+      "label": "Camera",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: camera icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image306.svg",
+      "label": "Video camera",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: video camera icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image308.svg",
+      "label": "Template icon (image308)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image310.svg",
+      "label": "Crop",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: crop icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image312.svg",
+      "label": "Template icon (image312)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image314.svg",
+      "label": "Paintbrush",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: paintbrush icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image316.svg",
+      "label": "Template icon (image316)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image318.svg",
+      "label": "Template icon (image318)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image320.svg",
+      "label": "Template icon (image320)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image322.svg",
+      "label": "Pencil",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: pencil icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image324.svg",
+      "label": "Template icon (image324)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image326.svg",
+      "label": "Template icon (image326)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image328.svg",
+      "label": "Template icon (image328)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image330.svg",
+      "label": "Template icon (image330)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image332.svg",
+      "label": "Template icon (image332)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image334.svg",
+      "label": "Template icon (image334)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image336.svg",
+      "label": "Template icon (image336)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image338.svg",
+      "label": "3d",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: 3d icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image34.svg",
+      "label": "Touch",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: touch icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image340.svg",
+      "label": "Template icon (image340)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image342.svg",
+      "label": "Template icon (image342)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image344.svg",
+      "label": "Template icon (image344)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image346.svg",
+      "label": "Template icon (image346)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image348.svg",
+      "label": "Mic",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: mic icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image350.svg",
+      "label": "Template icon (image350)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image352.svg",
+      "label": "Template icon (image352)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image354.svg",
+      "label": "Template icon (image354)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image356.svg",
+      "label": "Template icon (image356)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image358.svg",
+      "label": "Template icon (image358)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image36.svg",
+      "label": "Hand",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: hand icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image360.svg",
+      "label": "Palette",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: palette icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image362.svg",
+      "label": "Template icon (image362)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image364.svg",
+      "label": "Currency",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: currency icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image366.svg",
+      "label": "Shopping cart",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: shopping cart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image368.svg",
+      "label": "Template icon (image368)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image370.svg",
+      "label": "Template icon (image370)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image372.svg",
+      "label": "Template icon (image372)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image374.svg",
+      "label": "Gift",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: gift icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image376.svg",
+      "label": "Template icon (image376)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image378.svg",
+      "label": "Template icon (image378)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image38.svg",
+      "label": "Cursor",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: cursor icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image380.svg",
+      "label": "Template icon (image380)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image382.svg",
+      "label": "Template icon (image382)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image384.svg",
+      "label": "Template icon (image384)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image386.svg",
+      "label": "Template icon (image386)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image388.svg",
+      "label": "Star",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: star icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image390.svg",
+      "label": "Email",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: email icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image392.svg",
+      "label": "Heart",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: heart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image394.svg",
+      "label": "Bell",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: bell icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image396.svg",
+      "label": "Emoji",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: emoji icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image398.svg",
+      "label": "Thumbs up",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: thumbs up icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image40.svg",
+      "label": "Layout",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: layout icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image400.svg",
+      "label": "Template icon (image400)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image402.svg",
+      "label": "At sign",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: at sign icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image404.svg",
+      "label": "Speech",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: speech icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image406.svg",
+      "label": "Conversation",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: conversation icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image408.svg",
+      "label": "Template icon (image408)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image410.svg",
+      "label": "Template icon (image410)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image412.svg",
+      "label": "Template icon (image412)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image414.svg",
+      "label": "Template icon (image414)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image416.svg",
+      "label": "Template icon (image416)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image418.svg",
+      "label": "Template icon (image418)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image42.svg",
+      "label": "Phone",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: phone icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image420.svg",
+      "label": "Template icon (image420)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image422.svg",
+      "label": "Template icon (image422)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image424.svg",
+      "label": "Template icon (image424)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image426.svg",
+      "label": "Template icon (image426)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image428.svg",
+      "label": "Template icon (image428)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image430.svg",
+      "label": "Template icon (image430)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image432.svg",
+      "label": "Template icon (image432)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image434.svg",
+      "label": "Template icon (image434)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image436.svg",
+      "label": "Template icon (image436)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image438.svg",
+      "label": "Template icon (image438)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image44.svg",
+      "label": "Laptop",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: laptop icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image440.svg",
+      "label": "Template icon (image440)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image442.svg",
+      "label": "Template icon (image442)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image444.svg",
+      "label": "Template icon (image444)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image446.svg",
+      "label": "Bar chart",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: bar chart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image448.svg",
+      "label": "Increase bar chart",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: increase bar chart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image450.svg",
+      "label": "Template icon (image450)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image452.svg",
+      "label": "Venn diagram",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: venn diagram icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image454.svg",
+      "label": "Donut chart",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: donut chart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image456.svg",
+      "label": "Pie chart",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: pie chart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image458.svg",
+      "label": "Template icon (image458)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image46.svg",
+      "label": "Monitor",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: monitor icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image460.svg",
+      "label": "Dashboard",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: dashboard icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image462.svg",
+      "label": "Template icon (image462)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image464.svg",
+      "label": "Template icon (image464)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image466.svg",
+      "label": "Template icon (image466)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image468.svg",
+      "label": "Template icon (image468)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image470.svg",
+      "label": "Template icon (image470)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image472.svg",
+      "label": "Template icon (image472)",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image48.svg",
+      "label": "Tablet",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: tablet icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image50.svg",
+      "label": "Server",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: server icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image52.svg",
+      "label": "File",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image54.svg",
+      "label": "File alert",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: file alert icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image56.svg",
+      "label": "New file",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: new file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image58.svg",
+      "label": "Image file",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: image file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image60.svg",
+      "label": "Text file",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: text file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image62.svg",
+      "label": "Video file",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: video file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image64.svg",
+      "label": "Zip file",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: zip file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image66.svg",
+      "label": "Folder",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: folder icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image68.svg",
+      "label": "Folder open",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: folder open icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image70.svg",
+      "label": "Cloud",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: cloud icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image72.svg",
+      "label": "Cloud error",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: cloud error icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image74.svg",
+      "label": "Cloud info",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: cloud info icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image76.svg",
+      "label": "Cloud upload",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: cloud upload icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image78.svg",
+      "label": "Upload",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: upload icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image80.svg",
+      "label": "Download i",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: download i. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image82.svg",
+      "label": "Dropzone",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: dropzone icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image84.svg",
+      "label": "Share",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: share icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image86.svg",
+      "label": "Database",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: database icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image88.svg",
+      "label": "Generate",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: generate icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image90.svg",
+      "label": "Prompt",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: prompt icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image92.svg",
+      "label": "Generative speech",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: generative speech icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image94.svg",
+      "label": "Generative image",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: generative image icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image96.svg",
+      "label": "Clock",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: clock icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/dark-on-white/image98.svg",
+      "label": "Stopwatch",
+      "description": "Adobe Presentation Template — Dark stroke for light backgrounds (slide 59: “Dark icons for white backgrounds”). Accessibility label: stopwatch icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image474.svg",
+      "label": "Touch",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: touch icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image476.svg",
+      "label": "Hand",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: hand icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image478.svg",
+      "label": "Cursor",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: cursor icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image480.svg",
+      "label": "Layout",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: layout icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image482.svg",
+      "label": "Phone",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: phone icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image484.svg",
+      "label": "Laptop",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: laptop icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image486.svg",
+      "label": "Monitor",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: monitor icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image488.svg",
+      "label": "Tablet",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: tablet icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image490.svg",
+      "label": "Server",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: server icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image492.svg",
+      "label": "File",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image494.svg",
+      "label": "File alert",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: file alert icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image496.svg",
+      "label": "New file",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: new file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image498.svg",
+      "label": "Image file",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: image file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image500.svg",
+      "label": "Text file",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: text file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image502.svg",
+      "label": "Video file",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: video file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image504.svg",
+      "label": "Zip file",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: zip file icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image506.svg",
+      "label": "Folder",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: folder icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image508.svg",
+      "label": "Folder open",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: folder open icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image510.svg",
+      "label": "Cloud",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: cloud icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image512.svg",
+      "label": "Cloud error",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: cloud error icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image514.svg",
+      "label": "Cloud info",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: cloud info icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image516.svg",
+      "label": "Cloud upload",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: cloud upload icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image518.svg",
+      "label": "Upload",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: upload icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image520.svg",
+      "label": "Download i",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: download i. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image522.svg",
+      "label": "Dropzone",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: dropzone icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image524.svg",
+      "label": "Share",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: share icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image526.svg",
+      "label": "Database",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: database icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image528.svg",
+      "label": "Generate",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: generate icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image530.svg",
+      "label": "Prompt",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: prompt icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image532.svg",
+      "label": "Generative speech",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: generative speech icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image534.svg",
+      "label": "Generative image",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: generative image icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image536.svg",
+      "label": "Clock",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: clock icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image538.svg",
+      "label": "Stopwatch",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: stopwatch icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image540.svg",
+      "label": "Calendar",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: calendar icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image542.svg",
+      "label": "Location",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: location icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image544.svg",
+      "label": "Home",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: home icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image546.svg",
+      "label": "Enterprise",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: enterprise icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image548.svg",
+      "label": "Small business",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: small business icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image550.svg",
+      "label": "Earth",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: earth icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image552.svg",
+      "label": "User",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: user icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image554.svg",
+      "label": "Two users",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: two users icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image556.svg",
+      "label": "Team",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: team icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image558.svg",
+      "label": "Avatar",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: avatar icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image560.svg",
+      "label": "Code",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: code icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image562.svg",
+      "label": "Tag",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: tag icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image564.svg",
+      "label": "Page",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: page icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image566.svg",
+      "label": "App",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: app icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image568.svg",
+      "label": "Wire globe",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: wire globe icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image570.svg",
+      "label": "Link",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: link icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image572.svg",
+      "label": "Lock",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: lock icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image574.svg",
+      "label": "Unlock",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: unlock icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image576.svg",
+      "label": "Loud megaphone",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: loud megaphone icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image578.svg",
+      "label": "Binoculars",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: binoculars icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image580.svg",
+      "label": "No eye",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: no eye icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image582.svg",
+      "label": "Eye",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: eye icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image584.svg",
+      "label": "Megaphone",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: megaphone icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image586.svg",
+      "label": "Target",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: target icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image588.svg",
+      "label": "Reticle",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: reticle icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image590.svg",
+      "label": "Template icon (image590)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image592.svg",
+      "label": "Template icon (image592)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image594.svg",
+      "label": "Template icon (image594)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image596.svg",
+      "label": "Template icon (image596)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image598.svg",
+      "label": "Template icon (image598)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image600.svg",
+      "label": "Template icon (image600)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image602.svg",
+      "label": "Magnifying glass",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: magnifying glass icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image604.svg",
+      "label": "Gear",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: gear icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image606.svg",
+      "label": "Circle slash",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: circle slash icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image608.svg",
+      "label": "Award",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: award icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image610.svg",
+      "label": "Party",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: party icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image612.svg",
+      "label": "Bright lightbulb",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: bright lightbulb icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image614.svg",
+      "label": "Lightbulb",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: lightbulb icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image616.svg",
+      "label": "Paper plane",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: paper plane icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image618.svg",
+      "label": "Bolt",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: bolt icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image620.svg",
+      "label": "Sparkles",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: sparkles icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image622.svg",
+      "label": "Template icon (image622)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image624.svg",
+      "label": "Template icon (image624)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image626.svg",
+      "label": "Template icon (image626)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image628.svg",
+      "label": "Template icon (image628)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image630.svg",
+      "label": "Template icon (image630)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image632.svg",
+      "label": "Template icon (image632)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image634.svg",
+      "label": "Rocket",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: rocket icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image636.svg",
+      "label": "Toolbox",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: toolbox icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image638.svg",
+      "label": "Clipboard",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: clipboard icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image640.svg",
+      "label": "Education",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: education icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image642.svg",
+      "label": "Pushpin",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: pushpin icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image644.svg",
+      "label": "Paperclip",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: paperclip icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image646.svg",
+      "label": "Trashcan",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: trashcan icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image648.svg",
+      "label": "Plugin",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: plugin icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image650.svg",
+      "label": "Layers",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: layers icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image652.svg",
+      "label": "Cc libraries",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: cc libraries icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image654.svg",
+      "label": "Template icon (image654)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image656.svg",
+      "label": "Template icon (image656)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image658.svg",
+      "label": "Template icon (image658)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image660.svg",
+      "label": "Template icon (image660)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image662.svg",
+      "label": "Template icon (image662)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image664.svg",
+      "label": "Template icon (image664)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image666.svg",
+      "label": "Filter",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: filter icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image668.svg",
+      "label": "Alert notice",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: Alert notice icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image670.svg",
+      "label": "Check circle",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: check circle icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image672.svg",
+      "label": "Info circle",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: info circle icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image674.svg",
+      "label": "Question mark circle",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: question mark circle icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image676.svg",
+      "label": "X circle",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: x circle icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image678.svg",
+      "label": "Template icon (image678)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image680.svg",
+      "label": "Template icon (image680)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image682.svg",
+      "label": "Warning",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: warning icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image684.svg",
+      "label": "Arrow up",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: arrow up icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image686.svg",
+      "label": "Arrow left",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: arrow left icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image688.svg",
+      "label": "Template icon (image688)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image690.svg",
+      "label": "Switch arrows",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: switch arrows icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image692.svg",
+      "label": "Arrow right",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: arrow right icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image694.svg",
+      "label": "Arrow down",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: arrow down icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image696.svg",
+      "label": "Remix",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: remix icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image698.svg",
+      "label": "Rotate cw",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: rotate cw icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image700.svg",
+      "label": "Rotate ccw",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: rotate ccw icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image702.svg",
+      "label": "Update",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: update icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image704.svg",
+      "label": "Template icon (image704)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image706.svg",
+      "label": "Template icon (image706)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image708.svg",
+      "label": "Template icon (image708)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image710.svg",
+      "label": "Template icon (image710)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image712.svg",
+      "label": "Template icon (image712)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image714.svg",
+      "label": "Template icon (image714)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image716.svg",
+      "label": "Template icon (image716)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image718.svg",
+      "label": "Template icon (image718)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image720.svg",
+      "label": "Template icon (image720)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image722.svg",
+      "label": "Image",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: image icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image724.svg",
+      "label": "Image stack",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: image stack icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image726.svg",
+      "label": "Play",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: play icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image728.svg",
+      "label": "Template icon (image728)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image730.svg",
+      "label": "Template icon (image730)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image732.svg",
+      "label": "Template icon (image732)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image734.svg",
+      "label": "Record",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: record icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image736.svg",
+      "label": "Template icon (image736)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image738.svg",
+      "label": "Play video",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: play video icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image740.svg",
+      "label": "Step forward",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: step forward icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image742.svg",
+      "label": "Pause",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: pause icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image744.svg",
+      "label": "Camera",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: camera icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image746.svg",
+      "label": "Video camera",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: video camera icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image748.svg",
+      "label": "Template icon (image748)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image750.svg",
+      "label": "Crop",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: crop icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image752.svg",
+      "label": "Template icon (image752)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image754.svg",
+      "label": "Paintbrush",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: paintbrush icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image756.svg",
+      "label": "Template icon (image756)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image758.svg",
+      "label": "Template icon (image758)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image760.svg",
+      "label": "Template icon (image760)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image762.svg",
+      "label": "Pencil",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: pencil icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image764.svg",
+      "label": "Template icon (image764)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image766.svg",
+      "label": "Template icon (image766)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image768.svg",
+      "label": "Template icon (image768)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image770.svg",
+      "label": "Template icon (image770)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image772.svg",
+      "label": "Template icon (image772)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image774.svg",
+      "label": "Template icon (image774)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image776.svg",
+      "label": "Template icon (image776)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image778.svg",
+      "label": "3d",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: 3d icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image780.svg",
+      "label": "Template icon (image780)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image782.svg",
+      "label": "Template icon (image782)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image784.svg",
+      "label": "Template icon (image784)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image786.svg",
+      "label": "Template icon (image786)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image788.svg",
+      "label": "Mic",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: mic icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image790.svg",
+      "label": "Template icon (image790)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image792.svg",
+      "label": "Template icon (image792)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image794.svg",
+      "label": "Template icon (image794)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image796.svg",
+      "label": "Template icon (image796)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image798.svg",
+      "label": "Template icon (image798)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image800.svg",
+      "label": "Palette",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: palette icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image802.svg",
+      "label": "Template icon (image802)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image804.svg",
+      "label": "Currency",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: currency icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image806.svg",
+      "label": "Shopping cart",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: shopping cart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image808.svg",
+      "label": "Template icon (image808)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image810.svg",
+      "label": "Template icon (image810)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image812.svg",
+      "label": "Template icon (image812)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image814.svg",
+      "label": "Gift",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: gift icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image816.svg",
+      "label": "Template icon (image816)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image818.svg",
+      "label": "Template icon (image818)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image820.svg",
+      "label": "Template icon (image820)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image822.svg",
+      "label": "Template icon (image822)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image824.svg",
+      "label": "Template icon (image824)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image826.svg",
+      "label": "Template icon (image826)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image828.svg",
+      "label": "Star",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: star icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image830.svg",
+      "label": "Email",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: email icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image832.svg",
+      "label": "Heart",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: heart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image834.svg",
+      "label": "Bell",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: bell icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image836.svg",
+      "label": "Emoji",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: emoji icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image838.svg",
+      "label": "Thumbs up",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: thumbs up icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image840.svg",
+      "label": "Template icon (image840)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image842.svg",
+      "label": "At sign",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: at sign icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image844.svg",
+      "label": "Speech",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: speech icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image846.svg",
+      "label": "Conversation",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: conversation icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image848.svg",
+      "label": "Template icon (image848)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image850.svg",
+      "label": "Template icon (image850)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image852.svg",
+      "label": "Template icon (image852)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image854.svg",
+      "label": "Template icon (image854)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image856.svg",
+      "label": "Template icon (image856)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image858.svg",
+      "label": "Template icon (image858)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image860.svg",
+      "label": "Template icon (image860)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image862.svg",
+      "label": "Template icon (image862)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image864.svg",
+      "label": "Template icon (image864)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image866.svg",
+      "label": "Template icon (image866)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image868.svg",
+      "label": "Template icon (image868)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image870.svg",
+      "label": "Template icon (image870)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image872.svg",
+      "label": "Template icon (image872)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image874.svg",
+      "label": "Template icon (image874)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image876.svg",
+      "label": "Template icon (image876)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image878.svg",
+      "label": "Template icon (image878)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image880.svg",
+      "label": "Template icon (image880)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image882.svg",
+      "label": "Template icon (image882)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image884.svg",
+      "label": "Template icon (image884)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image886.svg",
+      "label": "Bar chart",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: bar chart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image888.svg",
+      "label": "Increase bar chart",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: increase bar chart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image890.svg",
+      "label": "Template icon (image890)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image892.svg",
+      "label": "Venn diagram",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: venn diagram icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image894.svg",
+      "label": "Donut chart",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: donut chart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image896.svg",
+      "label": "Pie chart",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: pie chart icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image898.svg",
+      "label": "Template icon (image898)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image900.svg",
+      "label": "Dashboard",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). Accessibility label: dashboard icon. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image902.svg",
+      "label": "Template icon (image902)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image904.svg",
+      "label": "Template icon (image904)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image906.svg",
+      "label": "Template icon (image906)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image908.svg",
+      "label": "Template icon (image908)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image910.svg",
+      "label": "Template icon (image910)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
+    },
+    {
+      "file": "images/adobe-presentation-template-icons/light-on-dark/image912.svg",
+      "label": "Template icon (image912)",
+      "description": "Adobe Presentation Template — Light stroke for dark backgrounds (slide 60: “Light icons for dark backgrounds”). No shape description in the deck; named from export. SVG from pptx media."
     }
   ]
 }
