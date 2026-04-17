@@ -687,7 +687,6 @@
       btn.setAttribute('aria-pressed', match ? 'true' : 'false');
     });
     if (archEditorActivePanelId === 'spectrum-icons') {
-      archMartechTaxonomyReferenceInit();
       archSpectrumIconsPanelInit();
       archArchitectureLogosPanelInit();
     }
@@ -2610,105 +2609,6 @@
     }
     var status = qs('#archSpectrumIconStatus');
     if (status) status.textContent = n + ' shown' + (needle ? ' (filtered)' : '') + '.';
-  }
-
-  /** Load martech-taxonomy-reference.json into the Icons panel (Phase 3 — visible reference). */
-  function archMartechTaxonomyReferenceInit() {
-    var body = qs('#archTaxonomyReferenceBody');
-    var lead = qs('#archTaxonomyReferenceLead');
-    var st = qs('#archTaxonomyReferenceStatus');
-    if (!body || body.getAttribute('data-arch-built') === '1') return;
-    fetch('data/martech-taxonomy-reference.json', { cache: 'no-store' })
-      .then(function (r) {
-        if (!r.ok) throw new Error(String(r.status));
-        return r.json();
-      })
-      .then(function (data) {
-        if (!body.parentNode) return;
-        body.textContent = '';
-        if (lead) {
-          lead.textContent = (data && data.description) || '';
-        }
-        var tags = Array.isArray(data.diagramLogoTags) ? data.diagramLogoTags.slice() : [];
-        tags.sort(function (a, b) {
-          var pa = typeof a.phase === 'number' ? a.phase : 0;
-          var pb = typeof b.phase === 'number' ? b.phase : 0;
-          if (pa !== pb) return pa - pb;
-          return String(a.id || '').localeCompare(String(b.id || ''));
-        });
-        var dl = document.createElement('dl');
-        dl.className = 'arch-taxonomy-reference-dl';
-        tags.forEach(function (t) {
-          if (!t || !t.id) return;
-          var dt = document.createElement('dt');
-          dt.textContent = (t.label || t.id) + ' (' + t.id + ')';
-          dl.appendChild(dt);
-          var dd = document.createElement('dd');
-          var desc = (t.description || '') + '';
-          var msb = Array.isArray(t.relatedMartechStackBuilderPrimaryCategories)
-            ? t.relatedMartechStackBuilderPrimaryCategories.filter(Boolean).join(', ')
-            : '';
-          if (msb) {
-            desc = desc ? desc + ' ' : '';
-            desc += 'MSB-style category hints (reference): ' + msb + '.';
-          }
-          dd.textContent = desc || '—';
-          dl.appendChild(dd);
-        });
-        body.appendChild(dl);
-        var vendors = Array.isArray(data.vendorIndex) ? data.vendorIndex : [];
-        if (vendors.length > 0) {
-          var h = document.createElement('h4');
-          h.className = 'arch-taxonomy-reference-vendor-heading';
-          h.textContent = 'Ecosystem vendor index (planning cross-walk)';
-          body.appendChild(h);
-          var tbl = document.createElement('table');
-          tbl.className = 'arch-taxonomy-reference-table';
-          tbl.setAttribute('role', 'grid');
-          var thead = document.createElement('thead');
-          var trh = document.createElement('tr');
-          ['Vendor', 'Diagram tag(s)', 'MSB-style category'].forEach(function (label) {
-            var th = document.createElement('th');
-            th.scope = 'col';
-            th.textContent = label;
-            trh.appendChild(th);
-          });
-          thead.appendChild(trh);
-          tbl.appendChild(thead);
-          var tb = document.createElement('tbody');
-          vendors.forEach(function (v) {
-            if (!v || !v.id) return;
-            var tr = document.createElement('tr');
-            var td1 = document.createElement('td');
-            td1.textContent = v.label || v.id;
-            var td2 = document.createElement('td');
-            td2.textContent = Array.isArray(v.diagramTags) ? v.diagramTags.join(', ') : '';
-            var td3 = document.createElement('td');
-            td3.textContent = v.martechStackBuilderPrimaryCategory || '—';
-            tr.appendChild(td1);
-            tr.appendChild(td2);
-            tr.appendChild(td3);
-            tb.appendChild(tr);
-          });
-          tbl.appendChild(tb);
-          body.appendChild(tbl);
-        }
-        body.hidden = false;
-        body.setAttribute('data-arch-built', '1');
-        if (st) {
-          st.textContent =
-            'Reference v' +
-            (data.version != null ? String(data.version) : '?') +
-            ' — category chips use the tag ids in parentheses (e.g. ecosystem-data).';
-        }
-      })
-      .catch(function () {
-        if (lead) {
-          lead.textContent =
-            'Could not load data/martech-taxonomy-reference.json. Deploy the Profile Viewer with web/profile-viewer/data/ included.';
-        }
-        if (st) st.textContent = '';
-      });
   }
 
   /** Core Adobe marks + Express pack → Adobe Logos section (paths match architecture-logos.json). */

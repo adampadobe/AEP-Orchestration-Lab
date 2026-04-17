@@ -577,16 +577,10 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
                   <p class="arch-editor-panel-heading">Icons &amp; logos</p>
-                  <p class="arch-tool-lead arch-tool-lead--compact">With <strong>Edit diagram</strong> on, expand a section below, tap an item to place it on the diagram, then drag corners or edges to resize. Canvas hovers use each asset’s <strong>label</strong> and <strong>description</strong> (see <code>data/architecture-logos.json</code>). The <strong>Tag &amp; martech reference</strong> block below lists chip meanings and MSB-style category hints.</p>
-                  <details class="arch-icon-panel-details" id="archTaxonomyReferenceDetails" open>
-                    <summary class="arch-icon-panel-summary">Tag &amp; martech reference</summary>
-                    <p class="arch-tool-micro arch-icon-panel-details-lead" id="archTaxonomyReferenceLead" role="status" aria-live="polite">Loading reference…</p>
-                    <div id="archTaxonomyReferenceBody" class="arch-taxonomy-reference-body arch-diagram-ui" hidden></div>
-                    <p id="archTaxonomyReferenceStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
-                  </details>
+                  <p class="arch-tool-lead arch-tool-lead--compact">With <strong>Edit diagram</strong> on, expand a section below and tap an icon or logo to place it on the diagram; drag corners or edges to resize.</p>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Spectrum workflow icons</summary>
-                    <p class="arch-tool-micro arch-icon-panel-details-lead">From <a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum CSS Workflow Icons</a> (Apache-2.0, <code>vendor/spectrum-workflow-icons/</code>).</p>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead"><a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum workflow icons</a></p>
                     <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
                       <input type="search" id="archSpectrumIconSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter by name…" autocomplete="off" aria-label="Filter Spectrum icons"/>
                     </label>
@@ -595,7 +589,7 @@
                   </details>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Adobe Logos</summary>
-                    <p class="arch-tool-micro arch-icon-panel-details-lead">Core <strong>Adobe</strong> marks (Experience Platform, Adobe, brand mark, Creative Cloud), plus product logos from your <strong>Corporate Express</strong> deck under <code>images/corporate-express-product-logos/</code>. See <code>data/architecture-logos.json</code>. Use <strong>category</strong> chips to narrow the grid, then search.</p>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Adobe marks and Corporate Express product logos</p>
                     <div id="archAdobeLogoTagRow" class="arch-logo-tag-chip-row arch-diagram-ui" role="toolbar" aria-label="Filter Adobe logos by category"></div>
                     <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
                       <input type="search" id="archAdobeLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter Adobe logos…" autocomplete="off" aria-label="Filter Adobe logos"/>
@@ -605,7 +599,7 @@
                   </details>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Product &amp; diagram logos</summary>
-                    <p class="arch-tool-micro arch-icon-panel-details-lead">Other assets: Smock/Spectrum/template icons, reference diagrams, and <strong>ecosystem vendor marks</strong> under <code>images/ecosystem-vendor-logos/</code> (Simple Icons CC0). Catalog: <code>data/architecture-logos.json</code>; tag definitions and martech cross-walk: <code>data/martech-taxonomy-reference.json</code>. Append script: <code>scripts/append-ecosystem-vendor-logos.py</code>. Use <strong>category</strong> chips, then search.</p>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Smock, template, diagram, and ecosystem vendor icons</p>
                     <div id="archOtherLogoTagRow" class="arch-logo-tag-chip-row arch-diagram-ui" role="toolbar" aria-label="Filter diagram logos by category"></div>
                     <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
                       <input type="search" id="archArchitectureLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter logos…" autocomplete="off" aria-label="Filter diagram and product logos"/>
