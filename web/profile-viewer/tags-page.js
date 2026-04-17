@@ -22,8 +22,13 @@
   function setMsg(text, kind) {
     var n = el('tagsMsg');
     if (!n) return;
-    n.textContent = text || '';
-    n.className = 'tags-msg dashboard-hero-subtitle' + (kind === 'err' ? ' tags-msg--err' : kind === 'ok' ? ' tags-msg--ok' : '');
+    var t = text || '';
+    n.textContent = t;
+    n.hidden = !t;
+    var extra = '';
+    if (kind === 'err' || kind === 'error') extra = ' error';
+    else if (kind === 'ok' || kind === 'success') extra = ' success';
+    n.className = 'consent-message consent-message--below-btn' + extra;
   }
 
   function setPropertiesHeadMode(mode) {
