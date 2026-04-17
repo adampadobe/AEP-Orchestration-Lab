@@ -2601,6 +2601,20 @@
     if (status) status.textContent = n + ' shown' + (needle ? ' (filtered)' : '') + '.';
   }
 
+  /** Core Adobe marks + Express pack → Adobe Logos section (paths match architecture-logos.json). */
+  var ARCH_ADOBE_LOGO_FILES = [
+    'images/adobe-experience-platform-logo-tags.png',
+    'images/adobe-logo-spectrum-site.svg',
+    'images/adobe-brand-mark.png',
+    'images/creative-cloud-app-icon.png',
+  ];
+
+  function archArchitectureLogoIsAdobeSection(item) {
+    var f = (item && item.file) || '';
+    if (f.indexOf('corporate-express-product-logos') >= 0) return true;
+    return ARCH_ADOBE_LOGO_FILES.indexOf(f) >= 0;
+  }
+
   /** Populate one logo grid from catalog items (shared tile markup). */
   function archRenderArchitectureLogoTiles(grid, items) {
     if (!grid) return;
@@ -2651,9 +2665,20 @@
         var adobe = [];
         var other = [];
         data.logos.forEach(function (item) {
-          var f = item.file || '';
-          if (f.indexOf('corporate-express-product-logos') >= 0) adobe.push(item);
+          if (archArchitectureLogoIsAdobeSection(item)) adobe.push(item);
           else other.push(item);
+        });
+        adobe.sort(function (a, b) {
+          var fa = (a && a.file) || '';
+          var fb = (b && b.file) || '';
+          var ia = ARCH_ADOBE_LOGO_FILES.indexOf(fa);
+          var ib = ARCH_ADOBE_LOGO_FILES.indexOf(fb);
+          if (ia >= 0 && ib >= 0) return ia - ib;
+          if (ia >= 0) return -1;
+          if (ib >= 0) return 1;
+          var na = parseInt((fa.match(/image(\d+)\.png/i) || [])[1] || '0', 10);
+          var nb = parseInt((fb.match(/image(\d+)\.png/i) || [])[1] || '0', 10);
+          return na - nb;
         });
         archRenderArchitectureLogoTiles(gridAdobe, adobe);
         archRenderArchitectureLogoTiles(gridOther, other);
