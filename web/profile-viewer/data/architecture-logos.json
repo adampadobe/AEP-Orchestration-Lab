@@ -1,5 +1,5 @@
 {
-  "note": "Diagram assets under web/profile-viewer/images. Adobe Express batch export: scripts/extract-pptx-media.sh. Template deck icons: images/adobe-presentation-template-icons/. Ecosystem vendor SVGs: images/ecosystem-vendor-logos/ (Simple Icons CC0; run scripts/append-ecosystem-vendor-logos.py after adding files). Optional `tags` on each entry — adobe-catalog, adobe-core, experience-cloud, data-collection, profile-audiences, journeys, diagram-reference, presentation-icons, partner, ecosystem-data, ecosystem-analytics, ecosystem-activation — inferred via scripts/tag-architecture-logos.py. label + description drive canvas hovers.",
+  "note": "Diagram assets under web/profile-viewer/images. Adobe Express batch export: scripts/extract-pptx-media.sh. Template deck icons: images/adobe-presentation-template-icons/. Ecosystem vendor SVGs: images/ecosystem-vendor-logos/ (Simple Icons CC0; run scripts/append-ecosystem-vendor-logos.py after adding files). Tag definitions and MSB-style cross-walk: data/martech-taxonomy-reference.json. Optional `tags` on each entry inferred via scripts/tag-architecture-logos.py; validate with npm run validate:architecture-logos-tags. label + description drive canvas hovers.",
   "logos": [
     {
       "file": "images/corporate-express-product-logos/image1.png",

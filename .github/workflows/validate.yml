@@ -29,6 +29,9 @@ jobs:
       - name: Python syntax
         run: python -m compileall -q proxy_server.py scripts/*.py
 
+      - name: Validate architecture logo tags vs taxonomy
+        run: python3 scripts/validate-architecture-logos-tags.py
+
       - name: JSON well-formed
         run: |
           python <<'PY'

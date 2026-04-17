@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "description": "Reference for architecture diagram logo tags (Phase 3). diagramLogoTags lists every tag id used in data/architecture-logos.json. vendorIndex is a planning cross-walk for ecosystem icons (not a live vendor database). martechStackBuilderPrimaryCategory values mirror public Martech Stack Builder–style category slugs for mental alignment only — confirm against your own research and vendor policies.",
+  "diagramLogoTags": [
+    {
+      "id": "adobe-catalog",
+      "label": "Adobe catalog",
+      "description": "Corporate Express product logo chart (PNG pack under images/corporate-express-product-logos/).",
+      "phase": 1,
+      "relatedMartechStackBuilderPrimaryCategories": ["packaged-cdp", "cep", "analytics-bi", "tag-management", "advertising"]
+    },
+    {
+      "id": "adobe-core",
+      "label": "Adobe core marks",
+      "description": "Standalone Experience Platform wordmark, Adobe corporate logo, brand mark, Creative Cloud app icon.",
+      "phase": 1,
+      "relatedMartechStackBuilderPrimaryCategories": []
+    },
+    {
+      "id": "experience-cloud",
+      "label": "Experience Cloud (subset)",
+      "description": "Digital Experience products in the Corporate Express set (heuristic from product name).",
+      "phase": 1,
+      "relatedMartechStackBuilderPrimaryCategories": ["cep", "packaged-cdp", "analytics-bi", "tag-management", "reverse-etl"]
+    },
+    {
+      "id": "data-collection",
+      "label": "Data collection",
+      "description": "Smock icons for devices, events, and ingestion.",
+      "phase": 1,
+      "relatedMartechStackBuilderPrimaryCategories": ["tag-management", "sdk", "event-router"]
+    },
+    {
+      "id": "profile-audiences",
+      "label": "Profile & audiences",
+      "description": "Smock icons for Profile, segmentation, identity visuals.",
+      "phase": 1,
+      "relatedMartechStackBuilderPrimaryCategories": ["packaged-cdp", "identity", "governance"]
+    },
+    {
+      "id": "journeys",
+      "label": "Journeys",
+      "description": "Smock journey / orchestration icons.",
+      "phase": 1,
+      "relatedMartechStackBuilderPrimaryCategories": ["cep", "workflow-automation"]
+    },
+    {
+      "id": "diagram-reference",
+      "label": "Diagram assets",
+      "description": "Reference architecture SVG/PNG slides.",
+      "phase": 1,
+      "relatedMartechStackBuilderPrimaryCategories": []
+    },
+    {
+      "id": "presentation-icons",
+      "label": "Presentation & UI icons",
+      "description": "Adobe template deck icons, Spectrum workflow icons, general Smock UI.",
+      "phase": 1,
+      "relatedMartechStackBuilderPrimaryCategories": []
+    },
+    {
+      "id": "partner",
+      "label": "Partner",
+      "description": "Sample or partner-specific marks (e.g. demo logos).",
+      "phase": 1,
+      "relatedMartechStackBuilderPrimaryCategories": []
+    },
+    {
+      "id": "ecosystem-data",
+      "label": "Ecosystem · data",
+      "description": "Third-party data platforms, warehouses, streaming, and infra (Simple Icons CC0 in images/ecosystem-vendor-logos/).",
+      "phase": 2,
+      "relatedMartechStackBuilderPrimaryCategories": ["warehouse", "event-streaming", "data-integration", "cloud-storage", "generic-infrastructure"]
+    },
+    {
+      "id": "ecosystem-analytics",
+      "label": "Ecosystem · analytics",
+      "description": "Third-party analytics and BI tools.",
+      "phase": 2,
+      "relatedMartechStackBuilderPrimaryCategories": ["analytics-bi", "campaign-performance"]
+    },
+    {
+      "id": "ecosystem-activation",
+      "label": "Ecosystem · activation",
+      "description": "CRM, engagement, ads, and social surfaces commonly adjacent to AEP.",
+      "phase": 2,
+      "relatedMartechStackBuilderPrimaryCategories": ["crm", "messaging", "advertising", "cep", "customer-support"]
+    }
+  ],
+  "vendorIndex": [
+    { "id": "snowflake", "label": "Snowflake", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "warehouse" },
+    { "id": "databricks", "label": "Databricks", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "warehouse" },
+    { "id": "googlebigquery", "label": "Google BigQuery", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "warehouse" },
+    { "id": "amazonaws", "label": "Amazon Web Services", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "cloud-storage" },
+    { "id": "googlecloud", "label": "Google Cloud", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "cloud-storage" },
+    { "id": "microsoftazure", "label": "Microsoft Azure", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "cloud-storage" },
+    { "id": "mongodb", "label": "MongoDB", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "warehouse" },
+    { "id": "postgresql", "label": "PostgreSQL", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "warehouse" },
+    { "id": "mysql", "label": "MySQL", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "warehouse" },
+    { "id": "elasticsearch", "label": "Elasticsearch", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "data-integration" },
+    { "id": "redis", "label": "Redis", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "generic-infrastructure" },
+    { "id": "apachekafka", "label": "Apache Kafka", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "event-streaming" },
+    { "id": "kubernetes", "label": "Kubernetes", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "generic-infrastructure" },
+    { "id": "docker", "label": "Docker", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "generic-infrastructure" },
+    { "id": "microsoftsqlserver", "label": "Microsoft SQL Server", "diagramTags": ["ecosystem-data"], "martechStackBuilderPrimaryCategory": "warehouse" },
+    { "id": "googleanalytics", "label": "Google Analytics", "diagramTags": ["ecosystem-analytics"], "martechStackBuilderPrimaryCategory": "analytics-bi" },
+    { "id": "looker", "label": "Looker", "diagramTags": ["ecosystem-analytics"], "martechStackBuilderPrimaryCategory": "analytics-bi" },
+    { "id": "tableau", "label": "Tableau", "diagramTags": ["ecosystem-analytics"], "martechStackBuilderPrimaryCategory": "analytics-bi" },
+    { "id": "salesforce", "label": "Salesforce", "diagramTags": ["ecosystem-activation"], "martechStackBuilderPrimaryCategory": "crm" },
+    { "id": "hubspot", "label": "HubSpot", "diagramTags": ["ecosystem-activation"], "martechStackBuilderPrimaryCategory": "crm" },
+    { "id": "twilio", "label": "Twilio", "diagramTags": ["ecosystem-activation"], "martechStackBuilderPrimaryCategory": "messaging" },
+    { "id": "zendesk", "label": "Zendesk", "diagramTags": ["ecosystem-activation"], "martechStackBuilderPrimaryCategory": "customer-support" },
+    { "id": "meta", "label": "Meta", "diagramTags": ["ecosystem-activation"], "martechStackBuilderPrimaryCategory": "advertising" },
+    { "id": "facebook", "label": "Facebook", "diagramTags": ["ecosystem-activation"], "martechStackBuilderPrimaryCategory": "advertising" },
+    { "id": "instagram", "label": "Instagram", "diagramTags": ["ecosystem-activation"], "martechStackBuilderPrimaryCategory": "advertising" },
+    { "id": "linkedin", "label": "LinkedIn", "diagramTags": ["ecosystem-activation"], "martechStackBuilderPrimaryCategory": "advertising" },
+    { "id": "tiktok", "label": "TikTok", "diagramTags": ["ecosystem-activation"], "martechStackBuilderPrimaryCategory": "advertising" }
+  ]
+}
