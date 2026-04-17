@@ -230,17 +230,17 @@
     var iconFile = mapped ? mapped.file : 'S2_Icon_Apps_20_N.svg';
     var tooltip = mapped ? mapped.label : raw;
     var src = TAGS_PLATFORM_ICON_DIR + iconFile;
+    // title on <img> so native tooltip shows when hovering the icon (row-level title would override).
     return (
       '<td class="tags-platform-cell">' +
-      '<span class="tags-platform-icon-wrap" title="' +
-      escapeHtml(tooltip) +
-      '">' +
+      '<span class="tags-platform-icon-wrap">' +
       '<img class="tags-platform-icon-img" src="' +
       escapeHtml(src) +
-      '" width="20" height="20" alt="" draggable="false" />' +
-      '<span class="tags-platform-sr-only">' +
+      '" width="20" height="20" alt="" role="img" draggable="false" title="' +
       escapeHtml(tooltip) +
-      '</span>' +
+      '" aria-label="' +
+      escapeHtml(tooltip) +
+      '" />' +
       '</span></td>'
     );
   }
@@ -298,7 +298,6 @@
         '</td>';
     }
     tr.classList.add('tags-property-row');
-    tr.title = 'Double-click to view data elements';
     tr.dataset.propertyId = row.propertyId || '';
     tr.dataset.propertyName = row.propertyName || '';
     tr.dataset.companyId = row.companyId || '';
