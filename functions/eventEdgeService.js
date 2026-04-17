@@ -11,6 +11,7 @@ const EDGE_DATASTREAMS_PATHS = [
   'https://edge.adobe.io/ee/v1/edgeConfigs',
   'https://edge.adobe.io/datastreams',
   'https://edge.adobe.io/experienceedge/v1/datastreamConfigs',
+  'https://edge.adobe.io/metadata/namespaces/edge/datasets/datastreams/records/',
 ];
 
 function logEdge(phase, detail) {
