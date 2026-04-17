@@ -260,3 +260,24 @@
   font-weight: 600;
 }
 
+.tags-page.profile-generation-page .tags-cell-install {
+  white-space: nowrap;
+}
+
+.tags-page.profile-generation-page .tags-env-install-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tags-page.profile-generation-page .tags-env-copy-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.tags-page.profile-generation-page .tags-env-install-missing {
+  color: var(--dash-muted, #6e6e6e);
+}
+

@@ -390,6 +390,65 @@
     });
   }
 
+  /** Embed snippet matching Tags “Web install instructions” (sync vs async). */
+  function environmentScriptSnippet(url, wantAsync) {
+    var u = String(url || '').trim();
+    if (!u) return '';
+    var safeAttr = u.replace(/"/g, '%22');
+    return (
+      '<script src="' + safeAttr + '"' + (wantAsync ? ' async' : '') + '></scr' + 'ipt>'
+    );
+  }
+
+  function copyStringToClipboard(text) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      return navigator.clipboard.writeText(text).then(function () {
+        return true;
+      });
+    }
+    return new Promise(function (resolve, reject) {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) resolve(true);
+        else reject(new Error('execCommand'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  function buildEnvironmentInstallCellInner(env) {
+    var url = env && env.scriptUrl ? String(env.scriptUrl).trim() : '';
+    if (!url) {
+      return (
+        '<td class="tags-cell-install"><span class="tags-env-install-missing" title="No library script URL yet. Build a library, assign it to this environment, or open the environment in Tags.">—</span></td>'
+      );
+    }
+    var enc = encodeURIComponent(url);
+    return (
+      '<td class="tags-cell-install"><div class="tags-env-install-cell" role="group" aria-label="Copy install script">' +
+      '<button type="button" class="btn btn-secondary tags-env-copy-btn" data-tags-script-url="' +
+      enc +
+      '" data-tags-async="0" title="Copy standard &lt;script&gt; tag">' +
+      'Copy' +
+      '</button> ' +
+      '<button type="button" class="btn btn-secondary tags-env-copy-btn" data-tags-script-url="' +
+      enc +
+      '" data-tags-async="1" title="Copy async &lt;script&gt; tag">' +
+      'Async' +
+      '</button>' +
+      '</div></td>'
+    );
+  }
+
   function renderExplorerMainTable(sectionId, items) {
     var thead = el('tagsExplorerHead');
     var tbody = el('tagsExplorerBody');
@@ -508,7 +567,7 @@
     if (sectionId === 'environments') {
       thead.innerHTML =
         '<tr><th scope="col">Name</th><th scope="col">Environment ID</th><th scope="col">Stage</th>' +
-        '<th scope="col">Path</th><th scope="col">Archive</th><th scope="col">Updated</th></tr>';
+        '<th scope="col">Path</th><th scope="col">Archive</th><th scope="col">Install</th><th scope="col">Updated</th></tr>';
       for (i = 0; i < items.length; i++) {
         var env = items[i];
         tr = document.createElement('tr');
@@ -523,7 +582,9 @@
           escapeHtml(truncateText(env.path || '', 48)) +
           '</td><td>' +
           escapeHtml(env.archive ? 'Yes' : 'No') +
-          '</td><td>' +
+          '</td>' +
+          buildEnvironmentInstallCellInner(env) +
+          '<td>' +
           formatDateTime(env.updatedAt) +
           '</td>';
         tbody.appendChild(tr);
@@ -1138,6 +1199,40 @@
     var explorerBody = el('tagsExplorerBody');
     if (explorerBody) {
       explorerBody.addEventListener('click', function (e) {
+        var copyBtn = e.target && e.target.closest ? e.target.closest('.tags-env-copy-btn') : null;
+        if (copyBtn && explorerBody.contains(copyBtn)) {
+          e.preventDefault();
+          var rawEnc = copyBtn.getAttribute('data-tags-script-url');
+          if (!rawEnc) return;
+          var url = '';
+          try {
+            url = decodeURIComponent(rawEnc);
+          } catch (err) {
+            url = rawEnc;
+          }
+          var wantAsync = copyBtn.getAttribute('data-tags-async') === '1';
+          var snippet = environmentScriptSnippet(url, wantAsync);
+          if (!snippet) return;
+          var msg = el('tagsExplorerMsg');
+          var flash = function (text, isErr) {
+            if (!msg) return;
+            msg.textContent = text;
+            msg.hidden = false;
+            msg.className =
+              'consent-message consent-message--below-btn' + (isErr ? ' error' : ' success');
+          };
+          copyStringToClipboard(snippet)
+            .then(function () {
+              flash(
+                wantAsync ? 'Copied async embed script to the clipboard.' : 'Copied embed script to the clipboard.',
+                false
+              );
+            })
+            .catch(function () {
+              flash('Could not copy to the clipboard.', true);
+            });
+          return;
+        }
         var b = e.target && e.target.closest ? e.target.closest('.tags-rule-components-btn') : null;
         if (!b || !explorerBody.contains(b)) return;
         e.preventDefault();

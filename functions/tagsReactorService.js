@@ -186,14 +186,34 @@ function mapHostResource(d) {
   };
 }
 
+/**
+ * CDN script src for embed (see Environments API: path + library_path + library_name).
+ */
+function buildEnvironmentScriptSrcUrl(attrs) {
+  if (!attrs || typeof attrs !== 'object') return '';
+  const rawBase = attrs.path != null ? String(attrs.path).trim() : '';
+  const lp = attrs.library_path != null ? String(attrs.library_path).replace(/^\/+|\/+$/g, '') : '';
+  const ln = attrs.library_name != null ? String(attrs.library_name).trim() : '';
+  if (!lp || !ln) return '';
+  const base = rawBase.replace(/\/+$/, '');
+  if (base) {
+    return `${base}/${lp}/${ln}`;
+  }
+  return `https://assets.adobedtm.com/${lp}/${ln}`;
+}
+
 function mapEnvironmentResource(d) {
   const a = d.attributes && typeof d.attributes === 'object' ? d.attributes : {};
+  const scriptUrl = buildEnvironmentScriptSrcUrl(a);
   return {
     environmentId: d.id != null ? String(d.id) : '',
     name: a.name != null ? String(a.name) : '',
     stage: a.stage != null ? String(a.stage) : '',
     archive: a.archive === true,
     path: a.path != null ? String(a.path) : '',
+    libraryPath: a.library_path != null ? String(a.library_path) : '',
+    libraryName: a.library_name != null ? String(a.library_name) : '',
+    scriptUrl,
     updatedAt: a.updated_at != null ? String(a.updated_at) : '',
   };
 }
