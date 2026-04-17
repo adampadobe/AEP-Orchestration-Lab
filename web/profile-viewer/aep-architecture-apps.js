@@ -608,6 +608,16 @@
     }
   }
 
+  /**
+   * Icons / logos rail leaves the edit tool as `none`, so drag + resize are off.
+   * After placing or pasting a custom box, switch to Tools (select) so Move and handles work immediately.
+   */
+  function archActivateCanvasAdjustAfterCustomBoxPlace() {
+    if (!archIsEditMode()) return;
+    archSetActiveTool('select');
+    archSelectionPanelSync();
+  }
+
   /** Hide left Lines dock chrome while Lines tab is active — connectors are edited from the floating bar. */
   function archEditorSyncLinesDockChrome() {
     var sec = qs('#archEditorSectionSources');
@@ -2770,6 +2780,7 @@
     archCustomBoxesRender();
     archUserLineRender();
     archUndoMaybePushSnapshot();
+    archActivateCanvasAdjustAfterCustomBoxPlace();
     if (liveRegion) liveRegion.textContent = 'Added logo: ' + (label || file) + '.';
   }
 
@@ -2820,6 +2831,7 @@
     archCustomBoxesRender();
     archUserLineRender();
     archUndoMaybePushSnapshot();
+    archActivateCanvasAdjustAfterCustomBoxPlace();
     if (liveRegion) liveRegion.textContent = 'Added Spectrum icon: ' + (label || file) + '.';
   }
 
@@ -4051,6 +4063,7 @@
     archCustomBoxesRender();
     archUserLineRender();
     archUndoMaybePushSnapshot();
+    archActivateCanvasAdjustAfterCustomBoxPlace();
     if (liveRegion) liveRegion.textContent = 'Duplicated custom box.';
   }
 
@@ -4941,6 +4954,7 @@
       archCustomBoxesRender();
       archUserLineRender();
       archUndoMaybePushSnapshot();
+      archActivateCanvasAdjustAfterCustomBoxPlace();
       if (liveRegion) liveRegion.textContent = 'Pasted shape.';
       return;
     }
