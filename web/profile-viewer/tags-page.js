@@ -208,7 +208,7 @@
   var TAGS_PLATFORM_ICON_DIR = 'vendor/spectrum-workflow-icons/';
   var TAGS_PLATFORM_ICON_MAP = {
     web: { file: 'S2_Icon_DeviceDesktop_20_N.svg', label: 'Web' },
-    mobile: { file: 'S2_Icon_DeviceMobile_20_N.svg', label: 'Mobile' },
+    mobile: { file: 'S2_Icon_DevicePhone_20_N.svg', label: 'Mobile' },
     edge: { file: 'S2_Icon_Cloud_20_N.svg', label: 'Edge' },
   };
 
