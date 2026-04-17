@@ -4,11 +4,29 @@
  */
 
 const EDGE_INTERACT_BASE = 'https://server.adobedc.net/ee/v2/interact';
+/** GET list / discovery — used by listDatastreams and createDatastreamConfig probe. */
 const EDGE_DATASTREAMS_PATHS = [
   'https://edge.adobe.io/ee/v2/datastreamConfigs',
+  'https://edge.adobe.io/ee/v1/datastreamConfigs',
   'https://edge.adobe.io/ee/v1/edgeConfigs',
   'https://edge.adobe.io/datastreams',
+  'https://edge.adobe.io/experienceedge/v1/datastreamConfigs',
 ];
+
+function logEdge(phase, detail) {
+  try {
+    console.log('[edgeDatastream]', JSON.stringify({ ts: new Date().toISOString(), phase, ...detail }));
+  } catch {
+    console.log('[edgeDatastream]', phase);
+  }
+}
+
+function bodySnippet(text, max) {
+  const t = String(text || '');
+  if (!t) return '';
+  const trimmed = t.replace(/\s+/g, ' ').trim();
+  return trimmed.length > max ? `${trimmed.slice(0, max)}…` : trimmed;
+}
 
 /* ── XDM helpers ── */
 
@@ -205,6 +223,15 @@ async function listDatastreams(token, clientId, orgId) {
  */
 function extractDatastreamIdFromCreateResponse(data) {
   if (!data || typeof data !== 'object') return '';
+  if (data.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+    const dr = data.data;
+    if (dr.id) return String(dr.id).trim();
+    const a = dr.attributes && typeof dr.attributes === 'object' ? dr.attributes : null;
+    if (a) {
+      const fromA = a.datastreamId || a.edgeConfigId || a.id || a.uuid;
+      if (fromA) return String(fromA).trim();
+    }
+  }
   const d = data.data !== undefined ? data.data : data;
   const attrs = d && typeof d === 'object' ? d.attributes : null;
   const direct =
@@ -240,6 +267,35 @@ async function createDatastreamConfig(token, clientId, orgId, sandbox, params) {
   };
   const withSandbox = { ...baseHeaders, 'x-sandbox-name': String(sandbox || '').trim() };
 
+  logEdge('create.start', {
+    sandbox: String(sandbox || '').trim(),
+    nameLen: name.length,
+    mappingSchemaId: mappingSchemaId.slice(0, 80),
+    datasetId: datasetId.slice(0, 40),
+  });
+
+  const discovery = [];
+  const probeHeaders = withSandbox;
+  for (const url of EDGE_DATASTREAMS_PATHS) {
+    try {
+      const resp = await fetch(url, { method: 'GET', headers: probeHeaders });
+      const text = await resp.text();
+      const row = {
+        url,
+        sandboxHeader: true,
+        httpStatus: resp.status,
+        contentType: resp.headers.get('Content-Type') || '',
+        bodySnippet: bodySnippet(text, 200),
+      };
+      discovery.push(row);
+      logEdge('create.probeGET', row);
+    } catch (e) {
+      const row = { url, sandboxHeader: true, exception: String(e.message || e) };
+      discovery.push(row);
+      logEdge('create.probeGET.error', row);
+    }
+  }
+
   const attempts = [
     {
       url: 'https://edge.adobe.io/ee/v2/datastreamConfigs',
@@ -258,6 +314,48 @@ async function createDatastreamConfig(token, clientId, orgId, sandbox, params) {
             },
           },
         ],
+      },
+    },
+    {
+      url: 'https://edge.adobe.io/ee/v1/datastreamConfigs',
+      label: 'v1 datastreamConfigs + AEP service',
+      body: {
+        title: name,
+        name,
+        description,
+        mappingSchemaId,
+        services: [
+          {
+            name: 'Adobe Experience Platform',
+            enabled: true,
+            settings: {
+              datasets: [{ id: datasetId, schema: mappingSchemaId }],
+            },
+          },
+        ],
+      },
+    },
+    {
+      url: 'https://edge.adobe.io/ee/v2/datastreamConfigs',
+      label: 'v2 JSON:API style',
+      body: {
+        data: {
+          type: 'datastream-configs',
+          attributes: {
+            title: name,
+            description,
+            mappingSchemaId,
+            services: [
+              {
+                name: 'Adobe Experience Platform',
+                enabled: true,
+                settings: {
+                  datasets: [{ id: datasetId, schema: mappingSchemaId }],
+                },
+              },
+            ],
+          },
+        },
       },
     },
     {
@@ -290,16 +388,36 @@ async function createDatastreamConfig(token, clientId, orgId, sandbox, params) {
         eventDatasetId: datasetId,
       },
     },
+    {
+      url: 'https://edge.adobe.io/experienceedge/v1/datastreamConfigs',
+      label: 'experienceedge v1',
+      body: {
+        title: name,
+        description,
+        mappingSchemaId,
+        eventDatasetIds: [datasetId],
+      },
+    },
   ];
 
   const errors = [];
+  let attemptIndex = 0;
   for (const h of [withSandbox, baseHeaders]) {
     for (const a of attempts) {
+      attemptIndex += 1;
       try {
+        const bodyStr = JSON.stringify(a.body);
+        logEdge('create.post.try', {
+          attempt: attemptIndex,
+          label: a.label,
+          url: a.url,
+          sandboxHeader: !!h['x-sandbox-name'],
+          bodyKeys: typeof a.body === 'object' && a.body ? Object.keys(a.body).slice(0, 12) : [],
+        });
         const resp = await fetch(a.url, {
           method: 'POST',
           headers: h,
-          body: JSON.stringify(a.body),
+          body: bodyStr,
         });
         const text = await resp.text();
         let data = {};
@@ -309,7 +427,18 @@ async function createDatastreamConfig(token, clientId, orgId, sandbox, params) {
           data = { _parseError: String(e.message || e) };
         }
         const id = extractDatastreamIdFromCreateResponse(data);
+        logEdge('create.post.result', {
+          attempt: attemptIndex,
+          label: a.label,
+          url: a.url,
+          httpStatus: resp.status,
+          sandboxHeader: !!h['x-sandbox-name'],
+          hasId: !!id,
+          parseKeys: data && typeof data === 'object' ? Object.keys(data).slice(0, 8) : [],
+          bodySnippet: bodySnippet(text, 400),
+        });
         if (resp.ok && id) {
+          logEdge('create.success', { datastreamId: id, label: a.label, url: a.url });
           return {
             ok: true,
             datastreamId: id,
@@ -325,15 +454,24 @@ async function createDatastreamConfig(token, clientId, orgId, sandbox, params) {
           detail: text.slice(0, 800),
         });
       } catch (e) {
+        logEdge('create.post.exception', { attempt: attemptIndex, label: a.label, url: a.url, error: String(e.message || e) });
         errors.push({ url: a.url, label: a.label, exception: String(e.message || e) });
       }
     }
   }
 
+  const all404 = errors.length > 0 && errors.every((e) => e.httpStatus === 404);
+  const hint = all404
+    ? 'All edge.adobe.io create URLs returned 404 — these paths are likely wrong or not deployed for this host. Adobe does not document a public REST create API for datastreams; create the datastream in Data Collection UI and paste the ID. Compare GET probe below with Cloud Logging.'
+    : 'Edge API did not return a new datastream ID. Confirm IMS scopes include Data Collection / Edge Configuration, or create the datastream in the Data Collection UI.';
+
+  logEdge('create.failed', { errorCount: errors.length, all404, hint: hint.slice(0, 120) });
+
   return {
     ok: false,
-    error: 'Edge API did not return a new datastream ID. Your IMS scopes may not include Data Collection Edge Configuration, or the request body may not match your tenant.',
+    error: hint,
     errors,
+    discovery,
   };
 }
 

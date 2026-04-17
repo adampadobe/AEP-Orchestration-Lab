@@ -244,12 +244,17 @@ async function runEventInfraStep(sandbox, token, clientId, orgId, step, opts = {
       datasetId: ds.id,
     });
     if (!created.ok) {
+      log(sandbox, 'createDatastream.fail', {
+        err: String(created.error || '').slice(0, 200),
+        errorCount: Array.isArray(created.errors) ? created.errors.length : 0,
+      });
       return {
         ok: false,
         sandbox,
         step,
         error: created.error || 'createDatastream failed',
         errors: created.errors,
+        discovery: created.discovery,
       };
     }
     return {

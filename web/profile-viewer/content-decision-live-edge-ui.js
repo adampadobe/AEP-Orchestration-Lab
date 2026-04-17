@@ -325,6 +325,25 @@
     toggleScopesRow();
   }
 
+  /** Best-effort save schema/dataset names after successful infra steps (requires sign-in). */
+  async function persistDecisionLabFields(patch) {
+    if (typeof CdLabConfigApi === 'undefined' || !CdLabConfigApi.saveDecisionLabConfig) return;
+    try {
+      var data = await CdLabConfigApi.saveDecisionLabConfig(patch);
+      if (data.ok) {
+        setMsg(el('cdLabSaveStatus'), 'Saved to your lab config for this sandbox.', 'ok');
+      } else if (data.error && /Sign in|401/i.test(String(data.error))) {
+        setMsg(
+          el('cdLabSaveStatus'),
+          'Sign in (anonymous is fine) under the profile menu to save names for next visit.',
+          ''
+        );
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   async function fetchConfigFromFirebase() {
     setMsg(el('cdLabSaveStatus'), 'Loading configuration…', '');
     var data = await CdLabConfigApi.fetchDecisionLabConfig();
@@ -396,6 +415,7 @@
         return;
       }
       setMsg(el('cdLabSchemaMsg'), data.message || 'Schema OK.', 'ok');
+      await persistDecisionLabFields({ schemaTitle: title });
     } catch (e) {
       setMsg(el('cdLabSchemaMsg'), e.message || 'Network error', 'err');
     }
@@ -427,6 +447,7 @@
         return;
       }
       setMsg(el('cdLabDatasetMsg'), data.message || 'Dataset OK.', 'ok');
+      await persistDecisionLabFields({ schemaTitle: schemaTitle, datasetName: datasetName });
     } catch (e) {
       setMsg(el('cdLabDatasetMsg'), e.message || 'Network error', 'err');
     }
