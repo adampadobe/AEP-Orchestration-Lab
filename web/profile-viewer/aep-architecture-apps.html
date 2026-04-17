@@ -577,7 +577,13 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
                   <p class="arch-editor-panel-heading">Icons &amp; logos</p>
-                  <p class="arch-tool-lead arch-tool-lead--compact">With <strong>Edit diagram</strong> on, expand a section below, tap an item to place it on the diagram, then drag corners or edges to resize. Canvas hovers use each asset’s <strong>label</strong> and <strong>description</strong> (see <code>data/architecture-logos.json</code>).</p>
+                  <p class="arch-tool-lead arch-tool-lead--compact">With <strong>Edit diagram</strong> on, expand a section below, tap an item to place it on the diagram, then drag corners or edges to resize. Canvas hovers use each asset’s <strong>label</strong> and <strong>description</strong> (see <code>data/architecture-logos.json</code>). The <strong>Tag &amp; martech reference</strong> block below lists chip meanings and MSB-style category hints.</p>
+                  <details class="arch-icon-panel-details" id="archTaxonomyReferenceDetails" open>
+                    <summary class="arch-icon-panel-summary">Tag &amp; martech reference</summary>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead" id="archTaxonomyReferenceLead" role="status" aria-live="polite">Loading reference…</p>
+                    <div id="archTaxonomyReferenceBody" class="arch-taxonomy-reference-body arch-diagram-ui" hidden></div>
+                    <p id="archTaxonomyReferenceStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
+                  </details>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Spectrum workflow icons</summary>
                     <p class="arch-tool-micro arch-icon-panel-details-lead">From <a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum CSS Workflow Icons</a> (Apache-2.0, <code>vendor/spectrum-workflow-icons/</code>).</p>

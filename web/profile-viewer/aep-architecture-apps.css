@@ -2067,6 +2067,85 @@ html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
   color: #f8fafc;
 }
 
+/* Martech taxonomy reference (data/martech-taxonomy-reference.json) */
+.arch-taxonomy-reference-body {
+  max-height: min(42vh, 22rem);
+  overflow: auto;
+  margin: 0 0 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fafafa;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: #334155;
+}
+
+.arch-taxonomy-reference-dl {
+  margin: 0 0 0.75rem;
+}
+
+.arch-taxonomy-reference-dl dt {
+  font-weight: 600;
+  margin-top: 0.45rem;
+  color: #0f172a;
+}
+
+.arch-taxonomy-reference-dl dt:first-child {
+  margin-top: 0;
+}
+
+.arch-taxonomy-reference-dl dd {
+  margin: 0.15rem 0 0;
+  padding-left: 0.5rem;
+}
+
+.arch-taxonomy-reference-vendor-heading {
+  margin: 0.5rem 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.arch-taxonomy-reference-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.62rem;
+}
+
+.arch-taxonomy-reference-table th,
+.arch-taxonomy-reference-table td {
+  border: 1px solid #e2e8f0;
+  padding: 0.2rem 0.35rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.arch-taxonomy-reference-table th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
+html[data-aep-theme='dark'] .arch-taxonomy-reference-body {
+  border-color: var(--dash-border, #475569);
+  background: rgba(30, 41, 59, 0.45);
+  color: var(--text-primary, #e2e8f0);
+}
+
+html[data-aep-theme='dark'] .arch-taxonomy-reference-dl dt,
+html[data-aep-theme='dark'] .arch-taxonomy-reference-vendor-heading {
+  color: #f8fafc;
+}
+
+html[data-aep-theme='dark'] .arch-taxonomy-reference-table th,
+html[data-aep-theme='dark'] .arch-taxonomy-reference-table td {
+  border-color: var(--dash-border, #475569);
+}
+
+html[data-aep-theme='dark'] .arch-taxonomy-reference-table th {
+  background: rgba(15, 23, 42, 0.6);
+}
+
 /* Adobe Spectrum workflow icons picker (vendored SVGs, Apache-2.0) */
 .arch-spectrum-icons-search-label {
   margin-bottom: 0.35rem;
