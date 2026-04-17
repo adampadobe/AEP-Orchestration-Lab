@@ -616,10 +616,11 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="file" id="archEditorSectionFile" role="tabpanel" aria-labelledby="archEditorRailFile" hidden>
                   <p class="arch-editor-panel-heading">Save &amp; layout data</p>
-                  <p class="arch-tool-lead">Download or import JSON to share layouts. <strong>Save as master</strong> keeps the default for this browser. <strong>Undo</strong> applies to edits in the current session.</p>
+                  <p class="arch-tool-lead">Download or import JSON to share layouts. <strong>Save as master</strong> keeps the default for this browser. <strong>Undo</strong> applies to edits in the current session. <strong>Stack summary</strong> is a smaller interop file (vendor/icon positions + connectors) for external tools — see <code>data/diagram-interop.json</code>. Full round-trip always uses <strong>Download JSON</strong>.</p>
                   <div class="arch-int-hud-tools arch-int-hud-file-tools" aria-label="Save and restore layout">
                     <button type="button" class="dashboard-btn-outline" id="archMasterSave" title="Store current diagram as the default for this browser">Save as master layout</button>
                     <button type="button" class="dashboard-btn-outline" id="archMasterDownload" title="Download layout JSON">Download JSON</button>
+                    <button type="button" class="dashboard-btn-outline" id="archStackSummaryDownload" title="Vendor and connector summary for tooling (not a full layout import)">Download stack summary (interop)</button>
                     <label class="dashboard-btn-outline arch-master-import-label">
                       Import JSON
                       <input type="file" id="archMasterImport" accept="application/json,.json" class="visually-hidden"/>
@@ -661,6 +662,7 @@
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
   <script defer src="diagram/model.js?v=20260513"></script>
   <script defer src="diagram/editor-model.js?v=20260520"></script>
+  <script defer src="diagram/interop.js?v=20260417"></script>
   <script defer src="diagram/selection.js?v=20260513"></script>
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>

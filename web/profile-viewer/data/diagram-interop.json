@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "description": "Phase 4 interchange notes for the AEP Orchestration Lab architecture diagram (aep-architecture-apps).",
+  "masterLayoutJson": {
+    "role": "Full round-trip for this app: nodes, labels, userLines (connectors), customBoxes (logos/icons), state overrides, scene graph.",
+    "downloadFileHint": "aep-architecture-master-layout.json",
+    "topLevelKeys": [
+      "version",
+      "savedAt",
+      "nodes",
+      "labels",
+      "userLines",
+      "stateHighlightOverrides",
+      "sourcesDividers",
+      "customBoxes",
+      "scene"
+    ],
+    "validation": "diagram/editor-model.js validateDiagramModel expects migrated v8; model.migrateLayout normalizes older exports.",
+    "importUi": "Save & layout → Import JSON (same page)."
+  },
+  "stackSummaryJson": {
+    "role": "Lightweight export for external tools, spreadsheets, or glue scripts — not a substitute for master JSON import.",
+    "formatId": "aep-orchestration-lab-stack-summary",
+    "formatVersion": 1,
+    "implementation": "diagram/interop.js exportStackSummaryFromPayload",
+    "downloadFileHint": "aep-architecture-stack-summary.json",
+    "downloadUi": "Save & layout → Download stack summary (interop)",
+    "contains": [
+      "vendors[] — productLogo / spectrumIcon asset paths and canvas positions",
+      "connectors[] — user line ids, strokes, points/endpoints when present",
+      "source.masterLayoutVersion — original payload.version",
+      "source.canonicalNodeIds — keys from the base diagram node position map"
+    ],
+    "externalTools": "Third-party stack builders use their own schemas; map vendor names or categories using data/martech-taxonomy-reference.json as a Rosetta stone — do not scrape proprietary catalogs."
+  }
+}

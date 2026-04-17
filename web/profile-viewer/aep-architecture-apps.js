@@ -5428,6 +5428,28 @@
     URL.revokeObjectURL(a.href);
   }
 
+  /** Phase 4: portable vendor + connector summary for external tooling (see data/diagram-interop.json). */
+  function archStackSummaryDownload() {
+    var I = window.AEPDiagram && window.AEPDiagram.interop;
+    if (!I || typeof I.exportStackSummaryFromPayload !== 'function') {
+      window.alert('Interop module missing. Reload the page.');
+      return;
+    }
+    var payload = I.exportStackSummaryFromPayload(archMasterSerialize());
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'aep-architecture-stack-summary.json';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    if (liveRegion) {
+      liveRegion.textContent = 'Stack summary (interop JSON) downloaded.';
+    }
+  }
+
   function archMasterImportFile(file) {
     var r = new FileReader();
     r.onload = function () {
@@ -5504,6 +5526,7 @@
     var reset = qs('#archDragReset');
     var masterSave = qs('#archMasterSave');
     var masterDl = qs('#archMasterDownload');
+    var stackSummaryDl = qs('#archStackSummaryDownload');
     var masterImport = qs('#archMasterImport');
     if (reset) {
       reset.addEventListener('click', function () {
@@ -5523,6 +5546,9 @@
     }
     if (masterDl) {
       masterDl.addEventListener('click', archMasterDownload);
+    }
+    if (stackSummaryDl) {
+      stackSummaryDl.addEventListener('click', archStackSummaryDownload);
     }
     if (masterImport) {
       masterImport.addEventListener('change', function () {
