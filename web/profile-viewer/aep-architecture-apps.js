@@ -2688,6 +2688,60 @@
     } catch (e) {}
   }
 
+  /** Catalog paths hidden from the Adobe / Product pickers (this browser). Repo JSON unchanged until the team edits it. */
+  var ARCH_CATALOG_LOGO_HIDDEN_FROM_PICKER_KEY = 'aepArchCatalogLogoHiddenFromPicker';
+
+  function archCatalogHiddenFromPickerMap() {
+    try {
+      var raw = localStorage.getItem(ARCH_CATALOG_LOGO_HIDDEN_FROM_PICKER_KEY);
+      if (!raw) return {};
+      var o = JSON.parse(raw);
+      return o && o.byFile && typeof o.byFile === 'object' ? o.byFile : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function archCatalogHiddenFromPickerPersist(map) {
+    try {
+      localStorage.setItem(ARCH_CATALOG_LOGO_HIDDEN_FROM_PICKER_KEY, JSON.stringify({ version: 1, byFile: map }));
+    } catch (e) {}
+  }
+
+  function archCatalogHideFromPicker(fileKey, label) {
+    if (!fileKey) return;
+    var m = archCatalogHiddenFromPickerMap();
+    m[String(fileKey)] = { queuedAt: Date.now(), label: label || String(fileKey) };
+    archCatalogHiddenFromPickerPersist(m);
+  }
+
+  function archCatalogUnhideFromPicker(fileKey) {
+    if (!fileKey) return;
+    var m = archCatalogHiddenFromPickerMap();
+    delete m[String(fileKey)];
+    archCatalogHiddenFromPickerPersist(m);
+  }
+
+  function archCatalogHiddenExportDownload() {
+    var m = archCatalogHiddenFromPickerMap();
+    var files = Object.keys(m).sort();
+    var payload = {
+      note:
+        'File paths to remove from web/data/architecture-logos.json in the repo (team merges manually). This list is from your browser only.',
+      removeFiles: files,
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'architecture-logos-removal-queue.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    try {
+      URL.revokeObjectURL(a.href);
+    } catch (e) {}
+  }
+
   function archCatalogLogoFindRaw(fileKey) {
     var c = archArchitectureLogosRemoteCache;
     if (!c || !Array.isArray(c.logos)) return null;
@@ -2887,11 +2941,17 @@
   }
 
   function archCustomLogoQueueDeletion(id) {
+    var sid = id == null ? '' : String(id);
+    if (!sid) return;
     var items = archCustomLogoLibraryLoad().map(function (e) {
-      if (e.id !== id) return e;
+      if (!e || String(e.id) !== sid) return e;
       return Object.assign({}, e, { deletedAt: Date.now() });
     });
-    archCustomLogoLibrarySave(items);
+    try {
+      archCustomLogoLibrarySave(items);
+    } catch (err) {
+      if (liveRegion) liveRegion.textContent = 'Could not queue removal — storage may be full.';
+    }
   }
 
   function archCustomLogoRestore(id) {
@@ -3084,6 +3144,10 @@
         'arch-diagram-ui ' +
         (danger ? 'dashboard-btn-outline arch-logo-confirm-btn--danger' : 'dashboard-btn-primary');
 
+      function onDlgStop(e) {
+        e.stopPropagation();
+      }
+
       function cleanup(ok) {
         archLogoConfirmBusy = false;
         overlay.hidden = true;
@@ -3091,6 +3155,10 @@
         actionBtn.removeEventListener('click', onOk);
         overlay.removeEventListener('click', onBackdrop);
         document.removeEventListener('keydown', onKey);
+        if (dlg) {
+          dlg.removeEventListener('click', onDlgStop);
+          dlg.removeEventListener('pointerdown', onDlgStop);
+        }
         if (prevFocus && typeof prevFocus.focus === 'function') {
           try {
             prevFocus.focus();
@@ -3117,6 +3185,10 @@
       actionBtn.addEventListener('click', onOk);
       overlay.addEventListener('click', onBackdrop);
       document.addEventListener('keydown', onKey);
+      if (dlg) {
+        dlg.addEventListener('click', onDlgStop);
+        dlg.addEventListener('pointerdown', onDlgStop);
+      }
       overlay.hidden = false;
       requestAnimationFrame(function () {
         try {
@@ -3285,8 +3357,10 @@
               var map = archCatalogLogoOverridesMap();
               delete map[catKey];
               archCatalogLogoOverridesPersist(map);
+              archCatalogHideFromPicker(catKey, (item && item.label) || '');
+              archCustomLogoRefreshLists();
               archArchitectureLogosRefreshMerged();
-              if (liveRegion) liveRegion.textContent = 'Restored bundled logo for this entry.';
+              if (liveRegion) liveRegion.textContent = 'Logo removed from picker. Restore under Removed from picker, or export JSON for a repo update.';
             });
           }
         );
@@ -3323,7 +3397,10 @@
     var adobe = [];
     var other = [];
     var catOv = archCatalogLogoOverridesMap();
+    var hiddenPick = archCatalogHiddenFromPickerMap();
     data.logos.forEach(function (rawItem) {
+      if (!rawItem || !rawItem.file) return;
+      if (hiddenPick[rawItem.file]) return;
       var item = archCatalogLogoItemMergedFrom(rawItem, catOv);
       if (archArchitectureLogoIsAdobeSection(item)) adobe.push(item);
       else other.push(item);
@@ -3772,9 +3849,40 @@
     );
   }
 
+  function archCatalogHiddenListRender() {
+    var ul = qs('#archCatalogHiddenList');
+    var empty = qs('#archCatalogHiddenEmpty');
+    var exp = qs('#archCatalogHiddenExportBtn');
+    if (!ul) return;
+    ul.textContent = '';
+    var m = archCatalogHiddenFromPickerMap();
+    var keys = Object.keys(m);
+    if (empty) empty.hidden = keys.length > 0;
+    if (exp) exp.disabled = keys.length === 0;
+    keys.sort();
+    keys.forEach(function (fileKey) {
+      var meta = m[fileKey] || {};
+      var li = document.createElement('li');
+      li.className = 'arch-custom-logo-list-item';
+      var span = document.createElement('span');
+      span.className = 'arch-custom-logo-list-label';
+      span.textContent = meta.label || fileKey;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dashboard-btn-outline arch-catalog-unhide-btn';
+      btn.setAttribute('data-arch-catalog-unhide', encodeURIComponent(fileKey));
+      btn.setAttribute('aria-label', 'Show logo in picker again');
+      btn.textContent = 'Restore';
+      li.appendChild(span);
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+  }
+
   function archCustomLogoRefreshLists() {
     archCustomLogoListRender();
     archCustomLogoPendingListRender();
+    archCatalogHiddenListRender();
   }
 
   function archCustomLogoListRender() {
@@ -4091,6 +4199,32 @@
             archArchitectureLogosRefreshMerged();
           }
         }
+      });
+    }
+    var catHid = qs('#archCatalogHiddenList');
+    if (catHid && !catHid.getAttribute('data-arch-cat-hid')) {
+      catHid.setAttribute('data-arch-cat-hid', '1');
+      catHid.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-arch-catalog-unhide]');
+        if (!b) return;
+        e.preventDefault();
+        var enc = b.getAttribute('data-arch-catalog-unhide');
+        if (!enc) return;
+        try {
+          var fileKey = decodeURIComponent(enc);
+          archCatalogUnhideFromPicker(fileKey);
+          archCustomLogoRefreshLists();
+          archArchitectureLogosRefreshMerged();
+          if (liveRegion) liveRegion.textContent = 'Logo shown in picker again.';
+        } catch (err) {}
+      });
+    }
+    var catEx = qs('#archCatalogHiddenExportBtn');
+    if (catEx && !catEx.getAttribute('data-arch-cat-exp')) {
+      catEx.setAttribute('data-arch-cat-exp', '1');
+      catEx.addEventListener('click', function (e) {
+        e.preventDefault();
+        archCatalogHiddenExportDownload();
       });
     }
     archCustomLogoRefreshLists();

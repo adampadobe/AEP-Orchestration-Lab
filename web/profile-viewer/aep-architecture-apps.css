@@ -2263,6 +2263,30 @@ html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
   margin-top: 0.25rem;
 }
 
+.arch-catalog-logo-hidden-wrap {
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.arch-catalog-hidden-lead {
+  margin: 0 0 0.4rem;
+  color: #64748b;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.arch-catalog-hidden-export {
+  margin-top: 0.45rem;
+  font-size: 0.72rem !important;
+  padding: 0.28rem 0.55rem !important;
+}
+
+.arch-catalog-hidden-export:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .arch-custom-logo-list-item--pending {
   flex-wrap: wrap;
 }

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260418c">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260418d">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -718,6 +718,15 @@
                       <p id="archCustomLogoPendingEmpty" class="arch-tool-micro">No logos in the removal queue.</p>
                       <ul id="archCustomLogoPendingList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Logos pending automatic deletion"></ul>
                     </div>
+                    <div class="arch-catalog-logo-hidden-wrap">
+                      <p class="arch-tool-micro arch-custom-logo-saved-heading">Removed from picker (catalog)</p>
+                      <p class="arch-tool-micro arch-catalog-hidden-lead">
+                        Logos you delete here stay in <code>data/architecture-logos.json</code> until the team edits the repo. Use the JSON export if you want a checklist for that change.
+                      </p>
+                      <p id="archCatalogHiddenEmpty" class="arch-tool-micro">No catalog logos removed in this browser.</p>
+                      <ul id="archCatalogHiddenList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Catalog logos hidden from the picker"></ul>
+                      <button type="button" class="dashboard-btn-outline arch-catalog-hidden-export" id="archCatalogHiddenExportBtn">Download removal list (JSON)</button>
+                    </div>
                   </div>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="file" id="archEditorSectionFile" role="tabpanel" aria-labelledby="archEditorRailFile" hidden>
@@ -777,6 +786,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260418c"></script>
+  <script defer src="aep-architecture-apps.js?v=20260418d"></script>
 </body>
 </html>
