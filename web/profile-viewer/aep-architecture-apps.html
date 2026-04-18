@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260417c">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260417d">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -573,7 +573,7 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
                   <p class="arch-editor-panel-heading">Icons &amp; logos</p>
-                  <p class="arch-tool-lead arch-tool-lead--compact">Open <strong>Adobe Logos</strong> or <strong>Product &amp; diagram logos</strong> (or Spectrum icons), then click a tile to place it. Use <strong>Edit</strong> on any tile to fix label, description, or replace the image for bundled logos (saved in this browser). Custom uploads: <strong>Upload new asset</strong> at the bottom. With <strong>Edit diagram</strong> on, drag corners on the canvas to resize placed assets.</p>
+                  <p class="arch-tool-lead arch-tool-lead--compact">Open <strong>Adobe Logos</strong> or <strong>Product &amp; diagram logos</strong> (or Spectrum icons), then click a tile to place it. <strong>Hover a logo tile 5 seconds</strong> (or focus it) to reveal the pencil — edit metadata or replace images in the floating form (bundled logos: this browser only). Custom uploads: <strong>Upload new asset</strong>. With <strong>Edit diagram</strong> on, drag corners on the canvas to resize placed assets.</p>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Spectrum workflow icons</summary>
                     <p class="arch-tool-micro arch-icon-panel-details-lead"><a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum workflow icons</a></p>
@@ -647,7 +647,12 @@
                       aria-modal="true"
                       aria-labelledby="archCustomLogoEditTitle"
                     >
-                      <h3 id="archCustomLogoEditTitle" class="arch-custom-logo-edit-title">Edit uploaded logo</h3>
+                      <div class="arch-custom-logo-edit-header">
+                        <h3 id="archCustomLogoEditTitle" class="arch-custom-logo-edit-title">Edit uploaded logo</h3>
+                        <button type="button" id="archLogoEditDelete" class="arch-logo-edit-delete-btn arch-diagram-ui" aria-label="Delete" title="Delete">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                        </button>
+                      </div>
                       <p id="archCustomLogoEditHint" class="arch-tool-micro arch-custom-logo-edit-hint">Change label, description, or which submenu this appears under. Logos already on the canvas keep their old label until you edit the box on the canvas.</p>
                       <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
                         Label
@@ -675,7 +680,6 @@
                         </label>
                       </div>
                       <div class="arch-custom-logo-edit-actions">
-                        <button type="button" class="dashboard-btn-outline" id="archCatalogLogoEditReset" hidden>Reset to bundled</button>
                         <button type="button" class="dashboard-btn-outline" id="archCustomLogoEditCancel">Cancel</button>
                         <button type="button" class="dashboard-btn-primary" id="archCustomLogoEditSave">Save</button>
                       </div>
@@ -683,7 +687,7 @@
                   </div>
                   <div class="arch-custom-logo-dock arch-diagram-ui">
                     <p class="arch-tool-micro arch-custom-logo-dock-lead">
-                      <strong>Custom logos:</strong> use <strong>Edit</strong> / <strong>Remove</strong> on each tile (or under <strong>Upload new asset</strong>). Drag a tile onto another submenu to move it, or onto another custom tile to reorder. Pending removals below are purged after 7 days (this browser only).
+                      <strong>Custom logos:</strong> hover a tile <strong>5 seconds</strong> (or Tab into it) to show the pencil, then edit in the floating form — trash deletes (or use the list under <strong>Upload new asset</strong>). Drag tiles to move or reorder. Pending removals below purge after 7 days (this browser only).
                     </p>
                     <div class="arch-custom-logo-pending-wrap">
                       <p class="arch-tool-micro arch-custom-logo-saved-heading">Pending removal</p>
@@ -749,6 +753,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260417c"></script>
+  <script defer src="aep-architecture-apps.js?v=20260417d"></script>
 </body>
 </html>
