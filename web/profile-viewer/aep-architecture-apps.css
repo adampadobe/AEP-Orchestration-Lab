@@ -34,7 +34,7 @@
   border-radius: 0;
 }
 
-/* Top bar — always outside .arch-int-compact-edit so it stays visible when tools are hidden */
+/* Fullscreen button — outside .arch-int-compact-edit; Edit diagram lives in the nav row so it stays visible in minimal mode */
 .arch-int-fullscreen-btn {
   flex: 0 0 auto;
   align-self: center;

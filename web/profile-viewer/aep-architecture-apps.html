@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260415a">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260417a">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -65,10 +65,6 @@
                       <div id="archIntHudMeta" class="arch-int-hud-meta">State 1 / 16</div>
                     </div>
                     <div class="arch-int-compact-edit">
-                      <label class="arch-drag-toggle arch-edit-mode-toggle" title="Opens the tool panel and pauses stepping through states so you can drag, draw, and edit safely.">
-                        <input type="checkbox" id="archEditModeToggle"/>
-                        <span>Edit diagram</span>
-                      </label>
                       <button type="button" class="dashboard-btn-outline arch-dock-flip-btn" id="archDockSideToggle" title="Move the tool panel to the left or right side">⇄ Side</button>
                     </div>
                   </div>
@@ -81,9 +77,9 @@
                       <button type="button" class="dashboard-btn-outline" id="archIntPrev">Previous</button>
                       <button type="button" class="dashboard-btn-outline" id="archIntNext">Next</button>
                     </div>
-                    <label class="arch-drag-toggle" title="Hide the side tool panel and this bar to focus on the diagram. Use the floating button to show tools again.">
-                      <input type="checkbox" id="archHideControlsToggle"/>
-                      <span>Hide tools</span>
+                    <label class="arch-drag-toggle arch-edit-mode-toggle" title="Shows the editor and pauses stepping through states so you can drag, draw, and edit. Uncheck for a minimal view — use the corner button to edit again.">
+                      <input type="checkbox" id="archEditModeToggle"/>
+                      <span>Edit diagram</span>
                     </label>
                   </div>
                 </div>
@@ -488,7 +484,7 @@
                   </button>
                 </div>
               </div>
-              <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Show editing tools">Show editing tools</button>
+              <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Edit diagram">Edit diagram</button>
             </div>
 
             <aside class="arch-editor-dock arch-diagram-ui" id="archEditorDock" hidden>
@@ -745,6 +741,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260415a"></script>
+  <script defer src="aep-architecture-apps.js?v=20260417a"></script>
 </body>
 </html>

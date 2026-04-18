@@ -63,10 +63,6 @@
                     <div id="archIntHudMeta" class="arch-int-hud-meta">State 1 / 16</div>
                   </div>
                   <div class="arch-int-compact-edit">
-                    <label class="arch-drag-toggle">
-                      <input type="checkbox" id="archEditModeToggle"/>
-                      <span>Edit diagram</span>
-                    </label>
                     <button type="button" class="dashboard-btn-outline arch-dock-flip-btn" id="archDockSideToggle" title="Dock editor on the right">⇄ Right</button>
                   </div>
                 </div>
@@ -77,9 +73,9 @@
                       <button type="button" class="dashboard-btn-outline" id="archIntPrev">Previous</button>
                       <button type="button" class="dashboard-btn-outline" id="archIntNext">Next</button>
                     </div>
-                    <label class="arch-drag-toggle">
-                      <input type="checkbox" id="archHideControlsToggle"/>
-                      <span>Hide editing tools</span>
+                    <label class="arch-drag-toggle arch-edit-mode-toggle" title="Shows the editor so you can drag and edit. Uncheck for a minimal view — use the corner button to edit again.">
+                      <input type="checkbox" id="archEditModeToggle"/>
+                      <span>Edit diagram</span>
                     </label>
                   </div>
                 </div>
@@ -371,7 +367,7 @@
             <g id="layer-drag-guides" class="arch-drag-guides-layer" fill="none" pointer-events="none" aria-hidden="true"/>
           </svg>
           </div>
-              <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Show editing tools">Show editing tools</button>
+              <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Edit diagram">Edit diagram</button>
             </div>
 
             <aside class="arch-editor-dock arch-diagram-ui" id="archEditorDock" hidden>

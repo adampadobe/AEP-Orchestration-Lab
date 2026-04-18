@@ -461,19 +461,14 @@
     stateHeadline = qs('#archIntStateHeadline');
     stateBody = qs('#archIntStateBody');
     archViewport = qs('#archIntViewport');
-
-    var LS_ARCH_HIDE_UI = 'aepArchHideControls';
-    function archApplyHideControls() {
-      var hide = false;
-      try {
-        if (localStorage.getItem(LS_ARCH_HIDE_UI) === '1') hide = true;
-      } catch (e) {}
-      var tgl = qs('#archHideControlsToggle');
-      if (tgl) tgl.checked = hide;
-      if (archViewport) archViewport.classList.toggle('arch-int-viewport--editing-tools-hidden', hide);
-      var fab = qs('#archShowControlsFab');
-      if (fab) fab.hidden = !hide;
-    }
+    var LS_ARCH_EDIT = 'aepArchDiagramEditMode';
+    var LS_ARCH_DOCK = 'aepArchEditorDockRight';
+    try {
+      if (localStorage.getItem('aepArchHideControls') === '1') {
+        localStorage.setItem(LS_ARCH_EDIT, '0');
+      }
+      localStorage.removeItem('aepArchHideControls');
+    } catch (e) {}
 
     archStateHighlightOverridesLoad();
     archHighlightPickerInit();
@@ -513,11 +508,11 @@
       if (e.key === 'Escape' && archViewport && archViewport.classList.contains('arch-int-viewport--editing-tools-hidden')) {
         e.preventDefault();
         try {
-          localStorage.setItem(LS_ARCH_HIDE_UI, '0');
+          localStorage.setItem(LS_ARCH_EDIT, '1');
         } catch (err) {}
-        var hct = qs('#archHideControlsToggle');
-        if (hct) hct.checked = false;
-        archApplyHideControls();
+        var emt = qs('#archEditModeToggle');
+        if (emt) emt.checked = true;
+        archEditorApplyEditMode();
         return;
       }
       if (e.key === 'ArrowLeft') {
@@ -536,9 +531,6 @@
       });
     }
     archStateHighlightsApply();
-
-    var LS_ARCH_EDIT = 'aepArchDiagramEditMode';
-    var LS_ARCH_DOCK = 'aepArchEditorDockRight';
 
     function archEditorSetPanel(panelId) {
       $all('.arch-editor-section').forEach(function (sec) {
@@ -562,7 +554,12 @@
       if (tgl) tgl.checked = on;
       var dock = qs('#archEditorDock');
       if (dock) dock.hidden = !on;
-      if (archViewport) archViewport.classList.toggle('arch-int-viewport--edit-mode', on);
+      if (archViewport) {
+        archViewport.classList.toggle('arch-int-viewport--edit-mode', on);
+        archViewport.classList.toggle('arch-int-viewport--editing-tools-hidden', !on);
+      }
+      var fab = qs('#archShowControlsFab');
+      if (fab) fab.hidden = !!on;
     }
 
     function archEditorApplyDock() {
@@ -580,7 +577,6 @@
 
     archEditorApplyDock();
     archEditorApplyEditMode();
-    archApplyHideControls();
     archEditorSetPanel('layout');
 
     var editModeTgl = qs('#archEditModeToggle');
@@ -614,24 +610,15 @@
       });
     }
 
-    var hideUiTgl = qs('#archHideControlsToggle');
-    if (hideUiTgl) {
-      hideUiTgl.addEventListener('change', function () {
-        try {
-          localStorage.setItem(LS_ARCH_HIDE_UI, hideUiTgl.checked ? '1' : '0');
-        } catch (e) {}
-        archApplyHideControls();
-      });
-    }
-
     var showControlsFab = qs('#archShowControlsFab');
     if (showControlsFab) {
       showControlsFab.addEventListener('click', function () {
         try {
-          localStorage.setItem(LS_ARCH_HIDE_UI, '0');
+          localStorage.setItem(LS_ARCH_EDIT, '1');
         } catch (e) {}
-        if (hideUiTgl) hideUiTgl.checked = false;
-        archApplyHideControls();
+        var emt = qs('#archEditModeToggle');
+        if (emt) emt.checked = true;
+        archEditorApplyEditMode();
       });
     }
 
