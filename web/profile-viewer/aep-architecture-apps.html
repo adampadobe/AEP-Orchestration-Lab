@@ -577,74 +577,7 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
                   <p class="arch-editor-panel-heading">Icons &amp; logos</p>
-                  <p class="arch-tool-lead arch-tool-lead--compact">With <strong>Edit diagram</strong> on, expand a section below and tap an icon or logo to place it on the diagram; drag corners or edges to resize.</p>
-                  <details class="arch-icon-panel-details" id="archCustomLogoUploadDetails">
-                    <summary class="arch-icon-panel-summary">Upload your own logo</summary>
-                    <p class="arch-tool-micro arch-icon-panel-details-lead">Images are saved in <strong>this browser only</strong> (localStorage, roughly 5 MB total). Pick which accordion group it should appear under, then place it like any catalog logo. <strong>Double-click</strong> a custom tile in the grids (or the name in “Your uploads”) to change label, description, or submenu. For sharing across machines, add files to the repo <code>data/architecture-logos.json</code> instead.</p>
-                    <div class="arch-custom-logo-form arch-diagram-ui">
-                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
-                        Image file
-                        <input type="file" id="archCustomLogoFile" class="arch-spectrum-icons-search arch-diagram-ui" accept="image/*" aria-label="Logo image file"/>
-                      </label>
-                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
-                        Label
-                        <input type="text" id="archCustomLogoLabel" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="e.g. Internal warehouse" autocomplete="off" maxlength="120" aria-label="Logo label"/>
-                      </label>
-                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
-                        Description <span class="arch-tool-micro">(optional — tooltip / notes)</span>
-                        <input type="text" id="archCustomLogoDesc" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Shown on hover and in stack context" autocomplete="off" maxlength="500" aria-label="Logo description"/>
-                      </label>
-                      <div class="arch-custom-logo-field-row">
-                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
-                          Side panel
-                          <select id="archCustomLogoPanel" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo side panel"></select>
-                        </label>
-                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
-                          Submenu
-                          <select id="archCustomLogoGroup" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo submenu category"></select>
-                        </label>
-                      </div>
-                      <button type="button" class="dashboard-btn-outline" id="archCustomLogoAdd">Add to library</button>
-                      <p id="archCustomLogoFormStatus" class="arch-tool-micro arch-custom-logo-form-status" role="status" aria-live="polite"></p>
-                    </div>
-                    <div class="arch-custom-logo-saved">
-                      <p class="arch-tool-micro arch-custom-logo-saved-heading">Your uploads (this browser)</p>
-                      <ul id="archCustomLogoList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Uploaded logos"></ul>
-                    </div>
-                  </details>
-                  <div id="archCustomLogoEditOverlay" class="arch-custom-logo-edit-overlay arch-diagram-ui" hidden>
-                    <div
-                      class="arch-custom-logo-edit-dialog arch-diagram-ui"
-                      role="dialog"
-                      aria-modal="true"
-                      aria-labelledby="archCustomLogoEditTitle"
-                    >
-                      <h3 id="archCustomLogoEditTitle" class="arch-custom-logo-edit-title">Edit uploaded logo</h3>
-                      <p class="arch-tool-micro arch-custom-logo-edit-hint">Change label, description, or which submenu this appears under. Canvas logos already placed are not updated automatically.</p>
-                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
-                        Label
-                        <input type="text" id="archCustomLogoEditLabel" class="arch-spectrum-icons-search arch-diagram-ui" maxlength="120" autocomplete="off" aria-label="Logo label"/>
-                      </label>
-                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
-                        Description <span class="arch-tool-micro">(optional)</span>
-                        <input type="text" id="archCustomLogoEditDesc" class="arch-spectrum-icons-search arch-diagram-ui" maxlength="500" autocomplete="off" aria-label="Logo description"/>
-                      </label>
-                      <div class="arch-custom-logo-field-row">
-                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
-                          Side panel
-                          <select id="archCustomLogoEditPanel" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo side panel"></select>
-                        </label>
-                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
-                          Submenu
-                          <select id="archCustomLogoEditGroup" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo submenu"></select>
-                        </label>
-                      </div>
-                      <div class="arch-custom-logo-edit-actions">
-                        <button type="button" class="dashboard-btn-outline" id="archCustomLogoEditCancel">Cancel</button>
-                        <button type="button" class="dashboard-btn-primary" id="archCustomLogoEditSave">Save</button>
-                      </div>
-                    </div>
-                  </div>
+                  <p class="arch-tool-lead arch-tool-lead--compact">Open <strong>Adobe Logos</strong> or <strong>Product &amp; diagram logos</strong> (or Spectrum icons), then click a tile to place it. Custom uploads: use the <strong>Upload new asset</strong> section at the bottom, or pick a custom tile and use <strong>Edit</strong> to change metadata. With <strong>Edit diagram</strong> on, drag corners on the canvas to resize placed assets.</p>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Spectrum workflow icons</summary>
                     <p class="arch-tool-micro arch-icon-panel-details-lead"><a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum workflow icons</a></p>
@@ -674,6 +607,76 @@
                     <div id="archArchitectureLogoMenuMount" class="arch-logo-menu-groups arch-diagram-ui" data-arch-logo-panel="other" aria-label="Diagram logos by category"></div>
                     <p id="archArchitectureLogoStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
                   </details>
+                  <details class="arch-icon-panel-details" id="archCustomLogoUploadDetails">
+                    <summary class="arch-icon-panel-summary">Upload new asset</summary>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Stored in <strong>this browser only</strong> (localStorage). After adding, your asset appears in the submenu you choose. Team-wide assets belong in the repo <code>data/architecture-logos.json</code>.</p>
+                    <div id="archCustomLogoDropZone" class="arch-custom-logo-drop-zone arch-diagram-ui" aria-label="Drop image file to attach">
+                      <input type="file" id="archCustomLogoFile" class="visually-hidden" accept="image/*" aria-label="Choose image file from disk"/>
+                      <div class="arch-custom-logo-drop-zone-inner">
+                        <button type="button" class="dashboard-btn-outline" id="archCustomLogoBrowse">Browse…</button>
+                        <span class="arch-custom-logo-drop-hint">or drag and drop an image from your computer</span>
+                      </div>
+                    </div>
+                    <div class="arch-custom-logo-form arch-diagram-ui">
+                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
+                        Label
+                        <input type="text" id="archCustomLogoLabel" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="e.g. Internal warehouse" autocomplete="off" maxlength="120" aria-label="Logo label"/>
+                      </label>
+                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
+                        Description <span class="arch-tool-micro">(optional — tooltip / notes)</span>
+                        <input type="text" id="archCustomLogoDesc" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Shown on hover and in stack context" autocomplete="off" maxlength="500" aria-label="Logo description"/>
+                      </label>
+                      <div class="arch-custom-logo-field-row">
+                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
+                          Side panel
+                          <select id="archCustomLogoPanel" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo side panel"></select>
+                        </label>
+                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
+                          Submenu
+                          <select id="archCustomLogoGroup" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo submenu category"></select>
+                        </label>
+                      </div>
+                      <button type="button" class="dashboard-btn-primary" id="archCustomLogoAdd">Add to library</button>
+                      <p id="archCustomLogoFormStatus" class="arch-tool-micro arch-custom-logo-form-status" role="status" aria-live="polite"></p>
+                    </div>
+                    <div class="arch-custom-logo-saved">
+                      <p class="arch-tool-micro arch-custom-logo-saved-heading">Your uploads (this browser)</p>
+                      <ul id="archCustomLogoList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Uploaded logos"></ul>
+                    </div>
+                  </details>
+                  <div id="archCustomLogoEditOverlay" class="arch-custom-logo-edit-overlay arch-diagram-ui" hidden>
+                    <div
+                      class="arch-custom-logo-edit-dialog arch-diagram-ui"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="archCustomLogoEditTitle"
+                    >
+                      <h3 id="archCustomLogoEditTitle" class="arch-custom-logo-edit-title">Edit uploaded logo</h3>
+                      <p class="arch-tool-micro arch-custom-logo-edit-hint">Change label, description, or which submenu this appears under. Logos already on the canvas keep their old label until you edit the box on the canvas.</p>
+                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
+                        Label
+                        <input type="text" id="archCustomLogoEditLabel" class="arch-spectrum-icons-search arch-diagram-ui" maxlength="120" autocomplete="off" aria-label="Logo label"/>
+                      </label>
+                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
+                        Description <span class="arch-tool-micro">(optional)</span>
+                        <input type="text" id="archCustomLogoEditDesc" class="arch-spectrum-icons-search arch-diagram-ui" maxlength="500" autocomplete="off" aria-label="Logo description"/>
+                      </label>
+                      <div class="arch-custom-logo-field-row">
+                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
+                          Side panel
+                          <select id="archCustomLogoEditPanel" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo side panel"></select>
+                        </label>
+                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
+                          Submenu
+                          <select id="archCustomLogoEditGroup" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo submenu"></select>
+                        </label>
+                      </div>
+                      <div class="arch-custom-logo-edit-actions">
+                        <button type="button" class="dashboard-btn-outline" id="archCustomLogoEditCancel">Cancel</button>
+                        <button type="button" class="dashboard-btn-primary" id="archCustomLogoEditSave">Save</button>
+                      </div>
+                    </div>
+                  </div>
                   <div class="arch-custom-logo-dock arch-diagram-ui">
                     <p class="arch-tool-micro arch-custom-logo-dock-lead">
                       <strong>Custom logos only:</strong> drag a tile onto another accordion group to move it, or onto another custom tile to reorder. Use the strip below to queue removal (7-day grace, then automatic delete — stored in this browser only, not shared with teammates).

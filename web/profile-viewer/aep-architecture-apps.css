@@ -2203,6 +2203,7 @@ html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
 }
 
 .arch-architecture-logo-tile--custom {
+  position: relative;
   box-shadow: inset 0 0 0 1px rgba(20, 115, 230, 0.35);
   border-radius: 4px;
   cursor: grab;
@@ -2330,6 +2331,12 @@ button.arch-custom-logo-remove {
   font-size: 0.65rem;
 }
 
+/* `hidden` must win over display:flex or the edit dialog covers the rail on load */
+.arch-custom-logo-edit-overlay[hidden] {
+  display: none !important;
+  pointer-events: none;
+}
+
 .arch-custom-logo-edit-overlay {
   position: fixed;
   inset: 0;
@@ -2341,6 +2348,60 @@ button.arch-custom-logo-remove {
   box-sizing: border-box;
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(2px);
+}
+
+.arch-custom-logo-drop-zone {
+  margin-bottom: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 2px dashed #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.arch-custom-logo-drop-zone--active {
+  border-color: #1473e6;
+  background: rgba(20, 115, 230, 0.06);
+}
+
+.arch-custom-logo-drop-zone-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.arch-custom-logo-drop-hint {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.arch-architecture-logo-tile-edit {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 3;
+  padding: 0.1rem 0.28rem;
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1.2;
+  border-radius: 3px;
+  border: 1px solid #cbd5e1;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1473e6;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.arch-architecture-logo-tile-edit:hover,
+.arch-architecture-logo-tile-edit:focus-visible {
+  border-color: #1473e6;
+  outline: none;
+}
+
+button.arch-custom-logo-row-edit {
+  padding: 0.12rem 0.4rem;
+  font-size: 0.62rem;
 }
 
 .arch-custom-logo-edit-dialog {
