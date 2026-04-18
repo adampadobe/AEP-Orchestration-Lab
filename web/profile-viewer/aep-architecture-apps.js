@@ -2526,6 +2526,7 @@
   /** Vendored Apache-2.0 SVGs from @adobe/spectrum-css-workflow-icons (see npm run vendor:spectrum-icons). */
   var ARCH_SPECTRUM_ICON_PREFIX = 'vendor/spectrum-workflow-icons/';
   var archSpectrumIconsDataPromise = null;
+  var archSpectrumIconsRemoteCache = null;
 
   function archCustomBoxIsIconAsset(box) {
     if (!box) return false;
@@ -2535,12 +2536,106 @@
     );
   }
 
+  function archSpectrumIconsRenderFromData(data) {
+    var grid = qs('#archSpectrumIconGrid');
+    var status = qs('#archSpectrumIconStatus');
+    if (!grid || !data || !Array.isArray(data.icons)) return;
+    archSpectrumIconsRemoteCache = data;
+    grid.textContent = '';
+    var base = ARCH_SPECTRUM_ICON_PREFIX;
+    var hiddenSp = archSpectrumHiddenFromPickerMap();
+    var built = 0;
+    data.icons.forEach(function (item) {
+      if (!item || !item.file) return;
+      if (hiddenSp[item.file]) return;
+      built++;
+      var lab = item.label || item.file;
+      var btn = document.createElement('div');
+      btn.className =
+        'arch-spectrum-icons-tile arch-diagram-ui arch-architecture-logo-tile arch-spectrum-icons-tile--picker';
+      btn.setAttribute('role', 'option');
+      btn.tabIndex = 0;
+      btn.setAttribute('data-arch-spectrum-file', item.file);
+      btn.setAttribute('data-arch-spectrum-label', lab);
+      btn.title = lab;
+      var wrap = document.createElement('span');
+      wrap.className = 'arch-spectrum-icons-tile-img-wrap';
+      var im = document.createElement('img');
+      im.src = base + item.file;
+      im.alt = '';
+      im.loading = 'lazy';
+      im.width = 20;
+      im.height = 20;
+      im.setAttribute('draggable', 'false');
+      wrap.appendChild(im);
+      var cap = document.createElement('span');
+      cap.className = 'arch-spectrum-icons-tile-cap';
+      cap.textContent = lab;
+      var tileActions = document.createElement('span');
+      tileActions.className = 'arch-architecture-logo-tile-actions';
+      tileActions.setAttribute('role', 'group');
+      tileActions.setAttribute('aria-label', 'Icon actions');
+      var remSp = archLogoTileCreateIosRemoveButton(
+        'Delete',
+        'Delete from picker (this browser)',
+        function () {
+          archLogoConfirmShow({
+            title: 'Delete this logo?',
+            message: '',
+            confirmLabel: 'Yes',
+            cancelLabel: 'No',
+            danger: true
+          }).then(function (ok) {
+            if (!ok) return;
+            archSpectrumHideFromPicker(item.file, lab);
+            archCustomLogoRefreshLists();
+            archSpectrumIconsRefreshMerged();
+            if (liveRegion) liveRegion.textContent = 'Icon removed from picker.';
+          });
+        }
+      );
+      tileActions.appendChild(remSp);
+      btn.appendChild(wrap);
+      btn.appendChild(cap);
+      btn.appendChild(tileActions);
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        if (archLogoLibraryEditModeIsOn()) {
+          if (e.target.closest && e.target.closest('.arch-architecture-logo-tile-actions')) return;
+          return;
+        }
+        var f = btn.getAttribute('data-arch-spectrum-file');
+        var l = btn.getAttribute('data-arch-spectrum-label');
+        if (f) archSpectrumIconPlace(f, l);
+      });
+      archLogoTileKeyboardActivate(btn);
+      grid.appendChild(btn);
+    });
+    grid.setAttribute('data-arch-built', '1');
+    var qinp = qs('#archSpectrumIconSearch');
+    archSpectrumIconsApplyFilter(qinp ? qinp.value : '');
+    if (status) status.textContent = built + ' icons — use search to filter.';
+  }
+
+  function archSpectrumIconsRefreshMerged() {
+    if (!archSpectrumIconsRemoteCache || !Array.isArray(archSpectrumIconsRemoteCache.icons)) {
+      archSpectrumIconsPanelInit();
+      return;
+    }
+    archSpectrumIconsRenderFromData(archSpectrumIconsRemoteCache);
+  }
+
   function archSpectrumIconsPanelInit() {
     var grid = qs('#archSpectrumIconGrid');
     var status = qs('#archSpectrumIconStatus');
-    if (!grid || grid.getAttribute('data-arch-built') === '1') return;
+    if (!grid) return;
+    if (archSpectrumIconsRemoteCache && Array.isArray(archSpectrumIconsRemoteCache.icons)) {
+      archSpectrumIconsRenderFromData(archSpectrumIconsRemoteCache);
+      return;
+    }
     if (!archSpectrumIconsDataPromise) {
-      archSpectrumIconsDataPromise = fetch('data/spectrum-workflow-icons.json').then(function (r) {
+      archSpectrumIconsDataPromise = fetch('data/spectrum-workflow-icons.json', { cache: 'no-store' }).then(function (r) {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
       });
@@ -2549,36 +2644,7 @@
       .then(function (data) {
         if (!grid.parentNode) return;
         if (!data || !Array.isArray(data.icons)) return;
-        grid.textContent = '';
-        var base = ARCH_SPECTRUM_ICON_PREFIX;
-        data.icons.forEach(function (item) {
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'arch-spectrum-icons-tile arch-diagram-ui';
-          btn.setAttribute('role', 'option');
-          btn.setAttribute('data-arch-spectrum-file', item.file);
-          btn.setAttribute('data-arch-spectrum-label', item.label || item.file);
-          btn.title = item.label || item.file;
-          var wrap = document.createElement('span');
-          wrap.className = 'arch-spectrum-icons-tile-img-wrap';
-          var im = document.createElement('img');
-          im.src = base + item.file;
-          im.alt = '';
-          im.loading = 'lazy';
-          im.width = 20;
-          im.height = 20;
-          wrap.appendChild(im);
-          var cap = document.createElement('span');
-          cap.className = 'arch-spectrum-icons-tile-cap';
-          cap.textContent = item.label || item.file;
-          btn.appendChild(wrap);
-          btn.appendChild(cap);
-          grid.appendChild(btn);
-        });
-        grid.setAttribute('data-arch-built', '1');
-        var qinp = qs('#archSpectrumIconSearch');
-        archSpectrumIconsApplyFilter(qinp ? qinp.value : '');
-        if (status) status.textContent = data.icons.length + ' icons — use search to filter.';
+        archSpectrumIconsRenderFromData(data);
       })
       .catch(function () {
         if (status) {
@@ -2587,7 +2653,6 @@
         }
       });
   }
-
   function archSpectrumIconsApplyFilter(q) {
     var grid = qs('#archSpectrumIconGrid');
     if (!grid || grid.getAttribute('data-arch-built') !== '1') return;
@@ -2722,18 +2787,54 @@
     archCatalogHiddenFromPickerPersist(m);
   }
 
-  function archCatalogHiddenExportDownload() {
-    var m = archCatalogHiddenFromPickerMap();
-    var files = Object.keys(m).sort();
+  var ARCH_SPECTRUM_ICONS_HIDDEN_KEY = 'aepArchSpectrumWorkflowIconsHiddenFromPicker';
+
+  function archSpectrumHiddenFromPickerMap() {
+    try {
+      var raw = localStorage.getItem(ARCH_SPECTRUM_ICONS_HIDDEN_KEY);
+      if (!raw) return {};
+      var o = JSON.parse(raw);
+      return o && o.byFile && typeof o.byFile === 'object' ? o.byFile : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function archSpectrumHiddenFromPickerPersist(map) {
+    try {
+      localStorage.setItem(ARCH_SPECTRUM_ICONS_HIDDEN_KEY, JSON.stringify({ version: 1, byFile: map }));
+    } catch (e) {}
+  }
+
+  function archSpectrumHideFromPicker(fileKey, label) {
+    if (!fileKey) return;
+    var m = archSpectrumHiddenFromPickerMap();
+    m[String(fileKey)] = { queuedAt: Date.now(), label: label || String(fileKey) };
+    archSpectrumHiddenFromPickerPersist(m);
+  }
+
+  function archSpectrumUnhideFromPicker(fileKey) {
+    if (!fileKey) return;
+    var m = archSpectrumHiddenFromPickerMap();
+    delete m[String(fileKey)];
+    archSpectrumHiddenFromPickerPersist(m);
+  }
+
+  function archPickerHiddenExportDownload() {
+    var cat = archCatalogHiddenFromPickerMap();
+    var sp = archSpectrumHiddenFromPickerMap();
+    var removeFromArchitectureLogosJson = Object.keys(cat).sort();
+    var removeFromSpectrumWorkflowIconsJson = Object.keys(sp).sort();
     var payload = {
       note:
-        'File paths to remove from web/data/architecture-logos.json in the repo (team merges manually). This list is from your browser only.',
-      removeFiles: files,
+        'Paths to remove in the repo (team merges manually). Queued in this browser only.',
+      removeFromArchitectureLogosJson: removeFromArchitectureLogosJson,
+      removeFromSpectrumWorkflowIconsJson: removeFromSpectrumWorkflowIconsJson,
     };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'architecture-logos-removal-queue.json';
+    a.download = 'icons-and-logos-removal-queue.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -3849,16 +3950,50 @@
     );
   }
 
+  function archSpectrumHiddenListRender() {
+    var ul = qs('#archSpectrumHiddenList');
+    var empty = qs('#archSpectrumHiddenEmpty');
+    if (!ul) return;
+    ul.textContent = '';
+    var m = archSpectrumHiddenFromPickerMap();
+    var keys = Object.keys(m);
+    if (empty) empty.hidden = keys.length > 0;
+    keys.sort();
+    keys.forEach(function (fileKey) {
+      var meta = m[fileKey] || {};
+      var li = document.createElement('li');
+      li.className = 'arch-custom-logo-list-item';
+      var span = document.createElement('span');
+      span.className = 'arch-custom-logo-list-label';
+      span.textContent = (meta.label || fileKey) + ' — ' + fileKey;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dashboard-btn-outline arch-spectrum-unhide-btn';
+      btn.setAttribute('data-arch-spectrum-unhide', encodeURIComponent(fileKey));
+      btn.setAttribute('aria-label', 'Show Spectrum icon in picker again');
+      btn.textContent = 'Restore';
+      li.appendChild(span);
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+  }
+
+  function archPickerHiddenExportUpdateBtn() {
+    var exp = qs('#archPickerHiddenExportBtn');
+    if (!exp) return;
+    var c = Object.keys(archCatalogHiddenFromPickerMap()).length;
+    var s = Object.keys(archSpectrumHiddenFromPickerMap()).length;
+    exp.disabled = c === 0 && s === 0;
+  }
+
   function archCatalogHiddenListRender() {
     var ul = qs('#archCatalogHiddenList');
     var empty = qs('#archCatalogHiddenEmpty');
-    var exp = qs('#archCatalogHiddenExportBtn');
     if (!ul) return;
     ul.textContent = '';
     var m = archCatalogHiddenFromPickerMap();
     var keys = Object.keys(m);
     if (empty) empty.hidden = keys.length > 0;
-    if (exp) exp.disabled = keys.length === 0;
     keys.sort();
     keys.forEach(function (fileKey) {
       var meta = m[fileKey] || {};
@@ -3883,6 +4018,8 @@
     archCustomLogoListRender();
     archCustomLogoPendingListRender();
     archCatalogHiddenListRender();
+    archSpectrumHiddenListRender();
+    archPickerHiddenExportUpdateBtn();
   }
 
   function archCustomLogoListRender() {
@@ -4219,12 +4356,30 @@
         } catch (err) {}
       });
     }
-    var catEx = qs('#archCatalogHiddenExportBtn');
-    if (catEx && !catEx.getAttribute('data-arch-cat-exp')) {
-      catEx.setAttribute('data-arch-cat-exp', '1');
+    var catEx = qs('#archPickerHiddenExportBtn');
+    if (catEx && !catEx.getAttribute('data-arch-picker-exp')) {
+      catEx.setAttribute('data-arch-picker-exp', '1');
       catEx.addEventListener('click', function (e) {
         e.preventDefault();
-        archCatalogHiddenExportDownload();
+        archPickerHiddenExportDownload();
+      });
+    }
+    var spHid = qs('#archSpectrumHiddenList');
+    if (spHid && !spHid.getAttribute('data-arch-sp-hid')) {
+      spHid.setAttribute('data-arch-sp-hid', '1');
+      spHid.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-arch-spectrum-unhide]');
+        if (!b) return;
+        e.preventDefault();
+        var enc = b.getAttribute('data-arch-spectrum-unhide');
+        if (!enc) return;
+        try {
+          var fileKey = decodeURIComponent(enc);
+          archSpectrumUnhideFromPicker(fileKey);
+          archCustomLogoRefreshLists();
+          archSpectrumIconsRefreshMerged();
+          if (liveRegion) liveRegion.textContent = 'Spectrum icon shown in picker again.';
+        } catch (err) {}
       });
     }
     archCustomLogoRefreshLists();
@@ -7249,15 +7404,9 @@
     }
 
     var spectGrid = qs('#archSpectrumIconGrid');
-    if (spectGrid && !spectGrid.getAttribute('data-arch-click-ready')) {
-      spectGrid.setAttribute('data-arch-click-ready', '1');
-      spectGrid.addEventListener('click', function (e) {
-        var btn = e.target.closest && e.target.closest('.arch-spectrum-icons-tile');
-        if (!btn || btn.hidden) return;
-        var f = btn.getAttribute('data-arch-spectrum-file');
-        var lab = btn.getAttribute('data-arch-spectrum-label');
-        if (f) archSpectrumIconPlace(f, lab);
-      });
+    if (spectGrid && !spectGrid.getAttribute('data-arch-spectrum-grid-ready')) {
+      spectGrid.setAttribute('data-arch-spectrum-grid-ready', '1');
+      /* Placement and edit-mode guard live on each tile (archSpectrumIconsRenderFromData); clicks do not bubble here. */
     }
     var spectSearch = qs('#archSpectrumIconSearch');
     if (spectSearch && !spectSearch.getAttribute('data-arch-ready')) {

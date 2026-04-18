@@ -2276,6 +2276,13 @@ html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
   line-height: 1.35;
 }
 
+.arch-picker-hidden-subhead {
+  margin: 0.55rem 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+}
+
 .arch-catalog-hidden-export {
   margin-top: 0.45rem;
   font-size: 0.72rem !important;

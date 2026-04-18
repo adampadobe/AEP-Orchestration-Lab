@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260418d">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260419a">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -707,7 +707,7 @@
                   </div>
                   <div class="arch-logo-library-edit-bar arch-diagram-ui" id="archLogoLibraryEditBar">
                     <button type="button" class="dashboard-btn-outline" id="archLogoLibraryEditToggle" aria-pressed="false">Edit logos</button>
-                    <p class="arch-tool-micro arch-logo-library-edit-bar-hint">Shows edit and remove on each <strong>Adobe / Product logo</strong> tile. While on, clicking a tile does not place it on the diagram — tap <strong>Done</strong> when finished.</p>
+                    <p class="arch-tool-micro arch-logo-library-edit-bar-hint">Shows delete on each <strong>Spectrum workflow</strong>, <strong>Adobe</strong>, and <strong>Product</strong> tile. While on, clicking a tile does not place it on the diagram — tap <strong>Done</strong> when finished.</p>
                   </div>
                   <div class="arch-custom-logo-dock arch-diagram-ui">
                     <p class="arch-tool-micro arch-custom-logo-dock-lead">
@@ -719,13 +719,17 @@
                       <ul id="archCustomLogoPendingList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Logos pending automatic deletion"></ul>
                     </div>
                     <div class="arch-catalog-logo-hidden-wrap">
-                      <p class="arch-tool-micro arch-custom-logo-saved-heading">Removed from picker (catalog)</p>
+                      <p class="arch-tool-micro arch-custom-logo-saved-heading">Removed from picker</p>
                       <p class="arch-tool-micro arch-catalog-hidden-lead">
-                        Logos you delete here stay in <code>data/architecture-logos.json</code> until the team edits the repo. Use the JSON export if you want a checklist for that change.
+                        Deleting only hides entries in <strong>this browser</strong>. Repo files stay until someone edits them (<code>data/architecture-logos.json</code>, <code>data/spectrum-workflow-icons.json</code>, vendored SVGs). Export lists both kinds for a repo change.
                       </p>
-                      <p id="archCatalogHiddenEmpty" class="arch-tool-micro">No catalog logos removed in this browser.</p>
+                      <p class="arch-tool-micro arch-picker-hidden-subhead">Adobe &amp; product logos</p>
+                      <p id="archCatalogHiddenEmpty" class="arch-tool-micro">None removed.</p>
                       <ul id="archCatalogHiddenList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Catalog logos hidden from the picker"></ul>
-                      <button type="button" class="dashboard-btn-outline arch-catalog-hidden-export" id="archCatalogHiddenExportBtn">Download removal list (JSON)</button>
+                      <p class="arch-tool-micro arch-picker-hidden-subhead">Spectrum workflow icons</p>
+                      <p id="archSpectrumHiddenEmpty" class="arch-tool-micro">None removed.</p>
+                      <ul id="archSpectrumHiddenList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Spectrum icons hidden from the picker"></ul>
+                      <button type="button" class="dashboard-btn-outline arch-catalog-hidden-export" id="archPickerHiddenExportBtn">Download removal list (JSON)</button>
                     </div>
                   </div>
                 </div>
@@ -786,6 +790,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260418d"></script>
+  <script defer src="aep-architecture-apps.js?v=20260419a"></script>
 </body>
 </html>
