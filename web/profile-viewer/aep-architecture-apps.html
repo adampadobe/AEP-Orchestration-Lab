@@ -573,7 +573,7 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
                   <p class="arch-editor-panel-heading">Icons &amp; logos</p>
-                  <p class="arch-tool-lead arch-tool-lead--compact">Open <strong>Adobe Logos</strong> or <strong>Product &amp; diagram logos</strong> (or Spectrum icons), then click a tile to place it. Custom uploads: use the <strong>Upload new asset</strong> section at the bottom, or pick a custom tile and use <strong>Edit</strong> to change metadata. With <strong>Edit diagram</strong> on, drag corners on the canvas to resize placed assets.</p>
+                  <p class="arch-tool-lead arch-tool-lead--compact">Open <strong>Adobe Logos</strong> or <strong>Product &amp; diagram logos</strong> (or Spectrum icons), then click a tile to place it. Use <strong>Edit</strong> on any tile to fix label, description, or replace the image for bundled logos (saved in this browser). Custom uploads: <strong>Upload new asset</strong> at the bottom. With <strong>Edit diagram</strong> on, drag corners on the canvas to resize placed assets.</p>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Spectrum workflow icons</summary>
                     <p class="arch-tool-micro arch-icon-panel-details-lead"><a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum workflow icons</a></p>
@@ -648,7 +648,7 @@
                       aria-labelledby="archCustomLogoEditTitle"
                     >
                       <h3 id="archCustomLogoEditTitle" class="arch-custom-logo-edit-title">Edit uploaded logo</h3>
-                      <p class="arch-tool-micro arch-custom-logo-edit-hint">Change label, description, or which submenu this appears under. Logos already on the canvas keep their old label until you edit the box on the canvas.</p>
+                      <p id="archCustomLogoEditHint" class="arch-tool-micro arch-custom-logo-edit-hint">Change label, description, or which submenu this appears under. Logos already on the canvas keep their old label until you edit the box on the canvas.</p>
                       <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
                         Label
                         <input type="text" id="archCustomLogoEditLabel" class="arch-spectrum-icons-search arch-diagram-ui" maxlength="120" autocomplete="off" aria-label="Logo label"/>
@@ -657,7 +657,14 @@
                         Description <span class="arch-tool-micro">(optional)</span>
                         <input type="text" id="archCustomLogoEditDesc" class="arch-spectrum-icons-search arch-diagram-ui" maxlength="500" autocomplete="off" aria-label="Logo description"/>
                       </label>
-                      <div class="arch-custom-logo-field-row">
+                      <div id="archCatalogLogoEditReplaceRow" class="arch-custom-logo-field arch-catalog-logo-edit-replace" hidden>
+                        <label class="arch-hud-label arch-hud-label--block">
+                          Replace image <span class="arch-tool-micro">(optional, this browser)</span>
+                          <input type="file" id="archCatalogLogoEditReplaceFile" class="arch-diagram-ui" accept="image/png,image/jpeg,image/svg+xml,image/webp" aria-label="Replace catalog logo image"/>
+                        </label>
+                        <p class="arch-tool-micro">Overrides the bundled file for the picker and new placements. Use <strong>Reset to bundled</strong> to restore.</p>
+                      </div>
+                      <div id="archCustomLogoEditPanelRow" class="arch-custom-logo-field-row">
                         <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
                           Side panel
                           <select id="archCustomLogoEditPanel" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo side panel"></select>
@@ -668,6 +675,7 @@
                         </label>
                       </div>
                       <div class="arch-custom-logo-edit-actions">
+                        <button type="button" class="dashboard-btn-outline" id="archCatalogLogoEditReset" hidden>Reset to bundled</button>
                         <button type="button" class="dashboard-btn-outline" id="archCustomLogoEditCancel">Cancel</button>
                         <button type="button" class="dashboard-btn-primary" id="archCustomLogoEditSave">Save</button>
                       </div>
@@ -741,6 +749,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260417a"></script>
+  <script defer src="aep-architecture-apps.js?v=20260417b"></script>
 </body>
 </html>

@@ -2653,6 +2653,8 @@
   ];
 
   var ARCH_CUSTOM_LOGOS_KEY = 'aepArchCustomLogoLibrary';
+  /** Browser-local overrides for bundled `architecture-logos.json` entries (label, description, optional image). */
+  var ARCH_CATALOG_LOGO_OVERRIDES_KEY = 'aepArchCatalogLogoOverrides';
   /** Rough cap for data URL length in localStorage (base64 expands size). */
   var ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS = 2000000;
   /** Delay before placing a custom logo so double-click can open the editor. */
@@ -2661,6 +2663,53 @@
   var ARCH_CUSTOM_LOGO_DELETE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
   var archArchitectureLogosRemoteCache = null;
   var archCustomLogoDragId = null;
+
+  function archCatalogLogoOverridesMap() {
+    try {
+      var raw = localStorage.getItem(ARCH_CATALOG_LOGO_OVERRIDES_KEY);
+      if (!raw) return {};
+      var o = JSON.parse(raw);
+      return o && o.byFile && typeof o.byFile === 'object' ? Object.assign({}, o.byFile) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function archCatalogLogoOverridesPersist(map) {
+    try {
+      localStorage.setItem(ARCH_CATALOG_LOGO_OVERRIDES_KEY, JSON.stringify({ version: 1, byFile: map }));
+    } catch (e) {}
+  }
+
+  function archCatalogLogoFindRaw(fileKey) {
+    var c = archArchitectureLogosRemoteCache;
+    if (!c || !Array.isArray(c.logos)) return null;
+    for (var i = 0; i < c.logos.length; i++) {
+      if (c.logos[i] && c.logos[i].file === fileKey) return c.logos[i];
+    }
+    return null;
+  }
+
+  /** Merge bundled catalog row with browser-local overrides. Keeps `file` as catalog path for sorting; uses `displayFile` for image href when replaced. */
+  function archCatalogLogoItemMergedFrom(raw, catOvMap) {
+    if (!raw || !raw.file) return raw;
+    var ov = catOvMap[raw.file];
+    if (!ov) return raw;
+    var out = Object.assign({}, raw);
+    out._archCatalogSourceFile = raw.file;
+    if ('label' in ov && ov.label != null) out.label = String(ov.label);
+    if ('description' in ov && ov.description != null) out.description = String(ov.description);
+    if (ov.fileDataUrl) out.displayFile = ov.fileDataUrl;
+    return out;
+  }
+
+  function archCatalogLogoOverrideRedundant(raw, next) {
+    var sl = (next.label != null ? String(next.label) : '').trim();
+    var sd = (next.description != null ? String(next.description) : '').trim();
+    var rl = (raw && raw.label != null ? String(raw.label) : '').trim();
+    var rd = (raw && raw.description != null ? String(raw.description) : '').trim();
+    return sl === rl && sd === rd && !next.fileDataUrl;
+  }
 
   function archCustomLogoLibraryLoad() {
     try {
@@ -2931,7 +2980,8 @@
       btn.type = 'button';
       btn.className = 'arch-spectrum-icons-tile arch-diagram-ui arch-architecture-logo-tile';
       btn.setAttribute('role', 'option');
-      btn.setAttribute('data-arch-logo-file', item.file);
+      var effHref = item.displayFile || item.file;
+      btn.setAttribute('data-arch-logo-file', effHref);
       btn.setAttribute('data-arch-logo-label', item.label || item.file);
       btn.setAttribute('data-arch-logo-desc', item.description || '');
       var tagList = Array.isArray(item.tags) ? item.tags.filter(function (t) { return t; }) : [];
@@ -2941,7 +2991,7 @@
       var wrap = document.createElement('span');
       wrap.className = 'arch-spectrum-icons-tile-img-wrap';
       var im = document.createElement('img');
-      im.src = item.file;
+      im.src = effHref;
       im.alt = '';
       im.loading = 'lazy';
       im.width = 32;
@@ -3029,6 +3079,32 @@
             if (f) archProductLogoPlace(f, lab, desc);
           }, ARCH_CUSTOM_LOGO_PLACE_DELAY_MS);
         });
+      } else {
+        var catKey = item.file;
+        btn.setAttribute('data-arch-catalog-source-file', catKey);
+        tileActions = document.createElement('span');
+        tileActions.className = 'arch-architecture-logo-tile-actions';
+        tileActions.setAttribute('role', 'group');
+        tileActions.setAttribute('aria-label', 'Catalog logo actions');
+        var catEditBtn = document.createElement('button');
+        catEditBtn.type = 'button';
+        catEditBtn.className = 'arch-architecture-logo-tile-action-btn arch-architecture-logo-tile-edit arch-diagram-ui';
+        catEditBtn.setAttribute('aria-label', 'Edit catalog logo');
+        catEditBtn.title = 'Edit label, description, or replace image (saved in this browser)';
+        catEditBtn.textContent = 'Edit';
+        catEditBtn.setAttribute('draggable', 'false');
+        catEditBtn.addEventListener('pointerdown', function (e) {
+          e.stopPropagation();
+        });
+        catEditBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          archCatalogLogoMetadataEditorOpen(catKey);
+        });
+        tileActions.appendChild(catEditBtn);
+        btn.title =
+          (hover || item.file) +
+          ' — Edit: label, description, or replace bundled image (this browser).';
       }
       btn.appendChild(wrap);
       btn.appendChild(cap);
@@ -3051,7 +3127,9 @@
     var qO = qs('#archArchitectureLogoSearch');
     var adobe = [];
     var other = [];
-    data.logos.forEach(function (item) {
+    var catOv = archCatalogLogoOverridesMap();
+    data.logos.forEach(function (rawItem) {
+      var item = archCatalogLogoItemMergedFrom(rawItem, catOv);
       if (archArchitectureLogoIsAdobeSection(item)) adobe.push(item);
       else other.push(item);
     });
@@ -3167,10 +3245,12 @@
     var n = 0;
     for (var i = 0; i < tiles.length; i++) {
       var btn = tiles[i];
+      var fileHay =
+        btn.getAttribute('data-arch-catalog-source-file') || btn.getAttribute('data-arch-logo-file') || '';
       var lab =
         (btn.getAttribute('data-arch-logo-label') || '') +
         ' ' +
-        (btn.getAttribute('data-arch-logo-file') || '') +
+        fileHay +
         ' ' +
         (btn.getAttribute('data-arch-logo-desc') || '');
       var tagsStr = btn.getAttribute('data-arch-logo-tags') || '';
@@ -3234,11 +3314,67 @@
   }
 
   var archCustomLogoEditingId = null;
+  var archCustomLogoEditingCatalogFile = null;
+
+  function archCatalogLogoEditUiMode(mode) {
+    var title = qs('#archCustomLogoEditTitle');
+    var hint = qs('#archCustomLogoEditHint');
+    var panelRow = qs('#archCustomLogoEditPanelRow');
+    var replaceRow = qs('#archCatalogLogoEditReplaceRow');
+    var resetBtn = qs('#archCatalogLogoEditReset');
+    var fi = qs('#archCatalogLogoEditReplaceFile');
+    if (mode === 'catalog') {
+      if (title) title.textContent = 'Edit catalog logo';
+      if (hint) {
+        hint.textContent =
+          'Adjust label and description for hovers and placement. Optionally replace the bundled image — stored only in this browser. Use Reset to restore the shipped asset.';
+      }
+      if (panelRow) panelRow.hidden = true;
+      if (replaceRow) replaceRow.hidden = false;
+      if (resetBtn) resetBtn.hidden = false;
+    } else {
+      if (title) title.textContent = 'Edit uploaded logo';
+      if (hint) {
+        hint.textContent =
+          'Change label, description, or which submenu this appears under. Logos already on the canvas keep their old label until you edit the box on the canvas.';
+      }
+      if (panelRow) panelRow.hidden = false;
+      if (replaceRow) replaceRow.hidden = true;
+      if (resetBtn) resetBtn.hidden = true;
+      if (fi) fi.value = '';
+    }
+  }
+
+  function archCatalogLogoMetadataEditorOpen(catalogFileKey) {
+    if (!catalogFileKey) return;
+    var raw = archCatalogLogoFindRaw(catalogFileKey);
+    if (!raw) return;
+    archCustomLogoEditingCatalogFile = catalogFileKey;
+    archCustomLogoEditingId = null;
+    var ov = qs('#archCustomLogoEditOverlay');
+    var lab = qs('#archCustomLogoEditLabel');
+    var desc = qs('#archCustomLogoEditDesc');
+    var fi = qs('#archCatalogLogoEditReplaceFile');
+    if (!ov || !lab || !desc) return;
+    archCatalogLogoEditUiMode('catalog');
+    if (fi) fi.value = '';
+    var ovMap = archCatalogLogoOverridesMap();
+    var st = ovMap[catalogFileKey] || {};
+    lab.value = 'label' in st ? String(st.label) : raw.label || '';
+    desc.value = 'description' in st ? String(st.description) : raw.description || '';
+    ov.hidden = false;
+    lab.focus();
+    lab.select();
+  }
 
   function archCustomLogoMetadataEditorClose() {
     var ov = qs('#archCustomLogoEditOverlay');
     if (ov) ov.hidden = true;
     archCustomLogoEditingId = null;
+    archCustomLogoEditingCatalogFile = null;
+    var fi = qs('#archCatalogLogoEditReplaceFile');
+    if (fi) fi.value = '';
+    archCatalogLogoEditUiMode('custom');
   }
 
   function archCustomLogoMetadataEditorOpen(id) {
@@ -3253,12 +3389,16 @@
     if (!entry) return;
     if (entry.deletedAt) return;
     archCustomLogoEditingId = id;
+    archCustomLogoEditingCatalogFile = null;
     var ov = qs('#archCustomLogoEditOverlay');
     var lab = qs('#archCustomLogoEditLabel');
     var desc = qs('#archCustomLogoEditDesc');
     var ps = qs('#archCustomLogoEditPanel');
     var gs = qs('#archCustomLogoEditGroup');
     if (!ov || !lab || !desc || !ps || !gs) return;
+    archCatalogLogoEditUiMode('custom');
+    var fi = qs('#archCatalogLogoEditReplaceFile');
+    if (fi) fi.value = '';
     archCustomLogoEnsurePanelSelectOptions(ps);
     lab.value = entry.label || '';
     desc.value = typeof entry.description === 'string' ? entry.description : '';
@@ -3281,6 +3421,56 @@
   }
 
   function archCustomLogoMetadataEditorSave() {
+    if (archCustomLogoEditingCatalogFile) {
+      var key = archCustomLogoEditingCatalogFile;
+      var raw = archCatalogLogoFindRaw(key);
+      if (!raw) return;
+      var labIn = qs('#archCustomLogoEditLabel');
+      var descIn = qs('#archCustomLogoEditDesc');
+      var fi = qs('#archCatalogLogoEditReplaceFile');
+      var label = (labIn && labIn.value && labIn.value.trim()) || '';
+      if (!label) return;
+      var desc = (descIn && descIn.value && descIn.value.trim()) || '';
+      var file = fi && fi.files && fi.files[0];
+      if (file && file.size > ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS * 0.75) {
+        if (liveRegion) liveRegion.textContent = 'File too large to store locally.';
+        return;
+      }
+      var prevMap = archCatalogLogoOverridesMap();
+      var prev = prevMap[key] || {};
+      function finishCatalogOverride(dataUrl) {
+        var next = { label: label, description: desc };
+        if (dataUrl) next.fileDataUrl = dataUrl;
+        else if (prev.fileDataUrl) next.fileDataUrl = prev.fileDataUrl;
+        if (archCatalogLogoOverrideRedundant(raw, next)) {
+          delete prevMap[key];
+        } else {
+          prevMap[key] = next;
+        }
+        archCatalogLogoOverridesPersist(prevMap);
+        archCustomLogoMetadataEditorClose();
+        archArchitectureLogosRefreshMerged();
+        if (liveRegion) liveRegion.textContent = 'Saved catalog logo override for this browser.';
+      }
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          var s = reader.result;
+          if (typeof s === 'string' && s.length > ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS) {
+            if (liveRegion) liveRegion.textContent = 'Image data too large for local storage.';
+            return;
+          }
+          finishCatalogOverride(s);
+        };
+        reader.onerror = function () {
+          if (liveRegion) liveRegion.textContent = 'Could not read image file.';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        finishCatalogOverride(null);
+      }
+      return;
+    }
     if (!archCustomLogoEditingId) return;
     var labIn = qs('#archCustomLogoEditLabel');
     var descIn = qs('#archCustomLogoEditDesc');
@@ -3323,9 +3513,21 @@
     }
     var cancel = qs('#archCustomLogoEditCancel');
     var save = qs('#archCustomLogoEditSave');
+    var resetCat = qs('#archCatalogLogoEditReset');
     var ps = qs('#archCustomLogoEditPanel');
     if (cancel) cancel.addEventListener('click', archCustomLogoMetadataEditorClose);
     if (save) save.addEventListener('click', archCustomLogoMetadataEditorSave);
+    if (resetCat) {
+      resetCat.addEventListener('click', function () {
+        if (!archCustomLogoEditingCatalogFile) return;
+        var map = archCatalogLogoOverridesMap();
+        delete map[archCustomLogoEditingCatalogFile];
+        archCatalogLogoOverridesPersist(map);
+        archCustomLogoMetadataEditorClose();
+        archArchitectureLogosRefreshMerged();
+        if (liveRegion) liveRegion.textContent = 'Restored bundled catalog logo.';
+      });
+    }
     if (ps) {
       ps.addEventListener('change', function () {
         archCustomLogoPopulateGroupSelectEl(qs('#archCustomLogoEditGroup'), ps.value === 'adobe' ? 'adobe' : 'other');
