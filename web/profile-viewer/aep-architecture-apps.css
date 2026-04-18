@@ -2227,6 +2227,27 @@ html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
   border-radius: 6px;
 }
 
+.arch-logo-library-edit-bar {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.arch-logo-library-edit-bar #archLogoLibraryEditToggle {
+  align-self: flex-start;
+}
+
+.arch-logo-library-edit-bar-hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
 .arch-custom-logo-dock {
   margin-top: 0.75rem;
   padding-top: 0.65rem;
@@ -2380,42 +2401,73 @@ button.arch-custom-logo-remove {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 3px;
+  gap: 4px;
   max-width: calc(100% - 4px);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.15s ease;
 }
 
-.arch-architecture-logo-tile--reveal-actions .arch-architecture-logo-tile-actions,
-.arch-architecture-logo-tile--popover-open .arch-architecture-logo-tile-actions,
-.arch-architecture-logo-tile:focus-within .arch-architecture-logo-tile-actions {
+#archEditorSectionSpectrumIcons[data-arch-logo-edit-mode="1"] .arch-architecture-logo-tile-actions,
+.arch-architecture-logo-tile--popover-open .arch-architecture-logo-tile-actions {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
 }
 
-.arch-architecture-logo-tile-pencil {
+@keyframes arch-logo-tile-jiggle {
+  0% {
+    transform: rotate(-0.55deg) translateZ(0);
+  }
+  100% {
+    transform: rotate(0.55deg) translateZ(0);
+  }
+}
+
+#archEditorSectionSpectrumIcons[data-arch-logo-edit-mode="1"]
+  .arch-architecture-logo-tile:not(.arch-architecture-logo-tile--dragging) {
+  animation: arch-logo-tile-jiggle 0.28s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #archEditorSectionSpectrumIcons[data-arch-logo-edit-mode="1"] .arch-architecture-logo-tile {
+    animation: none !important;
+  }
+}
+
+.arch-architecture-logo-tile-ios-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 1.5rem;
+  height: 1.5rem;
   padding: 0;
-  border-radius: 4px;
-  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.65);
   background: rgba(255, 255, 255, 0.98);
   color: #1473e6;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
 }
 
-.arch-architecture-logo-tile-pencil:hover,
-.arch-architecture-logo-tile-pencil:focus-visible {
+.arch-architecture-logo-tile-ios-btn--remove {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: #fff;
+}
+
+.arch-architecture-logo-tile-ios-btn:hover,
+.arch-architecture-logo-tile-ios-btn:focus-visible {
   outline: none;
-  border-color: #1473e6;
-  background: #eff6ff;
+  filter: brightness(0.97);
+}
+
+.arch-architecture-logo-tile-ios-btn--edit:focus-visible {
+  box-shadow: 0 0 0 2px rgba(20, 115, 230, 0.35);
+}
+
+.arch-architecture-logo-tile-ios-btn--remove:focus-visible {
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.35);
 }
 
 button.arch-custom-logo-row-edit {

@@ -665,6 +665,9 @@
     var prev = archEditorActivePanelId;
     var valid = ['layout', 'highlights', 'sources', 'spectrum-icons', 'file'];
     archEditorActivePanelId = valid.indexOf(panelId) >= 0 ? panelId : null;
+    if (prev === 'spectrum-icons' && archEditorActivePanelId !== 'spectrum-icons') {
+      archLogoLibraryEditModeSet(false);
+    }
     try {
       localStorage.setItem(LS_ARCH_ACTIVE_TOOL, archGetActiveTool());
     } catch (e) {}
@@ -2661,8 +2664,6 @@
   var ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS = 2000000;
   /** Delay before placing a custom logo so double-click can open the editor. */
   var ARCH_CUSTOM_LOGO_PLACE_DELAY_MS = 320;
-  /** Hover this long on a logo tile before the edit (pencil) control appears. */
-  var ARCH_LOGO_EDIT_REVEAL_MS = 5000;
   /** Tile that anchored the open logo edit popover (for positioning + highlight). */
   var archLogoEditAnchorEl = null;
   /** Pending removals are purged after this grace period (browser-local only). */
@@ -2977,35 +2978,21 @@
     return ARCH_ADOBE_LOGO_FILES.indexOf(f) >= 0;
   }
 
-  function archLogoTileClearRevealTimer(btn) {
-    if (btn._archLogoRevealTimer) {
-      clearTimeout(btn._archLogoRevealTimer);
-      btn._archLogoRevealTimer = null;
-    }
+  function archLogoLibraryEditModeIsOn() {
+    var sec = qs('#archEditorSectionSpectrumIcons');
+    return !!(sec && sec.getAttribute('data-arch-logo-edit-mode') === '1');
   }
 
-  /** After continuous hover, show the pencil; keyboard users get :focus-within via CSS. */
-  function archLogoTileRevealHoverInit(btn) {
-    function armReveal() {
-      archLogoTileClearRevealTimer(btn);
-      btn._archLogoRevealTimer = setTimeout(function () {
-        btn._archLogoRevealTimer = null;
-        btn.classList.add('arch-architecture-logo-tile--reveal-actions');
-      }, ARCH_LOGO_EDIT_REVEAL_MS);
+  function archLogoLibraryEditModeSet(on) {
+    var sec = qs('#archEditorSectionSpectrumIcons');
+    var toggle = qs('#archLogoLibraryEditToggle');
+    if (!sec) return;
+    sec.setAttribute('data-arch-logo-edit-mode', on ? '1' : '0');
+    if (toggle) {
+      toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+      toggle.textContent = on ? 'Done' : 'Edit logos';
     }
-    function disarmReveal() {
-      archLogoTileClearRevealTimer(btn);
-      if (!btn.classList.contains('arch-architecture-logo-tile--popover-open')) {
-        btn.classList.remove('arch-architecture-logo-tile--reveal-actions');
-      }
-    }
-    if (typeof window.PointerEvent !== 'undefined') {
-      btn.addEventListener('pointerenter', armReveal);
-      btn.addEventListener('pointerleave', disarmReveal);
-    } else {
-      btn.addEventListener('mouseenter', armReveal);
-      btn.addEventListener('mouseleave', disarmReveal);
-    }
+    if (!on) archCustomLogoMetadataEditorClose();
   }
 
   /** Div tiles need explicit Enter/Space to mirror former &lt;button&gt; activation. */
@@ -3013,6 +3000,7 @@
     tile.addEventListener('keydown', function (e) {
       if (e.target !== tile) return;
       if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (archLogoLibraryEditModeIsOn()) return;
       e.preventDefault();
       tile.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
     });
@@ -3020,15 +3008,10 @@
 
   function archLogoEditSetAnchor(el) {
     if (archLogoEditAnchorEl && archLogoEditAnchorEl !== el) {
-      archLogoEditAnchorEl.classList.remove(
-        'arch-architecture-logo-tile--popover-open',
-        'arch-architecture-logo-tile--reveal-actions'
-      );
+      archLogoEditAnchorEl.classList.remove('arch-architecture-logo-tile--popover-open');
     }
     archLogoEditAnchorEl = el || null;
-    if (el) {
-      el.classList.add('arch-architecture-logo-tile--popover-open', 'arch-architecture-logo-tile--reveal-actions');
-    }
+    if (el) el.classList.add('arch-architecture-logo-tile--popover-open');
   }
 
   function archLogoEditPopoverPosition() {
@@ -3062,15 +3045,15 @@
     });
   }
 
-  function archLogoTileCreatePencilButton(onActivate) {
+  function archLogoTileCreateIosEditButton(onActivate) {
     var editBtn = document.createElement('button');
     editBtn.type = 'button';
-    editBtn.className = 'arch-architecture-logo-tile-pencil arch-diagram-ui';
-    editBtn.setAttribute('aria-label', 'Edit logo');
-    editBtn.title = 'Edit label and metadata (hover the tile 5s to show this control)';
+    editBtn.className = 'arch-architecture-logo-tile-ios-btn arch-architecture-logo-tile-ios-btn--edit arch-diagram-ui';
+    editBtn.setAttribute('aria-label', 'Edit');
+    editBtn.title = 'Edit label, description, or image';
     editBtn.setAttribute('draggable', 'false');
     editBtn.innerHTML =
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
     editBtn.addEventListener('pointerdown', function (e) {
       e.stopPropagation();
     });
@@ -3080,6 +3063,26 @@
       onActivate();
     });
     return editBtn;
+  }
+
+  function archLogoTileCreateIosRemoveButton(ariaLabel, title, onActivate) {
+    var remBtn = document.createElement('button');
+    remBtn.type = 'button';
+    remBtn.className = 'arch-architecture-logo-tile-ios-btn arch-architecture-logo-tile-ios-btn--remove arch-diagram-ui';
+    remBtn.setAttribute('aria-label', ariaLabel || 'Remove');
+    remBtn.title = title || 'Remove';
+    remBtn.setAttribute('draggable', 'false');
+    remBtn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="#dc2626"/><path fill="#fff" d="M8 11h8v2H8z"/></svg>';
+    remBtn.addEventListener('pointerdown', function (e) {
+      e.stopPropagation();
+    });
+    remBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+      onActivate();
+    });
+    return remBtn;
   }
 
   /** Populate one logo grid from catalog items (shared tile markup). */
@@ -3117,14 +3120,23 @@
         btn.setAttribute('data-arch-custom-logo-id', item._archCustomId);
         btn.setAttribute('draggable', 'true');
         btn.classList.add('arch-architecture-logo-tile--custom');
-        btn.title =
-          (hover || item.file) +
-          ' — Hover 5s for edit, or use keyboard focus. Drag to reorder.';
+        btn.title = (hover || item.file) + ' — Turn on Edit logos below to change or remove. Drag to reorder.';
         tileActions = document.createElement('span');
         tileActions.className = 'arch-architecture-logo-tile-actions';
         tileActions.setAttribute('role', 'group');
         tileActions.setAttribute('aria-label', 'Logo actions');
-        var editBtn = archLogoTileCreatePencilButton(function () {
+        var remCust = archLogoTileCreateIosRemoveButton(
+          'Remove from library',
+          'Remove from library (7-day grace)',
+          function () {
+            if (!window.confirm('Queue this logo for removal from the library?')) return;
+            archCustomLogoQueueDeletion(item._archCustomId);
+            archCustomLogoRefreshLists();
+            archArchitectureLogosRefreshMerged();
+            if (liveRegion) liveRegion.textContent = 'Queued logo for removal.';
+          }
+        );
+        var editBtn = archLogoTileCreateIosEditButton(function () {
           if (btn._archLogoPlaceTimer) {
             clearTimeout(btn._archLogoPlaceTimer);
             btn._archLogoPlaceTimer = null;
@@ -3132,8 +3144,8 @@
           archLogoEditSetAnchor(btn);
           archCustomLogoMetadataEditorOpen(item._archCustomId);
         });
+        tileActions.appendChild(remCust);
         tileActions.appendChild(editBtn);
-        archLogoTileRevealHoverInit(btn);
         btn.addEventListener('dragstart', function (e) {
           try {
             e.dataTransfer.setData('text/plain', item._archCustomId);
@@ -3149,6 +3161,10 @@
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
           e.preventDefault();
+          if (archLogoLibraryEditModeIsOn()) {
+            if (e.target.closest && e.target.closest('.arch-architecture-logo-tile-actions')) return;
+            return;
+          }
           if (btn._archLogoPlaceTimer) clearTimeout(btn._archLogoPlaceTimer);
           btn._archLogoPlaceTimer = setTimeout(function () {
             btn._archLogoPlaceTimer = null;
@@ -3165,15 +3181,27 @@
         tileActions.className = 'arch-architecture-logo-tile-actions';
         tileActions.setAttribute('role', 'group');
         tileActions.setAttribute('aria-label', 'Catalog logo actions');
-        var catEditBtn = archLogoTileCreatePencilButton(function () {
+        var remCat = archLogoTileCreateIosRemoveButton(
+          'Remove local overrides',
+          'Remove local overrides (restore bundled asset)',
+          function () {
+            if (!window.confirm('Remove all local overrides for this logo and restore the bundled asset?')) return;
+            var map = archCatalogLogoOverridesMap();
+            delete map[catKey];
+            archCatalogLogoOverridesPersist(map);
+            archArchitectureLogosRefreshMerged();
+            if (liveRegion) liveRegion.textContent = 'Restored bundled logo for this entry.';
+          }
+        );
+        var catEditBtn = archLogoTileCreateIosEditButton(function () {
           archLogoEditSetAnchor(btn);
           archCatalogLogoMetadataEditorOpen(catKey);
         });
+        tileActions.appendChild(remCat);
         tileActions.appendChild(catEditBtn);
-        archLogoTileRevealHoverInit(btn);
         btn.title =
           (hover || item.file) +
-          ' — Hover 5s for edit, or focus with keyboard. Overrides save in this browser.';
+          ' — Turn on Edit logos below to change metadata or overrides (this browser).';
       }
       btn.appendChild(wrap);
       btn.appendChild(cap);
@@ -3889,11 +3917,23 @@
     });
   }
 
+  function archLogoLibraryEditBarInit() {
+    var sec = qs('#archEditorSectionSpectrumIcons');
+    var toggle = qs('#archLogoLibraryEditToggle');
+    if (!sec || !toggle || sec.getAttribute('data-arch-logo-edit-bar') === '1') return;
+    sec.setAttribute('data-arch-logo-edit-bar', '1');
+    archLogoLibraryEditModeSet(false);
+    toggle.addEventListener('click', function () {
+      archLogoLibraryEditModeSet(!archLogoLibraryEditModeIsOn());
+    });
+  }
+
   function archCustomLogoUploadFormInit() {
     var root = qs('#archCustomLogoUploadDetails');
     if (!root || root.getAttribute('data-arch-custom-logo-form') === '1') return;
     root.setAttribute('data-arch-custom-logo-form', '1');
     archCustomLogoEditDialogInit();
+    archLogoLibraryEditBarInit();
     archCustomLogoDragDropInit();
     archCustomLogoUploadDropZoneInit();
     var panelSel = qs('#archCustomLogoPanel');
@@ -7002,6 +7042,12 @@
       logoSection.addEventListener('click', function (e) {
         var btn = e.target.closest && e.target.closest('.arch-architecture-logo-tile');
         if (!btn || btn.hidden) return;
+        if (archLogoLibraryEditModeIsOn()) {
+          if (e.target.closest && e.target.closest('.arch-architecture-logo-tile-actions')) return;
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
         var f = btn.getAttribute('data-arch-logo-file');
         var lab = btn.getAttribute('data-arch-logo-label');
         var desc = btn.getAttribute('data-arch-logo-desc') || '';
