@@ -156,6 +156,22 @@
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
         },
       ],
+      subgroups: [
+        {
+          label: 'End 2 End',
+          id: 'architecture-end2end',
+          items: [
+            {
+              label: 'Adobe integration flow (in development)',
+              href: 'architecture-end-to-end.html',
+              inDevelopment: true,
+              navHideKey: 'architectureEndToEnd',
+              ico:
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 12h3l2-3 4 6 2-3h5"/></svg>',
+            },
+          ],
+        },
+      ],
     },
     {
       group: 'Demos', id: 'demos',
@@ -257,15 +273,70 @@
     return a;
   }
 
+  function buildSubgroup(sgDef, visibleSgItems, filename, gStates) {
+    if (!visibleSgItems || visibleSgItems.length === 0) return null;
+
+    var expanded = gStates[sgDef.id] !== false;
+    var wrap = mk('div', 'dashboard-nav-subgroup' + (expanded ? ' dashboard-nav-subgroup--expanded' : ''), {
+      'data-subgroup': sgDef.id,
+    });
+
+    var toggle = mk('button', 'dashboard-nav-subgroup-toggle', {
+      type: 'button',
+      'aria-expanded': String(expanded),
+      'data-tooltip': sgDef.label,
+      'aria-label': (expanded ? 'Collapse ' : 'Expand ') + sgDef.label + ' section',
+    });
+    var chev = mk('span', 'dashboard-nav-subgroup-chevron', { 'aria-hidden': 'true' });
+    var gl = mk('span', 'dashboard-nav-subgroup-label');
+    gl.textContent = sgDef.label;
+    toggle.appendChild(chev);
+    toggle.appendChild(gl);
+    wrap.appendChild(toggle);
+
+    var sgItems = mk('div', 'dashboard-nav-subgroup-items');
+    visibleSgItems.forEach(function (item) {
+      sgItems.appendChild(buildItem(item, filename));
+    });
+    wrap.appendChild(sgItems);
+
+    toggle.addEventListener('click', function () {
+      var isExp = wrap.classList.toggle('dashboard-nav-subgroup--expanded');
+      toggle.setAttribute('aria-expanded', String(isExp));
+      toggle.setAttribute('aria-label', (isExp ? 'Collapse ' : 'Expand ') + sgDef.label + ' section');
+      var st = getGroupStates();
+      st[sgDef.id] = isExp;
+      saveGroupStates(st);
+    });
+
+    return wrap;
+  }
+
   function buildGroup(def, filename, gStates) {
     var visibleItems = [];
-    def.items.forEach(function (item) {
+    (def.items || []).forEach(function (item) {
       if (shouldShowNavItem(item)) visibleItems.push(item);
     });
-    if (visibleItems.length === 0) return null;
+
+    var subgroupsToShow = [];
+    if (def.subgroups && def.subgroups.length) {
+      def.subgroups.forEach(function (sg) {
+        var sgVis = [];
+        sg.items.forEach(function (item) {
+          if (shouldShowNavItem(item)) sgVis.push(item);
+        });
+        if (sgVis.length) subgroupsToShow.push({ def: sg, items: sgVis });
+      });
+    }
+
+    if (visibleItems.length === 0 && subgroupsToShow.length === 0) return null;
 
     var expanded = gStates[def.id] !== false;
-    var wrap = mk('div', 'dashboard-nav-group' + (expanded ? ' dashboard-nav-group--expanded' : ''), {
+    var wrapCls =
+      'dashboard-nav-group' +
+      (expanded ? ' dashboard-nav-group--expanded' : '') +
+      (subgroupsToShow.length ? ' dashboard-nav-group--has-subgroups' : '');
+    var wrap = mk('div', wrapCls, {
       'data-group': def.id,
     });
 
@@ -285,6 +356,10 @@
     var items = mk('div', 'dashboard-nav-group-items');
     visibleItems.forEach(function (item) {
       items.appendChild(buildItem(item, filename));
+    });
+    subgroupsToShow.forEach(function (sg) {
+      var sub = buildSubgroup(sg.def, sg.items, filename, gStates);
+      if (sub) items.appendChild(sub);
     });
     wrap.appendChild(items);
 
@@ -310,7 +385,8 @@
   function tooltipTarget(el) {
     if (!el || typeof el.closest !== 'function') return null;
     return el.closest('.dashboard-nav-item[data-tooltip]') ||
-      el.closest('.dashboard-nav-group-toggle[data-tooltip]');
+      el.closest('.dashboard-nav-group-toggle[data-tooltip]') ||
+      el.closest('.dashboard-nav-subgroup-toggle[data-tooltip]');
   }
 
   function setupTooltips(sidebar) {

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="aep-head-sync.js?v=20260416c"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adobe integration flow (in development) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260418-architecture-e2e">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="architecture-end-to-end.css">
+</head>
+<body class="architecture-e2e-page home-dashboard-concierge home-dashboard-ajo">
+  <div class="dashboard-shell dashboard-shell--ajo">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap dashboard-main-wrap--ajo">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Work in progress">In development</span>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main dashboard-main--ajo consent-main architecture-e2e-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="e2eBannerHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="e2eBannerHeading" class="dashboard-hero-title">Adobe integration flow (in development)</h2>
+              <p class="dashboard-hero-subtitle">
+                Step-through animation for Workfront (WF), AEM, GenStudio, a split point, then email template and decisioning (in development).
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <div id="e2eBlocked" class="edp-blocked" hidden>
+          <p style="margin:0 0 0.75rem;">
+            This page is hidden from the sidebar. Turn it back on under
+            <a href="global-settings.html"><strong>Global values</strong></a>
+            (uncheck “Hide Adobe integration flow”).
+          </p>
+        </div>
+
+        <div class="architecture-e2e-inner" id="e2eMount">
+          <h1 class="architecture-e2e-title">End-to-end flow</h1>
+          <p class="architecture-e2e-lead">
+            Reference sequence: WF → AEM → WF → GenStudio → WF → split → Email template → Decision. Visual language matches the Agentic layer (dark grid, card nodes, fade/slide-in). Connectors use animated stroke draw like that page; the Experimentation visualiser uses different techniques (SVG path motion along edges and count-up numbers).
+          </p>
+          <div class="architecture-e2e-toolbar">
+            <button type="button" class="btn btn-primary" id="e2ePlayBtn">Play</button>
+            <button type="button" class="btn btn-secondary" id="e2eResetBtn">Reset</button>
+            <label class="architecture-e2e-speed">
+              <span>Step delay</span>
+              <input type="range" id="e2eDelayMs" min="200" max="1400" step="100" value="520" aria-label="Milliseconds between steps">
+              <span id="e2eDelayLabel" class="architecture-e2e-speed-val">520 ms</span>
+            </label>
+          </div>
+
+          <div class="e2e-diagram-wrap" id="e2eDiagramWrap">
+            <svg class="e2e-arrow-layer" id="e2eArrowLayer" aria-hidden="true"></svg>
+            <div class="e2e-board" id="e2eBoard">
+              <div class="e2e-main-row" aria-label="Product handoff row">
+                <div class="e2e-node e2e-node--wf" id="e2e-wf1">
+                  <span>Workfront</span>
+                  <span class="e2e-node__sub">WF</span>
+                </div>
+                <div class="e2e-node e2e-node--aem" id="e2e-aem">
+                  <span>AEM</span>
+                </div>
+                <div class="e2e-node e2e-node--wf" id="e2e-wf2">
+                  <span>Workfront</span>
+                  <span class="e2e-node__sub">WF</span>
+                </div>
+                <div class="e2e-node e2e-node--genstudio" id="e2e-genstudio">
+                  <span>GenStudio</span>
+                </div>
+                <div class="e2e-node e2e-node--wf" id="e2e-wf3">
+                  <span>Workfront</span>
+                  <span class="e2e-node__sub">WF</span>
+                </div>
+                <div class="e2e-node e2e-node--split" id="e2e-split">
+                  <span>Split here</span>
+                </div>
+              </div>
+              <div class="e2e-branch" aria-label="Downstream branch">
+                <div class="e2e-node e2e-node--email" id="e2e-email">
+                  <span>Email template</span>
+                </div>
+                <div class="e2e-node e2e-node--decision" id="e2e-decision">
+                  <span>Decision</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var LS_NAV = 'aepNavHideInDev_architectureEndToEnd';
+      function applyVisibility() {
+        var hide = false;
+        try {
+          hide = localStorage.getItem(LS_NAV) === '1';
+        } catch (e) {}
+        var blocked = document.getElementById('e2eBlocked');
+        var mount = document.getElementById('e2eMount');
+        if (blocked && mount) {
+          blocked.hidden = !hide;
+          mount.hidden = hide;
+        }
+      }
+      applyVisibility();
+      window.addEventListener('aep-nav-indev-visibility-change', function () {
+        window.location.reload();
+      });
+      window.addEventListener('storage', function (e) {
+        if (e.key === LS_NAV) window.location.reload();
+      });
+    })();
+  </script>
+  <script defer src="architecture-end-to-end.js"></script>
+  <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260418-architecture-e2e"></script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+/* End-to-end Adobe integration flow — diagram styling aligned with Agentic layer nodes */
+
+.architecture-e2e-page .edp-blocked {
+  box-sizing: border-box;
+  margin: 0 auto 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--aep-border, #e8e4df);
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--aep-text, #1e1e1e);
+  max-width: 1100px;
+}
+
+html[data-aep-theme='dark'] .architecture-e2e-page .edp-blocked {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--aep-text, #e6e6e6);
+}
+
+.architecture-e2e-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.architecture-e2e-main {
+  --e2e-grid: rgba(255, 255, 255, 0.06);
+  --e2e-fg: rgba(255, 255, 255, 0.92);
+  --e2e-cyan: #22d3ee;
+  --e2e-amber: #fbbf24;
+  --e2e-magenta: #e879f9;
+}
+
+.architecture-e2e-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.35rem;
+}
+
+.architecture-e2e-lead {
+  margin: 0 0 1rem;
+  color: var(--spectrum-global-color-gray-700, #464646);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.architecture-e2e-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.architecture-e2e-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--spectrum-global-color-gray-700, #464646);
+}
+
+.architecture-e2e-speed-val {
+  font-variant-numeric: tabular-nums;
+  min-width: 4rem;
+}
+
+.e2e-diagram-wrap {
+  position: relative;
+  border-radius: 12px;
+  padding: 1.35rem 1rem 1.75rem;
+  background-color: #0d1117;
+  background-image:
+    linear-gradient(var(--e2e-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--e2e-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: center top;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.e2e-arrow-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+}
+
+.e2e-board {
+  position: relative;
+  z-index: 2;
+}
+
+.e2e-main-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 0.5rem 0.35rem;
+  margin-bottom: 1.25rem;
+}
+
+.e2e-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.e2e-node {
+  position: relative;
+  box-sizing: border-box;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--e2e-fg);
+  padding: 0.5rem 0.65rem;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  background: rgba(20, 24, 32, 0.95);
+  line-height: 1.25;
+  min-width: 5.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.e2e-node--wf {
+  border-color: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.15);
+}
+
+.e2e-node--aem {
+  border-color: rgba(251, 146, 60, 0.95);
+  box-shadow: 0 0 0 1px rgba(251, 146, 60, 0.12);
+}
+
+.e2e-node--genstudio {
+  border-color: rgba(192, 132, 252, 0.95);
+  box-shadow: 0 0 0 1px rgba(192, 132, 252, 0.12);
+}
+
+.e2e-node--split {
+  border-style: dashed;
+  border-color: var(--e2e-amber);
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(30, 24, 8, 0.75);
+}
+
+.e2e-node--email {
+  border-color: rgba(52, 211, 153, 0.9);
+}
+
+.e2e-node--decision {
+  border-color: var(--e2e-magenta);
+}
+
+.e2e-node__sub {
+  font-size: 0.62rem;
+  font-weight: 500;
+  opacity: 0.72;
+  letter-spacing: 0.02em;
+}
+
+.e2e-node:not(.is-visible) {
+  display: none;
+}
+
+.e2e-node.is-visible {
+  display: flex;
+  animation: e2e-node-in 0.42s ease forwards;
+}
+
+@keyframes e2e-node-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .e2e-node.is-visible {
+    animation: none;
+  }
+}
+
+.e2e-arrow-path {
+  vector-effect: non-scaling-stroke;
+}
