@@ -670,10 +670,12 @@
     } catch (e) {}
     var editorPanel = qs('#archEditorPanel');
     if (editorPanel) {
-      /* Tools + Lines: floating bars only; no empty side column (same as layout rail). */
+      /* Hide side column for Tools + Lines (floating UI on canvas), and when no rail tab is selected — avoids empty white strip. */
       editorPanel.classList.toggle(
         'arch-editor-panel--layout-float-only',
-        archEditorActivePanelId === 'layout' || archEditorActivePanelId === 'sources'
+        !archEditorActivePanelId ||
+          archEditorActivePanelId === 'layout' ||
+          archEditorActivePanelId === 'sources'
       );
     }
     $all('.arch-editor-section').forEach(function (sec) {

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260417a">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260417c">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -489,7 +489,7 @@
 
             <aside class="arch-editor-dock arch-diagram-ui" id="archEditorDock" hidden>
               <div class="arch-editor-rail" role="tablist" aria-label="Diagram editor tools">
-                <button type="button" class="arch-editor-rail-btn is-active" data-arch-panel="layout" id="archEditorRailLayout" title="Canvas tools — floating menu on the diagram" aria-pressed="true">
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="layout" id="archEditorRailLayout" title="Canvas tools — floating menu on the diagram" aria-pressed="false">
                   <span class="arch-editor-rail-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" focusable="false" class="arch-editor-rail-tools-logo">
                       <g fill="currentColor">
@@ -544,7 +544,7 @@
                 </button>
               </div>
               <div class="arch-editor-panel arch-int-hud" id="archEditorPanel">
-                <div class="arch-editor-section is-active" data-arch-panel="layout" id="archEditorSectionLayout" role="tabpanel" aria-labelledby="archEditorRailLayout">
+                <div class="arch-editor-section" data-arch-panel="layout" id="archEditorSectionLayout" role="tabpanel" aria-labelledby="archEditorRailLayout" hidden>
                   <p class="arch-tool-micro arch-tools-layout-hint">Shapes and selection controls are on the <strong>floating Tools bar</strong> on the diagram (rail: Tools). Connectors: <strong>arrow</strong> on the rail · save / undo: <strong>archive</strong> on the rail.</p>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="highlights" id="archEditorSectionHighlights" role="tabpanel" aria-labelledby="archEditorRailHighlights" hidden>
@@ -749,6 +749,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260417b"></script>
+  <script defer src="aep-architecture-apps.js?v=20260417c"></script>
 </body>
 </html>
