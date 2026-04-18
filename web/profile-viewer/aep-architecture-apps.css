@@ -2234,28 +2234,6 @@ html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
   color: #475569;
 }
 
-.arch-custom-logo-purge-drop {
-  min-height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.45rem 0.6rem;
-  margin-bottom: 0.6rem;
-  border: 2px dashed #cbd5e1;
-  border-radius: 6px;
-  background: #f8fafc;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #64748b;
-  text-align: center;
-}
-
-.arch-custom-logo-purge-drop--dnd-hover {
-  border-color: #1473e6;
-  background: rgba(20, 115, 230, 0.08);
-  color: #0f172a;
-}
-
 .arch-custom-logo-pending-wrap {
   margin-top: 0.25rem;
 }
@@ -2376,27 +2354,54 @@ button.arch-custom-logo-remove {
   color: #64748b;
 }
 
-.arch-architecture-logo-tile-edit {
+.arch-architecture-logo-tile-actions {
   position: absolute;
   top: 2px;
   right: 2px;
-  z-index: 3;
-  padding: 0.1rem 0.28rem;
-  font-size: 0.58rem;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  max-width: calc(100% - 4px);
+}
+
+.arch-architecture-logo-tile-action-btn {
+  padding: 0.1rem 0.22rem;
+  font-size: 0.55rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.15;
   border-radius: 3px;
   border: 1px solid #cbd5e1;
   background: rgba(255, 255, 255, 0.96);
-  color: #1473e6;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  white-space: nowrap;
+}
+
+.arch-architecture-logo-tile-edit {
+  color: #1473e6;
+}
+
+.arch-architecture-logo-tile-remove {
+  color: #b45309;
+  border-color: #fcd34d;
+  background: rgba(255, 251, 235, 0.98);
+}
+
+.arch-architecture-logo-tile-action-btn:hover,
+.arch-architecture-logo-tile-action-btn:focus-visible {
+  outline: none;
 }
 
 .arch-architecture-logo-tile-edit:hover,
 .arch-architecture-logo-tile-edit:focus-visible {
   border-color: #1473e6;
-  outline: none;
+}
+
+.arch-architecture-logo-tile-remove:hover,
+.arch-architecture-logo-tile-remove:focus-visible {
+  border-color: #d97706;
 }
 
 button.arch-custom-logo-row-edit {
