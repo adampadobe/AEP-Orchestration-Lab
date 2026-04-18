@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260418a">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260418b">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -685,6 +685,26 @@
                       </div>
                     </div>
                   </div>
+                  <div
+                    id="archLogoConfirmOverlay"
+                    class="arch-custom-logo-edit-overlay arch-logo-confirm-overlay arch-diagram-ui"
+                    hidden
+                  >
+                    <div
+                      class="arch-custom-logo-edit-dialog arch-logo-confirm-dialog arch-diagram-ui"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="archLogoConfirmTitle"
+                      aria-describedby="archLogoConfirmMessage"
+                    >
+                      <h3 id="archLogoConfirmTitle" class="arch-custom-logo-edit-title">Confirm</h3>
+                      <p id="archLogoConfirmMessage" class="arch-tool-micro arch-custom-logo-edit-hint"></p>
+                      <div class="arch-custom-logo-edit-actions arch-logo-confirm-actions">
+                        <button type="button" class="dashboard-btn-outline" id="archLogoConfirmCancel">Cancel</button>
+                        <button type="button" class="dashboard-btn-primary arch-diagram-ui" id="archLogoConfirmAction">OK</button>
+                      </div>
+                    </div>
+                  </div>
                   <div class="arch-logo-library-edit-bar arch-diagram-ui" id="archLogoLibraryEditBar">
                     <button type="button" class="dashboard-btn-outline" id="archLogoLibraryEditToggle" aria-pressed="false">Edit logos</button>
                     <p class="arch-tool-micro arch-logo-library-edit-bar-hint">Shows edit and remove on each <strong>Adobe / Product logo</strong> tile. While on, clicking a tile does not place it on the diagram — tap <strong>Done</strong> when finished.</p>
@@ -757,6 +777,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260418a"></script>
+  <script defer src="aep-architecture-apps.js?v=20260418b"></script>
 </body>
 </html>

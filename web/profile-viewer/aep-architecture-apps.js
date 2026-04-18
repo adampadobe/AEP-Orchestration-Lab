@@ -3045,6 +3045,77 @@
     });
   }
 
+  var archLogoConfirmBusy = false;
+
+  /** In-app confirm — avoids native `confirm()` (“site says …”), which reads as a broken page. */
+  function archLogoConfirmShow(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      var overlay = qs('#archLogoConfirmOverlay');
+      var titleEl = qs('#archLogoConfirmTitle');
+      var msgEl = qs('#archLogoConfirmMessage');
+      var cancelBtn = qs('#archLogoConfirmCancel');
+      var actionBtn = qs('#archLogoConfirmAction');
+      if (!overlay || !titleEl || !msgEl || !cancelBtn || !actionBtn) {
+        resolve(false);
+        return;
+      }
+      if (archLogoConfirmBusy) {
+        resolve(false);
+        return;
+      }
+      archLogoConfirmBusy = true;
+      var prevFocus = document.activeElement;
+      titleEl.textContent = opts.title || 'Confirm';
+      msgEl.textContent = opts.message || '';
+      var danger = !!opts.danger;
+      actionBtn.textContent = opts.confirmLabel || 'OK';
+      actionBtn.className =
+        'arch-diagram-ui ' +
+        (danger ? 'dashboard-btn-outline arch-logo-confirm-btn--danger' : 'dashboard-btn-primary');
+
+      function cleanup(ok) {
+        archLogoConfirmBusy = false;
+        overlay.hidden = true;
+        cancelBtn.removeEventListener('click', onCancel);
+        actionBtn.removeEventListener('click', onOk);
+        overlay.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        if (prevFocus && typeof prevFocus.focus === 'function') {
+          try {
+            prevFocus.focus();
+          } catch (e) {}
+        }
+        resolve(!!ok);
+      }
+      function onCancel() {
+        cleanup(false);
+      }
+      function onOk() {
+        cleanup(true);
+      }
+      function onBackdrop(e) {
+        if (e.target === overlay) cleanup(false);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          cleanup(false);
+        }
+      }
+      cancelBtn.addEventListener('click', onCancel);
+      actionBtn.addEventListener('click', onOk);
+      overlay.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+      overlay.hidden = false;
+      requestAnimationFrame(function () {
+        try {
+          actionBtn.focus();
+        } catch (e) {}
+      });
+    });
+  }
+
   function archLogoTileCreateIosEditButton(onActivate) {
     var editBtn = document.createElement('button');
     editBtn.type = 'button';
@@ -3129,11 +3200,19 @@
           'Remove from library',
           'Remove from library (7-day grace)',
           function () {
-            if (!window.confirm('Queue this logo for removal from the library?')) return;
-            archCustomLogoQueueDeletion(item._archCustomId);
-            archCustomLogoRefreshLists();
-            archArchitectureLogosRefreshMerged();
-            if (liveRegion) liveRegion.textContent = 'Queued logo for removal.';
+            archLogoConfirmShow({
+              title: 'Remove from library?',
+              message:
+                'This queues your upload for removal. You can cancel from Pending removal below during the 7-day grace period.',
+              confirmLabel: 'Queue removal',
+              danger: true
+            }).then(function (ok) {
+              if (!ok) return;
+              archCustomLogoQueueDeletion(item._archCustomId);
+              archCustomLogoRefreshLists();
+              archArchitectureLogosRefreshMerged();
+              if (liveRegion) liveRegion.textContent = 'Queued logo for removal.';
+            });
           }
         );
         var editBtn = archLogoTileCreateIosEditButton(function () {
@@ -3185,12 +3264,20 @@
           'Remove local overrides',
           'Remove local overrides (restore bundled asset)',
           function () {
-            if (!window.confirm('Remove all local overrides for this logo and restore the bundled asset?')) return;
-            var map = archCatalogLogoOverridesMap();
-            delete map[catKey];
-            archCatalogLogoOverridesPersist(map);
-            archArchitectureLogosRefreshMerged();
-            if (liveRegion) liveRegion.textContent = 'Restored bundled logo for this entry.';
+            archLogoConfirmShow({
+              title: 'Remove local overrides?',
+              message:
+                'This clears browser-only replacement images and label overrides for this catalog logo. The built-in asset from the library is used again for the picker and new placements (this browser only).',
+              confirmLabel: 'Restore default',
+              danger: false
+            }).then(function (ok) {
+              if (!ok) return;
+              var map = archCatalogLogoOverridesMap();
+              delete map[catKey];
+              archCatalogLogoOverridesPersist(map);
+              archArchitectureLogosRefreshMerged();
+              if (liveRegion) liveRegion.textContent = 'Restored bundled logo for this entry.';
+            });
           }
         );
         var catEditBtn = archLogoTileCreateIosEditButton(function () {
