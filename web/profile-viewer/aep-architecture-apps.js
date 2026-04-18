@@ -2986,18 +2986,35 @@
 
   /** After continuous hover, show the pencil; keyboard users get :focus-within via CSS. */
   function archLogoTileRevealHoverInit(btn) {
-    btn.addEventListener('mouseenter', function () {
+    function armReveal() {
       archLogoTileClearRevealTimer(btn);
       btn._archLogoRevealTimer = setTimeout(function () {
         btn._archLogoRevealTimer = null;
         btn.classList.add('arch-architecture-logo-tile--reveal-actions');
       }, ARCH_LOGO_EDIT_REVEAL_MS);
-    });
-    btn.addEventListener('mouseleave', function () {
+    }
+    function disarmReveal() {
       archLogoTileClearRevealTimer(btn);
       if (!btn.classList.contains('arch-architecture-logo-tile--popover-open')) {
         btn.classList.remove('arch-architecture-logo-tile--reveal-actions');
       }
+    }
+    if (typeof window.PointerEvent !== 'undefined') {
+      btn.addEventListener('pointerenter', armReveal);
+      btn.addEventListener('pointerleave', disarmReveal);
+    } else {
+      btn.addEventListener('mouseenter', armReveal);
+      btn.addEventListener('mouseleave', disarmReveal);
+    }
+  }
+
+  /** Div tiles need explicit Enter/Space to mirror former &lt;button&gt; activation. */
+  function archLogoTileKeyboardActivate(tile) {
+    tile.addEventListener('keydown', function (e) {
+      if (e.target !== tile) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      tile.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
     });
   }
 
@@ -3070,10 +3087,11 @@
     if (!grid) return;
     grid.textContent = '';
     items.forEach(function (item) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
+      /* Must be a div: inner pencil is a <button>; nested buttons are invalid and break hover/DOM. */
+      var btn = document.createElement('div');
       btn.className = 'arch-spectrum-icons-tile arch-diagram-ui arch-architecture-logo-tile';
       btn.setAttribute('role', 'option');
+      btn.tabIndex = 0;
       var effHref = item.displayFile || item.file;
       btn.setAttribute('data-arch-logo-file', effHref);
       btn.setAttribute('data-arch-logo-label', item.label || item.file);
@@ -3160,6 +3178,7 @@
       btn.appendChild(wrap);
       btn.appendChild(cap);
       if (tileActions) btn.appendChild(tileActions);
+      archLogoTileKeyboardActivate(btn);
       grid.appendChild(btn);
     });
   }
