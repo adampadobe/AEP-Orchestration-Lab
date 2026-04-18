@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260418b">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260418c">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -691,14 +691,14 @@
                     hidden
                   >
                     <div
+                      id="archLogoConfirmDialog"
                       class="arch-custom-logo-edit-dialog arch-logo-confirm-dialog arch-diagram-ui"
                       role="dialog"
                       aria-modal="true"
                       aria-labelledby="archLogoConfirmTitle"
-                      aria-describedby="archLogoConfirmMessage"
                     >
                       <h3 id="archLogoConfirmTitle" class="arch-custom-logo-edit-title">Confirm</h3>
-                      <p id="archLogoConfirmMessage" class="arch-tool-micro arch-custom-logo-edit-hint"></p>
+                      <p id="archLogoConfirmMessage" class="arch-tool-micro arch-custom-logo-edit-hint" hidden></p>
                       <div class="arch-custom-logo-edit-actions arch-logo-confirm-actions">
                         <button type="button" class="dashboard-btn-outline" id="archLogoConfirmCancel">Cancel</button>
                         <button type="button" class="dashboard-btn-primary arch-diagram-ui" id="archLogoConfirmAction">OK</button>
@@ -777,6 +777,6 @@
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
   <script defer src="diagram/tests.js?v=20260520"></script>
-  <script defer src="aep-architecture-apps.js?v=20260418b"></script>
+  <script defer src="aep-architecture-apps.js?v=20260418c"></script>
 </body>
 </html>

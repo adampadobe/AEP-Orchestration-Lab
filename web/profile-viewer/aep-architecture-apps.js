@@ -3066,8 +3066,18 @@
       }
       archLogoConfirmBusy = true;
       var prevFocus = document.activeElement;
+      var dlg = qs('#archLogoConfirmDialog');
       titleEl.textContent = opts.title || 'Confirm';
-      msgEl.textContent = opts.message || '';
+      var msgText = (opts.message != null ? String(opts.message) : '').trim();
+      msgEl.textContent = msgText;
+      if (msgText) {
+        msgEl.hidden = false;
+        if (dlg) dlg.setAttribute('aria-describedby', 'archLogoConfirmMessage');
+      } else {
+        msgEl.hidden = true;
+        if (dlg) dlg.removeAttribute('aria-describedby');
+      }
+      cancelBtn.textContent = opts.cancelLabel != null ? opts.cancelLabel : 'Cancel';
       var danger = !!opts.danger;
       actionBtn.textContent = opts.confirmLabel || 'OK';
       actionBtn.className =
@@ -3110,7 +3120,7 @@
       overlay.hidden = false;
       requestAnimationFrame(function () {
         try {
-          actionBtn.focus();
+          cancelBtn.focus();
         } catch (e) {}
       });
     });
@@ -3197,14 +3207,14 @@
         tileActions.setAttribute('role', 'group');
         tileActions.setAttribute('aria-label', 'Logo actions');
         var remCust = archLogoTileCreateIosRemoveButton(
-          'Remove from library',
-          'Remove from library (7-day grace)',
+          'Delete',
+          'Delete from your library (7-day grace to undo)',
           function () {
             archLogoConfirmShow({
-              title: 'Remove from library?',
-              message:
-                'This queues your upload for removal. You can cancel from Pending removal below during the 7-day grace period.',
-              confirmLabel: 'Queue removal',
+              title: 'Delete this logo?',
+              message: '',
+              confirmLabel: 'Yes',
+              cancelLabel: 'No',
               danger: true
             }).then(function (ok) {
               if (!ok) return;
@@ -3261,15 +3271,15 @@
         tileActions.setAttribute('role', 'group');
         tileActions.setAttribute('aria-label', 'Catalog logo actions');
         var remCat = archLogoTileCreateIosRemoveButton(
-          'Remove local overrides',
-          'Remove local overrides (restore bundled asset)',
+          'Delete',
+          'Delete your saved version for this logo (this browser)',
           function () {
             archLogoConfirmShow({
-              title: 'Remove local overrides?',
-              message:
-                'This clears browser-only replacement images and label overrides for this catalog logo. The built-in asset from the library is used again for the picker and new placements (this browser only).',
-              confirmLabel: 'Restore default',
-              danger: false
+              title: 'Delete this logo?',
+              message: '',
+              confirmLabel: 'Yes',
+              cancelLabel: 'No',
+              danger: true
             }).then(function (ok) {
               if (!ok) return;
               var map = archCatalogLogoOverridesMap();
