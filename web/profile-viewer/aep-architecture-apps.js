@@ -267,19 +267,13 @@
     return !!(archViewport && archViewport.classList.contains('arch-int-viewport--edit-mode'));
   }
 
-  /** Disable prev/next/dot navigation while editing so arrow keys do not fight layout tools. */
+  /** Prev/Next/dot nav stays enabled in Edit mode so you can step through states while editing. */
   function archSyncPlaybackNav() {
-    var blocked = archIsEditMode();
     var prev = qs('#archIntPrev');
     var next = qs('#archIntNext');
-    if (prev) prev.disabled = blocked;
-    if (next) next.disabled = blocked;
-    dotButtons.forEach(function (b) {
-      b.disabled = blocked;
-    });
-    if (blocked || !archSelection) return;
-    archSelection.clear();
-    archSelectionRefreshDom();
+    if (prev) prev.disabled = false;
+    if (next) next.disabled = false;
+    dotButtons.forEach(function (b) { b.disabled = false; });
   }
 
   function archSelectionRefreshDom() {
@@ -922,7 +916,6 @@
   }
 
   function go(delta) {
-    if (archIsEditMode()) return;
     var n = idx + delta;
     if (n < 0 || n >= STATES.length) return;
     idx = n;
@@ -930,7 +923,6 @@
   }
 
   function goTo(i) {
-    if (archIsEditMode()) return;
     if (i < 0 || i >= STATES.length) return;
     idx = i;
     applyState();
