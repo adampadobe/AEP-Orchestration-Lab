@@ -168,6 +168,7 @@
   background: rgba(255, 255, 255, 0.7);
 }
 .arch-proposals-bar[hidden] { display: none !important; }
+.arch-proposals-bar #archProposalsSaveMaster[hidden] { display: none !important; }
 .arch-proposals-bar-label {
   font-size: 0.72rem;
   font-weight: 600;
