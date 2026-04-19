@@ -1,5 +1,5 @@
 /**
- * End-to-end Adobe flow — light cards + Y-fork from last Workfront to Email & Decision.
+ * End-to-end Adobe flow — hub: AEM ↔ Workfront ↔ GenStudio (bi-dir); fork down to Email & Decision.
  */
 (function () {
   'use strict';
@@ -18,23 +18,17 @@
 
   if (!coordRoot || !svg) return;
 
-  /** No separate “split” node — fork is drawn from e2e-wf3 to email + decision */
-  var STEP_NODE_IDS = [
-    'e2e-wf1',
-    'e2e-aem',
-    'e2e-wf2',
-    'e2e-genstudio',
-    'e2e-wf3',
-    'e2e-email',
-    'e2e-decision',
-  ];
+  /** Reveal order: hub WF first, then wings, then fork */
+  var STEP_NODE_IDS = ['e2e-wf-hub', 'e2e-aem', 'e2e-genstudio', 'e2e-email', 'e2e-decision'];
 
-  /** Extra space so strokes clear card edges (flowchart-style gutters in CSS) */
   var EDGE_PAD = 40;
-  /** Vertical stem length from Workfront bottom to Y junction */
   var FORK_STEM = 96;
+  /** Vertical offset between paired bi-directional horizontal strokes */
+  var BIDIR_Y = 9;
   var FLOW = '#2d9d6c';
+  var FLOW_ALT = '#3d9d72';
   var PATH_EASE = 'cubic-bezier(0.33, 1, 0.68, 1)';
+  var PAIR_STAGGER_MS = 110;
 
   var timerId = null;
   var stepIndex = 0;
@@ -76,47 +70,36 @@
     };
   }
 
-  function junctionBelowWf3(wf3El) {
-    var w = relRect(wf3El);
+  function junctionBelowWf(wfEl) {
+    var w = relRect(wfEl);
     return {
       x: w.cx,
       y: w.bottom + EDGE_PAD + FORK_STEM,
     };
   }
 
-  function leftToRightPath(a, b) {
-    var x1 = a.right + EDGE_PAD;
-    var x2 = b.left - EDGE_PAD;
-    var y = (a.cy + b.cy) / 2;
-    return 'M ' + x1 + ' ' + y + ' L ' + x2 + ' ' + y;
+  /**
+   * Two horizontal segments between left and right boxes (parallel Y): toward-right and toward-left.
+   * Marker at path end: line toward right ends at R (into hub from AEM, or into GenStudio from WF).
+   */
+  function horizontalBidirPaths(leftEl, rightEl) {
+    var L = relRect(leftEl);
+    var R = relRect(rightEl);
+    var mid = (L.cy + R.cy) / 2;
+    var yUp = mid - BIDIR_Y;
+    var yDn = mid + BIDIR_Y;
+    var xL = L.right + EDGE_PAD;
+    var xR = R.left - EDGE_PAD;
+    return {
+      towardRight: 'M ' + xL + ' ' + yDn + ' L ' + xR + ' ' + yDn,
+      towardLeft: 'M ' + xR + ' ' + yUp + ' L ' + xL + ' ' + yUp,
+    };
   }
 
-  function verticalDownPath(from, to) {
-    var x1 = from.cx;
-    var y1 = from.bottom + EDGE_PAD;
-    var x2 = to.cx;
-    var y2 = to.top - EDGE_PAD;
-    if (Math.abs(x1 - x2) < 4) {
-      return 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
-    }
-    var midY = (y1 + y2) / 2;
-    return 'M ' + x1 + ' ' + y1 + ' L ' + x1 + ' ' + midY + ' L ' + x2 + ' ' + midY + ' L ' + x2 + ' ' + y2;
-  }
-
-  function connectorBetween(fromEl, toEl) {
-    var a = relRect(fromEl);
-    var b = relRect(toEl);
-    if (b.top > a.bottom + 3) {
-      return verticalDownPath(a, b);
-    }
-    return leftToRightPath(a, b);
-  }
-
-  /** Branch 1: inlet from WF → junction → Email template */
-  function pathWf3StemToEmail(wf3El, emailEl) {
-    var w = relRect(wf3El);
+  function pathWfStemToEmail(wfEl, emailEl) {
+    var w = relRect(wfEl);
     var e = relRect(emailEl);
-    var j = junctionBelowWf3(wf3El);
+    var j = junctionBelowWf(wfEl);
     return (
       'M ' +
       w.cx +
@@ -133,9 +116,8 @@
     );
   }
 
-  /** Branch 2: same junction → Decision */
-  function pathJunctionToDecision(wf3El, decisionEl) {
-    var j = junctionBelowWf3(wf3El);
+  function pathJunctionToDecision(wfEl, decisionEl) {
+    var j = junctionBelowWf(wfEl);
     var d = relRect(decisionEl);
     return 'M ' + j.x + ' ' + j.y + ' L ' + d.cx + ' ' + (d.top - EDGE_PAD);
   }
@@ -158,33 +140,50 @@
     svg.insertBefore(defs, svg.firstChild);
   }
 
-  function addPath(d, durationMs) {
-    ensureDefs();
-    var path = document.createElementNS(NS, 'path');
-    path.setAttribute('d', d);
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', FLOW);
-    path.setAttribute('stroke-width', '2.35');
-    path.setAttribute('stroke-linecap', 'round');
-    path.setAttribute('stroke-linejoin', 'round');
-    path.setAttribute('class', 'e2e-arrow-path');
-    path.setAttribute('marker-end', 'url(#e2e-arr-flow)');
-    svg.appendChild(path);
-    try {
-      var len = path.getTotalLength();
-      path.style.strokeDasharray = String(len);
-      path.style.strokeDashoffset = String(len);
-      path.getBoundingClientRect();
-      var dur = prefersReducedMotion() ? 0 : durationMs || 520;
-      requestAnimationFrame(function () {
+  function addPath(d, durationMs, delayMs, strokeColor, extraClass) {
+    delayMs = delayMs || 0;
+    strokeColor = strokeColor || FLOW;
+    function run() {
+      ensureDefs();
+      var path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', strokeColor);
+      path.setAttribute('stroke-width', '2.35');
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-linejoin', 'round');
+      path.setAttribute('class', 'e2e-arrow-path' + (extraClass ? ' ' + extraClass : ''));
+      path.setAttribute('marker-end', 'url(#e2e-arr-flow)');
+      svg.appendChild(path);
+      try {
+        var len = path.getTotalLength();
+        path.style.strokeDasharray = String(len);
+        path.style.strokeDashoffset = String(len);
+        path.getBoundingClientRect();
+        var dur = prefersReducedMotion() ? 0 : durationMs || 520;
         requestAnimationFrame(function () {
-          path.style.transition = 'stroke-dashoffset ' + dur + 'ms ' + PATH_EASE;
-          path.style.strokeDashoffset = '0';
+          requestAnimationFrame(function () {
+            path.style.transition = 'stroke-dashoffset ' + dur + 'ms ' + PATH_EASE;
+            path.style.strokeDashoffset = '0';
+          });
         });
-      });
-    } catch (e2) {
-      path.style.strokeDasharray = 'none';
+      } catch (e2) {
+        path.style.strokeDasharray = 'none';
+      }
     }
+    if (delayMs > 0) {
+      setTimeout(run, delayMs);
+    } else {
+      run();
+    }
+  }
+
+  function drawBidirPair(leftEl, rightEl) {
+    if (!leftEl || !rightEl) return;
+    syncSvgSize();
+    var p = horizontalBidirPaths(leftEl, rightEl);
+    addPath(p.towardRight, 440, 0, FLOW, 'e2e-arrow-bidir');
+    addPath(p.towardLeft, 440, prefersReducedMotion() ? 0 : PAIR_STAGGER_MS, FLOW_ALT, 'e2e-arrow-bidir');
   }
 
   function clearArrows() {
@@ -203,35 +202,36 @@
     svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
   }
 
-  /**
-   * justFinishedIndex: index of the node that was just revealed.
-   * Draws the connector *into* that node from the previous node (linear) or Y-fork segments.
-   */
   function drawConnector(justFinishedIndex) {
     if (justFinishedIndex < 1) return;
     syncSvgSize();
 
-    if (justFinishedIndex === 5) {
-      var wf3 = $('e2e-wf3');
-      var em = $('e2e-email');
-      if (wf3 && em) {
-        addPath(pathWf3StemToEmail(wf3, em), 520);
-      }
-      return;
-    }
-    if (justFinishedIndex === 6) {
-      var wf3b = $('e2e-wf3');
-      var de = $('e2e-decision');
-      if (wf3b && de) {
-        addPath(pathJunctionToDecision(wf3b, de), 520);
-      }
-      return;
-    }
+    var wf = $('e2e-wf-hub');
+    var aem = $('e2e-aem');
+    var gs = $('e2e-genstudio');
+    var em = $('e2e-email');
+    var de = $('e2e-decision');
 
-    var fromEl = $(STEP_NODE_IDS[justFinishedIndex - 1]);
-    var toEl = $(STEP_NODE_IDS[justFinishedIndex]);
-    if (!fromEl || !toEl) return;
-    addPath(connectorBetween(fromEl, toEl), 480);
+    if (justFinishedIndex === 1) {
+      drawBidirPair(aem, wf);
+      return;
+    }
+    if (justFinishedIndex === 2) {
+      drawBidirPair(wf, gs);
+      return;
+    }
+    if (justFinishedIndex === 3) {
+      if (wf && em) {
+        addPath(pathWfStemToEmail(wf, em), 520);
+      }
+      return;
+    }
+    if (justFinishedIndex === 4) {
+      if (wf && de) {
+        addPath(pathJunctionToDecision(wf, de), 520);
+      }
+      return;
+    }
   }
 
   function setAllNodesVisible(flag) {

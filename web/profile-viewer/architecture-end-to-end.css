@@ -136,38 +136,55 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
   overflow: visible;
 }
 
-/* Flowchart-style gutters: long straight segments between nodes so arrows stay visible */
-.e2e-main-chain {
+/* Hub: AEM — Workfront — GenStudio (wide horizontal gutters for bi-directional strokes) */
+.e2e-hub-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: stretch;
-  gap: 2.5rem 4.5rem;
-  padding: 1rem 0.5rem 1.25rem;
+  gap: 3rem 5.5rem;
+  padding: 1rem 1rem 1.5rem;
   position: relative;
   z-index: 1;
 }
 
-/* Y-fork: email (branch 1) left, decision (branch 2) right — geometry matches SVG stem from WF */
+@media (min-width: 1100px) {
+  .e2e-hub-row {
+    flex-wrap: nowrap;
+  }
+}
+
+/* Fork block centered under hub Workfront */
+.e2e-fork-below {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 5.5rem;
+  padding: 0 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
 .e2e-fork-row {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
-  gap: 2.5rem 6rem;
-  margin-top: 5rem;
-  padding: 1rem 1rem 0.75rem;
-  position: relative;
-  z-index: 1;
+  gap: 2.5rem 6.5rem;
+  padding: 0.5rem 1rem 0.75rem;
 }
 
 @media (max-width: 720px) {
+  .e2e-fork-below {
+    margin-top: 4.5rem;
+  }
+
   .e2e-fork-row {
     flex-direction: column;
     align-items: center;
     gap: 3.5rem;
-    margin-top: 4rem;
   }
 }
 
