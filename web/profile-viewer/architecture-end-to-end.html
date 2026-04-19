@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260418-architecture-e2e-v2">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="architecture-end-to-end.css?v=20260419-spacing-thumb">
+  <link rel="stylesheet" href="architecture-end-to-end.css?v=20260419-user-boxes">
 </head>
 <body class="architecture-e2e-page reporting-page home-dashboard-concierge home-dashboard-ajo">
   <div class="dashboard-shell dashboard-shell--ajo">
@@ -53,7 +53,7 @@
             <p class="architecture-e2e-badge">End-to-end</p>
             <h1 id="e2ePageHeading" class="architecture-e2e-title">Workflow across Adobe solutions</h1>
             <p class="architecture-e2e-lead">
-              Reference sequence: Workfront (WF) → AEM → Workfront → GenStudio → Workfront, then the flow <strong>forks</strong> from that Workfront step to <strong>Email template</strong> and <strong>Decision</strong> (Y-shaped connectors). Tiles use the same <strong>label + thumbnail</strong> pattern and hosted artwork as <a href="agentic-ai-v2.html">Agentic layer v2</a>. Use <strong>Play</strong> to step through; <strong>Reset</strong> clears the canvas.
+              Reference sequence: Workfront (WF) → AEM → Workfront → GenStudio → Workfront, then the flow <strong>forks</strong> to <strong>Email template</strong> and <strong>Decision</strong>. Thumbnails are your product screenshots (GenStudio, Workfront, AEM, email, AJO decision). Spacing follows a flowchart-style layout so connector lines stay clear. Use <strong>Play</strong> to step through; <strong>Reset</strong> clears the canvas.
             </p>
             <div class="architecture-e2e-toolbar">
               <button type="button" class="btn btn-primary" id="e2ePlayBtn">Play</button>
@@ -76,13 +76,12 @@
                   </div>
                   <div class="e2e-card__thumb">
                     <img
-                      src="https://contenthosting.web.app/Agents/operationalinsightsagent.png"
+                      src="images/e2e-box-workfront.png"
                       width="200"
                       height="160"
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      referrerpolicy="no-referrer"
                     />
                   </div>
                 </div>
@@ -93,13 +92,12 @@
                   </div>
                   <div class="e2e-card__thumb">
                     <img
-                      src="https://contenthosting.web.app/Agents/brandconceierge.png"
+                      src="images/e2e-box-aem.png"
                       width="200"
                       height="160"
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      referrerpolicy="no-referrer"
                     />
                   </div>
                 </div>
@@ -110,13 +108,12 @@
                   </div>
                   <div class="e2e-card__thumb">
                     <img
-                      src="https://contenthosting.web.app/Agents/journeyagent.png"
+                      src="images/e2e-box-workfront.png"
                       width="200"
                       height="160"
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      referrerpolicy="no-referrer"
                     />
                   </div>
                 </div>
@@ -127,13 +124,12 @@
                   </div>
                   <div class="e2e-card__thumb">
                     <img
-                      src="https://contenthosting.web.app/Agents/aiassistant.png"
+                      src="images/e2e-box-genstudio.png"
                       width="200"
                       height="160"
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      referrerpolicy="no-referrer"
                     />
                   </div>
                 </div>
@@ -144,13 +140,12 @@
                   </div>
                   <div class="e2e-card__thumb">
                     <img
-                      src="https://contenthosting.web.app/Agents/fieldengineeringagent.png"
+                      src="images/e2e-box-workfront.png"
                       width="200"
                       height="160"
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      referrerpolicy="no-referrer"
                     />
                   </div>
                 </div>
@@ -163,13 +158,12 @@
                   </div>
                   <div class="e2e-card__thumb">
                     <img
-                      src="https://contenthosting.web.app/Agents/audienceagent.png"
+                      src="images/e2e-box-email.png"
                       width="200"
                       height="160"
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      referrerpolicy="no-referrer"
                     />
                   </div>
                 </div>
@@ -180,13 +174,12 @@
                   </div>
                   <div class="e2e-card__thumb">
                     <img
-                      src="https://contenthosting.web.app/Agents/datainsightsagent.png"
+                      src="images/e2e-box-decision.png"
                       width="200"
                       height="160"
                       alt=""
                       loading="lazy"
                       decoding="async"
-                      referrerpolicy="no-referrer"
                     />
                   </div>
                 </div>
@@ -223,7 +216,7 @@
       });
     })();
   </script>
-  <script defer src="architecture-end-to-end.js?v=20260419-spacing-thumb"></script>
+  <script defer src="architecture-end-to-end.js?v=20260419-user-boxes"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260418-architecture-e2e-v2"></script>

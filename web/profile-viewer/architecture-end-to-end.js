@@ -29,10 +29,10 @@
     'e2e-decision',
   ];
 
-  /** Extra space so strokes clear card edges (diagram has wide gutters in CSS) */
-  var EDGE_PAD = 28;
+  /** Extra space so strokes clear card edges (flowchart-style gutters in CSS) */
+  var EDGE_PAD = 40;
   /** Vertical stem length from Workfront bottom to Y junction */
-  var FORK_STEM = 64;
+  var FORK_STEM = 96;
   var FLOW = '#2d9d6c';
   var PATH_EASE = 'cubic-bezier(0.33, 1, 0.68, 1)';
 

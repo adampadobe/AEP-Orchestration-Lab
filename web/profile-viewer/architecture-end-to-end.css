@@ -109,7 +109,7 @@ html[data-aep-theme='dark'] .architecture-e2e-page .edp-blocked {
   border: 1px solid var(--dash-border, #e8e8e8);
   background: linear-gradient(180deg, #f3f4f2 0%, #eceeea 100%);
   box-shadow: 0 1px 3px rgba(15, 15, 25, 0.06);
-  padding: 2rem 1.75rem 2.75rem;
+  padding: 2.5rem 2rem 3.5rem;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -122,8 +122,8 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
 .e2e-board {
   position: relative;
   z-index: 0;
-  min-height: 280px;
-  padding-bottom: 0.5rem;
+  min-height: 320px;
+  padding-bottom: 1rem;
 }
 
 .e2e-arrow-layer {
@@ -136,13 +136,14 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
   overflow: visible;
 }
 
+/* Flowchart-style gutters: long straight segments between nodes so arrows stay visible */
 .e2e-main-chain {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: stretch;
-  gap: 1.75rem 2.75rem;
-  padding: 0.75rem 0.25rem;
+  gap: 2.5rem 4.5rem;
+  padding: 1rem 0.5rem 1.25rem;
   position: relative;
   z-index: 1;
 }
@@ -154,9 +155,9 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
-  gap: 2rem 4.5rem;
-  margin-top: 3.5rem;
-  padding: 0.75rem 0.75rem 0.5rem;
+  gap: 2.5rem 6rem;
+  margin-top: 5rem;
+  padding: 1rem 1rem 0.75rem;
   position: relative;
   z-index: 1;
 }
@@ -165,8 +166,8 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
   .e2e-fork-row {
     flex-direction: column;
     align-items: center;
-    gap: 2.5rem;
-    margin-top: 3rem;
+    gap: 3.5rem;
+    margin-top: 4rem;
   }
 }
 
@@ -178,8 +179,8 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
   gap: 0.5rem;
   box-sizing: border-box;
   width: 100%;
-  min-width: min(280px, 100%);
-  max-width: 300px;
+  min-width: min(300px, 100%);
+  max-width: 320px;
   padding: 0.5rem 0.45rem;
   border-radius: 14px;
   background: var(--e2e-card);
@@ -246,6 +247,8 @@ html[data-aep-theme='dark'] .e2e-card {
 .e2e-card__thumb {
   flex: 1;
   min-width: 0;
+  min-height: 102px;
+  max-height: 108px;
   border-radius: 10px;
   overflow: hidden;
   background: #f8fafc;
@@ -258,10 +261,11 @@ html[data-aep-theme='dark'] .e2e-card {
 .e2e-card__thumb img {
   display: block;
   width: 100%;
-  height: auto;
-  max-height: 92px;
-  object-fit: contain;
-  object-position: center;
+  height: 100%;
+  min-height: 102px;
+  max-height: 108px;
+  object-fit: cover;
+  object-position: top center;
 }
 
 html[data-aep-theme='dark'] .e2e-card__thumb {
