@@ -735,6 +735,13 @@
   display: none !important;
 }
 
+/* Filter hiding: tile classes set display:flex/block which overrides UA [hidden]. */
+.arch-spectrum-icons-tile[hidden],
+.arch-architecture-logo-tile[hidden],
+.arch-logo-menu-group[hidden] {
+  display: none !important;
+}
+
 /* Canvas Tools — same shell as Lines; position stacked above Lines bar when both visible */
 .arch-tools-float-bar {
   bottom: 0.65rem;
