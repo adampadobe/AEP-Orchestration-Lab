@@ -2862,6 +2862,8 @@
     if ('label' in ov && ov.label != null) out.label = String(ov.label);
     if ('description' in ov && ov.description != null) out.description = String(ov.description);
     if (ov.fileDataUrl) out.displayFile = ov.fileDataUrl;
+    if ('panel' in ov) out._overridePanel = ov.panel;
+    if ('groupId' in ov) out._overrideGroupId = ov.groupId;
     return out;
   }
 
@@ -2870,7 +2872,28 @@
     var sd = (next.description != null ? String(next.description) : '').trim();
     var rl = (raw && raw.label != null ? String(raw.label) : '').trim();
     var rd = (raw && raw.description != null ? String(raw.description) : '').trim();
-    return sl === rl && sd === rd && !next.fileDataUrl;
+    if (sl !== rl || sd !== rd || next.fileDataUrl) return false;
+    var rawPanel = archArchitectureLogoIsAdobeSection(raw) ? 'adobe' : 'other';
+    var rawGroupId = archCatalogLogoInferGroupId(raw, rawPanel);
+    if ('panel' in next && next.panel !== rawPanel) return false;
+    if ('groupId' in next && next.groupId !== rawGroupId) return false;
+    return true;
+  }
+
+  function archCatalogLogoInferPanel(raw) {
+    return archArchitectureLogoIsAdobeSection(raw) ? 'adobe' : 'other';
+  }
+
+  function archCatalogLogoInferGroupId(raw, panel) {
+    var groups = panel === 'adobe' ? ARCH_ADOBE_MENU_GROUPS : ARCH_OTHER_MENU_GROUPS;
+    var tags = Array.isArray(raw.tags) ? raw.tags : [];
+    for (var gi = 0; gi < groups.length - 1; gi++) {
+      var m = groups[gi].matchAny || [];
+      for (var j = 0; j < m.length; j++) {
+        if (tags.indexOf(m[j]) >= 0) return groups[gi].id;
+      }
+    }
+    return 'other';
   }
 
   function archCustomLogoLibraryLoad() {
@@ -3078,6 +3101,14 @@
     });
     var last = groupDefs.length - 1;
     items.forEach(function (item) {
+      if (item._overrideGroupId) {
+        for (var oi = 0; oi < groupDefs.length; oi++) {
+          if (groupDefs[oi].id === item._overrideGroupId) {
+            buckets[oi].push(item);
+            return;
+          }
+        }
+      }
       var tags = Array.isArray(item.tags) ? item.tags : [];
       var placed = false;
       for (var gi = 0; gi < last; gi++) {
@@ -3503,7 +3534,8 @@
       if (!rawItem || !rawItem.file) return;
       if (hiddenPick[rawItem.file]) return;
       var item = archCatalogLogoItemMergedFrom(rawItem, catOv);
-      if (archArchitectureLogoIsAdobeSection(item)) adobe.push(item);
+      var inAdobe = '_overridePanel' in item ? item._overridePanel === 'adobe' : archArchitectureLogoIsAdobeSection(item);
+      if (inAdobe) adobe.push(item);
       else other.push(item);
     });
     adobe.sort(function (a, b) {
@@ -3700,9 +3732,9 @@
       if (title) title.textContent = 'Edit catalog logo';
       if (hint) {
         hint.textContent =
-          'Adjust label and description for hovers and placement. Optionally replace the bundled image — stored only in this browser. Use the trash control to remove local overrides.';
+          'Adjust label, description, or section. Optionally replace the bundled image — stored only in this browser. Use the trash control to remove local overrides.';
       }
-      if (panelRow) panelRow.hidden = true;
+      if (panelRow) panelRow.hidden = false;
       if (replaceRow) replaceRow.hidden = false;
       if (delBtn) {
         delBtn.hidden = false;
@@ -3736,6 +3768,8 @@
     var lab = qs('#archCustomLogoEditLabel');
     var desc = qs('#archCustomLogoEditDesc');
     var fi = qs('#archCatalogLogoEditReplaceFile');
+    var ps = qs('#archCustomLogoEditPanel');
+    var gs = qs('#archCustomLogoEditGroup');
     if (!ov || !lab || !desc) return;
     archCatalogLogoEditUiMode('catalog');
     if (fi) fi.value = '';
@@ -3743,6 +3777,18 @@
     var st = ovMap[catalogFileKey] || {};
     lab.value = 'label' in st ? String(st.label) : raw.label || '';
     desc.value = 'description' in st ? String(st.description) : raw.description || '';
+    if (ps && gs) {
+      archCustomLogoEnsurePanelSelectOptions(ps);
+      var currentPanel = 'panel' in st ? st.panel : archCatalogLogoInferPanel(raw);
+      ps.value = currentPanel === 'adobe' ? 'adobe' : 'other';
+      archCustomLogoPopulateGroupSelectEl(gs, ps.value);
+      var currentGroupId = 'groupId' in st ? st.groupId : archCatalogLogoInferGroupId(raw, ps.value);
+      var hasG = false;
+      for (var oi = 0; oi < gs.options.length; oi++) {
+        if (gs.options[oi].value === currentGroupId) { hasG = true; break; }
+      }
+      gs.value = hasG ? currentGroupId : (gs.options[0] ? gs.options[0].value : '');
+    }
     ov.hidden = false;
     lab.focus();
     lab.select();
@@ -3828,12 +3874,16 @@
         if (liveRegion) liveRegion.textContent = 'File too large to store locally.';
         return;
       }
+      var psEl = qs('#archCustomLogoEditPanel');
+      var gsEl = qs('#archCustomLogoEditGroup');
       var prevMap = archCatalogLogoOverridesMap();
       var prev = prevMap[key] || {};
       function finishCatalogOverride(dataUrl) {
         var next = { label: label, description: desc };
         if (dataUrl) next.fileDataUrl = dataUrl;
         else if (prev.fileDataUrl) next.fileDataUrl = prev.fileDataUrl;
+        if (psEl) next.panel = psEl.value === 'adobe' ? 'adobe' : 'other';
+        if (gsEl && gsEl.value) next.groupId = gsEl.value;
         if (archCatalogLogoOverrideRedundant(raw, next)) {
           delete prevMap[key];
         } else {

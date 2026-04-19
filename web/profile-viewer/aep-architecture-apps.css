@@ -2610,6 +2610,41 @@ button.arch-custom-logo-row-edit {
   flex-wrap: wrap;
 }
 
+html[data-aep-theme='dark'] .arch-custom-logo-edit-dialog {
+  background: var(--dash-surface);
+  border-color: var(--dash-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+html[data-aep-theme='dark'] .arch-custom-logo-edit-title {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] .arch-custom-logo-edit-hint {
+  color: var(--dash-text-secondary);
+}
+
+html[data-aep-theme='dark'] .arch-logo-edit-delete-btn {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+}
+
+html[data-aep-theme='dark'] .arch-logo-edit-delete-btn:hover,
+html[data-aep-theme='dark'] .arch-logo-edit-delete-btn:focus-visible {
+  background: rgba(153, 27, 27, 0.45);
+  border-color: rgba(248, 113, 113, 0.75);
+}
+
+html[data-aep-theme='dark'] .arch-custom-logo-drop-zone {
+  border-color: var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+
+html[data-aep-theme='dark'] .arch-custom-logo-drop-hint {
+  color: var(--dash-muted);
+}
+
 .arch-custom-box--spectrum-icon .arch-custom-box-spectrum-img,
 .arch-custom-box--product-logo .arch-custom-box-spectrum-img {
   pointer-events: none;
