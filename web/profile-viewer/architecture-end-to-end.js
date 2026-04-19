@@ -1,5 +1,5 @@
 /**
- * End-to-end Adobe flow — hub: AEM ↔ Workfront ↔ GenStudio (bi-dir); fork down to Email & Decision.
+ * End-to-end Adobe flow — hub: AEM ↔ WF ↔ GenStudio; WF → AJO; CJA → WF; AJO forks to Email & Decision.
  */
 (function () {
   'use strict';
@@ -18,15 +18,23 @@
 
   if (!coordRoot || !svg) return;
 
-  /** Reveal order: hub WF first, then wings, then fork */
-  var STEP_NODE_IDS = ['e2e-wf-hub', 'e2e-aem', 'e2e-genstudio', 'e2e-email', 'e2e-decision'];
+  /** Reveal order */
+  var STEP_NODE_IDS = [
+    'e2e-wf-hub',
+    'e2e-aem',
+    'e2e-genstudio',
+    'e2e-ajo',
+    'e2e-cja',
+    'e2e-email',
+    'e2e-decision',
+  ];
 
   var EDGE_PAD = 40;
   var FORK_STEM = 96;
-  /** Vertical offset between paired bi-directional horizontal strokes */
   var BIDIR_Y = 9;
   var FLOW = '#2d9d6c';
   var FLOW_ALT = '#3d9d72';
+  var FLOW_FEEDBACK = '#6366f1';
   var PATH_EASE = 'cubic-bezier(0.33, 1, 0.68, 1)';
   var PAIR_STAGGER_MS = 110;
 
@@ -70,18 +78,14 @@
     };
   }
 
-  function junctionBelowWf(wfEl) {
-    var w = relRect(wfEl);
+  function junctionBelowAjo(ajoEl) {
+    var a = relRect(ajoEl);
     return {
-      x: w.cx,
-      y: w.bottom + EDGE_PAD + FORK_STEM,
+      x: a.cx,
+      y: a.bottom + EDGE_PAD + FORK_STEM,
     };
   }
 
-  /**
-   * Two horizontal segments between left and right boxes (parallel Y): toward-right and toward-left.
-   * Marker at path end: line toward right ends at R (into hub from AEM, or into GenStudio from WF).
-   */
   function horizontalBidirPaths(leftEl, rightEl) {
     var L = relRect(leftEl);
     var R = relRect(rightEl);
@@ -96,15 +100,44 @@
     };
   }
 
-  function pathWfStemToEmail(wfEl, emailEl) {
+  /** Straight tie from hub Workfront down to AJO */
+  function pathWfToAjo(wfEl, ajoEl) {
     var w = relRect(wfEl);
-    var e = relRect(emailEl);
-    var j = junctionBelowWf(wfEl);
+    var a = relRect(ajoEl);
     return (
       'M ' +
       w.cx +
       ' ' +
       (w.bottom + EDGE_PAD) +
+      ' L ' +
+      a.cx +
+      ' ' +
+      (a.top - EDGE_PAD)
+    );
+  }
+
+  /** Feedback: CJA → Workfront (curved so stroke stays clear of AJO) */
+  function pathCjaToWf(cjaEl, wfEl) {
+    var c = relRect(cjaEl);
+    var w = relRect(wfEl);
+    var x0 = c.cx;
+    var y0 = c.top - EDGE_PAD;
+    var x1 = w.cx + w.width * 0.12;
+    var y1 = w.bottom + EDGE_PAD;
+    var cx = Math.max(x0, x1) + 95;
+    var cy = (y0 + y1) * 0.48;
+    return 'M ' + x0 + ' ' + y0 + ' Q ' + cx + ' ' + cy + ' ' + x1 + ' ' + y1;
+  }
+
+  function pathAjoStemToEmail(ajoEl, emailEl) {
+    var a = relRect(ajoEl);
+    var e = relRect(emailEl);
+    var j = junctionBelowAjo(ajoEl);
+    return (
+      'M ' +
+      a.cx +
+      ' ' +
+      (a.bottom + EDGE_PAD) +
       ' L ' +
       j.x +
       ' ' +
@@ -116,8 +149,8 @@
     );
   }
 
-  function pathJunctionToDecision(wfEl, decisionEl) {
-    var j = junctionBelowWf(wfEl);
+  function pathJunctionToDecision(ajoEl, decisionEl) {
+    var j = junctionBelowAjo(ajoEl);
     var d = relRect(decisionEl);
     return 'M ' + j.x + ' ' + j.y + ' L ' + d.cx + ' ' + (d.top - EDGE_PAD);
   }
@@ -137,12 +170,27 @@
     poly.setAttribute('fill', '#0f172a');
     mk.appendChild(poly);
     defs.appendChild(mk);
+
+    var mkFb = document.createElementNS(NS, 'marker');
+    mkFb.setAttribute('id', 'e2e-arr-feedback');
+    mkFb.setAttribute('markerWidth', '9');
+    mkFb.setAttribute('markerHeight', '9');
+    mkFb.setAttribute('refX', '8');
+    mkFb.setAttribute('refY', '4.5');
+    mkFb.setAttribute('orient', 'auto');
+    var polyFb = document.createElementNS(NS, 'path');
+    polyFb.setAttribute('d', 'M0,0 L9,4.5 L0,9 z');
+    polyFb.setAttribute('fill', '#312e81');
+    mkFb.appendChild(polyFb);
+    defs.appendChild(mkFb);
+
     svg.insertBefore(defs, svg.firstChild);
   }
 
-  function addPath(d, durationMs, delayMs, strokeColor, extraClass) {
+  function addPath(d, durationMs, delayMs, strokeColor, extraClass, markerId) {
     delayMs = delayMs || 0;
     strokeColor = strokeColor || FLOW;
+    markerId = markerId || 'e2e-arr-flow';
     function run() {
       ensureDefs();
       var path = document.createElementNS(NS, 'path');
@@ -153,7 +201,7 @@
       path.setAttribute('stroke-linecap', 'round');
       path.setAttribute('stroke-linejoin', 'round');
       path.setAttribute('class', 'e2e-arrow-path' + (extraClass ? ' ' + extraClass : ''));
-      path.setAttribute('marker-end', 'url(#e2e-arr-flow)');
+      path.setAttribute('marker-end', 'url(#' + markerId + ')');
       svg.appendChild(path);
       try {
         var len = path.getTotalLength();
@@ -209,6 +257,8 @@
     var wf = $('e2e-wf-hub');
     var aem = $('e2e-aem');
     var gs = $('e2e-genstudio');
+    var ajo = $('e2e-ajo');
+    var cja = $('e2e-cja');
     var em = $('e2e-email');
     var de = $('e2e-decision');
 
@@ -221,14 +271,26 @@
       return;
     }
     if (justFinishedIndex === 3) {
-      if (wf && em) {
-        addPath(pathWfStemToEmail(wf, em), 520);
+      if (wf && ajo) {
+        addPath(pathWfToAjo(wf, ajo), 520);
       }
       return;
     }
     if (justFinishedIndex === 4) {
-      if (wf && de) {
-        addPath(pathJunctionToDecision(wf, de), 520);
+      if (cja && wf) {
+        addPath(pathCjaToWf(cja, wf), 520, 0, FLOW_FEEDBACK, 'e2e-arrow-feedback', 'e2e-arr-feedback');
+      }
+      return;
+    }
+    if (justFinishedIndex === 5) {
+      if (ajo && em) {
+        addPath(pathAjoStemToEmail(ajo, em), 520);
+      }
+      return;
+    }
+    if (justFinishedIndex === 6) {
+      if (ajo && de) {
+        addPath(pathJunctionToDecision(ajo, de), 520);
       }
       return;
     }
