@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260418-architecture-e2e-v2">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="architecture-end-to-end.css?v=20260418-v2">
+  <link rel="stylesheet" href="architecture-end-to-end.css?v=20260418-v3-fork">
 </head>
 <body class="architecture-e2e-page reporting-page home-dashboard-concierge home-dashboard-ajo">
   <div class="dashboard-shell dashboard-shell--ajo">
@@ -53,7 +53,7 @@
             <p class="architecture-e2e-badge">End-to-end</p>
             <h1 id="e2ePageHeading" class="architecture-e2e-title">Workflow across Adobe solutions</h1>
             <p class="architecture-e2e-lead">
-              Reference sequence: Workfront (WF) → AEM → Workfront → GenStudio → Workfront → split → Email template → Decision. Icons are simplified tiles for this lab (not official product logos). Use <strong>Play</strong> to step through; <strong>Reset</strong> clears the canvas.
+              Reference sequence: Workfront (WF) → AEM → Workfront → GenStudio → Workfront, then the flow <strong>forks</strong> from that Workfront step to <strong>Email template</strong> and <strong>Decision</strong> (Y-shaped connectors, not a separate “split” box). Icons are simplified tiles for this lab. Use <strong>Play</strong> to step through; <strong>Reset</strong> clears the canvas.
             </p>
             <div class="architecture-e2e-toolbar">
               <button type="button" class="btn btn-primary" id="e2ePlayBtn">Play</button>
@@ -111,20 +111,11 @@
                   </div>
                   <div class="e2e-card__body">
                     <p class="e2e-card__title">Workfront</p>
-                    <p class="e2e-card__sub">WF · approvals</p>
-                  </div>
-                </div>
-                <div class="e2e-card e2e-card--split" id="e2e-split">
-                  <div class="e2e-card__icon">
-                    <img src="images/e2e-icon-split.svg" width="48" height="48" alt="" decoding="async" />
-                  </div>
-                  <div class="e2e-card__body">
-                    <p class="e2e-card__title">Split here</p>
-                    <p class="e2e-card__sub">Branch to activation</p>
+                    <p class="e2e-card__sub">WF · fork to activation</p>
                   </div>
                 </div>
               </div>
-              <div class="e2e-branch-col">
+              <div class="e2e-fork-row" role="group" aria-label="Branches from Workfront">
                 <div class="e2e-card e2e-card--email" id="e2e-email">
                   <div class="e2e-card__icon">
                     <img src="images/e2e-icon-email.svg" width="48" height="48" alt="" decoding="async" />
@@ -176,7 +167,7 @@
       });
     })();
   </script>
-  <script defer src="architecture-end-to-end.js?v=20260418-v2"></script>
+  <script defer src="architecture-end-to-end.js?v=20260418-v3-fork"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260418-architecture-e2e-v2"></script>

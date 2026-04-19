@@ -32,7 +32,6 @@ html[data-aep-theme='dark'] .architecture-e2e-page .edp-blocked {
   --e2e-wf: #1473e6;
   --e2e-aem: #5046e5;
   --e2e-genstudio: #e1251b;
-  --e2e-split: #d97706;
   --e2e-email: #0d9488;
   --e2e-decision: #7c3aed;
   font-family: 'Inter', system-ui, sans-serif;
@@ -146,14 +145,25 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
   z-index: 1;
 }
 
-.e2e-branch-col {
+/* Y-fork: email (branch 1) left, decision (branch 2) right — geometry matches SVG stem from WF */
+.e2e-fork-row {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 0.25rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1.75rem 2.5rem;
+  margin-top: 0.35rem;
+  padding: 0 0.5rem 0.25rem;
   position: relative;
   z-index: 1;
+}
+
+@media (max-width: 720px) {
+  .e2e-fork-row {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
 /* GenStudio-style horizontal card: icon + title + subcopy */
@@ -211,21 +221,10 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
   --e2e-accent: var(--e2e-genstudio);
 }
 
-.e2e-card--split {
-  --e2e-accent: var(--e2e-split);
-  border-style: dashed;
-  border-top-style: solid;
-  background: linear-gradient(180deg, #fffdf8 0%, #fff 100%);
-}
-
 html[data-aep-theme='dark'] .e2e-card {
   background: rgba(30, 34, 42, 0.96);
   border-color: rgba(255, 255, 255, 0.1);
   color: #f1f5f9;
-}
-
-html[data-aep-theme='dark'] .e2e-card--split {
-  background: linear-gradient(180deg, #1c1917 0%, #1e293b 100%);
 }
 
 .e2e-card__icon {

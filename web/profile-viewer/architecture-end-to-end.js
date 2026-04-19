@@ -1,5 +1,5 @@
 /**
- * End-to-end Adobe flow — light cards (Agentic v2–style geometry + green connectors).
+ * End-to-end Adobe flow — light cards + Y-fork from last Workfront to Email & Decision.
  */
 (function () {
   'use strict';
@@ -18,18 +18,20 @@
 
   if (!coordRoot || !svg) return;
 
+  /** No separate “split” node — fork is drawn from e2e-wf3 to email + decision */
   var STEP_NODE_IDS = [
     'e2e-wf1',
     'e2e-aem',
     'e2e-wf2',
     'e2e-genstudio',
     'e2e-wf3',
-    'e2e-split',
     'e2e-email',
     'e2e-decision',
   ];
 
   var EDGE_PAD = 15;
+  /** Vertical stem length from Workfront bottom to Y junction */
+  var FORK_STEM = 32;
   var FLOW = '#2d9d6c';
   var PATH_EASE = 'cubic-bezier(0.33, 1, 0.68, 1)';
 
@@ -73,6 +75,14 @@
     };
   }
 
+  function junctionBelowWf3(wf3El) {
+    var w = relRect(wf3El);
+    return {
+      x: w.cx,
+      y: w.bottom + EDGE_PAD + FORK_STEM,
+    };
+  }
+
   function leftToRightPath(a, b) {
     var x1 = a.right + EDGE_PAD;
     var x2 = b.left - EDGE_PAD;
@@ -99,6 +109,34 @@
       return verticalDownPath(a, b);
     }
     return leftToRightPath(a, b);
+  }
+
+  /** Branch 1: inlet from WF → junction → Email template */
+  function pathWf3StemToEmail(wf3El, emailEl) {
+    var w = relRect(wf3El);
+    var e = relRect(emailEl);
+    var j = junctionBelowWf3(wf3El);
+    return (
+      'M ' +
+      w.cx +
+      ' ' +
+      (w.bottom + EDGE_PAD) +
+      ' L ' +
+      j.x +
+      ' ' +
+      j.y +
+      ' L ' +
+      e.cx +
+      ' ' +
+      (e.top - EDGE_PAD)
+    );
+  }
+
+  /** Branch 2: same junction → Decision */
+  function pathJunctionToDecision(wf3El, decisionEl) {
+    var j = junctionBelowWf3(wf3El);
+    var d = relRect(decisionEl);
+    return 'M ' + j.x + ' ' + j.y + ' L ' + d.cx + ' ' + (d.top - EDGE_PAD);
   }
 
   function ensureDefs() {
@@ -164,9 +202,31 @@
     svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
   }
 
+  /**
+   * justFinishedIndex: index of the node that was just revealed.
+   * Draws the connector *into* that node from the previous node (linear) or Y-fork segments.
+   */
   function drawConnector(justFinishedIndex) {
     if (justFinishedIndex < 1) return;
     syncSvgSize();
+
+    if (justFinishedIndex === 5) {
+      var wf3 = $('e2e-wf3');
+      var em = $('e2e-email');
+      if (wf3 && em) {
+        addPath(pathWf3StemToEmail(wf3, em), 520);
+      }
+      return;
+    }
+    if (justFinishedIndex === 6) {
+      var wf3b = $('e2e-wf3');
+      var de = $('e2e-decision');
+      if (wf3b && de) {
+        addPath(pathJunctionToDecision(wf3b, de), 520);
+      }
+      return;
+    }
+
     var fromEl = $(STEP_NODE_IDS[justFinishedIndex - 1]);
     var toEl = $(STEP_NODE_IDS[justFinishedIndex]);
     if (!fromEl || !toEl) return;
