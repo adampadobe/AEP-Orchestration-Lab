@@ -1,5 +1,5 @@
 /**
- * End-to-end Adobe flow — hub: AEM ↔ WF ↔ GenStudio; WF → AJO; CJA → WF; AJO forks to Email & Decision.
+ * End-to-end Adobe flow — hub: AEM ↔ WF ↔ GenStudio; WF → AJO; AJO forks to Email & Decision; CJA → WF (last).
  */
 (function () {
   'use strict';
@@ -18,15 +18,15 @@
 
   if (!coordRoot || !svg) return;
 
-  /** Reveal order */
+  /** Reveal order — CJA and its arrow are last */
   var STEP_NODE_IDS = [
     'e2e-wf-hub',
     'e2e-aem',
     'e2e-genstudio',
     'e2e-ajo',
-    'e2e-cja',
     'e2e-email',
     'e2e-decision',
+    'e2e-cja',
   ];
 
   var EDGE_PAD = 40;
@@ -34,7 +34,6 @@
   var BIDIR_Y = 9;
   var FLOW = '#2d9d6c';
   var FLOW_ALT = '#3d9d72';
-  var FLOW_FEEDBACK = '#6366f1';
   var PATH_EASE = 'cubic-bezier(0.33, 1, 0.68, 1)';
   var PAIR_STAGGER_MS = 110;
 
@@ -116,17 +115,15 @@
     );
   }
 
-  /** Feedback: CJA → Workfront (curved so stroke stays clear of AJO) */
+  /** Straight segment CJA → Workfront (arrowhead at Workfront) */
   function pathCjaToWf(cjaEl, wfEl) {
     var c = relRect(cjaEl);
     var w = relRect(wfEl);
     var x0 = c.cx;
     var y0 = c.top - EDGE_PAD;
-    var x1 = w.cx + w.width * 0.12;
+    var x1 = w.cx;
     var y1 = w.bottom + EDGE_PAD;
-    var cx = Math.max(x0, x1) + 95;
-    var cy = (y0 + y1) * 0.48;
-    return 'M ' + x0 + ' ' + y0 + ' Q ' + cx + ' ' + cy + ' ' + x1 + ' ' + y1;
+    return 'M ' + x0 + ' ' + y0 + ' L ' + x1 + ' ' + y1;
   }
 
   function pathAjoStemToEmail(ajoEl, emailEl) {
@@ -170,19 +167,6 @@
     poly.setAttribute('fill', '#0f172a');
     mk.appendChild(poly);
     defs.appendChild(mk);
-
-    var mkFb = document.createElementNS(NS, 'marker');
-    mkFb.setAttribute('id', 'e2e-arr-feedback');
-    mkFb.setAttribute('markerWidth', '9');
-    mkFb.setAttribute('markerHeight', '9');
-    mkFb.setAttribute('refX', '8');
-    mkFb.setAttribute('refY', '4.5');
-    mkFb.setAttribute('orient', 'auto');
-    var polyFb = document.createElementNS(NS, 'path');
-    polyFb.setAttribute('d', 'M0,0 L9,4.5 L0,9 z');
-    polyFb.setAttribute('fill', '#312e81');
-    mkFb.appendChild(polyFb);
-    defs.appendChild(mkFb);
 
     svg.insertBefore(defs, svg.firstChild);
   }
@@ -277,20 +261,20 @@
       return;
     }
     if (justFinishedIndex === 4) {
-      if (cja && wf) {
-        addPath(pathCjaToWf(cja, wf), 520, 0, FLOW_FEEDBACK, 'e2e-arrow-feedback', 'e2e-arr-feedback');
-      }
-      return;
-    }
-    if (justFinishedIndex === 5) {
       if (ajo && em) {
         addPath(pathAjoStemToEmail(ajo, em), 520);
       }
       return;
     }
-    if (justFinishedIndex === 6) {
+    if (justFinishedIndex === 5) {
       if (ajo && de) {
         addPath(pathJunctionToDecision(ajo, de), 520);
+      }
+      return;
+    }
+    if (justFinishedIndex === 6) {
+      if (cja && wf) {
+        addPath(pathCjaToWf(cja, wf), 520, 0, FLOW, 'e2e-arrow-cja-wf');
       }
       return;
     }

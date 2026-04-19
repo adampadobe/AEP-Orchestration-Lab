@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260418-architecture-e2e-v2">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="architecture-end-to-end.css?v=20260421-ajo-cja">
+  <link rel="stylesheet" href="architecture-end-to-end.css?v=20260422-cja-last">
 </head>
 <body class="architecture-e2e-page reporting-page home-dashboard-concierge home-dashboard-ajo">
   <div class="dashboard-shell dashboard-shell--ajo">
@@ -53,7 +53,7 @@
             <p class="architecture-e2e-badge">End-to-end</p>
             <h1 id="e2ePageHeading" class="architecture-e2e-title">Workflow across Adobe solutions</h1>
             <p class="architecture-e2e-lead">
-              <strong>Hub:</strong> AEM and GenStudio tie <strong>bi-directionally</strong> into Workfront. <strong>Activation:</strong> AJO and CJA sit under the hub; analytics feedback runs <strong>from CJA to Workfront</strong>. <strong>Below:</strong> Email template and Decision branch from AJO. Use <strong>Play</strong> to step through; <strong>Reset</strong> clears the canvas.
+              <strong>Hub:</strong> AEM and GenStudio tie <strong>bi-directionally</strong> into Workfront. <strong>Activation:</strong> AJO sits under Workfront; two paths run down to Email and Decision. <strong>CJA</strong> sits beside AJO; a straight <strong>CJA → Workfront</strong> tie appears last. Use <strong>Play</strong> to step through; <strong>Reset</strong> clears the canvas.
             </p>
             <div class="architecture-e2e-toolbar">
               <button type="button" class="btn btn-primary" id="e2ePlayBtn">Play</button>
@@ -121,6 +121,7 @@
 
               <div class="e2e-activation-below" aria-label="Journey and analytics">
                 <div class="e2e-activation-row">
+                  <div class="e2e-activation-slot" aria-hidden="true"></div>
                   <div class="e2e-card e2e-card--ajo" id="e2e-ajo">
                     <div class="e2e-card__label">
                       <p class="e2e-card__title">AJO</p>
@@ -225,7 +226,7 @@
       });
     })();
   </script>
-  <script defer src="architecture-end-to-end.js?v=20260421-ajo-cja"></script>
+  <script defer src="architecture-end-to-end.js?v=20260422-cja-last"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260418-architecture-e2e-v2"></script>
