@@ -1,5 +1,5 @@
 /**
- * End-to-end Adobe integration: reveal nodes in order; draw connectors (Agentic-style stroke draw).
+ * End-to-end Adobe flow — light cards (Agentic v2–style geometry + green connectors).
  */
 (function () {
   'use strict';
@@ -9,14 +9,14 @@
   } catch (e) {}
 
   var NS = 'http://www.w3.org/2000/svg';
-  var wrap = document.getElementById('e2eDiagramWrap');
+  var coordRoot = document.getElementById('e2eBoard');
   var svg = document.getElementById('e2eArrowLayer');
   var playBtn = document.getElementById('e2ePlayBtn');
   var resetBtn = document.getElementById('e2eResetBtn');
   var delayInput = document.getElementById('e2eDelayMs');
   var delayLabel = document.getElementById('e2eDelayLabel');
 
-  if (!wrap || !svg) return;
+  if (!coordRoot || !svg) return;
 
   var STEP_NODE_IDS = [
     'e2e-wf1',
@@ -29,16 +29,23 @@
     'e2e-decision',
   ];
 
-  var reduceMotion = false;
-  try {
-    reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch (e2) {}
+  var EDGE_PAD = 15;
+  var FLOW = '#2d9d6c';
+  var PATH_EASE = 'cubic-bezier(0.33, 1, 0.68, 1)';
 
   var timerId = null;
   var stepIndex = 0;
 
   function getDelayMs() {
-    return delayInput ? parseInt(delayInput.value, 10) || 520 : 520;
+    return delayInput ? parseInt(delayInput.value, 10) || 620 : 620;
+  }
+
+  function prefersReducedMotion() {
+    try {
+      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch (e) {
+      return false;
+    }
   }
 
   if (delayInput && delayLabel) {
@@ -53,7 +60,7 @@
 
   function relRect(el) {
     var e = el.getBoundingClientRect();
-    var c = wrap.getBoundingClientRect();
+    var c = coordRoot.getBoundingClientRect();
     return {
       left: e.left - c.left,
       top: e.top - c.top,
@@ -66,20 +73,18 @@
     };
   }
 
-  function leftToRight(from, to) {
-    var x1 = from.right;
-    var y1 = from.cy;
-    var x2 = to.left;
-    var y2 = to.cy;
-    var mid = (x1 + x2) / 2;
-    return 'M ' + x1 + ' ' + y1 + ' L ' + mid + ' ' + y1 + ' L ' + mid + ' ' + y2 + ' L ' + x2 + ' ' + y2;
+  function leftToRightPath(a, b) {
+    var x1 = a.right + EDGE_PAD;
+    var x2 = b.left - EDGE_PAD;
+    var y = (a.cy + b.cy) / 2;
+    return 'M ' + x1 + ' ' + y + ' L ' + x2 + ' ' + y;
   }
 
-  function manhattanDown(from, to) {
+  function verticalDownPath(from, to) {
     var x1 = from.cx;
-    var y1 = from.bottom;
+    var y1 = from.bottom + EDGE_PAD;
     var x2 = to.cx;
-    var y2 = to.top;
+    var y2 = to.top - EDGE_PAD;
     if (Math.abs(x1 - x2) < 4) {
       return 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
     }
@@ -87,57 +92,58 @@
     return 'M ' + x1 + ' ' + y1 + ' L ' + x1 + ' ' + midY + ' L ' + x2 + ' ' + midY + ' L ' + x2 + ' ' + y2;
   }
 
-  function connectorPath(aEl, bEl) {
-    var a = relRect(aEl);
-    var b = relRect(bEl);
-    if (b.top > a.bottom + 2) {
-      return manhattanDown(a, b);
+  function connectorBetween(fromEl, toEl) {
+    var a = relRect(fromEl);
+    var b = relRect(toEl);
+    if (b.top > a.bottom + 3) {
+      return verticalDownPath(a, b);
     }
-    if (b.left > a.right + 2 || a.left > b.right + 2) {
-      return leftToRight(a, b);
-    }
-    return manhattanDown(a, b);
+    return leftToRightPath(a, b);
   }
 
   function ensureDefs() {
     if (svg.querySelector('defs')) return;
     var defs = document.createElementNS(NS, 'defs');
     var mk = document.createElementNS(NS, 'marker');
-    mk.setAttribute('id', 'e2e-arr');
-    mk.setAttribute('markerWidth', '8');
-    mk.setAttribute('markerHeight', '8');
-    mk.setAttribute('refX', '7');
-    mk.setAttribute('refY', '4');
+    mk.setAttribute('id', 'e2e-arr-flow');
+    mk.setAttribute('markerWidth', '9');
+    mk.setAttribute('markerHeight', '9');
+    mk.setAttribute('refX', '8');
+    mk.setAttribute('refY', '4.5');
     mk.setAttribute('orient', 'auto');
     var poly = document.createElementNS(NS, 'path');
-    poly.setAttribute('d', 'M0,0 L8,4 L0,8 z');
-    poly.setAttribute('fill', 'currentColor');
+    poly.setAttribute('d', 'M0,0 L9,4.5 L0,9 z');
+    poly.setAttribute('fill', '#0f172a');
     mk.appendChild(poly);
     defs.appendChild(mk);
     svg.insertBefore(defs, svg.firstChild);
   }
 
-  function addPath(d, color, durationMs) {
+  function addPath(d, durationMs) {
     ensureDefs();
     var path = document.createElementNS(NS, 'path');
     path.setAttribute('d', d);
     path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', color);
-    path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke', FLOW);
+    path.setAttribute('stroke-width', '2.35');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
     path.setAttribute('class', 'e2e-arrow-path');
-    path.style.color = color;
-    path.setAttribute('marker-end', 'url(#e2e-arr)');
+    path.setAttribute('marker-end', 'url(#e2e-arr-flow)');
     svg.appendChild(path);
     try {
       var len = path.getTotalLength();
       path.style.strokeDasharray = String(len);
       path.style.strokeDashoffset = String(len);
       path.getBoundingClientRect();
+      var dur = prefersReducedMotion() ? 0 : durationMs || 520;
       requestAnimationFrame(function () {
-        path.style.transition = 'stroke-dashoffset ' + (durationMs || 520) + 'ms ease';
-        path.style.strokeDashoffset = '0';
+        requestAnimationFrame(function () {
+          path.style.transition = 'stroke-dashoffset ' + dur + 'ms ' + PATH_EASE;
+          path.style.strokeDashoffset = '0';
+        });
       });
-    } catch (e) {
+    } catch (e2) {
       path.style.strokeDasharray = 'none';
     }
   }
@@ -150,13 +156,13 @@
   }
 
   function syncSvgSize() {
-    var r = wrap.getBoundingClientRect();
-    svg.setAttribute('width', String(Math.ceil(r.width)));
-    svg.setAttribute('height', String(Math.ceil(r.height)));
-    svg.setAttribute('viewBox', '0 0 ' + r.width + ' ' + r.height);
+    var r = coordRoot.getBoundingClientRect();
+    var w = Math.max(1, Math.ceil(r.width));
+    var h = Math.max(1, Math.ceil(r.height));
+    svg.setAttribute('width', String(w));
+    svg.setAttribute('height', String(h));
+    svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
   }
-
-  var EDGE_COLORS = ['#a5f3fc', '#fdba74', '#a5f3fc', '#d8b4fe', '#a5f3fc', '#fcd34d', '#6ee7b7'];
 
   function drawConnector(justFinishedIndex) {
     if (justFinishedIndex < 1) return;
@@ -164,8 +170,7 @@
     var fromEl = $(STEP_NODE_IDS[justFinishedIndex - 1]);
     var toEl = $(STEP_NODE_IDS[justFinishedIndex]);
     if (!fromEl || !toEl) return;
-    var col = EDGE_COLORS[Math.min(justFinishedIndex - 1, EDGE_COLORS.length - 1)] || 'rgba(255,255,255,0.88)';
-    addPath(connectorPath(fromEl, toEl), col, 480);
+    addPath(connectorBetween(fromEl, toEl), 480);
   }
 
   function setAllNodesVisible(flag) {
@@ -175,14 +180,6 @@
       if (flag) el.classList.add('is-visible');
       else el.classList.remove('is-visible');
     });
-  }
-
-  function redrawAllConnectors(maxStepIndexExclusive) {
-    clearArrows();
-    var max = Math.min(maxStepIndexExclusive - 1, STEP_NODE_IDS.length - 1);
-    for (var j = 1; j <= max; j++) {
-      drawConnector(j);
-    }
   }
 
   function resetDiagram() {
@@ -217,10 +214,13 @@
 
   function play() {
     resetDiagram();
-    if (reduceMotion) {
+    if (prefersReducedMotion()) {
       setAllNodesVisible(true);
       syncSvgSize();
-      redrawAllConnectors(STEP_NODE_IDS.length);
+      clearArrows();
+      for (var j = 1; j < STEP_NODE_IDS.length; j++) {
+        drawConnector(j);
+      }
       stepIndex = STEP_NODE_IDS.length;
       return;
     }
@@ -247,10 +247,13 @@
 
   syncSvgSize();
 
-  if (reduceMotion) {
+  if (prefersReducedMotion()) {
     setAllNodesVisible(true);
     syncSvgSize();
-    redrawAllConnectors(STEP_NODE_IDS.length);
+    clearArrows();
+    for (var k = 1; k < STEP_NODE_IDS.length; k++) {
+      drawConnector(k);
+    }
     stepIndex = STEP_NODE_IDS.length;
   } else {
     play();

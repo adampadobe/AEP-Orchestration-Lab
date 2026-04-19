@@ -1,4 +1,8 @@
-/* End-to-end Adobe integration flow — diagram styling aligned with Agentic layer nodes */
+/* End-to-end Adobe flow — light canvas (Agentic v2 + Experimentation visualiser aesthetic) */
+
+.architecture-e2e-page {
+  background: #f2f2f2;
+}
 
 .architecture-e2e-page .edp-blocked {
   box-sizing: border-box;
@@ -17,31 +21,67 @@ html[data-aep-theme='dark'] .architecture-e2e-page .edp-blocked {
   color: var(--aep-text, #e6e6e6);
 }
 
-.architecture-e2e-inner {
-  max-width: 1100px;
-  margin: 0 auto;
+.architecture-e2e-page .architecture-e2e-main {
+  --e2e-ink: #0f172a;
+  --e2e-muted: #64748b;
+  --e2e-flow: #2d9d6c;
+  --e2e-flow-soft: #3d9d72;
+  --e2e-card: #ffffff;
+  --e2e-border: rgba(15, 23, 42, 0.08);
+  --e2e-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+  --e2e-wf: #1473e6;
+  --e2e-aem: #5046e5;
+  --e2e-genstudio: #e1251b;
+  --e2e-split: #d97706;
+  --e2e-email: #0d9488;
+  --e2e-decision: #7c3aed;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-.architecture-e2e-main {
-  --e2e-grid: rgba(255, 255, 255, 0.06);
-  --e2e-fg: rgba(255, 255, 255, 0.92);
-  --e2e-cyan: #22d3ee;
-  --e2e-amber: #fbbf24;
-  --e2e-magenta: #e879f9;
+.architecture-e2e-inner {
+  max-width: min(100%, 1200px);
+  margin: 0 auto;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  box-sizing: border-box;
+}
+
+.architecture-e2e-hero {
+  margin-bottom: 1.75rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  box-sizing: border-box;
+}
+
+.architecture-e2e-badge {
+  display: inline-block;
+  margin: 0 0 0.4rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1d3b2f;
+  background: rgba(45, 157, 108, 0.12);
+  border: 1px solid rgba(45, 157, 108, 0.25);
+  border-radius: 999px;
 }
 
 .architecture-e2e-title {
-  font-size: 1.5rem;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.65rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.35rem;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.4rem;
+  color: var(--e2e-ink);
 }
 
 .architecture-e2e-lead {
   margin: 0 0 1rem;
-  color: var(--spectrum-global-color-gray-700, #464646);
+  color: var(--e2e-muted);
   font-size: 0.95rem;
-  line-height: 1.45;
+  line-height: 1.5;
+  max-width: 52rem;
 }
 
 .architecture-e2e-toolbar {
@@ -49,7 +89,6 @@ html[data-aep-theme='dark'] .architecture-e2e-page .edp-blocked {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem 1rem;
-  margin-bottom: 1.1rem;
 }
 
 .architecture-e2e-speed {
@@ -57,7 +96,7 @@ html[data-aep-theme='dark'] .architecture-e2e-page .edp-blocked {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: var(--spectrum-global-color-gray-700, #464646);
+  color: var(--e2e-muted);
 }
 
 .architecture-e2e-speed-val {
@@ -65,17 +104,26 @@ html[data-aep-theme='dark'] .architecture-e2e-page .edp-blocked {
   min-width: 4rem;
 }
 
-.e2e-diagram-wrap {
+/* Panel: Experimentation-style soft gradient + rounded shell */
+.e2e-diagram-panel {
+  border-radius: 16px;
+  border: 1px solid var(--dash-border, #e8e8e8);
+  background: linear-gradient(180deg, #f3f4f2 0%, #eceeea 100%);
+  box-shadow: 0 1px 3px rgba(15, 15, 25, 0.06);
+  padding: 1.5rem 1.25rem 2rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+html[data-aep-theme='dark'] .e2e-diagram-panel {
+  background: linear-gradient(180deg, #1a1d24 0%, #14161b 100%);
+  border-color: var(--dash-border, #2a3038);
+}
+
+.e2e-board {
   position: relative;
-  border-radius: 12px;
-  padding: 1.35rem 1rem 1.75rem;
-  background-color: #0d1117;
-  background-image:
-    linear-gradient(var(--e2e-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--e2e-grid) 1px, transparent 1px);
-  background-size: 24px 24px;
-  background-position: center top;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  z-index: 0;
+  min-height: 200px;
 }
 
 .e2e-arrow-layer {
@@ -84,116 +132,149 @@ html[data-aep-theme='dark'] .architecture-e2e-page .edp-blocked {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 1;
+  z-index: 4;
   overflow: visible;
 }
 
-.e2e-board {
-  position: relative;
-  z-index: 2;
-}
-
-.e2e-main-row {
+.e2e-main-chain {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: stretch;
-  gap: 0.5rem 0.35rem;
-  margin-bottom: 1.25rem;
-}
-
-.e2e-branch {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.85rem;
-  max-width: 420px;
-  margin: 0 auto;
-}
-
-.e2e-node {
+  gap: 0.65rem 0.5rem;
   position: relative;
-  box-sizing: border-box;
-  border-radius: 4px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-align: center;
-  color: var(--e2e-fg);
-  padding: 0.5rem 0.65rem;
-  border: 2px solid rgba(255, 255, 255, 0.85);
-  background: rgba(20, 24, 32, 0.95);
-  line-height: 1.25;
-  min-width: 5.5rem;
+  z-index: 1;
+}
+
+.e2e-branch-col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.15rem;
+  gap: 1rem;
+  margin-top: 0.25rem;
+  position: relative;
+  z-index: 1;
 }
 
-.e2e-node--wf {
-  border-color: rgba(56, 189, 248, 0.9);
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.15);
-}
-
-.e2e-node--aem {
-  border-color: rgba(251, 146, 60, 0.95);
-  box-shadow: 0 0 0 1px rgba(251, 146, 60, 0.12);
-}
-
-.e2e-node--genstudio {
-  border-color: rgba(192, 132, 252, 0.95);
-  box-shadow: 0 0 0 1px rgba(192, 132, 252, 0.12);
-}
-
-.e2e-node--split {
-  border-style: dashed;
-  border-color: var(--e2e-amber);
-  color: rgba(255, 255, 255, 0.95);
-  background: rgba(30, 24, 8, 0.75);
-}
-
-.e2e-node--email {
-  border-color: rgba(52, 211, 153, 0.9);
-}
-
-.e2e-node--decision {
-  border-color: var(--e2e-magenta);
-}
-
-.e2e-node__sub {
-  font-size: 0.62rem;
-  font-weight: 500;
-  opacity: 0.72;
-  letter-spacing: 0.02em;
-}
-
-.e2e-node:not(.is-visible) {
-  display: none;
-}
-
-.e2e-node.is-visible {
+/* GenStudio-style horizontal card: icon + title + subcopy */
+.e2e-card {
   display: flex;
-  animation: e2e-node-in 0.42s ease forwards;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.65rem;
+  box-sizing: border-box;
+  min-width: 10.5rem;
+  max-width: 15rem;
+  padding: 0.65rem 0.85rem 0.65rem 0.7rem;
+  border-radius: 14px;
+  background: var(--e2e-card);
+  border: 1px solid var(--e2e-border);
+  box-shadow: var(--e2e-shadow);
+  border-top: 3px solid var(--e2e-accent, var(--e2e-flow));
+  color: var(--e2e-ink);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
-@keyframes e2e-node-in {
+.e2e-card.is-visible {
+  visibility: visible;
+  pointer-events: auto;
+  animation: e2e-card-in 0.42s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+@keyframes e2e-card-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .e2e-node.is-visible {
+  .e2e-card.is-visible {
     animation: none;
+    opacity: 1;
   }
 }
 
-.e2e-arrow-path {
-  vector-effect: non-scaling-stroke;
+.e2e-card--wf {
+  --e2e-accent: var(--e2e-wf);
+}
+
+.e2e-card--aem {
+  --e2e-accent: var(--e2e-aem);
+}
+
+.e2e-card--genstudio {
+  --e2e-accent: var(--e2e-genstudio);
+}
+
+.e2e-card--split {
+  --e2e-accent: var(--e2e-split);
+  border-style: dashed;
+  border-top-style: solid;
+  background: linear-gradient(180deg, #fffdf8 0%, #fff 100%);
+}
+
+html[data-aep-theme='dark'] .e2e-card {
+  background: rgba(30, 34, 42, 0.96);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
+
+html[data-aep-theme='dark'] .e2e-card--split {
+  background: linear-gradient(180deg, #1c1917 0%, #1e293b 100%);
+}
+
+.e2e-card__icon {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.e2e-card__icon img {
+  display: block;
+  width: 48px;
+  height: 48px;
+}
+
+.e2e-card__body {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.e2e-card__title {
+  margin: 0 0 0.15rem;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: inherit;
+}
+
+.e2e-card__sub {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--e2e-muted);
+  line-height: 1.35;
+}
+
+html[data-aep-theme='dark'] .e2e-card__sub {
+  color: #94a3b8;
+}
+
+.e2e-card--email {
+  --e2e-accent: var(--e2e-email);
+}
+
+.e2e-card--decision {
+  --e2e-accent: var(--e2e-decision);
 }

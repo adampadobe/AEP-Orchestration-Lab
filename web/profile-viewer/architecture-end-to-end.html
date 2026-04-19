@@ -7,14 +7,14 @@
   <title>Adobe integration flow (in development) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260418-architecture-e2e">
+  <link rel="stylesheet" href="home.css?v=20260418-architecture-e2e-v2">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="architecture-end-to-end.css">
+  <link rel="stylesheet" href="architecture-end-to-end.css?v=20260418-v2">
 </head>
-<body class="architecture-e2e-page home-dashboard-concierge home-dashboard-ajo">
+<body class="architecture-e2e-page reporting-page home-dashboard-concierge home-dashboard-ajo">
   <div class="dashboard-shell dashboard-shell--ajo">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -34,7 +34,7 @@
             <header class="dashboard-hero-header">
               <h2 id="e2eBannerHeading" class="dashboard-hero-title">Adobe integration flow (in development)</h2>
               <p class="dashboard-hero-subtitle">
-                Step-through animation for Workfront (WF), AEM, GenStudio, a split point, then email template and decisioning (in development).
+                Light canvas and white product cards (same family as <a href="agentic-ai-v2.html">Agentic layer v2</a> and the panels on <a href="experimentation-visualiser.html">Experimentation visualiser</a>), with forest-green connector lines.
               </p>
             </header>
           </div>
@@ -48,55 +48,103 @@
           </p>
         </div>
 
-        <div class="architecture-e2e-inner" id="e2eMount">
-          <h1 class="architecture-e2e-title">End-to-end flow</h1>
-          <p class="architecture-e2e-lead">
-            Reference sequence: WF → AEM → WF → GenStudio → WF → split → Email template → Decision. Visual language matches the Agentic layer (dark grid, card nodes, fade/slide-in). Connectors use animated stroke draw like that page; the Experimentation visualiser uses different techniques (SVG path motion along edges and count-up numbers).
-          </p>
-          <div class="architecture-e2e-toolbar">
-            <button type="button" class="btn btn-primary" id="e2ePlayBtn">Play</button>
-            <button type="button" class="btn btn-secondary" id="e2eResetBtn">Reset</button>
-            <label class="architecture-e2e-speed">
-              <span>Step delay</span>
-              <input type="range" id="e2eDelayMs" min="200" max="1400" step="100" value="520" aria-label="Milliseconds between steps">
-              <span id="e2eDelayLabel" class="architecture-e2e-speed-val">520 ms</span>
-            </label>
-          </div>
+        <div class="ajo-page-inner architecture-e2e-inner" id="e2eMount">
+          <section class="architecture-e2e-hero" aria-labelledby="e2ePageHeading">
+            <p class="architecture-e2e-badge">End-to-end</p>
+            <h1 id="e2ePageHeading" class="architecture-e2e-title">Workflow across Adobe solutions</h1>
+            <p class="architecture-e2e-lead">
+              Reference sequence: Workfront (WF) → AEM → Workfront → GenStudio → Workfront → split → Email template → Decision. Icons are simplified tiles for this lab (not official product logos). Use <strong>Play</strong> to step through; <strong>Reset</strong> clears the canvas.
+            </p>
+            <div class="architecture-e2e-toolbar">
+              <button type="button" class="btn btn-primary" id="e2ePlayBtn">Play</button>
+              <button type="button" class="btn btn-secondary" id="e2eResetBtn">Reset</button>
+              <label class="architecture-e2e-speed">
+                <span>Step delay</span>
+                <input type="range" id="e2eDelayMs" min="200" max="1400" step="100" value="620" aria-label="Milliseconds between steps">
+                <span id="e2eDelayLabel" class="architecture-e2e-speed-val">620 ms</span>
+              </label>
+            </div>
+          </section>
 
-          <div class="e2e-diagram-wrap" id="e2eDiagramWrap">
-            <svg class="e2e-arrow-layer" id="e2eArrowLayer" aria-hidden="true"></svg>
+          <div class="e2e-diagram-panel" aria-label="Integration flow diagram">
             <div class="e2e-board" id="e2eBoard">
-              <div class="e2e-main-row" aria-label="Product handoff row">
-                <div class="e2e-node e2e-node--wf" id="e2e-wf1">
-                  <span>Workfront</span>
-                  <span class="e2e-node__sub">WF</span>
+              <div class="e2e-main-chain">
+                <div class="e2e-card e2e-card--wf" id="e2e-wf1">
+                  <div class="e2e-card__icon">
+                    <img src="images/e2e-icon-workfront.svg" width="48" height="48" alt="" decoding="async" />
+                  </div>
+                  <div class="e2e-card__body">
+                    <p class="e2e-card__title">Workfront</p>
+                    <p class="e2e-card__sub">WF · intake &amp; work management</p>
+                  </div>
                 </div>
-                <div class="e2e-node e2e-node--aem" id="e2e-aem">
-                  <span>AEM</span>
+                <div class="e2e-card e2e-card--aem" id="e2e-aem">
+                  <div class="e2e-card__icon">
+                    <img src="images/e2e-icon-aem.svg" width="48" height="48" alt="" decoding="async" />
+                  </div>
+                  <div class="e2e-card__body">
+                    <p class="e2e-card__title">AEM</p>
+                    <p class="e2e-card__sub">Sites &amp; content</p>
+                  </div>
                 </div>
-                <div class="e2e-node e2e-node--wf" id="e2e-wf2">
-                  <span>Workfront</span>
-                  <span class="e2e-node__sub">WF</span>
+                <div class="e2e-card e2e-card--wf" id="e2e-wf2">
+                  <div class="e2e-card__icon">
+                    <img src="images/e2e-icon-workfront.svg" width="48" height="48" alt="" decoding="async" />
+                  </div>
+                  <div class="e2e-card__body">
+                    <p class="e2e-card__title">Workfront</p>
+                    <p class="e2e-card__sub">WF · workflow handoff</p>
+                  </div>
                 </div>
-                <div class="e2e-node e2e-node--genstudio" id="e2e-genstudio">
-                  <span>GenStudio</span>
+                <div class="e2e-card e2e-card--genstudio" id="e2e-genstudio">
+                  <div class="e2e-card__icon">
+                    <img src="images/e2e-icon-genstudio.svg" width="48" height="48" alt="" decoding="async" />
+                  </div>
+                  <div class="e2e-card__body">
+                    <p class="e2e-card__title">GenStudio</p>
+                    <p class="e2e-card__sub">Create &amp; brand-safe assets</p>
+                  </div>
                 </div>
-                <div class="e2e-node e2e-node--wf" id="e2e-wf3">
-                  <span>Workfront</span>
-                  <span class="e2e-node__sub">WF</span>
+                <div class="e2e-card e2e-card--wf" id="e2e-wf3">
+                  <div class="e2e-card__icon">
+                    <img src="images/e2e-icon-workfront.svg" width="48" height="48" alt="" decoding="async" />
+                  </div>
+                  <div class="e2e-card__body">
+                    <p class="e2e-card__title">Workfront</p>
+                    <p class="e2e-card__sub">WF · approvals</p>
+                  </div>
                 </div>
-                <div class="e2e-node e2e-node--split" id="e2e-split">
-                  <span>Split here</span>
+                <div class="e2e-card e2e-card--split" id="e2e-split">
+                  <div class="e2e-card__icon">
+                    <img src="images/e2e-icon-split.svg" width="48" height="48" alt="" decoding="async" />
+                  </div>
+                  <div class="e2e-card__body">
+                    <p class="e2e-card__title">Split here</p>
+                    <p class="e2e-card__sub">Branch to activation</p>
+                  </div>
                 </div>
               </div>
-              <div class="e2e-branch" aria-label="Downstream branch">
-                <div class="e2e-node e2e-node--email" id="e2e-email">
-                  <span>Email template</span>
+              <div class="e2e-branch-col">
+                <div class="e2e-card e2e-card--email" id="e2e-email">
+                  <div class="e2e-card__icon">
+                    <img src="images/e2e-icon-email.svg" width="48" height="48" alt="" decoding="async" />
+                  </div>
+                  <div class="e2e-card__body">
+                    <p class="e2e-card__title">Email template</p>
+                    <p class="e2e-card__sub">Channel content</p>
+                  </div>
                 </div>
-                <div class="e2e-node e2e-node--decision" id="e2e-decision">
-                  <span>Decision</span>
+                <div class="e2e-card e2e-card--decision" id="e2e-decision">
+                  <div class="e2e-card__icon">
+                    <img src="images/e2e-icon-decision.svg" width="48" height="48" alt="" decoding="async" />
+                  </div>
+                  <div class="e2e-card__body">
+                    <p class="e2e-card__title">Decision</p>
+                    <p class="e2e-card__sub">Offer &amp; eligibility</p>
+                  </div>
                 </div>
               </div>
+              <svg class="e2e-arrow-layer" id="e2eArrowLayer" aria-hidden="true"></svg>
             </div>
           </div>
         </div>
@@ -128,9 +176,9 @@
       });
     })();
   </script>
-  <script defer src="architecture-end-to-end.js"></script>
+  <script defer src="architecture-end-to-end.js?v=20260418-v2"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260418-architecture-e2e"></script>
+  <script defer src="aep-lab-nav.js?v=20260418-architecture-e2e-v2"></script>
 </body>
 </html>
