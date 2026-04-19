@@ -7064,6 +7064,120 @@
     }
   }
 
+  function archDiagramCutSelection() {
+    if (!archIsEditMode()) return;
+    if (!archCustomBoxSelectedId && !userLines.selectedId) {
+      if (liveRegion) liveRegion.textContent = 'Select a shape or connector to cut.';
+      return;
+    }
+    archDiagramCopySelection();
+    if (archCustomBoxSelectedId) { archCustomBoxDeleteSelected(); return; }
+    if (userLines.selectedId) { archUserLineDeleteSelected(); return; }
+  }
+
+  function archDiagramDuplicateSelection() {
+    if (!archIsEditMode()) return;
+    if (!archCustomBoxSelectedId && !userLines.selectedId) {
+      if (liveRegion) liveRegion.textContent = 'Select a shape or connector to duplicate.';
+      return;
+    }
+    var prev = archDiagramClipboard;
+    archDiagramCopySelection();
+    archDiagramPasteClipboard();
+    archDiagramClipboard = prev;
+  }
+
+  function archDiagramSelectAllBaseNodes() {
+    if (!archIsEditMode() || !archSelection) return;
+    var ids = [];
+    $all('.arch-int-svg-wrap g.arch-node.arch-draggable').forEach(function (g) {
+      if (!g.id || g.id.indexOf('node-') !== 0 || g.id.indexOf('node-cbox-') === 0) return;
+      var key = g.id.slice(5);
+      if (NODE_LAYOUT[key] && !archHiddenNodesHas(key)) ids.push(g.id);
+    });
+    if (!ids.length) return;
+    archCustomBoxSelectedId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archFlowClearSelection();
+    archSelection.setMany(ids, ids[0]);
+    archCustomBoxesRender();
+    archUserLineRender();
+    archSelectionRefreshDom();
+    if (liveRegion) liveRegion.textContent = 'Selected ' + ids.length + ' nodes.';
+  }
+
+  function archDiagramDeselectAll() {
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archFlowClearSelection();
+    if (archSelection) archSelection.clear();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    archSelectionRefreshDom();
+  }
+
+  function archDiagramNudgeSelection(dx, dy) {
+    if (!archIsEditMode()) return false;
+    var moved = false;
+
+    if (archCustomBoxSelectedId) {
+      var box = archCustomBoxFind(archCustomBoxSelectedId);
+      if (box) {
+        box.x = archClamp((box.x || 0) + dx, 0, ARCH_GUIDE_VIEW.w - (box.w || 0));
+        box.y = archClamp((box.y || 0) + dy, 0, ARCH_GUIDE_VIEW.h - (box.h || 0));
+        archCustomBoxesPersist();
+        archCustomBoxesRender();
+        moved = true;
+      }
+    }
+
+    if (userLines.selectedId) {
+      var ln = archUserLineGetSelected();
+      if (ln && Array.isArray(ln.points)) {
+        ln.points = ln.points.map(function (p) {
+          return [(Number(p && p[0]) || 0) + dx, (Number(p && p[1]) || 0) + dy];
+        });
+        archUserLinePersist();
+        archUserLineRender();
+        moved = true;
+      }
+    }
+
+    if (archSelection && archSelection.count() > 0) {
+      var ids = [];
+      try { ids = archSelection.toArray ? archSelection.toArray() : []; } catch (e) {}
+      var changed = 0;
+      ids.forEach(function (sid) {
+        if (!sid || sid.indexOf('node-') !== 0 || sid.indexOf('node-cbox-') === 0) return;
+        var key = sid.slice(5);
+        if (!NODE_LAYOUT[key]) return;
+        var p = archDrag.pos[key] || (archDrag.pos[key] = { x: 0, y: 0 });
+        p.x = (p.x || 0) + dx;
+        p.y = (p.y || 0) + dy;
+        changed++;
+      });
+      if (changed) {
+        archDragApply();
+        archDragSave();
+        moved = true;
+      }
+    }
+
+    if (moved) try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (err) {}
+    return moved;
+  }
+
+  function archDiagramToggleEditMode() {
+    var emt = qs('#archEditModeToggle');
+    if (!emt) return;
+    emt.checked = !emt.checked;
+    try { emt.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+  }
+
   function archUserLineAdd(ep1, ep2) {
     var tool = archLineFloatGetTool();
     var dashStyle = tool === 'dotted' ? 'dotted' : 'solid';
@@ -7758,6 +7872,52 @@
           if (mod && e.key.toLowerCase() === 'v') {
             e.preventDefault();
             archDiagramPasteClipboard();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'x') {
+            e.preventDefault();
+            archDiagramCutSelection();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'd') {
+            e.preventDefault();
+            archDiagramDuplicateSelection();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'a') {
+            e.preventDefault();
+            archDiagramSelectAllBaseNodes();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 's') {
+            if (e.shiftKey) {
+              e.preventDefault();
+              if (typeof archProposalsHandleSaveAs === 'function') archProposalsHandleSaveAs();
+              return;
+            }
+            e.preventDefault();
+            if (typeof archProposalsHandleSave === 'function') archProposalsHandleSave();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'e') {
+            e.preventDefault();
+            archDiagramToggleEditMode();
+            return;
+          }
+          if (!mod && e.key === 'Escape') {
+            archDiagramDeselectAll();
+            return;
+          }
+          if (!mod && archIsEditMode() && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+            var hasSel = !!(archCustomBoxSelectedId || userLines.selectedId || (archSelection && archSelection.count() > 0));
+            if (!hasSel) return;
+            var step = e.shiftKey ? 10 : 1;
+            var dx = 0, dy = 0;
+            if (e.key === 'ArrowLeft') dx = -step;
+            else if (e.key === 'ArrowRight') dx = step;
+            else if (e.key === 'ArrowUp') dy = -step;
+            else if (e.key === 'ArrowDown') dy = step;
+            if (archDiagramNudgeSelection(dx, dy)) e.preventDefault();
             return;
           }
         },
