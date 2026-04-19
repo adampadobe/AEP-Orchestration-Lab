@@ -2119,13 +2119,18 @@ html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
   padding: 0.35rem 0.2rem;
   border: 1px solid transparent;
   border-radius: 4px;
-  background: #fff;
+  background: #e5e7eb;
   cursor: pointer;
   font-size: 0.6rem;
   line-height: 1.2;
   color: #334155;
   text-align: center;
   word-break: break-word;
+}
+
+html[data-aep-theme='dark'] .arch-spectrum-icons-tile {
+  background: var(--dash-surface-alt, #2a2f36);
+  color: var(--dash-text, #e5e7eb);
 }
 
 .arch-spectrum-icons-tile:hover,
