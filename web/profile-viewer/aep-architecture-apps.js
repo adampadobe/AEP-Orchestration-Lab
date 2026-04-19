@@ -2600,7 +2600,6 @@
       btn.tabIndex = 0;
       btn.setAttribute('data-arch-spectrum-file', item.file);
       btn.setAttribute('data-arch-spectrum-label', lab);
-      btn.title = lab;
       var wrap = document.createElement('span');
       wrap.className = 'arch-spectrum-icons-tile-img-wrap';
       var im = document.createElement('img');
@@ -3451,7 +3450,6 @@
       var tagList = Array.isArray(item.tags) ? item.tags.filter(function (t) { return t; }) : [];
       btn.setAttribute('data-arch-logo-tags', tagList.join(' '));
       var hover = (item.label || '') + (item.description ? ' — ' + item.description : '');
-      btn.title = hover || item.file;
       var wrap = document.createElement('span');
       wrap.className = 'arch-spectrum-icons-tile-img-wrap';
       var im = document.createElement('img');
@@ -3469,7 +3467,6 @@
         btn.setAttribute('data-arch-custom-logo-id', item._archCustomId);
         btn.setAttribute('draggable', 'true');
         btn.classList.add('arch-architecture-logo-tile--custom');
-        btn.title = (hover || item.file) + ' — Turn on Edit logos below to change or remove. Drag to reorder.';
         tileActions = document.createElement('span');
         tileActions.className = 'arch-architecture-logo-tile-actions';
         tileActions.setAttribute('role', 'group');
@@ -3566,9 +3563,6 @@
         });
         tileActions.appendChild(remCat);
         tileActions.appendChild(catEditBtn);
-        btn.title =
-          (hover || item.file) +
-          ' — Turn on Edit logos below to change metadata or overrides (this browser).';
       }
       btn.appendChild(wrap);
       btn.appendChild(cap);
