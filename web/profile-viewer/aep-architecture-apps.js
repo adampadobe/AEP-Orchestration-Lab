@@ -984,6 +984,7 @@
 
     archStateHighlightOverridesLoad();
     archHiddenFlowsLoad();
+    archHiddenNodesLoad();
     archHighlightPickerInit();
     var archHighlightResetBtn = qs('#archHighlightResetState');
     if (archHighlightResetBtn) {
@@ -1988,6 +1989,33 @@
   }
   function archHiddenFlowsHas(id) { return !!(id && archHiddenFlows[id]); }
   function archHiddenFlowsAdd(id) { if (id) { archHiddenFlows[id] = 1; archHiddenFlowsPersist(); } }
+
+  /** Base nodes (arch-draggable groups with id node-<key>) hidden per sandbox/proposal. */
+  var LS_HIDDEN_NODES = 'aepArchHiddenNodes';
+  var archHiddenNodes = {};
+
+  function archHiddenNodesLoad() {
+    try {
+      var raw = localStorage.getItem(LS_HIDDEN_NODES);
+      var p = raw ? JSON.parse(raw) : null;
+      archHiddenNodes = p && typeof p === 'object' ? p : {};
+    } catch (e) { archHiddenNodes = {}; }
+  }
+  function archHiddenNodesPersist() {
+    try { localStorage.setItem(LS_HIDDEN_NODES, JSON.stringify(archHiddenNodes)); } catch (e) {}
+  }
+  function archHiddenNodesHas(key) { return !!(key && archHiddenNodes[key]); }
+  function archHiddenNodesAdd(key) { if (key) { archHiddenNodes[key] = 1; archHiddenNodesPersist(); } }
+
+  /** Apply display: none to all hidden base nodes. Called after init + after state changes. */
+  function archHiddenNodesApply() {
+    $all('g.arch-node.arch-draggable').forEach(function (g) {
+      if (!g.id || g.id.indexOf('node-') !== 0 || g.id.indexOf('node-cbox-') === 0) return;
+      var key = g.id.slice(5);
+      if (archHiddenNodesHas(key)) g.style.display = 'none';
+      else g.style.display = '';
+    });
+  }
   /** Session + localStorage defaults for the Lines floating toolbar (new-line defaults). */
   var LS_LINE_TOOLBAR_DEFAULTS = 'aepArchLineToolbarDefaults';
 
@@ -7194,6 +7222,29 @@
       archFlowDeleteSelected();
       return;
     }
+    if (archSelection && archSelection.count() > 0) {
+      var ids = [];
+      try { ids = archSelection.toArray ? archSelection.toArray() : []; } catch (err) {}
+      if (!ids.length && archSelection.primary) ids = [archSelection.primary];
+      var baseKeys = [];
+      for (var si = 0; si < ids.length; si++) {
+        var sid = ids[si];
+        if (sid && sid.indexOf('node-') === 0 && sid.indexOf('node-cbox-') !== 0) {
+          var skey = sid.slice(5);
+          if (NODE_LAYOUT[skey]) baseKeys.push(skey);
+        }
+      }
+      if (baseKeys.length) {
+        e.preventDefault();
+        for (var bi = 0; bi < baseKeys.length; bi++) archHiddenNodesAdd(baseKeys[bi]);
+        archSelection.clear();
+        archHiddenNodesApply();
+        archSelectionRefreshDom();
+        if (liveRegion) liveRegion.textContent = 'Node removed from this proposal.';
+        try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (err2) {}
+        return;
+      }
+    }
     if (archCustomBoxSelectedId) {
       e.preventDefault();
       archCustomBoxDeleteSelected();
@@ -7664,6 +7715,7 @@
     archEditorSyncLinesDockChrome();
 
     archEditSelectionInit();
+    archHiddenNodesApply();
     archUndoInitOnce();
 
     if (!document.documentElement.getAttribute('data-arch-undo-keys')) {
@@ -7822,6 +7874,7 @@
     'aepArchSpectrumWorkflowIconsHiddenFromPicker',
     'aepArchMenuGroupLabelOverrides',
     'aepArchHiddenFlows',
+    'aepArchHiddenNodes',
   ];
   var ARCH_PROPOSAL_LS_ACTIVE = 'aepArchActiveProposalId';
   var ARCH_MASTER_OWNER_SANDBOX = 'apalmer';
