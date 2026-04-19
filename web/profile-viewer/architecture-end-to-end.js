@@ -30,7 +30,6 @@
   ];
 
   var EDGE_PAD = 40;
-  var FORK_STEM = 96;
   var BIDIR_Y = 9;
   var FLOW = '#2d9d6c';
   var FLOW_ALT = '#3d9d72';
@@ -77,14 +76,6 @@
     };
   }
 
-  function junctionBelowAjo(ajoEl) {
-    var a = relRect(ajoEl);
-    return {
-      x: a.cx,
-      y: a.bottom + EDGE_PAD + FORK_STEM,
-    };
-  }
-
   function horizontalBidirPaths(leftEl, rightEl) {
     var L = relRect(leftEl);
     var R = relRect(rightEl);
@@ -126,19 +117,15 @@
     return 'M ' + x0 + ' ' + y0 + ' L ' + x1 + ' ' + y1;
   }
 
-  function pathAjoStemToEmail(ajoEl, emailEl) {
+  /** One segment: bottom of AJO → top of Email (arrowhead at Email; flows downward) */
+  function pathAjoToEmail(ajoEl, emailEl) {
     var a = relRect(ajoEl);
     var e = relRect(emailEl);
-    var j = junctionBelowAjo(ajoEl);
     return (
       'M ' +
       a.cx +
       ' ' +
       (a.bottom + EDGE_PAD) +
-      ' L ' +
-      j.x +
-      ' ' +
-      j.y +
       ' L ' +
       e.cx +
       ' ' +
@@ -146,10 +133,20 @@
     );
   }
 
-  function pathJunctionToDecision(ajoEl, decisionEl) {
-    var j = junctionBelowAjo(ajoEl);
+  /** One segment: bottom of AJO → top of Decision */
+  function pathAjoToDecision(ajoEl, decisionEl) {
+    var a = relRect(ajoEl);
     var d = relRect(decisionEl);
-    return 'M ' + j.x + ' ' + j.y + ' L ' + d.cx + ' ' + (d.top - EDGE_PAD);
+    return (
+      'M ' +
+      a.cx +
+      ' ' +
+      (a.bottom + EDGE_PAD) +
+      ' L ' +
+      d.cx +
+      ' ' +
+      (d.top - EDGE_PAD)
+    );
   }
 
   function ensureDefs() {
@@ -262,13 +259,13 @@
     }
     if (justFinishedIndex === 4) {
       if (ajo && em) {
-        addPath(pathAjoStemToEmail(ajo, em), 520);
+        addPath(pathAjoToEmail(ajo, em), 520);
       }
       return;
     }
     if (justFinishedIndex === 5) {
       if (ajo && de) {
-        addPath(pathJunctionToDecision(ajo, de), 520);
+        addPath(pathAjoToDecision(ajo, de), 520);
       }
       return;
     }
