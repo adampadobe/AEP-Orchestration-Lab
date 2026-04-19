@@ -1794,8 +1794,10 @@
       var ty = L.base[1] + p.y;
       var nodeAngle = p.angle || 0;
       var wh0 = archNodeEffectiveWH(key);
+      var nodePivotX = L.rect[0] + wh0.w / 2;
+      var nodePivotY = L.rect[1] + wh0.h / 2;
       var nodeTfm = nodeAngle
-        ? 'translate(' + (tx + wh0.w / 2) + ',' + (ty + wh0.h / 2) + ') rotate(' + nodeAngle + ') translate(' + (-wh0.w / 2) + ',' + (-wh0.h / 2) + ')'
+        ? 'translate(' + (tx + nodePivotX) + ',' + (ty + nodePivotY) + ') rotate(' + nodeAngle + ') translate(' + (-nodePivotX) + ',' + (-nodePivotY) + ')'
         : 'translate(' + tx + ',' + ty + ')';
       g.setAttribute('transform', nodeTfm);
       var shell = g.querySelector('[data-arch-shell]');
@@ -1866,7 +1868,7 @@
         var rh = document.createElementNS(SVG_NS, 'circle');
         rh.setAttribute('class', 'arch-rotate-handle');
         rh.setAttribute('data-arch-node-rotate', key);
-        rh.setAttribute('cx', String(L.rect[0] + wh.w - 10));
+        rh.setAttribute('cx', String(L.rect[0] + wh.w / 2));
         rh.setAttribute('cy', String(L.rect[1] + 10));
         rh.setAttribute('r', '8');
         rh.addEventListener('pointerdown', archNodeRotatePointerDown);
@@ -5476,8 +5478,8 @@
     var L = NODE_LAYOUT[key];
     var p = archDrag.pos[key] || { x: 0, y: 0 };
     var wh = archNodeEffectiveWH(key);
-    var worldCx = L.base[0] + p.x + wh.w / 2;
-    var worldCy = L.base[1] + p.y + wh.h / 2;
+    var worldCx = L.base[0] + p.x + L.rect[0] + wh.w / 2;
+    var worldCy = L.base[1] + p.y + L.rect[1] + wh.h / 2;
     archCustomRotate.active = '__node__' + key;
     archCustomRotate.start = { svgCx: worldCx, svgCy: worldCy, startAngle: p.angle || 0 };
     window.addEventListener('pointermove', archNodeRotatePointerMoveWin, true);
@@ -5978,7 +5980,7 @@
       var rotHandle = document.createElementNS(SVG_NS, 'circle');
       rotHandle.setAttribute('class', 'arch-rotate-handle');
       rotHandle.setAttribute('data-arch-rotate-handle', '1');
-      rotHandle.setAttribute('cx', String(b.w - 10));
+      rotHandle.setAttribute('cx', String(b.w / 2));
       rotHandle.setAttribute('cy', '10');
       rotHandle.setAttribute('r', '8');
       rotHandle.addEventListener('pointerdown', archCboxRotatePointerDown);
