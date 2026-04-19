@@ -3253,24 +3253,9 @@
     var ov = qs('#archCustomLogoEditOverlay');
     var dlg = ov && ov.querySelector('.arch-custom-logo-edit-dialog');
     if (!ov || ov.hidden || !dlg) return;
-    if (!archLogoEditAnchorEl) {
-      ov.classList.remove('arch-custom-logo-edit-overlay--anchored');
-      dlg.style.left = '';
-      dlg.style.top = '';
-      return;
-    }
-    ov.classList.add('arch-custom-logo-edit-overlay--anchored');
-    var r = archLogoEditAnchorEl.getBoundingClientRect();
-    var dw = dlg.offsetWidth || 320;
-    var dh = dlg.offsetHeight || 240;
-    var pad = 8;
-    var left = r.right + pad;
-    if (left + dw > window.innerWidth - pad) left = Math.max(pad, r.left - dw - pad);
-    var top = r.top;
-    if (top + dh > window.innerHeight - pad) top = Math.max(pad, window.innerHeight - dh - pad);
-    if (top < pad) top = pad;
-    dlg.style.left = left + 'px';
-    dlg.style.top = top + 'px';
+    ov.classList.remove('arch-custom-logo-edit-overlay--anchored');
+    dlg.style.left = '';
+    dlg.style.top = '';
   }
 
   function archLogoEditPopoverOpenDone() {
@@ -3791,7 +3776,7 @@
           'Change label, description, or which submenu this appears under. Logos already on the canvas keep their old label until you edit the box on the canvas.';
       }
       if (panelRow) panelRow.hidden = false;
-      if (replaceRow) replaceRow.hidden = true;
+      if (replaceRow) replaceRow.hidden = false;
       if (fi) fi.value = '';
       if (delBtn) {
         delBtn.hidden = false;
@@ -3961,26 +3946,54 @@
     var descIn = qs('#archCustomLogoEditDesc');
     var ps = qs('#archCustomLogoEditPanel');
     var gs = qs('#archCustomLogoEditGroup');
+    var fiCustom = qs('#archCatalogLogoEditReplaceFile');
     var label = (labIn && labIn.value && labIn.value.trim()) || '';
     if (!label) return;
-    var items = archCustomLogoLibraryLoad();
-    var next = items.map(function (e) {
-      if (e.id !== archCustomLogoEditingId) return e;
-      return Object.assign({}, e, {
-        label: label,
-        description: (descIn && descIn.value && descIn.value.trim()) || '',
-        panel: ps && ps.value === 'adobe' ? 'adobe' : 'other',
-        groupId: gs ? gs.value : e.groupId,
-      });
-    });
-    try {
-      archCustomLogoLibrarySave(next);
-    } catch (err) {
+    var fileCustom = fiCustom && fiCustom.files && fiCustom.files[0];
+    if (fileCustom && fileCustom.size > ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS * 0.75) {
+      if (liveRegion) liveRegion.textContent = 'File too large to store locally.';
       return;
     }
-    archCustomLogoMetadataEditorClose();
-    archCustomLogoRefreshLists();
-    archArchitectureLogosRefreshMerged();
+    var editingId = archCustomLogoEditingId;
+    function finishCustomUpdate(dataUrl) {
+      var items = archCustomLogoLibraryLoad();
+      var next = items.map(function (e) {
+        if (e.id !== editingId) return e;
+        var merged = Object.assign({}, e, {
+          label: label,
+          description: (descIn && descIn.value && descIn.value.trim()) || '',
+          panel: ps && ps.value === 'adobe' ? 'adobe' : 'other',
+          groupId: gs ? gs.value : e.groupId,
+        });
+        if (dataUrl) merged.fileDataUrl = dataUrl;
+        return merged;
+      });
+      try {
+        archCustomLogoLibrarySave(next);
+      } catch (err) {
+        return;
+      }
+      archCustomLogoMetadataEditorClose();
+      archCustomLogoRefreshLists();
+      archArchitectureLogosRefreshMerged();
+    }
+    if (fileCustom) {
+      var readerC = new FileReader();
+      readerC.onload = function () {
+        var s = readerC.result;
+        if (typeof s === 'string' && s.length > ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS) {
+          if (liveRegion) liveRegion.textContent = 'Image data too large for local storage.';
+          return;
+        }
+        finishCustomUpdate(s);
+      };
+      readerC.onerror = function () {
+        if (liveRegion) liveRegion.textContent = 'Could not read image file.';
+      };
+      readerC.readAsDataURL(fileCustom);
+    } else {
+      finishCustomUpdate(null);
+    }
   }
 
   function archCustomLogoEditDialogInit() {
