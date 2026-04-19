@@ -1864,13 +1864,8 @@
       }
       if (!g.querySelector('.arch-rotate-handle[data-arch-node-rotate]')) {
         var wh = archNodeEffectiveWH(key);
-        var L = NODE_LAYOUT[key];
-        var rh = document.createElementNS(SVG_NS, 'circle');
-        rh.setAttribute('class', 'arch-rotate-handle');
-        rh.setAttribute('data-arch-node-rotate', key);
-        rh.setAttribute('cx', String(L.rect[0] + wh.w / 2));
-        rh.setAttribute('cy', String(L.rect[1] + 10));
-        rh.setAttribute('r', '8');
+        var L2 = NODE_LAYOUT[key];
+        var rh = archMakeRotateHandle(L2.rect[0] + wh.w / 2, L2.rect[1] + 10, { archNodeRotate: key }, null);
         rh.addEventListener('pointerdown', archNodeRotatePointerDown);
         g.appendChild(rh);
       }
@@ -2541,6 +2536,32 @@
   var archCustomRotate = { active: null, start: null };
   var archCustomResize = { active: null, start: null };
   var LS_CUSTOM_BOXES = 'aepArchCustomBoxes';
+
+  var ARCH_ROTATE_CW_PATH = 'm18.27051,3.72896c-.39209-.12061-.81494.10059-.93701.49658l-.53143,1.73016c-1.43658-2.33026-3.99622-3.82538-6.80206-3.82538C5.58887,2.13033,2,5.7192,2,10.13033s3.58887,8,8,8c2.66162,0,5.1416-1.31836,6.6333-3.52686.23193-.34326.1416-.80957-.20166-1.0415-.34375-.23145-.80957-.14062-1.0415.20166-1.2124,1.79492-3.22754,2.8667-5.39014,2.8667-3.58398,0-6.5-2.91602-6.5-6.5s2.91602-6.5,6.5-6.5c2.20074,0,4.21191,1.13434,5.3999,2.91516l-1.54736-.47522c-.39258-.11914-.81543.1001-.93701.49658-.12158.396.10059.81543.49658.93701l3.37988,1.03809c.07324.02246.14746.0332.2207.0332.32031,0,.61719-.20703.71631-.52979l1.03809-3.37939c.12158-.396-.10059-.81543-.49658-.93701Z';
+
+  function archMakeRotateHandle(cx, cy, dataset, evtKey) {
+    var g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', 'arch-rotate-handle');
+    g.setAttribute('transform', 'translate(' + cx + ',' + cy + ')');
+    if (dataset) {
+      Object.keys(dataset).forEach(function (k) { g.dataset[k] = dataset[k]; });
+    }
+    var circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('cx', '0');
+    circle.setAttribute('cy', '0');
+    circle.setAttribute('r', '8');
+    circle.setAttribute('fill', '#ffffff');
+    circle.setAttribute('stroke', '#1473e6');
+    circle.setAttribute('stroke-width', '1.25');
+    g.appendChild(circle);
+    var icon = document.createElementNS(SVG_NS, 'path');
+    icon.setAttribute('d', ARCH_ROTATE_CW_PATH);
+    icon.setAttribute('fill', '#1473e6');
+    icon.setAttribute('transform', 'translate(-6,-6) scale(0.6)');
+    icon.setAttribute('pointer-events', 'none');
+    g.appendChild(icon);
+    return g;
+  }
 
   /** In-memory clipboard for Edit mode copy/paste (custom boxes + connectors). */
   var archDiagramClipboard = null;
@@ -5520,7 +5541,7 @@
     if (userLines.drawMode || customBoxDrawMode) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
-    if (e.target && e.target.dataset && e.target.dataset.archNodeRotate) return;
+    if (e.target && e.target.closest && e.target.closest('[data-arch-node-rotate]')) return;
     if (e.target && e.target.closest && e.target.closest('text')) return;
     var g = e.currentTarget;
     if (!g || !g.id || g.id.indexOf('node-') !== 0) return;
@@ -5977,12 +5998,7 @@
         hEl.setAttribute('aria-hidden', 'true');
         g.appendChild(hEl);
       });
-      var rotHandle = document.createElementNS(SVG_NS, 'circle');
-      rotHandle.setAttribute('class', 'arch-rotate-handle');
-      rotHandle.setAttribute('data-arch-rotate-handle', '1');
-      rotHandle.setAttribute('cx', String(b.w / 2));
-      rotHandle.setAttribute('cy', '10');
-      rotHandle.setAttribute('r', '8');
+      var rotHandle = archMakeRotateHandle(b.w / 2, 10, { archRotateHandle: '1' }, null);
       rotHandle.addEventListener('pointerdown', archCboxRotatePointerDown);
       g.appendChild(rotHandle);
       g.addEventListener('pointerdown', archCustomBoxDragPointerDown);
@@ -6228,7 +6244,7 @@
     var rawId = g.id.replace(/^node-cbox-/, '');
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
-    if (e.target && e.target.dataset && e.target.dataset.archRotateHandle) return;
+    if (e.target && e.target.closest && e.target.closest('[data-arch-rotate-handle]')) return;
     var box = archCustomBoxFind(rawId);
     if (!box) return;
 
