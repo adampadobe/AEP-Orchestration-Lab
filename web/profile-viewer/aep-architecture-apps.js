@@ -6583,6 +6583,8 @@
       stateHighlightOverrides: JSON.parse(JSON.stringify(archStateHighlightOverrides)),
       sourcesDividers: [],
       customBoxes: JSON.parse(JSON.stringify(archCustomBoxes.map(archCustomBoxNormalize))),
+      hiddenFlows: JSON.parse(JSON.stringify(archHiddenFlows || {})),
+      hiddenNodes: JSON.parse(JSON.stringify(archHiddenNodes || {})),
     };
     if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.legacyToScene) {
       payload.scene = window.AEPDiagram.model.legacyToScene(payload);
@@ -6623,6 +6625,19 @@
     if (Array.isArray(data.customBoxes)) {
       archCustomBoxes = data.customBoxes.map(archCustomBoxNormalize);
     }
+    if (data.hiddenFlows && typeof data.hiddenFlows === 'object') {
+      archHiddenFlows = JSON.parse(JSON.stringify(data.hiddenFlows));
+    } else {
+      archHiddenFlows = {};
+    }
+    if (data.hiddenNodes && typeof data.hiddenNodes === 'object') {
+      archHiddenNodes = JSON.parse(JSON.stringify(data.hiddenNodes));
+    } else {
+      archHiddenNodes = {};
+    }
+    archHiddenFlowsPersist();
+    archHiddenNodesPersist();
+    archHiddenNodesApply();
   }
 
   function archMasterTryLoad() {
