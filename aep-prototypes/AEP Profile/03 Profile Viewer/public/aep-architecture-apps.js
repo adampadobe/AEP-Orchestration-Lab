@@ -1792,7 +1792,12 @@
       var p = archDrag.pos[key] || { x: 0, y: 0 };
       var tx = L.base[0] + p.x;
       var ty = L.base[1] + p.y;
-      g.setAttribute('transform', 'translate(' + tx + ',' + ty + ')');
+      var nodeAngle = p.angle || 0;
+      var wh0 = archNodeEffectiveWH(key);
+      var nodeTfm = nodeAngle
+        ? 'translate(' + (tx + wh0.w / 2) + ',' + (ty + wh0.h / 2) + ') rotate(' + nodeAngle + ') translate(' + (-wh0.w / 2) + ',' + (-wh0.h / 2) + ')'
+        : 'translate(' + tx + ',' + ty + ')';
+      g.setAttribute('transform', nodeTfm);
       var shell = g.querySelector('[data-arch-shell]');
       if (shell) {
         var wh = archNodeEffectiveWH(key);
@@ -1836,24 +1841,37 @@
     Object.keys(NODE_LAYOUT).forEach(function (key) {
       var g = qs('#node-' + key);
       if (!g) return;
-      if (g.querySelector('.arch-node-resize-handle[data-arch-node-handle]')) return;
-      $all('.arch-node-resize-handle:not(.arch-node-resize-handle--cbox)', g).forEach(function (el) {
-        el.parentNode.removeChild(el);
-      });
-      keys.forEach(function (hk) {
-        var h = document.createElementNS(SVG_NS, 'rect');
-        h.setAttribute('class', 'arch-node-resize-handle arch-node-resize-handle--node');
-        h.setAttribute('data-arch-node-handle', hk);
-        h.setAttribute('width', String(hs));
-        h.setAttribute('height', String(hs));
-        h.setAttribute('rx', '2');
-        h.setAttribute('fill', '#ffffff');
-        h.setAttribute('stroke', '#1473e6');
-        h.setAttribute('stroke-width', '1.25');
-        h.setAttribute('tabindex', '-1');
-        h.setAttribute('aria-hidden', 'true');
-        g.appendChild(h);
-      });
+      if (!g.querySelector('.arch-node-resize-handle[data-arch-node-handle]')) {
+        $all('.arch-node-resize-handle:not(.arch-node-resize-handle--cbox)', g).forEach(function (el) {
+          el.parentNode.removeChild(el);
+        });
+        keys.forEach(function (hk) {
+          var h = document.createElementNS(SVG_NS, 'rect');
+          h.setAttribute('class', 'arch-node-resize-handle arch-node-resize-handle--node');
+          h.setAttribute('data-arch-node-handle', hk);
+          h.setAttribute('width', String(hs));
+          h.setAttribute('height', String(hs));
+          h.setAttribute('rx', '2');
+          h.setAttribute('fill', '#ffffff');
+          h.setAttribute('stroke', '#1473e6');
+          h.setAttribute('stroke-width', '1.25');
+          h.setAttribute('tabindex', '-1');
+          h.setAttribute('aria-hidden', 'true');
+          g.appendChild(h);
+        });
+      }
+      if (!g.querySelector('.arch-rotate-handle[data-arch-node-rotate]')) {
+        var wh = archNodeEffectiveWH(key);
+        var L = NODE_LAYOUT[key];
+        var rh = document.createElementNS(SVG_NS, 'circle');
+        rh.setAttribute('class', 'arch-rotate-handle');
+        rh.setAttribute('data-arch-node-rotate', key);
+        rh.setAttribute('cx', String(L.rect[0] + wh.w - 10));
+        rh.setAttribute('cy', String(L.rect[1] + 10));
+        rh.setAttribute('r', '8');
+        rh.addEventListener('pointerdown', archNodeRotatePointerDown);
+        g.appendChild(rh);
+      }
     });
   }
 
@@ -1868,6 +1886,7 @@
               archDrag.pos[k] = { x: saved[k].x, y: saved[k].y };
               if (typeof saved[k].w === 'number') archDrag.pos[k].w = saved[k].w;
               if (typeof saved[k].h === 'number') archDrag.pos[k].h = saved[k].h;
+              if (typeof saved[k].angle === 'number') archDrag.pos[k].angle = saved[k].angle;
             }
           });
         }
@@ -5448,11 +5467,58 @@
     }
   }
 
+  function archNodeRotatePointerDown(e) {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    e.preventDefault();
+    e.stopPropagation();
+    var key = e.currentTarget.dataset.archNodeRotate;
+    if (!key || !NODE_LAYOUT[key]) return;
+    var L = NODE_LAYOUT[key];
+    var p = archDrag.pos[key] || { x: 0, y: 0 };
+    var wh = archNodeEffectiveWH(key);
+    var worldCx = L.base[0] + p.x + wh.w / 2;
+    var worldCy = L.base[1] + p.y + wh.h / 2;
+    archCustomRotate.active = '__node__' + key;
+    archCustomRotate.start = { svgCx: worldCx, svgCy: worldCy, startAngle: p.angle || 0 };
+    window.addEventListener('pointermove', archNodeRotatePointerMoveWin, true);
+    window.addEventListener('pointerup', archNodeRotatePointerUpWin, true);
+    window.addEventListener('pointercancel', archNodeRotatePointerUpWin, true);
+  }
+
+  function archNodeRotatePointerMoveWin(e) {
+    if (!archCustomRotate.active) return;
+    e.preventDefault();
+    var key = archCustomRotate.active.replace(/^__node__/, '');
+    var s = archCustomRotate.start;
+    var p2 = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var rawAngle = Math.atan2(p2.y - s.svgCy, p2.x - s.svgCx) * 180 / Math.PI + 90;
+    var snapped = rawAngle;
+    var snapPoints = [0, 45, 90, 135, 180, 225, 270, 315, 360, -45, -90, -135, -180];
+    for (var si = 0; si < snapPoints.length; si++) {
+      if (Math.abs(rawAngle - snapPoints[si]) < 5) { snapped = snapPoints[si]; break; }
+    }
+    if (!archDrag.pos[key]) archDrag.pos[key] = { x: 0, y: 0 };
+    archDrag.pos[key].angle = snapped;
+    archDragApply();
+  }
+
+  function archNodeRotatePointerUpWin() {
+    if (!archCustomRotate.active) return;
+    archCustomRotate.active = null;
+    archCustomRotate.start = null;
+    window.removeEventListener('pointermove', archNodeRotatePointerMoveWin, true);
+    window.removeEventListener('pointerup', archNodeRotatePointerUpWin, true);
+    window.removeEventListener('pointercancel', archNodeRotatePointerUpWin, true);
+    archDragSave();
+    archUndoMaybePushSnapshot();
+  }
+
   function archDragPointerDown(e) {
     if (!archDrag.enabled) return;
     if (userLines.drawMode || customBoxDrawMode) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
+    if (e.target && e.target.dataset && e.target.dataset.archNodeRotate) return;
     if (e.target && e.target.closest && e.target.closest('text')) return;
     var g = e.currentTarget;
     if (!g || !g.id || g.id.indexOf('node-') !== 0) return;
@@ -5909,18 +5975,11 @@
         hEl.setAttribute('aria-hidden', 'true');
         g.appendChild(hEl);
       });
-      var rotStem = document.createElementNS(SVG_NS, 'line');
-      rotStem.setAttribute('class', 'arch-rotate-stem');
-      rotStem.setAttribute('x1', String(b.w / 2));
-      rotStem.setAttribute('y1', '-6');
-      rotStem.setAttribute('x2', String(b.w / 2));
-      rotStem.setAttribute('y2', '-22');
-      g.appendChild(rotStem);
       var rotHandle = document.createElementNS(SVG_NS, 'circle');
       rotHandle.setAttribute('class', 'arch-rotate-handle');
       rotHandle.setAttribute('data-arch-rotate-handle', '1');
-      rotHandle.setAttribute('cx', String(b.w / 2));
-      rotHandle.setAttribute('cy', '-30');
+      rotHandle.setAttribute('cx', String(b.w - 10));
+      rotHandle.setAttribute('cy', '10');
       rotHandle.setAttribute('r', '8');
       rotHandle.addEventListener('pointerdown', archCboxRotatePointerDown);
       g.appendChild(rotHandle);
