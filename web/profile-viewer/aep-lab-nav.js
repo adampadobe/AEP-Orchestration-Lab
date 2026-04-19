@@ -155,21 +155,13 @@
           ico:
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
         },
-      ],
-      subgroups: [
         {
-          label: 'End 2 End',
-          id: 'architecture-end2end',
-          items: [
-            {
-              label: 'Adobe integration flow (in development)',
-              href: 'architecture-end-to-end.html',
-              inDevelopment: true,
-              navHideKey: 'architectureEndToEnd',
-              ico:
-                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 12h3l2-3 4 6 2-3h5"/></svg>',
-            },
-          ],
+          label: 'Adobe integration flow (in development)',
+          href: 'architecture-end-to-end.html',
+          inDevelopment: true,
+          navHideKey: 'architectureEndToEnd',
+          ico:
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 12h3l2-3 4 6 2-3h5"/></svg>',
         },
       ],
     },
