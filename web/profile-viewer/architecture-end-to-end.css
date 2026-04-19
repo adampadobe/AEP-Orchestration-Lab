@@ -103,13 +103,13 @@ html[data-aep-theme='dark'] .architecture-e2e-page .edp-blocked {
   min-width: 4rem;
 }
 
-/* Panel: Experimentation-style soft gradient + rounded shell */
+/* Panel: Experimentation-style soft gradient + generous gutters so connector strokes stay visible */
 .e2e-diagram-panel {
   border-radius: 16px;
   border: 1px solid var(--dash-border, #e8e8e8);
   background: linear-gradient(180deg, #f3f4f2 0%, #eceeea 100%);
   box-shadow: 0 1px 3px rgba(15, 15, 25, 0.06);
-  padding: 1.5rem 1.25rem 2rem;
+  padding: 2rem 1.75rem 2.75rem;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -122,7 +122,8 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
 .e2e-board {
   position: relative;
   z-index: 0;
-  min-height: 200px;
+  min-height: 280px;
+  padding-bottom: 0.5rem;
 }
 
 .e2e-arrow-layer {
@@ -140,7 +141,8 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
   flex-wrap: wrap;
   justify-content: center;
   align-items: stretch;
-  gap: 0.65rem 0.5rem;
+  gap: 1.75rem 2.75rem;
+  padding: 0.75rem 0.25rem;
   position: relative;
   z-index: 1;
 }
@@ -152,9 +154,9 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
-  gap: 1.75rem 2.5rem;
-  margin-top: 0.35rem;
-  padding: 0 0.5rem 0.25rem;
+  gap: 2rem 4.5rem;
+  margin-top: 3.5rem;
+  padding: 0.75rem 0.75rem 0.5rem;
   position: relative;
   z-index: 1;
 }
@@ -163,19 +165,22 @@ html[data-aep-theme='dark'] .e2e-diagram-panel {
   .e2e-fork-row {
     flex-direction: column;
     align-items: center;
+    gap: 2.5rem;
+    margin-top: 3rem;
   }
 }
 
-/* GenStudio-style horizontal card: icon + title + subcopy */
+/* Agentic v2 agent-card pattern: label column + thumb (see .agentic-v2-agent-card) */
 .e2e-card {
   display: flex;
   flex-direction: row;
-  align-items: center;
-  gap: 0.65rem;
+  align-items: stretch;
+  gap: 0.5rem;
   box-sizing: border-box;
-  min-width: 10.5rem;
-  max-width: 15rem;
-  padding: 0.65rem 0.85rem 0.65rem 0.7rem;
+  width: 100%;
+  min-width: min(280px, 100%);
+  max-width: 300px;
+  padding: 0.5rem 0.45rem;
   border-radius: 14px;
   background: var(--e2e-card);
   border: 1px solid var(--e2e-border);
@@ -227,43 +232,64 @@ html[data-aep-theme='dark'] .e2e-card {
   color: #f1f5f9;
 }
 
-.e2e-card__icon {
-  flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+.e2e-card__label {
+  flex: 0 0 46%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-width: 0;
+  padding: 0.2rem 0.15rem;
 }
 
-.e2e-card__icon img {
-  display: block;
-  width: 48px;
-  height: 48px;
-}
-
-.e2e-card__body {
+.e2e-card__thumb {
   flex: 1;
   min-width: 0;
-  text-align: left;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.e2e-card__thumb img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 92px;
+  object-fit: contain;
+  object-position: center;
+}
+
+html[data-aep-theme='dark'] .e2e-card__thumb {
+  background: rgba(15, 23, 42, 0.5);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .e2e-card__title {
-  margin: 0 0 0.15rem;
+  margin: 0 0 0.2rem;
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
   line-height: 1.25;
-  color: inherit;
+  color: #1d3b2f;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .e2e-card__sub {
   margin: 0;
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: 0.62rem;
+  font-weight: 600;
   color: var(--e2e-muted);
   line-height: 1.35;
+}
+
+html[data-aep-theme='dark'] .e2e-card__title {
+  color: #bbf7d0;
 }
 
 html[data-aep-theme='dark'] .e2e-card__sub {
