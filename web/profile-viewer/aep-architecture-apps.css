@@ -1229,6 +1229,19 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   pointer-events: none;
 }
 
+/* In Edit mode, allow clicking the flow line itself (widened hit via stroke) to select/delete. */
+.arch-int-viewport--edit-mode .arch-flow.is-visible {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.arch-int-viewport--edit-mode .arch-flow.is-visible:hover {
+  filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.55));
+}
+.arch-flow.arch-flow--selected {
+  stroke-width: 4 !important;
+  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.85));
+}
+
 .arch-flow.is-visible {
   opacity: 1;
 }
