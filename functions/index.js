@@ -52,6 +52,7 @@ const eventEdgeService = lazyRequireMod('./eventEdgeService');
 const eventConfigStore = lazyRequireMod('./eventConfigStore');
 const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
 const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
+const archProposalStore = lazyRequireMod('./archProposalStore');
 const labUserSandboxStore = lazyRequireMod('./labUserSandboxStore');
 const journeysBrowse = lazyRequireMod('./journeysBrowse');
 const cjaJourneyMetrics = lazyRequireMod('./cjaJourneyMetrics');
@@ -2524,3 +2525,74 @@ exports.schemaViewerCacheWarm = onSchedule(
     }
   },
 );
+
+/** GET/POST/DELETE /api/arch-proposals — per-sandbox Architecture diagram snapshots (Firestore) */
+exports.archProposals = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+  const sandbox =
+    req.method === 'POST' && req.body?.sandbox
+      ? String(req.body.sandbox).trim()
+      : resolveSandboxFromQuery(req);
+
+  try {
+    if (req.method === 'GET') {
+      const id = String(req.query.id || '').trim();
+      if (id) {
+        const record = await archProposalStore.getProposal(sandbox, id);
+        res.status(200).json({ ok: true, sandbox, record });
+        return;
+      }
+      const items = await archProposalStore.listProposals(sandbox);
+      res.status(200).json({ ok: true, sandbox, items });
+      return;
+    }
+    if (req.method === 'POST') {
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const record = await archProposalStore.saveProposal(sandbox, {
+        id: body.id,
+        name: body.name,
+        snapshot: body.snapshot,
+      });
+      res.status(200).json({ ok: true, sandbox, record });
+      return;
+    }
+    if (req.method === 'DELETE') {
+      const id = String(req.query.id || (req.body && req.body.id) || '').trim();
+      const ok = await archProposalStore.deleteProposal(sandbox, id);
+      res.status(200).json({ ok, sandbox, id });
+      return;
+    }
+    res.status(405).json({ error: 'Method not allowed' });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+  }
+});
+
+/** GET/POST /api/arch-master — shared baseline architecture snapshot (sandbox-gated write) */
+exports.archMaster = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+  try {
+    if (req.method === 'GET') {
+      const record = await archProposalStore.getMaster();
+      res.status(200).json({ ok: true, record });
+      return;
+    }
+    if (req.method === 'POST') {
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const sandbox = String(body.sandbox || '').trim();
+      const record = await archProposalStore.saveMaster(sandbox, {
+        snapshot: body.snapshot,
+      });
+      res.status(200).json({ ok: true, record });
+      return;
+    }
+    res.status(405).json({ error: 'Method not allowed' });
+  } catch (e) {
+    const code = e.code === 'master-forbidden' ? 403 : 500;
+    res.status(code).json({ ok: false, error: String(e.message || e) });
+  }
+});

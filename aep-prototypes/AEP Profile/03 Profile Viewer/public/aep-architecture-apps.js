@@ -7721,6 +7721,331 @@
 
     archStateHighlightOverridesPersist();
     applyState();
+    archProposalsBarInit();
+  }
+
+  /* ============================================================
+   *  Proposals — full-snapshot save/load via Firestore per sandbox
+   *  ============================================================ */
+
+  var ARCH_SNAPSHOT_KEYS = [
+    'aepArchMasterLayout',
+    'aepArchDragNodes',
+    'aepArchLabelEdits',
+    'aepArchUserLines',
+    'aepArchSourcesDividers',
+    'aepArchCustomBoxes',
+    'aepArchStateHighlights',
+    'aepArchStateHighlightOverrides',
+    'aepArchCustomLogoLibrary',
+    'aepArchCatalogLogoOverrides',
+    'aepArchCatalogLogoHiddenFromPicker',
+    'aepArchSpectrumWorkflowIconsHiddenFromPicker',
+    'aepArchMenuGroupLabelOverrides',
+  ];
+  var ARCH_PROPOSAL_LS_ACTIVE = 'aepArchActiveProposalId';
+  var ARCH_MASTER_OWNER_SANDBOX = 'apalmer';
+
+  function archSnapshotCollect() {
+    var out = {};
+    for (var i = 0; i < ARCH_SNAPSHOT_KEYS.length; i++) {
+      var k = ARCH_SNAPSHOT_KEYS[i];
+      var v = localStorage.getItem(k);
+      if (v != null) out[k] = v;
+    }
+    return { version: 1, keys: out };
+  }
+
+  function archSnapshotRestore(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return;
+    var keys = snapshot.keys && typeof snapshot.keys === 'object' ? snapshot.keys : snapshot;
+    for (var i = 0; i < ARCH_SNAPSHOT_KEYS.length; i++) {
+      var k = ARCH_SNAPSHOT_KEYS[i];
+      if (Object.prototype.hasOwnProperty.call(keys, k)) {
+        try { localStorage.setItem(k, String(keys[k])); } catch (e) {}
+      } else {
+        try { localStorage.removeItem(k); } catch (e) {}
+      }
+    }
+  }
+
+  function archProposalsActiveSandbox() {
+    try {
+      if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSelected === 'function') {
+        var s = (window.AepGlobalSandbox.getSelected() || '').trim();
+        if (s) return s;
+      }
+      var ls = localStorage.getItem('aepGlobalSandboxName');
+      return ls ? String(ls).trim() : '';
+    } catch (e) { return ''; }
+  }
+
+  function archProposalsSetStatus(msg) {
+    var el = qs('#archProposalsStatus');
+    if (el) el.textContent = msg || '';
+  }
+
+  async function archProposalsApiList(sandbox) {
+    var r = await fetch('/api/arch-proposals?sandbox=' + encodeURIComponent(sandbox));
+    if (!r.ok) throw new Error('list failed: ' + r.status);
+    return r.json();
+  }
+  async function archProposalsApiGet(sandbox, id) {
+    var r = await fetch('/api/arch-proposals?sandbox=' + encodeURIComponent(sandbox) + '&id=' + encodeURIComponent(id));
+    if (!r.ok) throw new Error('get failed: ' + r.status);
+    return r.json();
+  }
+  async function archProposalsApiSave(sandbox, body) {
+    var r = await fetch('/api/arch-proposals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ sandbox: sandbox }, body)),
+    });
+    var j = await r.json().catch(function () { return {}; });
+    if (!r.ok || j.ok === false) throw new Error(j.error || ('save failed: ' + r.status));
+    return j;
+  }
+  async function archProposalsApiDelete(sandbox, id) {
+    var r = await fetch('/api/arch-proposals?sandbox=' + encodeURIComponent(sandbox) + '&id=' + encodeURIComponent(id), { method: 'DELETE' });
+    var j = await r.json().catch(function () { return {}; });
+    if (!r.ok || j.ok === false) throw new Error(j.error || ('delete failed: ' + r.status));
+    return j;
+  }
+  async function archMasterApiGet() {
+    var r = await fetch('/api/arch-master');
+    if (!r.ok) throw new Error('master get failed: ' + r.status);
+    return r.json();
+  }
+  async function archMasterApiSave(sandbox, snapshot) {
+    var r = await fetch('/api/arch-master', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sandbox: sandbox, snapshot: snapshot }),
+    });
+    var j = await r.json().catch(function () { return {}; });
+    if (!r.ok || j.ok === false) throw new Error(j.error || ('master save failed: ' + r.status));
+    return j;
+  }
+
+  function archProposalsPopulateSelect(items, activeId) {
+    var sel = qs('#archProposalsSelect');
+    if (!sel) return;
+    sel.textContent = '';
+    var opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = '— Base diagram —';
+    sel.appendChild(opt0);
+    (items || []).forEach(function (it) {
+      var o = document.createElement('option');
+      o.value = it.id;
+      o.textContent = it.name || '(untitled)';
+      sel.appendChild(o);
+    });
+    if (activeId) sel.value = activeId;
+  }
+
+  async function archProposalsRefresh() {
+    var sandbox = archProposalsActiveSandbox();
+    if (!sandbox) {
+      archProposalsSetStatus('Select a sandbox to load proposals.');
+      archProposalsPopulateSelect([], '');
+      return;
+    }
+    try {
+      var data = await archProposalsApiList(sandbox);
+      var active = localStorage.getItem(ARCH_PROPOSAL_LS_ACTIVE) || '';
+      archProposalsPopulateSelect(data.items || [], active);
+      archProposalsSetStatus('Sandbox: ' + sandbox + ' · ' + ((data.items || []).length) + ' saved');
+    } catch (e) {
+      archProposalsSetStatus('Could not list proposals: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleLoad() {
+    var sandbox = archProposalsActiveSandbox();
+    var sel = qs('#archProposalsSelect');
+    if (!sandbox || !sel) return;
+    var id = sel.value;
+    if (!id) {
+      if (!window.confirm('Reset canvas to base diagram? All unsaved edits in this browser will be cleared.')) return;
+      archSnapshotRestore({ keys: {} });
+      try { localStorage.removeItem(ARCH_PROPOSAL_LS_ACTIVE); } catch (e) {}
+      archProposalsSetStatus('Loaded base diagram. Reload the page to apply.');
+      window.location.reload();
+      return;
+    }
+    try {
+      var data = await archProposalsApiGet(sandbox, id);
+      if (!data.record || !data.record.snapshot) {
+        archProposalsSetStatus('Proposal not found.');
+        return;
+      }
+      archSnapshotRestore(data.record.snapshot);
+      try { localStorage.setItem(ARCH_PROPOSAL_LS_ACTIVE, id); } catch (e) {}
+      archProposalsSetStatus('Loaded "' + data.record.name + '". Reloading…');
+      window.location.reload();
+    } catch (e) {
+      archProposalsSetStatus('Load failed: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleSaveAs() {
+    var sandbox = archProposalsActiveSandbox();
+    if (!sandbox) { archProposalsSetStatus('Select a sandbox first.'); return; }
+    var name = window.prompt('Name this proposal (e.g. customer name):', '');
+    if (name == null) return;
+    name = String(name).trim();
+    if (!name) return;
+    try {
+      var snapshot = archSnapshotCollect();
+      var res = await archProposalsApiSave(sandbox, { name: name, snapshot: snapshot });
+      try { localStorage.setItem(ARCH_PROPOSAL_LS_ACTIVE, res.record.proposalId || res.record.id); } catch (e) {}
+      archProposalsSetStatus('Saved "' + name + '".');
+      await archProposalsRefresh();
+      var sel = qs('#archProposalsSelect');
+      if (sel) sel.value = res.record.proposalId || res.record.id;
+    } catch (e) {
+      archProposalsSetStatus('Save failed: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleSave() {
+    var sandbox = archProposalsActiveSandbox();
+    var sel = qs('#archProposalsSelect');
+    if (!sandbox || !sel) return;
+    var id = sel.value;
+    if (!id) { return archProposalsHandleSaveAs(); }
+    var name = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+    try {
+      var snapshot = archSnapshotCollect();
+      await archProposalsApiSave(sandbox, { id: id, name: name, snapshot: snapshot });
+      archProposalsSetStatus('Saved changes to "' + name + '".');
+    } catch (e) {
+      archProposalsSetStatus('Save failed: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleRename() {
+    var sandbox = archProposalsActiveSandbox();
+    var sel = qs('#archProposalsSelect');
+    if (!sandbox || !sel || !sel.value) return;
+    var id = sel.value;
+    var current = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+    var next = window.prompt('Rename proposal:', current);
+    if (next == null) return;
+    next = String(next).trim();
+    if (!next || next === current) return;
+    try {
+      var data = await archProposalsApiGet(sandbox, id);
+      if (!data.record || !data.record.snapshot) { archProposalsSetStatus('Not found.'); return; }
+      await archProposalsApiSave(sandbox, { id: id, name: next, snapshot: data.record.snapshot });
+      archProposalsSetStatus('Renamed.');
+      await archProposalsRefresh();
+    } catch (e) {
+      archProposalsSetStatus('Rename failed: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleDelete() {
+    var sandbox = archProposalsActiveSandbox();
+    var sel = qs('#archProposalsSelect');
+    if (!sandbox || !sel || !sel.value) return;
+    var id = sel.value;
+    var name = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+    if (!window.confirm('Delete proposal "' + name + '"? This cannot be undone.')) return;
+    try {
+      await archProposalsApiDelete(sandbox, id);
+      if (localStorage.getItem(ARCH_PROPOSAL_LS_ACTIVE) === id) {
+        try { localStorage.removeItem(ARCH_PROPOSAL_LS_ACTIVE); } catch (e) {}
+      }
+      archProposalsSetStatus('Deleted.');
+      await archProposalsRefresh();
+    } catch (e) {
+      archProposalsSetStatus('Delete failed: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleSaveMaster() {
+    var sandbox = archProposalsActiveSandbox();
+    if (sandbox !== ARCH_MASTER_OWNER_SANDBOX) {
+      archProposalsSetStatus('Only the ' + ARCH_MASTER_OWNER_SANDBOX + ' sandbox can save master.');
+      return;
+    }
+    if (!window.confirm('Overwrite the shared base diagram for everyone with the current canvas?')) return;
+    try {
+      var snapshot = archSnapshotCollect();
+      await archMasterApiSave(sandbox, snapshot);
+      archProposalsSetStatus('Master saved.');
+    } catch (e) {
+      archProposalsSetStatus('Master save failed: ' + e.message);
+    }
+  }
+
+  function archProposalsMasterBtnSyncVisibility() {
+    var btn = qs('#archProposalsSaveMaster');
+    if (!btn) return;
+    btn.hidden = archProposalsActiveSandbox() !== ARCH_MASTER_OWNER_SANDBOX;
+  }
+
+  function archProposalsBarSyncVisibility() {
+    var bar = qs('#archProposalsBar');
+    var tgl = qs('#archEditModeToggle');
+    if (!bar) return;
+    bar.hidden = !(tgl && tgl.checked);
+  }
+
+  var ARCH_MASTER_APPLIED_TS_KEY = 'aepArchMasterAppliedTs';
+
+  async function archProposalsMaybeApplyMaster() {
+    try {
+      if (localStorage.getItem(ARCH_PROPOSAL_LS_ACTIVE)) return;
+      var alreadyApplied = localStorage.getItem(ARCH_MASTER_APPLIED_TS_KEY);
+      var hasLocalEdits = false;
+      for (var i = 0; i < ARCH_SNAPSHOT_KEYS.length; i++) {
+        if (localStorage.getItem(ARCH_SNAPSHOT_KEYS[i]) != null) { hasLocalEdits = true; break; }
+      }
+      if (alreadyApplied && hasLocalEdits) return;
+      var data = await archMasterApiGet();
+      if (!data || !data.record || !data.record.snapshot) return;
+      var ts = (data.record.updatedAt && data.record.updatedAt._seconds) || (data.record.updatedAt && data.record.updatedAt.seconds) || 0;
+      if (alreadyApplied && Number(alreadyApplied) === Number(ts)) return;
+      if (hasLocalEdits) return;
+      archSnapshotRestore(data.record.snapshot);
+      try { localStorage.setItem(ARCH_MASTER_APPLIED_TS_KEY, String(ts)); } catch (e) {}
+      window.location.reload();
+    } catch (e) {}
+  }
+
+  function archProposalsBarInit() {
+    var bar = qs('#archProposalsBar');
+    if (!bar || bar.getAttribute('data-arch-proposals-init') === '1') return;
+    bar.setAttribute('data-arch-proposals-init', '1');
+
+    var btnLoad = qs('#archProposalsLoad');
+    var btnSave = qs('#archProposalsSave');
+    var btnSaveAs = qs('#archProposalsSaveAs');
+    var btnRename = qs('#archProposalsRename');
+    var btnDelete = qs('#archProposalsDelete');
+    var btnMaster = qs('#archProposalsSaveMaster');
+    if (btnLoad) btnLoad.addEventListener('click', archProposalsHandleLoad);
+    if (btnSave) btnSave.addEventListener('click', archProposalsHandleSave);
+    if (btnSaveAs) btnSaveAs.addEventListener('click', archProposalsHandleSaveAs);
+    if (btnRename) btnRename.addEventListener('click', archProposalsHandleRename);
+    if (btnDelete) btnDelete.addEventListener('click', archProposalsHandleDelete);
+    if (btnMaster) btnMaster.addEventListener('click', archProposalsHandleSaveMaster);
+
+    var tgl = qs('#archEditModeToggle');
+    if (tgl) tgl.addEventListener('change', archProposalsBarSyncVisibility);
+
+    window.addEventListener('aep-global-sandbox-change', function () {
+      archProposalsMasterBtnSyncVisibility();
+      archProposalsRefresh();
+    });
+
+    archProposalsBarSyncVisibility();
+    archProposalsMasterBtnSyncVisibility();
+    archProposalsRefresh();
+    archProposalsMaybeApplyMaster();
   }
 
   if (document.readyState === 'loading') {

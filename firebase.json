@@ -239,6 +239,20 @@
         }
       },
       {
+        "source": "/api/arch-proposals",
+        "function": {
+          "functionId": "archProposals",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/arch-master",
+        "function": {
+          "functionId": "archMaster",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/sandbox-state",
         "function": {
           "functionId": "labUserSandboxState",

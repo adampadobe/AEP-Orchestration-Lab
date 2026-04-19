@@ -158,6 +158,41 @@
   display: none !important;
 }
 
+.arch-proposals-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-top: 1px solid var(--dash-border, #e4e6eb);
+  background: rgba(255, 255, 255, 0.7);
+}
+.arch-proposals-bar[hidden] { display: none !important; }
+.arch-proposals-bar-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary, #4b5563);
+}
+.arch-proposals-bar #archProposalsSelect {
+  min-width: 12rem;
+  max-width: 18rem;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.78rem;
+}
+.arch-proposals-bar .dashboard-btn-outline,
+.arch-proposals-bar .dashboard-btn-primary {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.72rem;
+}
+.arch-proposals-bar-status {
+  margin-left: auto;
+  color: var(--dash-muted, #64748b);
+}
+html[data-aep-theme='dark'] .arch-proposals-bar {
+  background: var(--dash-surface-alt, #1f242a);
+  border-top-color: var(--dash-border);
+}
+
 .arch-int-viewport--editing-tools-hidden .arch-editor-dock {
   display: none !important;
 }

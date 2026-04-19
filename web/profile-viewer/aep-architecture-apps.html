@@ -70,6 +70,19 @@
                   </div>
                   <button type="button" class="dashboard-btn-outline arch-fullscreen-btn arch-int-fullscreen-btn" id="archPresentationFullscreenBtn" title="Fill the screen with the diagram (hides site menu and page title). Press Esc to exit.">Fullscreen</button>
                 </div>
+                <div class="arch-proposals-bar arch-diagram-ui" id="archProposalsBar" hidden>
+                  <label class="arch-proposals-bar-label" for="archProposalsSelect">Proposal</label>
+                  <select id="archProposalsSelect" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Saved proposals">
+                    <option value="">— Base diagram —</option>
+                  </select>
+                  <button type="button" class="dashboard-btn-outline" id="archProposalsLoad" title="Load the selected proposal into the canvas">Load</button>
+                  <button type="button" class="dashboard-btn-outline" id="archProposalsSave" title="Save changes to the currently loaded proposal">Save</button>
+                  <button type="button" class="dashboard-btn-outline" id="archProposalsSaveAs" title="Save the current canvas as a new named proposal">Save as…</button>
+                  <button type="button" class="dashboard-btn-outline" id="archProposalsRename" title="Rename the selected proposal">Rename</button>
+                  <button type="button" class="dashboard-btn-outline" id="archProposalsDelete" title="Delete the selected proposal">Delete</button>
+                  <button type="button" class="dashboard-btn-primary" id="archProposalsSaveMaster" title="Overwrite the shared base diagram — only available to the apalmer sandbox" hidden>Save as master</button>
+                  <span class="arch-tool-micro arch-proposals-bar-status" id="archProposalsStatus" aria-live="polite"></span>
+                </div>
                 <div class="arch-int-compact-nav">
                   <div class="arch-int-dots" id="archIntDots" role="tablist" aria-label="Diagram state"></div>
                   <div class="arch-int-compact-nav-actions">
