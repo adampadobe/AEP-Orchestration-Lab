@@ -2765,6 +2765,34 @@
     { id: 'other', label: 'Other', matchAny: [] },
   ];
 
+  /** Browser-local renames for the hard-coded menu group labels above. Keyed by "<panel>:<groupId>". */
+  var ARCH_MENU_GROUP_LABEL_OVERRIDES_KEY = 'aepArchMenuGroupLabelOverrides';
+
+  function archMenuGroupLabelOverridesLoad() {
+    try {
+      var raw = localStorage.getItem(ARCH_MENU_GROUP_LABEL_OVERRIDES_KEY);
+      if (!raw) return {};
+      var o = JSON.parse(raw);
+      return o && typeof o === 'object' ? o : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function archMenuGroupLabelOverridesPersist(map) {
+    try {
+      localStorage.setItem(ARCH_MENU_GROUP_LABEL_OVERRIDES_KEY, JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
+  function archMenuGroupResolvedLabel(panel, group) {
+    if (!group) return '';
+    var map = archMenuGroupLabelOverridesLoad();
+    var key = (panel === 'adobe' ? 'adobe' : 'other') + ':' + group.id;
+    var v = map[key];
+    return typeof v === 'string' && v.trim() ? v : group.label;
+  }
+
   var ARCH_CUSTOM_LOGOS_KEY = 'aepArchCustomLogoLibrary';
   /** Browser-local overrides for bundled `architecture-logos.json` entries (label, description, optional image). */
   var ARCH_CATALOG_LOGO_OVERRIDES_KEY = 'aepArchCatalogLogoOverrides';
@@ -3190,13 +3218,21 @@
       sum.className = 'arch-logo-menu-summary arch-diagram-ui';
       var lab = document.createElement('span');
       lab.className = 'arch-logo-menu-summary-label';
-      lab.textContent = groupDefs[i].label;
+      lab.textContent = archMenuGroupResolvedLabel(pk, groupDefs[i]);
       var cnt = document.createElement('span');
       cnt.className = 'arch-logo-menu-count';
       cnt.setAttribute('data-arch-base-count', String(list.length));
       cnt.textContent = String(list.length);
       sum.appendChild(lab);
       sum.appendChild(cnt);
+      var renameBtn = document.createElement('button');
+      renameBtn.type = 'button';
+      renameBtn.className = 'arch-logo-menu-rename-btn arch-diagram-ui';
+      renameBtn.setAttribute('data-arch-menu-rename', pk + ':' + groupDefs[i].id);
+      renameBtn.setAttribute('aria-label', 'Rename submenu');
+      renameBtn.title = 'Rename submenu (this browser)';
+      renameBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+      sum.appendChild(renameBtn);
       var inner = document.createElement('div');
       inner.className = 'arch-spectrum-icons-grid arch-architecture-logo-grid arch-logo-menu-subgrid';
       inner.setAttribute('role', 'group');
@@ -3737,7 +3773,7 @@
     groups.forEach(function (g) {
       var opt = document.createElement('option');
       opt.value = g.id;
-      opt.textContent = g.label;
+      opt.textContent = archMenuGroupResolvedLabel(panel, g);
       selEl.appendChild(opt);
     });
   }
@@ -4373,6 +4409,33 @@
     archLogoLibraryEditModeSet(false);
     toggle.addEventListener('click', function () {
       archLogoLibraryEditModeSet(!archLogoLibraryEditModeIsOn());
+    });
+    sec.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest && e.target.closest('[data-arch-menu-rename]');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (!archLogoLibraryEditModeIsOn()) return;
+      var key = btn.getAttribute('data-arch-menu-rename') || '';
+      var parts = key.split(':');
+      if (parts.length !== 2) return;
+      var panel = parts[0];
+      var groupId = parts[1];
+      var defs = panel === 'adobe' ? ARCH_ADOBE_MENU_GROUPS : ARCH_OTHER_MENU_GROUPS;
+      var def = null;
+      for (var i = 0; i < defs.length; i++) { if (defs[i].id === groupId) { def = defs[i]; break; } }
+      if (!def) return;
+      var current = archMenuGroupResolvedLabel(panel, def);
+      var next = window.prompt('Rename submenu (leave blank to restore default)', current);
+      if (next === null) return;
+      var map = archMenuGroupLabelOverridesLoad();
+      var mapKey = panel + ':' + groupId;
+      var trimmed = String(next).trim();
+      if (!trimmed || trimmed === def.label) delete map[mapKey];
+      else map[mapKey] = trimmed;
+      archMenuGroupLabelOverridesPersist(map);
+      archArchitectureLogosRefreshMerged();
+      if (liveRegion) liveRegion.textContent = 'Submenu renamed (this browser).';
     });
   }
 

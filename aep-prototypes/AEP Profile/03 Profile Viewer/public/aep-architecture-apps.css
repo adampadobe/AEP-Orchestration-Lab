@@ -2500,6 +2500,34 @@ html[data-aep-theme='dark'] .arch-logo-confirm-btn--danger:hover {
   pointer-events: auto;
 }
 
+.arch-logo-menu-rename-btn {
+  display: none;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(255, 255, 255, 0.92);
+  color: #1473e6;
+  cursor: pointer;
+  line-height: 0;
+}
+.arch-logo-menu-rename-btn:hover,
+.arch-logo-menu-rename-btn:focus-visible {
+  background: #fff;
+  outline: none;
+  border-color: rgba(20, 115, 230, 0.55);
+}
+#archEditorSectionSpectrumIcons[data-arch-logo-edit-mode="1"] .arch-logo-menu-rename-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+html[data-aep-theme='dark'] .arch-logo-menu-rename-btn {
+  background: var(--dash-surface);
+  border-color: var(--dash-border);
+  color: var(--dash-blue, #60a5fa);
+}
+
 @keyframes arch-logo-tile-jiggle {
   0% {
     transform: rotate(-0.55deg) translateZ(0);
