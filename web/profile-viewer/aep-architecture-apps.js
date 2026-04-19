@@ -2517,6 +2517,7 @@
   var customBoxDrawMode = false;
   var customBoxDrawPending = null;
   var archCustomDrag = { active: null, start: null };
+  var archCustomRotate = { active: null, start: null };
   var archCustomResize = { active: null, start: null };
   var LS_CUSTOM_BOXES = 'aepArchCustomBoxes';
 
@@ -4573,6 +4574,8 @@
     o.h = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, o.h));
     o.x = archClamp(o.x, 0, ARCH_GUIDE_VIEW.w - o.w);
     o.y = archClamp(o.y, 0, ARCH_GUIDE_VIEW.h - o.h);
+    var rawAngle = Number(b.angle);
+    o.angle = isNaN(rawAngle) ? 0 : rawAngle;
     return o;
   }
 
@@ -5825,7 +5828,12 @@
         (isProductLogo ? ' arch-custom-box--product-logo' : '');
       g.setAttribute('class', gClass);
       if (archCustomBoxSelectedId === b.id) g.classList.add('arch-custom-box--selected');
-      g.setAttribute('transform', 'translate(' + b.x + ',' + b.y + ')');
+      var cx = b.w / 2;
+      var cy = b.h / 2;
+      var tfm = b.angle
+        ? 'translate(' + (b.x + cx) + ',' + (b.y + cy) + ') rotate(' + b.angle + ') translate(' + (-cx) + ',' + (-cy) + ')'
+        : 'translate(' + b.x + ',' + b.y + ')';
+      g.setAttribute('transform', tfm);
       var shell = document.createElementNS(SVG_NS, 'rect');
       shell.setAttribute('data-arch-shell', '1');
       shell.setAttribute('x', '0');
@@ -5901,6 +5909,21 @@
         hEl.setAttribute('aria-hidden', 'true');
         g.appendChild(hEl);
       });
+      var rotStem = document.createElementNS(SVG_NS, 'line');
+      rotStem.setAttribute('class', 'arch-rotate-stem');
+      rotStem.setAttribute('x1', String(b.w / 2));
+      rotStem.setAttribute('y1', '-6');
+      rotStem.setAttribute('x2', String(b.w / 2));
+      rotStem.setAttribute('y2', '-22');
+      g.appendChild(rotStem);
+      var rotHandle = document.createElementNS(SVG_NS, 'circle');
+      rotHandle.setAttribute('class', 'arch-rotate-handle');
+      rotHandle.setAttribute('data-arch-rotate-handle', '1');
+      rotHandle.setAttribute('cx', String(b.w / 2));
+      rotHandle.setAttribute('cy', '-30');
+      rotHandle.setAttribute('r', '8');
+      rotHandle.addEventListener('pointerdown', archCboxRotatePointerDown);
+      g.appendChild(rotHandle);
       g.addEventListener('pointerdown', archCustomBoxDragPointerDown);
       layer.appendChild(g);
     });
@@ -6088,6 +6111,55 @@
     archUndoMaybePushSnapshot();
   }
 
+  function archCboxRotatePointerDown(e) {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    e.preventDefault();
+    e.stopPropagation();
+    var g = e.currentTarget.parentNode;
+    if (!g || !g.id || g.id.indexOf('node-cbox-') !== 0) return;
+    var rawId = g.id.replace(/^node-cbox-/, '');
+    var box = archCustomBoxFind(rawId);
+    if (!box) return;
+    var b = archCustomBoxNormalize(box);
+    archCustomRotate.active = rawId;
+    archCustomRotate.start = {
+      svgCx: b.x + b.w / 2,
+      svgCy: b.y + b.h / 2,
+      startAngle: b.angle || 0,
+    };
+    window.addEventListener('pointermove', archCboxRotatePointerMoveWin, true);
+    window.addEventListener('pointerup', archCboxRotatePointerUpWin, true);
+    window.addEventListener('pointercancel', archCboxRotatePointerUpWin, true);
+  }
+
+  function archCboxRotatePointerMoveWin(e) {
+    if (!archCustomRotate.active || !archCustomRotate.start) return;
+    e.preventDefault();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var s = archCustomRotate.start;
+    var rawAngle = Math.atan2(p.y - s.svgCy, p.x - s.svgCx) * 180 / Math.PI + 90;
+    var snapped = rawAngle;
+    var snapPoints = [0, 45, 90, 135, 180, 225, 270, 315, 360, -45, -90, -135, -180];
+    for (var si = 0; si < snapPoints.length; si++) {
+      if (Math.abs(rawAngle - snapPoints[si]) < 5) { snapped = snapPoints[si]; break; }
+    }
+    var box = archCustomBoxFind(archCustomRotate.active);
+    if (!box) return;
+    box.angle = snapped;
+    archCustomBoxesRender();
+  }
+
+  function archCboxRotatePointerUpWin() {
+    if (!archCustomRotate.active) return;
+    archCustomRotate.active = null;
+    archCustomRotate.start = null;
+    window.removeEventListener('pointermove', archCboxRotatePointerMoveWin, true);
+    window.removeEventListener('pointerup', archCboxRotatePointerUpWin, true);
+    window.removeEventListener('pointercancel', archCboxRotatePointerUpWin, true);
+    archCustomBoxesPersist();
+    archUndoMaybePushSnapshot();
+  }
+
   function archCustomBoxDragPointerDown(e) {
     if (userLines.drawMode || customBoxDrawMode) return;
     var g = e.currentTarget;
@@ -6095,6 +6167,7 @@
     var rawId = g.id.replace(/^node-cbox-/, '');
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
+    if (e.target && e.target.dataset && e.target.dataset.archRotateHandle) return;
     var box = archCustomBoxFind(rawId);
     if (!box) return;
 
