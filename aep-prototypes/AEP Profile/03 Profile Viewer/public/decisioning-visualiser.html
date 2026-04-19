@@ -2,24 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script src="aep-head-sync.js"></script>
+  <script src="aep-head-sync.js?v=20260416c"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Decisioning visualiser – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260426">
-  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260426">
-  <link rel="stylesheet" href="spectrum2-tokens.css">
-  <link rel="stylesheet" href="decisioning-content-surface.css?v=20260414-surface">
-  <link rel="stylesheet" href="decisioning-visualizer-core.css?v=surface20260414">
-  <link rel="stylesheet" href="decisioning-edp-shell.css?v=20260414-tabs">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=surface20260414">
+  <link rel="stylesheet" href="decisioning-visualizer-core.css?v=parity20260414">
+  <link rel="stylesheet" href="decisioning-edp-shell.css?v=parity20260414">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=parity20260414-healthcare">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
-  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public'];var m={telco:'telecommunications',automotive:'sports',healthcare:'public'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
+  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -67,6 +66,10 @@
                 Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>public sector</strong> examples: citizen services, benefits, permits, transit, and program eligibility.
                 Use the tabs below to explore how eligible services are ordered for residents and cases.
               </p>
+              <p class="dashboard-hero-subtitle" data-dce-industry-show="healthcare">
+                Same <strong>ranking methods</strong> in Adobe Journey Optimizer Experience Decisioning — with <strong>healthcare</strong> examples: payer and provider journeys, care pathways, screenings, pharmacy, and member engagement.
+                Use the tabs below to explore how eligible offers are ordered for members and patients.
+              </p>
             </header>
           </div>
         </section>
@@ -106,7 +109,6 @@
 </div>
 
 <div class="content">
-<div class="decisioning-content-surface">
   <!-- ══ OVERVIEW ══════════════════════════════════════════════════════════ -->
   <div id="panel-overview" class="panel active">
     <div style="margin-bottom: 48px;">
@@ -117,6 +119,7 @@
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="telecommunications">When mobile, broadband, and business offers could all be eligible for the same subscriber, how does the engine decide?</div>
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="sports">When tickets, bundles, and partner offers could all surface for the same fan, how does the engine decide?</div>
       <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="public">When multiple programmes could help the same resident or case, how does the engine decide?</div>
+      <div class="hero-eyebrow" style="color:var(--red); margin-bottom: 10px;" data-dce-industry-show="healthcare">When several care programmes, screenings, or benefit offers could be relevant to the same member, how does the engine decide?</div>
       <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="media">Each ranking method answers that question differently — from fixed editorial priority to engagement-aware formulas and ML — pick what fits your streaming product, content roadmap, and growth stage.</h2>
       <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="travel">Each ranking method answers that question differently — from fixed commercial rules to trip-aware logic and ML — pick what fits your airline’s maturity.</h2>
       <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="retail">Each ranking method answers that question differently — from fixed merchandising rules to behavioural formulas and ML — pick what fits your retail maturity.</h2>
@@ -124,6 +127,7 @@
       <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="telecommunications">Each ranking method answers that question differently — from commercial priority stacks to usage-aware formulas and ML — pick what fits your network and subscriber strategy.</h2>
       <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="sports">Each ranking method answers that question differently — from fixed commercial priority to engagement-aware formulas and ML — pick what fits your league, venue calendar, and fan segments.</h2>
       <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="public">Each ranking method answers that question differently — from policy-driven priority to eligibility-aware formulas and ML — pick what fits your service mandate and equitable access goals.</h2>
+      <h2 class="dce-overview-title" style="font-family:'DM Serif Display',serif; font-size:36px; font-weight:400; line-height:1.2;" data-dce-industry-show="healthcare">Each ranking method answers that question differently — from clinical priority rules to pathway-aware formulas and ML — pick what fits your quality goals, network, and member experience.</h2>
     </div>
 
     <div class="overview-grid">
@@ -193,7 +197,7 @@
     <div class="card" style="overflow-x:auto;">
       <div class="card-label">Side-by-side comparison</div>
       <p class="dce-overview-lead" style="font-size:13px; color:var(--muted); margin:0 0 16px; line-height:1.55;">
-        <span data-dce-industry-show="media">Dimensions are universal; your <strong>media</strong> examples (streaming upgrades, genre fit, watch history) live in each method tab.</span><span data-dce-industry-show="travel">Dimensions are universal; your <strong>travel</strong> examples (flights, ancillaries, loyalty) live in each method tab.</span><span data-dce-industry-show="retail">Dimensions are universal; your <strong>retail</strong> examples (promos, basket, channel) live in each method tab.</span><span data-dce-industry-show="fsi">Dimensions are universal; your <strong>FSI</strong> examples (intent, eligibility, rate windows) live in each method tab.</span><span data-dce-industry-show="telecommunications">Dimensions are universal; your <strong>telecommunications</strong> examples (mobile, fibre, SMB) live in each method tab.</span><span data-dce-industry-show="sports">Dimensions are universal; your <strong>sports</strong> examples (ticketing, memberships, merch, broadcast) live in each method tab.</span><span data-dce-industry-show="public">Dimensions are universal; your <strong>public sector</strong> examples (benefits, permits, transit, services) live in each method tab.</span>
+        <span data-dce-industry-show="media">Dimensions are universal; your <strong>media</strong> examples (streaming upgrades, genre fit, watch history) live in each method tab.</span><span data-dce-industry-show="travel">Dimensions are universal; your <strong>travel</strong> examples (flights, ancillaries, loyalty) live in each method tab.</span><span data-dce-industry-show="retail">Dimensions are universal; your <strong>retail</strong> examples (promos, basket, channel) live in each method tab.</span><span data-dce-industry-show="fsi">Dimensions are universal; your <strong>FSI</strong> examples (intent, eligibility, rate windows) live in each method tab.</span><span data-dce-industry-show="telecommunications">Dimensions are universal; your <strong>telecommunications</strong> examples (mobile, fibre, SMB) live in each method tab.</span><span data-dce-industry-show="sports">Dimensions are universal; your <strong>sports</strong> examples (ticketing, memberships, merch, broadcast) live in each method tab.</span><span data-dce-industry-show="public">Dimensions are universal; your <strong>public sector</strong> examples (benefits, permits, transit, services) live in each method tab.</span><span data-dce-industry-show="healthcare">Dimensions are universal; your <strong>healthcare</strong> examples (care pathways, screenings, pharmacy, benefits) live in each method tab.</span>
       </p>
       <table style="width:100%; border-collapse:collapse; font-size:13px;">
         <thead>
@@ -268,6 +272,7 @@
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="telecommunications">A communications provider is promoting three concurrent offers — unlimited mobile, gigabit fibre, and SMB connectivity. Marketing and wholesale set priority scores so the strategic, eligible offer surfaces first for every subscriber in scope.</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="sports">A league and venue group are promoting three concurrent offers — season seats, matchday bundles, and streaming add-ons. Ticketing and partnerships set priority scores so the right offer surfaces first for every fan in scope.</div>
         <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="public">A public agency is promoting three concurrent programmes — transit benefits, housing support, and skills grants. Policy owners set priority scores so the eligible service surfaces first for every resident in scope.</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.5;" data-dce-industry-show="healthcare">A health system and payer are promoting three concurrent programmes — specialty care, primary wellness, and behavioral health. Care navigation sets priority scores so the clinically aligned offer surfaces first for every eligible member in scope.</div>
         <div class="slider-row">
           <div class="slider-meta">
             <span id="priority-s1-label">🎬 Annual Plan — 2 months free</span>
@@ -389,13 +394,13 @@
             <span class="rule-connector-label">+ IF</span>
           </div>
 
-          <!-- Rule 2: Genre match -->
+          <!-- Rule 2: Profile ↔ item match (labels set per industry in decisioning-visualizer.js) -->
           <div class="formula-rule">
             <div class="rule-block" id="rule-interest">
               <div class="rule-source-tag" style="background:#edf7f2; color:#1a7a4a;">
                 <div class="rule-source-dot" style="background:#1a7a4a;"></div>Profile
               </div>
-              <div class="rule-attribute">preferredGenre</div>
+              <div class="rule-attribute" id="dce-formula-rule-profile-attr">preferredGenre</div>
               <div class="rule-operator">equals</div>
               <div class="rule-value">
                 <span id="interest-val-display" style="font-family:'DM Mono',monospace; font-size:13px; color:#1a7a4a; font-weight:600;">item.genre</span>
@@ -464,10 +469,10 @@
           <div style="font-size:13px; font-weight:600; margin-bottom:4px; color:var(--ink);">
             <span style="display:inline-flex; align-items:center; gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
-              Profile attribute · <span style="font-family:'DM Mono',monospace;">preferredGenre</span>
+              Profile attribute · <span id="dce-formula-profile-simulate-attr" style="font-family:'DM Mono',monospace;">preferredGenre</span>
             </span>
           </div>
-          <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">What content does this viewer primarily watch?</div>
+          <div id="dce-formula-profile-simulate-hint" style="font-size:13px; color:var(--muted); margin-bottom:12px;">What content does this viewer primarily watch?</div>
           <div class="toggle-pill" id="dce-formula-interest-pill"></div>
         </div>
 
@@ -913,49 +918,99 @@
 
         <div class="dce-profile-stack" data-dce-industry-show="public">
         <div class="profile-card selected" data-dce-profile-industry="public" onclick="window.dceVizSelectProfile(0, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
-          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🩺</div>
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🏠</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <div class="profile-name">Morgan, 35</div>
-              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#1a7a4a; background:#e8f4ec; padding:2px 8px; border-radius:10px;">Virtual-first</div>
+              <div class="profile-name">Sam, 34</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#1a7a4a; background:#e8f4ec; padding:2px 8px; border-radius:10px;">Benefits intake</div>
             </div>
-            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Video visits for minor illness · Two chronic meds via app</div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Income proof uploaded · Housing support wizard started</div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Digital primary</span>
-              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Refill adherence</span>
-              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Low acute risk</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Citizen services</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Eligibility</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Digital portal</span>
             </div>
           </div>
         </div>
 
         <div class="profile-card" data-dce-profile-industry="public" onclick="window.dceVizSelectProfile(1, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
-          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🫀</div>
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">📋</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <div class="profile-name">James, 52</div>
-              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#c47b00; background:#fff3cd; padding:2px 8px; border-radius:10px;">Specialty signal</div>
+              <div class="profile-name">Robin, 41</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#c47b00; background:#fff3cd; padding:2px 8px; border-radius:10px;">Deadline</div>
             </div>
-            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Chest discomfort search · Cardiac risk screener completed</div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Construction permit · Documents complete · Fast-track eligible</div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">High urgency</span>
-              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Referral path</span>
-              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Structured intake</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Permits</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">SLA</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Urgent</span>
             </div>
           </div>
         </div>
 
         <div class="profile-card" data-dce-profile-industry="public" onclick="window.dceVizSelectProfile(2, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🎓</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div class="profile-name">Program admin</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#005f9e; background:#edf4fc; padding:2px 8px; border-radius:10px;">Cohort</div>
+            </div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Regional skills grant · Summer roster · Employer partners</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Workforce</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Policy</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Enrollment</span>
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <div class="dce-profile-stack" data-dce-industry-show="healthcare">
+        <div class="profile-card selected" data-dce-profile-industry="healthcare" onclick="window.dceVizSelectProfile(0, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🩺</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div class="profile-name">Morgan, 44</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#1a7a4a; background:#e8f4ec; padding:2px 8px; border-radius:10px;">Attributed PCP</div>
+            </div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Type 2 diabetes · Remote vitals · Open care gaps on A1c</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Chronic care</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Gap closure</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Digital first</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-card" data-dce-profile-industry="healthcare" onclick="window.dceVizSelectProfile(1, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
+          <div class="profile-avatar" style="flex-shrink:0; margin:0;">🫀</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div class="profile-name">James, 58</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#c47b00; background:#fff3cd; padding:2px 8px; border-radius:10px;">Acute signal</div>
+            </div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Cardiac risk screener completed · Chest discomfort search this week</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Specialty routing</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">High urgency</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Referral-ready</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-card" data-dce-profile-industry="healthcare" onclick="window.dceVizSelectProfile(2, this)" style="text-align:left; display:flex; align-items:flex-start; gap:14px; padding:16px 18px;">
           <div class="profile-avatar" style="flex-shrink:0; margin:0;">🧑‍💼</div>
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <div class="profile-name">Taylor, 41</div>
-              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#005f9e; background:#edf4fc; padding:2px 8px; border-radius:10px;">Employer admin</div>
+              <div class="profile-name">Taylor, 39</div>
+              <div style="font-family:'DM Mono',monospace; font-size:10px; color:#005f9e; background:#edf4fc; padding:2px 8px; border-radius:10px;">Employer health</div>
             </div>
-            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Benefits lead · Open enrolment · Onsite screening targets</div>
+            <div class="profile-trait" style="text-align:left; margin-bottom:8px;">Benefits admin · Onsite screenings · Population health targets</div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
               <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">B2B2C</span>
-              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Population health</span>
-              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Group ID</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">Group roster</span>
+              <span style="font-size:10px; background:#f0f0f0; color:#555; padding:2px 8px; border-radius:10px;">HEDIS</span>
             </div>
           </div>
         </div>
@@ -1006,7 +1061,11 @@
         </div>
         <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;" data-dce-industry-show="public">
           <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
-          Completion probability · trained on booking, refill, risk screen, and benefits events
+          Completion probability · trained on applications, appointments, permits, and enrollment events
+        </div>
+        <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;" data-dce-industry-show="healthcare">
+          <span style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;display:inline-block;"></span>
+          Uptake probability · trained on scheduling, refill, risk screen, and care-gap events
         </div>
       </div>
     </div>
@@ -1367,15 +1426,15 @@
             </div>
             <div class="exp-arm-body">
               <div class="metric-row">
-                <span class="metric-label">Completed care-step bookings</span>
+                <span class="metric-label">Completed service applications</span>
                 <span class="metric-value">1,204</span>
               </div>
               <div class="metric-row">
-                <span class="metric-label">Next-step conversion rate</span>
+                <span class="metric-label">Journey completion rate</span>
                 <span class="metric-value">3.1%</span>
               </div>
               <div class="metric-row">
-                <span class="metric-label">Avg. portal sessions / member</span>
+                <span class="metric-label">Avg. portal sessions / resident</span>
                 <span class="metric-value">4.2</span>
               </div>
               <div class="metric-row">
@@ -1391,20 +1450,71 @@
             </div>
             <div class="exp-arm-body">
               <div class="metric-row">
-                <span class="metric-label">Completed care-step bookings</span>
+                <span class="metric-label">Completed service applications</span>
                 <span class="metric-value" style="color:#1a7a4a; font-weight:600;">1,420 ↑</span>
               </div>
               <div class="metric-row">
-                <span class="metric-label">Next-step conversion rate</span>
+                <span class="metric-label">Journey completion rate</span>
                 <span class="metric-value" style="color:#1a7a4a; font-weight:600;">3.66% ↑</span>
               </div>
               <div class="metric-row">
-                <span class="metric-label">Avg. portal sessions / member</span>
+                <span class="metric-label">Avg. portal sessions / resident</span>
                 <span class="metric-value" style="color:#1a7a4a; font-weight:600;">4.9 ↑</span>
               </div>
               <div class="metric-row">
                 <span class="metric-label">Programme tile clicks</span>
                 <span class="metric-value" style="color:#1a7a4a; font-weight:600;">10,230 ↑</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="experiment-grid dce-experiment-arms" data-dce-industry-show="healthcare">
+          <div class="exp-arm">
+            <div class="exp-arm-header exp-arm-header--control">
+              <span>Control — Ranking Formula</span>
+              <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+            </div>
+            <div class="exp-arm-body">
+              <div class="metric-row">
+                <span class="metric-label">Completed care-gap closures</span>
+                <span class="metric-value">1,180</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Screening booking rate</span>
+                <span class="metric-value">3.0%</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Avg. portal sessions / member</span>
+                <span class="metric-value">4.0</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Programme tile clicks</span>
+                <span class="metric-value">8,720</span>
+              </div>
+            </div>
+          </div>
+          <div class="exp-arm">
+            <div class="exp-arm-header exp-arm-header--treatment">
+              <span style="color:var(--method-color); font-weight:700;">Treatment — AI Auto-Optimization</span>
+              <span style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted);">50% of audience</span>
+            </div>
+            <div class="exp-arm-body">
+              <div class="metric-row">
+                <span class="metric-label">Completed care-gap closures</span>
+                <span class="metric-value" style="color:#1a7a4a; font-weight:600;">1,398 ↑</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Screening booking rate</span>
+                <span class="metric-value" style="color:#1a7a4a; font-weight:600;">3.52% ↑</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Avg. portal sessions / member</span>
+                <span class="metric-value" style="color:#1a7a4a; font-weight:600;">4.8 ↑</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-label">Programme tile clicks</span>
+                <span class="metric-value" style="color:#1a7a4a; font-weight:600;">10,050 ↑</span>
               </div>
             </div>
           </div>
@@ -1455,8 +1565,15 @@
         <div class="lift-banner" data-dce-industry-show="public">
           <div class="lift-number">+6%</div>
           <div>
-            <div class="lift-text"><strong>Personalized programme ranking outperformed the static formula arm</strong> by 6% on completed next-care-step bookings after a 4-week experiment.</div>
-            <div class="lift-text" style="margin-top:8px;">Care navigation could read lift by path (virtual vs specialty vs employer) — not a single wellness hero.</div>
+            <div class="lift-text"><strong>Personalized programme ranking outperformed the static formula arm</strong> by 6% on completed service applications after a 4-week experiment.</div>
+            <div class="lift-text" style="margin-top:8px;">Case managers could read lift by programme (housing vs permits vs skills) — not a single benefits hero.</div>
+          </div>
+        </div>
+        <div class="lift-banner" data-dce-industry-show="healthcare">
+          <div class="lift-number">+7%</div>
+          <div>
+            <div class="lift-text"><strong>Personalized care-offer ranking outperformed the static formula arm</strong> by 7% on completed care-gap closures after a 5-week experiment.</div>
+            <div class="lift-text" style="margin-top:8px;">Clinical ops could read lift by pathway (primary vs specialty vs behavioral) — not a single screening hero.</div>
           </div>
         </div>
 
@@ -1488,6 +1605,10 @@
           <div class="story-eyebrow">📖 Public sector — proof in the policy</div>
           <div class="story-text">"Policy and digital service teams split: keep a fixed programme ladder or let the model reorder by eligibility and case context? They ran an experiment in the same decision policy on the resident benefits path. After four weeks, the ML arm lifted completed applications without higher drop-off on the control cohort. Proof replaced the one-size tile."</div>
         </div>
+        <div class="story-box" style="--method-color: #6b3fa0; margin-top:24px;" data-dce-industry-show="healthcare">
+          <div class="story-eyebrow">📖 Healthcare — proof in the policy</div>
+          <div class="story-text">"Clinical and growth teams disagreed: keep a fixed screening ladder or let the model reorder by risk, benefits, and channel preference? They ran an experiment in the same decision policy on the member portal path. After five weeks, the ML arm lifted care-gap closures without higher opt-out on the control cohort. Proof replaced the one-size wellness strip."</div>
+        </div>
 
     <div class="card" style="margin-top:24px;">
       <div class="card-label">What you can test in an experiment</div>
@@ -1508,7 +1629,6 @@
     </div>
   </div>
 </div>
-</div>
 
 <div class="dce-core-page-footer">ADOBE JOURNEY OPTIMIZER · EXPERIENCE DECISIONING · RANKING METHODS EXPLORER</div>
 
@@ -1519,8 +1639,9 @@
     </div>
   </div>
 
-  <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260430"></script>
-  <script defer src="decisioning-visualizer.js?v=surface20260414"></script>
+  <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
+  <script defer src="decisioning-visualizer.js?v=core20260430-healthcare"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 .arch-int-page {
   --arch-banner-gap: 0.75rem;
-  --arch-editor-rail-w: 2.5rem;
+  --arch-editor-rail-w: 3.35rem;
   --arch-editor-panel-min-w: 14.5rem;
   --arch-editor-panel-max-w: 22rem;
 }
@@ -11,6 +11,67 @@
   display: flex;
   flex-direction: column;
   min-height: calc(100dvh - 4rem);
+}
+
+/* Fullscreen presentation: <main> is the fullscreen element — browser hides sidebar & topbar (outside main) */
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs {
+  min-height: 100%;
+  justify-content: stretch;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .dashboard-hero--page-banner {
+  display: none !important;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-state-copy {
+  display: none !important;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-viewport {
+  flex: 1;
+  min-height: 0;
+  min-height: min(92dvh, 100%);
+  border-radius: 0;
+}
+
+/* Fullscreen button — outside .arch-int-compact-edit; Edit diagram lives in the nav row so it stays visible in minimal mode */
+.arch-int-fullscreen-btn {
+  flex: 0 0 auto;
+  align-self: center;
+  white-space: nowrap;
+  font-size: 0.72rem !important;
+  padding: 0.32rem 0.7rem !important;
+  border-color: rgba(20, 115, 230, 0.45);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-compact-bar {
+  flex-shrink: 0;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-svg-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-main-column {
+  min-height: 0;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-viewport-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.arch-int-page .dashboard-main.app-page.arch-main--presentation-fs .arch-int-svg-wrap svg {
+  width: 100%;
+  height: auto;
+  max-height: 100%;
 }
 
 .arch-int-page .dashboard-hero--page-banner {
@@ -132,9 +193,18 @@
 .arch-int-compact-top {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
+.arch-int-compact-top-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem 1rem;
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 .arch-int-compact-titles {
@@ -200,12 +270,13 @@
 
 .arch-editor-rail-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.1rem;
   width: 100%;
-  aspect-ratio: 1;
-  max-height: 2.25rem;
-  padding: 0;
+  min-height: 2.85rem;
+  padding: 0.35rem 0.2rem;
   border-radius: 6px;
   border: 1px solid transparent;
   background: #ffffff;
@@ -232,11 +303,380 @@
   line-height: 1;
 }
 
+.arch-editor-rail-label {
+  font-size: 0.55rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  text-align: center;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.arch-editor-rail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.arch-editor-rail-tools-logo {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
 .arch-editor-panel-heading {
   margin: 0 0 0.4rem;
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--dash-text, #1a1d21);
+}
+
+.arch-tool-lead {
+  margin: 0 0 0.65rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--dash-muted, #4b5563);
+  max-width: 60ch;
+}
+
+.arch-tool-lead strong {
+  color: var(--dash-text, #1a1d21);
+  font-weight: 600;
+}
+
+.arch-tool-group {
+  margin: 0 0 0.85rem;
+  padding: 0 0 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.arch-tool-group:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.arch-tool-group-heading {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dash-text, #1a1d21);
+}
+
+.arch-tool-group-hint {
+  font-weight: 500;
+  font-size: 0.62rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-tool-micro {
+  margin: 0 0 0.5rem;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--dash-muted, #6b7280);
+  max-width: 58ch;
+}
+
+.arch-tool-micro strong {
+  color: var(--dash-text, #1a1d21);
+  font-weight: 600;
+}
+
+.arch-tool-lead--compact {
+  max-width: 58ch;
+}
+
+.arch-tool-lead-links {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-tool-lead-links strong {
+  color: var(--dash-text, #1a1d21);
+  font-weight: 600;
+}
+
+.arch-tool-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: var(--dash-muted, #6b7280);
+  max-width: 56ch;
+}
+
+.arch-tool-hint strong {
+  color: var(--dash-text, #1a1d21);
+  font-weight: 600;
+}
+
+.arch-tool-hint--below-heading {
+  margin: 0 0 0.5rem;
+}
+
+.arch-tool-group--modes .arch-tool-hint {
+  margin-top: 0.5rem;
+}
+
+.arch-tool-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.arch-tool-mode {
+  display: block;
+  margin: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.arch-tool-mode-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 3.85rem;
+  padding: 0.45rem 0.3rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.96);
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
+  color: var(--dash-muted, #4b5563);
+}
+
+.arch-tool-mode:hover .arch-tool-mode-body {
+  border-color: rgba(20, 115, 230, 0.35);
+}
+
+.arch-tool-mode input:checked + .arch-tool-mode-body {
+  border-color: #1473e6;
+  background: rgba(224, 242, 254, 0.88);
+  color: #0c4a6e;
+  box-shadow: 0 0 0 1px rgba(20, 115, 230, 0.28);
+}
+
+.arch-tool-mode:focus-within .arch-tool-mode-body {
+  outline: 2px solid #1473e6;
+  outline-offset: 2px;
+}
+
+.arch-tool-mode-icon {
+  width: 1.55rem;
+  height: 1.55rem;
+  flex-shrink: 0;
+}
+
+.arch-tool-mode-text {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.arch-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.arch-palette-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  padding: 0.5rem 0.35rem;
+  min-height: 4.35rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border, #e4e6eb);
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--dash-muted, #4b5563);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease,
+    color 0.12s ease,
+    background 0.12s ease;
+}
+
+.arch-palette-tile:hover {
+  border-color: rgba(20, 115, 230, 0.45);
+  color: var(--dash-text, #1a1d21);
+  box-shadow: 0 1px 4px rgba(20, 115, 230, 0.12);
+}
+
+.arch-palette-tile:focus-visible {
+  outline: 2px solid #1473e6;
+  outline-offset: 2px;
+}
+
+.arch-palette-tile--wide {
+  grid-column: 1 / -1;
+  min-height: 3.75rem;
+}
+
+.arch-palette-tile-graphic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.1rem;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-palette-tile-graphic svg {
+  max-width: 100%;
+  height: 100%;
+  width: auto;
+}
+
+.arch-palette-tile-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.arch-tool-group .arch-palette-block {
+  margin: 0.35rem 0 0;
+}
+
+/* Spectrum Workflow S2_Icon_PenBrush_20_N — line drawing / connectors (rail, float bar) */
+.arch-spectrum-pen-brush-icon,
+.arch-spectrum-archive-icon,
+.arch-spectrum-apps-icon,
+.arch-spectrum-add-content-icon {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
+.arch-line-format {
+  margin-top: 0.45rem;
+}
+
+.arch-line-format-preview-wrap {
+  margin-bottom: 0.15rem;
+}
+
+.arch-line-format-preview {
+  height: 7px;
+  border-radius: 4px;
+  margin-top: 0.3rem;
+  background-color: #308fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.arch-line-stroke-caption {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-line-stroke-row {
+  margin-top: 0.45rem;
+}
+
+.arch-line-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.arch-line-swatch {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.14),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.arch-line-swatch:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.22),
+    0 2px 6px rgba(20, 115, 230, 0.18);
+}
+
+.arch-line-swatch[aria-checked='true'] {
+  border-color: #1473e6;
+  box-shadow:
+    0 0 0 1px #1473e6,
+    inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.arch-line-swatch:focus-visible {
+  outline: 2px solid #1473e6;
+  outline-offset: 2px;
+}
+
+.arch-user-line-props .arch-line-stroke-row {
+  margin-top: 0;
+}
+
+.arch-hud-label--block {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+  width: 100%;
+  margin: 0.25rem 0 0;
+}
+
+.arch-hud-label--block select {
+  max-width: none;
+  width: 100%;
+}
+
+.arch-tool-group--selected {
+  margin-top: 0.35rem;
+}
+
+#archEditorSectionSources > .arch-user-line-props.arch-tool-group--selected {
+  margin-bottom: 0.65rem;
+}
+
+#archEditorSectionSources > .arch-user-line-props.arch-tool-group--selected:last-of-type {
+  margin-bottom: 0;
+}
+
+#archEditorSectionLayout > .arch-user-line-props.arch-tool-group--selected {
+  margin-bottom: 0.65rem;
+}
+
+#archEditorSectionLayout > .arch-user-line-props.arch-tool-group--selected:last-of-type {
+  margin-bottom: 0;
 }
 
 .arch-editor-section {
@@ -261,6 +701,457 @@
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* Floating line toolbar (Edit mode — draw lines or selected connector) */
+.arch-line-float-bar {
+  --arch-line-float-stroke: #308fff;
+  position: absolute;
+  left: 50%;
+  bottom: 0.65rem;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.26rem 0.42rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid var(--dash-border, #e4e6eb);
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.1);
+  max-width: calc(100% - 1.25rem);
+  justify-content: center;
+}
+
+/*
+ * Critical: .arch-line-float-bar sets display:flex with higher specificity than the
+ * bare [hidden] attribute, so the bar stayed visible even when JS set hidden=true.
+ * Tie display:none to [hidden] explicitly (same pattern as event-tool.css / audit-events.css).
+ */
+.arch-line-float-bar[hidden],
+#archLineFloatBar[hidden],
+#archToolsFloatBar[hidden] {
+  display: none !important;
+}
+
+/* Canvas Tools — same shell as Lines; position stacked above Lines bar when both visible */
+.arch-tools-float-bar {
+  bottom: 0.65rem;
+  flex-wrap: wrap;
+  max-width: min(96vw, 42rem);
+  row-gap: 0.2rem;
+}
+
+.arch-int-viewport--tools-float-line-offset .arch-tools-float-bar:not([hidden]) {
+  bottom: 3.65rem;
+}
+
+.arch-tools-float-shapes {
+  gap: 0.08rem;
+}
+
+.arch-tools-float-palette-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  color: inherit;
+}
+
+.arch-tools-float-palette-ico svg {
+  width: 100%;
+  height: 100%;
+}
+
+.arch-tools-float-selected {
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.arch-tools-float-name-wrap {
+  flex: 1 1 7rem;
+  min-width: 6rem;
+  max-width: 12rem;
+}
+
+.arch-tools-float-name-input {
+  width: 100%;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border, #e4e6eb);
+  background: var(--dash-surface, #fff);
+  color: var(--dash-text, #1a1d21);
+}
+
+.arch-tools-float-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.arch-tools-float-color-lab {
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--dash-border, #e4e6eb);
+}
+
+.arch-tools-float-color-inp {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.arch-tools-float-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.arch-tools-float-font-disp {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 1.5rem;
+  text-align: center;
+  color: var(--dash-muted, #64748b);
+}
+
+.arch-tools-float-sel-actions {
+  gap: 0.08rem;
+}
+
+.arch-tools-layout-hint {
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+/* Tools + Lines rails, or no rail tab selected: no side panel — only rail (floating bars on canvas) */
+#archEditorPanel.arch-editor-panel--layout-float-only {
+  display: none !important;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-bar {
+  background: rgba(30, 41, 59, 0.96);
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+html[data-aep-theme='dark'] .arch-tools-float-name-input {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #e5e7eb;
+}
+
+.arch-line-float-seg {
+  display: flex;
+  align-items: center;
+  gap: 0.12rem;
+  flex-shrink: 0;
+}
+
+.arch-line-float-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dash-text, #1a1d21);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-btn {
+  color: #e5e7eb;
+}
+
+.arch-line-float-btn:hover {
+  background: rgba(20, 115, 230, 0.08);
+}
+
+html[data-aep-theme='dark'] .arch-line-float-btn:hover {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.arch-line-float-btn.is-active {
+  background: rgba(20, 115, 230, 0.14);
+  color: #1473e6;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-btn.is-active {
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+}
+
+.arch-line-float-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.arch-line-float-btn:disabled:hover {
+  background: transparent;
+}
+
+.arch-line-float-ico {
+  width: 1.1rem;
+  height: 1.1rem;
+  display: block;
+}
+
+/* Stroke weight — compact trigger + popover (saves toolbar width) */
+.arch-line-float-w-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.arch-line-float-w-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.16rem 0.45rem 0.16rem 0.38rem;
+  min-height: 1.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--dash-border, #e4e6eb);
+  background: rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+  color: var(--dash-text, #1a1d21);
+  box-sizing: border-box;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-trigger {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #e5e7eb;
+}
+
+.arch-line-float-w-trigger:hover {
+  background: rgba(20, 115, 230, 0.08);
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-trigger:hover {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.arch-line-float-w-trigger:focus-visible {
+  outline: 2px solid #1473e6;
+  outline-offset: 2px;
+}
+
+.arch-line-float-w-trigger-bar {
+  display: block;
+  width: 1.35rem;
+  min-width: 1.35rem;
+  border-radius: 1px;
+  background: var(--arch-line-float-stroke, #308fff);
+}
+
+.arch-line-float-w-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+}
+
+.arch-line-float-w-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 132px;
+  padding: 0.35rem 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--dash-border, #e4e6eb);
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.14);
+  z-index: 24;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-menu {
+  background: rgba(30, 41, 59, 0.98);
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.45);
+}
+
+.arch-line-float-w-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.42rem 0.7rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--dash-text, #374151);
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-option {
+  color: #e5e7eb;
+}
+
+.arch-line-float-w-option:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.arch-line-float-w-option.is-active {
+  background: rgba(20, 115, 230, 0.12);
+  color: #1473e6;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-w-option.is-active {
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
+}
+
+.arch-line-float-w-opt-preview {
+  display: block;
+  width: 28px;
+  flex-shrink: 0;
+  align-self: center;
+  border-radius: 1px;
+  background: var(--arch-line-float-stroke, #308fff);
+  min-height: 1px;
+}
+
+.arch-line-float-w-opt-label {
+  flex: 1;
+}
+
+.arch-editor-section--lines-float-active .arch-lines-dock-chrome-hide-when-active {
+  display: none !important;
+}
+
+/* Single colour control + popover (Lines float bar) */
+.arch-line-float-colors {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.arch-line-float-color-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.arch-line-float-color-btn {
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.arch-line-float-color-btn--light {
+  border-color: rgba(148, 163, 184, 0.55) !important;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+.arch-line-float-color-btn--mixed {
+  background: linear-gradient(135deg, #e5e7eb 50%, #9ca3af 50%) !important;
+  border-color: rgba(100, 116, 139, 0.5);
+}
+
+.arch-line-float-color-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 210px;
+  padding: 0.5rem 0.55rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--dash-border, #e4e6eb);
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.14);
+  z-index: 25;
+}
+
+html[data-aep-theme='dark'] .arch-line-float-color-popover {
+  background: rgba(30, 41, 59, 0.98);
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.45);
+}
+
+.arch-line-float-color-popover-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.arch-line-float-popover-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.arch-line-float-popover-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-line-float-color-picker-native {
+  width: 100%;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--dash-border, #d1d5db);
+  border-radius: 8px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.arch-line-float-hex-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border, #d1d5db);
+  color: var(--dash-text, #1a1d21);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+html[data-aep-theme='dark'] .arch-line-float-hex-text {
+  background: rgba(15, 23, 42, 0.6);
+  color: #e5e7eb;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.arch-line-float-hex-error {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #b91c1c;
 }
 
 /* Nodes */
@@ -356,53 +1247,13 @@
   gap: 0.35rem;
 }
 
-.arch-highlight-picker-wrap,
-.arch-sources-dividers-wrap {
+.arch-highlight-picker-wrap {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid var(--dash-border, #e4e6eb);
   border-radius: 8px;
   padding: 0.35rem 0.5rem;
   background: rgba(255, 255, 255, 0.6);
-}
-
-.arch-sources-dividers-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.arch-sources-divider-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.65rem;
-  padding: 0.35rem 0.5rem;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(249, 250, 251, 0.9);
-}
-
-.arch-sources-divider-row-title {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--dash-text, #1a1d21);
-  flex-basis: 100%;
-}
-
-.arch-sources-divider-field {
-  margin: 0;
-}
-
-.arch-sources-divider-field input.arch-sources-div-inp {
-  width: 3.75rem;
-  font-size: 0.72rem;
-}
-
-#archSourcesDividerAdd {
-  font-size: 0.68rem !important;
-  padding: 0.2rem 0.45rem !important;
 }
 
 .arch-highlight-picker-summary {
@@ -532,6 +1383,27 @@
   cursor: ew-resize;
 }
 
+/* Built-in Adobe tiles — same handle geometry as custom boxes */
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='nw'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='se'] {
+  cursor: nwse-resize;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='ne'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='sw'] {
+  cursor: nesw-resize;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='n'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='s'] {
+  cursor: ns-resize;
+}
+
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='w'],
+.arch-int-viewport.arch-drag-on .arch-node-resize-handle--node[data-arch-node-handle='e'] {
+  cursor: ew-resize;
+}
+
 .arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle {
   cursor: nwse-resize;
 }
@@ -556,6 +1428,26 @@
   cursor: ew-resize;
 }
 
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='nw'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='se'] {
+  cursor: nwse-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='ne'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='sw'] {
+  cursor: nesw-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='n'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='s'] {
+  cursor: ns-resize;
+}
+
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='w'],
+.arch-int-viewport.arch-drag-on.arch-resizing .arch-node-resize-handle--node[data-arch-node-handle='e'] {
+  cursor: ew-resize;
+}
+
 .arch-int-viewport.arch-drag-on.arch-resizing .arch-draggable {
   cursor: default;
 }
@@ -572,6 +1464,17 @@
 .arch-int-viewport.arch-label-edit-on svg text {
   pointer-events: painted;
   cursor: move;
+}
+
+/* Sources column: icons/images paint above text and would steal hits; let clicks reach labels. */
+.arch-int-viewport.arch-label-edit-on .arch-src-ico,
+.arch-int-viewport.arch-label-edit-on .arch-sources-sdk image {
+  pointer-events: none;
+}
+
+.arch-int-viewport.arch-label-edit-on svg text.arch-src-lbl,
+.arch-int-viewport.arch-label-edit-on svg text.arch-src-sdk-title {
+  pointer-events: all;
 }
 
 .arch-int-viewport.arch-label-edit-on.arch-label-dragging svg text {
@@ -655,11 +1558,38 @@
 
 .arch-user-lines-layer .arch-user-line {
   pointer-events: stroke;
-  stroke-width: 2.2;
+}
+
+.arch-user-lines-layer .arch-user-line-hit {
+  cursor: pointer;
+}
+
+.arch-user-line-handles-layer .arch-user-line-handle {
+  fill: #fff;
+  stroke: #1473e6;
+  stroke-width: 1.5;
+  cursor: grab;
+}
+
+.arch-user-line-handles-layer .arch-user-line-handle--bend {
+  cursor: move;
+}
+
+.arch-user-line-handles-layer .arch-user-line-handle.is-active {
+  stroke: #0f5cbf;
+  stroke-width: 2.25;
+}
+
+html[data-aep-theme='dark'] .arch-user-line-handles-layer .arch-user-line-handle.is-active {
+  stroke: #bfdbfe;
+}
+
+html[data-aep-theme='dark'] .arch-user-line-handles-layer .arch-user-line-handle {
+  fill: rgba(30, 41, 59, 0.98);
+  stroke: #93c5fd;
 }
 
 .arch-user-lines-layer .arch-user-line--selected {
-  stroke-width: 3.2;
   filter: drop-shadow(0 0 2px rgba(20, 115, 230, 0.6));
 }
 
@@ -696,16 +1626,28 @@
 
 .arch-user-line-props {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-  padding: 0.35rem 0.5rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+  padding: 0.55rem 0.6rem;
   margin: 0.35rem 0 0;
   width: 100%;
   box-sizing: border-box;
   background: rgba(20, 115, 230, 0.06);
   border-radius: 8px;
   border: 1px solid rgba(20, 115, 230, 0.2);
+}
+
+.arch-user-line-props .arch-tool-group-heading {
+  margin-bottom: 0.15rem;
+}
+
+.arch-user-line-props > .arch-drag-toggle {
+  align-self: flex-start;
+}
+
+.arch-user-line-props > .dashboard-btn-outline {
+  align-self: flex-start;
 }
 
 .arch-int-hud-file-tools {
@@ -723,6 +1665,116 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+}
+
+.arch-file-undo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.arch-edit-selection-panel {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border, #e5e7eb);
+  background: rgba(249, 250, 251, 0.9);
+}
+
+.arch-edit-selection-heading {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-edit-selection-text {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--dash-text, #111827);
+  word-break: break-word;
+}
+
+html[data-aep-theme='dark'] .arch-edit-selection-panel {
+  background: rgba(30, 34, 40, 0.85);
+  border-color: var(--dash-border);
+}
+
+.arch-edit-inspector {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dash-border, #e5e7eb);
+}
+
+.arch-edit-inspector-heading {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-edit-inspector-body {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--dash-text, #111827);
+  white-space: pre-line;
+}
+
+.arch-palette-block {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--dash-border, #d1d5db);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.arch-palette-heading {
+  margin: 0 0 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #6b7280);
+}
+
+.arch-palette-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.arch-palette-row--second {
+  margin-top: 6px;
+}
+
+.arch-custom-box-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.arch-palette-hint {
+  margin: 8px 0 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--dash-muted, #6b7280);
+}
+
+html[data-aep-theme='dark'] .arch-palette-block {
+  background: rgba(30, 34, 40, 0.55);
+  border-color: var(--dash-border);
+}
+
+.arch-int-viewport--edit-mode .arch-node:not(.arch-custom-box).arch-node--selected {
+  filter: drop-shadow(0 0 2px rgba(20, 115, 230, 0.95));
 }
 
 .arch-int-dots {
@@ -751,6 +1803,16 @@
   outline-offset: 2px;
 }
 
+.arch-int-dot:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.arch-diagram-ui .dashboard-btn-outline:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 html[data-aep-theme='dark'] .arch-int-viewport {
   background: linear-gradient(180deg, #1e2228 0%, #252a32 100%);
   border-color: var(--dash-border);
@@ -772,6 +1834,11 @@ html[data-aep-theme='dark'] .arch-int-state-body {
 html[data-aep-theme='dark'] .arch-int-compact-bar {
   background: rgba(30, 34, 40, 0.92);
   border-bottom-color: var(--dash-border);
+}
+
+html[data-aep-theme='dark'] .arch-int-fullscreen-btn {
+  background: rgba(42, 48, 56, 0.95);
+  border-color: rgba(56, 189, 248, 0.45);
 }
 
 html[data-aep-theme='dark'] .arch-editor-dock {
@@ -801,6 +1868,85 @@ html[data-aep-theme='dark'] .arch-editor-rail-btn.is-active {
   background: rgba(20, 115, 230, 0.25);
   border-color: #1473e6;
   color: #e0f2fe;
+}
+
+html[data-aep-theme='dark'] .arch-tool-lead,
+html[data-aep-theme='dark'] .arch-tool-micro {
+  color: rgba(226, 232, 240, 0.82);
+}
+
+html[data-aep-theme='dark'] .arch-tool-lead strong,
+html[data-aep-theme='dark'] .arch-tool-micro strong {
+  color: var(--dash-text, #e8eaed);
+}
+
+html[data-aep-theme='dark'] .arch-tool-group {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-aep-theme='dark'] .arch-tool-group-heading {
+  color: var(--dash-text, #e8eaed);
+}
+
+html[data-aep-theme='dark'] .arch-tool-mode-body {
+  background: rgba(42, 48, 56, 0.92);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(226, 232, 240, 0.88);
+}
+
+html[data-aep-theme='dark'] .arch-tool-mode input:checked + .arch-tool-mode-body {
+  background: rgba(20, 115, 230, 0.22);
+  border-color: #38bdf8;
+  color: #e0f2fe;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45);
+}
+
+html[data-aep-theme='dark'] .arch-tool-hint,
+html[data-aep-theme='dark'] .arch-tool-lead-links {
+  color: rgba(226, 232, 240, 0.78);
+}
+
+html[data-aep-theme='dark'] .arch-tool-hint strong,
+html[data-aep-theme='dark'] .arch-tool-lead-links strong {
+  color: var(--dash-text, #e8eaed);
+}
+
+html[data-aep-theme='dark'] .arch-palette-tile {
+  background: rgba(42, 48, 56, 0.88);
+  border-color: var(--dash-border);
+  color: rgba(226, 232, 240, 0.88);
+}
+
+html[data-aep-theme='dark'] .arch-palette-tile:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  color: var(--dash-text, #e8eaed);
+}
+
+html[data-aep-theme='dark'] .arch-palette-tile-graphic {
+  color: rgba(226, 232, 240, 0.75);
+}
+
+html[data-aep-theme='dark'] .arch-line-format-preview {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+html[data-aep-theme='dark'] .arch-line-swatch {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+html[data-aep-theme='dark'] .arch-line-swatch:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+html[data-aep-theme='dark'] .arch-line-swatch[aria-checked='true'] {
+  border-color: #38bdf8;
+  box-shadow:
+    0 0 0 1px #38bdf8,
+    inset 0 0 0 1px rgba(0, 0, 0, 0.25);
 }
 
 html[data-aep-theme='dark'] .arch-show-controls-fab {
@@ -837,10 +1983,6 @@ html[data-aep-theme='dark'] .arch-show-controls-fab {
   fill: #374151;
 }
 
-.arch-sources-sep {
-  vector-effect: non-scaling-stroke;
-}
-
 .arch-src-lbl {
   font-family: Inter, system-ui, sans-serif;
   font-size: 5.5px;
@@ -854,3 +1996,656 @@ html[data-aep-theme='dark'] .arch-show-controls-fab {
 }
 
 /* Sources: highlight only the shell (rect[data-arch-shell]); inner labels/icons keep base styles */
+
+/* Icons rail: Spectrum + logos — collapsed <details> by default */
+.arch-icon-panel-details {
+  margin: 0 0 0.5rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid var(--dash-border, #e5e7eb);
+  border-radius: 6px;
+  background: rgba(248, 250, 252, 0.85);
+}
+
+.arch-icon-panel-summary {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--dash-text, #1a1d21);
+  cursor: pointer;
+  list-style-position: outside;
+}
+
+.arch-icon-panel-details-lead {
+  margin: 0.35rem 0 0.5rem;
+}
+
+html[data-aep-theme='dark'] .arch-icon-panel-details {
+  background: rgba(30, 41, 59, 0.35);
+  border-color: var(--dash-border);
+}
+
+/* Architecture logo catalog — Phase 1 category chips (matches optional `tags` in architecture-logos.json) */
+.arch-logo-tag-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+}
+
+.arch-logo-tag-chip {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.arch-logo-tag-chip:hover,
+.arch-logo-tag-chip:focus-visible {
+  border-color: #1473e6;
+  outline: none;
+}
+
+.arch-logo-tag-chip[aria-pressed='true'] {
+  border-color: #1473e6;
+  background: rgba(20, 115, 230, 0.12);
+  color: #0f172a;
+  font-weight: 600;
+}
+
+html[data-aep-theme='dark'] .arch-logo-tag-chip {
+  border-color: var(--dash-border, #475569);
+  background: rgba(30, 41, 59, 0.6);
+  color: var(--text-primary, #e2e8f0);
+}
+
+html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  color: #f8fafc;
+}
+
+/* Adobe Spectrum workflow icons picker (vendored SVGs, Apache-2.0) */
+.arch-spectrum-icons-search-label {
+  margin-bottom: 0.35rem;
+}
+
+.arch-spectrum-icons-search {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.arch-spectrum-icons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.35rem;
+  max-height: min(52vh, 28rem);
+  overflow: auto;
+  padding: 4px;
+  margin: 0.25rem 0 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.arch-spectrum-icons-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.35rem 0.2rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  color: #334155;
+  text-align: center;
+  word-break: break-word;
+}
+
+.arch-spectrum-icons-tile:hover,
+.arch-spectrum-icons-tile:focus-visible {
+  border-color: #1473e6;
+  outline: none;
+}
+
+.arch-spectrum-icons-tile-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+}
+
+.arch-spectrum-icons-tile-cap {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.arch-spectrum-icons-status {
+  margin: 0;
+}
+
+/* Grouped logo picker (accordion by taxonomy, Martech-style) */
+.arch-logo-menu-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-height: min(56vh, 32rem);
+  overflow: auto;
+  padding: 2px 0;
+}
+
+.arch-logo-menu-group {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.arch-logo-menu-group > .arch-logo-menu-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+}
+
+.arch-logo-menu-group > .arch-logo-menu-summary::-webkit-details-marker {
+  display: none;
+}
+
+.arch-logo-menu-group > .arch-logo-menu-summary::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #64748b;
+  flex-shrink: 0;
+  transition: transform 0.12s ease;
+}
+
+.arch-logo-menu-group:not([open]) > .arch-logo-menu-summary::before {
+  transform: rotate(-90deg);
+}
+
+.arch-logo-menu-summary-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.arch-logo-menu-count {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.arch-logo-menu-subgrid {
+  max-height: min(36vh, 18rem);
+  margin: 0 0 0.35rem;
+  border-top: none;
+  border-radius: 0 0 5px 5px;
+}
+
+.arch-architecture-logo-tile--custom {
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(20, 115, 230, 0.35);
+  border-radius: 4px;
+  cursor: grab;
+}
+
+.arch-architecture-logo-tile--custom:active {
+  cursor: grabbing;
+}
+
+.arch-architecture-logo-tile--dragging {
+  opacity: 0.55;
+}
+
+.arch-architecture-logo-tile {
+  position: relative;
+}
+
+.arch-logo-menu-group--dnd-hover {
+  outline: 2px dashed rgba(20, 115, 230, 0.55);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.arch-logo-library-edit-bar {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.arch-logo-library-edit-bar #archLogoLibraryEditToggle {
+  align-self: flex-start;
+}
+
+.arch-logo-library-edit-bar-hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.arch-custom-logo-dock {
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.arch-custom-logo-dock-lead {
+  margin: 0 0 0.5rem;
+  color: #475569;
+}
+
+.arch-custom-logo-pending-wrap {
+  margin-top: 0.25rem;
+}
+
+.arch-catalog-logo-hidden-wrap {
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.arch-catalog-hidden-lead {
+  margin: 0 0 0.4rem;
+  color: #64748b;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.arch-picker-hidden-subhead {
+  margin: 0.55rem 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.arch-catalog-hidden-export {
+  margin-top: 0.45rem;
+  font-size: 0.72rem !important;
+  padding: 0.28rem 0.55rem !important;
+}
+
+.arch-catalog-hidden-export:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.arch-custom-logo-list-item--pending {
+  flex-wrap: wrap;
+}
+
+.arch-custom-logo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.arch-custom-logo-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.arch-custom-logo-field-half {
+  flex: 1;
+  min-width: 9rem;
+}
+
+.arch-custom-logo-form-status {
+  margin: 0;
+  min-height: 1.1em;
+}
+
+.arch-custom-logo-saved-heading {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.arch-custom-logo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 10rem;
+  overflow: auto;
+}
+
+.arch-custom-logo-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.75rem;
+}
+
+.arch-custom-logo-list-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #334155;
+}
+
+button.arch-custom-logo-remove {
+  flex-shrink: 0;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.65rem;
+}
+
+/* `hidden` must win over display:flex or the edit dialog covers the rail on load */
+.arch-custom-logo-edit-overlay[hidden] {
+  display: none !important;
+  pointer-events: none;
+}
+
+.arch-custom-logo-edit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.arch-logo-confirm-overlay.arch-custom-logo-edit-overlay {
+  z-index: 12100;
+}
+
+.arch-logo-confirm-dialog {
+  max-width: 22rem;
+}
+
+.arch-logo-confirm-actions {
+  margin-top: 0.35rem;
+}
+
+.arch-logo-confirm-btn--danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: #fff1f2;
+  font-weight: 600;
+}
+
+.arch-logo-confirm-btn--danger:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+}
+
+html[data-aep-theme='dark'] .arch-logo-confirm-btn--danger {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+}
+
+html[data-aep-theme='dark'] .arch-logo-confirm-btn--danger:hover {
+  background: rgba(153, 27, 27, 0.45);
+  border-color: rgba(248, 113, 113, 0.75);
+}
+
+/* Picker tile edit: popover anchored next to tile (not centered) */
+.arch-custom-logo-edit-overlay.arch-custom-logo-edit-overlay--anchored {
+  display: block;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.arch-custom-logo-edit-overlay.arch-custom-logo-edit-overlay--anchored .arch-custom-logo-edit-dialog {
+  position: fixed;
+  margin: 0;
+  left: auto;
+  top: auto;
+  transform: none;
+}
+
+.arch-custom-logo-drop-zone {
+  margin-bottom: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 2px dashed #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.arch-custom-logo-drop-zone--active {
+  border-color: #1473e6;
+  background: rgba(20, 115, 230, 0.06);
+}
+
+.arch-custom-logo-drop-zone-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.arch-custom-logo-drop-hint {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.arch-architecture-logo-tile-actions {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  max-width: calc(100% - 4px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+#archEditorSectionSpectrumIcons[data-arch-logo-edit-mode="1"] .arch-architecture-logo-tile-actions,
+.arch-architecture-logo-tile--popover-open .arch-architecture-logo-tile-actions {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+@keyframes arch-logo-tile-jiggle {
+  0% {
+    transform: rotate(-0.55deg) translateZ(0);
+  }
+  100% {
+    transform: rotate(0.55deg) translateZ(0);
+  }
+}
+
+#archEditorSectionSpectrumIcons[data-arch-logo-edit-mode="1"]
+  .arch-architecture-logo-tile:not(.arch-architecture-logo-tile--dragging) {
+  animation: arch-logo-tile-jiggle 0.28s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #archEditorSectionSpectrumIcons[data-arch-logo-edit-mode="1"] .arch-architecture-logo-tile {
+    animation: none !important;
+  }
+}
+
+.arch-architecture-logo-tile-ios-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.65);
+  background: rgba(255, 255, 255, 0.98);
+  color: #1473e6;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.arch-architecture-logo-tile-ios-btn--remove {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: #fff;
+}
+
+.arch-architecture-logo-tile-ios-btn:hover,
+.arch-architecture-logo-tile-ios-btn:focus-visible {
+  outline: none;
+  filter: brightness(0.97);
+}
+
+.arch-architecture-logo-tile-ios-btn--edit:focus-visible {
+  box-shadow: 0 0 0 2px rgba(20, 115, 230, 0.35);
+}
+
+.arch-architecture-logo-tile-ios-btn--remove:focus-visible {
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.35);
+}
+
+button.arch-custom-logo-row-edit {
+  padding: 0.12rem 0.4rem;
+  font-size: 0.62rem;
+}
+
+.arch-custom-logo-edit-dialog {
+  width: 100%;
+  max-width: 22rem;
+  max-height: min(90vh, 32rem);
+  overflow: auto;
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+}
+
+.arch-custom-logo-edit-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.arch-custom-logo-edit-header .arch-custom-logo-edit-title {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.arch-logo-edit-delete-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fff1f2;
+  color: #b91c1c;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.arch-logo-edit-delete-btn:hover,
+.arch-logo-edit-delete-btn:focus-visible {
+  background: #fee2e2;
+  border-color: #f87171;
+  outline: none;
+}
+
+.arch-custom-logo-edit-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.arch-custom-logo-edit-hint {
+  margin: 0 0 0.75rem;
+  color: #64748b;
+}
+
+.arch-custom-logo-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+html[data-aep-theme='dark'] .arch-custom-logo-edit-dialog {
+  background: var(--dash-surface);
+  border-color: var(--dash-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+html[data-aep-theme='dark'] .arch-custom-logo-edit-title {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] .arch-custom-logo-edit-hint {
+  color: var(--dash-text-secondary);
+}
+
+html[data-aep-theme='dark'] .arch-logo-edit-delete-btn {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+}
+
+html[data-aep-theme='dark'] .arch-logo-edit-delete-btn:hover,
+html[data-aep-theme='dark'] .arch-logo-edit-delete-btn:focus-visible {
+  background: rgba(153, 27, 27, 0.45);
+  border-color: rgba(248, 113, 113, 0.75);
+}
+
+html[data-aep-theme='dark'] .arch-custom-logo-drop-zone {
+  border-color: var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+
+html[data-aep-theme='dark'] .arch-custom-logo-drop-hint {
+  color: var(--dash-muted);
+}
+
+.arch-custom-box--spectrum-icon .arch-custom-box-spectrum-img,
+.arch-custom-box--product-logo .arch-custom-box-spectrum-img {
+  pointer-events: none;
+}

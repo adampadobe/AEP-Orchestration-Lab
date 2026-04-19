@@ -53,6 +53,56 @@
       console.warn('[diagram.tests] AEPDiagram.editorModel missing');
     }
 
+    var Io = global.AEPDiagram && global.AEPDiagram.interop;
+    if (Io && typeof Io.exportStackSummaryFromPayload === 'function') {
+      var sum = Io.exportStackSummaryFromPayload({
+        version: 9,
+        savedAt: '2026-01-01T00:00:00.000Z',
+        nodes: {},
+        customBoxes: [
+          {
+            id: 'cbox-x',
+            x: 1,
+            y: 2,
+            w: 48,
+            h: 48,
+            name: 'Snowflake',
+            fill: 'none',
+            stroke: 'transparent',
+            kind: 'productLogo',
+            logoFile: 'images/ecosystem-vendor-logos/snowflake.svg',
+            logoDescription: 'Snowflake',
+          },
+        ],
+        userLines: [],
+      });
+      console.assert(sum.format === Io.FORMAT_ID, 'interop format id');
+      console.assert(sum.formatVersion === Io.FORMAT_VERSION, 'interop format version');
+      console.assert(Array.isArray(sum.vendors) && sum.vendors.length === 1, 'interop vendors');
+      console.assert(sum.vendors[0].assetPath.indexOf('snowflake') >= 0, 'interop asset path');
+      var tagMap = Io.buildCatalogTagMapFromLogos([
+        { file: 'images/ecosystem-vendor-logos/snowflake.svg', tags: ['ecosystem-data'] },
+      ]);
+      Io.enrichStackSummaryWithCatalogTags(sum, tagMap);
+      console.assert(sum.vendors[0].catalogTags && sum.vendors[0].catalogTags[0] === 'ecosystem-data', 'interop catalogTags enrich');
+      var badImp = Io.validateStackSummaryForImport({ format: 'wrong' });
+      console.assert(!badImp.ok, 'interop rejects bad import');
+      var okImp = Io.validateStackSummaryForImport({
+        format: Io.FORMAT_ID,
+        formatVersion: Io.FORMAT_VERSION,
+        vendors: [
+          {
+            kind: 'productLogo',
+            assetPath: 'images/x.svg',
+            name: 'X',
+          },
+        ],
+      });
+      console.assert(okImp.ok, 'interop accepts valid import: ' + (okImp.errors && okImp.errors.join('; ')));
+    } else {
+      console.warn('[diagram.tests] AEPDiagram.interop missing');
+    }
+
     console.info('[diagram.tests] OK');
   }
 

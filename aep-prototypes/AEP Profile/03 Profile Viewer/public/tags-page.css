@@ -1,0 +1,283 @@
+/* Tags (Data Collection) — align with profile-box / Query profile layout */
+
+.tags-page.profile-generation-page .tags-page-main .profile-gen-boxes > .profile-box {
+  grid-column: 1 / -1;
+}
+
+.tags-page.profile-generation-page .tags-company-field {
+  flex: 2 1 260px;
+  min-width: 220px;
+}
+
+.tags-page.profile-generation-page .tags-actions-row {
+  align-items: flex-end;
+}
+
+.tags-page.profile-generation-page .tags-table-wrap {
+  overflow: auto;
+  max-height: min(70vh, 560px);
+  border: 1px solid var(--dash-border, var(--aep-border, #e8e4df));
+  border-radius: 8px;
+  background: var(--dash-surface, var(--aep-surface, #fff));
+}
+
+.tags-page.profile-generation-page .tags-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tags-page.profile-generation-page .tags-table th,
+.tags-page.profile-generation-page .tags-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--dash-border, #eee);
+  vertical-align: top;
+}
+
+.tags-page.profile-generation-page .tags-table th {
+  position: sticky;
+  top: 0;
+  background: var(--dash-surface-alt, #f6f4f1);
+  font-weight: 600;
+  z-index: 1;
+}
+
+.tags-page.profile-generation-page .tags-table tr:last-child td {
+  border-bottom: none;
+}
+
+.tags-page.profile-generation-page .tags-properties-meta-hint {
+  margin: 0 0 0.75rem;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.tags-page.profile-generation-page .tags-properties-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-bottom: 0.75rem;
+}
+
+.tags-page.profile-generation-page .tags-filter-label {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.tags-page.profile-generation-page .tags-properties-filter-input {
+  flex: 1 1 220px;
+  min-width: min(100%, 260px);
+  max-width: 520px;
+}
+
+.tags-page.profile-generation-page .tags-filter-label--platform {
+  margin-left: 0.25rem;
+}
+
+.tags-page.profile-generation-page .tags-properties-platform-select {
+  flex: 0 1 200px;
+  min-width: min(100%, 160px);
+  max-width: 280px;
+}
+
+.tags-page.profile-generation-page .tags-filter-count {
+  font-size: 13px;
+  color: var(--dash-text-secondary, #5c6570);
+  white-space: nowrap;
+}
+
+.tags-page.profile-generation-page .tags-cell-domains {
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tags-page.profile-generation-page tr.tags-property-row {
+  cursor: pointer;
+}
+
+.tags-page.profile-generation-page tr.tags-property-row:hover {
+  background: var(--dash-surface-hover, rgba(0, 0, 0, 0.04));
+}
+
+.tags-page.profile-generation-page .tags-data-elements-box-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.tags-page.profile-generation-page .tags-data-elements-box-header .profile-box-title {
+  margin-bottom: 0;
+}
+
+.tags-page.profile-generation-page .tags-data-elements-context {
+  margin: 0 0 0.5rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dash-text-secondary, #5c6570);
+}
+
+.tags-page.profile-generation-page .tags-cell-settings {
+  max-width: 18rem;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.tags-page.profile-generation-page .tags-cell-delegate {
+  max-width: 12rem;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.tags-page.profile-generation-page .tags-single-company-note {
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.tags-page.profile-generation-page .tags-single-company-note code {
+  font-size: 12px;
+}
+
+.tags-page.profile-generation-page .tags-platform-cell {
+  text-align: center;
+  vertical-align: middle;
+  width: 3.25rem;
+  overflow: visible;
+}
+
+.tags-page.profile-generation-page .tags-platform-cell--empty {
+  color: var(--dash-text-secondary, #6e6e6e);
+}
+
+.tags-page.profile-generation-page .tags-platform-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  line-height: 0;
+  cursor: default;
+}
+
+.tags-page.profile-generation-page .tags-platform-icon-wrap:hover {
+  background: var(--dash-surface-hover, rgba(0, 0, 0, 0.06));
+}
+
+/* Instant platform label (avoids slow native title= tooltips) */
+.tags-page.profile-generation-page .tags-platform-icon-wrap::after {
+  content: attr(data-tags-platform-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--dash-surface, #fff);
+  background: var(--dash-text-primary, #2a2a2a);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 20;
+  transition: none;
+}
+
+.tags-page.profile-generation-page .tags-platform-icon-wrap:hover::after,
+.tags-page.profile-generation-page .tags-platform-icon-wrap:focus-within::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tags-page.profile-generation-page .tags-platform-icon-img {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  --iconPrimary: var(--dash-text-primary, #2d2d2d);
+}
+
+.tags-page.profile-generation-page .tags-property-name-cell {
+  max-width: 18rem;
+}
+
+.tags-page.profile-generation-page .tags-property-name-btn {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--dash-link, #0265dc);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tags-page.profile-generation-page .tags-property-name-btn:hover {
+  color: var(--dash-link-hover, #0150b3);
+}
+
+.tags-page.profile-generation-page .tags-property-explorer-box .tags-explorer-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 0.75rem;
+}
+
+.tags-page.profile-generation-page .tags-explorer-pill {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.tags-page.profile-generation-page .tags-explorer-pill--active {
+  font-weight: 600;
+  box-shadow: inset 0 0 0 2px var(--dash-link, #0265dc);
+}
+
+.tags-page.profile-generation-page .tags-explorer-rule-wrap {
+  margin: 0 0 1rem;
+  padding: 0 0 0.75rem;
+  border-bottom: 1px solid var(--dash-border, #eee);
+}
+
+.tags-page.profile-generation-page .tags-explorer-subhead {
+  margin: 0 0 0.5rem;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tags-page.profile-generation-page .tags-cell-install {
+  white-space: nowrap;
+}
+
+.tags-page.profile-generation-page .tags-env-install-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tags-page.profile-generation-page .tags-env-copy-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.tags-page.profile-generation-page .tags-env-install-missing {
+  color: var(--dash-muted, #6e6e6e);
+}
+

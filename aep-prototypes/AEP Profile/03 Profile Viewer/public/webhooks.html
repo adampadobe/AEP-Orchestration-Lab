@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhooks – AEP Profile Viewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="home.css?v=20260416c">
+    <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+    <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="webhooks.css?v=20260416-wh-sandbox-in-url-box">
+</head>
+<body class="webhooks-tool-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Sandbox-scoped webhook inbox">Webhooks</span>
+          <a href="home.html" class="dashboard-topbar-link">Home</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main app-page webhooks-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="whBannerHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="whBannerHeading" class="dashboard-hero-title">Webhook monitor</h2>
+              <p class="dashboard-hero-subtitle">
+                Each AEP sandbox has its own webhook URL and inbox. Choose your sandbox in the Webhook Endpoint section below to see the URL and captured requests for that environment.
+              </p>
+            </header>
+          </div>
+        </section>
+
+    <div class="container wh-monitor">
+        <div class="header">
+            <h1>🔗 Webhook Monitor</h1>
+            <p>Track webhook delivery and troubleshoot issues</p>
+        </div>
+
+        <div class="webhook-url-section">
+            <div class="webhook-url-header">
+                <h3>🎯 Webhook Endpoint</h3>
+                <span style="color: var(--success-color); font-size: 0.9rem;">● Active</span>
+            </div>
+            <div class="wh-sandbox-row wh-sandbox-row--webhook-url">
+                <label for="sandboxSelect">Sandbox</label>
+                <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox"></select>
+            </div>
+            <div class="webhook-url-container">
+                <input type="text" class="webhook-url-text" id="webhookUrl" value="https://webhooklistener-pscg5c4cja-uc.a.run.app" readonly>
+                <button class="copy-url-button" onclick="copyWebhookUrl(this)">📋 Copy URL</button>
+            </div>
+        </div>
+
+        <details class="webhook-url-section wh-fb-verify-details">
+            <summary
+                class="wh-fb-verify-summary"
+                title="Used for WhatsApp Business (Meta): enter this verify token when Meta/Facebook asks during WhatsApp Cloud API webhook setup."
+                aria-label="Facebook webhook verification for WhatsApp Business. Expand to copy verify token."
+            >
+                <div class="wh-fb-verify-summary-row">
+                    <h3>📘 Facebook Webhook Verification</h3>
+                    <span class="wh-fb-verify-status" aria-hidden="true">● Supported</span>
+                </div>
+                <span
+                    class="wh-fb-verify-tooltip-icon"
+                    role="img"
+                    tabindex="0"
+                    title="Used for WhatsApp Business (Meta): paste this verify token when configuring WhatsApp Cloud API webhooks in Meta Business Suite."
+                    aria-label="Tooltip: used for WhatsApp Business webhook verification."
+                    onclick="event.stopPropagation();"
+                    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();}"
+                >?</span>
+            </summary>
+            <div class="wh-fb-verify-body">
+                <div class="wh-fb-verify-intro">
+                    <p>
+                        <strong>Facebook Webhook Setup:</strong> This endpoint supports Meta/Facebook webhook verification. Use the verify token below when configuring your webhook (including <strong>WhatsApp Business</strong> / WhatsApp Cloud API).
+                    </p>
+                </div>
+                <div class="webhook-url-container">
+                    <input type="text" class="webhook-url-text" id="facebookToken" value="sandwichWhatsAppPalmer" readonly>
+                    <button type="button" class="copy-url-button" onclick="copyFacebookToken(this)">📋 Copy Token</button>
+                </div>
+                <p class="wh-fb-verify-footnote">
+                    <i class="fas fa-info-circle" aria-hidden="true"></i> Facebook verification only affects GET requests with hub.mode=subscribe. All other webhook behaviour is unchanged.
+                </p>
+            </div>
+        </details>
+
+        <div class="charts-section">
+            <div class="chart-container">
+                <h4>📊 Webhooks Over Time</h4>
+                <div class="chart-canvas">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h4>🎯 Sources Distribution</h4>
+                <div class="chart-canvas">
+                    <canvas id="sourceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <div class="filters-header">
+                <h3>🔍 Filters & Search</h3>
+                <button class="btn btn-secondary" onclick="clearFilters()">Clear All</button>
+            </div>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label class="filter-label">Source</label>
+                    <select class="filter-select" id="sourceFilter" onchange="applyFilters()">
+                        <option value="">All Sources</option>
+                        <option value="adobe">Adobe</option>
+                        <option value="github">GitHub</option>
+                        <option value="stripe">Stripe</option>
+                        <option value="test">Test</option>
+                        <option value="unknown">Unknown</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Status</label>
+                    <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+                        <option value="">All Status</option>
+                        <option value="processed">Processed</option>
+                        <option value="received">Received</option>
+                        <option value="error">Error</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Content Type</label>
+                    <select class="filter-select" id="contentTypeFilter" onchange="applyFilters()">
+                        <option value="">All Types</option>
+                        <option value="application/json">JSON</option>
+                        <option value="text/plain">Text/Plain</option>
+                        <option value="application/x-www-form-urlencoded">Form Data</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Search Content</label>
+                    <input type="text" class="filter-input" id="searchInput" placeholder="Search in payload..." onkeyup="applyFilters()">
+                </div>
+            </div>
+        </div>
+
+        <div id="statsContainer" class="stats-grid">
+            <div class="loading">Loading statistics...</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh</button>
+            <button class="btn btn-secondary" onclick="testWebhook()">🧪 Send Test</button>
+            <button class="btn btn-secondary" onclick="clearWebhooks()">🗑️ Clear All</button>
+            <button class="btn btn-secondary" onclick="toggleAutoRefresh()">⏰ Auto Refresh: <span id="autoStatus">OFF</span></button>
+        </div>
+
+        <div class="webhook-list">
+            <h3>Recent Webhooks</h3>
+            <div id="webhookContainer" class="loading">
+                Loading webhook data...
+            </div>
+        </div>
+    </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+
+    <script>
+        let autoRefreshInterval = null;
+        let isAutoRefresh = false;
+        let allWebhooks = [];
+        let filteredWebhooks = [];
+        let timeChart = null;
+        let sourceChart = null;
+
+        let LAB_SANDBOX = '';
+        let LAB_RECEIVE_TOKEN = '';
+        let WEBHOOK_URL = '';
+
+        async function initLabWebhookApi() {
+            const name = (window.AepGlobalSandbox && AepGlobalSandbox.getSandboxName())
+                ? AepGlobalSandbox.getSandboxName()
+                : '';
+            LAB_SANDBOX = name || 'default';
+            const r = await fetch('/api/webhooks/config?sandbox=' + encodeURIComponent(LAB_SANDBOX));
+            const data = await r.json().catch(function () { return {}; });
+            if (!r.ok || !data.success) {
+                throw new Error(data.message || data.error || 'Failed to load webhook config');
+            }
+            LAB_RECEIVE_TOKEN = data.receiveToken;
+            WEBHOOK_URL = data.webhookUrl || '';
+            var wu = document.getElementById('webhookUrl');
+            var ft = document.getElementById('facebookToken');
+            if (wu) wu.value = WEBHOOK_URL;
+            if (ft) ft.value = data.verifyToken || '';
+        }
+
+        function isLabDarkTheme() {
+            return document.documentElement.getAttribute('data-aep-theme') === 'dark';
+        }
+
+        // Detect webhook source
+        function detectWebhookSource(webhook) {
+            if (webhook.headers['x-organization-id'] && webhook.headers['x-organization-id'].includes('AdobeOrg')) {
+                return 'adobe';
+            }
+            if (webhook.headers['x-github-event'] || webhook.headers['user-agent']?.includes('GitHub')) {
+                return 'github';
+            }
+            if (webhook.headers['stripe-signature'] || webhook.body?.type?.startsWith('stripe')) {
+                return 'stripe';
+            }
+            if (webhook.body?.test === true) {
+                return 'test';
+            }
+            return 'unknown';
+        }
+
+        // Load and display statistics
+        async function loadStats() {
+            try {
+                if (!LAB_RECEIVE_TOKEN) await initLabWebhookApi();
+                const response = await fetch('/api/webhooks/stats?sandbox=' + encodeURIComponent(LAB_SANDBOX) + '&token=' + encodeURIComponent(LAB_RECEIVE_TOKEN));
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayStats(data);
+                } else {
+                    throw new Error(data.message || 'Failed to load stats');
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('statsContainer').innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">❌</div>
+                        <div class="stat-label">Error loading stats</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Load webhooks data
+        async function loadWebhooks() {
+            try {
+                if (!LAB_RECEIVE_TOKEN) await initLabWebhookApi();
+                const response = await fetch('/api/webhooks/feed?sandbox=' + encodeURIComponent(LAB_SANDBOX) + '&token=' + encodeURIComponent(LAB_RECEIVE_TOKEN) + '&includeErrors=true&limit=50');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allWebhooks = data.webhooks.map(webhook => ({
+                        ...webhook,
+                        source: detectWebhookSource(webhook)
+                    }));
+                    filteredWebhooks = [...allWebhooks];
+                    displayWebhooks();
+                    updateCharts();
+                } else {
+                    throw new Error(data.message || 'Failed to load webhooks');
+                }
+            } catch (error) {
+                console.error('Error loading webhooks:', error);
+                document.getElementById('webhookContainer').innerHTML = `
+                    <div style="text-align: center; color: var(--error-color); padding: 20px;">
+                        ❌ Error loading webhook data: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Display statistics
+        function displayStats(data) {
+            const { statistics, healthStatus } = data;
+            
+            document.getElementById('statsContainer').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${statistics.total}</div>
+                    <div class="stat-label">Total Webhooks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${statistics.last24Hours}</div>
+                    <div class="stat-label">Last 24 Hours</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${statistics.lastHour}</div>
+                    <div class="stat-label">Last Hour</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${statistics.totalErrors}</div>
+                    <div class="stat-label">Total Errors</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: ${healthStatus === 'healthy' ? 'var(--success-color)' : 'var(--error-color)'}">
+                        ${healthStatus === 'healthy' ? '✅' : '⚠️'}
+                    </div>
+                    <div class="stat-label">System Health</div>
+                </div>
+            `;
+        }
+
+        // Display webhooks
+        function displayWebhooks() {
+            if (filteredWebhooks.length === 0) {
+                document.getElementById('webhookContainer').innerHTML = `
+                    <div class="empty-state">
+                        📭 No webhooks match your filters
+                    </div>
+                `;
+                return;
+            }
+
+            const webhookHTML = filteredWebhooks.map(webhook => {
+                const time = new Date(webhook.timestamp).toLocaleString();
+                const status = webhook.status || 'unknown';
+                const statusClass = getStatusClass(status);
+                const sourceClass = `source-${webhook.source}`;
+                
+                // Format description, type, and WhatsApp info for display
+                const description = webhook.description || null;
+                const webhookType = webhook.webhookType || null;
+                const whatsappInfo = webhook.whatsappInfo || null;
+                
+                let descriptionHTML = '';
+                if (description || webhookType || whatsappInfo) {
+                    const parts = [];
+                    if (webhookType) parts.push(`<span class="webhook-type">🏷️ ${webhookType}</span>`);
+                    if (description) parts.push(`<span class="webhook-description">📝 ${description}</span>`);
+                    
+                    // Add WhatsApp specific information
+                    if (whatsappInfo) {
+                        const statusEmoji = getWhatsAppStatusEmoji(whatsappInfo.status);
+                        const formattedPhone = formatPhoneNumber(whatsappInfo.phoneNumber);
+                        parts.push(`<span class="whatsapp-info">💬 ${whatsappInfo.platform} • ${statusEmoji} ${whatsappInfo.status} • 📱 ${formattedPhone}</span>`);
+                    }
+                    
+                    descriptionHTML = `<div class="webhook-meta">${parts.join(' • ')}</div>`;
+                }
+                
+                return `
+                    <div class="webhook-item">
+                        <div class="webhook-status ${statusClass}"></div>
+                        <div class="webhook-source ${sourceClass}">${webhook.source}</div>
+                        <div class="webhook-details">
+                            <div><strong>${webhook.method || 'POST'}</strong> • ${webhook.contentType || 'unknown'}</div>
+                            ${descriptionHTML}
+                            <div class="webhook-id">ID: ${webhook.id}</div>
+                        </div>
+                        <div class="webhook-time">${time}</div>
+                        <button class="btn btn-secondary" onclick="viewWebhook('${webhook.id}')">View</button>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('webhookContainer').innerHTML = webhookHTML;
+        }
+
+        // Update charts
+        function updateCharts() {
+            updateTimeChart();
+            updateSourceChart();
+        }
+
+        // Update time chart
+        function updateTimeChart() {
+            const ctx = document.getElementById('timeChart').getContext('2d');
+            
+            // Group webhooks by hour
+            const hourlyData = {};
+            const now = new Date();
+            
+            // Initialize last 24 hours
+            for (let i = 23; i >= 0; i--) {
+                const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
+                const key = hour.getHours() + ':00';
+                hourlyData[key] = 0;
+            }
+            
+            // Count webhooks per hour
+            allWebhooks.forEach(webhook => {
+                const date = new Date(webhook.timestamp);
+                const hour = date.getHours() + ':00';
+                if (hourlyData.hasOwnProperty(hour)) {
+                    hourlyData[hour]++;
+                }
+            });
+
+            const isDark = isLabDarkTheme();
+            const textColor = isDark ? '#e8eaed' : '#2c2c2c';
+            const gridColor = isDark ? '#2a3038' : '#e6e4ea';
+
+            if (timeChart) {
+                timeChart.destroy();
+            }
+
+            timeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(hourlyData),
+                    datasets: [{
+                        label: 'Webhooks',
+                        data: Object.values(hourlyData),
+                        borderColor: '#1473e6',
+                        backgroundColor: 'rgba(20, 115, 230, 0.12)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: textColor
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: textColor
+                            },
+                            grid: {
+                                color: gridColor
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: textColor
+                            },
+                            grid: {
+                                color: gridColor
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update source chart
+        function updateSourceChart() {
+            const ctx = document.getElementById('sourceChart').getContext('2d');
+            
+            // Count webhooks by source
+            const sourceData = {};
+            allWebhooks.forEach(webhook => {
+                sourceData[webhook.source] = (sourceData[webhook.source] || 0) + 1;
+            });
+
+            const colors = {
+                adobe: '#ff6b6b',
+                github: '#333333',
+                stripe: '#635bff',
+                test: '#74b9ff',
+                unknown: '#6c757d'
+            };
+
+            const isDark = isLabDarkTheme();
+            const textColor = isDark ? '#e8eaed' : '#2c2c2c';
+
+            if (sourceChart) {
+                sourceChart.destroy();
+            }
+
+            sourceChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(sourceData).map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+                    datasets: [{
+                        data: Object.values(sourceData),
+                        backgroundColor: Object.keys(sourceData).map(source => colors[source] || '#6c757d')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: textColor,
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update chart themes
+        function updateChartThemes() {
+            if (timeChart || sourceChart) {
+                setTimeout(() => {
+                    updateCharts();
+                }, 100);
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const sourceFilter = document.getElementById('sourceFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const contentTypeFilter = document.getElementById('contentTypeFilter').value;
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+
+            filteredWebhooks = allWebhooks.filter(webhook => {
+                // Source filter
+                if (sourceFilter && webhook.source !== sourceFilter) {
+                    return false;
+                }
+
+                // Status filter
+                if (statusFilter && webhook.status !== statusFilter) {
+                    return false;
+                }
+
+                // Content type filter
+                if (contentTypeFilter && webhook.contentType !== contentTypeFilter) {
+                    return false;
+                }
+
+                // Search filter
+                if (searchInput) {
+                    var rawExtra = (webhook.body && webhook.body._raw) ? String(webhook.body._raw) : '';
+                    const searchableContent = (JSON.stringify(webhook.body || {}) + ' ' + rawExtra).toLowerCase();
+                    if (!searchableContent.includes(searchInput)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            displayWebhooks();
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('sourceFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('contentTypeFilter').value = '';
+            document.getElementById('searchInput').value = '';
+            filteredWebhooks = [...allWebhooks];
+            displayWebhooks();
+        }
+
+        // Get status class
+        function getStatusClass(status) {
+            switch (status) {
+                case 'processed': return 'status-processed';
+                case 'received': return 'status-received';
+                case 'error': return 'status-error';
+                default: return 'status-received';
+            }
+        }
+
+        // Get WhatsApp status emoji
+        function getWhatsAppStatusEmoji(status) {
+            switch (status.toUpperCase()) {
+                case 'READ': return '👁️';
+                case 'DELIVERED': return '✅';
+                case 'SENT': return '📤';
+                case 'QUEUED': return '⏳';
+                case 'FAILED': return '❌';
+                case 'RECEIVED': return '📥';
+                default: return '📱';
+            }
+        }
+
+        // Format phone number for display
+        function formatPhoneNumber(phoneNumber) {
+            if (!phoneNumber || phoneNumber === 'unknown' || phoneNumber === 'business_account') {
+                return phoneNumber;
+            }
+            
+            // Basic formatting for display - add spaces for readability
+            if (phoneNumber.length > 10) {
+                return phoneNumber.replace(/(\d{2,3})(\d{3,4})(\d{3,4})(\d*)/, '$1 $2 $3 $4').trim();
+            }
+            
+            return phoneNumber;
+        }
+
+        // Copy webhook URL
+        function copyWebhookUrl(button) {
+            const urlInput = document.getElementById('webhookUrl');
+            const webhookUrl = urlInput.value;
+            
+            navigator.clipboard.writeText(webhookUrl).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy webhook URL: ', err);
+                alert('Please manually copy the URL: ' + webhookUrl);
+            });
+        }
+
+        // Copy Facebook verify token
+        function copyFacebookToken(button) {
+            const tokenInput = document.getElementById('facebookToken');
+            const facebookToken = tokenInput.value;
+            
+            navigator.clipboard.writeText(facebookToken).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy Facebook token: ', err);
+                alert('Please manually copy the token: ' + facebookToken);
+            });
+        }
+
+                 // Modal styles and functionality
+         function createModal() {
+             const modalHTML = `
+                 <div class="modal-overlay wh-webhook-modal" onclick="closeModal(event)" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+                     <div class="modal-content" onclick="event.stopPropagation()">
+                         <div class="modal-header">
+                             <h3 id="modalTitle">🔗 Webhook Details</h3>
+                             <button class="modal-close" onclick="closeModal()">×</button>
+                         </div>
+                         <div class="modal-body" id="modalBody">
+                             <!-- Content will be inserted here -->
+                         </div>
+                     </div>
+                 </div>
+             `;
+             
+             const modalElement = document.createElement('div');
+             modalElement.innerHTML = modalHTML;
+             return modalElement.firstElementChild;
+         }
+
+         function closeModal(event) {
+             if (event && event.target !== event.currentTarget) return;
+             const modal = document.querySelector('.wh-webhook-modal');
+             if (modal) {
+                 modal.remove();
+             }
+         }
+
+         function syntaxHighlight(json) {
+             if (typeof json !== 'string') {
+                 json = JSON.stringify(json, null, 2);
+             }
+             
+             json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+             
+             return json.replace(
+                 /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+                 function (match) {
+                     let cls = 'json-number';
+                     if (/^"/.test(match)) {
+                         if (/:$/.test(match)) {
+                             cls = 'json-key';
+                         } else {
+                             cls = 'json-string';
+                         }
+                     } else if (/true|false/.test(match)) {
+                         cls = 'json-boolean';
+                     } else if (/null/.test(match)) {
+                         cls = 'json-null';
+                     }
+                     return '<span class="' + cls + '">' + match + '</span>';
+                 }
+             );
+         }
+
+         function formatWebhookData(webhook) {
+             // Create a clean summary of key information
+             const summary = {
+                 id: webhook.id,
+                 timestamp: webhook.timestamp,
+                 method: webhook.method || 'POST',
+                 status: webhook.status || 'unknown',
+                 contentType: webhook.contentType || 'unknown',
+                 source: webhook.source,
+                 ip: webhook.ip,
+                 userAgent: webhook.userAgent,
+                 description: webhook.description || null,
+                 webhookType: webhook.webhookType || null,
+                 whatsappInfo: webhook.whatsappInfo || null
+             };
+
+             // Add source-specific info
+             if (webhook.headers) {
+                 if (webhook.headers['x-organization-id']) {
+                     summary.adobeOrgId = webhook.headers['x-organization-id'];
+                 }
+                 if (webhook.headers['x-request-id']) {
+                     summary.requestId = webhook.headers['x-request-id'];
+                 }
+                 if (webhook.headers['x-github-event']) {
+                     summary.githubEvent = webhook.headers['x-github-event'];
+                 }
+                 if (webhook.headers['stripe-signature']) {
+                     summary.stripeSignature = '***HIDDEN***';
+                 }
+             }
+
+             // Separate different sections for better readability
+             const sections = [];
+
+             // WhatsApp Information (if it's a WhatsApp webhook)
+             if (webhook.whatsappInfo) {
+                 sections.push({
+                     title: 'WhatsApp Message Details',
+                     data: webhook.whatsappInfo,
+                     description: 'WhatsApp message delivery information',
+                     icon: '💬'
+                 });
+             }
+
+             // Adobe XDM Data (if it's an Adobe webhook)
+             if (webhook.body && webhook.body.request && webhook.body.request.xdm) {
+                 sections.push({
+                     title: 'Adobe XDM Data',
+                     data: webhook.body.request.xdm,
+                     description: 'Adobe Experience Data Model payload',
+                     icon: '🎯'
+                 });
+
+                 // Identity Information
+                 if (webhook.body.request.xdm.identityMap) {
+                     sections.push({
+                         title: 'Identity Information',
+                         data: webhook.body.request.xdm.identityMap,
+                         description: 'Customer identity data (ECID, Email, etc.)',
+                         icon: '👤'
+                     });
+                 }
+
+                 // Profile Data
+                 if (webhook.body.request.xdm.person) {
+                     sections.push({
+                         title: 'Profile Data',
+                         data: webhook.body.request.xdm.person,
+                         description: 'Customer profile information',
+                         icon: '📊'
+                     });
+                 }
+
+                 // Travel Data
+                 if (webhook.body.request.xdm.travel) {
+                     sections.push({
+                         title: 'Travel Information',
+                         data: webhook.body.request.xdm.travel,
+                         description: 'Flight and travel details',
+                         icon: '✈️'
+                     });
+                 }
+             } else if (webhook.body && Object.keys(webhook.body).length > 0) {
+                 // Regular request body for non-Adobe webhooks
+                 sections.push({
+                     title: 'Request Body',
+                     data: webhook.body,
+                     description: 'The payload sent with the webhook',
+                     icon: '📦'
+                 });
+             }
+
+             // Query Parameters
+             if (webhook.query && Object.keys(webhook.query).length > 0) {
+                 sections.push({
+                     title: 'Query Parameters',
+                     data: webhook.query,
+                     description: 'URL query parameters',
+                     icon: '🔗'
+                 });
+             }
+
+             // Headers (cleaned up for readability)
+             if (webhook.headers) {
+                 const cleanHeaders = {};
+                 Object.keys(webhook.headers).forEach(key => {
+                     // Skip very long or less important headers
+                     if (!['x-cloud-trace-context', 'traceparent', 'forwarded'].includes(key.toLowerCase())) {
+                         cleanHeaders[key] = webhook.headers[key];
+                     }
+                 });
+                 
+                 sections.push({
+                     title: 'Request Headers',
+                     data: cleanHeaders,
+                     description: 'HTTP headers sent with the request',
+                     icon: '📋'
+                 });
+             }
+
+             return { summary, sections };
+         }
+
+         function copyToClipboard(text, button, label = 'data') {
+             navigator.clipboard.writeText(text).then(() => {
+                 const originalText = button.textContent;
+                 button.textContent = '✅ Copied!';
+                 button.classList.add('copied');
+                 
+                 setTimeout(() => {
+                     button.textContent = originalText;
+                     button.classList.remove('copied');
+                 }, 2000);
+             }).catch(err => {
+                 console.error('Failed to copy: ', err);
+                 alert(`Failed to copy ${label} to clipboard`);
+             });
+         }
+
+         // View webhook details with prettier formatting
+         function viewWebhook(id) {
+             const webhook = allWebhooks.find(w => w.id === id);
+             if (!webhook) {
+                 alert('Webhook not found');
+                 return;
+             }
+
+             const { summary, sections } = formatWebhookData(webhook);
+             const modal = createModal();
+             
+             // Create summary section
+             const summaryHTML = `
+                 <div class="webhook-summary">
+                     <div class="summary-item">
+                         <span class="summary-label">ID</span>
+                         <span class="summary-value">${summary.id}</span>
+                     </div>
+                     <div class="summary-item">
+                         <span class="summary-label">Source</span>
+                         <span class="summary-value">
+                             <span class="webhook-source source-${summary.source}">${summary.source}</span>
+                         </span>
+                     </div>
+                     <div class="summary-item">
+                         <span class="summary-label">Method</span>
+                         <span class="summary-value">${summary.method}</span>
+                     </div>
+                     <div class="summary-item">
+                         <span class="summary-label">Status</span>
+                         <span class="summary-value">
+                             <span class="webhook-status ${getStatusClass(summary.status)}"></span>
+                             ${summary.status}
+                         </span>
+                     </div>
+                     <div class="summary-item">
+                         <span class="summary-label">Content Type</span>
+                         <span class="summary-value">${summary.contentType}</span>
+                     </div>
+                     <div class="summary-item">
+                         <span class="summary-label">Timestamp</span>
+                         <span class="summary-value">${new Date(summary.timestamp).toLocaleString()}</span>
+                     </div>
+                     ${summary.webhookType ? `
+                     <div class="summary-item">
+                         <span class="summary-label">Type</span>
+                         <span class="summary-value">
+                             <span class="webhook-type">🏷️ ${summary.webhookType}</span>
+                         </span>
+                     </div>
+                     ` : ''}
+                     ${summary.description ? `
+                     <div class="summary-item">
+                         <span class="summary-label">Description</span>
+                         <span class="summary-value">
+                             <span class="webhook-description">📝 ${summary.description}</span>
+                         </span>
+                     </div>
+                     ` : ''}
+                     ${summary.adobeOrgId ? `
+                     <div class="summary-item">
+                         <span class="summary-label">Adobe Org ID</span>
+                         <span class="summary-value">${summary.adobeOrgId}</span>
+                     </div>
+                     ` : ''}
+                     ${summary.requestId ? `
+                     <div class="summary-item">
+                         <span class="summary-label">Request ID</span>
+                         <span class="summary-value" style="font-family: monospace; font-size: 0.8rem;">${summary.requestId}</span>
+                     </div>
+                     ` : ''}
+                     ${summary.githubEvent ? `
+                     <div class="summary-item">
+                         <span class="summary-label">GitHub Event</span>
+                         <span class="summary-value">${summary.githubEvent}</span>
+                     </div>
+                     ` : ''}
+                     ${summary.ip ? `
+                     <div class="summary-item">
+                         <span class="summary-label">IP Address</span>
+                         <span class="summary-value">${summary.ip}</span>
+                     </div>
+                     ` : ''}
+                 </div>
+             `;
+
+             // Create sections HTML
+             const sectionsHTML = sections.map((section, index) => `
+                 <div class="json-section">
+                     <div class="section-header">
+                         <h4>${section.icon} ${section.title}</h4>
+                         <button type="button" class="copy-button" onclick="copyToClipboard(document.getElementById('section-${index}').textContent, this, '${section.title}')">
+                             Copy
+                         </button>
+                     </div>
+                     <p class="section-description">${section.description}</p>
+                     <div class="json-display" id="section-${index}">${syntaxHighlight(section.data)}</div>
+                 </div>
+             `).join('');
+
+             // Complete raw data section
+             const rawDataHTML = `
+                 <div class="json-section">
+                     <div class="section-header">
+                         <h4>🔍 Complete Raw Data</h4>
+                         <button type="button" class="copy-button" onclick="copyToClipboard(document.getElementById('raw-data').textContent, this, 'complete data')">
+                             Copy all
+                         </button>
+                     </div>
+                     <p class="section-description">Full webhook object as received by the system</p>
+                     <div class="json-display" id="raw-data">${syntaxHighlight(webhook)}</div>
+                 </div>
+             `;
+
+             // Set modal content
+             const modalBody = modal.querySelector('#modalBody');
+             modalBody.innerHTML = summaryHTML + sectionsHTML + rawDataHTML;
+
+             // Add modal to document
+             document.body.appendChild(modal);
+
+             // Close modal with Escape key
+             const escapeHandler = function(e) {
+                 if (e.key === 'Escape') {
+                     closeModal();
+                     document.removeEventListener('keydown', escapeHandler);
+                 }
+             };
+             document.addEventListener('keydown', escapeHandler);
+         }
+
+        // Test webhook
+        async function testWebhook() {
+            try {
+                const testData = {
+                    test: true,
+                    message: 'This is a test webhook from the enhanced dashboard',
+                    timestamp: new Date().toISOString(),
+                    data: {
+                        user: 'dashboard-user',
+                        action: 'test-webhook',
+                        value: Math.floor(Math.random() * 1000)
+                    }
+                };
+
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ Test webhook sent successfully!');
+                    refreshData();
+                } else {
+                    alert('❌ Test webhook failed: ' + result.message);
+                }
+            } catch (error) {
+                alert('❌ Error sending test webhook: ' + error.message);
+            }
+        }
+
+        // Clear webhooks
+        async function clearWebhooks() {
+            if (confirm('Are you sure you want to clear all webhook data?')) {
+                try {
+                    if (!LAB_RECEIVE_TOKEN) await initLabWebhookApi();
+                    const response = await fetch('/api/webhooks/clear', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sandbox: LAB_SANDBOX,
+                            token: LAB_RECEIVE_TOKEN,
+                            includeErrors: true
+                        })
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('✅ Webhook data cleared successfully!');
+                        refreshData();
+                    } else {
+                        alert('❌ Failed to clear webhooks: ' + result.message);
+                    }
+                } catch (error) {
+                    alert('❌ Error clearing webhooks: ' + error.message);
+                }
+            }
+        }
+
+        // Toggle auto refresh
+        function toggleAutoRefresh() {
+            isAutoRefresh = !isAutoRefresh;
+            const statusElement = document.getElementById('autoStatus');
+            
+            if (isAutoRefresh) {
+                autoRefreshInterval = setInterval(refreshData, 10000);
+                statusElement.textContent = 'ON';
+                statusElement.style.color = 'var(--success-color)';
+            } else {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+                statusElement.textContent = 'OFF';
+                statusElement.style.color = 'var(--text-secondary)';
+            }
+        }
+
+        // Refresh data
+        function refreshData() {
+            loadStats();
+            loadWebhooks();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('aep-theme-change', function () {
+                updateChartThemes();
+            });
+            var sb = document.getElementById('sandboxSelect');
+            if (window.AepGlobalSandbox) {
+                AepGlobalSandbox.loadSandboxesIntoSelect(sb).then(function () {
+                    AepGlobalSandbox.onSandboxSelectChange(sb);
+                    AepGlobalSandbox.attachStorageSync(sb);
+                    return initLabWebhookApi();
+                }).then(function () {
+                    refreshData();
+                }).catch(function (err) {
+                    console.error(err);
+                    document.getElementById('webhookContainer').innerHTML = '<div style="text-align:center;padding:20px;color:var(--error-color)">❌ ' + (err && err.message ? err.message : err) + '</div>';
+                });
+            } else {
+                initLabWebhookApi().then(refreshData).catch(function (e) { console.error(e); });
+            }
+            window.addEventListener('aep-global-sandbox-change', function () {
+                initLabWebhookApi().then(refreshData).catch(function (e) { console.error(e); });
+            });
+        });
+    </script>
+  <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
+</body>
+</html> 

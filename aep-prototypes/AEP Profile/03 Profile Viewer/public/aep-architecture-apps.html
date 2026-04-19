@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AEP &amp; Apps (in development) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260426">
-  <link rel="stylesheet" href="aep-theme.css?v=20260406">
-  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260517">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="aep-architecture-apps.css?v=20260419a">
 </head>
 <body class="home-dashboard-concierge arch-int-page">
   <div class="dashboard-shell">
@@ -58,13 +59,16 @@
             <div class="arch-int-main-column">
               <div class="arch-int-compact-bar arch-diagram-ui">
                 <div class="arch-int-compact-top">
-                  <div class="arch-int-compact-titles">
-                    <div id="archIntHudTitle" class="arch-int-hud-title">1 — Platform frame</div>
-                    <div id="archIntHudMeta" class="arch-int-hud-meta">State 1 / 16</div>
+                  <div class="arch-int-compact-top-left">
+                    <div class="arch-int-compact-titles">
+                      <div id="archIntHudTitle" class="arch-int-hud-title">1 — Platform frame</div>
+                      <div id="archIntHudMeta" class="arch-int-hud-meta">State 1 / 16</div>
+                    </div>
+                    <div class="arch-int-compact-edit">
+                      <button type="button" class="dashboard-btn-outline arch-dock-flip-btn" id="archDockSideToggle" title="Move the tool panel to the left or right side">⇄ Side</button>
+                    </div>
                   </div>
-                  <div class="arch-int-compact-edit">
-                    <button type="button" class="dashboard-btn-outline arch-dock-flip-btn" id="archDockSideToggle" title="Dock editor on the right">⇄ Right</button>
-                  </div>
+                  <button type="button" class="dashboard-btn-outline arch-fullscreen-btn arch-int-fullscreen-btn" id="archPresentationFullscreenBtn" title="Fill the screen with the diagram (hides site menu and page title). Press Esc to exit.">Fullscreen</button>
                 </div>
                 <div class="arch-int-compact-nav">
                   <div class="arch-int-dots" id="archIntDots" role="tablist" aria-label="Diagram state"></div>
@@ -73,7 +77,7 @@
                       <button type="button" class="dashboard-btn-outline" id="archIntPrev">Previous</button>
                       <button type="button" class="dashboard-btn-outline" id="archIntNext">Next</button>
                     </div>
-                    <label class="arch-drag-toggle arch-edit-mode-toggle" title="Shows the editor so you can drag and edit. Uncheck for a minimal view — use the corner button to edit again.">
+                    <label class="arch-drag-toggle arch-edit-mode-toggle" title="Shows the editor and pauses stepping through states so you can drag, draw, and edit. Uncheck for a minimal view — use the corner button to edit again.">
                       <input type="checkbox" id="archEditModeToggle"/>
                       <span>Edit diagram</span>
                     </label>
@@ -362,89 +366,190 @@
             <rect id="archCustomBoxPreview" class="arch-custom-box-preview" x="0" y="0" width="0" height="0" fill="rgba(20,115,230,0.12)" stroke="#1473e6" stroke-width="1.25" stroke-dasharray="4 3" opacity="0" pointer-events="none"/>
             <!-- User-drawn connectors (Lucid-style); rendered on top for interaction -->
             <g id="layer-user-lines" class="arch-user-lines-layer" fill="none" stroke-linecap="round" stroke-linejoin="round" pointer-events="stroke"/>
+            <g id="layer-user-line-handles" class="arch-user-line-handles-layer" pointer-events="all" aria-hidden="true"/>
             <line id="archUserLinePreview" class="arch-user-line-preview" x1="0" y1="0" x2="0" y2="0" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5 4" opacity="0" pointer-events="none"/>
+            <path id="archUserLineFreehandPreview" class="arch-user-line-preview" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="" opacity="0" pointer-events="none"/>
             <!-- PowerPoint-style alignment guides while dragging a box -->
             <g id="layer-drag-guides" class="arch-drag-guides-layer" fill="none" pointer-events="none" aria-hidden="true"/>
           </svg>
           </div>
+              <div id="archLineFloatBar" class="arch-line-float-bar arch-diagram-ui" hidden role="toolbar" aria-label="Lines and connectors">
+                <div class="arch-line-float-seg arch-line-float-tools" role="group" aria-label="Line type">
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="freehand" title="Freehand — drag to sketch a path">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 17c2.5-6 8-12 14.5-9S22 17 16 19c-4 1.5-7-1-9-4"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="plain" title="Straight segment — no arrowheads, click start then end">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 12h14"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool is-active" data-arch-line-tool="arrow" title="Connector — click start, then end (arrow)">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 12h12"/><path d="M14 8l4 4-4 4"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="doubleArrow" title="Connector — both ends">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M8 8l-3 4 3 4"/><path d="M16 8l3 4-3 4"/><path d="M9 12h6"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="dotted" title="Dotted connector — click start, then end">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-dasharray="3 3" aria-hidden="true"><path d="M5 12h14"/><path d="M16 9l3 3-3 3"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn arch-line-float-tool" data-arch-line-tool="junction" title="Corner point — click a line to add a bend; drag the handle (hold Shift for 45° angles)">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
+                  </button>
+                </div>
+                <div id="archLineFloatWWrap" class="arch-line-float-w-wrap">
+                  <button type="button" class="arch-line-float-w-trigger" id="archLineFloatWTrigger" aria-expanded="false" aria-haspopup="listbox" aria-controls="archLineFloatWMenu" title="Line weight">
+                    <span class="arch-line-float-w-trigger-bar" id="archLineFloatWTriggerBar" aria-hidden="true"></span>
+                    <span class="arch-line-float-w-label" id="archLineFloatWLabel">2px</span>
+                  </button>
+                  <div class="arch-line-float-w-menu arch-diagram-ui" id="archLineFloatWMenu" role="listbox" hidden aria-label="Line weight">
+                    <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="1" aria-selected="false"><span class="arch-line-float-w-opt-preview" style="height:1px"></span><span class="arch-line-float-w-opt-label">1px</span></button>
+                    <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="2" aria-selected="true"><span class="arch-line-float-w-opt-preview" style="height:2px"></span><span class="arch-line-float-w-opt-label">2px</span></button>
+                    <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="3" aria-selected="false"><span class="arch-line-float-w-opt-preview" style="height:3px"></span><span class="arch-line-float-w-opt-label">3px</span></button>
+                    <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="5" aria-selected="false"><span class="arch-line-float-w-opt-preview" style="height:5px"></span><span class="arch-line-float-w-opt-label">5px</span></button>
+                    <button type="button" role="option" class="arch-line-float-w-option" data-arch-line-w="8" aria-selected="false"><span class="arch-line-float-w-opt-preview" style="height:8px"></span><span class="arch-line-float-w-opt-label">8px</span></button>
+                  </div>
+                </div>
+                <div class="arch-line-float-seg arch-line-float-colors" role="group" aria-label="Stroke colour">
+                  <div class="arch-line-float-color-wrap" id="archLineFloatColorWrap">
+                    <button type="button" class="arch-line-float-color-btn" id="archLineFloatColorBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="archLineFloatColorPopover" title="Colour"></button>
+                    <div id="archLineFloatColorPopover" class="arch-line-float-color-popover arch-diagram-ui" hidden role="dialog" aria-label="Stroke colour">
+                      <div class="arch-line-float-color-popover-inner">
+                        <label class="arch-line-float-popover-field">
+                          <span class="arch-line-float-popover-label">Picker</span>
+                          <input type="color" id="archLineFloatColorPicker" class="arch-line-float-color-picker-native arch-diagram-ui" value="#308fff"/>
+                        </label>
+                        <label class="arch-line-float-popover-field">
+                          <span class="arch-line-float-popover-label">Hex</span>
+                          <input type="text" id="archLineFloatColorHexInput" class="arch-line-float-hex-text arch-diagram-ui" spellcheck="false" maxlength="9" placeholder="#RRGGBB" autocomplete="off"/>
+                        </label>
+                        <p class="arch-line-float-hex-error" id="archLineFloatColorHexErr" hidden role="alert">Use #RGB or #RRGGBB (hex digits only).</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="arch-line-float-seg arch-line-float-actions" role="group" aria-label="Actions">
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatUndo" title="Undo last layout change">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 014 4v0"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatDelete" title="Delete selected line" disabled>
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+                  </button>
+                  <button type="button" class="arch-line-float-btn" id="archLineFloatClose" title="Exit Lines tool (Escape)">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div id="archToolsFloatBar" class="arch-line-float-bar arch-tools-float-bar arch-diagram-ui" hidden role="toolbar" aria-label="Canvas tools">
+                <div class="arch-line-float-seg arch-tools-float-shapes" role="group" aria-label="Add shapes">
+                  <button type="button" class="arch-line-float-btn" data-arch-palette="process" title="Add process (rounded box)">
+                    <span class="arch-tools-float-palette-ico" aria-hidden="true"><svg viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="3" width="24" height="14" rx="4" stroke="currentColor" stroke-width="1.75"/></svg></span>
+                  </button>
+                  <button type="button" class="arch-line-float-btn" data-arch-palette="datastore" title="Add data store">
+                    <span class="arch-tools-float-palette-ico" aria-hidden="true"><svg viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="14" cy="4.5" rx="10" ry="3" stroke="currentColor" stroke-width="1.5"/><path d="M4 4.5v11c0 1.7 4.5 3.5 10 3.5s10-1.8 10-3.5V4.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
+                  </button>
+                  <button type="button" class="arch-line-float-btn" data-arch-palette="external" title="Add external system">
+                    <span class="arch-tools-float-palette-ico" aria-hidden="true"><svg viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 16l5-14h14l-5 14H6z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg></span>
+                  </button>
+                  <button type="button" class="arch-line-float-btn" data-arch-palette="textnote" title="Add text note">
+                    <span class="arch-tools-float-palette-ico" aria-hidden="true"><svg viewBox="0 0 32 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="3" width="30" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 8h20M6 11.5h14" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg></span>
+                  </button>
+                </div>
+                <div id="archCustomBoxProps" class="arch-line-float-seg arch-tools-float-selected arch-diagram-ui" hidden aria-label="Selected shape">
+                  <label class="arch-tools-float-name-wrap"><span class="visually-hidden">Name</span>
+                    <input type="text" id="archCustomBoxNameInput" class="arch-tools-float-name-input arch-diagram-ui" maxlength="120" autocomplete="off" placeholder="Name" aria-label="Shape name"/>
+                  </label>
+                  <div id="archCustomBoxNormalColorFields" class="arch-tools-float-color-row">
+                    <label class="arch-tools-float-color-lab" title="Fill"><span class="visually-hidden">Fill</span>
+                      <input type="color" id="archCustomBoxFillInput" class="arch-tools-float-color-inp" value="#e5e7eb" aria-label="Fill color"/>
+                    </label>
+                    <label class="arch-tools-float-color-lab" title="Outline"><span class="visually-hidden">Outline</span>
+                      <input type="color" id="archCustomBoxStrokeInput" class="arch-tools-float-color-inp" value="#94a3b8" aria-label="Outline color"/>
+                    </label>
+                  </div>
+                  <div id="archCustomBoxNormalLabelFields" class="arch-tools-float-label-row" role="group" aria-label="Label size">
+                    <button type="button" class="arch-line-float-btn" id="archCustomBoxTextSmaller" title="Smaller label" aria-label="Decrease label size">−</button>
+                    <span id="archCustomBoxFontSizeDisplay" class="arch-tools-float-font-disp" aria-live="polite">8.5</span>
+                    <button type="button" class="arch-line-float-btn" id="archCustomBoxTextLarger" title="Larger label" aria-label="Increase label size">+</button>
+                  </div>
+                  <div class="arch-line-float-seg arch-tools-float-sel-actions" role="group" aria-label="Shape actions">
+                    <button type="button" class="arch-line-float-btn" id="archCustomBoxDuplicate" title="Duplicate">
+                      <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 012-2h10"/></svg>
+                    </button>
+                    <button type="button" class="arch-line-float-btn" id="archCustomBoxDelete" title="Delete">
+                      <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="arch-line-float-seg arch-line-float-actions" role="group" aria-label="Close">
+                  <button type="button" class="arch-line-float-btn" id="archToolsFloatClose" title="Close (Escape)">
+                    <svg class="arch-line-float-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
               <button type="button" class="dashboard-btn-outline arch-show-controls-fab arch-diagram-ui" id="archShowControlsFab" hidden aria-label="Edit diagram">Edit diagram</button>
             </div>
 
             <aside class="arch-editor-dock arch-diagram-ui" id="archEditorDock" hidden>
               <div class="arch-editor-rail" role="tablist" aria-label="Diagram editor tools">
-                <button type="button" class="arch-editor-rail-btn is-active" data-arch-panel="layout" id="archEditorRailLayout" title="Layout tools" aria-pressed="true"><span class="arch-editor-rail-glyph" aria-hidden="true">L</span></button>
-                <button type="button" class="arch-editor-rail-btn" data-arch-panel="highlights" id="archEditorRailHighlights" title="Highlights" aria-pressed="false"><span class="arch-editor-rail-glyph" aria-hidden="true">H</span></button>
-                <button type="button" class="arch-editor-rail-btn" data-arch-panel="sources" id="archEditorRailSources" title="Sources dividers" aria-pressed="false"><span class="arch-editor-rail-glyph" aria-hidden="true">S</span></button>
-                <button type="button" class="arch-editor-rail-btn" data-arch-panel="file" id="archEditorRailFile" title="Save and import" aria-pressed="false"><span class="arch-editor-rail-glyph" aria-hidden="true">F</span></button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="layout" id="archEditorRailLayout" title="Canvas tools — floating menu on the diagram" aria-pressed="false">
+                  <span class="arch-editor-rail-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" focusable="false" class="arch-editor-rail-tools-logo">
+                      <g fill="currentColor">
+                        <path d="M12.7675,10.669l-1.604,1.6055,4.3925,4.392a.6815.6815,0,0,0,.96379.00071l.00071-.00071.64-.64a.6815.6815,0,0,0,.00071-.96379L17.1605,15.062Z" />
+                        <path d="M3.329,9.7655l.726-.726c.2665-.2665-.011-.644-.011-.644l.746-.719A.68149.68149,0,0,0,5.75,7.67l.4055-.4055.781.7805L8.541,6.4405,7.7585,5.66l.264-.2645a.6815.6815,0,0,0,.00071-.96379L8.0225,4.431l-.32-.32s.9425-1.058,1.14-1.256c.8325-.832,2.6755-.2955,2.7605-.7215S7.5115.1275,5.2245,2.414L2.845,4.794a.6815.6815,0,0,0-.00222.96378L2.845,5.76l.161.155L2.3,6.65a.4535.4535,0,0,0-.64081-.02621L1.65,6.6325l-.728.726a.341.341,0,0,0,0,.482l1.9245,1.925a.3405.3405,0,0,0,.48154.001Z" />
+                        <path d="M5.5205,15.2615c-.787.283-1.7705.6385-2.45.8815l.877-2.45Zm9.1-13.183-11.19,11.19a.56358.56358,0,0,0-.132.2065l-1.062,2.932a.42.42,0,0,0,.55.5545l2.947-1.05a.56353.56353,0,0,0,.21-.1335L17.131,4.578a.4785.4785,0,0,0,.0435-.673l-1.882-1.872A.4785.4785,0,0,0,14.6205,2.0785Z" />
+                      </g>
+                    </svg>
+                  </span>
+                  <span class="visually-hidden">Tools — canvas and drawing</span>
+                </button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="highlights" id="archEditorRailHighlights" title="Which boxes light up for each tour step" aria-pressed="false">
+                  <span class="arch-editor-rail-icon" aria-hidden="true">
+                    <!-- Spectrum Workflow: S2_Icon_Apps_20_N.svg (Apache-2.0) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" focusable="false" class="arch-spectrum-apps-icon">
+                      <path fill="currentColor" d="m5.75,18.00293h-1.5c-1.24023,0-2.25-1.00977-2.25-2.25v-1.5c0-1.24023,1.00977-2.25,2.25-2.25h1.5c1.24023,0,2.25,1.00977,2.25,2.25v1.5c0,1.24023-1.00977,2.25-2.25,2.25Zm-1.5-4.5c-.41309,0-.75.33691-.75.75v1.5c0,.41309.33691.75.75.75h1.5c.41309,0,.75-.33691.75-.75v-1.5c0-.41309-.33691-.75-.75-.75h-1.5Z"/>
+                      <path fill="currentColor" d="m5.75,11.00293h-1.5c-1.24023,0-2.25-1.00977-2.25-2.25v-1.5c0-1.24023,1.00977-2.25,2.25-2.25h1.5c1.24023,0,2.25,1.00977,2.25,2.25v1.5c0,1.24023-1.00977,2.25-2.25,2.25Zm-1.5-4.5c-.41309,0-.75.33691-.75.75v1.5c0,.41309.33691.75.75.75h1.5c.41309,0,.75-.33691.75-.75v-1.5c0-.41309-.33691-.75-.75-.75h-1.5Z"/>
+                      <path fill="currentColor" d="m12.75,18.00293h-1.5c-1.24023,0-2.25-1.00977-2.25-2.25v-1.5c0-1.24023,1.00977-2.25,2.25-2.25h1.5c1.24023,0,2.25,1.00977,2.25,2.25v1.5c0,1.24023-1.00977,2.25-2.25,2.25Zm-1.5-4.5c-.41309,0-.75.33691-.75.75v1.5c0,.41309.33691.75.75.75h1.5c.41309,0,.75-.33691.75-.75v-1.5c0-.41309-.33691-.75-.75-.75h-1.5Z"/>
+                      <path fill="currentColor" d="m15.25098,11.00293h-3.5c-1.5166,0-2.75-1.2334-2.75-2.75v-3.5c0-1.5166,1.2334-2.75,2.75-2.75h3.5c1.5166,0,2.75,1.2334,2.75,2.75v3.5c0,1.5166-1.2334,2.75-2.75,2.75Zm-3.5-7.5c-.68945,0-1.25.56055-1.25,1.25v3.5c0,.68945.56055,1.25,1.25,1.25h3.5c.68945,0,1.25-.56055,1.25-1.25v-3.5c0-.68945-.56055-1.25-1.25-1.25h-3.5Z"/>
+                    </svg>
+                  </span>
+                  <span class="visually-hidden">States — highlights per step</span>
+                </button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="sources" id="archEditorRailSources" title="Diagram connectors (Arrow Head Tool)" aria-pressed="false">
+                  <span class="arch-editor-rail-icon" aria-hidden="true">
+                    <!-- Spectrum Workflow: S2_Icon_ArrowHeadTool_20_N.svg (Apache-2.0) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" focusable="false" class="arch-spectrum-pen-brush-icon">
+                      <path fill="currentColor" d="m17.25,2h-4.25c-.41406,0-.75.33594-.75.75s.33594.75.75.75h2.43945L2.34521,16.59424c-.29297.29297-.29297.76758,0,1.06055.14648.14648.33838.21973.53027.21973s.38379-.07324.53027-.21973l13.09424-13.09424v2.43945c0,.41406.33594.75.75.75s.75-.33594.75-.75V2.75c0-.41406-.33594-.75-.75-.75Z"/>
+                    </svg>
+                  </span>
+                  <span class="visually-hidden">Arrow Head Tool — connectors</span>
+                </button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="spectrum-icons" id="archEditorRailSpectrumIcons" title="Browse Adobe Spectrum workflow icons (Apache-2.0)" aria-pressed="false">
+                  <span class="arch-editor-rail-icon" aria-hidden="true">
+                    <!-- Spectrum Workflow: S2_Icon_AddContent_20_N.svg (Apache-2.0) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" focusable="false" class="arch-spectrum-add-content-icon">
+                      <path fill="currentColor" d="m9.35156,17.25c0,.41406-.33594.75-.75.75H2.25c-1.24072,0-2.25-1.00928-2.25-2.25v-5.5c0-1.24072,1.00928-2.25,2.25-2.25h10.11621c.41406,0,.75.33594.75.75s-.33594.75-.75.75H2.25c-.41357,0-.75.33643-.75.75v3.8374l2.15674-2.15674c.7666-.7666,2.01465-.7666,2.78125,0l2.42334,2.54639c.23828.25.22803.64551-.02197.8833-.24951.23779-.64648.22852-.8833-.02197l-2.4126-2.53516c-.26904-.26807-.72314-.26758-1.00293.01123l-3.02289,3.02289c.04523.37061.34973.66266.73236.66266h6.35156c.41406,0,.75.33594.75.75Zm-3.92969-10.45459c.39746-.1167.62549-.5332.50879-.93066-.02588-.08789-.00439-.2085.10205-.27881l4.99951-3.31641c.16602-.11035.36572-.15039.56348-.10986.19678.04004.36572.1543.47656.32129l4.29248,6.48291c.14453.21777.38281.33594.62598.33594.14258,0,.28613-.04053.41357-.12451.34521-.229.43994-.69434.21143-1.03955L13.32324,1.65283c-.33252-.50146-.83984-.84375-1.4292-.96338-.58887-.11865-1.18994-.00244-1.69092.33008l-4.99951,3.31641c-.64307.42676-.9292,1.21094-.7124,1.95068.11621.39746.53418.625.93066.50879Zm3.86365,3.89563c-.57532,0-1.04169.46637-1.04169,1.04169,0,.57526.46637,1.04163,1.04169,1.04163.57526,0,1.04163-.46637,1.04163-1.04163,0-.57532-.46637-1.04169-1.04163-1.04169Z"/>
+                      <path fill="currentColor" d="m15,10.5c-2.48535,0-4.5,2.01465-4.5,4.5s2.01465,4.5,4.5,4.5,4.5-2.01465,4.5-4.5-2.01465-4.5-4.5-4.5Zm2.5,5.125h-1.875v1.875c0,.34521-.27979.625-.625.625s-.625-.27979-.625-.625v-1.875h-1.875c-.34521,0-.625-.27979-.625-.625s.27979-.625.625-.625h1.875v-1.875c0-.34521.27979-.625.625-.625s.625.27979.625.625v1.875h1.875c.34521,0,.625.27979.625.625s-.27979.625-.625.625Z"/>
+                    </svg>
+                  </span>
+                  <span class="visually-hidden">Icons — Adobe Spectrum workflow</span>
+                </button>
+                <button type="button" class="arch-editor-rail-btn" data-arch-panel="file" id="archEditorRailFile" title="Save, import, undo, reset" aria-pressed="false">
+                  <span class="arch-editor-rail-icon" aria-hidden="true">
+                    <!-- Spectrum Workflow: S2_Icon_Archive_20_N.svg (Apache-2.0) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" focusable="false" class="arch-spectrum-archive-icon">
+                      <path fill="currentColor" d="m16.75,3H3.25c-1.24072,0-2.25,1.00977-2.25,2.25v1c0,.77808.39764,1.46484,1,1.86914v6.63086c0,1.24023,1.00928,2.25,2.25,2.25h11.5c1.24072,0,2.25-1.00977,2.25-2.25v-6.63086c.60236-.4043,1-1.09106,1-1.86914v-1c0-1.24023-1.00928-2.25-2.25-2.25ZM2.5,5.25c0-.41309.33643-.75.75-.75h13.5c.41357,0,.75.33691.75.75v1c0,.41309-.33643.75-.75.75H3.25c-.41357,0-.75-.33691-.75-.75v-1Zm13.25,10.25H4.25c-.41357,0-.75-.33691-.75-.75v-6.25h13v6.25c0,.41309-.33643.75-.75.75Z"/>
+                      <path fill="currentColor" d="m12.25,12h-4.5c-.41406,0-.75-.33594-.75-.75s.33594-.75.75-.75h4.5c.41406,0,.75.33594.75.75s-.33594.75-.75.75Z"/>
+                    </svg>
+                  </span>
+                  <span class="visually-hidden">File — save and layout data</span>
+                </button>
               </div>
               <div class="arch-editor-panel arch-int-hud" id="archEditorPanel">
-                <div class="arch-editor-section is-active" data-arch-panel="layout" id="archEditorSectionLayout" role="tabpanel" aria-labelledby="archEditorRailLayout">
-                  <p class="arch-editor-panel-heading">Layout &amp; drawing</p>
-                  <div class="arch-int-hud-tools" aria-label="Diagram layout">
-                    <label class="arch-drag-toggle">
-                      <input type="checkbox" id="archDragToggle"/>
-                      <span>Drag &amp; resize boxes</span>
-                    </label>
-                    <label class="arch-drag-toggle">
-                      <input type="checkbox" id="archLabelToggle"/>
-                      <span>Move &amp; edit labels</span>
-                    </label>
-                    <label class="arch-drag-toggle">
-                      <input type="checkbox" id="archUserLineDrawToggle"/>
-                      <span>Draw connectors</span>
-                    </label>
-                    <label class="arch-drag-toggle">
-                      <input type="checkbox" id="archCustomBoxDrawToggle"/>
-                      <span>Draw custom boxes</span>
-                    </label>
-                    <span class="arch-int-hud-hint" title="Within ~36px of a box, endpoints snap to that box edge and stay attached when you move or resize the box">Snap to boxes</span>
-                    <label class="arch-hud-label">
-                      New line color
-                      <select id="archUserLineStrokePreset" title="Stroke for next connector" aria-label="Default stroke color for new connectors">
-                        <option value="#308fff">Ingress (blue)</option>
-                        <option value="#7d8a9e">Intra (gray)</option>
-                        <option value="#e34850">Egress (red)</option>
-                        <option value="#111827">Dark</option>
-                        <option value="#059669">Green</option>
-                        <option value="#d97706">Amber</option>
-                        <option value="#7c3aed">Violet</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div id="archUserLineProps" class="arch-user-line-props" hidden aria-label="Selected connector">
-                    <span class="arch-hud-label">Selected line</span>
-                    <label class="arch-hud-label">Color
-                      <select id="archUserLineColorSel" aria-label="Selected line color"></select>
-                    </label>
-                    <label class="arch-drag-toggle">
-                      <input type="checkbox" id="archUserLineBidir"/>
-                      <span>Bidirectional</span>
-                    </label>
-                    <button type="button" class="dashboard-btn-outline" id="archUserLineDelete" title="Remove this connector">Delete line</button>
-                  </div>
-                  <div id="archCustomBoxProps" class="arch-user-line-props arch-custom-box-props" hidden aria-label="Selected custom box">
-                    <span class="arch-hud-label">Custom box</span>
-                    <label class="arch-hud-label">Name
-                      <input type="text" id="archCustomBoxNameInput" class="arch-custom-box-name-input" maxlength="120" autocomplete="off" aria-label="Custom box name"/>
-                    </label>
-                    <label class="arch-hud-label">Fill
-                      <input type="color" id="archCustomBoxFillInput" value="#e5e7eb" aria-label="Custom box fill color"/>
-                    </label>
-                    <label class="arch-hud-label">Outline
-                      <input type="color" id="archCustomBoxStrokeInput" value="#94a3b8" aria-label="Custom box outline color"/>
-                    </label>
-                    <span class="arch-hud-label arch-custom-box-text-size-row">
-                      Label size
-                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextSmaller" title="Decrease label text size" aria-label="Decrease label text size">−</button>
-                      <span id="archCustomBoxFontSizeDisplay" class="arch-custom-box-font-size-display" aria-live="polite">8.5</span>
-                      <button type="button" class="dashboard-btn-outline" id="archCustomBoxTextLarger" title="Increase label text size" aria-label="Increase label text size">+</button>
-                    </span>
-                    <p class="arch-custom-box-text-size-hint">Click the label on the diagram, then use − or +.</p>
-                    <button type="button" class="dashboard-btn-outline" id="archCustomBoxDelete" title="Remove this box">Delete box</button>
-                  </div>
+                <div class="arch-editor-section" data-arch-panel="layout" id="archEditorSectionLayout" role="tabpanel" aria-labelledby="archEditorRailLayout" hidden>
+                  <p class="arch-tool-micro arch-tools-layout-hint">Shapes and selection controls are on the <strong>floating Tools bar</strong> on the diagram (rail: Tools). Connectors: <strong>arrow</strong> on the rail · save / undo: <strong>archive</strong> on the rail.</p>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="highlights" id="archEditorSectionHighlights" role="tabpanel" aria-labelledby="archEditorRailHighlights" hidden>
-                  <p class="arch-editor-panel-heading">Highlights</p>
+                  <p class="arch-editor-panel-heading">Tour highlights</p>
+                  <p class="arch-tool-lead">Control which boxes are emphasized for <strong>each numbered step</strong> of the tour (saved in this browser).</p>
                   <div class="arch-int-hud-view" aria-label="Diagram view">
                     <label class="arch-drag-toggle">
                       <input type="checkbox" id="archStateHighlightsToggle" checked/>
@@ -461,25 +566,192 @@
                   </details>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="sources" id="archEditorSectionSources" role="tabpanel" aria-labelledby="archEditorRailSources" hidden>
-                  <p class="arch-editor-panel-heading">Sources column</p>
-                  <details class="arch-sources-dividers-wrap" id="archSourcesDividersWrap">
-                    <summary class="arch-highlight-picker-summary">Sources column divider lines</summary>
-                    <p class="arch-highlight-picker-help">
-                      Horizontal rules between the SDK block and the category rows. Adjust left/right ends to change length; duplicate or remove lines. Saved with layout / JSON.
-                    </p>
-                    <div id="archSourcesDividersList" class="arch-sources-dividers-list" role="group" aria-label="Sources divider lines"></div>
-                    <button type="button" class="dashboard-btn-outline" id="archSourcesDividerAdd">Add divider line</button>
+                  <div class="arch-lines-dock-chrome-hide-when-active">
+                    <p class="arch-editor-panel-heading">Lines</p>
+                    <p class="arch-tool-lead">Use the <strong>floating toolbar</strong> on the canvas for connectors (stroke, arrows, freehand). Press <strong>Esc</strong> or the close control on the bar to leave Lines mode. Horizontal rules in the Sources column are edited like any other line (select, drag handles, bends).</p>
+                  </div>
+                </div>
+                <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
+                  <p class="arch-editor-panel-heading">Icons &amp; logos</p>
+                  <p class="arch-tool-lead arch-tool-lead--compact">Open <strong>Adobe Logos</strong> or <strong>Product &amp; diagram logos</strong> (or Spectrum icons), then click a tile to place it. Use <strong>Edit logos</strong> at the bottom to edit or remove entries (like iOS home screen). Custom uploads: <strong>Upload new asset</strong>. With <strong>Edit diagram</strong> on, drag corners on the canvas to resize placed assets.</p>
+                  <details class="arch-icon-panel-details">
+                    <summary class="arch-icon-panel-summary">Spectrum workflow icons</summary>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead"><a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum workflow icons</a></p>
+                    <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
+                      <input type="search" id="archSpectrumIconSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter by name…" autocomplete="off" aria-label="Filter Spectrum icons"/>
+                    </label>
+                    <div id="archSpectrumIconGrid" class="arch-spectrum-icons-grid" role="listbox" aria-label="Spectrum workflow icons"></div>
+                    <p id="archSpectrumIconStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
                   </details>
+                  <details class="arch-icon-panel-details">
+                    <summary class="arch-icon-panel-summary">Adobe Logos</summary>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Adobe marks and Corporate Express product logos</p>
+                    <div id="archAdobeLogoTagRow" class="arch-logo-tag-chip-row arch-diagram-ui" role="toolbar" aria-label="Filter Adobe logos by category"></div>
+                    <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
+                      <input type="search" id="archAdobeLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter Adobe logos…" autocomplete="off" aria-label="Filter Adobe logos"/>
+                    </label>
+                    <div id="archAdobeLogoMenuMount" class="arch-logo-menu-groups arch-diagram-ui" data-arch-logo-panel="adobe" aria-label="Adobe product logos by category"></div>
+                    <p id="archAdobeLogoStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
+                  </details>
+                  <details class="arch-icon-panel-details">
+                    <summary class="arch-icon-panel-summary">Product &amp; diagram logos</summary>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Smock, template, diagram, and ecosystem vendor icons</p>
+                    <div id="archOtherLogoTagRow" class="arch-logo-tag-chip-row arch-diagram-ui" role="toolbar" aria-label="Filter diagram logos by category"></div>
+                    <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
+                      <input type="search" id="archArchitectureLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter logos…" autocomplete="off" aria-label="Filter diagram and product logos"/>
+                    </label>
+                    <div id="archArchitectureLogoMenuMount" class="arch-logo-menu-groups arch-diagram-ui" data-arch-logo-panel="other" aria-label="Diagram logos by category"></div>
+                    <p id="archArchitectureLogoStatus" class="arch-tool-micro arch-spectrum-icons-status" role="status" aria-live="polite"></p>
+                  </details>
+                  <details class="arch-icon-panel-details" id="archCustomLogoUploadDetails">
+                    <summary class="arch-icon-panel-summary">Upload new asset</summary>
+                    <p class="arch-tool-micro arch-icon-panel-details-lead">Stored in <strong>this browser only</strong> (localStorage). After adding, your asset appears in the submenu you choose. Team-wide assets belong in the repo <code>data/architecture-logos.json</code>.</p>
+                    <div id="archCustomLogoDropZone" class="arch-custom-logo-drop-zone arch-diagram-ui" aria-label="Drop image file to attach">
+                      <input type="file" id="archCustomLogoFile" class="visually-hidden" accept="image/*" aria-label="Choose image file from disk"/>
+                      <div class="arch-custom-logo-drop-zone-inner">
+                        <button type="button" class="dashboard-btn-outline" id="archCustomLogoBrowse">Browse…</button>
+                        <span class="arch-custom-logo-drop-hint">or drag and drop an image from your computer</span>
+                      </div>
+                    </div>
+                    <div class="arch-custom-logo-form arch-diagram-ui">
+                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
+                        Label
+                        <input type="text" id="archCustomLogoLabel" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="e.g. Internal warehouse" autocomplete="off" maxlength="120" aria-label="Logo label"/>
+                      </label>
+                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
+                        Description <span class="arch-tool-micro">(optional — tooltip / notes)</span>
+                        <input type="text" id="archCustomLogoDesc" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Shown on hover and in stack context" autocomplete="off" maxlength="500" aria-label="Logo description"/>
+                      </label>
+                      <div class="arch-custom-logo-field-row">
+                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
+                          Side panel
+                          <select id="archCustomLogoPanel" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo side panel"></select>
+                        </label>
+                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
+                          Submenu
+                          <select id="archCustomLogoGroup" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo submenu category"></select>
+                        </label>
+                      </div>
+                      <button type="button" class="dashboard-btn-primary" id="archCustomLogoAdd">Add to library</button>
+                      <p id="archCustomLogoFormStatus" class="arch-tool-micro arch-custom-logo-form-status" role="status" aria-live="polite"></p>
+                    </div>
+                    <div class="arch-custom-logo-saved">
+                      <p class="arch-tool-micro arch-custom-logo-saved-heading">Your uploads (this browser)</p>
+                      <ul id="archCustomLogoList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Uploaded logos"></ul>
+                    </div>
+                  </details>
+                  <div id="archCustomLogoEditOverlay" class="arch-custom-logo-edit-overlay arch-diagram-ui" hidden>
+                    <div
+                      class="arch-custom-logo-edit-dialog arch-diagram-ui"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="archCustomLogoEditTitle"
+                    >
+                      <div class="arch-custom-logo-edit-header">
+                        <h3 id="archCustomLogoEditTitle" class="arch-custom-logo-edit-title">Edit uploaded logo</h3>
+                        <button type="button" id="archLogoEditDelete" class="arch-logo-edit-delete-btn arch-diagram-ui" aria-label="Delete" title="Delete">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                        </button>
+                      </div>
+                      <p id="archCustomLogoEditHint" class="arch-tool-micro arch-custom-logo-edit-hint">Change label, description, or which submenu this appears under. Logos already on the canvas keep their old label until you edit the box on the canvas.</p>
+                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
+                        Label
+                        <input type="text" id="archCustomLogoEditLabel" class="arch-spectrum-icons-search arch-diagram-ui" maxlength="120" autocomplete="off" aria-label="Logo label"/>
+                      </label>
+                      <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field">
+                        Description <span class="arch-tool-micro">(optional)</span>
+                        <input type="text" id="archCustomLogoEditDesc" class="arch-spectrum-icons-search arch-diagram-ui" maxlength="500" autocomplete="off" aria-label="Logo description"/>
+                      </label>
+                      <div id="archCatalogLogoEditReplaceRow" class="arch-custom-logo-field arch-catalog-logo-edit-replace" hidden>
+                        <label class="arch-hud-label arch-hud-label--block">
+                          Replace image <span class="arch-tool-micro">(optional, this browser)</span>
+                          <input type="file" id="archCatalogLogoEditReplaceFile" class="arch-diagram-ui" accept="image/png,image/jpeg,image/svg+xml,image/webp" aria-label="Replace catalog logo image"/>
+                        </label>
+                        <p class="arch-tool-micro">Overrides the bundled file for the picker and new placements. Use the trash control in the header or <strong>Remove</strong> on the tile (in Edit logos mode) to restore.</p>
+                      </div>
+                      <div id="archCustomLogoEditPanelRow" class="arch-custom-logo-field-row">
+                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
+                          Side panel
+                          <select id="archCustomLogoEditPanel" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo side panel"></select>
+                        </label>
+                        <label class="arch-hud-label arch-hud-label--block arch-custom-logo-field-half">
+                          Submenu
+                          <select id="archCustomLogoEditGroup" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Logo submenu"></select>
+                        </label>
+                      </div>
+                      <div class="arch-custom-logo-edit-actions">
+                        <button type="button" class="dashboard-btn-outline" id="archCustomLogoEditCancel">Cancel</button>
+                        <button type="button" class="dashboard-btn-primary" id="archCustomLogoEditSave">Save</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    id="archLogoConfirmOverlay"
+                    class="arch-custom-logo-edit-overlay arch-logo-confirm-overlay arch-diagram-ui"
+                    hidden
+                  >
+                    <div
+                      id="archLogoConfirmDialog"
+                      class="arch-custom-logo-edit-dialog arch-logo-confirm-dialog arch-diagram-ui"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="archLogoConfirmTitle"
+                    >
+                      <h3 id="archLogoConfirmTitle" class="arch-custom-logo-edit-title">Confirm</h3>
+                      <p id="archLogoConfirmMessage" class="arch-tool-micro arch-custom-logo-edit-hint" hidden></p>
+                      <div class="arch-custom-logo-edit-actions arch-logo-confirm-actions">
+                        <button type="button" class="dashboard-btn-outline" id="archLogoConfirmCancel">Cancel</button>
+                        <button type="button" class="dashboard-btn-primary arch-diagram-ui" id="archLogoConfirmAction">OK</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="arch-logo-library-edit-bar arch-diagram-ui" id="archLogoLibraryEditBar">
+                    <button type="button" class="dashboard-btn-outline" id="archLogoLibraryEditToggle" aria-pressed="false">Edit logos</button>
+                    <p class="arch-tool-micro arch-logo-library-edit-bar-hint">Shows delete on each <strong>Spectrum workflow</strong>, <strong>Adobe</strong>, and <strong>Product</strong> tile. While on, clicking a tile does not place it on the diagram — tap <strong>Done</strong> when finished.</p>
+                  </div>
+                  <div class="arch-custom-logo-dock arch-diagram-ui">
+                    <p class="arch-tool-micro arch-custom-logo-dock-lead">
+                      <strong>Custom logos:</strong> use <strong>Edit logos</strong> above, or the list under <strong>Upload new asset</strong>. Drag tiles to move or reorder. Pending removals below purge after 7 days (this browser only).
+                    </p>
+                    <div class="arch-custom-logo-pending-wrap">
+                      <p class="arch-tool-micro arch-custom-logo-saved-heading">Pending removal</p>
+                      <p id="archCustomLogoPendingEmpty" class="arch-tool-micro">No logos in the removal queue.</p>
+                      <ul id="archCustomLogoPendingList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Logos pending automatic deletion"></ul>
+                    </div>
+                    <div class="arch-catalog-logo-hidden-wrap">
+                      <p class="arch-tool-micro arch-custom-logo-saved-heading">Removed from picker</p>
+                      <p class="arch-tool-micro arch-catalog-hidden-lead">
+                        Deleting only hides entries in <strong>this browser</strong>. Repo files stay until someone edits them (<code>data/architecture-logos.json</code>, <code>data/spectrum-workflow-icons.json</code>, vendored SVGs). Export lists both kinds for a repo change.
+                      </p>
+                      <p class="arch-tool-micro arch-picker-hidden-subhead">Adobe &amp; product logos</p>
+                      <p id="archCatalogHiddenEmpty" class="arch-tool-micro">None removed.</p>
+                      <ul id="archCatalogHiddenList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Catalog logos hidden from the picker"></ul>
+                      <p class="arch-tool-micro arch-picker-hidden-subhead">Spectrum workflow icons</p>
+                      <p id="archSpectrumHiddenEmpty" class="arch-tool-micro">None removed.</p>
+                      <ul id="archSpectrumHiddenList" class="arch-custom-logo-list arch-diagram-ui" aria-label="Spectrum icons hidden from the picker"></ul>
+                      <button type="button" class="dashboard-btn-outline arch-catalog-hidden-export" id="archPickerHiddenExportBtn">Download removal list (JSON)</button>
+                    </div>
+                  </div>
                 </div>
                 <div class="arch-editor-section" data-arch-panel="file" id="archEditorSectionFile" role="tabpanel" aria-labelledby="archEditorRailFile" hidden>
-                  <p class="arch-editor-panel-heading">Layout file</p>
+                  <p class="arch-editor-panel-heading">Save &amp; layout data</p>
+                  <p class="arch-tool-lead">Download or import JSON to share layouts. <strong>Save as master</strong> keeps the default for this browser. <strong>Undo</strong> applies to edits in the current session. <strong>Stack summary</strong> is a smaller interop file (vendor/icon positions + connectors) for external tools — see <code>data/diagram-interop.json</code>. Full round-trip always uses <strong>Download JSON</strong>.</p>
                   <div class="arch-int-hud-tools arch-int-hud-file-tools" aria-label="Save and restore layout">
                     <button type="button" class="dashboard-btn-outline" id="archMasterSave" title="Store current diagram as the default for this browser">Save as master layout</button>
                     <button type="button" class="dashboard-btn-outline" id="archMasterDownload" title="Download layout JSON">Download JSON</button>
+                    <button type="button" class="dashboard-btn-outline" id="archStackSummaryDownload" title="Vendor and connector summary for tooling (not a full layout import)">Download stack summary (interop)</button>
+                    <label class="dashboard-btn-outline arch-master-import-label" title="Adds logos/icons from a stack summary file; use Download JSON for full layout">
+                      Import stack summary
+                      <input type="file" id="archStackSummaryImport" accept="application/json,.json" class="visually-hidden"/>
+                    </label>
                     <label class="dashboard-btn-outline arch-master-import-label">
                       Import JSON
                       <input type="file" id="archMasterImport" accept="application/json,.json" class="visually-hidden"/>
                     </label>
+                    <div class="arch-file-undo-row" role="group" aria-label="Undo layout changes">
+                      <button type="button" class="dashboard-btn-outline" id="archUndoBtn" title="Undo (⌘Z / Ctrl+Z)" disabled>Undo</button>
+                      <button type="button" class="dashboard-btn-outline" id="archRedoBtn" title="Redo (⌘⇧Z / Ctrl+Shift+Z / Ctrl+Y)" disabled>Redo</button>
+                    </div>
                     <button type="button" class="dashboard-btn-outline arch-drag-reset" id="archDragReset" title="Reset positions, labels, and custom lines to Adobe defaults">Restore Adobe defaults</button>
                   </div>
                 </div>
@@ -508,14 +780,16 @@
       border: 0;
     }
   </style>
-  <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260430"></script>
+  <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
   <script defer src="diagram/model.js?v=20260513"></script>
-  <script defer src="diagram/editor-model.js?v=20260519"></script>
+  <script defer src="diagram/editor-model.js?v=20260520"></script>
+  <script defer src="diagram/interop.js?v=20260418"></script>
   <script defer src="diagram/selection.js?v=20260513"></script>
   <script defer src="diagram/undo.js?v=20260513"></script>
   <script defer src="diagram/layout-math.js?v=20260513"></script>
-  <script defer src="diagram/tests.js?v=20260513"></script>
-  <script defer src="aep-architecture-apps.js?v=20260516"></script>
+  <script defer src="diagram/tests.js?v=20260520"></script>
+  <script defer src="aep-architecture-apps.js?v=20260419a"></script>
 </body>
 </html>

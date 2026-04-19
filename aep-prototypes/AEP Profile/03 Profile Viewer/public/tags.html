@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tags (in development) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="consent.css">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="profile-generation.css">
+  <link rel="stylesheet" href="tags-page.css?v=20260428c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="tags-page profile-generation-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Adobe Tags / Reactor API">Tags</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/tags/api/overview.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Reactor API</a>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main tags-page-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="tagsBannerHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="tagsBannerHeading" class="dashboard-hero-title">Tags <span class="dashboard-hero-title-dev">(in development)</span></h2>
+              <p class="dashboard-hero-subtitle">
+                Explore Adobe Data Collection Tags via the Reactor API — list companies and Tag properties for your IMS org. Uses the same server credentials as other lab tools.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="consent-panel" id="tagsPanel">
+          <div class="profile-gen-boxes">
+            <div class="profile-box tags-query-box" id="tagsReactorPanel">
+              <h3 class="profile-box-title"><span class="profile-box-icon">✦</span> Sandbox &amp; companies</h3>
+              <p class="field-hint">
+                Select the same <strong>sandbox</strong> as elsewhere (stored per browser). Reactor is org-scoped; the sandbox is passed for context. Enable <strong>Show in development capabilities</strong> in Global values to show this page in the sidebar.
+              </p>
+              <div class="profile-box-content">
+                <div class="config-row">
+                  <div class="form-row profile-viewer-sandbox-row">
+                    <label for="sandboxSelect">Sandbox</label>
+                    <select id="sandboxSelect" class="sandbox-select" aria-label="AEP sandbox"></select>
+                  </div>
+                </div>
+                <div class="config-row tags-company-controls-multi" id="tagsMultiCompanyControls">
+                  <div class="form-row form-row--action profile-gen-actions">
+                    <button type="button" class="btn btn-secondary" id="tagsLoadCompaniesBtn">Refresh companies</button>
+                  </div>
+                  <div class="form-row tags-company-field">
+                    <label for="tagsCompanySelect">Company</label>
+                    <select id="tagsCompanySelect" class="sandbox-select" aria-label="Tags company">
+                      <option value="">— Loading… —</option>
+                    </select>
+                  </div>
+                </div>
+                <p id="tagsSingleCompanyNote" class="field-hint tags-single-company-note" hidden></p>
+                <div class="config-row">
+                  <div class="form-row form-row--action profile-gen-actions tags-actions-row" id="tagsPropertiesActionsRow">
+                    <button type="button" class="btn btn-secondary" id="tagsLoadPropertiesBtn">Load properties (selected company)</button>
+                    <button type="button" class="btn btn-secondary" id="tagsLoadAllBtn">Load all properties</button>
+                  </div>
+                </div>
+                <p id="tagsMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+              </div>
+            </div>
+
+            <div class="profile-box tags-results-box" id="tagsCompaniesPanel">
+              <h3 class="profile-box-title">Companies</h3>
+              <div class="profile-box-content">
+                <div class="tags-table-wrap">
+                  <table class="tags-table" aria-label="Tags companies">
+                    <thead>
+                      <tr>
+                        <th scope="col">Company ID</th>
+                        <th scope="col">Name</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tagsCompaniesBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-box tags-results-box" id="tagsPropertiesPanel">
+              <h3 class="profile-box-title">Tag properties</h3>
+              <div class="profile-box-content">
+                <p class="field-hint tags-properties-meta-hint">
+                  Columns use the Reactor property resource: <strong>created_at</strong> / <strong>updated_at</strong>, <strong>platform</strong>, <strong>development</strong>, <strong>domains</strong>. <strong>Click a property name</strong> to open the explorer and pick <strong>data elements</strong>, <strong>extensions</strong>, <strong>rules</strong>, <strong>hosts</strong>, <strong>environments</strong>, or <strong>libraries</strong> (loaded on demand). <strong>Double-click a row</strong> opens the explorer on data elements.
+                </p>
+                <div class="tags-properties-toolbar">
+                  <label for="tagsPropertiesFilter" class="tags-filter-label">Filter</label>
+                  <input
+                    type="search"
+                    id="tagsPropertiesFilter"
+                    class="sandbox-select tags-properties-filter-input"
+                    placeholder="Filter by name, id, company, platform, domain, date…"
+                    autocomplete="off"
+                    spellcheck="false"
+                    aria-describedby="tagsPropertiesFilterCount"
+                  />
+                  <label for="tagsPropertiesPlatformFilter" class="tags-filter-label tags-filter-label--platform">Platform</label>
+                  <select id="tagsPropertiesPlatformFilter" class="sandbox-select tags-properties-platform-select" aria-label="Filter by platform">
+                    <option value="">All platforms</option>
+                  </select>
+                  <span id="tagsPropertiesFilterCount" class="tags-filter-count" aria-live="polite"></span>
+                </div>
+                <div class="tags-table-wrap">
+                  <table class="tags-table" aria-label="Tag properties">
+                    <thead>
+                      <tr id="tagsPropertiesHeadRow">
+                        <th scope="col">Property ID</th>
+                        <th scope="col">Name</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tagsPropertiesBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-box tags-results-box tags-property-explorer-box" id="tagsPropertyExplorerPanel" hidden>
+              <div class="tags-data-elements-box-header">
+                <h3 class="profile-box-title"><span class="profile-box-icon">◇</span> Property explorer</h3>
+                <button type="button" class="btn btn-secondary" id="tagsExplorerClose">Close</button>
+              </div>
+              <div class="profile-box-content">
+                <p id="tagsExplorerContext" class="tags-data-elements-context"></p>
+                <div id="tagsExplorerPills" class="tags-explorer-pills" role="tablist" aria-label="Reactor resources for this property"></div>
+                <p id="tagsExplorerMsg" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+                <div id="tagsExplorerRuleWrap" class="tags-explorer-rule-wrap" hidden>
+                  <h4 class="tags-explorer-subhead">Rule components <code id="tagsExplorerRuleIdLabel"></code></h4>
+                  <div class="tags-table-wrap">
+                    <table class="tags-table" aria-label="Rule components">
+                      <thead id="tagsExplorerRuleHead"></thead>
+                      <tbody id="tagsExplorerRuleBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="tags-table-wrap">
+                  <table class="tags-table" aria-label="Selected resource">
+                    <thead id="tagsExplorerHead"></thead>
+                    <tbody id="tagsExplorerBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="tags-page.js?v=20260428c"></script>
+  <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260427-tags-data-collection"></script>
+</body>
+</html>

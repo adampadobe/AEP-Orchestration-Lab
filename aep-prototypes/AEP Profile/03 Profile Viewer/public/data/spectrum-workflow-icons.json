@@ -1,0 +1,1592 @@
+{
+  "package": "@adobe/spectrum-css-workflow-icons",
+  "packageVersion": "5.0.0",
+  "license": "Apache-2.0",
+  "licenseNote": "Icons are from Adobe’s Spectrum CSS Workflow Icons. See vendor/spectrum-workflow-icons/LICENSE.txt",
+  "icons": [
+    {
+      "file": "S2_Icon_3DAsset_20_N.svg",
+      "label": "3 DAsset"
+    },
+    {
+      "file": "S2_Icon_3DMaterial_20_N.svg",
+      "label": "3 DMaterial"
+    },
+    {
+      "file": "S2_Icon_3D_20_N.svg",
+      "label": "3 D"
+    },
+    {
+      "file": "S2_Icon_ABC_20_N.svg",
+      "label": "ABC"
+    },
+    {
+      "file": "S2_Icon_Accessibility_20_N.svg",
+      "label": "Accessibility"
+    },
+    {
+      "file": "S2_Icon_AddCircle_20_N.svg",
+      "label": "Add Circle"
+    },
+    {
+      "file": "S2_Icon_AddContent_20_N.svg",
+      "label": "Add Content"
+    },
+    {
+      "file": "S2_Icon_Add_20_N.svg",
+      "label": "Add"
+    },
+    {
+      "file": "S2_Icon_AlertDiamond_20_N.svg",
+      "label": "Alert Diamond"
+    },
+    {
+      "file": "S2_Icon_AlertTriangle_20_N.svg",
+      "label": "Alert Triangle"
+    },
+    {
+      "file": "S2_Icon_AlignBottom_20_N.svg",
+      "label": "Align Bottom"
+    },
+    {
+      "file": "S2_Icon_AlignCenter_20_N.svg",
+      "label": "Align Center"
+    },
+    {
+      "file": "S2_Icon_AlignLeft_20_N.svg",
+      "label": "Align Left"
+    },
+    {
+      "file": "S2_Icon_AlignMiddle_20_N.svg",
+      "label": "Align Middle"
+    },
+    {
+      "file": "S2_Icon_AlignRight_20_N.svg",
+      "label": "Align Right"
+    },
+    {
+      "file": "S2_Icon_AlignTop_20_N.svg",
+      "label": "Align Top"
+    },
+    {
+      "file": "S2_Icon_AnimationNo_20_N.svg",
+      "label": "Animation No"
+    },
+    {
+      "file": "S2_Icon_Animation_20_N.svg",
+      "label": "Animation"
+    },
+    {
+      "file": "S2_Icon_App_20_N.svg",
+      "label": "App"
+    },
+    {
+      "file": "S2_Icon_AppsAll_20_N.svg",
+      "label": "Apps All"
+    },
+    {
+      "file": "S2_Icon_Apps_20_N.svg",
+      "label": "Apps"
+    },
+    {
+      "file": "S2_Icon_Archive_20_N.svg",
+      "label": "Archive"
+    },
+    {
+      "file": "S2_Icon_ArrowHeadTool_20_N.svg",
+      "label": "Arrow Head Tool"
+    },
+    {
+      "file": "S2_Icon_Artboard_20_N.svg",
+      "label": "Artboard"
+    },
+    {
+      "file": "S2_Icon_AspectRatio_20_N.svg",
+      "label": "Aspect Ratio"
+    },
+    {
+      "file": "S2_Icon_Asset_20_N.svg",
+      "label": "Asset"
+    },
+    {
+      "file": "S2_Icon_Attach_20_N.svg",
+      "label": "Attach"
+    },
+    {
+      "file": "S2_Icon_AudioWave_20_N.svg",
+      "label": "Audio Wave"
+    },
+    {
+      "file": "S2_Icon_AutoSelectSubject_20_N.svg",
+      "label": "Auto Select Subject"
+    },
+    {
+      "file": "S2_Icon_Background_20_N.svg",
+      "label": "Background"
+    },
+    {
+      "file": "S2_Icon_BadgeVerified_20_N.svg",
+      "label": "Badge Verified"
+    },
+    {
+      "file": "S2_Icon_BellRotated_20_N.svg",
+      "label": "Bell Rotated"
+    },
+    {
+      "file": "S2_Icon_Bell_20_N.svg",
+      "label": "Bell"
+    },
+    {
+      "file": "S2_Icon_BetaApp_20_N.svg",
+      "label": "Beta App"
+    },
+    {
+      "file": "S2_Icon_Binoculars_20_N.svg",
+      "label": "Binoculars"
+    },
+    {
+      "file": "S2_Icon_Blur_20_N.svg",
+      "label": "Blur"
+    },
+    {
+      "file": "S2_Icon_Bookmark_20_N.svg",
+      "label": "Bookmark"
+    },
+    {
+      "file": "S2_Icon_Brand_20_N.svg",
+      "label": "Brand"
+    },
+    {
+      "file": "S2_Icon_Briefcase_20_N.svg",
+      "label": "Briefcase"
+    },
+    {
+      "file": "S2_Icon_BrightnessContrast_20_N.svg",
+      "label": "Brightness Contrast"
+    },
+    {
+      "file": "S2_Icon_Brush_20_N.svg",
+      "label": "Brush"
+    },
+    {
+      "file": "S2_Icon_Bug_20_N.svg",
+      "label": "Bug"
+    },
+    {
+      "file": "S2_Icon_Building_20_N.svg",
+      "label": "Building"
+    },
+    {
+      "file": "S2_Icon_Buildings_20_N.svg",
+      "label": "Buildings"
+    },
+    {
+      "file": "S2_Icon_CCLibrary_20_N.svg",
+      "label": "CCLibrary"
+    },
+    {
+      "file": "S2_Icon_CalendarAdd_20_N.svg",
+      "label": "Calendar Add"
+    },
+    {
+      "file": "S2_Icon_CalendarDay_20_N.svg",
+      "label": "Calendar Day"
+    },
+    {
+      "file": "S2_Icon_CalendarEdit_20_N.svg",
+      "label": "Calendar Edit"
+    },
+    {
+      "file": "S2_Icon_CalendarWeek_20_N.svg",
+      "label": "Calendar Week"
+    },
+    {
+      "file": "S2_Icon_Calendar_20_N.svg",
+      "label": "Calendar"
+    },
+    {
+      "file": "S2_Icon_CallCenter_20_N.svg",
+      "label": "Call Center"
+    },
+    {
+      "file": "S2_Icon_CameraProperties_20_N.svg",
+      "label": "Camera Properties"
+    },
+    {
+      "file": "S2_Icon_Camera_20_N.svg",
+      "label": "Camera"
+    },
+    {
+      "file": "S2_Icon_Cancel_20_N.svg",
+      "label": "Cancel"
+    },
+    {
+      "file": "S2_Icon_Channel_20_N.svg",
+      "label": "Channel"
+    },
+    {
+      "file": "S2_Icon_ChartBarVert_20_N.svg",
+      "label": "Chart Bar Vert"
+    },
+    {
+      "file": "S2_Icon_ChartPie_20_N.svg",
+      "label": "Chart Pie"
+    },
+    {
+      "file": "S2_Icon_ChartTrend_20_N.svg",
+      "label": "Chart Trend"
+    },
+    {
+      "file": "S2_Icon_Chat_20_N.svg",
+      "label": "Chat"
+    },
+    {
+      "file": "S2_Icon_CheckBox_20_N.svg",
+      "label": "Check Box"
+    },
+    {
+      "file": "S2_Icon_CheckmarkCircle_20_N.svg",
+      "label": "Checkmark Circle"
+    },
+    {
+      "file": "S2_Icon_Checkmark_20_N.svg",
+      "label": "Checkmark"
+    },
+    {
+      "file": "S2_Icon_ChevronDoubleLeft_20_N.svg",
+      "label": "Chevron Double Left"
+    },
+    {
+      "file": "S2_Icon_ChevronDoubleRight_20_N.svg",
+      "label": "Chevron Double Right"
+    },
+    {
+      "file": "S2_Icon_ChevronDown_20_N.svg",
+      "label": "Chevron Down"
+    },
+    {
+      "file": "S2_Icon_ChevronLeft_20_N.svg",
+      "label": "Chevron Left"
+    },
+    {
+      "file": "S2_Icon_ChevronRight_20_N.svg",
+      "label": "Chevron Right"
+    },
+    {
+      "file": "S2_Icon_ChevronUp_20_N.svg",
+      "label": "Chevron Up"
+    },
+    {
+      "file": "S2_Icon_Circle_20_N.svg",
+      "label": "Circle"
+    },
+    {
+      "file": "S2_Icon_ClockPending_20_N.svg",
+      "label": "Clock Pending"
+    },
+    {
+      "file": "S2_Icon_Clock_20_N.svg",
+      "label": "Clock"
+    },
+    {
+      "file": "S2_Icon_CloseCaptions_20_N.svg",
+      "label": "Close Captions"
+    },
+    {
+      "file": "S2_Icon_CloseCircle_20_N.svg",
+      "label": "Close Circle"
+    },
+    {
+      "file": "S2_Icon_Close_20_N.svg",
+      "label": "Close"
+    },
+    {
+      "file": "S2_Icon_CloudStateDisconnected_20_N.svg",
+      "label": "Cloud State Disconnected"
+    },
+    {
+      "file": "S2_Icon_CloudStateError_20_N.svg",
+      "label": "Cloud State Error"
+    },
+    {
+      "file": "S2_Icon_CloudStateInProgress_20_N.svg",
+      "label": "Cloud State In Progress"
+    },
+    {
+      "file": "S2_Icon_CloudStateOnline_20_N.svg",
+      "label": "Cloud State Online"
+    },
+    {
+      "file": "S2_Icon_CloudStatePaused_20_N.svg",
+      "label": "Cloud State Paused"
+    },
+    {
+      "file": "S2_Icon_CloudStatePending_20_N.svg",
+      "label": "Cloud State Pending"
+    },
+    {
+      "file": "S2_Icon_CloudStateSlowConnection_20_N.svg",
+      "label": "Cloud State Slow Connection"
+    },
+    {
+      "file": "S2_Icon_Cloud_20_N.svg",
+      "label": "Cloud"
+    },
+    {
+      "file": "S2_Icon_Code_20_N.svg",
+      "label": "Code"
+    },
+    {
+      "file": "S2_Icon_Collection_20_N.svg",
+      "label": "Collection"
+    },
+    {
+      "file": "S2_Icon_ColorFill_20_N.svg",
+      "label": "Color Fill"
+    },
+    {
+      "file": "S2_Icon_ColorHarmony_20_N.svg",
+      "label": "Color Harmony"
+    },
+    {
+      "file": "S2_Icon_Color_20_N.svg",
+      "label": "Color"
+    },
+    {
+      "file": "S2_Icon_CommentCheckmark_20_N.svg",
+      "label": "Comment Checkmark"
+    },
+    {
+      "file": "S2_Icon_CommentHide_20_N.svg",
+      "label": "Comment Hide"
+    },
+    {
+      "file": "S2_Icon_CommentRemove_20_N.svg",
+      "label": "Comment Remove"
+    },
+    {
+      "file": "S2_Icon_CommentShow_20_N.svg",
+      "label": "Comment Show"
+    },
+    {
+      "file": "S2_Icon_CommentText_20_N.svg",
+      "label": "Comment Text"
+    },
+    {
+      "file": "S2_Icon_Comment_20_N.svg",
+      "label": "Comment"
+    },
+    {
+      "file": "S2_Icon_Community_20_N.svg",
+      "label": "Community"
+    },
+    {
+      "file": "S2_Icon_Compare_20_N.svg",
+      "label": "Compare"
+    },
+    {
+      "file": "S2_Icon_ContextualTaskBar_20_N.svg",
+      "label": "Contextual Task Bar"
+    },
+    {
+      "file": "S2_Icon_Contrast_20_N.svg",
+      "label": "Contrast"
+    },
+    {
+      "file": "S2_Icon_Copy_20_N.svg",
+      "label": "Copy"
+    },
+    {
+      "file": "S2_Icon_CornerRadiusBottomLeft_20_N.svg",
+      "label": "Corner Radius Bottom Left"
+    },
+    {
+      "file": "S2_Icon_CornerRadiusBottomRight_20_N.svg",
+      "label": "Corner Radius Bottom Right"
+    },
+    {
+      "file": "S2_Icon_CornerRadiusEach_20_N.svg",
+      "label": "Corner Radius Each"
+    },
+    {
+      "file": "S2_Icon_CornerRadiusTopLeft_20_N.svg",
+      "label": "Corner Radius Top Left"
+    },
+    {
+      "file": "S2_Icon_CornerRadiusTopRight_20_N.svg",
+      "label": "Corner Radius Top Right"
+    },
+    {
+      "file": "S2_Icon_CornerRadius_20_N.svg",
+      "label": "Corner Radius"
+    },
+    {
+      "file": "S2_Icon_CropRotate_20_N.svg",
+      "label": "Crop Rotate"
+    },
+    {
+      "file": "S2_Icon_Crop_20_N.svg",
+      "label": "Crop"
+    },
+    {
+      "file": "S2_Icon_CursorClick_20_N.svg",
+      "label": "Cursor Click"
+    },
+    {
+      "file": "S2_Icon_Cut_20_N.svg",
+      "label": "Cut"
+    },
+    {
+      "file": "S2_Icon_DataAdd_20_N.svg",
+      "label": "Data Add"
+    },
+    {
+      "file": "S2_Icon_DataRefresh_20_N.svg",
+      "label": "Data Refresh"
+    },
+    {
+      "file": "S2_Icon_DataSettings_20_N.svg",
+      "label": "Data Settings"
+    },
+    {
+      "file": "S2_Icon_DataUpload_20_N.svg",
+      "label": "Data Upload"
+    },
+    {
+      "file": "S2_Icon_Data_20_N.svg",
+      "label": "Data"
+    },
+    {
+      "file": "S2_Icon_Delete_20_N.svg",
+      "label": "Delete"
+    },
+    {
+      "file": "S2_Icon_DeviceAll_20_N.svg",
+      "label": "Device All"
+    },
+    {
+      "file": "S2_Icon_DeviceDesktopMobile_20_N.svg",
+      "label": "Device Desktop Mobile"
+    },
+    {
+      "file": "S2_Icon_DeviceDesktop_20_N.svg",
+      "label": "Device Desktop"
+    },
+    {
+      "file": "S2_Icon_DeviceLaptop_20_N.svg",
+      "label": "Device Laptop"
+    },
+    {
+      "file": "S2_Icon_DeviceMobile_20_N.svg",
+      "label": "Device Mobile"
+    },
+    {
+      "file": "S2_Icon_DeviceMultiscreen_20_N.svg",
+      "label": "Device Multiscreen"
+    },
+    {
+      "file": "S2_Icon_DevicePhone_20_N.svg",
+      "label": "Device Phone"
+    },
+    {
+      "file": "S2_Icon_DeviceTablet_20_N.svg",
+      "label": "Device Tablet"
+    },
+    {
+      "file": "S2_Icon_DirectSelect_20_N.svg",
+      "label": "Direct Select"
+    },
+    {
+      "file": "S2_Icon_Discover_20_N.svg",
+      "label": "Discover"
+    },
+    {
+      "file": "S2_Icon_DistributeBottomEdge_20_N.svg",
+      "label": "Distribute Bottom Edge"
+    },
+    {
+      "file": "S2_Icon_DistributeHorizontalCenter_20_N.svg",
+      "label": "Distribute Horizontal Center"
+    },
+    {
+      "file": "S2_Icon_DistributeLeftEdge_20_N.svg",
+      "label": "Distribute Left Edge"
+    },
+    {
+      "file": "S2_Icon_DistributeRightEdge_20_N.svg",
+      "label": "Distribute Right Edge"
+    },
+    {
+      "file": "S2_Icon_DistributeSpaceHorizontally_20_N.svg",
+      "label": "Distribute Space Horizontally"
+    },
+    {
+      "file": "S2_Icon_DistributeSpaceVertically_20_N.svg",
+      "label": "Distribute Space Vertically"
+    },
+    {
+      "file": "S2_Icon_DistributeTopEdge_20_N.svg",
+      "label": "Distribute Top Edge"
+    },
+    {
+      "file": "S2_Icon_DistributeVerticalCenter_20_N.svg",
+      "label": "Distribute Vertical Center"
+    },
+    {
+      "file": "S2_Icon_Download_20_N.svg",
+      "label": "Download"
+    },
+    {
+      "file": "S2_Icon_Draw_20_N.svg",
+      "label": "Draw"
+    },
+    {
+      "file": "S2_Icon_Duplicate_20_N.svg",
+      "label": "Duplicate"
+    },
+    {
+      "file": "S2_Icon_EditNo_20_N.svg",
+      "label": "Edit No"
+    },
+    {
+      "file": "S2_Icon_Edit_20_N.svg",
+      "label": "Edit"
+    },
+    {
+      "file": "S2_Icon_Education_20_N.svg",
+      "label": "Education"
+    },
+    {
+      "file": "S2_Icon_EffectBorder_20_N.svg",
+      "label": "Effect Border"
+    },
+    {
+      "file": "S2_Icon_Effects_20_N.svg",
+      "label": "Effects"
+    },
+    {
+      "file": "S2_Icon_Email_20_N.svg",
+      "label": "Email"
+    },
+    {
+      "file": "S2_Icon_Emoji_20_N.svg",
+      "label": "Emoji"
+    },
+    {
+      "file": "S2_Icon_Enterprise_20_N.svg",
+      "label": "Enterprise"
+    },
+    {
+      "file": "S2_Icon_Erase_20_N.svg",
+      "label": "Erase"
+    },
+    {
+      "file": "S2_Icon_ExportTo_20_N.svg",
+      "label": "Export To"
+    },
+    {
+      "file": "S2_Icon_Export_20_N.svg",
+      "label": "Export"
+    },
+    {
+      "file": "S2_Icon_Exposure_20_N.svg",
+      "label": "Exposure"
+    },
+    {
+      "file": "S2_Icon_Eyedropper_20_N.svg",
+      "label": "Eyedropper"
+    },
+    {
+      "file": "S2_Icon_Feedback_20_N.svg",
+      "label": "Feedback"
+    },
+    {
+      "file": "S2_Icon_FileAdd_20_N.svg",
+      "label": "File Add"
+    },
+    {
+      "file": "S2_Icon_FileConvert_20_N.svg",
+      "label": "File Convert"
+    },
+    {
+      "file": "S2_Icon_FileText_20_N.svg",
+      "label": "File Text"
+    },
+    {
+      "file": "S2_Icon_FileUser_20_N.svg",
+      "label": "File User"
+    },
+    {
+      "file": "S2_Icon_File_20_N.svg",
+      "label": "File"
+    },
+    {
+      "file": "S2_Icon_Files_20_N.svg",
+      "label": "Files"
+    },
+    {
+      "file": "S2_Icon_Filmstrip_20_N.svg",
+      "label": "Filmstrip"
+    },
+    {
+      "file": "S2_Icon_Filter_20_N.svg",
+      "label": "Filter"
+    },
+    {
+      "file": "S2_Icon_Filters_20_N.svg",
+      "label": "Filters"
+    },
+    {
+      "file": "S2_Icon_FindAndReplace_20_N.svg",
+      "label": "Find And Replace"
+    },
+    {
+      "file": "S2_Icon_Flag_20_N.svg",
+      "label": "Flag"
+    },
+    {
+      "file": "S2_Icon_FlipHorizontal_20_N.svg",
+      "label": "Flip Horizontal"
+    },
+    {
+      "file": "S2_Icon_FlipVertical_20_N.svg",
+      "label": "Flip Vertical"
+    },
+    {
+      "file": "S2_Icon_FolderAdd_20_N.svg",
+      "label": "Folder Add"
+    },
+    {
+      "file": "S2_Icon_FolderBreadcrumb_20_N.svg",
+      "label": "Folder Breadcrumb"
+    },
+    {
+      "file": "S2_Icon_FolderClock_20_N.svg",
+      "label": "Folder Clock"
+    },
+    {
+      "file": "S2_Icon_FolderMoveTo_20_N.svg",
+      "label": "Folder Move To"
+    },
+    {
+      "file": "S2_Icon_FolderOpen_20_N.svg",
+      "label": "Folder Open"
+    },
+    {
+      "file": "S2_Icon_FolderSearch_20_N.svg",
+      "label": "Folder Search"
+    },
+    {
+      "file": "S2_Icon_Folder_20_N.svg",
+      "label": "Folder"
+    },
+    {
+      "file": "S2_Icon_FontPicker_20_N.svg",
+      "label": "Font Picker"
+    },
+    {
+      "file": "S2_Icon_FullScreenExit_20_N.svg",
+      "label": "Full Screen Exit"
+    },
+    {
+      "file": "S2_Icon_FullScreen_20_N.svg",
+      "label": "Full Screen"
+    },
+    {
+      "file": "S2_Icon_Gift_20_N.svg",
+      "label": "Gift"
+    },
+    {
+      "file": "S2_Icon_GlobeGrid_20_N.svg",
+      "label": "Globe Grid"
+    },
+    {
+      "file": "S2_Icon_GradientHorizontal_20_N.svg",
+      "label": "Gradient Horizontal"
+    },
+    {
+      "file": "S2_Icon_GradientRadial_20_N.svg",
+      "label": "Gradient Radial"
+    },
+    {
+      "file": "S2_Icon_Gradient_20_N.svg",
+      "label": "Gradient"
+    },
+    {
+      "file": "S2_Icon_GridTypeDots_20_N.svg",
+      "label": "Grid Type Dots"
+    },
+    {
+      "file": "S2_Icon_GridTypeLines_20_N.svg",
+      "label": "Grid Type Lines"
+    },
+    {
+      "file": "S2_Icon_GridsAndRulers_20_N.svg",
+      "label": "Grids And Rulers"
+    },
+    {
+      "file": "S2_Icon_GroupNo_20_N.svg",
+      "label": "Group No"
+    },
+    {
+      "file": "S2_Icon_Group_20_N.svg",
+      "label": "Group"
+    },
+    {
+      "file": "S2_Icon_Hand_20_N.svg",
+      "label": "Hand"
+    },
+    {
+      "file": "S2_Icon_HeartFilled_20_N.svg",
+      "label": "Heart Filled"
+    },
+    {
+      "file": "S2_Icon_Heart_20_N.svg",
+      "label": "Heart"
+    },
+    {
+      "file": "S2_Icon_HelpCircle_20_N.svg",
+      "label": "Help Circle"
+    },
+    {
+      "file": "S2_Icon_History_20_N.svg",
+      "label": "History"
+    },
+    {
+      "file": "S2_Icon_Home_20_N.svg",
+      "label": "Home"
+    },
+    {
+      "file": "S2_Icon_ImageAdd_20_N.svg",
+      "label": "Image Add"
+    },
+    {
+      "file": "S2_Icon_ImageBackgroundRemove_20_N.svg",
+      "label": "Image Background Remove"
+    },
+    {
+      "file": "S2_Icon_Image_20_N.svg",
+      "label": "Image"
+    },
+    {
+      "file": "S2_Icon_Images_20_N.svg",
+      "label": "Images"
+    },
+    {
+      "file": "S2_Icon_Import_20_N.svg",
+      "label": "Import"
+    },
+    {
+      "file": "S2_Icon_InfoCircle_20_N.svg",
+      "label": "Info Circle"
+    },
+    {
+      "file": "S2_Icon_Interaction_20_N.svg",
+      "label": "Interaction"
+    },
+    {
+      "file": "S2_Icon_Invert_20_N.svg",
+      "label": "Invert"
+    },
+    {
+      "file": "S2_Icon_Invite_20_N.svg",
+      "label": "Invite"
+    },
+    {
+      "file": "S2_Icon_Key_20_N.svg",
+      "label": "Key"
+    },
+    {
+      "file": "S2_Icon_Keyboard_20_N.svg",
+      "label": "Keyboard"
+    },
+    {
+      "file": "S2_Icon_LassoSelect_20_N.svg",
+      "label": "Lasso Select"
+    },
+    {
+      "file": "S2_Icon_Layers_20_N.svg",
+      "label": "Layers"
+    },
+    {
+      "file": "S2_Icon_Layout_20_N.svg",
+      "label": "Layout"
+    },
+    {
+      "file": "S2_Icon_Leave_20_N.svg",
+      "label": "Leave"
+    },
+    {
+      "file": "S2_Icon_Lightbulb_20_N.svg",
+      "label": "Lightbulb"
+    },
+    {
+      "file": "S2_Icon_Lighten_20_N.svg",
+      "label": "Lighten"
+    },
+    {
+      "file": "S2_Icon_LineHeight_20_N.svg",
+      "label": "Line Height"
+    },
+    {
+      "file": "S2_Icon_Line_20_N.svg",
+      "label": "Line"
+    },
+    {
+      "file": "S2_Icon_LinkVertical_20_N.svg",
+      "label": "Link Vertical"
+    },
+    {
+      "file": "S2_Icon_Link_20_N.svg",
+      "label": "Link"
+    },
+    {
+      "file": "S2_Icon_ListBulleted_20_N.svg",
+      "label": "List Bulleted"
+    },
+    {
+      "file": "S2_Icon_ListMultiSelect_20_N.svg",
+      "label": "List Multi Select"
+    },
+    {
+      "file": "S2_Icon_ListNumbered_20_N.svg",
+      "label": "List Numbered"
+    },
+    {
+      "file": "S2_Icon_Location_20_N.svg",
+      "label": "Location"
+    },
+    {
+      "file": "S2_Icon_LockOpen_20_N.svg",
+      "label": "Lock Open"
+    },
+    {
+      "file": "S2_Icon_Lock_20_N.svg",
+      "label": "Lock"
+    },
+    {
+      "file": "S2_Icon_Logo_20_N.svg",
+      "label": "Logo"
+    },
+    {
+      "file": "S2_Icon_MagicWand_20_N.svg",
+      "label": "Magic Wand"
+    },
+    {
+      "file": "S2_Icon_Market_20_N.svg",
+      "label": "Market"
+    },
+    {
+      "file": "S2_Icon_MaskDisable_20_N.svg",
+      "label": "Mask Disable"
+    },
+    {
+      "file": "S2_Icon_Mask_20_N.svg",
+      "label": "Mask"
+    },
+    {
+      "file": "S2_Icon_Maximize_20_N.svg",
+      "label": "Maximize"
+    },
+    {
+      "file": "S2_Icon_Mention_20_N.svg",
+      "label": "Mention"
+    },
+    {
+      "file": "S2_Icon_MenuHamburger_20_N.svg",
+      "label": "Menu Hamburger"
+    },
+    {
+      "file": "S2_Icon_MicrophoneOff_20_N.svg",
+      "label": "Microphone Off"
+    },
+    {
+      "file": "S2_Icon_Microphone_20_N.svg",
+      "label": "Microphone"
+    },
+    {
+      "file": "S2_Icon_Minimize_20_N.svg",
+      "label": "Minimize"
+    },
+    {
+      "file": "S2_Icon_More_20_N.svg",
+      "label": "More"
+    },
+    {
+      "file": "S2_Icon_Move_20_N.svg",
+      "label": "Move"
+    },
+    {
+      "file": "S2_Icon_MovieCamera_20_N.svg",
+      "label": "Movie Camera"
+    },
+    {
+      "file": "S2_Icon_MusicNote_20_N.svg",
+      "label": "Music Note"
+    },
+    {
+      "file": "S2_Icon_NamingOrder_20_N.svg",
+      "label": "Naming Order"
+    },
+    {
+      "file": "S2_Icon_New_20_N.svg",
+      "label": "New"
+    },
+    {
+      "file": "S2_Icon_Nudge_20_N.svg",
+      "label": "Nudge"
+    },
+    {
+      "file": "S2_Icon_OpenIn_20_N.svg",
+      "label": "Open In"
+    },
+    {
+      "file": "S2_Icon_OrderBottom_20_N.svg",
+      "label": "Order Bottom"
+    },
+    {
+      "file": "S2_Icon_OrderOneDown_20_N.svg",
+      "label": "Order One Down"
+    },
+    {
+      "file": "S2_Icon_OrderOneUp_20_N.svg",
+      "label": "Order One Up"
+    },
+    {
+      "file": "S2_Icon_OrderTop_20_N.svg",
+      "label": "Order Top"
+    },
+    {
+      "file": "S2_Icon_Order_20_N.svg",
+      "label": "Order"
+    },
+    {
+      "file": "S2_Icon_OrientationLandscape_20_N.svg",
+      "label": "Orientation Landscape"
+    },
+    {
+      "file": "S2_Icon_OrientationPortrait_20_N.svg",
+      "label": "Orientation Portrait"
+    },
+    {
+      "file": "S2_Icon_Paste_20_N.svg",
+      "label": "Paste"
+    },
+    {
+      "file": "S2_Icon_Path_20_N.svg",
+      "label": "Path"
+    },
+    {
+      "file": "S2_Icon_Pattern_20_N.svg",
+      "label": "Pattern"
+    },
+    {
+      "file": "S2_Icon_PauseCircle_20_N.svg",
+      "label": "Pause Circle"
+    },
+    {
+      "file": "S2_Icon_Pause_20_N.svg",
+      "label": "Pause"
+    },
+    {
+      "file": "S2_Icon_PenBrush_20_N.svg",
+      "label": "Pen Brush"
+    },
+    {
+      "file": "S2_Icon_PeopleGroup_20_N.svg",
+      "label": "People Group"
+    },
+    {
+      "file": "S2_Icon_People_20_N.svg",
+      "label": "People"
+    },
+    {
+      "file": "S2_Icon_Percentage_20_N.svg",
+      "label": "Percentage"
+    },
+    {
+      "file": "S2_Icon_PinOff_20_N.svg",
+      "label": "Pin Off"
+    },
+    {
+      "file": "S2_Icon_PinOn_20_N.svg",
+      "label": "Pin On"
+    },
+    {
+      "file": "S2_Icon_Play_20_N.svg",
+      "label": "Play"
+    },
+    {
+      "file": "S2_Icon_PluginGear_20_N.svg",
+      "label": "Plugin Gear"
+    },
+    {
+      "file": "S2_Icon_Plugin_20_N.svg",
+      "label": "Plugin"
+    },
+    {
+      "file": "S2_Icon_Polygon3_20_N.svg",
+      "label": "Polygon3"
+    },
+    {
+      "file": "S2_Icon_Polygon4_20_N.svg",
+      "label": "Polygon4"
+    },
+    {
+      "file": "S2_Icon_Polygon5_20_N.svg",
+      "label": "Polygon5"
+    },
+    {
+      "file": "S2_Icon_Polygon6_20_N.svg",
+      "label": "Polygon6"
+    },
+    {
+      "file": "S2_Icon_Preview_20_N.svg",
+      "label": "Preview"
+    },
+    {
+      "file": "S2_Icon_Print_20_N.svg",
+      "label": "Print"
+    },
+    {
+      "file": "S2_Icon_ProjectAddInto_20_N.svg",
+      "label": "Project Add Into"
+    },
+    {
+      "file": "S2_Icon_ProjectCreate_20_N.svg",
+      "label": "Project Create"
+    },
+    {
+      "file": "S2_Icon_Project_20_N.svg",
+      "label": "Project"
+    },
+    {
+      "file": "S2_Icon_Promote_20_N.svg",
+      "label": "Promote"
+    },
+    {
+      "file": "S2_Icon_Prompt_20_N.svg",
+      "label": "Prompt"
+    },
+    {
+      "file": "S2_Icon_Properties_20_N.svg",
+      "label": "Properties"
+    },
+    {
+      "file": "S2_Icon_Prototyping_20_N.svg",
+      "label": "Prototyping"
+    },
+    {
+      "file": "S2_Icon_PublishNo_20_N.svg",
+      "label": "Publish No"
+    },
+    {
+      "file": "S2_Icon_Publish_20_N.svg",
+      "label": "Publish"
+    },
+    {
+      "file": "S2_Icon_RadioButton_20_N.svg",
+      "label": "Radio Button"
+    },
+    {
+      "file": "S2_Icon_RectangleHoriz_20_N.svg",
+      "label": "Rectangle Horiz"
+    },
+    {
+      "file": "S2_Icon_Redo_20_N.svg",
+      "label": "Redo"
+    },
+    {
+      "file": "S2_Icon_Refresh_20_N.svg",
+      "label": "Refresh"
+    },
+    {
+      "file": "S2_Icon_RemoveCircle_20_N.svg",
+      "label": "Remove Circle"
+    },
+    {
+      "file": "S2_Icon_Rename_20_N.svg",
+      "label": "Rename"
+    },
+    {
+      "file": "S2_Icon_Replace_20_N.svg",
+      "label": "Replace"
+    },
+    {
+      "file": "S2_Icon_ReportAbuse_20_N.svg",
+      "label": "Report Abuse"
+    },
+    {
+      "file": "S2_Icon_Resize_20_N.svg",
+      "label": "Resize"
+    },
+    {
+      "file": "S2_Icon_Revert_20_N.svg",
+      "label": "Revert"
+    },
+    {
+      "file": "S2_Icon_ReviewLink_20_N.svg",
+      "label": "Review Link"
+    },
+    {
+      "file": "S2_Icon_Ribbon_20_N.svg",
+      "label": "Ribbon"
+    },
+    {
+      "file": "S2_Icon_RocketQuickActions_20_N.svg",
+      "label": "Rocket Quick Actions"
+    },
+    {
+      "file": "S2_Icon_RotateCCW_20_N.svg",
+      "label": "Rotate CCW"
+    },
+    {
+      "file": "S2_Icon_RotateCW_20_N.svg",
+      "label": "Rotate CW"
+    },
+    {
+      "file": "S2_Icon_RotateOrientation_20_N.svg",
+      "label": "Rotate Orientation"
+    },
+    {
+      "file": "S2_Icon_Ruler_20_N.svg",
+      "label": "Ruler"
+    },
+    {
+      "file": "S2_Icon_Saturation_20_N.svg",
+      "label": "Saturation"
+    },
+    {
+      "file": "S2_Icon_SaveFloppy_20_N.svg",
+      "label": "Save Floppy"
+    },
+    {
+      "file": "S2_Icon_Search_20_N.svg",
+      "label": "Search"
+    },
+    {
+      "file": "S2_Icon_SelectAllItems_20_N.svg",
+      "label": "Select All Items"
+    },
+    {
+      "file": "S2_Icon_SelectAndMove_20_N.svg",
+      "label": "Select And Move"
+    },
+    {
+      "file": "S2_Icon_SelectMulti_20_N.svg",
+      "label": "Select Multi"
+    },
+    {
+      "file": "S2_Icon_SelectNo_20_N.svg",
+      "label": "Select No"
+    },
+    {
+      "file": "S2_Icon_SelectNone_20_N.svg",
+      "label": "Select None"
+    },
+    {
+      "file": "S2_Icon_SelectRectangle_20_N.svg",
+      "label": "Select Rectangle"
+    },
+    {
+      "file": "S2_Icon_Select_20_N.svg",
+      "label": "Select"
+    },
+    {
+      "file": "S2_Icon_Send_20_N.svg",
+      "label": "Send"
+    },
+    {
+      "file": "S2_Icon_Settings_20_N.svg",
+      "label": "Settings"
+    },
+    {
+      "file": "S2_Icon_Shapes_20_N.svg",
+      "label": "Shapes"
+    },
+    {
+      "file": "S2_Icon_ShareAndroid_20_N.svg",
+      "label": "Share Android"
+    },
+    {
+      "file": "S2_Icon_Share_20_N.svg",
+      "label": "Share"
+    },
+    {
+      "file": "S2_Icon_ShoppingCart_20_N.svg",
+      "label": "Shopping Cart"
+    },
+    {
+      "file": "S2_Icon_Shuffle_20_N.svg",
+      "label": "Shuffle"
+    },
+    {
+      "file": "S2_Icon_Similar_20_N.svg",
+      "label": "Similar"
+    },
+    {
+      "file": "S2_Icon_Slideshow_20_N.svg",
+      "label": "Slideshow"
+    },
+    {
+      "file": "S2_Icon_SlowConnectionCircle_20_N.svg",
+      "label": "Slow Connection Circle"
+    },
+    {
+      "file": "S2_Icon_SocialNetwork_20_N.svg",
+      "label": "Social Network"
+    },
+    {
+      "file": "S2_Icon_SortDown_20_N.svg",
+      "label": "Sort Down"
+    },
+    {
+      "file": "S2_Icon_SortUp_20_N.svg",
+      "label": "Sort Up"
+    },
+    {
+      "file": "S2_Icon_Sort_20_N.svg",
+      "label": "Sort"
+    },
+    {
+      "file": "S2_Icon_SpeedFast_20_N.svg",
+      "label": "Speed Fast"
+    },
+    {
+      "file": "S2_Icon_StampClone_20_N.svg",
+      "label": "Stamp Clone"
+    },
+    {
+      "file": "S2_Icon_StarFilled_20_N.svg",
+      "label": "Star Filled"
+    },
+    {
+      "file": "S2_Icon_Star_20_N.svg",
+      "label": "Star"
+    },
+    {
+      "file": "S2_Icon_StepBackward_20_N.svg",
+      "label": "Step Backward"
+    },
+    {
+      "file": "S2_Icon_StepForward_20_N.svg",
+      "label": "Step Forward"
+    },
+    {
+      "file": "S2_Icon_StickyNote_20_N.svg",
+      "label": "Sticky Note"
+    },
+    {
+      "file": "S2_Icon_StrokeDotted_20_N.svg",
+      "label": "Stroke Dotted"
+    },
+    {
+      "file": "S2_Icon_StrokeSolid_20_N.svg",
+      "label": "Stroke Solid"
+    },
+    {
+      "file": "S2_Icon_StrokeWidth_20_N.svg",
+      "label": "Stroke Width"
+    },
+    {
+      "file": "S2_Icon_SwitchVertical_20_N.svg",
+      "label": "Switch Vertical"
+    },
+    {
+      "file": "S2_Icon_Switch_20_N.svg",
+      "label": "Switch"
+    },
+    {
+      "file": "S2_Icon_Table_20_N.svg",
+      "label": "Table"
+    },
+    {
+      "file": "S2_Icon_Tag_20_N.svg",
+      "label": "Tag"
+    },
+    {
+      "file": "S2_Icon_Target_20_N.svg",
+      "label": "Target"
+    },
+    {
+      "file": "S2_Icon_Temperature_20_N.svg",
+      "label": "Temperature"
+    },
+    {
+      "file": "S2_Icon_Template_20_N.svg",
+      "label": "Template"
+    },
+    {
+      "file": "S2_Icon_TextAdd_20_N.svg",
+      "label": "Text Add"
+    },
+    {
+      "file": "S2_Icon_TextAlignCenter_20_N.svg",
+      "label": "Text Align Center"
+    },
+    {
+      "file": "S2_Icon_TextAlignJustifyLastCenter_20_N.svg",
+      "label": "Text Align Justify Last Center"
+    },
+    {
+      "file": "S2_Icon_TextAlignJustifyLastLeft_20_N.svg",
+      "label": "Text Align Justify Last Left"
+    },
+    {
+      "file": "S2_Icon_TextAlignJustifyLastRight_20_N.svg",
+      "label": "Text Align Justify Last Right"
+    },
+    {
+      "file": "S2_Icon_TextAlignJustify_20_N.svg",
+      "label": "Text Align Justify"
+    },
+    {
+      "file": "S2_Icon_TextAlignLeft_20_N.svg",
+      "label": "Text Align Left"
+    },
+    {
+      "file": "S2_Icon_TextAlignRight_20_N.svg",
+      "label": "Text Align Right"
+    },
+    {
+      "file": "S2_Icon_TextBold_20_N.svg",
+      "label": "Text Bold"
+    },
+    {
+      "file": "S2_Icon_TextCapsAll_20_N.svg",
+      "label": "Text Caps All"
+    },
+    {
+      "file": "S2_Icon_TextCapsSmall_20_N.svg",
+      "label": "Text Caps Small"
+    },
+    {
+      "file": "S2_Icon_TextHighlight_20_N.svg",
+      "label": "Text Highlight"
+    },
+    {
+      "file": "S2_Icon_TextIncrease_20_N.svg",
+      "label": "Text Increase"
+    },
+    {
+      "file": "S2_Icon_TextItalic_20_N.svg",
+      "label": "Text Italic"
+    },
+    {
+      "file": "S2_Icon_TextNumbers_20_N.svg",
+      "label": "Text Numbers"
+    },
+    {
+      "file": "S2_Icon_TextParagraph_20_N.svg",
+      "label": "Text Paragraph"
+    },
+    {
+      "file": "S2_Icon_TextReplaceComment_20_N.svg",
+      "label": "Text Replace Comment"
+    },
+    {
+      "file": "S2_Icon_TextSize_20_N.svg",
+      "label": "Text Size"
+    },
+    {
+      "file": "S2_Icon_TextStrikeThrough_20_N.svg",
+      "label": "Text Strike Through"
+    },
+    {
+      "file": "S2_Icon_TextSubscript_20_N.svg",
+      "label": "Text Subscript"
+    },
+    {
+      "file": "S2_Icon_TextSuperscript_20_N.svg",
+      "label": "Text Superscript"
+    },
+    {
+      "file": "S2_Icon_TextUnderline_20_N.svg",
+      "label": "Text Underline"
+    },
+    {
+      "file": "S2_Icon_TextVariableFontSettings_20_N.svg",
+      "label": "Text Variable Font Settings"
+    },
+    {
+      "file": "S2_Icon_Text_20_N.svg",
+      "label": "Text"
+    },
+    {
+      "file": "S2_Icon_ThumbDown_20_N.svg",
+      "label": "Thumb Down"
+    },
+    {
+      "file": "S2_Icon_ThumbUp_20_N.svg",
+      "label": "Thumb Up"
+    },
+    {
+      "file": "S2_Icon_Toggle_20_N.svg",
+      "label": "Toggle"
+    },
+    {
+      "file": "S2_Icon_Tools_20_N.svg",
+      "label": "Tools"
+    },
+    {
+      "file": "S2_Icon_TouchOneFingerSwipeLeftRight_20_N.svg",
+      "label": "Touch One Finger Swipe Left Right"
+    },
+    {
+      "file": "S2_Icon_Transcript_20_N.svg",
+      "label": "Transcript"
+    },
+    {
+      "file": "S2_Icon_TransformDistort_20_N.svg",
+      "label": "Transform Distort"
+    },
+    {
+      "file": "S2_Icon_TransformGeneric_20_N.svg",
+      "label": "Transform Generic"
+    },
+    {
+      "file": "S2_Icon_TransformPerspective_20_N.svg",
+      "label": "Transform Perspective"
+    },
+    {
+      "file": "S2_Icon_TransformSkew_20_N.svg",
+      "label": "Transform Skew"
+    },
+    {
+      "file": "S2_Icon_TransformWarp_20_N.svg",
+      "label": "Transform Warp"
+    },
+    {
+      "file": "S2_Icon_Translate_20_N.svg",
+      "label": "Translate"
+    },
+    {
+      "file": "S2_Icon_Tutorials_20_N.svg",
+      "label": "Tutorials"
+    },
+    {
+      "file": "S2_Icon_UnLink_20_N.svg",
+      "label": "Un Link"
+    },
+    {
+      "file": "S2_Icon_Undo_20_N.svg",
+      "label": "Undo"
+    },
+    {
+      "file": "S2_Icon_UnlinkHoriz_20_N.svg",
+      "label": "Unlink Horiz"
+    },
+    {
+      "file": "S2_Icon_UnlinkVertical_20_N.svg",
+      "label": "Unlink Vertical"
+    },
+    {
+      "file": "S2_Icon_UploadToCloud_20_N.svg",
+      "label": "Upload To Cloud"
+    },
+    {
+      "file": "S2_Icon_Upload_20_N.svg",
+      "label": "Upload"
+    },
+    {
+      "file": "S2_Icon_UserAdd_20_N.svg",
+      "label": "User Add"
+    },
+    {
+      "file": "S2_Icon_UserAvatarCursor_20_N.svg",
+      "label": "User Avatar Cursor"
+    },
+    {
+      "file": "S2_Icon_UserAvatar_20_N.svg",
+      "label": "User Avatar"
+    },
+    {
+      "file": "S2_Icon_UserEdit_20_N.svg",
+      "label": "User Edit"
+    },
+    {
+      "file": "S2_Icon_UserFollowing_20_N.svg",
+      "label": "User Following"
+    },
+    {
+      "file": "S2_Icon_UserGroup_20_N.svg",
+      "label": "User Group"
+    },
+    {
+      "file": "S2_Icon_UserLock_20_N.svg",
+      "label": "User Lock"
+    },
+    {
+      "file": "S2_Icon_UserSettings_20_N.svg",
+      "label": "User Settings"
+    },
+    {
+      "file": "S2_Icon_User_20_N.svg",
+      "label": "User"
+    },
+    {
+      "file": "S2_Icon_UsersLock_20_N.svg",
+      "label": "Users Lock"
+    },
+    {
+      "file": "S2_Icon_VectorDraw_20_N.svg",
+      "label": "Vector Draw"
+    },
+    {
+      "file": "S2_Icon_Video_20_N.svg",
+      "label": "Video"
+    },
+    {
+      "file": "S2_Icon_ViewGridFluid_20_N.svg",
+      "label": "View Grid Fluid"
+    },
+    {
+      "file": "S2_Icon_ViewGrid_20_N.svg",
+      "label": "View Grid"
+    },
+    {
+      "file": "S2_Icon_ViewList_20_N.svg",
+      "label": "View List"
+    },
+    {
+      "file": "S2_Icon_ViewTransparency_20_N.svg",
+      "label": "View Transparency"
+    },
+    {
+      "file": "S2_Icon_VisibilityOff_20_N.svg",
+      "label": "Visibility Off"
+    },
+    {
+      "file": "S2_Icon_Visibility_20_N.svg",
+      "label": "Visibility"
+    },
+    {
+      "file": "S2_Icon_VolumeOff_20_N.svg",
+      "label": "Volume Off"
+    },
+    {
+      "file": "S2_Icon_VolumeOne_20_N.svg",
+      "label": "Volume One"
+    },
+    {
+      "file": "S2_Icon_VolumeTwo_20_N.svg",
+      "label": "Volume Two"
+    },
+    {
+      "file": "S2_Icon_WebNavBar_20_N.svg",
+      "label": "Web Nav Bar"
+    },
+    {
+      "file": "S2_Icon_WebPage_20_N.svg",
+      "label": "Web Page"
+    },
+    {
+      "file": "S2_Icon_ZoomIn_20_N.svg",
+      "label": "Zoom In"
+    },
+    {
+      "file": "S2_Icon_ZoomOut_20_N.svg",
+      "label": "Zoom Out"
+    }
+  ]
+}

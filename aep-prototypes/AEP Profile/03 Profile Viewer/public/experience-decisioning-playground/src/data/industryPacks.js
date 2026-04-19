@@ -152,6 +152,29 @@ const THEMED_RESULTS = {
       { oi: 3, score: 58, reason: 'General offer — less specific.' },
     ],
   },
+  healthcare: {
+    0: [
+      { oi: 0, score: 96, reason: 'Attributed member + high engagement → priority care pathway.' },
+      { oi: 5, score: 84, reason: 'Clinical category fit + quality signals.' },
+      { oi: 1, score: 78, reason: 'Benefits multiplier matches active utilization.' },
+      { oi: 7, score: 65, reason: 'Program preview aligns with declared conditions.' },
+      { oi: 6, score: 52, reason: 'Wellness add-on — secondary fit.' },
+    ],
+    1: [
+      { oi: 3, score: 91, reason: 'Cost-sensitive segment → targeted preventive offer.' },
+      { oi: 9, score: 83, reason: 'Limited enrollment window — digital-first outreach.' },
+      { oi: 4, score: 79, reason: 'Bundled services for value-seeking households.' },
+      { oi: 8, score: 68, reason: 'Cross-specialty referral — broad relevance.' },
+      { oi: 2, score: 61, reason: 'Payment plan available but low episode value.' },
+    ],
+    2: [
+      { oi: 4, score: 93, reason: 'Household care bundle matches chronic-care mission.' },
+      { oi: 9, score: 86, reason: 'Pharmacy + remote monitoring — weekly touch pattern.' },
+      { oi: 8, score: 82, reason: 'Care team package — coordinated need.' },
+      { oi: 1, score: 71, reason: 'Tier incentive for Silver-risk cohort.' },
+      { oi: 3, score: 58, reason: 'Generic wellness offer — less specific.' },
+    ],
+  },
 };
 
 const OFFER_COPY = {
@@ -311,6 +334,32 @@ const OFFER_COPY = {
       'Same-day slots today only',
     ],
   },
+  healthcare: {
+    names: [
+      'Priority Care Navigation',
+      '3× Wellness Weekend',
+      '0% Copay Screening',
+      'Telehealth Flash — Same Day',
+      'Bundle: PCP + Pharmacy',
+      'Device Kit — €30 Off',
+      'Specialty Queue Preview',
+      'Trade-In Durable Equipment',
+      'Care Plan Review — Free',
+      'Rx Flash — 15% Off',
+    ],
+    descs: [
+      'For attributed members on episodes over €50',
+      'Triple credits on qualifying preventive visits',
+      'Deferred copay on approved screenings',
+      'Limited specialty slots — same-week window',
+      'PCP continuity + mail-order starter',
+      'Remote monitoring kit — top rated',
+      'Early slot for high-risk cohorts',
+      'Credit toward renewed home devices',
+      'Free care-plan consult above €200 spend',
+      'Retail pharmacy add-ons today only',
+    ],
+  },
 };
 
 const PROFILE_COPY = {
@@ -367,6 +416,15 @@ const PROFILE_COPY = {
       'Household filings · School + community programs',
     ],
     avatars: ['S', 'R', 'C'],
+  },
+  healthcare: {
+    names: ['Dr. Patel’s patient', 'Jordan K.', 'The Okafors'],
+    details: [
+      'Portal-first · 3–4 visits/yr · Chronic + preventive mix',
+      'Cost sensitive · Completes on screening nudges',
+      'Household plan · Pediatrics + caregiver workflows',
+    ],
+    avatars: ['P', 'J', 'O'],
   },
 };
 

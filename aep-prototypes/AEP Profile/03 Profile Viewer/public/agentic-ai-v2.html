@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="aep-head-sync.js?v=20260416c"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agentic layer v2 (in development) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="agentic-ai-v2.css">
+  <link rel="stylesheet" href="agentic-ai-v2-dock.css?v=20260446">
+</head>
+<body class="reporting-page agentic-ai-v2-page home-dashboard-concierge home-dashboard-ajo">
+  <div class="dashboard-shell dashboard-shell--ajo">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap dashboard-main-wrap--ajo">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local learning tool">Local</span>
+          <a href="https://experienceleague.adobe.com/docs/experience-platform/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Documentation</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main dashboard-main--ajo consent-main agentic-ai-v2-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="agenticV2BannerHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="agenticV2BannerHeading" class="dashboard-hero-title">Agentic layer v2 (in development)</h2>
+              <p class="dashboard-hero-subtitle">
+                Light experiment-dashboard canvas with white cards, forest-green labels, and green flow lines. Same step order as v1; see also <a href="agentic-ai.html">Agentic layer (v1)</a>.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <div id="agenticV2Blocked" class="edp-blocked" hidden>
+          <p style="margin:0 0 0.75rem;">
+            This page is hidden from the sidebar. Turn it back on under
+            <a href="global-settings.html"><strong>Global values</strong></a>
+            (uncheck “Hide Agentic layer v2”).
+          </p>
+        </div>
+
+        <div class="ajo-page-inner agentic-ai-v2-inner" id="agenticV2Mount">
+          <section class="agentic-ai-v2-hero" aria-labelledby="agenticV2Heading">
+            <div class="agentic-presentation-bar">
+              <button
+                type="button"
+                class="dashboard-btn-outline arch-fullscreen-btn arch-int-fullscreen-btn"
+                id="agenticPresentationFullscreenBtn"
+                title="Fill the screen with the diagram (hides site menu and page title). Press Esc to exit."
+              >
+                Fullscreen
+              </button>
+            </div>
+            <header class="agentic-ai-v2-hero-head">
+              <p class="agentic-ai-v2-badge">Architecture</p>
+              <h1 id="agenticV2Heading" class="agentic-ai-v2-title">Agentic AI <span class="agentic-ai-v2-title-accent">v2</span></h1>
+              <div class="agentic-ai-v2-lead-block" role="doc-subtitle">
+                <p class="agentic-ai-v2-lead-line">
+                  Adobe Agentic AI is Adobe’s agentic orchestration layer — assistants that reason over your context, invoke tools and services, and advance multi-step work inside the policies and guardrails you set.
+                </p>
+              </div>
+              <div class="agentic-ai-v2-toolbar">
+                <button type="button" class="btn btn-primary" id="agenticV2PlayBtn">Play</button>
+                <button type="button" class="btn btn-secondary" id="agenticV2StepBtn">Step</button>
+                <button type="button" class="btn btn-secondary" id="agenticV2ResetBtn">Reset</button>
+                <label class="agentic-ai-v2-speed">
+                  <span>Step delay</span>
+                  <input type="range" id="agenticV2DelayMs" min="200" max="1400" step="100" value="700" aria-label="Milliseconds between steps">
+                  <span id="agenticV2DelayLabel" class="agentic-ai-v2-speed-val">700 ms</span>
+                </label>
+              </div>
+            </header>
+          </section>
+
+          <div class="agentic-v2-diagram-wrap" id="diagramWrapV2">
+            <div class="agentic-v2-diagram-scale" id="diagramScaleV2">
+            <div class="agentic-v2-board" id="diagramBoardV2">
+              <div class="agentic-v2-stack">
+                <div class="agentic-v2-assistant-wrap" id="node-assistant-v2" data-step="assistant">
+                  <div class="agentic-v2-assistant-card">
+                    <h2 class="agentic-v2-assistant-card__title">AI Assistant</h2>
+                    <div class="agentic-v2-assistant-card__thumb">
+                      <img
+                        src="https://contenthosting.web.app/Agents/aiassistant.png"
+                        width="400"
+                        height="280"
+                        alt="AI Assistant"
+                        loading="lazy"
+                        referrerpolicy="no-referrer"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="agentic-node agentic-node--wide agentic-v2-node agentic-v2-chat" id="node-chat-v2" data-step="chat">
+                  <div class="agentic-v2-chat__inner">
+                    <p class="agentic-v2-chat__title">CHAT SERVICE</p>
+                    <p class="agentic-v2-chat__sub">Session &amp; message routing</p>
+                  </div>
+                </div>
+                <div class="agentic-orch agentic-v2-orch" id="node-orch-v2" data-step="orchestrator">
+                  <div class="agentic-orch-head agentic-v2-orch-head">
+                    <span class="agentic-orch-title">AGENT ORCHESTRATOR</span>
+                  </div>
+                  <div class="agentic-orch-body">
+                    <div class="agentic-row agentic-row--prompt">
+                      <div class="agentic-node agentic-node--prompt agentic-v2-node agentic-v2-prompt" id="node-prompt-v2" data-step="prompt">
+                        <div class="agentic-v2-prompt__left">
+                          <span class="agentic-v2-prompt__eyebrow">Prompt</span>
+                          <span class="agentic-v2-prompt__mono">intent · routing</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="agentic-node agentic-node--coord agentic-v2-node agentic-v2-coordinator" id="node-coordinator-v2" data-step="coordinator">
+                      <span class="agentic-v2-coordinator__label">COORDINATOR</span>
+                      <div class="agentic-v2-coordinator__accent" aria-hidden="true"></div>
+                    </div>
+                    <div class="agentic-mid-grid agentic-v2-mid-grid">
+                      <div class="agentic-node agentic-node--red agentic-node--compact agentic-v2-node agentic-v2-mid-cell" id="node-nonAgent-v2" data-step="nonAgent">
+                        <span>Non Agent Query</span>
+                      </div>
+                      <div class="agentic-node agentic-node--purple agentic-node--compact agentic-v2-node agentic-v2-mid-cell" id="node-agentExecutor-v2" data-step="agentExecutor">
+                        <span>Agent Executor</span>
+                      </div>
+                      <div class="agentic-node agentic-node--yellow agentic-node--compact agentic-v2-node agentic-v2-mid-cell" id="node-planGenerator-v2" data-step="planGenerator">
+                        <span>Plan Generator</span>
+                      </div>
+                      <div class="agentic-node agentic-node--yellow agentic-node--compact agentic-v2-node agentic-v2-mid-cell" id="node-planExecutor-v2" data-step="planExecutor">
+                        <span>Plan Executor</span>
+                      </div>
+                    </div>
+                    <div class="agentic-node agentic-node--magenta-zone agentic-v2-node agentic-v2-zone" id="node-agentExecution-v2" data-step="agentExecution">
+                      <span class="agentic-magenta-label">AGENT EXECUTION</span>
+                    </div>
+                    <div class="agentic-agents-row agentic-v2-agents-row" id="agenticAgentsRowV2">
+                      <div class="agentic-v2-agent-card" id="node-agent-brand-v2" data-step="agent-brand">
+                        <div class="agentic-v2-agent-card__label"><span>Brand Experience Agent</span></div>
+                        <div class="agentic-v2-agent-card__thumb">
+                          <img src="https://contenthosting.web.app/Agents/brandconceierge.png" width="200" height="160" alt="Brand Experience Agent" loading="lazy" referrerpolicy="no-referrer" />
+                        </div>
+                      </div>
+                      <div class="agentic-v2-agent-card" id="node-agent-product-v2" data-step="agent-product">
+                        <div class="agentic-v2-agent-card__label"><span>Product Knowledge Agent</span></div>
+                        <div class="agentic-v2-agent-card__thumb">
+                          <img src="https://contenthosting.web.app/Agents/productknowledgeagent.png" width="200" height="160" alt="Product Knowledge Agent" loading="lazy" referrerpolicy="no-referrer" />
+                        </div>
+                      </div>
+                      <div class="agentic-v2-agent-card" id="node-agent-operational-v2" data-step="agent-operational">
+                        <div class="agentic-v2-agent-card__label"><span>Operational Insights Agent</span></div>
+                        <div class="agentic-v2-agent-card__thumb">
+                          <img src="https://contenthosting.web.app/Agents/operationalinsightsagent.png" width="200" height="160" alt="Operational Insights Agent" loading="lazy" referrerpolicy="no-referrer" />
+                        </div>
+                      </div>
+                      <div class="agentic-v2-agent-card" id="node-agent-field-v2" data-step="agent-field">
+                        <div class="agentic-v2-agent-card__label"><span>Field Discovery Agent</span></div>
+                        <div class="agentic-v2-agent-card__thumb">
+                          <img src="https://contenthosting.web.app/Agents/fieldengineeringagent.png" width="200" height="160" alt="Field Discovery Agent" loading="lazy" referrerpolicy="no-referrer" />
+                        </div>
+                      </div>
+                      <div class="agentic-v2-agent-card" id="node-agent-audience-v2" data-step="agent-audience">
+                        <div class="agentic-v2-agent-card__label"><span>Audience Agent</span></div>
+                        <div class="agentic-v2-agent-card__thumb">
+                          <img src="https://contenthosting.web.app/Agents/audienceagent.png" width="200" height="160" alt="Audience Agent" loading="lazy" referrerpolicy="no-referrer" />
+                        </div>
+                      </div>
+                      <div class="agentic-v2-agent-card" id="node-agent-journey-v2" data-step="agent-journey">
+                        <div class="agentic-v2-agent-card__label"><span>Journey Agent</span></div>
+                        <div class="agentic-v2-agent-card__thumb">
+                          <img src="https://contenthosting.web.app/Agents/journeyagent.png" width="200" height="160" alt="Journey Agent" loading="lazy" referrerpolicy="no-referrer" />
+                        </div>
+                      </div>
+                      <div class="agentic-v2-agent-card" id="node-agent-data-v2" data-step="agent-data">
+                        <div class="agentic-v2-agent-card__label"><span>Data Insights Agent</span></div>
+                        <div class="agentic-v2-agent-card__thumb">
+                          <img src="https://contenthosting.web.app/Agents/datainsightsagent.png" width="200" height="160" alt="Data Insights Agent" loading="lazy" referrerpolicy="no-referrer" />
+                        </div>
+                      </div>
+                      <div class="agentic-v2-agent-card" id="node-agent-support-v2" data-step="agent-support">
+                        <div class="agentic-v2-agent-card__label"><span>Product Support Agent</span></div>
+                        <div class="agentic-v2-agent-card__thumb">
+                          <img src="https://contenthosting.web.app/Agents/productsupportagent.png" width="200" height="160" alt="Product Support Agent" loading="lazy" referrerpolicy="no-referrer" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <svg class="agentic-v2-arrow-layer" id="arrowLayerV2" aria-hidden="true"></svg>
+            </div>
+            </div>
+          </div>
+
+        <div id="agenticV2DockOuter" class="workflow-dock-outer" aria-label="Customise dock">
+          <div class="workflow-dock-slide">
+            <details class="workflow-drawer" id="agenticV2CustomiseDrawer">
+              <summary class="workflow-summary" aria-label="Customise">
+                <span class="workflow-summary__row">
+                  <span class="workflow-summary__label">Customise</span>
+                  <span class="workflow-summary__icon" aria-hidden="true"></span>
+                </span>
+              </summary>
+              <div class="workflow-drawer-scroll">
+                <div class="panel">
+                  <h2>Agentic layer agent links</h2>
+                  <p class="hint">
+                    Optional URLs for each specialist agent card. Values are saved per <strong>AEP sandbox</strong> and this signed-in lab session (same as other Profile Viewer tools).
+                    Leave a field blank until you add a link; when set, clicking the matching card in the diagram opens it in a new tab.
+                  </p>
+                  <label for="agenticV2SandboxSelect">Sandbox</label>
+                  <select id="agenticV2SandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox"></select>
+                  <label for="agenticV2UrlBrand">Brand Experience Agent URL</label>
+                  <input id="agenticV2UrlBrand" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlProduct">Product Knowledge Agent URL</label>
+                  <input id="agenticV2UrlProduct" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlOperational">Operational Insights Agent URL</label>
+                  <input id="agenticV2UrlOperational" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlField">Field Discovery Agent URL</label>
+                  <input id="agenticV2UrlField" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlAudience">Audience Agent URL</label>
+                  <input id="agenticV2UrlAudience" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlJourney">Journey Agent URL</label>
+                  <input id="agenticV2UrlJourney" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlData">Data Insights Agent URL</label>
+                  <input id="agenticV2UrlData" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="agenticV2UrlSupport">Product Support Agent URL</label>
+                  <input id="agenticV2UrlSupport" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <div class="actions">
+                    <button type="button" class="primary" id="agenticV2CustomiseUpdate">Update</button>
+                  </div>
+                  <p id="agenticV2CustomiseStatus" class="status" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+            </details>
+          </div>
+          <div class="workflow-dock-hit" id="agenticV2DockHit" role="presentation" aria-hidden="true" title="Move pointer to bottom edge to reveal Customise"></div>
+        </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var LS_NAV = 'aepNavHideInDev_agenticLayerArchitectureV2';
+      function applyVisibility() {
+        var hide = false;
+        try {
+          hide = localStorage.getItem(LS_NAV) === '1';
+        } catch (e) {}
+        var blocked = document.getElementById('agenticV2Blocked');
+        var mount = document.getElementById('agenticV2Mount');
+        if (blocked && mount) {
+          blocked.hidden = !hide;
+          mount.hidden = hide;
+        }
+      }
+      applyVisibility();
+      window.addEventListener('aep-nav-indev-visibility-change', function () {
+        window.location.reload();
+      });
+      window.addEventListener('storage', function (e) {
+        if (e.key === LS_NAV) window.location.reload();
+      });
+    })();
+  </script>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260446"></script>
+  <script defer src="agentic-presentation-fs.js"></script>
+  <script defer src="agentic-ai-v2.js"></script>
+  <script defer src="agentic-ai-v2-customise.js?v=20260446"></script>
+  <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
+</body>
+</html>

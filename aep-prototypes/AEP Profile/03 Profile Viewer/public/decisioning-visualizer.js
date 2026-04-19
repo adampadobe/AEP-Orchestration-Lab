@@ -16,9 +16,10 @@
     sports: 'Sports',
     telecommunications: 'Telecommunications',
     public: 'Public',
+    healthcare: 'Healthcare',
   };
 
-  var INDUSTRY_ORDER = ['retail', 'fsi', 'travel', 'media', 'sports', 'telecommunications', 'public'];
+  var INDUSTRY_ORDER = ['retail', 'fsi', 'travel', 'media', 'sports', 'telecommunications', 'public', 'healthcare'];
 
   /* Lucide icon inner markup (lucide-static ISC) — same icons as EDP Shell */
   var INDUSTRY_ICON_INNER = {
@@ -34,6 +35,8 @@
     telecommunications: '<rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" />',
     public:
       '<line x1="3" x2="21" y1="22" y2="22" /><line x1="6" x2="6" y1="18" y2="11" /><line x1="10" x2="10" y1="18" y2="11" /><line x1="14" x2="14" y1="18" y2="11" /><line x1="18" x2="18" y1="18" y2="11" /><polygon points="12 2 20 7 4 7" />',
+    healthcare:
+      '<path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.3.3 0 1 0 .6.3"/><path d="M8 15v1a6 6 0 0 0 12 0v-4"/>',
   };
 
   function industryIconMarkup(key) {
@@ -47,7 +50,7 @@
 
   function migrateIndustryKey(k) {
     if (!k) return 'media';
-    var leg = { telco: 'telecommunications', automotive: 'sports', healthcare: 'public' };
+    var leg = { telco: 'telecommunications', automotive: 'sports' };
     return leg[k] || k;
   }
 
@@ -129,6 +132,11 @@
     { name: '📋 Permit fast-track — digital submission', sub: 'SLA · queue priority', id: 's2' },
     { name: '🧑‍🎓 Skills grant — cohort intake', sub: 'Workforce programme · regional cap', id: 's3' },
   ];
+  var PRIORITY_HEALTHCARE = [
+    { name: '🩺 Specialty pathway — remote monitoring bundle', sub: 'Chronic care · adherence & devices', id: 's1' },
+    { name: '🏥 Primary care — annual wellness visit', sub: 'Preventive revenue · gap closure', id: 's2' },
+    { name: '🧠 Behavioral health — digital coaching programme', sub: 'BH integration · engagement', id: 's3' },
+  ];
 
   function getPriorityListForIndustry(key) {
     if (key === 'travel') return PRIORITY_TRAVEL;
@@ -137,6 +145,7 @@
     if (key === 'telecommunications') return PRIORITY_TELECOMMUNICATIONS;
     if (key === 'sports') return PRIORITY_SPORTS;
     if (key === 'public') return PRIORITY_PUBLIC;
+    if (key === 'healthcare') return PRIORITY_HEALTHCARE;
     return PRIORITY_MEDIA;
   }
   var FORMULA_MEDIA = [
@@ -173,6 +182,11 @@
     { name: 'Housing support — first-time applicant', category: 'housing', baseScore: 75, expiresIn: 20 },
     { name: 'Benefits check — universal screening', category: 'benefits', baseScore: 85, expiresIn: 36 },
     { name: 'Mobility pass — senior eligibility', category: 'mobility', baseScore: 78, expiresIn: 10 },
+  ];
+  var FORMULA_HEALTHCARE = [
+    { name: 'Cardiology remote monitoring — kit + coach', category: 'specialty', baseScore: 75, expiresIn: 20 },
+    { name: 'PCP wellness — covered annual visit', category: 'primary', baseScore: 85, expiresIn: 36 },
+    { name: 'Behavioral health — CBT app + coach', category: 'wellness', baseScore: 78, expiresIn: 10 },
   ];
 
   var offers = PRIORITY_MEDIA.slice();
@@ -457,6 +471,48 @@
     },
   ];
 
+  var profilesHealthcare = [
+    {
+      reasoning:
+        '🧠 <strong>Model reasoning:</strong> Morgan is attributed to a primary care panel with rising A1c and two open care gaps. The model predicts specialty remote monitoring and coaching bundles before generic wellness nudges.',
+      ranks: [
+        { name: '🩺 Specialty pathway — remote monitoring bundle', why: 'Chronic markers + engagement → strongest uptake', conf: 94 },
+        { name: 'PCP wellness — covered annual visit', why: 'Gap closure on preventive schedule', conf: 76 },
+        { name: 'Behavioral health — digital coaching programme', why: 'Stress + sleep signals in app', conf: 58 },
+        { name: 'Cardiology remote monitoring — kit + coach', why: 'Formula sim overlap · high fit', conf: 41 },
+        { name: 'Retail pharmacy flash — 15% off', why: 'Secondary to clinical path', conf: 22 },
+        { name: 'Telehealth urgent — same day', why: 'Different acuity ladder', conf: 11 },
+        { name: 'Gym discount partner', why: 'Out of benefit design for this episode', conf: 5 },
+      ],
+    },
+    {
+      reasoning:
+        '🧠 <strong>Model reasoning:</strong> James searched chest discomfort and completed a cardiac risk screener — urgency and specialty routing dominate. The model prioritises cardiology pathways before primary-care wellness.',
+      ranks: [
+        { name: 'Cardiology remote monitoring — kit + coach', why: 'Risk score + symptom cluster → top predictor', conf: 95 },
+        { name: '🩺 Specialty pathway — remote monitoring bundle', why: 'Care-team handoff messaging', conf: 78 },
+        { name: 'Telehealth urgent — same day', why: 'Triage alternative · secondary slot', conf: 52 },
+        { name: 'PCP wellness — covered annual visit', why: 'Weaker — acute intent this session', conf: 28 },
+        { name: 'Behavioral health — digital coaching programme', why: 'Follow-on after acute ruled out', conf: 14 },
+        { name: 'Retail pharmacy flash — 15% off', why: 'Irrelevant to cardiology path', conf: 8 },
+        { name: 'Gym discount partner', why: 'Not clinically indicated', conf: 3 },
+      ],
+    },
+    {
+      reasoning:
+        '🧠 <strong>Model reasoning:</strong> Taylor leads employer-sponsored screenings for a 400-person site — population health goals. The model prioritises on-site PCP wellness and BH programmes before individual specialty kits.',
+      ranks: [
+        { name: 'PCP wellness — covered annual visit', why: 'Employer roster + screening targets → predictor', conf: 93 },
+        { name: 'Behavioral health — digital coaching programme', why: 'EAP attach rate from HR feed', conf: 72 },
+        { name: '🩺 Specialty pathway — remote monitoring bundle', why: 'High-risk cohort subset only', conf: 46 },
+        { name: 'Cardiology remote monitoring — kit + coach', why: 'Named referrals only', conf: 24 },
+        { name: 'Telehealth urgent — same day', why: 'Not an occupational health path', conf: 11 },
+        { name: 'Retail pharmacy flash — 15% off', why: 'Different acquisition funnel', conf: 6 },
+        { name: 'Gym discount partner', why: 'Wellness perk · lower priority than screenings', conf: 3 },
+      ],
+    },
+  ];
+
   var profiles = profilesMedia;
 
   var currentInterest = 'drama';
@@ -572,7 +628,58 @@
     if (ind === 'telecommunications') return '🎯 +30 line match';
     if (ind === 'sports') return '🎯 +30 fan match';
     if (ind === 'public') return '🎯 +30 case match';
+    if (ind === 'healthcare') return '🎯 +30 pathway match';
     return '🎯 +30 genre';
+  }
+
+  /** Profile-side attribute name in the formula builder (matches industry-specific profile schema). */
+  function profileMatchFormulaAttrName() {
+    var ind = getIndustry();
+    if (ind === 'retail') return 'shopperSegment';
+    if (ind === 'fsi') return 'bankingIntent';
+    if (ind === 'travel') return 'tripPreference';
+    if (ind === 'telecommunications') return 'lineIntent';
+    if (ind === 'sports') return 'fanAffinity';
+    if (ind === 'public') return 'servicePathway';
+    if (ind === 'healthcare') return 'carePathway';
+    return 'preferredGenre';
+  }
+
+  /** Helper text under the profile match toggle in "Simulate — set the context". */
+  function profileMatchSimulateHint() {
+    var ind = getIndustry();
+    if (ind === 'retail') return 'Which loyalty or shopping segment best describes this customer?';
+    if (ind === 'fsi') return 'Which banking or wealth line is this customer most focused on?';
+    if (ind === 'travel') return 'What kind of trip does this traveler usually book?';
+    if (ind === 'telecommunications') return 'What connectivity need is this subscriber optimizing for?';
+    if (ind === 'sports') return 'Which program or product line is this fan most aligned with?';
+    if (ind === 'public') return 'Which service pathway is this resident navigating?';
+    if (ind === 'healthcare') return 'Which clinical or wellness pathway is this member on?';
+    return 'What content does this viewer primarily watch?';
+  }
+
+  function syncProfileMatchFormulaLabels() {
+    var name = profileMatchFormulaAttrName();
+    var hint = profileMatchSimulateHint();
+    var ra = document.getElementById('dce-formula-rule-profile-attr');
+    if (ra) ra.textContent = name;
+    var sim = document.getElementById('dce-formula-profile-simulate-attr');
+    if (sim) sim.textContent = name;
+    var h = document.getElementById('dce-formula-profile-simulate-hint');
+    if (h) h.textContent = hint;
+  }
+
+  /** Short label for the serving breakdown line (winner score). */
+  function profileMatchBreakdownFragment() {
+    var ind = getIndustry();
+    if (ind === 'travel') return ' + trip(+30)';
+    if (ind === 'retail') return ' + segment(+30)';
+    if (ind === 'fsi') return ' + intent(+30)';
+    if (ind === 'telecommunications') return ' + line(+30)';
+    if (ind === 'sports') return ' + fan(+30)';
+    if (ind === 'public') return ' + pathway(+30)';
+    if (ind === 'healthcare') return ' + pathway(+30)';
+    return ' + genre(+30)';
   }
 
   function interestRuleDisplay() {
@@ -584,6 +691,7 @@
     if (ind === 'telecommunications') tail = ' (line intent → offer.planType)';
     if (ind === 'sports') tail = ' (program intent → offer.program)';
     if (ind === 'public') tail = ' (path → offer.pathway)';
+    if (ind === 'healthcare') tail = ' (care pathway → offer.serviceLine)';
     return currentInterest + tail;
   }
 
@@ -654,6 +762,7 @@
 
     var ruleInterest = document.getElementById('rule-interest');
     if (ruleInterest) ruleInterest.classList.add('active-rule');
+    syncProfileMatchFormulaLabels();
   }
 
   function dceFormulaPickInterest(cat, btn) {
@@ -830,7 +939,7 @@
 
     var breakdown = 'base(' + winner.baseScore + ')';
     if (winner.urgency) breakdown += ' × urgency(×2)';
-    if (winner.match) breakdown += ' + match(+30)';
+    if (winner.match) breakdown += profileMatchBreakdownFragment();
     if (winner.highPropensity) breakdown += ' × propensity(×1.5)';
     if (winner.campaignMatch) breakdown += ' + campaign(+50)';
     breakdown += ' = ' + winner.score;
@@ -1104,6 +1213,11 @@
       formulaOffers = FORMULA_PUBLIC.slice();
       profiles = profilesPublic;
       currentInterest = 'housing';
+    } else if (key === 'healthcare') {
+      offers = PRIORITY_HEALTHCARE.slice();
+      formulaOffers = FORMULA_HEALTHCARE.slice();
+      profiles = profilesHealthcare;
+      currentInterest = 'specialty';
     } else {
       offers = PRIORITY_MEDIA.slice();
       formulaOffers = FORMULA_MEDIA.slice();

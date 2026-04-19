@@ -38,7 +38,8 @@
 }
 
 /* Ranking explorer root: base .dce-viz-scope uses overflow-x:hidden; paired overflow clips the industry dropdown */
-.decisioning-catalog-page #dceVizRoot.dce-viz-scope {
+.decisioning-catalog-page #dceVizRoot.dce-viz-scope,
+.decisioning-catalog-page #edp-root.dce-viz-scope {
   overflow: visible;
 }
 
@@ -260,7 +261,8 @@
   [data-dce-industry-show='fsi']:not(.dce-ai-hypothesis-metrics),
   [data-dce-industry-show='telecommunications']:not(.dce-ai-hypothesis-metrics),
   [data-dce-industry-show='sports']:not(.dce-ai-hypothesis-metrics),
-  [data-dce-industry-show='public']:not(.dce-ai-hypothesis-metrics) {
+  [data-dce-industry-show='public']:not(.dce-ai-hypothesis-metrics),
+  [data-dce-industry-show='healthcare']:not(.dce-ai-hypothesis-metrics) {
     display: none;
   }
   /* Exclude grid containers: display:block breaks CSS grid (2×2 Simulate, 2-col A/B arms, “what you can use” grids) */
@@ -285,13 +287,17 @@
   body[data-dce-industry='public'] [data-dce-industry-show='public']:not(.dce-ai-hypothesis-metrics):not(.dce-experiment-arms):not(.dce-viz-sim-grid):not(.dce-what-grid) {
     display: block;
   }
+  body[data-dce-industry='healthcare'] [data-dce-industry-show='healthcare']:not(.dce-ai-hypothesis-metrics):not(.dce-experiment-arms):not(.dce-viz-sim-grid):not(.dce-what-grid) {
+    display: block;
+  }
   body[data-dce-industry='media'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='media']),
   body[data-dce-industry='travel'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='travel']),
   body[data-dce-industry='retail'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='retail']),
   body[data-dce-industry='fsi'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='fsi']),
   body[data-dce-industry='telecommunications'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='telecommunications']),
   body[data-dce-industry='sports'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='sports']),
-  body[data-dce-industry='public'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='public']) {
+  body[data-dce-industry='public'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='public']),
+  body[data-dce-industry='healthcare'] .dce-viz-scope .dce-ai-hypothesis-metrics:not([data-dce-industry-show='healthcare']) {
     display: none !important;
   }
 
@@ -376,7 +382,8 @@
   body[data-dce-industry='fsi'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='fsi'],
   body[data-dce-industry='telecommunications'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='telecommunications'],
   body[data-dce-industry='sports'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='sports'],
-  body[data-dce-industry='public'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='public'] {
+  body[data-dce-industry='public'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='public'],
+  body[data-dce-industry='healthcare'] .dce-viz-scope .dce-ai-hypothesis-metrics[data-dce-industry-show='healthcare'] {
     display: flex !important;
     flex-direction: row;
     flex-wrap: wrap;
@@ -456,7 +463,8 @@
   body[data-dce-industry='fsi'] .dashboard-hero-subtitle[data-dce-industry-show='fsi'],
   body[data-dce-industry='telecommunications'] .dashboard-hero-subtitle[data-dce-industry-show='telecommunications'],
   body[data-dce-industry='sports'] .dashboard-hero-subtitle[data-dce-industry-show='sports'],
-  body[data-dce-industry='public'] .dashboard-hero-subtitle[data-dce-industry-show='public'] {
+  body[data-dce-industry='public'] .dashboard-hero-subtitle[data-dce-industry-show='public'],
+  body[data-dce-industry='healthcare'] .dashboard-hero-subtitle[data-dce-industry-show='healthcare'] {
     display: block;
   }
 
@@ -472,13 +480,15 @@
   body[data-dce-industry='telecommunications'] .dce-viz-sim-grid[data-dce-industry-show='telecommunications'],
   body[data-dce-industry='sports'] .dce-viz-sim-grid[data-dce-industry-show='sports'],
   body[data-dce-industry='public'] .dce-viz-sim-grid[data-dce-industry-show='public'],
+  body[data-dce-industry='healthcare'] .dce-viz-sim-grid[data-dce-industry-show='healthcare'],
   body[data-dce-industry='media'] .dce-what-grid[data-dce-industry-show='media'],
   body[data-dce-industry='travel'] .dce-what-grid[data-dce-industry-show='travel'],
   body[data-dce-industry='retail'] .dce-what-grid[data-dce-industry-show='retail'],
   body[data-dce-industry='fsi'] .dce-what-grid[data-dce-industry-show='fsi'],
   body[data-dce-industry='telecommunications'] .dce-what-grid[data-dce-industry-show='telecommunications'],
   body[data-dce-industry='sports'] .dce-what-grid[data-dce-industry-show='sports'],
-  body[data-dce-industry='public'] .dce-what-grid[data-dce-industry-show='public'] {
+  body[data-dce-industry='public'] .dce-what-grid[data-dce-industry-show='public'],
+  body[data-dce-industry='healthcare'] .dce-what-grid[data-dce-industry-show='healthcare'] {
     display: grid;
   }
 
@@ -530,7 +540,8 @@
   body[data-dce-industry='fsi'] .dce-profile-stack[data-dce-industry-show='fsi'],
   body[data-dce-industry='telecommunications'] .dce-profile-stack[data-dce-industry-show='telecommunications'],
   body[data-dce-industry='sports'] .dce-profile-stack[data-dce-industry-show='sports'],
-  body[data-dce-industry='public'] .dce-profile-stack[data-dce-industry-show='public'] {
+  body[data-dce-industry='public'] .dce-profile-stack[data-dce-industry-show='public'],
+  body[data-dce-industry='healthcare'] .dce-profile-stack[data-dce-industry-show='healthcare'] {
     display: flex;
   }
 
@@ -563,12 +574,12 @@
     border-bottom-width: 2px;
   }
 
-  /* ── MAIN CONTENT — gutter around shared .decisioning-content-surface (decisioning-content-surface.css) ── */
-  .decisioning-catalog-page #dceVizRoot.dce-viz-core .content {
+  /* ── MAIN CONTENT ── (padding matches decisioning-visualizer-core.css + inner gutters) */
+  .decisioning-catalog-page #dceVizRoot.dce-viz-core .content,
+  .decisioning-catalog-page #edp-root.dce-viz-core .content {
     max-width: none;
     margin: 0 auto;
-    padding: var(--decisioning-content-outer-pad-top, 20px) var(--decisioning-content-outer-pad-x, var(--dce-core-pad-x, clamp(1rem, 2.5vw, 1.35rem)))
-      var(--decisioning-content-outer-pad-bottom, 28px);
+    padding: 48px var(--dce-core-pad-x, clamp(1rem, 2.5vw, 1.35rem)) 60px;
     flex: 1 1 auto;
     min-height: 0;
     width: 100%;
@@ -1175,7 +1186,8 @@
   body[data-dce-industry='fsi'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='fsi']),
   body[data-dce-industry='telecommunications'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='telecommunications']),
   body[data-dce-industry='sports'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='sports']),
-  body[data-dce-industry='public'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='public']) {
+  body[data-dce-industry='public'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='public']),
+  body[data-dce-industry='healthcare'].decisioning-catalog-page .dce-viz-scope .lift-banner:not([data-dce-industry-show='healthcare']) {
     display: none !important;
   }
   body[data-dce-industry='media'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='media'],
@@ -1184,7 +1196,8 @@
   body[data-dce-industry='fsi'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='fsi'],
   body[data-dce-industry='telecommunications'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='telecommunications'],
   body[data-dce-industry='sports'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='sports'],
-  body[data-dce-industry='public'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='public'] {
+  body[data-dce-industry='public'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='public'],
+  body[data-dce-industry='healthcare'].decisioning-catalog-page .dce-viz-scope .lift-banner[data-dce-industry-show='healthcare'] {
     display: flex !important;
   }
 
@@ -1195,7 +1208,8 @@
   body[data-dce-industry='fsi'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='fsi']),
   body[data-dce-industry='telecommunications'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='telecommunications']),
   body[data-dce-industry='sports'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='sports']),
-  body[data-dce-industry='public'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='public']) {
+  body[data-dce-industry='public'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='public']),
+  body[data-dce-industry='healthcare'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms:not([data-dce-industry-show='healthcare']) {
     display: none !important;
   }
   body[data-dce-industry='media'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='media'],
@@ -1204,7 +1218,8 @@
   body[data-dce-industry='fsi'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='fsi'],
   body[data-dce-industry='telecommunications'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='telecommunications'],
   body[data-dce-industry='sports'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='sports'],
-  body[data-dce-industry='public'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='public'] {
+  body[data-dce-industry='public'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='public'],
+  body[data-dce-industry='healthcare'].decisioning-catalog-page .dce-viz-scope .dce-experiment-arms[data-dce-industry-show='healthcare'] {
     display: grid !important;
   }
 
@@ -3498,6 +3513,7 @@
   }
 
   /* Ranking explorer: shell header shadow in dark theme (see decisioning-edp-shell.css) */
-  html[data-aep-theme='dark'] .decisioning-catalog-page #dceVizRoot.dce-viz-core .dce-edp-shell-header {
+  html[data-aep-theme='dark'] .decisioning-catalog-page #dceVizRoot.dce-viz-core .dce-edp-shell-header,
+  html[data-aep-theme='dark'] .decisioning-catalog-page #edp-root.dce-viz-core .dce-edp-shell-header {
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
   }

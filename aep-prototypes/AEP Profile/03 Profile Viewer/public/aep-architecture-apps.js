@@ -257,12 +257,457 @@
   var archViewport;
   var dotButtons = [];
 
+  /** Full-layout undo (snapshots via AEPDiagram.undo). */
+  var archUndoStack = null;
+  /** Multi-select for platform nodes in Edit mode (AEPDiagram.selection). */
+  var archSelection = null;
+
+  /** True when "Edit diagram" is on — state stepping must not advance (playback paused). */
+  function archIsEditMode() {
+    return !!(archViewport && archViewport.classList.contains('arch-int-viewport--edit-mode'));
+  }
+
+  /** Disable prev/next/dot navigation while editing so arrow keys do not fight layout tools. */
+  function archSyncPlaybackNav() {
+    var blocked = archIsEditMode();
+    var prev = qs('#archIntPrev');
+    var next = qs('#archIntNext');
+    if (prev) prev.disabled = blocked;
+    if (next) next.disabled = blocked;
+    dotButtons.forEach(function (b) {
+      b.disabled = blocked;
+    });
+    if (blocked || !archSelection) return;
+    archSelection.clear();
+    archSelectionRefreshDom();
+  }
+
+  function archSelectionRefreshDom() {
+    if (!archSelection) return;
+    $all('.arch-int-svg-wrap g.arch-node').forEach(function (g) {
+      if (g.classList.contains('arch-custom-box')) return;
+      var id = g.id;
+      if (!id || id.indexOf('node-') !== 0 || id.indexOf('node-cbox-') === 0) return;
+      g.classList.toggle('arch-node--selected', archSelection.has(id));
+    });
+    archSelectionPanelSync();
+  }
+
+  /** When a diagram object is selected, turn on Move (and Labels when the object has editable text). */
+  function archEditorApplyModesForCurrentSelection() {
+    if (!archIsEditMode()) return;
+    if (archGetActiveTool() !== 'select') return;
+    var hasPlatform = archSelection && archSelection.count() > 0;
+    var hasCbox = !!archCustomBoxSelectedId;
+    var lineOnly = !!(userLines && userLines.selectedId) && !hasPlatform && !hasCbox;
+    if (lineOnly) return;
+    if (!hasPlatform && !hasCbox) return;
+
+    archDragSetEnabled(true);
+
+    if (hasPlatform) {
+      archLabelSetEnabled(true);
+      return;
+    }
+
+    var cbox = archCustomBoxFind(archCustomBoxSelectedId);
+    var cb = cbox ? archCustomBoxNormalize(cbox) : null;
+    archLabelSetEnabled(!archCustomBoxIsIconAsset(cb));
+  }
+
+  function archSelectionPanelSync() {
+    archEditorApplyModesForCurrentSelection();
+    archInspectorSync();
+  }
+
+  /** Inspector: custom box (if selected) else single platform node (Edit mode). */
+  function archInspectorSync() {
+    var ins = qs('#archEditInspector');
+    var body = qs('#archEditInspectorBody');
+    if (!ins || !body) return;
+    if (!archIsEditMode()) {
+      ins.hidden = true;
+      return;
+    }
+    if (archCustomBoxSelectedId) {
+      var cbox = archCustomBoxFind(archCustomBoxSelectedId);
+      if (cbox) {
+        var cb = archCustomBoxNormalize(cbox);
+        ins.hidden = false;
+        var insExtra = '';
+        if (cb.kind === 'productLogo' && cb.logoDescription) {
+          insExtra = '\nDescription (hover): ' + cb.logoDescription;
+        } else if (cb.kind === 'spectrumIcon' && cb.iconFile) {
+          insExtra = '\nSpectrum file: ' + cb.iconFile;
+        }
+        body.textContent =
+          'Custom box\nName: ' +
+          (cb.name || '') +
+          insExtra +
+          '\nId: ' +
+          cb.id +
+          '\nDOM id: node-cbox-' +
+          cb.id +
+          '\nPosition: ' +
+          Math.round(cb.x) +
+          ', ' +
+          Math.round(cb.y) +
+          '\nSize: ' +
+          Math.round(cb.w) +
+          ' × ' +
+          Math.round(cb.h) +
+          '\n\nUse the floating Tools bar on the diagram for fill, outline, and name.';
+        return;
+      }
+    }
+    if (!archSelection || archSelection.count() !== 1) {
+      ins.hidden = true;
+      return;
+    }
+    var id = archSelection.primary;
+    if (!id || id.indexOf('node-') !== 0 || id.indexOf('node-cbox-') === 0) {
+      ins.hidden = true;
+      return;
+    }
+    var key = id.slice(5);
+    if (!NODE_LAYOUT[key]) {
+      ins.hidden = true;
+      return;
+    }
+    ins.hidden = false;
+    var human = ARCH_NODE_LABELS[key] || key;
+    body.textContent =
+      'Key: ' +
+      key +
+      '\nTitle: ' +
+      human +
+      '\nElement id: ' +
+      id +
+      '\n\nDrag to move, corners to resize, double-click text to edit.';
+  }
+
+  function archEditSelectionInit() {
+    if (archSelection || !(window.AEPDiagram && window.AEPDiagram.selection)) return;
+    archSelection = window.AEPDiagram.selection.create();
+    archSelectionPanelSync();
+  }
+
+  /** Snapshot without `savedAt` so identical layouts dedupe in the undo stack. */
+  function archSnapshotForUndo() {
+    var p = archMasterSerialize();
+    delete p.savedAt;
+    return p;
+  }
+
+  function archUndoSnapshotsEqual(a, b) {
+    if (!a || !b) return false;
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+
+  function archUndoSyncUi() {
+    var ub = qs('#archUndoBtn');
+    var rb = qs('#archRedoBtn');
+    if (ub) ub.disabled = !archUndoStack || !archUndoStack.canUndo();
+    if (rb) rb.disabled = !archUndoStack || !archUndoStack.canRedo();
+  }
+
+  function archUndoInitOnce() {
+    if (archUndoStack || !(window.AEPDiagram && window.AEPDiagram.undo)) return;
+    archUndoStack = window.AEPDiagram.undo.createStack({ max: 80 });
+    archUndoStack.resetWithSnapshot(archSnapshotForUndo());
+    archUndoSyncUi();
+  }
+
+  /** Call after a user edit; pushes only if the layout actually changed. */
+  function archUndoMaybePushSnapshot() {
+    if (!archUndoStack) return;
+    var s = archSnapshotForUndo();
+    var cur = archUndoStack.peek();
+    if (cur && archUndoSnapshotsEqual(cur, s)) return;
+    archUndoStack.push(s);
+    archUndoSyncUi();
+  }
+
+  function archApplyLayoutSnapshot(snap) {
+    if (!snap || typeof snap !== 'object') return;
+    archSourcesDividers = archSourcesDividersDefaultArray();
+    archCustomBoxes = [];
+    archMasterApply(snap);
+    if (!Array.isArray(snap.sourcesDividers)) {
+      archSourcesDividersLoad();
+    }
+    if (!Array.isArray(snap.customBoxes)) {
+      archCustomBoxesLoad();
+    }
+    archLabelApplyAll();
+    archDragApply();
+    archSourcesDividersMigrateToUserLines();
+    archUserLineRender();
+    archCustomBoxesRender();
+    archDragSave();
+    archLabelSave();
+    archUserLinePersist();
+    archSourcesDividersPersist();
+    archCustomBoxesPersist();
+    archStateHighlightOverridesPersist();
+    try {
+      localStorage.setItem(LS_MASTER, JSON.stringify(archMasterSerialize()));
+    } catch (e) {}
+    applyState();
+  }
+
+  function archUndoRun() {
+    if (!archUndoStack) return;
+    var snap = archUndoStack.undo();
+    if (!snap) return;
+    archApplyLayoutSnapshot(snap);
+    archUndoSyncUi();
+    if (archSelection) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
+    if (liveRegion) liveRegion.textContent = 'Undo: layout restored.';
+  }
+
+  function archRedoRun() {
+    if (!archUndoStack) return;
+    var snap = archUndoStack.redo();
+    if (!snap) return;
+    archApplyLayoutSnapshot(snap);
+    archUndoSyncUi();
+    if (archSelection) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
+    if (liveRegion) liveRegion.textContent = 'Redo: layout restored.';
+  }
+
+  function archEditSelectionOnSvgClick(e) {
+    if (!archIsEditMode() || !archSelection) return;
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
+    if (userLines.drawMode || customBoxDrawMode) return;
+    var g = e.target.closest && e.target.closest('g.arch-node');
+    if (g && g.classList.contains('arch-custom-box')) return;
+    if (g && g.id && g.id.indexOf('node-') === 0 && g.id.indexOf('node-cbox-') !== 0) {
+      var key = g.id.slice(5);
+      if (!NODE_LAYOUT[key]) return;
+      e.stopPropagation();
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
+      if (e.shiftKey) archSelection.toggle(g.id, true);
+      else archSelection.setSingle(g.id);
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
+      archSelectionRefreshDom();
+      return;
+    }
+    if (!e.shiftKey) {
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
+      userLines.selectedId = null;
+      userLines.selectedHandleIdx = null;
+      archSelection.clear();
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
+      archSelectionRefreshDom();
+    }
+  }
+
+  /**
+   * Double-click (Edit mode) selects a platform node, custom box, or connector.
+   * archSelectionPanelSync enables Move / Labels via archEditorApplyModesForCurrentSelection.
+   */
+  function archDiagramDblClickSelect(e) {
+    if (!archIsEditMode()) return;
+    if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) return;
+    if (userLines.drawMode || customBoxDrawMode) return;
+    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
+    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
+    if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle--cbox')) return;
+
+    var ul = e.target.closest && e.target.closest('.arch-user-line, .arch-user-line-hit');
+    if (ul && ul.getAttribute) {
+      var lid = ul.getAttribute('data-user-line-id');
+      if (lid) {
+        userLines.selectedId = lid;
+        userLines.selectedHandleIdx = null;
+        archCustomBoxSelectedId = null;
+        archCustomBoxLabelActiveId = null;
+        if (archSelection) archSelection.clear();
+        archCustomBoxesRender();
+        archUserLineRender();
+        archUserLineSyncPropsHud();
+        archSelectionRefreshDom();
+        if (liveRegion) liveRegion.textContent = 'Connector selected — Delete or Backspace removes it.';
+        return;
+      }
+    }
+
+    var g = e.target.closest && e.target.closest('g.arch-node');
+    if (!g || !g.id || g.id.indexOf('node-') !== 0) return;
+
+    if (g.classList.contains('arch-custom-box')) {
+      var rawId = g.id.replace(/^node-cbox-/, '');
+      if (!rawId) return;
+      userLines.selectedId = null;
+      userLines.selectedHandleIdx = null;
+      archCustomBoxSelectedId = rawId;
+      archCustomBoxLabelActiveId = null;
+      if (archSelection) archSelection.clear();
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
+      archSelectionRefreshDom();
+      if (liveRegion) liveRegion.textContent = 'Shape selected — drag to move, handles to resize, Delete to remove.';
+      return;
+    }
+
+    var key = g.id.slice(5);
+    if (!NODE_LAYOUT[key]) return;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    if (e.shiftKey && archSelection) archSelection.toggle(g.id, true);
+    else if (archSelection) archSelection.setSingle(g.id);
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    archSelectionRefreshDom();
+    if (liveRegion) liveRegion.textContent = 'Tile selected — drag to move, corners to resize.';
+  }
+
   function qs(sel, root) {
     return (root || document).querySelector(sel);
   }
 
   function $all(sel, root) {
     return Array.prototype.slice.call((root || document).querySelectorAll(sel));
+  }
+
+  /** Active diagram editor rail tab (layout | highlights | sources | spectrum-icons | file). */
+  var archEditorActivePanelId = 'layout';
+
+  /** Diagram edit tool: `lines` (sources), `select` (layout), or `none` (no active edit tool). Mirrors rail — use archSetActiveTool to switch. */
+  var LS_ARCH_ACTIVE_TOOL = 'aepArchActiveTool';
+
+  function archGetActiveTool() {
+    if (archEditorActivePanelId === 'sources') return 'lines';
+    if (archEditorActivePanelId === 'layout') return 'select';
+    return 'none';
+  }
+
+  /** Switch to Lines tool (sources panel) or Select / canvas tools (any other panel). */
+  function archSetActiveTool(tool) {
+    if (tool === 'lines') {
+      archEditorSetPanel('sources');
+    } else {
+      archEditorSetPanel('layout');
+    }
+  }
+
+  /**
+   * Icons / logos rail leaves the edit tool as `none`, so drag + resize are off.
+   * After placing or pasting a custom box, switch to Tools (select) so Move and handles work immediately.
+   */
+  function archActivateCanvasAdjustAfterCustomBoxPlace() {
+    if (!archIsEditMode()) return;
+    archSetActiveTool('select');
+    archSelectionPanelSync();
+  }
+
+  /** Hide left Lines dock chrome while Lines tab is active — connectors are edited from the floating bar. */
+  function archEditorSyncLinesDockChrome() {
+    var sec = qs('#archEditorSectionSources');
+    if (!sec) return;
+    var hideChrome = !!(archIsEditMode() && archEditorActivePanelId === 'sources');
+    sec.classList.toggle('arch-editor-section--lines-float-active', hideChrome);
+  }
+
+  /** Floating Canvas Tools bar (shapes + selected custom box) — opens from rail Tools tab. */
+  var archToolsFloatOpen = false;
+
+  function archToolsFloatSyncLineOffsetClass() {
+    if (!archViewport) return;
+    var lineBar = qs('#archLineFloatBar');
+    var lineVis = !!(lineBar && !lineBar.hidden && archIsEditMode());
+    archViewport.classList.toggle('arch-int-viewport--tools-float-line-offset', lineVis);
+  }
+
+  function archToolsFloatSyncPosition() {
+    archToolsFloatSyncLineOffsetClass();
+  }
+
+  function archToolsFloatSetOpen(on) {
+    archToolsFloatOpen = !!on;
+    var bar = qs('#archToolsFloatBar');
+    if (bar) bar.hidden = !archToolsFloatOpen;
+    if (archToolsFloatOpen) archToolsFloatSyncPosition();
+    if (archViewport) archViewport.classList.toggle('arch-int-viewport--tools-float-open', archToolsFloatOpen);
+  }
+
+  function archToolsFloatToggle() {
+    archToolsFloatSetOpen(!archToolsFloatOpen);
+  }
+
+  function archEditorClearNodeAndBoxSelection() {
+    if (archSelection) archSelection.clear();
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    archSelectionRefreshDom();
+    archCustomBoxesRender();
+  }
+
+  /** Switch diagram editor rail tab (layout | highlights | sources | spectrum-icons | file | none). */
+  function archEditorSetPanel(panelId) {
+    var prev = archEditorActivePanelId;
+    var valid = ['layout', 'highlights', 'sources', 'spectrum-icons', 'file'];
+    archEditorActivePanelId = valid.indexOf(panelId) >= 0 ? panelId : null;
+    if (prev === 'spectrum-icons' && archEditorActivePanelId !== 'spectrum-icons') {
+      archLogoLibraryEditModeSet(false);
+    }
+    try {
+      localStorage.setItem(LS_ARCH_ACTIVE_TOOL, archGetActiveTool());
+    } catch (e) {}
+    var editorPanel = qs('#archEditorPanel');
+    if (editorPanel) {
+      /* Hide side column for Tools + Lines (floating UI on canvas), and when no rail tab is selected — avoids empty white strip. */
+      editorPanel.classList.toggle(
+        'arch-editor-panel--layout-float-only',
+        !archEditorActivePanelId ||
+          archEditorActivePanelId === 'layout' ||
+          archEditorActivePanelId === 'sources'
+      );
+    }
+    $all('.arch-editor-section').forEach(function (sec) {
+      var match = !!archEditorActivePanelId && sec.getAttribute('data-arch-panel') === archEditorActivePanelId;
+      sec.hidden = !match;
+      sec.classList.toggle('is-active', match);
+    });
+    $all('.arch-editor-rail-btn').forEach(function (btn) {
+      var match = !!archEditorActivePanelId && btn.getAttribute('data-arch-panel') === archEditorActivePanelId;
+      btn.classList.toggle('is-active', match);
+      btn.setAttribute('aria-pressed', match ? 'true' : 'false');
+    });
+    if (archEditorActivePanelId === 'spectrum-icons') {
+      archCustomLogoMetadataEditorClose();
+      archSpectrumIconsPanelInit();
+      archArchitectureLogosPanelInit();
+      archCustomLogoUploadFormInit();
+    }
+    archUserLineSyncDrawModeFromEditor();
+    var selectToolOn = !!(archIsEditMode() && archGetActiveTool() === 'select');
+    archDragSetEnabled(selectToolOn);
+    archLabelSetEnabled(selectToolOn);
+    if (archGetActiveTool() !== 'select') archEditorClearNodeAndBoxSelection();
+    archEditorSyncLinesDockChrome();
+    if (archEditorActivePanelId !== 'layout') {
+      archToolsFloatSetOpen(false);
+    } else if (prev !== 'layout') {
+      archToolsFloatSetOpen(true);
+    }
   }
 
   function archHighlightsForState(stateIndex) {
@@ -422,6 +867,7 @@
   }
 
   function go(delta) {
+    if (archIsEditMode()) return;
     var n = idx + delta;
     if (n < 0 || n >= STATES.length) return;
     idx = n;
@@ -429,6 +875,7 @@
   }
 
   function goTo(i) {
+    if (archIsEditMode()) return;
     if (i < 0 || i >= STATES.length) return;
     idx = i;
     applyState();
@@ -461,6 +908,7 @@
     stateHeadline = qs('#archIntStateHeadline');
     stateBody = qs('#archIntStateBody');
     archViewport = qs('#archIntViewport');
+    var mainPresentationEl = qs('main.dashboard-main.app-page');
     var LS_ARCH_EDIT = 'aepArchDiagramEditMode';
     var LS_ARCH_DOCK = 'aepArchEditorDockRight';
     try {
@@ -469,6 +917,15 @@
       }
       localStorage.removeItem('aepArchHideControls');
     } catch (e) {}
+
+    function archIsPresentationFullscreen() {
+      return !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
+    }
 
     archStateHighlightOverridesLoad();
     archHighlightPickerInit();
@@ -505,6 +962,9 @@
 
     document.addEventListener('keydown', function (e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+      if (e.key === 'Escape' && archIsPresentationFullscreen()) {
+        return;
+      }
       if (e.key === 'Escape' && archViewport && archViewport.classList.contains('arch-int-viewport--editing-tools-hidden')) {
         e.preventDefault();
         try {
@@ -515,6 +975,7 @@
         archEditorApplyEditMode();
         return;
       }
+      if (archIsEditMode()) return;
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         go(-1);
@@ -532,18 +993,7 @@
     }
     archStateHighlightsApply();
 
-    function archEditorSetPanel(panelId) {
-      $all('.arch-editor-section').forEach(function (sec) {
-        var match = sec.getAttribute('data-arch-panel') === panelId;
-        sec.hidden = !match;
-        sec.classList.toggle('is-active', match);
-      });
-      $all('.arch-editor-rail-btn').forEach(function (btn) {
-        var match = btn.getAttribute('data-arch-panel') === panelId;
-        btn.classList.toggle('is-active', match);
-        btn.setAttribute('aria-pressed', match ? 'true' : 'false');
-      });
-    }
+    var archEditModeWasOn = false;
 
     function archEditorApplyEditMode() {
       var on = false;
@@ -560,6 +1010,22 @@
       }
       var fab = qs('#archShowControlsFab');
       if (fab) fab.hidden = !!on;
+      if (on && !archEditModeWasOn) {
+        archEditorSetPanel(null);
+      }
+      var selectToolOn = !!(on && archGetActiveTool() === 'select');
+      archDragSetEnabled(selectToolOn);
+      archLabelSetEnabled(selectToolOn);
+      if (!on) archToolsFloatSetOpen(false);
+      archUserLineSyncDrawModeFromEditor();
+      archEditorSyncLinesDockChrome();
+      archSyncPlaybackNav();
+      archSelectionPanelSync();
+      archLineFloatUpdateVisibility();
+      /** Re-sync connector handles: they only exist in edit mode; without a render they stay in the DOM when edit is turned off. */
+      archUserLineRender();
+      if (!on) archEditorClearNodeAndBoxSelection();
+      archEditModeWasOn = on;
     }
 
     function archEditorApplyDock() {
@@ -577,7 +1043,7 @@
 
     archEditorApplyDock();
     archEditorApplyEditMode();
-    archEditorSetPanel('layout');
+    archEditorSetPanel(null);
 
     var editModeTgl = qs('#archEditModeToggle');
     if (editModeTgl) {
@@ -606,7 +1072,15 @@
         var btn = e.target && e.target.closest && e.target.closest('.arch-editor-rail-btn');
         if (!btn) return;
         var pid = btn.getAttribute('data-arch-panel');
-        if (pid) archEditorSetPanel(pid);
+        if (!pid) return;
+        var prev = archEditorActivePanelId;
+        if (pid === prev) {
+          archEditorSetPanel(null);
+          archToolsFloatSetOpen(false);
+          return;
+        }
+        archEditorSetPanel(pid);
+        if (pid === 'layout') archToolsFloatSetOpen(true);
       });
     }
 
@@ -621,6 +1095,62 @@
         archEditorApplyEditMode();
       });
     }
+
+    var archPresentationFsBtn = qs('#archPresentationFullscreenBtn');
+    function archPresentationFsSync() {
+      var on = archIsPresentationFullscreen();
+      if (mainPresentationEl) mainPresentationEl.classList.toggle('arch-main--presentation-fs', on);
+      if (archPresentationFsBtn) {
+        archPresentationFsBtn.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+        archPresentationFsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        archPresentationFsBtn.setAttribute(
+          'title',
+          on
+            ? 'Leave fullscreen (or press Esc).'
+            : 'Fill the screen with the diagram (hides site menu and page title). Press Esc to exit.'
+        );
+      }
+    }
+    function archEnterPresentationFs() {
+      var el = mainPresentationEl;
+      if (!el) return;
+      var req =
+        el.requestFullscreen ||
+        el.webkitRequestFullscreen ||
+        el.mozRequestFullScreen ||
+        el.msRequestFullscreen;
+      if (!req) return;
+      var p = req.call(el);
+      if (p && typeof p.catch === 'function') {
+        p.catch(function () {});
+      }
+    }
+    function archExitPresentationFs() {
+      if (!archIsPresentationFullscreen()) return;
+      var ex =
+        document.exitFullscreen ||
+        document.webkitExitFullscreen ||
+        document.webkitCancelFullScreen ||
+        document.mozCancelFullScreen ||
+        document.msExitFullscreen;
+      if (!ex) return;
+      var p = ex.call(document);
+      if (p && typeof p.catch === 'function') {
+        p.catch(function () {});
+      }
+    }
+    if (archPresentationFsBtn && mainPresentationEl) {
+      archPresentationFsBtn.setAttribute('type', 'button');
+      archPresentationFsBtn.setAttribute('aria-pressed', 'false');
+      archPresentationFsBtn.addEventListener('click', function () {
+        if (archIsPresentationFullscreen()) archExitPresentationFs();
+        else archEnterPresentationFs();
+      });
+    }
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(function (ev) {
+      document.addEventListener(ev, archPresentationFsSync);
+    });
+    archPresentationFsSync();
 
     applyState();
   }
@@ -1269,33 +1799,61 @@
         shell.setAttribute('width', String(wh.w));
         shell.setAttribute('height', String(wh.h));
       }
-      var hEl = g.querySelector('.arch-node-resize-handle');
-      if (hEl) {
-        var wh2 = archNodeEffectiveWH(key);
-        var hs = ARCH_RESIZE_HANDLE;
-        hEl.setAttribute('x', String(L.rect[0] + wh2.w - hs));
-        hEl.setAttribute('y', String(L.rect[1] + wh2.h - hs));
-      }
+      var wh2 = archNodeEffectiveWH(key);
+      var hs = ARCH_RESIZE_HANDLE;
+      var rl = L.rect[0];
+      var rt = L.rect[1];
+      var rw = wh2.w;
+      var rh = wh2.h;
+      var hw = Math.max(0, (rw - hs) / 2);
+      var hh = Math.max(0, (rh - hs) / 2);
+      var handlePos = [
+        { k: 'nw', x: rl, y: rt },
+        { k: 'ne', x: rl + rw - hs, y: rt },
+        { k: 'sw', x: rl, y: rt + rh - hs },
+        { k: 'se', x: rl + rw - hs, y: rt + rh - hs },
+        { k: 'n', x: rl + hw, y: rt },
+        { k: 's', x: rl + hw, y: rt + rh - hs },
+        { k: 'w', x: rl, y: rt + hh },
+        { k: 'e', x: rl + rw - hs, y: rt + hh },
+      ];
+      handlePos.forEach(function (sp) {
+        var hEl = g.querySelector('.arch-node-resize-handle[data-arch-node-handle="' + sp.k + '"]');
+        if (hEl) {
+          hEl.setAttribute('x', String(sp.x));
+          hEl.setAttribute('y', String(sp.y));
+        }
+      });
     });
     archDragRebuildFlows();
+    archUserLineSyncSourcesDividerLocals();
     if (userLines.lines.length) archUserLineRender();
   }
 
   function archEnsureResizeHandles() {
+    var hs = ARCH_RESIZE_HANDLE;
+    var keys = ['nw', 'ne', 'sw', 'se', 'n', 's', 'w', 'e'];
     Object.keys(NODE_LAYOUT).forEach(function (key) {
       var g = qs('#node-' + key);
-      if (!g || g.querySelector('.arch-node-resize-handle')) return;
-      var h = document.createElementNS(SVG_NS, 'rect');
-      h.setAttribute('class', 'arch-node-resize-handle');
-      h.setAttribute('width', String(ARCH_RESIZE_HANDLE));
-      h.setAttribute('height', String(ARCH_RESIZE_HANDLE));
-      h.setAttribute('rx', '2');
-      h.setAttribute('fill', '#ffffff');
-      h.setAttribute('stroke', '#1473e6');
-      h.setAttribute('stroke-width', '1.25');
-      h.setAttribute('tabindex', '-1');
-      h.setAttribute('aria-hidden', 'true');
-      g.appendChild(h);
+      if (!g) return;
+      if (g.querySelector('.arch-node-resize-handle[data-arch-node-handle]')) return;
+      $all('.arch-node-resize-handle:not(.arch-node-resize-handle--cbox)', g).forEach(function (el) {
+        el.parentNode.removeChild(el);
+      });
+      keys.forEach(function (hk) {
+        var h = document.createElementNS(SVG_NS, 'rect');
+        h.setAttribute('class', 'arch-node-resize-handle arch-node-resize-handle--node');
+        h.setAttribute('data-arch-node-handle', hk);
+        h.setAttribute('width', String(hs));
+        h.setAttribute('height', String(hs));
+        h.setAttribute('rx', '2');
+        h.setAttribute('fill', '#ffffff');
+        h.setAttribute('stroke', '#1473e6');
+        h.setAttribute('stroke-width', '1.25');
+        h.setAttribute('tabindex', '-1');
+        h.setAttribute('aria-hidden', 'true');
+        g.appendChild(h);
+      });
     });
   }
 
@@ -1341,8 +1899,10 @@
   var LS_MASTER = 'aepArchMasterLayout';
   var LS_USER_LINES = 'aepArchUserLines';
   var LS_SOURCES_DIVIDERS = 'aepArchSourcesDividers';
+  /** Session + localStorage defaults for the Lines floating toolbar (new-line defaults). */
+  var LS_LINE_TOOLBAR_DEFAULTS = 'aepArchLineToolbarDefaults';
 
-  /** Horizontal rules in the Sources column (#arch-sources-seps-layer), in node-local coordinates. */
+  /** Legacy horizontal rules loaded from layout JSON; consumed into `userLines` at runtime (see archSourcesDividersMigrateToUserLines). */
   var archSourcesDividers = [];
 
   var archLabel = {
@@ -1358,7 +1918,596 @@
     drawMode: false,
     pendingStart: null,
     selectedId: null,
+    /** Selected vertex index on the active connector (0 .. n-1), or null. */
+    selectedHandleIdx: null,
   };
+
+  /** Dragging connector vertex handles (Edit mode). */
+  var archUserLineEditDrag = {
+    active: false,
+    handleIndex: -1,
+    lineId: '',
+    pointerId: null,
+    el: null,
+  };
+
+  /** Floating line toolbar defaults (also persisted under LS_LINE_TOOLBAR_DEFAULTS). */
+  var lineDefaults = {
+    strokeColorHex: '#308FFF',
+    strokeWidth: 2,
+    lineTool: 'arrow',
+  };
+  var freehandSession = null;
+  /** Stroke width presets (px) — matches weight popover. */
+  var ARCH_LINE_FLOAT_W_PRESETS = [1, 2, 3, 5, 8];
+
+  /** Legacy swatch mount (e.g. dynamic panels): single default chip only — float bar uses Colour button + popover. */
+  var ARCH_USER_LINE_PRESETS = [{ hex: '#308fff', label: 'Stroke' }];
+
+  function archLineStrokeNormalizeHex(h) {
+    if (!h || typeof h !== 'string') return '';
+    return h.trim().toLowerCase();
+  }
+
+  function archLineSwatchesApplySelection(container, hex) {
+    if (!container) return;
+    var norm = archLineStrokeNormalizeHex(hex);
+    var buttons = $all('.arch-line-swatch', container);
+    var any = false;
+    buttons.forEach(function (btn) {
+      var v = archLineStrokeNormalizeHex(btn.getAttribute('data-stroke') || '');
+      var on = norm && v === norm;
+      if (on) any = true;
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    if (!any && buttons.length) {
+      buttons.forEach(function (btn) {
+        btn.setAttribute('aria-checked', 'false');
+      });
+    }
+  }
+
+  function archLineSwatchesGetValue(container) {
+    if (!container) return ARCH_USER_LINE_PRESETS[0].hex;
+    var on = qs('.arch-line-swatch[aria-checked="true"]', container);
+    if (on) return on.getAttribute('data-stroke') || ARCH_USER_LINE_PRESETS[0].hex;
+    var first = qs('.arch-line-swatch', container);
+    return first ? first.getAttribute('data-stroke') || ARCH_USER_LINE_PRESETS[0].hex : ARCH_USER_LINE_PRESETS[0].hex;
+  }
+
+  function archLineNextStrokePreviewSet(hex) {
+    var el = qs('#archUserLineNextStrokePreview');
+    if (!el) return;
+    var h = hex || ARCH_USER_LINE_PRESETS[0].hex;
+    el.style.backgroundColor = h;
+  }
+
+  function archLineSwatchesMount(container, opts) {
+    opts = opts || {};
+    if (!container || container.getAttribute('data-arch-swatches') === '1') return;
+    container.setAttribute('data-arch-swatches', '1');
+    container.setAttribute('role', 'radiogroup');
+    if (opts.ariaLabel) container.setAttribute('aria-label', opts.ariaLabel);
+    ARCH_USER_LINE_PRESETS.forEach(function (p) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'arch-line-swatch';
+      b.setAttribute('data-stroke', p.hex);
+      b.setAttribute('title', p.label);
+      b.setAttribute('aria-label', p.label);
+      b.setAttribute('role', 'radio');
+      b.style.backgroundColor = p.hex;
+      b.addEventListener('click', function () {
+        archLineSwatchesApplySelection(container, p.hex);
+        if (opts.onPick) opts.onPick(p.hex);
+      });
+      container.appendChild(b);
+    });
+    var initial = opts.initialHex || ARCH_USER_LINE_PRESETS[0].hex;
+    archLineSwatchesApplySelection(container, initial);
+  }
+
+  /** Parse #RGB or #RRGGBB → uppercase #RRGGBB; invalid → null. */
+  function archLineHexParseStrict(str) {
+    if (str == null || typeof str !== 'string') return null;
+    var s = str.trim();
+    if (!s) return null;
+    if (s[0] !== '#') s = '#' + s;
+    var body = s.slice(1);
+    if (/^[0-9a-fA-F]{3}$/.test(body)) {
+      return ('#' + body[0] + body[0] + body[1] + body[1] + body[2] + body[2]).toUpperCase();
+    }
+    if (/^[0-9a-fA-F]{6}$/.test(body)) {
+      return ('#' + body.toUpperCase());
+    }
+    return null;
+  }
+
+  /** Fallback normalizer for legacy callers — returns valid #RRGGBB uppercase. */
+  function archLineFloatNormalizeHex(h) {
+    var p = archLineHexParseStrict(String(h || ''));
+    return p || '#308FFF';
+  }
+
+  function archLineFloatGetHex() {
+    return archLineFloatNormalizeHex(lineDefaults.strokeColorHex);
+  }
+
+  function archLineHexLuminance(hex7) {
+    if (!hex7 || hex7.length !== 7 || hex7[0] !== '#') return 0;
+    var r = parseInt(hex7.slice(1, 3), 16) / 255;
+    var g = parseInt(hex7.slice(3, 5), 16) / 255;
+    var b = parseInt(hex7.slice(5, 7), 16) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  function archLineDefaultsLoad() {
+    try {
+      var raw = localStorage.getItem(LS_LINE_TOOLBAR_DEFAULTS);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      if (!o || typeof o !== 'object') return;
+      if (typeof o.strokeColorHex === 'string') {
+        var c = archLineHexParseStrict(o.strokeColorHex);
+        if (c) lineDefaults.strokeColorHex = c;
+      }
+      if (o.strokeWidth != null) {
+        var sw = archLineFloatNearestPresetW(Number(o.strokeWidth));
+        lineDefaults.strokeWidth = sw;
+      }
+      if (typeof o.lineTool === 'string' && o.lineTool) lineDefaults.lineTool = o.lineTool;
+      if (lineDefaults.lineTool === 'divider') {
+        lineDefaults.lineTool = 'arrow';
+        archLineDefaultsSave();
+      }
+    } catch (e) {}
+  }
+
+  function archLineDefaultsSave() {
+    try {
+      localStorage.setItem(
+        LS_LINE_TOOLBAR_DEFAULTS,
+        JSON.stringify({
+          strokeColorHex: lineDefaults.strokeColorHex,
+          strokeWidth: lineDefaults.strokeWidth,
+          lineTool: lineDefaults.lineTool,
+        })
+      );
+    } catch (e) {}
+  }
+
+  function archLineFloatNearestPresetW(w) {
+    var x = Number(w);
+    if (isNaN(x) || x <= 0) return 2;
+    var best = ARCH_LINE_FLOAT_W_PRESETS[0];
+    var bd = Infinity;
+    for (var wi = 0; wi < ARCH_LINE_FLOAT_W_PRESETS.length; wi++) {
+      var p = ARCH_LINE_FLOAT_W_PRESETS[wi];
+      var d = Math.abs(p - x);
+      if (d < bd) {
+        bd = d;
+        best = p;
+      }
+    }
+    return best;
+  }
+
+  function archLineFloatGetStrokeW() {
+    var w = Number(lineDefaults.strokeWidth);
+    if (isNaN(w) || w <= 0) return 2;
+    return archClamp(archLineFloatNearestPresetW(w), 1, 8);
+  }
+
+  function archLineFloatGetTool() {
+    return lineDefaults.lineTool || 'arrow';
+  }
+
+  function archLineFloatSetTool(t) {
+    lineDefaults.lineTool = t || 'arrow';
+    if (lineDefaults.lineTool === 'junction') {
+      archUserLineClearPending();
+      archUserLineRemoveDrawListeners();
+      if (archViewport) archViewport.classList.remove('arch-user-line-draw-pending');
+    }
+    archLineDefaultsSave();
+    var bar = qs('#archLineFloatBar');
+    if (bar) {
+      $all('.arch-line-float-tool', bar).forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-arch-line-tool') === lineDefaults.lineTool);
+      });
+    }
+  }
+
+  function archLineFloatSetW(w) {
+    lineDefaults.strokeWidth = archLineFloatNearestPresetW(w);
+    archLineDefaultsSave();
+    var bar = qs('#archLineFloatBar');
+    var label = qs('#archLineFloatWLabel');
+    var tbar = qs('#archLineFloatWTriggerBar');
+    if (label) label.textContent = lineDefaults.strokeWidth + 'px';
+    if (tbar) {
+      var vis = Math.min(8, Math.max(1, lineDefaults.strokeWidth));
+      tbar.style.height = vis + 'px';
+    }
+    if (bar) {
+      $all('.arch-line-float-w-option', bar).forEach(function (b) {
+        var bw = parseFloat(b.getAttribute('data-arch-line-w'), 10);
+        var on = bw === lineDefaults.strokeWidth;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+    }
+  }
+
+  function archLineFloatWeightMenuClose() {
+    var menu = qs('#archLineFloatWMenu');
+    var tr = qs('#archLineFloatWTrigger');
+    if (menu) menu.hidden = true;
+    if (tr) tr.setAttribute('aria-expanded', 'false');
+  }
+
+  function archLineFloatWeightMenuOpen() {
+    archLineFloatColorPopoverClose();
+    var menu = qs('#archLineFloatWMenu');
+    var tr = qs('#archLineFloatWTrigger');
+    if (menu) menu.hidden = false;
+    if (tr) tr.setAttribute('aria-expanded', 'true');
+  }
+
+  function archLineFloatWeightMenuToggle() {
+    var menu = qs('#archLineFloatWMenu');
+    if (!menu) return;
+    if (menu.hidden) archLineFloatWeightMenuOpen();
+    else archLineFloatWeightMenuClose();
+  }
+
+  function archLineFloatWeightMenuDocDown(e) {
+    var wrap = qs('#archLineFloatWWrap');
+    var menu = qs('#archLineFloatWMenu');
+    if (!wrap || !menu || menu.hidden) return;
+    if (wrap.contains(e.target)) return;
+    archLineFloatWeightMenuClose();
+  }
+
+  function archLineFloatWeightMenuEscape(e) {
+    if (e.key !== 'Escape') return;
+    var cpop = qs('#archLineFloatColorPopover');
+    if (cpop && !cpop.hidden) {
+      archLineFloatColorPopoverClose();
+      e.preventDefault();
+      return;
+    }
+    var menu = qs('#archLineFloatWMenu');
+    if (menu && !menu.hidden) archLineFloatWeightMenuClose();
+  }
+
+  function archLineFloatColorPopoverClose() {
+    var pop = qs('#archLineFloatColorPopover');
+    var btn = qs('#archLineFloatColorBtn');
+    if (pop) pop.hidden = true;
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    var err = qs('#archLineFloatColorHexErr');
+    if (err) err.hidden = true;
+  }
+
+  function archLineFloatColorPopoverOpen() {
+    var pop = qs('#archLineFloatColorPopover');
+    var btn = qs('#archLineFloatColorBtn');
+    if (!pop || !btn) return;
+    archLineFloatWeightMenuClose();
+    pop.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    archLineFloatSyncColorPopoverInputs();
+  }
+
+  function archLineFloatColorPopoverToggle() {
+    var pop = qs('#archLineFloatColorPopover');
+    if (!pop) return;
+    if (pop.hidden) archLineFloatColorPopoverOpen();
+    else archLineFloatColorPopoverClose();
+  }
+
+  function archLineFloatSyncColorPopoverInputs() {
+    var hx = archLineFloatGetHex();
+    var pick = qs('#archLineFloatColorPicker');
+    var txt = qs('#archLineFloatColorHexInput');
+    if (pick) {
+      try {
+        pick.value = hx.toLowerCase();
+      } catch (e1) {}
+    }
+    if (txt && document.activeElement !== txt) txt.value = hx;
+    var err = qs('#archLineFloatColorHexErr');
+    if (err && document.activeElement !== txt) err.hidden = true;
+  }
+
+  function archLineFloatSyncColorButtonUi() {
+    var btn = qs('#archLineFloatColorBtn');
+    if (!btn) return;
+    var hx = archLineFloatGetHex();
+    btn.style.backgroundColor = hx;
+    btn.setAttribute('data-current-hex', hx);
+    btn.classList.toggle('arch-line-float-color-btn--light', archLineHexLuminance(hx) > 0.92);
+    btn.classList.remove('arch-line-float-color-btn--mixed');
+  }
+
+  function archLineFloatFloatMenusDocDown(e) {
+    archLineFloatWeightMenuDocDown(e);
+    var cwrap = qs('#archLineFloatColorWrap');
+    var cpop = qs('#archLineFloatColorPopover');
+    if (!cwrap || !cpop || cpop.hidden) return;
+    if (cwrap.contains(e.target)) return;
+    archLineFloatColorPopoverClose();
+  }
+
+  function archLineFloatSetHex(hex) {
+    var n = archLineHexParseStrict(String(hex || ''));
+    if (!n) n = '#308FFF';
+    lineDefaults.strokeColorHex = n;
+    archLineDefaultsSave();
+    var bar = qs('#archLineFloatBar');
+    if (bar) {
+      try {
+        bar.style.setProperty('--arch-line-float-stroke', n);
+      } catch (e3) {}
+    }
+    archLineFloatSyncColorButtonUi();
+    archLineFloatSyncColorPopoverInputs();
+  }
+
+  function archLineFloatSyncFromLine(ln) {
+    if (!ln) return;
+    archLineFloatSetHex(ln.stroke || '#308fff');
+    archLineFloatSetW(ln.strokeWidth != null ? ln.strokeWidth : 2);
+    if (archLineFloatGetTool() === 'junction') return;
+    if (archUserLineIsFreehandLine(ln)) archLineFloatSetTool('freehand');
+    else if (ln.dashStyle === 'dotted') archLineFloatSetTool('dotted');
+    else {
+      var la = archUserLineGetLineArrows(ln);
+      if (la === 'both') archLineFloatSetTool('doubleArrow');
+      else if (la === 'none') archLineFloatSetTool('plain');
+      else archLineFloatSetTool('arrow');
+    }
+  }
+
+  function archLineFloatApplySelectedFromBar() {
+    var ln = archUserLineGetSelected();
+    if (!ln) return;
+    ln.stroke = archLineFloatGetHex();
+    ln.strokeWidth = archLineFloatGetStrokeW();
+    if (archUserLineIsFreehandLine(ln)) {
+      archUserLineRender();
+      archUserLinePersist();
+      archUndoMaybePushSnapshot();
+      return;
+    }
+    var t = lineDefaults.lineTool;
+    if (t === 'junction') {
+      archUserLineRender();
+      archUserLinePersist();
+      archUndoMaybePushSnapshot();
+      return;
+    }
+    if (t !== 'divider' && t !== 'freehand') {
+      if (t === 'dotted') ln.dashStyle = 'dotted';
+      else ln.dashStyle = 'solid';
+      if (t === 'doubleArrow') ln.lineArrows = 'both';
+      else if (t === 'plain') ln.lineArrows = 'none';
+      else if (t === 'arrow' || t === 'dotted') ln.lineArrows = 'end';
+      ln.bidirectional = ln.lineArrows === 'both';
+    }
+    archUserLineRender();
+    archUserLinePersist();
+    archUndoMaybePushSnapshot();
+  }
+
+  function archLineFloatUpdateVisibility() {
+    var bar = qs('#archLineFloatBar');
+    if (!bar) return;
+    /** Floating bar when Edit mode + Lines tool (sources rail) + line draw; visibility uses #archLineFloatBar[hidden] + CSS. */
+    var show = archIsEditMode() && userLines.drawMode;
+    bar.hidden = !show;
+    var del = qs('#archLineFloatDelete');
+    if (del) del.disabled = !show || !userLines.selectedId;
+    if (!show) {
+      archLineFloatWeightMenuClose();
+      archLineFloatColorPopoverClose();
+      freehandSession = null;
+      var pv = qs('#archUserLineFreehandPreview');
+      if (pv) {
+        pv.setAttribute('d', '');
+        pv.setAttribute('opacity', '0');
+      }
+    }
+    archToolsFloatSyncLineOffsetClass();
+  }
+
+  function archUserFreehandPointerMove(e) {
+    if (!freehandSession || !archDrag.svg) return;
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var pts = freehandSession.points;
+    var last = pts[pts.length - 1];
+    var dx = p.x - last[0];
+    var dy = p.y - last[1];
+    if (dx * dx + dy * dy < 16) return;
+    pts.push([p.x, p.y]);
+    var d = 'M ' + pts[0][0] + ' ' + pts[0][1];
+    for (var i = 1; i < pts.length; i++) {
+      d += ' L ' + pts[i][0] + ' ' + pts[i][1];
+    }
+    var pv = qs('#archUserLineFreehandPreview');
+    if (pv) {
+      pv.setAttribute('d', d);
+      pv.setAttribute('stroke', archLineFloatGetHex());
+      pv.setAttribute('stroke-width', String(archLineFloatGetStrokeW()));
+      pv.setAttribute('opacity', '0.9');
+    }
+  }
+
+  function archUserFreehandPointerUp() {
+    window.removeEventListener('pointermove', archUserFreehandPointerMove, true);
+    window.removeEventListener('pointerup', archUserFreehandPointerUp, true);
+    window.removeEventListener('pointercancel', archUserFreehandPointerUp, true);
+    if (!freehandSession) return;
+    var pts = freehandSession.points;
+    freehandSession = null;
+    var pv = qs('#archUserLineFreehandPreview');
+    if (pv) {
+      pv.setAttribute('d', '');
+      pv.setAttribute('opacity', '0');
+    }
+    if (pts.length < 2) return;
+    var id = 'ul-' + Date.now();
+    userLines.lines.push({
+      id: id,
+      points: pts,
+      stroke: archLineFloatGetHex(),
+      strokeWidth: archLineFloatGetStrokeW(),
+      dashStyle: 'solid',
+      bidirectional: false,
+    });
+    userLines.selectedId = id;
+    userLines.selectedHandleIdx = null;
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUserLinePersist();
+    archUserLineSyncPropsHud();
+    archUndoMaybePushSnapshot();
+  }
+
+  function archUserFreehandPointerDown(e) {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (!archDrag.svg) return;
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    freehandSession = { points: [[p.x, p.y]] };
+    e.preventDefault();
+    window.addEventListener('pointermove', archUserFreehandPointerMove, true);
+    window.addEventListener('pointerup', archUserFreehandPointerUp, true);
+    window.addEventListener('pointercancel', archUserFreehandPointerUp, true);
+  }
+
+  function archLineFloatInit() {
+    var bar = qs('#archLineFloatBar');
+    if (!bar || bar.getAttribute('data-arch-float-init') === '1') return;
+    bar.setAttribute('data-arch-float-init', '1');
+    archLineDefaultsLoad();
+    archLineFloatSetTool(lineDefaults.lineTool);
+    archLineFloatSetW(lineDefaults.strokeWidth);
+    archLineFloatSetHex(lineDefaults.strokeColorHex);
+    bar.addEventListener('click', function (e) {
+      var tbtn = e.target.closest && e.target.closest('.arch-line-float-tool[data-arch-line-tool]');
+      if (tbtn) {
+        var nt = tbtn.getAttribute('data-arch-line-tool');
+        archLineFloatSetTool(nt);
+        if (userLines.selectedId && nt !== 'junction') {
+          var ln0 = archUserLineGetSelected();
+          archLineFloatApplySelectedFromBar();
+          if (ln0) archLineFloatSyncFromLine(ln0);
+        }
+        return;
+      }
+      var wopt = e.target.closest && e.target.closest('.arch-line-float-w-option[data-arch-line-w]');
+      if (wopt) {
+        e.stopPropagation();
+        archLineFloatSetW(parseFloat(wopt.getAttribute('data-arch-line-w'), 10));
+        archLineFloatWeightMenuClose();
+        if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+        return;
+      }
+    });
+    var cBtn = qs('#archLineFloatColorBtn');
+    if (cBtn && !cBtn.getAttribute('data-arch-cbtn')) {
+      cBtn.setAttribute('data-arch-cbtn', '1');
+      cBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        archLineFloatColorPopoverToggle();
+      });
+    }
+    var wTrig = qs('#archLineFloatWTrigger');
+    if (wTrig && !wTrig.getAttribute('data-arch-w-trig')) {
+      wTrig.setAttribute('data-arch-w-trig', '1');
+      wTrig.addEventListener('click', function (e) {
+        e.stopPropagation();
+        archLineFloatWeightMenuToggle();
+      });
+    }
+    if (!bar.getAttribute('data-arch-w-doc')) {
+      bar.setAttribute('data-arch-w-doc', '1');
+      document.addEventListener('pointerdown', archLineFloatFloatMenusDocDown, true);
+      window.addEventListener('keydown', archLineFloatWeightMenuEscape);
+    }
+    var pickInp = qs('#archLineFloatColorPicker');
+    if (pickInp) {
+      pickInp.addEventListener('input', function () {
+        archLineFloatSetHex(pickInp.value);
+        if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+      });
+    }
+    var hexTxt = qs('#archLineFloatColorHexInput');
+    if (hexTxt) {
+      function hexTextApply() {
+        var v = hexTxt.value.trim();
+        var err = qs('#archLineFloatColorHexErr');
+        if (!v) {
+          if (err) err.hidden = true;
+          return;
+        }
+        var p = archLineHexParseStrict(v);
+        if (p) {
+          if (err) err.hidden = true;
+          archLineFloatSetHex(p);
+          if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+        } else {
+          if (err) err.hidden = v.length < 4;
+        }
+      }
+      hexTxt.addEventListener('input', hexTextApply);
+      hexTxt.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          hexTextApply();
+        }
+      });
+      hexTxt.addEventListener('blur', function () {
+        var v = hexTxt.value.trim();
+        var p = archLineHexParseStrict(v);
+        var err = qs('#archLineFloatColorHexErr');
+        if (!v) {
+          archLineFloatSyncColorPopoverInputs();
+          if (err) err.hidden = true;
+          return;
+        }
+        if (p) {
+          archLineFloatSetHex(p);
+          if (userLines.selectedId) archLineFloatApplySelectedFromBar();
+          if (err) err.hidden = true;
+        } else {
+          archLineFloatSyncColorPopoverInputs();
+          if (err) err.hidden = false;
+        }
+      });
+    }
+    var u = qs('#archLineFloatUndo');
+    if (u) {
+      u.addEventListener('click', function () {
+        archUndoRun();
+      });
+    }
+    var del = qs('#archLineFloatDelete');
+    if (del) {
+      del.addEventListener('click', function () {
+        archUserLineDeleteSelected();
+      });
+    }
+    var cl = qs('#archLineFloatClose');
+    if (cl) {
+      cl.addEventListener('click', function () {
+        archSetActiveTool('select');
+      });
+    }
+  }
 
   /** User-drawn rectangles (world SVG coords). */
   var archCustomBoxes = [];
@@ -1370,6 +2519,2024 @@
   var archCustomDrag = { active: null, start: null };
   var archCustomResize = { active: null, start: null };
   var LS_CUSTOM_BOXES = 'aepArchCustomBoxes';
+
+  /** In-memory clipboard for Edit mode copy/paste (custom boxes + connectors). */
+  var archDiagramClipboard = null;
+
+  /** Vendored Apache-2.0 SVGs from @adobe/spectrum-css-workflow-icons (see npm run vendor:spectrum-icons). */
+  var ARCH_SPECTRUM_ICON_PREFIX = 'vendor/spectrum-workflow-icons/';
+  var archSpectrumIconsDataPromise = null;
+  var archSpectrumIconsRemoteCache = null;
+
+  function archCustomBoxIsIconAsset(box) {
+    if (!box) return false;
+    var n = archCustomBoxNormalize(box);
+    return (
+      (n.kind === 'spectrumIcon' && n.iconFile) || (n.kind === 'productLogo' && n.logoFile)
+    );
+  }
+
+  function archSpectrumIconsRenderFromData(data) {
+    var grid = qs('#archSpectrumIconGrid');
+    var status = qs('#archSpectrumIconStatus');
+    if (!grid || !data || !Array.isArray(data.icons)) return;
+    archSpectrumIconsRemoteCache = data;
+    grid.textContent = '';
+    var base = ARCH_SPECTRUM_ICON_PREFIX;
+    var hiddenSp = archSpectrumHiddenFromPickerMap();
+    var built = 0;
+    data.icons.forEach(function (item) {
+      if (!item || !item.file) return;
+      if (hiddenSp[item.file]) return;
+      built++;
+      var lab = item.label || item.file;
+      var btn = document.createElement('div');
+      btn.className =
+        'arch-spectrum-icons-tile arch-diagram-ui arch-architecture-logo-tile arch-spectrum-icons-tile--picker';
+      btn.setAttribute('role', 'option');
+      btn.tabIndex = 0;
+      btn.setAttribute('data-arch-spectrum-file', item.file);
+      btn.setAttribute('data-arch-spectrum-label', lab);
+      btn.title = lab;
+      var wrap = document.createElement('span');
+      wrap.className = 'arch-spectrum-icons-tile-img-wrap';
+      var im = document.createElement('img');
+      im.src = base + item.file;
+      im.alt = '';
+      im.loading = 'lazy';
+      im.width = 20;
+      im.height = 20;
+      im.setAttribute('draggable', 'false');
+      wrap.appendChild(im);
+      var cap = document.createElement('span');
+      cap.className = 'arch-spectrum-icons-tile-cap';
+      cap.textContent = lab;
+      var tileActions = document.createElement('span');
+      tileActions.className = 'arch-architecture-logo-tile-actions';
+      tileActions.setAttribute('role', 'group');
+      tileActions.setAttribute('aria-label', 'Icon actions');
+      var remSp = archLogoTileCreateIosRemoveButton(
+        'Delete',
+        'Delete from picker (this browser)',
+        function () {
+          archLogoConfirmShow({
+            title: 'Delete this logo?',
+            message: '',
+            confirmLabel: 'Yes',
+            cancelLabel: 'No',
+            danger: true
+          }).then(function (ok) {
+            if (!ok) return;
+            archSpectrumHideFromPicker(item.file, lab);
+            archCustomLogoRefreshLists();
+            archSpectrumIconsRefreshMerged();
+            if (liveRegion) liveRegion.textContent = 'Icon removed from picker.';
+          });
+        }
+      );
+      tileActions.appendChild(remSp);
+      btn.appendChild(wrap);
+      btn.appendChild(cap);
+      btn.appendChild(tileActions);
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        if (archLogoLibraryEditModeIsOn()) {
+          if (e.target.closest && e.target.closest('.arch-architecture-logo-tile-actions')) return;
+          return;
+        }
+        var f = btn.getAttribute('data-arch-spectrum-file');
+        var l = btn.getAttribute('data-arch-spectrum-label');
+        if (f) archSpectrumIconPlace(f, l);
+      });
+      archLogoTileKeyboardActivate(btn);
+      grid.appendChild(btn);
+    });
+    grid.setAttribute('data-arch-built', '1');
+    var qinp = qs('#archSpectrumIconSearch');
+    archSpectrumIconsApplyFilter(qinp ? qinp.value : '');
+    if (status) status.textContent = built + ' icons — use search to filter.';
+  }
+
+  function archSpectrumIconsRefreshMerged() {
+    if (!archSpectrumIconsRemoteCache || !Array.isArray(archSpectrumIconsRemoteCache.icons)) {
+      archSpectrumIconsPanelInit();
+      return;
+    }
+    archSpectrumIconsRenderFromData(archSpectrumIconsRemoteCache);
+  }
+
+  function archSpectrumIconsPanelInit() {
+    var grid = qs('#archSpectrumIconGrid');
+    var status = qs('#archSpectrumIconStatus');
+    if (!grid) return;
+    if (archSpectrumIconsRemoteCache && Array.isArray(archSpectrumIconsRemoteCache.icons)) {
+      archSpectrumIconsRenderFromData(archSpectrumIconsRemoteCache);
+      return;
+    }
+    if (!archSpectrumIconsDataPromise) {
+      archSpectrumIconsDataPromise = fetch('data/spectrum-workflow-icons.json', { cache: 'no-store' }).then(function (r) {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      });
+    }
+    archSpectrumIconsDataPromise
+      .then(function (data) {
+        if (!grid.parentNode) return;
+        if (!data || !Array.isArray(data.icons)) return;
+        archSpectrumIconsRenderFromData(data);
+      })
+      .catch(function () {
+        if (status) {
+          status.textContent =
+            'Could not load icon list. From the repo run npm run vendor:spectrum-icons, then redeploy.';
+        }
+      });
+  }
+  function archSpectrumIconsApplyFilter(q) {
+    var grid = qs('#archSpectrumIconGrid');
+    if (!grid || grid.getAttribute('data-arch-built') !== '1') return;
+    var needle = (q || '').trim().toLowerCase();
+    var tiles = grid.querySelectorAll('.arch-spectrum-icons-tile');
+    var n = 0;
+    for (var i = 0; i < tiles.length; i++) {
+      var btn = tiles[i];
+      var lab =
+        (btn.getAttribute('data-arch-spectrum-label') || '') + ' ' + (btn.getAttribute('data-arch-spectrum-file') || '');
+      var show = !needle || lab.toLowerCase().indexOf(needle) >= 0;
+      btn.hidden = !show;
+      if (show) n++;
+    }
+    var status = qs('#archSpectrumIconStatus');
+    if (status) status.textContent = n + ' shown' + (needle ? ' (filtered)' : '') + '.';
+  }
+
+  /** Core Adobe marks + Express pack → Adobe Logos section (paths match architecture-logos.json). */
+  var ARCH_ADOBE_LOGO_FILES = [
+    'images/adobe-experience-platform-logo-tags.png',
+    'images/adobe-logo-spectrum-site.svg',
+    'images/adobe-brand-mark.png',
+    'images/creative-cloud-app-icon.png',
+  ];
+
+  /** Phase 1: optional `tags` on each catalog entry — filter chips per grid (see architecture-logos.json). */
+  var ARCH_LOGO_TAG_CHIPS_ADOBE = [
+    { id: '', label: 'All' },
+    { id: 'adobe-catalog', label: 'Catalog' },
+    { id: 'experience-cloud', label: 'Experience Cloud' },
+    { id: 'adobe-core', label: 'Core marks' },
+  ];
+
+  var ARCH_LOGO_TAG_CHIPS_OTHER = [
+    { id: '', label: 'All' },
+    { id: 'data-collection', label: 'Data collection' },
+    { id: 'profile-audiences', label: 'Profile & audiences' },
+    { id: 'journeys', label: 'Journeys' },
+    { id: 'diagram-reference', label: 'Diagram assets' },
+    { id: 'presentation-icons', label: 'Presentation & UI icons' },
+    { id: 'ecosystem-data', label: 'Ecosystem · data' },
+    { id: 'ecosystem-analytics', label: 'Ecosystem · analytics' },
+    { id: 'ecosystem-activation', label: 'Ecosystem · activation' },
+    { id: 'partner', label: 'Partner' },
+  ];
+
+  /** Accordion groups for Adobe logos — first matching tag wins (order matters). */
+  var ARCH_ADOBE_MENU_GROUPS = [
+    { id: 'core', label: 'Core Adobe marks', matchAny: ['adobe-core'] },
+    { id: 'exp', label: 'Experience Cloud', matchAny: ['experience-cloud'] },
+    { id: 'catalog', label: 'Creative Cloud catalog', matchAny: ['adobe-catalog'] },
+    { id: 'other', label: 'Other', matchAny: [] },
+  ];
+
+  /** Accordion groups for product / ecosystem logos — first matching tag wins. */
+  var ARCH_OTHER_MENU_GROUPS = [
+    { id: 'eco-data', label: 'Data warehouse & infrastructure', matchAny: ['ecosystem-data'] },
+    { id: 'eco-analytics', label: 'Analytics', matchAny: ['ecosystem-analytics'] },
+    { id: 'eco-activation', label: 'Activation & channels', matchAny: ['ecosystem-activation'] },
+    { id: 'data-coll', label: 'Data collection', matchAny: ['data-collection'] },
+    { id: 'profile', label: 'Profile & audiences', matchAny: ['profile-audiences'] },
+    { id: 'journey', label: 'Journeys', matchAny: ['journeys'] },
+    { id: 'diagram', label: 'Diagram assets', matchAny: ['diagram-reference'] },
+    { id: 'pres', label: 'Presentation & UI icons', matchAny: ['presentation-icons'] },
+    { id: 'partner', label: 'Partner', matchAny: ['partner'] },
+    { id: 'other', label: 'Other', matchAny: [] },
+  ];
+
+  var ARCH_CUSTOM_LOGOS_KEY = 'aepArchCustomLogoLibrary';
+  /** Browser-local overrides for bundled `architecture-logos.json` entries (label, description, optional image). */
+  var ARCH_CATALOG_LOGO_OVERRIDES_KEY = 'aepArchCatalogLogoOverrides';
+  /** Rough cap for data URL length in localStorage (base64 expands size). */
+  var ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS = 2000000;
+  /** Delay before placing a custom logo so double-click can open the editor. */
+  var ARCH_CUSTOM_LOGO_PLACE_DELAY_MS = 320;
+  /** Tile that anchored the open logo edit popover (for positioning + highlight). */
+  var archLogoEditAnchorEl = null;
+  /** Pending removals are purged after this grace period (browser-local only). */
+  var ARCH_CUSTOM_LOGO_DELETE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+  var archArchitectureLogosRemoteCache = null;
+  var archCustomLogoDragId = null;
+
+  function archCatalogLogoOverridesMap() {
+    try {
+      var raw = localStorage.getItem(ARCH_CATALOG_LOGO_OVERRIDES_KEY);
+      if (!raw) return {};
+      var o = JSON.parse(raw);
+      return o && o.byFile && typeof o.byFile === 'object' ? Object.assign({}, o.byFile) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function archCatalogLogoOverridesPersist(map) {
+    try {
+      localStorage.setItem(ARCH_CATALOG_LOGO_OVERRIDES_KEY, JSON.stringify({ version: 1, byFile: map }));
+    } catch (e) {}
+  }
+
+  /** Catalog paths hidden from the Adobe / Product pickers (this browser). Repo JSON unchanged until the team edits it. */
+  var ARCH_CATALOG_LOGO_HIDDEN_FROM_PICKER_KEY = 'aepArchCatalogLogoHiddenFromPicker';
+
+  function archCatalogHiddenFromPickerMap() {
+    try {
+      var raw = localStorage.getItem(ARCH_CATALOG_LOGO_HIDDEN_FROM_PICKER_KEY);
+      if (!raw) return {};
+      var o = JSON.parse(raw);
+      return o && o.byFile && typeof o.byFile === 'object' ? o.byFile : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function archCatalogHiddenFromPickerPersist(map) {
+    try {
+      localStorage.setItem(ARCH_CATALOG_LOGO_HIDDEN_FROM_PICKER_KEY, JSON.stringify({ version: 1, byFile: map }));
+    } catch (e) {}
+  }
+
+  function archCatalogHideFromPicker(fileKey, label) {
+    if (!fileKey) return;
+    var m = archCatalogHiddenFromPickerMap();
+    m[String(fileKey)] = { queuedAt: Date.now(), label: label || String(fileKey) };
+    archCatalogHiddenFromPickerPersist(m);
+  }
+
+  function archCatalogUnhideFromPicker(fileKey) {
+    if (!fileKey) return;
+    var m = archCatalogHiddenFromPickerMap();
+    delete m[String(fileKey)];
+    archCatalogHiddenFromPickerPersist(m);
+  }
+
+  var ARCH_SPECTRUM_ICONS_HIDDEN_KEY = 'aepArchSpectrumWorkflowIconsHiddenFromPicker';
+
+  function archSpectrumHiddenFromPickerMap() {
+    try {
+      var raw = localStorage.getItem(ARCH_SPECTRUM_ICONS_HIDDEN_KEY);
+      if (!raw) return {};
+      var o = JSON.parse(raw);
+      return o && o.byFile && typeof o.byFile === 'object' ? o.byFile : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function archSpectrumHiddenFromPickerPersist(map) {
+    try {
+      localStorage.setItem(ARCH_SPECTRUM_ICONS_HIDDEN_KEY, JSON.stringify({ version: 1, byFile: map }));
+    } catch (e) {}
+  }
+
+  function archSpectrumHideFromPicker(fileKey, label) {
+    if (!fileKey) return;
+    var m = archSpectrumHiddenFromPickerMap();
+    m[String(fileKey)] = { queuedAt: Date.now(), label: label || String(fileKey) };
+    archSpectrumHiddenFromPickerPersist(m);
+  }
+
+  function archSpectrumUnhideFromPicker(fileKey) {
+    if (!fileKey) return;
+    var m = archSpectrumHiddenFromPickerMap();
+    delete m[String(fileKey)];
+    archSpectrumHiddenFromPickerPersist(m);
+  }
+
+  function archPickerHiddenExportDownload() {
+    var cat = archCatalogHiddenFromPickerMap();
+    var sp = archSpectrumHiddenFromPickerMap();
+    var removeFromArchitectureLogosJson = Object.keys(cat).sort();
+    var removeFromSpectrumWorkflowIconsJson = Object.keys(sp).sort();
+    var payload = {
+      note:
+        'Paths to remove in the repo (team merges manually). Queued in this browser only.',
+      removeFromArchitectureLogosJson: removeFromArchitectureLogosJson,
+      removeFromSpectrumWorkflowIconsJson: removeFromSpectrumWorkflowIconsJson,
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'icons-and-logos-removal-queue.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    try {
+      URL.revokeObjectURL(a.href);
+    } catch (e) {}
+  }
+
+  function archCatalogLogoFindRaw(fileKey) {
+    var c = archArchitectureLogosRemoteCache;
+    if (!c || !Array.isArray(c.logos)) return null;
+    for (var i = 0; i < c.logos.length; i++) {
+      if (c.logos[i] && c.logos[i].file === fileKey) return c.logos[i];
+    }
+    return null;
+  }
+
+  /** Merge bundled catalog row with browser-local overrides. Keeps `file` as catalog path for sorting; uses `displayFile` for image href when replaced. */
+  function archCatalogLogoItemMergedFrom(raw, catOvMap) {
+    if (!raw || !raw.file) return raw;
+    var ov = catOvMap[raw.file];
+    if (!ov) return raw;
+    var out = Object.assign({}, raw);
+    out._archCatalogSourceFile = raw.file;
+    if ('label' in ov && ov.label != null) out.label = String(ov.label);
+    if ('description' in ov && ov.description != null) out.description = String(ov.description);
+    if (ov.fileDataUrl) out.displayFile = ov.fileDataUrl;
+    if ('panel' in ov) out._overridePanel = ov.panel;
+    if ('groupId' in ov) out._overrideGroupId = ov.groupId;
+    return out;
+  }
+
+  function archCatalogLogoOverrideRedundant(raw, next) {
+    var sl = (next.label != null ? String(next.label) : '').trim();
+    var sd = (next.description != null ? String(next.description) : '').trim();
+    var rl = (raw && raw.label != null ? String(raw.label) : '').trim();
+    var rd = (raw && raw.description != null ? String(raw.description) : '').trim();
+    if (sl !== rl || sd !== rd || next.fileDataUrl) return false;
+    var rawPanel = archArchitectureLogoIsAdobeSection(raw) ? 'adobe' : 'other';
+    var rawGroupId = archCatalogLogoInferGroupId(raw, rawPanel);
+    if ('panel' in next && next.panel !== rawPanel) return false;
+    if ('groupId' in next && next.groupId !== rawGroupId) return false;
+    return true;
+  }
+
+  function archCatalogLogoInferPanel(raw) {
+    return archArchitectureLogoIsAdobeSection(raw) ? 'adobe' : 'other';
+  }
+
+  function archCatalogLogoInferGroupId(raw, panel) {
+    var groups = panel === 'adobe' ? ARCH_ADOBE_MENU_GROUPS : ARCH_OTHER_MENU_GROUPS;
+    var tags = Array.isArray(raw.tags) ? raw.tags : [];
+    for (var gi = 0; gi < groups.length - 1; gi++) {
+      var m = groups[gi].matchAny || [];
+      for (var j = 0; j < m.length; j++) {
+        if (tags.indexOf(m[j]) >= 0) return groups[gi].id;
+      }
+    }
+    return 'other';
+  }
+
+  function archCustomLogoLibraryLoad() {
+    try {
+      var raw = localStorage.getItem(ARCH_CUSTOM_LOGOS_KEY);
+      if (!raw) return [];
+      var o = JSON.parse(raw);
+      return Array.isArray(o.items) ? o.items : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function archCustomLogoMigrateLibrary() {
+    var items = archCustomLogoLibraryLoad();
+    var next = items.map(function (e, i) {
+      var o = Object.assign({}, e);
+      if (typeof o.order !== 'number') o.order = Date.now() + i;
+      return o;
+    });
+    var changed = items.some(function (e, i) {
+      return !e || typeof e.order !== 'number';
+    });
+    if (changed) {
+      try {
+        archCustomLogoLibrarySave(next);
+      } catch (err) {}
+    }
+  }
+
+  function archCustomLogoPurgeExpired() {
+    var now = Date.now();
+    var grace = ARCH_CUSTOM_LOGO_DELETE_GRACE_MS;
+    var items = archCustomLogoLibraryLoad();
+    var next = items.filter(function (e) {
+      if (!e || !e.deletedAt) return true;
+      return now - e.deletedAt < grace;
+    });
+    if (next.length !== items.length) {
+      try {
+        archCustomLogoLibrarySave(next);
+      } catch (err) {}
+    }
+  }
+
+  function archCustomLogoLibrarySave(items) {
+    localStorage.setItem(ARCH_CUSTOM_LOGOS_KEY, JSON.stringify({ version: 1, items: items }));
+  }
+
+  function archCustomLogoGroupIdToTags(panel, groupId) {
+    var groups = panel === 'adobe' ? ARCH_ADOBE_MENU_GROUPS : ARCH_OTHER_MENU_GROUPS;
+    for (var i = 0; i < groups.length; i++) {
+      if (groups[i].id === groupId) return (groups[i].matchAny || []).slice();
+    }
+    return [];
+  }
+
+  function archCustomLogoEntryToCatalogItem(entry) {
+    return {
+      file: entry.fileDataUrl,
+      label: entry.label || 'Uploaded logo',
+      description: typeof entry.description === 'string' ? entry.description : '',
+      tags: archCustomLogoGroupIdToTags(entry.panel, entry.groupId),
+      _archCustomId: entry.id,
+      _sortOrder: typeof entry.order === 'number' ? entry.order : 0,
+    };
+  }
+
+  function archMergeCustomLogosIntoPanels(adobe, other) {
+    archCustomLogoLibraryLoad().forEach(function (e) {
+      if (!e || !e.fileDataUrl || !e.id) return;
+      if (e.deletedAt) return;
+      var item = archCustomLogoEntryToCatalogItem(e);
+      if (e.panel === 'adobe') adobe.push(item);
+      else other.push(item);
+    });
+  }
+
+  function archFinalizeLogoBucketsCustomOrder(buckets) {
+    buckets.forEach(function (bucket) {
+      var head = [];
+      var tail = [];
+      bucket.forEach(function (it) {
+        if (it && it._archCustomId) tail.push(it);
+        else head.push(it);
+      });
+      tail.sort(function (a, b) {
+        return (a._sortOrder || 0) - (b._sortOrder || 0);
+      });
+      bucket.length = 0;
+      head.forEach(function (x) {
+        bucket.push(x);
+      });
+      tail.forEach(function (x) {
+        bucket.push(x);
+      });
+    });
+  }
+
+  function archCustomLogoNextOrderForGroup(panel, groupId) {
+    var max = 0;
+    archCustomLogoLibraryLoad().forEach(function (e) {
+      if (!e || e.deletedAt) return;
+      if (e.panel !== panel || String(e.groupId) !== String(groupId)) return;
+      if (typeof e.order === 'number' && e.order > max) max = e.order;
+    });
+    return max + 1000;
+  }
+
+  function archCustomLogoMoveToGroup(id, panel, groupId) {
+    var ord = archCustomLogoNextOrderForGroup(panel, groupId);
+    var items = archCustomLogoLibraryLoad().map(function (e) {
+      if (e.id !== id) return e;
+      return Object.assign({}, e, {
+        panel: panel,
+        groupId: groupId,
+        order: ord,
+      });
+    });
+    archCustomLogoLibrarySave(items);
+  }
+
+  function archCustomLogoDropOnTile(dragId, targetId) {
+    if (dragId === targetId) return;
+    var items = archCustomLogoLibraryLoad();
+    var dragE;
+    var tgtE;
+    items.forEach(function (e) {
+      if (e.id === dragId) dragE = e;
+      if (e.id === targetId) tgtE = e;
+    });
+    if (!dragE || !tgtE || dragE.deletedAt || tgtE.deletedAt) return;
+    var panel = tgtE.panel;
+    var gid = tgtE.groupId;
+    var updated = items.map(function (e) {
+      if (e.id !== dragId) return e;
+      return Object.assign({}, e, { panel: panel, groupId: gid });
+    });
+    var inGroup = updated.filter(function (e) {
+      return !e.deletedAt && e.panel === panel && String(e.groupId) === String(gid);
+    });
+    inGroup.sort(function (a, b) {
+      return (a.order || 0) - (b.order || 0);
+    });
+    var ids = inGroup.map(function (g) {
+      return g.id;
+    });
+    ids = ids.filter(function (id) {
+      return id !== dragId;
+    });
+    var ti = ids.indexOf(targetId);
+    if (ti < 0) return;
+    ids.splice(ti, 0, dragId);
+    var idToOrder = {};
+    ids.forEach(function (id, idx) {
+      idToOrder[id] = 1000 * (idx + 1);
+    });
+    var next = updated.map(function (e) {
+      if (idToOrder[e.id] != null) {
+        return Object.assign({}, e, {
+          order: idToOrder[e.id],
+          panel: panel,
+          groupId: gid,
+        });
+      }
+      return e;
+    });
+    archCustomLogoLibrarySave(next);
+  }
+
+  function archCustomLogoQueueDeletion(id) {
+    var sid = id == null ? '' : String(id);
+    if (!sid) return;
+    var items = archCustomLogoLibraryLoad().map(function (e) {
+      if (!e || String(e.id) !== sid) return e;
+      return Object.assign({}, e, { deletedAt: Date.now() });
+    });
+    try {
+      archCustomLogoLibrarySave(items);
+    } catch (err) {
+      if (liveRegion) liveRegion.textContent = 'Could not queue removal — storage may be full.';
+    }
+  }
+
+  function archCustomLogoRestore(id) {
+    var items = archCustomLogoLibraryLoad().map(function (e) {
+      if (e.id !== id) return e;
+      var o = Object.assign({}, e);
+      delete o.deletedAt;
+      return o;
+    });
+    archCustomLogoLibrarySave(items);
+  }
+
+  function archCustomLogoDeleteForever(id) {
+    var items = archCustomLogoLibraryLoad().filter(function (x) {
+      return x.id !== id;
+    });
+    archCustomLogoLibrarySave(items);
+  }
+
+  function archPartitionLogoItemsIntoGroups(items, groupDefs) {
+    var buckets = groupDefs.map(function () {
+      return [];
+    });
+    var last = groupDefs.length - 1;
+    items.forEach(function (item) {
+      if (item._overrideGroupId) {
+        for (var oi = 0; oi < groupDefs.length; oi++) {
+          if (groupDefs[oi].id === item._overrideGroupId) {
+            buckets[oi].push(item);
+            return;
+          }
+        }
+      }
+      var tags = Array.isArray(item.tags) ? item.tags : [];
+      var placed = false;
+      for (var gi = 0; gi < last; gi++) {
+        var m = groupDefs[gi].matchAny || [];
+        for (var j = 0; j < m.length; j++) {
+          if (tags.indexOf(m[j]) >= 0) {
+            buckets[gi].push(item);
+            placed = true;
+            break;
+          }
+        }
+        if (placed) break;
+      }
+      if (!placed) buckets[last].push(item);
+    });
+    return buckets;
+  }
+
+  /** Build nested `<details>` sections with sub-grids (empty groups omitted). */
+  function archRenderArchitectureLogoMenu(mount, buckets, groupDefs, panelKey) {
+    if (!mount) return;
+    var pk =
+      panelKey ||
+      (mount.getAttribute && mount.getAttribute('data-arch-logo-panel')) ||
+      'other';
+    mount.textContent = '';
+    for (var i = 0; i < groupDefs.length; i++) {
+      var list = buckets[i];
+      if (!list.length) continue;
+      var det = document.createElement('details');
+      det.className = 'arch-logo-menu-group arch-diagram-ui';
+      det.setAttribute('data-arch-drop-panel', pk);
+      det.setAttribute('data-arch-drop-group-id', groupDefs[i].id);
+      det.open = false;
+      var sum = document.createElement('summary');
+      sum.className = 'arch-logo-menu-summary arch-diagram-ui';
+      var lab = document.createElement('span');
+      lab.className = 'arch-logo-menu-summary-label';
+      lab.textContent = groupDefs[i].label;
+      var cnt = document.createElement('span');
+      cnt.className = 'arch-logo-menu-count';
+      cnt.setAttribute('data-arch-base-count', String(list.length));
+      cnt.textContent = String(list.length);
+      sum.appendChild(lab);
+      sum.appendChild(cnt);
+      var inner = document.createElement('div');
+      inner.className = 'arch-spectrum-icons-grid arch-architecture-logo-grid arch-logo-menu-subgrid';
+      inner.setAttribute('role', 'group');
+      archRenderArchitectureLogoTiles(inner, list);
+      det.appendChild(sum);
+      det.appendChild(inner);
+      mount.appendChild(det);
+    }
+  }
+
+  function archArchitectureLogoIsAdobeSection(item) {
+    var f = (item && item.file) || '';
+    if (f.indexOf('corporate-express-product-logos') >= 0) return true;
+    return ARCH_ADOBE_LOGO_FILES.indexOf(f) >= 0;
+  }
+
+  function archLogoLibraryEditModeIsOn() {
+    var sec = qs('#archEditorSectionSpectrumIcons');
+    return !!(sec && sec.getAttribute('data-arch-logo-edit-mode') === '1');
+  }
+
+  function archLogoLibraryEditModeSet(on) {
+    var sec = qs('#archEditorSectionSpectrumIcons');
+    var toggle = qs('#archLogoLibraryEditToggle');
+    if (!sec) return;
+    sec.setAttribute('data-arch-logo-edit-mode', on ? '1' : '0');
+    if (toggle) {
+      toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+      toggle.textContent = on ? 'Done' : 'Edit logos';
+    }
+    if (!on) archCustomLogoMetadataEditorClose();
+  }
+
+  /** Div tiles need explicit Enter/Space to mirror former &lt;button&gt; activation. */
+  function archLogoTileKeyboardActivate(tile) {
+    tile.addEventListener('keydown', function (e) {
+      if (e.target !== tile) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (archLogoLibraryEditModeIsOn()) return;
+      e.preventDefault();
+      tile.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    });
+  }
+
+  function archLogoEditSetAnchor(el) {
+    if (archLogoEditAnchorEl && archLogoEditAnchorEl !== el) {
+      archLogoEditAnchorEl.classList.remove('arch-architecture-logo-tile--popover-open');
+    }
+    archLogoEditAnchorEl = el || null;
+    if (el) el.classList.add('arch-architecture-logo-tile--popover-open');
+  }
+
+  function archLogoEditPopoverPosition() {
+    var ov = qs('#archCustomLogoEditOverlay');
+    var dlg = ov && ov.querySelector('.arch-custom-logo-edit-dialog');
+    if (!ov || ov.hidden || !dlg) return;
+    if (!archLogoEditAnchorEl) {
+      ov.classList.remove('arch-custom-logo-edit-overlay--anchored');
+      dlg.style.left = '';
+      dlg.style.top = '';
+      return;
+    }
+    ov.classList.add('arch-custom-logo-edit-overlay--anchored');
+    var r = archLogoEditAnchorEl.getBoundingClientRect();
+    var dw = dlg.offsetWidth || 320;
+    var dh = dlg.offsetHeight || 240;
+    var pad = 8;
+    var left = r.right + pad;
+    if (left + dw > window.innerWidth - pad) left = Math.max(pad, r.left - dw - pad);
+    var top = r.top;
+    if (top + dh > window.innerHeight - pad) top = Math.max(pad, window.innerHeight - dh - pad);
+    if (top < pad) top = pad;
+    dlg.style.left = left + 'px';
+    dlg.style.top = top + 'px';
+  }
+
+  function archLogoEditPopoverOpenDone() {
+    requestAnimationFrame(function () {
+      archLogoEditPopoverPosition();
+      requestAnimationFrame(archLogoEditPopoverPosition);
+    });
+  }
+
+  var archLogoConfirmBusy = false;
+
+  /** In-app confirm — avoids native `confirm()` (“site says …”), which reads as a broken page. */
+  function archLogoConfirmShow(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      var overlay = qs('#archLogoConfirmOverlay');
+      var titleEl = qs('#archLogoConfirmTitle');
+      var msgEl = qs('#archLogoConfirmMessage');
+      var cancelBtn = qs('#archLogoConfirmCancel');
+      var actionBtn = qs('#archLogoConfirmAction');
+      if (!overlay || !titleEl || !msgEl || !cancelBtn || !actionBtn) {
+        resolve(false);
+        return;
+      }
+      if (archLogoConfirmBusy) {
+        resolve(false);
+        return;
+      }
+      archLogoConfirmBusy = true;
+      var prevFocus = document.activeElement;
+      var dlg = qs('#archLogoConfirmDialog');
+      titleEl.textContent = opts.title || 'Confirm';
+      var msgText = (opts.message != null ? String(opts.message) : '').trim();
+      msgEl.textContent = msgText;
+      if (msgText) {
+        msgEl.hidden = false;
+        if (dlg) dlg.setAttribute('aria-describedby', 'archLogoConfirmMessage');
+      } else {
+        msgEl.hidden = true;
+        if (dlg) dlg.removeAttribute('aria-describedby');
+      }
+      cancelBtn.textContent = opts.cancelLabel != null ? opts.cancelLabel : 'Cancel';
+      var danger = !!opts.danger;
+      actionBtn.textContent = opts.confirmLabel || 'OK';
+      actionBtn.className =
+        'arch-diagram-ui ' +
+        (danger ? 'dashboard-btn-outline arch-logo-confirm-btn--danger' : 'dashboard-btn-primary');
+
+      function onDlgStop(e) {
+        e.stopPropagation();
+      }
+
+      function cleanup(ok) {
+        archLogoConfirmBusy = false;
+        overlay.hidden = true;
+        cancelBtn.removeEventListener('click', onCancel);
+        actionBtn.removeEventListener('click', onOk);
+        overlay.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        if (dlg) {
+          dlg.removeEventListener('click', onDlgStop);
+          dlg.removeEventListener('pointerdown', onDlgStop);
+        }
+        if (prevFocus && typeof prevFocus.focus === 'function') {
+          try {
+            prevFocus.focus();
+          } catch (e) {}
+        }
+        resolve(!!ok);
+      }
+      function onCancel() {
+        cleanup(false);
+      }
+      function onOk() {
+        cleanup(true);
+      }
+      function onBackdrop(e) {
+        if (e.target === overlay) cleanup(false);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          cleanup(false);
+        }
+      }
+      cancelBtn.addEventListener('click', onCancel);
+      actionBtn.addEventListener('click', onOk);
+      overlay.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+      if (dlg) {
+        dlg.addEventListener('click', onDlgStop);
+        dlg.addEventListener('pointerdown', onDlgStop);
+      }
+      overlay.hidden = false;
+      requestAnimationFrame(function () {
+        try {
+          cancelBtn.focus();
+        } catch (e) {}
+      });
+    });
+  }
+
+  function archLogoTileCreateIosEditButton(onActivate) {
+    var editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'arch-architecture-logo-tile-ios-btn arch-architecture-logo-tile-ios-btn--edit arch-diagram-ui';
+    editBtn.setAttribute('aria-label', 'Edit');
+    editBtn.title = 'Edit label, description, or image';
+    editBtn.setAttribute('draggable', 'false');
+    editBtn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+    editBtn.addEventListener('pointerdown', function (e) {
+      e.stopPropagation();
+    });
+    editBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+      onActivate();
+    });
+    return editBtn;
+  }
+
+  function archLogoTileCreateIosRemoveButton(ariaLabel, title, onActivate) {
+    var remBtn = document.createElement('button');
+    remBtn.type = 'button';
+    remBtn.className = 'arch-architecture-logo-tile-ios-btn arch-architecture-logo-tile-ios-btn--remove arch-diagram-ui';
+    remBtn.setAttribute('aria-label', ariaLabel || 'Remove');
+    remBtn.title = title || 'Remove';
+    remBtn.setAttribute('draggable', 'false');
+    remBtn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="#dc2626"/><path fill="#fff" d="M8 11h8v2H8z"/></svg>';
+    remBtn.addEventListener('pointerdown', function (e) {
+      e.stopPropagation();
+    });
+    remBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+      onActivate();
+    });
+    return remBtn;
+  }
+
+  /** Populate one logo grid from catalog items (shared tile markup). */
+  function archRenderArchitectureLogoTiles(grid, items) {
+    if (!grid) return;
+    grid.textContent = '';
+    items.forEach(function (item) {
+      /* Must be a div: inner pencil is a <button>; nested buttons are invalid and break hover/DOM. */
+      var btn = document.createElement('div');
+      btn.className = 'arch-spectrum-icons-tile arch-diagram-ui arch-architecture-logo-tile';
+      btn.setAttribute('role', 'option');
+      btn.tabIndex = 0;
+      var effHref = item.displayFile || item.file;
+      btn.setAttribute('data-arch-logo-file', effHref);
+      btn.setAttribute('data-arch-logo-label', item.label || item.file);
+      btn.setAttribute('data-arch-logo-desc', item.description || '');
+      var tagList = Array.isArray(item.tags) ? item.tags.filter(function (t) { return t; }) : [];
+      btn.setAttribute('data-arch-logo-tags', tagList.join(' '));
+      var hover = (item.label || '') + (item.description ? ' — ' + item.description : '');
+      btn.title = hover || item.file;
+      var wrap = document.createElement('span');
+      wrap.className = 'arch-spectrum-icons-tile-img-wrap';
+      var im = document.createElement('img');
+      im.src = effHref;
+      im.alt = '';
+      im.loading = 'lazy';
+      im.width = 32;
+      im.height = 32;
+      wrap.appendChild(im);
+      var cap = document.createElement('span');
+      cap.className = 'arch-spectrum-icons-tile-cap';
+      cap.textContent = item.label || item.file;
+      var tileActions = null;
+      if (item._archCustomId) {
+        btn.setAttribute('data-arch-custom-logo-id', item._archCustomId);
+        btn.setAttribute('draggable', 'true');
+        btn.classList.add('arch-architecture-logo-tile--custom');
+        btn.title = (hover || item.file) + ' — Turn on Edit logos below to change or remove. Drag to reorder.';
+        tileActions = document.createElement('span');
+        tileActions.className = 'arch-architecture-logo-tile-actions';
+        tileActions.setAttribute('role', 'group');
+        tileActions.setAttribute('aria-label', 'Logo actions');
+        var remCust = archLogoTileCreateIosRemoveButton(
+          'Delete',
+          'Delete from your library (7-day grace to undo)',
+          function () {
+            archLogoConfirmShow({
+              title: 'Delete this logo?',
+              message: '',
+              confirmLabel: 'Yes',
+              cancelLabel: 'No',
+              danger: true
+            }).then(function (ok) {
+              if (!ok) return;
+              archCustomLogoQueueDeletion(item._archCustomId);
+              archCustomLogoRefreshLists();
+              archArchitectureLogosRefreshMerged();
+              if (liveRegion) liveRegion.textContent = 'Queued logo for removal.';
+            });
+          }
+        );
+        var editBtn = archLogoTileCreateIosEditButton(function () {
+          if (btn._archLogoPlaceTimer) {
+            clearTimeout(btn._archLogoPlaceTimer);
+            btn._archLogoPlaceTimer = null;
+          }
+          archLogoEditSetAnchor(btn);
+          archCustomLogoMetadataEditorOpen(item._archCustomId);
+        });
+        tileActions.appendChild(remCust);
+        tileActions.appendChild(editBtn);
+        btn.addEventListener('dragstart', function (e) {
+          try {
+            e.dataTransfer.setData('text/plain', item._archCustomId);
+            e.dataTransfer.effectAllowed = 'move';
+          } catch (err) {}
+          archCustomLogoDragId = item._archCustomId;
+          btn.classList.add('arch-architecture-logo-tile--dragging');
+        });
+        btn.addEventListener('dragend', function () {
+          archCustomLogoDragId = null;
+          btn.classList.remove('arch-architecture-logo-tile--dragging');
+        });
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          if (archLogoLibraryEditModeIsOn()) {
+            if (e.target.closest && e.target.closest('.arch-architecture-logo-tile-actions')) return;
+            return;
+          }
+          if (btn._archLogoPlaceTimer) clearTimeout(btn._archLogoPlaceTimer);
+          btn._archLogoPlaceTimer = setTimeout(function () {
+            btn._archLogoPlaceTimer = null;
+            var f = btn.getAttribute('data-arch-logo-file');
+            var lab = btn.getAttribute('data-arch-logo-label');
+            var desc = btn.getAttribute('data-arch-logo-desc') || '';
+            if (f) archProductLogoPlace(f, lab, desc);
+          }, ARCH_CUSTOM_LOGO_PLACE_DELAY_MS);
+        });
+      } else {
+        var catKey = item.file;
+        btn.setAttribute('data-arch-catalog-source-file', catKey);
+        tileActions = document.createElement('span');
+        tileActions.className = 'arch-architecture-logo-tile-actions';
+        tileActions.setAttribute('role', 'group');
+        tileActions.setAttribute('aria-label', 'Catalog logo actions');
+        var remCat = archLogoTileCreateIosRemoveButton(
+          'Delete',
+          'Delete your saved version for this logo (this browser)',
+          function () {
+            archLogoConfirmShow({
+              title: 'Delete this logo?',
+              message: '',
+              confirmLabel: 'Yes',
+              cancelLabel: 'No',
+              danger: true
+            }).then(function (ok) {
+              if (!ok) return;
+              var map = archCatalogLogoOverridesMap();
+              delete map[catKey];
+              archCatalogLogoOverridesPersist(map);
+              archCatalogHideFromPicker(catKey, (item && item.label) || '');
+              archCustomLogoRefreshLists();
+              archArchitectureLogosRefreshMerged();
+              if (liveRegion) liveRegion.textContent = 'Logo removed from picker. Restore under Removed from picker, or export JSON for a repo update.';
+            });
+          }
+        );
+        var catEditBtn = archLogoTileCreateIosEditButton(function () {
+          archLogoEditSetAnchor(btn);
+          archCatalogLogoMetadataEditorOpen(catKey);
+        });
+        tileActions.appendChild(remCat);
+        tileActions.appendChild(catEditBtn);
+        btn.title =
+          (hover || item.file) +
+          ' — Turn on Edit logos below to change metadata or overrides (this browser).';
+      }
+      btn.appendChild(wrap);
+      btn.appendChild(cap);
+      if (tileActions) btn.appendChild(tileActions);
+      archLogoTileKeyboardActivate(btn);
+      grid.appendChild(btn);
+    });
+  }
+
+  function archArchitectureLogosRenderFromRemoteData(data) {
+    var gridAdobe = qs('#archAdobeLogoMenuMount');
+    var gridOther = qs('#archArchitectureLogoMenuMount');
+    var stAdobe = qs('#archAdobeLogoStatus');
+    var stOther = qs('#archArchitectureLogoStatus');
+    if (!gridAdobe || !gridOther || !data || !Array.isArray(data.logos)) return;
+    archCustomLogoPurgeExpired();
+    archCustomLogoMigrateLibrary();
+    var prevATag = gridAdobe.getAttribute('data-arch-built') === '1' ? gridAdobe.getAttribute('data-arch-active-tag') || '' : '';
+    var prevOTag = gridOther.getAttribute('data-arch-built') === '1' ? gridOther.getAttribute('data-arch-active-tag') || '' : '';
+    var qA = qs('#archAdobeLogoSearch');
+    var qO = qs('#archArchitectureLogoSearch');
+    var adobe = [];
+    var other = [];
+    var catOv = archCatalogLogoOverridesMap();
+    var hiddenPick = archCatalogHiddenFromPickerMap();
+    data.logos.forEach(function (rawItem) {
+      if (!rawItem || !rawItem.file) return;
+      if (hiddenPick[rawItem.file]) return;
+      var item = archCatalogLogoItemMergedFrom(rawItem, catOv);
+      var inAdobe = '_overridePanel' in item ? item._overridePanel === 'adobe' : archArchitectureLogoIsAdobeSection(item);
+      if (inAdobe) adobe.push(item);
+      else other.push(item);
+    });
+    adobe.sort(function (a, b) {
+      var fa = (a && a.file) || '';
+      var fb = (b && b.file) || '';
+      var ia = ARCH_ADOBE_LOGO_FILES.indexOf(fa);
+      var ib = ARCH_ADOBE_LOGO_FILES.indexOf(fb);
+      if (ia >= 0 && ib >= 0) return ia - ib;
+      if (ia >= 0) return -1;
+      if (ib >= 0) return 1;
+      var na = parseInt((fa.match(/image(\d+)\.png/i) || [])[1] || '0', 10);
+      var nb = parseInt((fb.match(/image(\d+)\.png/i) || [])[1] || '0', 10);
+      return na - nb;
+    });
+    archMergeCustomLogosIntoPanels(adobe, other);
+    var bucketsAdobe = archPartitionLogoItemsIntoGroups(adobe, ARCH_ADOBE_MENU_GROUPS);
+    var bucketsOther = archPartitionLogoItemsIntoGroups(other, ARCH_OTHER_MENU_GROUPS);
+    archFinalizeLogoBucketsCustomOrder(bucketsAdobe);
+    archFinalizeLogoBucketsCustomOrder(bucketsOther);
+    archRenderArchitectureLogoMenu(gridAdobe, bucketsAdobe, ARCH_ADOBE_MENU_GROUPS, 'adobe');
+    archRenderArchitectureLogoMenu(gridOther, bucketsOther, ARCH_OTHER_MENU_GROUPS, 'other');
+    gridAdobe.setAttribute('data-arch-built', '1');
+    gridOther.setAttribute('data-arch-built', '1');
+    gridAdobe.setAttribute('data-arch-active-tag', '');
+    gridOther.setAttribute('data-arch-active-tag', '');
+    archArchitectureLogoTagBarInit(qs('#archAdobeLogoTagRow'), gridAdobe, stAdobe, qA, ARCH_LOGO_TAG_CHIPS_ADOBE);
+    archArchitectureLogoTagBarInit(qs('#archOtherLogoTagRow'), gridOther, stOther, qO, ARCH_LOGO_TAG_CHIPS_OTHER);
+    archArchitectureLogoTagBarActivate(qs('#archAdobeLogoTagRow'), gridAdobe, prevATag);
+    archArchitectureLogoTagBarActivate(qs('#archOtherLogoTagRow'), gridOther, prevOTag);
+    archArchitectureLogosApplyFilter(gridAdobe, stAdobe, qA ? qA.value : '');
+    archArchitectureLogosApplyFilter(gridOther, stOther, qO ? qO.value : '');
+  }
+
+  function archArchitectureLogosRefreshMerged() {
+    if (!archArchitectureLogosRemoteCache || !Array.isArray(archArchitectureLogosRemoteCache.logos)) {
+      archArchitectureLogosPanelInit();
+      return;
+    }
+    archArchitectureLogosRenderFromRemoteData(archArchitectureLogosRemoteCache);
+  }
+
+  function archArchitectureLogosPanelInit() {
+    var gridAdobe = qs('#archAdobeLogoMenuMount');
+    var gridOther = qs('#archArchitectureLogoMenuMount');
+    var stAdobe = qs('#archAdobeLogoStatus');
+    var stOther = qs('#archArchitectureLogoStatus');
+    if (!gridAdobe || !gridOther) return;
+    /* Fresh fetch each time (avoids stale CDN/browser cache after JSON updates). */
+    fetch('data/architecture-logos.json', { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then(function (data) {
+        if (!gridOther.parentNode) return;
+        if (!data || !Array.isArray(data.logos)) return;
+        archArchitectureLogosRemoteCache = data;
+        archArchitectureLogosRenderFromRemoteData(data);
+      })
+      .catch(function () {
+        archArchitectureLogosRemoteCache = null;
+        var msg = 'Could not load architecture logo list. Ensure data/architecture-logos.json is deployed.';
+        if (stAdobe) stAdobe.textContent = msg;
+        if (stOther) stOther.textContent = msg;
+      });
+  }
+
+  function archArchitectureLogoTagBarActivate(container, grid, tagId) {
+    if (!container || !grid) return;
+    var id = (tagId || '').trim();
+    if (!id) return;
+    var ok = false;
+    container.querySelectorAll('.arch-logo-tag-chip').forEach(function (c) {
+      if (c.getAttribute('data-arch-tag-id') === id) ok = true;
+    });
+    if (!ok) return;
+    grid.setAttribute('data-arch-active-tag', id);
+    container.querySelectorAll('.arch-logo-tag-chip').forEach(function (c) {
+      c.setAttribute('aria-pressed', c.getAttribute('data-arch-tag-id') === id ? 'true' : 'false');
+    });
+  }
+
+  function archArchitectureLogoTagBarInit(container, grid, statusEl, searchInput, defs) {
+    if (!container || !grid || !Array.isArray(defs)) return;
+    container.textContent = '';
+    grid.setAttribute('data-arch-active-tag', '');
+    defs.forEach(function (def, idx) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'arch-logo-tag-chip arch-diagram-ui';
+      chip.setAttribute('data-arch-tag-id', def.id);
+      chip.setAttribute('aria-pressed', idx === 0 ? 'true' : 'false');
+      chip.setAttribute('aria-label', 'Filter: ' + (def.label || 'All'));
+      chip.textContent = def.label || 'All';
+      chip.addEventListener('click', function () {
+        var id = def.id || '';
+        grid.setAttribute('data-arch-active-tag', id);
+        container.querySelectorAll('.arch-logo-tag-chip').forEach(function (c) {
+          c.setAttribute('aria-pressed', c.getAttribute('data-arch-tag-id') === id ? 'true' : 'false');
+        });
+        archArchitectureLogosApplyFilter(grid, statusEl, searchInput ? searchInput.value : '');
+      });
+      container.appendChild(chip);
+    });
+  }
+
+  function archArchitectureLogosApplyFilter(grid, statusEl, q) {
+    if (!grid || grid.getAttribute('data-arch-built') !== '1') return;
+    var needle = (q || '').trim().toLowerCase();
+    var activeTag = (grid.getAttribute('data-arch-active-tag') || '').trim();
+    var tiles = grid.querySelectorAll('.arch-architecture-logo-tile');
+    var n = 0;
+    for (var i = 0; i < tiles.length; i++) {
+      var btn = tiles[i];
+      var fileHay =
+        btn.getAttribute('data-arch-catalog-source-file') || btn.getAttribute('data-arch-logo-file') || '';
+      var lab =
+        (btn.getAttribute('data-arch-logo-label') || '') +
+        ' ' +
+        fileHay +
+        ' ' +
+        (btn.getAttribute('data-arch-logo-desc') || '');
+      var tagsStr = btn.getAttribute('data-arch-logo-tags') || '';
+      var tagOk =
+        !activeTag ||
+        (tagsStr &&
+          tagsStr.split(/\s+/).filter(function (t) {
+            return t;
+          }).indexOf(activeTag) >= 0);
+      var textOk = !needle || lab.toLowerCase().indexOf(needle) >= 0;
+      var show = tagOk && textOk;
+      btn.hidden = !show;
+      if (show) n++;
+    }
+    var filtered = !!(activeTag || needle);
+    var groups = grid.querySelectorAll('.arch-logo-menu-group');
+    for (var g = 0; g < groups.length; g++) {
+      var det = groups[g];
+      var gtiles = det.querySelectorAll('.arch-architecture-logo-tile');
+      var vis = 0;
+      var total = gtiles.length;
+      for (var t = 0; t < gtiles.length; t++) {
+        if (!gtiles[t].hidden) vis++;
+      }
+      det.hidden = total > 0 && vis === 0;
+      var countEl = det.querySelector('.arch-logo-menu-count');
+      if (countEl && total > 0) {
+        countEl.textContent = filtered ? vis + '/' + total : String(total);
+      }
+    }
+    if (statusEl) statusEl.textContent = n + ' shown' + (filtered ? ' (filtered)' : '') + '.';
+  }
+
+  function archCustomLogoEnsurePanelSelectOptions(sel) {
+    if (!sel || sel.options.length) return;
+    [
+      { v: 'other', t: 'Product & diagram logos' },
+      { v: 'adobe', t: 'Adobe Logos' },
+    ].forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.v;
+      opt.textContent = o.t;
+      sel.appendChild(opt);
+    });
+  }
+
+  function archCustomLogoPopulateGroupSelectEl(selEl, panel) {
+    if (!selEl) return;
+    var groups = panel === 'adobe' ? ARCH_ADOBE_MENU_GROUPS : ARCH_OTHER_MENU_GROUPS;
+    selEl.textContent = '';
+    groups.forEach(function (g) {
+      var opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = g.label;
+      selEl.appendChild(opt);
+    });
+  }
+
+  function archCustomLogoPopulateGroupSelect(panel) {
+    archCustomLogoPopulateGroupSelectEl(qs('#archCustomLogoGroup'), panel);
+  }
+
+  var archCustomLogoEditingId = null;
+  var archCustomLogoEditingCatalogFile = null;
+
+  function archCatalogLogoEditUiMode(mode) {
+    var title = qs('#archCustomLogoEditTitle');
+    var hint = qs('#archCustomLogoEditHint');
+    var panelRow = qs('#archCustomLogoEditPanelRow');
+    var replaceRow = qs('#archCatalogLogoEditReplaceRow');
+    var fi = qs('#archCatalogLogoEditReplaceFile');
+    var delBtn = qs('#archLogoEditDelete');
+    if (mode === 'catalog') {
+      if (title) title.textContent = 'Edit catalog logo';
+      if (hint) {
+        hint.textContent =
+          'Adjust label, description, or section. Optionally replace the bundled image — stored only in this browser. Use the trash control to remove local overrides.';
+      }
+      if (panelRow) panelRow.hidden = false;
+      if (replaceRow) replaceRow.hidden = false;
+      if (delBtn) {
+        delBtn.hidden = false;
+        delBtn.setAttribute('aria-label', 'Remove local overrides for this logo');
+        delBtn.title = 'Remove local overrides (restores bundled logo)';
+      }
+    } else {
+      if (title) title.textContent = 'Edit uploaded logo';
+      if (hint) {
+        hint.textContent =
+          'Change label, description, or which submenu this appears under. Logos already on the canvas keep their old label until you edit the box on the canvas.';
+      }
+      if (panelRow) panelRow.hidden = false;
+      if (replaceRow) replaceRow.hidden = true;
+      if (fi) fi.value = '';
+      if (delBtn) {
+        delBtn.hidden = false;
+        delBtn.setAttribute('aria-label', 'Queue removal from menus');
+        delBtn.title = 'Remove from library (7-day grace before permanent delete)';
+      }
+    }
+  }
+
+  function archCatalogLogoMetadataEditorOpen(catalogFileKey) {
+    if (!catalogFileKey) return;
+    var raw = archCatalogLogoFindRaw(catalogFileKey);
+    if (!raw) return;
+    archCustomLogoEditingCatalogFile = catalogFileKey;
+    archCustomLogoEditingId = null;
+    var ov = qs('#archCustomLogoEditOverlay');
+    var lab = qs('#archCustomLogoEditLabel');
+    var desc = qs('#archCustomLogoEditDesc');
+    var fi = qs('#archCatalogLogoEditReplaceFile');
+    var ps = qs('#archCustomLogoEditPanel');
+    var gs = qs('#archCustomLogoEditGroup');
+    if (!ov || !lab || !desc) return;
+    archCatalogLogoEditUiMode('catalog');
+    if (fi) fi.value = '';
+    var ovMap = archCatalogLogoOverridesMap();
+    var st = ovMap[catalogFileKey] || {};
+    lab.value = 'label' in st ? String(st.label) : raw.label || '';
+    desc.value = 'description' in st ? String(st.description) : raw.description || '';
+    if (ps && gs) {
+      archCustomLogoEnsurePanelSelectOptions(ps);
+      var currentPanel = 'panel' in st ? st.panel : archCatalogLogoInferPanel(raw);
+      ps.value = currentPanel === 'adobe' ? 'adobe' : 'other';
+      archCustomLogoPopulateGroupSelectEl(gs, ps.value);
+      var currentGroupId = 'groupId' in st ? st.groupId : archCatalogLogoInferGroupId(raw, ps.value);
+      var hasG = false;
+      for (var oi = 0; oi < gs.options.length; oi++) {
+        if (gs.options[oi].value === currentGroupId) { hasG = true; break; }
+      }
+      gs.value = hasG ? currentGroupId : (gs.options[0] ? gs.options[0].value : '');
+    }
+    ov.hidden = false;
+    lab.focus();
+    lab.select();
+    archLogoEditPopoverOpenDone();
+  }
+
+  function archCustomLogoMetadataEditorClose() {
+    var ov = qs('#archCustomLogoEditOverlay');
+    var dlg = qs('.arch-custom-logo-edit-dialog');
+    if (ov) {
+      ov.hidden = true;
+      ov.classList.remove('arch-custom-logo-edit-overlay--anchored');
+    }
+    if (dlg) {
+      dlg.style.left = '';
+      dlg.style.top = '';
+    }
+    archLogoEditSetAnchor(null);
+    archCustomLogoEditingId = null;
+    archCustomLogoEditingCatalogFile = null;
+    var fi = qs('#archCatalogLogoEditReplaceFile');
+    if (fi) fi.value = '';
+    archCatalogLogoEditUiMode('custom');
+  }
+
+  function archCustomLogoMetadataEditorOpen(id) {
+    var items = archCustomLogoLibraryLoad();
+    var entry = null;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].id === id) {
+        entry = items[i];
+        break;
+      }
+    }
+    if (!entry) return;
+    if (entry.deletedAt) return;
+    archCustomLogoEditingId = id;
+    archCustomLogoEditingCatalogFile = null;
+    var ov = qs('#archCustomLogoEditOverlay');
+    var lab = qs('#archCustomLogoEditLabel');
+    var desc = qs('#archCustomLogoEditDesc');
+    var ps = qs('#archCustomLogoEditPanel');
+    var gs = qs('#archCustomLogoEditGroup');
+    if (!ov || !lab || !desc || !ps || !gs) return;
+    archCatalogLogoEditUiMode('custom');
+    var fi = qs('#archCatalogLogoEditReplaceFile');
+    if (fi) fi.value = '';
+    archCustomLogoEnsurePanelSelectOptions(ps);
+    lab.value = entry.label || '';
+    desc.value = typeof entry.description === 'string' ? entry.description : '';
+    ps.value = entry.panel === 'adobe' ? 'adobe' : 'other';
+    archCustomLogoPopulateGroupSelectEl(gs, ps.value === 'adobe' ? 'adobe' : 'other');
+    var gid = entry.groupId;
+    if (gid) {
+      var hasG = false;
+      for (var oi = 0; oi < gs.options.length; oi++) {
+        if (gs.options[oi].value === gid) {
+          hasG = true;
+          break;
+        }
+      }
+      gs.value = hasG ? gid : gs.options[0] ? gs.options[0].value : '';
+    } else if (gs.options[0]) gs.value = gs.options[0].value;
+    ov.hidden = false;
+    lab.focus();
+    lab.select();
+    archLogoEditPopoverOpenDone();
+  }
+
+  function archCustomLogoMetadataEditorSave() {
+    if (archCustomLogoEditingCatalogFile) {
+      var key = archCustomLogoEditingCatalogFile;
+      var raw = archCatalogLogoFindRaw(key);
+      if (!raw) return;
+      var labIn = qs('#archCustomLogoEditLabel');
+      var descIn = qs('#archCustomLogoEditDesc');
+      var fi = qs('#archCatalogLogoEditReplaceFile');
+      var label = (labIn && labIn.value && labIn.value.trim()) || '';
+      if (!label) return;
+      var desc = (descIn && descIn.value && descIn.value.trim()) || '';
+      var file = fi && fi.files && fi.files[0];
+      if (file && file.size > ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS * 0.75) {
+        if (liveRegion) liveRegion.textContent = 'File too large to store locally.';
+        return;
+      }
+      var psEl = qs('#archCustomLogoEditPanel');
+      var gsEl = qs('#archCustomLogoEditGroup');
+      var prevMap = archCatalogLogoOverridesMap();
+      var prev = prevMap[key] || {};
+      function finishCatalogOverride(dataUrl) {
+        var next = { label: label, description: desc };
+        if (dataUrl) next.fileDataUrl = dataUrl;
+        else if (prev.fileDataUrl) next.fileDataUrl = prev.fileDataUrl;
+        if (psEl) next.panel = psEl.value === 'adobe' ? 'adobe' : 'other';
+        if (gsEl && gsEl.value) next.groupId = gsEl.value;
+        if (archCatalogLogoOverrideRedundant(raw, next)) {
+          delete prevMap[key];
+        } else {
+          prevMap[key] = next;
+        }
+        archCatalogLogoOverridesPersist(prevMap);
+        archCustomLogoMetadataEditorClose();
+        archArchitectureLogosRefreshMerged();
+        if (liveRegion) liveRegion.textContent = 'Saved catalog logo override for this browser.';
+      }
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          var s = reader.result;
+          if (typeof s === 'string' && s.length > ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS) {
+            if (liveRegion) liveRegion.textContent = 'Image data too large for local storage.';
+            return;
+          }
+          finishCatalogOverride(s);
+        };
+        reader.onerror = function () {
+          if (liveRegion) liveRegion.textContent = 'Could not read image file.';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        finishCatalogOverride(null);
+      }
+      return;
+    }
+    if (!archCustomLogoEditingId) return;
+    var labIn = qs('#archCustomLogoEditLabel');
+    var descIn = qs('#archCustomLogoEditDesc');
+    var ps = qs('#archCustomLogoEditPanel');
+    var gs = qs('#archCustomLogoEditGroup');
+    var label = (labIn && labIn.value && labIn.value.trim()) || '';
+    if (!label) return;
+    var items = archCustomLogoLibraryLoad();
+    var next = items.map(function (e) {
+      if (e.id !== archCustomLogoEditingId) return e;
+      return Object.assign({}, e, {
+        label: label,
+        description: (descIn && descIn.value && descIn.value.trim()) || '',
+        panel: ps && ps.value === 'adobe' ? 'adobe' : 'other',
+        groupId: gs ? gs.value : e.groupId,
+      });
+    });
+    try {
+      archCustomLogoLibrarySave(next);
+    } catch (err) {
+      return;
+    }
+    archCustomLogoMetadataEditorClose();
+    archCustomLogoRefreshLists();
+    archArchitectureLogosRefreshMerged();
+  }
+
+  function archCustomLogoEditDialogInit() {
+    var ov = qs('#archCustomLogoEditOverlay');
+    if (!ov || ov.getAttribute('data-arch-custom-logo-edit') === '1') return;
+    ov.setAttribute('data-arch-custom-logo-edit', '1');
+    var dlg = ov.querySelector('.arch-custom-logo-edit-dialog');
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov) archCustomLogoMetadataEditorClose();
+    });
+    if (dlg) {
+      dlg.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+    }
+    var cancel = qs('#archCustomLogoEditCancel');
+    var save = qs('#archCustomLogoEditSave');
+    var delBtn = qs('#archLogoEditDelete');
+    var ps = qs('#archCustomLogoEditPanel');
+    if (cancel) cancel.addEventListener('click', archCustomLogoMetadataEditorClose);
+    if (save) save.addEventListener('click', archCustomLogoMetadataEditorSave);
+    if (delBtn) {
+      delBtn.addEventListener('click', function () {
+        if (archCustomLogoEditingCatalogFile) {
+          var map = archCatalogLogoOverridesMap();
+          delete map[archCustomLogoEditingCatalogFile];
+          archCatalogLogoOverridesPersist(map);
+          archCustomLogoMetadataEditorClose();
+          archArchitectureLogosRefreshMerged();
+          if (liveRegion) liveRegion.textContent = 'Removed local overrides for this catalog logo.';
+          return;
+        }
+        if (archCustomLogoEditingId) {
+          archCustomLogoQueueDeletion(archCustomLogoEditingId);
+          archCustomLogoMetadataEditorClose();
+          archCustomLogoRefreshLists();
+          archArchitectureLogosRefreshMerged();
+          if (liveRegion) liveRegion.textContent = 'Queued logo for removal (7-day grace).';
+        }
+      });
+    }
+    window.addEventListener('resize', function () {
+      var ovl = qs('#archCustomLogoEditOverlay');
+      if (ovl && !ovl.hidden) archLogoEditPopoverPosition();
+    });
+    if (ps) {
+      ps.addEventListener('change', function () {
+        archCustomLogoPopulateGroupSelectEl(qs('#archCustomLogoEditGroup'), ps.value === 'adobe' ? 'adobe' : 'other');
+      });
+    }
+    document.addEventListener(
+      'keydown',
+      function (e) {
+        if (e.key !== 'Escape') return;
+        if (!ov || ov.hidden) return;
+        e.preventDefault();
+        archCustomLogoMetadataEditorClose();
+      },
+      true
+    );
+  }
+
+  function archSpectrumHiddenListRender() {
+    var ul = qs('#archSpectrumHiddenList');
+    var empty = qs('#archSpectrumHiddenEmpty');
+    if (!ul) return;
+    ul.textContent = '';
+    var m = archSpectrumHiddenFromPickerMap();
+    var keys = Object.keys(m);
+    if (empty) empty.hidden = keys.length > 0;
+    keys.sort();
+    keys.forEach(function (fileKey) {
+      var meta = m[fileKey] || {};
+      var li = document.createElement('li');
+      li.className = 'arch-custom-logo-list-item';
+      var span = document.createElement('span');
+      span.className = 'arch-custom-logo-list-label';
+      span.textContent = (meta.label || fileKey) + ' — ' + fileKey;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dashboard-btn-outline arch-spectrum-unhide-btn';
+      btn.setAttribute('data-arch-spectrum-unhide', encodeURIComponent(fileKey));
+      btn.setAttribute('aria-label', 'Show Spectrum icon in picker again');
+      btn.textContent = 'Restore';
+      li.appendChild(span);
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+  }
+
+  function archPickerHiddenExportUpdateBtn() {
+    var exp = qs('#archPickerHiddenExportBtn');
+    if (!exp) return;
+    var c = Object.keys(archCatalogHiddenFromPickerMap()).length;
+    var s = Object.keys(archSpectrumHiddenFromPickerMap()).length;
+    exp.disabled = c === 0 && s === 0;
+  }
+
+  function archCatalogHiddenListRender() {
+    var ul = qs('#archCatalogHiddenList');
+    var empty = qs('#archCatalogHiddenEmpty');
+    if (!ul) return;
+    ul.textContent = '';
+    var m = archCatalogHiddenFromPickerMap();
+    var keys = Object.keys(m);
+    if (empty) empty.hidden = keys.length > 0;
+    keys.sort();
+    keys.forEach(function (fileKey) {
+      var meta = m[fileKey] || {};
+      var li = document.createElement('li');
+      li.className = 'arch-custom-logo-list-item';
+      var span = document.createElement('span');
+      span.className = 'arch-custom-logo-list-label';
+      span.textContent = meta.label || fileKey;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dashboard-btn-outline arch-catalog-unhide-btn';
+      btn.setAttribute('data-arch-catalog-unhide', encodeURIComponent(fileKey));
+      btn.setAttribute('aria-label', 'Show logo in picker again');
+      btn.textContent = 'Restore';
+      li.appendChild(span);
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+  }
+
+  function archCustomLogoRefreshLists() {
+    archCustomLogoListRender();
+    archCustomLogoPendingListRender();
+    archCatalogHiddenListRender();
+    archSpectrumHiddenListRender();
+    archPickerHiddenExportUpdateBtn();
+  }
+
+  function archCustomLogoListRender() {
+    var ul = qs('#archCustomLogoList');
+    if (!ul) return;
+    ul.textContent = '';
+    archCustomLogoLibraryLoad().forEach(function (e) {
+      if (!e || !e.id || e.deletedAt) return;
+      var li = document.createElement('li');
+      li.className = 'arch-custom-logo-list-item';
+      var span = document.createElement('span');
+      span.className = 'arch-custom-logo-list-label';
+      span.textContent = e.label || e.id;
+      var editRow = document.createElement('button');
+      editRow.type = 'button';
+      editRow.className = 'dashboard-btn-outline arch-custom-logo-row-edit';
+      editRow.setAttribute('data-arch-custom-logo-edit', e.id);
+      editRow.setAttribute('aria-label', 'Edit ' + (e.label || 'logo'));
+      editRow.textContent = 'Edit';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dashboard-btn-outline arch-custom-logo-remove';
+      btn.setAttribute('data-arch-custom-logo-queue-delete', e.id);
+      btn.setAttribute('aria-label', 'Queue removal for ' + (e.label || 'logo') + ' (7-day grace)');
+      btn.textContent = 'Remove';
+      li.appendChild(span);
+      li.appendChild(editRow);
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+  }
+
+  function archCustomLogoPendingListRender() {
+    var ul = qs('#archCustomLogoPendingList');
+    var empty = qs('#archCustomLogoPendingEmpty');
+    if (!ul) return;
+    ul.textContent = '';
+    var now = Date.now();
+    var grace = ARCH_CUSTOM_LOGO_DELETE_GRACE_MS;
+    var pending = archCustomLogoLibraryLoad().filter(function (e) {
+      return e && e.id && e.deletedAt && now - e.deletedAt < grace;
+    });
+    if (empty) empty.hidden = pending.length > 0;
+    pending.forEach(function (e) {
+      var left = Math.max(0, grace - (now - e.deletedAt));
+      var days = Math.ceil(left / (24 * 60 * 60 * 1000));
+      var li = document.createElement('li');
+      li.className = 'arch-custom-logo-list-item arch-custom-logo-list-item--pending';
+      var span = document.createElement('span');
+      span.className = 'arch-custom-logo-list-label';
+      span.textContent = (e.label || e.id) + ' — ' + days + ' day' + (days === 1 ? '' : 's') + ' left';
+      var restore = document.createElement('button');
+      restore.type = 'button';
+      restore.className = 'dashboard-btn-outline arch-custom-logo-restore';
+      restore.setAttribute('data-arch-custom-logo-restore', e.id);
+      restore.setAttribute('aria-label', 'Restore ' + (e.label || 'logo'));
+      restore.textContent = 'Restore';
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'dashboard-btn-outline arch-custom-logo-purge-now';
+      del.setAttribute('data-arch-custom-logo-purge-now', e.id);
+      del.setAttribute('aria-label', 'Delete ' + (e.label || 'logo') + ' permanently');
+      del.textContent = 'Delete now';
+      li.appendChild(span);
+      li.appendChild(restore);
+      li.appendChild(del);
+      ul.appendChild(li);
+    });
+  }
+
+  function archCustomLogoAddFromForm() {
+    var status = qs('#archCustomLogoFormStatus');
+    var fileInput = qs('#archCustomLogoFile');
+    var labelIn = qs('#archCustomLogoLabel');
+    var descIn = qs('#archCustomLogoDesc');
+    var panel = qs('#archCustomLogoPanel');
+    var groupSel = qs('#archCustomLogoGroup');
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+      if (status) status.textContent = 'Choose an image file.';
+      return;
+    }
+    var label = (labelIn && labelIn.value && labelIn.value.trim()) || '';
+    if (!label) {
+      if (status) status.textContent = 'Enter a label.';
+      return;
+    }
+    if (!panel || !groupSel) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      var dataUrl = fr.result;
+      if (typeof dataUrl !== 'string' || dataUrl.indexOf('data:') !== 0) {
+        if (status) status.textContent = 'Could not read image.';
+        return;
+      }
+      if (dataUrl.length > ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS) {
+        if (status) status.textContent = 'Image is too large for browser storage (try a file under about 1 MB).';
+        return;
+      }
+      var items = archCustomLogoLibraryLoad();
+      var pv = panel.value === 'adobe' ? 'adobe' : 'other';
+      var gid = groupSel.value;
+      items.push({
+        id: 'ucl-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+        fileDataUrl: dataUrl,
+        label: label,
+        description: (descIn && descIn.value && descIn.value.trim()) || '',
+        panel: pv,
+        groupId: gid,
+        order: archCustomLogoNextOrderForGroup(pv, gid),
+      });
+      try {
+        archCustomLogoLibrarySave(items);
+      } catch (err) {
+        if (status) status.textContent = 'Could not save (storage may be full). Remove an upload or use a smaller image.';
+        return;
+      }
+      if (status) status.textContent = 'Added “' + label + '”.';
+      fileInput.value = '';
+      if (labelIn) labelIn.value = '';
+      if (descIn) descIn.value = '';
+      archCustomLogoRefreshLists();
+      archArchitectureLogosRefreshMerged();
+    };
+    fr.onerror = function () {
+      if (status) status.textContent = 'Failed to read file.';
+    };
+    fr.readAsDataURL(fileInput.files[0]);
+  }
+
+  function archCustomLogoUploadDropZoneInit() {
+    var dz = qs('#archCustomLogoDropZone');
+    var fi = qs('#archCustomLogoFile');
+    var br = qs('#archCustomLogoBrowse');
+    if (!dz || !fi || dz.getAttribute('data-arch-upload-dz') === '1') return;
+    dz.setAttribute('data-arch-upload-dz', '1');
+    if (br) {
+      br.addEventListener('click', function (e) {
+        e.preventDefault();
+        fi.click();
+      });
+    }
+    fi.addEventListener('change', function () {
+      var st = qs('#archCustomLogoFormStatus');
+      if (fi.files && fi.files[0] && st) {
+        st.textContent = 'File selected — add a label and click Add to library.';
+      }
+    });
+    dz.addEventListener('dragover', function (e) {
+      if (!e.dataTransfer || !e.dataTransfer.types) return;
+      if (e.dataTransfer.types.indexOf('Files') < 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'copy';
+      dz.classList.add('arch-custom-logo-drop-zone--active');
+    });
+    dz.addEventListener('dragleave', function (e) {
+      if (dz.contains(e.relatedTarget)) return;
+      dz.classList.remove('arch-custom-logo-drop-zone--active');
+    });
+    dz.addEventListener('drop', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dz.classList.remove('arch-custom-logo-drop-zone--active');
+      var f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f || (f.type && f.type.indexOf('image/') !== 0)) {
+        var stBad = qs('#archCustomLogoFormStatus');
+        if (stBad) stBad.textContent = 'Drop a single image file (PNG, SVG, JPEG, …).';
+        return;
+      }
+      try {
+        var dt = new DataTransfer();
+        dt.items.add(f);
+        fi.files = dt.files;
+      } catch (err) {
+        return;
+      }
+      var st = qs('#archCustomLogoFormStatus');
+      if (st) st.textContent = 'File attached — add a label and click Add to library.';
+    });
+  }
+
+  function archCustomLogoDragDropInit() {
+    var sec = qs('#archEditorSectionSpectrumIcons');
+    if (!sec || sec.getAttribute('data-arch-custom-dnd') === '1') return;
+    sec.setAttribute('data-arch-custom-dnd', '1');
+    sec.addEventListener('dragover', function (e) {
+      if (!archCustomLogoDragId) return;
+      var group = e.target.closest && e.target.closest('.arch-logo-menu-group');
+      var tile = e.target.closest && e.target.closest('.arch-architecture-logo-tile[data-arch-custom-logo-id]');
+      if (group || tile) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      }
+      document.querySelectorAll('.arch-logo-menu-group--dnd-hover').forEach(function (el) {
+        el.classList.remove('arch-logo-menu-group--dnd-hover');
+      });
+      if (group) group.classList.add('arch-logo-menu-group--dnd-hover');
+    });
+    sec.addEventListener(
+      'drop',
+      function (e) {
+        var dragId = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || archCustomLogoDragId || '';
+        dragId = (dragId || '').trim();
+        if (!dragId) return;
+        var tile = e.target.closest && e.target.closest('.arch-architecture-logo-tile[data-arch-custom-logo-id]');
+        if (tile) {
+          e.preventDefault();
+          var tid = tile.getAttribute('data-arch-custom-logo-id');
+          if (tid && tid !== dragId) {
+            archCustomLogoDropOnTile(dragId, tid);
+            archArchitectureLogosRefreshMerged();
+          }
+          return;
+        }
+        var anyTile = e.target.closest && e.target.closest('.arch-architecture-logo-tile');
+        if (anyTile && !anyTile.getAttribute('data-arch-custom-logo-id')) {
+          return;
+        }
+        var group = e.target.closest && e.target.closest('.arch-logo-menu-group');
+        if (group) {
+          e.preventDefault();
+          var panel = group.getAttribute('data-arch-drop-panel');
+          var gid = group.getAttribute('data-arch-drop-group-id');
+          if (panel && gid) {
+            archCustomLogoMoveToGroup(dragId, panel, gid);
+            archArchitectureLogosRefreshMerged();
+          }
+        }
+      },
+      false
+    );
+    sec.addEventListener('dragend', function () {
+      document.querySelectorAll('.arch-logo-menu-group--dnd-hover').forEach(function (el) {
+        el.classList.remove('arch-logo-menu-group--dnd-hover');
+      });
+      archCustomLogoDragId = null;
+    });
+  }
+
+  function archLogoLibraryEditBarInit() {
+    var sec = qs('#archEditorSectionSpectrumIcons');
+    var toggle = qs('#archLogoLibraryEditToggle');
+    if (!sec || !toggle || sec.getAttribute('data-arch-logo-edit-bar') === '1') return;
+    sec.setAttribute('data-arch-logo-edit-bar', '1');
+    archLogoLibraryEditModeSet(false);
+    toggle.addEventListener('click', function () {
+      archLogoLibraryEditModeSet(!archLogoLibraryEditModeIsOn());
+    });
+  }
+
+  function archCustomLogoUploadFormInit() {
+    var root = qs('#archCustomLogoUploadDetails');
+    if (!root || root.getAttribute('data-arch-custom-logo-form') === '1') return;
+    root.setAttribute('data-arch-custom-logo-form', '1');
+    archCustomLogoEditDialogInit();
+    archLogoLibraryEditBarInit();
+    archCustomLogoDragDropInit();
+    archCustomLogoUploadDropZoneInit();
+    var panelSel = qs('#archCustomLogoPanel');
+    archCustomLogoEnsurePanelSelectOptions(panelSel);
+    archCustomLogoPopulateGroupSelect(panelSel && panelSel.value === 'adobe' ? 'adobe' : 'other');
+    if (panelSel) {
+      panelSel.addEventListener('change', function () {
+        archCustomLogoPopulateGroupSelect(panelSel.value === 'adobe' ? 'adobe' : 'other');
+      });
+    }
+    var addBtn = qs('#archCustomLogoAdd');
+    if (addBtn) addBtn.addEventListener('click', archCustomLogoAddFromForm);
+    var list = qs('#archCustomLogoList');
+    if (list) {
+      list.addEventListener('click', function (e) {
+        var editB = e.target.closest && e.target.closest('[data-arch-custom-logo-edit]');
+        if (editB) {
+          e.preventDefault();
+          var eid = editB.getAttribute('data-arch-custom-logo-edit');
+          if (eid) {
+            archLogoEditSetAnchor(null);
+            archCustomLogoMetadataEditorOpen(eid);
+          }
+          return;
+        }
+        var btn = e.target.closest && e.target.closest('[data-arch-custom-logo-queue-delete]');
+        if (!btn) return;
+        e.preventDefault();
+        var id = btn.getAttribute('data-arch-custom-logo-queue-delete');
+        if (id) {
+          archCustomLogoQueueDeletion(id);
+          archCustomLogoRefreshLists();
+          archArchitectureLogosRefreshMerged();
+        }
+      });
+    }
+    var pend = qs('#archCustomLogoPendingList');
+    if (pend) {
+      pend.addEventListener('click', function (e) {
+        var rs = e.target.closest && e.target.closest('[data-arch-custom-logo-restore]');
+        var dn = e.target.closest && e.target.closest('[data-arch-custom-logo-purge-now]');
+        if (rs) {
+          e.preventDefault();
+          var rid = rs.getAttribute('data-arch-custom-logo-restore');
+          if (rid) {
+            archCustomLogoRestore(rid);
+            archCustomLogoRefreshLists();
+            archArchitectureLogosRefreshMerged();
+          }
+          return;
+        }
+        if (dn) {
+          e.preventDefault();
+          var pid = dn.getAttribute('data-arch-custom-logo-purge-now');
+          if (pid) {
+            archCustomLogoDeleteForever(pid);
+            archCustomLogoRefreshLists();
+            archArchitectureLogosRefreshMerged();
+          }
+        }
+      });
+    }
+    var catHid = qs('#archCatalogHiddenList');
+    if (catHid && !catHid.getAttribute('data-arch-cat-hid')) {
+      catHid.setAttribute('data-arch-cat-hid', '1');
+      catHid.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-arch-catalog-unhide]');
+        if (!b) return;
+        e.preventDefault();
+        var enc = b.getAttribute('data-arch-catalog-unhide');
+        if (!enc) return;
+        try {
+          var fileKey = decodeURIComponent(enc);
+          archCatalogUnhideFromPicker(fileKey);
+          archCustomLogoRefreshLists();
+          archArchitectureLogosRefreshMerged();
+          if (liveRegion) liveRegion.textContent = 'Logo shown in picker again.';
+        } catch (err) {}
+      });
+    }
+    var catEx = qs('#archPickerHiddenExportBtn');
+    if (catEx && !catEx.getAttribute('data-arch-picker-exp')) {
+      catEx.setAttribute('data-arch-picker-exp', '1');
+      catEx.addEventListener('click', function (e) {
+        e.preventDefault();
+        archPickerHiddenExportDownload();
+      });
+    }
+    var spHid = qs('#archSpectrumHiddenList');
+    if (spHid && !spHid.getAttribute('data-arch-sp-hid')) {
+      spHid.setAttribute('data-arch-sp-hid', '1');
+      spHid.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-arch-spectrum-unhide]');
+        if (!b) return;
+        e.preventDefault();
+        var enc = b.getAttribute('data-arch-spectrum-unhide');
+        if (!enc) return;
+        try {
+          var fileKey = decodeURIComponent(enc);
+          archSpectrumUnhideFromPicker(fileKey);
+          archCustomLogoRefreshLists();
+          archSpectrumIconsRefreshMerged();
+          if (liveRegion) liveRegion.textContent = 'Spectrum icon shown in picker again.';
+        } catch (err) {}
+      });
+    }
+    archCustomLogoRefreshLists();
+  }
+
+  function archProductLogoPlace(file, label, description) {
+    if (!archIsEditMode() || !archDrag.svg) return;
+    if (!file) return;
+    var n = archCustomBoxes.length;
+    var defaultSize = 48;
+    var x = 380 + (n % 10) * 24;
+    var y = 180 + (n % 8) * 24;
+    x = archClamp(x, 0, ARCH_GUIDE_VIEW.w - defaultSize);
+    y = archClamp(y, 0, ARCH_GUIDE_VIEW.h - defaultSize);
+    var nb = archCustomBoxNormalize({
+      id: 'cbox-' + Date.now(),
+      x: x,
+      y: y,
+      w: defaultSize,
+      h: defaultSize,
+      name: label || file.replace(/^.*\//, ''),
+      kind: 'productLogo',
+      logoFile: file,
+      logoDescription: description || '',
+      fill: 'none',
+      stroke: 'transparent',
+    });
+    archCustomBoxes.push(nb);
+    archCustomBoxSelectedId = nb.id;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    if (archSelection) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
+    var domId = 'node-cbox-' + nb.id;
+    var curH = archHighlightsForState(idx).slice();
+    if (curH.indexOf(domId) < 0) curH.push(domId);
+    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    if (archHighlightArraysEqual(curH, defH)) {
+      delete archStateHighlightOverrides[idx];
+      delete archStateHighlightOverrides[String(idx)];
+    } else {
+      archStateHighlightOverrides[String(idx)] = curH;
+    }
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUndoMaybePushSnapshot();
+    archActivateCanvasAdjustAfterCustomBoxPlace();
+    if (liveRegion) liveRegion.textContent = 'Added logo: ' + (label || file) + '.';
+  }
+
+  function archSpectrumIconPlace(file, label) {
+    if (!archIsEditMode() || !archDrag.svg) return;
+    if (!file) return;
+    var n = archCustomBoxes.length;
+    var defaultSize = 40;
+    var x = 360 + (n % 10) * 24;
+    var y = 160 + (n % 8) * 24;
+    x = archClamp(x, 0, ARCH_GUIDE_VIEW.w - defaultSize);
+    y = archClamp(y, 0, ARCH_GUIDE_VIEW.h - defaultSize);
+    var nb = archCustomBoxNormalize({
+      id: 'cbox-' + Date.now(),
+      x: x,
+      y: y,
+      w: defaultSize,
+      h: defaultSize,
+      name: label || file.replace(/\.svg$/i, ''),
+      kind: 'spectrumIcon',
+      iconFile: file,
+      fill: 'none',
+      stroke: 'transparent',
+    });
+    archCustomBoxes.push(nb);
+    archCustomBoxSelectedId = nb.id;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    if (archSelection) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
+    var domId = 'node-cbox-' + nb.id;
+    var curH = archHighlightsForState(idx).slice();
+    if (curH.indexOf(domId) < 0) curH.push(domId);
+    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    if (archHighlightArraysEqual(curH, defH)) {
+      delete archStateHighlightOverrides[idx];
+      delete archStateHighlightOverrides[String(idx)];
+    } else {
+      archStateHighlightOverrides[String(idx)] = curH;
+    }
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUndoMaybePushSnapshot();
+    archActivateCanvasAdjustAfterCustomBoxPlace();
+    if (liveRegion) liveRegion.textContent = 'Added Spectrum icon: ' + (label || file) + '.';
+  }
 
   function archCustomBoxNormalize(b) {
     var o = {
@@ -1384,6 +4551,24 @@
     };
     var lfs = Number(b.labelFontSize);
     o.labelFontSize = isNaN(lfs) ? 8.5 : archClamp(lfs, 4, 22);
+    o.kind = null;
+    o.iconFile = '';
+    o.logoFile = '';
+    o.logoDescription =
+      typeof b.logoDescription === 'string' && b.logoDescription.trim() ? b.logoDescription.trim() : '';
+    if (b && b.kind === 'spectrumIcon' && typeof b.iconFile === 'string' && b.iconFile) {
+      o.kind = 'spectrumIcon';
+      o.iconFile = b.iconFile;
+    } else if (b && b.kind === 'productLogo' && typeof b.logoFile === 'string' && b.logoFile) {
+      o.kind = 'productLogo';
+      o.logoFile = b.logoFile;
+    }
+    if (o.kind === 'spectrumIcon' && !o.iconFile) o.kind = null;
+    if (o.kind === 'productLogo' && !o.logoFile) o.kind = null;
+    if (o.kind === 'spectrumIcon' || o.kind === 'productLogo') {
+      o.fill = typeof b.fill === 'string' && b.fill ? b.fill : 'none';
+      o.stroke = typeof b.stroke === 'string' && b.stroke ? b.stroke : 'transparent';
+    }
     o.w = Math.max(ARCH_MIN_NODE_W, Math.min(ARCH_MAX_NODE_W, o.w));
     o.h = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, o.h));
     o.x = archClamp(o.x, 0, ARCH_GUIDE_VIEW.w - o.w);
@@ -1409,6 +4594,18 @@
   /** Pixels from a box edge — clicks within this distance snap to that edge (for anchored connectors). */
   var USER_LINE_SNAP_PX = 36;
 
+  /** Min half-width (px) for invisible stroke hit-testing along connector paths. */
+  var USER_LINE_HIT_STROKE_MIN = 12;
+
+  /** Max distance (SVG user units) from click to segment for double-click insert. */
+  var USER_LINE_INSERT_MAX_DIST = 14;
+
+  /** Min distance (px) from an insert point to existing segment endpoints — avoids duplicate vertices. */
+  var USER_LINE_INSERT_MIN_FROM_VERTEX = 6;
+
+  /** Interior bend drag: 45° snap from previous vertex when Shift held; Alt uses next vertex as origin. */
+  var ARCH_BEND_SNAP_RAD = Math.PI / 4;
+
   function archUserLineClosestPointOnSeg(px, py, x1, y1, x2, y2) {
     var dx = x2 - x1;
     var dy = y2 - y1;
@@ -1417,6 +4614,122 @@
     var x = x1 + t * dx;
     var y = y1 + t * dy;
     return { x: x, y: y, t: t, dist: Math.hypot(px - x, py - y) };
+  }
+
+  /** Freehand sketch paths: `points` only, no anchor endpoints. */
+  function archUserLineIsFreehandLine(ln) {
+    return !!(ln && ln.points && ln.points.length >= 2 && !ln.from && !ln.to);
+  }
+
+  /** Anchored two-click connectors (with optional bend vertex). */
+  function archUserLineIsConnector(ln) {
+    return !!(ln && ln.from && ln.to);
+  }
+
+  /** Normalize a stored point to `{ x, y }` (connector / paste). */
+  function archUserLinePointXY(pt) {
+    if (!pt) return { x: 0, y: 0 };
+    if (typeof pt.x === 'number' && typeof pt.y === 'number') return { x: pt.x, y: pt.y };
+    if (Array.isArray(pt) && pt.length >= 2) return { x: Number(pt[0]) || 0, y: Number(pt[1]) || 0 };
+    return { x: 0, y: 0 };
+  }
+
+  /**
+   * Snap (x,y) so the ray from (ox,oy) keeps length r but angle snaps to stepRad multiples.
+   * When disableSnap, returns the raw target.
+   */
+  function archSnapRadialFromOrigin(ox, oy, tx, ty, stepRad, disableSnap) {
+    var dx = tx - ox;
+    var dy = ty - oy;
+    var r = Math.hypot(dx, dy);
+    if (r < 0.5) return { x: ox, y: oy };
+    if (disableSnap) return { x: tx, y: ty };
+    var ang = Math.atan2(dy, dx);
+    var snapped = Math.round(ang / stepRad) * stepRad;
+    return { x: ox + r * Math.cos(snapped), y: oy + r * Math.sin(snapped) };
+  }
+
+  /** Keep first/last polyline vertices aligned with anchored endpoints (world space). */
+  function archUserLineConnectorSyncEndpoints(ln) {
+    if (!archUserLineIsConnector(ln) || !ln.points || ln.points.length < 2) return;
+    var p0 = archUserLinePointFromEndpoint(ln.from);
+    var pN = archUserLinePointFromEndpoint(ln.to);
+    if (!p0 || !pN) return;
+    ln.points[0] = { x: p0.x, y: p0.y };
+    ln.points[ln.points.length - 1] = { x: pN.x, y: pN.y };
+  }
+
+  /** Double-click: insert a vertex on the nearest segment; returns new index or -1. */
+  function archUserLineInsertBendNear(ln, wx, wy) {
+    if (!archUserLineIsConnector(ln)) return -1;
+    archUserLineConnectorSyncEndpoints(ln);
+    var pts = ln.points;
+    if (!pts || pts.length < 2) return -1;
+    var bestI = -1;
+    var bestD = Infinity;
+    var bestProj = null;
+    for (var i = 0; i < pts.length - 1; i++) {
+      var a = archUserLinePointXY(pts[i]);
+      var b = archUserLinePointXY(pts[i + 1]);
+      var c = archUserLineClosestPointOnSeg(wx, wy, a.x, a.y, b.x, b.y);
+      if (c.dist < bestD) {
+        bestD = c.dist;
+        bestI = i;
+        bestProj = { x: c.x, y: c.y };
+      }
+    }
+    if (bestI < 0 || !bestProj || bestD > USER_LINE_INSERT_MAX_DIST) return -1;
+    var aIns = archUserLinePointXY(pts[bestI]);
+    var bIns = archUserLinePointXY(pts[bestI + 1]);
+    var dFromA = Math.hypot(bestProj.x - aIns.x, bestProj.y - aIns.y);
+    var dFromB = Math.hypot(bestProj.x - bIns.x, bestProj.y - bIns.y);
+    if (dFromA < USER_LINE_INSERT_MIN_FROM_VERTEX || dFromB < USER_LINE_INSERT_MIN_FROM_VERTEX) return -1;
+    pts.splice(bestI + 1, 0, { x: bestProj.x, y: bestProj.y });
+    return bestI + 1;
+  }
+
+  /** Inserts a bend on `ln` at clientX/clientY; updates selection handle and persists. Returns true if inserted. */
+  function archUserLineTryInsertBendAtClient(ln, clientX, clientY) {
+    if (!ln || !archUserLineIsConnector(ln) || !archDrag.svg) return false;
+    var p = svgClientToSvg(archDrag.svg, clientX, clientY);
+    var ni = archUserLineInsertBendNear(ln, p.x, p.y);
+    if (ni < 0) {
+      archUserLineRender();
+      return false;
+    }
+    if (ln.sourcesDividerLocal) delete ln.sourcesDividerLocal;
+    userLines.selectedHandleIdx = ni;
+    archUserLinePersist();
+    archUndoMaybePushSnapshot();
+    archUserLineRender();
+    if (liveRegion) {
+      liveRegion.textContent = 'Corner point added — drag to bend (hold Shift for 45° snaps).';
+    }
+    return true;
+  }
+
+  function archUserLinePathDFromLine(ln) {
+    if (archUserLineIsFreehandLine(ln)) {
+      var pts = ln.points;
+      var d = 'M ' + pts[0][0] + ' ' + pts[0][1];
+      for (var pi = 1; pi < pts.length; pi++) {
+        d += ' L ' + pts[pi][0] + ' ' + pts[pi][1];
+      }
+      return { d: d, kind: 'freehand' };
+    }
+    if (archUserLineIsConnector(ln)) {
+      archUserLineConnectorSyncEndpoints(ln);
+      var pp = ln.points;
+      if (!pp || pp.length < 2) return null;
+      var p0 = archUserLinePointXY(pp[0]);
+      var d2 = 'M ' + p0.x + ' ' + p0.y;
+      for (var pj = 1; pj < pp.length; pj++) {
+        var pjxy = archUserLinePointXY(pp[pj]);
+        d2 += ' L ' + pjxy.x + ' ' + pjxy.y;
+      }
+      return { d: d2, kind: 'connector' };
+    }
+    return null;
   }
 
   function archUserLineClosestOnWorldRectBorder(wr, px, py) {
@@ -1563,11 +4876,77 @@
     return null;
   }
 
+  /**
+   * Straight connectors only: `none` | `end` | `both`. Polylines return null.
+   * Legacy lines without `lineArrows` infer from `bidirectional`.
+   */
+  function archUserLineGetLineArrows(ln) {
+    if (!ln) return 'end';
+    if (archUserLineIsFreehandLine(ln)) return null;
+    var la = ln.lineArrows;
+    if (la === 'none' || la === 'end' || la === 'both') return la;
+    return ln.bidirectional ? 'both' : 'end';
+  }
+
+  function archSourcesDividerLocalPreserveInto(fromLn, toLn) {
+    if (!fromLn || !toLn || !fromLn.sourcesDividerLocal || typeof fromLn.sourcesDividerLocal !== 'object') return;
+    var loc = fromLn.sourcesDividerLocal;
+    toLn.sourcesDividerLocal = {
+      x1: Number(loc.x1),
+      x2: Number(loc.x2),
+      y: Number(loc.y),
+    };
+  }
+
   function archUserLineMigrateLegacy(ln) {
     if (!ln) return ln;
+    if (ln.points && Array.isArray(ln.points) && ln.points.length >= 2 && !ln.from && !ln.to) {
+      var poly = Object.assign({}, ln);
+      poly.points = ln.points.map(function (pt) {
+        return [Number(pt && pt[0]) || 0, Number(pt && pt[1]) || 0];
+      });
+      if (!poly.dashStyle) poly.dashStyle = 'solid';
+      delete poly.d;
+      return poly;
+    }
     if (ln.from && ln.to) {
       var c = Object.assign({}, ln);
       delete c.d;
+      delete c.bend;
+      if (!c.dashStyle) c.dashStyle = 'solid';
+      if (c.lineArrows !== 'none' && c.lineArrows !== 'end' && c.lineArrows !== 'both') {
+        c.lineArrows = c.bidirectional ? 'both' : 'end';
+      }
+      c.bidirectional = c.lineArrows === 'both';
+      var a = archUserLinePointFromEndpoint(c.from);
+      var b = archUserLinePointFromEndpoint(c.to);
+      if (c.points && Array.isArray(c.points) && c.points.length >= 2) {
+        c.points = c.points.map(archUserLinePointXY);
+        archUserLineConnectorSyncEndpoints(c);
+        if (c.points.length > 2) {
+          delete c.sourcesDividerLocal;
+        } else {
+          archSourcesDividerLocalPreserveInto(ln, c);
+        }
+        return c;
+      }
+      if (a && b) {
+        if (ln.bend && typeof ln.bend.x === 'number' && typeof ln.bend.y === 'number') {
+          c.points = [{ x: a.x, y: a.y }, { x: ln.bend.x, y: ln.bend.y }, { x: b.x, y: b.y }];
+        } else {
+          c.points = [{ x: a.x, y: a.y }, { x: b.x, y: b.y }];
+        }
+      } else {
+        c.points = [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ];
+      }
+      if (c.points.length > 2) {
+        delete c.sourcesDividerLocal;
+      } else {
+        archSourcesDividerLocalPreserveInto(ln, c);
+      }
       return c;
     }
     var out = Object.assign({}, ln);
@@ -1581,6 +4960,24 @@
     if (!out.from) out.from = { kind: 'free', x: 0, y: 0 };
     if (!out.to) out.to = { kind: 'free', x: 0, y: 0 };
     delete out.d;
+    if (!out.dashStyle) out.dashStyle = 'solid';
+    if (out.lineArrows !== 'none' && out.lineArrows !== 'end' && out.lineArrows !== 'both') {
+      out.lineArrows = out.bidirectional ? 'both' : 'end';
+    }
+    out.bidirectional = out.lineArrows === 'both';
+    delete out.bend;
+    if (out.from && out.to) {
+      var ax = archUserLinePointFromEndpoint(out.from);
+      var bx = archUserLinePointFromEndpoint(out.to);
+      if (ax && bx) {
+        out.points = [{ x: ax.x, y: ax.y }, { x: bx.x, y: bx.y }];
+      } else {
+        out.points = [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ];
+      }
+    }
     return out;
   }
 
@@ -1888,9 +5285,20 @@
     window.removeEventListener('pointermove', archDragPointerMoveWin, true);
     window.removeEventListener('pointerup', archDragPointerUpWin, true);
     window.removeEventListener('pointercancel', archDragPointerUpWin, true);
+    var endedKey = archDrag.active;
     archDrag.active = null;
     archDrag.start = null;
     archDragSave();
+    archUndoMaybePushSnapshot();
+    if (archIsEditMode() && archSelection && endedKey) {
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
+      archSelection.setSingle('node-' + endedKey);
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
+      archSelectionRefreshDom();
+    }
   }
 
   function archResizePointerDown(e) {
@@ -1907,10 +5315,16 @@
     }
     var which = g.id.slice(5);
     if (!NODE_LAYOUT[which]) return;
+    var handle = e.target.getAttribute('data-arch-node-handle');
+    if (!handle) return;
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
-    var eff = archNodeEffectiveWH(which);
     archResize.active = which;
-    archResize.start = { mx: p.x, my: p.y, ow: eff.w, oh: eff.h };
+    archResize.start = {
+      handle: handle,
+      mx: p.x,
+      my: p.y,
+      world0: archDragWorldRect(which),
+    };
     if (!archDrag.pos[which]) archDrag.pos[which] = { x: 0, y: 0 };
     if (archViewport) archViewport.classList.add('arch-resizing');
     window.addEventListener('pointermove', archResizePointerMoveWin, true);
@@ -1922,21 +5336,96 @@
     if (!archResize.active || !archResize.start) return;
     e.preventDefault();
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
-    var dx = p.x - archResize.start.mx;
-    var dy = p.y - archResize.start.my;
+    var s = archResize.start;
+    var dx = p.x - s.mx;
+    var dy = p.y - s.my;
     var k = archResize.active;
-    var newW = archResize.start.ow + dx;
-    var newH = archResize.start.oh + dy;
-    newW = Math.max(ARCH_MIN_NODE_W, Math.min(ARCH_MAX_NODE_W, newW));
-    newH = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, newH));
+    var L = NODE_LAYOUT[k];
+    if (!L || !s.world0) return;
+    var h = s.handle || 'se';
+    var wr0 = s.world0;
+    var wl = wr0.left;
+    var wt = wr0.top;
+    var ww = wr0.w;
+    var wh = wr0.h;
+    var nwl;
+    var nwt;
+    var nww;
+    var nwh;
+    switch (h) {
+      case 'se':
+        nwl = wl;
+        nwt = wt;
+        nww = ww + dx;
+        nwh = wh + dy;
+        break;
+      case 'sw':
+        nwl = wl + dx;
+        nwt = wt;
+        nww = ww - dx;
+        nwh = wh + dy;
+        break;
+      case 'ne':
+        nwl = wl;
+        nwt = wt + dy;
+        nww = ww + dx;
+        nwh = wh - dy;
+        break;
+      case 'nw':
+        nwl = wl + dx;
+        nwt = wt + dy;
+        nww = ww - dx;
+        nwh = wh - dy;
+        break;
+      case 'n':
+        nwl = wl;
+        nwt = wt + dy;
+        nww = ww;
+        nwh = wh - dy;
+        break;
+      case 's':
+        nwl = wl;
+        nwt = wt;
+        nww = ww;
+        nwh = wh + dy;
+        break;
+      case 'w':
+        nwl = wl + dx;
+        nwt = wt;
+        nww = ww - dx;
+        nwh = wh;
+        break;
+      case 'e':
+        nwl = wl;
+        nwt = wt;
+        nww = ww + dx;
+        nwh = wh;
+        break;
+      default:
+        nwl = wl;
+        nwt = wt;
+        nww = ww + dx;
+        nwh = wh + dy;
+    }
+    nww = Math.max(ARCH_MIN_NODE_W, Math.min(ARCH_MAX_NODE_W, nww));
+    nwh = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, nwh));
+    nwl = archClamp(nwl, 0, ARCH_GUIDE_VIEW.w - nww);
+    nwt = archClamp(nwt, 0, ARCH_GUIDE_VIEW.h - nwh);
+    if (nwl + nww > ARCH_GUIDE_VIEW.w) nww = ARCH_GUIDE_VIEW.w - nwl;
+    if (nwt + nwh > ARCH_GUIDE_VIEW.h) nwh = ARCH_GUIDE_VIEW.h - nwt;
+    nww = Math.max(ARCH_MIN_NODE_W, nww);
+    nwh = Math.max(ARCH_MIN_NODE_H, nwh);
     if (!archDrag.pos[k]) archDrag.pos[k] = { x: 0, y: 0 };
-    archDrag.pos[k].w = newW;
-    archDrag.pos[k].h = newH;
+    archDrag.pos[k].x = nwl - L.base[0] - L.rect[0];
+    archDrag.pos[k].y = nwt - L.base[1] - L.rect[1];
+    archDrag.pos[k].w = nww;
+    archDrag.pos[k].h = nwh;
     archDragApply();
   }
 
   function archResizePointerUpWin() {
     if (!archResize.active) return;
+    var endedKey = archResize.active;
     archResize.active = null;
     archResize.start = null;
     if (archViewport) archViewport.classList.remove('arch-resizing');
@@ -1944,6 +5433,16 @@
     window.removeEventListener('pointerup', archResizePointerUpWin, true);
     window.removeEventListener('pointercancel', archResizePointerUpWin, true);
     archDragSave();
+    archUndoMaybePushSnapshot();
+    if (archIsEditMode() && archSelection && endedKey) {
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
+      archSelection.setSingle('node-' + endedKey);
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLineSyncPropsHud();
+      archSelectionRefreshDom();
+    }
   }
 
   function archDragPointerDown(e) {
@@ -1996,6 +5495,80 @@
   var SOURCES_SHELL_R = 22 + 118;
   var SOURCES_SHELL_T = 122;
   var SOURCES_SHELL_B = 122 + 200;
+
+  /** Root SVG coords → #node-sources local coords (same space as legacy divider x1/x2/y). */
+  function archSourcesWorldToLocal(pt) {
+    var src = archDrag.pos.sources || { x: 0, y: 0 };
+    var bx = NODE_LAYOUT.sources.base[0] + src.x;
+    var by = NODE_LAYOUT.sources.base[1] + src.y;
+    return { x: pt.x - bx, y: pt.y - by };
+  }
+
+  /** #node-sources local coords → root SVG (inverse of archSourcesWorldToLocal). */
+  function archSourcesLocalToWorld(lx, ly) {
+    var src = archDrag.pos.sources || { x: 0, y: 0 };
+    var bx = NODE_LAYOUT.sources.base[0] + src.x;
+    var by = NODE_LAYOUT.sources.base[1] + src.y;
+    return { x: lx + bx, y: ly + by };
+  }
+
+  /** Legacy `sourcesDividers` entries become normal connectors; keeps `sourcesDividerLocal` so lines track the Sources tile. */
+  function archSourcesDividersMigrateToUserLines() {
+    if (!archSourcesDividers || archSourcesDividers.length === 0) return;
+    var taken = {};
+    userLines.lines.forEach(function (ln) {
+      if (ln && typeof ln.id === 'string' && ln.id.indexOf('ul-mig-') === 0) {
+        taken[ln.id] = true;
+      }
+    });
+    archSourcesDividers.forEach(function (d) {
+      if (!d || !d.id) return;
+      var sid = 'ul-mig-' + String(d.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+      if (taken[sid]) return;
+      var w1 = archSourcesLocalToWorld(d.x1, d.y);
+      var w2 = archSourcesLocalToWorld(d.x2, d.y);
+      var sw = Number(d.strokeWidth);
+      var lineW = isNaN(sw) || sw <= 0 ? 1 : archClamp(Math.max(1, Math.round(sw * 2)), 1, 4);
+      userLines.lines.push({
+        id: sid,
+        sourcesDividerLocal: { x1: d.x1, x2: d.x2, y: d.y },
+        from: { kind: 'free', x: w1.x, y: w1.y },
+        to: { kind: 'free', x: w2.x, y: w2.y },
+        points: [{ x: w1.x, y: w1.y }, { x: w2.x, y: w2.y }],
+        stroke: typeof d.stroke === 'string' && d.stroke ? d.stroke : '#d1d5db',
+        strokeWidth: lineW,
+        lineArrows: 'none',
+        bidirectional: false,
+        dashStyle: 'solid',
+      });
+    });
+    archSourcesDividers = [];
+    var layer = qs('#arch-sources-seps-layer');
+    if (layer) {
+      while (layer.firstChild) layer.removeChild(layer.firstChild);
+    }
+  }
+
+  /** Recompute world endpoints for connectors still tied to legacy Sources-column geometry (when the Sources node moves). */
+  function archUserLineSyncSourcesDividerLocals() {
+    userLines.lines.forEach(function (ln) {
+      if (!ln || !ln.sourcesDividerLocal || typeof ln.sourcesDividerLocal !== 'object') return;
+      if (!archUserLineIsConnector(ln) || !ln.points || ln.points.length !== 2) {
+        delete ln.sourcesDividerLocal;
+        return;
+      }
+      var loc = ln.sourcesDividerLocal;
+      var x1 = Number(loc.x1);
+      var x2 = Number(loc.x2);
+      var y = Number(loc.y);
+      if (isNaN(x1) || isNaN(x2) || isNaN(y)) return;
+      var w1 = archSourcesLocalToWorld(x1, y);
+      var w2 = archSourcesLocalToWorld(x2, y);
+      ln.from = { kind: 'free', x: w1.x, y: w1.y };
+      ln.to = { kind: 'free', x: w2.x, y: w2.y };
+      archUserLineConnectorSyncEndpoints(ln);
+    });
+  }
 
   function archSourcesDividerClamp(d) {
     var x1 = Number(d.x1);
@@ -2058,147 +5631,6 @@
     try {
       localStorage.setItem(LS_SOURCES_DIVIDERS, JSON.stringify(archSourcesDividers));
     } catch (e) {}
-  }
-
-  function archSourcesDividersRenderSvg() {
-    var layer = qs('#arch-sources-seps-layer');
-    if (!layer) return;
-    while (layer.firstChild) layer.removeChild(layer.firstChild);
-    archSourcesDividers.forEach(function (d) {
-      var line = document.createElementNS(SVG_NS, 'line');
-      line.setAttribute('class', 'arch-sources-sep');
-      line.setAttribute('x1', String(d.x1));
-      line.setAttribute('y1', String(d.y));
-      line.setAttribute('x2', String(d.x2));
-      line.setAttribute('y2', String(d.y));
-      line.setAttribute('stroke', d.stroke || '#d1d5db');
-      line.setAttribute('stroke-width', String(d.strokeWidth != null ? d.strokeWidth : 0.75));
-      line.setAttribute('data-arch-sources-sep', d.id);
-      layer.appendChild(line);
-    });
-  }
-
-  function archSourcesDividersRefreshPanel() {
-    var host = qs('#archSourcesDividersList');
-    if (!host) return;
-    host.innerHTML = '';
-    archSourcesDividers.forEach(function (d, index) {
-      var row = document.createElement('div');
-      row.className = 'arch-sources-divider-row';
-      row.setAttribute('data-sep-index', String(index));
-
-      var title = document.createElement('span');
-      title.className = 'arch-sources-divider-row-title';
-      title.textContent = 'Line ' + (index + 1);
-
-      function addField(label, field, val) {
-        var lab = document.createElement('label');
-        lab.className = 'arch-hud-label arch-sources-divider-field';
-        var inp = document.createElement('input');
-        inp.type = 'number';
-        inp.step = '0.5';
-        inp.className = 'arch-sources-div-inp';
-        inp.setAttribute('data-field', field);
-        inp.value = String(val);
-        lab.appendChild(document.createTextNode(label + ' '));
-        lab.appendChild(inp);
-        row.appendChild(lab);
-      }
-
-      row.appendChild(title);
-      addField('Y', 'y', d.y);
-      addField('Left', 'x1', d.x1);
-      addField('Right', 'x2', d.x2);
-
-      var dup = document.createElement('button');
-      dup.type = 'button';
-      dup.className = 'dashboard-btn-outline arch-sources-div-dup';
-      dup.textContent = 'Duplicate';
-      dup.setAttribute('data-action', 'dup');
-
-      var del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'dashboard-btn-outline arch-sources-div-del';
-      del.textContent = 'Delete';
-      del.setAttribute('data-action', 'del');
-
-      row.appendChild(dup);
-      row.appendChild(del);
-      host.appendChild(row);
-    });
-  }
-
-  function archSourcesDividersOnFieldInput(e) {
-    var inp = e.target;
-    if (!inp || !inp.classList || !inp.classList.contains('arch-sources-div-inp')) return;
-    var row = inp.closest('.arch-sources-divider-row');
-    if (!row) return;
-    var index = parseInt(row.getAttribute('data-sep-index'), 10);
-    var field = inp.getAttribute('data-field');
-    if (!archSourcesDividers[index] || !field) return;
-    var v = parseFloat(inp.value);
-    if (isNaN(v)) return;
-    archSourcesDividers[index][field] = v;
-    archSourcesDividerClamp(archSourcesDividers[index]);
-    row.querySelector('[data-field="y"]').value = String(archSourcesDividers[index].y);
-    row.querySelector('[data-field="x1"]').value = String(archSourcesDividers[index].x1);
-    row.querySelector('[data-field="x2"]').value = String(archSourcesDividers[index].x2);
-    archSourcesDividersPersist();
-    archSourcesDividersRenderSvg();
-  }
-
-  function archSourcesDividersOnPanelClick(e) {
-    var btn = e.target.closest && e.target.closest('button[data-action]');
-    if (!btn || !e.currentTarget.contains(btn)) return;
-    var row = btn.closest('.arch-sources-divider-row');
-    if (!row) return;
-    var idx = parseInt(row.getAttribute('data-sep-index'), 10);
-    if (btn.getAttribute('data-action') === 'dup') {
-      e.preventDefault();
-      archSourcesDividersDuplicate(idx);
-    } else if (btn.getAttribute('data-action') === 'del') {
-      e.preventDefault();
-      archSourcesDividersDelete(idx);
-    }
-  }
-
-  function archSourcesDividersDuplicate(index) {
-    var src = archSourcesDividers[index];
-    if (!src) return;
-    var copy = archSourcesDividerClamp({
-      id: 'sep-' + Date.now(),
-      x1: src.x1,
-      x2: src.x2,
-      y: src.y + 6,
-      stroke: src.stroke,
-      strokeWidth: src.strokeWidth,
-    });
-    archSourcesDividers.splice(index + 1, 0, copy);
-    archSourcesDividersPersist();
-    archSourcesDividersRenderSvg();
-    archSourcesDividersRefreshPanel();
-  }
-
-  function archSourcesDividersDelete(index) {
-    archSourcesDividers.splice(index, 1);
-    archSourcesDividersPersist();
-    archSourcesDividersRenderSvg();
-    archSourcesDividersRefreshPanel();
-  }
-
-  function archSourcesDividersAdd() {
-    var d = archSourcesDividerClamp({
-      id: 'sep-' + Date.now(),
-      x1: 30,
-      x2: 132,
-      y: 180,
-      stroke: '#d1d5db',
-      strokeWidth: 0.75,
-    });
-    archSourcesDividers.push(d);
-    archSourcesDividersPersist();
-    archSourcesDividersRenderSvg();
-    archSourcesDividersRefreshPanel();
   }
 
   function archCustomBoxFind(id) {
@@ -2266,6 +5698,11 @@
       panel.hidden = true;
       if (sm) sm.disabled = true;
       if (lg) lg.disabled = true;
+      var cfClear = qs('#archCustomBoxNormalColorFields');
+      var lfClear = qs('#archCustomBoxNormalLabelFields');
+      if (cfClear) cfClear.hidden = false;
+      if (lfClear) lfClear.hidden = false;
+      archSelectionPanelSync();
       return;
     }
     panel.hidden = false;
@@ -2273,10 +5710,64 @@
     if (fillInp) fillInp.value = box.fill || '#e5e7eb';
     if (strokeInp) strokeInp.value = box.stroke || '#94a3b8';
     var b = archCustomBoxNormalize(box);
+    var isIcon = archCustomBoxIsIconAsset(b);
+    var colorFields = qs('#archCustomBoxNormalColorFields');
+    var labelFields = qs('#archCustomBoxNormalLabelFields');
+    if (colorFields) colorFields.hidden = !!isIcon;
+    if (labelFields) labelFields.hidden = !!isIcon;
     var labelReady = !!(archCustomBoxLabelActiveId && archCustomBoxLabelActiveId === archCustomBoxSelectedId);
     if (sm) sm.disabled = !labelReady || b.labelFontSize <= 4;
     if (lg) lg.disabled = !labelReady || b.labelFontSize >= 22;
     if (disp) disp.textContent = String(Math.round(b.labelFontSize * 10) / 10);
+    archSelectionPanelSync();
+  }
+
+  function archCustomBoxDuplicateSelected() {
+    if (!archCustomBoxSelectedId) return;
+    var src = archCustomBoxFind(archCustomBoxSelectedId);
+    if (!src) return;
+    var b = archCustomBoxNormalize(src);
+    var nb = archCustomBoxNormalize({
+      id: 'cbox-' + Date.now(),
+      x: b.x + 28,
+      y: b.y + 28,
+      w: b.w,
+      h: b.h,
+      name: (b.name || 'Box') + ' (copy)',
+      fill: b.fill,
+      stroke: b.stroke,
+      labelFontSize: b.labelFontSize,
+      kind: b.kind,
+      iconFile: b.iconFile,
+      logoFile: b.logoFile,
+      logoDescription: b.logoDescription,
+    });
+    nb.x = archClamp(nb.x, 0, ARCH_GUIDE_VIEW.w - nb.w);
+    nb.y = archClamp(nb.y, 0, ARCH_GUIDE_VIEW.h - nb.h);
+    archCustomBoxes.push(nb);
+    archCustomBoxSelectedId = nb.id;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    var domId = 'node-cbox-' + nb.id;
+    var curH = archHighlightsForState(idx).slice();
+    if (curH.indexOf(domId) < 0) curH.push(domId);
+    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    if (archHighlightArraysEqual(curH, defH)) {
+      delete archStateHighlightOverrides[idx];
+      delete archStateHighlightOverrides[String(idx)];
+    } else {
+      archStateHighlightOverrides[String(idx)] = curH;
+    }
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUndoMaybePushSnapshot();
+    archActivateCanvasAdjustAfterCustomBoxPlace();
+    if (liveRegion) liveRegion.textContent = 'Duplicated custom box.';
   }
 
   function archCustomBoxAdjustLabelSize(delta) {
@@ -2312,6 +5803,7 @@
     archStateHighlightOverridesPersist();
     archCustomBoxesRender();
     archUserLineRender();
+    archUndoMaybePushSnapshot();
   }
 
   function archCustomBoxesRender() {
@@ -2323,7 +5815,15 @@
       var b = archCustomBoxNormalize(raw);
       var g = document.createElementNS(SVG_NS, 'g');
       g.setAttribute('id', 'node-cbox-' + b.id);
-      g.setAttribute('class', 'arch-node arch-custom-box');
+      var isSpectrum = b.kind === 'spectrumIcon' && b.iconFile;
+      var isProductLogo = b.kind === 'productLogo' && b.logoFile;
+      var isIconAsset = isSpectrum || isProductLogo;
+      var gClass =
+        'arch-node arch-custom-box' +
+        (isIconAsset ? ' arch-custom-box--icon-asset' : '') +
+        (isSpectrum ? ' arch-custom-box--spectrum-icon' : '') +
+        (isProductLogo ? ' arch-custom-box--product-logo' : '');
+      g.setAttribute('class', gClass);
       if (archCustomBoxSelectedId === b.id) g.classList.add('arch-custom-box--selected');
       g.setAttribute('transform', 'translate(' + b.x + ',' + b.y + ')');
       var shell = document.createElementNS(SVG_NS, 'rect');
@@ -2332,19 +5832,31 @@
       shell.setAttribute('y', '0');
       shell.setAttribute('width', String(b.w));
       shell.setAttribute('height', String(b.h));
-      shell.setAttribute('rx', '6');
-      shell.setAttribute('fill', b.fill);
-      shell.setAttribute('stroke', b.stroke);
-      shell.setAttribute('stroke-width', '1.25');
-      var tx = document.createElementNS(SVG_NS, 'text');
-      tx.setAttribute('class', 'arch-node-label arch-custom-box-label');
-      if (archCustomBoxLabelActiveId === b.id) tx.classList.add('arch-custom-box-label--active');
-      tx.setAttribute('font-size', String(b.labelFontSize) + 'px');
-      tx.setAttribute('dominant-baseline', 'middle');
-      tx.setAttribute('x', String(b.w / 2));
-      tx.setAttribute('y', String(b.h / 2));
-      tx.setAttribute('text-anchor', 'middle');
-      tx.textContent = b.name || 'Box';
+      shell.setAttribute('rx', isIconAsset ? '4' : '6');
+      shell.setAttribute('fill', isIconAsset ? 'none' : b.fill);
+      shell.setAttribute('stroke', isIconAsset ? 'transparent' : b.stroke);
+      shell.setAttribute('stroke-width', isIconAsset ? '0' : '1.25');
+      var tx = null;
+      if (!isIconAsset) {
+        tx = document.createElementNS(SVG_NS, 'text');
+        tx.setAttribute('class', 'arch-node-label arch-custom-box-label');
+        if (archCustomBoxLabelActiveId === b.id) tx.classList.add('arch-custom-box-label--active');
+        tx.setAttribute('font-size', String(b.labelFontSize) + 'px');
+        tx.setAttribute('dominant-baseline', 'middle');
+        tx.setAttribute('x', String(b.w / 2));
+        tx.setAttribute('y', String(b.h / 2));
+        tx.setAttribute('text-anchor', 'middle');
+        tx.textContent = b.name || 'Box';
+      }
+      var svgTitle = document.createElementNS(SVG_NS, 'title');
+      var titleText = b.name || 'Box';
+      if (isSpectrum) titleText = b.name || b.iconFile;
+      else if (isProductLogo) {
+        titleText =
+          (b.logoDescription ? (b.name || '') + ' — ' + b.logoDescription : b.name || '') || b.logoFile;
+      }
+      svgTitle.textContent = titleText;
+      g.appendChild(svgTitle);
       var hs = ARCH_RESIZE_HANDLE;
       var hw = Math.max(0, (b.w - hs) / 2);
       var hh = Math.max(0, (b.h - hs) / 2);
@@ -2359,7 +5871,20 @@
         { k: 'e', x: b.w - hs, y: hh },
       ];
       g.appendChild(shell);
-      g.appendChild(tx);
+      if (isIconAsset) {
+        var imgEl = document.createElementNS(SVG_NS, 'image');
+        imgEl.setAttribute('class', 'arch-custom-box-spectrum-img');
+        var href = isSpectrum ? ARCH_SPECTRUM_ICON_PREFIX + b.iconFile : b.logoFile;
+        imgEl.setAttribute('href', href);
+        imgEl.setAttribute('x', '0');
+        imgEl.setAttribute('y', '0');
+        imgEl.setAttribute('width', String(b.w));
+        imgEl.setAttribute('height', String(b.h));
+        imgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        g.appendChild(imgEl);
+      } else {
+        g.appendChild(tx);
+      }
       handleSpecs.forEach(function (sp) {
         var hEl = document.createElementNS(SVG_NS, 'rect');
         hEl.setAttribute('class', 'arch-node-resize-handle arch-node-resize-handle--cbox');
@@ -2397,14 +5922,7 @@
       window.removeEventListener('pointermove', archCustomBoxDrawPointerMove, true);
       window.removeEventListener('pointerup', archCustomBoxDrawPointerUp, true);
     }
-    if (customBoxDrawMode) {
-      userLines.drawMode = false;
-      var lt = qs('#archUserLineDrawToggle');
-      if (lt) lt.checked = false;
-      archUserLineClearPending();
-      archUserLineRemoveDrawListeners();
-      if (archViewport) archViewport.classList.remove('arch-user-line-draw');
-    }
+    archUserLineSyncDrawModeFromEditor();
   }
 
   function archCustomBoxDrawPointerMove(e) {
@@ -2470,6 +5988,63 @@
     archUserLineRender();
   }
 
+  /** Preset custom boxes (Visio-like palette). Keys match data-arch-palette on buttons. */
+  var ARCH_PALETTE_PRESETS = {
+    process: { name: 'Process', w: 120, h: 56, fill: '#eff6ff', stroke: '#2563eb' },
+    datastore: { name: 'Data store', w: 100, h: 72, fill: '#ecfdf5', stroke: '#059669' },
+    external: { name: 'External system', w: 140, h: 48, fill: '#fef3c7', stroke: '#d97706' },
+    textnote: { name: 'Text note', w: 200, h: 40, fill: '#fffefb', stroke: '#c4c9d4' },
+  };
+
+  function archPaletteAddPreset(presetKey) {
+    if (!archIsEditMode() || !archDrag.svg) return;
+    var preset = ARCH_PALETTE_PRESETS[presetKey];
+    if (!preset) return;
+    var n = archCustomBoxes.length;
+    var x = 400 + (n % 6) * 32;
+    var y = 200 + (n % 5) * 26;
+    x = archClamp(x, 0, ARCH_GUIDE_VIEW.w - preset.w);
+    y = archClamp(y, 0, ARCH_GUIDE_VIEW.h - preset.h);
+    var nb = archCustomBoxNormalize({
+      id: 'cbox-' + Date.now(),
+      x: x,
+      y: y,
+      w: preset.w,
+      h: preset.h,
+      name: preset.name,
+      fill: preset.fill,
+      stroke: preset.stroke,
+    });
+    archCustomBoxes.push(nb);
+    archCustomBoxSelectedId = nb.id;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    if (archSelection) {
+      archSelection.clear();
+      archSelectionRefreshDom();
+    }
+    var domId = 'node-cbox-' + nb.id;
+    var curH = archHighlightsForState(idx).slice();
+    if (curH.indexOf(domId) < 0) curH.push(domId);
+    var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+    if (archHighlightArraysEqual(curH, defH)) {
+      delete archStateHighlightOverrides[idx];
+      delete archStateHighlightOverrides[String(idx)];
+    } else {
+      archStateHighlightOverrides[String(idx)] = curH;
+    }
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUndoMaybePushSnapshot();
+    archToolsFloatSetOpen(true);
+    if (liveRegion) liveRegion.textContent = 'Added ' + preset.name + ' shape.';
+  }
+
   function archCustomBoxDrawPointerDownCapture(e) {
     if (!customBoxDrawMode || !archDrag.svg) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -2510,6 +6085,7 @@
     window.removeEventListener('pointerup', archCustomBoxDragPointerUpWin, true);
     window.removeEventListener('pointercancel', archCustomBoxDragPointerUpWin, true);
     archCustomBoxesPersist();
+    archUndoMaybePushSnapshot();
   }
 
   function archCustomBoxDragPointerDown(e) {
@@ -2526,10 +6102,11 @@
 
     if (!archDrag.enabled) {
       userLines.selectedId = null;
-      archUserLineRender();
-      archUserLineSyncPropsHud();
+      userLines.selectedHandleIdx = null;
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = labelHit ? rawId : null;
+      archUserLineRender();
+      archUserLineSyncPropsHud();
       archCustomBoxesRender();
       e.stopPropagation();
       return;
@@ -2537,10 +6114,11 @@
 
     if (labelHit) {
       userLines.selectedId = null;
-      archUserLineRender();
-      archUserLineSyncPropsHud();
+      userLines.selectedHandleIdx = null;
       archCustomBoxSelectedId = rawId;
       archCustomBoxLabelActiveId = rawId;
+      archUserLineRender();
+      archUserLineSyncPropsHud();
       archCustomBoxesRender();
       e.preventDefault();
       e.stopPropagation();
@@ -2548,10 +6126,11 @@
     }
 
     userLines.selectedId = null;
-    archUserLineRender();
-    archUserLineSyncPropsHud();
+    userLines.selectedHandleIdx = null;
     archCustomBoxSelectedId = rawId;
     archCustomBoxLabelActiveId = null;
+    archUserLineRender();
+    archUserLineSyncPropsHud();
     e.preventDefault();
     e.stopPropagation();
     archCustomDrag.active = rawId;
@@ -2648,6 +6227,7 @@
     window.removeEventListener('pointerup', archCustomBoxResizePointerUpWin, true);
     window.removeEventListener('pointercancel', archCustomBoxResizePointerUpWin, true);
     archCustomBoxesPersist();
+    archUndoMaybePushSnapshot();
   }
 
   function archCustomBoxResizePointerDown(e, g) {
@@ -2682,13 +6262,13 @@
 
   function archMasterSerialize() {
     var payload = {
-      version: 8,
+      version: 9,
       savedAt: new Date().toISOString(),
       nodes: archDrag.pos,
       labels: { pos: archLabel.state.pos, content: archLabel.state.content },
       userLines: userLines.lines.map(archUserLineMigrateLegacy),
       stateHighlightOverrides: JSON.parse(JSON.stringify(archStateHighlightOverrides)),
-      sourcesDividers: JSON.parse(JSON.stringify(archSourcesDividers)),
+      sourcesDividers: [],
       customBoxes: JSON.parse(JSON.stringify(archCustomBoxes.map(archCustomBoxNormalize))),
     };
     if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.legacyToScene) {
@@ -2747,30 +6327,190 @@
     }
   }
 
+  function archUserLineHandlesRefresh() {
+    var hg = qs('#layer-user-line-handles');
+    if (!hg) return;
+    while (hg.firstChild) hg.removeChild(hg.firstChild);
+    if (!archIsEditMode()) return;
+    var ln = archUserLineGetSelected();
+    if (!ln || !archUserLineIsConnector(ln)) return;
+    archUserLineConnectorSyncEndpoints(ln);
+    var pp = ln.points;
+    if (!pp || pp.length < 2) return;
+    var lid = ln.id;
+    var n = pp.length;
+    if (userLines.selectedHandleIdx != null && (userLines.selectedHandleIdx < 0 || userLines.selectedHandleIdx >= n)) {
+      userLines.selectedHandleIdx = null;
+    }
+    var selIdx = userLines.selectedHandleIdx;
+    for (var hi = 0; hi < n; hi++) {
+      var xy = archUserLinePointXY(pp[hi]);
+      var role = hi === 0 ? 'from' : hi === n - 1 ? 'to' : 'bend';
+      var c = document.createElementNS(SVG_NS, 'circle');
+      c.setAttribute('cx', String(xy.x));
+      c.setAttribute('cy', String(xy.y));
+      c.setAttribute('r', '6');
+      c.setAttribute(
+        'class',
+        'arch-user-line-handle arch-user-line-handle--' +
+          role +
+          (selIdx != null && selIdx === hi ? ' is-active' : '')
+      );
+      c.setAttribute('data-arch-handle', role);
+      c.setAttribute('data-handle-index', String(hi));
+      c.setAttribute('data-user-line-id', lid);
+      c.setAttribute('pointer-events', 'all');
+      hg.appendChild(c);
+    }
+  }
+
   function archUserLineRender() {
     var g = qs('#layer-user-lines');
     if (!g) return;
     userLines.lines = userLines.lines.map(archUserLineMigrateLegacy);
     while (g.firstChild) g.removeChild(g.firstChild);
     userLines.lines.forEach(function (ln) {
-      var pt1 = archUserLinePointFromEndpoint(ln.from);
-      var pt2 = archUserLinePointFromEndpoint(ln.to);
-      if (!pt1 || !pt2) return;
-      var d = 'M ' + pt1.x + ' ' + pt1.y + ' L ' + pt2.x + ' ' + pt2.y;
+      var meta = archUserLinePathDFromLine(ln);
+      if (!meta) return;
+      var d = meta.d;
+      var isFree = meta.kind === 'freehand';
+      var isConn = meta.kind === 'connector';
       var p = document.createElementNS(SVG_NS, 'path');
       p.setAttribute('d', d);
       p.setAttribute('stroke', ln.stroke || '#308fff');
-      p.setAttribute('stroke-width', ln.strokeWidth != null ? String(ln.strokeWidth) : '2.2');
+      var baseW = ln.strokeWidth != null ? ln.strokeWidth : 2;
+      var sw = userLines.selectedId === ln.id ? baseW + 1 : baseW;
+      p.setAttribute('stroke-width', String(sw));
       p.setAttribute('fill', 'none');
+      p.setAttribute('stroke-linecap', 'round');
+      p.setAttribute('stroke-linejoin', 'round');
+      if (ln.dashStyle === 'dotted') {
+        p.setAttribute('stroke-dasharray', '5 4');
+      }
       p.setAttribute('data-user-line-id', ln.id);
       p.setAttribute(
         'class',
-        'arch-user-line' + (userLines.selectedId === ln.id ? ' arch-user-line--selected' : '')
+        'arch-user-line' +
+          (isFree ? ' arch-user-line--poly' : '') +
+          (isConn ? ' arch-user-line--connector' : '') +
+          (userLines.selectedId === ln.id ? ' arch-user-line--selected' : '')
       );
-      p.setAttribute('marker-end', 'url(#archUserArrowEnd)');
-      if (ln.bidirectional) p.setAttribute('marker-start', 'url(#archUserArrowStart)');
+      if (isConn) {
+        var la = archUserLineGetLineArrows(ln);
+        if (la === 'end' || la === 'both') {
+          p.setAttribute('marker-end', 'url(#archUserArrowEnd)');
+        }
+        if (la === 'both') {
+          p.setAttribute('marker-start', 'url(#archUserArrowStart)');
+        }
+      }
       g.appendChild(p);
+      var hit = document.createElementNS(SVG_NS, 'path');
+      hit.setAttribute('d', d);
+      hit.setAttribute('stroke', 'transparent');
+      hit.setAttribute('stroke-width', String(Math.max(USER_LINE_HIT_STROKE_MIN, Number(sw) + 8)));
+      hit.setAttribute('fill', 'none');
+      hit.setAttribute('pointer-events', 'stroke');
+      hit.setAttribute('data-user-line-id', ln.id);
+      hit.setAttribute('class', 'arch-user-line-hit');
+      g.appendChild(hit);
     });
+    archUserLineHandlesRefresh();
+  }
+
+  function archUserLineFindById(id) {
+    for (var i = 0; i < userLines.lines.length; i++) {
+      if (userLines.lines[i].id === id) return userLines.lines[i];
+    }
+    return null;
+  }
+
+  function archUserLineHandlePointerMove(e) {
+    if (!archUserLineEditDrag.active || !archDrag.svg) return;
+    var ln = archUserLineFindById(archUserLineEditDrag.lineId);
+    if (!ln || !archUserLineIsConnector(ln)) return;
+    e.preventDefault();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var tgt = document.elementFromPoint(e.clientX, e.clientY);
+    var idx = archUserLineEditDrag.handleIndex;
+    if (idx < 0) return;
+    archUserLineConnectorSyncEndpoints(ln);
+    var pts = ln.points;
+    if (!pts || pts.length < 2) return;
+    var last = pts.length - 1;
+    if (idx === 0) {
+      ln.from = archUserLineSnapEndpoint(p.x, p.y, tgt);
+      archUserLineConnectorSyncEndpoints(ln);
+    } else if (idx === last) {
+      ln.to = archUserLineSnapEndpoint(p.x, p.y, tgt);
+      archUserLineConnectorSyncEndpoints(ln);
+    } else {
+      var prev = archUserLinePointXY(pts[idx - 1]);
+      var next = archUserLinePointXY(pts[idx + 1]);
+      var useNext = !!e.altKey;
+      var origin = useNext ? next : prev;
+      var disableSnap = !e.shiftKey;
+      var nb = archSnapRadialFromOrigin(origin.x, origin.y, p.x, p.y, ARCH_BEND_SNAP_RAD, disableSnap);
+      pts[idx] = { x: nb.x, y: nb.y };
+    }
+    archUserLineRender();
+  }
+
+  function archUserLineHandlePointerUp(e) {
+    if (!archUserLineEditDrag.active) return;
+    var doneLineId = archUserLineEditDrag.lineId;
+    archUserLineEditDrag.active = false;
+    window.removeEventListener('pointermove', archUserLineHandlePointerMove, true);
+    window.removeEventListener('pointerup', archUserLineHandlePointerUp, true);
+    window.removeEventListener('pointercancel', archUserLineHandlePointerUp, true);
+    var el = archUserLineEditDrag.el;
+    var pid = archUserLineEditDrag.pointerId;
+    archUserLineEditDrag.el = null;
+    archUserLineEditDrag.pointerId = null;
+    archUserLineEditDrag.handleIndex = -1;
+    archUserLineEditDrag.lineId = '';
+    var lnDone = doneLineId ? archUserLineFindById(doneLineId) : null;
+    if (lnDone && lnDone.sourcesDividerLocal) {
+      delete lnDone.sourcesDividerLocal;
+    }
+    if (el && pid != null && el.releasePointerCapture) {
+      try {
+        el.releasePointerCapture(pid);
+      } catch (err) {}
+    }
+    archUserLinePersist();
+    archUndoMaybePushSnapshot();
+    archUserLineRender();
+  }
+
+  function archUserLineHandlePointerDown(e) {
+    if (!archIsEditMode()) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('arch-user-line-handle')) return;
+    var hix = t.getAttribute('data-handle-index');
+    var lid = t.getAttribute('data-user-line-id');
+    if (hix == null || !lid) return;
+    var hi = parseInt(hix, 10);
+    if (isNaN(hi)) return;
+    var ln = archUserLineFindById(lid);
+    if (!ln || !archUserLineIsConnector(ln)) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    userLines.selectedHandleIdx = hi;
+    archUserLineEditDrag.active = true;
+    archUserLineEditDrag.handleIndex = hi;
+    archUserLineEditDrag.lineId = lid;
+    archUserLineEditDrag.pointerId = e.pointerId;
+    archUserLineEditDrag.el = t;
+    if (t.setPointerCapture) {
+      try {
+        t.setPointerCapture(e.pointerId);
+      } catch (err2) {}
+    }
+    window.addEventListener('pointermove', archUserLineHandlePointerMove, true);
+    window.addEventListener('pointerup', archUserLineHandlePointerUp, true);
+    window.addEventListener('pointercancel', archUserLineHandlePointerUp, true);
   }
 
   function archUserLineGetSelected() {
@@ -2781,31 +6521,14 @@
     return null;
   }
 
-  function archUserLineStrokeOptionsHtml() {
-    return (
-      '<option value="#308fff">Ingress (blue)</option>' +
-      '<option value="#7d8a9e">Intra (gray)</option>' +
-      '<option value="#e34850">Egress (red)</option>' +
-      '<option value="#111827">Dark</option>' +
-      '<option value="#059669">Green</option>' +
-      '<option value="#d97706">Amber</option>' +
-      '<option value="#7c3aed">Violet</option>'
-    );
-  }
-
   function archUserLineSyncPropsHud() {
-    var panel = qs('#archUserLineProps');
     var sel = archUserLineGetSelected();
-    if (!panel) return;
-    if (!sel) {
-      panel.hidden = true;
-      return;
+    archLineFloatUpdateVisibility();
+    if (sel) {
+      archEditorSetPanel('sources');
+      archLineFloatSyncFromLine(sel);
     }
-    panel.hidden = false;
-    var colorSel = qs('#archUserLineColorSel');
-    if (colorSel) colorSel.value = sel.stroke || '#308fff';
-    var bi = qs('#archUserLineBidir');
-    if (bi) bi.checked = !!sel.bidirectional;
+    archEditorApplyModesForCurrentSelection();
   }
 
   function archUserLineRemoveDrawListeners() {
@@ -2826,6 +6549,13 @@
       pv.setAttribute('y1', p1.y);
       pv.setAttribute('x2', p2.x);
       pv.setAttribute('y2', p2.y);
+      pv.setAttribute('stroke', archLineFloatGetHex());
+      pv.setAttribute('stroke-width', String(archLineFloatGetStrokeW()));
+      if (archLineFloatGetTool() === 'dotted') {
+        pv.setAttribute('stroke-dasharray', '5 4');
+      } else {
+        pv.removeAttribute('stroke-dasharray');
+      }
       pv.setAttribute('opacity', '0.85');
     }
   }
@@ -2840,29 +6570,209 @@
   function archUserLineClearPending() {
     userLines.pendingStart = null;
     var pv = qs('#archUserLinePreview');
-    if (pv) pv.setAttribute('opacity', '0');
+    if (pv) {
+      pv.setAttribute('opacity', '0');
+      pv.removeAttribute('stroke-dasharray');
+    }
     if (archViewport) archViewport.classList.remove('arch-user-line-draw-pending');
   }
 
+  /** Deep-clone a connector endpoint and offset free points (for paste). */
+  function archUserLineEndpointPasteOffset(ep, dx, dy) {
+    if (!ep) return ep;
+    var o = JSON.parse(JSON.stringify(ep));
+    if (o.kind === 'free') {
+      o.x = (Number(o.x) || 0) + dx;
+      o.y = (Number(o.y) || 0) + dy;
+    }
+    return o;
+  }
+
+  function archDiagramCopySelection() {
+    if (!archIsEditMode()) return;
+    if (archCustomBoxSelectedId) {
+      var box = archCustomBoxFind(archCustomBoxSelectedId);
+      if (!box) return;
+      var b = archCustomBoxNormalize(box);
+      archDiagramClipboard = { kind: 'cbox', box: JSON.parse(JSON.stringify(b)) };
+      delete archDiagramClipboard.box.id;
+      if (liveRegion) liveRegion.textContent = 'Copied shape — Ctrl+V or ⌘V to paste.';
+      return;
+    }
+    if (userLines.selectedId) {
+      var ln = archUserLineGetSelected();
+      if (!ln) return;
+      archDiagramClipboard = { kind: 'line', line: JSON.parse(JSON.stringify(ln)) };
+      delete archDiagramClipboard.line.id;
+      if (liveRegion) liveRegion.textContent = 'Copied connector — Ctrl+V or ⌘V to paste.';
+      return;
+    }
+    if (liveRegion) liveRegion.textContent = 'Select a custom shape or connector to copy.';
+  }
+
+  function archDiagramPasteClipboard() {
+    if (!archIsEditMode()) return;
+    if (!archDiagramClipboard) {
+      if (liveRegion) liveRegion.textContent = 'Nothing to paste — copy a custom shape or connector first.';
+      return;
+    }
+    if (archDiagramClipboard.kind === 'cbox') {
+      var raw = archDiagramClipboard.box;
+      var b = archCustomBoxNormalize(raw);
+      var nb = archCustomBoxNormalize({
+        id: 'cbox-' + Date.now(),
+        x: b.x + 28,
+        y: b.y + 28,
+        w: b.w,
+        h: b.h,
+        name: (b.name || 'Box') + ' (copy)',
+        fill: b.fill,
+        stroke: b.stroke,
+        labelFontSize: b.labelFontSize,
+        kind: b.kind,
+        iconFile: b.iconFile,
+        logoFile: b.logoFile,
+        logoDescription: b.logoDescription,
+      });
+      nb.x = archClamp(nb.x, 0, ARCH_GUIDE_VIEW.w - nb.w);
+      nb.y = archClamp(nb.y, 0, ARCH_GUIDE_VIEW.h - nb.h);
+      archCustomBoxes.push(nb);
+      archCustomBoxSelectedId = nb.id;
+      archCustomBoxLabelActiveId = null;
+      userLines.selectedId = null;
+      userLines.selectedHandleIdx = null;
+      if (archSelection) archSelection.clear();
+      var domId = 'node-cbox-' + nb.id;
+      var curH = archHighlightsForState(idx).slice();
+      if (curH.indexOf(domId) < 0) curH.push(domId);
+      var defH = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+      if (archHighlightArraysEqual(curH, defH)) {
+        delete archStateHighlightOverrides[idx];
+        delete archStateHighlightOverrides[String(idx)];
+      } else {
+        archStateHighlightOverrides[String(idx)] = curH;
+      }
+      archStateHighlightOverridesPersist();
+      archCustomBoxesPersist();
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUndoMaybePushSnapshot();
+      archActivateCanvasAdjustAfterCustomBoxPlace();
+      if (liveRegion) liveRegion.textContent = 'Pasted shape.';
+      return;
+    }
+    if (archDiagramClipboard.kind === 'line') {
+      var L = archDiagramClipboard.line;
+      var dx = 20;
+      var dy = 20;
+      var id = 'ul-' + Date.now();
+      if (L.points && Array.isArray(L.points) && L.points.length >= 2 && !L.from && !L.to) {
+        var pts = L.points.map(function (pt) {
+          return [(Number(pt && pt[0]) || 0) + dx, (Number(pt && pt[1]) || 0) + dy];
+        });
+        userLines.lines.push({
+          id: id,
+          points: pts,
+          stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
+          strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2,
+          dashStyle: L.dashStyle === 'dotted' ? 'dotted' : 'solid',
+          bidirectional: false,
+        });
+      } else {
+        var lar =
+          L.lineArrows === 'none' || L.lineArrows === 'end' || L.lineArrows === 'both'
+            ? L.lineArrows
+            : L.bidirectional
+              ? 'both'
+              : 'end';
+        var fEp = archUserLineEndpointPasteOffset(L.from, dx, dy);
+        var tEp = archUserLineEndpointPasteOffset(L.to, dx, dy);
+        var pA = archUserLinePointFromEndpoint(fEp);
+        var pB = archUserLinePointFromEndpoint(tEp);
+        var ptsPaste = null;
+        if (L.points && Array.isArray(L.points) && L.points.length >= 2 && L.from && L.to) {
+          ptsPaste = L.points.map(function (pt) {
+            var o = archUserLinePointXY(pt);
+            return { x: o.x + dx, y: o.y + dy };
+          });
+        } else if (L.bend && typeof L.bend.x === 'number' && typeof L.bend.y === 'number' && pA && pB) {
+          ptsPaste = [
+            { x: pA.x, y: pA.y },
+            { x: L.bend.x + dx, y: L.bend.y + dy },
+            { x: pB.x, y: pB.y },
+          ];
+        } else if (pA && pB) {
+          ptsPaste = [{ x: pA.x, y: pA.y }, { x: pB.x, y: pB.y }];
+        } else {
+          ptsPaste = [
+            { x: 0, y: 0 },
+            { x: 0, y: 0 },
+          ];
+        }
+        userLines.lines.push({
+          id: id,
+          from: fEp,
+          to: tEp,
+          points: ptsPaste,
+          stroke: typeof L.stroke === 'string' && L.stroke ? L.stroke : '#308fff',
+          strokeWidth: typeof L.strokeWidth === 'number' && !isNaN(L.strokeWidth) ? L.strokeWidth : 2,
+          lineArrows: lar,
+          bidirectional: lar === 'both',
+          dashStyle: L.dashStyle === 'dotted' ? 'dotted' : 'solid',
+        });
+      }
+      userLines.selectedId = id;
+      userLines.selectedHandleIdx = null;
+      archCustomBoxSelectedId = null;
+      archCustomBoxLabelActiveId = null;
+      if (archSelection) archSelection.clear();
+      archCustomBoxesRender();
+      archUserLineRender();
+      archUserLinePersist();
+      archUserLineSyncPropsHud();
+      archSelectionRefreshDom();
+      archUndoMaybePushSnapshot();
+      if (liveRegion) liveRegion.textContent = 'Pasted connector.';
+    }
+  }
+
   function archUserLineAdd(ep1, ep2) {
-    var preset = qs('#archUserLineStrokePreset');
-    var stroke = (preset && preset.value) || '#308fff';
+    var tool = archLineFloatGetTool();
+    var dashStyle = tool === 'dotted' ? 'dotted' : 'solid';
+    var lineArrows = 'end';
+    if (tool === 'doubleArrow') lineArrows = 'both';
+    else if (tool === 'plain') lineArrows = 'none';
+    else if (tool === 'arrow' || tool === 'dotted') lineArrows = 'end';
     var id = 'ul-' + Date.now();
+    var wp1 = archUserLinePointFromEndpoint(ep1);
+    var wp2 = archUserLinePointFromEndpoint(ep2);
+    var ptsNew =
+      wp1 && wp2
+        ? [{ x: wp1.x, y: wp1.y }, { x: wp2.x, y: wp2.y }]
+        : [
+            { x: 0, y: 0 },
+            { x: 0, y: 0 },
+          ];
     userLines.lines.push({
       id: id,
       from: ep1,
       to: ep2,
-      stroke: stroke,
-      strokeWidth: 2.2,
-      bidirectional: false,
+      points: ptsNew,
+      stroke: archLineFloatGetHex(),
+      strokeWidth: archLineFloatGetStrokeW(),
+      lineArrows: lineArrows,
+      bidirectional: lineArrows === 'both',
+      dashStyle: dashStyle,
     });
     userLines.selectedId = id;
+    userLines.selectedHandleIdx = null;
     archCustomBoxSelectedId = null;
     archCustomBoxLabelActiveId = null;
     archCustomBoxesRender();
     archUserLineRender();
     archUserLinePersist();
     archUserLineSyncPropsHud();
+    archUndoMaybePushSnapshot();
   }
 
   function archUserLineDeleteSelected() {
@@ -2871,17 +6781,25 @@
       return x.id !== userLines.selectedId;
     });
     userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
     archUserLineRender();
     archUserLinePersist();
     archUserLineSyncPropsHud();
+    archUndoMaybePushSnapshot();
   }
 
   function archUserLineOnPointerDown(e) {
     if (customBoxDrawMode) return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
+    var lineHit =
+      e.target &&
+      e.target.closest &&
+      e.target.closest('.arch-user-line, .arch-user-line-hit');
     if (!userLines.drawMode) {
-      if (e.target && e.target.classList && e.target.classList.contains('arch-user-line')) {
-        userLines.selectedId = e.target.getAttribute('data-user-line-id');
+      if (lineHit) {
+        var lidPick = lineHit.getAttribute('data-user-line-id');
+        userLines.selectedHandleIdx = null;
+        userLines.selectedId = lidPick;
         archCustomBoxSelectedId = null;
         archCustomBoxLabelActiveId = null;
         archCustomBoxesRender();
@@ -2893,19 +6811,34 @@
     }
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
-    if (e.target && e.target.classList && e.target.classList.contains('arch-user-line')) {
-      userLines.selectedId = e.target.getAttribute('data-user-line-id');
+    var floatTool = archLineFloatGetTool();
+    if (floatTool === 'junction' && !lineHit) {
+      return;
+    }
+    if (lineHit) {
+      var lidPickDm = lineHit.getAttribute('data-user-line-id');
+      userLines.selectedHandleIdx = null;
+      userLines.selectedId = lidPickDm;
       archCustomBoxSelectedId = null;
       archCustomBoxLabelActiveId = null;
       archCustomBoxesRender();
       archUserLineRender();
       archUserLineSyncPropsHud();
+      if (floatTool === 'junction') {
+        var lnJ = archUserLineFindById(lidPickDm);
+        if (lnJ) archUserLineTryInsertBendAtClient(lnJ, e.clientX, e.clientY);
+      }
       e.stopPropagation();
       return;
     }
     e.preventDefault();
     e.stopPropagation();
     var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var tool = archLineFloatGetTool();
+    if (tool === 'freehand') {
+      archUserFreehandPointerDown(e);
+      return;
+    }
     if (!userLines.pendingStart) {
       userLines.pendingStart = { ep: archUserLineSnapEndpoint(p.x, p.y, e.target) };
       if (archViewport) archViewport.classList.add('arch-user-line-draw-pending');
@@ -2918,31 +6851,50 @@
     }
   }
 
-  function archUserLineSetDrawMode(on) {
-    userLines.drawMode = !!on;
-    if (archViewport) archViewport.classList.toggle('arch-user-line-draw', userLines.drawMode);
-    var tgl = qs('#archUserLineDrawToggle');
-    if (tgl) tgl.checked = userLines.drawMode;
-    if (!userLines.drawMode) {
+  /** Apply line-draw mode (floating bar, two-click tools). Prefer archUserLineSyncDrawModeFromEditor for rail-driven state. */
+  function archUserLineApplyDrawState(on) {
+    on = !!on;
+    if (on) {
+      if (customBoxDrawMode) {
+        customBoxDrawMode = false;
+        var ct = qs('#archCustomBoxDrawToggle');
+        if (ct) ct.checked = false;
+        if (archViewport) archViewport.classList.remove('arch-custom-box-draw');
+        customBoxDrawPending = null;
+        var pv = qs('#archCustomBoxPreview');
+        if (pv) pv.setAttribute('opacity', '0');
+        window.removeEventListener('pointermove', archCustomBoxDrawPointerMove, true);
+        window.removeEventListener('pointerup', archCustomBoxDrawPointerUp, true);
+      }
+    }
+    if (userLines.drawMode === on) {
+      archLineFloatUpdateVisibility();
+      return;
+    }
+    userLines.drawMode = on;
+    if (archViewport) archViewport.classList.toggle('arch-user-line-draw', on);
+    if (!on) {
       archUserLineClearPending();
       archUserLineRemoveDrawListeners();
     }
-    if (userLines.drawMode) {
-      customBoxDrawMode = false;
-      var ct = qs('#archCustomBoxDrawToggle');
-      if (ct) ct.checked = false;
-      if (archViewport) archViewport.classList.remove('arch-custom-box-draw');
-      customBoxDrawPending = null;
-      var pv = qs('#archCustomBoxPreview');
-      if (pv) pv.setAttribute('opacity', '0');
-      window.removeEventListener('pointermove', archCustomBoxDrawPointerMove, true);
-      window.removeEventListener('pointerup', archCustomBoxDrawPointerUp, true);
-    }
+    archLineFloatUpdateVisibility();
+  }
+
+  function archUserLineSyncDrawModeFromEditor() {
+    var on = !!(archIsEditMode() && archGetActiveTool() === 'lines' && !customBoxDrawMode);
+    archUserLineApplyDrawState(on);
   }
 
   function archUserLineOnGlobalDelete(e) {
     if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT'))
+    if (
+      e.target &&
+      (e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.tagName === 'SELECT' ||
+        e.target.isContentEditable ||
+        (e.target.closest && e.target.closest('[contenteditable="true"]')))
+    )
       return;
     if (archCustomBoxSelectedId) {
       e.preventDefault();
@@ -2950,6 +6902,28 @@
       return;
     }
     if (userLines.selectedId) {
+      var lnDel = archUserLineGetSelected();
+      if (
+        lnDel &&
+        archUserLineIsConnector(lnDel) &&
+        lnDel.points &&
+        lnDel.points.length > 2 &&
+        userLines.selectedHandleIdx != null
+      ) {
+        var k = userLines.selectedHandleIdx;
+        if (k > 0 && k < lnDel.points.length - 1) {
+          e.preventDefault();
+          lnDel.points.splice(k, 1);
+          userLines.selectedHandleIdx = null;
+          archUserLineConnectorSyncEndpoints(lnDel);
+          archUserLineRender();
+          archUserLinePersist();
+          archUserLineSyncPropsHud();
+          archUndoMaybePushSnapshot();
+          if (liveRegion) liveRegion.textContent = 'Removed bend point from connector.';
+          return;
+        }
+      }
       e.preventDefault();
       archUserLineDeleteSelected();
     }
@@ -2978,12 +6952,14 @@
       localStorage.removeItem(LS_LABELS);
       localStorage.removeItem(LS_USER_LINES);
       localStorage.removeItem(LS_SOURCES_DIVIDERS);
+      localStorage.removeItem('aepArchSourcesDividerPointer');
       localStorage.removeItem(LS_CUSTOM_BOXES);
       localStorage.removeItem('aepArchDragTags');
       localStorage.removeItem('aepArchDragSources');
       localStorage.removeItem(LS_STATE_HILITE_OVERRIDES);
       localStorage.removeItem('aepDiagramUndoStack');
       localStorage.removeItem('aepDiagramSelection');
+      localStorage.removeItem(LS_LINE_TOOLBAR_DEFAULTS);
     } catch (e) {}
     window.location.reload();
   }
@@ -3000,41 +6976,194 @@
     URL.revokeObjectURL(a.href);
   }
 
+  /** Phase 4: portable vendor + connector summary for external tooling (see data/diagram-interop.json). */
+  function archStackSummaryDownload() {
+    var I = window.AEPDiagram && window.AEPDiagram.interop;
+    if (!I || typeof I.exportStackSummaryFromPayload !== 'function') {
+      window.alert('Interop module missing. Reload the page.');
+      return;
+    }
+    var snap = archMasterSerialize();
+    function downloadSummary(summary) {
+      var blob = new Blob([JSON.stringify(summary, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'aep-architecture-stack-summary.json';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }
+    var base = I.exportStackSummaryFromPayload(snap);
+    if (typeof I.buildCatalogTagMapFromLogos !== 'function' || typeof I.enrichStackSummaryWithCatalogTags !== 'function') {
+      downloadSummary(base);
+      if (liveRegion) liveRegion.textContent = 'Stack summary (interop JSON) downloaded.';
+      return;
+    }
+    fetch('data/architecture-logos.json', { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then(function (cat) {
+        var tagMap = I.buildCatalogTagMapFromLogos(cat && cat.logos);
+        var summary = I.exportStackSummaryFromPayload(archMasterSerialize());
+        I.enrichStackSummaryWithCatalogTags(summary, tagMap);
+        downloadSummary(summary);
+        if (liveRegion) {
+          liveRegion.textContent = 'Stack summary downloaded (catalog tags added when paths match the logo catalog).';
+        }
+      })
+      .catch(function () {
+        downloadSummary(base);
+        if (liveRegion) {
+          liveRegion.textContent =
+            'Stack summary downloaded (catalog tags skipped — logo catalog unavailable).';
+        }
+      });
+  }
+
+  /** Import vendor/icon entries from a stack summary JSON (connectors not restored). */
+  function archApplyStackSummaryVendors(data) {
+    var vendors = data && Array.isArray(data.vendors) ? data.vendors : [];
+    var baseIdx = archCustomBoxes.length;
+    vendors.forEach(function (v, i) {
+      if (!v || typeof v.assetPath !== 'string' || !v.assetPath) return;
+      if (v.kind !== 'productLogo' && v.kind !== 'spectrumIcon') return;
+      var defW = v.kind === 'spectrumIcon' ? 40 : 48;
+      var defH = v.kind === 'spectrumIcon' ? 40 : 48;
+      var w =
+        typeof v.w === 'number' && isFinite(v.w) ? v.w : defW;
+      var h =
+        typeof v.h === 'number' && isFinite(v.h) ? v.h : defH;
+      w = Math.max(ARCH_MIN_NODE_W, Math.min(ARCH_MAX_NODE_W, w));
+      h = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, h));
+      var x =
+        typeof v.x === 'number' && isFinite(v.x)
+          ? v.x
+          : 380 + ((baseIdx + i) % 10) * 24;
+      var y =
+        typeof v.y === 'number' && isFinite(v.y)
+          ? v.y
+          : 180 + ((baseIdx + i) % 8) * 24;
+      x = archClamp(x, 0, ARCH_GUIDE_VIEW.w - w);
+      y = archClamp(y, 0, ARCH_GUIDE_VIEW.h - h);
+      var bid = typeof v.boxId === 'string' && v.boxId && !archCustomBoxFind(v.boxId) ? v.boxId : null;
+      var id =
+        bid || 'cbox-' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 9);
+      var nb;
+      if (v.kind === 'spectrumIcon') {
+        nb = archCustomBoxNormalize({
+          id: id,
+          x: x,
+          y: y,
+          w: w,
+          h: h,
+          name: v.name || v.caption || 'Icon',
+          kind: 'spectrumIcon',
+          iconFile: v.assetPath,
+          fill: 'none',
+          stroke: 'transparent',
+        });
+      } else {
+        nb = archCustomBoxNormalize({
+          id: id,
+          x: x,
+          y: y,
+          w: w,
+          h: h,
+          name: v.name || v.caption || 'Logo',
+          kind: 'productLogo',
+          logoFile: v.assetPath,
+          logoDescription: typeof v.caption === 'string' ? v.caption : '',
+          fill: 'none',
+          stroke: 'transparent',
+        });
+      }
+      archCustomBoxes.push(nb);
+      var domId = 'node-cbox-' + nb.id;
+      var curH = archHighlightsForState(idx).slice();
+      if (curH.indexOf(domId) < 0) curH.push(domId);
+      var defHil = STATES[idx] && STATES[idx].highlights ? STATES[idx].highlights : [];
+      if (archHighlightArraysEqual(curH, defHil)) {
+        delete archStateHighlightOverrides[idx];
+        delete archStateHighlightOverrides[String(idx)];
+      } else {
+        archStateHighlightOverrides[String(idx)] = curH;
+      }
+    });
+    archStateHighlightOverridesPersist();
+    archCustomBoxesPersist();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archSelectionPanelSync();
+  }
+
+  function archStackSummaryImportFile(file) {
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var raw = JSON.parse(r.result);
+        var I = window.AEPDiagram && window.AEPDiagram.interop;
+        if (!I || typeof I.validateStackSummaryForImport !== 'function') {
+          window.alert('Interop module missing. Reload the page.');
+          return;
+        }
+        var v = I.validateStackSummaryForImport(raw);
+        if (!v.ok) {
+          window.alert('Not a valid stack summary:\n' + v.errors.slice(0, 12).join('\n'));
+          return;
+        }
+        if (!archIsEditMode()) {
+          window.alert('Turn on Edit diagram first.');
+          return;
+        }
+        var vendors = raw.vendors || [];
+        if (vendors.length === 0) {
+          window.alert('No vendors in this file.');
+          return;
+        }
+        if (
+          vendors.length > 24 &&
+          !window.confirm('Import ' + vendors.length + ' icons/logos onto the canvas?')
+        ) {
+          return;
+        }
+        archApplyStackSummaryVendors(raw);
+        archUndoMaybePushSnapshot();
+        if (liveRegion) {
+          liveRegion.textContent = 'Imported ' + vendors.length + ' vendor(s) from stack summary.';
+        }
+      } catch (err) {
+        window.alert('Could not import: invalid JSON.');
+      }
+    };
+    r.readAsText(file);
+  }
+
   function archMasterImportFile(file) {
     var r = new FileReader();
     r.onload = function () {
       try {
-        var data = JSON.parse(r.result);
-        if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.migrateLayout) {
-          data = window.AEPDiagram.model.migrateLayout(data);
+        var raw = JSON.parse(r.result);
+        var EM = window.AEPDiagram && window.AEPDiagram.editorModel;
+        if (!EM) {
+          window.alert('Diagram editor module missing. Reload the page.');
+          return;
         }
-        archSourcesDividers = archSourcesDividersDefaultArray();
-        archCustomBoxes = [];
-        archMasterApply(data);
-        if (!Array.isArray(data.sourcesDividers)) {
-          archSourcesDividersLoad();
+        var model = EM.fromMasterPayload(raw);
+        var v = EM.validateDiagramModel(model);
+        if (!v.ok) {
+          window.alert('Invalid layout JSON:\n' + v.errors.slice(0, 16).join('\n'));
+          return;
         }
-        if (!Array.isArray(data.customBoxes)) {
-          archCustomBoxesLoad();
+        archApplyLayoutSnapshot(model);
+        archUndoMaybePushSnapshot();
+        if (archSelection) {
+          archSelection.clear();
+          archSelectionRefreshDom();
         }
-        archLabelApplyAll();
-        archDragApply();
-        archUserLineRender();
-        archSourcesDividersRenderSvg();
-        archSourcesDividersRefreshPanel();
-        archCustomBoxesRender();
-        archDragSave();
-        archLabelSave();
-        archUserLinePersist();
-        archSourcesDividersPersist();
-        archCustomBoxesPersist();
-        archStateHighlightOverridesPersist();
-        try {
-          localStorage.setItem(LS_MASTER, JSON.stringify(archMasterSerialize()));
-        } catch (e3) {
-          localStorage.setItem(LS_MASTER, JSON.stringify(data));
-        }
-        applyState();
         if (liveRegion) liveRegion.textContent = 'Imported master layout applied.';
       } catch (err) {
         window.alert('Could not import: invalid JSON.');
@@ -3074,9 +7203,8 @@
     }
     archLabelApplyAll();
     archDragApply();
+    archSourcesDividersMigrateToUserLines();
     archUserLineRender();
-    archSourcesDividersRenderSvg();
-    archSourcesDividersRefreshPanel();
     archCustomBoxesRender();
     archDragSave();
     archLabelSave();
@@ -3084,47 +7212,15 @@
     archSourcesDividersPersist();
     archCustomBoxesPersist();
 
-    var colorSel = qs('#archUserLineColorSel');
-    if (colorSel && !colorSel.getAttribute('data-arch-ready')) {
-      colorSel.innerHTML = archUserLineStrokeOptionsHtml();
-      colorSel.setAttribute('data-arch-ready', '1');
-    }
+    archLineFloatInit();
+    archLineFloatUpdateVisibility();
 
-    var toggle = qs('#archDragToggle');
-    var labelToggle = qs('#archLabelToggle');
-    var lineDrawToggle = qs('#archUserLineDrawToggle');
-    var customBoxDrawToggle = qs('#archCustomBoxDrawToggle');
     var reset = qs('#archDragReset');
     var masterSave = qs('#archMasterSave');
     var masterDl = qs('#archMasterDownload');
+    var stackSummaryDl = qs('#archStackSummaryDownload');
+    var stackSummaryImport = qs('#archStackSummaryImport');
     var masterImport = qs('#archMasterImport');
-    var lineDel = qs('#archUserLineDelete');
-    var lineBi = qs('#archUserLineBidir');
-
-    if (toggle) {
-      toggle.checked = false;
-      toggle.addEventListener('change', function () {
-        archDragSetEnabled(toggle.checked);
-      });
-    }
-    if (labelToggle) {
-      labelToggle.checked = false;
-      labelToggle.addEventListener('change', function () {
-        archLabelSetEnabled(labelToggle.checked);
-      });
-    }
-    if (lineDrawToggle) {
-      lineDrawToggle.checked = false;
-      lineDrawToggle.addEventListener('change', function () {
-        archUserLineSetDrawMode(lineDrawToggle.checked);
-      });
-    }
-    if (customBoxDrawToggle) {
-      customBoxDrawToggle.checked = false;
-      customBoxDrawToggle.addEventListener('change', function () {
-        archCustomBoxSetDrawMode(customBoxDrawToggle.checked);
-      });
-    }
     if (reset) {
       reset.addEventListener('click', function () {
         if (
@@ -3144,6 +7240,16 @@
     if (masterDl) {
       masterDl.addEventListener('click', archMasterDownload);
     }
+    if (stackSummaryDl) {
+      stackSummaryDl.addEventListener('click', archStackSummaryDownload);
+    }
+    if (stackSummaryImport) {
+      stackSummaryImport.addEventListener('change', function () {
+        var f = stackSummaryImport.files && stackSummaryImport.files[0];
+        if (f) archStackSummaryImportFile(f);
+        stackSummaryImport.value = '';
+      });
+    }
     if (masterImport) {
       masterImport.addEventListener('change', function () {
         var f = masterImport.files && masterImport.files[0];
@@ -3151,28 +7257,6 @@
         masterImport.value = '';
       });
     }
-    if (colorSel) {
-      colorSel.addEventListener('change', function () {
-        var ln = archUserLineGetSelected();
-        if (!ln) return;
-        ln.stroke = colorSel.value;
-        archUserLineRender();
-        archUserLinePersist();
-      });
-    }
-    if (lineBi) {
-      lineBi.addEventListener('change', function () {
-        var ln = archUserLineGetSelected();
-        if (!ln) return;
-        ln.bidirectional = lineBi.checked;
-        archUserLineRender();
-        archUserLinePersist();
-      });
-    }
-    if (lineDel) {
-      lineDel.addEventListener('click', archUserLineDeleteSelected);
-    }
-
     var cboxName = qs('#archCustomBoxNameInput');
     var cboxFill = qs('#archCustomBoxFillInput');
     var cboxStroke = qs('#archCustomBoxStrokeInput');
@@ -3187,6 +7271,7 @@
       archCustomBoxesPersist();
       archCustomBoxesRender();
       archUserLineRender();
+      archSelectionPanelSync();
     }
     if (cboxName) {
       cboxName.addEventListener('input', archCustomBoxApplyEditsFromHud);
@@ -3203,6 +7288,10 @@
     if (cboxDel) {
       cboxDel.addEventListener('click', archCustomBoxDeleteSelected);
     }
+    var cboxDup = qs('#archCustomBoxDuplicate');
+    if (cboxDup) {
+      cboxDup.addEventListener('click', archCustomBoxDuplicateSelected);
+    }
     var cboxTextSm = qs('#archCustomBoxTextSmaller');
     var cboxTextLg = qs('#archCustomBoxTextLarger');
     if (cboxTextSm) {
@@ -3216,21 +7305,54 @@
       });
     }
 
-    var sepList = qs('#archSourcesDividersList');
-    if (sepList && !sepList.getAttribute('data-arch-ready')) {
-      sepList.setAttribute('data-arch-ready', '1');
-      sepList.addEventListener('input', archSourcesDividersOnFieldInput);
-      sepList.addEventListener('click', archSourcesDividersOnPanelClick);
-    }
-    var sepAdd = qs('#archSourcesDividerAdd');
-    if (sepAdd) {
-      sepAdd.addEventListener('click', archSourcesDividersAdd);
-    }
-
     document.addEventListener('keydown', archUserLineOnGlobalDelete);
 
+    if (!document.documentElement.getAttribute('data-arch-lines-esc')) {
+      document.documentElement.setAttribute('data-arch-lines-esc', '1');
+      document.addEventListener(
+        'keydown',
+        function (e) {
+          if (e.key !== 'Escape') return;
+          if (!archIsEditMode()) return;
+          if (archToolsFloatOpen) {
+            if (e.target && e.target.closest && e.target.closest('#archToolsFloatBar')) return;
+            archToolsFloatSetOpen(false);
+            e.preventDefault();
+            return;
+          }
+          if (archGetActiveTool() !== 'lines') return;
+          var cpop = qs('#archLineFloatColorPopover');
+          if (cpop && !cpop.hidden) {
+            archLineFloatColorPopoverClose();
+            e.preventDefault();
+            return;
+          }
+          if (
+            e.target &&
+            (e.target.tagName === 'INPUT' ||
+              e.target.tagName === 'TEXTAREA' ||
+              e.target.tagName === 'SELECT' ||
+              e.target.isContentEditable ||
+              (e.target.closest && e.target.closest('[contenteditable="true"]')))
+          )
+            return;
+          var menu = qs('#archLineFloatWMenu');
+          if (menu && !menu.hidden) {
+            archLineFloatWeightMenuClose();
+            e.preventDefault();
+            return;
+          }
+          e.preventDefault();
+          archSetActiveTool('select');
+        },
+        true
+      );
+    }
+
+    archDrag.svg.addEventListener('pointerdown', archUserLineHandlePointerDown, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
+    archDrag.svg.addEventListener('dblclick', archDiagramDblClickSelect, true);
     archDrag.svg.addEventListener('dblclick', archLabelDblClick, true);
     archDrag.svg.addEventListener('pointerdown', archResizePointerDown, false);
     archDrag.svg.addEventListener('pointerdown', archUserLineOnPointerDown, false);
@@ -3238,6 +7360,144 @@
     $all('.arch-int-svg-wrap g.arch-node').forEach(function (g) {
       g.addEventListener('pointerdown', archDragPointerDown);
     });
+
+    archUserLineSyncDrawModeFromEditor();
+    archEditorSyncLinesDockChrome();
+
+    archEditSelectionInit();
+    archUndoInitOnce();
+
+    if (!document.documentElement.getAttribute('data-arch-undo-keys')) {
+      document.documentElement.setAttribute('data-arch-undo-keys', '1');
+      document.addEventListener(
+        'keydown',
+        function (e) {
+          if (
+            e.target &&
+            (e.target.tagName === 'INPUT' ||
+              e.target.tagName === 'TEXTAREA' ||
+              e.target.isContentEditable ||
+              (e.target.closest && e.target.closest('[contenteditable="true"]')))
+          )
+            return;
+          var mod = e.metaKey || e.ctrlKey;
+          if (mod && (e.key.toLowerCase() === 'z' || e.code === 'KeyZ')) {
+            e.preventDefault();
+            if (e.shiftKey) archRedoRun();
+            else archUndoRun();
+            return;
+          }
+          if (e.ctrlKey && !e.metaKey && (e.key === 'y' || e.key === 'Y')) {
+            e.preventDefault();
+            archRedoRun();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'c') {
+            e.preventDefault();
+            archDiagramCopySelection();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'v') {
+            e.preventDefault();
+            archDiagramPasteClipboard();
+            return;
+          }
+        },
+        true
+      );
+    }
+
+    var undoBtn = qs('#archUndoBtn');
+    var redoBtn = qs('#archRedoBtn');
+    if (undoBtn && !undoBtn.getAttribute('data-arch-ready')) {
+      undoBtn.setAttribute('data-arch-ready', '1');
+      undoBtn.addEventListener('click', archUndoRun);
+    }
+    if (redoBtn && !redoBtn.getAttribute('data-arch-ready')) {
+      redoBtn.setAttribute('data-arch-ready', '1');
+      redoBtn.addEventListener('click', archRedoRun);
+    }
+
+    archDrag.svg.addEventListener('click', archEditSelectionOnSvgClick, false);
+
+    var toolsFloatPal = qs('#archToolsFloatBar');
+    if (toolsFloatPal && !toolsFloatPal.getAttribute('data-arch-palette-ready')) {
+      toolsFloatPal.setAttribute('data-arch-palette-ready', '1');
+      toolsFloatPal.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('[data-arch-palette]');
+        if (!btn) return;
+        var k = btn.getAttribute('data-arch-palette');
+        if (k) archPaletteAddPreset(k);
+      });
+    }
+
+    var tfClose = qs('#archToolsFloatClose');
+    if (tfClose && !tfClose.getAttribute('data-arch-tf-close')) {
+      tfClose.setAttribute('data-arch-tf-close', '1');
+      tfClose.addEventListener('click', function () {
+        archToolsFloatSetOpen(false);
+      });
+    }
+
+    if (!document.documentElement.getAttribute('data-arch-tools-float-dismiss')) {
+      document.documentElement.setAttribute('data-arch-tools-float-dismiss', '1');
+      document.addEventListener(
+        'pointerdown',
+        function (e) {
+          if (!archToolsFloatOpen || !archIsEditMode()) return;
+          if (e.target && e.target.closest && e.target.closest('#archToolsFloatBar')) return;
+          if (e.target && e.target.closest && e.target.closest('.arch-editor-rail')) return;
+          archToolsFloatSetOpen(false);
+        },
+        false
+      );
+    }
+
+    var spectGrid = qs('#archSpectrumIconGrid');
+    if (spectGrid && !spectGrid.getAttribute('data-arch-spectrum-grid-ready')) {
+      spectGrid.setAttribute('data-arch-spectrum-grid-ready', '1');
+      /* Placement and edit-mode guard live on each tile (archSpectrumIconsRenderFromData); clicks do not bubble here. */
+    }
+    var spectSearch = qs('#archSpectrumIconSearch');
+    if (spectSearch && !spectSearch.getAttribute('data-arch-ready')) {
+      spectSearch.setAttribute('data-arch-ready', '1');
+      spectSearch.addEventListener('input', function () {
+        archSpectrumIconsApplyFilter(spectSearch.value);
+      });
+    }
+
+    var logoSection = qs('#archEditorSectionSpectrumIcons');
+    if (logoSection && !logoSection.getAttribute('data-arch-logo-click-ready')) {
+      logoSection.setAttribute('data-arch-logo-click-ready', '1');
+      logoSection.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.arch-architecture-logo-tile');
+        if (!btn || btn.hidden) return;
+        if (archLogoLibraryEditModeIsOn()) {
+          if (e.target.closest && e.target.closest('.arch-architecture-logo-tile-actions')) return;
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        var f = btn.getAttribute('data-arch-logo-file');
+        var lab = btn.getAttribute('data-arch-logo-label');
+        var desc = btn.getAttribute('data-arch-logo-desc') || '';
+        if (f) archProductLogoPlace(f, lab, desc);
+      });
+    }
+    var adobeLogoSearch = qs('#archAdobeLogoSearch');
+    if (adobeLogoSearch && !adobeLogoSearch.getAttribute('data-arch-ready')) {
+      adobeLogoSearch.setAttribute('data-arch-ready', '1');
+      adobeLogoSearch.addEventListener('input', function () {
+        archArchitectureLogosApplyFilter(qs('#archAdobeLogoMenuMount'), qs('#archAdobeLogoStatus'), adobeLogoSearch.value);
+      });
+    }
+    var logoSearch = qs('#archArchitectureLogoSearch');
+    if (logoSearch && !logoSearch.getAttribute('data-arch-ready')) {
+      logoSearch.setAttribute('data-arch-ready', '1');
+      logoSearch.addEventListener('input', function () {
+        archArchitectureLogosApplyFilter(qs('#archArchitectureLogoMenuMount'), qs('#archArchitectureLogoStatus'), logoSearch.value);
+      });
+    }
 
     archStateHighlightOverridesPersist();
     applyState();

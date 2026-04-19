@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Global values – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260426">
-  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
 <body class="home-dashboard-concierge">
   <div class="dashboard-shell">
@@ -20,7 +21,7 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">Global values</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Stored in this browser">Browser</span>
+          <span class="dashboard-env-pill" title="Stored in browser + Firebase">Browser</span>
           <a href="https://experienceleague.adobe.com/docs/experience-platform/sandbox/home.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Sandbox docs</a>
         </div>
       </header>
@@ -53,15 +54,99 @@
                 Same as the sidebar control. Stored in this browser as <code>aepTheme</code> (<code>dark</code> or default light).
               </p>
             </div>
-            <div class="aep-edp-global-row" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--aep-border, #e8e4df);">
-              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Decisioning</label>
-              <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                <input type="checkbox" id="aepHideEdpDataViewer" style="margin-top:3px;" />
-                <span>Hide <strong>Decisioning overview</strong> from the sidebar (under Decisioning)</span>
-              </label>
-              <p class="dashboard-hero-subtitle" style="margin-top: 10px; font-size: 13px;">
-                Stored as <code>aepHideDataViewerDecisioningPlayground</code> (<code>1</code> hides the nav item). Other tabs pick up the change via storage sync.
+            <div class="aep-theme-global-row" data-aep-theme-prefs>
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Menu palette</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">Sidebar and navigation colors. Each option has light and dark values in <code>aep-theme-palettes.css</code>.</p>
+              <div class="aep-theme-pref-swatches" role="group" aria-label="Menu color palette">
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-menu-palette-choice="default">Default</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-menu-palette-choice="slate">Slate</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-menu-palette-choice="ocean">Ocean</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-menu-palette-choice="ember">Ember</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-menu-palette-choice="violet">Violet</button>
+              </div>
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;margin-top:16px;font-weight:600;">Background</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 10px; font-size: 13px;">Page and card surface tones (hero gradient included).</p>
+              <div class="aep-theme-pref-swatches" role="group" aria-label="Background preset">
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-bg-preset-choice="default">Default</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-bg-preset-choice="warm">Warm</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-bg-preset-choice="cool">Cool</button>
+                <button type="button" class="dashboard-btn-outline aep-theme-pref-swatch" data-aep-bg-preset-choice="contrast">Contrast</button>
+              </div>
+              <p class="dashboard-hero-subtitle" style="margin-top: 12px; font-size: 13px;">
+                Saved per sandbox (local keys <code>aepMenuPalette</code> / <code>aepBgPreset</code>) and synced to Firebase after anonymous sign-in.
               </p>
+            </div>
+            <div id="aepNavInDevSection" class="aep-nav-indev-global-row" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--aep-border, #e8e4df);">
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">In-development capabilities</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
+                Work-in-progress sidebar links and Home quick paths are hidden by default for each sandbox until you opt in below. Settings are stored in this browser only.
+              </p>
+              <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.45; margin-bottom: 16px;">
+                <input type="checkbox" id="aepShowInDevCapabilitiesToggle" style="margin-top:3px;" />
+                <span><strong>Show in development capabilities</strong> — reveal menus and paths tagged “in development” for the <strong>active sandbox</strong> (off by default until you enable).</span>
+              </label>
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Hide specific in-development pages (sidebar)</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
+                When capabilities are shown, check a row to <strong>hide</strong> that page from the sidebar (this browser only).
+              </p>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:center;">
+                <button type="button" class="dashboard-btn-outline" id="aepNavInDevHideAll">Hide all</button>
+                <button type="button" class="dashboard-btn-outline" id="aepNavInDevShowAll">Show all</button>
+              </div>
+              <div class="aep-nav-indev-checklist" style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="profileGeneration" style="margin-top:3px;" />
+                  <span>Hide <strong>Profile generation</strong> (Tools)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="firebaseImages" style="margin-top:3px;" />
+                  <span>Hide <strong>Firebase images</strong> (Tools)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="decisioningLab" style="margin-top:3px;" />
+                  <span>Hide <strong>Decisioning lab</strong> (Decisioning)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="decisioningLabEdge" style="margin-top:3px;" />
+                  <span>Hide <strong>Decisioning lab (Edge)</strong> (Decisioning)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="decisioningOverview" style="margin-top:3px;" />
+                  <span>Hide <strong>Decisioning overview</strong> (Decisioning)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="experimentationVisualiser" style="margin-top:3px;" />
+                  <span>Hide <strong>Experimentation visualiser</strong> (Experimentation)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="experimentationOverview" style="margin-top:3px;" />
+                  <span>Hide <strong>Experimentation overview</strong> (Experimentation)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="aepArchitectureApps" style="margin-top:3px;" />
+                  <span>Hide <strong>AEP &amp; Apps</strong> (Architecture)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="agenticLayerArchitecture" style="margin-top:3px;" />
+                  <span>Hide <strong>Agentic layer</strong> (Architecture)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="agenticLayerArchitectureV2" style="margin-top:3px;" />
+                  <span>Hide <strong>Agentic layer v2</strong> (Architecture)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="architectureEndToEnd" style="margin-top:3px;" />
+                  <span>Hide <strong>Adobe integration flow</strong> (Architecture → End 2 End)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="demos" style="margin-top:3px;" />
+                  <span>Hide <strong>Demos</strong> (Donate demo, Race for Life)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="dataCollectionTags" style="margin-top:3px;" />
+                  <span>Hide <strong>Tags</strong> (Data Collection)</span>
+                </label>
+              </div>
             </div>
           </div>
         </section>
@@ -73,7 +158,21 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="aep-lab-sandbox-sync.js?v=20260413"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script>
+    (function () {
+      window.addEventListener('aep-lab-sandbox-synced', function () {
+        if (!document.getElementById('globalSandboxSelect')) return;
+        try {
+          var u = new URL(window.location.href);
+          u.searchParams.set('_cb', String(Date.now()));
+          window.location.replace(u.toString());
+        } catch (e) {
+          window.location.reload();
+        }
+      });
+    })();
+  </script>
   <script>
     (function () {
       var sel = document.getElementById('globalSandboxSelect');
@@ -114,32 +213,155 @@
   </script>
   <script>
     (function () {
-      var LS_HIDE = 'aepHideDataViewerDecisioningPlayground';
-      var cb = document.getElementById('aepHideEdpDataViewer');
-      if (!cb) return;
-      function sync() {
+      var LS_PREFIX = 'aepNavHideInDev_';
+      var LS_HIDE_EDP_LEGACY = 'aepHideDataViewerDecisioningPlayground';
+      var LS_SANDBOX = 'aepGlobalSandboxName';
+      var LS_SHOW_INDEV_PREFIX = 'aepShowInDevCapabilities_';
+
+      function getSandboxSlugForInDev() {
         try {
-          cb.checked = localStorage.getItem(LS_HIDE) === '1';
+          var s = String(localStorage.getItem(LS_SANDBOX) || '').trim().toLowerCase();
+          return s || '__default__';
         } catch (e) {
-          cb.checked = false;
+          return '__default__';
         }
       }
-      sync();
-      cb.addEventListener('change', function () {
+
+      function getShowInDevCapabilitiesKey() {
+        return LS_SHOW_INDEV_PREFIX + getSandboxSlugForInDev();
+      }
+
+      function isHiddenKey(key) {
         try {
-          if (cb.checked) localStorage.setItem(LS_HIDE, '1');
-          else localStorage.removeItem(LS_HIDE);
+          if (localStorage.getItem(LS_PREFIX + key) === '1') return true;
+          if (key === 'decisioningOverview' && localStorage.getItem(LS_HIDE_EDP_LEGACY) === '1') return true;
+        } catch (e) {}
+        return false;
+      }
+
+      function setHiddenKey(key, hide) {
+        try {
+          if (key === 'decisioningOverview') {
+            if (hide) {
+              localStorage.setItem(LS_PREFIX + key, '1');
+              localStorage.setItem(LS_HIDE_EDP_LEGACY, '1');
+            } else {
+              localStorage.removeItem(LS_PREFIX + key);
+              localStorage.removeItem(LS_HIDE_EDP_LEGACY);
+            }
+          } else {
+            if (hide) localStorage.setItem(LS_PREFIX + key, '1');
+            else localStorage.removeItem(LS_PREFIX + key);
+          }
+        } catch (e) {}
+      }
+
+      function syncMasterToggle() {
+        var tgl = document.getElementById('aepShowInDevCapabilitiesToggle');
+        if (!tgl) return;
+        try {
+          tgl.checked = localStorage.getItem(getShowInDevCapabilitiesKey()) === '1';
+        } catch (e) {
+          tgl.checked = false;
+        }
+      }
+
+      function setShowInDevCapabilities(on) {
+        try {
+          if (on) localStorage.setItem(getShowInDevCapabilitiesKey(), '1');
+          else localStorage.removeItem(getShowInDevCapabilitiesKey());
+        } catch (e) {}
+      }
+
+      function syncCheckboxes() {
+        document.querySelectorAll('.aep-nav-indev-hide-cb').forEach(function (cb) {
+          var key = cb.getAttribute('data-aep-nav-hide-key');
+          if (!key) return;
+          cb.checked = isHiddenKey(key);
+        });
+      }
+
+      function dispatchNavChange() {
+        try {
+          window.dispatchEvent(new CustomEvent('aep-nav-indev-visibility-change'));
         } catch (e) {}
         try {
           window.dispatchEvent(new CustomEvent('aep-edp-visibility-change'));
         } catch (e2) {}
-      });
-      window.addEventListener('storage', function (e) {
-        if (e.key === LS_HIDE) sync();
-      });
+      }
+
+      function forEachInDevKey(fn) {
+        document.querySelectorAll('.aep-nav-indev-hide-cb').forEach(function (cb) {
+          var key = cb.getAttribute('data-aep-nav-hide-key');
+          if (key) fn(key);
+        });
+      }
+
+      function hideAllInDevNav() {
+        forEachInDevKey(function (key) {
+          setHiddenKey(key, true);
+        });
+        syncCheckboxes();
+        dispatchNavChange();
+      }
+
+      function showAllInDevNav() {
+        forEachInDevKey(function (key) {
+          setHiddenKey(key, false);
+        });
+        syncCheckboxes();
+        dispatchNavChange();
+      }
+
+      function init() {
+        syncMasterToggle();
+        syncCheckboxes();
+        var master = document.getElementById('aepShowInDevCapabilitiesToggle');
+        if (master) {
+          master.addEventListener('change', function () {
+            setShowInDevCapabilities(!!master.checked);
+            dispatchNavChange();
+          });
+        }
+        var btnHideAll = document.getElementById('aepNavInDevHideAll');
+        var btnShowAll = document.getElementById('aepNavInDevShowAll');
+        if (btnHideAll) btnHideAll.addEventListener('click', hideAllInDevNav);
+        if (btnShowAll) btnShowAll.addEventListener('click', showAllInDevNav);
+        document.querySelectorAll('.aep-nav-indev-hide-cb').forEach(function (cb) {
+          cb.addEventListener('change', function () {
+            var key = cb.getAttribute('data-aep-nav-hide-key');
+            if (!key) return;
+            setHiddenKey(key, cb.checked);
+            dispatchNavChange();
+          });
+        });
+        window.addEventListener('aep-global-sandbox-change', function () {
+          syncMasterToggle();
+          syncCheckboxes();
+        });
+        window.addEventListener('storage', function (e) {
+          if (!e.key) return;
+          if (
+            e.key === LS_SANDBOX ||
+            e.key.indexOf(LS_PREFIX) === 0 ||
+            e.key.indexOf(LS_SHOW_INDEV_PREFIX) === 0 ||
+            e.key === LS_HIDE_EDP_LEGACY
+          ) {
+            syncMasterToggle();
+            syncCheckboxes();
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
     })();
   </script>
-  <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260430"></script>
+  <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260418-architecture-e2e"></script>
 </body>
 </html>

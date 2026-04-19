@@ -1,0 +1,510 @@
+/* End-to-end Adobe flow — light canvas (Agentic v2 + Experimentation visualiser aesthetic) */
+
+.architecture-e2e-page {
+  background: #f2f2f2;
+}
+
+.architecture-e2e-page .edp-blocked {
+  box-sizing: border-box;
+  margin: 0 auto 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--aep-border, #e8e4df);
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--aep-text, #1e1e1e);
+  max-width: 1100px;
+}
+
+html[data-aep-theme='dark'] .architecture-e2e-page .edp-blocked {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--aep-text, #e6e6e6);
+}
+
+.architecture-e2e-page .architecture-e2e-main {
+  --e2e-ink: #0f172a;
+  --e2e-muted: #64748b;
+  --e2e-flow: #2d9d6c;
+  --e2e-flow-soft: #3d9d72;
+  --e2e-card: #ffffff;
+  --e2e-border: rgba(15, 23, 42, 0.08);
+  --e2e-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+  --e2e-wf: #1473e6;
+  --e2e-aem: #5046e5;
+  --e2e-genstudio: #e1251b;
+  --e2e-email: #0d9488;
+  --e2e-decision: #7c3aed;
+  --e2e-ajo: #d7373f;
+  --e2e-cja: #4f46e5;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.architecture-e2e-inner {
+  max-width: min(100%, 1200px);
+  margin: 0 auto;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  box-sizing: border-box;
+}
+
+.architecture-e2e-hero {
+  margin-bottom: 1.75rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  box-sizing: border-box;
+}
+
+.architecture-e2e-badge {
+  display: inline-block;
+  margin: 0 0 0.4rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1d3b2f;
+  background: rgba(45, 157, 108, 0.12);
+  border: 1px solid rgba(45, 157, 108, 0.25);
+  border-radius: 999px;
+}
+
+.architecture-e2e-title {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.4rem;
+  color: var(--e2e-ink);
+}
+
+.architecture-e2e-lead {
+  margin: 0 0 1rem;
+  color: var(--e2e-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 52rem;
+}
+
+.architecture-e2e-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.architecture-e2e-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--e2e-muted);
+}
+
+.architecture-e2e-speed-val {
+  font-variant-numeric: tabular-nums;
+  min-width: 4rem;
+}
+
+/* Panel: Experimentation-style soft gradient + generous gutters so connector strokes stay visible */
+.e2e-diagram-panel {
+  border-radius: 16px;
+  border: 1px solid var(--dash-border, #e8e8e8);
+  background: linear-gradient(180deg, #f3f4f2 0%, #eceeea 100%);
+  box-shadow: 0 1px 3px rgba(15, 15, 25, 0.06);
+  padding: 2.5rem 2rem 3.5rem;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+html[data-aep-theme='dark'] .e2e-diagram-panel {
+  background: linear-gradient(180deg, #1a1d24 0%, #14161b 100%);
+  border-color: var(--dash-border, #2a3038);
+}
+
+.e2e-board {
+  position: relative;
+  z-index: 0;
+  min-height: 520px;
+  padding-bottom: 1rem;
+}
+
+.e2e-arrow-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+  overflow: visible;
+}
+
+/* Hub: AEM — Workfront — GenStudio (wide horizontal gutters for bi-directional strokes) */
+.e2e-hub-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 3rem 5.5rem;
+  padding: 1rem 1rem 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 1100px) {
+  .e2e-hub-row {
+    flex-wrap: nowrap;
+  }
+}
+
+/* AJO + CJA under hub */
+.e2e-activation-below {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 4.25rem;
+  padding: 0 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Match hub column widths: spacer (under AEM) · AJO (under WF) · CJA (under GenStudio) */
+.e2e-activation-slot {
+  box-sizing: border-box;
+  flex: 0 1 320px;
+  min-width: min(300px, 100%);
+  max-width: 320px;
+  min-height: 1px;
+}
+
+.e2e-activation-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 3rem 5.5rem;
+  padding: 0.25rem 1rem;
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .e2e-activation-row {
+    flex-wrap: nowrap;
+  }
+}
+
+/* Fork block centered under AJO */
+.e2e-fork-below {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 3.75rem;
+  padding: 0 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.e2e-fork-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2.5rem 6.5rem;
+  padding: 0.5rem 1rem 0.75rem;
+}
+
+/* Keep Email + Decision side by side on typical widths */
+.e2e-fork-row--pair {
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
+
+@media (max-width: 599px) {
+  .e2e-fork-row--pair {
+    flex-wrap: wrap;
+  }
+
+  .e2e-fork-row--pair .e2e-card {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .e2e-activation-below {
+    margin-top: 3.5rem;
+  }
+
+  .e2e-fork-below {
+    margin-top: 3.25rem;
+  }
+
+  .e2e-activation-slot {
+    display: none;
+  }
+
+  .e2e-activation-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 3rem;
+  }
+}
+
+/* Agentic v2 agent-card pattern: label column + thumb (see .agentic-v2-agent-card) */
+.e2e-card {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: min(300px, 100%);
+  max-width: 320px;
+  padding: 0.5rem 0.45rem;
+  border-radius: 14px;
+  background: var(--e2e-card);
+  border: 1px solid var(--e2e-border);
+  box-shadow: var(--e2e-shadow);
+  border-top: 3px solid var(--e2e-accent, var(--e2e-flow));
+  color: var(--e2e-ink);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.e2e-card.is-visible {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Distinct entrance per node (see also prefers-reduced-motion below) */
+.e2e-card--wf.is-visible {
+  animation: e2e-enter-pop 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.e2e-card--aem.is-visible {
+  animation: e2e-enter-slide-right 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.e2e-card--genstudio.is-visible {
+  animation: e2e-enter-slide-left 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.e2e-card--ajo.is-visible {
+  animation: e2e-enter-rise 0.52s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+.e2e-card--cja.is-visible {
+  animation: e2e-enter-skew-fade 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.e2e-card--email.is-visible {
+  animation: e2e-enter-clip-reveal 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+.e2e-card--decision.is-visible {
+  animation: e2e-enter-soft-zoom 0.52s cubic-bezier(0.34, 1.2, 0.64, 1) forwards;
+}
+
+@keyframes e2e-enter-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes e2e-enter-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes e2e-enter-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes e2e-enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes e2e-enter-skew-fade {
+  from {
+    opacity: 0;
+    transform: translateX(12px) skewX(-4deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) skewX(0deg);
+  }
+}
+
+@keyframes e2e-enter-clip-reveal {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes e2e-enter-soft-zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes e2e-enter-fade-only {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .e2e-card--wf.is-visible,
+  .e2e-card--aem.is-visible,
+  .e2e-card--genstudio.is-visible,
+  .e2e-card--ajo.is-visible,
+  .e2e-card--cja.is-visible,
+  .e2e-card--email.is-visible,
+  .e2e-card--decision.is-visible {
+    animation: e2e-enter-fade-only 0.35s ease forwards;
+  }
+}
+
+.e2e-card--wf {
+  --e2e-accent: var(--e2e-wf);
+}
+
+.e2e-card--aem {
+  --e2e-accent: var(--e2e-aem);
+}
+
+.e2e-card--genstudio {
+  --e2e-accent: var(--e2e-genstudio);
+}
+
+html[data-aep-theme='dark'] .e2e-card {
+  background: rgba(30, 34, 42, 0.96);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
+
+.e2e-card__label {
+  flex: 0 0 46%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-width: 0;
+  padding: 0.2rem 0.15rem;
+}
+
+.e2e-card__thumb {
+  flex: 1;
+  min-width: 0;
+  min-height: 102px;
+  max-height: 108px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.e2e-card__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 102px;
+  max-height: 108px;
+  object-fit: cover;
+  object-position: top center;
+}
+
+html[data-aep-theme='dark'] .e2e-card__thumb {
+  background: rgba(15, 23, 42, 0.5);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.e2e-card__title {
+  margin: 0 0 0.2rem;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #1d3b2f;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.e2e-card__sub {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--e2e-muted);
+  line-height: 1.35;
+}
+
+html[data-aep-theme='dark'] .e2e-card__title {
+  color: #bbf7d0;
+}
+
+html[data-aep-theme='dark'] .e2e-card__sub {
+  color: #94a3b8;
+}
+
+.e2e-card--email {
+  --e2e-accent: var(--e2e-email);
+}
+
+.e2e-card--decision {
+  --e2e-accent: var(--e2e-decision);
+}
+
+.e2e-card--ajo {
+  --e2e-accent: var(--e2e-ajo);
+}
+
+.e2e-card--cja {
+  --e2e-accent: var(--e2e-cja);
+}

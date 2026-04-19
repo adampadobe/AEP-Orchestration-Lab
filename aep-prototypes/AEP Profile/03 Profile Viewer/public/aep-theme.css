@@ -41,27 +41,37 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge {
   );
   --dash-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
   --dash-shadow-hover: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: var(--dash-text);
+  --menu-fg-muted: var(--dash-muted);
+  --menu-accent: var(--dash-blue);
+  --menu-nav-active-bg: var(--dash-blue);
+  --menu-nav-active-fg: #ffffff;
+  --menu-hover: rgba(255, 255, 255, 0.06);
+  --app-bg: var(--dash-bg);
+  --panel-bg: var(--dash-surface);
+  --panel-bg-alt: var(--dash-surface-alt);
 }
 
 /* ── Sidebar & navigation (structural) ── */
 
 html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-sidebar-mark {
   background: transparent;
-  color: #fff;
+  color: var(--menu-fg);
 }
 
 html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--menu-hover);
 }
 
 html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-item--active {
-  background: var(--dash-blue);
-  color: #fff;
+  background: var(--menu-nav-active-bg);
+  color: var(--menu-nav-active-fg);
 }
 
 html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-nav-item--active:hover {
-  background: #3a8eef;
-  color: #fff;
+  filter: brightness(1.08);
+  color: var(--menu-nav-active-fg);
 }
 
 html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-sidebar-toggle:hover {
@@ -158,6 +168,18 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge .aep-theme-toggle-btn:
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--dash-border, #e6e4ea);
+}
+
+.aep-theme-pref-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.aep-theme-pref-swatch.aep-theme-pref-swatch--selected {
+  border-color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 12%, var(--panel-bg, var(--dash-surface)));
 }
 
 /* ── Structural overrides (not just color swaps) ── */

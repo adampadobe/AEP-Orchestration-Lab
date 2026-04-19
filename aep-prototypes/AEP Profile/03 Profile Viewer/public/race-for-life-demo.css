@@ -248,6 +248,196 @@
   font-size: 0.98rem;
 }
 
+/* AJO mount points: same column as .race-copy-card; wrapper adds no vertical gap when sections are empty. */
+.race-ajo-mounts {
+  margin: 0 auto;
+  width: min(86%, 840px);
+  max-width: 840px;
+  position: relative;
+  z-index: 2;
+}
+
+.race-ajo-mounts .race-ajo-hero + .race-ajo-content-cards {
+  margin-top: 0.75rem;
+}
+
+.race-ajo-mounts.race-ajo--loading {
+  min-height: 2.5rem;
+}
+
+.race-ajo-mounts.race-ajo--loading::after {
+  content: '';
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0.35rem auto 0;
+  border: 2px solid rgba(5, 26, 120, 0.2);
+  border-top-color: #051a78;
+  border-radius: 50%;
+  animation: race-ajo-spin 0.7s linear infinite;
+}
+
+@keyframes race-ajo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.race-ajo-sdk-hint {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: #334155;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.race-ajo-sdk-hint--error {
+  color: #991b1b;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.race-ajo-iframe {
+  width: 100%;
+  min-height: 120px;
+  border: 0;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+#hero-banner:not(:empty) {
+  padding: 0.75rem 0;
+  box-sizing: border-box;
+}
+
+/* Keep hero (incl. AJO card) above the Find an event band when layers collide */
+body.race-page section.race-hero {
+  position: relative;
+  z-index: 2;
+}
+
+body.race-page section.race-find {
+  position: relative;
+  z-index: 1;
+}
+
+/* Launch-injected content card: stacking + flex so copy is not hidden under the image or the page h2 band */
+#ContentCardContainer {
+  position: relative;
+  isolation: isolate;
+}
+
+#ContentCardContainer:not(:empty) {
+  z-index: 4;
+  padding: 0.75rem 0;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+#ContentCardContainer .Banner,
+#ContentCardContainer [class^='Banner'] {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: 100%;
+  min-height: 0;
+}
+
+#ContentCardContainer .Image,
+#ContentCardContainer [class*='Image'] {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+#ContentCardContainer .Banner__content,
+#ContentCardContainer [class*='Banner__content'] {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  margin-top: 0 !important;
+  padding: 16px 20px !important;
+  background: #fff !important;
+  color: #0f172a !important;
+}
+
+#ContentCardContainer strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+/* Launch uses <h2> for body — reset so it never mimics .race-find-inner h2 */
+#ContentCardContainer h2 {
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  line-height: 1.45 !important;
+  margin: 0.35rem 0 0 !important;
+  padding: 0 !important;
+}
+
+/* AJO JSON content cards: imageURL + title + fullDescription */
+.race-ajo-content-card-inner {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.race-ajo-content-card--hero .race-ajo-content-card-img {
+  max-height: 220px;
+}
+
+.race-ajo-content-card-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 180px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.race-ajo-content-card-body {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.race-ajo-content-card-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #051a78;
+  line-height: 1.25;
+}
+
+.race-ajo-content-card-desc {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: #1f2937;
+}
+
+/* Injected when Launch outputs a bare URL as text inside .Image */
+.race-ajo-launch-img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
 .race-join {
   margin: 0 2.5rem;
   color: #0f172a;
@@ -368,6 +558,10 @@
 
   .race-copy-card {
     margin-top: -3.5rem;
+    width: min(92%, 840px);
+  }
+
+  .race-ajo-mounts {
     width: min(92%, 840px);
   }
 

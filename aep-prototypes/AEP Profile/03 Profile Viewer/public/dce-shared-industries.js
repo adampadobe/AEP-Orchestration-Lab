@@ -10,4 +10,5 @@ export const DCE_INDUSTRIES = [
   { key: 'sports', label: 'Sports' },
   { key: 'telecommunications', label: 'Telecommunications' },
   { key: 'public', label: 'Public' },
+  { key: 'healthcare', label: 'Healthcare' },
 ];

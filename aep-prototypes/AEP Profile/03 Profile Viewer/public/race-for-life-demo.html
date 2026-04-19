@@ -2,17 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Launch: Web SDK extension must use datastream (Edge config) ID 46677fd7-9db0-4f16-898c-b424d0245c38 — same ID AJO uses for this lab. Do not duplicate alloy.configure in page code. -->
+  <script src="https://assets.adobedtm.com/60e5fd51ad90/1e9ecb8bbc4a/launch-2070346dc211-development.min.js" async></script>
   <title>Race for Life (demo) - AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260426">
+  <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="race-for-life-demo.css">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
-  <link rel="stylesheet" href="aep-theme.css?v=20260406">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
 <body class="race-page home-dashboard-concierge">
   <div class="dashboard-shell">
@@ -98,6 +101,16 @@
             <div class="race-copy-card">
               <h1>Race for Life</h1>
               <p>Enter Cancer Research UK's Race for Life and raise money for life-saving cancer research.</p>
+            </div>
+            <div class="race-ajo-mounts">
+              <!-- HERO – driven by Decisioning / Code-based Experience (surface fragment #hero-banner, e.g. web://…/race-for-life-demo.html#hero-banner) -->
+              <section id="hero-banner" class="race-ajo-hero" role="region" aria-label="Personalized hero">
+                <!-- default hero content; AJO injects or replaces -->
+              </section>
+              <!-- CONTENT CARDS – persistent UI messages (Journey Optimizer Content Cards / Web SDK) -->
+              <section id="ContentCardContainer" class="race-ajo-content-cards ContentCardContainer" role="region" aria-label="Content cards">
+                <!-- cards will be injected here -->
+              </section>
             </div>
             <section class="race-join">
               <h2>Join Race for Life</h2>
@@ -283,13 +296,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
-  <script src="aep-lab-sandbox-sync.js?v=20260413"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260415"></script>
+  <script src="race-for-life-ajo.js?v=20260416"></script>
   <script src="race-for-life-demo.js"></script>
-  <script defer src="aep-theme.js?v=20260416b"></script>
-  <script defer src="aep-lab-nav.js?v=20260430"></script>
+  <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
 </body>
 </html>

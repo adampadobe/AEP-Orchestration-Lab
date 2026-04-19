@@ -48,8 +48,8 @@
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'DM Mono', Consolas, monospace;
 
-  /* Horizontal gutter for scroll column — same as --decisioning-content-surface-pad-x (decisioning-content-surface.css) */
-  --edp-core-pad-x: var(--decisioning-content-surface-pad-x, clamp(1rem, 2.5vw, 1.35rem));
+  /* Match #dceVizRoot.dce-viz-core --dce-core-pad-x (decisioning-visualizer-core.css) */
+  --edp-core-pad-x: clamp(1rem, 2.5vw, 1.35rem);
 
   box-sizing: border-box;
   margin: 0;

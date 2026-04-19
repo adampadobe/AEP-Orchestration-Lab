@@ -1,0 +1,213 @@
+/*
+ * User-selectable menu + background palettes (see CONTRIBUTING.md).
+ * All non-default colors for these presets live here — components use --dash-* / --menu-* / --app-* tokens only.
+ *
+ * html[data-aep-menu-palette] and html[data-aep-bg-preset] are set from localStorage via aep-head-sync.js / aep-theme-prefs.js
+ * Omit attributes or use "default" in JS for built-in tokens from home.css + aep-theme.css.
+ */
+
+/* ── Menu palettes (sidebar + nav chrome only; main content keeps global --dash-text) ── */
+
+html[data-ajo-sidebar='dark'] body.home-dashboard-concierge {
+  --dash-sidebar: #0e1628;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #f8fafc;
+  --menu-fg-muted: rgba(248, 250, 252, 0.66);
+  --menu-accent: #38bdf8;
+  --menu-nav-active-bg: rgba(248, 250, 252, 0.2);
+  --menu-nav-active-fg: #ffffff;
+  --menu-hover: rgba(248, 250, 252, 0.12);
+}
+
+html[data-ajo-sidebar='light'] body.home-dashboard-concierge {
+  --dash-sidebar: #f8f8f8;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #0f172a;
+  --menu-fg-muted: #475569;
+  --menu-accent: #1d4ed8;
+  --menu-nav-active-bg: #e2e8f0;
+  --menu-nav-active-fg: #0f172a;
+  --menu-hover: rgba(15, 23, 42, 0.08);
+}
+
+html[data-aep-menu-palette='slate'] body.home-dashboard-concierge {
+  --dash-sidebar: #d2dae6;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #0f172a;
+  --menu-fg-muted: #475569;
+  --menu-accent: #2563eb;
+  --menu-nav-active-bg: #1e293b;
+  --menu-nav-active-fg: #f8fafc;
+  --menu-hover: rgba(15, 23, 42, 0.09);
+}
+
+html[data-aep-theme='dark'][data-aep-menu-palette='slate'] body.home-dashboard-concierge {
+  --dash-sidebar: #1a2332;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #e2e8f0;
+  --menu-fg-muted: #94a3b8;
+  --menu-accent: #60a5fa;
+  --menu-nav-active-bg: #3b82f6;
+  --menu-nav-active-fg: #ffffff;
+  --menu-hover: rgba(255, 255, 255, 0.08);
+}
+
+html[data-aep-menu-palette='ocean'] body.home-dashboard-concierge {
+  --dash-sidebar: #cfe8f2;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #0c4a6e;
+  --menu-fg-muted: #0369a1;
+  --menu-accent: #0284c7;
+  --menu-nav-active-bg: #0e7490;
+  --menu-nav-active-fg: #ecfeff;
+  --menu-hover: rgba(8, 145, 178, 0.12);
+}
+
+html[data-aep-theme='dark'][data-aep-menu-palette='ocean'] body.home-dashboard-concierge {
+  --dash-sidebar: #0f2733;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #bae6fd;
+  --menu-fg-muted: #7dd3fc;
+  --menu-accent: #38bdf8;
+  --menu-nav-active-bg: #0ea5e9;
+  --menu-nav-active-fg: #0c1118;
+  --menu-hover: rgba(56, 189, 248, 0.12);
+}
+
+html[data-aep-menu-palette='ember'] body.home-dashboard-concierge {
+  --dash-sidebar: #f3e3dc;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #431407;
+  --menu-fg-muted: #9a3412;
+  --menu-accent: #c2410c;
+  --menu-nav-active-bg: #7c2d12;
+  --menu-nav-active-fg: #fff7ed;
+  --menu-hover: rgba(124, 45, 18, 0.1);
+}
+
+html[data-aep-theme='dark'][data-aep-menu-palette='ember'] body.home-dashboard-concierge {
+  --dash-sidebar: #2c1814;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #ffedd5;
+  --menu-fg-muted: #fdba74;
+  --menu-accent: #fb923c;
+  --menu-nav-active-bg: #ea580c;
+  --menu-nav-active-fg: #1c100c;
+  --menu-hover: rgba(251, 146, 60, 0.12);
+}
+
+html[data-aep-menu-palette='violet'] body.home-dashboard-concierge {
+  --dash-sidebar: #e9e4f5;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #2e1065;
+  --menu-fg-muted: #5b21b6;
+  --menu-accent: #7c3aed;
+  --menu-nav-active-bg: #4c1d95;
+  --menu-nav-active-fg: #faf5ff;
+  --menu-hover: rgba(76, 29, 149, 0.1);
+}
+
+html[data-aep-theme='dark'][data-aep-menu-palette='violet'] body.home-dashboard-concierge {
+  --dash-sidebar: #221527;
+  --menu-bg: var(--dash-sidebar);
+  --menu-fg: #ede9fe;
+  --menu-fg-muted: #c4b5fd;
+  --menu-accent: #a78bfa;
+  --menu-nav-active-bg: #7c3aed;
+  --menu-nav-active-fg: #0f0a14;
+  --menu-hover: rgba(167, 139, 250, 0.12);
+}
+
+/* ── Background presets (page + surfaces + hero gradient) ── */
+
+html[data-aep-bg-preset='warm'] body.home-dashboard-concierge {
+  --dash-bg: #f7f4ef;
+  --dash-surface: #fffcfa;
+  --dash-surface-alt: #f0ebe3;
+  --dash-hero-grad: linear-gradient(
+    105deg,
+    #f5ebe0 0%,
+    #faf5ef 38%,
+    #fff8f2 72%,
+    #fff5ee 100%
+  );
+  --app-bg: var(--dash-bg);
+  --panel-bg: var(--dash-surface);
+  --panel-bg-alt: var(--dash-surface-alt);
+}
+
+html[data-aep-theme='dark'][data-aep-bg-preset='warm'] body.home-dashboard-concierge {
+  --dash-bg: #131210;
+  --dash-surface: #1f1c18;
+  --dash-surface-alt: #181612;
+  --dash-hero-grad: linear-gradient(105deg, #2a2318 0%, #2c2018 38%, #2a1c28 72%, #1c1814 100%);
+  --app-bg: var(--dash-bg);
+  --panel-bg: var(--dash-surface);
+  --panel-bg-alt: var(--dash-surface-alt);
+}
+
+html[data-aep-bg-preset='cool'] body.home-dashboard-concierge {
+  --dash-bg: #eef2f7;
+  --dash-surface: #fbfcfe;
+  --dash-surface-alt: #e8eef6;
+  --dash-hero-grad: linear-gradient(
+    105deg,
+    #e4ecfb 0%,
+    #e8f0ff 38%,
+    #f0f4fc 72%,
+    #eef6ff 100%
+  );
+  --app-bg: var(--dash-bg);
+  --panel-bg: var(--dash-surface);
+  --panel-bg-alt: var(--dash-surface-alt);
+}
+
+html[data-aep-theme='dark'][data-aep-bg-preset='cool'] body.home-dashboard-concierge {
+  --dash-bg: #0e1118;
+  --dash-surface: #161b26;
+  --dash-surface-alt: #12151e;
+  --dash-hero-grad: linear-gradient(
+    105deg,
+    #151a28 0%,
+    #181d2e 38%,
+    #1a1f32 72%,
+    #141820 100%
+  );
+  --app-bg: var(--dash-bg);
+  --panel-bg: var(--dash-surface);
+  --panel-bg-alt: var(--dash-surface-alt);
+}
+
+html[data-aep-bg-preset='contrast'] body.home-dashboard-concierge {
+  --dash-bg: #e8e8ec;
+  --dash-surface: #ffffff;
+  --dash-surface-alt: #f0f0f4;
+  --dash-border: #d4d2dc;
+  --dash-hero-grad: linear-gradient(
+    105deg,
+    #dde2f5 0%,
+    #e6e2f8 38%,
+    #f2eef8 72%,
+    #fdeee8 100%
+  );
+  --app-bg: var(--dash-bg);
+  --panel-bg: var(--dash-surface);
+  --panel-bg-alt: var(--dash-surface-alt);
+}
+
+html[data-aep-theme='dark'][data-aep-bg-preset='contrast'] body.home-dashboard-concierge {
+  --dash-bg: #0a0c0f;
+  --dash-surface: #14181f;
+  --dash-surface-alt: #0f1218;
+  --dash-border: #323944;
+  --dash-hero-grad: linear-gradient(
+    105deg,
+    #14182a 0%,
+    #1a1628 38%,
+    #221828 72%,
+    #201810 100%
+  );
+  --app-bg: var(--dash-bg);
+  --panel-bg: var(--dash-surface);
+  --panel-bg-alt: var(--dash-surface-alt);
+}
