@@ -2645,6 +2645,20 @@ exports.brandScraperClassify = onRequest(
   }
 );
 
+/** GET/PUT /api/brand-scraper/model-config?sandbox=… — per-sandbox LLM provider + Secret Manager keys. */
+exports.brandScraperModelConfig = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, PUT, POST, OPTIONS');
+    await brandScraperService.handleModelConfig(req, res);
+  }
+);
+
 /** POST /api/brand-scraper/scrapes/export?sandbox=… — build ZIP + return signed URL. */
 exports.brandScraperExport = onRequest(
   {
