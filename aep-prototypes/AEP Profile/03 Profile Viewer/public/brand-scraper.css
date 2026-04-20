@@ -265,6 +265,12 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   gap: 10px;
 }
 
+.brand-scraper-model-collapsed[hidden],
+.brand-scraper-model-expanded[hidden],
+.brand-scraper-model-key-row[hidden] {
+  display: none !important;
+}
+
 .brand-scraper-model-collapsed {
   display: flex;
   align-items: center;
