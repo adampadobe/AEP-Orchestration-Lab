@@ -808,18 +808,20 @@
                 <option value="surfaces" selected><code>surfaces</code> + <code>applyPropositions</code> (AJO / code-based)</option>
                 <option value="decisionScopes"><code>decisionScopes</code> (explicit scopes)</option>
               </select>
-              <label class="chk"><input type="checkbox" id="edgeForceConfigure"> <span>Also call <code>alloy('configure')</code> with the datastream ID above (usually off if Launch already configures Web SDK)</span></label>
               <div class="cd-edge-field" id="cdLabScopesRow">
                 <label for="decisionScopes">Extra decision scopes (optional, comma-separated)</label>
                 <input id="decisionScopes" type="text" placeholder="Leave empty to use placement fragments + this page URL" autocomplete="off">
               </div>
-              <p class="hint" style="margin-top:0.65rem;">
-                <strong>Tags (Launch):</strong> the embed script is created in <a href="https://experience.adobe.com/data-collection/tags" target="_blank" rel="noopener">Tags</a> (property → Web SDK extension → set Edge Config ID above → Development environment). This does not auto-create a property; use <strong>Test Tags API</strong> to verify your IMS token can reach Reactor.
-              </p>
-              <div class="actions" style="margin-top:0.35rem;">
-                <button type="button" class="secondary" id="cdLabProbeTagsBtn">Test Tags API access</button>
-              </div>
-              <p class="status" id="cdLabTagsApiMsg" role="status" aria-live="polite"></p>
+              <details style="margin-top:0.75rem;">
+                <summary class="hint" style="cursor:pointer;">Troubleshoot — diagnostics</summary>
+                <div style="margin-top:0.5rem;">
+                  <p class="hint">If <strong>Apply &amp; publish to Dev</strong> ever fails with an auth error, click this to verify your IMS token can reach the Tags (Reactor) API.</p>
+                  <div class="actions">
+                    <button type="button" class="secondary" id="cdLabProbeTagsBtn">Test Tags API access</button>
+                  </div>
+                  <p class="status" id="cdLabTagsApiMsg" role="status" aria-live="polite"></p>
+                </div>
+              </details>
             </section>
 
             <section class="cd-lab-step">
