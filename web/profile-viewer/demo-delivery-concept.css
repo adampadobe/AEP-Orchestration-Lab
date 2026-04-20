@@ -96,10 +96,15 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
 
 /*
   Center devices side-by-side (no 50/50 grid = no huge white gutters).
-  Same rendered height on both PNGs; laptop width capped so it is not ultra-widescreen.
+
+  Frame `<img>` boxes must match each PNG’s aspect ratio. A fixed height plus max-width
+  (without aspect-ratio) made `object-fit: contain` letterbox the bitmap inside a taller
+  box, while `.demo-device-screen` %s were relative to that box — white blocks drifted off
+  the glass. Per-device aspect-ratio + max-height + max-width keeps paint and overlay aligned.
 */
 .demo-delivery-page {
-  --demo-delivery-frame-h: min(52vh, 520px);
+  /* Shared vertical budget for sizing `calc(... * ratio)` below */
+  --demo-delivery-frame-max-h: min(64vh, 640px);
 }
 
 .demo-delivery-stage {
@@ -115,25 +120,32 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   position: relative;
   margin: 0;
   flex: 0 0 auto;
-  width: auto;
-  max-width: none;
+  width: fit-content;
+  max-width: 100%;
   display: block;
 }
 
-/* Same height; laptop capped narrower than full column so aspect feels less cinematic */
 .demo-device-frame {
   display: block;
-  height: var(--demo-delivery-frame-h);
-  width: auto;
-  object-fit: contain;
+  height: auto;
+  max-width: 100%;
 }
 
+/*
+  Width is the solved dimension: never wider than the viewport cap, the art cap, or the
+  width implied by `--demo-delivery-frame-max-h` at the PNG aspect ratio — so the layout
+  box always matches the raster (no letterboxing inside the `<img>`).
+*/
 .demo-device--laptop .demo-device-frame {
-  max-width: min(420px, 46vw);
+  aspect-ratio: 377 / 239;
+  width: min(680px, 78vw, calc(var(--demo-delivery-frame-max-h) * 377 / 239));
+  height: auto;
 }
 
 .demo-device--mobile .demo-device-frame {
-  max-width: min(220px, 28vw);
+  aspect-ratio: 167 / 330;
+  width: min(340px, 42vw, calc(var(--demo-delivery-frame-max-h) * 167 / 330));
+  height: auto;
 }
 
 .demo-device-screen {
@@ -290,14 +302,14 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   }
 
   .demo-delivery-page {
-    --demo-delivery-frame-h: min(48vh, 480px);
+    --demo-delivery-frame-max-h: min(58vh, 560px);
   }
 
   .demo-device--laptop .demo-device-frame {
-    max-width: min(92vw, 400px);
+    width: min(620px, 92vw, calc(var(--demo-delivery-frame-max-h) * 377 / 239));
   }
 
   .demo-device--mobile .demo-device-frame {
-    max-width: min(55vw, 240px);
+    width: min(360px, 72vw, calc(var(--demo-delivery-frame-max-h) * 167 / 330));
   }
 }
