@@ -744,8 +744,7 @@
           <div class="panel">
             <h2>Decisioning lab setup</h2>
             <p class="hint" id="cdLabIntroHint">
-              Configure once per <strong>sandbox</strong> (saved to Firebase — sign in anonymously). Same <strong>schema → dataset → datastream</strong> flow as the
-              <a href="event-tool.html">Event tool</a>; then paste your <strong>Adobe Tags</strong> Launch script URL and surface <strong>fragments</strong> that match Journey Optimizer code-based surfaces (<code>web://…#fragment</code>).
+              Configure once per <strong>sandbox</strong> (saved to Firebase — sign in anonymously). Create a datastream in <strong>Data Collection / DSN</strong>, paste its ID plus your <strong>Adobe Tags</strong> Launch script URL below, then define placement <strong>fragments</strong> that match Journey Optimizer code-based surfaces (<code>web://…#fragment</code>).
             </p>
             <p class="status" id="cdLabSaveStatus" role="status" aria-live="polite"></p>
             <div class="cd-sandbox-row">
@@ -756,39 +755,30 @@
             </div>
 
             <section class="cd-lab-step">
-              <h3 class="cd-lab-step-title">1. ExperienceEvent schema &amp; dataset</h3>
-              <p class="hint">Calls <code>/api/events/infra/step</code> — same as the Event tool. After schema + dataset exist, you can <strong>Create datastream</strong> (Edge API) or create one manually in <a href="https://experience.adobe.com/#/data-collection/datastreams" target="_blank" rel="noopener">Data Collection</a> and enable AEP + your dataset (add AJO / personalization services as needed).</p>
-              <label for="cdLabSchemaTitle">Schema name</label>
-              <input type="text" id="cdLabSchemaTitle" placeholder="e.g. AEP Lab - Edge Events" autocomplete="off" spellcheck="false">
-              <div class="actions" style="margin-top:0.35rem;">
-                <button type="button" class="secondary" id="cdLabCreateSchemaBtn">Create schema</button>
-              </div>
-              <p class="status" id="cdLabSchemaMsg" role="status" aria-live="polite"></p>
-              <label for="cdLabDatasetName">Dataset name</label>
-              <input type="text" id="cdLabDatasetName" placeholder="e.g. AEP Lab - Edge Events Dataset" autocomplete="off" spellcheck="false">
-              <div class="actions" style="margin-top:0.35rem;">
-                <button type="button" class="secondary" id="cdLabCreateDatasetBtn">Create dataset</button>
-              </div>
-              <p class="status" id="cdLabDatasetMsg" role="status" aria-live="polite"></p>
-              <div class="actions" style="margin-top:0.5rem;">
-                <button type="button" class="secondary" id="cdLabCheckInfraBtn">Check sandbox status</button>
-              </div>
-              <p class="status" id="cdLabInfraMsg" role="status" aria-live="polite"></p>
-              <label for="cdLabDatastreamTitle">Datastream display name (optional — for API create)</label>
-              <input type="text" id="cdLabDatastreamTitle" placeholder="e.g. AEP Lab — Decisioning" autocomplete="off" spellcheck="false">
-              <div class="actions" style="margin-top:0.35rem;">
-                <button type="button" class="secondary" id="cdLabCreateDatastreamBtn">Create datastream (Edge API)</button>
-              </div>
-              <p class="status" id="cdLabDatastreamMsg" role="status" aria-live="polite"></p>
+              <h3 class="cd-lab-step-title">1. Create a datastream in DSN</h3>
+              <p class="hint">
+                Datastreams are created outside this lab. Use one of the Demo Sandbox Network portals:
+              </p>
+              <ul class="hint" style="margin:0 0 0.5rem 1.1rem; padding:0;">
+                <li><a href="https://livedemos.adobe.com/" target="_blank" rel="noopener">https://livedemos.adobe.com/</a> — live-demos DSN</li>
+                <li><a href="https://dsn.adobe.com/" target="_blank" rel="noopener">https://dsn.adobe.com/</a> — standard DSN</li>
+              </ul>
+              <p class="hint">
+                Inside DSN, create (or pick) a datastream wired to your sandbox with the services you need (AEP, AJO, Personalization). Copy its <strong>Datastream ID</strong> and the Launch <strong>embed-script URL</strong> from the Web SDK extension — you'll paste both below.
+              </p>
             </section>
 
             <section class="cd-lab-step">
-              <h3 class="cd-lab-step-title">2. Datastream, Launch &amp; Edge mode</h3>
-              <label for="edgeConfigId">Datastream ID (Edge config — match Web SDK extension in Tags)</label>
+              <h3 class="cd-lab-step-title">2. Datastream ID &amp; Launch extension</h3>
+              <label for="edgeConfigId">Datastream ID</label>
               <input id="edgeConfigId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
-              <label for="cdLabLaunchUrl">Launch script URL</label>
+              <label for="cdLabLaunchUrl">Launch script URL (Web SDK extension)</label>
               <input id="cdLabLaunchUrl" type="url" placeholder="https://assets.adobedtm.com/.../launch-....min.js" autocomplete="off" spellcheck="false">
-              <label for="cdLabEdgeMode">Personalization API</label>
+              <div class="actions" style="margin-top:0.65rem;">
+                <button type="button" class="primary" id="cdLabSaveConfigBtn">Save to Firebase</button>
+                <button type="button" class="secondary" id="cdLabLoadConfigBtn">Reload from Firebase</button>
+              </div>
+              <label for="cdLabEdgeMode" style="margin-top:1rem;">Personalization API</label>
               <select id="cdLabEdgeMode" class="sandbox-select" aria-label="Edge personalization mode">
                 <option value="surfaces" selected><code>surfaces</code> + <code>applyPropositions</code> (AJO / code-based)</option>
                 <option value="decisionScopes"><code>decisionScopes</code> (explicit scopes)</option>
@@ -815,10 +805,7 @@
               <div class="actions" style="margin-top:0.35rem;">
                 <button type="button" class="secondary" id="cdLabAddPlacementBtn">Add placement</button>
               </div>
-              <div class="actions" style="margin-top:0.65rem;">
-                <button type="button" class="primary" id="cdLabSaveConfigBtn">Save configuration to Firebase</button>
-                <button type="button" class="secondary" id="cdLabLoadConfigBtn">Reload from Firebase</button>
-              </div>
+              <p class="hint" style="margin-top:0.5rem;">Placements are persisted by the <strong>Save to Firebase</strong> button in Step 2.</p>
             </section>
 
             <section class="cd-lab-step">
