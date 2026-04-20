@@ -373,12 +373,15 @@ async function publishRuleToDevelopment({ accessToken, clientId, orgId, property
   // Capture revise outcome for diagnostics.
   const revisionInfo = { ruleId: revise.ruleId, revisionNumber: revise.revisionNumber, httpStatus: revise.httpStatus };
 
-  // 2b) Add the rule as a resource. Tolerate "already a resource" —
-  //    POST relationships/resources is not idempotent by default and may
-  //    error if the rule is already in the library, which is fine.
+  // 2b) Add the *revised* rule as a resource. Launch treats each revision
+  //    as a distinct Reactor resource with its own id; reviseRule returned
+  //    that id above. Tolerate "already a resource" — POST relationships
+  //    is not idempotent by default and may error if the same revision is
+  //    already in the library, which is fine.
+  const revisedRuleId = revise.ruleId || ruleId;
   const addRes = await tagsReactorService.addLibraryResources(
     accessToken, clientId, orgId, library.libraryId,
-    [{ type: 'rules', id: ruleId }],
+    [{ type: 'rules', id: revisedRuleId }],
   );
   if (!addRes.ok) {
     const msg = String(addRes.error || '');
