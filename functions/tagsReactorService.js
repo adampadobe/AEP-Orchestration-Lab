@@ -548,20 +548,41 @@ async function setLibraryEnvironment(token, clientId, orgId, libraryId, environm
  * (rules, data elements, extensions) to a library. Accepts an array of
  * { type, id }.
  */
+/**
+ * Reactor exposes resource relationships per resource *type*, not a generic
+ * "resources" bucket. This helper groups the incoming list by type and
+ * POSTs each group to /libraries/:id/relationships/:type.
+ *
+ * Accepts `[{type:'rules', id:'RL...'}, {type:'data_elements', id:'DE...'}]`.
+ */
 async function addLibraryResources(token, clientId, orgId, libraryId, resources) {
   const lid = String(libraryId || '').trim();
   if (!lid) return { ok: false, httpStatus: 400, error: 'libraryId is required' };
   const list = Array.isArray(resources) ? resources.filter(r => r && r.type && r.id) : [];
   if (!list.length) return { ok: false, httpStatus: 400, error: 'at least one resource required' };
-  const body = { data: list.map(r => ({ type: String(r.type), id: String(r.id) })) };
-  const r = await reactorRequest(token, clientId, orgId, 'POST',
-    '/libraries/' + encodeURIComponent(lid) + '/relationships/resources', body);
-  if (r.ok) return { ok: true, httpStatus: r.httpStatus };
-  // Surface whatever Reactor actually said so we can diagnose empty-error cases.
-  const verbose = r.error && r.error.length > 0
-    ? r.error
-    : ('HTTP ' + (r.httpStatus || '?') + (r.raw ? ' · ' + JSON.stringify(r.raw).slice(0, 400) : ''));
-  return { ok: false, httpStatus: r.httpStatus, error: verbose, raw: r.raw };
+
+  // Group by type.
+  const byType = new Map();
+  for (const r of list) {
+    const t = String(r.type);
+    if (!byType.has(t)) byType.set(t, []);
+    byType.get(t).push({ type: t, id: String(r.id) });
+  }
+
+  let firstError = null;
+  for (const [type, items] of byType.entries()) {
+    const body = { data: items };
+    const r = await reactorRequest(token, clientId, orgId, 'POST',
+      '/libraries/' + encodeURIComponent(lid) + '/relationships/' + encodeURIComponent(type), body);
+    if (!r.ok && !firstError) {
+      const verbose = r.error && r.error.length > 0
+        ? r.error
+        : ('HTTP ' + (r.httpStatus || '?') + (r.raw ? ' · ' + JSON.stringify(r.raw).slice(0, 400) : ''));
+      firstError = { httpStatus: r.httpStatus, error: verbose, raw: r.raw, type };
+    }
+  }
+  if (firstError) return { ok: false, ...firstError };
+  return { ok: true };
 }
 
 /**
