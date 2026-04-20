@@ -136,6 +136,7 @@
       items: [
         { label: 'Experimentation visualiser (in development)', href: 'experimentation-visualiser.html', inDevelopment: true, navHideKey: 'experimentationVisualiser', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M6.5 2.25a.75.75 0 0 1 .75-.75h4a.75.75 0 0 1 .75.75v4.38l3.42 7.6a1.25 1.25 0 0 1-1.14 1.77H4.02a1.25 1.25 0 0 1-1.14-1.77l3.42-7.6V2.25Z"/><path fill="currentColor" fill-opacity=".35" d="M6 8.5h6l-1.2 2.67a2 2 0 0 1-1.83 1.2H9.03a2 2 0 0 1-1.83-1.2L6 8.5Z"/></svg>' },
         { label: 'Experimentation overview (in development)', href: 'experimentation-overview.html', inDevelopment: true, navHideKey: 'experimentationOverview', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="2.5" width="12" height="13" rx="1.5"/><path d="M6 6.5h6M6 9.5h6M6 12.5h4"/></svg>' },
+        { label: 'Experimentation Accelerator', href: 'experimentation-accelerator.html', navHideKey: 'experimentationAccelerator', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10.5 1.25 4.5 10.25h3.75L8.25 16.75 13.5 7.75H9.75L10.5 1.25Z"/></svg>' },
       ],
     },
     {

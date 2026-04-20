@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="aep-head-sync.js?v=20260416c"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experimentation Accelerator – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260420">
+  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260420">
+</head>
+<body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Demo replica">Demo</span>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="home.html" class="dashboard-topbar-icon" title="Home">⌂</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-viewer-main">
+        <div class="exp-accel-wrap">
+          <div class="exp-accel-banner" aria-labelledby="expAccelBannerTitle">
+            <h2 id="expAccelBannerTitle">Experimentation Accelerator</h2>
+            <p>
+              Two-screen click-through of the Adobe Journey Optimizer “Experimentation Accelerator” area. Click the screenshot (or use Next) to move to the second view; on the second view, click again to return to the first.
+            </p>
+            <div class="exp-accel-toolbar">
+              <span id="expAccelStepHint" class="exp-accel-step-hint" role="status" aria-live="polite">Screen 1 of 2</span>
+              <button type="button" class="exp-accel-next-btn" id="expAccelNextBtn">Next screen</button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="exp-accel-stage"
+            id="expAccelStage"
+            tabindex="0"
+            aria-label="Advance to the second demo screen"
+          >
+            <span class="exp-accel-sr-hint">Activate to advance the demo</span>
+            <img
+              id="expAccelImg"
+              class="exp-accel-img"
+              src="assets/experimentation-accelerator/demo-step-1.png"
+              data-url-step1="assets/experimentation-accelerator/demo-step-1.png"
+              data-url-step2="assets/experimentation-accelerator/demo-step-2.png"
+              width="1920"
+              height="1080"
+              alt=""
+              decoding="async"
+              draggable="false"
+            />
+          </button>
+        </div>
+
+        <div id="expAccelDockOuter" class="workflow-dock-outer" aria-label="Customise dock">
+          <div class="workflow-dock-slide">
+            <details class="workflow-drawer" id="expAccelCustomiseDrawer">
+              <summary class="workflow-summary" aria-label="Customise">
+                <span class="workflow-summary__row">
+                  <span class="workflow-summary__label">Customise</span>
+                  <span class="workflow-summary__icon" aria-hidden="true"></span>
+                </span>
+              </summary>
+              <div class="workflow-drawer-scroll">
+                <div class="panel">
+                  <h2>Accelerator demo images</h2>
+                  <p class="hint">
+                    Replace the two full-page screenshots used in this click-through. URLs are saved per <strong>AEP sandbox</strong> (same session model as other lab tools). Use <code>https://…</code> for hosted images, or a path relative to this page such as <code>assets/experimentation-accelerator/demo-step-1.png</code>. Leave a field empty to use the bundled default.
+                  </p>
+                  <label for="expAccelSandboxSelect">Sandbox</label>
+                  <select id="expAccelSandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox"></select>
+                  <label for="expAccelUrlStep1">Screen 1 image URL or path</label>
+                  <input id="expAccelUrlStep1" type="url" inputmode="url" autocomplete="off" placeholder="https://… or assets/…">
+                  <label for="expAccelUrlStep2">Screen 2 image URL or path</label>
+                  <input id="expAccelUrlStep2" type="url" inputmode="url" autocomplete="off" placeholder="https://… or assets/…">
+                  <div class="actions">
+                    <button type="button" class="primary" id="expAccelCustomiseUpdate">Update</button>
+                  </div>
+                  <p id="expAccelCustomiseStatus" class="status" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+            </details>
+          </div>
+          <div class="workflow-dock-hit" id="expAccelDockHit" role="presentation" aria-hidden="true" title="Move pointer to bottom edge to reveal Customise"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260443"></script>
+
+  <script defer src="aep-theme.js?v=20260406"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
+  <script defer src="experimentation-accelerator.js?v=20260420"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260420"></script>
+</body>
+</html>

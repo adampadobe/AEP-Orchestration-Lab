@@ -1,0 +1,270 @@
+/* Bottom “Customise” dock — same interaction model as Experimentation visualiser */
+
+.experimentation-accelerator-page #expAccelDockOuter {
+  --exp-accel-font: Inter, "Segoe UI", system-ui, sans-serif;
+  --bg-panel: var(--dash-surface, #fff);
+  --bg-hover: var(--dash-hover, #eef0f4);
+  --border: var(--dash-border, #d8dde6);
+  --text: var(--dash-text, #2c2c2c);
+  --muted: var(--dash-muted, #6e6e6e);
+  --accent: var(--dash-blue, #1473e6);
+  --accent-hover: #0d66d0;
+  --success: #268e6c;
+  --error: #d7373f;
+  --radius: 8px;
+  font-family: var(--exp-accel-font);
+}
+
+html[data-aep-theme='dark'] .experimentation-accelerator-page #expAccelDockOuter {
+  --bg-panel: var(--dash-surface-2, #252830);
+  --bg-hover: #2d3139;
+  --border: #3d424d;
+  --text: #e6e9ef;
+  --muted: #8b909a;
+  --accent: #7c9fe6;
+  --accent-hover: #94b3f0;
+  --success: #7dd3a8;
+  --error: #e07d7d;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter.workflow-dock-outer {
+  position: fixed;
+  z-index: 100;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-dock-slide {
+  min-height: 0;
+  height: 0;
+  max-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: none;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter.workflow-dock-outer--peek:not(:has(#expAccelCustomiseDrawer[open])) .workflow-dock-slide,
+.experimentation-accelerator-page #expAccelDockOuter:not(:has(#expAccelCustomiseDrawer[open])):focus-within .workflow-dock-slide {
+  height: auto;
+  max-height: var(--wf-peek-h, 2.25rem);
+  pointer-events: auto;
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter:has(#expAccelCustomiseDrawer[open]) .workflow-dock-slide {
+  height: auto;
+  max-height: min(75vh, calc(100vh - 4.5rem));
+  pointer-events: auto;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.1);
+}
+
+@supports (height: 100dvh) {
+  .experimentation-accelerator-page #expAccelDockOuter:has(#expAccelCustomiseDrawer[open]) .workflow-dock-slide {
+    max-height: min(75vh, calc(100dvh - 4.5rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .experimentation-accelerator-page #expAccelDockOuter .workflow-dock-slide {
+    transition-duration: 0.01ms;
+  }
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-dock-hit {
+  height: 20px;
+  flex-shrink: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  box-sizing: border-box;
+  border: none;
+  background: transparent;
+  box-shadow: inset 0 1px 0 rgba(15, 20, 30, 0.07);
+}
+
+html[data-aep-theme='dark'] .experimentation-accelerator-page #expAccelDockOuter .workflow-dock-hit {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-dock-slide .workflow-drawer {
+  min-height: 0;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+  --wf-summary-h: 2.25rem;
+  --wf-peek-h: var(--wf-summary-h);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer[open] {
+  --wf-drawer-h: min(75vh, calc(100vh - 4.5rem));
+  display: block;
+  height: var(--wf-drawer-h);
+  max-height: var(--wf-drawer-h);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+@supports (height: 100dvh) {
+  .experimentation-accelerator-page #expAccelDockOuter .workflow-drawer[open] {
+    --wf-drawer-h: min(75vh, calc(100dvh - 4.5rem));
+  }
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer > summary.workflow-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.35rem 1rem 0.4rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  border-bottom: 1px solid transparent;
+  box-sizing: border-box;
+  min-height: var(--wf-summary-h);
+  height: var(--wf-summary-h);
+  flex-shrink: 0;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer > summary.workflow-summary::-webkit-details-marker {
+  display: none;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-summary__label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-summary__icon {
+  flex-shrink: 0;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  opacity: 0.85;
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer[open] > summary.workflow-summary {
+  border-bottom-color: var(--border);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer[open] > summary.workflow-summary .workflow-summary__icon {
+  transform: rotate(-135deg);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll {
+  box-sizing: border-box;
+  padding: 1rem 1.5rem 1.5rem;
+  font-family: var(--exp-accel-font);
+  color: var(--text);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll input[type='url'],
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  background: var(--bg-panel);
+  color: var(--text);
+  margin-bottom: 0.65rem;
+  font-family: var(--exp-accel-font);
+  box-sizing: border-box;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll input:focus,
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll select:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll .panel h2 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  color: var(--text);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll .hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll button.primary {
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll button.primary:hover {
+  background: var(--accent-hover);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll .status {
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+  color: var(--muted);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll .status.ok {
+  color: var(--success);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll .status.err {
+  color: var(--error);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer[open] .workflow-drawer-scroll {
+  height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
+  max-height: calc(var(--wf-drawer-h) - var(--wf-summary-h));
+  overflow-y: auto;
+}
