@@ -1,16 +1,34 @@
-/* Demo Delivery: device chrome only. AJO hero + content card rules come from race-for-life-demo.css (#hero-banner, #ContentCardContainer, .race-ajo-*). */
+/* Demo Delivery: device chrome + layout. AJO base rules from race-for-life-demo.css; scoped overrides below. */
+
+body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main.app-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 0.45rem;
+  padding-bottom: 1rem;
+  padding-left: clamp(0.35rem, 1vw, 0.65rem);
+  padding-right: clamp(0.35rem, 1vw, 0.65rem);
+}
+
+.demo-delivery-page .dashboard-hero {
+  margin-bottom: 0.65rem;
+}
+
+.demo-delivery-page .dashboard-hero--page-banner .dashboard-hero-inner {
+  padding: 0.85rem clamp(0.75rem, 2vw, 1.15rem) 0.95rem;
+}
 
 .demo-delivery-page .dashboard-main.demo-delivery-main {
   padding-top: 0;
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 100%;
 }
 
 .demo-delivery-main {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .demo-delivery-controls {
@@ -18,7 +36,7 @@
   flex-wrap: wrap;
   gap: 12px;
   align-items: end;
-  padding: 16px;
+  padding: 12px 14px;
   border: 1px solid var(--dash-border);
   border-radius: var(--dash-radius-sm);
   background: var(--dash-surface);
@@ -58,7 +76,7 @@
 
 .demo-delivery-status {
   margin: 0;
-  min-height: 20px;
+  min-height: 18px;
   font-size: 13px;
   color: var(--dash-text-secondary);
 }
@@ -69,7 +87,6 @@
 
 /*
   Outer .race-ajo-mounts is only for loading state + SDK hint (race-for-life-demo.css).
-  Do not cap width at 840px here — that was for the Race for Life column layout.
 */
 .demo-delivery-stage.race-ajo-mounts {
   width: 100%;
@@ -78,11 +95,17 @@
   margin-right: auto;
 }
 
+/* Same rendered height for both device PNGs (width follows aspect; centered in column). */
+.demo-delivery-page {
+  --demo-delivery-frame-h: min(58vh, 620px);
+}
+
 .demo-delivery-stage {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(16px, 2vw, 28px);
-  align-items: start;
+  gap: clamp(8px, 1.2vw, 16px);
+  align-items: center;
+  justify-items: center;
   width: 100%;
 }
 
@@ -91,64 +114,155 @@
   margin: 0;
   width: 100%;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Same visual column width: both mockups scale to the full grid cell (larger than before). */
 .demo-device--laptop,
 .demo-device--mobile {
   max-width: none;
 }
 
 .demo-device-frame {
-  width: 100%;
-  height: auto;
   display: block;
+  height: var(--demo-delivery-frame-h);
+  width: auto;
+  max-width: min(100%, 920px);
+  object-fit: contain;
 }
 
 .demo-device-screen {
   position: absolute;
-  overflow: auto;
+  overflow: hidden;
   -webkit-overflow-scrolling: touch;
   border-radius: 10px;
   background: #fff;
   border: 1px solid var(--dash-border);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Laptop PNG: white screen inset (percent of rendered image size) */
+/* Laptop PNG: screen cutout */
 .demo-device-screen--laptop {
   left: 24.5%;
   top: 21.8%;
   width: 51.1%;
   height: 55.1%;
+  display: flex;
+  flex-direction: column;
 }
 
-/*
-  Mobile PNG scaled to same article width as laptop; inset matches the phone screen in this asset.
-*/
+/* Mobile PNG: screen cutout */
 .demo-device-screen--mobile {
   left: 41.8%;
   top: 12.2%;
   width: 17.1%;
   height: 75.4%;
   border-radius: 26px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Mount points: match Race for Life stacking inside the screen cutout */
+/* Hero fills laptop viewport */
+.demo-device-screen--laptop #hero-banner {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+}
+
+.demo-device-screen--laptop #hero-banner:not(:empty) {
+  padding: 0;
+}
+
+/* Content card region: edge-to-edge inside phone bezel (full-screen in device) */
+.demo-device-screen--mobile #ContentCardContainer,
+.demo-device-screen--mobile #ContentCardContainer:not(:empty) {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-height: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  isolation: auto;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #fff !important;
+  overflow: auto;
+}
+
+.demo-device-screen--mobile #ContentCardContainer .Banner,
+.demo-device-screen--mobile #ContentCardContainer [class^='Banner'] {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-height: min-content !important;
+  max-width: none !important;
+}
+
+.demo-device-screen--mobile #ContentCardContainer .Banner__content,
+.demo-device-screen--mobile #ContentCardContainer [class*='Banner__content'] {
+  flex: 1 1 auto !important;
+}
+
+.demo-device-screen--mobile .race-ajo-content-card {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  width: 100%;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+
+.demo-device-screen--mobile .race-ajo-content-card-inner {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border-radius: 0 !important;
+  overflow: hidden;
+}
+
+.demo-device-screen--mobile .race-ajo-content-card-img {
+  width: 100% !important;
+  max-height: none !important;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.demo-device-screen--mobile .race-ajo-content-card-body {
+  flex: 1 1 auto;
+  padding: 0.65rem 0.75rem 0.85rem !important;
+}
+
+.demo-device-screen--mobile .race-ajo-iframe {
+  flex: 1 1 auto;
+  width: 100% !important;
+  min-height: 120px !important;
+  border-radius: 0 !important;
+}
+
 .demo-device-screen .race-ajo-hero,
 .demo-device-screen .race-ajo-content-cards {
   min-height: 0;
 }
 
-.demo-device-screen #hero-banner:not(:empty) {
-  padding: 0.5rem 0;
-}
-
-.demo-device-screen #ContentCardContainer:not(:empty) {
-  padding: 0.5rem 0;
-}
-
 @media (max-width: 960px) {
   .demo-delivery-stage {
     grid-template-columns: 1fr;
+  }
+
+  .demo-delivery-page {
+    --demo-delivery-frame-h: min(52vh, 520px);
   }
 }
