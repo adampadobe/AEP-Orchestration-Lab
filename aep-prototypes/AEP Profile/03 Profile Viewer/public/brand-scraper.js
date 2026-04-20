@@ -20,6 +20,28 @@
     } catch (_e) { return ''; }
   }
 
+  const LS_COUNTRY_PREFIX = 'aepBrandScraperCountry_';
+  function countryKey(sb) { return LS_COUNTRY_PREFIX + (sb || 'default'); }
+
+  function applyStoredCountry() {
+    if (!countrySel) return;
+    const sb = getSandbox();
+    let stored = null;
+    try { stored = localStorage.getItem(countryKey(sb)); } catch (_e) { /* ignore */ }
+    if (!stored) return;
+    // Only set if the option actually exists in the dropdown.
+    const has = Array.from(countrySel.options).some(o => o.value === stored);
+    if (has) countrySel.value = stored;
+  }
+
+  if (countrySel) {
+    countrySel.addEventListener('change', () => {
+      const sb = getSandbox();
+      if (!sb) return; // no sandbox, no sticky save
+      try { localStorage.setItem(countryKey(sb), countrySel.value); } catch (_e) { /* ignore */ }
+    });
+  }
+
   function withSandboxQuery(path) {
     const sb = getSandbox();
     const sep = path.includes('?') ? '&' : '?';
@@ -229,6 +251,7 @@
     resultsEl.hidden = true;
     resultsEl.innerHTML = '';
     setStatus('');
+    applyStoredCountry();
     loadHistory();
   });
 
@@ -279,5 +302,5 @@
   });
 
   // Initial load — wait a tick so the sidebar/sandbox sync can settle.
-  setTimeout(loadHistory, 300);
+  setTimeout(() => { applyStoredCountry(); loadHistory(); }, 300);
 })();
