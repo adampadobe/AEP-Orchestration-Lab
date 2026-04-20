@@ -10,13 +10,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>window.dataLayer = window.dataLayer || [];</script>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
-  <link rel="stylesheet" href="demo-delivery-concept.css?v=20260420a">
+  <link rel="stylesheet" href="race-for-life-demo.css?v=20260420b">
+  <link rel="stylesheet" href="demo-delivery-concept.css?v=20260420b">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
 </head>
-<body class="demo-delivery-page home-dashboard-concierge">
+<body class="demo-delivery-page home-dashboard-concierge" data-aep-ajo-view-name="Race for Life" data-aep-ajo-page-name="Race for Life">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -64,14 +66,16 @@
           <article class="demo-device demo-device--laptop">
             <img src="images/demo-delivery-laptop.png" alt="Laptop mockup frame" class="demo-device-frame" width="639" height="362" loading="lazy" decoding="async">
             <div class="demo-device-screen demo-device-screen--laptop">
-              <section id="hero-banner" class="demo-delivery-surface demo-delivery-surface--hero" role="region" aria-label="Laptop hero surface"></section>
+              <!-- Same ids/classes as Race for Life: decisioning targets #hero-banner -->
+              <section id="hero-banner" class="race-ajo-hero" role="region" aria-label="Personalized hero"></section>
             </div>
           </article>
 
           <article class="demo-device demo-device--mobile">
-            <img src="images/demo-delivery-mobile.png" alt="Mobile mockup frame" class="demo-device-frame" width="476" height="362" loading="lazy" decoding="async">
+            <img src="images/demo-delivery-mobile.png" alt="Mobile mockup frame" class="demo-device-frame" width="639" height="362" loading="lazy" decoding="async">
             <div class="demo-device-screen demo-device-screen--mobile">
-              <section id="ContentCardContainer" class="demo-delivery-surface demo-delivery-surface--card ContentCardContainer" role="region" aria-label="Mobile content card surface"></section>
+              <!-- Same ids/classes as Race for Life: content cards target #ContentCardContainer -->
+              <section id="ContentCardContainer" class="race-ajo-content-cards ContentCardContainer" role="region" aria-label="Content cards"></section>
             </div>
           </article>
         </section>
@@ -82,8 +86,8 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="email-cache.js"></script>
   <script src="identity-picker.js"></script>
-  <script src="race-for-life-ajo.js?v=20260416"></script>
-  <script src="demo-delivery-concept.js?v=20260420a"></script>
+  <script src="race-for-life-ajo.js?v=20260420b"></script>
+  <script src="demo-delivery-concept.js?v=20260420b"></script>
   <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260420-demo-delivery-concept"></script>

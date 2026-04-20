@@ -1,3 +1,12 @@
+/* Demo Delivery: device chrome only. AJO hero + content card rules come from race-for-life-demo.css (#hero-banner, #ContentCardContainer, .race-ajo-*). */
+
+.demo-delivery-page .dashboard-main.demo-delivery-main {
+  padding-top: 0;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .demo-delivery-main {
   display: flex;
   flex-direction: column;
@@ -58,29 +67,36 @@
   color: var(--dash-danger, var(--dash-text-secondary));
 }
 
+/*
+  Outer .race-ajo-mounts is only for loading state + SDK hint (race-for-life-demo.css).
+  Do not cap width at 840px here — that was for the Race for Life column layout.
+*/
+.demo-delivery-stage.race-ajo-mounts {
+  width: 100%;
+  max-width: none;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .demo-delivery-stage {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(16px, 2vw, 28px);
+  align-items: start;
+  width: 100%;
 }
 
 .demo-device {
   position: relative;
   margin: 0;
+  width: 100%;
+  min-width: 0;
 }
 
-.demo-device--laptop {
-  flex: 1 1 620px;
-  max-width: 760px;
-  min-width: 420px;
-}
-
+/* Same visual column width: both mockups scale to the full grid cell (larger than before). */
+.demo-device--laptop,
 .demo-device--mobile {
-  flex: 0 1 280px;
-  min-width: 220px;
-  max-width: 320px;
+  max-width: none;
 }
 
 .demo-device-frame {
@@ -92,11 +108,13 @@
 .demo-device-screen {
   position: absolute;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: 10px;
-  background: var(--dash-bg);
+  background: #fff;
   border: 1px solid var(--dash-border);
 }
 
+/* Laptop PNG: white screen inset (percent of rendered image size) */
 .demo-device-screen--laptop {
   left: 24.5%;
   top: 21.8%;
@@ -104,6 +122,9 @@
   height: 55.1%;
 }
 
+/*
+  Mobile PNG scaled to same article width as laptop; inset matches the phone screen in this asset.
+*/
 .demo-device-screen--mobile {
   left: 41.8%;
   top: 12.2%;
@@ -112,93 +133,22 @@
   border-radius: 26px;
 }
 
-.demo-delivery-surface {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 100%;
-  padding: 12px;
+/* Mount points: match Race for Life stacking inside the screen cutout */
+.demo-device-screen .race-ajo-hero,
+.demo-device-screen .race-ajo-content-cards {
+  min-height: 0;
 }
 
-.demo-delivery-surface:empty::before {
-  content: "Decisioning content will render here after profile lookup.";
-  display: block;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--dash-text-secondary);
+.demo-device-screen #hero-banner:not(:empty) {
+  padding: 0.5rem 0;
 }
 
-.demo-device-screen--mobile .demo-delivery-surface {
-  padding: 10px;
+.demo-device-screen #ContentCardContainer:not(:empty) {
+  padding: 0.5rem 0;
 }
 
-.race-ajo-sdk-hint {
-  margin: 0 0 8px;
-  font-size: 12px;
-  color: var(--dash-text-secondary);
-}
-
-.race-ajo-sdk-hint--error {
-  color: var(--dash-danger, var(--dash-text-secondary));
-}
-
-.race-ajo-content-card {
-  border: 1px solid var(--dash-border);
-  border-radius: var(--dash-radius-sm);
-  background: var(--dash-surface);
-}
-
-.race-ajo-content-card-inner {
-  display: flex;
-  flex-direction: column;
-}
-
-.race-ajo-content-card-img {
-  width: 100%;
-  height: auto;
-  border-radius: 10px;
-  margin-bottom: 10px;
-}
-
-.race-ajo-content-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.race-ajo-content-card-title {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.3;
-  color: var(--dash-text);
-}
-
-.race-ajo-content-card-desc {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--dash-text-secondary);
-}
-
-.race-ajo-iframe {
-  width: 100%;
-  min-height: 240px;
-  border: 0;
-  border-radius: var(--dash-radius-sm);
-}
-
-.demo-device-screen--mobile .race-ajo-iframe {
-  min-height: 300px;
-}
-
-@media (max-width: 1120px) {
+@media (max-width: 960px) {
   .demo-delivery-stage {
-    justify-content: center;
-  }
-
-  .demo-device--laptop,
-  .demo-device--mobile {
-    max-width: 640px;
-    width: 100%;
-    min-width: 0;
+    grid-template-columns: 1fr;
   }
 }
