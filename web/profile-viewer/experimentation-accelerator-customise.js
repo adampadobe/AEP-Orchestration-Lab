@@ -1,6 +1,8 @@
 /**
  * Customise dock: display name + team label for Experimentation Accelerator demo (native UI).
- * Storage: localStorage aepExpAccelUiPrefs JSON { [sandboxKey]: { displayName, teamName } }.
+ * Hero first name: optional per-sandbox override; otherwise `/api/profile/consent` for the
+ * most recent email identifier (same sandbox), then fallback default.
+ * Storage: localStorage aepExpAccelUiPrefs JSON { [sandboxKey]: { displayNameOverride?, teamName, displayName? } }.
  */
 (function () {
   var LS = 'aepExpAccelUiPrefs';
@@ -9,6 +11,9 @@
     displayName: 'Tina',
     teamName: 'Adobe.com',
   };
+
+  var lastResolvedFirstName = '';
+  var fetchGen = 0;
 
   function sandboxKey(name) {
     var s = name != null ? String(name).trim() : '';
@@ -46,23 +51,103 @@
     writeAll(all);
   }
 
-  function mergeDefaults(stored) {
-    var o = {};
-    Object.keys(DEFAULTS).forEach(function (k) {
-      o[k] =
-        stored && typeof stored[k] === 'string' && stored[k].trim()
-          ? stored[k].trim()
-          : DEFAULTS[k];
+  /**
+   * Explicit override from Customise, or legacy { displayName } from earlier builds.
+   */
+  function getNameOverride(sb) {
+    var p = getForSandbox(sb);
+    if (!p) return null;
+    if (Object.prototype.hasOwnProperty.call(p, 'displayNameOverride')) {
+      var vo = p.displayNameOverride;
+      if (vo === null || vo === '') return null;
+      if (typeof vo === 'string' && vo.trim()) return vo.trim();
+      return null;
+    }
+    if (typeof p.displayName === 'string' && p.displayName.trim()) return p.displayName.trim();
+    return null;
+  }
+
+  function sandboxQsForApi() {
+    if (typeof AepGlobalSandbox !== 'undefined' && typeof AepGlobalSandbox.getSandboxParam === 'function') {
+      return AepGlobalSandbox.getSandboxParam();
+    }
+    return '';
+  }
+
+  function getRecentEmailIdentifier() {
+    try {
+      var raw = localStorage.getItem('aep-profile-viewer-recent-identifiers-v1');
+      if (!raw) return '';
+      var o = JSON.parse(raw);
+      var emails = o && o.email;
+      if (Array.isArray(emails) && emails.length && emails[0]) return String(emails[0]).trim();
+    } catch (e) {}
+    return '';
+  }
+
+  function fetchProfileFirstName() {
+    var email = getRecentEmailIdentifier();
+    if (!email) return Promise.resolve('');
+    var p = new URLSearchParams();
+    p.set('identifier', email);
+    p.set('namespace', 'email');
+    return fetch('/api/profile/consent?' + p.toString() + sandboxQsForApi())
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || data.found === false) return '';
+        var fn = data.firstName;
+        return fn != null && String(fn).trim() ? String(fn).trim() : '';
+      })
+      .catch(function () {
+        return '';
+      });
+  }
+
+  function applyHeroNameEl(name) {
+    var nameEl = document.getElementById('expAccelDisplayName');
+    if (nameEl) nameEl.textContent = name;
+  }
+
+  function fillNameInputOnly() {
+    var n = document.getElementById('expAccelDisplayNameInput');
+    if (!n || document.activeElement === n) return;
+    var sb = currentSandboxName();
+    var o = getNameOverride(sb);
+    n.value = o != null ? o : lastResolvedFirstName || '';
+  }
+
+  function resolveAndApplyHeroName() {
+    var sb = currentSandboxName();
+    var gen = ++fetchGen;
+    var override = getNameOverride(sb);
+    if (override) {
+      lastResolvedFirstName = override;
+      applyHeroNameEl(override);
+      fillNameInputOnly();
+      return;
+    }
+    fetchProfileFirstName().then(function (fn) {
+      if (gen !== fetchGen) return;
+      var show = fn || DEFAULTS.displayName;
+      lastResolvedFirstName = show;
+      applyHeroNameEl(show);
+      fillNameInputOnly();
     });
-    return o;
+  }
+
+  function mergeTeam(stored) {
+    return stored && typeof stored.teamName === 'string' && stored.teamName.trim()
+      ? stored.teamName.trim()
+      : DEFAULTS.teamName;
   }
 
   function applyToDom(prefs) {
-    var p = mergeDefaults(prefs);
-    var nameEl = document.getElementById('expAccelDisplayName');
+    var raw = prefs && typeof prefs === 'object' ? prefs : {};
     var teamEl = document.getElementById('expAccelTeamDisplay');
-    if (nameEl) nameEl.textContent = p.displayName;
-    if (teamEl) teamEl.textContent = p.teamName;
+    if (teamEl) teamEl.textContent = mergeTeam(raw);
+    resolveAndApplyHeroName();
   }
 
   function setStatus(msg, kind) {
@@ -170,11 +255,16 @@
   }
 
   function fillInputs() {
-    var m = mergeDefaults(getForSandbox(currentSandboxName()));
-    var n = document.getElementById('expAccelDisplayNameInput');
+    var m = getForSandbox(currentSandboxName());
+    var team = mergeTeam(m || {});
     var t = document.getElementById('expAccelTeamInput');
-    if (n) n.value = m.displayName;
-    if (t) t.value = m.teamName;
+    if (t) t.value = team;
+    fillNameInputOnly();
+  }
+
+  function refreshFromStorage() {
+    fillInputs();
+    applyToDom(getForSandbox(currentSandboxName()) || {});
   }
 
   function init() {
@@ -184,21 +274,25 @@
     var btn = document.getElementById('expAccelCustomiseUpdate');
     if (btn) {
       btn.addEventListener('click', function () {
+        var sb = currentSandboxName();
         var d = (document.getElementById('expAccelDisplayNameInput') || {}).value;
         var team = (document.getElementById('expAccelTeamInput') || {}).value;
-        var out = {
-          displayName: d != null && String(d).trim() ? String(d).trim() : DEFAULTS.displayName,
-          teamName: team != null && String(team).trim() ? String(team).trim() : DEFAULTS.teamName,
-        };
-        saveForSandbox(currentSandboxName(), out);
-        applyToDom(out);
-        setStatus('Updated labels for sandbox “' + (currentSandboxName() || 'default') + '”.', 'ok');
+        var trimmed = d != null ? String(d).trim() : '';
+        var teamTrim = team != null && String(team).trim() ? String(team).trim() : DEFAULTS.teamName;
+        var prev = getForSandbox(sb) || {};
+        var payload = Object.assign({}, prev, {
+          displayNameOverride: trimmed ? trimmed : null,
+          teamName: teamTrim,
+        });
+        if (trimmed) {
+          payload.displayName = trimmed;
+        } else {
+          delete payload.displayName;
+        }
+        saveForSandbox(sb, payload);
+        refreshFromStorage();
+        setStatus('Updated labels for sandbox “' + (sb || 'default') + '”.', 'ok');
       });
-    }
-
-    function refreshFromStorage() {
-      fillInputs();
-      applyToDom(getForSandbox(currentSandboxName()));
     }
 
     window.addEventListener('aep-global-sandbox-change', function () {

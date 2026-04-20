@@ -12,8 +12,8 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260424b">
-  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260424b">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260424c">
+  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260424c">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive">
   <a href="index.html" class="exp-accel-lab-exit">Profile Viewer</a>
@@ -123,7 +123,11 @@
                         <section class="ajo-hero" aria-labelledby="ajoHeroGreeting">
                           <div class="ajo-hero-inner">
                             <div class="ajo-hero-brand" aria-hidden="true">
-                              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="var(--dash-error-border, #e34850)"/><path fill="var(--dash-surface, #fff)" d="M7 17V7h4.2c2.9 0 4.5 1.6 4.5 4s-1.6 4-4.5 4H10v2H7zm3-6h1.1c1.2 0 1.8-.6 1.8-1.7 0-1.1-.6-1.7-1.8-1.7H10v3.4z"/></svg>
+                              <!-- Adobe Journey Optimizer lockup: red squircle, white Adobe “A” -->
+                              <svg class="ajo-hero-ajo-icon" width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                                <rect class="ajo-hero-ajo-squircle" width="24" height="24" rx="7" ry="7"/>
+                                <path class="ajo-hero-ajo-a" d="M7 17V7h4.2c2.9 0 4.5 1.6 4.5 4s-1.6 4-4.5 4H10v2H7zm3-6h1.1c1.2 0 1.8-.6 1.8-1.7 0-1.1-.6-1.7-1.8-1.7H10v3.4z"/>
+                              </svg>
                             </div>
                             <h2 id="ajoHeroGreeting" class="ajo-hero-title">Good morning, <span id="expAccelDisplayName">Tina</span>!</h2>
                             <p class="ajo-hero-sub">
@@ -405,7 +409,7 @@
                         <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Created by me</label>
                         <span class="ajo-pill-select">Status: All</span>
                         <span class="ajo-exp-toolbar-spacer"></span>
-                        <span class="ajo-exp-tools-muted">16 of 16</span>
+                        <span class="ajo-exp-tools-muted">24 of 24</span>
                         <input type="search" class="ajo-exp-search" placeholder="Search" disabled aria-label="Search experiments (demo)" />
                       </div>
                       <div class="ajo-exp-summary">
@@ -422,9 +426,10 @@
                         <table class="ajo-data-table" role="grid">
                           <thead>
                             <tr>
-                              <th scope="col">Name</th>
+                              <th scope="col" class="ajo-th-star"><span class="visually-hidden">Favorite</span></th>
+                              <th scope="col" class="ajo-th-name">Name <span class="ajo-sort-ind" aria-hidden="true">▾</span></th>
                               <th scope="col">Status</th>
-                              <th scope="col">Lift</th>
+                              <th scope="col" class="ajo-th-lift">Lift <span class="ajo-sort-ind" aria-hidden="true">▾</span></th>
                               <th scope="col">Created by</th>
                               <th scope="col">Last Modified</th>
                               <th scope="col">Type</th>
@@ -433,38 +438,142 @@
                           </thead>
                           <tbody>
                             <tr>
-                              <td><button type="button" class="ajo-table-link" disabled>Homepage Hero image Test</button></td>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--on" title="Favorite" aria-hidden="true">&#9733;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>Homepage Hero Image Test</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
                               <td><span class="ajo-status ajo-status--live">Live</span></td>
-                              <td><span class="ajo-lift ajo-lift--up">↑ 23%</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--up">&#8593; 23%</span></td>
                               <td>Miguel Ramos</td>
                               <td>2 hours ago</td>
                               <td>MAB</td>
                               <td>Target</td>
                             </tr>
                             <tr>
-                              <td><button type="button" class="ajo-table-link" disabled>ACE0996 | US | TwP Modals | AICS Default Test</button></td>
-                              <td><span class="ajo-status ajo-status--live">Active</span></td>
-                              <td><span class="ajo-lift ajo-lift--up">↑ 21%</span></td>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE0996 | US | TwP Modals | AICS Default Test</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--active">Active</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--up">&#8593; 21%</span></td>
                               <td>Ella O&rsquo;Connor</td>
                               <td>1 month ago</td>
                               <td>MAB</td>
                               <td>Journey Optimizer</td>
                             </tr>
                             <tr>
-                              <td><button type="button" class="ajo-table-link" disabled>ACE0996 | US | TwP Modals | AICS Default Test</button></td>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE0996 | US | TwP Modals | AICS Default Test</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
                               <td><span class="ajo-status ajo-status--neutral">Label</span></td>
-                              <td><span class="ajo-lift">23%</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--flat">23%</span></td>
                               <td>Miguel Ramos</td>
                               <td>Just now</td>
                               <td>A/B</td>
                               <td>Target</td>
                             </tr>
                             <tr>
-                              <td><button type="button" class="ajo-table-link" disabled>ACE0996 | US | TwP Modals | AICS Default Test</button></td>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE0996 | US | TwP Modals | AICS Default Test</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
                               <td><span class="ajo-status ajo-status--live">Live</span></td>
-                              <td><span class="ajo-lift ajo-lift--down">↓ 3%</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--down">&#8595; 3%</span></td>
                               <td>Ella O&rsquo;Connor</td>
                               <td>1 week ago</td>
+                              <td>A/B</td>
+                              <td>Target</td>
+                            </tr>
+                            <tr>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--on" title="Favorite" aria-hidden="true">&#9733;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE1001 | UK | Checkout upsell hero</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--active">Active</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--up">&#8593; 18%</span></td>
+                              <td>Jordan Lee</td>
+                              <td>5 hours ago</td>
+                              <td>MAB</td>
+                              <td>Target</td>
+                            </tr>
+                            <tr>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE1004 | JP | PLP recommendation strip</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--live">Live</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--flat">12%</span></td>
+                              <td>Samira Patel</td>
+                              <td>Yesterday</td>
+                              <td>A/B</td>
+                              <td>Journey Optimizer</td>
+                            </tr>
+                            <tr>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE1007 | DE | Subscription hold-out</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--neutral">Label</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--down">&#8595; 1%</span></td>
+                              <td>Miguel Ramos</td>
+                              <td>3 days ago</td>
+                              <td>MAB</td>
+                              <td>Target</td>
+                            </tr>
+                            <tr>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE1010 | FR | Nav sticky promo banner</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--active">Active</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--up">&#8593; 9%</span></td>
+                              <td>Ella O&rsquo;Connor</td>
+                              <td>4 days ago</td>
+                              <td>A/B</td>
+                              <td>Journey Optimizer</td>
+                            </tr>
+                            <tr>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--on" title="Favorite" aria-hidden="true">&#9733;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE1012 | CA | Annual plan trial length</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--live">Live</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--up">&#8593; 14%</span></td>
+                              <td>Chris Nguyen</td>
+                              <td>10 hours ago</td>
+                              <td>MAB</td>
+                              <td>Target</td>
+                            </tr>
+                            <tr>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE1015 | AU | Mobile PDP CTA stack</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--neutral">Label</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--flat">7%</span></td>
+                              <td>Samira Patel</td>
+                              <td>2 weeks ago</td>
+                              <td>A/B</td>
+                              <td>Target</td>
+                            </tr>
+                            <tr>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE1018 | IN | Email capture modal copy</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--active">Active</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--up">&#8593; 5%</span></td>
+                              <td>Jordan Lee</td>
+                              <td>6 days ago</td>
+                              <td>MAB</td>
+                              <td>Journey Optimizer</td>
+                            </tr>
+                            <tr>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE1020 | US | Search zero-results rail</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--live">Live</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--down">&#8595; 4%</span></td>
+                              <td>Miguel Ramos</td>
+                              <td>1 month ago</td>
+                              <td>A/B</td>
+                              <td>Target</td>
+                            </tr>
+                            <tr>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE1023 | EU | Cross-sell carousel order</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--active">Active</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--up">&#8593; 11%</span></td>
+                              <td>Ella O&rsquo;Connor</td>
+                              <td>8 hours ago</td>
+                              <td>MAB</td>
+                              <td>Journey Optimizer</td>
+                            </tr>
+                            <tr>
+                              <td class="ajo-td-star"><span class="ajo-star ajo-star--off" aria-hidden="true">&#9734;</span></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>ACE1026 | US | Student SKU spotlight tile</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td><span class="ajo-status ajo-status--live">Live</span></td>
+                              <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--flat">19%</span></td>
+                              <td>Chris Nguyen</td>
+                              <td>Just now</td>
                               <td>A/B</td>
                               <td>Target</td>
                             </tr>
@@ -497,6 +606,9 @@
                   <label for="expAccelSandboxSelect">Sandbox</label>
                   <select id="expAccelSandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox"></select>
                   <label for="expAccelDisplayNameInput">First name (hero greeting)</label>
+                  <p class="hint ajo-customise-hint">
+                    Leave blank to use the <strong>profile first name</strong> from your most recent email lookup for the selected sandbox (falls back to Tina if none).
+                  </p>
                   <input id="expAccelDisplayNameInput" type="text" autocomplete="off" placeholder="Tina">
                   <label for="expAccelTeamInput">Team display (My Team …)</label>
                   <input id="expAccelTeamInput" type="text" autocomplete="off" placeholder="Adobe.com">
@@ -523,7 +635,7 @@
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script defer src="experimentation-accelerator.js?v=20260422"></script>
-  <script defer src="experimentation-accelerator-customise.js?v=20260422"></script>
+  <script defer src="experimentation-accelerator.js?v=20260424"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260424c"></script>
 </body>
 </html>

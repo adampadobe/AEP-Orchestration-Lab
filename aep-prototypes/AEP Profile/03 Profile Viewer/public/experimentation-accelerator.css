@@ -2,6 +2,11 @@
  * AJO Experimentation Accelerator — native AJO chrome, rail, and full HTML Overview.
  */
 
+.ajo-customise-hint {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+}
+
 .experimentation-accelerator-page .visually-hidden {
   position: absolute;
   width: 1px;
@@ -522,6 +527,20 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   display: flex;
   justify-content: center;
   margin-bottom: 0.65rem;
+}
+
+/* AJO app icon: red squircle + white Adobe “A” (matches product lockup) */
+.ajo-hero-ajo-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.ajo-hero-ajo-squircle {
+  fill: var(--dash-error-border, #e34850);
+}
+
+.ajo-hero-ajo-a {
+  fill: var(--dash-surface, #fff);
 }
 
 .ajo-hero-title {
@@ -1457,8 +1476,79 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
   background: var(--ajo-surface-2);
 }
 
-.ajo-data-table tbody tr:nth-child(even) {
-  background: color-mix(in srgb, var(--ajo-surface-2) 35%, var(--ajo-surface));
+.ajo-data-table tbody tr {
+  background: var(--ajo-surface);
+}
+
+.ajo-th-star {
+  width: 2.25rem;
+  text-align: center;
+}
+
+.ajo-th-name,
+.ajo-th-lift {
+  white-space: nowrap;
+}
+
+.ajo-sort-ind {
+  display: inline-block;
+  margin-left: 0.15rem;
+  font-size: 0.65rem;
+  color: var(--ajo-muted);
+  vertical-align: middle;
+}
+
+.ajo-td-star {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.ajo-star {
+  font-size: 1rem;
+  line-height: 1;
+  cursor: default;
+}
+
+.ajo-star--on {
+  color: var(--dash-text, #1e293b);
+}
+
+.ajo-star--off {
+  color: color-mix(in srgb, var(--ajo-muted) 55%, var(--ajo-border));
+}
+
+.ajo-name-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.ajo-name-cell .ajo-table-link {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ajo-row-ellipsis {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.25rem;
+  border: none;
+  background: transparent;
+  color: var(--ajo-muted);
+  cursor: default;
+  border-radius: var(--dash-radius-sm, 8px);
+}
+
+.ajo-td-lift {
+  text-align: center;
 }
 
 .ajo-table-link {
@@ -1494,6 +1584,10 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
   background: var(--dash-success-border, #2d8c6f);
 }
 
+.ajo-status--active::before {
+  background: var(--dash-success-border, #2d8c6f);
+}
+
 .ajo-status--neutral::before {
   background: var(--ajo-muted);
 }
@@ -1515,6 +1609,11 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
 .ajo-lift--down {
   background: var(--dash-error-bg, rgba(201, 90, 74, 0.12));
   color: var(--dash-error-text, #8b3a30);
+}
+
+.ajo-lift--flat {
+  background: color-mix(in srgb, var(--ajo-surface-2) 85%, var(--ajo-border));
+  color: var(--ajo-text);
 }
 
 /* Light AJO workspace when lab theme is dark */
