@@ -219,6 +219,8 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   border: 1px solid var(--dash-border);
   color: var(--dash-text-secondary);
   font-size: 13px;
+  white-space: pre-wrap;
+  line-height: 1.45;
 }
 
 .brand-scraper-status[data-kind='info'] {
