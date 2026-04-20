@@ -99,6 +99,95 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   white-space: nowrap;
 }
 
+.brand-scraper-url-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.brand-scraper-run-options {
+  position: relative;
+}
+
+.brand-scraper-run-options-btn {
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.brand-scraper-run-options-btn.is-reduced {
+  border-color: color-mix(in srgb, var(--dash-blue) 40%, var(--dash-border));
+  color: var(--dash-blue);
+}
+
+.brand-scraper-run-options-btn #brandScraperOptionsCount {
+  margin-left: 2px;
+  font-weight: 600;
+}
+
+.brand-scraper-run-options-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 260px;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.brand-scraper-run-options-menu h6 {
+  margin: 0 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dash-text-secondary);
+  font-weight: 600;
+}
+
+.brand-scraper-run-options-menu label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.brand-scraper-run-options-menu label:hover {
+  background: var(--dash-surface-alt);
+}
+
+.brand-scraper-run-options-menu input[type="checkbox"] {
+  margin-top: 3px;
+  accent-color: var(--dash-blue);
+}
+
+.brand-scraper-run-options-menu label span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.brand-scraper-run-options-menu label em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-run-options-menu p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  border-top: 1px solid var(--dash-border);
+  padding-top: 8px;
+}
+
 .brand-scraper-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

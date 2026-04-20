@@ -37,6 +37,71 @@
     } catch (_e) { return ''; }
   }
 
+  const LS_RUN_OPTIONS = 'aepBrandScraperRunOptions';
+  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments'];
+
+  function loadRunOptions() {
+    const defaults = { analysis: true, personas: true, campaigns: true, segments: true };
+    try {
+      const raw = localStorage.getItem(LS_RUN_OPTIONS);
+      if (!raw) return defaults;
+      const parsed = JSON.parse(raw);
+      const out = { ...defaults };
+      for (const k of RUN_OPTION_KEYS) if (typeof parsed[k] === 'boolean') out[k] = parsed[k];
+      return out;
+    } catch (_e) { return defaults; }
+  }
+
+  function saveRunOptions(opts) {
+    try { localStorage.setItem(LS_RUN_OPTIONS, JSON.stringify(opts)); } catch (_e) {}
+  }
+
+  let runOptions = loadRunOptions();
+
+  const optionsBtn = document.getElementById('brandScraperOptionsBtn');
+  const optionsMenu = document.getElementById('brandScraperOptionsMenu');
+  const optionsCountEl = document.getElementById('brandScraperOptionsCount');
+
+  function applyRunOptionsToUI() {
+    if (!optionsMenu) return;
+    const checks = optionsMenu.querySelectorAll('input[data-run-option]');
+    let on = 0;
+    checks.forEach(cb => {
+      const key = cb.getAttribute('data-run-option');
+      cb.checked = !!runOptions[key];
+      if (runOptions[key]) on++;
+    });
+    if (optionsCountEl) optionsCountEl.textContent = on + '/' + RUN_OPTION_KEYS.length;
+    if (optionsBtn) optionsBtn.classList.toggle('is-reduced', on < RUN_OPTION_KEYS.length);
+  }
+
+  if (optionsMenu) {
+    optionsMenu.addEventListener('change', (evt) => {
+      const cb = evt.target.closest('input[data-run-option]');
+      if (!cb) return;
+      const key = cb.getAttribute('data-run-option');
+      runOptions[key] = cb.checked;
+      saveRunOptions(runOptions);
+      applyRunOptionsToUI();
+    });
+  }
+  if (optionsBtn) {
+    optionsBtn.addEventListener('click', (evt) => {
+      evt.stopPropagation();
+      const open = !optionsMenu.hidden;
+      optionsMenu.hidden = open;
+      optionsBtn.setAttribute('aria-expanded', open ? 'false' : 'true');
+    });
+  }
+  document.addEventListener('click', (evt) => {
+    if (!optionsMenu || optionsMenu.hidden) return;
+    if (optionsMenu.contains(evt.target) || (optionsBtn && optionsBtn.contains(evt.target))) return;
+    optionsMenu.hidden = true;
+    if (optionsBtn) optionsBtn.setAttribute('aria-expanded', 'false');
+  });
+
+  applyRunOptionsToUI();
+
   const LS_COUNTRY_PREFIX = 'aepBrandScraperCountry_';
   function countryKey(sb) { return LS_COUNTRY_PREFIX + (sb || 'default'); }
 
@@ -880,6 +945,7 @@
           existingScrapeId: existingScrapeId,
           businessType: btypeSel && btypeSel.value,
           country: countrySel && countrySel.value,
+          include: { ...runOptions },
         }),
       });
       const data = await resp.json().catch(() => ({}));

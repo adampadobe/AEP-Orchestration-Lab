@@ -52,6 +52,19 @@
                   placeholder="e.g. nike.com"
                   autocomplete="url"
                   required>
+                <div class="brand-scraper-run-options">
+                  <button type="button" class="dashboard-btn-outline brand-scraper-run-options-btn" id="brandScraperOptionsBtn" aria-haspopup="true" aria-expanded="false" title="Choose which AI steps to run">
+                    Options <span id="brandScraperOptionsCount">4/4</span> ▾
+                  </button>
+                  <div class="brand-scraper-run-options-menu" id="brandScraperOptionsMenu" hidden>
+                    <h6>What to run on Analyse</h6>
+                    <label><input type="checkbox" data-run-option="analysis" checked /> <span><strong>Brand guidelines</strong><em>tone, values, editorial, channels</em></span></label>
+                    <label><input type="checkbox" data-run-option="personas" checked /> <span><strong>Customer personas</strong><em>6 localised personas</em></span></label>
+                    <label><input type="checkbox" data-run-option="campaigns" checked /> <span><strong>Campaigns</strong><em>detected + recommended</em></span></label>
+                    <label><input type="checkbox" data-run-option="segments" checked /> <span><strong>Audience segments</strong><em>edge / streaming / batch</em></span></label>
+                    <p class="brand-scraper-result-muted">Crawl + asset extraction always run. Each step off = fewer tokens, faster response.</p>
+                  </div>
+                </div>
                 <button type="submit" class="dashboard-btn-primary" id="brandScraperRun">Analyse</button>
               </div>
 

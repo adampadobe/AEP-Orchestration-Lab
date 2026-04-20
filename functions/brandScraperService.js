@@ -831,6 +831,11 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     }
     const providerPref = (body.provider || '').toString().toLowerCase();
 
+    // Selective run: body.include = { analysis, personas, campaigns, segments }.
+    // Any key omitted or truthy → run; false → skip (returns {skipped:true} so UI knows).
+    const inc = (key) => !body.include || body.include[key] !== false;
+    const skipped = (reason) => ({ skipped: true, reason: reason || 'disabled by user' });
+
     let analysis = null;
     let analysisError = null;
     let personas = null;
@@ -841,19 +846,29 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     let segmentsError = null;
     try {
       const [analysisResult, personasResult, campaignsResult] = await Promise.all([
-        analyseBrand(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) })),
-        generatePersonas(crawl, null, {
-          country: body.country || '',
-          businessType: body.businessType || 'b2c',
-        }, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) })),
-        generateCampaigns(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) })),
+        inc('analysis')
+          ? analyseBrand(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) }))
+          : Promise.resolve(skipped('Brand guidelines disabled in Options')),
+        inc('personas')
+          ? generatePersonas(crawl, null, {
+              country: body.country || '',
+              businessType: body.businessType || 'b2c',
+            }, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) }))
+          : Promise.resolve(skipped('Personas disabled in Options')),
+        inc('campaigns')
+          ? generateCampaigns(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) }))
+          : Promise.resolve(skipped('Campaigns disabled in Options')),
       ]);
       analysis = analysisResult;
       personas = personasResult;
       campaigns = campaignsResult;
       // Segments run AFTER the trio so they can reference generated personas + campaigns.
-      segments = await generateSegments(crawl, personas, campaigns, { provider: providerPref, anthropicKey })
-        .catch(e => ({ error: String(e && e.message || e) }));
+      if (inc('segments')) {
+        segments = await generateSegments(crawl, personas, campaigns, { provider: providerPref, anthropicKey })
+          .catch(e => ({ error: String(e && e.message || e) }));
+      } else {
+        segments = skipped('Segments disabled in Options');
+      }
     } catch (e) {
       analysisError = String(e && e.message || e);
     }
