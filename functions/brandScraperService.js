@@ -105,6 +105,169 @@ function extractBrandName(html, url) {
   return host.charAt(0).toUpperCase() + host.slice(1);
 }
 
+function absoluteOrNull(href, pageUrl) {
+  if (!href) return null;
+  const trimmed = String(href).trim();
+  if (!trimmed || trimmed.startsWith('data:') || trimmed.startsWith('javascript:')) return null;
+  try { return new URL(trimmed, pageUrl).toString(); } catch (_e) { return null; }
+}
+
+function extractAttr(tag, name) {
+  const m = new RegExp(name + '\\s*=\\s*["\']([^"\']*)["\']', 'i').exec(tag);
+  return m ? m[1] : '';
+}
+
+function extractImages(html, pageUrl) {
+  if (!html) return [];
+  const out = [];
+  const seen = new Set();
+  const re = /<img\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const tag = m[0];
+    const src = absoluteOrNull(extractAttr(tag, 'src') || extractAttr(tag, 'data-src'), pageUrl);
+    if (!src || seen.has(src)) continue;
+    seen.add(src);
+    out.push({
+      src,
+      alt: extractAttr(tag, 'alt') || '',
+      width: Number(extractAttr(tag, 'width')) || null,
+      height: Number(extractAttr(tag, 'height')) || null,
+    });
+    if (out.length >= 120) break;
+  }
+  return out;
+}
+
+function extractFavicons(html, pageUrl) {
+  if (!html) return [];
+  const out = [];
+  const re = /<link\b[^>]*rel\s*=\s*["']([^"']*)["'][^>]*>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const rel = (m[1] || '').toLowerCase();
+    if (!/(icon|apple-touch-icon|mask-icon|shortcut icon)/.test(rel)) continue;
+    const href = absoluteOrNull(extractAttr(m[0], 'href'), pageUrl);
+    if (href) out.push({ rel, href, sizes: extractAttr(m[0], 'sizes') || '' });
+  }
+  return out;
+}
+
+function extractOgImages(html, pageUrl) {
+  if (!html) return [];
+  const out = [];
+  const re = /<meta\b[^>]*(?:property|name)\s*=\s*["'](og:image(?::secure_url)?|twitter:image)["'][^>]*>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const url = absoluteOrNull(extractAttr(m[0], 'content'), pageUrl);
+    if (url) out.push(url);
+  }
+  return out;
+}
+
+/** Pull hex + rgb colour occurrences from inline styles and <style> blocks. */
+function extractColours(html) {
+  if (!html) return [];
+  const out = [];
+  const styleMatches = [];
+  const styleRe = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+  let s;
+  while ((s = styleRe.exec(html)) !== null) styleMatches.push(s[1]);
+  const inlineRe = /style\s*=\s*["']([^"']*)["']/gi;
+  while ((s = inlineRe.exec(html)) !== null) styleMatches.push(s[1]);
+  const corpus = styleMatches.join('\n');
+  const hexRe = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
+  let h;
+  while ((h = hexRe.exec(corpus)) !== null) {
+    let hex = h[1].toLowerCase();
+    if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    if (hex === 'ffffff' || hex === '000000') {
+      // still keep black/white but don't over-rank them — we rely on frequency.
+    }
+    out.push('#' + hex);
+  }
+  const rgbRe = /rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/g;
+  let r;
+  while ((r = rgbRe.exec(corpus)) !== null) {
+    const [_, R, G, B] = r;
+    const hex = '#' + [R, G, B].map(n => {
+      const v = Math.max(0, Math.min(255, Number(n))).toString(16);
+      return v.length === 1 ? '0' + v : v;
+    }).join('');
+    out.push(hex);
+  }
+  return out;
+}
+
+function extractFonts(html) {
+  if (!html) return [];
+  const out = [];
+  const corpus = html;
+  const re = /font-family\s*:\s*([^;"'<>{}]+)/gi;
+  let m;
+  while ((m = re.exec(corpus)) !== null) {
+    const list = m[1].split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+    for (const f of list) {
+      if (f.length > 60) continue;
+      // skip generic families + CSS variables
+      if (/^(serif|sans-serif|monospace|cursive|fantasy|system-ui|inherit|initial|unset|var\(.*\))$/i.test(f)) continue;
+      out.push(f);
+    }
+  }
+  return out;
+}
+
+function rankByFrequency(values, limit) {
+  const counts = new Map();
+  for (const v of values) counts.set(v, (counts.get(v) || 0) + 1);
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([value, count]) => ({ value, count }));
+}
+
+function aggregateAssets(pages) {
+  const allImages = [];
+  const allFavicons = [];
+  const allOgImages = [];
+  const allColours = [];
+  const allFonts = [];
+
+  const seenImg = new Set();
+  for (const p of pages) {
+    for (const img of (p._images || [])) {
+      if (seenImg.has(img.src)) continue;
+      seenImg.add(img.src);
+      allImages.push(img);
+    }
+    for (const f of (p._favicons || [])) allFavicons.push(f);
+    for (const o of (p._ogImages || [])) allOgImages.push(o);
+    for (const c of (p._colours || [])) allColours.push(c);
+    for (const f of (p._fonts || [])) allFonts.push(f);
+  }
+
+  // Dedup favicons + og images
+  const dedup = (arr, key) => {
+    const s = new Set();
+    const out = [];
+    for (const v of arr) {
+      const k = key(v);
+      if (s.has(k)) continue;
+      s.add(k);
+      out.push(v);
+    }
+    return out;
+  };
+
+  return {
+    images: allImages.slice(0, 60),
+    favicons: dedup(allFavicons, f => f.href),
+    ogImages: Array.from(new Set(allOgImages)),
+    colours: rankByFrequency(allColours, 16),
+    fonts: rankByFrequency(allFonts, 8),
+  };
+}
+
 function extractLinks(html, pageUrl, baseUrl) {
   if (!html) return [];
   const out = new Set();
@@ -167,8 +330,15 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES } = {}) {
       description,
       textLength: text.length,
       text: text.slice(0, 8000),
+      _images: extractImages(html, current),
+      _favicons: extractFavicons(html, current),
+      _ogImages: extractOgImages(html, current),
+      _colours: extractColours(html),
+      _fonts: extractFonts(html),
     });
   }
+
+  const assets = aggregateAssets(pages);
 
   if (!brandName) {
     const host = new URL(baseUrl).hostname.replace(/^www\./, '').split('.')[0];
@@ -180,6 +350,7 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES } = {}) {
     baseUrl,
     pages,
     totalDiscovered: discovered.size,
+    assets,
   };
 }
 
@@ -331,6 +502,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       pages: crawl.pages.map(p => ({
         url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
       })),
+      assets: crawl.assets,
     };
     const elapsedMs = Date.now() - started;
 

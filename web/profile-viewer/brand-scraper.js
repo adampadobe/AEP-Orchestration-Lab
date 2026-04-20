@@ -116,6 +116,93 @@
     return blocks.join('');
   }
 
+  function renderAssets(a) {
+    if (!a) return '';
+    const blocks = [];
+
+    if (Array.isArray(a.favicons) && a.favicons.length) {
+      blocks.push(
+        '<div class="brand-scraper-asset-row">' +
+          '<h5>Favicons</h5>' +
+          '<div class="brand-scraper-favicons">' +
+          a.favicons.map(f =>
+            '<a href="' + esc(f.href) + '" target="_blank" rel="noopener" title="' + esc(f.rel) + (f.sizes ? ' ' + esc(f.sizes) : '') + '">' +
+              '<img src="' + esc(f.href) + '" alt="" loading="lazy" referrerpolicy="no-referrer" />' +
+            '</a>'
+          ).join('') +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    if (Array.isArray(a.ogImages) && a.ogImages.length) {
+      blocks.push(
+        '<div class="brand-scraper-asset-row">' +
+          '<h5>Open Graph / social preview</h5>' +
+          '<div class="brand-scraper-og-grid">' +
+          a.ogImages.slice(0, 8).map(url =>
+            '<a href="' + esc(url) + '" target="_blank" rel="noopener">' +
+              '<img src="' + esc(url) + '" alt="" loading="lazy" referrerpolicy="no-referrer" />' +
+            '</a>'
+          ).join('') +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    if (Array.isArray(a.colours) && a.colours.length) {
+      blocks.push(
+        '<div class="brand-scraper-asset-row">' +
+          '<h5>Colour palette <span class="brand-scraper-asset-hint">ranked by frequency</span></h5>' +
+          '<div class="brand-scraper-swatches">' +
+          a.colours.map(c =>
+            '<div class="brand-scraper-swatch" title="' + esc(c.value) + ' · ' + c.count + 'x">' +
+              '<span class="brand-scraper-swatch-chip" style="background:' + esc(c.value) + '"></span>' +
+              '<code>' + esc(c.value) + '</code>' +
+            '</div>'
+          ).join('') +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    if (Array.isArray(a.fonts) && a.fonts.length) {
+      blocks.push(
+        '<div class="brand-scraper-asset-row">' +
+          '<h5>Fonts <span class="brand-scraper-asset-hint">from <code>font-family</code> declarations</span></h5>' +
+          '<div class="brand-scraper-fonts">' +
+          a.fonts.map(f =>
+            '<span class="brand-scraper-font-chip" style="font-family:' + esc(f.value) + ',sans-serif" title="' + f.count + 'x">' +
+              esc(f.value) +
+            '</span>'
+          ).join('') +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    if (Array.isArray(a.images) && a.images.length) {
+      blocks.push(
+        '<div class="brand-scraper-asset-row">' +
+          '<h5>Images <span class="brand-scraper-asset-hint">first ' + a.images.length + ' discovered — thumbnails load from origin, some sites block hotlinking</span></h5>' +
+          '<div class="brand-scraper-image-grid">' +
+          a.images.slice(0, 48).map(img =>
+            '<a href="' + esc(img.src) + '" target="_blank" rel="noopener" title="' + esc(img.alt || img.src) + '">' +
+              '<img src="' + esc(img.src) + '" alt="' + esc(img.alt || '') + '" loading="lazy" referrerpolicy="no-referrer" />' +
+            '</a>'
+          ).join('') +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    if (!blocks.length) return '';
+    return '<section class="brand-scraper-result-block">' +
+      '<h4>Assets</h4>' +
+      blocks.join('') +
+    '</section>';
+  }
+
   function renderCrawl(c) {
     if (!c || !Array.isArray(c.pages)) return '';
     const rows = c.pages.map(p => (
@@ -147,6 +234,7 @@
       '</header>' +
       (data.analysisError ? '<p class="brand-scraper-result-muted">Analysis error: ' + esc(data.analysisError) + '</p>' : '') +
       renderAnalysis(data.analysis) +
+      renderAssets(crawl && crawl.assets) +
       renderCrawl(crawl)
     );
     resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });

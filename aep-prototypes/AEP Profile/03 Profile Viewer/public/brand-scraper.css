@@ -159,6 +159,16 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
 
 .brand-scraper-features {
   margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.brand-scraper-features-caption {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dash-text-secondary);
+  line-height: 1.5;
 }
 
 .brand-scraper-features-grid {
@@ -176,17 +186,45 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: default;
 }
 
-.brand-scraper-card:hover {
-  transform: translateY(-1px);
+.brand-scraper-card[data-status='planned'] {
+  opacity: 0.82;
+}
+
+.brand-scraper-card[data-status='live'] {
   border-color: color-mix(in srgb, var(--dash-blue) 40%, var(--dash-border));
+}
+
+.brand-scraper-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .brand-scraper-card-ico {
   font-size: 22px;
   line-height: 1;
+}
+
+.brand-scraper-card-status {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--dash-surface-alt);
+  color: var(--dash-text-secondary);
+  border: 1px solid var(--dash-border);
+}
+
+.brand-scraper-card-status--live {
+  background: color-mix(in srgb, var(--dash-blue) 15%, var(--dash-surface-alt));
+  color: var(--dash-blue);
+  border-color: color-mix(in srgb, var(--dash-blue) 40%, var(--dash-border));
 }
 
 .brand-scraper-card-title {
@@ -427,6 +465,125 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
 .brand-scraper-num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.brand-scraper-asset-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.brand-scraper-asset-row h5 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-asset-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--dash-text-secondary);
+  margin-left: 6px;
+  font-size: 11px;
+}
+
+.brand-scraper-favicons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.brand-scraper-favicons img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.brand-scraper-og-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.brand-scraper-og-grid img {
+  width: 100%;
+  aspect-ratio: 1.91 / 1;
+  object-fit: cover;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+
+.brand-scraper-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.brand-scraper-swatch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface-alt);
+  font-size: 12px;
+  color: var(--dash-text);
+}
+
+.brand-scraper-swatch-chip {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--dash-text) 20%, transparent);
+  flex-shrink: 0;
+}
+
+.brand-scraper-swatch code {
+  font-size: 11px;
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-fonts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.brand-scraper-font-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  background: var(--dash-surface-alt);
+  color: var(--dash-text);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.brand-scraper-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
+}
+
+.brand-scraper-image-grid img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+  padding: 4px;
 }
 
 .brand-scraper-pre {
