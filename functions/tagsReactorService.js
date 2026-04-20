@@ -220,10 +220,13 @@ function mapEnvironmentResource(d) {
 
 function mapLibraryResource(d) {
   const a = d.attributes && typeof d.attributes === 'object' ? d.attributes : {};
+  const rels = d.relationships && typeof d.relationships === 'object' ? d.relationships : {};
+  const envRel = rels.environment && rels.environment.data ? rels.environment.data : null;
   return {
     libraryId: d.id != null ? String(d.id) : '',
     name: a.name != null ? String(a.name) : '',
     state: a.state != null ? String(a.state) : '',
+    environmentId: envRel && envRel.id ? String(envRel.id) : '',
     updatedAt: a.updated_at != null ? String(a.updated_at) : '',
   };
 }

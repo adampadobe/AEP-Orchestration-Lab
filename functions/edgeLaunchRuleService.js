@@ -340,19 +340,17 @@ async function publishRuleToDevelopment({ accessToken, clientId, orgId, property
   if (!envRes.ok) return envRes;
   const { environment } = envRes;
 
-  const envWithLib = await tagsReactorService.getEnvironment(
-    accessToken, clientId, orgId, environment.environmentId, { includeLibrary: true },
-  );
-  if (!envWithLib.ok) return { ok: false, step: 'getEnvironment', error: envWithLib.error };
+  // List all libraries and find the one currently bound to the Dev env.
+  const libsRes = await tagsReactorService.listLibraries(accessToken, clientId, orgId, propertyId);
+  if (!libsRes.ok) return { ok: false, step: 'listLibraries', error: libsRes.error };
+  const allLibs = Array.isArray(libsRes.items) ? libsRes.items : [];
+  const boundLib = allLibs.find(l => l.environmentId === environment.environmentId);
 
-  let library = envWithLib.library;
-  let libraryReused = false;
+  let library = (boundLib && String(boundLib.state || '').toLowerCase() === 'development') ? boundLib : null;
+  let libraryReused = !!library;
 
-  if (library && String(library.state || '').toLowerCase() === 'development') {
-    // Reuse the library currently bound to Development.
-    libraryReused = true;
-  } else {
-    // Either nothing bound, or bound library is frozen — create + bind a new one.
+  if (!library) {
+    // Nothing usable bound — create + bind a new one.
     const libRes = await tagsReactorService.createLibrary(
       accessToken, clientId, orgId, propertyId,
       { name: libraryName || `AEP Lab — auto-publish ${new Date().toISOString().slice(0, 19).replace('T', ' ')}` },
