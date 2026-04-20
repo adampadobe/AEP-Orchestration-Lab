@@ -177,16 +177,7 @@
       el.textContent = msg || '';
       el.className = 'status' + (cls ? ' ' + cls : '');
     }
-    var modeHint = document.getElementById('cdEdgeModeHint');
-    if (modeHint) {
-      var modeEl = document.getElementById('cdLabEdgeMode');
-      var m = modeEl && modeEl.value === 'decisionScopes' ? 'decisionScopes' : 'surfaces';
-      var ds = document.getElementById('edgeConfigId');
-      var dsv = ds ? ds.value.trim() : '';
-      modeHint.textContent =
-        'Edge personalization: ' + m + ' · datastream field: ' + (dsv || '(use Web SDK extension / saved config)');
-    }
-    waitForAlloy()
+waitForAlloy()
       .then(function () {
         var edgeConfigId = document.getElementById('edgeConfigId');
         var edgeConfig = edgeConfigId ? edgeConfigId.value.trim() : '';
