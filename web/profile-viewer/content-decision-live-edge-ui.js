@@ -478,6 +478,84 @@
     box.hidden = false;
   }
 
+  // Bypass Firebase Hosting's 60s proxy timeout — the publish endpoint
+  // polls Reactor builds which can take up to ~2 min.
+  var PUBLISH_URL = 'https://us-central1-aep-orchestration-lab.cloudfunctions.net/edgeLaunchRulePublish';
+
+  function renderPublishResult(data) {
+    var box = el('cdLabLaunchPreview');
+    if (!box) return;
+    var esc = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    };
+    if (!data || data.ok === false) {
+      var step = data && data.step ? ' (' + esc(data.step) + ')' : '';
+      var extra = '';
+      if (data && data.publish && data.publish.step) {
+        extra = '<p class="hint">Publish step that failed: <code>' + esc(data.publish.step) + '</code></p>';
+      }
+      box.innerHTML = '<div class="status err">Apply &amp; publish failed' + step + ': ' + esc((data && data.error) || (data && data.publish && data.publish.error) || 'unknown error') + '</div>' + extra;
+      box.hidden = false;
+      return;
+    }
+    var pub = data.publish || {};
+    var build = pub.build || {};
+    var env = pub.environment || {};
+    var library = pub.library || {};
+    var elapsedS = pub.elapsedMs ? (pub.elapsedMs / 1000).toFixed(1) + 's' : '—';
+
+    if (pub.skipped) {
+      box.innerHTML = '<div class="status ok">No change — apply was a no-op so nothing to publish.</div>';
+      box.hidden = false;
+      return;
+    }
+
+    box.innerHTML =
+      '<div class="status ok">Published to <strong>' + esc(env.name || 'Development') + '</strong> — build <code>' + esc(build.status) + '</code> in ' + elapsedS + '.</div>' +
+      '<p class="hint">Library <code>' + esc(library.name || library.libraryId) + '</code> · build <code>' + esc(build.buildId) + '</code>. The Development embed script will now serve the updated surfaces/scopes.</p>' +
+      '<p class="hint"><strong>' + ((data.afterSurfaces || []).length) + '</strong> surfaces · <strong>' + ((data.afterScopes || []).length) + '</strong> scopes are now live on the rule.</p>';
+    box.hidden = false;
+  }
+
+  async function applyAndPublishLaunchRule() {
+    var propertyRef = el('cdLabTagsProperty') && el('cdLabTagsProperty').value.trim();
+    var targetPageUrl = el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim();
+    if (!propertyRef) { renderLaunchPreview({ ok: false, error: 'Enter a Tags property name or PR… ID first.' }); return; }
+    if (!targetPageUrl) { renderLaunchPreview({ ok: false, error: 'Enter a target page URL first.' }); return; }
+    var plCount = getPlacementsFromForm().length;
+    var msg = 'Apply the current ' + plCount + ' placement' + (plCount === 1 ? '' : 's') +
+      ' to the Page View rule AND publish to the Development environment? This creates a new Launch library, builds it, and auto-deploys. Takes up to 2 minutes.';
+    if (!global.confirm(msg)) return;
+
+    var btn = el('cdLabPublishLaunchBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Publishing…'; }
+    var box = el('cdLabLaunchPreview');
+    if (box) { box.hidden = false; box.innerHTML = '<div class="status">Starting apply + publish \u2014 this can take 30-120s while Launch builds the library.</div>'; }
+
+    var body = {
+      propertyRef: propertyRef,
+      targetPageUrl: targetPageUrl,
+      placements: getPlacementsFromForm(),
+      edgePersonalizationMode: el('cdLabEdgeMode') && el('cdLabEdgeMode').value,
+    };
+
+    try {
+      var res = await fetch(PUBLISH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      var data = await res.json().catch(function () { return {}; });
+      renderPublishResult(data);
+    } catch (e) {
+      renderPublishResult({ ok: false, error: String(e && e.message || e) });
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Apply & publish to Dev'; }
+    }
+  }
+
   async function applyLaunchRuleChange() {
     var propertyRef = el('cdLabTagsProperty') && el('cdLabTagsProperty').value.trim();
     var targetPageUrl = el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim();
@@ -675,6 +753,9 @@
       }
       if (el('cdLabApplyLaunchBtn')) {
         el('cdLabApplyLaunchBtn').addEventListener('click', applyLaunchRuleChange);
+      }
+      if (el('cdLabPublishLaunchBtn')) {
+        el('cdLabPublishLaunchBtn').addEventListener('click', applyAndPublishLaunchRule);
       }
 
       await fetchConfigFromFirebase();

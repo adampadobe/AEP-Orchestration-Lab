@@ -467,6 +467,120 @@ async function updateRuleComponentSettings(token, clientId, orgId, componentId, 
   return { ok: true, httpStatus: resp.status, item: mapRuleComponentResource(d), raw: d };
 }
 
+async function reactorRequest(token, clientId, orgId, method, path, body) {
+  const url = REACTOR_BASE + path;
+  const init = {
+    method,
+    headers: reactorHeaders(token, clientId, orgId),
+  };
+  if (body != null) init.body = typeof body === 'string' ? body : JSON.stringify(body);
+  let resp;
+  try { resp = await fetch(url, init); }
+  catch (e) { return { ok: false, httpStatus: 0, error: String((e && e.message) || e) }; }
+  const text = await resp.text();
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch (_e) { data = {}; }
+  if (!resp.ok) {
+    return { ok: false, httpStatus: resp.status, error: extractReactorError(data, text), raw: data };
+  }
+  return { ok: true, httpStatus: resp.status, data };
+}
+
+/**
+ * POST /properties/:propertyId/libraries — create a new library in
+ * `development` state, ready to accept resources.
+ */
+async function createLibrary(token, clientId, orgId, propertyId, { name }) {
+  const pid = String(propertyId || '').trim();
+  if (!pid) return { ok: false, httpStatus: 400, error: 'propertyId is required' };
+  const body = {
+    data: {
+      type: 'libraries',
+      attributes: { name: String(name || 'AEP Lab auto-build ' + new Date().toISOString().slice(0, 19)) },
+    },
+  };
+  const r = await reactorRequest(token, clientId, orgId, 'POST', '/properties/' + encodeURIComponent(pid) + '/libraries', body);
+  if (!r.ok) return r;
+  const d = (r.data && r.data.data) || {};
+  return { ok: true, httpStatus: r.httpStatus, item: mapLibraryResource(d), raw: d };
+}
+
+/**
+ * PATCH /libraries/:libraryId/relationships/environment — bind the library
+ * to the Development environment so builds deploy there automatically.
+ */
+async function setLibraryEnvironment(token, clientId, orgId, libraryId, environmentId) {
+  const lid = String(libraryId || '').trim();
+  const eid = String(environmentId || '').trim();
+  if (!lid || !eid) return { ok: false, httpStatus: 400, error: 'libraryId and environmentId are required' };
+  const body = { data: { type: 'environments', id: eid } };
+  const r = await reactorRequest(token, clientId, orgId, 'PATCH',
+    '/libraries/' + encodeURIComponent(lid) + '/relationships/environment', body);
+  return r.ok ? { ok: true, httpStatus: r.httpStatus } : r;
+}
+
+/**
+ * POST /libraries/:libraryId/relationships/resources — add resources
+ * (rules, data elements, extensions) to a library. Accepts an array of
+ * { type, id }.
+ */
+async function addLibraryResources(token, clientId, orgId, libraryId, resources) {
+  const lid = String(libraryId || '').trim();
+  if (!lid) return { ok: false, httpStatus: 400, error: 'libraryId is required' };
+  const list = Array.isArray(resources) ? resources.filter(r => r && r.type && r.id) : [];
+  if (!list.length) return { ok: false, httpStatus: 400, error: 'at least one resource required' };
+  const body = { data: list.map(r => ({ type: String(r.type), id: String(r.id) })) };
+  const r = await reactorRequest(token, clientId, orgId, 'POST',
+    '/libraries/' + encodeURIComponent(lid) + '/relationships/resources', body);
+  return r.ok ? { ok: true, httpStatus: r.httpStatus } : r;
+}
+
+/**
+ * POST /libraries/:libraryId/builds — kick off a build. Build status is
+ * polled via getBuild.
+ */
+async function createBuild(token, clientId, orgId, libraryId) {
+  const lid = String(libraryId || '').trim();
+  if (!lid) return { ok: false, httpStatus: 400, error: 'libraryId is required' };
+  const r = await reactorRequest(token, clientId, orgId, 'POST', '/libraries/' + encodeURIComponent(lid) + '/builds', null);
+  if (!r.ok) return r;
+  const d = (r.data && r.data.data) || {};
+  const a = (d.attributes && typeof d.attributes === 'object') ? d.attributes : {};
+  return {
+    ok: true,
+    httpStatus: r.httpStatus,
+    build: {
+      buildId: d.id != null ? String(d.id) : '',
+      status: a.status != null ? String(a.status) : '',
+      createdAt: a.created_at != null ? String(a.created_at) : '',
+    },
+  };
+}
+
+/**
+ * GET /builds/:buildId — poll for build status. Terminal states:
+ * 'succeeded', 'failed'. Transient: 'pending', 'running'.
+ */
+async function getBuild(token, clientId, orgId, buildId) {
+  const bid = String(buildId || '').trim();
+  if (!bid) return { ok: false, httpStatus: 400, error: 'buildId is required' };
+  const r = await reactorRequest(token, clientId, orgId, 'GET', '/builds/' + encodeURIComponent(bid));
+  if (!r.ok) return r;
+  const d = (r.data && r.data.data) || {};
+  const a = (d.attributes && typeof d.attributes === 'object') ? d.attributes : {};
+  return {
+    ok: true,
+    httpStatus: r.httpStatus,
+    build: {
+      buildId: d.id != null ? String(d.id) : '',
+      status: a.status != null ? String(a.status) : '',
+      createdAt: a.created_at != null ? String(a.created_at) : '',
+      updatedAt: a.updated_at != null ? String(a.updated_at) : '',
+      tokenPath: a.token && a.token.path ? String(a.token.path) : '',
+    },
+  };
+}
+
 module.exports = {
   listCompanies,
   listProperties,
@@ -480,5 +594,10 @@ module.exports = {
   listRuleComponents,
   getRuleComponent,
   updateRuleComponentSettings,
+  createLibrary,
+  setLibraryEnvironment,
+  addLibraryResources,
+  createBuild,
+  getBuild,
   probeTagsApiAccess,
 };
