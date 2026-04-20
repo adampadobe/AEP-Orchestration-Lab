@@ -71,6 +71,13 @@
         }
       },
       {
+        "source": "/api/edge-decisioning/publish-launch-rule",
+        "function": {
+          "functionId": "edgeLaunchRulePublish",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/brand-scraper/analyze",
         "function": {
           "functionId": "brandScraperAnalyze",

@@ -302,9 +302,123 @@ async function applyLaunchRuleUpdate(args) {
   };
 }
 
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+/**
+ * Resolve the Development environment for a property.
+ */
+async function findDevelopmentEnvironment({ accessToken, clientId, orgId, propertyId }) {
+  const envRes = await tagsReactorService.listEnvironments(accessToken, clientId, orgId, propertyId);
+  if (!envRes.ok) return { ok: false, error: envRes.error || 'Could not list environments' };
+  const envs = Array.isArray(envRes.items) ? envRes.items : [];
+  const dev = envs.find(e => String(e.stage || '').toLowerCase() === 'development');
+  if (!dev) {
+    return {
+      ok: false,
+      error: 'No Development environment on property. Create one in Launch → Environments.',
+      environments: envs.map(e => ({ name: e.name, stage: e.stage, id: e.environmentId })),
+    };
+  }
+  return { ok: true, environment: dev };
+}
+
+/**
+ * Build a fresh library in "development" state, bind it to the Development
+ * environment, add the single rule as a resource, trigger a build, and poll
+ * until the build reaches a terminal state.
+ */
+async function publishRuleToDevelopment({ accessToken, clientId, orgId, propertyId, ruleId, libraryName, buildPollMs = 2000, buildTimeoutMs = 120000 }) {
+  // 1) Find Development environment.
+  const envRes = await findDevelopmentEnvironment({ accessToken, clientId, orgId, propertyId });
+  if (!envRes.ok) return envRes;
+  const { environment } = envRes;
+
+  // 2) Create a fresh library.
+  const libRes = await tagsReactorService.createLibrary(
+    accessToken, clientId, orgId, propertyId,
+    { name: libraryName || `AEP Lab — auto-publish ${new Date().toISOString().slice(0, 19).replace('T', ' ')}` },
+  );
+  if (!libRes.ok) return { ok: false, step: 'createLibrary', error: libRes.error };
+  const library = libRes.item;
+
+  // 3) Bind to Development environment.
+  const bindRes = await tagsReactorService.setLibraryEnvironment(
+    accessToken, clientId, orgId, library.libraryId, environment.environmentId,
+  );
+  if (!bindRes.ok) return { ok: false, step: 'setLibraryEnvironment', error: bindRes.error, library };
+
+  // 4) Add the rule as a resource. (Rule_component changes ride with their parent rule.)
+  const addRes = await tagsReactorService.addLibraryResources(
+    accessToken, clientId, orgId, library.libraryId,
+    [{ type: 'rules', id: ruleId }],
+  );
+  if (!addRes.ok) return { ok: false, step: 'addLibraryResources', error: addRes.error, library };
+
+  // 5) Kick off build.
+  const buildRes = await tagsReactorService.createBuild(accessToken, clientId, orgId, library.libraryId);
+  if (!buildRes.ok) return { ok: false, step: 'createBuild', error: buildRes.error, library };
+  let build = buildRes.build;
+
+  // 6) Poll.
+  const started = Date.now();
+  while (build && build.status && !['succeeded', 'failed'].includes(String(build.status).toLowerCase())) {
+    if (Date.now() - started > buildTimeoutMs) {
+      return {
+        ok: false,
+        step: 'buildPoll',
+        error: `Build still in state "${build.status}" after ${Math.round(buildTimeoutMs / 1000)}s. Launch may still finish — check the Tags UI.`,
+        library,
+        build,
+        environment,
+      };
+    }
+    await sleep(buildPollMs);
+    const poll = await tagsReactorService.getBuild(accessToken, clientId, orgId, build.buildId);
+    if (!poll.ok) {
+      return { ok: false, step: 'buildPoll', error: poll.error, library, build, environment };
+    }
+    build = poll.build;
+  }
+
+  const ok = String(build && build.status || '').toLowerCase() === 'succeeded';
+  return {
+    ok,
+    step: ok ? 'published' : 'buildFailed',
+    error: ok ? null : `Build ended in state "${build && build.status || 'unknown'}".`,
+    library,
+    build,
+    environment,
+    elapsedMs: Date.now() - started,
+  };
+}
+
+async function applyAndPublishLaunchRule(args) {
+  const apply = await applyLaunchRuleUpdate(args);
+  if (!apply.ok) return apply;
+
+  // If the apply step was a no-op, skip the publish (nothing to push).
+  if (apply.noop) return { ...apply, publishedToEnvironment: false, publish: { skipped: true, reason: 'No-op; nothing to build.' } };
+
+  const pub = await publishRuleToDevelopment({
+    accessToken: args.accessToken,
+    clientId: args.clientId,
+    orgId: args.orgId,
+    propertyId: apply.propertyId,
+    ruleId: apply.ruleId,
+  });
+
+  return {
+    ...apply,
+    publishedToEnvironment: pub.ok === true,
+    publish: pub,
+  };
+}
+
 module.exports = {
   DEFAULT_RULE_NAME,
   resolveProperty,
   previewLaunchRuleUpdate,
   applyLaunchRuleUpdate,
+  publishRuleToDevelopment,
+  applyAndPublishLaunchRule,
 };
