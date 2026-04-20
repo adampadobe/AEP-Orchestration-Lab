@@ -39,12 +39,42 @@
     var activeTarget = null;
     var margin = 10;
     var gap = 10;
+    var tipToggle = document.getElementById('agenticV2TalkTipsToggle');
+    var TOOLTIP_PREF_KEY = 'aepAgenticV2TooltipsEnabled';
 
     tooltip.className = 'agentic-v2-talk-tooltip';
     tooltip.setAttribute('role', 'tooltip');
     /* Must live under the same subtree as the fullscreen element (<main>), or it vanishes in presentation fullscreen. */
     var tooltipHost = document.querySelector('main.dashboard-main.app-page') || document.body;
     tooltipHost.appendChild(tooltip);
+
+    function hideTooltip() {
+      activeTarget = null;
+      tooltip.classList.remove('is-visible');
+    }
+
+    try {
+      if (tipToggle) {
+        var stored = localStorage.getItem(TOOLTIP_PREF_KEY);
+        if (stored === '0') tipToggle.checked = false;
+        else if (stored === '1') tipToggle.checked = true;
+        tipToggle.addEventListener('change', function () {
+          try {
+            localStorage.setItem(TOOLTIP_PREF_KEY, tipToggle.checked ? '1' : '0');
+          } catch (err) {}
+          hideTooltip();
+        });
+      }
+    } catch (e) {}
+
+    function tipsEnabled() {
+      if (tipToggle) return tipToggle.checked;
+      try {
+        return localStorage.getItem(TOOLTIP_PREF_KEY) !== '0';
+      } catch (e2) {
+        return true;
+      }
+    }
 
     function targetFrom(node) {
       if (!node || typeof node.closest !== 'function') return null;
@@ -94,6 +124,7 @@
     }
 
     function showTooltip(target) {
+      if (!tipsEnabled()) return;
       var message = target ? target.getAttribute('data-talk-track') : '';
       if (!message || !isTalkTrackAllowed(target)) return;
       activeTarget = target;
@@ -102,12 +133,11 @@
       positionTooltip(target);
     }
 
-    function hideTooltip() {
-      activeTarget = null;
-      tooltip.classList.remove('is-visible');
-    }
-
     document.addEventListener('mouseover', function (e) {
+      if (!tipsEnabled()) {
+        hideTooltip();
+        return;
+      }
       var target = targetFrom(e.target);
       if (!target) return;
       if (!isTalkTrackAllowed(target)) {
@@ -126,6 +156,10 @@
     });
 
     document.addEventListener('focusin', function (e) {
+      if (!tipsEnabled()) {
+        hideTooltip();
+        return;
+      }
       var target = targetFrom(e.target);
       if (!target) return;
       if (!isTalkTrackAllowed(target)) {
@@ -144,6 +178,10 @@
     });
 
     window.addEventListener('resize', function () {
+      if (!tipsEnabled()) {
+        hideTooltip();
+        return;
+      }
       if (activeTarget && !isTalkTrackAllowed(activeTarget)) {
         hideTooltip();
       } else if (activeTarget) {
@@ -154,6 +192,10 @@
     window.addEventListener(
       'scroll',
       function () {
+        if (!tipsEnabled()) {
+          hideTooltip();
+          return;
+        }
         if (activeTarget && !isTalkTrackAllowed(activeTarget)) {
           hideTooltip();
         } else if (activeTarget) {
