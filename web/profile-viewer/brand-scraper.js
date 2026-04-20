@@ -1,6 +1,11 @@
 (function () {
   'use strict';
 
+  // Firebase Hosting rewrites cap proxied requests at 60s. The analyze endpoint
+  // runs longer (≈75s with all four LLM calls), so hit the function's direct
+  // Cloud Run URL. List/get/delete are fast and still go via /api/*.
+  const ANALYZE_URL = 'https://brandscraperanalyze-a5xduykcsq-uc.a.run.app/';
+
   const form = document.getElementById('brandScraperForm');
   const urlInput = document.getElementById('brandScraperUrl');
   const btypeSel = document.getElementById('brandScraperBusinessType');
@@ -570,7 +575,8 @@
     resultsEl.hidden = true;
 
     try {
-      const resp = await fetch(withSandboxQuery('/api/brand-scraper/analyze'), {
+      const analyzeUrl = ANALYZE_URL + (ANALYZE_URL.includes('?') ? '&' : '?') + 'sandbox=' + encodeURIComponent(sb);
+      const resp = await fetch(analyzeUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
