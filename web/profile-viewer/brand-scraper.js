@@ -143,22 +143,28 @@
       const personas = Array.isArray(seg.qualified_personas) ? seg.qualified_personas : [];
       const evalType = (seg.evaluation_type || '').toLowerCase();
       return (
-        '<article class="brand-scraper-segment" data-eval="' + esc(evalType) + '">' +
-          '<header class="brand-scraper-segment-head">' +
+        '<details class="brand-scraper-segment brand-scraper-collapsible" data-eval="' + esc(evalType) + '">' +
+          '<summary>' +
             '<span class="brand-scraper-segment-eval brand-scraper-segment-eval--' + esc(evalType || 'other') + '">' + esc(evalType || 'segment') + '</span>' +
+            '<span class="brand-scraper-segment-summary">' +
+              '<strong>' + esc(seg.name || 'Untitled segment') + '</strong>' +
+              (seg.description ? '<span class="brand-scraper-result-muted brand-scraper-collapsible-oneline">' + esc(seg.description) + '</span>' : '') +
+            '</span>' +
             (seg.estimated_size ? '<span class="brand-scraper-segment-size">' + esc(seg.estimated_size) + '</span>' : '') +
-          '</header>' +
-          '<h5>' + esc(seg.name || 'Untitled segment') + '</h5>' +
-          (seg.description ? '<p>' + esc(seg.description) + '</p>' : '') +
-          (criteria.length ? '<div class="brand-scraper-segment-block"><h6>Criteria</h6><ul>' +
-            criteria.map(c => '<li><code>' + esc(c) + '</code></li>').join('') + '</ul></div>' : '') +
-          (useCases.length ? '<div class="brand-scraper-segment-block"><h6>Use cases</h6><ul>' +
-            useCases.map(u => '<li>' + esc(u) + '</li>').join('') + '</ul></div>' : '') +
-          (campaigns.length ? '<div class="brand-scraper-persona-block"><h6>Suggested campaigns</h6><div class="brand-scraper-persona-chips">' +
-            campaigns.map(c => '<span class="brand-scraper-chip">' + esc(c) + '</span>').join('') + '</div></div>' : '') +
-          (personas.length ? '<div class="brand-scraper-persona-block"><h6>Qualified personas</h6><div class="brand-scraper-persona-chips">' +
-            personas.map(p => '<span class="brand-scraper-chip brand-scraper-chip--segment">' + esc(p) + '</span>').join('') + '</div></div>' : '') +
-        '</article>'
+            '<span class="brand-scraper-collapsible-chevron" aria-hidden="true">›</span>' +
+          '</summary>' +
+          '<div class="brand-scraper-collapsible-body">' +
+            (seg.description ? '<p>' + esc(seg.description) + '</p>' : '') +
+            (criteria.length ? '<div class="brand-scraper-segment-block"><h6>Criteria</h6><ul>' +
+              criteria.map(c => '<li><code>' + esc(c) + '</code></li>').join('') + '</ul></div>' : '') +
+            (useCases.length ? '<div class="brand-scraper-segment-block"><h6>Use cases</h6><ul>' +
+              useCases.map(u => '<li>' + esc(u) + '</li>').join('') + '</ul></div>' : '') +
+            (campaigns.length ? '<div class="brand-scraper-persona-block"><h6>Suggested campaigns</h6><div class="brand-scraper-persona-chips">' +
+              campaigns.map(c => '<span class="brand-scraper-chip">' + esc(c) + '</span>').join('') + '</div></div>' : '') +
+            (personas.length ? '<div class="brand-scraper-persona-block"><h6>Qualified personas</h6><div class="brand-scraper-persona-chips">' +
+              personas.map(p => '<span class="brand-scraper-chip brand-scraper-chip--segment">' + esc(p) + '</span>').join('') + '</div></div>' : '') +
+          '</div>' +
+        '</details>'
       );
     };
 
@@ -180,8 +186,14 @@
       );
     }
 
-    return '<section class="brand-scraper-result-block">' +
-      '<h4>Audience segments <span class="brand-scraper-asset-hint">' + list.length + ' Real-Time CDP-style segments · ' + esc(s.provider || '') + '</span></h4>' +
+    return '<section class="brand-scraper-result-block" data-collapsible-group="segments">' +
+      '<div class="brand-scraper-result-block-head">' +
+        '<h4>Audience segments <span class="brand-scraper-asset-hint">' + list.length + ' Real-Time CDP-style segments · ' + esc(s.provider || '') + '</span></h4>' +
+        '<div class="brand-scraper-result-block-actions">' +
+          '<button type="button" class="dashboard-btn-outline" data-collapse-toggle="open">Expand all</button>' +
+          '<button type="button" class="dashboard-btn-outline" data-collapse-toggle="close">Collapse all</button>' +
+        '</div>' +
+      '</div>' +
       sections.join('') +
     '</section>';
   }
@@ -200,28 +212,32 @@
       const segments = Array.isArray(cp.target_segments) ? cp.target_segments : [];
       const sources = Array.isArray(cp.source_urls) ? cp.source_urls : [];
       return (
-        '<article class="brand-scraper-campaign">' +
-          '<header class="brand-scraper-campaign-head">' +
-            '<div>' +
+        '<details class="brand-scraper-campaign brand-scraper-collapsible">' +
+          '<summary>' +
+            '<span class="brand-scraper-campaign-summary">' +
               '<span class="brand-scraper-campaign-type">' + esc(cp.type || 'Campaign') + '</span>' +
-              '<h5>' + esc(cp.name || 'Untitled') + '</h5>' +
-            '</div>' +
+              '<strong>' + esc(cp.name || 'Untitled') + '</strong>' +
+              (cp.summary ? '<span class="brand-scraper-result-muted brand-scraper-collapsible-oneline">' + esc(cp.summary) + '</span>' : '') +
+            '</span>' +
             (cp.channel ? '<span class="brand-scraper-chip">' + esc(cp.channel) + '</span>' : '') +
-          '</header>' +
-          (cp.summary ? '<p>' + esc(cp.summary) + '</p>' : '') +
-          (headlines.length ? '<div class="brand-scraper-campaign-block"><h6>Headlines</h6><ul>' +
-            headlines.map(h => '<li>' + esc(h) + '</li>').join('') + '</ul></div>' : '') +
-          (cp.cta ? '<div class="brand-scraper-campaign-cta">' + esc(cp.cta) + '</div>' : '') +
-          '<div class="brand-scraper-campaign-meta">' +
-            (cp.time_context ? '<span class="brand-scraper-chip">' + esc(cp.time_context) + '</span>' : '') +
-            (cp.season ? '<span class="brand-scraper-chip">' + esc(cp.season) + '</span>' : '') +
+            '<span class="brand-scraper-collapsible-chevron" aria-hidden="true">›</span>' +
+          '</summary>' +
+          '<div class="brand-scraper-collapsible-body">' +
+            (cp.summary ? '<p>' + esc(cp.summary) + '</p>' : '') +
+            (headlines.length ? '<div class="brand-scraper-campaign-block"><h6>Headlines</h6><ul>' +
+              headlines.map(h => '<li>' + esc(h) + '</li>').join('') + '</ul></div>' : '') +
+            (cp.cta ? '<div class="brand-scraper-campaign-cta">' + esc(cp.cta) + '</div>' : '') +
+            '<div class="brand-scraper-campaign-meta">' +
+              (cp.time_context ? '<span class="brand-scraper-chip">' + esc(cp.time_context) + '</span>' : '') +
+              (cp.season ? '<span class="brand-scraper-chip">' + esc(cp.season) + '</span>' : '') +
+            '</div>' +
+            (segments.length ? '<div class="brand-scraper-persona-block"><h6>Target segments</h6><div class="brand-scraper-persona-chips">' +
+              segments.map(s => '<span class="brand-scraper-chip brand-scraper-chip--segment">' + esc(s) + '</span>').join('') +
+              '</div></div>' : '') +
+            (sources.length ? '<div class="brand-scraper-campaign-block"><h6>Evidence</h6><ul>' +
+              sources.map(u => '<li><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + '</a></li>').join('') + '</ul></div>' : '') +
           '</div>' +
-          (segments.length ? '<div class="brand-scraper-persona-block"><h6>Target segments</h6><div class="brand-scraper-persona-chips">' +
-            segments.map(s => '<span class="brand-scraper-chip brand-scraper-chip--segment">' + esc(s) + '</span>').join('') +
-            '</div></div>' : '') +
-          (sources.length ? '<div class="brand-scraper-campaign-block"><h6>Evidence</h6><ul>' +
-            sources.map(u => '<li><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + '</a></li>').join('') + '</ul></div>' : '') +
-        '</article>'
+        '</details>'
       );
     };
 
@@ -243,8 +259,14 @@
       );
     }
 
-    return '<section class="brand-scraper-result-block">' +
-      '<h4>Campaigns <span class="brand-scraper-asset-hint">' + list.length + ' total · ' + esc(c.provider || '') + '</span></h4>' +
+    return '<section class="brand-scraper-result-block" data-collapsible-group="campaigns">' +
+      '<div class="brand-scraper-result-block-head">' +
+        '<h4>Campaigns <span class="brand-scraper-asset-hint">' + list.length + ' total · ' + esc(c.provider || '') + '</span></h4>' +
+        '<div class="brand-scraper-result-block-actions">' +
+          '<button type="button" class="dashboard-btn-outline" data-collapse-toggle="open">Expand all</button>' +
+          '<button type="button" class="dashboard-btn-outline" data-collapse-toggle="close">Collapse all</button>' +
+        '</div>' +
+      '</div>' +
       sections.join('') +
     '</section>';
   }
@@ -262,31 +284,39 @@
       const pains = Array.isArray(persona.pain_points) ? persona.pain_points : [];
       const behaviours = Array.isArray(persona.behaviors) ? persona.behaviors : [];
       const segments = Array.isArray(persona.suggested_segments) ? persona.suggested_segments : [];
+      const metaLine = [persona.occupation, persona.age, persona.location].filter(Boolean).join(' · ');
       return (
-        '<article class="brand-scraper-persona">' +
-          '<header class="brand-scraper-persona-head">' +
+        '<details class="brand-scraper-persona brand-scraper-collapsible">' +
+          '<summary>' +
             '<span class="brand-scraper-persona-avatar">' + esc(initials) + '</span>' +
-            '<div>' +
-              '<h5>' + esc(persona.name || 'Persona ' + (idx + 1)) + '</h5>' +
-              '<p class="brand-scraper-result-muted">' +
-                esc((persona.occupation || '') + (persona.age ? ' · ' + persona.age : '') + (persona.location ? ' · ' + persona.location : '')) +
-              '</p>' +
-              (persona.income_range ? '<p class="brand-scraper-result-muted">' + esc(persona.income_range) + '</p>' : '') +
-            '</div>' +
-          '</header>' +
-          (persona.bio ? '<p class="brand-scraper-persona-bio">' + esc(persona.bio) + '</p>' : '') +
-          (persona.brand_affinity ? '<p class="brand-scraper-persona-affinity"><strong>Brand affinity:</strong> ' + esc(persona.brand_affinity) + '</p>' : '') +
-          (goals.length ? '<div class="brand-scraper-persona-block"><h6>Goals</h6><ul>' + goals.map(g => '<li>' + esc(g) + '</li>').join('') + '</ul></div>' : '') +
-          (pains.length ? '<div class="brand-scraper-persona-block"><h6>Pain points</h6><ul>' + pains.map(g => '<li>' + esc(g) + '</li>').join('') + '</ul></div>' : '') +
-          (behaviours.length ? '<div class="brand-scraper-persona-block"><h6>Behaviours</h6><ul>' + behaviours.map(g => '<li>' + esc(g) + '</li>').join('') + '</ul></div>' : '') +
-          (channels.length ? '<div class="brand-scraper-persona-chips">' + channels.map(c => '<span class="brand-scraper-chip">' + esc(c) + '</span>').join('') + '</div>' : '') +
-          (segments.length ? '<div class="brand-scraper-persona-block"><h6>Likely segments</h6><div class="brand-scraper-persona-chips">' + segments.map(s => '<span class="brand-scraper-chip brand-scraper-chip--segment">' + esc(s) + '</span>').join('') + '</div></div>' : '') +
-        '</article>'
+            '<span class="brand-scraper-persona-summary">' +
+              '<strong>' + esc(persona.name || 'Persona ' + (idx + 1)) + '</strong>' +
+              (metaLine ? '<span class="brand-scraper-result-muted">' + esc(metaLine) + '</span>' : '') +
+            '</span>' +
+            '<span class="brand-scraper-collapsible-chevron" aria-hidden="true">›</span>' +
+          '</summary>' +
+          '<div class="brand-scraper-collapsible-body">' +
+            (persona.income_range ? '<p class="brand-scraper-result-muted">' + esc(persona.income_range) + '</p>' : '') +
+            (persona.bio ? '<p class="brand-scraper-persona-bio">' + esc(persona.bio) + '</p>' : '') +
+            (persona.brand_affinity ? '<p class="brand-scraper-persona-affinity"><strong>Brand affinity:</strong> ' + esc(persona.brand_affinity) + '</p>' : '') +
+            (goals.length ? '<div class="brand-scraper-persona-block"><h6>Goals</h6><ul>' + goals.map(g => '<li>' + esc(g) + '</li>').join('') + '</ul></div>' : '') +
+            (pains.length ? '<div class="brand-scraper-persona-block"><h6>Pain points</h6><ul>' + pains.map(g => '<li>' + esc(g) + '</li>').join('') + '</ul></div>' : '') +
+            (behaviours.length ? '<div class="brand-scraper-persona-block"><h6>Behaviours</h6><ul>' + behaviours.map(g => '<li>' + esc(g) + '</li>').join('') + '</ul></div>' : '') +
+            (channels.length ? '<div class="brand-scraper-persona-chips">' + channels.map(c => '<span class="brand-scraper-chip">' + esc(c) + '</span>').join('') + '</div>' : '') +
+            (segments.length ? '<div class="brand-scraper-persona-block"><h6>Likely segments</h6><div class="brand-scraper-persona-chips">' + segments.map(s => '<span class="brand-scraper-chip brand-scraper-chip--segment">' + esc(s) + '</span>').join('') + '</div></div>' : '') +
+          '</div>' +
+        '</details>'
       );
     }).join('');
 
-    return '<section class="brand-scraper-result-block">' +
-      '<h4>Customer personas <span class="brand-scraper-asset-hint">' + list.length + ' generated · ' + esc(p.provider || '') + '</span></h4>' +
+    return '<section class="brand-scraper-result-block" data-collapsible-group="personas">' +
+      '<div class="brand-scraper-result-block-head">' +
+        '<h4>Customer personas <span class="brand-scraper-asset-hint">' + list.length + ' generated · ' + esc(p.provider || '') + '</span></h4>' +
+        '<div class="brand-scraper-result-block-actions">' +
+          '<button type="button" class="dashboard-btn-outline" data-collapse-toggle="open">Expand all</button>' +
+          '<button type="button" class="dashboard-btn-outline" data-collapse-toggle="close">Collapse all</button>' +
+        '</div>' +
+      '</div>' +
       '<div class="brand-scraper-persona-grid">' + cards + '</div>' +
     '</section>';
   }
@@ -645,6 +675,17 @@
   }
 
   resultsEl.addEventListener('click', (evt) => {
+    const toggleBtn = evt.target.closest('button[data-collapse-toggle]');
+    if (toggleBtn) {
+      const section = toggleBtn.closest('[data-collapsible-group]');
+      if (!section) return;
+      const shouldOpen = toggleBtn.dataset.collapseToggle === 'open';
+      section.querySelectorAll('details.brand-scraper-collapsible').forEach(d => {
+        if (shouldOpen) d.setAttribute('open', '');
+        else d.removeAttribute('open');
+      });
+      return;
+    }
     const btn = evt.target.closest('button[data-action]');
     if (!btn) return;
     if (btn.dataset.action === 'classify-assets') runClassify();

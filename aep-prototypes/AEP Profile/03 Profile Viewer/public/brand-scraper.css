@@ -607,35 +607,19 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   gap: 14px;
 }
 
-.brand-scraper-segment {
-  background: var(--dash-surface-alt);
-  border: 1px solid var(--dash-border);
-  border-radius: var(--dash-radius-sm, 12px);
-  padding: 16px;
+.brand-scraper-segment-summary {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--dash-text);
-  line-height: 1.5;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
-.brand-scraper-segment h5 {
-  margin: 0;
-  font-size: 14px;
-  color: var(--dash-text);
-}
+.brand-scraper-segment-summary strong { font-size: 14px; }
 
 .brand-scraper-segment p {
   margin: 0;
   color: var(--dash-text);
-}
-
-.brand-scraper-segment-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
 }
 
 .brand-scraper-segment-eval {
@@ -726,31 +710,15 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   gap: 14px;
 }
 
-.brand-scraper-campaign {
-  background: var(--dash-surface-alt);
-  border: 1px solid var(--dash-border);
-  border-radius: var(--dash-radius-sm, 12px);
-  padding: 16px;
+.brand-scraper-campaign-summary {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--dash-text);
-  line-height: 1.5;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
-.brand-scraper-campaign-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.brand-scraper-campaign-head h5 {
-  margin: 2px 0 0;
-  font-size: 14px;
-  color: var(--dash-text);
-}
+.brand-scraper-campaign-summary strong { font-size: 14px; }
 
 .brand-scraper-campaign-type {
   font-size: 11px;
@@ -804,30 +772,108 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   gap: 6px;
 }
 
+/* Generic collapsible card built on <details>/<summary> */
+.brand-scraper-result-block-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.brand-scraper-result-block-head h4 {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.brand-scraper-result-block-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.brand-scraper-result-block-actions button {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.brand-scraper-collapsible {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.brand-scraper-collapsible[open] {
+  border-color: color-mix(in srgb, var(--dash-blue) 40%, var(--dash-border));
+}
+
+.brand-scraper-collapsible > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  user-select: none;
+}
+
+.brand-scraper-collapsible > summary::-webkit-details-marker { display: none; }
+
+.brand-scraper-collapsible > summary:hover {
+  background: color-mix(in srgb, var(--dash-blue) 6%, transparent);
+}
+
+.brand-scraper-collapsible-chevron {
+  margin-left: auto;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--dash-text-secondary);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.brand-scraper-collapsible[open] > summary .brand-scraper-collapsible-chevron {
+  transform: rotate(90deg);
+}
+
+.brand-scraper-collapsible-body {
+  padding: 0 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--dash-border);
+  padding-top: 12px;
+  font-size: 13px;
+  color: var(--dash-text);
+  line-height: 1.5;
+}
+
+.brand-scraper-collapsible-oneline {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+}
+
 .brand-scraper-persona-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 14px;
 }
 
-.brand-scraper-persona {
-  background: var(--dash-surface-alt);
-  border: 1px solid var(--dash-border);
-  border-radius: var(--dash-radius-sm, 12px);
-  padding: 16px;
+.brand-scraper-persona-summary {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--dash-text);
-  line-height: 1.5;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
-.brand-scraper-persona-head {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
+.brand-scraper-persona-summary strong { font-size: 14px; }
+.brand-scraper-persona-summary .brand-scraper-result-muted { font-size: 12px; }
 
 .brand-scraper-persona-avatar {
   width: 40px;
