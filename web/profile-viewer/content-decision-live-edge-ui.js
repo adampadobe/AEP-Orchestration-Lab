@@ -332,6 +332,8 @@
     if (rec.launchScriptUrl && el('cdLabLaunchUrl')) {
       el('cdLabLaunchUrl').value = sanitiseLaunchScriptUrl(rec.launchScriptUrl);
     }
+    if (rec.tagsPropertyRef && el('cdLabTagsProperty')) el('cdLabTagsProperty').value = rec.tagsPropertyRef;
+    if (rec.targetPageUrl && el('cdLabTargetPageUrl')) el('cdLabTargetPageUrl').value = rec.targetPageUrl;
     if (rec.edgePersonalizationMode && el('cdLabEdgeMode')) {
       el('cdLabEdgeMode').value =
         rec.edgePersonalizationMode === 'decisionScopes' ? 'decisionScopes' : 'surfaces';
@@ -381,6 +383,99 @@
     return data.record || null;
   }
 
+  function renderLaunchPreview(data) {
+    var box = el('cdLabLaunchPreview');
+    if (!box) return;
+    var esc = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    };
+    var listHtml = function (arr, cls) {
+      if (!arr || !arr.length) return '<em class="cd-lab-launch-preview__empty">(none)</em>';
+      return '<ul class="cd-lab-launch-preview__list ' + cls + '">' +
+        arr.map(function (s) { return '<li><code>' + esc(s) + '</code></li>'; }).join('') +
+        '</ul>';
+    };
+
+    if (!data || data.ok === false) {
+      var err = (data && data.error) || 'Preview failed.';
+      var extra = '';
+      if (data && Array.isArray(data.availableRules) && data.availableRules.length) {
+        extra += '<p class="hint">Available rules on property: ' +
+          data.availableRules.map(function (n) { return '<code>' + esc(n) + '</code>'; }).join(', ') +
+          '</p>';
+      }
+      if (data && Array.isArray(data.matches) && data.matches.length) {
+        extra += '<p class="hint">Ambiguous — possible matches:</p><ul>' +
+          data.matches.map(function (m) { return '<li><code>' + esc(m.propertyId) + '</code> — ' + esc(m.name) + '</li>'; }).join('') +
+          '</ul>';
+      }
+      box.innerHTML = '<div class="status err">' + esc(err) + '</div>' + extra;
+      box.hidden = false;
+      return;
+    }
+
+    var d = data.diff || {};
+    var summary =
+      '<strong>Preview</strong> — ' +
+      'property ' + esc(data.propertyName || data.propertyId) +
+      ' · rule <code>' + esc(data.ruleName) + '</code>' +
+      ' · action <code>' + esc(data.actionName) + '</code>' +
+      ' · target <code>' + esc(data.target && data.target.host) + esc(data.target && data.target.path) + '</code>';
+
+    var diffCounts =
+      '<p class="hint">' +
+      'Surfaces: <strong>+' + (d.surfacesAdded || []).length + '</strong> added, ' +
+      '<strong>−' + (d.surfacesRemoved || []).length + '</strong> removed, ' +
+      (d.surfacesUnchanged || []).length + ' unchanged. ' +
+      'Scopes: <strong>+' + (d.scopesAdded || []).length + '</strong> added, ' +
+      '<strong>−' + (d.scopesRemoved || []).length + '</strong> removed.' +
+      '</p>';
+
+    box.innerHTML =
+      '<p class="cd-lab-launch-preview__title">' + summary + '</p>' +
+      diffCounts +
+      '<details open><summary>Surfaces to add (' + (d.surfacesAdded || []).length + ')</summary>' + listHtml(d.surfacesAdded, 'add') + '</details>' +
+      '<details><summary>Surfaces to remove (' + (d.surfacesRemoved || []).length + ')</summary>' + listHtml(d.surfacesRemoved, 'rm') + '</details>' +
+      '<details><summary>Scopes to add (' + (d.scopesAdded || []).length + ')</summary>' + listHtml(d.scopesAdded, 'add') + '</details>' +
+      '<details><summary>Scopes to remove (' + (d.scopesRemoved || []).length + ')</summary>' + listHtml(d.scopesRemoved, 'rm') + '</details>' +
+      '<details><summary>After merge: proposed surfaces (' + (data.proposedSurfaces || []).length + ')</summary>' + listHtml(data.proposedSurfaces, '') + '</details>' +
+      '<p class="hint"><em>Read-only. No Reactor writes happened. The write pipeline ships in a follow-up.</em></p>';
+    box.hidden = false;
+  }
+
+  async function previewLaunchRuleChange() {
+    var propertyRef = el('cdLabTagsProperty') && el('cdLabTagsProperty').value.trim();
+    var targetPageUrl = el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim();
+    if (!propertyRef) { renderLaunchPreview({ ok: false, error: 'Enter a Tags property name or PR… ID first.' }); return; }
+    if (!targetPageUrl) { renderLaunchPreview({ ok: false, error: 'Enter a target page URL first.' }); return; }
+
+    var btn = el('cdLabPreviewLaunchBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Fetching rule…'; }
+
+    var body = {
+      propertyRef: propertyRef,
+      targetPageUrl: targetPageUrl,
+      placements: getPlacementsFromForm(),
+      edgePersonalizationMode: el('cdLabEdgeMode') && el('cdLabEdgeMode').value,
+    };
+
+    try {
+      var res = await labFetch('/api/edge-decisioning/preview-launch-rule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      var data = await res.json().catch(function () { return {}; });
+      renderLaunchPreview(data);
+    } catch (e) {
+      renderLaunchPreview({ ok: false, error: String(e && e.message || e) });
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Preview Launch rule'; }
+    }
+  }
+
   async function saveConfigToFirebase() {
     var sb = sandboxName();
     if (!sb) {
@@ -397,6 +492,8 @@
     var body = {
       datastreamId: el('edgeConfigId') && el('edgeConfigId').value.trim(),
       launchScriptUrl: sanitiseLaunchScriptUrl(el('cdLabLaunchUrl') && el('cdLabLaunchUrl').value),
+      tagsPropertyRef: el('cdLabTagsProperty') && el('cdLabTagsProperty').value.trim(),
+      targetPageUrl: el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim(),
       edgePersonalizationMode: el('cdLabEdgeMode') && el('cdLabEdgeMode').value,
       placements: getPlacementsFromForm(),
     };
@@ -407,6 +504,14 @@
     }
     loadRecordIntoForm(data.record || {});
     setMsg(el('cdLabSaveStatus'), 'Saved for sandbox ' + sb + '.', 'ok');
+    // If the sandbox has a Tags property + target URL configured, show the
+    // diff against the Launch rule so the user sees what a subsequent write
+    // would do. Silent no-op if either field is empty.
+    var hasTags = el('cdLabTagsProperty') && el('cdLabTagsProperty').value.trim();
+    var hasTarget = el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim();
+    if (hasTags && hasTarget) {
+      previewLaunchRuleChange().catch(function () { /* already surfaced via renderLaunchPreview */ });
+    }
   }
 
   async function probeTagsApiStep() {
@@ -495,6 +600,10 @@
         };
         launchEl.addEventListener('blur', normaliseLaunchInput);
         launchEl.addEventListener('paste', function () { setTimeout(normaliseLaunchInput, 0); });
+      }
+
+      if (el('cdLabPreviewLaunchBtn')) {
+        el('cdLabPreviewLaunchBtn').addEventListener('click', previewLaunchRuleChange);
       }
 
       await fetchConfigFromFirebase();

@@ -662,6 +662,17 @@
     .cd-edge-settings label.chk { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.5rem; }
     .cd-edge-settings label.chk input { width: auto; margin: 3px 0 0 0; flex-shrink: 0; }
     .cd-edge-settings .status.err { font-size: 0.8rem; }
+    .cd-lab-launch-preview { margin-top: 0.75rem; padding: 0.75rem 0.9rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.8125rem; }
+    .cd-lab-launch-preview .cd-lab-launch-preview__title { margin: 0 0 0.35rem; font-size: 0.8125rem; }
+    .cd-lab-launch-preview .hint { margin: 0.25rem 0; }
+    .cd-lab-launch-preview details { margin-top: 0.4rem; }
+    .cd-lab-launch-preview details > summary { cursor: pointer; font-weight: 500; font-size: 0.78rem; color: var(--text); padding: 0.15rem 0; }
+    .cd-lab-launch-preview__list { list-style: none; margin: 0.25rem 0 0.25rem 0.25rem; padding-left: 0.6rem; border-left: 2px solid var(--border); font-size: 0.78rem; }
+    .cd-lab-launch-preview__list li { margin: 0.15rem 0; }
+    .cd-lab-launch-preview__list.add li::before { content: '+ '; color: #16a34a; font-weight: 700; }
+    .cd-lab-launch-preview__list.rm li::before { content: '− '; color: #dc2626; font-weight: 700; }
+    .cd-lab-launch-preview__empty { color: var(--muted, #7a7a7a); }
+    .cd-lab-launch-preview .status { padding: 0.35rem 0.5rem; border-radius: 6px; margin: 0 0 0.4rem; }
     .cd-lab-step { margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border); }
     .cd-lab-step:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
     .cd-lab-step-title { font-size: 0.8125rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--text); }
@@ -775,10 +786,21 @@
               <label for="cdLabLaunchUrl">Launch script URL (Web SDK extension)</label>
               <input id="cdLabLaunchUrl" type="text" placeholder="Paste the full <script src=...></script> tag or just the URL" autocomplete="off" spellcheck="false">
               <p class="hint" style="margin:0.25rem 0 0;">Pasting the full <code>&lt;script src="…"&gt;&lt;/script&gt;</code> tag is fine — we strip it to just the URL. <code>http://</code> is auto-upgraded to <code>https://</code>, and a bare domain gets the protocol added for you.</p>
+
+              <label for="cdLabTagsProperty" style="margin-top:1rem;">Tags property (name or PR… ID)</label>
+              <input id="cdLabTagsProperty" type="text" placeholder="PR2213... or 'kirkham - Retail Demo (web)'" autocomplete="off" spellcheck="false">
+              <p class="hint" style="margin:0.25rem 0 0;">Used to auto-patch the <code>Page View</code> rule's <em>Send Experience Event</em> action so the <strong>surfaces</strong>/<strong>decisionScopes</strong> match your placements. Partial names are fine; we'll disambiguate against all properties your sandbox can see.</p>
+
+              <label for="cdLabTargetPageUrl">Target page URL (where the surfaces apply)</label>
+              <input id="cdLabTargetPageUrl" type="url" placeholder="https://aep-orchestration-lab.web.app/profile-viewer/race-for-life-demo.html" autocomplete="off" spellcheck="false">
+              <p class="hint" style="margin:0.25rem 0 0;">Only surfaces whose host + path match this URL are considered "ours" and will be rewritten on save. Other surfaces on the rule (e.g. kirkham-WT32 paths) stay untouched.</p>
+
               <div class="actions" style="margin-top:0.65rem;">
                 <button type="button" class="primary" id="cdLabSaveConfigBtn">Save to Firebase</button>
                 <button type="button" class="secondary" id="cdLabLoadConfigBtn">Reload from Firebase</button>
+                <button type="button" class="secondary" id="cdLabPreviewLaunchBtn" title="Read-only: show what surfaces/scopes would be added or removed on the Launch rule">Preview Launch rule</button>
               </div>
+              <div class="cd-lab-launch-preview" id="cdLabLaunchPreview" hidden aria-live="polite"></div>
               <label for="cdLabEdgeMode" style="margin-top:1rem;">Personalization API</label>
               <select id="cdLabEdgeMode" class="sandbox-select" aria-label="Edge personalization mode">
                 <option value="surfaces" selected><code>surfaces</code> + <code>applyPropositions</code> (AJO / code-based)</option>

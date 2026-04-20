@@ -61,6 +61,7 @@ const easterEggNotify = lazyRequireMod('./easterEggNotify');
 const { sandboxWebhookTool } = require('./sandboxWebhookTool');
 const eventInfraService = lazyRequireMod('./eventInfraService');
 const tagsReactorService = lazyRequireMod('./tagsReactorService');
+const edgeLaunchRuleService = lazyRequireMod('./edgeLaunchRuleService');
 const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const brandScraperService = lazyRequireMod('./brandScraperService');
@@ -2172,6 +2173,51 @@ exports.tagsReactorProxy = onRequest(
       });
     } catch (e) {
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox });
+    }
+  },
+);
+
+/**
+ * POST /api/edge-decisioning/preview-launch-rule
+ * Read-only: resolves a Tags property + rule + Send-Event action, computes
+ * the proposed merge of surfaces / decisionScopes based on placements +
+ * target page URL, and returns a diff. No writes to Reactor.
+ */
+exports.edgeLaunchRulePreview = onRequest(
+  {
+    region: REGION,
+    secrets: PROFILE_FN_SECRETS,
+    environmentVariables: { ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX },
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'POST only' }); return; }
+    const body = (req.body && typeof req.body === 'object') ? req.body : {};
+    if (!body.propertyRef) { res.status(400).json({ ok: false, error: 'propertyRef required (name or PR… id)' }); return; }
+    if (!body.targetPageUrl) { res.status(400).json({ ok: false, error: 'targetPageUrl required' }); return; }
+
+    let accessToken;
+    try { accessToken = await getAdobeAccessToken(); }
+    catch (e) { res.status(500).json({ ok: false, error: 'Auth failed', detail: String(e.message || e) }); return; }
+
+    const clientId = ADOBE_CLIENT_ID.value();
+    const orgId = ADOBE_IMS_ORG.value();
+    try {
+      const result = await edgeLaunchRuleService.previewLaunchRuleUpdate({
+        accessToken, clientId, orgId,
+        propertyRef: body.propertyRef,
+        ruleName: body.ruleName || 'Page View',
+        targetPageUrl: body.targetPageUrl,
+        placements: Array.isArray(body.placements) ? body.placements : [],
+        edgePersonalizationMode: body.edgePersonalizationMode || null,
+      });
+      res.status(result.ok ? 200 : 400).json(result);
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e && e.message || e) });
     }
   },
 );
