@@ -244,6 +244,29 @@ waitForAlloy()
     });
   }
 
+  // Re-inject the Launch script when the user changes the URL live. We reset
+  // the cached datastream-configure marker + the alloy global so the new
+  // Launch bundle's Web SDK extension takes over cleanly.
+  function reinjectLaunch() {
+    try { alloyConfiguredFor = ''; } catch (e) {}
+    try { if (typeof window.alloy === 'function') delete window.alloy; } catch (e) {}
+    try { if (window.__alloyNS && window.__alloyNS.alloy) delete window.__alloyNS.alloy; } catch (e) {}
+    var setInit = function (msg, cls) {
+      var el = document.getElementById('webSdkInitStatus');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.className = 'status' + (cls ? ' ' + cls : '');
+    };
+    setInit('Reloading Launch script…', '');
+    return injectLaunchFromConfiguredUrl().catch(function (e) {
+      setInit('Launch reload failed: ' + (e && e.message || e), 'err');
+      throw e;
+    });
+  }
+
+  window.CdEdgeLab = window.CdEdgeLab || {};
+  window.CdEdgeLab.reinjectLaunch = reinjectLaunch;
+
   function wireFieldListeners() {
     var live = document.getElementById('cdLiveEmail');
     if (live) live.addEventListener('blur', persistLiveIdentity);
