@@ -453,6 +453,54 @@ async function applyAndPublishLaunchRule(args) {
   };
 }
 
+/**
+ * Delete orphan auto-publish libraries left behind by failed publish
+ * attempts. Deliberately conservative: only touches libraries whose name
+ * starts with the lab's auto-publish prefix AND aren't bound to any
+ * environment AND are in development state. Never deletes 'Main' or any
+ * user library.
+ */
+async function cleanupOrphanAutoPublishLibraries({ accessToken, clientId, orgId, propertyRef, dryRun = false, namePrefix = 'AEP Lab' }) {
+  const propRes = await resolveProperty({ accessToken, clientId, orgId, propertyRef });
+  if (!propRes.ok) return propRes;
+  const { propertyId, propertyName } = propRes;
+
+  const libsRes = await tagsReactorService.listLibraries(accessToken, clientId, orgId, propertyId);
+  if (!libsRes.ok) return { ok: false, error: libsRes.error, propertyId };
+
+  const items = Array.isArray(libsRes.items) ? libsRes.items : [];
+  const orphans = items.filter(l => {
+    const name = String(l.name || '');
+    const state = String(l.state || '').toLowerCase();
+    const unbound = !l.environmentId;
+    return unbound && state === 'development' && name.startsWith(namePrefix);
+  });
+
+  const results = [];
+  if (!dryRun) {
+    for (const lib of orphans) {
+      const del = await tagsReactorService.deleteLibrary(accessToken, clientId, orgId, lib.libraryId);
+      results.push({
+        libraryId: lib.libraryId,
+        name: lib.name,
+        deleted: del.ok,
+        error: del.ok ? null : del.error,
+      });
+    }
+  }
+
+  return {
+    ok: true,
+    propertyId,
+    propertyName,
+    scanned: items.length,
+    orphansFound: orphans.map(l => ({ libraryId: l.libraryId, name: l.name })),
+    dryRun: !!dryRun,
+    results,
+    deletedCount: results.filter(r => r.deleted).length,
+  };
+}
+
 module.exports = {
   DEFAULT_RULE_NAME,
   resolveProperty,
@@ -460,4 +508,5 @@ module.exports = {
   applyLaunchRuleUpdate,
   publishRuleToDevelopment,
   applyAndPublishLaunchRule,
+  cleanupOrphanAutoPublishLibraries,
 };
