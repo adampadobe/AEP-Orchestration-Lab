@@ -1,0 +1,398 @@
+/* Demo Delivery: device chrome + layout. AJO base rules from race-for-life-demo.css; scoped overrides below. */
+
+body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main.app-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 0.45rem;
+  padding-bottom: 1rem;
+  padding-left: clamp(0.35rem, 1vw, 0.65rem);
+  padding-right: clamp(0.35rem, 1vw, 0.65rem);
+}
+
+.demo-delivery-page .dashboard-hero {
+  margin-bottom: 0.65rem;
+}
+
+.demo-delivery-page .dashboard-hero--page-banner .dashboard-hero-inner {
+  padding: 0.85rem clamp(0.75rem, 2vw, 1.15rem) 0.95rem;
+}
+
+.demo-delivery-page .dashboard-main.demo-delivery-main {
+  padding-top: 0;
+  max-width: 100%;
+}
+
+.demo-delivery-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.demo-delivery-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  padding: 12px 14px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+}
+
+.demo-delivery-controls .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+  flex: 1 1 220px;
+}
+
+.demo-delivery-controls label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+}
+
+.demo-delivery-controls input,
+.demo-delivery-controls select {
+  width: 100%;
+  min-height: 40px;
+}
+
+.demo-delivery-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.demo-delivery-fullscreen-btn {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Demo Delivery main region when using browser Fullscreen API (controls + device preview) */
+#demoDeliveryMain:fullscreen,
+#demoDeliveryMain:-webkit-full-screen {
+  overflow: auto;
+  box-sizing: border-box;
+  background: var(--dash-bg);
+  padding: clamp(0.5rem, 1.5vw, 1rem) clamp(0.35rem, 1vw, 0.65rem) 1rem;
+}
+
+.demo-delivery-ecid {
+  font-size: 13px;
+  color: var(--dash-text-secondary);
+}
+
+.demo-delivery-status {
+  margin: 0;
+  min-height: 18px;
+  font-size: 13px;
+  color: var(--dash-text-secondary);
+}
+
+.demo-delivery-status[data-status="error"] {
+  color: var(--dash-danger, var(--dash-text-secondary));
+}
+
+.demo-delivery-stage.race-ajo-mounts {
+  width: 100%;
+  max-width: none;
+  margin-left: auto;
+  margin-right: auto;
+  background: transparent;
+  min-height: 0;
+}
+
+/*
+  Center devices side-by-side (no 50/50 grid = no huge white gutters).
+
+  Frame `<img>` boxes must match each PNG’s aspect ratio. A fixed height plus max-width
+  (without aspect-ratio) made `object-fit: contain` letterbox the bitmap inside a taller
+  box, while `.demo-device-screen` %s were relative to that box — white blocks drifted off
+  the glass. Per-device aspect-ratio + max-height + max-width keeps paint and overlay aligned.
+
+  Both devices use the same explicit `height` so the laptop is not shorter than the phone
+  (width-first `min(680px, …)` had been capping laptop width and shrinking its height).
+*/
+.demo-delivery-page {
+  --demo-delivery-frame-max-h: min(64vh, 640px);
+}
+
+.demo-delivery-stage {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 8px 14px;
+  width: 100%;
+  /* Laptop at full height is wide; allow horizontal scroll instead of squashing only one device */
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+.demo-device {
+  position: relative;
+  margin: 0;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  display: block;
+}
+
+.demo-device-frame {
+  display: block;
+  width: auto;
+  height: var(--demo-delivery-frame-max-h);
+  max-width: none;
+}
+
+/* Same height on both; width follows each PNG’s aspect ratio (no letterboxing). */
+.demo-device--laptop .demo-device-frame {
+  aspect-ratio: 377 / 239;
+}
+
+.demo-device--mobile .demo-device-frame {
+  aspect-ratio: 167 / 330;
+}
+
+.demo-device-screen {
+  position: absolute;
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+  background: #fff;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  /* Clip AJO / Launch content to the glass */
+  contain: layout paint;
+}
+
+/*
+  Laptop PNG (377×239): inner glass = brightest non–edge white run (x 47–338, y 21–205).
+  Top inset clears the notch row; bottom stops above the lower bezel.
+*/
+.demo-device-screen--laptop {
+  left: 12.47%;
+  top: 8.79%;
+  width: 77.45%;
+  height: 77.41%;
+  border-radius: 3px;
+}
+
+/*
+  Mobile PNG (167×330): inner glass (x 13–150, y 22–302) from stable full-width rows.
+*/
+.demo-device-screen--mobile {
+  left: 7.78%;
+  top: 6.67%;
+  width: 82.63%;
+  height: 85.15%;
+  border-radius: 18%;
+}
+
+/* Race for Life site banner (1024×166) — full width above decisioning hero */
+.demo-device-screen--laptop .laptop_header {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
+  background: #fff;
+}
+
+.demo-device-screen--laptop .laptop_header__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/*
+  Mobile app–style chrome: compact bar, left logo (cropped from same asset), icon-only menu.
+*/
+.demo-device-screen--mobile .mobile_header {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.demo-device-screen--mobile .mobile_header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 38px;
+  padding: 5px 6px;
+  box-sizing: border-box;
+  background: #fff;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.demo-device-screen--mobile .mobile_header__brand {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Crop the desktop header art to the upper–logo band; reads as a native app masthead */
+.demo-device-screen--mobile .mobile_header__img {
+  display: block;
+  width: 100%;
+  height: 34px;
+  object-fit: cover;
+  object-position: 18% 24%;
+}
+
+.demo-device-screen--mobile .mobile_header__menu {
+  flex: 0 0 auto;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: var(--dash-radius-sm);
+  background: transparent;
+  cursor: default;
+  color: inherit;
+}
+
+.demo-device-screen--mobile .mobile_header__menu-line {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--dash-text);
+}
+
+/* Hero: scroll inside bezel only */
+.demo-device-screen--laptop #hero-banner {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.demo-device-screen--laptop #hero-banner:not(:empty) {
+  padding: 0;
+}
+
+.demo-device-screen--laptop .race-ajo-iframe {
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Mobile: fill remaining glass below app header; scroll inside bezel */
+.demo-device-screen--mobile #ContentCardContainer,
+.demo-device-screen--mobile #ContentCardContainer:not(:empty) {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  isolation: auto;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  background: #fff !important;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.demo-device-screen--mobile #ContentCardContainer .Banner,
+.demo-device-screen--mobile #ContentCardContainer [class^='Banner'] {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.demo-device-screen--mobile #ContentCardContainer .Banner__content,
+.demo-device-screen--mobile #ContentCardContainer [class*='Banner__content'] {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+
+.demo-device-screen--mobile .race-ajo-content-card {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: #fff !important;
+  box-sizing: border-box;
+}
+
+.demo-device-screen--mobile .race-ajo-content-card-inner {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border-radius: 0 !important;
+  overflow: hidden;
+  justify-content: flex-start;
+}
+
+.demo-device-screen--mobile .race-ajo-content-card-img {
+  width: 100% !important;
+  max-height: none !important;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.demo-device-screen--mobile .race-ajo-content-card-body {
+  flex: 1 1 auto;
+  padding: 0.65rem 0.75rem 0.85rem !important;
+}
+
+.demo-device-screen--mobile .race-ajo-iframe {
+  flex: 1 1 auto;
+  width: 100% !important;
+  min-height: 120px !important;
+  border-radius: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.demo-device-screen .race-ajo-hero,
+.demo-device-screen .race-ajo-content-cards {
+  min-height: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 960px) {
+  .demo-delivery-stage {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .demo-delivery-page {
+    --demo-delivery-frame-max-h: min(58vh, 560px);
+  }
+}

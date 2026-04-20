@@ -25,7 +25,20 @@
     if (!host) return ['#hero-banner', '#ContentCardContainer'];
     var base = 'web://' + host + path;
     /* Full web:// URIs match most AJO code-based surfaces; hash-only #ContentCardContainer covers some Content Card configs that do not use the web:// prefix. */
-    return [base + '#hero-banner', base + '#ContentCardContainer', '#ContentCardContainer'];
+    var out = [base + '#hero-banner', base + '#ContentCardContainer', '#ContentCardContainer'];
+    /*
+      Demo Delivery Concept uses the same #hero-banner / #ContentCardContainer mounts as Race for Life, but the page path differs.
+      Merge Race for Life web:// surfaces so existing AJO code-based surfaces keep resolving while content renders on this page.
+    */
+    if (path.indexOf('demo-delivery-concept') !== -1) {
+      var rflPath = '/profile-viewer/race-for-life-demo.html';
+      if (path.indexOf('/profile-viewer/') === -1) {
+        rflPath = '/race-for-life-demo.html';
+      }
+      var rflBase = 'web://' + host + rflPath;
+      out.push(rflBase + '#hero-banner', rflBase + '#ContentCardContainer');
+    }
+    return out;
   }
 
   function namespaceToIdentityKey(ns) {
@@ -450,6 +463,18 @@
         var surfaces = buildSurfaces();
         var href = global.location && global.location.href ? global.location.href.split('?')[0] : '';
 
+        var viewName = 'Race for Life';
+        var pageName = 'Race for Life';
+        try {
+          if (typeof document !== 'undefined' && document.body) {
+            var vn = document.body.getAttribute('data-aep-ajo-view-name');
+            var pn = document.body.getAttribute('data-aep-ajo-page-name');
+            if (vn && String(vn).trim()) viewName = String(vn).trim();
+            if (pn && String(pn).trim()) pageName = String(pn).trim();
+            else if (vn && String(vn).trim()) pageName = String(vn).trim();
+          }
+        } catch (eView) {}
+
         return alloy('sendEvent', {
           renderDecisions: true,
           personalization: {
@@ -461,8 +486,8 @@
             web: {
               webPageDetails: {
                 URL: href,
-                name: 'Race for Life',
-                viewName: 'Race for Life',
+                name: pageName,
+                viewName: viewName,
               },
             },
           },
