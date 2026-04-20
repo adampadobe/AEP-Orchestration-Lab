@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script src="aep-head-sync.js?v=20260416c"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agentic layer (in development) – AEP Profile Viewer</title>
+  <title>Agentic layer – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
@@ -34,9 +34,9 @@
         <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="agenticV2BannerHeading">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
-              <h2 id="agenticV2BannerHeading" class="dashboard-hero-title">Agentic layer (in development)</h2>
+              <h2 id="agenticV2BannerHeading" class="dashboard-hero-title">Agentic layer</h2>
               <p class="dashboard-hero-subtitle">
-                Light experiment-dashboard canvas with white cards, forest-green labels, and green flow lines.
+                Light experiment-dashboard canvas with white cards, forest-green labels, and green flow lines (in development).
               </p>
             </header>
           </div>
@@ -63,15 +63,18 @@
               </button>
             </div>
             <header class="agentic-ai-v2-hero-head">
-              <p class="agentic-ai-v2-badge agentic-v2-talk-target" data-talk-track="Use this section to frame the conversation: this is the end-to-end orchestration architecture that turns user intent into governed actions across Adobe surfaces.">Architecture</p>
-              <h1 id="agenticV2Heading" class="agentic-ai-v2-title agentic-v2-talk-target" data-talk-track="Position this as a practical operating model for Agentic AI: coordinated specialists, shared context, and policy-aware execution rather than a single monolithic assistant.">Agentic AI</h1>
-              <div class="agentic-ai-v2-lead-block" role="doc-subtitle">
-                <p class="agentic-ai-v2-lead-line">
-                  Adobe Agentic AI is Adobe’s agentic orchestration layer — assistants that reason over your context, invoke tools and services, and advance multi-step work inside the policies and guardrails you set.
-                </p>
+              <div class="agentic-v2-hero-talk-zone agentic-v2-talk-target" data-talk-track="Use this section to frame the conversation: this is the end-to-end orchestration architecture that turns user intent into governed actions across Adobe surfaces. Position this canvas as a practical operating model for Agentic AI: coordinated specialists, shared context, and policy-aware execution rather than a single monolithic assistant.">
+                <p class="agentic-ai-v2-badge">Architecture</p>
+                <h1 id="agenticV2Heading" class="agentic-ai-v2-title">Agentic AI</h1>
+                <div class="agentic-ai-v2-lead-block" role="doc-subtitle">
+                  <p class="agentic-ai-v2-lead-line">
+                    Adobe Agentic AI is Adobe’s agentic orchestration layer — assistants that reason over your context, invoke tools and services, and advance multi-step work inside the policies and guardrails you set.
+                  </p>
+                </div>
               </div>
               <div class="agentic-ai-v2-toolbar">
                 <button type="button" class="btn btn-primary" id="agenticV2PlayBtn">Play</button>
+                <button type="button" class="btn btn-secondary" id="agenticV2BackBtn">Back</button>
                 <button type="button" class="btn btn-secondary" id="agenticV2StepBtn">Step</button>
                 <button type="button" class="btn btn-secondary" id="agenticV2ResetBtn">Reset</button>
                 <label class="agentic-ai-v2-speed">
@@ -87,9 +90,9 @@
             <div class="agentic-v2-diagram-scale" id="diagramScaleV2">
             <div class="agentic-v2-board" id="diagramBoardV2">
               <div class="agentic-v2-stack">
-                <div class="agentic-v2-assistant-wrap" id="node-assistant-v2" data-step="assistant">
+                <div class="agentic-v2-assistant-wrap agentic-v2-talk-target" id="node-assistant-v2" data-step="assistant" data-talk-track="This is the customer-facing copilot entry point. It captures business intent in natural language and keeps the experience conversational while the platform handles orchestration behind the scenes.">
                   <div class="agentic-v2-assistant-card">
-                    <h2 class="agentic-v2-assistant-card__title agentic-v2-talk-target" data-talk-track="This is the customer-facing copilot entry point. It captures business intent in natural language and keeps the experience conversational while the platform handles orchestration behind the scenes.">AI Assistant</h2>
+                    <h2 class="agentic-v2-assistant-card__title">AI Assistant</h2>
                     <div class="agentic-v2-assistant-card__thumb">
                       <img
                         src="https://contenthosting.web.app/Agents/aiassistant.png"
@@ -102,91 +105,91 @@
                     </div>
                   </div>
                 </div>
-                <div class="agentic-node agentic-node--wide agentic-v2-node agentic-v2-chat" id="node-chat-v2" data-step="chat">
+                <div class="agentic-node agentic-node--wide agentic-v2-node agentic-v2-chat agentic-v2-talk-target" id="node-chat-v2" data-step="chat" data-talk-track="The chat service provides session continuity, message handling, and context stitching so multi-turn requests stay coherent and auditable.">
                   <div class="agentic-v2-chat__inner">
-                    <p class="agentic-v2-chat__title agentic-v2-talk-target" data-talk-track="The chat service provides session continuity, message handling, and context stitching so multi-turn requests stay coherent and auditable.">CHAT SERVICE</p>
+                    <p class="agentic-v2-chat__title">CHAT SERVICE</p>
                     <p class="agentic-v2-chat__sub">Session &amp; message routing</p>
                   </div>
                 </div>
-                <div class="agentic-orch agentic-v2-orch" id="node-orch-v2" data-step="orchestrator">
+                <div class="agentic-orch agentic-v2-orch agentic-v2-talk-target" id="node-orch-v2" data-step="orchestrator" data-talk-track="The orchestrator is the control tower: it interprets intent, selects the right specialist path, enforces guardrails, and coordinates tool calls across the workflow.">
                   <div class="agentic-orch-head agentic-v2-orch-head">
-                    <span class="agentic-orch-title agentic-v2-talk-target" data-talk-track="The orchestrator is the control tower: it interprets intent, selects the right specialist path, enforces guardrails, and coordinates tool calls across the workflow.">AGENT ORCHESTRATOR</span>
+                    <span class="agentic-orch-title">AGENT ORCHESTRATOR</span>
                   </div>
                   <div class="agentic-orch-body">
                     <div class="agentic-row agentic-row--prompt">
-                      <div class="agentic-node agentic-node--prompt agentic-v2-node agentic-v2-prompt" id="node-prompt-v2" data-step="prompt">
+                      <div class="agentic-node agentic-node--prompt agentic-v2-node agentic-v2-prompt agentic-v2-talk-target" id="node-prompt-v2" data-step="prompt" data-talk-track="Prompt processing extracts intent, constraints, and business context so downstream agents can execute against a structured objective.">
                         <div class="agentic-v2-prompt__left">
-                          <span class="agentic-v2-prompt__eyebrow agentic-v2-talk-target" data-talk-track="Prompt processing extracts intent, constraints, and business context so downstream agents can execute against a structured objective.">Prompt</span>
+                          <span class="agentic-v2-prompt__eyebrow">Prompt</span>
                           <span class="agentic-v2-prompt__mono">intent · routing</span>
                         </div>
                       </div>
                     </div>
-                    <div class="agentic-node agentic-node--coord agentic-v2-node agentic-v2-coordinator" id="node-coordinator-v2" data-step="coordinator">
-                      <span class="agentic-v2-coordinator__label agentic-v2-talk-target" data-talk-track="The coordinator manages execution state across steps, sequencing work, handling retries, and tracking progress across collaborating agents.">COORDINATOR</span>
+                    <div class="agentic-node agentic-node--coord agentic-v2-node agentic-v2-coordinator agentic-v2-talk-target" id="node-coordinator-v2" data-step="coordinator" data-talk-track="The coordinator manages execution state across steps, sequencing work, handling retries, and tracking progress across collaborating agents.">
+                      <span class="agentic-v2-coordinator__label">COORDINATOR</span>
                       <div class="agentic-v2-coordinator__accent" aria-hidden="true"></div>
                     </div>
                     <div class="agentic-mid-grid agentic-v2-mid-grid">
-                      <div class="agentic-node agentic-node--red agentic-node--compact agentic-v2-node agentic-v2-mid-cell" id="node-nonAgent-v2" data-step="nonAgent">
-                        <span class="agentic-v2-talk-target" data-talk-track="Not every request needs an agentic workflow. Simple informational asks can be answered directly to reduce latency and cost.">Non Agent Query</span>
+                      <div class="agentic-node agentic-node--red agentic-node--compact agentic-v2-node agentic-v2-mid-cell agentic-v2-talk-target" id="node-nonAgent-v2" data-step="nonAgent" data-talk-track="Not every request needs an agentic workflow. Simple informational asks can be answered directly to reduce latency and cost.">
+                        <span>Non Agent Query</span>
                       </div>
-                      <div class="agentic-node agentic-node--purple agentic-node--compact agentic-v2-node agentic-v2-mid-cell" id="node-agentExecutor-v2" data-step="agentExecutor">
-                        <span class="agentic-v2-talk-target" data-talk-track="The agent executor runs chosen specialist capabilities and tool invocations with the right context, identity, and policy boundaries.">Agent Executor</span>
+                      <div class="agentic-node agentic-node--purple agentic-node--compact agentic-v2-node agentic-v2-mid-cell agentic-v2-talk-target" id="node-agentExecutor-v2" data-step="agentExecutor" data-talk-track="The agent executor runs chosen specialist capabilities and tool invocations with the right context, identity, and policy boundaries.">
+                        <span>Agent Executor</span>
                       </div>
-                      <div class="agentic-node agentic-node--yellow agentic-node--compact agentic-v2-node agentic-v2-mid-cell" id="node-planGenerator-v2" data-step="planGenerator">
-                        <span class="agentic-v2-talk-target" data-talk-track="Plan generation decomposes high-level intent into an ordered set of actions, dependencies, and success criteria.">Plan Generator</span>
+                      <div class="agentic-node agentic-node--yellow agentic-node--compact agentic-v2-node agentic-v2-mid-cell agentic-v2-talk-target" id="node-planGenerator-v2" data-step="planGenerator" data-talk-track="Plan generation decomposes high-level intent into an ordered set of actions, dependencies, and success criteria.">
+                        <span>Plan Generator</span>
                       </div>
-                      <div class="agentic-node agentic-node--yellow agentic-node--compact agentic-v2-node agentic-v2-mid-cell" id="node-planExecutor-v2" data-step="planExecutor">
-                        <span class="agentic-v2-talk-target" data-talk-track="Plan execution carries out approved steps, captures outcomes, and feeds status back into orchestration for iterative decisioning.">Plan Executor</span>
+                      <div class="agentic-node agentic-node--yellow agentic-node--compact agentic-v2-node agentic-v2-mid-cell agentic-v2-talk-target" id="node-planExecutor-v2" data-step="planExecutor" data-talk-track="Plan execution carries out approved steps, captures outcomes, and feeds status back into orchestration for iterative decisioning.">
+                        <span>Plan Executor</span>
                       </div>
                     </div>
-                    <div class="agentic-node agentic-node--magenta-zone agentic-v2-node agentic-v2-zone" id="node-agentExecution-v2" data-step="agentExecution">
-                      <span class="agentic-magenta-label agentic-v2-talk-target" data-talk-track="This zone is where specialist agents perform domain work in parallel or sequence while remaining coordinated through shared orchestration context.">AGENT EXECUTION</span>
+                    <div class="agentic-node agentic-node--magenta-zone agentic-v2-node agentic-v2-zone agentic-v2-talk-target" id="node-agentExecution-v2" data-step="agentExecution" data-talk-track="This zone is where specialist agents perform domain work in parallel or sequence while remaining coordinated through shared orchestration context.">
+                      <span class="agentic-magenta-label">AGENT EXECUTION</span>
                     </div>
                     <div class="agentic-agents-row agentic-v2-agents-row" id="agenticAgentsRowV2">
-                      <div class="agentic-v2-agent-card" id="node-agent-brand-v2" data-step="agent-brand">
-                        <div class="agentic-v2-agent-card__label"><span class="agentic-v2-talk-target" data-talk-track="Owns brand voice and experience consistency so generated outputs stay on-brand across channels and moments.">Brand Experience Agent</span></div>
+                      <div class="agentic-v2-agent-card agentic-v2-talk-target" id="node-agent-brand-v2" data-step="agent-brand" data-talk-track="Owns brand voice and experience consistency so generated outputs stay on-brand across channels and moments.">
+                        <div class="agentic-v2-agent-card__label"><span>Brand Experience Agent</span></div>
                         <div class="agentic-v2-agent-card__thumb">
                           <img src="https://contenthosting.web.app/Agents/brandconceierge.png" width="200" height="160" alt="Brand Experience Agent" loading="lazy" referrerpolicy="no-referrer" />
                         </div>
                       </div>
-                      <div class="agentic-v2-agent-card" id="node-agent-product-v2" data-step="agent-product">
-                        <div class="agentic-v2-agent-card__label"><span class="agentic-v2-talk-target" data-talk-track="Supplies product truth, capabilities, and constraints so recommendations are accurate and commercially relevant.">Product Knowledge Agent</span></div>
+                      <div class="agentic-v2-agent-card agentic-v2-talk-target" id="node-agent-product-v2" data-step="agent-product" data-talk-track="Supplies product truth, capabilities, and constraints so recommendations are accurate and commercially relevant.">
+                        <div class="agentic-v2-agent-card__label"><span>Product Knowledge Agent</span></div>
                         <div class="agentic-v2-agent-card__thumb">
                           <img src="https://contenthosting.web.app/Agents/productknowledgeagent.png" width="200" height="160" alt="Product Knowledge Agent" loading="lazy" referrerpolicy="no-referrer" />
                         </div>
                       </div>
-                      <div class="agentic-v2-agent-card" id="node-agent-operational-v2" data-step="agent-operational">
-                        <div class="agentic-v2-agent-card__label"><span class="agentic-v2-talk-target" data-talk-track="Monitors performance and operating signals to highlight bottlenecks, anomalies, and opportunities to optimize execution.">Operational Insights Agent</span></div>
+                      <div class="agentic-v2-agent-card agentic-v2-talk-target" id="node-agent-operational-v2" data-step="agent-operational" data-talk-track="Monitors performance and operating signals to highlight bottlenecks, anomalies, and opportunities to optimize execution.">
+                        <div class="agentic-v2-agent-card__label"><span>Operational Insights Agent</span></div>
                         <div class="agentic-v2-agent-card__thumb">
                           <img src="https://contenthosting.web.app/Agents/operationalinsightsagent.png" width="200" height="160" alt="Operational Insights Agent" loading="lazy" referrerpolicy="no-referrer" />
                         </div>
                       </div>
-                      <div class="agentic-v2-agent-card" id="node-agent-field-v2" data-step="agent-field">
-                        <div class="agentic-v2-agent-card__label"><span class="agentic-v2-talk-target" data-talk-track="Maps and discovers the right fields, schema attributes, and telemetry needed to satisfy a request with trustworthy data.">Field Discovery Agent</span></div>
+                      <div class="agentic-v2-agent-card agentic-v2-talk-target" id="node-agent-field-v2" data-step="agent-field" data-talk-track="Maps and discovers the right fields, schema attributes, and telemetry needed to satisfy a request with trustworthy data.">
+                        <div class="agentic-v2-agent-card__label"><span>Field Discovery Agent</span></div>
                         <div class="agentic-v2-agent-card__thumb">
                           <img src="https://contenthosting.web.app/Agents/fieldengineeringagent.png" width="200" height="160" alt="Field Discovery Agent" loading="lazy" referrerpolicy="no-referrer" />
                         </div>
                       </div>
-                      <div class="agentic-v2-agent-card" id="node-agent-audience-v2" data-step="agent-audience">
-                        <div class="agentic-v2-agent-card__label"><span class="agentic-v2-talk-target" data-talk-track="Builds, refines, and activates audience logic so decisions are targeted to the right people at the right time.">Audience Agent</span></div>
+                      <div class="agentic-v2-agent-card agentic-v2-talk-target" id="node-agent-audience-v2" data-step="agent-audience" data-talk-track="Builds, refines, and activates audience logic so decisions are targeted to the right people at the right time.">
+                        <div class="agentic-v2-agent-card__label"><span>Audience Agent</span></div>
                         <div class="agentic-v2-agent-card__thumb">
                           <img src="https://contenthosting.web.app/Agents/audienceagent.png" width="200" height="160" alt="Audience Agent" loading="lazy" referrerpolicy="no-referrer" />
                         </div>
                       </div>
-                      <div class="agentic-v2-agent-card" id="node-agent-journey-v2" data-step="agent-journey">
-                        <div class="agentic-v2-agent-card__label"><span class="agentic-v2-talk-target" data-talk-track="Designs and adapts cross-channel journeys, ensuring next-best actions align to customer context and journey stage.">Journey Agent</span></div>
+                      <div class="agentic-v2-agent-card agentic-v2-talk-target" id="node-agent-journey-v2" data-step="agent-journey" data-talk-track="Designs and adapts cross-channel journeys, ensuring next-best actions align to customer context and journey stage.">
+                        <div class="agentic-v2-agent-card__label"><span>Journey Agent</span></div>
                         <div class="agentic-v2-agent-card__thumb">
                           <img src="https://contenthosting.web.app/Agents/journeyagent.png" width="200" height="160" alt="Journey Agent" loading="lazy" referrerpolicy="no-referrer" />
                         </div>
                       </div>
-                      <div class="agentic-v2-agent-card" id="node-agent-data-v2" data-step="agent-data">
-                        <div class="agentic-v2-agent-card__label"><span class="agentic-v2-talk-target" data-talk-track="Turns profile and event data into explainable insights that guide planning, prioritization, and measurable outcomes.">Data Insights Agent</span></div>
+                      <div class="agentic-v2-agent-card agentic-v2-talk-target" id="node-agent-data-v2" data-step="agent-data" data-talk-track="Turns profile and event data into explainable insights that guide planning, prioritization, and measurable outcomes.">
+                        <div class="agentic-v2-agent-card__label"><span>Data Insights Agent</span></div>
                         <div class="agentic-v2-agent-card__thumb">
                           <img src="https://contenthosting.web.app/Agents/datainsightsagent.png" width="200" height="160" alt="Data Insights Agent" loading="lazy" referrerpolicy="no-referrer" />
                         </div>
                       </div>
-                      <div class="agentic-v2-agent-card" id="node-agent-support-v2" data-step="agent-support">
-                        <div class="agentic-v2-agent-card__label"><span class="agentic-v2-talk-target" data-talk-track="Provides implementation guidance, troubleshooting, and best-practice support so teams can move from idea to execution faster.">Product Support Agent</span></div>
+                      <div class="agentic-v2-agent-card agentic-v2-talk-target" id="node-agent-support-v2" data-step="agent-support" data-talk-track="Provides implementation guidance, troubleshooting, and best-practice support so teams can move from idea to execution faster.">
+                        <div class="agentic-v2-agent-card__label"><span>Product Support Agent</span></div>
                         <div class="agentic-v2-agent-card__thumb">
                           <img src="https://contenthosting.web.app/Agents/productsupportagent.png" width="200" height="160" alt="Product Support Agent" loading="lazy" referrerpolicy="no-referrer" />
                         </div>

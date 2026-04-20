@@ -118,8 +118,8 @@
     document.addEventListener('mouseout', function (e) {
       var fromTarget = targetFrom(e.target);
       if (!fromTarget) return;
-      var toTarget = targetFrom(e.relatedTarget);
-      if (toTarget === fromTarget) return;
+      var rel = e.relatedTarget;
+      if (rel && fromTarget.contains(rel)) return;
       hideTooltip();
     });
 
@@ -136,8 +136,8 @@
     document.addEventListener('focusout', function (e) {
       var fromTarget = targetFrom(e.target);
       if (!fromTarget) return;
-      var toTarget = targetFrom(e.relatedTarget);
-      if (toTarget === fromTarget) return;
+      var rel = e.relatedTarget;
+      if (rel && fromTarget.contains(rel)) return;
       hideTooltip();
     });
 
@@ -169,6 +169,7 @@
   var coordRoot = document.getElementById('diagramBoardV2');
   var svg = document.getElementById('arrowLayerV2');
   var playBtn = document.getElementById('agenticV2PlayBtn');
+  var backBtn = document.getElementById('agenticV2BackBtn');
   var stepBtn = document.getElementById('agenticV2StepBtn');
   var resetBtn = document.getElementById('agenticV2ResetBtn');
   var delayInput = document.getElementById('agenticV2DelayMs');
@@ -640,6 +641,7 @@
   function syncStepControls() {
     var atEnd = stepIndex >= STEP_NODE_IDS.length;
     if (stepBtn) stepBtn.disabled = atEnd;
+    if (backBtn) backBtn.disabled = stepIndex <= 0;
     if (diagramWrap) {
       diagramWrap.classList.toggle('agentic-v2-diagram-wrap--can-step', !atEnd);
     }
@@ -668,6 +670,29 @@
       },
       true
     );
+  }
+
+  function backStep() {
+    cancelAutoAdvance();
+    if (stepIndex <= 0) return;
+    stepIndex--;
+    var el = $(STEP_NODE_IDS[stepIndex]);
+    if (el) el.classList.remove('is-visible');
+    clearArrows();
+    for (var bi = 0; bi < stepIndex; bi++) {
+      drawArrowsForStep(bi);
+    }
+    syncStepControls();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        syncAgenticFullscreenScale();
+        if (stepIndex > 2) {
+          setTimeout(function () {
+            redrawAssistantChatArrows(false);
+          }, 48);
+        }
+      });
+    });
   }
 
   function resetDiagram() {
@@ -732,6 +757,7 @@
   }
 
   if (playBtn) playBtn.addEventListener('click', play);
+  if (backBtn) backBtn.addEventListener('click', backStep);
   if (stepBtn) stepBtn.addEventListener('click', stepOnce);
   if (resetBtn) resetBtn.addEventListener('click', resetDiagram);
   initStepClickThrough();
