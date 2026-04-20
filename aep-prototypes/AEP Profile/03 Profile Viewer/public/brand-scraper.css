@@ -265,6 +265,44 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   gap: 10px;
 }
 
+.brand-scraper-model-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brand-scraper-model-collapsed-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.brand-scraper-model-collapsed-text .brand-scraper-result-muted {
+  font-size: 11px;
+}
+
+.brand-scraper-model-collapsed .dashboard-btn-outline {
+  padding: 4px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.brand-scraper-model-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.brand-scraper-model-close {
+  grid-column: 2;
+  justify-self: end;
+  padding: 2px 10px;
+  font-size: 11px;
+}
+
 .brand-scraper-model-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

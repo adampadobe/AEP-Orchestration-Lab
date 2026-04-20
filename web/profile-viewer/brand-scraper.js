@@ -85,6 +85,10 @@
   const crawlerJsCb = document.getElementById('brandScraperCrawlerJs');
 
   // ---------- Model config (per-sandbox LLM provider + Secret Manager keys) ----------
+  const modelCollapsedEl = document.getElementById('brandScraperModelCollapsed');
+  const modelExpandedEl = document.getElementById('brandScraperModelExpanded');
+  const modelOverrideBtn = document.getElementById('brandScraperModelOverrideBtn');
+  const modelCloseBtn = document.getElementById('brandScraperModelCloseBtn');
   const modelSelectEl = document.getElementById('brandScraperModelSelect');
   const modelStatusEl = document.getElementById('brandScraperModelStatus');
   const modelKeyRowEl = document.getElementById('brandScraperModelKeyRow');
@@ -93,13 +97,26 @@
   const modelRemoveBtn = document.getElementById('brandScraperModelRemove');
 
   let modelConfigCache = null;
+  let modelManualOverride = false; // session-only: user clicked Override
+
+  function isAtRestDefault(cfg) {
+    if (!cfg) return false;
+    return cfg.preferredProvider === 'default' && !cfg.hasAnthropicKey && !cfg.hasOpenAIKey;
+  }
 
   function renderModelConfig() {
     if (!modelSelectEl || !modelStatusEl) return;
     const cfg = modelConfigCache || {};
     const pref = cfg.preferredProvider || 'default';
-    modelSelectEl.value = pref;
 
+    // Layout choice: collapsed when nothing custom is configured AND user
+    // hasn't clicked Override this session. Otherwise show the full panel.
+    const showCollapsed = isAtRestDefault(cfg) && !modelManualOverride;
+    if (modelCollapsedEl) modelCollapsedEl.hidden = !showCollapsed;
+    if (modelExpandedEl) modelExpandedEl.hidden = showCollapsed;
+    if (showCollapsed) return; // nothing else to render
+
+    modelSelectEl.value = pref;
     const keyProviderSelected = (pref === 'anthropic' || pref === 'openai');
     modelKeyRowEl.hidden = !keyProviderSelected;
     if (modelKeyInputEl) modelKeyInputEl.value = '';
@@ -110,16 +127,34 @@
     if (modelKeyInputEl) {
       modelKeyInputEl.placeholder = pref === 'openai' ? 'sk-...' : pref === 'anthropic' ? 'sk-ant-...' : '';
     }
+    // Collapse button only makes sense when the user could go back to the
+    // at-rest default state (nothing saved, default selected).
+    if (modelCloseBtn) modelCloseBtn.hidden = !isAtRestDefault(cfg);
 
     let statusBits = [];
-    if (pref === 'default') statusBits.push('Gemini (service account)');
-    else if (pref === 'anthropic') statusBits.push(hasKey ? 'Anthropic key configured ✓' : 'Anthropic selected — save a key below');
-    else if (pref === 'openai') statusBits.push(hasKey ? 'OpenAI key configured ✓' : 'OpenAI selected — save a key below');
+    if (pref === 'default') statusBits.push('Gemini (service account) — no key required');
+    else if (pref === 'anthropic') statusBits.push(hasKey ? 'Anthropic key configured ✓' : 'Anthropic selected — paste a key below');
+    else if (pref === 'openai') statusBits.push(hasKey ? 'OpenAI key configured ✓' : 'OpenAI selected — paste a key below');
     modelStatusEl.textContent = statusBits.join(' · ');
+  }
+
+  if (modelOverrideBtn) {
+    modelOverrideBtn.addEventListener('click', () => {
+      modelManualOverride = true;
+      renderModelConfig();
+    });
+  }
+  if (modelCloseBtn) {
+    modelCloseBtn.addEventListener('click', () => {
+      modelManualOverride = false;
+      renderModelConfig();
+    });
   }
 
   async function loadModelConfig() {
     if (!modelSelectEl) return;
+    // Fresh sandbox → reset manual override; user can click Override again if wanted.
+    modelManualOverride = false;
     const sb = getSandbox();
     if (!sb) {
       modelConfigCache = null;
