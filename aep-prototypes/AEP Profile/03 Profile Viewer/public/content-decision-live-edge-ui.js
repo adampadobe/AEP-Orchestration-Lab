@@ -347,26 +347,108 @@
     applyPlacementsToMountsModule();
     toggleScopesRow();
 
-    // ----- surface overrides -----
-    currentSurfaceOverrides = (rec.surfaceOverrides && typeof rec.surfaceOverrides === 'object' && !Array.isArray(rec.surfaceOverrides))
-      ? Object.assign({}, rec.surfaceOverrides)
+    // ----- surface styles (per sandbox + surface) -----
+    currentSurfaceStyles = (rec.surfaceStyles && typeof rec.surfaceStyles === 'object' && !Array.isArray(rec.surfaceStyles))
+      ? Object.assign({}, rec.surfaceStyles)
       : {};
-    populateOverrideSurfaceDropdown();
-    loadOverrideEditorForSelectedSurface();
+    populateStyleSurfaceDropdown();
+    loadStyleEditorForSelectedSurface();
+    applySurfaceStylesToMounts();
   }
 
-  // ===== Surface HTML overrides =====
-  // Keyed by placement.fragment so a rename of the 'key' doesn't lose
-  // formatting. Value shape: { html, updatedAt }.
-  var currentSurfaceOverrides = {};
+  // ===== Per-surface styling =====
+  // Keyed by placement.fragment so a rename of placement.key doesn't lose
+  // formatting. Value shape: one entry per field the style form exposes.
+  var currentSurfaceStyles = {};
+
+  var STYLE_DEFAULTS = {
+    layoutMode: 'overlay',
+    blockY: 'flex-end',
+    titleH: 'center', titleV: 'flex-start',
+    descH: 'center', descV: 'center',
+    ctaH: 'center', ctaV: 'flex-end',
+    titleColor: '#e6e9ef',
+    descColor: '#c5c9d3',
+    ctaBg: '#f0f2f6',
+    ctaText: '#1a1d23',
+  };
+  var JUSTIFY_VALUES = { 'flex-start': 1, 'center': 1, 'flex-end': 1 };
+  var LAYOUT_MODES = { overlay: 1, half: 1, below: 1 };
+
+  function normaliseHex(v) {
+    if (!v) return '';
+    var s = String(v).trim();
+    if (s[0] !== '#') s = '#' + s;
+    if (/^#[0-9a-fA-F]{3}$/.test(s)) return s.toLowerCase();
+    if (/^#[0-9a-fA-F]{4}$/.test(s)) return s.toLowerCase();
+    if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+    if (/^#[0-9a-fA-F]{8}$/.test(s)) return s.toLowerCase();
+    return '';
+  }
+  function pickJustify(v, fb) { return JUSTIFY_VALUES[v] ? v : fb; }
+  function pickHex(v, fb) { var n = normaliseHex(v); return n || fb; }
+  function pickLayout(v, fb) { return LAYOUT_MODES[v] ? v : fb; }
+
+  function readStyleEditorForm() {
+    function g(id) { var x = el(id); return x ? x.value : ''; }
+    return {
+      layoutMode: pickLayout(g('cdStyleLayoutMode'), STYLE_DEFAULTS.layoutMode),
+      blockY: pickJustify(g('cdStyleBlockY'), STYLE_DEFAULTS.blockY),
+      titleH: pickJustify(g('cdStyleTitleH'), STYLE_DEFAULTS.titleH),
+      titleV: pickJustify(g('cdStyleTitleV'), STYLE_DEFAULTS.titleV),
+      descH: pickJustify(g('cdStyleDescH'), STYLE_DEFAULTS.descH),
+      descV: pickJustify(g('cdStyleDescV'), STYLE_DEFAULTS.descV),
+      ctaH: pickJustify(g('cdStyleCtaH'), STYLE_DEFAULTS.ctaH),
+      ctaV: pickJustify(g('cdStyleCtaV'), STYLE_DEFAULTS.ctaV),
+      titleColor: pickHex(g('cdStyleTitleColorHex'), STYLE_DEFAULTS.titleColor),
+      descColor: pickHex(g('cdStyleDescColorHex'), STYLE_DEFAULTS.descColor),
+      ctaBg: pickHex(g('cdStyleCtaBgHex'), STYLE_DEFAULTS.ctaBg),
+      ctaText: pickHex(g('cdStyleCtaTextHex'), STYLE_DEFAULTS.ctaText),
+    };
+  }
+
+  function writeStyleEditorForm(st) {
+    function set(id, val) { var x = el(id); if (x) x.value = val; }
+    set('cdStyleLayoutMode', st.layoutMode);
+    set('cdStyleBlockY', st.blockY);
+    set('cdStyleTitleH', st.titleH); set('cdStyleTitleV', st.titleV);
+    set('cdStyleDescH', st.descH); set('cdStyleDescV', st.descV);
+    set('cdStyleCtaH', st.ctaH); set('cdStyleCtaV', st.ctaV);
+    set('cdStyleTitleColorHex', st.titleColor); set('cdStyleTitleColorPick', st.titleColor);
+    set('cdStyleDescColorHex', st.descColor); set('cdStyleDescColorPick', st.descColor);
+    set('cdStyleCtaBgHex', st.ctaBg); set('cdStyleCtaBgPick', st.ctaBg);
+    set('cdStyleCtaTextHex', st.ctaText); set('cdStyleCtaTextPick', st.ctaText);
+  }
+
+  /** Apply one style entry's CSS custom properties + layout class to a mount. */
+  function applyStyleToMount(mount, st) {
+    if (!mount || !st) return;
+    var banner = mount.querySelector('.cd-banner');
+    if (banner) {
+      banner.classList.remove('cd-banner--overlay', 'cd-banner--half', 'cd-banner--below');
+      banner.classList.add('cd-banner--' + (st.layoutMode || STYLE_DEFAULTS.layoutMode));
+      banner.style.setProperty('--cd-title-color', st.titleColor);
+      banner.style.setProperty('--cd-desc-color', st.descColor);
+      banner.style.setProperty('--cd-cta-bg', st.ctaBg);
+      banner.style.setProperty('--cd-cta-text', st.ctaText);
+    }
+    var copy = mount.querySelector('.cd-banner-copy');
+    if (copy) copy.style.setProperty('--cd-block-justify', st.blockY);
+    var t = mount.querySelector('.cd-slot--title');
+    if (t) { t.style.setProperty('--cd-slot-justify', st.titleH); t.style.setProperty('--cd-slot-align', st.titleV); }
+    var d = mount.querySelector('.cd-slot--desc');
+    if (d) { d.style.setProperty('--cd-slot-justify', st.descH); d.style.setProperty('--cd-slot-align', st.descV); }
+    var c = mount.querySelector('.cd-slot--cta');
+    if (c) { c.style.setProperty('--cd-slot-justify', st.ctaH); c.style.setProperty('--cd-slot-align', st.ctaV); }
+  }
 
   function currentPlacementList() {
     var arr = getPlacementsFromForm();
     return Array.isArray(arr) && arr.length ? arr : DEFAULT_PLACEMENTS.slice();
   }
 
-  function populateOverrideSurfaceDropdown() {
-    var sel = el('cdLabOverrideSurface');
+  function populateStyleSurfaceDropdown() {
+    var sel = el('cdLabStyleSurface');
     if (!sel) return;
     var prior = sel.value;
     var placements = currentPlacementList();
@@ -374,28 +456,23 @@
       var label = (p.label || p.fragment || p.key || '').replace(/</g, '&lt;');
       var frag = String(p.fragment || '').replace(/"/g, '&quot;');
       var key = String(p.key || '').replace(/</g, '&lt;');
-      var overridden = !!(currentSurfaceOverrides[p.fragment] && currentSurfaceOverrides[p.fragment].html);
-      return '<option value="' + frag + '">' +
-        label + ' — #' + (p.fragment || '') + ' [' + key + ']' + (overridden ? ' · saved' : '') +
-        '</option>';
+      var hasSaved = !!currentSurfaceStyles[p.fragment];
+      return '<option value="' + frag + '">' + label + ' — #' + (p.fragment || '') + ' [' + key + ']' + (hasSaved ? ' · saved' : '') + '</option>';
     }).join('');
     sel.innerHTML = html;
     if (prior && placements.some(function (p) { return p.fragment === prior; })) sel.value = prior;
     else if (placements.length) sel.value = placements[0].fragment;
   }
 
-  function loadOverrideEditorForSelectedSurface() {
-    var sel = el('cdLabOverrideSurface');
-    var ta = el('cdLabOverrideHtml');
-    if (!sel || !ta) return;
+  function loadStyleEditorForSelectedSurface() {
+    var sel = el('cdLabStyleSurface');
+    if (!sel) return;
     var frag = sel.value;
-    var entry = currentSurfaceOverrides[frag];
-    ta.value = (entry && typeof entry.html === 'string') ? entry.html : '';
-    var msg = el('cdLabOverrideMsg');
-    if (msg) {
-      if (entry && entry.html) setMsg(msg, 'Saved override loaded for #' + frag + '.', '');
-      else setMsg(msg, 'No saved override for #' + frag + '. Textarea is empty; live proposition will render.', '');
-    }
+    var saved = currentSurfaceStyles[frag];
+    var st = saved ? Object.assign({}, STYLE_DEFAULTS, saved) : Object.assign({}, STYLE_DEFAULTS);
+    writeStyleEditorForm(st);
+    var msg = el('cdLabStyleMsg');
+    if (msg) setMsg(msg, saved ? 'Saved styles loaded for #' + frag + '.' : 'No saved styles for #' + frag + ' — using defaults.', '');
   }
 
   /** Find the DOM mount for a given surface fragment using the placements map. */
@@ -406,89 +483,70 @@
     return document.getElementById('cd-edge-' + placement.key);
   }
 
-  /**
-   * Render every stored override into its matching mount. Called both after
-   * a fresh decisioning call and on initial load so the user's formatting
-   * survives page refreshes.
-   */
-  function applySurfaceOverridesToMounts() {
-    Object.keys(currentSurfaceOverrides).forEach(function (frag) {
-      var entry = currentSurfaceOverrides[frag];
-      if (!entry || !entry.html) return;
+  /** Walk every saved surface style and apply its CSS vars to the matching mount. */
+  function applySurfaceStylesToMounts() {
+    Object.keys(currentSurfaceStyles).forEach(function (frag) {
+      var st = currentSurfaceStyles[frag];
+      if (!st) return;
       var mount = findMountForFragment(frag);
-      if (mount) mount.innerHTML = entry.html;
+      if (mount) applyStyleToMount(mount, Object.assign({}, STYLE_DEFAULTS, st));
     });
   }
 
-  async function overrideApplyHandler() {
-    var sel = el('cdLabOverrideSurface');
-    var ta = el('cdLabOverrideHtml');
-    var msg = el('cdLabOverrideMsg');
-    if (!sel || !ta) return;
+  // Debounce the save so dragging a color picker doesn't spray writes.
+  var _styleSaveTimer = null;
+  function scheduleStyleSave() {
+    if (_styleSaveTimer) clearTimeout(_styleSaveTimer);
+    _styleSaveTimer = setTimeout(async function () {
+      _styleSaveTimer = null;
+      try {
+        var data = await CdLabConfigApi.saveDecisionLabConfig({ surfaceStyles: currentSurfaceStyles });
+        if (data.ok) setMsg(el('cdLabStyleMsg'), 'Saved to Firebase.', 'ok');
+        else setMsg(el('cdLabStyleMsg'), data.error || 'Save failed.', 'err');
+      } catch (e) {
+        setMsg(el('cdLabStyleMsg'), String(e && e.message || e), 'err');
+      }
+    }, 600);
+  }
+
+  function styleFormOnChange() {
+    var sel = el('cdLabStyleSurface');
+    if (!sel) return;
     var frag = (sel.value || '').trim();
-    if (!frag) { setMsg(msg, 'Pick a surface first.', 'err'); return; }
-    var html = String(ta.value || '');
-    if (!html.trim()) { setMsg(msg, 'Textarea is empty — nothing to save. Use "Reset to live" if you meant to clear a saved override.', 'err'); return; }
-
-    // Local apply — write to the mount right away.
+    if (!frag) return;
+    var st = readStyleEditorForm();
+    currentSurfaceStyles[frag] = Object.assign({ updatedAt: new Date().toISOString() }, st);
     var mount = findMountForFragment(frag);
-    if (mount) mount.innerHTML = html;
-
-    // Persist to Firebase.
-    currentSurfaceOverrides[frag] = { html: html, updatedAt: new Date().toISOString() };
-    setMsg(msg, 'Saving…', '');
-    var data = await CdLabConfigApi.saveDecisionLabConfig({ surfaceOverrides: currentSurfaceOverrides });
-    if (!data.ok) {
-      setMsg(msg, data.error || 'Save failed.', 'err');
-      return;
-    }
-    setMsg(msg, 'Applied to preview and saved for #' + frag + ' in this sandbox.', 'ok');
-    populateOverrideSurfaceDropdown();
+    if (mount) applyStyleToMount(mount, st);
+    scheduleStyleSave();
+    populateStyleSurfaceDropdown();
     sel.value = frag;
   }
 
-  async function overrideResetHandler() {
-    var sel = el('cdLabOverrideSurface');
-    var ta = el('cdLabOverrideHtml');
-    var msg = el('cdLabOverrideMsg');
+  async function styleResetHandler() {
+    var sel = el('cdLabStyleSurface');
     if (!sel) return;
     var frag = (sel.value || '').trim();
-    if (!frag) { setMsg(msg, 'Pick a surface first.', 'err'); return; }
-    if (!global.confirm('Delete the saved override for #' + frag + ' and re-render the live proposition?')) return;
-
-    delete currentSurfaceOverrides[frag];
-    if (ta) ta.value = '';
-    setMsg(msg, 'Clearing…', '');
-    var data = await CdLabConfigApi.saveDecisionLabConfig({ surfaceOverrides: currentSurfaceOverrides });
-    if (!data.ok) {
-      setMsg(msg, data.error || 'Save failed.', 'err');
-      return;
-    }
-    // Re-apply live propositions if we have them; otherwise clear the mount.
+    if (!frag) return;
+    if (!global.confirm('Reset the saved styles for #' + frag + ' back to defaults?')) return;
+    delete currentSurfaceStyles[frag];
+    writeStyleEditorForm(STYLE_DEFAULTS);
     var mount = findMountForFragment(frag);
-    if (mount) {
-      if (global.CdEdgeMounts && typeof global.CdEdgeMounts.redrawFromLastResponse === 'function') {
-        global.CdEdgeMounts.redrawFromLastResponse();
-      } else {
-        mount.innerHTML = '';
-      }
+    if (mount) applyStyleToMount(mount, STYLE_DEFAULTS);
+    try {
+      var data = await CdLabConfigApi.saveDecisionLabConfig({ surfaceStyles: currentSurfaceStyles });
+      if (data.ok) setMsg(el('cdLabStyleMsg'), 'Reset for #' + frag + '.', 'ok');
+      else setMsg(el('cdLabStyleMsg'), data.error || 'Save failed.', 'err');
+    } catch (e) {
+      setMsg(el('cdLabStyleMsg'), String(e && e.message || e), 'err');
     }
-    populateOverrideSurfaceDropdown();
-    setMsg(msg, 'Override cleared for #' + frag + '. Click "Look up profile" in Step 5 to re-fetch the live proposition.', 'ok');
+    populateStyleSurfaceDropdown();
+    sel.value = frag;
   }
 
-  function overrideCopyLiveHandler() {
-    var sel = el('cdLabOverrideSurface');
-    var ta = el('cdLabOverrideHtml');
-    var msg = el('cdLabOverrideMsg');
-    if (!sel || !ta) return;
-    var frag = (sel.value || '').trim();
-    var mount = findMountForFragment(frag);
-    if (!mount) { setMsg(msg, 'No mount rendered for #' + frag + ' yet. Run a decisioning call first.', 'err'); return; }
-    var html = mount.innerHTML || '';
-    if (!html.trim()) { setMsg(msg, 'Mount is empty — run a decisioning call to populate it.', 'err'); return; }
-    ta.value = html;
-    setMsg(msg, 'Copied current mount HTML. Edit and click Apply.', '');
+  function currentPlacementList() {
+    var arr = getPlacementsFromForm();
+    return Array.isArray(arr) && arr.length ? arr : DEFAULT_PLACEMENTS.slice();
   }
 
   /** Best-effort save schema/dataset names after successful infra steps (requires sign-in). */
@@ -785,7 +843,7 @@
       targetPageUrl: el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim(),
       edgePersonalizationMode: el('cdLabEdgeMode') && el('cdLabEdgeMode').value,
       placements: getPlacementsFromForm(),
-      surfaceOverrides: currentSurfaceOverrides,
+      surfaceStyles: currentSurfaceStyles,
     };
     var data = await CdLabConfigApi.saveDecisionLabConfig(body);
     if (!data.ok) {
@@ -858,7 +916,7 @@
     getPlacementsFromForm: getPlacementsFromForm,
     applyPlacementsToMountsModule: applyPlacementsToMountsModule,
     rebuildPreviewMounts: rebuildPreviewMounts,
-    applySurfaceOverridesToMounts: applySurfaceOverridesToMounts,
+    applySurfaceStylesToMounts: applySurfaceStylesToMounts,
     getLaunchScriptUrl: function () {
       return el('cdLabLaunchUrl') ? el('cdLabLaunchUrl').value.trim() : '';
     },
@@ -880,17 +938,47 @@
       if (el('cdLabSaveConfigBtn')) el('cdLabSaveConfigBtn').addEventListener('click', saveConfigToFirebase);
       if (el('cdLabLoadConfigBtn')) el('cdLabLoadConfigBtn').addEventListener('click', fetchConfigFromFirebase);
 
-      // Surface override editor wiring.
-      if (el('cdLabOverrideSurface')) {
-        el('cdLabOverrideSurface').addEventListener('change', loadOverrideEditorForSelectedSurface);
+      // Per-surface styling editor wiring.
+      if (el('cdLabStyleSurface')) {
+        el('cdLabStyleSurface').addEventListener('change', loadStyleEditorForSelectedSurface);
         // Refresh dropdown contents on focus so placement edits (add / rename /
         // remove) reflect without a page reload.
-        el('cdLabOverrideSurface').addEventListener('focus', populateOverrideSurfaceDropdown);
+        el('cdLabStyleSurface').addEventListener('focus', populateStyleSurfaceDropdown);
       }
-      if (el('cdLabOverrideApplyBtn')) el('cdLabOverrideApplyBtn').addEventListener('click', overrideApplyHandler);
-      if (el('cdLabOverrideResetBtn')) el('cdLabOverrideResetBtn').addEventListener('click', overrideResetHandler);
-      if (el('cdLabOverrideLoadCurrentBtn')) el('cdLabOverrideLoadCurrentBtn').addEventListener('click', overrideCopyLiveHandler);
-      populateOverrideSurfaceDropdown();
+      var styleSelectIds = [
+        'cdStyleLayoutMode', 'cdStyleBlockY',
+        'cdStyleTitleH', 'cdStyleTitleV',
+        'cdStyleDescH', 'cdStyleDescV',
+        'cdStyleCtaH', 'cdStyleCtaV',
+      ];
+      styleSelectIds.forEach(function (id) {
+        if (el(id)) el(id).addEventListener('change', styleFormOnChange);
+      });
+      var colorPairs = [
+        ['cdStyleTitleColorPick', 'cdStyleTitleColorHex'],
+        ['cdStyleDescColorPick', 'cdStyleDescColorHex'],
+        ['cdStyleCtaBgPick', 'cdStyleCtaBgHex'],
+        ['cdStyleCtaTextPick', 'cdStyleCtaTextHex'],
+      ];
+      colorPairs.forEach(function (pair) {
+        var pick = el(pair[0]);
+        var hex = el(pair[1]);
+        if (pick) {
+          pick.addEventListener('input', function () {
+            if (hex) hex.value = pick.value;
+            styleFormOnChange();
+          });
+        }
+        if (hex) {
+          hex.addEventListener('input', function () {
+            var v = normaliseHex(hex.value);
+            if (v && pick) pick.value = v;
+            styleFormOnChange();
+          });
+        }
+      });
+      if (el('cdLabStyleResetBtn')) el('cdLabStyleResetBtn').addEventListener('click', styleResetHandler);
+      populateStyleSurfaceDropdown();
 
       // Auto-sanitise the Launch input so pasting the full <script> tag,
       // an http:// URL, or a bare domain still results in a clean https URL.

@@ -54,6 +54,61 @@ function sanitizePlacements(raw) {
   return out.length ? out : DEFAULT_PLACEMENTS.slice();
 }
 
+const JUSTIFY_VALUES = new Set(['flex-start', 'center', 'flex-end']);
+const LAYOUT_MODES = new Set(['overlay', 'half', 'below']);
+const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
+const DEFAULT_SURFACE_STYLE = {
+  layoutMode: 'overlay',
+  blockY: 'flex-end',
+  titleH: 'center', titleV: 'flex-start',
+  descH: 'center', descV: 'center',
+  ctaH: 'center', ctaV: 'flex-end',
+  titleColor: '#e6e9ef',
+  descColor: '#c5c9d3',
+  ctaBg: '#f0f2f6',
+  ctaText: '#1a1d23',
+};
+
+function sanitizeSurfaceStyleEntry(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const pickJustify = (v, fallback) => (JUSTIFY_VALUES.has(v) ? v : fallback);
+  const pickHex = (v, fallback) => (typeof v === 'string' && HEX_RE.test(v.trim()) ? v.trim() : fallback);
+  const out = {
+    layoutMode: LAYOUT_MODES.has(raw.layoutMode) ? raw.layoutMode : DEFAULT_SURFACE_STYLE.layoutMode,
+    blockY: pickJustify(raw.blockY, DEFAULT_SURFACE_STYLE.blockY),
+    titleH: pickJustify(raw.titleH, DEFAULT_SURFACE_STYLE.titleH),
+    titleV: pickJustify(raw.titleV, DEFAULT_SURFACE_STYLE.titleV),
+    descH: pickJustify(raw.descH, DEFAULT_SURFACE_STYLE.descH),
+    descV: pickJustify(raw.descV, DEFAULT_SURFACE_STYLE.descV),
+    ctaH: pickJustify(raw.ctaH, DEFAULT_SURFACE_STYLE.ctaH),
+    ctaV: pickJustify(raw.ctaV, DEFAULT_SURFACE_STYLE.ctaV),
+    titleColor: pickHex(raw.titleColor, DEFAULT_SURFACE_STYLE.titleColor),
+    descColor: pickHex(raw.descColor, DEFAULT_SURFACE_STYLE.descColor),
+    ctaBg: pickHex(raw.ctaBg, DEFAULT_SURFACE_STYLE.ctaBg),
+    ctaText: pickHex(raw.ctaText, DEFAULT_SURFACE_STYLE.ctaText),
+    updatedAt: raw.updatedAt || new Date().toISOString(),
+  };
+  return out;
+}
+
+function sanitizeSurfaceStyles(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const MAX_ENTRIES = 16;
+  const out = {};
+  let count = 0;
+  for (const [rawKey, rawVal] of Object.entries(raw)) {
+    if (count >= MAX_ENTRIES) break;
+    const key = String(rawKey || '').trim().replace(/[^a-zA-Z0-9_\-#/.:]/g, '').slice(0, 128);
+    if (!key) continue;
+    const entry = sanitizeSurfaceStyleEntry(rawVal);
+    if (!entry) continue;
+    out[key] = entry;
+    count++;
+  }
+  return out;
+}
+
 /**
  * surfaceOverrides is an object keyed by surface fragment (e.g. 'TopRibbon',
  * 'hero-banner') with `{ html, updatedAt }`. Limits: 16 surfaces, 50KiB
@@ -144,6 +199,9 @@ async function saveDecisionLabConfig(sandbox, patch) {
       surfaceOverrides: sanitizeSurfaceOverrides(
         patch.surfaceOverrides !== undefined ? patch.surfaceOverrides : prev.surfaceOverrides,
       ),
+      surfaceStyles: sanitizeSurfaceStyles(
+        patch.surfaceStyles !== undefined ? patch.surfaceStyles : prev.surfaceStyles,
+      ),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
@@ -213,6 +271,9 @@ async function saveUserDecisionLabConfig(uid, sandbox, patch) {
       ),
       surfaceOverrides: sanitizeSurfaceOverrides(
         patch.surfaceOverrides !== undefined ? patch.surfaceOverrides : prev.surfaceOverrides,
+      ),
+      surfaceStyles: sanitizeSurfaceStyles(
+        patch.surfaceStyles !== undefined ? patch.surfaceStyles : prev.surfaceStyles,
       ),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };

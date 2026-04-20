@@ -1978,6 +1978,7 @@ exports.decisionLabConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
         targetPageUrl: body.targetPageUrl,
         placements: body.placements,
         surfaceOverrides: body.surfaceOverrides,
+        surfaceStyles: body.surfaceStyles,
       });
       res.status(200).json({
         ok: true,
