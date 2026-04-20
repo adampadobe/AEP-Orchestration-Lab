@@ -182,6 +182,82 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   border-radius: 18%;
 }
 
+/* Race for Life site banner (1024×166) — full width above decisioning hero */
+.demo-device-screen--laptop .laptop_header {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
+  background: #fff;
+}
+
+.demo-device-screen--laptop .laptop_header__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/*
+  Mobile app–style chrome: compact bar, left logo (cropped from same asset), icon-only menu.
+*/
+.demo-device-screen--mobile .mobile_header {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.demo-device-screen--mobile .mobile_header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 38px;
+  padding: 5px 6px;
+  box-sizing: border-box;
+  background: #fff;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.demo-device-screen--mobile .mobile_header__brand {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Crop the desktop header art to the upper–logo band; reads as a native app masthead */
+.demo-device-screen--mobile .mobile_header__img {
+  display: block;
+  width: 100%;
+  height: 34px;
+  object-fit: cover;
+  object-position: 18% 24%;
+}
+
+.demo-device-screen--mobile .mobile_header__menu {
+  flex: 0 0 auto;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: var(--dash-radius-sm);
+  background: transparent;
+  cursor: default;
+  color: inherit;
+}
+
+.demo-device-screen--mobile .mobile_header__menu-line {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--dash-text);
+}
+
 /* Hero: scroll inside bezel only */
 .demo-device-screen--laptop #hero-banner {
   flex: 1 1 auto;
@@ -201,13 +277,13 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   box-sizing: border-box;
 }
 
-/* Mobile: fill glass; card stacks to full height */
+/* Mobile: fill remaining glass below app header; scroll inside bezel */
 .demo-device-screen--mobile #ContentCardContainer,
 .demo-device-screen--mobile #ContentCardContainer:not(:empty) {
   flex: 1 1 auto !important;
   width: 100% !important;
-  min-height: 100% !important;
-  height: 100% !important;
+  min-height: 0 !important;
+  height: auto !important;
   max-height: none !important;
   padding: 0 !important;
   margin: 0 !important;

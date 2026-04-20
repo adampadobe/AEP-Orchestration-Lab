@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="race-for-life-demo.css?v=20260420b">
-  <link rel="stylesheet" href="demo-delivery-concept.css?v=20260421f">
+  <link rel="stylesheet" href="demo-delivery-concept.css?v=20260421g">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
 </head>
@@ -66,6 +66,17 @@
           <article class="demo-device demo-device--laptop">
             <img src="images/demo-delivery-laptop.png" alt="Laptop mockup frame" class="demo-device-frame" width="377" height="239" loading="lazy" decoding="async">
             <div class="demo-device-screen demo-device-screen--laptop">
+              <header class="laptop_header" role="banner" aria-label="Race for Life site header">
+                <img
+                  class="laptop_header__img"
+                  src="images/laptop_header.png"
+                  alt="Cancer Research UK — Race for Life: logo and navigation"
+                  width="1024"
+                  height="166"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </header>
               <!-- Same ids/classes as Race for Life: decisioning targets #hero-banner -->
               <section id="hero-banner" class="race-ajo-hero" role="region" aria-label="Personalized hero"></section>
             </div>
@@ -74,6 +85,27 @@
           <article class="demo-device demo-device--mobile">
             <img src="images/demo-delivery-mobile.png" alt="Mobile mockup frame" class="demo-device-frame" width="167" height="330" loading="lazy" decoding="async">
             <div class="demo-device-screen demo-device-screen--mobile">
+              <!-- App-style header: same art as desktop, cropped; decorative menu control -->
+              <header class="mobile_header" role="banner" aria-label="Race for Life app header">
+                <div class="mobile_header__inner">
+                  <div class="mobile_header__brand">
+                    <img
+                      class="mobile_header__img"
+                      src="images/laptop_header.png"
+                      alt=""
+                      width="1024"
+                      height="166"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                  <button type="button" class="mobile_header__menu" aria-label="Open menu">
+                    <span class="mobile_header__menu-line" aria-hidden="true"></span>
+                    <span class="mobile_header__menu-line" aria-hidden="true"></span>
+                    <span class="mobile_header__menu-line" aria-hidden="true"></span>
+                  </button>
+                </div>
+              </header>
               <!-- Same ids/classes as Race for Life: content cards target #ContentCardContainer -->
               <section id="ContentCardContainer" class="race-ajo-content-cards ContentCardContainer" role="region" aria-label="Content cards"></section>
             </div>
