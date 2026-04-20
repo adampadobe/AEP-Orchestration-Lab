@@ -356,10 +356,31 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES } = {}) {
   };
 }
 
+const INDUSTRY_TAXONOMY = [
+  'Technology & Software',
+  'Financial services',
+  'Retail & E-commerce',
+  'Healthcare & Pharma',
+  'Media & Entertainment',
+  'Travel & Hospitality',
+  'Automotive',
+  'Telecommunications',
+  'Energy & Utilities',
+  'Consumer packaged goods',
+  'Education',
+  'Government & Non-profit',
+  'Professional services',
+  'Real estate',
+  'Food & beverage',
+  'Manufacturing & Industrial',
+  'Other',
+];
+
 const BRAND_ANALYSIS_SYSTEM = `You are a brand strategist and marketing expert. Analyse the provided website content and generate concise brand guidelines.
 
 Respond with valid JSON only, no other text. Use this exact structure:
 {
+  "industry": "<pick one from the taxonomy below>",
   "about": "2-3 sentence brand description",
   "tone_of_voice": [{"rule": "...", "example": "..."}],
   "brand_values": [{"value": "...", "description": "..."}],
@@ -367,6 +388,9 @@ Respond with valid JSON only, no other text. Use this exact structure:
   "image_guidelines": [{"rule": "...", "example": "..."}],
   "channel_guidelines": [{"channel": "Email|SMS|Push|In-App", "subject_line": "...", "preheader": "...", "headline": "...", "body": "...", "cta": "..."}]
 }
+
+Industry taxonomy (choose exactly one string from this list):
+${INDUSTRY_TAXONOMY.map(x => `- ${x}`).join('\n')}
 
 Provide 5-8 tone rules, 3-5 values, 5-8 editorial rules, 4-6 image rules, and 4 channels (Email, SMS, Push, In-App).`;
 
@@ -775,6 +799,7 @@ function mergeScrapeRecords(existing, fresh) {
   out.baseUrl = f.baseUrl || e.baseUrl;
   out.businessType = f.businessType || e.businessType;
   out.country = f.country || e.country;
+  out.industry = f.industry || e.industry || '';
   return out;
 }
 
@@ -842,6 +867,10 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     };
     const elapsedMs = Date.now() - started;
 
+    const inferredIndustry = (analysis && typeof analysis === 'object' && !analysis.skipped && !analysis.error)
+      ? String(analysis.industry || '').trim()
+      : '';
+
     const appendMode = body.mode === 'append' && body.existingScrapeId;
     let recordToPersist = {
       url,
@@ -849,6 +878,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       brandName: crawl.brandName,
       businessType: body.businessType || 'b2c',
       country: body.country || '',
+      industry: inferredIndustry,
       crawlSummary,
       analysis,
       analysisError,

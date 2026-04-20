@@ -21,6 +21,14 @@
   const historyEmptyEl = document.getElementById('brandScraperHistoryEmpty');
   const historySandboxEl = document.getElementById('brandScraperHistorySandbox');
   const historyRefreshBtn = document.getElementById('brandScraperHistoryRefresh');
+  const viewListBtn = document.getElementById('brandScraperViewList');
+  const viewIndustryBtn = document.getElementById('brandScraperViewIndustry');
+  const selectToggleBtn = document.getElementById('brandScraperHistorySelect');
+  const selectBarEl = document.getElementById('brandScraperSelectBar');
+  const selectCountEl = document.getElementById('brandScraperSelectCount');
+  const selectAllBtn = document.getElementById('brandScraperSelectAll');
+  const selectNoneBtn = document.getElementById('brandScraperSelectNone');
+  const deleteSelectedBtn = document.getElementById('brandScraperDeleteSelected');
   if (!form || !urlInput || !statusEl || !resultsEl) return;
 
   function getSandbox() {
@@ -488,25 +496,22 @@
     resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function renderHistory(items) {
-    const sb = getSandbox();
-    if (historySandboxEl) historySandboxEl.textContent = sb ? 'Sandbox: ' + sb : 'No sandbox selected';
+  let viewMode = 'list';      // 'list' | 'industry'
+  let selectMode = false;
+  const selected = new Set();
 
-    if (!Array.isArray(items) || !items.length) {
-      historyListEl.hidden = true;
-      historyListEl.innerHTML = '';
-      historyEmptyEl.hidden = false;
-      historyEmptyEl.textContent = sb
-        ? 'No scrapes yet for this sandbox. Run one above to populate the list.'
-        : 'Select a sandbox to see its scrapes.';
-      return;
-    }
-    historyEmptyEl.hidden = true;
-    historyListEl.hidden = false;
-    historyListEl.innerHTML = items.map(it => (
-      '<article class="brand-scraper-history-card" data-scrape-id="' + esc(it.scrapeId) + '">' +
+  function cardHtml(it) {
+    const isChecked = selected.has(it.scrapeId);
+    return (
+      '<article class="brand-scraper-history-card' + (selectMode ? ' is-selectable' : '') + (isChecked ? ' is-selected' : '') + '" data-scrape-id="' + esc(it.scrapeId) + '">' +
+        (selectMode ? (
+          '<label class="brand-scraper-history-check">' +
+            '<input type="checkbox" data-action="toggle-select"' + (isChecked ? ' checked' : '') + ' aria-label="Select ' + esc(it.brandName || it.scrapeId) + '" />' +
+          '</label>'
+        ) : '') +
         '<div class="brand-scraper-history-card-main">' +
           '<h4>' + esc(it.brandName || it.baseUrl || it.url) + '</h4>' +
+          (it.industry ? '<p class="brand-scraper-history-industry">' + esc(it.industry) + '</p>' : '') +
           '<p class="brand-scraper-result-muted">' + esc(it.baseUrl || it.url || '') + '</p>' +
           '<p class="brand-scraper-result-muted">' +
             fmtDate(it.updatedAt || it.createdAt) +
@@ -522,7 +527,68 @@
           '<button type="button" class="dashboard-btn-outline" data-action="delete">Delete</button>' +
         '</div>' +
       '</article>'
-    )).join('');
+    );
+  }
+
+  function renderHistory(items) {
+    const sb = getSandbox();
+    if (historySandboxEl) historySandboxEl.textContent = sb ? 'Sandbox: ' + sb : 'No sandbox selected';
+
+    // Drop stale selections if their rows are gone.
+    const presentIds = new Set((items || []).map(i => i.scrapeId));
+    Array.from(selected).forEach(id => { if (!presentIds.has(id)) selected.delete(id); });
+    updateSelectBar();
+
+    if (!Array.isArray(items) || !items.length) {
+      historyListEl.hidden = true;
+      historyListEl.innerHTML = '';
+      historyEmptyEl.hidden = false;
+      historyEmptyEl.textContent = sb
+        ? 'No scrapes yet for this sandbox. Run one above to populate the list.'
+        : 'Select a sandbox to see its scrapes.';
+      return;
+    }
+    historyEmptyEl.hidden = true;
+    historyListEl.hidden = false;
+
+    if (viewMode === 'industry') {
+      const groups = new Map();
+      for (const it of items) {
+        const key = (it.industry || 'Uncategorised');
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(it);
+      }
+      const keys = Array.from(groups.keys()).sort((a, b) => {
+        if (a === 'Uncategorised') return 1;
+        if (b === 'Uncategorised') return -1;
+        return a.localeCompare(b);
+      });
+      historyListEl.innerHTML = keys.map(key => {
+        const rows = groups.get(key);
+        return (
+          '<div class="brand-scraper-history-group">' +
+            '<h4 class="brand-scraper-history-group-head">' +
+              esc(key) +
+              ' <span class="brand-scraper-asset-hint">' + rows.length + ' scrape' + (rows.length === 1 ? '' : 's') + '</span>' +
+            '</h4>' +
+            '<div class="brand-scraper-history-group-grid">' + rows.map(cardHtml).join('') + '</div>' +
+          '</div>'
+        );
+      }).join('');
+    } else {
+      historyListEl.innerHTML = items.map(cardHtml).join('');
+    }
+  }
+
+  function updateSelectBar() {
+    if (!selectBarEl) return;
+    selectBarEl.hidden = !selectMode;
+    if (selectCountEl) selectCountEl.textContent = selected.size + ' selected';
+    if (deleteSelectedBtn) deleteSelectedBtn.disabled = selected.size === 0;
+    if (selectToggleBtn) {
+      selectToggleBtn.textContent = selectMode ? 'Cancel' : 'Select';
+      selectToggleBtn.classList.toggle('is-active', selectMode);
+    }
   }
 
   let historyItemsCache = [];
@@ -591,6 +657,17 @@
 
   if (historyListEl) {
     historyListEl.addEventListener('click', (evt) => {
+      // Clicks on the checkbox wrapper should not also trigger view/delete.
+      const check = evt.target.closest('input[data-action="toggle-select"]');
+      if (check) {
+        const card = check.closest('[data-scrape-id]');
+        const id = card && card.getAttribute('data-scrape-id');
+        if (!id) return;
+        if (check.checked) selected.add(id); else selected.delete(id);
+        card.classList.toggle('is-selected', check.checked);
+        updateSelectBar();
+        return;
+      }
       const btn = evt.target.closest('button[data-action]');
       if (!btn) return;
       const card = btn.closest('[data-scrape-id]');
@@ -600,6 +677,58 @@
       else if (btn.dataset.action === 'delete') deleteScrape(id);
     });
   }
+
+  if (selectToggleBtn) {
+    selectToggleBtn.addEventListener('click', () => {
+      selectMode = !selectMode;
+      if (!selectMode) selected.clear();
+      renderHistory(historyItemsCache);
+    });
+  }
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener('click', () => {
+      historyItemsCache.forEach(it => selected.add(it.scrapeId));
+      renderHistory(historyItemsCache);
+    });
+  }
+  if (selectNoneBtn) {
+    selectNoneBtn.addEventListener('click', () => {
+      selected.clear();
+      renderHistory(historyItemsCache);
+    });
+  }
+  if (deleteSelectedBtn) {
+    deleteSelectedBtn.addEventListener('click', async () => {
+      if (!selected.size) return;
+      if (!confirm('Delete ' + selected.size + ' scrape' + (selected.size === 1 ? '' : 's') + '? This cannot be undone.')) return;
+      deleteSelectedBtn.disabled = true;
+      deleteSelectedBtn.textContent = 'Deleting…';
+      const ids = Array.from(selected);
+      let ok = 0;
+      let fail = 0;
+      for (const id of ids) {
+        try {
+          const resp = await fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(id)), { method: 'DELETE' });
+          if (resp.ok) ok++; else fail++;
+        } catch (_e) { fail++; }
+      }
+      selected.clear();
+      selectMode = false;
+      setStatus('Deleted ' + ok + ' scrape' + (ok === 1 ? '' : 's') + (fail ? ' (' + fail + ' failed)' : '') + '.', fail ? 'error' : 'info');
+      deleteSelectedBtn.textContent = 'Delete selected';
+      deleteSelectedBtn.disabled = false;
+      await loadHistory();
+    });
+  }
+
+  function setViewMode(mode) {
+    viewMode = mode === 'industry' ? 'industry' : 'list';
+    if (viewListBtn) viewListBtn.classList.toggle('is-active', viewMode === 'list');
+    if (viewIndustryBtn) viewIndustryBtn.classList.toggle('is-active', viewMode === 'industry');
+    renderHistory(historyItemsCache);
+  }
+  if (viewListBtn) viewListBtn.addEventListener('click', () => setViewMode('list'));
+  if (viewIndustryBtn) viewIndustryBtn.addEventListener('click', () => setViewMode('industry'));
 
   async function runClassify() {
     if (!currentScrapeData || !currentScrapeData.scrapeId) return;

@@ -167,9 +167,20 @@
             <h3>Recent scrapes</h3>
             <div class="brand-scraper-history-meta">
               <span id="brandScraperHistorySandbox" class="brand-scraper-history-sandbox"></span>
+              <div class="brand-scraper-history-viewtoggle" role="tablist" aria-label="View mode">
+                <button type="button" class="dashboard-btn-outline is-active" data-view="list" id="brandScraperViewList">List</button>
+                <button type="button" class="dashboard-btn-outline" data-view="industry" id="brandScraperViewIndustry">By industry</button>
+              </div>
+              <button type="button" id="brandScraperHistorySelect" class="dashboard-btn-outline">Select</button>
               <button type="button" id="brandScraperHistoryRefresh" class="dashboard-btn-outline" title="Refresh list">Refresh</button>
             </div>
           </header>
+          <div class="brand-scraper-history-selectbar" id="brandScraperSelectBar" hidden>
+            <span id="brandScraperSelectCount">0 selected</span>
+            <button type="button" id="brandScraperSelectAll" class="dashboard-btn-outline">Select all</button>
+            <button type="button" id="brandScraperSelectNone" class="dashboard-btn-outline">Clear</button>
+            <button type="button" id="brandScraperDeleteSelected" class="dashboard-btn-primary" disabled>Delete selected</button>
+          </div>
           <p class="brand-scraper-result-muted" id="brandScraperHistoryEmpty">Loading…</p>
           <div class="brand-scraper-history-list" id="brandScraperHistoryList" hidden></div>
         </section>

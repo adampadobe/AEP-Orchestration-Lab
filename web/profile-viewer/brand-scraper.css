@@ -312,10 +312,128 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   border: 1px solid var(--dash-border);
 }
 
+.brand-scraper-history-viewtoggle {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  padding: 2px;
+  background: var(--dash-surface-alt);
+}
+
+.brand-scraper-history-viewtoggle button {
+  border: none;
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+}
+
+.brand-scraper-history-viewtoggle button.is-active {
+  background: var(--dash-blue);
+  color: #fff;
+}
+
+.brand-scraper-history-selectbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--dash-blue) 10%, var(--dash-surface-alt));
+  border: 1px solid color-mix(in srgb, var(--dash-blue) 30%, var(--dash-border));
+  border-radius: var(--dash-radius-sm, 12px);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.brand-scraper-history-selectbar #brandScraperSelectCount {
+  font-weight: 600;
+  margin-right: auto;
+  color: var(--dash-text);
+}
+
+.brand-scraper-history-selectbar button { padding: 4px 10px; font-size: 12px; }
+
+#brandScraperHistorySelect.is-active {
+  background: var(--dash-blue);
+  color: #fff;
+  border-color: var(--dash-blue);
+}
+
+.brand-scraper-history-check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.brand-scraper-history-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--dash-blue);
+  cursor: pointer;
+}
+
+.brand-scraper-history-card {
+  position: relative;
+}
+
+.brand-scraper-history-card.is-selectable {
+  padding-left: 34px;
+  cursor: default;
+}
+
+.brand-scraper-history-card.is-selected {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 1px var(--dash-blue);
+}
+
+.brand-scraper-history-industry {
+  margin: 2px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dash-blue);
+}
+
+.brand-scraper-history-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.brand-scraper-history-group-head {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dash-text);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.brand-scraper-history-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
 .brand-scraper-history-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
+}
+
+.brand-scraper-history-list .brand-scraper-history-group {
+  grid-column: 1 / -1;
 }
 
 .brand-scraper-history-card {
