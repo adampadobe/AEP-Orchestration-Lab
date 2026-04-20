@@ -69,6 +69,23 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   flex-wrap: wrap;
 }
 
+.demo-delivery-fullscreen-btn {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Demo Delivery main region when using browser Fullscreen API (controls + device preview) */
+#demoDeliveryMain:fullscreen,
+#demoDeliveryMain:-webkit-full-screen {
+  overflow: auto;
+  box-sizing: border-box;
+  background: var(--dash-bg);
+  padding: clamp(0.5rem, 1.5vw, 1rem) clamp(0.35rem, 1vw, 0.65rem) 1rem;
+}
+
 .demo-delivery-ecid {
   font-size: 13px;
   color: var(--dash-text-secondary);

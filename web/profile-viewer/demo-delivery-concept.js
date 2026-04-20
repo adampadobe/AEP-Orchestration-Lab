@@ -6,6 +6,8 @@
   var lookupBtn = document.getElementById('ddcLookupBtn');
   var statusEl = document.getElementById('demoDeliveryStatus');
   var ecidEl = document.getElementById('infoEcid');
+  var fullscreenBtn = document.getElementById('ddcFullscreenBtn');
+  var fullscreenTarget = document.getElementById('demoDeliveryMain');
 
   if (typeof attachEmailDatalist === 'function') {
     attachEmailDatalist('ddcIdentifier');
@@ -107,6 +109,62 @@
     } finally {
       if (lookupBtn) lookupBtn.disabled = false;
     }
+  }
+
+  function getFullscreenElement() {
+    return (
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.msFullscreenElement ||
+      null
+    );
+  }
+
+  function requestFullscreenEl(el) {
+    if (!el) return Promise.reject(new Error('No element.'));
+    if (typeof el.requestFullscreen === 'function') return el.requestFullscreen();
+    if (typeof el.webkitRequestFullscreen === 'function') return el.webkitRequestFullscreen();
+    if (typeof el.msRequestFullscreen === 'function') return el.msRequestFullscreen();
+    return Promise.reject(new Error('Full screen is not supported in this browser.'));
+  }
+
+  function exitFullscreenDoc() {
+    if (typeof document.exitFullscreen === 'function') return document.exitFullscreen();
+    if (typeof document.webkitExitFullscreen === 'function') return document.webkitExitFullscreen();
+    if (typeof document.msExitFullscreen === 'function') return document.msExitFullscreen();
+    return Promise.reject(new Error('Unable to exit full screen.'));
+  }
+
+  function syncFullscreenButton() {
+    if (!fullscreenBtn || !fullscreenTarget) return;
+    var active = getFullscreenElement() === fullscreenTarget;
+    fullscreenBtn.textContent = active ? 'Exit full screen' : 'Full screen';
+    fullscreenBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    fullscreenBtn.setAttribute('aria-label', active ? 'Exit full screen' : 'Enter full screen');
+  }
+
+  async function toggleDemoFullscreen() {
+    if (!fullscreenTarget) return;
+    try {
+      if (getFullscreenElement() === fullscreenTarget) {
+        await exitFullscreenDoc();
+      } else {
+        await requestFullscreenEl(fullscreenTarget);
+      }
+    } catch (err) {
+      setStatus(
+        err && err.message ? err.message : 'Full screen could not be toggled.',
+        'error'
+      );
+    }
+    syncFullscreenButton();
+  }
+
+  if (fullscreenBtn && fullscreenTarget) {
+    fullscreenBtn.addEventListener('click', toggleDemoFullscreen);
+    document.addEventListener('fullscreenchange', syncFullscreenButton);
+    document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
+    syncFullscreenButton();
   }
 
   if (lookupBtn) {
