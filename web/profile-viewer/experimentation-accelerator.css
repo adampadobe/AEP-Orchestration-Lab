@@ -1,5 +1,5 @@
 /**
- * AJO Experimentation Accelerator — AJO chrome + rail; Overview body uses screenshot slices.
+ * AJO Experimentation Accelerator — native AJO chrome, rail, and full HTML Overview.
  */
 
 .experimentation-accelerator-page .visually-hidden {
@@ -38,6 +38,10 @@
 .experimentation-accelerator-page.experimentation-accelerator-page--immersive .profile-viewer-main {
   flex: 1;
   min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
 }
 
 @media (min-width: 769px) {
@@ -123,6 +127,15 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
   --ajo-surface-2: var(--dash-surface-alt, #f8f9fa);
   --ajo-border: var(--dash-border, #e6e4ea);
   --ajo-work-bg: var(--dash-surface-alt, #fafafa);
+  /* Sharper text than global antialiased overrides on some platforms */
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+  text-rendering: optimizeLegibility;
+}
+
+/* Vector charts: uniform scale only (never preserveAspectRatio="none" — that stretches strokes and looks fuzzy). */
+.experimentation-accelerator-page .ajo-mock svg {
+  shape-rendering: geometricPrecision;
 }
 
 /* Top bar */
@@ -711,7 +724,8 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
 .ajo-spark {
   width: 100%;
   height: auto;
-  min-height: 36px;
+  display: block;
+  aspect-ratio: 120 / 44;
 }
 
 .ajo-metric-card-foot {
