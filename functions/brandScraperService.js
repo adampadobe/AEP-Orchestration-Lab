@@ -235,7 +235,7 @@ function getVertexClient() {
 
 async function callGemini(systemPrompt, userPrompt) {
   const client = getVertexClient();
-  const modelName = process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-flash';
+  const modelName = process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-pro';
   const model = client.getGenerativeModel({
     model: modelName,
     systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] },
