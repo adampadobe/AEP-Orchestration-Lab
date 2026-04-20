@@ -402,6 +402,71 @@ async function probeTagsApiAccess(token, clientId, orgId) {
   };
 }
 
+/**
+ * GET a single rule_component resource, including its current settings
+ * string. Needed before a PATCH so we can preserve a current revision
+ * pointer and return before/after values.
+ */
+async function getRuleComponent(token, clientId, orgId, componentId) {
+  const id = String(componentId || '').trim();
+  if (!id) return { ok: false, httpStatus: 400, error: 'componentId is required' };
+  const url = REACTOR_BASE + '/rule_components/' + encodeURIComponent(id);
+  let resp;
+  try {
+    resp = await fetch(url, { method: 'GET', headers: reactorHeaders(token, clientId, orgId) });
+  } catch (e) {
+    return { ok: false, httpStatus: 0, error: String(e && e.message || e) };
+  }
+  const text = await resp.text();
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch (_e) { data = {}; }
+  if (!resp.ok) {
+    return { ok: false, httpStatus: resp.status, error: extractReactorError(data, text) };
+  }
+  const d = data && data.data ? data.data : {};
+  return { ok: true, httpStatus: resp.status, item: mapRuleComponentResource(d), raw: d };
+}
+
+/**
+ * PATCH rule_component settings. Reactor stores settings as a JSON-encoded
+ * string, so we stringify the object before sending.
+ */
+async function updateRuleComponentSettings(token, clientId, orgId, componentId, settingsObject, { revision } = {}) {
+  const id = String(componentId || '').trim();
+  if (!id) return { ok: false, httpStatus: 400, error: 'componentId is required' };
+  if (!settingsObject || typeof settingsObject !== 'object') {
+    return { ok: false, httpStatus: 400, error: 'settingsObject must be an object' };
+  }
+  const url = REACTOR_BASE + '/rule_components/' + encodeURIComponent(id);
+  const attributes = { settings: JSON.stringify(settingsObject) };
+  if (revision) attributes.revision_number = Number(revision);
+  const body = {
+    data: {
+      id,
+      type: 'rule_components',
+      attributes,
+    },
+  };
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method: 'PATCH',
+      headers: reactorHeaders(token, clientId, orgId),
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    return { ok: false, httpStatus: 0, error: String(e && e.message || e) };
+  }
+  const text = await resp.text();
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch (_e) { data = {}; }
+  if (!resp.ok) {
+    return { ok: false, httpStatus: resp.status, error: extractReactorError(data, text) };
+  }
+  const d = data && data.data ? data.data : {};
+  return { ok: true, httpStatus: resp.status, item: mapRuleComponentResource(d), raw: d };
+}
+
 module.exports = {
   listCompanies,
   listProperties,
@@ -413,5 +478,7 @@ module.exports = {
   listEnvironments,
   listLibraries,
   listRuleComponents,
+  getRuleComponent,
+  updateRuleComponentSettings,
   probeTagsApiAccess,
 };

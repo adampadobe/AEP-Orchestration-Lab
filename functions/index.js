@@ -2222,6 +2222,51 @@ exports.edgeLaunchRulePreview = onRequest(
   },
 );
 
+/**
+ * POST /api/edge-decisioning/apply-launch-rule
+ * Writes: PATCH the Send-Event action's settings with the merged surfaces +
+ * decisionScopes. Returns before/after. Does NOT build/publish — a Launch
+ * library + build + publish still needs to run before the change is live.
+ */
+exports.edgeLaunchRuleApply = onRequest(
+  {
+    region: REGION,
+    secrets: PROFILE_FN_SECRETS,
+    environmentVariables: { ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX },
+    invoker: 'public',
+    timeoutSeconds: 120,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'POST only' }); return; }
+    const body = (req.body && typeof req.body === 'object') ? req.body : {};
+    if (!body.propertyRef) { res.status(400).json({ ok: false, error: 'propertyRef required' }); return; }
+    if (!body.targetPageUrl) { res.status(400).json({ ok: false, error: 'targetPageUrl required' }); return; }
+
+    let accessToken;
+    try { accessToken = await getAdobeAccessToken(); }
+    catch (e) { res.status(500).json({ ok: false, error: 'Auth failed', detail: String(e.message || e) }); return; }
+
+    const clientId = ADOBE_CLIENT_ID.value();
+    const orgId = ADOBE_IMS_ORG.value();
+    try {
+      const result = await edgeLaunchRuleService.applyLaunchRuleUpdate({
+        accessToken, clientId, orgId,
+        propertyRef: body.propertyRef,
+        ruleName: body.ruleName || 'Page View',
+        targetPageUrl: body.targetPageUrl,
+        placements: Array.isArray(body.placements) ? body.placements : [],
+        edgePersonalizationMode: body.edgePersonalizationMode || null,
+      });
+      res.status(result.ok ? 200 : 400).json(result);
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e && e.message || e) });
+    }
+  },
+);
+
 /** GET /api/events/datastreams — list datastreams from Edge API */
 exports.eventDatastreamsProxy = onRequest(
   {

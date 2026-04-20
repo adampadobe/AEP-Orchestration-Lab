@@ -445,6 +445,74 @@
     box.hidden = false;
   }
 
+  function renderLaunchApplyResult(data) {
+    var box = el('cdLabLaunchPreview');
+    if (!box) return;
+    var esc = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    };
+    if (!data || data.ok === false) {
+      box.innerHTML = '<div class="status err">Apply failed: ' + esc((data && data.error) || 'unknown error') + '</div>';
+      box.hidden = false;
+      return;
+    }
+    if (data.noop) {
+      box.innerHTML = '<div class="status ok">No change applied — surfaces and scopes already match the current placements.</div>';
+      box.hidden = false;
+      return;
+    }
+    var listHtml = function (arr) {
+      if (!arr || !arr.length) return '<em class="cd-lab-launch-preview__empty">(none)</em>';
+      return '<ul class="cd-lab-launch-preview__list">' +
+        arr.map(function (s) { return '<li><code>' + esc(s) + '</code></li>'; }).join('') +
+        '</ul>';
+    };
+    box.innerHTML =
+      '<div class="status ok">Reactor updated — rule <code>' + esc(data.ruleName) + '</code>, action <code>' + esc(data.actionName) + '</code>.</div>' +
+      '<p class="hint"><strong>' + ((data.afterSurfaces || []).length) + '</strong> surfaces · <strong>' + ((data.afterScopes || []).length) + '</strong> scopes now on the rule.</p>' +
+      '<details><summary>After: surfaces</summary>' + listHtml(data.afterSurfaces) + '</details>' +
+      '<details><summary>After: scopes</summary>' + listHtml(data.afterScopes) + '</details>' +
+      (data.publishNote ? '<p class="hint"><em>' + esc(data.publishNote) + '</em></p>' : '');
+    box.hidden = false;
+  }
+
+  async function applyLaunchRuleChange() {
+    var propertyRef = el('cdLabTagsProperty') && el('cdLabTagsProperty').value.trim();
+    var targetPageUrl = el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim();
+    if (!propertyRef) { renderLaunchPreview({ ok: false, error: 'Enter a Tags property name or PR… ID first.' }); return; }
+    if (!targetPageUrl) { renderLaunchPreview({ ok: false, error: 'Enter a target page URL first.' }); return; }
+    var plCount = getPlacementsFromForm().length;
+    var msg = 'Write the current ' + plCount + ' placement' + (plCount === 1 ? '' : 's') +
+      ' to the Page View rule on "' + propertyRef + '"? Only surfaces matching the target host+path are rewritten; other surfaces stay untouched.';
+    if (!global.confirm(msg)) return;
+
+    var btn = el('cdLabApplyLaunchBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Writing to Reactor…'; }
+
+    var body = {
+      propertyRef: propertyRef,
+      targetPageUrl: targetPageUrl,
+      placements: getPlacementsFromForm(),
+      edgePersonalizationMode: el('cdLabEdgeMode') && el('cdLabEdgeMode').value,
+    };
+
+    try {
+      var res = await labFetch('/api/edge-decisioning/apply-launch-rule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      var data = await res.json().catch(function () { return {}; });
+      renderLaunchApplyResult(data);
+    } catch (e) {
+      renderLaunchApplyResult({ ok: false, error: String(e && e.message || e) });
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Apply to Launch'; }
+    }
+  }
+
   async function previewLaunchRuleChange() {
     var propertyRef = el('cdLabTagsProperty') && el('cdLabTagsProperty').value.trim();
     var targetPageUrl = el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim();
@@ -604,6 +672,9 @@
 
       if (el('cdLabPreviewLaunchBtn')) {
         el('cdLabPreviewLaunchBtn').addEventListener('click', previewLaunchRuleChange);
+      }
+      if (el('cdLabApplyLaunchBtn')) {
+        el('cdLabApplyLaunchBtn').addEventListener('click', applyLaunchRuleChange);
       }
 
       await fetchConfigFromFirebase();
