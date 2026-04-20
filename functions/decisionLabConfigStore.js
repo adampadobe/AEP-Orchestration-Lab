@@ -54,6 +54,33 @@ function sanitizePlacements(raw) {
   return out.length ? out : DEFAULT_PLACEMENTS.slice();
 }
 
+/**
+ * surfaceOverrides is an object keyed by surface fragment (e.g. 'TopRibbon',
+ * 'hero-banner') with `{ html, updatedAt }`. Limits: 16 surfaces, 50KiB
+ * HTML each. Keys are sanitised the same way as placement fragments.
+ */
+function sanitizeSurfaceOverrides(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const MAX_ENTRIES = 16;
+  const MAX_HTML = 50 * 1024;
+  const out = {};
+  let count = 0;
+  for (const [rawKey, rawVal] of Object.entries(raw)) {
+    if (count >= MAX_ENTRIES) break;
+    const key = String(rawKey || '').trim().replace(/[^a-zA-Z0-9_\-#/.:]/g, '').slice(0, 128);
+    if (!key) continue;
+    if (!rawVal || typeof rawVal !== 'object') continue;
+    const html = typeof rawVal.html === 'string' ? rawVal.html.slice(0, MAX_HTML) : '';
+    if (!html.trim()) continue;
+    out[key] = {
+      html,
+      updatedAt: rawVal.updatedAt || new Date().toISOString(),
+    };
+    count++;
+  }
+  return out;
+}
+
 function sanitizeMode(m) {
   const s = String(m || '').trim().toLowerCase();
   if (s === 'decisionscopes' || s === 'decision_scopes') return 'decisionScopes';
@@ -113,6 +140,9 @@ async function saveDecisionLabConfig(sandbox, patch) {
       ),
       placements: sanitizePlacements(
         patch.placements !== undefined ? patch.placements : prev.placements,
+      ),
+      surfaceOverrides: sanitizeSurfaceOverrides(
+        patch.surfaceOverrides !== undefined ? patch.surfaceOverrides : prev.surfaceOverrides,
       ),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
@@ -180,6 +210,9 @@ async function saveUserDecisionLabConfig(uid, sandbox, patch) {
       ),
       placements: sanitizePlacements(
         patch.placements !== undefined ? patch.placements : prev.placements,
+      ),
+      surfaceOverrides: sanitizeSurfaceOverrides(
+        patch.surfaceOverrides !== undefined ? patch.surfaceOverrides : prev.surfaceOverrides,
       ),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };

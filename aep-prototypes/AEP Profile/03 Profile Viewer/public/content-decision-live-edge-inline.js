@@ -453,6 +453,13 @@
       cdLog('applyPropositions', String(e && e.message ? e.message : e));
     }
     CdEdgeMounts.applyPropositionsManually(propositions);
+    // Re-apply any saved surface HTML overrides on top of the live content
+    // so the user's custom wrapper/styling survives each decisioning call.
+    try {
+      if (window.CdLabUi && typeof window.CdLabUi.applySurfaceOverridesToMounts === 'function') {
+        window.CdLabUi.applySurfaceOverridesToMounts();
+      }
+    } catch (e) { cdLog('applySurfaceOverridesToMounts', String(e && e.message || e)); }
     return result;
   }
 
@@ -537,6 +544,11 @@
     if (typeof CdEdgeMounts !== 'undefined' && CdEdgeMounts.applyPropositionsManually) {
       CdEdgeMounts.applyPropositionsManually(propositionsOut);
     }
+    try {
+      if (window.CdLabUi && typeof window.CdLabUi.applySurfaceOverridesToMounts === 'function') {
+        window.CdLabUi.applySurfaceOverridesToMounts();
+      }
+    } catch (e) { cdLog('applySurfaceOverridesToMounts', String(e && e.message || e)); }
     return result;
   }
 

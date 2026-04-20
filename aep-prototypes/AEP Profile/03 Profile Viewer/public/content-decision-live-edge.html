@@ -673,6 +673,11 @@
     .cd-lab-launch-preview__list.rm li::before { content: '− '; color: #dc2626; font-weight: 700; }
     .cd-lab-launch-preview__empty { color: var(--muted, #7a7a7a); }
     .cd-lab-launch-preview .status { padding: 0.35rem 0.5rem; border-radius: 6px; margin: 0 0 0.4rem; }
+    .cd-lab-override-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
+    .cd-lab-override-row label { margin: 0; font-size: 0.8125rem; color: var(--muted); min-width: 5rem; }
+    .cd-lab-override-row select { flex: 1 1 auto; min-width: 0; }
+    .cd-lab-override-textarea { width: 100%; min-height: 140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); resize: vertical; box-sizing: border-box; }
+    .cd-lab-override-textarea:focus { outline: 2px solid var(--accent, #3c82f6); outline-offset: -2px; }
     .cd-lab-step { margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border); }
     .cd-lab-step:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
     .cd-lab-step-title { font-size: 0.8125rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--text); }
@@ -836,7 +841,24 @@
             </section>
 
             <section class="cd-lab-step">
-              <h3 class="cd-lab-step-title">4. Profile &amp; run</h3>
+              <h3 class="cd-lab-step-title">4. Surface HTML overrides (optional)</h3>
+              <p class="hint">AJO delivers the <em>content</em> (image, copy, link). The surrounding <em>styling</em> — colours, layout, wrapper markup — is yours. Pick a surface, tweak the HTML wrapper, and <strong>Apply</strong>. Overrides are saved per sandbox + surface to Firebase and re-applied automatically on every decisioning run.</p>
+              <div class="cd-lab-override-row">
+                <label for="cdLabOverrideSurface">Surface</label>
+                <select id="cdLabOverrideSurface" class="sandbox-select" aria-label="Pick a surface to edit its HTML"></select>
+              </div>
+              <label for="cdLabOverrideHtml" style="margin-top:0.5rem;">HTML override</label>
+              <textarea id="cdLabOverrideHtml" class="cd-lab-override-textarea" rows="8" placeholder="Leave empty to let the live proposition render as-is. Otherwise, paste your wrapper HTML here."></textarea>
+              <p class="status" id="cdLabOverrideMsg" role="status" aria-live="polite"></p>
+              <div class="actions" style="margin-top:0.35rem;">
+                <button type="button" class="primary" id="cdLabOverrideApplyBtn">Apply &amp; save override</button>
+                <button type="button" class="secondary" id="cdLabOverrideLoadCurrentBtn" title="Copy the live proposition HTML into the editor so you can tweak it">Copy live HTML</button>
+                <button type="button" class="secondary" id="cdLabOverrideResetBtn" title="Delete the saved override for this surface and re-render from the live proposition">Reset to live</button>
+              </div>
+            </section>
+
+            <section class="cd-lab-step">
+              <h3 class="cd-lab-step-title">5. Profile &amp; run</h3>
               <div class="row2" style="margin-bottom:0.5rem;">
                 <div>
                   <label for="cdNs">Namespace</label>
