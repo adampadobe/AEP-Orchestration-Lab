@@ -369,7 +369,9 @@ async function publishRuleToDevelopment({ accessToken, clientId, orgId, property
   //    revisions, so without this call the add-resource step fails with
   //    "rule is invalid because it needs to be revised".
   const revise = await tagsReactorService.reviseRule(accessToken, clientId, orgId, ruleId);
-  if (!revise.ok) return { ok: false, step: 'reviseRule', error: revise.error, library, libraryReused };
+  if (!revise.ok) return { ok: false, step: 'reviseRule', error: revise.error, library, libraryReused, revise };
+  // Capture revise outcome for diagnostics.
+  const revisionInfo = { ruleId: revise.ruleId, revisionNumber: revise.revisionNumber, httpStatus: revise.httpStatus };
 
   // 2b) Add the rule as a resource. Tolerate "already a resource" —
   //    POST relationships/resources is not idempotent by default and may
@@ -382,7 +384,7 @@ async function publishRuleToDevelopment({ accessToken, clientId, orgId, property
     const msg = String(addRes.error || '');
     const isDup = /already|duplicate|conflict/i.test(msg);
     if (!isDup) {
-      return { ok: false, step: 'addLibraryResources', error: addRes.error, library, libraryReused };
+      return { ok: false, step: 'addLibraryResources', error: addRes.error, library, libraryReused, revise: revisionInfo };
     }
     // Duplicate resource — proceed.
   }
