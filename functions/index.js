@@ -1974,7 +1974,10 @@ exports.decisionLabConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
         schemaTitle: body.schemaTitle,
         datasetName: body.datasetName,
         edgePersonalizationMode: body.edgePersonalizationMode,
+        tagsPropertyRef: body.tagsPropertyRef,
+        targetPageUrl: body.targetPageUrl,
         placements: body.placements,
+        surfaceOverrides: body.surfaceOverrides,
       });
       res.status(200).json({
         ok: true,
