@@ -189,13 +189,6 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   cursor: default;
 }
 
-.brand-scraper-card[data-status='planned'] {
-  opacity: 0.82;
-}
-
-.brand-scraper-card[data-status='live'] {
-  border-color: color-mix(in srgb, var(--dash-blue) 40%, var(--dash-border));
-}
 
 .brand-scraper-card-head {
   display: flex;
@@ -225,6 +218,44 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   background: color-mix(in srgb, var(--dash-blue) 15%, var(--dash-surface-alt));
   color: var(--dash-blue);
   border-color: color-mix(in srgb, var(--dash-blue) 40%, var(--dash-border));
+}
+
+.brand-scraper-card-light {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  position: relative;
+}
+
+.brand-scraper-card-light-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dash-text-secondary);
+  box-shadow: 0 0 0 0 currentColor;
+  transition: background 0.2s ease, box-shadow 0.3s ease;
+}
+
+.brand-scraper-card-light.is-checking .brand-scraper-card-light-dot {
+  background: var(--dash-text-secondary);
+  animation: brand-scraper-pulse 1.1s ease-in-out infinite;
+}
+
+.brand-scraper-card-light.is-ok .brand-scraper-card-light-dot {
+  background: #16a34a;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #16a34a 25%, transparent);
+}
+
+.brand-scraper-card-light.is-fail .brand-scraper-card-light-dot {
+  background: #dc2626;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #dc2626 25%, transparent);
+}
+
+@keyframes brand-scraper-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
 .brand-scraper-card-title {

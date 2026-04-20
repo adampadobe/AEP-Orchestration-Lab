@@ -729,6 +729,50 @@
     }
   });
 
+  // Capability → function-URL map for the traffic-light health checks.
+  const HEALTHCHECK_URLS = {
+    analyze: ANALYZE_URL,
+    classify: CLASSIFY_URL,
+    export: EXPORT_URL,
+  };
+
+  async function pingFunction(url) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6000);
+      const resp = await fetch(url, {
+        method: 'OPTIONS',
+        signal: ctrl.signal,
+        headers: { 'Access-Control-Request-Method': 'POST' },
+      });
+      clearTimeout(timer);
+      // Cloud Functions v2 returns 204 for OPTIONS preflight when CORS is set.
+      return resp.ok || resp.status === 204;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function applyLight(key, isOk) {
+    const cards = document.querySelectorAll('.brand-scraper-card[data-healthcheck="' + key + '"]');
+    cards.forEach(card => {
+      const light = card.querySelector('.brand-scraper-card-light');
+      if (!light) return;
+      light.classList.remove('is-checking');
+      light.classList.toggle('is-ok', !!isOk);
+      light.classList.toggle('is-fail', !isOk);
+      light.title = isOk ? 'Function healthy — CORS preflight OK' : 'Function did not respond — check deployment';
+    });
+  }
+
+  async function runHealthChecks() {
+    const keys = Object.keys(HEALTHCHECK_URLS);
+    await Promise.all(keys.map(async k => {
+      const ok = await pingFunction(HEALTHCHECK_URLS[k]);
+      applyLight(k, ok);
+    }));
+  }
+
   // Initial load — wait a tick so the sidebar/sandbox sync can settle.
-  setTimeout(() => { applyStoredCountry(); loadHistory(); }, 300);
+  setTimeout(() => { applyStoredCountry(); loadHistory(); runHealthChecks(); }, 300);
 })();

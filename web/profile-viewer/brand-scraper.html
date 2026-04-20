@@ -98,52 +98,63 @@
         </section>
 
         <section class="brand-scraper-features" aria-label="Planned capabilities">
-          <p class="brand-scraper-features-caption">Roadmap — each tile below is a capability ported from the upstream prototype. Only capabilities marked <strong>Live</strong> run today; the rest are planned slices.</p>
           <div class="brand-scraper-features-grid">
-            <article class="brand-scraper-card" data-status="live">
+            <article class="brand-scraper-card" data-healthcheck="classify">
               <header class="brand-scraper-card-head">
                 <span class="brand-scraper-card-ico" aria-hidden="true">🎨</span>
-                <span class="brand-scraper-card-status brand-scraper-card-status--live">Live</span>
+                <span class="brand-scraper-card-light is-checking" role="status" aria-label="Checking asset classifier health">
+                  <span class="brand-scraper-card-light-dot"></span>
+                </span>
               </header>
               <h3 class="brand-scraper-card-title">Asset extraction</h3>
               <p class="brand-scraper-card-body">Image URLs, favicons, Open Graph previews, colour palette, and font families — surfaced per scrape. Click <strong>Classify images</strong> on any result to download up to 20 images to Cloud Storage and categorise with Gemini vision.</p>
             </article>
-            <article class="brand-scraper-card" data-status="live">
+            <article class="brand-scraper-card" data-healthcheck="analyze">
               <header class="brand-scraper-card-head">
                 <span class="brand-scraper-card-ico" aria-hidden="true">✍</span>
-                <span class="brand-scraper-card-status brand-scraper-card-status--live">Live</span>
+                <span class="brand-scraper-card-light is-checking" role="status" aria-label="Checking brand guidelines health">
+                  <span class="brand-scraper-card-light-dot"></span>
+                </span>
               </header>
               <h3 class="brand-scraper-card-title">Brand guidelines</h3>
               <p class="brand-scraper-card-body">AI-drafted tone of voice, brand values, editorial rules, channel messaging guides. Runs automatically on <strong>Analyse</strong>.</p>
             </article>
-            <article class="brand-scraper-card" data-status="live">
+            <article class="brand-scraper-card" data-healthcheck="analyze">
               <header class="brand-scraper-card-head">
                 <span class="brand-scraper-card-ico" aria-hidden="true">🚀</span>
-                <span class="brand-scraper-card-status brand-scraper-card-status--live">Live</span>
+                <span class="brand-scraper-card-light is-checking" role="status" aria-label="Checking campaign detection health">
+                  <span class="brand-scraper-card-light-dot"></span>
+                </span>
               </header>
               <h3 class="brand-scraper-card-title">Campaign detection</h3>
               <p class="brand-scraper-card-body">Detects 2-5 campaigns visible on the site (with source URL evidence) plus 3-4 AI-recommended demo campaigns — each with headlines, CTA, channel, and target segments.</p>
             </article>
-            <article class="brand-scraper-card" data-status="live">
+            <article class="brand-scraper-card" data-healthcheck="analyze">
               <header class="brand-scraper-card-head">
                 <span class="brand-scraper-card-ico" aria-hidden="true">👤</span>
-                <span class="brand-scraper-card-status brand-scraper-card-status--live">Live</span>
+                <span class="brand-scraper-card-light is-checking" role="status" aria-label="Checking personas health">
+                  <span class="brand-scraper-card-light-dot"></span>
+                </span>
               </header>
               <h3 class="brand-scraper-card-title">Customer personas</h3>
               <p class="brand-scraper-card-body">6 realistic personas with demographics, goals, pain points, behaviours, channel preferences, and suggested segments — generated for your chosen <strong>Persona country</strong>.</p>
             </article>
-            <article class="brand-scraper-card" data-status="live">
+            <article class="brand-scraper-card" data-healthcheck="analyze">
               <header class="brand-scraper-card-head">
                 <span class="brand-scraper-card-ico" aria-hidden="true">🎯</span>
-                <span class="brand-scraper-card-status brand-scraper-card-status--live">Live</span>
+                <span class="brand-scraper-card-light is-checking" role="status" aria-label="Checking segments health">
+                  <span class="brand-scraper-card-light-dot"></span>
+                </span>
               </header>
               <h3 class="brand-scraper-card-title">Audience segments</h3>
               <p class="brand-scraper-card-body">8-10 Real-Time CDP segments across edge / streaming / batch evaluation — each with criteria, estimated size, suggested campaigns, and qualified personas. Grounded in the generated personas and campaigns.</p>
             </article>
-            <article class="brand-scraper-card" data-status="live">
+            <article class="brand-scraper-card" data-healthcheck="export">
               <header class="brand-scraper-card-head">
                 <span class="brand-scraper-card-ico" aria-hidden="true">📦</span>
-                <span class="brand-scraper-card-status brand-scraper-card-status--live">Live</span>
+                <span class="brand-scraper-card-light is-checking" role="status" aria-label="Checking export kit health">
+                  <span class="brand-scraper-card-light-dot"></span>
+                </span>
               </header>
               <h3 class="brand-scraper-card-title">Export kit</h3>
               <p class="brand-scraper-card-body">Click <strong>Export kit (ZIP)</strong> on any result to download a ZIP containing brand guidelines (MD + JSON), personas, campaigns, segments, raw crawl, colour palette, and all classified images. Signed URL expires in 72h; bucket auto-deletes at 3 days.</p>
