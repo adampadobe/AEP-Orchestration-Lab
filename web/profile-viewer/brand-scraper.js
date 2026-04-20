@@ -117,8 +117,12 @@
     if (showCollapsed) return; // nothing else to render
 
     modelSelectEl.value = pref;
+    // Belt-and-braces: hide key row unconditionally when the DROPDOWN itself
+    // is on 'default' right now — covers the sliver of time between user
+    // changing the select and server PUT completing.
     const keyProviderSelected = (pref === 'anthropic' || pref === 'openai');
-    modelKeyRowEl.hidden = !keyProviderSelected;
+    const dropdownIsDefault = modelSelectEl.value === 'default';
+    modelKeyRowEl.hidden = !keyProviderSelected || dropdownIsDefault;
     if (modelKeyInputEl) modelKeyInputEl.value = '';
 
     const hasKey = pref === 'anthropic' ? cfg.hasAnthropicKey : pref === 'openai' ? cfg.hasOpenAIKey : false;
@@ -190,10 +194,19 @@
 
   if (modelSelectEl) {
     modelSelectEl.addEventListener('change', async () => {
+      const newPref = modelSelectEl.value;
+      // Optimistic: apply locally so the key row hides/shows and the status
+      // line updates before the server round-trip completes.
+      if (modelConfigCache) {
+        modelConfigCache = { ...modelConfigCache, preferredProvider: newPref };
+        renderModelConfig();
+      }
       try {
-        await putModelConfig({ preferredProvider: modelSelectEl.value });
+        await putModelConfig({ preferredProvider: newPref });
       } catch (e) {
         setStatus('Could not update model: ' + (e && e.message || e), 'error');
+        // Server refused our change — resync from source of truth.
+        loadModelConfig();
       }
     });
   }
