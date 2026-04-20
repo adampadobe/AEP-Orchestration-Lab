@@ -2,11 +2,13 @@
   'use strict';
 
   // Firebase Hosting rewrites cap proxied requests at 60s. The analyze + classify
-  // + export endpoints run longer, so hit their direct Cloud Run URLs.
+  // + export endpoints run longer, so hit the Cloud Functions direct URLs
+  // (cloudfunctions.net is stable regardless of revision hash).
   // List/get/delete are fast and still go via /api/*.
-  const ANALYZE_URL = 'https://brandscraperanalyze-a5xduykcsq-uc.a.run.app/';
-  const CLASSIFY_URL = 'https://brandscraperclassify-a5xduykcsq-uc.a.run.app/';
-  const EXPORT_URL = 'https://brandscraperexport-a5xduykcsq-uc.a.run.app/';
+  const FN_BASE = 'https://us-central1-aep-orchestration-lab.cloudfunctions.net';
+  const ANALYZE_URL = FN_BASE + '/brandScraperAnalyze';
+  const CLASSIFY_URL = FN_BASE + '/brandScraperClassify';
+  const EXPORT_URL = FN_BASE + '/brandScraperExport';
 
   const form = document.getElementById('brandScraperForm');
   const urlInput = document.getElementById('brandScraperUrl');
