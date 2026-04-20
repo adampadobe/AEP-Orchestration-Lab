@@ -1,6 +1,6 @@
 /**
- * Customise dock: per–AEP-sandbox image URLs for the two-step AJO accelerator demo.
- * Storage: localStorage aepExpAccelImageUrls JSON { [sandboxKey]: { step1, step2 } }.
+ * Customise dock: per–AEP-sandbox assets for Accelerator (overview stitch + experiments + chrome).
+ * Storage: localStorage aepExpAccelImageUrls JSON { [sandboxKey]: fields }.
  */
 (function () {
   var LS = 'aepExpAccelImageUrls';
@@ -14,8 +14,12 @@
   }
 
   var DEFAULTS = {
-    step1: defaultBase() + 'demo-step-1.png',
-    step2: defaultBase() + 'demo-step-2.png',
+    overview1: defaultBase() + 'accelerator-overview-1.png',
+    overview2: defaultBase() + 'accelerator-overview-2.png',
+    experiments: defaultBase() + 'accelerator-experiments.png',
+    stitchOverlapPx: '96',
+    clipTop: '26%',
+    clipLeft: '5.1%',
   };
 
   function sandboxKey(name) {
@@ -45,7 +49,7 @@
 
   function getUrlsForSandbox(sb) {
     var all = readAll();
-    return all[sandboxKey(sb)] || null;
+    return migrateStored(all[sandboxKey(sb)] || null);
   }
 
   function saveUrlsForSandbox(sb, data) {
@@ -54,47 +58,45 @@
     writeAll(all);
   }
 
+  function migrateStored(stored) {
+    if (!stored || typeof stored !== 'object') return stored;
+    if (stored.overview1 || stored.overview2 || stored.experiments) return stored;
+    if (stored.step1) {
+      return {
+        overview1: stored.step1,
+        overview2: stored.step2 || DEFAULTS.overview2,
+        experiments: stored.experiments || DEFAULTS.experiments,
+        stitchOverlapPx: stored.stitchOverlapPx || DEFAULTS.stitchOverlapPx,
+        clipTop: stored.clipTop || DEFAULTS.clipTop,
+        clipLeft: stored.clipLeft || DEFAULTS.clipLeft,
+      };
+    }
+    return stored;
+  }
+
   function mergeWithDefaults(stored) {
+    var s = migrateStored(stored);
     var o = {};
     Object.keys(DEFAULTS).forEach(function (k) {
       o[k] =
-        stored && typeof stored[k] === 'string' && stored[k].trim()
-          ? stored[k].trim()
+        s && typeof s[k] === 'string' && s[k].trim()
+          ? s[k].trim()
           : DEFAULTS[k];
     });
     return o;
   }
 
-  function bust(pathOrUrl) {
-    if (!pathOrUrl) return pathOrUrl;
-    if (pathOrUrl.indexOf('http://') === 0 || pathOrUrl.indexOf('https://') === 0) {
-      try {
-        var u = new URL(pathOrUrl, window.location.href);
-        u.searchParams.set('_ea', String(Date.now()));
-        return u.href;
-      } catch (e) {
-        return pathOrUrl + (pathOrUrl.indexOf('?') >= 0 ? '&' : '?') + '_ea=' + Date.now();
-      }
-    }
-    try {
-      var rel = new URL(pathOrUrl, window.location.href);
-      rel.searchParams.set('_ea', String(Date.now()));
-      return rel.href;
-    } catch (e) {
-      return pathOrUrl;
-    }
-  }
-
   function applyUrlsToPage(urls) {
     var u = mergeWithDefaults(urls);
-    var img = document.getElementById('expAccelImg');
-    if (!img) return;
-    img.setAttribute('data-url-step1', u.step1);
-    img.setAttribute('data-url-step2', u.step2);
-    if (window.__expAccelApplyStepUrls) {
-      window.__expAccelApplyStepUrls(u.step1, u.step2);
-    } else {
-      img.src = bust(u.step1 || u.step2);
+    if (window.__expAccelApplyAssets) {
+      window.__expAccelApplyAssets({
+        overview1: u.overview1,
+        overview2: u.overview2,
+        experiments: u.experiments,
+        stitchOverlapPx: u.stitchOverlapPx,
+        clipTop: u.clipTop,
+        clipLeft: u.clipLeft,
+      });
     }
   }
 
@@ -111,12 +113,18 @@
 
   function fillInputsFromStored() {
     var sb = currentSandboxName();
-    var stored = getUrlsForSandbox(sb);
+    var stored = migrateStored(getUrlsForSandbox(sb));
     var m = mergeWithDefaults(stored);
-    var s1 = document.getElementById('expAccelUrlStep1');
-    var s2 = document.getElementById('expAccelUrlStep2');
-    if (s1) s1.value = m.step1 || '';
-    if (s2) s2.value = m.step2 || '';
+    function set(id, val) {
+      var el = document.getElementById(id);
+      if (el) el.value = val || '';
+    }
+    set('expAccelUrlOverview1', m.overview1);
+    set('expAccelUrlOverview2', m.overview2);
+    set('expAccelUrlExperiments', m.experiments);
+    set('expAccelStitchOverlap', m.stitchOverlapPx);
+    set('expAccelClipTop', m.clipTop);
+    set('expAccelClipLeft', m.clipLeft);
   }
 
   function collectInputsRaw() {
@@ -125,8 +133,12 @@
       return el && el.value != null ? String(el.value).trim() : '';
     }
     return {
-      step1: val('expAccelUrlStep1'),
-      step2: val('expAccelUrlStep2'),
+      overview1: val('expAccelUrlOverview1'),
+      overview2: val('expAccelUrlOverview2'),
+      experiments: val('expAccelUrlExperiments'),
+      stitchOverlapPx: val('expAccelStitchOverlap'),
+      clipTop: val('expAccelClipTop'),
+      clipLeft: val('expAccelClipLeft'),
     };
   }
 
@@ -239,21 +251,26 @@
     });
   }
 
-  function resolveStoredUrls(c) {
+  function resolveStoredRow(c) {
     var out = {};
     var k;
     for (k in DEFAULTS) {
-      var v = c[k] || '';
-      if (!v) {
+      if (k === 'stitchOverlapPx' || k === 'clipTop' || k === 'clipLeft') {
+        var v = c[k] != null ? String(c[k]).trim() : '';
+        out[k] = v || DEFAULTS[k];
+        continue;
+      }
+      var v2 = c[k] || '';
+      if (!v2) {
         out[k] = DEFAULTS[k];
-      } else if (isRelativeAsset(v)) {
+      } else if (isRelativeAsset(v2)) {
         try {
-          out[k] = new URL(v, window.location.href).href;
+          out[k] = new URL(v2, window.location.href).href;
         } catch (e) {
-          out[k] = v;
+          out[k] = v2;
         }
-      } else if (validateUrl(v)) {
-        out[k] = v;
+      } else if (validateUrl(v2)) {
+        out[k] = v2;
       } else {
         out[k] = DEFAULTS[k];
       }
@@ -269,24 +286,30 @@
     if (btn) {
       btn.addEventListener('click', function () {
         var c = collectInputsRaw();
-        var k;
-        for (k in c) {
-          if (c[k] && !validateUrl(c[k]) && !isRelativeAsset(c[k])) {
-            setStatus('Use a valid https URL, a relative path like assets/…, or leave empty for the default.', 'err');
+        var fk;
+        for (fk in DEFAULTS) {
+          if (fk === 'stitchOverlapPx' || fk === 'clipTop' || fk === 'clipLeft') continue;
+          if (c[fk] && !validateUrl(c[fk]) && !isRelativeAsset(c[fk])) {
+            setStatus('Asset fields need valid https URLs or a relative path, or leave empty for defaults.', 'err');
             return;
           }
         }
-        var out = resolveStoredUrls(c);
+        var so = c.stitchOverlapPx;
+        if (so && !/^\d+$/.test(so)) {
+          setStatus('Stitch overlap must be a whole number of pixels.', 'err');
+          return;
+        }
+        var out = resolveStoredRow(c);
         var sb = currentSandboxName();
         saveUrlsForSandbox(sb, out);
         applyUrlsToPage(out);
-        setStatus('Updated demo images for sandbox “' + (sb || 'default') + '”.', 'ok');
+        setStatus('Updated accelerator demo for sandbox “' + (sb || 'default') + '”.', 'ok');
       });
     }
 
     function refreshFromStorage() {
       fillInputsFromStored();
-      var stored = getUrlsForSandbox(currentSandboxName());
+      var stored = migrateStored(getUrlsForSandbox(currentSandboxName()));
       applyUrlsToPage(stored);
     }
 
@@ -294,9 +317,12 @@
       var sel = document.getElementById('expAccelSandboxSelect');
       if (sel && typeof AepGlobalSandbox !== 'undefined') {
         var n = AepGlobalSandbox.getSandboxName();
-        if (n !== undefined && Array.from(sel.options).some(function (o) {
-          return o.value === n;
-        })) {
+        if (
+          n !== undefined &&
+          Array.from(sel.options).some(function (o) {
+            return o.value === n;
+          })
+        ) {
           sel.value = n;
         }
       }

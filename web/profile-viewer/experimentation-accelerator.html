@@ -12,10 +12,11 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260420">
-  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260420">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260421">
+  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260421">
 </head>
-<body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page">
+<body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive">
+  <a href="index.html" class="exp-accel-lab-exit">Profile Viewer</a>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -30,39 +31,80 @@
       </header>
 
       <main class="dashboard-main profile-viewer-main">
-        <div class="exp-accel-wrap">
-          <div class="exp-accel-banner" aria-labelledby="expAccelBannerTitle">
-            <h2 id="expAccelBannerTitle">Experimentation Accelerator</h2>
-            <p>
-              Two-screen click-through of the Adobe Journey Optimizer “Experimentation Accelerator” area. Click the screenshot (or use Next) to move to the second view; on the second view, click again to return to the first.
-            </p>
-            <div class="exp-accel-toolbar">
-              <span id="expAccelStepHint" class="exp-accel-step-hint" role="status" aria-live="polite">Screen 1 of 2</span>
-              <button type="button" class="exp-accel-next-btn" id="expAccelNextBtn">Next screen</button>
+        <div
+          class="exp-accel-app"
+          id="expAccelApp"
+          style="--ajo-bg-overview1:url('assets/experimentation-accelerator/accelerator-overview-1.png');--ajo-stitch-overlap:96px;--ajo-clip-top:26%;--ajo-clip-left:5.1%;"
+        >
+          <div class="ajo-shell" aria-label="Adobe Journey Optimizer (demonstration layout)">
+            <div class="ajo-chrome-top" role="presentation" aria-hidden="true"></div>
+            <div class="ajo-chrome-main">
+              <div class="ajo-chrome-rail" role="presentation" aria-hidden="true"></div>
+              <div class="ajo-chrome-center">
+                <header class="ajo-page-head">
+                  <div class="ajo-page-head-row">
+                    <h1 class="ajo-page-title">Experimentation Accelerator</h1>
+                    <div class="ajo-team-slot">
+                      My Team <span class="ajo-team-val">Adobe.com</span>
+                    </div>
+                  </div>
+                  <div class="ajo-tabs" role="tablist" aria-label="Accelerator sections">
+                    <button type="button" role="tab" id="ajoTabOverview" aria-controls="ajoPanelOverview" aria-selected="true">
+                      Overview
+                    </button>
+                    <button type="button" role="tab" id="ajoTabExperiments" aria-controls="ajoPanelExperiments" aria-selected="false">
+                      Experiments
+                    </button>
+                    <button type="button" role="tab" id="ajoTabMetrics" aria-disabled="true" disabled>Metrics</button>
+                  </div>
+                </header>
+
+                <div class="ajo-panel-stack">
+                  <div class="ajo-panel" id="ajoPanelOverview" role="tabpanel" aria-labelledby="ajoTabOverview">
+                    <div class="ajo-panel-inner">
+                      <div class="ajo-stitch">
+                        <img
+                          class="ajo-center-img"
+                          data-ajo-part="ov1"
+                          src="assets/experimentation-accelerator/accelerator-overview-1.png"
+                          width="1024"
+                          height="534"
+                          alt=""
+                          decoding="async"
+                          draggable="false"
+                        />
+                        <img
+                          class="ajo-center-img ajo-center-img--follow"
+                          data-ajo-part="ov2"
+                          src="assets/experimentation-accelerator/accelerator-overview-2.png"
+                          width="1024"
+                          height="535"
+                          alt=""
+                          decoding="async"
+                          draggable="false"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="ajo-panel" id="ajoPanelExperiments" role="tabpanel" aria-labelledby="ajoTabExperiments" hidden>
+                    <div class="ajo-panel-inner">
+                      <img
+                        class="ajo-center-img ajo-center-img--single"
+                        data-ajo-part="exp"
+                        src="assets/experimentation-accelerator/accelerator-experiments.png"
+                        width="1024"
+                        height="534"
+                        alt=""
+                        decoding="async"
+                        draggable="false"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          <button
-            type="button"
-            class="exp-accel-stage"
-            id="expAccelStage"
-            tabindex="0"
-            aria-label="Advance to the second demo screen"
-          >
-            <span class="exp-accel-sr-hint">Activate to advance the demo</span>
-            <img
-              id="expAccelImg"
-              class="exp-accel-img"
-              src="assets/experimentation-accelerator/demo-step-1.png"
-              data-url-step1="assets/experimentation-accelerator/demo-step-1.png"
-              data-url-step2="assets/experimentation-accelerator/demo-step-2.png"
-              width="1920"
-              height="1080"
-              alt=""
-              decoding="async"
-              draggable="false"
-            />
-          </button>
         </div>
 
         <div id="expAccelDockOuter" class="workflow-dock-outer" aria-label="Customise dock">
@@ -76,16 +118,24 @@
               </summary>
               <div class="workflow-drawer-scroll">
                 <div class="panel">
-                  <h2>Accelerator demo images</h2>
+                  <h2>Accelerator demo assets</h2>
                   <p class="hint">
-                    Replace the two full-page screenshots used in this click-through. URLs are saved per <strong>AEP sandbox</strong> (same session model as other lab tools). Use <code>https://…</code> for hosted images, or a path relative to this page such as <code>assets/experimentation-accelerator/demo-step-1.png</code>. Leave a field empty to use the bundled default.
+                    Overview uses two screenshots stitched with a vertical overlap (remove duplicate content between captures). Top bar and left rail are painted from overview 1. URLs are saved per <strong>AEP sandbox</strong>. Use <code>https://…</code> or a relative path from this page. Leave empty for bundled defaults.
                   </p>
                   <label for="expAccelSandboxSelect">Sandbox</label>
                   <select id="expAccelSandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox"></select>
-                  <label for="expAccelUrlStep1">Screen 1 image URL or path</label>
-                  <input id="expAccelUrlStep1" type="url" inputmode="url" autocomplete="off" placeholder="https://… or assets/…">
-                  <label for="expAccelUrlStep2">Screen 2 image URL or path</label>
-                  <input id="expAccelUrlStep2" type="url" inputmode="url" autocomplete="off" placeholder="https://… or assets/…">
+                  <label for="expAccelUrlOverview1">Overview image 1 (also drives top + rail chrome)</label>
+                  <input id="expAccelUrlOverview1" type="url" inputmode="url" autocomplete="off" placeholder="https://… or assets/…">
+                  <label for="expAccelUrlOverview2">Overview image 2 (scroll continuation)</label>
+                  <input id="expAccelUrlOverview2" type="url" inputmode="url" autocomplete="off" placeholder="https://… or assets/…">
+                  <label for="expAccelUrlExperiments">Experiments tab image</label>
+                  <input id="expAccelUrlExperiments" type="url" inputmode="url" autocomplete="off" placeholder="https://… or assets/…">
+                  <label for="expAccelStitchOverlap">Stitch overlap (px)</label>
+                  <input id="expAccelStitchOverlap" type="text" inputmode="numeric" autocomplete="off" placeholder="96">
+                  <label for="expAccelClipTop">Clip from top of centre images (%, e.g. 26)</label>
+                  <input id="expAccelClipTop" type="text" autocomplete="off" placeholder="26%">
+                  <label for="expAccelClipLeft">Clip from left of centre images (%, e.g. 5.1)</label>
+                  <input id="expAccelClipLeft" type="text" autocomplete="off" placeholder="5.1%">
                   <div class="actions">
                     <button type="button" class="primary" id="expAccelCustomiseUpdate">Update</button>
                   </div>
@@ -109,7 +159,7 @@
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script defer src="experimentation-accelerator.js?v=20260420"></script>
-  <script defer src="experimentation-accelerator-customise.js?v=20260420"></script>
+  <script defer src="experimentation-accelerator.js?v=20260421"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260421"></script>
 </body>
 </html>
