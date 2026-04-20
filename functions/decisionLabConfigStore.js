@@ -103,6 +103,14 @@ async function saveDecisionLabConfig(sandbox, patch) {
           ? patch.edgePersonalizationMode
           : prev.edgePersonalizationMode,
       ),
+      tagsPropertyRef: trim(
+        patch.tagsPropertyRef !== undefined ? patch.tagsPropertyRef : prev.tagsPropertyRef,
+        256,
+      ),
+      targetPageUrl: trim(
+        patch.targetPageUrl !== undefined ? patch.targetPageUrl : prev.targetPageUrl,
+        512,
+      ),
       placements: sanitizePlacements(
         patch.placements !== undefined ? patch.placements : prev.placements,
       ),
@@ -161,6 +169,14 @@ async function saveUserDecisionLabConfig(uid, sandbox, patch) {
         patch.edgePersonalizationMode !== undefined
           ? patch.edgePersonalizationMode
           : prev.edgePersonalizationMode,
+      ),
+      tagsPropertyRef: trim(
+        patch.tagsPropertyRef !== undefined ? patch.tagsPropertyRef : prev.tagsPropertyRef,
+        256,
+      ),
+      targetPageUrl: trim(
+        patch.targetPageUrl !== undefined ? patch.targetPageUrl : prev.targetPageUrl,
+        512,
       ),
       placements: sanitizePlacements(
         patch.placements !== undefined ? patch.placements : prev.placements,
