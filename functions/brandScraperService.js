@@ -466,6 +466,70 @@ Rules:
 - Each persona: 2-3 goals, 2-3 pain points, 2-3 behaviours, 2-4 preferred channels, 1-3 suggested segments.
 - Keep each persona concise — short strings, no nested objects.`;
 
+const CAMPAIGN_SYSTEM = `You are a digital marketing strategist. Analyse the provided website content to (a) detect marketing campaigns that are currently visible on the site, and (b) suggest additional demo campaigns that would be great for a presentation about this brand.
+
+Respond with valid JSON only, no other text. Use this exact structure:
+{
+  "campaigns": [
+    {
+      "name": "...",
+      "type": "Seasonal Campaign|Product Launch|Promotion|Service Promotion|Core Brand Platform|Awareness",
+      "summary": "2-3 sentence description",
+      "headlines": ["..."],
+      "cta": "...",
+      "time_context": "Active now|Upcoming|Year-round|Seasonal",
+      "season": "",
+      "channel": "Email|SMS|Push|Web|Social|Multi-channel",
+      "source_urls": ["URLs on the site where evidence was found — only for detected campaigns"],
+      "is_recommendation": false,
+      "target_segments": ["segment names this campaign should target"]
+    }
+  ]
+}
+
+Rules:
+- Detect 2-5 campaigns currently visible (is_recommendation: false). Only include ones with clear textual evidence from the crawled content. Populate source_urls with URLs where the evidence appeared.
+- Suggest 3-4 additional demo campaigns (is_recommendation: true). source_urls should be empty for these.
+- Each campaign needs at least 2 headlines and a CTA.
+- target_segments: 1-3 short segment names this campaign would target.
+- Keep strings short and avoid line breaks inside values.`;
+
+async function generateCampaigns(crawl, { provider, anthropicKey } = {}) {
+  const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
+
+  const combinedText = crawl.pages.map(p =>
+    `URL: ${p.url}\nTitle: ${p.title}\nDescription: ${(p.description || '').slice(0, 200)}\n${(p.text || '').slice(0, 1500)}`
+  ).join('\n\n---\n\n').slice(0, 12000);
+
+  const userPrompt =
+    `Brand: ${crawl.brandName}\n` +
+    `Website: ${crawl.baseUrl}\n\n` +
+    `Website content:\n${combinedText}`;
+
+  let raw;
+  let usedProvider;
+  try {
+    if (chosen === 'anthropic') {
+      if (!anthropicKey) return { skipped: true, reason: 'ANTHROPIC_API_KEY not configured' };
+      raw = await callAnthropic(anthropicKey, CAMPAIGN_SYSTEM, userPrompt);
+      usedProvider = 'anthropic';
+    } else {
+      raw = await callGemini(CAMPAIGN_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false });
+      usedProvider = 'gemini';
+    }
+  } catch (e) {
+    return { error: `${chosen} provider failed: ${String(e && e.message || e)}` };
+  }
+
+  try {
+    const parsed = JSON.parse(stripJsonFences(raw));
+    const list = Array.isArray(parsed && parsed.campaigns) ? parsed.campaigns : [];
+    return { provider: usedProvider, campaigns: list };
+  } catch (_e) {
+    return { provider: usedProvider, error: 'Model response was not valid JSON', raw: raw.slice(0, 4000) };
+  }
+}
+
 async function generatePersonas(crawl, analysis, { country, businessType }, { provider, anthropicKey } = {}) {
   const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
 
@@ -596,6 +660,19 @@ function mergeScrapeRecords(existing, fresh) {
   };
   out.personasError = f.personasError || null;
 
+  // Campaigns: union by (name + is_recommendation flag). Fresh wins on collision.
+  const campaignMap = new Map();
+  const eCs = (e.campaigns && Array.isArray(e.campaigns.campaigns)) ? e.campaigns.campaigns : [];
+  const fCs = (f.campaigns && Array.isArray(f.campaigns.campaigns)) ? f.campaigns.campaigns : [];
+  const cKey = (c) => (c && c.name ? c.name.toLowerCase() : '') + '|' + (c && c.is_recommendation ? 'r' : 'd');
+  for (const c of eCs) if (c && c.name) campaignMap.set(cKey(c), c);
+  for (const c of fCs) if (c && c.name) campaignMap.set(cKey(c), c);
+  out.campaigns = {
+    provider: (f.campaigns && f.campaigns.provider) || (e.campaigns && e.campaigns.provider) || null,
+    campaigns: Array.from(campaignMap.values()),
+  };
+  out.campaignsError = f.campaignsError || null;
+
   // Pass through identity fields
   out.brandName = f.brandName || e.brandName;
   out.url = f.url || e.url;
@@ -637,16 +714,20 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     let analysisError = null;
     let personas = null;
     let personasError = null;
+    let campaigns = null;
+    let campaignsError = null;
     try {
-      const [analysisResult, personasResult] = await Promise.all([
+      const [analysisResult, personasResult, campaignsResult] = await Promise.all([
         analyseBrand(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) })),
         generatePersonas(crawl, null, {
           country: body.country || '',
           businessType: body.businessType || 'b2c',
         }, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) })),
+        generateCampaigns(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) })),
       ]);
       analysis = analysisResult;
       personas = personasResult;
+      campaigns = campaignsResult;
     } catch (e) {
       analysisError = String(e && e.message || e);
     }
@@ -672,6 +753,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       analysisError,
       personas,
       personasError,
+      campaigns,
+      campaignsError,
       elapsedMs,
     };
     if (appendMode) {
@@ -703,6 +786,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       analysisError: (saved && saved.analysisError) || analysisError,
       personas: (saved && saved.personas) || personas,
       personasError: (saved && saved.personasError) || personasError,
+      campaigns: (saved && saved.campaigns) || campaigns,
+      campaignsError: (saved && saved.campaignsError) || campaignsError,
       appended: !!appendMode,
       elapsedMs,
     });

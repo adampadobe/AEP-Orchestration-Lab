@@ -467,6 +467,106 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   font-variant-numeric: tabular-nums;
 }
 
+.brand-scraper-campaign-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.brand-scraper-campaign-section > h5 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-campaign-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.brand-scraper-campaign {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--dash-text);
+  line-height: 1.5;
+}
+
+.brand-scraper-campaign-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.brand-scraper-campaign-head h5 {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--dash-text);
+}
+
+.brand-scraper-campaign-type {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dash-blue);
+}
+
+.brand-scraper-campaign p {
+  margin: 0;
+  color: var(--dash-text);
+}
+
+.brand-scraper-campaign-block h6 {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-campaign-block ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand-scraper-campaign-block a {
+  color: var(--dash-blue);
+  word-break: break-all;
+}
+
+.brand-scraper-campaign-cta {
+  align-self: flex-start;
+  background: var(--dash-blue);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.brand-scraper-campaign-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .brand-scraper-persona-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

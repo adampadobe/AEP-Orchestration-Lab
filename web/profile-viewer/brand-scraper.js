@@ -116,6 +116,69 @@
     return blocks.join('');
   }
 
+  function renderCampaigns(c) {
+    if (!c) return '';
+    if (c.skipped) return '<p class="brand-scraper-result-muted">Campaigns skipped: ' + esc(c.reason || 'no key') + '.</p>';
+    if (c.error) return '<p class="brand-scraper-result-muted">Campaign generation failed: ' + esc(c.error) + '</p>';
+    const list = Array.isArray(c.campaigns) ? c.campaigns : [];
+    if (!list.length) return '';
+    const detected = list.filter(x => !x.is_recommendation);
+    const recommended = list.filter(x => x.is_recommendation);
+
+    const renderCard = (cp) => {
+      const headlines = Array.isArray(cp.headlines) ? cp.headlines : [];
+      const segments = Array.isArray(cp.target_segments) ? cp.target_segments : [];
+      const sources = Array.isArray(cp.source_urls) ? cp.source_urls : [];
+      return (
+        '<article class="brand-scraper-campaign">' +
+          '<header class="brand-scraper-campaign-head">' +
+            '<div>' +
+              '<span class="brand-scraper-campaign-type">' + esc(cp.type || 'Campaign') + '</span>' +
+              '<h5>' + esc(cp.name || 'Untitled') + '</h5>' +
+            '</div>' +
+            (cp.channel ? '<span class="brand-scraper-chip">' + esc(cp.channel) + '</span>' : '') +
+          '</header>' +
+          (cp.summary ? '<p>' + esc(cp.summary) + '</p>' : '') +
+          (headlines.length ? '<div class="brand-scraper-campaign-block"><h6>Headlines</h6><ul>' +
+            headlines.map(h => '<li>' + esc(h) + '</li>').join('') + '</ul></div>' : '') +
+          (cp.cta ? '<div class="brand-scraper-campaign-cta">' + esc(cp.cta) + '</div>' : '') +
+          '<div class="brand-scraper-campaign-meta">' +
+            (cp.time_context ? '<span class="brand-scraper-chip">' + esc(cp.time_context) + '</span>' : '') +
+            (cp.season ? '<span class="brand-scraper-chip">' + esc(cp.season) + '</span>' : '') +
+          '</div>' +
+          (segments.length ? '<div class="brand-scraper-persona-block"><h6>Target segments</h6><div class="brand-scraper-persona-chips">' +
+            segments.map(s => '<span class="brand-scraper-chip brand-scraper-chip--segment">' + esc(s) + '</span>').join('') +
+            '</div></div>' : '') +
+          (sources.length ? '<div class="brand-scraper-campaign-block"><h6>Evidence</h6><ul>' +
+            sources.map(u => '<li><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + '</a></li>').join('') + '</ul></div>' : '') +
+        '</article>'
+      );
+    };
+
+    const sections = [];
+    if (detected.length) {
+      sections.push(
+        '<div class="brand-scraper-campaign-section">' +
+          '<h5>Detected on-site <span class="brand-scraper-asset-hint">' + detected.length + ' campaign' + (detected.length === 1 ? '' : 's') + '</span></h5>' +
+          '<div class="brand-scraper-campaign-grid">' + detected.map(renderCard).join('') + '</div>' +
+        '</div>'
+      );
+    }
+    if (recommended.length) {
+      sections.push(
+        '<div class="brand-scraper-campaign-section">' +
+          '<h5>Recommended for demo <span class="brand-scraper-asset-hint">' + recommended.length + ' suggestion' + (recommended.length === 1 ? '' : 's') + '</span></h5>' +
+          '<div class="brand-scraper-campaign-grid">' + recommended.map(renderCard).join('') + '</div>' +
+        '</div>'
+      );
+    }
+
+    return '<section class="brand-scraper-result-block">' +
+      '<h4>Campaigns <span class="brand-scraper-asset-hint">' + list.length + ' total · ' + esc(c.provider || '') + '</span></h4>' +
+      sections.join('') +
+    '</section>';
+  }
+
   function renderPersonas(p) {
     if (!p) return '';
     if (p.skipped) return '<p class="brand-scraper-result-muted">Personas skipped: ' + esc(p.reason || 'no key') + '.</p>';
@@ -276,6 +339,7 @@
       '</header>' +
       (data.analysisError ? '<p class="brand-scraper-result-muted">Analysis error: ' + esc(data.analysisError) + '</p>' : '') +
       renderAnalysis(data.analysis) +
+      renderCampaigns(data.campaigns) +
       renderPersonas(data.personas) +
       renderAssets(crawl && crawl.assets) +
       renderCrawl(crawl)
@@ -308,6 +372,7 @@
             (typeof it.pagesScraped === 'number' ? ' · ' + it.pagesScraped + ' pages' : '') +
             (it.analysisPresent ? ' · analysed' : (it.analysisError ? ' · error' : ' · no analysis')) +
             (it.personasPresent ? ' · personas' : '') +
+            (it.campaignsPresent ? ' · campaigns' : '') +
           '</p>' +
         '</div>' +
         '<div class="brand-scraper-history-card-actions">' +
