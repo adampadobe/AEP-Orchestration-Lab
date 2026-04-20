@@ -90,9 +90,9 @@
           </div>
 
           <aside class="brand-scraper-banner" role="note">
-            <div class="brand-scraper-banner-title">This tool is a scaffolded work-in-progress</div>
+            <div class="brand-scraper-banner-title">First slice live: crawler + brand analysis</div>
             <p class="brand-scraper-banner-body">
-              The upstream Python/Flask prototype is vendored at <code>aep-prototypes/brandscrape-studio/</code>. Backend routes (crawler, image classifier, AI brand analysis, persona + segment generation, ZIP export) will land as Cloud Functions over the next few iterations. Until then the <strong>Analyse</strong> button just reports status.
+              The <strong>Analyse</strong> button now crawls up to 5 pages of the target site and (if <code>ANTHROPIC_API_KEY</code> is configured) generates brand guidelines via Claude. Image classifier, persona + segment generation, campaign detection, and ZIP export are still being ported from <code>aep-prototypes/brandscrape-studio/</code>.
             </p>
           </aside>
         </section>

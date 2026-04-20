@@ -57,6 +57,13 @@
         }
       },
       {
+        "source": "/api/brand-scraper/analyze",
+        "function": {
+          "functionId": "brandScraperAnalyze",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/ajo/live-activity",
         "function": {
           "functionId": "ajoLiveActivityProxy",

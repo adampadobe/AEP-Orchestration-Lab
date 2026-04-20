@@ -63,6 +63,7 @@ const eventInfraService = lazyRequireMod('./eventInfraService');
 const tagsReactorService = lazyRequireMod('./tagsReactorService');
 const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
+const brandScraperService = lazyRequireMod('./brandScraperService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -2596,3 +2597,22 @@ exports.archMaster = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
     res.status(code).json({ ok: false, error: String(e.message || e) });
   }
 });
+
+/** POST /api/brand-scraper/analyze — crawl a brand URL and optionally run LLM brand analysis. */
+exports.brandScraperAnalyze = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 120,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    try {
+      const anthropicKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+      await brandScraperService.handleAnalyse(req, res, { anthropicKey });
+    } catch (e) {
+      res.status(500).json({ error: String(e && e.message || e) });
+    }
+  }
+);
