@@ -10,6 +10,23 @@ const brandScrapeStore = require('./brandScrapeStore');
 const assetsV2 = require('./brandScraperAssetsV2');
 const exportKit = require('./brandScraperExport');
 
+const PLAYWRIGHT_CRAWLER_URL = process.env.PLAYWRIGHT_CRAWLER_URL
+  || 'https://brand-scraper-crawler-109406613852.us-central1.run.app';
+
+async function crawlViaPlaywrightService(url, { maxPages } = {}) {
+  const { GoogleAuth } = require('google-auth-library');
+  const auth = new GoogleAuth();
+  const client = await auth.getIdTokenClient(PLAYWRIGHT_CRAWLER_URL);
+  const resp = await client.request({
+    url: PLAYWRIGHT_CRAWLER_URL + '/crawl',
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    data: { url, maxPages },
+    timeout: 280000,
+  });
+  return resp.data;
+}
+
 const USER_AGENT = 'Mozilla/5.0 (compatible; AEPOrchestrationLab-BrandScraper/1.0; +https://aep-orchestration-lab.web.app)';
 const REQUEST_TIMEOUT_MS = 15000;
 const MAX_PAGES = 5;
@@ -1077,11 +1094,24 @@ async function handleAnalyse(req, res, { anthropicKey }) {
   try {
     const requestedPages = Math.floor(Number(body.maxPages));
     const maxPages = requestedPages > 0 ? Math.min(requestedPages, 25) : undefined;
-    const crawl = await crawlSite(url, maxPages ? { maxPages } : undefined);
-    if (!crawl.pages.length) {
+    const crawlerMode = String(body.crawler || body.useJs || 'fetch').toLowerCase();
+    const wantJs = crawlerMode === 'js' || crawlerMode === 'true' || body.useJs === true;
+    let crawl;
+    try {
+      if (wantJs) {
+        crawl = await crawlViaPlaywrightService(url, { maxPages: maxPages || 5 });
+      } else {
+        crawl = await crawlSite(url, maxPages ? { maxPages } : undefined);
+      }
+    } catch (e) {
+      res.status(502).json({ error: 'Crawler failed: ' + String((e && e.message) || e) });
+      return;
+    }
+    if (!crawl.pages || !crawl.pages.length) {
       res.status(502).json({
         error: friendlyFailureMessage(url, crawl.failures),
         details: summariseFailures(crawl.failures),
+        engine: crawl.engine || 'fetch',
       });
       return;
     }
@@ -1155,6 +1185,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     const crawlSummary = {
       pagesScraped: crawl.pages.length,
       totalDiscovered: crawl.totalDiscovered,
+      engine: crawl.engine || 'fetch',
       pages: crawl.pages.map(p => ({
         url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
       })),

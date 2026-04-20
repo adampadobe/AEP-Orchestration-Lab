@@ -82,6 +82,18 @@
   const optionsBtn = document.getElementById('brandScraperOptionsBtn');
   const optionsMenu = document.getElementById('brandScraperOptionsMenu');
   const optionsCountEl = document.getElementById('brandScraperOptionsCount');
+  const crawlerJsCb = document.getElementById('brandScraperCrawlerJs');
+
+  const LS_CRAWLER = 'aepBrandScraperCrawler';
+  try {
+    const stored = localStorage.getItem(LS_CRAWLER);
+    if (crawlerJsCb && stored === 'js') crawlerJsCb.checked = true;
+  } catch (_e) {}
+  if (crawlerJsCb) {
+    crawlerJsCb.addEventListener('change', () => {
+      try { localStorage.setItem(LS_CRAWLER, crawlerJsCb.checked ? 'js' : 'fetch'); } catch (_e) {}
+    });
+  }
 
   function applyRunOptionsToUI() {
     if (!optionsMenu) return;
@@ -611,6 +623,7 @@
           '<p class="brand-scraper-result-muted">' + esc(data.baseUrl || data.url || '') + ' · ' +
             esc((data.businessType || '').toUpperCase()) + (data.country ? ' · ' + esc(data.country) : '') +
             (data.elapsedMs ? ' · ' + (data.elapsedMs / 1000).toFixed(1) + 's' : '') +
+            (crawl && crawl.engine ? ' · crawler: <code>' + esc(crawl.engine) + '</code>' : '') +
             (data.sandbox ? ' · sandbox: <code>' + esc(data.sandbox) + '</code>' : '') +
           '</p>' +
         '</div>' +
@@ -1024,6 +1037,7 @@
           businessType: btypeSel && btypeSel.value,
           country: countrySel && countrySel.value,
           maxPages: pagesInput ? clampPages(pagesInput.value) : 5,
+          crawler: (crawlerJsCb && crawlerJsCb.checked) ? 'js' : 'fetch',
           include: { ...runOptions },
         }),
       });
