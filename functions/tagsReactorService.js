@@ -556,7 +556,12 @@ async function addLibraryResources(token, clientId, orgId, libraryId, resources)
   const body = { data: list.map(r => ({ type: String(r.type), id: String(r.id) })) };
   const r = await reactorRequest(token, clientId, orgId, 'POST',
     '/libraries/' + encodeURIComponent(lid) + '/relationships/resources', body);
-  return r.ok ? { ok: true, httpStatus: r.httpStatus } : r;
+  if (r.ok) return { ok: true, httpStatus: r.httpStatus };
+  // Surface whatever Reactor actually said so we can diagnose empty-error cases.
+  const verbose = r.error && r.error.length > 0
+    ? r.error
+    : ('HTTP ' + (r.httpStatus || '?') + (r.raw ? ' · ' + JSON.stringify(r.raw).slice(0, 400) : ''));
+  return { ok: false, httpStatus: r.httpStatus, error: verbose, raw: r.raw };
 }
 
 /**
