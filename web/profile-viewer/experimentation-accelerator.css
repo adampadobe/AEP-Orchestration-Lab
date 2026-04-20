@@ -471,17 +471,16 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
 .ajo-overview-canvas {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   width: 100%;
   min-height: 0;
   background: var(--ajo-work-bg);
 }
 
-/* Screenshots are fixed pixel width (~1024px). width:100% upscaled them and looked blurry. */
+/* Full-bleed; sharpness comes from hi-res sources + srcset (3840w) — avoid upscaling tiny bitmaps. */
 .ajo-slice-img {
   display: block;
-  width: auto;
-  max-width: 100%;
+  width: 100%;
   height: auto;
   flex-shrink: 0;
   vertical-align: top;
