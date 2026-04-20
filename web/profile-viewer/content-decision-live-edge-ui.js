@@ -305,10 +305,33 @@
     if (row) row.style.display = mode === 'decisionScopes' ? 'block' : 'none';
   }
 
+  /**
+   * Normalise whatever the user pasted for the Launch embed.
+   * Accepts full <script src="..."> tags, bare URLs, and URLs missing a
+   * protocol. Returns an empty string if nothing usable is present.
+   */
+  function sanitiseLaunchScriptUrl(raw) {
+    if (!raw) return '';
+    var v = String(raw).trim();
+    if (!v) return '';
+    // <script ... src="..."></script> → just the src
+    var m = /<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/i.exec(v);
+    if (m) v = m[1].trim();
+    // Strip stray wrapping quotes
+    v = v.replace(/^["']+|["']+$/g, '').trim();
+    // Adobe CDN is HTTPS-only — upgrade if someone pastes http://
+    if (/^http:\/\/assets\.adobedtm\.com/i.test(v)) v = v.replace(/^http:/i, 'https:');
+    // Add https:// when user pasted just a domain/path
+    if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
+    return v;
+  }
+
   function loadRecordIntoForm(rec) {
     if (!rec || typeof rec !== 'object') return;
     if (rec.datastreamId && el('edgeConfigId')) el('edgeConfigId').value = rec.datastreamId;
-    if (rec.launchScriptUrl && el('cdLabLaunchUrl')) el('cdLabLaunchUrl').value = rec.launchScriptUrl;
+    if (rec.launchScriptUrl && el('cdLabLaunchUrl')) {
+      el('cdLabLaunchUrl').value = sanitiseLaunchScriptUrl(rec.launchScriptUrl);
+    }
     if (rec.edgePersonalizationMode && el('cdLabEdgeMode')) {
       el('cdLabEdgeMode').value =
         rec.edgePersonalizationMode === 'decisionScopes' ? 'decisionScopes' : 'surfaces';
@@ -373,7 +396,7 @@
     setMsg(el('cdLabSaveStatus'), 'Saving…', '');
     var body = {
       datastreamId: el('edgeConfigId') && el('edgeConfigId').value.trim(),
-      launchScriptUrl: el('cdLabLaunchUrl') && el('cdLabLaunchUrl').value.trim(),
+      launchScriptUrl: sanitiseLaunchScriptUrl(el('cdLabLaunchUrl') && el('cdLabLaunchUrl').value),
       edgePersonalizationMode: el('cdLabEdgeMode') && el('cdLabEdgeMode').value,
       placements: getPlacementsFromForm(),
     };
@@ -460,6 +483,19 @@
       if (el('cdLabProbeTagsBtn')) el('cdLabProbeTagsBtn').addEventListener('click', probeTagsApiStep);
       if (el('cdLabSaveConfigBtn')) el('cdLabSaveConfigBtn').addEventListener('click', saveConfigToFirebase);
       if (el('cdLabLoadConfigBtn')) el('cdLabLoadConfigBtn').addEventListener('click', fetchConfigFromFirebase);
+
+      // Auto-sanitise the Launch input so pasting the full <script> tag,
+      // an http:// URL, or a bare domain still results in a clean https URL.
+      var launchEl = el('cdLabLaunchUrl');
+      if (launchEl) {
+        var normaliseLaunchInput = function () {
+          var before = launchEl.value;
+          var after = sanitiseLaunchScriptUrl(before);
+          if (before !== after) launchEl.value = after;
+        };
+        launchEl.addEventListener('blur', normaliseLaunchInput);
+        launchEl.addEventListener('paste', function () { setTimeout(normaliseLaunchInput, 0); });
+      }
 
       await fetchConfigFromFirebase();
       __lastLaunchInjected = global.CdLabUi.getLaunchScriptUrl();
