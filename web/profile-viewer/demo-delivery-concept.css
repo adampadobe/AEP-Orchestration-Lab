@@ -149,21 +149,27 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   contain: layout paint;
 }
 
-/* Laptop PNG: screen cutout (percent of rendered image box) */
+/*
+  Laptop PNG (377×239): inner glass = brightest non–edge white run (x 47–338, y 21–205).
+  Top inset clears the notch row; bottom stops above the lower bezel.
+*/
 .demo-device-screen--laptop {
-  left: 24.5%;
-  top: 21.8%;
-  width: 51.1%;
-  height: 55.1%;
+  left: 12.47%;
+  top: 8.79%;
+  width: 77.45%;
+  height: 77.41%;
+  border-radius: 3px;
 }
 
-/* Mobile PNG */
+/*
+  Mobile PNG (167×330): inner glass (x 13–150, y 22–302) from stable full-width rows.
+*/
 .demo-device-screen--mobile {
-  left: 41.8%;
-  top: 12.2%;
-  width: 17.1%;
-  height: 75.4%;
-  border-radius: 26px;
+  left: 7.78%;
+  top: 6.67%;
+  width: 82.63%;
+  height: 85.15%;
+  border-radius: 18%;
 }
 
 /* Hero: scroll inside bezel only */
