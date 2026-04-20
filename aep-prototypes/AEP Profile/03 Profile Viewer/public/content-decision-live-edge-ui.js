@@ -346,6 +346,149 @@
     }
     applyPlacementsToMountsModule();
     toggleScopesRow();
+
+    // ----- surface overrides -----
+    currentSurfaceOverrides = (rec.surfaceOverrides && typeof rec.surfaceOverrides === 'object' && !Array.isArray(rec.surfaceOverrides))
+      ? Object.assign({}, rec.surfaceOverrides)
+      : {};
+    populateOverrideSurfaceDropdown();
+    loadOverrideEditorForSelectedSurface();
+  }
+
+  // ===== Surface HTML overrides =====
+  // Keyed by placement.fragment so a rename of the 'key' doesn't lose
+  // formatting. Value shape: { html, updatedAt }.
+  var currentSurfaceOverrides = {};
+
+  function currentPlacementList() {
+    var arr = getPlacementsFromForm();
+    return Array.isArray(arr) && arr.length ? arr : DEFAULT_PLACEMENTS.slice();
+  }
+
+  function populateOverrideSurfaceDropdown() {
+    var sel = el('cdLabOverrideSurface');
+    if (!sel) return;
+    var prior = sel.value;
+    var placements = currentPlacementList();
+    var html = placements.map(function (p) {
+      var label = (p.label || p.fragment || p.key || '').replace(/</g, '&lt;');
+      var frag = String(p.fragment || '').replace(/"/g, '&quot;');
+      var key = String(p.key || '').replace(/</g, '&lt;');
+      var overridden = !!(currentSurfaceOverrides[p.fragment] && currentSurfaceOverrides[p.fragment].html);
+      return '<option value="' + frag + '">' +
+        label + ' — #' + (p.fragment || '') + ' [' + key + ']' + (overridden ? ' · saved' : '') +
+        '</option>';
+    }).join('');
+    sel.innerHTML = html;
+    if (prior && placements.some(function (p) { return p.fragment === prior; })) sel.value = prior;
+    else if (placements.length) sel.value = placements[0].fragment;
+  }
+
+  function loadOverrideEditorForSelectedSurface() {
+    var sel = el('cdLabOverrideSurface');
+    var ta = el('cdLabOverrideHtml');
+    if (!sel || !ta) return;
+    var frag = sel.value;
+    var entry = currentSurfaceOverrides[frag];
+    ta.value = (entry && typeof entry.html === 'string') ? entry.html : '';
+    var msg = el('cdLabOverrideMsg');
+    if (msg) {
+      if (entry && entry.html) setMsg(msg, 'Saved override loaded for #' + frag + '.', '');
+      else setMsg(msg, 'No saved override for #' + frag + '. Textarea is empty; live proposition will render.', '');
+    }
+  }
+
+  /** Find the DOM mount for a given surface fragment using the placements map. */
+  function findMountForFragment(fragment) {
+    var placements = currentPlacementList();
+    var placement = placements.find(function (p) { return p.fragment === fragment; });
+    if (!placement) return null;
+    return document.getElementById('cd-edge-' + placement.key);
+  }
+
+  /**
+   * Render every stored override into its matching mount. Called both after
+   * a fresh decisioning call and on initial load so the user's formatting
+   * survives page refreshes.
+   */
+  function applySurfaceOverridesToMounts() {
+    Object.keys(currentSurfaceOverrides).forEach(function (frag) {
+      var entry = currentSurfaceOverrides[frag];
+      if (!entry || !entry.html) return;
+      var mount = findMountForFragment(frag);
+      if (mount) mount.innerHTML = entry.html;
+    });
+  }
+
+  async function overrideApplyHandler() {
+    var sel = el('cdLabOverrideSurface');
+    var ta = el('cdLabOverrideHtml');
+    var msg = el('cdLabOverrideMsg');
+    if (!sel || !ta) return;
+    var frag = (sel.value || '').trim();
+    if (!frag) { setMsg(msg, 'Pick a surface first.', 'err'); return; }
+    var html = String(ta.value || '');
+    if (!html.trim()) { setMsg(msg, 'Textarea is empty — nothing to save. Use "Reset to live" if you meant to clear a saved override.', 'err'); return; }
+
+    // Local apply — write to the mount right away.
+    var mount = findMountForFragment(frag);
+    if (mount) mount.innerHTML = html;
+
+    // Persist to Firebase.
+    currentSurfaceOverrides[frag] = { html: html, updatedAt: new Date().toISOString() };
+    setMsg(msg, 'Saving…', '');
+    var data = await CdLabConfigApi.saveDecisionLabConfig({ surfaceOverrides: currentSurfaceOverrides });
+    if (!data.ok) {
+      setMsg(msg, data.error || 'Save failed.', 'err');
+      return;
+    }
+    setMsg(msg, 'Applied to preview and saved for #' + frag + ' in this sandbox.', 'ok');
+    populateOverrideSurfaceDropdown();
+    sel.value = frag;
+  }
+
+  async function overrideResetHandler() {
+    var sel = el('cdLabOverrideSurface');
+    var ta = el('cdLabOverrideHtml');
+    var msg = el('cdLabOverrideMsg');
+    if (!sel) return;
+    var frag = (sel.value || '').trim();
+    if (!frag) { setMsg(msg, 'Pick a surface first.', 'err'); return; }
+    if (!global.confirm('Delete the saved override for #' + frag + ' and re-render the live proposition?')) return;
+
+    delete currentSurfaceOverrides[frag];
+    if (ta) ta.value = '';
+    setMsg(msg, 'Clearing…', '');
+    var data = await CdLabConfigApi.saveDecisionLabConfig({ surfaceOverrides: currentSurfaceOverrides });
+    if (!data.ok) {
+      setMsg(msg, data.error || 'Save failed.', 'err');
+      return;
+    }
+    // Re-apply live propositions if we have them; otherwise clear the mount.
+    var mount = findMountForFragment(frag);
+    if (mount) {
+      if (global.CdEdgeMounts && typeof global.CdEdgeMounts.redrawFromLastResponse === 'function') {
+        global.CdEdgeMounts.redrawFromLastResponse();
+      } else {
+        mount.innerHTML = '';
+      }
+    }
+    populateOverrideSurfaceDropdown();
+    setMsg(msg, 'Override cleared for #' + frag + '. Click "Look up profile" in Step 5 to re-fetch the live proposition.', 'ok');
+  }
+
+  function overrideCopyLiveHandler() {
+    var sel = el('cdLabOverrideSurface');
+    var ta = el('cdLabOverrideHtml');
+    var msg = el('cdLabOverrideMsg');
+    if (!sel || !ta) return;
+    var frag = (sel.value || '').trim();
+    var mount = findMountForFragment(frag);
+    if (!mount) { setMsg(msg, 'No mount rendered for #' + frag + ' yet. Run a decisioning call first.', 'err'); return; }
+    var html = mount.innerHTML || '';
+    if (!html.trim()) { setMsg(msg, 'Mount is empty — run a decisioning call to populate it.', 'err'); return; }
+    ta.value = html;
+    setMsg(msg, 'Copied current mount HTML. Edit and click Apply.', '');
   }
 
   /** Best-effort save schema/dataset names after successful infra steps (requires sign-in). */
@@ -642,6 +785,7 @@
       targetPageUrl: el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim(),
       edgePersonalizationMode: el('cdLabEdgeMode') && el('cdLabEdgeMode').value,
       placements: getPlacementsFromForm(),
+      surfaceOverrides: currentSurfaceOverrides,
     };
     var data = await CdLabConfigApi.saveDecisionLabConfig(body);
     if (!data.ok) {
@@ -714,6 +858,7 @@
     getPlacementsFromForm: getPlacementsFromForm,
     applyPlacementsToMountsModule: applyPlacementsToMountsModule,
     rebuildPreviewMounts: rebuildPreviewMounts,
+    applySurfaceOverridesToMounts: applySurfaceOverridesToMounts,
     getLaunchScriptUrl: function () {
       return el('cdLabLaunchUrl') ? el('cdLabLaunchUrl').value.trim() : '';
     },
@@ -734,6 +879,18 @@
       if (el('cdLabProbeTagsBtn')) el('cdLabProbeTagsBtn').addEventListener('click', probeTagsApiStep);
       if (el('cdLabSaveConfigBtn')) el('cdLabSaveConfigBtn').addEventListener('click', saveConfigToFirebase);
       if (el('cdLabLoadConfigBtn')) el('cdLabLoadConfigBtn').addEventListener('click', fetchConfigFromFirebase);
+
+      // Surface override editor wiring.
+      if (el('cdLabOverrideSurface')) {
+        el('cdLabOverrideSurface').addEventListener('change', loadOverrideEditorForSelectedSurface);
+        // Refresh dropdown contents on focus so placement edits (add / rename /
+        // remove) reflect without a page reload.
+        el('cdLabOverrideSurface').addEventListener('focus', populateOverrideSurfaceDropdown);
+      }
+      if (el('cdLabOverrideApplyBtn')) el('cdLabOverrideApplyBtn').addEventListener('click', overrideApplyHandler);
+      if (el('cdLabOverrideResetBtn')) el('cdLabOverrideResetBtn').addEventListener('click', overrideResetHandler);
+      if (el('cdLabOverrideLoadCurrentBtn')) el('cdLabOverrideLoadCurrentBtn').addEventListener('click', overrideCopyLiveHandler);
+      populateOverrideSurfaceDropdown();
 
       // Auto-sanitise the Launch input so pasting the full <script> tag,
       // an http:// URL, or a bare domain still results in a clean https URL.
