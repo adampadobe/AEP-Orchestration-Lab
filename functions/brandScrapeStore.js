@@ -65,6 +65,8 @@ async function saveScrape(sandbox, payload) {
     crawlSummary: payload.crawlSummary || null,
     analysis: payload.analysis || null,
     analysisError: payload.analysisError || null,
+    personas: payload.personas || null,
+    personasError: payload.personasError || null,
     elapsedMs: typeof payload.elapsedMs === 'number' ? payload.elapsedMs : null,
   };
   const encoded = JSON.stringify(record);
@@ -110,6 +112,7 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
       elapsedMs: data.elapsedMs,
       analysisError: data.analysisError,
       analysisPresent: !!(data.analysis && !data.analysis.skipped && !data.analysis.error),
+      personasPresent: !!(data.personas && !data.personas.skipped && !data.personas.error && Array.isArray(data.personas.personas) && data.personas.personas.length),
       pagesScraped: data.crawlSummary ? data.crawlSummary.pagesScraped : null,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,

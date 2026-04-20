@@ -116,6 +116,48 @@
     return blocks.join('');
   }
 
+  function renderPersonas(p) {
+    if (!p) return '';
+    if (p.skipped) return '<p class="brand-scraper-result-muted">Personas skipped: ' + esc(p.reason || 'no key') + '.</p>';
+    if (p.error) return '<p class="brand-scraper-result-muted">Persona generation failed: ' + esc(p.error) + '</p>';
+    const list = Array.isArray(p.personas) ? p.personas : [];
+    if (!list.length) return '';
+    const cards = list.map((persona, idx) => {
+      const initials = (persona.name || '').split(/\s+/).map(s => s[0] || '').join('').slice(0, 2).toUpperCase() || '—';
+      const channels = Array.isArray(persona.preferred_channels) ? persona.preferred_channels : [];
+      const goals = Array.isArray(persona.goals) ? persona.goals : [];
+      const pains = Array.isArray(persona.pain_points) ? persona.pain_points : [];
+      const behaviours = Array.isArray(persona.behaviors) ? persona.behaviors : [];
+      const segments = Array.isArray(persona.suggested_segments) ? persona.suggested_segments : [];
+      return (
+        '<article class="brand-scraper-persona">' +
+          '<header class="brand-scraper-persona-head">' +
+            '<span class="brand-scraper-persona-avatar">' + esc(initials) + '</span>' +
+            '<div>' +
+              '<h5>' + esc(persona.name || 'Persona ' + (idx + 1)) + '</h5>' +
+              '<p class="brand-scraper-result-muted">' +
+                esc((persona.occupation || '') + (persona.age ? ' · ' + persona.age : '') + (persona.location ? ' · ' + persona.location : '')) +
+              '</p>' +
+              (persona.income_range ? '<p class="brand-scraper-result-muted">' + esc(persona.income_range) + '</p>' : '') +
+            '</div>' +
+          '</header>' +
+          (persona.bio ? '<p class="brand-scraper-persona-bio">' + esc(persona.bio) + '</p>' : '') +
+          (persona.brand_affinity ? '<p class="brand-scraper-persona-affinity"><strong>Brand affinity:</strong> ' + esc(persona.brand_affinity) + '</p>' : '') +
+          (goals.length ? '<div class="brand-scraper-persona-block"><h6>Goals</h6><ul>' + goals.map(g => '<li>' + esc(g) + '</li>').join('') + '</ul></div>' : '') +
+          (pains.length ? '<div class="brand-scraper-persona-block"><h6>Pain points</h6><ul>' + pains.map(g => '<li>' + esc(g) + '</li>').join('') + '</ul></div>' : '') +
+          (behaviours.length ? '<div class="brand-scraper-persona-block"><h6>Behaviours</h6><ul>' + behaviours.map(g => '<li>' + esc(g) + '</li>').join('') + '</ul></div>' : '') +
+          (channels.length ? '<div class="brand-scraper-persona-chips">' + channels.map(c => '<span class="brand-scraper-chip">' + esc(c) + '</span>').join('') + '</div>' : '') +
+          (segments.length ? '<div class="brand-scraper-persona-block"><h6>Likely segments</h6><div class="brand-scraper-persona-chips">' + segments.map(s => '<span class="brand-scraper-chip brand-scraper-chip--segment">' + esc(s) + '</span>').join('') + '</div></div>' : '') +
+        '</article>'
+      );
+    }).join('');
+
+    return '<section class="brand-scraper-result-block">' +
+      '<h4>Customer personas <span class="brand-scraper-asset-hint">' + list.length + ' generated · ' + esc(p.provider || '') + '</span></h4>' +
+      '<div class="brand-scraper-persona-grid">' + cards + '</div>' +
+    '</section>';
+  }
+
   function renderAssets(a) {
     if (!a) return '';
     const blocks = [];
@@ -234,6 +276,7 @@
       '</header>' +
       (data.analysisError ? '<p class="brand-scraper-result-muted">Analysis error: ' + esc(data.analysisError) + '</p>' : '') +
       renderAnalysis(data.analysis) +
+      renderPersonas(data.personas) +
       renderAssets(crawl && crawl.assets) +
       renderCrawl(crawl)
     );
@@ -264,6 +307,7 @@
             fmtDate(it.updatedAt || it.createdAt) +
             (typeof it.pagesScraped === 'number' ? ' · ' + it.pagesScraped + ' pages' : '') +
             (it.analysisPresent ? ' · analysed' : (it.analysisError ? ' · error' : ' · no analysis')) +
+            (it.personasPresent ? ' · personas' : '') +
           '</p>' +
         '</div>' +
         '<div class="brand-scraper-history-card-actions">' +

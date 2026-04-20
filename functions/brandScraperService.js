@@ -430,6 +430,75 @@ function stripJsonFences(text) {
   return (fenced ? fenced[1] : text).trim();
 }
 
+const PERSONA_SYSTEM = `You are a customer research expert. Generate realistic customer personas for the given brand based on its website content.
+
+Respond with valid JSON only, no other text. Use this exact structure:
+{
+  "personas": [
+    {
+      "name": "...",
+      "age": 30,
+      "location": "City, Country",
+      "occupation": "...",
+      "income_range": "...",
+      "bio": "2-3 sentences",
+      "goals": ["..."],
+      "pain_points": ["..."],
+      "behaviors": ["..."],
+      "preferred_channels": ["Email", "SMS", "Push", "Social", "Web"],
+      "brand_affinity": "Why they connect with this brand",
+      "suggested_segments": ["segment names"]
+    }
+  ]
+}
+
+Rules:
+- Generate exactly 10 personas.
+- All personas must live in the specified country. Use culturally appropriate names, cities, income ranges, and behaviours.
+- Make them diverse in age, income, life stage, and behaviours.
+- Make them specific to this brand's target market and business type (B2C vs B2B).
+- Each persona: 2-3 goals, 2-3 pain points, 2-3 behaviours, 2-4 preferred channels, 1-3 suggested segments.`;
+
+async function generatePersonas(crawl, analysis, { country, businessType }, { provider, anthropicKey } = {}) {
+  const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
+
+  const aboutLine = (analysis && !analysis.skipped && !analysis.error && analysis.about) ? analysis.about : '';
+  const combinedText = crawl.pages.map(p =>
+    `URL: ${p.url}\nTitle: ${p.title}\n${(p.description || '').slice(0, 200)}\n${(p.text || '').slice(0, 1200)}`
+  ).join('\n\n---\n\n').slice(0, 8000);
+
+  const userPrompt =
+    `Brand: ${crawl.brandName}\n` +
+    `Website: ${crawl.baseUrl}\n` +
+    `Business type: ${(businessType || 'b2c').toUpperCase()}\n` +
+    `Persona country: ${country || 'Germany'}\n` +
+    (aboutLine ? `About: ${aboutLine}\n` : '') +
+    `\nWebsite content:\n${combinedText}`;
+
+  let raw;
+  let usedProvider;
+  try {
+    if (chosen === 'anthropic') {
+      if (!anthropicKey) return { skipped: true, reason: 'ANTHROPIC_API_KEY not configured' };
+      raw = await callAnthropic(anthropicKey, PERSONA_SYSTEM, userPrompt);
+      usedProvider = 'anthropic';
+    } else {
+      raw = await callGemini(PERSONA_SYSTEM, userPrompt);
+      usedProvider = 'gemini';
+    }
+  } catch (e) {
+    return { error: `${chosen} provider failed: ${String(e && e.message || e)}` };
+  }
+
+  try {
+    const parsed = JSON.parse(stripJsonFences(raw));
+    const list = Array.isArray(parsed && parsed.personas) ? parsed.personas : [];
+    return { provider: usedProvider, personas: list };
+  } catch (_e) {
+    return { provider: usedProvider, error: 'Model response was not valid JSON', raw: raw.slice(0, 4000) };
+  }
+}
+
 async function analyseBrand(crawl, { provider, anthropicKey } = {}) {
   const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
 
@@ -488,11 +557,22 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       res.status(502).json({ error: 'Could not fetch any pages from ' + url });
       return;
     }
+    const providerPref = (body.provider || '').toString().toLowerCase();
+
     let analysis = null;
     let analysisError = null;
+    let personas = null;
+    let personasError = null;
     try {
-      const providerPref = (body.provider || '').toString().toLowerCase();
-      analysis = await analyseBrand(crawl, { provider: providerPref, anthropicKey });
+      const [analysisResult, personasResult] = await Promise.all([
+        analyseBrand(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) })),
+        generatePersonas(crawl, null, {
+          country: body.country || '',
+          businessType: body.businessType || 'b2c',
+        }, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) })),
+      ]);
+      analysis = analysisResult;
+      personas = personasResult;
     } catch (e) {
       analysisError = String(e && e.message || e);
     }
@@ -517,6 +597,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
         crawlSummary,
         analysis,
         analysisError,
+        personas,
+        personasError,
         elapsedMs,
       });
     } catch (e) {
@@ -534,6 +616,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       crawl: crawlSummary,
       analysis,
       analysisError,
+      personas,
+      personasError,
       elapsedMs,
     });
   } catch (e) {
