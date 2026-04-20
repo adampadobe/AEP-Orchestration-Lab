@@ -989,8 +989,18 @@
           var after = sanitiseLaunchScriptUrl(before);
           if (before !== after) launchEl.value = after;
         };
-        launchEl.addEventListener('blur', normaliseLaunchInput);
+        var maybeReinjectLaunch = function () {
+          normaliseLaunchInput();
+          var next = launchEl.value.trim();
+          if (!next) return;
+          if (next === __lastLaunchInjected) return;
+          if (global.CdEdgeLab && typeof global.CdEdgeLab.reinjectLaunch === 'function') {
+            global.CdEdgeLab.reinjectLaunch().catch(function () { /* surfaced in webSdkInitStatus */ });
+          }
+        };
+        launchEl.addEventListener('blur', maybeReinjectLaunch);
         launchEl.addEventListener('paste', function () { setTimeout(normaliseLaunchInput, 0); });
+        launchEl.addEventListener('change', maybeReinjectLaunch);
       }
 
       if (el('cdLabPreviewLaunchBtn')) {
