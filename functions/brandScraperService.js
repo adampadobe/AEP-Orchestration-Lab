@@ -409,8 +409,8 @@ async function classifyIndustry({ about, brandName, baseUrl, crawlText }) {
   let raw;
   try {
     raw = await callGemini(INDUSTRY_SYSTEM, parts.join('\n\n'), {
-      maxOutputTokens: 256,
-      jsonMode: true,
+      maxOutputTokens: 512,
+      jsonMode: false,
       model: 'gemini-2.5-flash',
       temperature: 0.0,
     });
