@@ -114,6 +114,13 @@
             </form>
 
             <div class="brand-scraper-status" id="brandScraperStatus" role="status" aria-live="polite" hidden></div>
+            <div class="brand-scraper-progress" id="brandScraperProgress" hidden aria-hidden="true">
+              <div class="brand-scraper-progress-track"><div class="brand-scraper-progress-fill" id="brandScraperProgressFill"></div></div>
+              <div class="brand-scraper-progress-meta">
+                <span class="brand-scraper-progress-phase" id="brandScraperProgressPhase">Starting…</span>
+                <span class="brand-scraper-progress-timing"><span id="brandScraperProgressElapsed">0s</span> / ~<span id="brandScraperProgressEta">—</span></span>
+              </div>
+            </div>
           </div>
 
           <aside class="brand-scraper-model-panel" role="region" aria-label="LLM model">
