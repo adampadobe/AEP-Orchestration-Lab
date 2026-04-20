@@ -1029,7 +1029,11 @@
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        setStatus('Analysis failed: ' + (data.error || resp.statusText), 'error');
+        let msg = 'Analysis failed: ' + (data.error || resp.statusText);
+        if (data.details && data.details.byReason) {
+          msg += '\n\nFailure breakdown: ' + Object.entries(data.details.byReason).map(([k,v]) => k + ' × ' + v).join(', ') + '.';
+        }
+        setStatus(msg, 'error');
         return;
       }
       const actionVerb = data.appended ? 'Appended to existing scrape' : 'Saved as new scrape';

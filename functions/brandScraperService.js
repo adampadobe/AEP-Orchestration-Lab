@@ -46,10 +46,36 @@ async function fetchWithTimeout(url, opts = {}) {
       signal: ctrl.signal,
       headers: { 'User-Agent': USER_AGENT, Accept: 'text/html,application/xhtml+xml' },
     });
-    const body = resp.ok ? await resp.text() : '';
-    return { status: resp.status, body };
-  } catch (_e) {
-    return { status: 0, body: '' };
+    const contentType = resp.headers.get('content-type') || '';
+    if (!resp.ok) {
+      return { status: resp.status, body: '', contentType, reason: 'http_error', error: `HTTP ${resp.status}${resp.statusText ? ' ' + resp.statusText : ''}` };
+    }
+    const body = await resp.text();
+    if (!body) {
+      return { status: resp.status, body: '', contentType, reason: 'empty_body', error: 'empty response body' };
+    }
+    // Detect known bot-challenge / captcha responses
+    const bodyLower = body.slice(0, 4000).toLowerCase();
+    if (bodyLower.includes('cf-challenge') || bodyLower.includes('cf-turnstile') || bodyLower.includes('captcha') ||
+        bodyLower.includes('just a moment...') || bodyLower.includes('checking your browser') ||
+        bodyLower.includes('enable javascript and cookies to continue')) {
+      return { status: resp.status, body, contentType, reason: 'bot_challenge', error: 'bot-protection challenge returned (Cloudflare / captcha)' };
+    }
+    // Content-type sanity
+    if (contentType && !/text\/html|application\/xhtml|text\/plain/i.test(contentType)) {
+      return { status: resp.status, body, contentType, reason: 'non_html', error: `non-HTML response (${contentType.split(';')[0]})` };
+    }
+    return { status: resp.status, body, contentType, reason: 'ok' };
+  } catch (e) {
+    const msg = String((e && e.message) || e);
+    const aborted = e && (e.name === 'AbortError' || /aborted/i.test(msg));
+    return {
+      status: 0,
+      body: '',
+      contentType: '',
+      reason: aborted ? 'timeout' : 'network',
+      error: aborted ? `timeout after ${(opts.timeout || REQUEST_TIMEOUT_MS)/1000}s` : msg,
+    };
   } finally {
     clearTimeout(timer);
   }
@@ -303,15 +329,48 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES } = {}) {
   const discovered = new Set([baseUrl]);
   const queue = [baseUrl];
   const pages = [];
+  const failures = [];
   let brandName = '';
+
+  // If the seed URL fails with http_error/network, retry with www. prefix or naked host once.
+  async function fetchSeed(seedUrl) {
+    const first = await fetchWithTimeout(seedUrl);
+    if (first.reason === 'ok') return { usedUrl: seedUrl, resp: first };
+    try {
+      const u = new URL(seedUrl);
+      const hasWww = u.hostname.startsWith('www.');
+      const altHost = hasWww ? u.hostname.slice(4) : 'www.' + u.hostname;
+      const altUrl = u.protocol + '//' + altHost + u.pathname;
+      const alt = await fetchWithTimeout(altUrl);
+      if (alt.reason === 'ok') return { usedUrl: altUrl, resp: alt };
+      // Return the better of the two attempts for diagnostic purposes
+      const better = (first.status && !alt.status) ? first : alt;
+      return { usedUrl: better === alt ? altUrl : seedUrl, resp: better, sibling: better === alt ? first : alt };
+    } catch (_e) {
+      return { usedUrl: seedUrl, resp: first };
+    }
+  }
 
   while (queue.length && pages.length < maxPages) {
     const current = queue.shift();
     if (visited.has(current)) continue;
     visited.add(current);
 
-    const { body: html, status } = await fetchWithTimeout(current);
-    if (!html) continue;
+    const isSeed = current === baseUrl;
+    const { usedUrl, resp, sibling } = isSeed
+      ? await fetchSeed(current)
+      : { usedUrl: current, resp: await fetchWithTimeout(current) };
+    const html = resp.body;
+    const status = resp.status;
+    if (resp.reason !== 'ok') {
+      failures.push({ url: usedUrl, status, reason: resp.reason, error: resp.error, contentType: resp.contentType });
+      if (sibling && sibling !== resp) failures.push({ url: current, status: sibling.status, reason: sibling.reason, error: sibling.error, contentType: sibling.contentType });
+      continue;
+    }
+    // If www-retry succeeded, swap the baseUrl so relative link resolution uses the reachable host.
+    if (isSeed && usedUrl !== current) {
+      discovered.add(usedUrl);
+    }
 
     const text = extractText(html);
     if (!brandName) brandName = extractBrandName(html, baseUrl);
@@ -353,7 +412,49 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES } = {}) {
     pages,
     totalDiscovered: discovered.size,
     assets,
+    failures,
   };
+}
+
+function summariseFailures(failures) {
+  if (!failures || !failures.length) return null;
+  const byReason = {};
+  for (const f of failures) {
+    const key = f.reason === 'http_error' ? `http_${f.status}` : f.reason;
+    byReason[key] = (byReason[key] || 0) + 1;
+  }
+  return {
+    attempted: failures.length,
+    byReason,
+    firstFailure: failures[0],
+  };
+}
+
+function friendlyFailureMessage(url, failures) {
+  const summary = summariseFailures(failures);
+  if (!summary) return `Could not fetch any pages from ${url}`;
+  const first = summary.firstFailure || {};
+  const bits = [`Could not fetch any pages from ${url}`];
+  if (first.reason === 'http_error') {
+    if (first.status === 403) bits.push(`— site returned HTTP 403 (access denied / bot-protection)`);
+    else if (first.status === 404) bits.push(`— site returned HTTP 404 (page not found; check the URL)`);
+    else if (first.status === 429) bits.push(`— site returned HTTP 429 (rate-limited; try again in a moment)`);
+    else if (first.status >= 500) bits.push(`— site returned HTTP ${first.status} (server error)`);
+    else bits.push(`— site returned HTTP ${first.status}`);
+  } else if (first.reason === 'bot_challenge') {
+    bits.push('— site returned a bot-protection challenge (Cloudflare/captcha). JS-rendered crawling (Playwright) required.');
+  } else if (first.reason === 'timeout') {
+    bits.push(`— request timed out (${first.error || ''})`);
+  } else if (first.reason === 'network') {
+    bits.push(`— network error: ${first.error || 'unknown'}`);
+  } else if (first.reason === 'empty_body') {
+    bits.push('— site returned an empty response.');
+  } else if (first.reason === 'non_html') {
+    bits.push(`— response was not HTML (${first.contentType || 'unknown type'})`);
+  }
+  const parts = Object.entries(summary.byReason).map(([k, v]) => `${k} × ${v}`).join(', ');
+  if (parts) bits.push(`\nAll attempts: ${parts}.`);
+  return bits.join(' ');
 }
 
 const INDUSTRY_TAXONOMY = [
@@ -978,7 +1079,10 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     const maxPages = requestedPages > 0 ? Math.min(requestedPages, 25) : undefined;
     const crawl = await crawlSite(url, maxPages ? { maxPages } : undefined);
     if (!crawl.pages.length) {
-      res.status(502).json({ error: 'Could not fetch any pages from ' + url });
+      res.status(502).json({
+        error: friendlyFailureMessage(url, crawl.failures),
+        details: summariseFailures(crawl.failures),
+      });
       return;
     }
     const providerPref = (body.provider || '').toString().toLowerCase();
