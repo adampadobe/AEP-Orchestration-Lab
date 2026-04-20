@@ -471,6 +471,18 @@ async function updateRuleComponentSettings(token, clientId, orgId, componentId, 
 }
 
 /**
+ * DELETE /libraries/:id — remove a library from a property. Reactor only
+ * allows this for libraries in `development` state that aren't bound to
+ * an environment. Returns ok on 204.
+ */
+async function deleteLibrary(token, clientId, orgId, libraryId) {
+  const lid = String(libraryId || '').trim();
+  if (!lid) return { ok: false, httpStatus: 400, error: 'libraryId is required' };
+  const r = await reactorRequest(token, clientId, orgId, 'DELETE', '/libraries/' + encodeURIComponent(lid));
+  return r.ok ? { ok: true, httpStatus: r.httpStatus } : r;
+}
+
+/**
  * GET /environments/:id — with optional ?include=library to also return
  * the library currently bound to the environment.
  */
@@ -677,5 +689,6 @@ module.exports = {
   getBuild,
   getEnvironment,
   reviseRule,
+  deleteLibrary,
   probeTagsApiAccess,
 };

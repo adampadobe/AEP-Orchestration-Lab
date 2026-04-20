@@ -2313,6 +2313,47 @@ exports.edgeLaunchRulePublish = onRequest(
   },
 );
 
+/**
+ * POST /api/edge-decisioning/cleanup-orphan-libraries
+ * Remove unbound libraries named 'AEP Lab ...' that got created by
+ * failed publish attempts. Dry-run supported via body.dryRun = true.
+ */
+exports.edgeLaunchRuleCleanup = onRequest(
+  {
+    region: REGION,
+    secrets: PROFILE_FN_SECRETS,
+    environmentVariables: { ADOBE_SANDBOX_NAME: RESOLVED_ADOBE_SANDBOX },
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'POST only' }); return; }
+    const body = (req.body && typeof req.body === 'object') ? req.body : {};
+    if (!body.propertyRef) { res.status(400).json({ ok: false, error: 'propertyRef required' }); return; }
+
+    let accessToken;
+    try { accessToken = await getAdobeAccessToken(); }
+    catch (e) { res.status(500).json({ ok: false, error: 'Auth failed', detail: String(e.message || e) }); return; }
+
+    const clientId = ADOBE_CLIENT_ID.value();
+    const orgId = ADOBE_IMS_ORG.value();
+    try {
+      const result = await edgeLaunchRuleService.cleanupOrphanAutoPublishLibraries({
+        accessToken, clientId, orgId,
+        propertyRef: body.propertyRef,
+        dryRun: body.dryRun === true,
+        namePrefix: body.namePrefix || 'AEP Lab',
+      });
+      res.status(result.ok ? 200 : 400).json(result);
+    } catch (e) {
+      res.status(500).json({ ok: false, error: String(e && e.message || e) });
+    }
+  },
+);
+
 /** GET /api/events/datastreams — list datastreams from Edge API */
 exports.eventDatastreamsProxy = onRequest(
   {

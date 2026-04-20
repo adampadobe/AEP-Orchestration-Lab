@@ -78,6 +78,13 @@
         }
       },
       {
+        "source": "/api/edge-decisioning/cleanup-orphan-libraries",
+        "function": {
+          "functionId": "edgeLaunchRuleCleanup",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/brand-scraper/analyze",
         "function": {
           "functionId": "brandScraperAnalyze",
