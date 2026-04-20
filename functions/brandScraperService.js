@@ -221,26 +221,73 @@ async function callAnthropic(apiKey, systemPrompt, userPrompt) {
   return text;
 }
 
+let vertexClientCache;
+function getVertexClient() {
+  if (!vertexClientCache) {
+    // Lazy require so the SDK only loads when Gemini is actually used.
+    const { VertexAI } = require('@google-cloud/vertexai');
+    const project = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'aep-orchestration-lab';
+    const location = process.env.VERTEX_LOCATION || 'us-central1';
+    vertexClientCache = new VertexAI({ project, location });
+  }
+  return vertexClientCache;
+}
+
+async function callGemini(systemPrompt, userPrompt) {
+  const client = getVertexClient();
+  const modelName = process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-flash';
+  const model = client.getGenerativeModel({
+    model: modelName,
+    systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] },
+    generationConfig: {
+      temperature: 0.4,
+      maxOutputTokens: 4096,
+      responseMimeType: 'application/json',
+    },
+  });
+  const resp = await model.generateContent({
+    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+  });
+  const candidates = resp && resp.response && resp.response.candidates;
+  if (!candidates || !candidates.length) throw new Error('Gemini returned no candidates');
+  const parts = (candidates[0].content && candidates[0].content.parts) || [];
+  return parts.map(p => p.text || '').join('').trim();
+}
+
 function stripJsonFences(text) {
   const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text);
   return (fenced ? fenced[1] : text).trim();
 }
 
-async function analyseBrand(crawl, apiKey) {
-  if (!apiKey) {
-    return { skipped: true, reason: 'ANTHROPIC_API_KEY secret is not configured' };
-  }
+async function analyseBrand(crawl, { provider, anthropicKey } = {}) {
+  const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
+
   const combinedText = crawl.pages.map(p =>
     `URL: ${p.url}\nTitle: ${p.title}\nDescription: ${p.description}\n\n${p.text}`
   ).join('\n\n---\n\n').slice(0, 15000);
 
   const userPrompt = `Analyse this brand and generate brand guidelines.\n\nBrand: ${crawl.brandName}\nWebsite URL: ${crawl.baseUrl}\n\nWebsite Content:\n${combinedText}`;
 
-  const raw = await callAnthropic(apiKey, BRAND_ANALYSIS_SYSTEM, userPrompt);
+  let raw;
+  let usedProvider;
   try {
-    return JSON.parse(stripJsonFences(raw));
+    if (chosen === 'anthropic') {
+      if (!anthropicKey) return { skipped: true, reason: 'ANTHROPIC_API_KEY not configured' };
+      raw = await callAnthropic(anthropicKey, BRAND_ANALYSIS_SYSTEM, userPrompt);
+      usedProvider = 'anthropic';
+    } else {
+      raw = await callGemini(BRAND_ANALYSIS_SYSTEM, userPrompt);
+      usedProvider = 'gemini';
+    }
   } catch (e) {
-    return { error: 'Model response was not valid JSON', raw: raw.slice(0, 4000) };
+    return { error: `${chosen} provider failed: ${String(e && e.message || e)}` };
+  }
+
+  try {
+    const parsed = JSON.parse(stripJsonFences(raw));
+    return { provider: usedProvider, ...parsed };
+  } catch (_e) {
+    return { provider: usedProvider, error: 'Model response was not valid JSON', raw: raw.slice(0, 4000) };
   }
 }
 
@@ -273,7 +320,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     let analysis = null;
     let analysisError = null;
     try {
-      analysis = await analyseBrand(crawl, anthropicKey);
+      const providerPref = (body.provider || '').toString().toLowerCase();
+      analysis = await analyseBrand(crawl, { provider: providerPref, anthropicKey });
     } catch (e) {
       analysisError = String(e && e.message || e);
     }

@@ -90,9 +90,9 @@
           </div>
 
           <aside class="brand-scraper-banner" role="note">
-            <div class="brand-scraper-banner-title">First slice live: crawler + brand analysis</div>
+            <div class="brand-scraper-banner-title">First slice live: crawler + Gemini brand analysis</div>
             <p class="brand-scraper-banner-body">
-              The <strong>Analyse</strong> button now crawls up to 5 pages of the target site and (if <code>ANTHROPIC_API_KEY</code> is configured) generates brand guidelines via Claude. Image classifier, persona + segment generation, campaign detection, and ZIP export are still being ported from <code>aep-prototypes/brandscrape-studio/</code>.
+              The <strong>Analyse</strong> button crawls up to 5 pages of the target site and generates brand guidelines via <strong>Vertex AI Gemini</strong> (authenticated by the function's own service account — no API key needed). Results are stored per sandbox. Image classifier, persona + segment generation, campaign detection, and ZIP export are still being ported from <code>aep-prototypes/brandscrape-studio/</code>.
             </p>
           </aside>
         </section>
