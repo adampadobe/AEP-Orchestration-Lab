@@ -64,6 +64,20 @@
         }
       },
       {
+        "source": "/api/brand-scraper/scrapes/**",
+        "function": {
+          "functionId": "brandScraperScrapes",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/brand-scraper/scrapes",
+        "function": {
+          "functionId": "brandScraperScrapes",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/ajo/live-activity",
         "function": {
           "functionId": "ajoLiveActivityProxy",

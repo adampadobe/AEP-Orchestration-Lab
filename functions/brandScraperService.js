@@ -6,6 +6,8 @@
  */
 'use strict';
 
+const brandScrapeStore = require('./brandScrapeStore');
+
 const USER_AGENT = 'Mozilla/5.0 (compatible; AEPOrchestrationLab-BrandScraper/1.0; +https://aep-orchestration-lab.web.app)';
 const REQUEST_TIMEOUT_MS = 10000;
 const MAX_PAGES = 5;
@@ -242,6 +244,14 @@ async function analyseBrand(crawl, apiKey) {
   }
 }
 
+function resolveSandbox(req) {
+  const body = (req.body && typeof req.body === 'object') ? req.body : {};
+  const fromBody = String(body.sandbox || '').trim();
+  if (fromBody) return fromBody;
+  const fromQuery = String((req.query && req.query.sandbox) || '').trim();
+  return fromQuery;
+}
+
 async function handleAnalyse(req, res, { anthropicKey }) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
@@ -249,6 +259,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
   const body = (req.body && typeof req.body === 'object') ? req.body : {};
   const url = body.url;
   if (!url) { res.status(400).json({ error: 'url is required' }); return; }
+
+  const sandbox = resolveSandbox(req);
+  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
 
   const started = Date.now();
   try {
@@ -264,25 +277,83 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     } catch (e) {
       analysisError = String(e && e.message || e);
     }
+    const crawlSummary = {
+      pagesScraped: crawl.pages.length,
+      totalDiscovered: crawl.totalDiscovered,
+      pages: crawl.pages.map(p => ({
+        url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
+      })),
+    };
+    const elapsedMs = Date.now() - started;
+
+    let saved = null;
+    try {
+      saved = await brandScrapeStore.saveScrape(sandbox, {
+        url,
+        baseUrl: crawl.baseUrl,
+        brandName: crawl.brandName,
+        businessType: body.businessType || 'b2c',
+        country: body.country || '',
+        crawlSummary,
+        analysis,
+        analysisError,
+        elapsedMs,
+      });
+    } catch (e) {
+      // Non-fatal — still return result to the client.
+      analysisError = analysisError || ('Persist failed: ' + String(e && e.message || e));
+    }
+
     res.status(200).json({
+      scrapeId: saved && saved.scrapeId,
+      sandbox,
       brandName: crawl.brandName,
       baseUrl: crawl.baseUrl,
       businessType: body.businessType || 'b2c',
       country: body.country || '',
-      crawl: {
-        pagesScraped: crawl.pages.length,
-        totalDiscovered: crawl.totalDiscovered,
-        pages: crawl.pages.map(p => ({
-          url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
-        })),
-      },
+      crawl: crawlSummary,
       analysis,
       analysisError,
-      elapsedMs: Date.now() - started,
+      elapsedMs,
     });
   } catch (e) {
     res.status(500).json({ error: String(e && e.message || e) });
   }
 }
 
-module.exports = { crawlSite, analyseBrand, handleAnalyse };
+async function handleScrapes(req, res) {
+  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+
+  const sandbox = resolveSandbox(req);
+  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+
+  // Route by path: /api/brand-scraper/scrapes | /api/brand-scraper/scrapes/:id
+  const path = String(req.path || '').replace(/\/+$/, '');
+  const m = /\/scrapes(?:\/([^/]+))?$/.exec(path);
+  const scrapeId = m && m[1] ? decodeURIComponent(m[1]) : '';
+
+  try {
+    if (req.method === 'GET' && !scrapeId) {
+      const items = await brandScrapeStore.listScrapes(sandbox);
+      res.status(200).json({ sandbox, items });
+      return;
+    }
+    if (req.method === 'GET' && scrapeId) {
+      const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
+      if (!record) { res.status(404).json({ error: 'not found' }); return; }
+      res.status(200).json(record);
+      return;
+    }
+    if (req.method === 'DELETE' && scrapeId) {
+      const ok = await brandScrapeStore.deleteScrape(sandbox, scrapeId);
+      if (!ok) { res.status(404).json({ error: 'not found' }); return; }
+      res.status(200).json({ ok: true });
+      return;
+    }
+    res.status(405).json({ error: 'Method not allowed' });
+  } catch (e) {
+    res.status(500).json({ error: String(e && e.message || e) });
+  }
+}
+
+module.exports = { crawlSite, analyseBrand, handleAnalyse, handleScrapes };

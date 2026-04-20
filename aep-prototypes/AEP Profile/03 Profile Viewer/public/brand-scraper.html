@@ -132,9 +132,19 @@
           </div>
         </section>
 
-        <section class="brand-scraper-results" id="brandScraperResults" hidden aria-label="Results">
-          <!-- Populated once the backend is wired -->
+        <section class="brand-scraper-history" id="brandScraperHistory" aria-label="Recent scrapes">
+          <header class="brand-scraper-history-header">
+            <h3>Recent scrapes</h3>
+            <div class="brand-scraper-history-meta">
+              <span id="brandScraperHistorySandbox" class="brand-scraper-history-sandbox"></span>
+              <button type="button" id="brandScraperHistoryRefresh" class="dashboard-btn-outline" title="Refresh list">Refresh</button>
+            </div>
+          </header>
+          <p class="brand-scraper-result-muted" id="brandScraperHistoryEmpty">Loading…</p>
+          <div class="brand-scraper-history-list" id="brandScraperHistoryList" hidden></div>
         </section>
+
+        <section class="brand-scraper-results" id="brandScraperResults" hidden aria-label="Results"></section>
       </main>
     </div>
   </div>

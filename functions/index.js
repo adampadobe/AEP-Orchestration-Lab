@@ -2616,3 +2616,17 @@ exports.brandScraperAnalyze = onRequest(
     }
   }
 );
+
+/** GET /api/brand-scraper/scrapes?sandbox=… — list, one by id, or DELETE by id. */
+exports.brandScraperScrapes = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, DELETE, OPTIONS');
+    await brandScraperService.handleScrapes(req, res);
+  }
+);
