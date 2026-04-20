@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Launch: Web SDK extension must use datastream (Edge config) ID 46677fd7-9db0-4f16-898c-b424d0245c38 - same ID AJO uses for this lab. Do not duplicate alloy.configure in page code. -->
+  <script src="https://assets.adobedtm.com/60e5fd51ad90/1e9ecb8bbc4a/launch-2070346dc211-development.min.js" async></script>
+  <title>Demo Delivery Concept - AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="demo-delivery-concept.css?v=20260420a">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+</head>
+<body class="demo-delivery-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+      </header>
+
+      <main class="dashboard-main app-page demo-delivery-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="ddcHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="ddcHeading" class="dashboard-hero-title">Demo Delivery Concept</h2>
+              <p class="dashboard-hero-subtitle">
+                Enter an identifier and run decisioning to preview how personalized hero and content card experiences look inside laptop and mobile frames.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="demo-delivery-controls" aria-label="Profile lookup controls">
+          <div class="form-row">
+            <label for="ddcNs">Namespace</label>
+            <select id="ddcNs" class="sandbox-select" aria-label="Identity namespace">
+              <option value="email">Email</option>
+              <option value="ecid">ECID</option>
+              <option value="crmId">CRM ID</option>
+              <option value="loyaltyId">Loyalty ID</option>
+              <option value="phone">Phone</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="ddcIdentifier">Identifier value</label>
+            <input type="text" id="ddcIdentifier" placeholder="Enter profile identifier" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="demo-delivery-actions">
+            <button type="button" id="ddcLookupBtn" class="btn-lookup">Look up profile</button>
+            <span class="demo-delivery-ecid">ECID: <strong id="infoEcid">-</strong></span>
+          </div>
+        </section>
+
+        <p id="demoDeliveryStatus" class="demo-delivery-status" role="status" aria-live="polite"></p>
+
+        <section class="demo-delivery-stage race-ajo-mounts" aria-label="Device delivery preview">
+          <article class="demo-device demo-device--laptop">
+            <img src="images/demo-delivery-laptop.png" alt="Laptop mockup frame" class="demo-device-frame" width="639" height="362" loading="lazy" decoding="async">
+            <div class="demo-device-screen demo-device-screen--laptop">
+              <section id="hero-banner" class="demo-delivery-surface demo-delivery-surface--hero" role="region" aria-label="Laptop hero surface"></section>
+            </div>
+          </article>
+
+          <article class="demo-device demo-device--mobile">
+            <img src="images/demo-delivery-mobile.png" alt="Mobile mockup frame" class="demo-device-frame" width="476" height="362" loading="lazy" decoding="async">
+            <div class="demo-device-screen demo-device-screen--mobile">
+              <section id="ContentCardContainer" class="demo-delivery-surface demo-delivery-surface--card ContentCardContainer" role="region" aria-label="Mobile content card surface"></section>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="aep-global-sandbox.js"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="race-for-life-ajo.js?v=20260416"></script>
+  <script src="demo-delivery-concept.js?v=20260420a"></script>
+  <script defer src="aep-theme.js?v=20260420-theme-per-sandbox"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260420-demo-delivery-concept"></script>
+</body>
+</html>
