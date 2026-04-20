@@ -314,6 +314,35 @@
     return sb ? path + sep + 'sandbox=' + encodeURIComponent(sb) : path;
   }
 
+  // Retry on Cloud Run cold-start 401/403 and transient 5xx. Short backoff
+  // because 403-on-cold-start usually clears within 1-3 seconds.
+  function isTransientStatus(s) {
+    return s === 401 || s === 403 || s === 408 || s === 425 || s === 429 || (s >= 500 && s < 600);
+  }
+  async function fetchWithRetry(url, options, { retries = 2, backoffMs = 1500, onRetry } = {}) {
+    let lastErr;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const resp = await fetch(url, options);
+        if (isTransientStatus(resp.status) && attempt < retries) {
+          if (onRetry) onRetry(attempt + 1, resp.status);
+          await new Promise(r => setTimeout(r, backoffMs * (attempt + 1)));
+          continue;
+        }
+        return resp;
+      } catch (e) {
+        lastErr = e;
+        if (attempt < retries) {
+          if (onRetry) onRetry(attempt + 1, 'network');
+          await new Promise(r => setTimeout(r, backoffMs * (attempt + 1)));
+          continue;
+        }
+        throw e;
+      }
+    }
+    if (lastErr) throw lastErr;
+  }
+
   function setStatus(message, kind) {
     if (!message) {
       statusEl.hidden = true;
@@ -1046,10 +1075,13 @@
     setStatus('Downloading images to GCS and classifying with Gemini vision \u2026 this can take 30\u201360 seconds.', 'info');
     try {
       const url = CLASSIFY_URL + '?sandbox=' + encodeURIComponent(sb);
-      const resp = await fetch(url, {
+      const resp = await fetchWithRetry(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sandbox: sb, scrapeId: currentScrapeData.scrapeId }),
+      }, {
+        retries: 2,
+        onRetry: (n, status) => setStatus('Warming classifier (retry ' + n + ' of 2, ' + status + ') \u2026', 'info'),
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) { setStatus('Classify failed: ' + (data.error || resp.statusText), 'error'); return; }
@@ -1079,10 +1111,13 @@
     setStatus('Building export kit ZIP (brand guidelines + personas + campaigns + segments + images) \u2026', 'info');
     try {
       const url = EXPORT_URL + '?sandbox=' + encodeURIComponent(sb);
-      const resp = await fetch(url, {
+      const resp = await fetchWithRetry(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sandbox: sb, scrapeId: currentScrapeData.scrapeId }),
+      }, {
+        retries: 2,
+        onRetry: (n, status) => setStatus('Warming export kit (retry ' + n + ' of 2, ' + status + ') \u2026', 'info'),
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) { setStatus('Export failed: ' + (data.error || resp.statusText), 'error'); return; }
@@ -1178,7 +1213,7 @@
 
     try {
       const analyzeUrl = ANALYZE_URL + (ANALYZE_URL.includes('?') ? '&' : '?') + 'sandbox=' + encodeURIComponent(sb);
-      const resp = await fetch(analyzeUrl, {
+      const resp = await fetchWithRetry(analyzeUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1192,6 +1227,9 @@
           crawler: (crawlerJsCb && crawlerJsCb.checked) ? 'js' : 'fetch',
           include: { ...runOptions },
         }),
+      }, {
+        retries: 2,
+        onRetry: (n, status) => setStatus('Warming Cloud Run (retry ' + n + ' of 2, previous response ' + status + ') \u2026 this is normal after idle periods.', 'info'),
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
