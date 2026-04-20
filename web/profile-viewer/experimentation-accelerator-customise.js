@@ -1,25 +1,13 @@
 /**
- * Customise dock: per–AEP-sandbox assets for Accelerator (overview stitch + experiments + chrome).
- * Storage: localStorage aepExpAccelImageUrls JSON { [sandboxKey]: fields }.
+ * Customise dock: display name + team label for Experimentation Accelerator demo (native UI).
+ * Storage: localStorage aepExpAccelUiPrefs JSON { [sandboxKey]: { displayName, teamName } }.
  */
 (function () {
-  var LS = 'aepExpAccelImageUrls';
-
-  function defaultBase() {
-    try {
-      return new URL('assets/experimentation-accelerator/', window.location.href).href;
-    } catch (e) {
-      return '';
-    }
-  }
+  var LS = 'aepExpAccelUiPrefs';
 
   var DEFAULTS = {
-    overview1: defaultBase() + 'accelerator-overview-1.png',
-    overview2: defaultBase() + 'accelerator-overview-2.png',
-    experiments: defaultBase() + 'accelerator-experiments.png',
-    stitchOverlapPx: '96',
-    clipTop: '26%',
-    clipLeft: '5.1%',
+    displayName: 'Tina',
+    teamName: 'Adobe.com',
   };
 
   function sandboxKey(name) {
@@ -47,115 +35,34 @@
     }
   }
 
-  function getUrlsForSandbox(sb) {
+  function getForSandbox(sb) {
     var all = readAll();
-    return migrateStored(all[sandboxKey(sb)] || null);
+    return all[sandboxKey(sb)] || null;
   }
 
-  function saveUrlsForSandbox(sb, data) {
+  function saveForSandbox(sb, data) {
     var all = readAll();
     all[sandboxKey(sb)] = data;
     writeAll(all);
   }
 
-  function migrateStored(stored) {
-    if (!stored || typeof stored !== 'object') return stored;
-    if (stored.overview1 || stored.overview2 || stored.experiments) return stored;
-    if (stored.step1) {
-      return {
-        overview1: stored.step1,
-        overview2: stored.step2 || DEFAULTS.overview2,
-        experiments: stored.experiments || DEFAULTS.experiments,
-        stitchOverlapPx: stored.stitchOverlapPx || DEFAULTS.stitchOverlapPx,
-        clipTop: stored.clipTop || DEFAULTS.clipTop,
-        clipLeft: stored.clipLeft || DEFAULTS.clipLeft,
-      };
-    }
-    return stored;
-  }
-
-  function mergeWithDefaults(stored) {
-    var s = migrateStored(stored);
+  function mergeDefaults(stored) {
     var o = {};
     Object.keys(DEFAULTS).forEach(function (k) {
       o[k] =
-        s && typeof s[k] === 'string' && s[k].trim()
-          ? s[k].trim()
+        stored && typeof stored[k] === 'string' && stored[k].trim()
+          ? stored[k].trim()
           : DEFAULTS[k];
     });
     return o;
   }
 
-  function applyUrlsToPage(urls) {
-    var u = mergeWithDefaults(urls);
-    if (window.__expAccelApplyAssets) {
-      window.__expAccelApplyAssets({
-        overview1: u.overview1,
-        overview2: u.overview2,
-        experiments: u.experiments,
-        stitchOverlapPx: u.stitchOverlapPx,
-        clipTop: u.clipTop,
-        clipLeft: u.clipLeft,
-      });
-    }
-  }
-
-  function currentSandboxName() {
-    if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
-      return AepGlobalSandbox.getSandboxName() || '';
-    }
-    try {
-      return String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
-    } catch (e) {
-      return '';
-    }
-  }
-
-  function fillInputsFromStored() {
-    var sb = currentSandboxName();
-    var stored = migrateStored(getUrlsForSandbox(sb));
-    var m = mergeWithDefaults(stored);
-    function set(id, val) {
-      var el = document.getElementById(id);
-      if (el) el.value = val || '';
-    }
-    set('expAccelUrlOverview1', m.overview1);
-    set('expAccelUrlOverview2', m.overview2);
-    set('expAccelUrlExperiments', m.experiments);
-    set('expAccelStitchOverlap', m.stitchOverlapPx);
-    set('expAccelClipTop', m.clipTop);
-    set('expAccelClipLeft', m.clipLeft);
-  }
-
-  function collectInputsRaw() {
-    function val(id) {
-      var el = document.getElementById(id);
-      return el && el.value != null ? String(el.value).trim() : '';
-    }
-    return {
-      overview1: val('expAccelUrlOverview1'),
-      overview2: val('expAccelUrlOverview2'),
-      experiments: val('expAccelUrlExperiments'),
-      stitchOverlapPx: val('expAccelStitchOverlap'),
-      clipTop: val('expAccelClipTop'),
-      clipLeft: val('expAccelClipLeft'),
-    };
-  }
-
-  function validateUrl(s) {
-    if (!s) return false;
-    try {
-      var u = new URL(s);
-      return u.protocol === 'https:' || u.protocol === 'http:';
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function isRelativeAsset(s) {
-    if (!s) return false;
-    if (validateUrl(s)) return false;
-    return /^[\w\-./]+$/.test(s) && !s.startsWith('//');
+  function applyToDom(prefs) {
+    var p = mergeDefaults(prefs);
+    var nameEl = document.getElementById('expAccelDisplayName');
+    var teamEl = document.getElementById('expAccelTeamDisplay');
+    if (nameEl) nameEl.textContent = p.displayName;
+    if (teamEl) teamEl.textContent = p.teamName;
   }
 
   function setStatus(msg, kind) {
@@ -251,31 +158,23 @@
     });
   }
 
-  function resolveStoredRow(c) {
-    var out = {};
-    var k;
-    for (k in DEFAULTS) {
-      if (k === 'stitchOverlapPx' || k === 'clipTop' || k === 'clipLeft') {
-        var v = c[k] != null ? String(c[k]).trim() : '';
-        out[k] = v || DEFAULTS[k];
-        continue;
-      }
-      var v2 = c[k] || '';
-      if (!v2) {
-        out[k] = DEFAULTS[k];
-      } else if (isRelativeAsset(v2)) {
-        try {
-          out[k] = new URL(v2, window.location.href).href;
-        } catch (e) {
-          out[k] = v2;
-        }
-      } else if (validateUrl(v2)) {
-        out[k] = v2;
-      } else {
-        out[k] = DEFAULTS[k];
-      }
+  function currentSandboxName() {
+    if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
+      return AepGlobalSandbox.getSandboxName() || '';
     }
-    return out;
+    try {
+      return String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function fillInputs() {
+    var m = mergeDefaults(getForSandbox(currentSandboxName()));
+    var n = document.getElementById('expAccelDisplayNameInput');
+    var t = document.getElementById('expAccelTeamInput');
+    if (n) n.value = m.displayName;
+    if (t) t.value = m.teamName;
   }
 
   function init() {
@@ -285,32 +184,21 @@
     var btn = document.getElementById('expAccelCustomiseUpdate');
     if (btn) {
       btn.addEventListener('click', function () {
-        var c = collectInputsRaw();
-        var fk;
-        for (fk in DEFAULTS) {
-          if (fk === 'stitchOverlapPx' || fk === 'clipTop' || fk === 'clipLeft') continue;
-          if (c[fk] && !validateUrl(c[fk]) && !isRelativeAsset(c[fk])) {
-            setStatus('Asset fields need valid https URLs or a relative path, or leave empty for defaults.', 'err');
-            return;
-          }
-        }
-        var so = c.stitchOverlapPx;
-        if (so && !/^\d+$/.test(so)) {
-          setStatus('Stitch overlap must be a whole number of pixels.', 'err');
-          return;
-        }
-        var out = resolveStoredRow(c);
-        var sb = currentSandboxName();
-        saveUrlsForSandbox(sb, out);
-        applyUrlsToPage(out);
-        setStatus('Updated accelerator demo for sandbox “' + (sb || 'default') + '”.', 'ok');
+        var d = (document.getElementById('expAccelDisplayNameInput') || {}).value;
+        var team = (document.getElementById('expAccelTeamInput') || {}).value;
+        var out = {
+          displayName: d != null && String(d).trim() ? String(d).trim() : DEFAULTS.displayName,
+          teamName: team != null && String(team).trim() ? String(team).trim() : DEFAULTS.teamName,
+        };
+        saveForSandbox(currentSandboxName(), out);
+        applyToDom(out);
+        setStatus('Updated labels for sandbox “' + (currentSandboxName() || 'default') + '”.', 'ok');
       });
     }
 
     function refreshFromStorage() {
-      fillInputsFromStored();
-      var stored = migrateStored(getUrlsForSandbox(currentSandboxName()));
-      applyUrlsToPage(stored);
+      fillInputs();
+      applyToDom(getForSandbox(currentSandboxName()));
     }
 
     window.addEventListener('aep-global-sandbox-change', function () {
