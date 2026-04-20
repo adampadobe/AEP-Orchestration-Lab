@@ -435,9 +435,12 @@ async function applyAndPublishLaunchRule(args) {
   const apply = await applyLaunchRuleUpdate(args);
   if (!apply.ok) return apply;
 
-  // If the apply step was a no-op, skip the publish (nothing to push).
-  if (apply.noop) return { ...apply, publishedToEnvironment: false, publish: { skipped: true, reason: 'No-op; nothing to build.' } };
-
+  // Always run the build step when the user clicked "Apply & publish" —
+  // even if this specific apply call was a no-op (settings already match
+  // the rule_component). An earlier apply may have PATCHed without being
+  // followed by a build, so the Dev env is still serving the old artifact
+  // until we publish. A redundant build is harmless; a skipped needed
+  // build leaves state desynced.
   const pub = await publishRuleToDevelopment({
     accessToken: args.accessToken,
     clientId: args.clientId,
