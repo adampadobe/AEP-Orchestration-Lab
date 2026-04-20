@@ -538,6 +538,73 @@ async function analyseBrand(crawl, { provider, anthropicKey } = {}) {
   }
 }
 
+function mergeScrapeRecords(existing, fresh) {
+  if (!existing || !existing.crawlSummary) return fresh;
+  const out = { ...fresh };
+  const e = existing;
+  const f = fresh;
+
+  // Merge crawl summary
+  const pagesByUrl = new Map();
+  for (const p of (e.crawlSummary && e.crawlSummary.pages) || []) pagesByUrl.set(p.url, p);
+  for (const p of (f.crawlSummary && f.crawlSummary.pages) || []) pagesByUrl.set(p.url, p); // fresh wins
+
+  const eAssets = (e.crawlSummary && e.crawlSummary.assets) || {};
+  const fAssets = (f.crawlSummary && f.crawlSummary.assets) || {};
+  const mergeByKey = (arrA, arrB, key) => {
+    const map = new Map();
+    for (const v of arrA || []) map.set(key(v), v);
+    for (const v of arrB || []) map.set(key(v), v);
+    return Array.from(map.values());
+  };
+  const mergeCounts = (arrA, arrB, limit) => {
+    const counts = new Map();
+    for (const v of arrA || []) counts.set(v.value, (counts.get(v.value) || 0) + (v.count || 1));
+    for (const v of arrB || []) counts.set(v.value, (counts.get(v.value) || 0) + (v.count || 1));
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([value, count]) => ({ value, count }));
+  };
+
+  out.crawlSummary = {
+    pagesScraped: pagesByUrl.size,
+    totalDiscovered: Math.max((e.crawlSummary && e.crawlSummary.totalDiscovered) || 0, (f.crawlSummary && f.crawlSummary.totalDiscovered) || 0),
+    pages: Array.from(pagesByUrl.values()),
+    assets: {
+      images: mergeByKey(eAssets.images, fAssets.images, x => x.src).slice(0, 120),
+      favicons: mergeByKey(eAssets.favicons, fAssets.favicons, x => x.href),
+      ogImages: Array.from(new Set([...(eAssets.ogImages || []), ...(fAssets.ogImages || [])])),
+      colours: mergeCounts(eAssets.colours, fAssets.colours, 16),
+      fonts: mergeCounts(eAssets.fonts, fAssets.fonts, 8),
+    },
+  };
+
+  // Analysis: latest fresh value wins (brand guidelines don't compose).
+  out.analysis = f.analysis || e.analysis || null;
+  out.analysisError = f.analysisError || null;
+
+  // Personas: union by name. Growing library across appends.
+  const personaMap = new Map();
+  const ePs = (e.personas && Array.isArray(e.personas.personas)) ? e.personas.personas : [];
+  const fPs = (f.personas && Array.isArray(f.personas.personas)) ? f.personas.personas : [];
+  for (const p of ePs) if (p && p.name) personaMap.set(p.name.toLowerCase(), p);
+  for (const p of fPs) if (p && p.name) personaMap.set(p.name.toLowerCase(), p); // fresh wins on same name
+  out.personas = {
+    provider: (f.personas && f.personas.provider) || (e.personas && e.personas.provider) || null,
+    personas: Array.from(personaMap.values()),
+  };
+  out.personasError = f.personasError || null;
+
+  // Pass through identity fields
+  out.brandName = f.brandName || e.brandName;
+  out.url = f.url || e.url;
+  out.baseUrl = f.baseUrl || e.baseUrl;
+  out.businessType = f.businessType || e.businessType;
+  out.country = f.country || e.country;
+  return out;
+}
+
 function resolveSandbox(req) {
   const body = (req.body && typeof req.body === 'object') ? req.body : {};
   const fromBody = String(body.sandbox || '').trim();
@@ -593,38 +660,50 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     };
     const elapsedMs = Date.now() - started;
 
+    const appendMode = body.mode === 'append' && body.existingScrapeId;
+    let recordToPersist = {
+      url,
+      baseUrl: crawl.baseUrl,
+      brandName: crawl.brandName,
+      businessType: body.businessType || 'b2c',
+      country: body.country || '',
+      crawlSummary,
+      analysis,
+      analysisError,
+      personas,
+      personasError,
+      elapsedMs,
+    };
+    if (appendMode) {
+      try {
+        const existing = await brandScrapeStore.getScrape(sandbox, body.existingScrapeId);
+        if (existing) {
+          recordToPersist = mergeScrapeRecords(existing, recordToPersist);
+          recordToPersist.scrapeId = existing.scrapeId;
+        }
+      } catch (_e) { /* fall through — save as new */ }
+    }
+
     let saved = null;
     try {
-      saved = await brandScrapeStore.saveScrape(sandbox, {
-        url,
-        baseUrl: crawl.baseUrl,
-        brandName: crawl.brandName,
-        businessType: body.businessType || 'b2c',
-        country: body.country || '',
-        crawlSummary,
-        analysis,
-        analysisError,
-        personas,
-        personasError,
-        elapsedMs,
-      });
+      saved = await brandScrapeStore.saveScrape(sandbox, recordToPersist);
     } catch (e) {
-      // Non-fatal — still return result to the client.
       analysisError = analysisError || ('Persist failed: ' + String(e && e.message || e));
     }
 
     res.status(200).json({
       scrapeId: saved && saved.scrapeId,
       sandbox,
-      brandName: crawl.brandName,
-      baseUrl: crawl.baseUrl,
-      businessType: body.businessType || 'b2c',
-      country: body.country || '',
-      crawl: crawlSummary,
-      analysis,
-      analysisError,
-      personas,
-      personasError,
+      brandName: (saved && saved.brandName) || crawl.brandName,
+      baseUrl: (saved && saved.baseUrl) || crawl.baseUrl,
+      businessType: (saved && saved.businessType) || body.businessType || 'b2c',
+      country: (saved && saved.country) || body.country || '',
+      crawl: (saved && saved.crawlSummary) || crawlSummary,
+      analysis: (saved && saved.analysis) || analysis,
+      analysisError: (saved && saved.analysisError) || analysisError,
+      personas: (saved && saved.personas) || personas,
+      personasError: (saved && saved.personasError) || personasError,
+      appended: !!appendMode,
       elapsedMs,
     });
   } catch (e) {

@@ -318,10 +318,12 @@
     )).join('');
   }
 
+  let historyItemsCache = [];
+
   async function loadHistory() {
     const sb = getSandbox();
     if (historySandboxEl) historySandboxEl.textContent = sb ? 'Sandbox: ' + sb : 'No sandbox selected';
-    if (!sb) { renderHistory([]); return; }
+    if (!sb) { historyItemsCache = []; renderHistory([]); return; }
     historyEmptyEl.hidden = false;
     historyEmptyEl.textContent = 'Loading…';
     historyListEl.hidden = true;
@@ -330,12 +332,27 @@
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
         historyEmptyEl.textContent = 'Failed to load scrapes: ' + (data.error || resp.statusText);
+        historyItemsCache = [];
         return;
       }
-      renderHistory(data.items || []);
+      historyItemsCache = Array.isArray(data.items) ? data.items : [];
+      renderHistory(historyItemsCache);
     } catch (e) {
       historyEmptyEl.textContent = 'Network error: ' + (e && e.message || e);
+      historyItemsCache = [];
     }
+  }
+
+  function urlKey(u) {
+    if (!u) return '';
+    try { return new URL(u).toString().replace(/\/$/, '').toLowerCase(); }
+    catch (_e) { return String(u).trim().toLowerCase().replace(/\/$/, ''); }
+  }
+
+  function findExistingScrape(targetUrl) {
+    const key = urlKey(targetUrl);
+    if (!key) return null;
+    return historyItemsCache.find(it => urlKey(it.baseUrl) === key || urlKey(it.url) === key) || null;
   }
 
   async function viewScrape(scrapeId) {
@@ -402,8 +419,26 @@
       return;
     }
 
+    // Ask about append if this URL has been scraped already in this sandbox.
+    const existing = findExistingScrape(url);
+    let mode = 'new';
+    let existingScrapeId = '';
+    if (existing) {
+      const when = fmtDate(existing.updatedAt || existing.createdAt);
+      const append = confirm(
+        'You already have a scrape for "' + (existing.brandName || existing.baseUrl || url) + '" from ' + when + '.\n\n' +
+        'OK → append this run to the existing scrape (merge pages, assets, colours, fonts; grow personas list).\n' +
+        'Cancel → create a new, separate scrape.'
+      );
+      if (append) {
+        mode = 'append';
+        existingScrapeId = existing.scrapeId;
+      }
+    }
+
     if (runBtn) runBtn.disabled = true;
-    setStatus('Crawling ' + url + ' for sandbox "' + sb + '" \u2026 this can take 30\u201390 seconds.', 'info');
+    const modeLabel = mode === 'append' ? 'appending to existing scrape' : 'running new scrape';
+    setStatus('Crawling ' + url + ' for sandbox "' + sb + '" (' + modeLabel + ') \u2026 this can take 30\u201390 seconds.', 'info');
     resultsEl.hidden = true;
 
     try {
@@ -413,6 +448,8 @@
         body: JSON.stringify({
           url: url,
           sandbox: sb,
+          mode: mode,
+          existingScrapeId: existingScrapeId,
           businessType: btypeSel && btypeSel.value,
           country: countrySel && countrySel.value,
         }),
@@ -422,8 +459,9 @@
         setStatus('Analysis failed: ' + (data.error || resp.statusText), 'error');
         return;
       }
+      const actionVerb = data.appended ? 'Appended to existing scrape' : 'Saved as new scrape';
       setStatus('Done \u2014 crawled ' + (data.crawl && data.crawl.pagesScraped) + ' pages in ' +
-        (data.elapsedMs ? (data.elapsedMs / 1000).toFixed(1) + 's' : '') + '. Saved to sandbox "' + sb + '".', 'info');
+        (data.elapsedMs ? (data.elapsedMs / 1000).toFixed(1) + 's' : '') + '. ' + actionVerb + ' in sandbox "' + sb + '".', 'info');
       renderResults(data);
       loadHistory();
     } catch (e) {
