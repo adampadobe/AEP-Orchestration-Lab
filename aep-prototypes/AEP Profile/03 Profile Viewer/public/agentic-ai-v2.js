@@ -41,6 +41,11 @@
     var gap = 10;
     var tipToggle = document.getElementById('agenticV2TalkTipsToggle');
     var TOOLTIP_PREF_KEY = 'aepAgenticV2TooltipsEnabled';
+    /** Max time a tooltip stays visible per hover dwell (ms). */
+    var TOOLTIP_VISIBLE_MS = 5000;
+    var tooltipHideTimer = null;
+    /** After auto-hide while pointer may still be inside the box, block re-show until pointer leaves that element. */
+    var suppressReshowUntilLeave = null;
 
     tooltip.className = 'agentic-v2-talk-tooltip';
     tooltip.setAttribute('role', 'tooltip');
@@ -48,7 +53,15 @@
     var tooltipHost = document.querySelector('main.dashboard-main.app-page') || document.body;
     tooltipHost.appendChild(tooltip);
 
+    function clearTooltipHideTimer() {
+      if (tooltipHideTimer) {
+        clearTimeout(tooltipHideTimer);
+        tooltipHideTimer = null;
+      }
+    }
+
     function hideTooltip() {
+      clearTooltipHideTimer();
       activeTarget = null;
       tooltip.classList.remove('is-visible');
     }
@@ -62,6 +75,7 @@
           try {
             localStorage.setItem(TOOLTIP_PREF_KEY, tipToggle.checked ? '1' : '0');
           } catch (err) {}
+          suppressReshowUntilLeave = null;
           hideTooltip();
         });
       }
@@ -127,10 +141,23 @@
       if (!tipsEnabled()) return;
       var message = target ? target.getAttribute('data-talk-track') : '';
       if (!message || !isTalkTrackAllowed(target)) return;
+      if (suppressReshowUntilLeave === target) return;
+      if (activeTarget === target && tooltip.classList.contains('is-visible')) {
+        return;
+      }
+      clearTooltipHideTimer();
       activeTarget = target;
       tooltip.textContent = message;
       tooltip.classList.add('is-visible');
       positionTooltip(target);
+      tooltipHideTimer = setTimeout(function () {
+        tooltipHideTimer = null;
+        if (activeTarget) {
+          suppressReshowUntilLeave = activeTarget;
+        }
+        activeTarget = null;
+        tooltip.classList.remove('is-visible');
+      }, TOOLTIP_VISIBLE_MS);
     }
 
     document.addEventListener('mouseover', function (e) {
@@ -152,6 +179,7 @@
       if (!fromTarget) return;
       var rel = e.relatedTarget;
       if (rel && fromTarget.contains(rel)) return;
+      if (suppressReshowUntilLeave === fromTarget) suppressReshowUntilLeave = null;
       hideTooltip();
     });
 
@@ -174,6 +202,7 @@
       if (!fromTarget) return;
       var rel = e.relatedTarget;
       if (rel && fromTarget.contains(rel)) return;
+      if (suppressReshowUntilLeave === fromTarget) suppressReshowUntilLeave = null;
       hideTooltip();
     });
 
