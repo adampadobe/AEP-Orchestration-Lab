@@ -528,7 +528,7 @@ async function classifyIndustry({ about, brandName, baseUrl, crawlText }) {
   let raw;
   try {
     raw = await callGemini(INDUSTRY_SYSTEM, parts.join('\n\n'), {
-      maxOutputTokens: 512,
+      maxOutputTokens: 2048,
       jsonMode: false,
       model: 'gemini-2.5-flash',
       temperature: 0.0,
@@ -537,16 +537,22 @@ async function classifyIndustry({ about, brandName, baseUrl, crawlText }) {
     return { error: String(e && e.message || e) };
   }
 
-  let parsed;
-  try { parsed = JSON.parse(stripJsonFences(raw)); }
-  catch (_e) { return { error: 'invalid JSON', raw: raw.slice(0, 200) }; }
+  const cleaned = stripJsonFences(raw);
+  let parsed = null;
+  try { parsed = JSON.parse(cleaned); }
+  catch (_e) {
+    // Fallback: pull "industry": "..." from a truncated / malformed response.
+    const m = /"industry"\s*:\s*"([^"]+)"/.exec(cleaned);
+    if (m) parsed = { industry: m[1], confidence: 'low', rationale: '(recovered from truncated response)' };
+  }
+  if (!parsed) return { error: 'invalid JSON', raw: cleaned.slice(0, 400) };
 
   const requested = String(parsed.industry || '').trim();
   const match = INDUSTRY_TAXONOMY.find(x => x.toLowerCase() === requested.toLowerCase());
   return {
     provider: 'gemini',
     model: 'gemini-2.5-flash',
-    industry: match || 'Other',
+    industry: match || (requested ? 'Other' : ''),
     confidence: String(parsed.confidence || 'medium').toLowerCase(),
     rationale: String(parsed.rationale || '').slice(0, 280),
     raw_response: requested && !match ? requested : undefined,
@@ -643,8 +649,15 @@ async function callGemini(systemPrompt, userPrompt, { maxOutputTokens = 8192, js
 }
 
 function stripJsonFences(text) {
-  const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text);
-  return (fenced ? fenced[1] : text).trim();
+  if (!text) return '';
+  const s = String(text);
+  // Properly closed fenced block: ```json ... ```
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(s);
+  if (fenced) return fenced[1].trim();
+  // Unterminated opening fence (model was truncated before closing ```).
+  const opening = /```(?:json)?\s*([\s\S]*)$/i.exec(s);
+  if (opening) return opening[1].trim();
+  return s.trim();
 }
 
 const STAKEHOLDER_SYSTEM = `You extract the business stakeholders (leadership, executives, founders, board members) from crawled website content so a sales team can see who to target.
