@@ -184,6 +184,12 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   color: var(--dash-text-secondary);
 }
 
+.brand-scraper-run-options-divider {
+  border: none;
+  border-top: 1px solid var(--dash-border);
+  margin: 4px 0;
+}
+
 .brand-scraper-run-options-menu p {
   margin: 4px 0 0;
   font-size: 11px;

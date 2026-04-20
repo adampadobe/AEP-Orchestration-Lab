@@ -1,0 +1,14 @@
+{
+  "name": "brand-scraper-crawler",
+  "description": "Playwright-based crawler for the brand scraper — runs on Cloud Run, invoked by the brandScraperAnalyze Cloud Function.",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "playwright": "1.48.0"
+  }
+}
