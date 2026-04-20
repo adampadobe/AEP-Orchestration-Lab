@@ -773,7 +773,8 @@
               <label for="edgeConfigId">Datastream ID</label>
               <input id="edgeConfigId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
               <label for="cdLabLaunchUrl">Launch script URL (Web SDK extension)</label>
-              <input id="cdLabLaunchUrl" type="url" placeholder="https://assets.adobedtm.com/.../launch-....min.js" autocomplete="off" spellcheck="false">
+              <input id="cdLabLaunchUrl" type="text" placeholder="Paste the full <script src=...></script> tag or just the URL" autocomplete="off" spellcheck="false">
+              <p class="hint" style="margin:0.25rem 0 0;">Pasting the full <code>&lt;script src="…"&gt;&lt;/script&gt;</code> tag is fine — we strip it to just the URL. <code>http://</code> is auto-upgraded to <code>https://</code>, and a bare domain gets the protocol added for you.</p>
               <div class="actions" style="margin-top:0.65rem;">
                 <button type="button" class="primary" id="cdLabSaveConfigBtn">Save to Firebase</button>
                 <button type="button" class="secondary" id="cdLabLoadConfigBtn">Reload from Firebase</button>
