@@ -225,6 +225,51 @@ body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
   margin-top: 0.38em;
 }
 
+.agentic-v2-talk-target {
+  cursor: help;
+}
+
+/* Ensure presenter hints stay hoverable on diagram chrome once a section is visible */
+.agentic-v2-board .agentic-node.is-visible .agentic-v2-talk-target,
+.agentic-v2-board .agentic-v2-agent-card.is-visible .agentic-v2-talk-target {
+  position: relative;
+  z-index: 2;
+}
+
+.agentic-v2-talk-tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 12000;
+  max-width: min(34rem, calc(100vw - 1.5rem));
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  background: rgba(15, 23, 42, 0.96);
+  color: #f8fafc;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: normal;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.agentic-v2-talk-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+html[data-aep-theme='dark'] .agentic-v2-talk-tooltip {
+  border-color: rgba(148, 163, 184, 0.38);
+  background: rgba(2, 6, 23, 0.96);
+  color: #e2e8f0;
+}
+
 .agentic-ai-v2-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -319,6 +364,23 @@ body.agentic-ai-v2-page.home-dashboard-ajo .ajo-page-inner.agentic-ai-v2-inner {
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
+}
+
+/* Next step in click-through: invisible hit target (same geometry as reveal) */
+.agentic-v2-stack > .agentic-v2-assistant-wrap.agentic-v2-step-next:not(.is-visible),
+.agentic-v2-stack > .agentic-orch.agentic-v2-step-next:not(.is-visible) {
+  visibility: visible !important;
+  opacity: 0 !important;
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+.agentic-v2-board .agentic-node.agentic-v2-step-next:not(.is-visible),
+.agentic-v2-board .agentic-v2-agent-card.agentic-v2-step-next:not(.is-visible) {
+  visibility: visible !important;
+  opacity: 0 !important;
+  pointer-events: auto !important;
+  cursor: pointer;
 }
 
 .agentic-v2-assistant-wrap.is-visible {

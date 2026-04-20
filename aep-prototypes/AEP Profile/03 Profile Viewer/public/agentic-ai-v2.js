@@ -9,6 +9,99 @@
     if (localStorage.getItem('aepNavHideInDev_agenticLayerArchitectureV2') === '1') return;
   } catch (e) {}
 
+  function initTalkTrackTooltips() {
+    var tooltip = document.createElement('div');
+    var activeTarget = null;
+    var margin = 10;
+    var gap = 10;
+
+    tooltip.className = 'agentic-v2-talk-tooltip';
+    tooltip.setAttribute('role', 'tooltip');
+    document.body.appendChild(tooltip);
+
+    function targetFrom(node) {
+      if (!node || typeof node.closest !== 'function') return null;
+      return node.closest('.agentic-v2-talk-target[data-talk-track]');
+    }
+
+    function positionTooltip(target) {
+      if (!target) return;
+      var rect = target.getBoundingClientRect();
+      var tRect = tooltip.getBoundingClientRect();
+      var left = rect.left + (rect.width - tRect.width) / 2;
+      var top = rect.top - tRect.height - gap;
+
+      if (left < margin) left = margin;
+      if (left + tRect.width > window.innerWidth - margin) {
+        left = window.innerWidth - tRect.width - margin;
+      }
+      if (top < margin) {
+        top = rect.bottom + gap;
+      }
+      if (top + tRect.height > window.innerHeight - margin) {
+        top = Math.max(margin, window.innerHeight - tRect.height - margin);
+      }
+
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    }
+
+    function showTooltip(target) {
+      var message = target ? target.getAttribute('data-talk-track') : '';
+      if (!message) return;
+      activeTarget = target;
+      tooltip.textContent = message;
+      tooltip.classList.add('is-visible');
+      positionTooltip(target);
+    }
+
+    function hideTooltip() {
+      activeTarget = null;
+      tooltip.classList.remove('is-visible');
+    }
+
+    document.addEventListener('mouseover', function (e) {
+      var target = targetFrom(e.target);
+      if (!target) return;
+      showTooltip(target);
+    });
+
+    document.addEventListener('mouseout', function (e) {
+      var fromTarget = targetFrom(e.target);
+      if (!fromTarget) return;
+      var toTarget = targetFrom(e.relatedTarget);
+      if (toTarget === fromTarget) return;
+      hideTooltip();
+    });
+
+    document.addEventListener('focusin', function (e) {
+      var target = targetFrom(e.target);
+      if (target) showTooltip(target);
+    });
+
+    document.addEventListener('focusout', function (e) {
+      var fromTarget = targetFrom(e.target);
+      if (!fromTarget) return;
+      var toTarget = targetFrom(e.relatedTarget);
+      if (toTarget === fromTarget) return;
+      hideTooltip();
+    });
+
+    window.addEventListener('resize', function () {
+      if (activeTarget) positionTooltip(activeTarget);
+    });
+
+    window.addEventListener(
+      'scroll',
+      function () {
+        if (activeTarget) positionTooltip(activeTarget);
+      },
+      true
+    );
+  }
+
+  initTalkTrackTooltips();
+
   var NS = 'http://www.w3.org/2000/svg';
   /** Coordinate system for nodes + SVG (must match where #arrowLayerV2 lives) */
   var coordRoot = document.getElementById('diagramBoardV2');
@@ -508,9 +601,44 @@
     if (playBtn) playBtn.disabled = false;
   }
 
+  function syncStepClickTargets() {
+    STEP_NODE_IDS.forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.classList.remove('agentic-v2-step-next');
+    });
+    if (stepIndex < STEP_NODE_IDS.length) {
+      var pending = $(STEP_NODE_IDS[stepIndex]);
+      if (pending) pending.classList.add('agentic-v2-step-next');
+    }
+  }
+
   function syncStepControls() {
     var atEnd = stepIndex >= STEP_NODE_IDS.length;
     if (stepBtn) stepBtn.disabled = atEnd;
+    syncStepClickTargets();
+  }
+
+  function initStepClickThrough() {
+    if (!coordRoot) return;
+    coordRoot.addEventListener(
+      'click',
+      function (e) {
+        if (stepIndex >= STEP_NODE_IDS.length) return;
+        var expected = STEP_NODE_IDS[stepIndex];
+        if (!expected) return;
+        var t = e.target;
+        if (!t || typeof t.closest !== 'function') return;
+        var host = t.closest('[id]');
+        if (!host || host.id !== expected) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        cancelAutoAdvance();
+        runStep(false);
+      },
+      true
+    );
   }
 
   function resetDiagram() {
@@ -577,6 +705,7 @@
   if (playBtn) playBtn.addEventListener('click', play);
   if (stepBtn) stepBtn.addEventListener('click', stepOnce);
   if (resetBtn) resetBtn.addEventListener('click', resetDiagram);
+  initStepClickThrough();
 
   window.addEventListener('resize', debouncedScaleAndRedrawArrows, { passive: true });
 
