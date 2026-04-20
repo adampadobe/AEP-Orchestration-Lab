@@ -118,21 +118,31 @@
           </div>
 
           <aside class="brand-scraper-model-panel" role="region" aria-label="LLM model">
-            <div class="brand-scraper-model-header">
-              <label for="brandScraperModelSelect" class="brand-scraper-label">Model</label>
-              <select id="brandScraperModelSelect" class="brand-scraper-select">
-                <option value="default">Default — Gemini (service account)</option>
-                <option value="anthropic">Anthropic (Claude) — your key</option>
-                <option value="openai">OpenAI (GPT-4o) — your key</option>
-              </select>
-              <span class="brand-scraper-model-status brand-scraper-result-muted" id="brandScraperModelStatus">Loading…</span>
+            <div class="brand-scraper-model-collapsed" id="brandScraperModelCollapsed">
+              <div class="brand-scraper-model-collapsed-text">
+                <strong>Model:</strong> Default — Gemini
+                <span class="brand-scraper-result-muted">No action required. Uses the function's service account.</span>
+              </div>
+              <button type="button" class="dashboard-btn-outline" id="brandScraperModelOverrideBtn">Override</button>
             </div>
-            <div class="brand-scraper-model-key-row" id="brandScraperModelKeyRow" hidden>
-              <input type="password" class="brand-scraper-input" id="brandScraperModelKey" placeholder="sk-..." autocomplete="off" spellcheck="false" />
-              <button type="button" class="dashboard-btn-primary" id="brandScraperModelSave">Save key</button>
-              <button type="button" class="dashboard-btn-outline" id="brandScraperModelRemove" hidden>Remove key</button>
+            <div class="brand-scraper-model-expanded" id="brandScraperModelExpanded" hidden>
+              <div class="brand-scraper-model-header">
+                <label for="brandScraperModelSelect" class="brand-scraper-label">Model</label>
+                <select id="brandScraperModelSelect" class="brand-scraper-select">
+                  <option value="default">Default — Gemini (service account)</option>
+                  <option value="anthropic">Anthropic (Claude) — your key</option>
+                  <option value="openai">OpenAI (GPT-4o) — your key</option>
+                </select>
+                <span class="brand-scraper-model-status brand-scraper-result-muted" id="brandScraperModelStatus">Loading…</span>
+                <button type="button" class="dashboard-btn-outline brand-scraper-model-close" id="brandScraperModelCloseBtn" title="Collapse" hidden>Collapse</button>
+              </div>
+              <div class="brand-scraper-model-key-row" id="brandScraperModelKeyRow" hidden>
+                <input type="password" class="brand-scraper-input" id="brandScraperModelKey" placeholder="sk-..." autocomplete="off" spellcheck="false" />
+                <button type="button" class="dashboard-btn-primary" id="brandScraperModelSave">Save key</button>
+                <button type="button" class="dashboard-btn-outline" id="brandScraperModelRemove" hidden>Remove key</button>
+              </div>
+              <p class="brand-scraper-result-muted">Keys stored in Google Secret Manager, scoped to the current sandbox. Default uses Vertex AI Gemini via the function's service account — no key required.</p>
             </div>
-            <p class="brand-scraper-result-muted">Keys stored in Google Secret Manager, scoped to the current sandbox. Default uses Vertex AI Gemini via the function's service account — no key required.</p>
           </aside>
         </section>
 
