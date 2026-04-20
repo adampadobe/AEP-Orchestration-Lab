@@ -40,6 +40,18 @@ function dedup(arr) {
   return out;
 }
 
+/**
+ * Scopes sometimes carry a trailing `#` with no fragment (historical paste
+ * artefact). Treat `foo` and `foo#` as the same scope — strip the dangling #
+ * before comparison or output so merges are genuinely idempotent.
+ */
+function normaliseScope(s) {
+  if (s == null) return '';
+  let v = String(s).trim();
+  if (v.endsWith('#')) v = v.slice(0, -1);
+  return v;
+}
+
 function surfaceBelongsToTarget(surface, target) {
   if (!surface || !target || !target.host) return false;
   const prefix = `web://${target.host}${target.path}`;
@@ -156,13 +168,16 @@ async function previewLaunchRuleUpdate({
   const settings = (action.settings && typeof action.settings === 'object') ? action.settings : {};
   const personalization = (settings.personalization && typeof settings.personalization === 'object') ? settings.personalization : {};
   const currentSurfaces = Array.isArray(personalization.surfaces) ? personalization.surfaces.slice() : [];
-  const currentScopes = Array.isArray(personalization.decisionScopes) ? personalization.decisionScopes.slice() : [];
+  // Scopes need trailing-# normalisation so `foo` vs `foo#` don't produce a
+  // false write. Surfaces keep the raw fragment.
+  const currentScopesRaw = Array.isArray(personalization.decisionScopes) ? personalization.decisionScopes.slice() : [];
+  const currentScopes = currentScopesRaw.map(normaliseScope);
 
   const lab = computeLabSurfacesFromPlacements(target, placements);
   const surfacePartition = partitionByTarget(currentSurfaces, target);
   const scopePartition = partitionByTarget(currentScopes, target);
   const proposedSurfaces = dedup([...surfacePartition.theirs, ...lab.surfaces]);
-  const proposedScopes = dedup([...scopePartition.theirs, ...lab.scopes]);
+  const proposedScopes = dedup([...scopePartition.theirs, ...lab.scopes.map(normaliseScope)]);
 
   const surfacesAdded = proposedSurfaces.filter(s => !currentSurfaces.includes(s));
   const surfacesRemoved = currentSurfaces.filter(s => !proposedSurfaces.includes(s));
