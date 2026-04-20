@@ -456,10 +456,10 @@
     // Re-apply any saved surface HTML overrides on top of the live content
     // so the user's custom wrapper/styling survives each decisioning call.
     try {
-      if (window.CdLabUi && typeof window.CdLabUi.applySurfaceOverridesToMounts === 'function') {
-        window.CdLabUi.applySurfaceOverridesToMounts();
+      if (window.CdLabUi && typeof window.CdLabUi.applySurfaceStylesToMounts === 'function') {
+        window.CdLabUi.applySurfaceStylesToMounts();
       }
-    } catch (e) { cdLog('applySurfaceOverridesToMounts', String(e && e.message || e)); }
+    } catch (e) { cdLog('applySurfaceStylesToMounts', String(e && e.message || e)); }
     return result;
   }
 
@@ -545,10 +545,10 @@
       CdEdgeMounts.applyPropositionsManually(propositionsOut);
     }
     try {
-      if (window.CdLabUi && typeof window.CdLabUi.applySurfaceOverridesToMounts === 'function') {
-        window.CdLabUi.applySurfaceOverridesToMounts();
+      if (window.CdLabUi && typeof window.CdLabUi.applySurfaceStylesToMounts === 'function') {
+        window.CdLabUi.applySurfaceStylesToMounts();
       }
-    } catch (e) { cdLog('applySurfaceOverridesToMounts', String(e && e.message || e)); }
+    } catch (e) { cdLog('applySurfaceStylesToMounts', String(e && e.message || e)); }
     return result;
   }
 

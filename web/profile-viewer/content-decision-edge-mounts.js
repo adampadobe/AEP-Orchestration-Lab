@@ -162,7 +162,37 @@
     if (!raw || typeof raw !== 'object') return false;
     if (raw.imageURL != null || raw.imageUrl != null || raw.fullDescription != null) return true;
     if (raw.title != null && raw.fullDescription != null) return true;
+    // AJO json-content-item shape: { title, image, text, url }.
+    if (raw.image != null || raw.text != null) return true;
     return false;
+  }
+
+  function pickImageUrl(raw) {
+    if (!raw || typeof raw !== 'object') return '';
+    if (raw.imageURL != null) return String(raw.imageURL);
+    if (raw.imageUrl != null) return String(raw.imageUrl);
+    // AJO JSON often uses `image` as a string URL.
+    if (raw.image != null) {
+      if (typeof raw.image === 'string') return raw.image;
+      if (typeof raw.image === 'object') return String(raw.image.url || raw.image.src || '');
+    }
+    return '';
+  }
+
+  function pickDescription(raw) {
+    if (!raw || typeof raw !== 'object') return '';
+    if (raw.fullDescription != null) return String(raw.fullDescription);
+    if (raw.text != null) return String(raw.text);
+    if (raw.description != null) return String(raw.description);
+    return '';
+  }
+
+  function pickUrl(raw) {
+    if (!raw || typeof raw !== 'object') return '';
+    if (raw.url != null) return String(raw.url);
+    if (raw.link != null) return String(raw.link);
+    if (raw.actionUrl != null) return String(raw.actionUrl);
+    return '';
   }
 
   function isLaunchNestedContentCardShape(content) {
@@ -208,42 +238,29 @@
     };
   }
 
+  function flattenFlatShape(raw) {
+    return {
+      imageURL: pickImageUrl(raw),
+      title: raw.title != null ? String(raw.title) : '',
+      fullDescription: pickDescription(raw),
+      url: pickUrl(raw),
+    };
+  }
+
   function normalizeContentCardPayload(raw) {
     if (!raw || typeof raw !== 'object') return null;
-    if (isFlatContentCardShape(raw)) {
-      return {
-        imageURL: raw.imageURL != null ? raw.imageURL : raw.imageUrl,
-        title: raw.title,
-        fullDescription: raw.fullDescription,
-      };
-    }
+    if (isFlatContentCardShape(raw)) return flattenFlatShape(raw);
     if (raw.content != null && typeof raw.content === 'object') {
       var cObj = raw.content;
-      if (isFlatContentCardShape(cObj)) {
-        return {
-          imageURL: cObj.imageURL != null ? cObj.imageURL : cObj.imageUrl,
-          title: cObj.title,
-          fullDescription: cObj.fullDescription,
-        };
-      }
-      if (isLaunchNestedContentCardShape(cObj)) {
-        return normalizeFromNestedContentShape(cObj);
-      }
+      if (isFlatContentCardShape(cObj)) return flattenFlatShape(cObj);
+      if (isLaunchNestedContentCardShape(cObj)) return normalizeFromNestedContentShape(cObj);
     }
     if (typeof raw.content === 'string') {
       if (raw.content === 'undefined') return null;
       var parsedObj = parseJsonStringMaybe(raw.content);
       if (parsedObj && typeof parsedObj === 'object') {
-        if (isFlatContentCardShape(parsedObj)) {
-          return {
-            imageURL: parsedObj.imageURL != null ? parsedObj.imageURL : parsedObj.imageUrl,
-            title: parsedObj.title,
-            fullDescription: parsedObj.fullDescription,
-          };
-        }
-        if (isLaunchNestedContentCardShape(parsedObj)) {
-          return normalizeFromNestedContentShape(parsedObj);
-        }
+        if (isFlatContentCardShape(parsedObj)) return flattenFlatShape(parsedObj);
+        if (isLaunchNestedContentCardShape(parsedObj)) return normalizeFromNestedContentShape(parsedObj);
       }
     }
     return null;
@@ -254,41 +271,67 @@
     return item.data || item.characteristics || item;
   }
 
+  /**
+   * Render a content-card payload as a slot-based banner. The mount gets
+   * `.cd-banner` + `.cd-banner--overlay` so the per-surface style form's
+   * CSS custom properties (--cd-title-color, --cd-block-justify, etc.)
+   * take effect. Each slot (.cd-slot--title / --desc / --cta) is its own
+   * flex cell so horizontal+vertical alignment controls are independent.
+   */
   function renderContentCardPayload(el, payload) {
     if (!el || !payload) return false;
     var imgUrl = payload.imageURL != null ? String(payload.imageURL).trim() : '';
     var title = payload.title != null ? String(payload.title) : '';
     var desc = payload.fullDescription != null ? String(payload.fullDescription) : '';
+    var url = payload.url != null ? String(payload.url) : '';
+    if (!imgUrl && !title && !desc) return false;
+
     el.textContent = '';
-    el.classList.add('cd-edge-ajo-card');
-    var inner = document.createElement('div');
-    inner.className = 'cd-edge-ajo-card-inner';
+    el.classList.add('cd-edge-rendered-banner');
+    var banner = document.createElement('div');
+    banner.className = 'cd-banner cd-banner--overlay';
     if (imgUrl) {
       var img = document.createElement('img');
-      img.className = 'cd-edge-ajo-card-img';
+      img.className = 'cd-banner-image';
       img.src = imgUrl;
       img.alt = title || 'Personalized offer';
       img.loading = 'lazy';
       img.decoding = 'async';
-      inner.appendChild(img);
+      banner.appendChild(img);
     }
-    var body = document.createElement('div');
-    body.className = 'cd-edge-ajo-card-body';
+    var copy = document.createElement('div');
+    copy.className = 'cd-banner-copy';
     if (title) {
+      var titleSlot = document.createElement('div');
+      titleSlot.className = 'cd-slot cd-slot--title';
       var h = document.createElement('h3');
-      h.className = 'cd-edge-ajo-card-title';
+      h.className = 'cd-slot-title';
       h.textContent = title;
-      body.appendChild(h);
+      titleSlot.appendChild(h);
+      copy.appendChild(titleSlot);
     }
     if (desc) {
+      var descSlot = document.createElement('div');
+      descSlot.className = 'cd-slot cd-slot--desc';
       var p = document.createElement('p');
-      p.className = 'cd-edge-ajo-card-desc';
+      p.className = 'cd-slot-desc';
       p.textContent = desc;
-      body.appendChild(p);
+      descSlot.appendChild(p);
+      copy.appendChild(descSlot);
     }
-    inner.appendChild(body);
-    el.appendChild(inner);
-    return !!(imgUrl || title || desc);
+    // Always render a CTA slot so users can style it even if AJO doesn't
+    // ship a URL. Label is a sensible default.
+    var ctaSlot = document.createElement('div');
+    ctaSlot.className = 'cd-slot cd-slot--cta';
+    var cta = document.createElement(url ? 'a' : 'span');
+    cta.className = 'cd-slot-cta';
+    cta.textContent = 'Learn more';
+    if (url) { cta.href = url; cta.target = '_blank'; cta.rel = 'noopener'; }
+    ctaSlot.appendChild(cta);
+    copy.appendChild(ctaSlot);
+    banner.appendChild(copy);
+    el.appendChild(banner);
+    return true;
   }
 
   function looksLikeHtmlString(s) {
@@ -302,29 +345,9 @@
     var data = getItemData(item);
     if (!data) return false;
 
-    var preferHtml =
-      el.id === 'cd-edge-hero' ||
-      el.id === 'cd-edge-topRibbon' ||
-      (el.id && String(el.id).indexOf('cd-edge-topRibbon') === 0) ||
-      (el.classList && el.classList.contains('cd-edge-prefer-html'));
-    if (preferHtml) {
-      if (looksLikeHtmlString(data)) {
-        el.innerHTML = data;
-        return true;
-      }
-      if (typeof data.content === 'string' && looksLikeHtmlString(data.content)) {
-        el.innerHTML = data.content;
-        return true;
-      }
-      if (data && data.deliveryURL) {
-        el.innerHTML =
-          '<iframe class="cd-edge-ajo-iframe" title="Personalized content" src="' +
-          String(data.deliveryURL).replace(/"/g, '') +
-          '"></iframe>';
-        return true;
-      }
-    }
-
+    // Try the slot-based banner renderer first for structured JSON payloads.
+    // Raw HTML / iframes fall through below if the payload doesn't look
+    // like a content-card.
     var cardPayload = normalizeContentCardPayload(data);
     if (cardPayload) {
       return renderContentCardPayload(el, cardPayload);

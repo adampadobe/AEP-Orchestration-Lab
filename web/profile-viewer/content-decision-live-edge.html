@@ -673,6 +673,143 @@
     .cd-lab-launch-preview__list.rm li::before { content: '− '; color: #dc2626; font-weight: 700; }
     .cd-lab-launch-preview__empty { color: var(--muted, #7a7a7a); }
     .cd-lab-launch-preview .status { padding: 0.35rem 0.5rem; border-radius: 6px; margin: 0 0 0.4rem; }
+    /* ===== Per-surface banner template (rendered by content-decision-edge-mounts.js) ===== */
+    /* Mounts render AJO json-content-item data into a .cd-banner with .cd-slot-- slots.
+       CSS custom properties (--cd-title-color etc.) are set per mount by the style form
+       in Step 4 and persisted per sandbox+surface. */
+    .cd-banner {
+      position: relative;
+      width: 100%;
+      min-height: 180px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #11131a;
+      display: block;
+      --cd-title-color: #e6e9ef;
+      --cd-desc-color: #c5c9d3;
+      --cd-cta-bg: #f0f2f6;
+      --cd-cta-text: #1a1d23;
+    }
+    .cd-banner-image {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 180px;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+    .cd-banner-copy {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 1rem 1.25rem;
+      min-height: 180px;
+      --cd-block-justify: flex-end;
+      justify-content: var(--cd-block-justify);
+    }
+    .cd-banner--overlay .cd-banner-copy { background: linear-gradient(180deg, transparent, rgba(0,0,0,0.55)); }
+    .cd-banner--below {
+      min-height: 0;
+    }
+    .cd-banner--below .cd-banner-image {
+      position: static;
+      height: 180px;
+      min-height: 0;
+      width: 100%;
+      object-fit: cover;
+    }
+    .cd-banner--below .cd-banner-copy {
+      background: rgba(0,0,0,0.3);
+      min-height: 120px;
+    }
+    .cd-banner--half .cd-banner-copy {
+      background: rgba(0,0,0,0.5);
+      margin-top: 50%;
+      min-height: 120px;
+    }
+    .cd-slot {
+      display: flex;
+      --cd-slot-justify: center;
+      --cd-slot-align: center;
+      justify-content: var(--cd-slot-justify);
+      align-items: var(--cd-slot-align);
+      min-height: 1.5rem;
+    }
+    .cd-slot--title { --cd-slot-align: flex-start; }
+    .cd-slot--desc  { --cd-slot-align: center; }
+    .cd-slot--cta   { --cd-slot-align: flex-end; }
+    .cd-slot-title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--cd-title-color);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+    .cd-slot-desc {
+      margin: 0;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: var(--cd-desc-color);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+    .cd-slot-cta {
+      display: inline-block;
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-decoration: none;
+      background: var(--cd-cta-bg);
+      color: var(--cd-cta-text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    /* ===== Per-surface style editor form (Step 4) ===== */
+    .cd-style-editor { display: grid; gap: 0.75rem; margin-top: 0.5rem; }
+    .cd-style-editor-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.65rem; }
+    @media (max-width: 900px) { .cd-style-editor-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .cd-style-editor-grid { grid-template-columns: 1fr; } }
+    .cd-style-editor-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.65rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+    }
+    .cd-style-editor-block strong {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    .cd-style-editor-block label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+    .cd-style-editor-block select,
+    .cd-style-editor-block input[type="text"] {
+      width: 100%;
+      padding: 0.3rem 0.45rem;
+      font-size: 0.78rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+      box-sizing: border-box;
+    }
+    .cd-color-row { display: flex; gap: 0.4rem; align-items: center; }
+    .cd-color-row input[type="color"] { width: 34px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: transparent; cursor: pointer; }
+    .cd-color-row input[type="text"] { flex: 1 1 auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .cd-style-editor-block--full { grid-column: 1 / -1; }
+
     .cd-lab-override-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
     .cd-lab-override-row label { margin: 0; font-size: 0.8125rem; color: var(--muted); min-width: 5rem; }
     .cd-lab-override-row select { flex: 1 1 auto; min-width: 0; }
@@ -841,19 +978,80 @@
             </section>
 
             <section class="cd-lab-step">
-              <h3 class="cd-lab-step-title">4. Surface HTML overrides (optional)</h3>
-              <p class="hint">AJO delivers the <em>content</em> (image, copy, link). The surrounding <em>styling</em> — colours, layout, wrapper markup — is yours. Pick a surface, tweak the HTML wrapper, and <strong>Apply</strong>. Overrides are saved per sandbox + surface to Firebase and re-applied automatically on every decisioning run.</p>
+              <h3 class="cd-lab-step-title">4. Surface styling</h3>
+              <p class="hint">AJO delivers the <em>content</em> (title, image, text, link) as JSON. The <em>styling</em> — layout, alignment, colours — is yours. Pick a surface and adjust. Changes apply to the preview instantly and save per sandbox + surface in Firebase, so your formatting survives every decisioning run.</p>
               <div class="cd-lab-override-row">
-                <label for="cdLabOverrideSurface">Surface</label>
-                <select id="cdLabOverrideSurface" class="sandbox-select" aria-label="Pick a surface to edit its HTML"></select>
+                <label for="cdLabStyleSurface">Surface</label>
+                <select id="cdLabStyleSurface" class="sandbox-select" aria-label="Pick a surface to edit its styling"></select>
               </div>
-              <label for="cdLabOverrideHtml" style="margin-top:0.5rem;">HTML override</label>
-              <textarea id="cdLabOverrideHtml" class="cd-lab-override-textarea" rows="8" placeholder="Leave empty to let the live proposition render as-is. Otherwise, paste your wrapper HTML here."></textarea>
-              <p class="status" id="cdLabOverrideMsg" role="status" aria-live="polite"></p>
-              <div class="actions" style="margin-top:0.35rem;">
-                <button type="button" class="primary" id="cdLabOverrideApplyBtn">Apply &amp; save override</button>
-                <button type="button" class="secondary" id="cdLabOverrideLoadCurrentBtn" title="Copy the live proposition HTML into the editor so you can tweak it">Copy live HTML</button>
-                <button type="button" class="secondary" id="cdLabOverrideResetBtn" title="Delete the saved override for this surface and re-render from the live proposition">Reset to live</button>
+              <p class="status" id="cdLabStyleMsg" role="status" aria-live="polite"></p>
+
+              <div class="cd-style-editor">
+                <strong style="font-size:0.78rem;">Banner layout &amp; colours</strong>
+                <div class="cd-style-editor-grid">
+                  <div class="cd-style-editor-block cd-style-editor-block--full">
+                    <strong>Text vs image</strong>
+                    <label for="cdStyleLayoutMode">Placement</label>
+                    <select id="cdStyleLayoutMode">
+                      <option value="overlay">On image (overlay)</option>
+                      <option value="half">Half overlaid (card on seam)</option>
+                      <option value="below">Below image</option>
+                    </select>
+                  </div>
+                  <div class="cd-style-editor-block">
+                    <strong>Copy block</strong>
+                    <label for="cdStyleBlockY">Vertical on banner</label>
+                    <select id="cdStyleBlockY">
+                      <option value="flex-start">Top</option>
+                      <option value="center">Middle</option>
+                      <option value="flex-end">Bottom</option>
+                    </select>
+                  </div>
+                  <div class="cd-style-editor-block">
+                    <strong>Title</strong>
+                    <label for="cdStyleTitleH">Horizontal</label>
+                    <select id="cdStyleTitleH"><option value="flex-start">Left</option><option value="center">Center</option><option value="flex-end">Right</option></select>
+                    <label for="cdStyleTitleV">Vertical</label>
+                    <select id="cdStyleTitleV"><option value="flex-start">Top</option><option value="center">Middle</option><option value="flex-end">Bottom</option></select>
+                    <label>Text colour</label>
+                    <div class="cd-color-row">
+                      <input type="color" id="cdStyleTitleColorPick" value="#e6e9ef">
+                      <input type="text" id="cdStyleTitleColorHex" value="#e6e9ef" maxlength="9">
+                    </div>
+                  </div>
+                  <div class="cd-style-editor-block">
+                    <strong>Description</strong>
+                    <label for="cdStyleDescH">Horizontal</label>
+                    <select id="cdStyleDescH"><option value="flex-start">Left</option><option value="center">Center</option><option value="flex-end">Right</option></select>
+                    <label for="cdStyleDescV">Vertical</label>
+                    <select id="cdStyleDescV"><option value="flex-start">Top</option><option value="center">Middle</option><option value="flex-end">Bottom</option></select>
+                    <label>Text colour</label>
+                    <div class="cd-color-row">
+                      <input type="color" id="cdStyleDescColorPick" value="#c5c9d3">
+                      <input type="text" id="cdStyleDescColorHex" value="#c5c9d3" maxlength="9">
+                    </div>
+                  </div>
+                  <div class="cd-style-editor-block">
+                    <strong>Button</strong>
+                    <label for="cdStyleCtaH">Horizontal</label>
+                    <select id="cdStyleCtaH"><option value="flex-start">Left</option><option value="center">Center</option><option value="flex-end">Right</option></select>
+                    <label for="cdStyleCtaV">Vertical</label>
+                    <select id="cdStyleCtaV"><option value="flex-start">Top</option><option value="center">Middle</option><option value="flex-end">Bottom</option></select>
+                    <label>Background</label>
+                    <div class="cd-color-row">
+                      <input type="color" id="cdStyleCtaBgPick" value="#f0f2f6">
+                      <input type="text" id="cdStyleCtaBgHex" value="#f0f2f6" maxlength="9">
+                    </div>
+                    <label>Button text</label>
+                    <div class="cd-color-row">
+                      <input type="color" id="cdStyleCtaTextPick" value="#1a1d23">
+                      <input type="text" id="cdStyleCtaTextHex" value="#1a1d23" maxlength="9">
+                    </div>
+                  </div>
+                </div>
+                <div class="actions" style="margin-top:0.35rem;">
+                  <button type="button" class="secondary" id="cdLabStyleResetBtn">Reset styles for this surface</button>
+                </div>
               </div>
             </section>
 
