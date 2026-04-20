@@ -364,7 +364,14 @@ async function publishRuleToDevelopment({ accessToken, clientId, orgId, property
     if (!bindRes.ok) return { ok: false, step: 'setLibraryEnvironment', error: bindRes.error, library };
   }
 
-  // 2) Add the rule as a resource. Tolerate "already a resource" —
+  // 2a) Revise the rule. Launch's model: editing a rule_component does not
+  //    advance the parent rule's revision; libraries reference specific
+  //    revisions, so without this call the add-resource step fails with
+  //    "rule is invalid because it needs to be revised".
+  const revise = await tagsReactorService.reviseRule(accessToken, clientId, orgId, ruleId);
+  if (!revise.ok) return { ok: false, step: 'reviseRule', error: revise.error, library, libraryReused };
+
+  // 2b) Add the rule as a resource. Tolerate "already a resource" —
   //    POST relationships/resources is not idempotent by default and may
   //    error if the rule is already in the library, which is fine.
   const addRes = await tagsReactorService.addLibraryResources(

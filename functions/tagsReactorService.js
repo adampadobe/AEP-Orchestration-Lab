@@ -491,6 +491,32 @@ async function getEnvironment(token, clientId, orgId, environmentId, { includeLi
   };
 }
 
+/**
+ * Create a new revision of a rule. Required after PATCHing rule_components
+ * before the rule can be added to a library ("needs to be revised").
+ */
+async function reviseRule(token, clientId, orgId, ruleId) {
+  const rid = String(ruleId || '').trim();
+  if (!rid) return { ok: false, httpStatus: 400, error: 'ruleId is required' };
+  const body = {
+    data: {
+      id: rid,
+      type: 'rules',
+      meta: { action: 'revise' },
+    },
+  };
+  const r = await reactorRequest(token, clientId, orgId, 'PATCH', '/rules/' + encodeURIComponent(rid), body);
+  if (!r.ok) return r;
+  const d = (r.data && r.data.data) || {};
+  const a = (d.attributes && typeof d.attributes === 'object') ? d.attributes : {};
+  return {
+    ok: true,
+    httpStatus: r.httpStatus,
+    ruleId: d.id || rid,
+    revisionNumber: a.revision_number != null ? Number(a.revision_number) : null,
+  };
+}
+
 async function reactorRequest(token, clientId, orgId, method, path, body) {
   const url = REACTOR_BASE + path;
   const init = {
@@ -650,5 +676,6 @@ module.exports = {
   createBuild,
   getBuild,
   getEnvironment,
+  reviseRule,
   probeTagsApiAccess,
 };
