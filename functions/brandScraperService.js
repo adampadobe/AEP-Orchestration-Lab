@@ -11,7 +11,7 @@ const assetsV2 = require('./brandScraperAssetsV2');
 const exportKit = require('./brandScraperExport');
 
 const USER_AGENT = 'Mozilla/5.0 (compatible; AEPOrchestrationLab-BrandScraper/1.0; +https://aep-orchestration-lab.web.app)';
-const REQUEST_TIMEOUT_MS = 10000;
+const REQUEST_TIMEOUT_MS = 15000;
 const MAX_PAGES = 5;
 const MAX_DISCOVERED = 200;
 const PRIORITY_PATHS = ['/', '/about', '/about-us', '/products', '/services', '/solutions', '/brand', '/company'];
