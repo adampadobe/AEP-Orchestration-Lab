@@ -1,10 +1,12 @@
 (function () {
   'use strict';
 
-  // Firebase Hosting rewrites cap proxied requests at 60s. The analyze endpoint
-  // runs longer (≈75s with all four LLM calls), so hit the function's direct
-  // Cloud Run URL. List/get/delete are fast and still go via /api/*.
+  // Firebase Hosting rewrites cap proxied requests at 60s. The analyze + classify
+  // + export endpoints run longer, so hit their direct Cloud Run URLs.
+  // List/get/delete are fast and still go via /api/*.
   const ANALYZE_URL = 'https://brandscraperanalyze-a5xduykcsq-uc.a.run.app/';
+  const CLASSIFY_URL = 'https://brandscraperclassify-a5xduykcsq-uc.a.run.app/';
+  const EXPORT_URL = 'https://brandscraperexport-a5xduykcsq-uc.a.run.app/';
 
   const form = document.getElementById('brandScraperForm');
   const urlInput = document.getElementById('brandScraperUrl');
@@ -352,10 +354,33 @@
       );
     }
 
-    if (Array.isArray(a.images) && a.images.length) {
+    if (Array.isArray(a.imagesV2) && a.imagesV2.length) {
+      const ok = a.imagesV2.filter(v => !v.error && v.signedUrl);
+      const errored = a.imagesV2.filter(v => v.error);
       blocks.push(
         '<div class="brand-scraper-asset-row">' +
-          '<h5>Images <span class="brand-scraper-asset-hint">first ' + a.images.length + ' discovered — thumbnails load from origin, some sites block hotlinking</span></h5>' +
+          '<h5>Classified images <span class="brand-scraper-asset-hint">' + ok.length + ' stored in GCS · links expire ' + fmtDate(a.imagesV2SignedUrlExpiresAt || ok[0] && ok[0].signedUrlExpiresAt) + (errored.length ? ' · ' + errored.length + ' failed' : '') + '</span></h5>' +
+          '<div class="brand-scraper-imagev2-grid">' +
+          ok.map(img => (
+            '<figure class="brand-scraper-imagev2">' +
+              '<a href="' + esc(img.signedUrl) + '" target="_blank" rel="noopener">' +
+                '<img src="' + esc(img.signedUrl) + '" alt="' + esc(img.alt || (img.classification && img.classification.subject) || "") + '" loading="lazy" />' +
+              '</a>' +
+              '<figcaption>' +
+                (img.classification && img.classification.category ? '<span class="brand-scraper-chip brand-scraper-chip--cat brand-scraper-chip--cat-' + esc(img.classification.category) + '">' + esc(img.classification.category) + '</span>' : '') +
+                (img.classification && img.classification.subject ? '<span class="brand-scraper-imagev2-caption">' + esc(img.classification.subject) + '</span>' : '') +
+              '</figcaption>' +
+            '</figure>'
+          )).join('') +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    if (Array.isArray(a.images) && a.images.length && !(Array.isArray(a.imagesV2) && a.imagesV2.length)) {
+      blocks.push(
+        '<div class="brand-scraper-asset-row">' +
+          '<h5>Image URLs <span class="brand-scraper-asset-hint">first ' + a.images.length + ' discovered — click <strong>Classify images</strong> to download and categorise</span></h5>' +
           '<div class="brand-scraper-image-grid">' +
           a.images.slice(0, 48).map(img =>
             '<a href="' + esc(img.src) + '" target="_blank" rel="noopener" title="' + esc(img.alt || img.src) + '">' +
@@ -391,18 +416,35 @@
     '</section>';
   }
 
+  let currentScrapeData = null;
+
   function renderResults(data) {
+    currentScrapeData = data;
     resultsEl.hidden = false;
     const crawl = data.crawl || data.crawlSummary;
+    const lastExport = data.lastExport || null;
     resultsEl.innerHTML = (
       '<header class="brand-scraper-result-header">' +
-        '<h3>' + esc(data.brandName || 'Results') + '</h3>' +
-        '<p class="brand-scraper-result-muted">' + esc(data.baseUrl || data.url || '') + ' · ' +
-          esc((data.businessType || '').toUpperCase()) + (data.country ? ' · ' + esc(data.country) : '') +
-          (data.elapsedMs ? ' · ' + (data.elapsedMs / 1000).toFixed(1) + 's' : '') +
-          (data.sandbox ? ' · sandbox: <code>' + esc(data.sandbox) + '</code>' : '') +
-        '</p>' +
+        '<div class="brand-scraper-result-header-main">' +
+          '<h3>' + esc(data.brandName || 'Results') + '</h3>' +
+          '<p class="brand-scraper-result-muted">' + esc(data.baseUrl || data.url || '') + ' · ' +
+            esc((data.businessType || '').toUpperCase()) + (data.country ? ' · ' + esc(data.country) : '') +
+            (data.elapsedMs ? ' · ' + (data.elapsedMs / 1000).toFixed(1) + 's' : '') +
+            (data.sandbox ? ' · sandbox: <code>' + esc(data.sandbox) + '</code>' : '') +
+          '</p>' +
+        '</div>' +
+        '<div class="brand-scraper-result-actions">' +
+          (data.scrapeId ? '<button type="button" class="dashboard-btn-outline" data-action="classify-assets">Classify images</button>' : '') +
+          (data.scrapeId ? '<button type="button" class="dashboard-btn-primary" data-action="export-kit">Export kit (ZIP)</button>' : '') +
+        '</div>' +
       '</header>' +
+      (lastExport && lastExport.signedUrl ? (
+        '<div class="brand-scraper-export-link">' +
+          '<span>Latest export ready:</span> ' +
+          '<a href="' + esc(lastExport.signedUrl) + '" target="_blank" rel="noopener" download>Download ZIP</a>' +
+          ' <span class="brand-scraper-result-muted">(link expires ' + fmtDate(lastExport.signedUrlExpiresAt) + ')</span>' +
+        '</div>'
+      ) : '') +
       (data.analysisError ? '<p class="brand-scraper-result-muted">Analysis error: ' + esc(data.analysisError) + '</p>' : '') +
       renderAnalysis(data.analysis) +
       renderSegments(data.segments) +
@@ -526,6 +568,86 @@
       else if (btn.dataset.action === 'delete') deleteScrape(id);
     });
   }
+
+  async function runClassify() {
+    if (!currentScrapeData || !currentScrapeData.scrapeId) return;
+    const sb = getSandbox();
+    if (!sb) { setStatus('Select a sandbox first.', 'error'); return; }
+    const btn = resultsEl.querySelector('[data-action="classify-assets"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Classifying…'; }
+    setStatus('Downloading images to GCS and classifying with Gemini vision \u2026 this can take 30\u201360 seconds.', 'info');
+    try {
+      const url = CLASSIFY_URL + '?sandbox=' + encodeURIComponent(sb);
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox: sb, scrapeId: currentScrapeData.scrapeId }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) { setStatus('Classify failed: ' + (data.error || resp.statusText), 'error'); return; }
+      setStatus('Classified ' + data.classified + '/' + data.total + ' images in ' + ((data.elapsedMs || 0) / 1000).toFixed(1) + 's. Signed URLs expire ' + fmtDate(data.signedUrlExpiresAt) + '.', 'info');
+      // Merge into currentScrapeData and re-render
+      const crawl = currentScrapeData.crawl || currentScrapeData.crawlSummary || {};
+      const assets = crawl.assets || {};
+      assets.imagesV2 = data.images || [];
+      assets.imagesV2SignedUrlExpiresAt = data.signedUrlExpiresAt;
+      crawl.assets = assets;
+      if (currentScrapeData.crawl) currentScrapeData.crawl = crawl;
+      else currentScrapeData.crawlSummary = crawl;
+      renderResults(currentScrapeData);
+    } catch (e) {
+      setStatus('Network error: ' + (e && e.message || e), 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Classify images'; }
+    }
+  }
+
+  async function runExport() {
+    if (!currentScrapeData || !currentScrapeData.scrapeId) return;
+    const sb = getSandbox();
+    if (!sb) { setStatus('Select a sandbox first.', 'error'); return; }
+    const btn = resultsEl.querySelector('[data-action="export-kit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Building ZIP…'; }
+    setStatus('Building export kit ZIP (brand guidelines + personas + campaigns + segments + images) \u2026', 'info');
+    try {
+      const url = EXPORT_URL + '?sandbox=' + encodeURIComponent(sb);
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox: sb, scrapeId: currentScrapeData.scrapeId }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) { setStatus('Export failed: ' + (data.error || resp.statusText), 'error'); return; }
+      setStatus('Export ready in ' + ((data.elapsedMs || 0) / 1000).toFixed(1) + 's. Signed URL expires ' + fmtDate(data.signedUrlExpiresAt) + '.', 'info');
+      currentScrapeData.lastExport = {
+        storagePath: data.storagePath,
+        signedUrl: data.signedUrl,
+        signedUrlExpiresAt: data.signedUrlExpiresAt,
+        createdAt: new Date().toISOString(),
+      };
+      renderResults(currentScrapeData);
+      // Auto-trigger download
+      const a = document.createElement('a');
+      a.href = data.signedUrl;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.download = '';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      setStatus('Network error: ' + (e && e.message || e), 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Export kit (ZIP)'; }
+    }
+  }
+
+  resultsEl.addEventListener('click', (evt) => {
+    const btn = evt.target.closest('button[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'classify-assets') runClassify();
+    else if (btn.dataset.action === 'export-kit') runExport();
+  });
 
   if (historyRefreshBtn) historyRefreshBtn.addEventListener('click', loadHistory);
 
