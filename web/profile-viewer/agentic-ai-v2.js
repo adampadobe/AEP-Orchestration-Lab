@@ -599,9 +599,44 @@
     if (playBtn) playBtn.disabled = false;
   }
 
+  function syncStepClickTargets() {
+    STEP_NODE_IDS.forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.classList.remove('agentic-v2-step-next');
+    });
+    if (stepIndex < STEP_NODE_IDS.length) {
+      var pending = $(STEP_NODE_IDS[stepIndex]);
+      if (pending) pending.classList.add('agentic-v2-step-next');
+    }
+  }
+
   function syncStepControls() {
     var atEnd = stepIndex >= STEP_NODE_IDS.length;
     if (stepBtn) stepBtn.disabled = atEnd;
+    syncStepClickTargets();
+  }
+
+  function initStepClickThrough() {
+    if (!coordRoot) return;
+    coordRoot.addEventListener(
+      'click',
+      function (e) {
+        if (stepIndex >= STEP_NODE_IDS.length) return;
+        var expected = STEP_NODE_IDS[stepIndex];
+        if (!expected) return;
+        var t = e.target;
+        if (!t || typeof t.closest !== 'function') return;
+        var host = t.closest('[id]');
+        if (!host || host.id !== expected) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        cancelAutoAdvance();
+        runStep(false);
+      },
+      true
+    );
   }
 
   function resetDiagram() {
@@ -669,6 +704,7 @@
   if (stepBtn) stepBtn.addEventListener('click', stepOnce);
   if (resetBtn) resetBtn.addEventListener('click', resetDiagram);
   initTalkTrackTooltips();
+  initStepClickThrough();
 
   window.addEventListener('resize', debouncedScaleAndRedrawArrows, { passive: true });
 

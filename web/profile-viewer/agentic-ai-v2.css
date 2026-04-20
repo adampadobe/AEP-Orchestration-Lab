@@ -359,6 +359,23 @@ html[data-aep-theme='dark'] .agentic-v2-talk-tooltip {
   pointer-events: none;
 }
 
+/* Next step in click-through: invisible hit target (same geometry as reveal) */
+.agentic-v2-stack > .agentic-v2-assistant-wrap.agentic-v2-step-next:not(.is-visible),
+.agentic-v2-stack > .agentic-orch.agentic-v2-step-next:not(.is-visible) {
+  visibility: visible !important;
+  opacity: 0 !important;
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+.agentic-v2-board .agentic-node.agentic-v2-step-next:not(.is-visible),
+.agentic-v2-board .agentic-v2-agent-card.agentic-v2-step-next:not(.is-visible) {
+  visibility: visible !important;
+  opacity: 0 !important;
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
 .agentic-v2-assistant-wrap.is-visible {
   visibility: visible;
   animation: agentic-v2-in 0.42s cubic-bezier(0.33, 1, 0.68, 1) forwards;
