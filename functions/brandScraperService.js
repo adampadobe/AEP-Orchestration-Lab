@@ -914,6 +914,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       baseUrl: (saved && saved.baseUrl) || crawl.baseUrl,
       businessType: (saved && saved.businessType) || body.businessType || 'b2c',
       country: (saved && saved.country) || body.country || '',
+      industry: (saved && saved.industry) || inferredIndustry,
       crawl: (saved && saved.crawlSummary) || crawlSummary,
       analysis: (saved && saved.analysis) || analysis,
       analysisError: (saved && saved.analysisError) || analysisError,
