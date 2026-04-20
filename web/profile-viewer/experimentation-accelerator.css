@@ -1,5 +1,5 @@
 /**
- * AJO Experimentation Accelerator — native mock UI (full width, no screenshot assets).
+ * AJO Experimentation Accelerator — AJO chrome + rail; Overview body uses screenshot slices.
  */
 
 .experimentation-accelerator-page .visually-hidden {
@@ -274,41 +274,77 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
 
 .ajo-mock-rail {
   flex-shrink: 0;
-  width: 56px;
+  width: 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 0 1rem;
-  background: color-mix(in srgb, var(--dash-sidebar, #eae8ee) 88%, var(--ajo-surface));
+  gap: 0.18rem;
+  padding: 0.4rem 0 0.75rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  background: color-mix(in srgb, var(--dash-sidebar, #e8eaed) 55%, var(--ajo-surface) 45%);
   border-right: 1px solid var(--ajo-border);
   box-sizing: border-box;
 }
 
-.ajo-rail-btn {
+.ajo-rail-chevron {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 100%;
+  padding: 0.05rem 0;
+  color: color-mix(in srgb, var(--ajo-text) 38%, var(--ajo-muted));
+  pointer-events: none;
+}
+
+.ajo-rail-chevron svg {
+  width: 10px;
+  height: 10px;
+  display: block;
+  opacity: 0.9;
+}
+
+.ajo-rail-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
-  color: var(--ajo-muted);
+  color: color-mix(in srgb, var(--ajo-text) 62%, var(--ajo-muted));
   cursor: default;
 }
 
 .ajo-rail-btn--active {
-  background: color-mix(in srgb, var(--ajo-text) 82%, transparent);
-  color: var(--ajo-surface);
-  box-shadow: inset 3px 0 0 0 var(--ajo-surface);
+  background: color-mix(in srgb, var(--ajo-text) 88%, var(--ajo-muted) 12%);
+  color: color-mix(in srgb, var(--dash-surface) 4%, white 96%);
 }
 
 .ajo-rail-ico {
   width: 20px;
   height: 20px;
 }
+
+.ajo-rail-btn--active .ajo-rail-ico--flask {
+  width: 21px;
+  height: 21px;
+}
+
+html[data-aep-theme='dark'] .ajo-mock-rail {
+  background: color-mix(in srgb, var(--dash-sidebar, #1e2128) 70%, var(--ajo-surface) 30%);
+}
+
+html[data-aep-theme='dark'] .ajo-rail-btn {
+  color: color-mix(in srgb, var(--ajo-text) 58%, var(--ajo-muted));
+}
+
 
 .ajo-mock-workspace {
   flex: 1;
@@ -426,9 +462,25 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
   box-sizing: border-box;
 }
 
-/* Overview — full width sections */
+/* Overview — screenshot strips below tabs (pixel-match reference) */
 .ajo-overview-scroll {
-  padding: 0 0 2rem;
+  padding: 0;
+  background: var(--ajo-work-bg);
+}
+
+.ajo-overview-canvas {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  background: var(--ajo-work-bg);
+}
+
+.ajo-slice-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: top;
 }
 
 .ajo-hero {
