@@ -230,6 +230,15 @@ function mapLibraryResource(d) {
 
 function mapRuleComponentResource(d) {
   const a = d.attributes && typeof d.attributes === 'object' ? d.attributes : {};
+  // Reactor stores settings as a JSON-encoded string; surface both the raw
+  // string and a best-effort parsed object so clients can inspect surfaces,
+  // decisionScopes, etc.
+  let settingsParsed = null;
+  if (typeof a.settings === 'string' && a.settings.trim()) {
+    try { settingsParsed = JSON.parse(a.settings); } catch (_e) { settingsParsed = null; }
+  } else if (a.settings && typeof a.settings === 'object') {
+    settingsParsed = a.settings;
+  }
   return {
     componentId: d.id != null ? String(d.id) : '',
     name: a.name != null ? String(a.name) : '',
@@ -237,6 +246,8 @@ function mapRuleComponentResource(d) {
     order: a.order != null ? Number(a.order) : null,
     enabled: a.enabled !== false,
     updatedAt: a.updated_at != null ? String(a.updated_at) : '',
+    settingsRaw: typeof a.settings === 'string' ? a.settings : null,
+    settings: settingsParsed,
   };
 }
 
