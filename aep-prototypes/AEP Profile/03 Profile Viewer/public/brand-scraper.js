@@ -327,6 +327,75 @@
     return sb ? path + sep + 'sandbox=' + encodeURIComponent(sb) : path;
   }
 
+  // ---------- Progress bar (client-side elapsed-time estimate) ----------
+  const progressEl = document.getElementById('brandScraperProgress');
+  const progressFillEl = document.getElementById('brandScraperProgressFill');
+  const progressPhaseEl = document.getElementById('brandScraperProgressPhase');
+  const progressElapsedEl = document.getElementById('brandScraperProgressElapsed');
+  const progressEtaEl = document.getElementById('brandScraperProgressEta');
+
+  let progressHandle = null;
+
+  function fmtSeconds(ms) {
+    const s = Math.max(0, Math.round(ms / 1000));
+    if (s < 60) return s + 's';
+    return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+  }
+
+  function estimateAnalyzeDurationMs(opts) {
+    // Rough per-phase Gemini Pro / Flash durations (seconds) observed in prod.
+    const crawl = opts.crawler === 'js' ? 15 : 5;
+    const includes = opts.include || {};
+    const trio = [includes.analysis, includes.personas, includes.campaigns, includes.stakeholders]
+      .filter(Boolean).length;
+    // trio members run in parallel — wall time ≈ max of them, not sum.
+    const trioWall = trio === 0 ? 0 : 30 + (trio - 1) * 2;  // slight amortisation cost
+    const segmentsWall = includes.segments ? 25 : 0;        // sequential after trio
+    const industryWall = trio > 0 ? 2 : 0;                   // always runs when we have analysis context
+    return (crawl + trioWall + segmentsWall + industryWall) * 1000;
+  }
+
+  function startProgress(totalMs, phases) {
+    if (!progressEl) return;
+    stopProgress();
+    progressEl.hidden = false;
+    progressEl.classList.remove('is-done');
+    progressFillEl.style.width = '0%';
+    progressElapsedEl.textContent = '0s';
+    progressEtaEl.textContent = fmtSeconds(totalMs);
+
+    const started = Date.now();
+    const rotationMs = Math.max(2500, Math.floor(totalMs / (phases.length || 1)));
+    progressPhaseEl.textContent = phases[0] || 'Working…';
+
+    progressHandle = setInterval(() => {
+      const elapsed = Date.now() - started;
+      // Smooth asymptotic curve — linear to 80%, then slows to avoid hitting 100% early.
+      const linearFrac = Math.min(0.8, elapsed / totalMs * 0.85);
+      const remaining = 1 - linearFrac;
+      const overrun = Math.max(0, elapsed - totalMs * 0.85);
+      const slow = remaining * (1 - Math.exp(-overrun / (totalMs || 1)));
+      const pct = Math.min(0.95, linearFrac + slow) * 100;
+      progressFillEl.style.width = pct.toFixed(1) + '%';
+      progressElapsedEl.textContent = fmtSeconds(elapsed);
+      const phaseIdx = Math.min(phases.length - 1, Math.floor(elapsed / rotationMs));
+      if (phases[phaseIdx]) progressPhaseEl.textContent = phases[phaseIdx];
+    }, 250);
+  }
+
+  function stopProgress({ success } = {}) {
+    if (progressHandle) { clearInterval(progressHandle); progressHandle = null; }
+    if (!progressEl) return;
+    if (success) {
+      progressFillEl.style.width = '100%';
+      progressEl.classList.add('is-done');
+      progressPhaseEl.textContent = 'Done';
+      setTimeout(() => { progressEl.hidden = true; }, 900);
+    } else {
+      progressEl.hidden = true;
+    }
+  }
+
   // Retry on Cloud Run cold-start 401/403 and transient 5xx. Short backoff
   // because 403-on-cold-start usually clears within 1-3 seconds.
   function isTransientStatus(s) {
@@ -1085,7 +1154,8 @@
     if (!sb) { setStatus('Select a sandbox first.', 'error'); return; }
     const btn = resultsEl.querySelector('[data-action="classify-assets"]');
     if (btn) { btn.disabled = true; btn.textContent = 'Classifying…'; }
-    setStatus('Downloading images to GCS and classifying with Gemini vision \u2026 this can take 30\u201360 seconds.', 'info');
+    setStatus('Downloading images to GCS and classifying with Gemini vision \u2026', 'info');
+    startProgress(30000, ['Downloading images', 'Classifying with Gemini vision', 'Generating signed URLs', 'Updating scrape']);
     try {
       const url = CLASSIFY_URL + '?sandbox=' + encodeURIComponent(sb);
       const resp = await fetchWithRetry(url, {
@@ -1097,7 +1167,8 @@
         onRetry: (n, status) => setStatus('Warming classifier (retry ' + n + ' of 2, ' + status + ') \u2026', 'info'),
       });
       const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) { setStatus('Classify failed: ' + (data.error || resp.statusText), 'error'); return; }
+      if (!resp.ok) { setStatus('Classify failed: ' + (data.error || resp.statusText), 'error'); stopProgress(); return; }
+      stopProgress({ success: true });
       setStatus('Classified ' + data.classified + '/' + data.total + ' images in ' + ((data.elapsedMs || 0) / 1000).toFixed(1) + 's. Signed URLs expire ' + fmtDate(data.signedUrlExpiresAt) + '.', 'info');
       // Merge into currentScrapeData and re-render
       const crawl = currentScrapeData.crawl || currentScrapeData.crawlSummary || {};
@@ -1110,6 +1181,7 @@
       renderResults(currentScrapeData);
     } catch (e) {
       setStatus('Network error: ' + (e && e.message || e), 'error');
+      stopProgress();
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Classify images'; }
     }
@@ -1122,6 +1194,7 @@
     const btn = resultsEl.querySelector('[data-action="export-kit"]');
     if (btn) { btn.disabled = true; btn.textContent = 'Building ZIP…'; }
     setStatus('Building export kit ZIP (brand guidelines + personas + campaigns + segments + images) \u2026', 'info');
+    startProgress(8000, ['Serialising scrape', 'Packaging images', 'Uploading ZIP to GCS', 'Generating signed URL']);
     try {
       const url = EXPORT_URL + '?sandbox=' + encodeURIComponent(sb);
       const resp = await fetchWithRetry(url, {
@@ -1133,7 +1206,8 @@
         onRetry: (n, status) => setStatus('Warming export kit (retry ' + n + ' of 2, ' + status + ') \u2026', 'info'),
       });
       const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) { setStatus('Export failed: ' + (data.error || resp.statusText), 'error'); return; }
+      if (!resp.ok) { setStatus('Export failed: ' + (data.error || resp.statusText), 'error'); stopProgress(); return; }
+      stopProgress({ success: true });
       setStatus('Export ready in ' + ((data.elapsedMs || 0) / 1000).toFixed(1) + 's. Signed URL expires ' + fmtDate(data.signedUrlExpiresAt) + '.', 'info');
       currentScrapeData.lastExport = {
         storagePath: data.storagePath,
@@ -1153,6 +1227,7 @@
       a.remove();
     } catch (e) {
       setStatus('Network error: ' + (e && e.message || e), 'error');
+      stopProgress();
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Export kit (ZIP)'; }
     }
@@ -1221,8 +1296,25 @@
 
     if (runBtn) runBtn.disabled = true;
     const modeLabel = mode === 'append' ? 'appending to existing scrape' : 'running new scrape';
-    setStatus('Crawling ' + url + ' for sandbox "' + sb + '" (' + modeLabel + ') \u2026 this can take 30\u201390 seconds.', 'info');
+    setStatus('Crawling ' + url + ' for sandbox "' + sb + '" (' + modeLabel + ') \u2026', 'info');
     resultsEl.hidden = true;
+
+    const estMs = estimateAnalyzeDurationMs({
+      crawler: (crawlerJsCb && crawlerJsCb.checked) ? 'js' : 'fetch',
+      include: runOptions,
+    });
+    const phases = [
+      'Crawling pages',
+      (crawlerJsCb && crawlerJsCb.checked) ? 'Rendering JS (Playwright)' : 'Extracting page content',
+      runOptions.analysis ? 'Generating brand guidelines' : null,
+      runOptions.personas ? 'Building customer personas' : null,
+      runOptions.campaigns ? 'Detecting campaigns' : null,
+      runOptions.stakeholders ? 'Extracting stakeholders' : null,
+      runOptions.segments ? 'Building audience segments' : null,
+      'Classifying industry',
+      'Saving to Firestore',
+    ].filter(Boolean);
+    startProgress(estMs, phases);
 
     try {
       const analyzeUrl = ANALYZE_URL + (ANALYZE_URL.includes('?') ? '&' : '?') + 'sandbox=' + encodeURIComponent(sb);
@@ -1251,15 +1343,18 @@
           msg += '\n\nFailure breakdown: ' + Object.entries(data.details.byReason).map(([k,v]) => k + ' × ' + v).join(', ') + '.';
         }
         setStatus(msg, 'error');
+        stopProgress();
         return;
       }
       const actionVerb = data.appended ? 'Appended to existing scrape' : 'Saved as new scrape';
       setStatus('Done \u2014 crawled ' + (data.crawl && data.crawl.pagesScraped) + ' pages in ' +
         (data.elapsedMs ? (data.elapsedMs / 1000).toFixed(1) + 's' : '') + '. ' + actionVerb + ' in sandbox "' + sb + '".', 'info');
+      stopProgress({ success: true });
       renderResults(data);
       loadHistory();
     } catch (e) {
       setStatus('Network error: ' + (e && e.message || e), 'error');
+      stopProgress();
     } finally {
       if (runBtn) runBtn.disabled = false;
     }
