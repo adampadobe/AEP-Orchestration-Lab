@@ -12,8 +12,8 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260424c">
-  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260424c">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260425a">
+  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260425a">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive">
   <a href="index.html" class="exp-accel-lab-exit">Profile Viewer</a>
@@ -403,8 +403,68 @@
 
                   <div class="ajo-panel" id="ajoPanelExperiments" role="tabpanel" aria-labelledby="ajoTabExperiments" hidden>
                     <div class="ajo-panel-inner ajo-experiments-scroll">
+                      <div class="ajo-exp-layout" id="ajoExpLayout">
+                      <aside class="ajo-exp-filters" id="ajoExpFilters" hidden aria-hidden="true">
+                        <div class="ajo-exp-filters-head">
+                          <button type="button" class="ajo-exp-filters-hide" id="ajoExpFiltersHide">
+                            <svg class="ajo-exp-filters-funnel" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <path d="M4 5h16l-6 7v6l-4 2v-8L4 5z" stroke-linejoin="round"/>
+                            </svg>
+                            Hide filters
+                          </button>
+                        </div>
+                        <div class="ajo-exp-filters-body">
+                          <details class="ajo-filter-section" open>
+                            <summary class="ajo-filter-summary">Type <span class="ajo-filter-chev" aria-hidden="true"></span></summary>
+                            <div class="ajo-filter-options">
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> A/B</label>
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> MAB</label>
+                            </div>
+                          </details>
+                          <details class="ajo-filter-section" open>
+                            <summary class="ajo-filter-summary">Starred <span class="ajo-filter-chev" aria-hidden="true"></span></summary>
+                            <div class="ajo-filter-options">
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Starred</label>
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Not starred</label>
+                            </div>
+                          </details>
+                          <details class="ajo-filter-section" open>
+                            <summary class="ajo-filter-summary">Status <span class="ajo-filter-chev" aria-hidden="true"></span></summary>
+                            <div class="ajo-filter-options">
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Draft</label>
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Scheduled</label>
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Live</label>
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Completed</label>
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Stopped</label>
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> In review</label>
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Failed</label>
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Archived</label>
+                            </div>
+                          </details>
+                          <details class="ajo-filter-section" open>
+                            <summary class="ajo-filter-summary">Source <span class="ajo-filter-chev" aria-hidden="true"></span></summary>
+                            <div class="ajo-filter-options">
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Adobe Target</label>
+                              <label class="ajo-filter-check"><input type="checkbox" disabled /> Adobe Journey Optimizer</label>
+                            </div>
+                          </details>
+                          <details class="ajo-filter-section" open>
+                            <summary class="ajo-filter-summary">Created by <span class="ajo-filter-chev" aria-hidden="true"></span></summary>
+                            <div class="ajo-filter-created">
+                              <span class="ajo-filter-created-label">Label</span>
+                              <div class="ajo-filter-select-fake" aria-hidden="true">Value <span class="ajo-filter-select-chev"></span></div>
+                            </div>
+                          </details>
+                        </div>
+                      </aside>
+                      <div class="ajo-exp-main">
                       <div class="ajo-exp-toolbar">
-                        <span class="ajo-exp-tools-muted">Filters (demo)</span>
+                        <button type="button" class="ajo-exp-filter-trigger" id="ajoExpFilterToggle" aria-expanded="false" aria-controls="ajoExpFilters" title="Show filters">
+                          <svg class="ajo-exp-filter-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M4 5h16l-6 7v6l-4 2v-8L4 5z" stroke-linejoin="round"/>
+                          </svg>
+                          <span class="visually-hidden">Show filters</span>
+                        </button>
                         <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Starred</label>
                         <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Created by me</label>
                         <span class="ajo-pill-select">Status: All</span>
@@ -439,7 +499,7 @@
                           <tbody>
                             <tr>
                               <td class="ajo-td-star"><span class="ajo-star ajo-star--on" title="Favorite" aria-hidden="true">&#9733;</span></td>
-                              <td class="ajo-td-name"><div class="ajo-name-cell"><button type="button" class="ajo-table-link" disabled>Homepage Hero Image Test</button><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
+                              <td class="ajo-td-name"><div class="ajo-name-cell"><a href="experimentation-accelerator-experiment.html" class="ajo-table-link">Homepage Hero Image Test</a><button type="button" class="ajo-row-ellipsis" disabled title="More" aria-label="Row actions">&#8230;</button></div></td>
                               <td><span class="ajo-status ajo-status--live">Live</span></td>
                               <td class="ajo-td-lift"><span class="ajo-lift ajo-lift--up">&#8593; 23%</span></td>
                               <td>Miguel Ramos</td>
@@ -580,6 +640,8 @@
                           </tbody>
                         </table>
                       </div>
+                      </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -635,7 +697,7 @@
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script defer src="experimentation-accelerator.js?v=20260424"></script>
-  <script defer src="experimentation-accelerator-customise.js?v=20260424c"></script>
+  <script defer src="experimentation-accelerator.js?v=20260425a"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260425a"></script>
 </body>
 </html>

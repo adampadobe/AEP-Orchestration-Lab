@@ -1383,6 +1383,190 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
   padding: 0 1.25rem 2rem;
 }
 
+.ajo-exp-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 0;
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .ajo-exp-layout--filters-visible {
+    flex-direction: column;
+  }
+
+  .ajo-exp-layout--filters-visible .ajo-exp-filters {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
+.ajo-exp-filters {
+  flex: 0 0 280px;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  align-self: flex-start;
+}
+
+.ajo-exp-layout:not(.ajo-exp-layout--filters-visible) .ajo-exp-filters[hidden] {
+  display: none;
+}
+
+.ajo-exp-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ajo-exp-filters-head {
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--ajo-border);
+}
+
+.ajo-exp-filters-hide {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.ajo-exp-filters-funnel {
+  flex-shrink: 0;
+  color: var(--ajo-muted);
+}
+
+.ajo-exp-filters-body {
+  padding: 0.35rem 0 0.65rem;
+}
+
+.ajo-filter-section {
+  border-bottom: 1px solid var(--ajo-border);
+}
+
+.ajo-filter-section:last-child {
+  border-bottom: none;
+}
+
+.ajo-filter-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+  padding: 0.65rem 0.9rem;
+  cursor: default;
+}
+
+.ajo-filter-summary::-webkit-details-marker {
+  display: none;
+}
+
+.ajo-filter-chev::after {
+  content: '';
+  display: inline-block;
+  margin-left: 0.35rem;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--ajo-muted);
+  vertical-align: middle;
+  opacity: 0.85;
+}
+
+.ajo-filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0 0.9rem 0.75rem;
+}
+
+.ajo-filter-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--ajo-text);
+  cursor: default;
+}
+
+.ajo-filter-check input {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 4px;
+  accent-color: var(--dash-blue, #1473e6);
+  cursor: default;
+}
+
+.ajo-filter-created {
+  padding: 0 0.9rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ajo-filter-created-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--ajo-muted);
+  text-transform: none;
+}
+
+.ajo-filter-select-fake {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--ajo-border);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  color: var(--ajo-muted);
+  background: var(--ajo-surface);
+}
+
+.ajo-filter-select-chev {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--ajo-muted);
+  opacity: 0.8;
+}
+
+.ajo-exp-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 10px);
+  background: var(--ajo-surface);
+  color: var(--ajo-text);
+  cursor: pointer;
+}
+
+.ajo-exp-filter-trigger:hover {
+  background: var(--ajo-surface-2);
+}
+
+.ajo-exp-filter-ico {
+  display: block;
+}
+
 .ajo-exp-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1558,10 +1742,14 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
   background: none;
   border: none;
   padding: 0;
-  cursor: default;
+  cursor: pointer;
   text-align: left;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+a.ajo-table-link:hover {
+  color: color-mix(in srgb, var(--dash-blue, #1473e6) 88%, var(--ajo-text));
 }
 
 .ajo-status {
@@ -1614,6 +1802,552 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
 .ajo-lift--flat {
   background: color-mix(in srgb, var(--ajo-surface-2) 85%, var(--ajo-border));
   color: var(--ajo-text);
+}
+
+/* ——— Experiment detail (Homepage Hero Image Test) ——— */
+.ajo-exp-detail-scroll {
+  padding: 0 1.25rem 2.5rem;
+  max-width: 1160px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.ajo-exp-detail-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  padding: 1rem 0 1.25rem;
+  border-bottom: 1px solid var(--ajo-border);
+  margin-bottom: 1.25rem;
+}
+
+.ajo-exp-detail-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  border: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+  color: var(--ajo-text);
+  text-decoration: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ajo-exp-detail-back:hover {
+  background: var(--ajo-surface-2);
+}
+
+.ajo-exp-detail-badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+  color: var(--ajo-muted);
+  flex-shrink: 0;
+}
+
+.ajo-exp-detail-title {
+  margin: 0;
+  flex: 1 1 200px;
+  min-width: 0;
+  font-size: clamp(1.15rem, 2.2vw, 1.35rem);
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-exp-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  justify-content: flex-end;
+  flex: 1 1 100%;
+}
+
+@media (min-width: 900px) {
+  .ajo-exp-detail-actions {
+    flex: 0 1 auto;
+    margin-left: auto;
+    justify-content: flex-end;
+  }
+}
+
+.ajo-exp-detail-admin {
+  font-size: 0.75rem;
+  color: var(--ajo-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.ajo-exp-detail-admin-ajo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+}
+
+.ajo-exp-detail-admin-ajo .ajo-adobe-a {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.ajo-btn-sec {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  border: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+  color: var(--ajo-text);
+  cursor: default;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ajo-btn-prim {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  border: 1px solid color-mix(in srgb, var(--dash-blue) 55%, var(--ajo-border));
+  background: var(--dash-blue, #1473e6);
+  color: var(--dash-surface, #fff);
+  cursor: default;
+}
+
+.ajo-exp-lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius, 16px);
+  box-shadow: var(--dash-shadow, 0 4px 20px rgba(15, 15, 25, 0.06));
+  margin-bottom: 1.25rem;
+}
+
+.ajo-exp-lead-ico {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--dash-info-border) 40%, var(--ajo-surface));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dash-info-text);
+}
+
+html[data-aep-theme='dark'] .ajo-exp-lead-ico {
+  background: color-mix(in srgb, var(--dash-blue) 25%, var(--ajo-surface));
+  color: var(--dash-blue);
+}
+
+.ajo-exp-lead-ico svg {
+  width: 22px;
+  height: 22px;
+}
+
+.ajo-exp-lead-text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.ajo-exp-lead-main {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+}
+
+.ajo-exp-lead-sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-exp-lead-sub .ajo-kpi-delta--up {
+  color: var(--dash-success-text, #1a6b4d);
+  font-weight: 600;
+}
+
+.ajo-btn-outline {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+  color: var(--ajo-text);
+  cursor: default;
+  flex-shrink: 0;
+}
+
+.ajo-exp-hypothesis {
+  padding: 1rem 1.1rem;
+  background: var(--ajo-surface-2);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  margin-bottom: 1.25rem;
+}
+
+.ajo-exp-hypothesis-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.ajo-exp-hypothesis-head h2 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-btn-textual {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--dash-blue, #1473e6);
+  background: none;
+  border: none;
+  cursor: default;
+  padding: 0;
+}
+
+.ajo-exp-hypothesis-placeholder {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ajo-muted);
+  line-height: 1.45;
+}
+
+.ajo-exp-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 920px) {
+  .ajo-exp-detail-grid {
+    grid-template-columns: 1fr 300px;
+  }
+}
+
+.ajo-exp-details-card {
+  background: var(--ajo-surface-2);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.ajo-exp-details-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--ajo-border);
+}
+
+.ajo-exp-details-card-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+  flex: 1 1 auto;
+}
+
+.ajo-exp-details-meta {
+  font-size: 0.75rem;
+  color: var(--ajo-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ajo-exp-cal-ico {
+  vertical-align: middle;
+  margin-right: 0.2rem;
+  flex-shrink: 0;
+}
+
+.ajo-exp-effect-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.ajo-exp-effect-cell {
+  padding: 1rem 1.1rem;
+  font-size: 0.8125rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-exp-effect-cell:first-child {
+  border-right: 1px solid var(--ajo-border);
+}
+
+.ajo-exp-effect-cell strong {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+  margin-bottom: 0.25rem;
+}
+
+.ajo-exp-effect-cell .ajo-mini-delta {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--dash-success-text, #1a6b4d);
+}
+
+.ajo-exp-leader-card {
+  display: grid;
+  grid-template-columns: 1fr minmax(100px, 140px);
+  gap: 1rem;
+  align-items: stretch;
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.ajo-exp-leader-copy dt {
+  margin: 0 0 0.15rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--ajo-muted);
+  text-transform: none;
+}
+
+.ajo-exp-leader-copy dd {
+  margin: 0 0 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+}
+
+.ajo-exp-leader-copy dd:last-of-type {
+  margin-bottom: 0;
+}
+
+.ajo-exp-lift-badge {
+  display: inline-block;
+  margin-top: 0.2rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--dash-success-bg, rgba(45, 140, 111, 0.12));
+  color: var(--dash-success-text, #1a6b4d);
+}
+
+.ajo-exp-leader-thumb {
+  border-radius: var(--dash-radius-sm, 10px);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--dash-blue) 18%, var(--ajo-surface)),
+    color-mix(in srgb, var(--dash-info-border) 22%, var(--ajo-surface))
+  );
+  border: 1px solid var(--ajo-border);
+  min-height: 88px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 4px;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.ajo-exp-leader-thumb span {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ajo-text) 12%, var(--ajo-surface));
+  opacity: 0.85;
+}
+
+.ajo-exp-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.ajo-exp-chip {
+  flex: 1 1 140px;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 10px);
+  font-size: 0.75rem;
+}
+
+.ajo-exp-chip-ico {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.ajo-exp-chip-ico--metric {
+  background: color-mix(in srgb, var(--dash-success-border) 20%, var(--ajo-surface));
+}
+
+.ajo-exp-chip-ico--layers {
+  background: color-mix(in srgb, var(--dash-warning-border) 22%, var(--ajo-surface));
+}
+
+.ajo-exp-chip-ico--aud {
+  background: color-mix(in srgb, var(--dash-info-border) 28%, var(--ajo-surface));
+}
+
+.ajo-exp-chip-label {
+  display: block;
+  font-size: 0.625rem;
+  color: var(--ajo-muted);
+  margin-bottom: 0.15rem;
+}
+
+.ajo-exp-chip-val {
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-exp-opp-col h2 {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-exp-opp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ajo-exp-opp-card {
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 0.85rem 0.9rem;
+  position: relative;
+}
+
+.ajo-exp-opp-time {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.75rem;
+  font-size: 0.6875rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-exp-opp-card p {
+  margin: 0 2.5rem 0.65rem 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+  line-height: 1.4;
+}
+
+.ajo-exp-opp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ajo-exp-opp-feedback {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.ajo-exp-opp-feedback button {
+  font: inherit;
+  background: none;
+  border: none;
+  cursor: default;
+  padding: 0.15rem;
+  opacity: 0.65;
+}
+
+.ajo-exp-results {
+  margin-top: 0.25rem;
+}
+
+.ajo-exp-results h2 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-results-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--ajo-surface);
+}
+
+.ajo-results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.ajo-results-table th,
+.ajo-results-table td {
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid var(--ajo-border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.ajo-results-table th {
+  background: var(--ajo-surface-2);
+  font-weight: 600;
+  color: var(--ajo-muted);
+}
+
+.ajo-results-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 /* Light AJO workspace when lab theme is dark */

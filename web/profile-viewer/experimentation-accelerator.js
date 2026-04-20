@@ -7,34 +7,64 @@
     var tabEx = document.getElementById('ajoTabExperiments');
     var panOv = document.getElementById('ajoPanelOverview');
     var panEx = document.getElementById('ajoPanelExperiments');
+    if (!tabOv || !tabEx || !panOv || !panEx) return;
 
     function show(which) {
       var isOv = which === 'overview';
-      if (tabOv) {
-        tabOv.setAttribute('aria-selected', isOv ? 'true' : 'false');
-      }
-      if (tabEx) {
-        tabEx.setAttribute('aria-selected', isOv ? 'false' : 'true');
-      }
-      if (panOv) {
-        panOv.hidden = !isOv;
-      }
-      if (panEx) {
-        panEx.hidden = isOv;
-      }
+      tabOv.setAttribute('aria-selected', isOv ? 'true' : 'false');
+      tabEx.setAttribute('aria-selected', isOv ? 'false' : 'true');
+      panOv.hidden = !isOv;
+      panEx.hidden = isOv;
+      try {
+        var pathOnly = location.pathname || 'experimentation-accelerator.html';
+        if (isOv) history.replaceState(null, '', pathOnly);
+        else history.replaceState(null, '', pathOnly + '#experiments');
+      } catch (e) {}
     }
 
-    if (tabOv) {
-      tabOv.addEventListener('click', function () {
-        show('overview');
-      });
-    }
-    if (tabEx) {
-      tabEx.addEventListener('click', function () {
+    tabOv.addEventListener('click', function () {
+      show('overview');
+    });
+    tabEx.addEventListener('click', function () {
+      show('experiments');
+    });
+
+    try {
+      if (location.hash === '#experiments') {
         show('experiments');
+      } else {
+        show('overview');
+      }
+    } catch (e2) {
+      show('overview');
+    }
+  }
+
+  function initExpFilters() {
+    var layout = document.getElementById('ajoExpLayout');
+    var aside = document.getElementById('ajoExpFilters');
+    var toggle = document.getElementById('ajoExpFilterToggle');
+    var hideBtn = document.getElementById('ajoExpFiltersHide');
+    if (!layout || !aside || !toggle) return;
+
+    function setOpen(open) {
+      layout.classList.toggle('ajo-exp-layout--filters-visible', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      aside.setAttribute('aria-hidden', open ? 'false' : 'true');
+      if (open) aside.removeAttribute('hidden');
+      else aside.setAttribute('hidden', '');
+    }
+
+    setOpen(false);
+
+    toggle.addEventListener('click', function () {
+      setOpen(!layout.classList.contains('ajo-exp-layout--filters-visible'));
+    });
+    if (hideBtn) {
+      hideBtn.addEventListener('click', function () {
+        setOpen(false);
       });
     }
-    show('overview');
   }
 
   function initFlyoutSidebar() {
@@ -108,6 +138,7 @@
 
   function init() {
     initTabs();
+    initExpFilters();
     initFlyoutSidebar();
   }
 
