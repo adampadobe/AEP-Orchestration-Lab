@@ -467,6 +467,27 @@ async function updateRuleComponentSettings(token, clientId, orgId, componentId, 
   return { ok: true, httpStatus: resp.status, item: mapRuleComponentResource(d), raw: d };
 }
 
+/**
+ * GET /environments/:id — with optional ?include=library to also return
+ * the library currently bound to the environment.
+ */
+async function getEnvironment(token, clientId, orgId, environmentId, { includeLibrary = false } = {}) {
+  const eid = String(environmentId || '').trim();
+  if (!eid) return { ok: false, httpStatus: 400, error: 'environmentId is required' };
+  const qs = includeLibrary ? '?include=library' : '';
+  const r = await reactorRequest(token, clientId, orgId, 'GET', '/environments/' + encodeURIComponent(eid) + qs);
+  if (!r.ok) return r;
+  const d = (r.data && r.data.data) || {};
+  const included = Array.isArray(r.data && r.data.included) ? r.data.included : [];
+  const libRecord = included.find(x => String(x.type || '').toLowerCase() === 'libraries');
+  return {
+    ok: true,
+    httpStatus: r.httpStatus,
+    environment: mapEnvironmentResource(d),
+    library: libRecord ? mapLibraryResource(libRecord) : null,
+  };
+}
+
 async function reactorRequest(token, clientId, orgId, method, path, body) {
   const url = REACTOR_BASE + path;
   const init = {
@@ -599,5 +620,6 @@ module.exports = {
   addLibraryResources,
   createBuild,
   getBuild,
+  getEnvironment,
   probeTagsApiAccess,
 };
