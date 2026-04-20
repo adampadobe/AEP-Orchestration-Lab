@@ -84,6 +84,122 @@
   const optionsCountEl = document.getElementById('brandScraperOptionsCount');
   const crawlerJsCb = document.getElementById('brandScraperCrawlerJs');
 
+  // ---------- Model config (per-sandbox LLM provider + Secret Manager keys) ----------
+  const modelSelectEl = document.getElementById('brandScraperModelSelect');
+  const modelStatusEl = document.getElementById('brandScraperModelStatus');
+  const modelKeyRowEl = document.getElementById('brandScraperModelKeyRow');
+  const modelKeyInputEl = document.getElementById('brandScraperModelKey');
+  const modelSaveBtn = document.getElementById('brandScraperModelSave');
+  const modelRemoveBtn = document.getElementById('brandScraperModelRemove');
+
+  let modelConfigCache = null;
+
+  function renderModelConfig() {
+    if (!modelSelectEl || !modelStatusEl) return;
+    const cfg = modelConfigCache || {};
+    const pref = cfg.preferredProvider || 'default';
+    modelSelectEl.value = pref;
+
+    const keyProviderSelected = (pref === 'anthropic' || pref === 'openai');
+    modelKeyRowEl.hidden = !keyProviderSelected;
+    if (modelKeyInputEl) modelKeyInputEl.value = '';
+
+    const hasKey = pref === 'anthropic' ? cfg.hasAnthropicKey : pref === 'openai' ? cfg.hasOpenAIKey : false;
+    if (modelSaveBtn) modelSaveBtn.textContent = hasKey ? 'Replace key' : 'Save key';
+    if (modelRemoveBtn) modelRemoveBtn.hidden = !hasKey;
+    if (modelKeyInputEl) {
+      modelKeyInputEl.placeholder = pref === 'openai' ? 'sk-...' : pref === 'anthropic' ? 'sk-ant-...' : '';
+    }
+
+    let statusBits = [];
+    if (pref === 'default') statusBits.push('Gemini (service account)');
+    else if (pref === 'anthropic') statusBits.push(hasKey ? 'Anthropic key configured ✓' : 'Anthropic selected — save a key below');
+    else if (pref === 'openai') statusBits.push(hasKey ? 'OpenAI key configured ✓' : 'OpenAI selected — save a key below');
+    modelStatusEl.textContent = statusBits.join(' · ');
+  }
+
+  async function loadModelConfig() {
+    if (!modelSelectEl) return;
+    const sb = getSandbox();
+    if (!sb) {
+      modelConfigCache = null;
+      if (modelStatusEl) modelStatusEl.textContent = 'Select a sandbox to configure model.';
+      modelKeyRowEl.hidden = true;
+      return;
+    }
+    try {
+      const resp = await fetch(withSandboxQuery('/api/brand-scraper/model-config'));
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) { modelStatusEl.textContent = 'Failed to load model config: ' + (data.error || resp.statusText); return; }
+      modelConfigCache = data;
+      renderModelConfig();
+    } catch (e) {
+      modelStatusEl.textContent = 'Network error loading model config: ' + (e && e.message || e);
+    }
+  }
+
+  async function putModelConfig(body) {
+    const sb = getSandbox();
+    if (!sb) { setStatus('Select a sandbox first.', 'error'); return null; }
+    const resp = await fetch(withSandboxQuery('/api/brand-scraper/model-config'), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || resp.statusText);
+    modelConfigCache = data;
+    renderModelConfig();
+    return data;
+  }
+
+  if (modelSelectEl) {
+    modelSelectEl.addEventListener('change', async () => {
+      try {
+        await putModelConfig({ preferredProvider: modelSelectEl.value });
+      } catch (e) {
+        setStatus('Could not update model: ' + (e && e.message || e), 'error');
+      }
+    });
+  }
+  if (modelSaveBtn) {
+    modelSaveBtn.addEventListener('click', async () => {
+      const provider = modelSelectEl && modelSelectEl.value;
+      const key = (modelKeyInputEl && modelKeyInputEl.value || '').trim();
+      if (!provider || provider === 'default') return;
+      if (!key) { setStatus('Paste an API key into the field before saving.', 'error'); return; }
+      modelSaveBtn.disabled = true; modelSaveBtn.textContent = 'Saving…';
+      try {
+        const body = { preferredProvider: provider };
+        body[provider + 'Key'] = key;
+        await putModelConfig(body);
+        setStatus('Key saved to Secret Manager for this sandbox. Future Analyses will use ' + provider + '.', 'info');
+      } catch (e) {
+        setStatus('Could not save key: ' + (e && e.message || e), 'error');
+      } finally {
+        modelSaveBtn.disabled = false;
+      }
+    });
+  }
+  if (modelRemoveBtn) {
+    modelRemoveBtn.addEventListener('click', async () => {
+      const provider = modelSelectEl && modelSelectEl.value;
+      if (!provider || provider === 'default') return;
+      if (!confirm('Remove the stored ' + provider + ' API key for this sandbox?')) return;
+      modelRemoveBtn.disabled = true;
+      try {
+        const body = { preferredProvider: 'default' };
+        body['clear' + provider[0].toUpperCase() + provider.slice(1) + 'Key'] = true;
+        await putModelConfig(body);
+        setStatus(provider + ' key removed. Falling back to default (Gemini).', 'info');
+      } catch (e) {
+        setStatus('Could not remove key: ' + (e && e.message || e), 'error');
+      } finally {
+        modelRemoveBtn.disabled = false;
+      }
+    });
+  }
+
   const LS_CRAWLER = 'aepBrandScraperCrawler';
   try {
     const stored = localStorage.getItem(LS_CRAWLER);
@@ -985,6 +1101,7 @@
     setStatus('');
     applyStoredCountry();
     loadHistory();
+    loadModelConfig();
   });
 
   form.addEventListener('submit', async function (evt) {
@@ -1128,5 +1245,5 @@
   attachBrokenImgHandler(historyListEl);
 
   // Initial load — wait a tick so the sidebar/sandbox sync can settle.
-  setTimeout(() => { applyStoredCountry(); loadHistory(); runHealthChecks(); }, 300);
+  setTimeout(() => { applyStoredCountry(); loadHistory(); runHealthChecks(); loadModelConfig(); }, 300);
 })();

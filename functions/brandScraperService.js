@@ -9,6 +9,7 @@
 const brandScrapeStore = require('./brandScrapeStore');
 const assetsV2 = require('./brandScraperAssetsV2');
 const exportKit = require('./brandScraperExport');
+const modelConfigStore = require('./brandScraperModelConfigStore');
 
 const PLAYWRIGHT_CRAWLER_URL = process.env.PLAYWRIGHT_CRAWLER_URL
   || 'https://brand-scraper-crawler-109406613852.us-central1.run.app';
@@ -576,6 +577,32 @@ async function callAnthropic(apiKey, systemPrompt, userPrompt) {
   return text;
 }
 
+async function callOpenAI(apiKey, systemPrompt, userPrompt, { maxTokens = 4096, temperature = 0.4, model = 'gpt-4o' } = {}) {
+  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + apiKey,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+    }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    const msg = (data && data.error && data.error.message) || resp.statusText;
+    throw new Error(`OpenAI ${resp.status}: ${msg}`);
+  }
+  const text = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  return (text || '').trim();
+}
+
 let vertexClientCache;
 function getVertexClient() {
   if (!vertexClientCache) {
@@ -655,7 +682,7 @@ Rules:
 - If no stakeholders can be identified, return {"people": []}.
 - Keep strings short, no line breaks inside values.`;
 
-async function generateStakeholders(crawl, { provider, anthropicKey } = {}) {
+async function generateStakeholders(crawl, { provider, anthropicKey, openaiKey } = {}) {
   const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
 
   const peoplePagePattern = /(about|team|leadership|people|management|executives|our-story|company|board)/i;
@@ -691,9 +718,13 @@ async function generateStakeholders(crawl, { provider, anthropicKey } = {}) {
   let usedProvider;
   try {
     if (chosen === 'anthropic') {
-      if (!anthropicKey) return { skipped: true, reason: 'ANTHROPIC_API_KEY not configured' };
+      if (!anthropicKey) return { skipped: true, reason: 'Anthropic selected but no API key stored for this sandbox' };
       raw = await callAnthropic(anthropicKey, STAKEHOLDER_SYSTEM, userPrompt);
       usedProvider = 'anthropic';
+    } else if (chosen === 'openai') {
+      if (!openaiKey) return { skipped: true, reason: 'OpenAI selected but no API key stored for this sandbox' };
+      raw = await callOpenAI(openaiKey, STAKEHOLDER_SYSTEM, userPrompt, { maxTokens: 4096 });
+      usedProvider = 'openai';
     } else {
       raw = await callGemini(STAKEHOLDER_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false });
       usedProvider = 'gemini';
@@ -837,9 +868,13 @@ async function generateSegments(crawl, personasObj, campaignsObj, { provider, an
   let usedProvider;
   try {
     if (chosen === 'anthropic') {
-      if (!anthropicKey) return { skipped: true, reason: 'ANTHROPIC_API_KEY not configured' };
+      if (!anthropicKey) return { skipped: true, reason: 'Anthropic selected but no API key stored for this sandbox' };
       raw = await callAnthropic(anthropicKey, SEGMENT_SYSTEM, userPrompt);
       usedProvider = 'anthropic';
+    } else if (chosen === 'openai') {
+      if (!openaiKey) return { skipped: true, reason: 'OpenAI selected but no API key stored for this sandbox' };
+      raw = await callOpenAI(openaiKey, SEGMENT_SYSTEM, userPrompt, { maxTokens: 4096 });
+      usedProvider = 'openai';
     } else {
       raw = await callGemini(SEGMENT_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false });
       usedProvider = 'gemini';
@@ -857,7 +892,7 @@ async function generateSegments(crawl, personasObj, campaignsObj, { provider, an
   }
 }
 
-async function generateCampaigns(crawl, { provider, anthropicKey } = {}) {
+async function generateCampaigns(crawl, { provider, anthropicKey, openaiKey } = {}) {
   const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
 
   const combinedText = crawl.pages.map(p =>
@@ -873,9 +908,13 @@ async function generateCampaigns(crawl, { provider, anthropicKey } = {}) {
   let usedProvider;
   try {
     if (chosen === 'anthropic') {
-      if (!anthropicKey) return { skipped: true, reason: 'ANTHROPIC_API_KEY not configured' };
+      if (!anthropicKey) return { skipped: true, reason: 'Anthropic selected but no API key stored for this sandbox' };
       raw = await callAnthropic(anthropicKey, CAMPAIGN_SYSTEM, userPrompt);
       usedProvider = 'anthropic';
+    } else if (chosen === 'openai') {
+      if (!openaiKey) return { skipped: true, reason: 'OpenAI selected but no API key stored for this sandbox' };
+      raw = await callOpenAI(openaiKey, CAMPAIGN_SYSTEM, userPrompt, { maxTokens: 4096 });
+      usedProvider = 'openai';
     } else {
       raw = await callGemini(CAMPAIGN_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false });
       usedProvider = 'gemini';
@@ -893,7 +932,7 @@ async function generateCampaigns(crawl, { provider, anthropicKey } = {}) {
   }
 }
 
-async function generatePersonas(crawl, analysis, { country, businessType }, { provider, anthropicKey } = {}) {
+async function generatePersonas(crawl, analysis, { country, businessType }, { provider, anthropicKey, openaiKey } = {}) {
   const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
 
   const aboutLine = (analysis && !analysis.skipped && !analysis.error && analysis.about) ? analysis.about : '';
@@ -913,9 +952,13 @@ async function generatePersonas(crawl, analysis, { country, businessType }, { pr
   let usedProvider;
   try {
     if (chosen === 'anthropic') {
-      if (!anthropicKey) return { skipped: true, reason: 'ANTHROPIC_API_KEY not configured' };
+      if (!anthropicKey) return { skipped: true, reason: 'Anthropic selected but no API key stored for this sandbox' };
       raw = await callAnthropic(anthropicKey, PERSONA_SYSTEM, userPrompt);
       usedProvider = 'anthropic';
+    } else if (chosen === 'openai') {
+      if (!openaiKey) return { skipped: true, reason: 'OpenAI selected but no API key stored for this sandbox' };
+      raw = await callOpenAI(openaiKey, PERSONA_SYSTEM, userPrompt, { maxTokens: 4096 });
+      usedProvider = 'openai';
     } else {
       raw = await callGemini(PERSONA_SYSTEM, userPrompt, { maxOutputTokens: 16384, jsonMode: false });
       usedProvider = 'gemini';
@@ -933,7 +976,7 @@ async function generatePersonas(crawl, analysis, { country, businessType }, { pr
   }
 }
 
-async function analyseBrand(crawl, { provider, anthropicKey } = {}) {
+async function analyseBrand(crawl, { provider, anthropicKey, openaiKey } = {}) {
   const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
 
   const combinedText = crawl.pages.map(p =>
@@ -946,9 +989,13 @@ async function analyseBrand(crawl, { provider, anthropicKey } = {}) {
   let usedProvider;
   try {
     if (chosen === 'anthropic') {
-      if (!anthropicKey) return { skipped: true, reason: 'ANTHROPIC_API_KEY not configured' };
+      if (!anthropicKey) return { skipped: true, reason: 'Anthropic selected but no API key stored for this sandbox' };
       raw = await callAnthropic(anthropicKey, BRAND_ANALYSIS_SYSTEM, userPrompt);
       usedProvider = 'anthropic';
+    } else if (chosen === 'openai') {
+      if (!openaiKey) return { skipped: true, reason: 'OpenAI selected but no API key stored for this sandbox' };
+      raw = await callOpenAI(openaiKey, BRAND_ANALYSIS_SYSTEM, userPrompt);
+      usedProvider = 'openai';
     } else {
       raw = await callGemini(BRAND_ANALYSIS_SYSTEM, userPrompt);
       usedProvider = 'gemini';
@@ -1115,7 +1162,22 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       });
       return;
     }
-    const providerPref = (body.provider || '').toString().toLowerCase();
+    // Per-sandbox LLM resolution: Firestore + Secret Manager. The client may
+    // still send body.provider to override for one-off testing, but the
+    // sandbox config is the default.
+    let resolvedProvider = 'gemini';
+    let resolvedAnthropicKey = anthropicKey || '';
+    let resolvedOpenAIKey = '';
+    try {
+      const resolved = await modelConfigStore.resolveProviderForSandbox(sandbox);
+      if (resolved && resolved.provider) {
+        resolvedProvider = resolved.provider;
+        if (resolved.provider === 'anthropic') resolvedAnthropicKey = resolved.apiKey || resolvedAnthropicKey;
+        if (resolved.provider === 'openai') resolvedOpenAIKey = resolved.apiKey || '';
+      }
+    } catch (_e) { /* fall back to default */ }
+    const providerPref = String(body.provider || resolvedProvider || '').toLowerCase();
+    const providerOpts = { provider: providerPref, anthropicKey: resolvedAnthropicKey, openaiKey: resolvedOpenAIKey };
 
     // Selective run: body.include = { analysis, personas, campaigns, segments }.
     // Any key omitted or truthy → run; false → skip (returns {skipped:true} so UI knows).
@@ -1136,19 +1198,19 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     try {
       const [analysisResult, personasResult, campaignsResult, stakeholdersResult] = await Promise.all([
         inc('analysis')
-          ? analyseBrand(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) }))
+          ? analyseBrand(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
           : Promise.resolve(skipped('Brand guidelines disabled in Options')),
         inc('personas')
           ? generatePersonas(crawl, null, {
               country: body.country || '',
               businessType: body.businessType || 'b2c',
-            }, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) }))
+            }, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
           : Promise.resolve(skipped('Personas disabled in Options')),
         inc('campaigns')
-          ? generateCampaigns(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) }))
+          ? generateCampaigns(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
           : Promise.resolve(skipped('Campaigns disabled in Options')),
         inc('stakeholders')
-          ? generateStakeholders(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) }))
+          ? generateStakeholders(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
           : Promise.resolve(skipped('Stakeholders disabled in Options')),
       ]);
       analysis = analysisResult;
@@ -1171,7 +1233,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
 
       const [segmentsResult, industryClassification] = await Promise.all([
         inc('segments')
-          ? generateSegments(crawl, personas, campaigns, { provider: providerPref, anthropicKey })
+          ? generateSegments(crawl, personas, campaigns, providerOpts)
               .catch(e => ({ error: String(e && e.message || e) }))
           : Promise.resolve(skipped('Segments disabled in Options')),
         classifyIndustry(industryInputs).catch(e => ({ error: String(e && e.message || e) })),
@@ -1386,4 +1448,27 @@ async function handleExport(req, res) {
   });
 }
 
-module.exports = { crawlSite, analyseBrand, handleAnalyse, handleScrapes, handleClassifyAssets, handleExport };
+async function handleModelConfig(req, res) {
+  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+  const sandbox = resolveSandbox(req);
+  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+
+  try {
+    if (req.method === 'GET') {
+      const cfg = await modelConfigStore.getConfig(sandbox);
+      res.status(200).json(cfg);
+      return;
+    }
+    if (req.method === 'PUT' || req.method === 'POST') {
+      const body = (req.body && typeof req.body === 'object') ? req.body : {};
+      const cfg = await modelConfigStore.updateConfig(sandbox, body);
+      res.status(200).json(cfg);
+      return;
+    }
+    res.status(405).json({ error: 'Method not allowed' });
+  } catch (e) {
+    res.status(500).json({ error: String((e && e.message) || e) });
+  }
+}
+
+module.exports = { crawlSite, analyseBrand, handleAnalyse, handleScrapes, handleClassifyAssets, handleExport, handleModelConfig };

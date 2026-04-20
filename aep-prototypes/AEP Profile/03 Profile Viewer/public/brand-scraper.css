@@ -184,6 +184,12 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   color: var(--dash-text-secondary);
 }
 
+.brand-scraper-run-options-divider {
+  border: none;
+  border-top: 1px solid var(--dash-border);
+  margin: 4px 0;
+}
+
 .brand-scraper-run-options-menu p {
   margin: 4px 0 0;
   font-size: 11px;
@@ -244,6 +250,51 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   line-height: 1.5;
   color: var(--dash-text-secondary);
 }
+
+.brand-scraper-model-panel {
+  align-self: start;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--dash-text);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.brand-scraper-model-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "label select"
+    "status status";
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: center;
+}
+
+.brand-scraper-model-header > label { grid-area: label; }
+.brand-scraper-model-header > select { grid-area: select; }
+.brand-scraper-model-header > .brand-scraper-model-status { grid-area: status; font-size: 12px; }
+
+.brand-scraper-model-key-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.brand-scraper-model-key-row .dashboard-btn-primary,
+.brand-scraper-model-key-row .dashboard-btn-outline {
+  padding: 6px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.brand-scraper-model-panel > p { margin: 0; font-size: 12px; }
 
 .brand-scraper-banner-title {
   font-size: 13px;

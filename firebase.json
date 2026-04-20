@@ -78,6 +78,13 @@
         }
       },
       {
+        "source": "/api/brand-scraper/model-config",
+        "function": {
+          "functionId": "brandScraperModelConfig",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/ajo/live-activity",
         "function": {
           "functionId": "ajoLiveActivityProxy",
