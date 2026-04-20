@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260422b">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260422d">
   <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260420f">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive">
@@ -102,22 +102,253 @@
                   </div>
                   <div class="ajo-tabs" role="tablist" aria-label="Accelerator sections">
                     <button type="button" role="tab" id="ajoTabOverview" aria-controls="ajoPanelOverview" aria-selected="true">
+                      <svg class="ajo-tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
                       Overview
                     </button>
                     <button type="button" role="tab" id="ajoTabExperiments" aria-controls="ajoPanelExperiments" aria-selected="false">
+                      <svg class="ajo-tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M10 2.5h4v4.8l2.8 6.4a3.2 3.2 0 0 1-2.9 4.3h-3.8a3.2 3.2 0 0 1-2.9-4.3L10 7.3V2.5z" stroke-linejoin="round"/><path d="M12 10v3M10.5 11.5 12 10l1.5 1.5" stroke-linecap="round"/></svg>
                       Experiments
                     </button>
-                    <button type="button" role="tab" id="ajoTabMetrics" aria-disabled="true" disabled>Metrics</button>
+                    <button type="button" role="tab" id="ajoTabMetrics" aria-disabled="true" disabled>
+                      <svg class="ajo-tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 19V9M10 19v-5M15 19V5M20 19v-9" stroke-linecap="round"/></svg>
+                      Metrics
+                    </button>
                   </div>
                 </header>
 
                 <div class="ajo-panel-stack">
                   <div class="ajo-panel" id="ajoPanelOverview" role="tabpanel" aria-labelledby="ajoTabOverview">
                     <div class="ajo-panel-inner ajo-overview-scroll">
-                      <div class="ajo-overview-canvas" aria-label="Overview screenshot sections">
-                        <span id="expAccelDisplayName" class="visually-hidden">Tina</span>
-                        <img id="expAccelSlice2" class="ajo-slice-img" src="assets/experimentation-accelerator/accel-content-2-full.png?v=20260422" srcset="assets/experimentation-accelerator/accel-content-2.png?v=20260422 1024w, assets/experimentation-accelerator/accel-content-2-full.png?v=20260422 3840w" sizes="(max-width: 900px) 100vw, calc(100vw - 48px)" alt="" width="1024" height="440" decoding="async" data-exp-slice="2" />
-                        <img id="expAccelSlice3" class="ajo-slice-img" src="assets/experimentation-accelerator/accel-content-3-full.png?v=20260422" srcset="assets/experimentation-accelerator/accel-content-3.png?v=20260422 1024w, assets/experimentation-accelerator/accel-content-3-full.png?v=20260422 3840w" sizes="(max-width: 900px) 100vw, calc(100vw - 48px)" alt="" width="1024" height="444" loading="lazy" decoding="async" data-exp-slice="3" />
+                      <div class="ajo-overview-native">
+                        <section class="ajo-hero" aria-labelledby="ajoHeroGreeting">
+                          <div class="ajo-hero-inner">
+                            <div class="ajo-hero-brand" aria-hidden="true">
+                              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="var(--dash-error-border, #e34850)"/><path fill="var(--dash-surface, #fff)" d="M7 17V7h4.2c2.9 0 4.5 1.6 4.5 4s-1.6 4-4.5 4H10v2H7zm3-6h1.1c1.2 0 1.8-.6 1.8-1.7 0-1.1-.6-1.7-1.8-1.7H10v3.4z"/></svg>
+                            </div>
+                            <h2 id="ajoHeroGreeting" class="ajo-hero-title">Good morning, <span id="expAccelDisplayName">Tina</span>!</h2>
+                            <p class="ajo-hero-sub">
+                              Explore your team&rsquo;s latest experiments to see how you&rsquo;re driving results.
+                            </p>
+                          </div>
+                          <div class="ajo-kpi-deck" role="group" aria-label="Summary metrics">
+                            <div class="ajo-kpi-card">
+                              <span class="ajo-kpi-label">YTD Revenue increase</span>
+                              <span class="ajo-kpi-value">+$1.7M</span>
+                              <span class="ajo-kpi-delta ajo-kpi-delta--up">&uarr; 6.2%</span>
+                            </div>
+                            <div class="ajo-kpi-card">
+                              <span class="ajo-kpi-label">Live experiments</span>
+                              <span class="ajo-kpi-value">24</span>
+                              <span class="ajo-kpi-delta ajo-kpi-delta--up">&uarr; 5.46%</span>
+                            </div>
+                            <div class="ajo-kpi-card">
+                              <span class="ajo-kpi-label">Surfaces</span>
+                              <span class="ajo-kpi-value">81</span>
+                              <span class="ajo-kpi-delta ajo-kpi-delta--up">&uarr; 1.46%</span>
+                            </div>
+                            <div class="ajo-kpi-card">
+                              <span class="ajo-kpi-label">YTD Total Visitors</span>
+                              <span class="ajo-kpi-value">16.6M</span>
+                              <span class="ajo-kpi-delta ajo-kpi-delta--up">&uarr; 1%</span>
+                            </div>
+                          </div>
+                        </section>
+
+                        <section class="ajo-section" aria-labelledby="ajoCoreHead">
+                          <div class="ajo-section-row">
+                            <h3 id="ajoCoreHead" class="ajo-section-title">Core metrics</h3>
+                            <div class="ajo-section-actions">
+                              <span class="ajo-pill-select">Last 30 days</span>
+                              <button type="button" class="ajo-linkish-btn" disabled>View all</button>
+                            </div>
+                          </div>
+                          <div class="ajo-core-grid">
+                            <article class="ajo-metric-card">
+                              <div class="ajo-metric-card-head">
+                                <span class="ajo-metric-name">Revenue</span>
+                                <span class="ajo-metric-exp-n">14 Experiments</span>
+                              </div>
+                              <div class="ajo-metric-values">
+                                <span class="ajo-metric-big">+ $1.7M</span>
+                                <span class="ajo-metric-small ajo-kpi-delta--up">&uarr; 6.2%</span>
+                              </div>
+                              <svg class="ajo-spark" viewBox="0 0 120 44" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" aria-hidden="true">
+                                <defs>
+                                  <linearGradient id="ajoSparkFillRev" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="var(--dash-blue, #1473e6)" stop-opacity="0.28"/>
+                                    <stop offset="100%" stop-color="var(--dash-blue, #1473e6)" stop-opacity="0"/>
+                                  </linearGradient>
+                                </defs>
+                                <path d="M2 34 L18 30 L34 26 L50 20 L66 14 L82 10 L98 6 L118 2 L118 44 L2 44 Z" fill="url(#ajoSparkFillRev)"/>
+                                <path d="M2 34 L18 30 L34 26 L50 20 L66 14 L82 10 L98 6 L118 2" stroke="var(--dash-blue, #1473e6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                              <div class="ajo-metric-card-foot">
+                                <span class="ajo-dot-legend">4 opportunities</span>
+                                <span class="ajo-product-pill">Adobe Target</span>
+                              </div>
+                            </article>
+                            <article class="ajo-metric-card">
+                              <div class="ajo-metric-card-head">
+                                <span class="ajo-metric-name">Click Through Rate</span>
+                                <span class="ajo-metric-exp-n">8 Experiments</span>
+                              </div>
+                              <div class="ajo-metric-values">
+                                <span class="ajo-metric-big">12.5%</span>
+                                <span class="ajo-metric-small ajo-kpi-delta--up">&uarr; 1.3%</span>
+                              </div>
+                              <svg class="ajo-spark" viewBox="0 0 120 44" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" aria-hidden="true">
+                                <defs>
+                                  <linearGradient id="ajoSparkFillCtr" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="var(--dash-blue, #1473e6)" stop-opacity="0.25"/>
+                                    <stop offset="100%" stop-color="var(--dash-blue, #1473e6)" stop-opacity="0"/>
+                                  </linearGradient>
+                                </defs>
+                                <path d="M2 28 L14 32 L26 18 L38 26 L50 12 L62 22 L74 8 L86 18 L98 10 L118 14 L118 44 L2 44 Z" fill="url(#ajoSparkFillCtr)"/>
+                                <path d="M2 28 L14 32 L26 18 L38 26 L50 12 L62 22 L74 8 L86 18 L98 10 L118 14" stroke="var(--dash-blue, #1473e6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                              <div class="ajo-metric-card-foot">
+                                <span class="ajo-dot-legend">2 opportunities</span>
+                                <span class="ajo-product-pill">Adobe Target</span>
+                              </div>
+                            </article>
+                            <article class="ajo-metric-card">
+                              <div class="ajo-metric-card-head">
+                                <span class="ajo-metric-name">Open Rate</span>
+                                <span class="ajo-metric-exp-n">4 Experiments</span>
+                              </div>
+                              <div class="ajo-metric-values">
+                                <span class="ajo-metric-big">35.4%</span>
+                                <span class="ajo-metric-small ajo-kpi-delta--up">&uarr; 0.8%</span>
+                              </div>
+                              <svg class="ajo-spark" viewBox="0 0 120 44" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" aria-hidden="true">
+                                <defs>
+                                  <linearGradient id="ajoSparkFillOpen" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="var(--dash-blue, #1473e6)" stop-opacity="0.22"/>
+                                    <stop offset="100%" stop-color="var(--dash-blue, #1473e6)" stop-opacity="0"/>
+                                  </linearGradient>
+                                </defs>
+                                <path d="M2 24 L14 23 L26 24 L38 22 L50 24 L62 23 L74 22 L86 23 L98 22 L110 23 L118 24 L118 44 L2 44 Z" fill="url(#ajoSparkFillOpen)"/>
+                                <path d="M2 24 L14 23 L26 24 L38 22 L50 24 L62 23 L74 22 L86 23 L98 22 L110 23 L118 24" stroke="var(--dash-blue, #1473e6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                              <div class="ajo-metric-card-foot">
+                                <span class="ajo-dot-legend">1 opportunity</span>
+                                <span class="ajo-product-pill"><span class="ajo-ajo-glyph" aria-hidden="true"></span> Adobe Journey Optimizer</span>
+                              </div>
+                            </article>
+                          </div>
+                        </section>
+
+                        <section class="ajo-section" aria-labelledby="ajoLatestHead">
+                          <div class="ajo-section-row">
+                            <h3 id="ajoLatestHead" class="ajo-section-title">Latest updates</h3>
+                            <div class="ajo-pagination-fake" aria-hidden="true">&lt; 1&ndash;3 of 10 &gt;</div>
+                          </div>
+                          <div class="ajo-update-row">
+                            <article class="ajo-update-card ajo-update-card--info">
+                              <button type="button" class="ajo-update-dismiss" disabled aria-label="Dismiss (demo)">&times;</button>
+                              <span class="ajo-update-ico ajo-update-ico--bulb" aria-hidden="true"></span>
+                              <p class="ajo-update-meta">ACE0916 | US | Catalog | AICS on Premiere home page</p>
+                              <p class="ajo-update-msg">New insights are available for this experiment.</p>
+                              <p class="ajo-update-time">10 hours ago</p>
+                            </article>
+                            <article class="ajo-update-card ajo-update-card--warn">
+                              <button type="button" class="ajo-update-dismiss" disabled aria-label="Dismiss (demo)">&times;</button>
+                              <span class="ajo-update-ico ajo-update-ico--warn" aria-hidden="true"></span>
+                              <p class="ajo-update-meta">ACE0916 | US | Catalog | AICS on Premiere home page</p>
+                              <p class="ajo-update-msg">This experiment is off track on reaching statistical significance.</p>
+                              <p class="ajo-update-time">10 hours ago</p>
+                            </article>
+                            <article class="ajo-update-card ajo-update-card--promo">
+                              <button type="button" class="ajo-update-dismiss" disabled aria-label="Dismiss (demo)">&times;</button>
+                              <span class="ajo-update-ico ajo-update-ico--meg" aria-hidden="true"></span>
+                              <p class="ajo-update-meta">ACE0916 | US | Catalog | AICS on Premiere home page</p>
+                              <p class="ajo-update-msg">Leading treatment found! <span class="ajo-badge-lift">&uarr; 350k lift in revenue</span></p>
+                              <p class="ajo-update-time">10 hours ago</p>
+                            </article>
+                          </div>
+                        </section>
+
+                        <section class="ajo-section ajo-section--bottom" aria-labelledby="ajoTopExpHead">
+                          <div class="ajo-section-row">
+                            <h3 id="ajoTopExpHead" class="ajo-section-title">Top performing experiments</h3>
+                            <div class="ajo-section-actions ajo-section-actions--tight">
+                              <span class="ajo-view-toggle" role="group" aria-label="View density (demo)">
+                                <button type="button" class="ajo-icon-toggle ajo-icon-toggle--on" disabled aria-label="Grid view" title="Demo">
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg>
+                                </button>
+                                <button type="button" class="ajo-icon-toggle" disabled aria-label="List view" title="Demo">
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01" stroke-linecap="round"/></svg>
+                                </button>
+                              </span>
+                              <a href="#" class="ajo-linkish ajo-linkish--with-ico" onclick="return false;">
+                                <svg class="ajo-linkish-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M10 2.5h4v4.8l2.8 6.4a3.2 3.2 0 0 1-2.9 4.3h-3.8a3.2 3.2 0 0 1-2.9-4.3L10 7.3V2.5z" stroke-linejoin="round"/></svg>
+                                View all experiments
+                              </a>
+                            </div>
+                          </div>
+                          <ul class="ajo-exp-list">
+                            <li class="ajo-exp-row ajo-exp-row--featured">
+                              <span class="ajo-exp-thumb ajo-exp-thumb--ai" title="Illustrator">Ai</span>
+                              <div class="ajo-exp-main">
+                                <span class="ajo-exp-pill">A/B</span>
+                                <span class="ajo-exp-title">ACE0998 | US | TwP Modals</span>
+                                <span class="ajo-exp-sub">Illustrator product page</span>
+                                <span class="ajo-exp-metric ajo-kpi-delta--up">Revenue &uarr; 350k</span>
+                              </div>
+                              <span class="ajo-exp-stats" aria-label="31 days, 5.5 million users">
+                                <span class="ajo-exp-stat-item"><svg class="ajo-exp-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg> 31 days</span>
+                                <span class="ajo-exp-stat-sep">&middot;</span>
+                                <span class="ajo-exp-stat-item"><svg class="ajo-exp-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-3-3.87M9 21v-2a4 4 0 0 1-3-3.87"/><circle cx="9" cy="7" r="3"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 5.5M</span>
+                              </span>
+                              <button type="button" class="ajo-btn-ghost" disabled>View experiment</button>
+                            </li>
+                            <li class="ajo-exp-row ajo-exp-row--featured">
+                              <span class="ajo-exp-thumb ajo-exp-thumb--pr" title="Premiere Pro">Pr</span>
+                              <div class="ajo-exp-main">
+                                <span class="ajo-exp-pill">Multi-armed</span>
+                                <span class="ajo-exp-title">ACE0916 | US | Catalog | AICS on Premiere page</span>
+                                <span class="ajo-exp-sub">Premiere Pro page</span>
+                                <span class="ajo-exp-metric ajo-kpi-delta--up">CTR &uarr; 10%</span>
+                              </div>
+                              <span class="ajo-exp-stats" aria-label="31 days, 5.5 million users">
+                                <span class="ajo-exp-stat-item"><svg class="ajo-exp-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg> 31 days</span>
+                                <span class="ajo-exp-stat-sep">&middot;</span>
+                                <span class="ajo-exp-stat-item"><svg class="ajo-exp-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-3-3.87M9 21v-2a4 4 0 0 1-3-3.87"/><circle cx="9" cy="7" r="3"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 5.5M</span>
+                              </span>
+                              <button type="button" class="ajo-btn-ghost" disabled>View experiment</button>
+                            </li>
+                            <li class="ajo-exp-row ajo-exp-row--featured">
+                              <span class="ajo-exp-thumb ajo-exp-thumb--pdf" title="Acrobat">A</span>
+                              <div class="ajo-exp-main">
+                                <span class="ajo-exp-pill">A/B</span>
+                                <span class="ajo-exp-title">ACE0918 | US | Catalog | AICS on Catalog page</span>
+                                <span class="ajo-exp-sub">Acrobat DC page</span>
+                                <span class="ajo-exp-metric ajo-kpi-delta--up">Revenue &uarr; 350k</span>
+                              </div>
+                              <span class="ajo-exp-stats" aria-label="31 days, 5.5 million users">
+                                <span class="ajo-exp-stat-item"><svg class="ajo-exp-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg> 31 days</span>
+                                <span class="ajo-exp-stat-sep">&middot;</span>
+                                <span class="ajo-exp-stat-item"><svg class="ajo-exp-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-3-3.87M9 21v-2a4 4 0 0 1-3-3.87"/><circle cx="9" cy="7" r="3"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 5.5M</span>
+                              </span>
+                              <button type="button" class="ajo-btn-ghost" disabled>View experiment</button>
+                            </li>
+                            <li class="ajo-exp-row ajo-exp-row--featured">
+                              <span class="ajo-exp-thumb ajo-exp-thumb--ps" title="Photoshop">Ps</span>
+                              <div class="ajo-exp-main">
+                                <span class="ajo-exp-pill">A/B</span>
+                                <span class="ajo-exp-title">ACE0930 | US | HP | Logged-out | SMB | AICS</span>
+                                <span class="ajo-exp-sub">Photoshop product page</span>
+                                <span class="ajo-exp-metric ajo-kpi-delta--up">Revenue &uarr; 210k</span>
+                              </div>
+                              <span class="ajo-exp-stats" aria-label="28 days, 4.1 million users">
+                                <span class="ajo-exp-stat-item"><svg class="ajo-exp-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg> 28 days</span>
+                                <span class="ajo-exp-stat-sep">&middot;</span>
+                                <span class="ajo-exp-stat-item"><svg class="ajo-exp-stat-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-3-3.87M9 21v-2a4 4 0 0 1-3-3.87"/><circle cx="9" cy="7" r="3"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 4.1M</span>
+                              </span>
+                              <button type="button" class="ajo-btn-ghost" disabled>View experiment</button>
+                            </li>
+                          </ul>
+                        </section>
                       </div>
                     </div>
                   </div>
