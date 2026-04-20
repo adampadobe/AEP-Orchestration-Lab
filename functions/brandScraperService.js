@@ -404,25 +404,31 @@ function getVertexClient() {
   return vertexClientCache;
 }
 
-async function callGemini(systemPrompt, userPrompt) {
+async function callGemini(systemPrompt, userPrompt, { maxOutputTokens = 8192, jsonMode = true } = {}) {
   const client = getVertexClient();
   const modelName = process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-pro';
+  const generationConfig = { temperature: 0.4, maxOutputTokens };
+  if (jsonMode) generationConfig.responseMimeType = 'application/json';
   const model = client.getGenerativeModel({
     model: modelName,
     systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] },
-    generationConfig: {
-      temperature: 0.4,
-      maxOutputTokens: 4096,
-      responseMimeType: 'application/json',
-    },
+    generationConfig,
   });
   const resp = await model.generateContent({
     contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
   });
   const candidates = resp && resp.response && resp.response.candidates;
   if (!candidates || !candidates.length) throw new Error('Gemini returned no candidates');
+  const finish = candidates[0].finishReason;
   const parts = (candidates[0].content && candidates[0].content.parts) || [];
-  return parts.map(p => p.text || '').join('').trim();
+  const text = parts.map(p => p.text || '').join('').trim();
+  if (!text) {
+    throw new Error(`Gemini returned empty content (finishReason=${finish || 'unknown'})`);
+  }
+  if (finish && finish !== 'STOP' && finish !== 'MAX_TOKENS') {
+    throw new Error(`Gemini stopped with finishReason=${finish}`);
+  }
+  return text;
 }
 
 function stripJsonFences(text) {
@@ -453,11 +459,12 @@ Respond with valid JSON only, no other text. Use this exact structure:
 }
 
 Rules:
-- Generate exactly 10 personas.
+- Generate exactly 6 personas.
 - All personas must live in the specified country. Use culturally appropriate names, cities, income ranges, and behaviours.
 - Make them diverse in age, income, life stage, and behaviours.
 - Make them specific to this brand's target market and business type (B2C vs B2B).
-- Each persona: 2-3 goals, 2-3 pain points, 2-3 behaviours, 2-4 preferred channels, 1-3 suggested segments.`;
+- Each persona: 2-3 goals, 2-3 pain points, 2-3 behaviours, 2-4 preferred channels, 1-3 suggested segments.
+- Keep each persona concise — short strings, no nested objects.`;
 
 async function generatePersonas(crawl, analysis, { country, businessType }, { provider, anthropicKey } = {}) {
   const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
@@ -483,7 +490,7 @@ async function generatePersonas(crawl, analysis, { country, businessType }, { pr
       raw = await callAnthropic(anthropicKey, PERSONA_SYSTEM, userPrompt);
       usedProvider = 'anthropic';
     } else {
-      raw = await callGemini(PERSONA_SYSTEM, userPrompt);
+      raw = await callGemini(PERSONA_SYSTEM, userPrompt, { maxOutputTokens: 16384, jsonMode: false });
       usedProvider = 'gemini';
     }
   } catch (e) {
