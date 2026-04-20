@@ -494,6 +494,88 @@ Rules:
 - target_segments: 1-3 short segment names this campaign would target.
 - Keep strings short and avoid line breaks inside values.`;
 
+const SEGMENT_SYSTEM = `You are an Adobe Real-Time CDP specialist. Generate audience segments for the given brand, designed for Real-Time CDP demo scenarios.
+
+Respond with valid JSON only, no other text. Use this exact structure:
+{
+  "segments": [
+    {
+      "name": "...",
+      "description": "2-3 sentences",
+      "evaluation_type": "edge|streaming|batch",
+      "criteria": ["rule 1", "rule 2"],
+      "estimated_size": "5-10%",
+      "suggested_campaigns": ["campaign name"],
+      "use_cases": ["demo scenario description"],
+      "qualified_personas": ["persona name that would qualify"]
+    }
+  ]
+}
+
+Evaluation types:
+- edge: instant evaluation on Edge Network. Use for same-page personalisation and next-best-action (e.g. "Currently browsing product page").
+- streaming: near real-time, within minutes. Use for event-driven triggers (e.g. "Added to cart in last 30 minutes").
+- batch: evaluated every 24h. Use for historical patterns, LTV, complex calculations (e.g. "High-value customer (>£500 lifetime spend)").
+
+Rules:
+- Generate 8-10 segments total.
+- Include a mix: 2-3 edge, 3-4 streaming, 3-4 batch.
+- Make them specific to the brand's vertical and offerings.
+- Each segment: 2-4 criteria, 1-2 suggested_campaigns, 1-2 use_cases.
+- estimated_size should be a realistic percentage range like "5-10%" or "1-3%".
+- qualified_personas must reference persona names from the provided list only; omit if none fit.
+- suggested_campaigns should reference campaign names from the provided list when possible.
+- Keep strings short, no line breaks inside values.`;
+
+async function generateSegments(crawl, personasObj, campaignsObj, { provider, anthropicKey } = {}) {
+  const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
+
+  const personaNames = (personasObj && Array.isArray(personasObj.personas))
+    ? personasObj.personas.map(p => p.name).filter(Boolean) : [];
+  const personaSummary = (personasObj && Array.isArray(personasObj.personas))
+    ? personasObj.personas.map(p => `- ${p.name} (${p.occupation || '—'}${p.age ? ', ' + p.age : ''}): ${(p.bio || '').slice(0, 200)}`).join('\n')
+    : '(no personas available)';
+
+  const campaignSummary = (campaignsObj && Array.isArray(campaignsObj.campaigns))
+    ? campaignsObj.campaigns.map(c => `- ${c.name} [${c.type || 'Campaign'}${c.is_recommendation ? ', recommended' : ', detected'}] — ${(c.summary || '').slice(0, 200)}`).join('\n')
+    : '(no campaigns available)';
+
+  const combinedText = crawl.pages.map(p =>
+    `URL: ${p.url}\nTitle: ${p.title}\n${(p.text || '').slice(0, 800)}`
+  ).join('\n\n---\n\n').slice(0, 6000);
+
+  const userPrompt =
+    `Brand: ${crawl.brandName}\n` +
+    `Website: ${crawl.baseUrl}\n\n` +
+    `Personas available (qualified_personas must draw from these names only):\n${personaSummary}\n\n` +
+    `Campaigns available (suggested_campaigns should reference these names when relevant):\n${campaignSummary}\n\n` +
+    `Website content:\n${combinedText}` +
+    (personaNames.length ? `\n\nValid persona names: ${personaNames.join(', ')}` : '');
+
+  let raw;
+  let usedProvider;
+  try {
+    if (chosen === 'anthropic') {
+      if (!anthropicKey) return { skipped: true, reason: 'ANTHROPIC_API_KEY not configured' };
+      raw = await callAnthropic(anthropicKey, SEGMENT_SYSTEM, userPrompt);
+      usedProvider = 'anthropic';
+    } else {
+      raw = await callGemini(SEGMENT_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false });
+      usedProvider = 'gemini';
+    }
+  } catch (e) {
+    return { error: `${chosen} provider failed: ${String(e && e.message || e)}` };
+  }
+
+  try {
+    const parsed = JSON.parse(stripJsonFences(raw));
+    const list = Array.isArray(parsed && parsed.segments) ? parsed.segments : [];
+    return { provider: usedProvider, segments: list };
+  } catch (_e) {
+    return { provider: usedProvider, error: 'Model response was not valid JSON', raw: raw.slice(0, 4000) };
+  }
+}
+
 async function generateCampaigns(crawl, { provider, anthropicKey } = {}) {
   const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
 
@@ -673,6 +755,18 @@ function mergeScrapeRecords(existing, fresh) {
   };
   out.campaignsError = f.campaignsError || null;
 
+  // Segments: union by name. Keep growing across appends.
+  const segMap = new Map();
+  const eSs = (e.segments && Array.isArray(e.segments.segments)) ? e.segments.segments : [];
+  const fSs = (f.segments && Array.isArray(f.segments.segments)) ? f.segments.segments : [];
+  for (const s of eSs) if (s && s.name) segMap.set(s.name.toLowerCase(), s);
+  for (const s of fSs) if (s && s.name) segMap.set(s.name.toLowerCase(), s);
+  out.segments = {
+    provider: (f.segments && f.segments.provider) || (e.segments && e.segments.provider) || null,
+    segments: Array.from(segMap.values()),
+  };
+  out.segmentsError = f.segmentsError || null;
+
   // Pass through identity fields
   out.brandName = f.brandName || e.brandName;
   out.url = f.url || e.url;
@@ -716,6 +810,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     let personasError = null;
     let campaigns = null;
     let campaignsError = null;
+    let segments = null;
+    let segmentsError = null;
     try {
       const [analysisResult, personasResult, campaignsResult] = await Promise.all([
         analyseBrand(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) })),
@@ -728,6 +824,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       analysis = analysisResult;
       personas = personasResult;
       campaigns = campaignsResult;
+      // Segments run AFTER the trio so they can reference generated personas + campaigns.
+      segments = await generateSegments(crawl, personas, campaigns, { provider: providerPref, anthropicKey })
+        .catch(e => ({ error: String(e && e.message || e) }));
     } catch (e) {
       analysisError = String(e && e.message || e);
     }
@@ -755,6 +854,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       personasError,
       campaigns,
       campaignsError,
+      segments,
+      segmentsError,
       elapsedMs,
     };
     if (appendMode) {
@@ -788,6 +889,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       personasError: (saved && saved.personasError) || personasError,
       campaigns: (saved && saved.campaigns) || campaigns,
       campaignsError: (saved && saved.campaignsError) || campaignsError,
+      segments: (saved && saved.segments) || segments,
+      segmentsError: (saved && saved.segmentsError) || segmentsError,
       appended: !!appendMode,
       elapsedMs,
     });
