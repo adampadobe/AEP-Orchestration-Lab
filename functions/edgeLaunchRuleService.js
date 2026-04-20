@@ -199,8 +199,97 @@ async function previewLaunchRuleUpdate({
   };
 }
 
+function arraysEqualAsSets(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  const sa = new Set(a.map(String));
+  for (const v of b) if (!sa.has(String(v))) return false;
+  return true;
+}
+
+/**
+ * Apply the preview's proposed surfaces/decisionScopes back onto the rule
+ * component's settings. Will refuse to PATCH if nothing changed (no-op).
+ */
+async function applyLaunchRuleUpdate(args) {
+  const preview = await previewLaunchRuleUpdate(args);
+  if (!preview.ok) return preview;
+
+  const samePersonalization = (preview.currentSettingsPreview && typeof preview.currentSettingsPreview === 'object')
+    ? preview.currentSettingsPreview
+    : {};
+  const surfacesChanged = !arraysEqualAsSets(preview.currentSurfaces, preview.proposedSurfaces);
+  const scopesChanged = !arraysEqualAsSets(preview.currentScopes, preview.proposedScopes);
+  if (!surfacesChanged && !scopesChanged) {
+    return {
+      ok: true,
+      noop: true,
+      reason: 'No change — proposed surfaces and scopes match existing state.',
+      propertyId: preview.propertyId,
+      ruleId: preview.ruleId,
+      actionId: preview.actionId,
+    };
+  }
+
+  // Re-fetch the full component to get the authoritative settings (the preview
+  // reads them through the listRuleComponents path which may cache-stringify).
+  const current = await tagsReactorService.getRuleComponent(
+    args.accessToken, args.clientId, args.orgId, preview.actionId
+  );
+  if (!current.ok) {
+    return { ok: false, error: current.error || 'Could not fetch current component settings.' };
+  }
+
+  const baseSettings = (current.item && current.item.settings && typeof current.item.settings === 'object')
+    ? current.item.settings
+    : {};
+  const basePersonalization = (baseSettings.personalization && typeof baseSettings.personalization === 'object')
+    ? baseSettings.personalization
+    : samePersonalization;
+
+  const newSettings = {
+    ...baseSettings,
+    personalization: {
+      ...basePersonalization,
+      surfaces: preview.proposedSurfaces,
+      decisionScopes: preview.proposedScopes,
+    },
+  };
+
+  const patch = await tagsReactorService.updateRuleComponentSettings(
+    args.accessToken, args.clientId, args.orgId, preview.actionId, newSettings
+  );
+  if (!patch.ok) {
+    return {
+      ok: false,
+      error: patch.error || 'Reactor PATCH failed.',
+      httpStatus: patch.httpStatus,
+      preview,
+    };
+  }
+
+  return {
+    ok: true,
+    noop: false,
+    propertyId: preview.propertyId,
+    propertyName: preview.propertyName,
+    ruleId: preview.ruleId,
+    ruleName: preview.ruleName,
+    actionId: preview.actionId,
+    actionName: preview.actionName,
+    beforeSurfaces: preview.currentSurfaces,
+    afterSurfaces: preview.proposedSurfaces,
+    beforeScopes: preview.currentScopes,
+    afterScopes: preview.proposedScopes,
+    diff: preview.diff,
+    publishedToEnvironment: false,
+    publishNote: 'Settings updated in Reactor. A build + publish to the Development environment is required before users see it — PR-C wires that up.',
+  };
+}
+
 module.exports = {
   DEFAULT_RULE_NAME,
   resolveProperty,
   previewLaunchRuleUpdate,
+  applyLaunchRuleUpdate,
 };
