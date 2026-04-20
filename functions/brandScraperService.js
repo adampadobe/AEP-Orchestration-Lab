@@ -380,7 +380,6 @@ const BRAND_ANALYSIS_SYSTEM = `You are a brand strategist and marketing expert. 
 
 Respond with valid JSON only, no other text. Use this exact structure:
 {
-  "industry": "<pick one from the taxonomy below>",
   "about": "2-3 sentence brand description",
   "tone_of_voice": [{"rule": "...", "example": "..."}],
   "brand_values": [{"value": "...", "description": "..."}],
@@ -389,10 +388,51 @@ Respond with valid JSON only, no other text. Use this exact structure:
   "channel_guidelines": [{"channel": "Email|SMS|Push|In-App", "subject_line": "...", "preheader": "...", "headline": "...", "body": "...", "cta": "..."}]
 }
 
-Industry taxonomy (choose exactly one string from this list):
+Provide 5-8 tone rules, 3-5 values, 5-8 editorial rules, 4-6 image rules, and 4 channels (Email, SMS, Push, In-App).`;
+
+const INDUSTRY_SYSTEM = `You classify a brand into exactly one industry from a fixed taxonomy. Respond with valid JSON only:
+{"industry": "<one of the allowed values>", "confidence": "low|medium|high", "rationale": "<one short sentence>"}
+
+Allowed values (return the string exactly as shown):
 ${INDUSTRY_TAXONOMY.map(x => `- ${x}`).join('\n')}
 
-Provide 5-8 tone rules, 3-5 values, 5-8 editorial rules, 4-6 image rules, and 4 channels (Email, SMS, Push, In-App).`;
+Use "Other" only when the brand genuinely doesn't fit any other sector. If the brand spans multiple sectors, pick the dominant one (where most revenue or attention comes from).`;
+
+async function classifyIndustry({ about, brandName, baseUrl, crawlText }) {
+  const parts = [];
+  if (brandName) parts.push(`Brand: ${brandName}`);
+  if (baseUrl) parts.push(`Website: ${baseUrl}`);
+  if (about) parts.push(`About (from brand analysis): ${about}`);
+  if (crawlText) parts.push(`Page snippets:\n${String(crawlText).slice(0, 1500)}`);
+  if (!parts.length) return { skipped: true, reason: 'no context available' };
+
+  let raw;
+  try {
+    raw = await callGemini(INDUSTRY_SYSTEM, parts.join('\n\n'), {
+      maxOutputTokens: 256,
+      jsonMode: true,
+      model: 'gemini-2.5-flash',
+      temperature: 0.0,
+    });
+  } catch (e) {
+    return { error: String(e && e.message || e) };
+  }
+
+  let parsed;
+  try { parsed = JSON.parse(stripJsonFences(raw)); }
+  catch (_e) { return { error: 'invalid JSON', raw: raw.slice(0, 200) }; }
+
+  const requested = String(parsed.industry || '').trim();
+  const match = INDUSTRY_TAXONOMY.find(x => x.toLowerCase() === requested.toLowerCase());
+  return {
+    provider: 'gemini',
+    model: 'gemini-2.5-flash',
+    industry: match || 'Other',
+    confidence: String(parsed.confidence || 'medium').toLowerCase(),
+    rationale: String(parsed.rationale || '').slice(0, 280),
+    raw_response: requested && !match ? requested : undefined,
+  };
+}
 
 async function callAnthropic(apiKey, systemPrompt, userPrompt) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -430,10 +470,10 @@ function getVertexClient() {
   return vertexClientCache;
 }
 
-async function callGemini(systemPrompt, userPrompt, { maxOutputTokens = 8192, jsonMode = true } = {}) {
+async function callGemini(systemPrompt, userPrompt, { maxOutputTokens = 8192, jsonMode = true, model: modelOverride, temperature = 0.4 } = {}) {
   const client = getVertexClient();
-  const modelName = process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-pro';
-  const generationConfig = { temperature: 0.4, maxOutputTokens };
+  const modelName = modelOverride || process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-pro';
+  const generationConfig = { temperature, maxOutputTokens };
   if (jsonMode) generationConfig.responseMimeType = 'application/json';
   const model = client.getGenerativeModel({
     model: modelName,
@@ -800,6 +840,7 @@ function mergeScrapeRecords(existing, fresh) {
   out.businessType = f.businessType || e.businessType;
   out.country = f.country || e.country;
   out.industry = f.industry || e.industry || '';
+  out.industryInfo = f.industryInfo || e.industryInfo || null;
   return out;
 }
 
@@ -844,6 +885,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     let campaignsError = null;
     let segments = null;
     let segmentsError = null;
+    let recordClassification = null;
     try {
       const [analysisResult, personasResult, campaignsResult] = await Promise.all([
         inc('analysis')
@@ -862,13 +904,30 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       analysis = analysisResult;
       personas = personasResult;
       campaigns = campaignsResult;
-      // Segments run AFTER the trio so they can reference generated personas + campaigns.
-      if (inc('segments')) {
-        segments = await generateSegments(crawl, personas, campaigns, { provider: providerPref, anthropicKey })
-          .catch(e => ({ error: String(e && e.message || e) }));
-      } else {
-        segments = skipped('Segments disabled in Options');
-      }
+
+      // Segments + industry classification run AFTER the trio in parallel.
+      // Segments consumes personas + campaigns; industry consumes analysis.about
+      // (falls back on brand name + crawl snippets if analysis was skipped).
+      const crawlSnippet = crawl.pages.map(p =>
+        [p.title, p.description, (p.text || '').slice(0, 400)].filter(Boolean).join(' · ')
+      ).join('\n').slice(0, 2000);
+      const industryInputs = {
+        about: (analysis && !analysis.skipped && !analysis.error) ? analysis.about : '',
+        brandName: crawl.brandName,
+        baseUrl: crawl.baseUrl,
+        crawlText: crawlSnippet,
+      };
+
+      const [segmentsResult, industryClassification] = await Promise.all([
+        inc('segments')
+          ? generateSegments(crawl, personas, campaigns, { provider: providerPref, anthropicKey })
+              .catch(e => ({ error: String(e && e.message || e) }))
+          : Promise.resolve(skipped('Segments disabled in Options')),
+        classifyIndustry(industryInputs).catch(e => ({ error: String(e && e.message || e) })),
+      ]);
+      segments = segmentsResult;
+      // Expose classification result for persistence below.
+      recordClassification = industryClassification;
     } catch (e) {
       analysisError = String(e && e.message || e);
     }
@@ -882,8 +941,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     };
     const elapsedMs = Date.now() - started;
 
-    const inferredIndustry = (analysis && typeof analysis === 'object' && !analysis.skipped && !analysis.error)
-      ? String(analysis.industry || '').trim()
+    const inferredIndustry = (recordClassification && !recordClassification.error && !recordClassification.skipped)
+      ? String(recordClassification.industry || '').trim()
       : '';
 
     const appendMode = body.mode === 'append' && body.existingScrapeId;
@@ -894,6 +953,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       businessType: body.businessType || 'b2c',
       country: body.country || '',
       industry: inferredIndustry,
+      industryInfo: recordClassification,
       crawlSummary,
       analysis,
       analysisError,

@@ -63,6 +63,7 @@ async function saveScrape(sandbox, payload) {
     businessType: payload.businessType || '',
     country: payload.country || '',
     industry: payload.industry || '',
+    industryInfo: payload.industryInfo || null,
     crawlSummary: payload.crawlSummary || null,
     analysis: payload.analysis || null,
     analysisError: payload.analysisError || null,
