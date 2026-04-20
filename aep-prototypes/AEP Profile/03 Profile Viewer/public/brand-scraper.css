@@ -805,6 +805,122 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   font-variant-numeric: tabular-nums;
 }
 
+.brand-scraper-org-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.brand-scraper-org-level {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.brand-scraper-org-level + .brand-scraper-org-level::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 1px;
+  height: 8px;
+  background: var(--dash-border);
+}
+
+.brand-scraper-org-level-head {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dash-blue);
+  text-align: center;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--dash-border);
+}
+
+.brand-scraper-org-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.brand-scraper-stakeholder {
+  width: 220px;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.brand-scraper-stakeholder-avatar {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--dash-blue) 18%, var(--dash-surface));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dash-blue);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.brand-scraper-stakeholder-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brand-scraper-stakeholder-body {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.brand-scraper-stakeholder-body h5 {
+  margin: 0 0 2px;
+  font-size: 13px;
+  color: var(--dash-text);
+}
+
+.brand-scraper-stakeholder-role {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--dash-blue);
+  font-weight: 600;
+}
+
+.brand-scraper-stakeholder-bio {
+  margin: 4px 0;
+  font-size: 11px;
+  color: var(--dash-text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.brand-scraper-stakeholder-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.brand-scraper-stakeholder-links a {
+  color: var(--dash-blue);
+  text-decoration: none;
+  border-bottom: 1px dotted;
+}
+
 .brand-scraper-segment-section {
   display: flex;
   flex-direction: column;

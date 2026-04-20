@@ -59,10 +59,10 @@
   }
 
   const LS_RUN_OPTIONS = 'aepBrandScraperRunOptions';
-  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments'];
+  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments', 'stakeholders'];
 
   function loadRunOptions() {
-    const defaults = { analysis: true, personas: true, campaigns: true, segments: true };
+    const defaults = { analysis: true, personas: true, campaigns: true, segments: true, stakeholders: true };
     try {
       const raw = localStorage.getItem(LS_RUN_OPTIONS);
       if (!raw) return defaults;
@@ -217,6 +217,61 @@
         )).join('') + '</div></section>');
     }
     return blocks.join('');
+  }
+
+  function renderStakeholders(s) {
+    if (!s) return '';
+    if (s.skipped) return '<p class="brand-scraper-result-muted">Stakeholders skipped: ' + esc(s.reason || 'no key') + '.</p>';
+    if (s.error) return '<p class="brand-scraper-result-muted">Stakeholder extraction failed: ' + esc(s.error) + '</p>';
+    const list = Array.isArray(s.people) ? s.people : [];
+    if (!list.length) return '<section class="brand-scraper-result-block"><h4>Business stakeholders</h4><p class="brand-scraper-result-muted">No named stakeholders found on the crawled pages. Try increasing Pages to scrape to capture an About / Team page.</p></section>';
+
+    const levelOrder = ['Founder', 'C-suite', 'Board', 'VP', 'Director', 'Manager', 'IC', 'Unknown'];
+    const groups = {};
+    for (const p of list) {
+      const key = levelOrder.includes(p.level) ? p.level : 'Unknown';
+      (groups[key] = groups[key] || []).push(p);
+    }
+
+    const renderPersonCard = (p) => {
+      const initials = (p.name || '').split(/\s+/).map(s => s[0] || '').join('').slice(0, 2).toUpperCase() || '?';
+      return (
+        '<article class="brand-scraper-stakeholder">' +
+          '<div class="brand-scraper-stakeholder-avatar">' +
+            (p.image_src
+              ? '<img src="' + esc(p.image_src) + '" alt="' + esc(p.name || '') + '" loading="lazy" referrerpolicy="no-referrer" />'
+              : '<span>' + esc(initials) + '</span>') +
+          '</div>' +
+          '<div class="brand-scraper-stakeholder-body">' +
+            '<h5>' + esc(p.name || 'Unknown') + '</h5>' +
+            (p.role ? '<p class="brand-scraper-stakeholder-role">' + esc(p.role) + '</p>' : '') +
+            (p.department ? '<p class="brand-scraper-result-muted">' + esc(p.department) + '</p>' : '') +
+            (p.bio ? '<p class="brand-scraper-stakeholder-bio">' + esc(p.bio) + '</p>' : '') +
+            '<div class="brand-scraper-stakeholder-links">' +
+              (p.linkedin ? '<a href="' + esc(p.linkedin) + '" target="_blank" rel="noopener">LinkedIn</a>' : '') +
+              (p.source_url ? '<a href="' + esc(p.source_url) + '" target="_blank" rel="noopener">Source</a>' : '') +
+            '</div>' +
+          '</div>' +
+        '</article>'
+      );
+    };
+
+    const sections = [];
+    for (const level of levelOrder) {
+      const arr = groups[level];
+      if (!arr || !arr.length) continue;
+      sections.push(
+        '<div class="brand-scraper-org-level">' +
+          '<h5 class="brand-scraper-org-level-head">' + esc(level) + ' <span class="brand-scraper-asset-hint">' + arr.length + ' ' + (arr.length === 1 ? 'person' : 'people') + '</span></h5>' +
+          '<div class="brand-scraper-org-row">' + arr.map(renderPersonCard).join('') + '</div>' +
+        '</div>'
+      );
+    }
+
+    return '<section class="brand-scraper-result-block">' +
+      '<h4>Business stakeholders <span class="brand-scraper-asset-hint">' + list.length + ' identified · ' + esc(s.provider || '') + '</span></h4>' +
+      '<div class="brand-scraper-org-chart">' + sections.join('') + '</div>' +
+    '</section>';
   }
 
   function renderSegments(s) {
@@ -573,6 +628,7 @@
       ) : '') +
       (data.analysisError ? '<p class="brand-scraper-result-muted">Analysis error: ' + esc(data.analysisError) + '</p>' : '') +
       renderAnalysis(data.analysis) +
+      renderStakeholders(data.stakeholders) +
       renderSegments(data.segments) +
       renderCampaigns(data.campaigns) +
       renderPersonas(data.personas) +
@@ -606,6 +662,7 @@
             (it.personasPresent ? ' · personas' : '') +
             (it.campaignsPresent ? ' · campaigns' : '') +
             (it.segmentsPresent ? ' · segments' : '') +
+            (it.stakeholdersPresent ? ' · stakeholders' : '') +
           '</p>' +
         '</div>' +
         '<div class="brand-scraper-history-card-actions">' +

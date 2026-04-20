@@ -502,6 +502,103 @@ function stripJsonFences(text) {
   return (fenced ? fenced[1] : text).trim();
 }
 
+const STAKEHOLDER_SYSTEM = `You extract the business stakeholders (leadership, executives, founders, board members) from crawled website content so a sales team can see who to target.
+
+Respond with valid JSON only, no other text. Use this exact structure:
+{
+  "people": [
+    {
+      "name": "...",
+      "role": "<exact title as shown on the site>",
+      "level": "C-suite|VP|Director|Manager|IC|Board|Founder|Unknown",
+      "department": "<e.g. Engineering, Product, Marketing, Finance, Sales, Legal, HR, or empty>",
+      "bio": "<1-2 sentence summary from the page content>",
+      "image_src": "<exact URL from the provided image list that depicts this person, or empty string>",
+      "linkedin": "<linkedin URL from the page if present, else empty string>",
+      "source_url": "<URL of the page that describes this person>"
+    }
+  ]
+}
+
+Level classification:
+- C-suite: CEO, CFO, COO, CTO, CMO, CIO, CRO, CPO, President
+- Founder: Founder, Co-founder (may overlap with C-suite; prefer Founder when that is how the page describes them)
+- Board: Board member, Chairman/Chair, Non-executive, Advisor
+- VP: SVP, EVP, VP, Head of X
+- Director: Director, Senior Director, General Manager
+- Manager: Manager, Team Lead
+- IC: Engineer, Designer, Analyst, Scientist, etc.
+- Unknown: if the role is unclear
+
+Rules:
+- Only include real people named on the crawled pages with a role or title.
+- image_src MUST come from the provided image list, or be an empty string. Never invent URLs.
+- Limit to the 20 most senior / most prominent people.
+- If no stakeholders can be identified, return {"people": []}.
+- Keep strings short, no line breaks inside values.`;
+
+async function generateStakeholders(crawl, { provider, anthropicKey } = {}) {
+  const chosen = (provider || process.env.BRAND_SCRAPER_PROVIDER || 'gemini').toLowerCase();
+
+  const peoplePagePattern = /(about|team|leadership|people|management|executives|our-story|company|board)/i;
+  const prioritised = crawl.pages.slice().sort((a, b) => {
+    const as = peoplePagePattern.test((a.url || '') + ' ' + (a.title || '')) ? 0 : 1;
+    const bs = peoplePagePattern.test((b.url || '') + ' ' + (b.title || '')) ? 0 : 1;
+    return as - bs;
+  });
+  const pages = prioritised.slice(0, 8);
+  const combinedText = pages.map(p =>
+    `URL: ${p.url}\nTitle: ${p.title}\n${(p.description || '').slice(0, 200)}\n${(p.text || '').slice(0, 2500)}`
+  ).join('\n\n---\n\n').slice(0, 14000);
+
+  const imageList = [];
+  const seenImg = new Set();
+  for (const p of pages) {
+    for (const img of (p._images || [])) {
+      if (seenImg.has(img.src)) continue;
+      seenImg.add(img.src);
+      imageList.push(img.src + (img.alt ? ` (alt: ${img.alt})` : ''));
+      if (imageList.length >= 80) break;
+    }
+    if (imageList.length >= 80) break;
+  }
+
+  const userPrompt =
+    `Brand: ${crawl.brandName}\n` +
+    `Website: ${crawl.baseUrl}\n\n` +
+    `Image list (image_src values must come from this list or be empty):\n${imageList.length ? imageList.join('\n') : '(no images captured)'}\n\n` +
+    `Crawled pages:\n${combinedText}`;
+
+  let raw;
+  let usedProvider;
+  try {
+    if (chosen === 'anthropic') {
+      if (!anthropicKey) return { skipped: true, reason: 'ANTHROPIC_API_KEY not configured' };
+      raw = await callAnthropic(anthropicKey, STAKEHOLDER_SYSTEM, userPrompt);
+      usedProvider = 'anthropic';
+    } else {
+      raw = await callGemini(STAKEHOLDER_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false });
+      usedProvider = 'gemini';
+    }
+  } catch (e) {
+    return { error: `${chosen} provider failed: ${String(e && e.message || e)}` };
+  }
+
+  try {
+    const parsed = JSON.parse(stripJsonFences(raw));
+    const list = Array.isArray(parsed && parsed.people) ? parsed.people : [];
+    // Validate image_src against our image list to eliminate hallucinations.
+    const allowedImages = new Set(imageList.map(s => s.split(' (alt:')[0]));
+    const clean = list.map(p => ({
+      ...p,
+      image_src: (p.image_src && allowedImages.has(p.image_src)) ? p.image_src : '',
+    }));
+    return { provider: usedProvider, people: clean };
+  } catch (_e) {
+    return { provider: usedProvider, error: 'Model response was not valid JSON', raw: raw.slice(0, 4000) };
+  }
+}
+
 const PERSONA_SYSTEM = `You are a customer research expert. Generate realistic customer personas for the given brand based on its website content.
 
 Respond with valid JSON only, no other text. Use this exact structure:
@@ -833,6 +930,18 @@ function mergeScrapeRecords(existing, fresh) {
   };
   out.segmentsError = f.segmentsError || null;
 
+  // Stakeholders: union by name (case-insensitive). Fresh wins on collision.
+  const peopleMap = new Map();
+  const ePe = (e.stakeholders && Array.isArray(e.stakeholders.people)) ? e.stakeholders.people : [];
+  const fPe = (f.stakeholders && Array.isArray(f.stakeholders.people)) ? f.stakeholders.people : [];
+  for (const p of ePe) if (p && p.name) peopleMap.set(p.name.toLowerCase(), p);
+  for (const p of fPe) if (p && p.name) peopleMap.set(p.name.toLowerCase(), p);
+  out.stakeholders = {
+    provider: (f.stakeholders && f.stakeholders.provider) || (e.stakeholders && e.stakeholders.provider) || null,
+    people: Array.from(peopleMap.values()),
+  };
+  out.stakeholdersError = f.stakeholdersError || null;
+
   // Pass through identity fields
   out.brandName = f.brandName || e.brandName;
   out.url = f.url || e.url;
@@ -887,9 +996,11 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     let campaignsError = null;
     let segments = null;
     let segmentsError = null;
+    let stakeholders = null;
+    let stakeholdersError = null;
     let recordClassification = null;
     try {
-      const [analysisResult, personasResult, campaignsResult] = await Promise.all([
+      const [analysisResult, personasResult, campaignsResult, stakeholdersResult] = await Promise.all([
         inc('analysis')
           ? analyseBrand(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) }))
           : Promise.resolve(skipped('Brand guidelines disabled in Options')),
@@ -902,10 +1013,14 @@ async function handleAnalyse(req, res, { anthropicKey }) {
         inc('campaigns')
           ? generateCampaigns(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) }))
           : Promise.resolve(skipped('Campaigns disabled in Options')),
+        inc('stakeholders')
+          ? generateStakeholders(crawl, { provider: providerPref, anthropicKey }).catch(e => ({ error: String(e && e.message || e) }))
+          : Promise.resolve(skipped('Stakeholders disabled in Options')),
       ]);
       analysis = analysisResult;
       personas = personasResult;
       campaigns = campaignsResult;
+      stakeholders = stakeholdersResult;
 
       // Segments + industry classification run AFTER the trio in parallel.
       // Segments consumes personas + campaigns; industry consumes analysis.about
@@ -965,6 +1080,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       campaignsError,
       segments,
       segmentsError,
+      stakeholders,
+      stakeholdersError,
       elapsedMs,
     };
     if (appendMode) {
@@ -1002,6 +1119,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       campaignsError: (saved && saved.campaignsError) || campaignsError,
       segments: (saved && saved.segments) || segments,
       segmentsError: (saved && saved.segmentsError) || segmentsError,
+      stakeholders: (saved && saved.stakeholders) || stakeholders,
+      stakeholdersError: (saved && saved.stakeholdersError) || stakeholdersError,
       appended: !!appendMode,
       elapsedMs,
     });

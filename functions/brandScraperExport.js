@@ -134,6 +134,33 @@ function mdCampaigns(brandName, campaignsObj) {
   return lines.join('\n');
 }
 
+function mdStakeholders(brandName, stakeholdersObj) {
+  const list = (stakeholdersObj && Array.isArray(stakeholdersObj.people)) ? stakeholdersObj.people : [];
+  if (!list.length) return `# Business stakeholders\n\n_Not generated._\n`;
+  const order = ['Founder', 'C-suite', 'Board', 'VP', 'Director', 'Manager', 'IC', 'Unknown'];
+  const groups = {};
+  for (const p of list) {
+    const key = order.includes(p.level) ? p.level : 'Unknown';
+    (groups[key] = groups[key] || []).push(p);
+  }
+  const lines = [`# Business stakeholders — ${brandName || ''}`, '', `_${list.length} people identified._`, ''];
+  for (const level of order) {
+    const arr = groups[level];
+    if (!arr || !arr.length) continue;
+    lines.push(`## ${level}`, '');
+    for (const p of arr) {
+      lines.push(`### ${p.name || 'Unknown'}${p.role ? ' — ' + p.role : ''}`);
+      const meta = [p.department, p.linkedin].filter(Boolean);
+      if (meta.length) lines.push(`_${meta.join(' · ')}_`, '');
+      if (p.bio) lines.push(p.bio, '');
+      if (p.image_src) lines.push(`![${p.name || ''}](${p.image_src})`, '');
+      if (p.source_url) lines.push(`Source: ${p.source_url}`);
+      lines.push('---', '');
+    }
+  }
+  return lines.join('\n');
+}
+
 function mdSegments(brandName, segmentsObj) {
   const list = (segmentsObj && Array.isArray(segmentsObj.segments)) ? segmentsObj.segments : [];
   if (!list.length) return `# Audience segments\n\n_Not generated._\n`;
@@ -197,6 +224,7 @@ function mdReadme(record) {
     '- `personas.md` + `personas.json` — customer personas localised to the chosen country.',
     '- `campaigns.md` + `campaigns.json` — campaigns detected on the site plus recommended demo campaigns.',
     '- `segments.md` + `segments.json` — Real-Time CDP segments grouped by evaluation type.',
+    '- `stakeholders.md` + `stakeholders.json` — leadership / key people identified on the site, grouped by level.',
     '- `assets/palette.json` — top colours and font families extracted from CSS.',
     '- `assets/manifest.json` — image classifications (if classify step was run).',
     '- `assets/images/` — downloaded images (if classify step was run).',
@@ -240,6 +268,8 @@ async function buildExport(sandbox, scrapeId, record) {
   archive.append(jsonPretty(record.campaigns || {}), { name: 'campaigns.json' });
   archive.append(mdSegments(record.brandName, record.segments), { name: 'segments.md' });
   archive.append(jsonPretty(record.segments || {}), { name: 'segments.json' });
+  archive.append(mdStakeholders(record.brandName, record.stakeholders), { name: 'stakeholders.md' });
+  archive.append(jsonPretty(record.stakeholders || {}), { name: 'stakeholders.json' });
   archive.append(jsonPretty(record), { name: 'crawl.json' });
 
   const assets = (record.crawlSummary && record.crawlSummary.assets) || {};

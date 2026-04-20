@@ -62,6 +62,7 @@
                     <label><input type="checkbox" data-run-option="personas" checked /> <span><strong>Customer personas</strong><em>6 localised personas</em></span></label>
                     <label><input type="checkbox" data-run-option="campaigns" checked /> <span><strong>Campaigns</strong><em>detected + recommended</em></span></label>
                     <label><input type="checkbox" data-run-option="segments" checked /> <span><strong>Audience segments</strong><em>edge / streaming / batch</em></span></label>
+                    <label><input type="checkbox" data-run-option="stakeholders" checked /> <span><strong>Business stakeholders</strong><em>leadership org chart</em></span></label>
                     <p class="brand-scraper-result-muted">Crawl + asset extraction always run. Each step off = fewer tokens, faster response.</p>
                   </div>
                 </div>
@@ -173,6 +174,16 @@
               </header>
               <h3 class="brand-scraper-card-title">Audience segments</h3>
               <p class="brand-scraper-card-body">8-10 Real-Time CDP segments across edge / streaming / batch evaluation — each with criteria, estimated size, suggested campaigns, and qualified personas. Grounded in the generated personas and campaigns.</p>
+            </article>
+            <article class="brand-scraper-card" data-healthcheck="analyze">
+              <header class="brand-scraper-card-head">
+                <span class="brand-scraper-card-ico" aria-hidden="true">🧑‍💼</span>
+                <span class="brand-scraper-card-light is-checking" role="status" aria-label="Checking stakeholders health">
+                  <span class="brand-scraper-card-light-dot"></span>
+                </span>
+              </header>
+              <h3 class="brand-scraper-card-title">Business stakeholders</h3>
+              <p class="brand-scraper-card-body">Extracts named leadership, founders, and key people from About / Leadership / Team pages. Builds an org chart grouped by seniority (C-suite, VP, Director, etc.) with headshots pulled from the site's image catalogue.</p>
             </article>
             <article class="brand-scraper-card" data-healthcheck="export">
               <header class="brand-scraper-card-head">
