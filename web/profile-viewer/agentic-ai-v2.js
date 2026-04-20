@@ -42,7 +42,9 @@
 
     tooltip.className = 'agentic-v2-talk-tooltip';
     tooltip.setAttribute('role', 'tooltip');
-    document.body.appendChild(tooltip);
+    /* Must live under the same subtree as the fullscreen element (<main>), or it vanishes in presentation fullscreen. */
+    var tooltipHost = document.querySelector('main.dashboard-main.app-page') || document.body;
+    tooltipHost.appendChild(tooltip);
 
     function targetFrom(node) {
       if (!node || typeof node.closest !== 'function') return null;
