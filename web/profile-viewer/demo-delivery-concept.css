@@ -85,52 +85,55 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   color: var(--dash-danger, var(--dash-text-secondary));
 }
 
-/*
-  Outer .race-ajo-mounts is only for loading state + SDK hint (race-for-life-demo.css).
-*/
 .demo-delivery-stage.race-ajo-mounts {
   width: 100%;
   max-width: none;
   margin-left: auto;
   margin-right: auto;
+  background: transparent;
+  min-height: 0;
 }
 
-/* Same rendered height for both device PNGs (width follows aspect; centered in column). */
+/*
+  Center devices side-by-side (no 50/50 grid = no huge white gutters).
+  Same rendered height on both PNGs; laptop width capped so it is not ultra-widescreen.
+*/
 .demo-delivery-page {
-  --demo-delivery-frame-h: min(58vh, 620px);
+  --demo-delivery-frame-h: min(52vh, 520px);
 }
 
 .demo-delivery-stage {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(8px, 1.2vw, 16px);
-  align-items: center;
-  justify-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 8px 14px;
   width: 100%;
 }
 
 .demo-device {
   position: relative;
   margin: 0;
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.demo-device--laptop,
-.demo-device--mobile {
+  flex: 0 0 auto;
+  width: auto;
   max-width: none;
+  display: block;
 }
 
+/* Same height; laptop capped narrower than full column so aspect feels less cinematic */
 .demo-device-frame {
   display: block;
   height: var(--demo-delivery-frame-h);
   width: auto;
-  max-width: min(100%, 920px);
   object-fit: contain;
+}
+
+.demo-device--laptop .demo-device-frame {
+  max-width: min(420px, 46vw);
+}
+
+.demo-device--mobile .demo-device-frame {
+  max-width: min(220px, 28vw);
 }
 
 .demo-device-screen {
@@ -139,46 +142,50 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   -webkit-overflow-scrolling: touch;
   border-radius: 10px;
   background: #fff;
-  border: 1px solid var(--dash-border);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  /* Clip AJO / Launch content to the glass */
+  contain: layout paint;
 }
 
-/* Laptop PNG: screen cutout */
+/* Laptop PNG: screen cutout (percent of rendered image box) */
 .demo-device-screen--laptop {
   left: 24.5%;
   top: 21.8%;
   width: 51.1%;
   height: 55.1%;
-  display: flex;
-  flex-direction: column;
 }
 
-/* Mobile PNG: screen cutout */
+/* Mobile PNG */
 .demo-device-screen--mobile {
   left: 41.8%;
   top: 12.2%;
   width: 17.1%;
   height: 75.4%;
   border-radius: 26px;
-  display: flex;
-  flex-direction: column;
 }
 
-/* Hero fills laptop viewport */
+/* Hero: scroll inside bezel only */
 .demo-device-screen--laptop #hero-banner {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
+  max-width: 100%;
   overflow: auto;
+  box-sizing: border-box;
 }
 
 .demo-device-screen--laptop #hero-banner:not(:empty) {
   padding: 0;
 }
 
-/* Content card region: edge-to-edge inside phone bezel (full-screen in device) */
+.demo-device-screen--laptop .race-ajo-iframe {
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Mobile: fill glass; card stacks to full height */
 .demo-device-screen--mobile #ContentCardContainer,
 .demo-device-screen--mobile #ContentCardContainer:not(:empty) {
   flex: 1 1 auto !important;
@@ -193,21 +200,28 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   isolation: auto;
   display: flex !important;
   flex-direction: column !important;
+  justify-content: flex-start !important;
   background: #fff !important;
   overflow: auto;
+  box-sizing: border-box;
 }
 
 .demo-device-screen--mobile #ContentCardContainer .Banner,
 .demo-device-screen--mobile #ContentCardContainer [class^='Banner'] {
   flex: 1 1 auto !important;
   width: 100% !important;
-  min-height: min-content !important;
+  min-height: 0 !important;
   max-width: none !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .demo-device-screen--mobile #ContentCardContainer .Banner__content,
 .demo-device-screen--mobile #ContentCardContainer [class*='Banner__content'] {
   flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
 }
 
 .demo-device-screen--mobile .race-ajo-content-card {
@@ -216,10 +230,12 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   flex-direction: column;
   min-height: 100%;
   width: 100%;
+  max-width: 100%;
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   background: #fff !important;
+  box-sizing: border-box;
 }
 
 .demo-device-screen--mobile .race-ajo-content-card-inner {
@@ -229,6 +245,7 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   min-height: 100%;
   border-radius: 0 !important;
   overflow: hidden;
+  justify-content: flex-start;
 }
 
 .demo-device-screen--mobile .race-ajo-content-card-img {
@@ -250,19 +267,31 @@ body.demo-delivery-page.home-dashboard-concierge:not(.home-page) .dashboard-main
   width: 100% !important;
   min-height: 120px !important;
   border-radius: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
 }
 
 .demo-device-screen .race-ajo-hero,
 .demo-device-screen .race-ajo-content-cards {
   min-height: 0;
+  max-width: 100%;
 }
 
 @media (max-width: 960px) {
   .demo-delivery-stage {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: center;
   }
 
   .demo-delivery-page {
-    --demo-delivery-frame-h: min(52vh, 520px);
+    --demo-delivery-frame-h: min(48vh, 480px);
+  }
+
+  .demo-device--laptop .demo-device-frame {
+    max-width: min(92vw, 400px);
+  }
+
+  .demo-device--mobile .demo-device-frame {
+    max-width: min(55vw, 240px);
   }
 }
