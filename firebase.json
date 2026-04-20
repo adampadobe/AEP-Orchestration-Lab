@@ -57,6 +57,27 @@
         }
       },
       {
+        "source": "/api/brand-scraper/analyze",
+        "function": {
+          "functionId": "brandScraperAnalyze",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/brand-scraper/scrapes/**",
+        "function": {
+          "functionId": "brandScraperScrapes",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/brand-scraper/scrapes",
+        "function": {
+          "functionId": "brandScraperScrapes",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/ajo/live-activity",
         "function": {
           "functionId": "ajoLiveActivityProxy",
@@ -235,6 +256,20 @@
         "source": "/api/decision-lab/config",
         "function": {
           "functionId": "decisionLabConfigStore",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/arch-proposals",
+        "function": {
+          "functionId": "archProposals",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/arch-master",
+        "function": {
+          "functionId": "archMaster",
           "region": "us-central1"
         }
       },

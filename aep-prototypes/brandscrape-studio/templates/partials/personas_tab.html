@@ -1,0 +1,85 @@
+{% set personas = analysis.get('personas', []) %}
+
+{% if personas %}
+<p class="text-muted text-sm mb-16">{{ personas|length }} personas generated. Click a card to expand details.</p>
+<div class="persona-compact-grid">
+    {% for p in personas %}
+    <div class="persona-compact-card card" data-persona-id="{{ p.get('id', '') }}" onclick="togglePersonaExpand(this)">
+        <div class="persona-compact-header">
+            <div class="persona-avatar" style="width:38px;height:38px;border-radius:10px;font-size:15px;">{{ p.get('name', '?')[0] }}</div>
+            <div class="persona-compact-info">
+                <h4>{{ p.get('name', 'Unknown') }}</h4>
+                <span class="text-muted text-sm">{{ p.get('age', '') }} &middot; {{ p.get('occupation', '') }}</span>
+            </div>
+            <span class="expand-arrow">&#9662;</span>
+        </div>
+        <div class="persona-compact-detail" style="display:none;">
+            <div class="persona-compact-meta text-sm text-muted" style="margin:10px 0 6px;">
+                {{ p.get('location', '') }} &middot; {{ p.get('income_range', '') }}
+            </div>
+            <p class="text-sm">{{ p.get('bio', '') }}</p>
+
+            {% if p.get('brand_affinity') %}
+            <div class="persona-section">
+                <h5>Brand Affinity</h5>
+                <p class="text-sm">{{ p.brand_affinity }}</p>
+            </div>
+            {% endif %}
+
+            {% if p.get('goals') %}
+            <div class="persona-section">
+                <h5>Goals</h5>
+                <ul>{% for g in p.goals %}<li>{{ g }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+
+            {% if p.get('pain_points') %}
+            <div class="persona-section">
+                <h5>Pain Points</h5>
+                <ul>{% for pp in p.pain_points %}<li>{{ pp }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+
+            {% if p.get('behaviors') %}
+            <div class="persona-section">
+                <h5>Behaviors</h5>
+                <ul>{% for b in p.behaviors %}<li>{{ b }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+
+            {% if p.get('preferred_channels') %}
+            <div class="persona-section mt-8">
+                <h5>Preferred Channels</h5>
+                <div class="flex flex-wrap gap-8">
+                    {% for ch in p.preferred_channels %}
+                    <span class="badge badge-primary">{{ ch }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if p.get('suggested_segments') %}
+            <div class="persona-section mt-8">
+                <h5>&#127919; Linked Segments</h5>
+                <div class="flex flex-wrap gap-8">
+                    {% for s in p.suggested_segments %}
+                    {% if s is mapping %}
+                    <a class="segment-link badge badge-streaming" href="#" data-segment-id="{{ s.id }}" title="View in Audiences tab" onclick="event.stopPropagation();">{{ s.name }}</a>
+                    {% else %}
+                    <span class="badge badge-accent">{{ s }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="icon">&#128100;</div>
+    <h3>No personas generated</h3>
+    <p>Customer personas could not be generated for this website.</p>
+</div>
+{% endif %}

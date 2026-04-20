@@ -1,0 +1,105 @@
+{% set g = analysis.get('guidelines') %}
+
+{% if g %}
+
+{% if g.get('_is_fallback') %}
+<div class="fallback-warning">
+    &#9888; These guidelines are generic fallback data — the AI analysis was unable to generate brand-specific results. Content below may not reflect the actual brand.
+</div>
+{% endif %}
+<div class="guideline-section animate-in animate-in-1">
+    <h3>About the Brand</h3>
+    <div class="card" style="border-left:3px solid var(--violet);">
+        <p>{{ g.get('about', 'No brand description available.') }}</p>
+    </div>
+</div>
+
+{% if g.get('tone_of_voice') %}
+<div class="guideline-section animate-in animate-in-2">
+    <h3>Tone of Voice</h3>
+    {% for item in g.tone_of_voice %}
+    <div class="guideline-item">
+        <strong>{{ item.rule }}</strong>
+        {% if item.get('example') %}<em>{{ item.example }}</em>{% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if g.get('brand_values') %}
+<div class="guideline-section animate-in animate-in-3">
+    <h3>Brand Values</h3>
+    <div class="card-grid">
+        {% for v in g.brand_values %}
+        <div class="card" style="border-top:3px solid var(--violet);">
+            <h3>{{ v.value }}</h3>
+            <p>{{ v.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if g.get('editorial_guidelines') %}
+<div class="guideline-section animate-in animate-in-4">
+    <h3>Editorial Guidelines</h3>
+    {% for item in g.editorial_guidelines %}
+    <div class="guideline-item">
+        <strong>{{ item.rule }}</strong>
+        {% if item.get('example') %}<em>{{ item.example }}</em>{% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if g.get('image_guidelines') %}
+<div class="guideline-section animate-in animate-in-5">
+    <h3>Image Guidelines</h3>
+    {% for item in g.image_guidelines %}
+    <div class="guideline-item">
+        <strong>{{ item.rule }}</strong>
+        {% if item.get('example') %}<em>{{ item.example }}</em>{% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if g.get('channel_guidelines') %}
+<div class="guideline-section animate-in animate-in-6">
+    <h3>Channel Guidelines</h3>
+    <div class="card" style="padding:0;overflow:hidden;">
+        <div class="channel-table-wrap">
+        <table class="channel-table">
+            <thead>
+                <tr>
+                    <th>Channel</th>
+                    <th>Subject Line</th>
+                    <th>Headline</th>
+                    <th>Body</th>
+                    <th>CTA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ch in g.channel_guidelines %}
+                <tr>
+                    <td><strong>{{ ch.channel }}</strong></td>
+                    <td>{{ ch.get('subject_line', '') }}</td>
+                    <td>{{ ch.get('headline', '') }}</td>
+                    <td>{{ ch.get('body', '') }}</td>
+                    <td>{{ ch.get('cta', '') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <div class="icon">&#9997;&#65039;</div>
+    <h3>No guidelines generated</h3>
+    <p>Brand guidelines could not be generated for this website.</p>
+</div>
+{% endif %}

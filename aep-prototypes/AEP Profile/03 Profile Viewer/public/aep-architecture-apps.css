@@ -158,6 +158,42 @@
   display: none !important;
 }
 
+.arch-proposals-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-top: 1px solid var(--dash-border, #e4e6eb);
+  background: rgba(255, 255, 255, 0.7);
+}
+.arch-proposals-bar[hidden] { display: none !important; }
+.arch-proposals-bar #archProposalsSaveMaster[hidden] { display: none !important; }
+.arch-proposals-bar-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary, #4b5563);
+}
+.arch-proposals-bar #archProposalsSelect {
+  min-width: 12rem;
+  max-width: 18rem;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.78rem;
+}
+.arch-proposals-bar .dashboard-btn-outline,
+.arch-proposals-bar .dashboard-btn-primary {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.72rem;
+}
+.arch-proposals-bar-status {
+  margin-left: auto;
+  color: var(--dash-muted, #64748b);
+}
+html[data-aep-theme='dark'] .arch-proposals-bar {
+  background: var(--dash-surface-alt, #1f242a);
+  border-top-color: var(--dash-border);
+}
+
 .arch-int-viewport--editing-tools-hidden .arch-editor-dock {
   display: none !important;
 }
@@ -735,6 +771,13 @@
   display: none !important;
 }
 
+/* Filter hiding: tile classes set display:flex/block which overrides UA [hidden]. */
+.arch-spectrum-icons-tile[hidden],
+.arch-architecture-logo-tile[hidden],
+.arch-logo-menu-group[hidden] {
+  display: none !important;
+}
+
 /* Canvas Tools — same shell as Lines; position stacked above Lines bar when both visible */
 .arch-tools-float-bar {
   bottom: 0.65rem;
@@ -1186,6 +1229,19 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
   pointer-events: none;
 }
 
+/* In Edit mode, allow clicking the flow line itself (widened hit via stroke) to select/delete. */
+.arch-int-viewport--edit-mode .arch-flow.is-visible {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.arch-int-viewport--edit-mode .arch-flow.is-visible:hover {
+  filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.55));
+}
+.arch-flow.arch-flow--selected {
+  stroke-width: 4 !important;
+  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.85));
+}
+
 .arch-flow.is-visible {
   opacity: 1;
 }
@@ -1450,6 +1506,17 @@ html[data-aep-theme='dark'] .arch-line-float-hex-text {
 
 .arch-int-viewport.arch-drag-on.arch-resizing .arch-draggable {
   cursor: default;
+}
+
+.arch-rotate-handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.arch-int-viewport.arch-drag-on .arch-rotate-handle {
+  opacity: 1;
+  pointer-events: all;
+  cursor: grab;
 }
 
 .arch-int-viewport.arch-drag-on.arch-dragging .arch-draggable {
@@ -2101,13 +2168,18 @@ html[data-aep-theme='dark'] .arch-logo-tag-chip[aria-pressed='true'] {
   padding: 0.35rem 0.2rem;
   border: 1px solid transparent;
   border-radius: 4px;
-  background: #fff;
+  background: #e5e7eb;
   cursor: pointer;
   font-size: 0.6rem;
   line-height: 1.2;
   color: #334155;
   text-align: center;
   word-break: break-word;
+}
+
+html[data-aep-theme='dark'] .arch-spectrum-icons-tile {
+  background: var(--dash-surface-alt, #2a2f36);
+  color: var(--dash-text, #e5e7eb);
 }
 
 .arch-spectrum-icons-tile:hover,
@@ -2480,6 +2552,34 @@ html[data-aep-theme='dark'] .arch-logo-confirm-btn--danger:hover {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+}
+
+.arch-logo-menu-rename-btn {
+  display: none;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(255, 255, 255, 0.92);
+  color: #1473e6;
+  cursor: pointer;
+  line-height: 0;
+}
+.arch-logo-menu-rename-btn:hover,
+.arch-logo-menu-rename-btn:focus-visible {
+  background: #fff;
+  outline: none;
+  border-color: rgba(20, 115, 230, 0.55);
+}
+#archEditorSectionSpectrumIcons[data-arch-logo-edit-mode="1"] .arch-logo-menu-rename-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+html[data-aep-theme='dark'] .arch-logo-menu-rename-btn {
+  background: var(--dash-surface);
+  border-color: var(--dash-border);
+  color: var(--dash-blue, #60a5fa);
 }
 
 @keyframes arch-logo-tile-jiggle {

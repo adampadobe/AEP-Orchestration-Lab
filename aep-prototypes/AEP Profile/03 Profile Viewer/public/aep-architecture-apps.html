@@ -70,6 +70,19 @@
                   </div>
                   <button type="button" class="dashboard-btn-outline arch-fullscreen-btn arch-int-fullscreen-btn" id="archPresentationFullscreenBtn" title="Fill the screen with the diagram (hides site menu and page title). Press Esc to exit.">Fullscreen</button>
                 </div>
+                <div class="arch-proposals-bar arch-diagram-ui" id="archProposalsBar" hidden>
+                  <label class="arch-proposals-bar-label" for="archProposalsSelect">Proposal</label>
+                  <select id="archProposalsSelect" class="arch-spectrum-icons-search arch-diagram-ui" aria-label="Saved proposals">
+                    <option value="">— Base diagram —</option>
+                  </select>
+                  <button type="button" class="dashboard-btn-outline" id="archProposalsLoad" title="Load the selected proposal into the canvas">Load</button>
+                  <button type="button" class="dashboard-btn-outline" id="archProposalsSave" title="Save changes to the currently loaded proposal">Save</button>
+                  <button type="button" class="dashboard-btn-outline" id="archProposalsSaveAs" title="Save the current canvas as a new named proposal">Save as…</button>
+                  <button type="button" class="dashboard-btn-outline" id="archProposalsRename" title="Rename the selected proposal">Rename</button>
+                  <button type="button" class="dashboard-btn-outline" id="archProposalsDelete" title="Delete the selected proposal">Delete</button>
+                  <button type="button" class="dashboard-btn-primary" id="archProposalsSaveMaster" title="Overwrite the shared base diagram — only available to the apalmer sandbox" hidden>Save as master</button>
+                  <span class="arch-tool-micro arch-proposals-bar-status" id="archProposalsStatus" aria-live="polite"></span>
+                </div>
                 <div class="arch-int-compact-nav">
                   <div class="arch-int-dots" id="archIntDots" role="tablist" aria-label="Diagram state"></div>
                   <div class="arch-int-compact-nav-actions">
@@ -85,7 +98,7 @@
                 </div>
               </div>
               <div class="arch-int-svg-wrap">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" preserveAspectRatio="xMidYMid meet">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" preserveAspectRatio="xMidYMin meet">
             <defs>
               <marker id="archUserArrowEnd" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
                 <path d="M0 0 L7 3.5 L0 7 Z" class="arch-user-arrow-head"/>
@@ -147,8 +160,7 @@
             <!-- AEP shell (middle 3/5 only) -->
             <g id="node-aep" class="arch-node arch-draggable">
               <rect data-arch-shell="1" x="250" y="112" width="700" height="452" rx="10" fill="#f3f4f6" stroke="#d1d5db"/>
-              <rect x="269" y="122" width="12" height="12" rx="2" fill="#e1251b"/>
-              <text x="291" y="132" class="arch-node-label" font-size="9px">Adobe Experience Platform</text>
+              <text x="600" y="132" text-anchor="middle" class="arch-node-label" font-size="9px">Adobe Experience Platform</text>
             </g>
 
             <!-- Tags: centered on DATA COLLECTION lane (x=133); translate aligns with Sources — position overridden when drag is enabled (see aep-architecture-apps.js) -->
@@ -573,10 +585,8 @@
                 </div>
                 <div class="arch-editor-section" data-arch-panel="spectrum-icons" id="archEditorSectionSpectrumIcons" role="tabpanel" aria-labelledby="archEditorRailSpectrumIcons" hidden>
                   <p class="arch-editor-panel-heading">Icons &amp; logos</p>
-                  <p class="arch-tool-lead arch-tool-lead--compact">Open <strong>Adobe Logos</strong> or <strong>Product &amp; diagram logos</strong> (or Spectrum icons), then click a tile to place it. Use <strong>Edit logos</strong> at the bottom to edit or remove entries (like iOS home screen). Custom uploads: <strong>Upload new asset</strong>. With <strong>Edit diagram</strong> on, drag corners on the canvas to resize placed assets.</p>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Spectrum workflow icons</summary>
-                    <p class="arch-tool-micro arch-icon-panel-details-lead"><a href="https://opensource.adobe.com/spectrum-css-workflow-icons/" target="_blank" rel="noopener noreferrer">Spectrum workflow icons</a></p>
                     <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
                       <input type="search" id="archSpectrumIconSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter by name…" autocomplete="off" aria-label="Filter Spectrum icons"/>
                     </label>
@@ -585,8 +595,6 @@
                   </details>
                   <details class="arch-icon-panel-details">
                     <summary class="arch-icon-panel-summary">Adobe Logos</summary>
-                    <p class="arch-tool-micro arch-icon-panel-details-lead">Adobe marks and Corporate Express product logos</p>
-                    <div id="archAdobeLogoTagRow" class="arch-logo-tag-chip-row arch-diagram-ui" role="toolbar" aria-label="Filter Adobe logos by category"></div>
                     <label class="arch-spectrum-icons-search-label arch-hud-label arch-hud-label--block">Search
                       <input type="search" id="archAdobeLogoSearch" class="arch-spectrum-icons-search arch-diagram-ui" placeholder="Filter Adobe logos…" autocomplete="off" aria-label="Filter Adobe logos"/>
                     </label>

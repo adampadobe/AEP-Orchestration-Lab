@@ -267,19 +267,13 @@
     return !!(archViewport && archViewport.classList.contains('arch-int-viewport--edit-mode'));
   }
 
-  /** Disable prev/next/dot navigation while editing so arrow keys do not fight layout tools. */
+  /** Prev/Next/dot nav stays enabled in Edit mode so you can step through states while editing. */
   function archSyncPlaybackNav() {
-    var blocked = archIsEditMode();
     var prev = qs('#archIntPrev');
     var next = qs('#archIntNext');
-    if (prev) prev.disabled = blocked;
-    if (next) next.disabled = blocked;
-    dotButtons.forEach(function (b) {
-      b.disabled = blocked;
-    });
-    if (blocked || !archSelection) return;
-    archSelection.clear();
-    archSelectionRefreshDom();
+    if (prev) prev.disabled = false;
+    if (next) next.disabled = false;
+    dotButtons.forEach(function (b) { b.disabled = false; });
   }
 
   function archSelectionRefreshDom() {
@@ -507,12 +501,65 @@
       archCustomBoxLabelActiveId = null;
       userLines.selectedId = null;
       userLines.selectedHandleIdx = null;
+      archFlowClearSelection();
       archSelection.clear();
       archCustomBoxesRender();
       archUserLineRender();
       archUserLineSyncPropsHud();
       archSelectionRefreshDom();
     }
+  }
+
+  function archFlowClearSelection() {
+    if (!archSelectedFlowId) return;
+    var prev = document.getElementById(archSelectedFlowId);
+    if (prev) prev.classList.remove('arch-flow--selected');
+    archSelectedFlowId = null;
+  }
+
+  function archFlowSelect(id) {
+    archFlowClearSelection();
+    var el = id && document.getElementById(id);
+    if (!el || !el.classList.contains('arch-flow')) return;
+    archSelectedFlowId = id;
+    el.classList.add('arch-flow--selected');
+    // Clear other selections so Delete unambiguously targets the flow.
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    if (archSelection) archSelection.clear();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    archSelectionRefreshDom();
+    if (liveRegion) liveRegion.textContent = 'Flow line selected — Delete or Backspace removes it.';
+  }
+
+  function archFlowDeleteSelected() {
+    if (!archSelectedFlowId) return;
+    var id = archSelectedFlowId;
+    archHiddenFlowsAdd(id);
+    archFlowClearSelection();
+    var el = document.getElementById(id);
+    if (el) {
+      el.classList.remove('is-visible');
+      el.classList.remove('arch-flow--selected');
+      el.removeAttribute('data-flow-kind');
+      el.style.stroke = '';
+    }
+    if (liveRegion) liveRegion.textContent = 'Flow line removed from this proposal.';
+    try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (e) {}
+  }
+
+  function archDiagramFlowClick(e) {
+    if (!archIsEditMode()) return;
+    if (e.target && e.target.closest && e.target.closest('.arch-diagram-ui')) return;
+    var t = e.target;
+    if (!t || !t.classList || !t.classList.contains('arch-flow')) return;
+    if (!t.classList.contains('is-visible')) return;
+    e.stopPropagation();
+    archFlowSelect(t.id);
   }
 
   /**
@@ -830,8 +877,9 @@
 
     $all('.arch-flow').forEach(function (path) {
       var spec = activeIds[path.id];
-      if (!spec) {
+      if (!spec || archHiddenFlowsHas(path.id)) {
         path.classList.remove('is-visible');
+        path.classList.remove('arch-flow--selected');
         path.removeAttribute('data-flow-kind');
         path.style.stroke = '';
         return;
@@ -839,6 +887,7 @@
       path.style.stroke = spec.stroke;
       path.setAttribute('data-flow-kind', spec.kind || 'intra');
       path.classList.add('is-visible');
+      path.classList.toggle('arch-flow--selected', archSelectedFlowId === path.id);
     });
 
     if (hudTitle) hudTitle.textContent = st.label;
@@ -867,7 +916,6 @@
   }
 
   function go(delta) {
-    if (archIsEditMode()) return;
     var n = idx + delta;
     if (n < 0 || n >= STATES.length) return;
     idx = n;
@@ -875,7 +923,6 @@
   }
 
   function goTo(i) {
-    if (archIsEditMode()) return;
     if (i < 0 || i >= STATES.length) return;
     idx = i;
     applyState();
@@ -928,6 +975,8 @@
     }
 
     archStateHighlightOverridesLoad();
+    archHiddenFlowsLoad();
+    archHiddenNodesLoad();
     archHighlightPickerInit();
     var archHighlightResetBtn = qs('#archHighlightResetState');
     if (archHighlightResetBtn) {
@@ -1792,7 +1841,14 @@
       var p = archDrag.pos[key] || { x: 0, y: 0 };
       var tx = L.base[0] + p.x;
       var ty = L.base[1] + p.y;
-      g.setAttribute('transform', 'translate(' + tx + ',' + ty + ')');
+      var nodeAngle = p.angle || 0;
+      var wh0 = archNodeEffectiveWH(key);
+      var nodePivotX = L.rect[0] + wh0.w / 2;
+      var nodePivotY = L.rect[1] + wh0.h / 2;
+      var nodeTfm = nodeAngle
+        ? 'translate(' + (tx + nodePivotX) + ',' + (ty + nodePivotY) + ') rotate(' + nodeAngle + ') translate(' + (-nodePivotX) + ',' + (-nodePivotY) + ')'
+        : 'translate(' + tx + ',' + ty + ')';
+      g.setAttribute('transform', nodeTfm);
       var shell = g.querySelector('[data-arch-shell]');
       if (shell) {
         var wh = archNodeEffectiveWH(key);
@@ -1836,24 +1892,32 @@
     Object.keys(NODE_LAYOUT).forEach(function (key) {
       var g = qs('#node-' + key);
       if (!g) return;
-      if (g.querySelector('.arch-node-resize-handle[data-arch-node-handle]')) return;
-      $all('.arch-node-resize-handle:not(.arch-node-resize-handle--cbox)', g).forEach(function (el) {
-        el.parentNode.removeChild(el);
-      });
-      keys.forEach(function (hk) {
-        var h = document.createElementNS(SVG_NS, 'rect');
-        h.setAttribute('class', 'arch-node-resize-handle arch-node-resize-handle--node');
-        h.setAttribute('data-arch-node-handle', hk);
-        h.setAttribute('width', String(hs));
-        h.setAttribute('height', String(hs));
-        h.setAttribute('rx', '2');
-        h.setAttribute('fill', '#ffffff');
-        h.setAttribute('stroke', '#1473e6');
-        h.setAttribute('stroke-width', '1.25');
-        h.setAttribute('tabindex', '-1');
-        h.setAttribute('aria-hidden', 'true');
-        g.appendChild(h);
-      });
+      if (!g.querySelector('.arch-node-resize-handle[data-arch-node-handle]')) {
+        $all('.arch-node-resize-handle:not(.arch-node-resize-handle--cbox)', g).forEach(function (el) {
+          el.parentNode.removeChild(el);
+        });
+        keys.forEach(function (hk) {
+          var h = document.createElementNS(SVG_NS, 'rect');
+          h.setAttribute('class', 'arch-node-resize-handle arch-node-resize-handle--node');
+          h.setAttribute('data-arch-node-handle', hk);
+          h.setAttribute('width', String(hs));
+          h.setAttribute('height', String(hs));
+          h.setAttribute('rx', '2');
+          h.setAttribute('fill', '#ffffff');
+          h.setAttribute('stroke', '#1473e6');
+          h.setAttribute('stroke-width', '1.25');
+          h.setAttribute('tabindex', '-1');
+          h.setAttribute('aria-hidden', 'true');
+          g.appendChild(h);
+        });
+      }
+      if (!g.querySelector('.arch-rotate-handle[data-arch-node-rotate]')) {
+        var wh = archNodeEffectiveWH(key);
+        var L2 = NODE_LAYOUT[key];
+        var rh = archMakeRotateHandle(L2.rect[0] + wh.w / 2, L2.rect[1] + 10, { archNodeRotate: key }, null);
+        rh.addEventListener('pointerdown', archNodeRotatePointerDown);
+        g.appendChild(rh);
+      }
     });
   }
 
@@ -1868,6 +1932,7 @@
               archDrag.pos[k] = { x: saved[k].x, y: saved[k].y };
               if (typeof saved[k].w === 'number') archDrag.pos[k].w = saved[k].w;
               if (typeof saved[k].h === 'number') archDrag.pos[k].h = saved[k].h;
+              if (typeof saved[k].angle === 'number') archDrag.pos[k].angle = saved[k].angle;
             }
           });
         }
@@ -1899,6 +1964,50 @@
   var LS_MASTER = 'aepArchMasterLayout';
   var LS_USER_LINES = 'aepArchUserLines';
   var LS_SOURCES_DIVIDERS = 'aepArchSourcesDividers';
+  /** Base flow lines (the animated dashed connectors in #layer-flows) hidden per sandbox/proposal. */
+  var LS_HIDDEN_FLOWS = 'aepArchHiddenFlows';
+  var archHiddenFlows = {};
+  var archSelectedFlowId = null;
+
+  function archHiddenFlowsLoad() {
+    try {
+      var raw = localStorage.getItem(LS_HIDDEN_FLOWS);
+      var p = raw ? JSON.parse(raw) : null;
+      archHiddenFlows = p && typeof p === 'object' ? p : {};
+    } catch (e) { archHiddenFlows = {}; }
+  }
+  function archHiddenFlowsPersist() {
+    try { localStorage.setItem(LS_HIDDEN_FLOWS, JSON.stringify(archHiddenFlows)); } catch (e) {}
+  }
+  function archHiddenFlowsHas(id) { return !!(id && archHiddenFlows[id]); }
+  function archHiddenFlowsAdd(id) { if (id) { archHiddenFlows[id] = 1; archHiddenFlowsPersist(); } }
+
+  /** Base nodes (arch-draggable groups with id node-<key>) hidden per sandbox/proposal. */
+  var LS_HIDDEN_NODES = 'aepArchHiddenNodes';
+  var archHiddenNodes = {};
+
+  function archHiddenNodesLoad() {
+    try {
+      var raw = localStorage.getItem(LS_HIDDEN_NODES);
+      var p = raw ? JSON.parse(raw) : null;
+      archHiddenNodes = p && typeof p === 'object' ? p : {};
+    } catch (e) { archHiddenNodes = {}; }
+  }
+  function archHiddenNodesPersist() {
+    try { localStorage.setItem(LS_HIDDEN_NODES, JSON.stringify(archHiddenNodes)); } catch (e) {}
+  }
+  function archHiddenNodesHas(key) { return !!(key && archHiddenNodes[key]); }
+  function archHiddenNodesAdd(key) { if (key) { archHiddenNodes[key] = 1; archHiddenNodesPersist(); } }
+
+  /** Apply display: none to all hidden base nodes. Called after init + after state changes. */
+  function archHiddenNodesApply() {
+    $all('g.arch-node.arch-draggable').forEach(function (g) {
+      if (!g.id || g.id.indexOf('node-') !== 0 || g.id.indexOf('node-cbox-') === 0) return;
+      var key = g.id.slice(5);
+      if (archHiddenNodesHas(key)) g.style.display = 'none';
+      else g.style.display = '';
+    });
+  }
   /** Session + localStorage defaults for the Lines floating toolbar (new-line defaults). */
   var LS_LINE_TOOLBAR_DEFAULTS = 'aepArchLineToolbarDefaults';
 
@@ -2517,8 +2626,35 @@
   var customBoxDrawMode = false;
   var customBoxDrawPending = null;
   var archCustomDrag = { active: null, start: null };
+  var archCustomRotate = { active: null, start: null };
   var archCustomResize = { active: null, start: null };
   var LS_CUSTOM_BOXES = 'aepArchCustomBoxes';
+
+  var ARCH_ROTATE_CW_PATH = 'm18.27051,3.72896c-.39209-.12061-.81494.10059-.93701.49658l-.53143,1.73016c-1.43658-2.33026-3.99622-3.82538-6.80206-3.82538C5.58887,2.13033,2,5.7192,2,10.13033s3.58887,8,8,8c2.66162,0,5.1416-1.31836,6.6333-3.52686.23193-.34326.1416-.80957-.20166-1.0415-.34375-.23145-.80957-.14062-1.0415.20166-1.2124,1.79492-3.22754,2.8667-5.39014,2.8667-3.58398,0-6.5-2.91602-6.5-6.5s2.91602-6.5,6.5-6.5c2.20074,0,4.21191,1.13434,5.3999,2.91516l-1.54736-.47522c-.39258-.11914-.81543.1001-.93701.49658-.12158.396.10059.81543.49658.93701l3.37988,1.03809c.07324.02246.14746.0332.2207.0332.32031,0,.61719-.20703.71631-.52979l1.03809-3.37939c.12158-.396-.10059-.81543-.49658-.93701Z';
+
+  function archMakeRotateHandle(cx, cy, dataset, evtKey) {
+    var g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', 'arch-rotate-handle');
+    g.setAttribute('transform', 'translate(' + cx + ',' + cy + ')');
+    if (dataset) {
+      Object.keys(dataset).forEach(function (k) { g.dataset[k] = dataset[k]; });
+    }
+    var circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('cx', '0');
+    circle.setAttribute('cy', '0');
+    circle.setAttribute('r', '8');
+    circle.setAttribute('fill', '#ffffff');
+    circle.setAttribute('stroke', '#1473e6');
+    circle.setAttribute('stroke-width', '1.25');
+    g.appendChild(circle);
+    var icon = document.createElementNS(SVG_NS, 'path');
+    icon.setAttribute('d', ARCH_ROTATE_CW_PATH);
+    icon.setAttribute('fill', '#1473e6');
+    icon.setAttribute('transform', 'translate(-6,-6) scale(0.6)');
+    icon.setAttribute('pointer-events', 'none');
+    g.appendChild(icon);
+    return g;
+  }
 
   /** In-memory clipboard for Edit mode copy/paste (custom boxes + connectors). */
   var archDiagramClipboard = null;
@@ -2557,7 +2693,6 @@
       btn.tabIndex = 0;
       btn.setAttribute('data-arch-spectrum-file', item.file);
       btn.setAttribute('data-arch-spectrum-label', lab);
-      btn.title = lab;
       var wrap = document.createElement('span');
       wrap.className = 'arch-spectrum-icons-tile-img-wrap';
       var im = document.createElement('img');
@@ -2721,6 +2856,34 @@
     { id: 'partner', label: 'Partner', matchAny: ['partner'] },
     { id: 'other', label: 'Other', matchAny: [] },
   ];
+
+  /** Browser-local renames for the hard-coded menu group labels above. Keyed by "<panel>:<groupId>". */
+  var ARCH_MENU_GROUP_LABEL_OVERRIDES_KEY = 'aepArchMenuGroupLabelOverrides';
+
+  function archMenuGroupLabelOverridesLoad() {
+    try {
+      var raw = localStorage.getItem(ARCH_MENU_GROUP_LABEL_OVERRIDES_KEY);
+      if (!raw) return {};
+      var o = JSON.parse(raw);
+      return o && typeof o === 'object' ? o : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function archMenuGroupLabelOverridesPersist(map) {
+    try {
+      localStorage.setItem(ARCH_MENU_GROUP_LABEL_OVERRIDES_KEY, JSON.stringify(map || {}));
+    } catch (e) {}
+  }
+
+  function archMenuGroupResolvedLabel(panel, group) {
+    if (!group) return '';
+    var map = archMenuGroupLabelOverridesLoad();
+    var key = (panel === 'adobe' ? 'adobe' : 'other') + ':' + group.id;
+    var v = map[key];
+    return typeof v === 'string' && v.trim() ? v : group.label;
+  }
 
   var ARCH_CUSTOM_LOGOS_KEY = 'aepArchCustomLogoLibrary';
   /** Browser-local overrides for bundled `architecture-logos.json` entries (label, description, optional image). */
@@ -3147,13 +3310,21 @@
       sum.className = 'arch-logo-menu-summary arch-diagram-ui';
       var lab = document.createElement('span');
       lab.className = 'arch-logo-menu-summary-label';
-      lab.textContent = groupDefs[i].label;
+      lab.textContent = archMenuGroupResolvedLabel(pk, groupDefs[i]);
       var cnt = document.createElement('span');
       cnt.className = 'arch-logo-menu-count';
       cnt.setAttribute('data-arch-base-count', String(list.length));
       cnt.textContent = String(list.length);
       sum.appendChild(lab);
       sum.appendChild(cnt);
+      var renameBtn = document.createElement('button');
+      renameBtn.type = 'button';
+      renameBtn.className = 'arch-logo-menu-rename-btn arch-diagram-ui';
+      renameBtn.setAttribute('data-arch-menu-rename', pk + ':' + groupDefs[i].id);
+      renameBtn.setAttribute('aria-label', 'Rename submenu');
+      renameBtn.title = 'Rename submenu (this browser)';
+      renameBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+      sum.appendChild(renameBtn);
       var inner = document.createElement('div');
       inner.className = 'arch-spectrum-icons-grid arch-architecture-logo-grid arch-logo-menu-subgrid';
       inner.setAttribute('role', 'group');
@@ -3210,24 +3381,9 @@
     var ov = qs('#archCustomLogoEditOverlay');
     var dlg = ov && ov.querySelector('.arch-custom-logo-edit-dialog');
     if (!ov || ov.hidden || !dlg) return;
-    if (!archLogoEditAnchorEl) {
-      ov.classList.remove('arch-custom-logo-edit-overlay--anchored');
-      dlg.style.left = '';
-      dlg.style.top = '';
-      return;
-    }
-    ov.classList.add('arch-custom-logo-edit-overlay--anchored');
-    var r = archLogoEditAnchorEl.getBoundingClientRect();
-    var dw = dlg.offsetWidth || 320;
-    var dh = dlg.offsetHeight || 240;
-    var pad = 8;
-    var left = r.right + pad;
-    if (left + dw > window.innerWidth - pad) left = Math.max(pad, r.left - dw - pad);
-    var top = r.top;
-    if (top + dh > window.innerHeight - pad) top = Math.max(pad, window.innerHeight - dh - pad);
-    if (top < pad) top = pad;
-    dlg.style.left = left + 'px';
-    dlg.style.top = top + 'px';
+    ov.classList.remove('arch-custom-logo-edit-overlay--anchored');
+    dlg.style.left = '';
+    dlg.style.top = '';
   }
 
   function archLogoEditPopoverOpenDone() {
@@ -3387,7 +3543,6 @@
       var tagList = Array.isArray(item.tags) ? item.tags.filter(function (t) { return t; }) : [];
       btn.setAttribute('data-arch-logo-tags', tagList.join(' '));
       var hover = (item.label || '') + (item.description ? ' — ' + item.description : '');
-      btn.title = hover || item.file;
       var wrap = document.createElement('span');
       wrap.className = 'arch-spectrum-icons-tile-img-wrap';
       var im = document.createElement('img');
@@ -3405,7 +3560,6 @@
         btn.setAttribute('data-arch-custom-logo-id', item._archCustomId);
         btn.setAttribute('draggable', 'true');
         btn.classList.add('arch-architecture-logo-tile--custom');
-        btn.title = (hover || item.file) + ' — Turn on Edit logos below to change or remove. Drag to reorder.';
         tileActions = document.createElement('span');
         tileActions.className = 'arch-architecture-logo-tile-actions';
         tileActions.setAttribute('role', 'group');
@@ -3502,9 +3656,6 @@
         });
         tileActions.appendChild(remCat);
         tileActions.appendChild(catEditBtn);
-        btn.title =
-          (hover || item.file) +
-          ' — Turn on Edit logos below to change metadata or overrides (this browser).';
       }
       btn.appendChild(wrap);
       btn.appendChild(cap);
@@ -3709,7 +3860,7 @@
     groups.forEach(function (g) {
       var opt = document.createElement('option');
       opt.value = g.id;
-      opt.textContent = g.label;
+      opt.textContent = archMenuGroupResolvedLabel(panel, g);
       selEl.appendChild(opt);
     });
   }
@@ -3748,7 +3899,7 @@
           'Change label, description, or which submenu this appears under. Logos already on the canvas keep their old label until you edit the box on the canvas.';
       }
       if (panelRow) panelRow.hidden = false;
-      if (replaceRow) replaceRow.hidden = true;
+      if (replaceRow) replaceRow.hidden = false;
       if (fi) fi.value = '';
       if (delBtn) {
         delBtn.hidden = false;
@@ -3918,26 +4069,54 @@
     var descIn = qs('#archCustomLogoEditDesc');
     var ps = qs('#archCustomLogoEditPanel');
     var gs = qs('#archCustomLogoEditGroup');
+    var fiCustom = qs('#archCatalogLogoEditReplaceFile');
     var label = (labIn && labIn.value && labIn.value.trim()) || '';
     if (!label) return;
-    var items = archCustomLogoLibraryLoad();
-    var next = items.map(function (e) {
-      if (e.id !== archCustomLogoEditingId) return e;
-      return Object.assign({}, e, {
-        label: label,
-        description: (descIn && descIn.value && descIn.value.trim()) || '',
-        panel: ps && ps.value === 'adobe' ? 'adobe' : 'other',
-        groupId: gs ? gs.value : e.groupId,
-      });
-    });
-    try {
-      archCustomLogoLibrarySave(next);
-    } catch (err) {
+    var fileCustom = fiCustom && fiCustom.files && fiCustom.files[0];
+    if (fileCustom && fileCustom.size > ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS * 0.75) {
+      if (liveRegion) liveRegion.textContent = 'File too large to store locally.';
       return;
     }
-    archCustomLogoMetadataEditorClose();
-    archCustomLogoRefreshLists();
-    archArchitectureLogosRefreshMerged();
+    var editingId = archCustomLogoEditingId;
+    function finishCustomUpdate(dataUrl) {
+      var items = archCustomLogoLibraryLoad();
+      var next = items.map(function (e) {
+        if (e.id !== editingId) return e;
+        var merged = Object.assign({}, e, {
+          label: label,
+          description: (descIn && descIn.value && descIn.value.trim()) || '',
+          panel: ps && ps.value === 'adobe' ? 'adobe' : 'other',
+          groupId: gs ? gs.value : e.groupId,
+        });
+        if (dataUrl) merged.fileDataUrl = dataUrl;
+        return merged;
+      });
+      try {
+        archCustomLogoLibrarySave(next);
+      } catch (err) {
+        return;
+      }
+      archCustomLogoMetadataEditorClose();
+      archCustomLogoRefreshLists();
+      archArchitectureLogosRefreshMerged();
+    }
+    if (fileCustom) {
+      var readerC = new FileReader();
+      readerC.onload = function () {
+        var s = readerC.result;
+        if (typeof s === 'string' && s.length > ARCH_CUSTOM_LOGO_MAX_DATA_URL_CHARS) {
+          if (liveRegion) liveRegion.textContent = 'Image data too large for local storage.';
+          return;
+        }
+        finishCustomUpdate(s);
+      };
+      readerC.onerror = function () {
+        if (liveRegion) liveRegion.textContent = 'Could not read image file.';
+      };
+      readerC.readAsDataURL(fileCustom);
+    } else {
+      finishCustomUpdate(null);
+    }
   }
 
   function archCustomLogoEditDialogInit() {
@@ -4318,6 +4497,33 @@
     toggle.addEventListener('click', function () {
       archLogoLibraryEditModeSet(!archLogoLibraryEditModeIsOn());
     });
+    sec.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest && e.target.closest('[data-arch-menu-rename]');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (!archLogoLibraryEditModeIsOn()) return;
+      var key = btn.getAttribute('data-arch-menu-rename') || '';
+      var parts = key.split(':');
+      if (parts.length !== 2) return;
+      var panel = parts[0];
+      var groupId = parts[1];
+      var defs = panel === 'adobe' ? ARCH_ADOBE_MENU_GROUPS : ARCH_OTHER_MENU_GROUPS;
+      var def = null;
+      for (var i = 0; i < defs.length; i++) { if (defs[i].id === groupId) { def = defs[i]; break; } }
+      if (!def) return;
+      var current = archMenuGroupResolvedLabel(panel, def);
+      var next = window.prompt('Rename submenu (leave blank to restore default)', current);
+      if (next === null) return;
+      var map = archMenuGroupLabelOverridesLoad();
+      var mapKey = panel + ':' + groupId;
+      var trimmed = String(next).trim();
+      if (!trimmed || trimmed === def.label) delete map[mapKey];
+      else map[mapKey] = trimmed;
+      archMenuGroupLabelOverridesPersist(map);
+      archArchitectureLogosRefreshMerged();
+      if (liveRegion) liveRegion.textContent = 'Submenu renamed (this browser).';
+    });
   }
 
   function archCustomLogoUploadFormInit() {
@@ -4573,6 +4779,8 @@
     o.h = Math.max(ARCH_MIN_NODE_H, Math.min(ARCH_MAX_NODE_H, o.h));
     o.x = archClamp(o.x, 0, ARCH_GUIDE_VIEW.w - o.w);
     o.y = archClamp(o.y, 0, ARCH_GUIDE_VIEW.h - o.h);
+    var rawAngle = Number(b.angle);
+    o.angle = isNaN(rawAngle) ? 0 : rawAngle;
     return o;
   }
 
@@ -5445,11 +5653,58 @@
     }
   }
 
+  function archNodeRotatePointerDown(e) {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    e.preventDefault();
+    e.stopPropagation();
+    var key = e.currentTarget.dataset.archNodeRotate;
+    if (!key || !NODE_LAYOUT[key]) return;
+    var L = NODE_LAYOUT[key];
+    var p = archDrag.pos[key] || { x: 0, y: 0 };
+    var wh = archNodeEffectiveWH(key);
+    var worldCx = L.base[0] + p.x + L.rect[0] + wh.w / 2;
+    var worldCy = L.base[1] + p.y + L.rect[1] + wh.h / 2;
+    archCustomRotate.active = '__node__' + key;
+    archCustomRotate.start = { svgCx: worldCx, svgCy: worldCy, startAngle: p.angle || 0 };
+    window.addEventListener('pointermove', archNodeRotatePointerMoveWin, true);
+    window.addEventListener('pointerup', archNodeRotatePointerUpWin, true);
+    window.addEventListener('pointercancel', archNodeRotatePointerUpWin, true);
+  }
+
+  function archNodeRotatePointerMoveWin(e) {
+    if (!archCustomRotate.active) return;
+    e.preventDefault();
+    var key = archCustomRotate.active.replace(/^__node__/, '');
+    var s = archCustomRotate.start;
+    var p2 = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var rawAngle = Math.atan2(p2.y - s.svgCy, p2.x - s.svgCx) * 180 / Math.PI + 90;
+    var snapped = rawAngle;
+    var snapPoints = [0, 45, 90, 135, 180, 225, 270, 315, 360, -45, -90, -135, -180];
+    for (var si = 0; si < snapPoints.length; si++) {
+      if (Math.abs(rawAngle - snapPoints[si]) < 5) { snapped = snapPoints[si]; break; }
+    }
+    if (!archDrag.pos[key]) archDrag.pos[key] = { x: 0, y: 0 };
+    archDrag.pos[key].angle = snapped;
+    archDragApply();
+  }
+
+  function archNodeRotatePointerUpWin() {
+    if (!archCustomRotate.active) return;
+    archCustomRotate.active = null;
+    archCustomRotate.start = null;
+    window.removeEventListener('pointermove', archNodeRotatePointerMoveWin, true);
+    window.removeEventListener('pointerup', archNodeRotatePointerUpWin, true);
+    window.removeEventListener('pointercancel', archNodeRotatePointerUpWin, true);
+    archDragSave();
+    archUndoMaybePushSnapshot();
+  }
+
   function archDragPointerDown(e) {
     if (!archDrag.enabled) return;
     if (userLines.drawMode || customBoxDrawMode) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
+    if (e.target && e.target.closest && e.target.closest('[data-arch-node-rotate]')) return;
     if (e.target && e.target.closest && e.target.closest('text')) return;
     var g = e.currentTarget;
     if (!g || !g.id || g.id.indexOf('node-') !== 0) return;
@@ -5825,7 +6080,12 @@
         (isProductLogo ? ' arch-custom-box--product-logo' : '');
       g.setAttribute('class', gClass);
       if (archCustomBoxSelectedId === b.id) g.classList.add('arch-custom-box--selected');
-      g.setAttribute('transform', 'translate(' + b.x + ',' + b.y + ')');
+      var cx = b.w / 2;
+      var cy = b.h / 2;
+      var tfm = b.angle
+        ? 'translate(' + (b.x + cx) + ',' + (b.y + cy) + ') rotate(' + b.angle + ') translate(' + (-cx) + ',' + (-cy) + ')'
+        : 'translate(' + b.x + ',' + b.y + ')';
+      g.setAttribute('transform', tfm);
       var shell = document.createElementNS(SVG_NS, 'rect');
       shell.setAttribute('data-arch-shell', '1');
       shell.setAttribute('x', '0');
@@ -5901,6 +6161,9 @@
         hEl.setAttribute('aria-hidden', 'true');
         g.appendChild(hEl);
       });
+      var rotHandle = archMakeRotateHandle(b.w / 2, 10, { archRotateHandle: '1' }, null);
+      rotHandle.addEventListener('pointerdown', archCboxRotatePointerDown);
+      g.appendChild(rotHandle);
       g.addEventListener('pointerdown', archCustomBoxDragPointerDown);
       layer.appendChild(g);
     });
@@ -6088,6 +6351,55 @@
     archUndoMaybePushSnapshot();
   }
 
+  function archCboxRotatePointerDown(e) {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    e.preventDefault();
+    e.stopPropagation();
+    var g = e.currentTarget.parentNode;
+    if (!g || !g.id || g.id.indexOf('node-cbox-') !== 0) return;
+    var rawId = g.id.replace(/^node-cbox-/, '');
+    var box = archCustomBoxFind(rawId);
+    if (!box) return;
+    var b = archCustomBoxNormalize(box);
+    archCustomRotate.active = rawId;
+    archCustomRotate.start = {
+      svgCx: b.x + b.w / 2,
+      svgCy: b.y + b.h / 2,
+      startAngle: b.angle || 0,
+    };
+    window.addEventListener('pointermove', archCboxRotatePointerMoveWin, true);
+    window.addEventListener('pointerup', archCboxRotatePointerUpWin, true);
+    window.addEventListener('pointercancel', archCboxRotatePointerUpWin, true);
+  }
+
+  function archCboxRotatePointerMoveWin(e) {
+    if (!archCustomRotate.active || !archCustomRotate.start) return;
+    e.preventDefault();
+    var p = svgClientToSvg(archDrag.svg, e.clientX, e.clientY);
+    var s = archCustomRotate.start;
+    var rawAngle = Math.atan2(p.y - s.svgCy, p.x - s.svgCx) * 180 / Math.PI + 90;
+    var snapped = rawAngle;
+    var snapPoints = [0, 45, 90, 135, 180, 225, 270, 315, 360, -45, -90, -135, -180];
+    for (var si = 0; si < snapPoints.length; si++) {
+      if (Math.abs(rawAngle - snapPoints[si]) < 5) { snapped = snapPoints[si]; break; }
+    }
+    var box = archCustomBoxFind(archCustomRotate.active);
+    if (!box) return;
+    box.angle = snapped;
+    archCustomBoxesRender();
+  }
+
+  function archCboxRotatePointerUpWin() {
+    if (!archCustomRotate.active) return;
+    archCustomRotate.active = null;
+    archCustomRotate.start = null;
+    window.removeEventListener('pointermove', archCboxRotatePointerMoveWin, true);
+    window.removeEventListener('pointerup', archCboxRotatePointerUpWin, true);
+    window.removeEventListener('pointercancel', archCboxRotatePointerUpWin, true);
+    archCustomBoxesPersist();
+    archUndoMaybePushSnapshot();
+  }
+
   function archCustomBoxDragPointerDown(e) {
     if (userLines.drawMode || customBoxDrawMode) return;
     var g = e.currentTarget;
@@ -6095,6 +6407,7 @@
     var rawId = g.id.replace(/^node-cbox-/, '');
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (e.target && e.target.classList && e.target.classList.contains('arch-node-resize-handle')) return;
+    if (e.target && e.target.closest && e.target.closest('[data-arch-rotate-handle]')) return;
     var box = archCustomBoxFind(rawId);
     if (!box) return;
 
@@ -6270,6 +6583,8 @@
       stateHighlightOverrides: JSON.parse(JSON.stringify(archStateHighlightOverrides)),
       sourcesDividers: [],
       customBoxes: JSON.parse(JSON.stringify(archCustomBoxes.map(archCustomBoxNormalize))),
+      hiddenFlows: JSON.parse(JSON.stringify(archHiddenFlows || {})),
+      hiddenNodes: JSON.parse(JSON.stringify(archHiddenNodes || {})),
     };
     if (typeof window !== 'undefined' && window.AEPDiagram && window.AEPDiagram.model && window.AEPDiagram.model.legacyToScene) {
       payload.scene = window.AEPDiagram.model.legacyToScene(payload);
@@ -6310,6 +6625,19 @@
     if (Array.isArray(data.customBoxes)) {
       archCustomBoxes = data.customBoxes.map(archCustomBoxNormalize);
     }
+    if (data.hiddenFlows && typeof data.hiddenFlows === 'object') {
+      archHiddenFlows = JSON.parse(JSON.stringify(data.hiddenFlows));
+    } else {
+      archHiddenFlows = {};
+    }
+    if (data.hiddenNodes && typeof data.hiddenNodes === 'object') {
+      archHiddenNodes = JSON.parse(JSON.stringify(data.hiddenNodes));
+    } else {
+      archHiddenNodes = {};
+    }
+    archHiddenFlowsPersist();
+    archHiddenNodesPersist();
+    archHiddenNodesApply();
   }
 
   function archMasterTryLoad() {
@@ -6736,6 +7064,120 @@
     }
   }
 
+  function archDiagramCutSelection() {
+    if (!archIsEditMode()) return;
+    if (!archCustomBoxSelectedId && !userLines.selectedId) {
+      if (liveRegion) liveRegion.textContent = 'Select a shape or connector to cut.';
+      return;
+    }
+    archDiagramCopySelection();
+    if (archCustomBoxSelectedId) { archCustomBoxDeleteSelected(); return; }
+    if (userLines.selectedId) { archUserLineDeleteSelected(); return; }
+  }
+
+  function archDiagramDuplicateSelection() {
+    if (!archIsEditMode()) return;
+    if (!archCustomBoxSelectedId && !userLines.selectedId) {
+      if (liveRegion) liveRegion.textContent = 'Select a shape or connector to duplicate.';
+      return;
+    }
+    var prev = archDiagramClipboard;
+    archDiagramCopySelection();
+    archDiagramPasteClipboard();
+    archDiagramClipboard = prev;
+  }
+
+  function archDiagramSelectAllBaseNodes() {
+    if (!archIsEditMode() || !archSelection) return;
+    var ids = [];
+    $all('.arch-int-svg-wrap g.arch-node.arch-draggable').forEach(function (g) {
+      if (!g.id || g.id.indexOf('node-') !== 0 || g.id.indexOf('node-cbox-') === 0) return;
+      var key = g.id.slice(5);
+      if (NODE_LAYOUT[key] && !archHiddenNodesHas(key)) ids.push(g.id);
+    });
+    if (!ids.length) return;
+    archCustomBoxSelectedId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archFlowClearSelection();
+    archSelection.setMany(ids, ids[0]);
+    archCustomBoxesRender();
+    archUserLineRender();
+    archSelectionRefreshDom();
+    if (liveRegion) liveRegion.textContent = 'Selected ' + ids.length + ' nodes.';
+  }
+
+  function archDiagramDeselectAll() {
+    archCustomBoxSelectedId = null;
+    archCustomBoxLabelActiveId = null;
+    userLines.selectedId = null;
+    userLines.selectedHandleIdx = null;
+    archFlowClearSelection();
+    if (archSelection) archSelection.clear();
+    archCustomBoxesRender();
+    archUserLineRender();
+    archUserLineSyncPropsHud();
+    archSelectionRefreshDom();
+  }
+
+  function archDiagramNudgeSelection(dx, dy) {
+    if (!archIsEditMode()) return false;
+    var moved = false;
+
+    if (archCustomBoxSelectedId) {
+      var box = archCustomBoxFind(archCustomBoxSelectedId);
+      if (box) {
+        box.x = archClamp((box.x || 0) + dx, 0, ARCH_GUIDE_VIEW.w - (box.w || 0));
+        box.y = archClamp((box.y || 0) + dy, 0, ARCH_GUIDE_VIEW.h - (box.h || 0));
+        archCustomBoxesPersist();
+        archCustomBoxesRender();
+        moved = true;
+      }
+    }
+
+    if (userLines.selectedId) {
+      var ln = archUserLineGetSelected();
+      if (ln && Array.isArray(ln.points)) {
+        ln.points = ln.points.map(function (p) {
+          return [(Number(p && p[0]) || 0) + dx, (Number(p && p[1]) || 0) + dy];
+        });
+        archUserLinePersist();
+        archUserLineRender();
+        moved = true;
+      }
+    }
+
+    if (archSelection && archSelection.count() > 0) {
+      var ids = [];
+      try { ids = archSelection.toArray ? archSelection.toArray() : []; } catch (e) {}
+      var changed = 0;
+      ids.forEach(function (sid) {
+        if (!sid || sid.indexOf('node-') !== 0 || sid.indexOf('node-cbox-') === 0) return;
+        var key = sid.slice(5);
+        if (!NODE_LAYOUT[key]) return;
+        var p = archDrag.pos[key] || (archDrag.pos[key] = { x: 0, y: 0 });
+        p.x = (p.x || 0) + dx;
+        p.y = (p.y || 0) + dy;
+        changed++;
+      });
+      if (changed) {
+        archDragApply();
+        archDragSave();
+        moved = true;
+      }
+    }
+
+    if (moved) try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (err) {}
+    return moved;
+  }
+
+  function archDiagramToggleEditMode() {
+    var emt = qs('#archEditModeToggle');
+    if (!emt) return;
+    emt.checked = !emt.checked;
+    try { emt.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+  }
+
   function archUserLineAdd(ep1, ep2) {
     var tool = archLineFloatGetTool();
     var dashStyle = tool === 'dotted' ? 'dotted' : 'solid';
@@ -6896,6 +7338,34 @@
         (e.target.closest && e.target.closest('[contenteditable="true"]')))
     )
       return;
+    if (archSelectedFlowId) {
+      e.preventDefault();
+      archFlowDeleteSelected();
+      return;
+    }
+    if (archSelection && archSelection.count() > 0) {
+      var ids = [];
+      try { ids = archSelection.toArray ? archSelection.toArray() : []; } catch (err) {}
+      if (!ids.length && archSelection.primary) ids = [archSelection.primary];
+      var baseKeys = [];
+      for (var si = 0; si < ids.length; si++) {
+        var sid = ids[si];
+        if (sid && sid.indexOf('node-') === 0 && sid.indexOf('node-cbox-') !== 0) {
+          var skey = sid.slice(5);
+          if (NODE_LAYOUT[skey]) baseKeys.push(skey);
+        }
+      }
+      if (baseKeys.length) {
+        e.preventDefault();
+        for (var bi = 0; bi < baseKeys.length; bi++) archHiddenNodesAdd(baseKeys[bi]);
+        archSelection.clear();
+        archHiddenNodesApply();
+        archSelectionRefreshDom();
+        if (liveRegion) liveRegion.textContent = 'Node removed from this proposal.';
+        try { archUndoMaybePushSnapshot && archUndoMaybePushSnapshot(); } catch (err2) {}
+        return;
+      }
+    }
     if (archCustomBoxSelectedId) {
       e.preventDefault();
       archCustomBoxDeleteSelected();
@@ -7352,6 +7822,7 @@
     archDrag.svg.addEventListener('pointerdown', archUserLineHandlePointerDown, true);
     archDrag.svg.addEventListener('pointerdown', archCustomBoxDrawPointerDownCapture, true);
     archDrag.svg.addEventListener('pointerdown', archLabelPointerDownCapture, true);
+    archDrag.svg.addEventListener('click', archDiagramFlowClick, true);
     archDrag.svg.addEventListener('dblclick', archDiagramDblClickSelect, true);
     archDrag.svg.addEventListener('dblclick', archLabelDblClick, true);
     archDrag.svg.addEventListener('pointerdown', archResizePointerDown, false);
@@ -7365,6 +7836,7 @@
     archEditorSyncLinesDockChrome();
 
     archEditSelectionInit();
+    archHiddenNodesApply();
     archUndoInitOnce();
 
     if (!document.documentElement.getAttribute('data-arch-undo-keys')) {
@@ -7400,6 +7872,52 @@
           if (mod && e.key.toLowerCase() === 'v') {
             e.preventDefault();
             archDiagramPasteClipboard();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'x') {
+            e.preventDefault();
+            archDiagramCutSelection();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'd') {
+            e.preventDefault();
+            archDiagramDuplicateSelection();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'a') {
+            e.preventDefault();
+            archDiagramSelectAllBaseNodes();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 's') {
+            if (e.shiftKey) {
+              e.preventDefault();
+              if (typeof archProposalsHandleSaveAs === 'function') archProposalsHandleSaveAs();
+              return;
+            }
+            e.preventDefault();
+            if (typeof archProposalsHandleSave === 'function') archProposalsHandleSave();
+            return;
+          }
+          if (mod && e.key.toLowerCase() === 'e') {
+            e.preventDefault();
+            archDiagramToggleEditMode();
+            return;
+          }
+          if (!mod && e.key === 'Escape') {
+            archDiagramDeselectAll();
+            return;
+          }
+          if (!mod && archIsEditMode() && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+            var hasSel = !!(archCustomBoxSelectedId || userLines.selectedId || (archSelection && archSelection.count() > 0));
+            if (!hasSel) return;
+            var step = e.shiftKey ? 10 : 1;
+            var dx = 0, dy = 0;
+            if (e.key === 'ArrowLeft') dx = -step;
+            else if (e.key === 'ArrowRight') dx = step;
+            else if (e.key === 'ArrowUp') dy = -step;
+            else if (e.key === 'ArrowDown') dy = step;
+            if (archDiagramNudgeSelection(dx, dy)) e.preventDefault();
             return;
           }
         },
@@ -7501,6 +8019,333 @@
 
     archStateHighlightOverridesPersist();
     applyState();
+    archProposalsBarInit();
+  }
+
+  /* ============================================================
+   *  Proposals — full-snapshot save/load via Firestore per sandbox
+   *  ============================================================ */
+
+  var ARCH_SNAPSHOT_KEYS = [
+    'aepArchMasterLayout',
+    'aepArchDragNodes',
+    'aepArchLabelEdits',
+    'aepArchUserLines',
+    'aepArchSourcesDividers',
+    'aepArchCustomBoxes',
+    'aepArchStateHighlights',
+    'aepArchStateHighlightOverrides',
+    'aepArchCustomLogoLibrary',
+    'aepArchCatalogLogoOverrides',
+    'aepArchCatalogLogoHiddenFromPicker',
+    'aepArchSpectrumWorkflowIconsHiddenFromPicker',
+    'aepArchMenuGroupLabelOverrides',
+    'aepArchHiddenFlows',
+    'aepArchHiddenNodes',
+  ];
+  var ARCH_PROPOSAL_LS_ACTIVE = 'aepArchActiveProposalId';
+  var ARCH_MASTER_OWNER_SANDBOX = 'apalmer';
+
+  function archSnapshotCollect() {
+    var out = {};
+    for (var i = 0; i < ARCH_SNAPSHOT_KEYS.length; i++) {
+      var k = ARCH_SNAPSHOT_KEYS[i];
+      var v = localStorage.getItem(k);
+      if (v != null) out[k] = v;
+    }
+    return { version: 1, keys: out };
+  }
+
+  function archSnapshotRestore(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return;
+    var keys = snapshot.keys && typeof snapshot.keys === 'object' ? snapshot.keys : snapshot;
+    for (var i = 0; i < ARCH_SNAPSHOT_KEYS.length; i++) {
+      var k = ARCH_SNAPSHOT_KEYS[i];
+      if (Object.prototype.hasOwnProperty.call(keys, k)) {
+        try { localStorage.setItem(k, String(keys[k])); } catch (e) {}
+      } else {
+        try { localStorage.removeItem(k); } catch (e) {}
+      }
+    }
+  }
+
+  function archProposalsActiveSandbox() {
+    try {
+      if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSelected === 'function') {
+        var s = (window.AepGlobalSandbox.getSelected() || '').trim();
+        if (s) return s;
+      }
+      var ls = localStorage.getItem('aepGlobalSandboxName');
+      return ls ? String(ls).trim() : '';
+    } catch (e) { return ''; }
+  }
+
+  function archProposalsSetStatus(msg) {
+    var el = qs('#archProposalsStatus');
+    if (el) el.textContent = msg || '';
+  }
+
+  async function archProposalsApiList(sandbox) {
+    var r = await fetch('/api/arch-proposals?sandbox=' + encodeURIComponent(sandbox));
+    if (!r.ok) throw new Error('list failed: ' + r.status);
+    return r.json();
+  }
+  async function archProposalsApiGet(sandbox, id) {
+    var r = await fetch('/api/arch-proposals?sandbox=' + encodeURIComponent(sandbox) + '&id=' + encodeURIComponent(id));
+    if (!r.ok) throw new Error('get failed: ' + r.status);
+    return r.json();
+  }
+  async function archProposalsApiSave(sandbox, body) {
+    var r = await fetch('/api/arch-proposals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ sandbox: sandbox }, body)),
+    });
+    var j = await r.json().catch(function () { return {}; });
+    if (!r.ok || j.ok === false) throw new Error(j.error || ('save failed: ' + r.status));
+    return j;
+  }
+  async function archProposalsApiDelete(sandbox, id) {
+    var r = await fetch('/api/arch-proposals?sandbox=' + encodeURIComponent(sandbox) + '&id=' + encodeURIComponent(id), { method: 'DELETE' });
+    var j = await r.json().catch(function () { return {}; });
+    if (!r.ok || j.ok === false) throw new Error(j.error || ('delete failed: ' + r.status));
+    return j;
+  }
+  async function archMasterApiGet() {
+    var r = await fetch('/api/arch-master');
+    if (!r.ok) throw new Error('master get failed: ' + r.status);
+    return r.json();
+  }
+  async function archMasterApiSave(sandbox, snapshot) {
+    var r = await fetch('/api/arch-master', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sandbox: sandbox, snapshot: snapshot }),
+    });
+    var j = await r.json().catch(function () { return {}; });
+    if (!r.ok || j.ok === false) throw new Error(j.error || ('master save failed: ' + r.status));
+    return j;
+  }
+
+  function archProposalsPopulateSelect(items, activeId) {
+    var sel = qs('#archProposalsSelect');
+    if (!sel) return;
+    sel.textContent = '';
+    var opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = '— Base diagram —';
+    sel.appendChild(opt0);
+    (items || []).forEach(function (it) {
+      var o = document.createElement('option');
+      o.value = it.id;
+      o.textContent = it.name || '(untitled)';
+      sel.appendChild(o);
+    });
+    if (activeId) sel.value = activeId;
+  }
+
+  async function archProposalsRefresh() {
+    var sandbox = archProposalsActiveSandbox();
+    if (!sandbox) {
+      archProposalsSetStatus('Select a sandbox to load proposals.');
+      archProposalsPopulateSelect([], '');
+      return;
+    }
+    try {
+      var data = await archProposalsApiList(sandbox);
+      var active = localStorage.getItem(ARCH_PROPOSAL_LS_ACTIVE) || '';
+      archProposalsPopulateSelect(data.items || [], active);
+      archProposalsSetStatus('Sandbox: ' + sandbox + ' · ' + ((data.items || []).length) + ' saved');
+    } catch (e) {
+      archProposalsSetStatus('Could not list proposals: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleLoad() {
+    var sandbox = archProposalsActiveSandbox();
+    var sel = qs('#archProposalsSelect');
+    if (!sandbox || !sel) return;
+    var id = sel.value;
+    if (!id) {
+      if (!window.confirm('Reset canvas to base diagram? All unsaved edits in this browser will be cleared.')) return;
+      archSnapshotRestore({ keys: {} });
+      try { localStorage.removeItem(ARCH_PROPOSAL_LS_ACTIVE); } catch (e) {}
+      archProposalsSetStatus('Loaded base diagram. Reload the page to apply.');
+      window.location.reload();
+      return;
+    }
+    try {
+      var data = await archProposalsApiGet(sandbox, id);
+      if (!data.record || !data.record.snapshot) {
+        archProposalsSetStatus('Proposal not found.');
+        return;
+      }
+      archSnapshotRestore(data.record.snapshot);
+      try { localStorage.setItem(ARCH_PROPOSAL_LS_ACTIVE, id); } catch (e) {}
+      archProposalsSetStatus('Loaded "' + data.record.name + '". Reloading…');
+      window.location.reload();
+    } catch (e) {
+      archProposalsSetStatus('Load failed: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleSaveAs() {
+    var sandbox = archProposalsActiveSandbox();
+    if (!sandbox) { archProposalsSetStatus('Select a sandbox first.'); return; }
+    var name = window.prompt('Name this proposal (e.g. customer name):', '');
+    if (name == null) return;
+    name = String(name).trim();
+    if (!name) return;
+    try {
+      var snapshot = archSnapshotCollect();
+      var res = await archProposalsApiSave(sandbox, { name: name, snapshot: snapshot });
+      try { localStorage.setItem(ARCH_PROPOSAL_LS_ACTIVE, res.record.proposalId || res.record.id); } catch (e) {}
+      archProposalsSetStatus('Saved "' + name + '".');
+      await archProposalsRefresh();
+      var sel = qs('#archProposalsSelect');
+      if (sel) sel.value = res.record.proposalId || res.record.id;
+    } catch (e) {
+      archProposalsSetStatus('Save failed: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleSave() {
+    var sandbox = archProposalsActiveSandbox();
+    var sel = qs('#archProposalsSelect');
+    if (!sandbox || !sel) return;
+    var id = sel.value;
+    if (!id) { return archProposalsHandleSaveAs(); }
+    var name = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+    try {
+      var snapshot = archSnapshotCollect();
+      await archProposalsApiSave(sandbox, { id: id, name: name, snapshot: snapshot });
+      archProposalsSetStatus('Saved changes to "' + name + '".');
+    } catch (e) {
+      archProposalsSetStatus('Save failed: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleRename() {
+    var sandbox = archProposalsActiveSandbox();
+    var sel = qs('#archProposalsSelect');
+    if (!sandbox || !sel || !sel.value) return;
+    var id = sel.value;
+    var current = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+    var next = window.prompt('Rename proposal:', current);
+    if (next == null) return;
+    next = String(next).trim();
+    if (!next || next === current) return;
+    try {
+      var data = await archProposalsApiGet(sandbox, id);
+      if (!data.record || !data.record.snapshot) { archProposalsSetStatus('Not found.'); return; }
+      await archProposalsApiSave(sandbox, { id: id, name: next, snapshot: data.record.snapshot });
+      archProposalsSetStatus('Renamed.');
+      await archProposalsRefresh();
+    } catch (e) {
+      archProposalsSetStatus('Rename failed: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleDelete() {
+    var sandbox = archProposalsActiveSandbox();
+    var sel = qs('#archProposalsSelect');
+    if (!sandbox || !sel || !sel.value) return;
+    var id = sel.value;
+    var name = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+    if (!window.confirm('Delete proposal "' + name + '"? This cannot be undone.')) return;
+    try {
+      await archProposalsApiDelete(sandbox, id);
+      if (localStorage.getItem(ARCH_PROPOSAL_LS_ACTIVE) === id) {
+        try { localStorage.removeItem(ARCH_PROPOSAL_LS_ACTIVE); } catch (e) {}
+      }
+      archProposalsSetStatus('Deleted.');
+      await archProposalsRefresh();
+    } catch (e) {
+      archProposalsSetStatus('Delete failed: ' + e.message);
+    }
+  }
+
+  async function archProposalsHandleSaveMaster() {
+    var sandbox = archProposalsActiveSandbox();
+    if (sandbox !== ARCH_MASTER_OWNER_SANDBOX) {
+      archProposalsSetStatus('Only the ' + ARCH_MASTER_OWNER_SANDBOX + ' sandbox can save master.');
+      return;
+    }
+    if (!window.confirm('Overwrite the shared base diagram for everyone with the current canvas?')) return;
+    try {
+      var snapshot = archSnapshotCollect();
+      await archMasterApiSave(sandbox, snapshot);
+      archProposalsSetStatus('Master saved.');
+    } catch (e) {
+      archProposalsSetStatus('Master save failed: ' + e.message);
+    }
+  }
+
+  function archProposalsMasterBtnSyncVisibility() {
+    var btn = qs('#archProposalsSaveMaster');
+    if (!btn) return;
+    btn.hidden = archProposalsActiveSandbox() !== ARCH_MASTER_OWNER_SANDBOX;
+  }
+
+  function archProposalsBarSyncVisibility() {
+    var bar = qs('#archProposalsBar');
+    var tgl = qs('#archEditModeToggle');
+    if (!bar) return;
+    bar.hidden = !(tgl && tgl.checked);
+  }
+
+  var ARCH_MASTER_APPLIED_TS_KEY = 'aepArchMasterAppliedTs';
+
+  async function archProposalsMaybeApplyMaster() {
+    try {
+      if (localStorage.getItem(ARCH_PROPOSAL_LS_ACTIVE)) return;
+      var alreadyApplied = localStorage.getItem(ARCH_MASTER_APPLIED_TS_KEY);
+      var hasLocalEdits = false;
+      for (var i = 0; i < ARCH_SNAPSHOT_KEYS.length; i++) {
+        if (localStorage.getItem(ARCH_SNAPSHOT_KEYS[i]) != null) { hasLocalEdits = true; break; }
+      }
+      if (alreadyApplied && hasLocalEdits) return;
+      var data = await archMasterApiGet();
+      if (!data || !data.record || !data.record.snapshot) return;
+      var ts = (data.record.updatedAt && data.record.updatedAt._seconds) || (data.record.updatedAt && data.record.updatedAt.seconds) || 0;
+      if (alreadyApplied && Number(alreadyApplied) === Number(ts)) return;
+      if (hasLocalEdits) return;
+      archSnapshotRestore(data.record.snapshot);
+      try { localStorage.setItem(ARCH_MASTER_APPLIED_TS_KEY, String(ts)); } catch (e) {}
+      window.location.reload();
+    } catch (e) {}
+  }
+
+  function archProposalsBarInit() {
+    var bar = qs('#archProposalsBar');
+    if (!bar || bar.getAttribute('data-arch-proposals-init') === '1') return;
+    bar.setAttribute('data-arch-proposals-init', '1');
+
+    var btnLoad = qs('#archProposalsLoad');
+    var btnSave = qs('#archProposalsSave');
+    var btnSaveAs = qs('#archProposalsSaveAs');
+    var btnRename = qs('#archProposalsRename');
+    var btnDelete = qs('#archProposalsDelete');
+    var btnMaster = qs('#archProposalsSaveMaster');
+    if (btnLoad) btnLoad.addEventListener('click', archProposalsHandleLoad);
+    if (btnSave) btnSave.addEventListener('click', archProposalsHandleSave);
+    if (btnSaveAs) btnSaveAs.addEventListener('click', archProposalsHandleSaveAs);
+    if (btnRename) btnRename.addEventListener('click', archProposalsHandleRename);
+    if (btnDelete) btnDelete.addEventListener('click', archProposalsHandleDelete);
+    if (btnMaster) btnMaster.addEventListener('click', archProposalsHandleSaveMaster);
+
+    var tgl = qs('#archEditModeToggle');
+    if (tgl) tgl.addEventListener('change', archProposalsBarSyncVisibility);
+
+    window.addEventListener('aep-global-sandbox-change', function () {
+      archProposalsMasterBtnSyncVisibility();
+      archProposalsRefresh();
+    });
+
+    archProposalsBarSyncVisibility();
+    archProposalsMasterBtnSyncVisibility();
+    archProposalsRefresh();
+    archProposalsMaybeApplyMaster();
   }
 
   if (document.readyState === 'loading') {
