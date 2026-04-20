@@ -39,10 +39,56 @@
     var activeTarget = null;
     var margin = 10;
     var gap = 10;
+    var tipToggle = document.getElementById('agenticV2TalkTipsToggle');
+    var TOOLTIP_PREF_KEY = 'aepAgenticV2TooltipsEnabled';
+    /** Max time a tooltip stays visible per hover dwell (ms). */
+    var TOOLTIP_VISIBLE_MS = 5000;
+    var tooltipHideTimer = null;
+    /** After auto-hide while pointer may still be inside the box, block re-show until pointer leaves that element. */
+    var suppressReshowUntilLeave = null;
 
     tooltip.className = 'agentic-v2-talk-tooltip';
     tooltip.setAttribute('role', 'tooltip');
-    document.body.appendChild(tooltip);
+    /* Must live under the same subtree as the fullscreen element (<main>), or it vanishes in presentation fullscreen. */
+    var tooltipHost = document.querySelector('main.dashboard-main.app-page') || document.body;
+    tooltipHost.appendChild(tooltip);
+
+    function clearTooltipHideTimer() {
+      if (tooltipHideTimer) {
+        clearTimeout(tooltipHideTimer);
+        tooltipHideTimer = null;
+      }
+    }
+
+    function hideTooltip() {
+      clearTooltipHideTimer();
+      activeTarget = null;
+      tooltip.classList.remove('is-visible');
+    }
+
+    try {
+      if (tipToggle) {
+        var stored = localStorage.getItem(TOOLTIP_PREF_KEY);
+        if (stored === '0') tipToggle.checked = false;
+        else if (stored === '1') tipToggle.checked = true;
+        tipToggle.addEventListener('change', function () {
+          try {
+            localStorage.setItem(TOOLTIP_PREF_KEY, tipToggle.checked ? '1' : '0');
+          } catch (err) {}
+          suppressReshowUntilLeave = null;
+          hideTooltip();
+        });
+      }
+    } catch (e) {}
+
+    function tipsEnabled() {
+      if (tipToggle) return tipToggle.checked;
+      try {
+        return localStorage.getItem(TOOLTIP_PREF_KEY) !== '0';
+      } catch (e2) {
+        return true;
+      }
+    }
 
     function targetFrom(node) {
       if (!node || typeof node.closest !== 'function') return null;
@@ -92,20 +138,33 @@
     }
 
     function showTooltip(target) {
+      if (!tipsEnabled()) return;
       var message = target ? target.getAttribute('data-talk-track') : '';
       if (!message || !isTalkTrackAllowed(target)) return;
+      if (suppressReshowUntilLeave === target) return;
+      if (activeTarget === target && tooltip.classList.contains('is-visible')) {
+        return;
+      }
+      clearTooltipHideTimer();
       activeTarget = target;
       tooltip.textContent = message;
       tooltip.classList.add('is-visible');
       positionTooltip(target);
-    }
-
-    function hideTooltip() {
-      activeTarget = null;
-      tooltip.classList.remove('is-visible');
+      tooltipHideTimer = setTimeout(function () {
+        tooltipHideTimer = null;
+        if (activeTarget) {
+          suppressReshowUntilLeave = activeTarget;
+        }
+        activeTarget = null;
+        tooltip.classList.remove('is-visible');
+      }, TOOLTIP_VISIBLE_MS);
     }
 
     document.addEventListener('mouseover', function (e) {
+      if (!tipsEnabled()) {
+        hideTooltip();
+        return;
+      }
       var target = targetFrom(e.target);
       if (!target) return;
       if (!isTalkTrackAllowed(target)) {
@@ -118,12 +177,17 @@
     document.addEventListener('mouseout', function (e) {
       var fromTarget = targetFrom(e.target);
       if (!fromTarget) return;
-      var toTarget = targetFrom(e.relatedTarget);
-      if (toTarget === fromTarget) return;
+      var rel = e.relatedTarget;
+      if (rel && fromTarget.contains(rel)) return;
+      if (suppressReshowUntilLeave === fromTarget) suppressReshowUntilLeave = null;
       hideTooltip();
     });
 
     document.addEventListener('focusin', function (e) {
+      if (!tipsEnabled()) {
+        hideTooltip();
+        return;
+      }
       var target = targetFrom(e.target);
       if (!target) return;
       if (!isTalkTrackAllowed(target)) {
@@ -136,12 +200,17 @@
     document.addEventListener('focusout', function (e) {
       var fromTarget = targetFrom(e.target);
       if (!fromTarget) return;
-      var toTarget = targetFrom(e.relatedTarget);
-      if (toTarget === fromTarget) return;
+      var rel = e.relatedTarget;
+      if (rel && fromTarget.contains(rel)) return;
+      if (suppressReshowUntilLeave === fromTarget) suppressReshowUntilLeave = null;
       hideTooltip();
     });
 
     window.addEventListener('resize', function () {
+      if (!tipsEnabled()) {
+        hideTooltip();
+        return;
+      }
       if (activeTarget && !isTalkTrackAllowed(activeTarget)) {
         hideTooltip();
       } else if (activeTarget) {
@@ -152,6 +221,10 @@
     window.addEventListener(
       'scroll',
       function () {
+        if (!tipsEnabled()) {
+          hideTooltip();
+          return;
+        }
         if (activeTarget && !isTalkTrackAllowed(activeTarget)) {
           hideTooltip();
         } else if (activeTarget) {
@@ -169,6 +242,7 @@
   var coordRoot = document.getElementById('diagramBoardV2');
   var svg = document.getElementById('arrowLayerV2');
   var playBtn = document.getElementById('agenticV2PlayBtn');
+  var backBtn = document.getElementById('agenticV2BackBtn');
   var stepBtn = document.getElementById('agenticV2StepBtn');
   var resetBtn = document.getElementById('agenticV2ResetBtn');
   var delayInput = document.getElementById('agenticV2DelayMs');
@@ -640,6 +714,7 @@
   function syncStepControls() {
     var atEnd = stepIndex >= STEP_NODE_IDS.length;
     if (stepBtn) stepBtn.disabled = atEnd;
+    if (backBtn) backBtn.disabled = stepIndex <= 0;
     if (diagramWrap) {
       diagramWrap.classList.toggle('agentic-v2-diagram-wrap--can-step', !atEnd);
     }
@@ -668,6 +743,29 @@
       },
       true
     );
+  }
+
+  function backStep() {
+    cancelAutoAdvance();
+    if (stepIndex <= 0) return;
+    stepIndex--;
+    var el = $(STEP_NODE_IDS[stepIndex]);
+    if (el) el.classList.remove('is-visible');
+    clearArrows();
+    for (var bi = 0; bi < stepIndex; bi++) {
+      drawArrowsForStep(bi);
+    }
+    syncStepControls();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        syncAgenticFullscreenScale();
+        if (stepIndex > 2) {
+          setTimeout(function () {
+            redrawAssistantChatArrows(false);
+          }, 48);
+        }
+      });
+    });
   }
 
   function resetDiagram() {
@@ -732,6 +830,7 @@
   }
 
   if (playBtn) playBtn.addEventListener('click', play);
+  if (backBtn) backBtn.addEventListener('click', backStep);
   if (stepBtn) stepBtn.addEventListener('click', stepOnce);
   if (resetBtn) resetBtn.addEventListener('click', resetDiagram);
   initStepClickThrough();

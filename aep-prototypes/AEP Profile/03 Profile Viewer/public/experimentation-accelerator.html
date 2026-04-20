@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="aep-head-sync.js?v=20260416c"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experimentation Accelerator – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260422b">
+  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260420f">
+</head>
+<body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive">
+  <a href="index.html" class="exp-accel-lab-exit">Profile Viewer</a>
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Demo replica">Demo</span>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="home.html" class="dashboard-topbar-icon" title="Home">⌂</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-viewer-main">
+        <div class="exp-accel-app" id="expAccelApp">
+          <div class="ajo-mock" aria-label="Adobe Journey Optimizer demonstration">
+            <header class="ajo-mock-topbar">
+              <div class="ajo-mock-topbar-left">
+                <button type="button" class="ajo-icon-btn" aria-label="Main menu (demo)" disabled title="Demo only">
+                  <svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+                </button>
+                <span class="ajo-mock-adobe-lockup" aria-hidden="true">
+                  <svg class="ajo-adobe-a" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="var(--dash-error-border, #e34850)"/><path fill="var(--dash-surface, #fff)" d="M7 17V7h4.2c2.9 0 4.5 1.6 4.5 4s-1.6 4-4.5 4H10v2H7zm3-6h1.1c1.2 0 1.8-.6 1.8-1.7 0-1.1-.6-1.7-1.8-1.7H10v3.4z"/></svg>
+                  <span class="ajo-mock-product-name">Adobe Journey Optimizer</span>
+                </span>
+              </div>
+              <div class="ajo-mock-topbar-search">
+                <label class="visually-hidden" for="ajoMockSearch">Search Experience Cloud</label>
+                <span class="ajo-mock-search-icon" aria-hidden="true"></span>
+                <input type="search" id="ajoMockSearch" class="ajo-mock-search-input" placeholder="Search Experience Cloud (⌘+/)" autocomplete="off" readonly />
+              </div>
+              <div class="ajo-mock-topbar-right">
+                <span class="ajo-mock-org">Adobe</span>
+                <span class="ajo-mock-topbar-divider" aria-hidden="true"></span>
+                <button type="button" class="ajo-icon-btn" aria-label="Feedback (demo)" disabled title="Demo only"><svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M6 10a6 6 0 0 1 12 0v3H8a2 2 0 0 0-2 2v2l-1 1V13a3 3 0 0 1-3-3h3V10Z" stroke-linejoin="round"/></svg></button>
+                <button type="button" class="ajo-icon-btn" aria-label="Help (demo)" disabled title="Demo only"><svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 10a2.5 2.5 0 1 1 4.2 1.8A1.7 1.7 0 0 0 13 13v.3M12 16.8h.05" stroke-linecap="round"/></svg></button>
+                <button type="button" class="ajo-icon-btn" aria-label="Notifications (demo)" disabled title="Demo only"><svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M6 10a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" stroke-linejoin="round"/><path d="M10 20h4" stroke-linecap="round"/></svg></button>
+                <button type="button" class="ajo-icon-btn" aria-label="App switcher (demo)" disabled title="Demo only"><svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg></button>
+                <span class="ajo-mock-avatar" aria-hidden="true" title="Profile (demo)"></span>
+              </div>
+            </header>
+
+            <div class="ajo-mock-body">
+              <nav class="ajo-mock-rail" aria-label="Application modules (demo)">
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Main menu" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14" stroke-linecap="round"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Home" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M5 11.5 12 5l7 6.5V19a1 1 0 0 1-1 1h-4v-6H10v6H6a1 1 0 0 1-1-1v-7.5Z" stroke-linejoin="round"/></svg></button>
+                <span class="ajo-rail-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 10l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Campaigns" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M4 11c3-4 6-5 9-4l2-3 3 7-4 1c1 3-1 6-4 9-5 4-10 2-13-2s-2-7 1-11Z" stroke-linejoin="round"/><path d="M15 7v.01" stroke-linecap="round"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Journeys" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><circle cx="7" cy="8" r="2"/><circle cx="15" cy="7" r="2"/><circle cx="17" cy="16" r="2"/><path d="M8.5 9.5 12.5 8M15.5 8.5 16.5 14M15 16l-3 1.5"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Compare" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 12H5M5 12l2-2M5 12l2 2M15 12h4M19 12l-2-2M19 12l-2 2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Content" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M8 9h8M8 13h6M8 17h4" stroke-linecap="round"/></svg></button>
+                <span class="ajo-rail-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 10l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                <button type="button" class="ajo-rail-btn ajo-rail-btn--active" aria-current="page" aria-label="Experimentation" title="Demo only">
+                  <svg class="ajo-rail-ico ajo-rail-ico--flask" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M10 2.5h4v4.8l2.8 6.4a3.2 3.2 0 0 1-2.9 4.3h-3.8a3.2 3.2 0 0 1-2.9-4.3L10 7.3V2.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                    <path d="M12 9.2v4.3M10.2 11.3 12 9.5l1.8 1.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <span class="ajo-rail-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 10l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Personalization" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><rect x="4" y="6" width="16" height="11" rx="2"/><path d="M8 14h3M15 10l2 2-2 2" stroke-linecap="round"/><path d="M17 7v2M16 8h2" stroke-linecap="round"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Selection" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><rect x="4" y="7" width="10" height="8" rx="1.5"/><path d="M13 15l4 4 .01-3.5M13 15h3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11l2 1.5 1-1.5" stroke-linecap="round"/></svg></button>
+                <span class="ajo-rail-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 10l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Assets" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M5 16l5-8 4 5 5-7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7.5" cy="17" r="1.3" fill="currentColor"/><circle cx="12" cy="11" r="1.3" fill="currentColor"/><circle cx="16" cy="14" r="1.3" fill="currentColor"/><circle cx="19" cy="9" r="1.3" fill="currentColor"/></svg></button>
+                <span class="ajo-rail-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 10l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Pages" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="14.2" y="14.7" width="5.3" height="5.3" rx="0.9"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Strategy" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 17.5h7M10 17.5V11l-1.5-2.5c0-1.1.9-2 2-2h.4a2 2 0 011.8 1.1l1.3 2.6c.3.5.2 1.2-.2 1.7l-2 2v3.1"/><path d="M9 8.5V7a1.5 1.5 0 013 0v1.5"/></svg></button>
+                <span class="ajo-rail-chevron" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 10l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Video" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><rect x="3" y="6" width="14" height="12" rx="2"/><path d="M17 10l4-2v12l-4-2" stroke-linejoin="round"/><path d="M10 11l4 2.5-4 2.5v-5z" fill="currentColor" stroke="none"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Media" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="2"/><path d="M21 17l-5-5-4 4-3-3-5 5" stroke-linejoin="round"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Governance" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3z"/><path d="M12 9v5M12 16h.01" stroke-linecap="round"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Analytics" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><path d="M6 19V15M10 19V5M14 19v-7M18 19v-4" stroke-linecap="round"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Layouts" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><rect x="4" y="5" width="9" height="7" rx="1"/><rect x="15" y="12" width="5" height="7" rx="1"/></svg></button>
+                <button type="button" class="ajo-rail-btn" disabled aria-label="Web" title="Demo only"><svg class="ajo-rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg></button>
+              </nav>
+
+              <div class="ajo-mock-workspace">
+                <header class="ajo-page-head">
+                  <div class="ajo-page-head-row">
+                    <h1 class="ajo-page-title">Experimentation Accelerator</h1>
+                    <div class="ajo-team-slot">
+                      My Team <span class="ajo-team-val" id="expAccelTeamDisplay">Adobe.com</span>
+                    </div>
+                  </div>
+                  <div class="ajo-tabs" role="tablist" aria-label="Accelerator sections">
+                    <button type="button" role="tab" id="ajoTabOverview" aria-controls="ajoPanelOverview" aria-selected="true">
+                      Overview
+                    </button>
+                    <button type="button" role="tab" id="ajoTabExperiments" aria-controls="ajoPanelExperiments" aria-selected="false">
+                      Experiments
+                    </button>
+                    <button type="button" role="tab" id="ajoTabMetrics" aria-disabled="true" disabled>Metrics</button>
+                  </div>
+                </header>
+
+                <div class="ajo-panel-stack">
+                  <div class="ajo-panel" id="ajoPanelOverview" role="tabpanel" aria-labelledby="ajoTabOverview">
+                    <div class="ajo-panel-inner ajo-overview-scroll">
+                      <div class="ajo-overview-canvas" aria-label="Overview screenshot sections">
+                        <span id="expAccelDisplayName" class="visually-hidden">Tina</span>
+                        <img id="expAccelSlice2" class="ajo-slice-img" src="assets/experimentation-accelerator/accel-content-2-full.png?v=20260422" srcset="assets/experimentation-accelerator/accel-content-2.png?v=20260422 1024w, assets/experimentation-accelerator/accel-content-2-full.png?v=20260422 3840w" sizes="(max-width: 900px) 100vw, calc(100vw - 48px)" alt="" width="1024" height="440" decoding="async" data-exp-slice="2" />
+                        <img id="expAccelSlice3" class="ajo-slice-img" src="assets/experimentation-accelerator/accel-content-3-full.png?v=20260422" srcset="assets/experimentation-accelerator/accel-content-3.png?v=20260422 1024w, assets/experimentation-accelerator/accel-content-3-full.png?v=20260422 3840w" sizes="(max-width: 900px) 100vw, calc(100vw - 48px)" alt="" width="1024" height="444" loading="lazy" decoding="async" data-exp-slice="3" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="ajo-panel" id="ajoPanelExperiments" role="tabpanel" aria-labelledby="ajoTabExperiments" hidden>
+                    <div class="ajo-panel-inner ajo-experiments-scroll">
+                      <div class="ajo-exp-toolbar">
+                        <span class="ajo-exp-tools-muted">Filters (demo)</span>
+                        <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Starred</label>
+                        <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Created by me</label>
+                        <span class="ajo-pill-select">Status: All</span>
+                        <span class="ajo-exp-toolbar-spacer"></span>
+                        <span class="ajo-exp-tools-muted">16 of 16</span>
+                        <input type="search" class="ajo-exp-search" placeholder="Search" disabled aria-label="Search experiments (demo)" />
+                      </div>
+                      <div class="ajo-exp-summary">
+                        <div class="ajo-exp-summary-card">
+                          <span class="ajo-exp-summary-label">Total experiments</span>
+                          <span class="ajo-exp-summary-val">24</span>
+                        </div>
+                        <div class="ajo-exp-summary-card">
+                          <span class="ajo-exp-summary-label">Live experiments</span>
+                          <span class="ajo-exp-summary-val">16</span>
+                        </div>
+                      </div>
+                      <div class="ajo-table-wrap">
+                        <table class="ajo-data-table" role="grid">
+                          <thead>
+                            <tr>
+                              <th scope="col">Name</th>
+                              <th scope="col">Status</th>
+                              <th scope="col">Lift</th>
+                              <th scope="col">Created by</th>
+                              <th scope="col">Last Modified</th>
+                              <th scope="col">Type</th>
+                              <th scope="col">Source</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td><button type="button" class="ajo-table-link" disabled>Homepage Hero image Test</button></td>
+                              <td><span class="ajo-status ajo-status--live">Live</span></td>
+                              <td><span class="ajo-lift ajo-lift--up">↑ 23%</span></td>
+                              <td>Miguel Ramos</td>
+                              <td>2 hours ago</td>
+                              <td>MAB</td>
+                              <td>Target</td>
+                            </tr>
+                            <tr>
+                              <td><button type="button" class="ajo-table-link" disabled>ACE0996 | US | TwP Modals | AICS Default Test</button></td>
+                              <td><span class="ajo-status ajo-status--live">Active</span></td>
+                              <td><span class="ajo-lift ajo-lift--up">↑ 21%</span></td>
+                              <td>Ella O&rsquo;Connor</td>
+                              <td>1 month ago</td>
+                              <td>MAB</td>
+                              <td>Journey Optimizer</td>
+                            </tr>
+                            <tr>
+                              <td><button type="button" class="ajo-table-link" disabled>ACE0996 | US | TwP Modals | AICS Default Test</button></td>
+                              <td><span class="ajo-status ajo-status--neutral">Label</span></td>
+                              <td><span class="ajo-lift">23%</span></td>
+                              <td>Miguel Ramos</td>
+                              <td>Just now</td>
+                              <td>A/B</td>
+                              <td>Target</td>
+                            </tr>
+                            <tr>
+                              <td><button type="button" class="ajo-table-link" disabled>ACE0996 | US | TwP Modals | AICS Default Test</button></td>
+                              <td><span class="ajo-status ajo-status--live">Live</span></td>
+                              <td><span class="ajo-lift ajo-lift--down">↓ 3%</span></td>
+                              <td>Ella O&rsquo;Connor</td>
+                              <td>1 week ago</td>
+                              <td>A/B</td>
+                              <td>Target</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="expAccelDockOuter" class="workflow-dock-outer" aria-label="Customise dock">
+          <div class="workflow-dock-slide">
+            <details class="workflow-drawer" id="expAccelCustomiseDrawer">
+              <summary class="workflow-summary" aria-label="Customise">
+                <span class="workflow-summary__row">
+                  <span class="workflow-summary__label">Customise</span>
+                  <span class="workflow-summary__icon" aria-hidden="true"></span>
+                </span>
+              </summary>
+              <div class="workflow-drawer-scroll">
+                <div class="panel">
+                  <h2>Demo labels</h2>
+                  <p class="hint">
+                    Text shown in the greeting and team selector. Saved per <strong>AEP sandbox</strong> (same session model as other lab tools).
+                  </p>
+                  <label for="expAccelSandboxSelect">Sandbox</label>
+                  <select id="expAccelSandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox"></select>
+                  <label for="expAccelDisplayNameInput">First name (hero greeting)</label>
+                  <input id="expAccelDisplayNameInput" type="text" autocomplete="off" placeholder="Tina">
+                  <label for="expAccelTeamInput">Team display (My Team …)</label>
+                  <input id="expAccelTeamInput" type="text" autocomplete="off" placeholder="Adobe.com">
+                  <div class="actions">
+                    <button type="button" class="primary" id="expAccelCustomiseUpdate">Update</button>
+                  </div>
+                  <p id="expAccelCustomiseStatus" class="status" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+            </details>
+          </div>
+          <div class="workflow-dock-hit" id="expAccelDockHit" role="presentation" aria-hidden="true" title="Move pointer to bottom edge to reveal Customise"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260443"></script>
+
+  <script defer src="aep-theme.js?v=20260406"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
+  <script defer src="experimentation-accelerator.js?v=20260422"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260422"></script>
+</body>
+</html>

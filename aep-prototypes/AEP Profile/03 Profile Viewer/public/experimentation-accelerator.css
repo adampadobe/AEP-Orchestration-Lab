@@ -1,0 +1,1114 @@
+/**
+ * AJO Experimentation Accelerator — AJO chrome + rail; Overview body uses screenshot slices.
+ */
+
+.experimentation-accelerator-page .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-topbar {
+  display: none;
+}
+
+.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-main {
+  padding: 0;
+  max-width: none;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-main-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.experimentation-accelerator-page.experimentation-accelerator-page--immersive .profile-viewer-main {
+  flex: 1;
+  min-height: 0;
+}
+
+@media (min-width: 769px) {
+  body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 238px;
+    z-index: 3000;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+  }
+
+  body.experimentation-accelerator-page.experimentation-accelerator-page--immersive.experimentation-accelerator-page--nav-open .dashboard-sidebar,
+  body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar:focus-within {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
+  }
+}
+
+@media (max-width: 768px) {
+  body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar {
+    position: relative;
+    transform: none;
+    z-index: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar {
+    transition: none;
+  }
+}
+
+.exp-accel-lab-exit {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 5000;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--dash-surface, #fff) 92%, transparent);
+  border: 1px solid var(--dash-border, #e2e8f0);
+  color: var(--dash-text, #1e293b);
+  text-decoration: none;
+  box-shadow: var(--dash-shadow, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.exp-accel-lab-exit:hover {
+  background: var(--dash-hover, #eef0f4);
+}
+
+html[data-aep-theme='dark'] .exp-accel-lab-exit {
+  background: color-mix(in srgb, var(--dash-surface-2, #252830) 92%, transparent);
+  border-color: var(--dash-border, #3d424d);
+  color: var(--dash-text, #e6e9ef);
+}
+
+/* --- App root --- */
+#expAccelApp {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.ajo-mock {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  color: var(--ajo-text, var(--dash-text, #2c2c2c));
+  --ajo-text: var(--dash-text, #2c2c2c);
+  --ajo-muted: var(--dash-muted, #6e6e73);
+  --ajo-surface: var(--dash-surface, #fff);
+  --ajo-surface-2: var(--dash-surface-alt, #f8f9fa);
+  --ajo-border: var(--dash-border, #e6e4ea);
+  --ajo-work-bg: var(--dash-surface-alt, #fafafa);
+}
+
+/* Top bar */
+.ajo-mock-topbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 52px;
+  padding: 0 0.85rem 0 0.5rem;
+  background: var(--ajo-surface-2);
+  border-bottom: 1px solid var(--ajo-border);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ajo-mock-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.ajo-mock-adobe-lockup {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.ajo-mock-product-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .ajo-mock-product-name {
+    display: none;
+  }
+}
+
+.ajo-mock-topbar-search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: min(560px, 100%);
+  margin: 0 auto;
+  padding: 0 0.5rem;
+  position: relative;
+}
+
+.ajo-mock-search-icon {
+  position: absolute;
+  left: calc(0.5rem + 10px);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ajo-muted);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.ajo-mock-search-icon::after {
+  content: '';
+  position: absolute;
+  width: 7px;
+  height: 2px;
+  background: var(--ajo-muted);
+  border-radius: 1px;
+  transform: rotate(42deg);
+  right: -5px;
+  bottom: -2px;
+}
+
+.ajo-mock-search-input {
+  width: 100%;
+  padding: 0.45rem 0.75rem 0.45rem 2.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+  font-size: 0.8125rem;
+  color: var(--ajo-muted);
+  box-sizing: border-box;
+}
+
+.ajo-mock-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.ajo-mock-org {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+  padding: 0 0.25rem;
+}
+
+.ajo-mock-topbar-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--ajo-border);
+  margin: 0 0.15rem;
+}
+
+.ajo-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ajo-text);
+  opacity: 0.85;
+  cursor: default;
+}
+
+.ajo-svg-ico {
+  width: 20px;
+  height: 20px;
+}
+
+.ajo-mock-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  margin-left: 0.15rem;
+  background: color-mix(in srgb, var(--dash-blue, #1473e6) 25%, var(--ajo-surface));
+  border: 1px solid var(--ajo-border);
+}
+
+/* Body: rail + workspace */
+.ajo-mock-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+}
+
+.ajo-mock-rail {
+  flex-shrink: 0;
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+  padding: 0.4rem 0 0.75rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  background: color-mix(in srgb, var(--dash-sidebar, #e8eaed) 55%, var(--ajo-surface) 45%);
+  border-right: 1px solid var(--ajo-border);
+  box-sizing: border-box;
+}
+
+.ajo-rail-chevron {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.05rem 0;
+  color: color-mix(in srgb, var(--ajo-text) 38%, var(--ajo-muted));
+  pointer-events: none;
+}
+
+.ajo-rail-chevron svg {
+  width: 10px;
+  height: 10px;
+  display: block;
+  opacity: 0.9;
+}
+
+.ajo-rail-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: color-mix(in srgb, var(--ajo-text) 62%, var(--ajo-muted));
+  cursor: default;
+}
+
+.ajo-rail-btn--active {
+  background: color-mix(in srgb, var(--ajo-text) 88%, var(--ajo-muted) 12%);
+  color: color-mix(in srgb, var(--dash-surface) 4%, white 96%);
+}
+
+.ajo-rail-ico {
+  width: 20px;
+  height: 20px;
+}
+
+.ajo-rail-btn--active .ajo-rail-ico--flask {
+  width: 21px;
+  height: 21px;
+}
+
+html[data-aep-theme='dark'] .ajo-mock-rail {
+  background: color-mix(in srgb, var(--dash-sidebar, #1e2128) 70%, var(--ajo-surface) 30%);
+}
+
+html[data-aep-theme='dark'] .ajo-rail-btn {
+  color: color-mix(in srgb, var(--ajo-text) 58%, var(--ajo-muted));
+}
+
+
+.ajo-mock-workspace {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--ajo-work-bg);
+  width: 100%;
+}
+
+/* Page chrome */
+.ajo-page-head {
+  flex-shrink: 0;
+  padding: 1rem 1.25rem 0;
+  background: var(--ajo-work-bg);
+  border-bottom: 1px solid var(--ajo-border);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ajo-page-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.ajo-page-title {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+  letter-spacing: -0.02em;
+}
+
+.ajo-team-slot {
+  font-size: 0.8125rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-team-val {
+  margin-left: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--ajo-border);
+  color: var(--ajo-text);
+  font-weight: 500;
+}
+
+.ajo-tabs {
+  display: flex;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--ajo-border);
+  margin: 0 -1.25rem;
+  padding: 0 1.25rem;
+}
+
+.ajo-tabs button[role='tab'] {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.5rem 0.35rem 0.65rem;
+  margin-bottom: -1px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ajo-muted);
+  cursor: pointer;
+}
+
+.ajo-tabs button[role='tab']:hover:not([disabled]) {
+  color: var(--ajo-text);
+}
+
+.ajo-tabs button[role='tab'][aria-selected='true'] {
+  color: var(--dash-blue, #1473e6);
+  border-bottom-color: var(--dash-blue, #1473e6);
+}
+
+.ajo-tabs button[role='tab'][disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Panels */
+.ajo-panel-stack {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  width: 100%;
+}
+
+.ajo-panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.ajo-panel[hidden] {
+  display: none !important;
+}
+
+.ajo-panel-inner {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Overview — screenshot strips below tabs (pixel-match reference) */
+.ajo-overview-scroll {
+  padding: 0;
+  background: var(--ajo-work-bg);
+}
+
+.ajo-overview-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-height: 0;
+  background: var(--ajo-work-bg);
+}
+
+/* Full-bleed; sharpness comes from hi-res sources + srcset (3840w) — avoid upscaling tiny bitmaps. */
+.ajo-slice-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  flex-shrink: 0;
+  vertical-align: top;
+}
+
+.ajo-hero {
+  position: relative;
+  width: 100%;
+  padding: 2rem 1.25rem 5.5rem;
+  box-sizing: border-box;
+  background: var(--dash-hero-grad);
+  border-bottom: 1px solid color-mix(in srgb, var(--ajo-border) 70%, transparent);
+}
+
+.ajo-hero-inner {
+  max-width: none;
+  width: 100%;
+  text-align: center;
+}
+
+.ajo-hero-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.65rem;
+}
+
+.ajo-hero-title {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.4rem, 2.8vw, 1.75rem);
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-hero-sub {
+  margin: 0 auto;
+  max-width: 36rem;
+  font-size: 0.9375rem;
+  color: var(--ajo-muted);
+  line-height: 1.45;
+}
+
+.ajo-kpi-deck {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: -3.25rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  max-width: none;
+}
+
+@media (max-width: 900px) {
+  .ajo-kpi-deck {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    bottom: -6.5rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .ajo-kpi-deck {
+    grid-template-columns: 1fr;
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin-top: 1rem;
+  }
+
+  .ajo-hero {
+    padding-bottom: 2rem;
+  }
+}
+
+.ajo-kpi-card {
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 0.75rem 0.85rem;
+  box-shadow: var(--dash-shadow, 0 2px 14px rgba(15, 15, 25, 0.07));
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.ajo-kpi-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ajo-muted);
+}
+
+.ajo-kpi-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-kpi-delta {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ajo-kpi-delta--up {
+  color: var(--dash-success-text, #1a6b4d);
+}
+
+.ajo-metric-small.ajo-kpi-delta--up {
+  color: var(--dash-success-text, #1a6b4d);
+}
+
+.ajo-section {
+  margin-top: 5.75rem;
+  padding: 0 1.25rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ajo-section--bottom {
+  margin-bottom: 1rem;
+}
+
+.ajo-section-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.ajo-section-title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.ajo-pill-select {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+  color: var(--ajo-muted);
+}
+
+.ajo-linkish-btn {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--dash-blue, #1473e6);
+  background: none;
+  border: none;
+  cursor: default;
+  opacity: 0.7;
+}
+
+.ajo-pagination-fake {
+  font-size: 0.75rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-core-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .ajo-core-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ajo-metric-card {
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1rem;
+  box-shadow: var(--dash-shadow, 0 2px 14px rgba(15, 15, 25, 0.06));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ajo-metric-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.ajo-metric-name {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.ajo-metric-exp-n {
+  font-size: 0.6875rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-metric-values {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.ajo-metric-big {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.ajo-metric-small {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.ajo-spark {
+  width: 100%;
+  height: auto;
+  min-height: 36px;
+}
+
+.ajo-metric-card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.6875rem;
+  color: var(--ajo-muted);
+  margin-top: 0.25rem;
+}
+
+.ajo-dot-legend::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dash-blue, #1473e6);
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.ajo-product-pill {
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+.ajo-update-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .ajo-update-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ajo-update-card {
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--ajo-border);
+  padding: 0.85rem 0.9rem 0.85rem 2.5rem;
+  position: relative;
+  min-height: 5rem;
+}
+
+.ajo-update-card--info {
+  background: color-mix(in srgb, var(--dash-info-bg, #e6f1ff) 70%, var(--ajo-surface));
+}
+
+.ajo-update-card--warn {
+  background: color-mix(in srgb, var(--dash-warning-bg) 55%, var(--ajo-surface));
+}
+
+.ajo-update-card--promo {
+  background: color-mix(in srgb, var(--dash-info-bg, #e6f1ff) 45%, color-mix(in srgb, var(--dash-blue) 6%, var(--ajo-surface)));
+}
+
+.ajo-update-ico {
+  position: absolute;
+  left: 0.65rem;
+  top: 0.9rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  border: 2px solid var(--dash-blue, #1473e6);
+}
+
+.ajo-update-ico--bulb {
+  box-shadow: inset 0 -6px 0 0 color-mix(in srgb, var(--dash-blue) 35%, transparent);
+}
+
+.ajo-update-ico--warn {
+  border-color: var(--dash-warning-border, #b8860b);
+}
+
+.ajo-update-ico--meg {
+  border-radius: 4px;
+  border-style: dashed;
+}
+
+.ajo-update-meta {
+  margin: 0 0 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--ajo-muted);
+}
+
+.ajo-update-msg {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ajo-text);
+}
+
+.ajo-badge-lift {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: var(--dash-success-bg, rgba(45, 140, 111, 0.12));
+  color: var(--dash-success-text, #1a6b4d);
+}
+
+.ajo-linkish {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--dash-blue, #1473e6);
+  text-decoration: none;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.ajo-exp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.ajo-exp-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  box-shadow: var(--dash-shadow, 0 1px 4px rgba(15, 15, 25, 0.05));
+}
+
+@media (max-width: 720px) {
+  .ajo-exp-row {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .ajo-exp-stats,
+  .ajo-btn-ghost {
+    grid-column: span 2;
+  }
+}
+
+.ajo-exp-thumb {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--ajo-surface);
+}
+
+.ajo-exp-thumb--ai {
+  background: color-mix(in srgb, var(--dash-warning-border) 70%, var(--dash-text));
+}
+
+.ajo-exp-thumb--pr {
+  background: color-mix(in srgb, var(--dash-blue) 55%, var(--dash-text));
+}
+
+.ajo-exp-thumb--pdf {
+  background: color-mix(in srgb, var(--dash-error-border) 70%, var(--dash-text));
+}
+
+.ajo-exp-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.ajo-exp-pill {
+  display: inline-block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: var(--ajo-surface-2);
+  color: var(--ajo-muted);
+  width: fit-content;
+}
+
+.ajo-exp-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.ajo-exp-sub {
+  font-size: 0.75rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-exp-metric {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ajo-exp-stats {
+  font-size: 0.75rem;
+  color: var(--ajo-muted);
+  white-space: nowrap;
+}
+
+.ajo-btn-ghost {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--ajo-border);
+  background: color-mix(in srgb, var(--ajo-text) 82%, transparent);
+  color: var(--ajo-surface);
+  cursor: default;
+  white-space: nowrap;
+}
+
+/* Experiments tab */
+.ajo-experiments-scroll {
+  padding: 0 1.25rem 2rem;
+}
+
+.ajo-exp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--ajo-border);
+  margin-bottom: 1rem;
+}
+
+.ajo-exp-tools-muted {
+  font-size: 0.75rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-checkbox-fake {
+  font-size: 0.75rem;
+  color: var(--ajo-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ajo-exp-toolbar-spacer {
+  flex: 1;
+  min-width: 0.5rem;
+}
+
+.ajo-exp-search {
+  width: 12rem;
+  max-width: 100%;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--ajo-border);
+  font-size: 0.8125rem;
+}
+
+.ajo-exp-summary {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.ajo-exp-summary-card {
+  flex: 1;
+  min-width: 12rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--ajo-surface);
+}
+
+.ajo-exp-summary-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ajo-muted);
+  margin-bottom: 0.35rem;
+}
+
+.ajo-exp-summary-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.ajo-table-wrap {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--ajo-surface);
+}
+
+.ajo-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.ajo-data-table th,
+.ajo-data-table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--ajo-border);
+  vertical-align: middle;
+}
+
+.ajo-data-table th {
+  font-weight: 600;
+  color: var(--ajo-muted);
+  background: var(--ajo-surface-2);
+}
+
+.ajo-data-table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--ajo-surface-2) 35%, var(--ajo-surface));
+}
+
+.ajo-table-link {
+  font: inherit;
+  color: var(--dash-blue, #1473e6);
+  font-weight: 600;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: default;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ajo-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.ajo-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ajo-muted);
+}
+
+.ajo-status--live::before {
+  background: var(--dash-success-border, #2d8c6f);
+}
+
+.ajo-status--neutral::before {
+  background: var(--ajo-muted);
+}
+
+.ajo-lift {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  background: var(--ajo-surface-2);
+}
+
+.ajo-lift--up {
+  background: var(--dash-success-bg, rgba(45, 140, 111, 0.12));
+  color: var(--dash-success-text, #1a6b4d);
+}
+
+.ajo-lift--down {
+  background: var(--dash-error-bg, rgba(201, 90, 74, 0.12));
+  color: var(--dash-error-text, #8b3a30);
+}
+
+/* Light AJO workspace when lab theme is dark */
+html[data-aep-theme='dark'] .ajo-mock {
+  --ajo-work-bg: var(--dash-surface-alt, #fafafa);
+}
+
+html[data-aep-theme='dark'] .ajo-mock-topbar,
+html[data-aep-theme='dark'] .ajo-page-head,
+html[data-aep-theme='dark'] .ajo-panel-inner {
+  background: var(--dash-surface-alt, #fafafa);
+}
+
+html[data-aep-theme='dark'] .ajo-mock-topbar {
+  border-bottom-color: var(--dash-border, #e6e4ea);
+}
