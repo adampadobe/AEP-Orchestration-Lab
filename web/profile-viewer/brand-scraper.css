@@ -122,6 +122,10 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   font-weight: 600;
 }
 
+.brand-scraper-run-options-menu[hidden] {
+  display: none;
+}
+
 .brand-scraper-run-options-menu {
   position: absolute;
   top: calc(100% + 6px);
