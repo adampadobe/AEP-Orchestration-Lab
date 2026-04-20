@@ -9,6 +9,31 @@
     if (localStorage.getItem('aepNavHideInDev_agenticLayerArchitectureV2') === '1') return;
   } catch (e) {}
 
+  /**
+   * Narrative reveal order (matches v1 / product story).
+   * Shared by talk-track gating and diagram animation (must stay in sync).
+   */
+  var STEP_NODE_IDS = [
+    'node-orch-v2',
+    'node-chat-v2',
+    'node-assistant-v2',
+    'node-prompt-v2',
+    'node-coordinator-v2',
+    'node-nonAgent-v2',
+    'node-agentExecutor-v2',
+    'node-planGenerator-v2',
+    'node-planExecutor-v2',
+    'node-agentExecution-v2',
+    'node-agent-brand-v2',
+    'node-agent-product-v2',
+    'node-agent-operational-v2',
+    'node-agent-field-v2',
+    'node-agent-audience-v2',
+    'node-agent-journey-v2',
+    'node-agent-data-v2',
+    'node-agent-support-v2',
+  ];
+
   function initTalkTrackTooltips() {
     var tooltip = document.createElement('div');
     var activeTarget = null;
@@ -22,6 +47,26 @@
     function targetFrom(node) {
       if (!node || typeof node.closest !== 'function') return null;
       return node.closest('.agentic-v2-talk-target[data-talk-track]');
+    }
+
+    /** Hero / page chrome (outside #diagramBoardV2): always. Diagram: only after the innermost step box is visible. */
+    function innermostStepHostEl(target) {
+      var n = target;
+      while (n && n !== document.body) {
+        if (n.id && STEP_NODE_IDS.indexOf(n.id) !== -1) {
+          return n;
+        }
+        n = n.parentElement;
+      }
+      return null;
+    }
+
+    function isTalkTrackAllowed(target) {
+      if (!target || typeof target.closest !== 'function') return false;
+      if (!target.closest('#diagramBoardV2')) return true;
+      var host = innermostStepHostEl(target);
+      if (!host) return false;
+      return host.classList.contains('is-visible');
     }
 
     function positionTooltip(target) {
@@ -48,7 +93,7 @@
 
     function showTooltip(target) {
       var message = target ? target.getAttribute('data-talk-track') : '';
-      if (!message) return;
+      if (!message || !isTalkTrackAllowed(target)) return;
       activeTarget = target;
       tooltip.textContent = message;
       tooltip.classList.add('is-visible');
@@ -63,6 +108,10 @@
     document.addEventListener('mouseover', function (e) {
       var target = targetFrom(e.target);
       if (!target) return;
+      if (!isTalkTrackAllowed(target)) {
+        hideTooltip();
+        return;
+      }
       showTooltip(target);
     });
 
@@ -76,7 +125,12 @@
 
     document.addEventListener('focusin', function (e) {
       var target = targetFrom(e.target);
-      if (target) showTooltip(target);
+      if (!target) return;
+      if (!isTalkTrackAllowed(target)) {
+        hideTooltip();
+        return;
+      }
+      showTooltip(target);
     });
 
     document.addEventListener('focusout', function (e) {
@@ -88,13 +142,21 @@
     });
 
     window.addEventListener('resize', function () {
-      if (activeTarget) positionTooltip(activeTarget);
+      if (activeTarget && !isTalkTrackAllowed(activeTarget)) {
+        hideTooltip();
+      } else if (activeTarget) {
+        positionTooltip(activeTarget);
+      }
     });
 
     window.addEventListener(
       'scroll',
       function () {
-        if (activeTarget) positionTooltip(activeTarget);
+        if (activeTarget && !isTalkTrackAllowed(activeTarget)) {
+          hideTooltip();
+        } else if (activeTarget) {
+          positionTooltip(activeTarget);
+        }
       },
       true
     );
@@ -123,32 +185,6 @@
   var RETURN_OFFSET_X = 12;
 
   if (!coordRoot || !svg) return;
-
-  /**
-   * Narrative reveal order (matches v1 / product story).
-   * 1 Orchestrator → 2 Chat → 3 Assistant → 4 Prompt → 5 Coordinator → 6 Non Agent → 7–9 executors/plan
-   * → 10 Agent Execution → 11–18 specialist agents. drawArrowsForStep(justFinishedIndex) follows this array.
-   */
-  var STEP_NODE_IDS = [
-    'node-orch-v2',
-    'node-chat-v2',
-    'node-assistant-v2',
-    'node-prompt-v2',
-    'node-coordinator-v2',
-    'node-nonAgent-v2',
-    'node-agentExecutor-v2',
-    'node-planGenerator-v2',
-    'node-planExecutor-v2',
-    'node-agentExecution-v2',
-    'node-agent-brand-v2',
-    'node-agent-product-v2',
-    'node-agent-operational-v2',
-    'node-agent-field-v2',
-    'node-agent-audience-v2',
-    'node-agent-journey-v2',
-    'node-agent-data-v2',
-    'node-agent-support-v2'
-  ];
 
   var timerId = null;
   var stepIndex = 0;
@@ -601,36 +637,29 @@
     if (playBtn) playBtn.disabled = false;
   }
 
-  function syncStepClickTargets() {
-    STEP_NODE_IDS.forEach(function (id) {
-      var el = $(id);
-      if (!el) return;
-      el.classList.remove('agentic-v2-step-next');
-    });
-    if (stepIndex < STEP_NODE_IDS.length) {
-      var pending = $(STEP_NODE_IDS[stepIndex]);
-      if (pending) pending.classList.add('agentic-v2-step-next');
-    }
-  }
-
   function syncStepControls() {
     var atEnd = stepIndex >= STEP_NODE_IDS.length;
     if (stepBtn) stepBtn.disabled = atEnd;
-    syncStepClickTargets();
+    if (diagramWrap) {
+      diagramWrap.classList.toggle('agentic-v2-diagram-wrap--can-step', !atEnd);
+    }
   }
 
   function initStepClickThrough() {
-    if (!coordRoot) return;
-    coordRoot.addEventListener(
+    if (!diagramWrap) return;
+    diagramWrap.addEventListener(
       'click',
       function (e) {
         if (stepIndex >= STEP_NODE_IDS.length) return;
-        var expected = STEP_NODE_IDS[stepIndex];
-        if (!expected) return;
         var t = e.target;
         if (!t || typeof t.closest !== 'function') return;
-        var host = t.closest('[id]');
-        if (!host || host.id !== expected) return;
+        var linkedCard = t.closest('.agentic-v2-agent-card--has-link');
+        if (linkedCard) {
+          var idx = STEP_NODE_IDS.indexOf(linkedCard.id);
+          if (idx !== -1 && stepIndex > idx) {
+            return;
+          }
+        }
         e.preventDefault();
         e.stopPropagation();
         if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
