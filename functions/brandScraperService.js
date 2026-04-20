@@ -7,6 +7,8 @@
 'use strict';
 
 const brandScrapeStore = require('./brandScrapeStore');
+const assetsV2 = require('./brandScraperAssetsV2');
+const exportKit = require('./brandScraperExport');
 
 const USER_AGENT = 'Mozilla/5.0 (compatible; AEPOrchestrationLab-BrandScraper/1.0; +https://aep-orchestration-lab.web.app)';
 const REQUEST_TIMEOUT_MS = 10000;
@@ -934,4 +936,91 @@ async function handleScrapes(req, res) {
   }
 }
 
-module.exports = { crawlSite, analyseBrand, handleAnalyse, handleScrapes };
+async function handleClassifyAssets(req, res) {
+  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+  const sandbox = resolveSandbox(req);
+  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+  const scrapeId = String((req.body && req.body.scrapeId) || (req.query && req.query.scrapeId) || '').trim();
+  if (!scrapeId) { res.status(400).json({ error: 'scrapeId is required' }); return; }
+
+  const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
+  if (!record) { res.status(404).json({ error: 'scrape not found' }); return; }
+
+  const started = Date.now();
+  let result;
+  try {
+    result = await assetsV2.classifyScrapeAssets(sandbox, scrapeId, record);
+  } catch (e) {
+    res.status(500).json({ error: String(e && e.message || e) });
+    return;
+  }
+
+  // Write imagesV2 back into the scrape record.
+  const patchedRecord = {
+    ...record,
+    crawlSummary: {
+      ...(record.crawlSummary || {}),
+      assets: {
+        ...((record.crawlSummary && record.crawlSummary.assets) || {}),
+        imagesV2: result.images || [],
+      },
+    },
+  };
+  await brandScrapeStore.saveScrape(sandbox, patchedRecord);
+
+  res.status(200).json({
+    scrapeId,
+    sandbox,
+    classified: result.classified,
+    total: result.total || (result.images || []).length,
+    signedUrlExpiresAt: result.signedUrlExpiresAt,
+    images: result.images,
+    elapsedMs: Date.now() - started,
+  });
+}
+
+async function handleExport(req, res) {
+  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
+
+  const sandbox = resolveSandbox(req);
+  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+  const scrapeId = String((req.body && req.body.scrapeId) || (req.query && req.query.scrapeId) || '').trim();
+  if (!scrapeId) { res.status(400).json({ error: 'scrapeId is required' }); return; }
+
+  const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
+  if (!record) { res.status(404).json({ error: 'scrape not found' }); return; }
+
+  const started = Date.now();
+  let result;
+  try {
+    result = await exportKit.buildExport(sandbox, scrapeId, record);
+  } catch (e) {
+    res.status(500).json({ error: String(e && e.message || e) });
+    return;
+  }
+
+  // Track the latest export URL on the scrape record so the UI can show it.
+  await brandScrapeStore.saveScrape(sandbox, {
+    ...record,
+    lastExport: {
+      storagePath: result.storagePath,
+      signedUrl: result.signedUrl,
+      signedUrlExpiresAt: result.signedUrlExpiresAt,
+      createdAt: new Date().toISOString(),
+    },
+  });
+
+  res.status(200).json({
+    scrapeId,
+    sandbox,
+    storagePath: result.storagePath,
+    signedUrl: result.signedUrl,
+    signedUrlExpiresAt: result.signedUrlExpiresAt,
+    elapsedMs: Date.now() - started,
+  });
+}
+
+module.exports = { crawlSite, analyseBrand, handleAnalyse, handleScrapes, handleClassifyAssets, handleExport };

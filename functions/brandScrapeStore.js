@@ -71,6 +71,7 @@ async function saveScrape(sandbox, payload) {
     campaignsError: payload.campaignsError || null,
     segments: payload.segments || null,
     segmentsError: payload.segmentsError || null,
+    lastExport: payload.lastExport || null,
     elapsedMs: typeof payload.elapsedMs === 'number' ? payload.elapsedMs : null,
   };
   const encoded = JSON.stringify(record);

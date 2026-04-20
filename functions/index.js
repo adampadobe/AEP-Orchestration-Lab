@@ -2630,3 +2630,31 @@ exports.brandScraperScrapes = onRequest(
     await brandScraperService.handleScrapes(req, res);
   }
 );
+
+/** POST /api/brand-scraper/scrapes/classify?sandbox=… — V2: download + Gemini-vision classify. */
+exports.brandScraperClassify = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 300,
+    memory: '1GiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    await brandScraperService.handleClassifyAssets(req, res);
+  }
+);
+
+/** POST /api/brand-scraper/scrapes/export?sandbox=… — build ZIP + return signed URL. */
+exports.brandScraperExport = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 180,
+    memory: '1GiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    await brandScraperService.handleExport(req, res);
+  }
+);
