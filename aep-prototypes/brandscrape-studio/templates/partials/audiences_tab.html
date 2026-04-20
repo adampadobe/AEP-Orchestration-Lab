@@ -1,0 +1,149 @@
+{% set segments = analysis.get('segments', []) %}
+
+{% if segments %}
+
+{% set edge_segs = segments|selectattr('evaluation_type', 'equalto', 'edge')|list %}
+{% set streaming_segs = segments|selectattr('evaluation_type', 'equalto', 'streaming')|list %}
+{% set batch_segs = segments|selectattr('evaluation_type', 'equalto', 'batch')|list %}
+
+<div class="flex gap-16 mb-24 flex-wrap">
+    <div class="card stat-card coral-top animate-in animate-in-1" style="flex:1;min-width:180px;text-align:center;">
+        <div class="text-sm text-muted">Edge Segments</div>
+        <div style="font-size:32px;font-weight:700;font-family:var(--font-display);color:var(--coral);">{{ edge_segs|length }}</div>
+        <div class="text-sm text-muted">Instantaneous</div>
+    </div>
+    <div class="card stat-card cyan-top animate-in animate-in-2" style="flex:1;min-width:180px;text-align:center;">
+        <div class="text-sm text-muted">Streaming Segments</div>
+        <div style="font-size:32px;font-weight:700;font-family:var(--font-display);color:var(--cyan);">{{ streaming_segs|length }}</div>
+        <div class="text-sm text-muted">Near real-time</div>
+    </div>
+    <div class="card stat-card violet-top animate-in animate-in-3" style="flex:1;min-width:180px;text-align:center;">
+        <div class="text-sm text-muted">Batch Segments</div>
+        <div style="font-size:32px;font-weight:700;font-family:var(--font-display);color:var(--violet);">{{ batch_segs|length }}</div>
+        <div class="text-sm text-muted">Every 24 hours</div>
+    </div>
+</div>
+
+{% macro render_segment_card(s) %}
+<div class="card segment-card" data-segment-id="{{ s.get('id', '') }}" style="border-top:3px solid {% if s.evaluation_type == 'edge' %}var(--coral){% elif s.evaluation_type == 'streaming' %}var(--cyan){% else %}var(--violet){% endif %};">
+    <div class="flex items-center gap-8 mb-16">
+        <span class="badge badge-{{ s.evaluation_type }}">{{ s.evaluation_type|upper }}</span>
+        {% if s.get('estimated_size') %}
+        <span class="text-sm text-muted">{{ s.estimated_size }}</span>
+        {% endif %}
+    </div>
+
+    <h3 style="margin-bottom:8px;font-size:16px;">{{ s.get('name', 'Unnamed Segment') }}</h3>
+    <p class="text-sm">{{ s.get('description', '') }}</p>
+
+    {% if s.get('criteria') %}
+    <div class="criteria-list mt-8">
+        {% for c in s.criteria %}
+        <span class="badge badge-primary" style="margin-bottom:4px">{{ c }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if s.get('suggested_campaigns') %}
+    <div class="persona-section mt-8">
+        <h5>&#128640; Linked Campaigns</h5>
+        <div class="flex flex-wrap gap-8">
+            {% for camp in s.suggested_campaigns %}
+            {% if camp is mapping %}
+            <a class="campaign-link badge badge-success" href="#" data-campaign-id="{{ camp.id }}" title="View in Campaigns tab">{{ camp.name }}</a>
+            {% else %}
+            <span class="badge badge-success">{{ camp }}</span>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if s.get('use_cases') %}
+    <div class="persona-section mt-8">
+        <h5>Demo Use Cases</h5>
+        <ul>
+            {% for u in s.use_cases %}
+            <li>{{ u }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if s.get('qualified_personas') %}
+    <div class="persona-section mt-8 qualified-personas-section">
+        <h5>&#128100; Qualified Personas</h5>
+        <div class="persona-avatars-row">
+            {% for qp in s.qualified_personas %}
+            <button class="persona-mini-avatar persona-popover-trigger" data-persona-id="{{ qp.id }}" data-persona-name="{{ qp.name }}" title="{{ qp.name }}">{{ qp.initial }}</button>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% if edge_segs %}
+<div class="accordion-section" data-accordion="edge">
+    <button class="accordion-header coral-accent" onclick="toggleAccordion(this)">
+        <span class="accordion-title">
+            <span class="accordion-color-dot" style="background:var(--coral);"></span>
+            Edge Segments ({{ edge_segs|length }})
+        </span>
+        <span class="accordion-arrow">&#9662;</span>
+    </button>
+    <div class="accordion-body open">
+        <div class="card-grid">
+            {% for s in edge_segs %}
+            {{ render_segment_card(s) }}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if streaming_segs %}
+<div class="accordion-section" data-accordion="streaming">
+    <button class="accordion-header cyan-accent" onclick="toggleAccordion(this)">
+        <span class="accordion-title">
+            <span class="accordion-color-dot" style="background:var(--cyan);"></span>
+            Streaming Segments ({{ streaming_segs|length }})
+        </span>
+        <span class="accordion-arrow">&#9662;</span>
+    </button>
+    <div class="accordion-body open">
+        <div class="card-grid">
+            {% for s in streaming_segs %}
+            {{ render_segment_card(s) }}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if batch_segs %}
+<div class="accordion-section" data-accordion="batch">
+    <button class="accordion-header violet-accent" onclick="toggleAccordion(this)">
+        <span class="accordion-title">
+            <span class="accordion-color-dot" style="background:var(--violet);"></span>
+            Batch Segments ({{ batch_segs|length }})
+        </span>
+        <span class="accordion-arrow">&#9662;</span>
+    </button>
+    <div class="accordion-body open">
+        <div class="card-grid">
+            {% for s in batch_segs %}
+            {{ render_segment_card(s) }}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <div class="icon">&#127919;</div>
+    <h3>No audience segments generated</h3>
+    <p>Segment suggestions could not be generated for this website.</p>
+</div>
+{% endif %}

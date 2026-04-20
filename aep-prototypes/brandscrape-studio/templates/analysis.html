@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Analyzing {{ project.url }} -- BrandScrape Studio{% endblock %}
+
+{% block content %}
+<div class="progress-container">
+    <div class="progress-header">
+        <h2>Analyzing <em style="font-family:var(--font-display);font-style:italic;">{{ project.brand_name or project.url }}</em></h2>
+        <p class="text-muted text-sm" id="analysis-url">{{ project.url }}</p>
+    </div>
+
+    <ul class="step-list" id="step-list">
+        <li class="step-item queued" data-step="1">
+            <div class="step-icon">01</div>
+            <div class="step-content">
+                <h4>Crawl & Discover</h4>
+                <p>Scanning pages and subdomains...</p>
+            </div>
+        </li>
+        <li class="step-item queued" data-step="2">
+            <div class="step-icon">02</div>
+            <div class="step-content">
+                <h4>Extract Assets</h4>
+                <p>Finding images, fonts, and colors...</p>
+            </div>
+        </li>
+        <li class="step-item queued" data-step="3">
+            <div class="step-icon">03</div>
+            <div class="step-content">
+                <h4>Analyze Brand Voice</h4>
+                <p>Generating brand guidelines...</p>
+            </div>
+        </li>
+        <li class="step-item queued" data-step="4">
+            <div class="step-icon">04</div>
+            <div class="step-content">
+                <h4>Detect Campaigns</h4>
+                <p>Finding active and recommending demo campaigns...</p>
+            </div>
+        </li>
+        <li class="step-item queued" data-step="5">
+            <div class="step-icon">05</div>
+            <div class="step-content">
+                <h4>Generate Personas</h4>
+                <p>Creating customer personas...</p>
+            </div>
+        </li>
+        <li class="step-item queued" data-step="6">
+            <div class="step-icon">06</div>
+            <div class="step-content">
+                <h4>Suggest Audience Segments</h4>
+                <p>Building Adobe Real-Time CDP segments...</p>
+            </div>
+        </li>
+        <li class="step-item queued" data-step="7" id="step-accounts" style="display:none;">
+            <div class="step-icon">07</div>
+            <div class="step-content">
+                <h4>Generate B2B Accounts</h4>
+                <p>Creating realistic company profiles...</p>
+            </div>
+        </li>
+    </ul>
+
+    <div class="text-center mt-32" id="cancel-section">
+        <button class="btn btn-cancel btn-sm" id="cancel-btn" onclick="cancelAnalysis('{{ project.id }}')">Cancel Analysis</button>
+    </div>
+
+    <div id="done-actions" class="text-center mt-32" style="display:none;">
+        <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-primary btn-lg">View Results</a>
+    </div>
+
+    <div id="error-msg" class="text-center mt-32" style="display:none;">
+        <p class="text-muted" style="color:var(--rose);" id="error-text"></p>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary mt-16">Try Again</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/analysis.js') }}"></script>
+<script>
+    {% if project.business_type == 'b2b' %}
+    document.getElementById('step-accounts').style.display = '';
+    {% endif %}
+    startAnalysisStream("{{ project.id }}");
+</script>
+{% endblock %}

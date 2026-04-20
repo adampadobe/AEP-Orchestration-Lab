@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brand Scraper – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260420a">
+  <link rel="stylesheet" href="brand-scraper.css?v=20260420a">
+  <link rel="stylesheet" href="aep-theme.css?v=20260420a">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260420a">
+</head>
+<body class="brand-scraper-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill brand-scraper-dev-pill" title="Under active development — features incomplete">In development</span>
+          <a href="https://github.com/alexmtmr/brandscrape-studio" class="dashboard-topbar-link" target="_blank" rel="noopener">Upstream</a>
+          <a href="home.html" class="dashboard-topbar-icon" title="Home">⌂</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main app-page brand-scraper-main">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingBrandScraper">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingBrandScraper" class="dashboard-hero-title">Brand intelligence in minutes</h2>
+              <p class="dashboard-hero-subtitle">
+                Paste any brand URL — the scraper extracts assets, brand guidelines, campaigns, personas, and Real-Time CDP audience segments for a demo-ready kit. Backend is being ported from the standalone prototype into this workspace.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="brand-scraper-panel">
+          <div class="brand-scraper-inputs">
+            <form id="brandScraperForm" class="brand-scraper-form" autocomplete="off">
+              <div class="brand-scraper-url-row">
+                <label class="brand-scraper-label" for="brandScraperUrl">Brand URL</label>
+                <input
+                  type="text"
+                  id="brandScraperUrl"
+                  class="brand-scraper-input"
+                  placeholder="e.g. nike.com"
+                  autocomplete="url"
+                  required>
+                <button type="submit" class="dashboard-btn-primary" id="brandScraperRun">Analyse</button>
+              </div>
+
+              <div class="brand-scraper-options">
+                <div class="brand-scraper-field">
+                  <label class="brand-scraper-label" for="brandScraperBusinessType">Business type</label>
+                  <select id="brandScraperBusinessType" class="brand-scraper-select">
+                    <option value="b2c" selected>B2C</option>
+                    <option value="b2b">B2B</option>
+                  </select>
+                </div>
+                <div class="brand-scraper-field">
+                  <label class="brand-scraper-label" for="brandScraperCountry">Persona country</label>
+                  <select id="brandScraperCountry" class="brand-scraper-select">
+                    <option value="Germany" selected>Germany</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="France">France</option>
+                    <option value="Netherlands">Netherlands</option>
+                    <option value="Spain">Spain</option>
+                    <option value="Italy">Italy</option>
+                    <option value="Austria">Austria</option>
+                    <option value="Switzerland">Switzerland</option>
+                    <option value="Sweden">Sweden</option>
+                    <option value="Australia">Australia</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Japan">Japan</option>
+                    <option value="Brazil">Brazil</option>
+                    <option value="India">India</option>
+                  </select>
+                </div>
+              </div>
+            </form>
+
+            <div class="brand-scraper-status" id="brandScraperStatus" role="status" aria-live="polite" hidden></div>
+          </div>
+
+          <aside class="brand-scraper-banner" role="note">
+            <div class="brand-scraper-banner-title">This tool is a scaffolded work-in-progress</div>
+            <p class="brand-scraper-banner-body">
+              The upstream Python/Flask prototype is vendored at <code>aep-prototypes/brandscrape-studio/</code>. Backend routes (crawler, image classifier, AI brand analysis, persona + segment generation, ZIP export) will land as Cloud Functions over the next few iterations. Until then the <strong>Analyse</strong> button just reports status.
+            </p>
+          </aside>
+        </section>
+
+        <section class="brand-scraper-features" aria-label="Planned capabilities">
+          <div class="brand-scraper-features-grid">
+            <article class="brand-scraper-card">
+              <div class="brand-scraper-card-ico" aria-hidden="true">🎨</div>
+              <h3 class="brand-scraper-card-title">Asset extraction</h3>
+              <p class="brand-scraper-card-body">Logos, product imagery, banners, colours, fonts — categorised with configurable limits.</p>
+            </article>
+            <article class="brand-scraper-card">
+              <div class="brand-scraper-card-ico" aria-hidden="true">✍</div>
+              <h3 class="brand-scraper-card-title">Brand guidelines</h3>
+              <p class="brand-scraper-card-body">AI-drafted tone of voice, brand values, editorial rules, channel messaging guides.</p>
+            </article>
+            <article class="brand-scraper-card">
+              <div class="brand-scraper-card-ico" aria-hidden="true">🚀</div>
+              <h3 class="brand-scraper-card-title">Campaign detection</h3>
+              <p class="brand-scraper-card-body">On-site campaign signals plus recommended demo campaigns for presentations.</p>
+            </article>
+            <article class="brand-scraper-card">
+              <div class="brand-scraper-card-ico" aria-hidden="true">👤</div>
+              <h3 class="brand-scraper-card-title">Customer personas</h3>
+              <p class="brand-scraper-card-body">Realistic personas with demographics, behaviours, goals, and channel preferences.</p>
+            </article>
+            <article class="brand-scraper-card">
+              <div class="brand-scraper-card-ico" aria-hidden="true">🎯</div>
+              <h3 class="brand-scraper-card-title">Audience segments</h3>
+              <p class="brand-scraper-card-body">Real-Time CDP segments with edge, streaming, and batch evaluation recommendations.</p>
+            </article>
+            <article class="brand-scraper-card">
+              <div class="brand-scraper-card-ico" aria-hidden="true">📦</div>
+              <h3 class="brand-scraper-card-title">Export kit</h3>
+              <p class="brand-scraper-card-body">Download everything as ZIP, DOC, CSV, or JSON — organised for your demo environment.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="brand-scraper-results" id="brandScraperResults" hidden aria-label="Results">
+          <!-- Populated once the backend is wired -->
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420a"></script>
+  <script src="aep-theme.js?v=20260420a"></script>
+  <script defer src="aep-theme-prefs.js?v=20260420a"></script>
+  <script src="aep-lab-nav.js?v=20260420a-brand-scraper"></script>
+  <script src="brand-scraper.js?v=20260420a"></script>
+</body>
+</html>

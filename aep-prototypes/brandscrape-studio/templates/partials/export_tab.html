@@ -1,0 +1,59 @@
+{% set brand = analysis.get('brand_name', 'brand') %}
+
+<div class="export-grid">
+    <a href="{{ url_for('project_export', project_id=project.id, fmt='full-zip') }}" class="card export-card animate-in animate-in-1">
+        <div class="export-icon" style="background:var(--rose-light);color:var(--rose);">&#128230;</div>
+        <div>
+            <h4>Full Brand Package</h4>
+            <p class="text-muted">ZIP with all assets, guidelines, campaigns, personas, and segments</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('project_export', project_id=project.id, fmt='assets-zip') }}" class="card export-card animate-in animate-in-2">
+        <div class="export-icon" style="background:var(--coral-light);color:var(--coral);">&#128247;</div>
+        <div>
+            <h4>Assets Only</h4>
+            <p class="text-muted">ZIP with images organized by category</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('project_export', project_id=project.id, fmt='guidelines-doc') }}" class="card export-card animate-in animate-in-3">
+        <div class="export-icon" style="background:var(--violet-light);color:var(--violet);">&#9997;&#65039;</div>
+        <div>
+            <h4>Brand Guidelines</h4>
+            <p class="text-muted">DOC document with brand voice and editorial rules</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('project_export', project_id=project.id, fmt='campaigns-csv') }}" class="card export-card animate-in animate-in-4">
+        <div class="export-icon" style="background:var(--emerald-light);color:var(--emerald);">&#128640;</div>
+        <div>
+            <h4>Campaigns (CSV)</h4>
+            <p class="text-muted">Campaign data in spreadsheet format</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('project_export', project_id=project.id, fmt='campaigns-json') }}" class="card export-card animate-in animate-in-5">
+        <div class="export-icon" style="background:var(--emerald-light);color:var(--emerald);">&#128196;</div>
+        <div>
+            <h4>Campaigns (JSON)</h4>
+            <p class="text-muted">Structured campaign data for integration</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('project_export', project_id=project.id, fmt='personas-doc') }}" class="card export-card animate-in animate-in-6">
+        <div class="export-icon" style="background:var(--amber-light);color:var(--amber);">&#128100;</div>
+        <div>
+            <h4>Customer Personas</h4>
+            <p class="text-muted">DOC document with 5 detailed persona cards</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('project_export', project_id=project.id, fmt='segments-csv') }}" class="card export-card animate-in">
+        <div class="export-icon" style="background:var(--cyan-light);color:var(--cyan);">&#127919;</div>
+        <div>
+            <h4>Audience Segments (CSV)</h4>
+            <p class="text-muted">CDP segments with evaluation types and criteria</p>
+        </div>
+    </a>
+</div>

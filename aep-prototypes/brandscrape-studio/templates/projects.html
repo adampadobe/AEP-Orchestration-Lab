@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Projects -- BrandScrape Studio{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 36px; padding-bottom: 72px;">
+    <div class="section-header flex justify-between items-center animate-in">
+        <div>
+            <h2>Your Projects</h2>
+            <p class="text-muted">All your brand analysis projects in one place.</p>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-primary btn-sm">+ New Analysis</a>
+    </div>
+
+    {% if projects %}
+    <div class="flex items-center gap-8 mt-16 mb-8">
+        <input type="text" id="search-projects" class="search-input" placeholder="Search projects..." style="width:260px;">
+    </div>
+    <div class="card animate-in animate-in-2" style="padding:0;overflow:hidden;">
+        {% for p in projects %}
+        <div class="project-row">
+            <div class="favicon">
+                &#127912;
+            </div>
+            <div class="info">
+                <h4>
+                    <a href="{% if p.status == 'completed' %}{{ url_for('project_detail', project_id=p.id) }}{% elif p.status == 'analyzing' %}{{ url_for('analysis_progress', project_id=p.id) }}{% else %}#{% endif %}" style="color:var(--text);">
+                        {{ p.brand_name or 'Untitled' }}
+                    </a>
+                </h4>
+                <p>{{ p.url }} &middot; {{ p.pages_scanned or 0 }} pages
+                    {% if p.created_at %}
+                    &middot; {{ p.created_at }}
+                    {% endif %}
+                </p>
+                {% if p.status == 'failed' and p.get('error_message') %}
+                <p class="project-error-msg">&#9888; {{ p.error_message }}</p>
+                {% endif %}
+            </div>
+            <div class="status status-{{ p.status }}">
+                {% if p.status == 'completed' %}
+                    &#10003; Completed
+                {% elif p.status == 'analyzing' %}
+                    &#8987; Analyzing
+                {% elif p.status == 'failed' %}
+                    &#10007; Failed
+                {% else %}
+                    {{ p.status }}
+                {% endif %}
+            </div>
+            {% if p.status == 'failed' %}
+            <form action="{{ url_for('retry_analysis', project_id=p.id) }}" method="POST" style="margin:0;">
+                <button type="submit" class="btn-retry">&#8635; Retry</button>
+            </form>
+            {% endif %}
+            <form action="{{ url_for('project_delete', project_id=p.id) }}" method="POST" style="margin:0;" onsubmit="return confirm('Delete this project and all its assets?');">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state mt-32 animate-in">
+        <div class="icon">&#128194;</div>
+        <h3>No projects yet</h3>
+        <p>Start your first brand analysis from the home page.</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary mt-16">Get Started</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var input = document.getElementById("search-projects");
+    if (!input) return;
+    input.addEventListener("input", function() {
+        var query = this.value.toLowerCase().trim();
+        document.querySelectorAll(".project-row").forEach(function(row) {
+            if (!query) { row.style.display = ""; return; }
+            var text = row.textContent.toLowerCase();
+            row.style.display = text.indexOf(query) !== -1 ? "" : "none";
+        });
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}{{ analysis.get('brand_name', 'Project') }} -- BrandScrape Studio{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 36px; padding-bottom: 72px;">
+    <nav class="breadcrumb">
+        <a href="{{ url_for('index') }}">Home</a>
+        <span class="separator">&#8250;</span>
+        <a href="{{ url_for('projects_list') }}">Projects</a>
+        <span class="separator">&#8250;</span>
+        <span>{{ analysis.get('brand_name', 'Project') }}</span>
+    </nav>
+    <div class="section-header flex justify-between items-center" style="margin-bottom:8px;">
+        <div>
+            <h2 style="font-family:var(--font-display);font-size:34px;">{{ analysis.get('brand_name', 'Brand Analysis') }}</h2>
+            <p class="text-muted text-sm" style="margin-top:6px;">{{ project.url }} &middot; {{ project.pages_scanned or 0 }} pages &middot; {{ project.total_urls or 0 }} URLs{% if project.business_type %} &middot; {{ project.business_type|upper }}{% endif %}</p>
+        </div>
+        <div class="flex gap-8">
+            <a href="{{ url_for('project_export', project_id=project.id, fmt='full-zip') }}" class="btn btn-primary btn-sm">&#128230; Download Package</a>
+            <form action="{{ url_for('project_delete', project_id=project.id) }}" method="POST" onsubmit="return confirm('Delete this project?');" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+        </div>
+    </div>
+
+    {% set qs = analysis.get('quality_scores', {}) %}
+    <div class="tabs mt-24">
+        <button class="tab-btn active" data-tab="campaigns">&#128640; Campaigns{% if qs.get('campaigns', 100) < 50 %}<span class="quality-warning" title="Low confidence">&#9888;</span>{% endif %}</button>
+        <button class="tab-btn" data-tab="audiences">&#127919; Audiences{% if qs.get('segments', 100) < 50 %}<span class="quality-warning" title="Low confidence">&#9888;</span>{% endif %}</button>
+        <button class="tab-btn" data-tab="personas">&#128100; Personas{% if qs.get('personas', 100) < 50 %}<span class="quality-warning" title="Low confidence">&#9888;</span>{% endif %}</button>
+        {% if analysis.get('accounts') %}
+        <button class="tab-btn" data-tab="accounts">&#127970; Accounts</button>
+        {% endif %}
+        <button class="tab-btn" data-tab="assets">&#127912; Assets</button>
+        <button class="tab-btn" data-tab="guidelines">&#9997;&#65039; Guidelines{% if qs.get('guidelines', 100) < 50 %}<span class="quality-warning" title="Low confidence">&#9888;</span>{% endif %}</button>
+        <button class="tab-btn" data-tab="export">&#128230; Export</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-campaigns">
+        {% include "partials/campaigns_tab.html" %}
+    </div>
+
+    <div class="tab-panel" id="tab-audiences">
+        {% include "partials/audiences_tab.html" %}
+    </div>
+
+    <div class="tab-panel" id="tab-personas">
+        {% include "partials/personas_tab.html" %}
+    </div>
+
+    {% if analysis.get('accounts') %}
+    <div class="tab-panel" id="tab-accounts">
+        {% include "partials/accounts_tab.html" %}
+    </div>
+    {% endif %}
+
+    <div class="tab-panel" id="tab-assets">
+        {% include "partials/assets_tab.html" %}
+    </div>
+
+    <div class="tab-panel" id="tab-guidelines">
+        {% include "partials/guidelines_tab.html" %}
+    </div>
+
+    <div class="tab-panel" id="tab-export">
+        {% include "partials/export_tab.html" %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/project.js') }}"></script>
+{% endblock %}

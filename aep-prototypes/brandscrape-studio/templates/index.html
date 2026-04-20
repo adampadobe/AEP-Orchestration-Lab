@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}BrandScrape Studio -- Brand Intelligence in Minutes{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Brand Intelligence<br>in <span>Minutes</span></h1>
+    <p>Paste any brand URL and get organized assets, guidelines, campaigns, personas, and audience segments -- ready for your next demo.</p>
+
+    <form class="url-form-full" action="{{ url_for('analyze') }}" method="POST">
+        <div class="url-row">
+            <input type="text" name="url" class="url-input" placeholder="Enter a brand URL, e.g. nike.com" required autocomplete="url" autofocus>
+            <button type="submit" class="btn btn-primary btn-lg">Analyze</button>
+        </div>
+        <div class="controls-row">
+            <div class="toggle-group">
+                <label class="toggle-label">Business Type</label>
+                <div class="pill-toggle">
+                    <input type="radio" name="business_type" value="b2c" id="bt-b2c" checked>
+                    <label for="bt-b2c">B2C</label>
+                    <input type="radio" name="business_type" value="b2b" id="bt-b2b">
+                    <label for="bt-b2b">B2B</label>
+                </div>
+            </div>
+            <div class="toggle-group">
+                <label class="toggle-label" for="persona-country">Persona Country</label>
+                <select name="persona_country" id="persona-country" class="select-input">
+                    <option value="Germany" selected>Germany</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="France">France</option>
+                    <option value="Netherlands">Netherlands</option>
+                    <option value="Spain">Spain</option>
+                    <option value="Italy">Italy</option>
+                    <option value="Austria">Austria</option>
+                    <option value="Switzerland">Switzerland</option>
+                    <option value="Sweden">Sweden</option>
+                    <option value="Australia">Australia</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Japan">Japan</option>
+                    <option value="Brazil">Brazil</option>
+                    <option value="India">India</option>
+                </select>
+            </div>
+        </div>
+    </form>
+</section>
+
+<div class="container">
+    <div class="feature-grid">
+        <div class="card feature-card coral animate-in animate-in-1">
+            <div class="icon">&#127912;</div>
+            <h3>Asset Extraction</h3>
+            <p>Logos, product images, banners, colors, and fonts -- organized by category with download limits.</p>
+        </div>
+        <div class="card feature-card violet animate-in animate-in-2">
+            <div class="icon">&#9997;&#65039;</div>
+            <h3>Brand Guidelines</h3>
+            <p>AI-generated tone of voice, brand values, editorial rules, and channel messaging guides.</p>
+        </div>
+        <div class="card feature-card emerald animate-in animate-in-3">
+            <div class="icon">&#128640;</div>
+            <h3>Campaign Detection</h3>
+            <p>Active campaigns detected on-site plus AI-recommended demo campaigns for presentations.</p>
+        </div>
+        <div class="card feature-card amber animate-in animate-in-4">
+            <div class="icon">&#128100;</div>
+            <h3>Customer Personas</h3>
+            <p>20 realistic customer personas with demographics, behaviors, goals, and channel preferences.</p>
+        </div>
+        <div class="card feature-card cyan animate-in animate-in-5">
+            <div class="icon">&#127919;</div>
+            <h3>Audience Segments</h3>
+            <p>8-12 Adobe Real-Time CDP segments with edge, streaming, and batch evaluation types.</p>
+        </div>
+        <div class="card feature-card rose animate-in animate-in-6">
+            <div class="icon">&#128230;</div>
+            <h3>Export Everything</h3>
+            <p>Download as ZIP, DOC, CSV, or JSON -- organized and ready for your demo environment.</p>
+        </div>
+    </div>
+
+    <section class="how-it-works">
+        <h2>How It Works</h2>
+        <div class="steps-row">
+            <div class="how-step animate-in animate-in-1">
+                <div class="num">01</div>
+                <h4>Paste URL</h4>
+                <p>Enter any brand website URL to start the analysis.</p>
+            </div>
+            <div class="how-step animate-in animate-in-2">
+                <div class="num">02</div>
+                <h4>Crawl & Analyze</h4>
+                <p>We scan pages and subdomains, then run AI analysis.</p>
+            </div>
+            <div class="how-step animate-in animate-in-3">
+                <div class="num">03</div>
+                <h4>Review Results</h4>
+                <p>Browse organized assets, guidelines, campaigns, and segments.</p>
+            </div>
+            <div class="how-step animate-in animate-in-4">
+                <div class="num">04</div>
+                <h4>Export & Use</h4>
+                <p>Download everything you need for your demo.</p>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

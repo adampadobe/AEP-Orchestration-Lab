@@ -1,0 +1,87 @@
+{% set accounts = analysis.get('accounts', []) %}
+
+{% if accounts %}
+<div class="card-grid">
+    {% for a in accounts %}
+    <div class="card account-card animate-in" data-account-id="{{ a.get('id', '') }}" style="animation-delay:{{ loop.index0 * 0.08 }}s;border-top:3px solid var(--amber);">
+        <div class="flex items-center gap-8 mb-16">
+            <span class="badge badge-warning">{{ a.get('buying_stage', 'Consideration') }}</span>
+            <span class="text-sm text-muted">{{ a.get('employee_count', '') }} employees</span>
+        </div>
+
+        <h3 style="font-family:var(--font-display);font-size:20px;margin-bottom:4px;">{{ a.get('company_name', 'Unknown') }}</h3>
+        <p class="text-sm text-muted">{{ a.get('industry', '') }} &middot; {{ a.get('hq_location', '') }} &middot; {{ a.get('annual_revenue', '') }}</p>
+
+        {% if a.get('tech_stack') %}
+        <div class="persona-section mt-8">
+            <h5>Tech Stack</h5>
+            <div class="flex flex-wrap gap-8">
+                {% for t in a.tech_stack %}
+                <span class="badge badge-accent">{{ t }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if a.get('pain_points') %}
+        <div class="persona-section mt-8">
+            <h5>Pain Points</h5>
+            <ul>
+                {% for pp in a.pain_points %}<li>{{ pp }}</li>{% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if a.get('decision_makers') %}
+        <div class="persona-section mt-8">
+            <h5>&#128100; Decision Makers</h5>
+            <div class="flex flex-wrap gap-8">
+                {% for dm in a.decision_makers %}
+                <div class="dm-chip" {% if dm.persona_id %}style="cursor:pointer;" onclick="navigateToPersona('{{ dm.persona_id }}')"{% endif %}>
+                    <span class="persona-mini-avatar" style="width:24px;height:24px;font-size:10px;border-radius:6px;">{{ dm.get('name', '?')[0] }}</span>
+                    <span class="text-sm"><strong>{{ dm.get('name', '?') }}</strong> &middot; {{ dm.get('title', '') }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if a.get('target_campaigns') %}
+        <div class="persona-section mt-8">
+            <h5>&#128640; Target Campaigns</h5>
+            <div class="flex flex-wrap gap-8">
+                {% for tc in a.target_campaigns %}
+                {% if tc is mapping %}
+                <a class="campaign-link badge badge-success" href="#" data-campaign-id="{{ tc.id }}" title="View in Campaigns tab">{{ tc.name }}</a>
+                {% else %}
+                <span class="badge badge-success">{{ tc }}</span>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if a.get('target_segments') %}
+        <div class="persona-section mt-8">
+            <h5>&#127919; Target Segments</h5>
+            <div class="flex flex-wrap gap-8">
+                {% for ts in a.target_segments %}
+                {% if ts is mapping %}
+                <a class="segment-link badge badge-streaming" href="#" data-segment-id="{{ ts.id }}" title="View in Audiences tab">{{ ts.name }}</a>
+                {% else %}
+                <span class="badge badge-streaming">{{ ts }}</span>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="icon">&#127970;</div>
+    <h3>No accounts generated</h3>
+    <p>B2B accounts are only generated for B2B analysis projects.</p>
+</div>
+{% endif %}

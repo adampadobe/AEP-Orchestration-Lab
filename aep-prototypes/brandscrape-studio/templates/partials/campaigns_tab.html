@@ -1,0 +1,85 @@
+{% set campaigns = analysis.get('campaigns', []) %}
+
+{% if campaigns %}
+
+<h3 style="font-family:var(--font-display);font-size:22px;font-weight:400;" class="mb-16">Detected Campaigns</h3>
+<div class="card-grid">
+    {% for c in campaigns %}
+    {% if not c.get('is_recommendation') %}
+    <div class="card campaign-card animate-in" data-campaign-id="{{ c.get('id', '') }}" style="animation-delay:{{ loop.index0 * 0.05 }}s">
+        <div class="meta">
+            <span class="badge badge-success">{{ c.get('type', 'Campaign') }}</span>
+            {% if c.get('season') %}<span class="badge badge-warning">{{ c.season }}</span>{% endif %}
+            {% if c.get('channel') %}<span class="badge badge-accent">{{ c.channel }}</span>{% endif %}
+        </div>
+        <h4>{{ c.get('name', 'Unnamed Campaign') }}</h4>
+        <p class="text-sm">{{ c.get('summary', '') }}</p>
+        {% if c.get('headlines') %}
+        <div class="mt-8">
+            {% for h in c.headlines %}
+            <p class="text-sm" style="font-style:italic;font-family:var(--font-display);font-size:15px;">&#8220;{{ h }}&#8221;</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if c.get('cta') %}
+        <p class="mt-8 text-sm"><strong>CTA:</strong> {{ c.cta }}</p>
+        {% endif %}
+        {% if c.get('linked_segments') %}
+        <div class="persona-section mt-8">
+            <h5>&#127919; Target Segments</h5>
+            <div class="flex flex-wrap gap-8">
+                {% for s in c.linked_segments %}
+                <a class="segment-link badge badge-streaming" href="#" data-segment-id="{{ s.id }}" title="View in Audiences tab">{{ s.name }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
+<h3 style="font-family:var(--font-display);font-size:22px;font-weight:400;" class="mb-16 mt-32">Recommended Demo Campaigns</h3>
+<div class="card-grid">
+    {% for c in campaigns %}
+    {% if c.get('is_recommendation') %}
+    <div class="card campaign-card recommended animate-in" data-campaign-id="{{ c.get('id', '') }}" style="animation-delay:{{ loop.index0 * 0.05 }}s">
+        <div class="meta">
+            <span class="badge badge-warning">&#9733; Recommended</span>
+            <span class="badge badge-success">{{ c.get('type', 'Campaign') }}</span>
+            {% if c.get('season') %}<span class="badge badge-warning">{{ c.season }}</span>{% endif %}
+        </div>
+        <h4>{{ c.get('name', 'Unnamed Campaign') }}</h4>
+        <p class="text-sm">{{ c.get('summary', '') }}</p>
+        {% if c.get('headlines') %}
+        <div class="mt-8">
+            {% for h in c.headlines %}
+            <p class="text-sm" style="font-style:italic;font-family:var(--font-display);font-size:15px;">&#8220;{{ h }}&#8221;</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if c.get('cta') %}
+        <p class="mt-8 text-sm"><strong>CTA:</strong> {{ c.cta }}</p>
+        {% endif %}
+        {% if c.get('linked_segments') %}
+        <div class="persona-section mt-8">
+            <h5>&#127919; Target Segments</h5>
+            <div class="flex flex-wrap gap-8">
+                {% for s in c.linked_segments %}
+                <a class="segment-link badge badge-streaming" href="#" data-segment-id="{{ s.id }}" title="View in Audiences tab">{{ s.name }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+    <div class="icon">&#128640;</div>
+    <h3>No campaigns detected</h3>
+    <p>Campaign analysis did not return results for this website.</p>
+</div>
+{% endif %}
