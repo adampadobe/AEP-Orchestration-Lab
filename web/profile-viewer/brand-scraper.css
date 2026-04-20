@@ -203,6 +203,15 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   flex-direction: column;
 }
 
+.brand-scraper-field--narrow {
+  max-width: 160px;
+}
+
+.brand-scraper-input--number {
+  appearance: auto;
+  text-align: center;
+}
+
 .brand-scraper-status {
   padding: 10px 14px;
   border-radius: var(--dash-radius-sm, 12px);

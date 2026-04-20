@@ -865,7 +865,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
 
   const started = Date.now();
   try {
-    const crawl = await crawlSite(url);
+    const requestedPages = Math.floor(Number(body.maxPages));
+    const maxPages = requestedPages > 0 ? Math.min(requestedPages, 25) : undefined;
+    const crawl = await crawlSite(url, maxPages ? { maxPages } : undefined);
     if (!crawl.pages.length) {
       res.status(502).json({ error: 'Could not fetch any pages from ' + url });
       return;

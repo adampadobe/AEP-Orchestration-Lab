@@ -14,6 +14,7 @@
   const urlInput = document.getElementById('brandScraperUrl');
   const btypeSel = document.getElementById('brandScraperBusinessType');
   const countrySel = document.getElementById('brandScraperCountry');
+  const pagesInput = document.getElementById('brandScraperPages');
   const statusEl = document.getElementById('brandScraperStatus');
   const runBtn = document.getElementById('brandScraperRun');
   const resultsEl = document.getElementById('brandScraperResults');
@@ -35,6 +36,26 @@
     try {
       return (window.AepGlobalSandbox && window.AepGlobalSandbox.getSandboxName()) || '';
     } catch (_e) { return ''; }
+  }
+
+  const LS_PAGES = 'aepBrandScraperPages';
+  const PAGES_MIN = 1;
+  const PAGES_MAX = 25;
+  function clampPages(n) {
+    const v = Math.floor(Number(n));
+    if (!v || v < PAGES_MIN) return PAGES_MIN;
+    if (v > PAGES_MAX) return PAGES_MAX;
+    return v;
+  }
+  if (pagesInput) {
+    try {
+      const stored = localStorage.getItem(LS_PAGES);
+      if (stored) pagesInput.value = clampPages(stored);
+    } catch (_e) {}
+    pagesInput.addEventListener('change', () => {
+      pagesInput.value = clampPages(pagesInput.value);
+      try { localStorage.setItem(LS_PAGES, String(pagesInput.value)); } catch (_e) {}
+    });
   }
 
   const LS_RUN_OPTIONS = 'aepBrandScraperRunOptions';
@@ -945,6 +966,7 @@
           existingScrapeId: existingScrapeId,
           businessType: btypeSel && btypeSel.value,
           country: countrySel && countrySel.value,
+          maxPages: pagesInput ? clampPages(pagesInput.value) : 5,
           include: { ...runOptions },
         }),
       });
@@ -1008,6 +1030,27 @@
       applyLight(k, ok);
     }));
   }
+
+  // Hide wrappers whose <img> fails to load (403, hotlink-blocked, DNS, expired signed URL).
+  // Image <error> events don't bubble, so use capture-phase listener.
+  function hideBrokenImageWrapper(img) {
+    const wrapper = img.closest('figure, a');
+    if (wrapper) {
+      wrapper.style.display = 'none';
+      wrapper.setAttribute('data-broken', 'true');
+    } else {
+      img.style.display = 'none';
+    }
+  }
+  function attachBrokenImgHandler(root) {
+    if (!root) return;
+    root.addEventListener('error', (evt) => {
+      const t = evt.target;
+      if (t && t.tagName === 'IMG') hideBrokenImageWrapper(t);
+    }, true);
+  }
+  attachBrokenImgHandler(resultsEl);
+  attachBrokenImgHandler(historyListEl);
 
   // Initial load — wait a tick so the sidebar/sandbox sync can settle.
   setTimeout(() => { applyStoredCountry(); loadHistory(); runHealthChecks(); }, 300);

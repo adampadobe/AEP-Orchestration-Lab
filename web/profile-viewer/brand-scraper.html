@@ -76,6 +76,18 @@
                     <option value="b2b">B2B</option>
                   </select>
                 </div>
+                <div class="brand-scraper-field brand-scraper-field--narrow">
+                  <label class="brand-scraper-label" for="brandScraperPages">Pages to scrape</label>
+                  <input
+                    type="number"
+                    id="brandScraperPages"
+                    class="brand-scraper-input brand-scraper-input--number"
+                    min="1"
+                    max="25"
+                    step="1"
+                    value="5"
+                    title="Number of pages to crawl (1-25). More pages = richer context but slower analyse." />
+                </div>
                 <div class="brand-scraper-field">
                   <label class="brand-scraper-label" for="brandScraperCountry">Persona country</label>
                   <select id="brandScraperCountry" class="brand-scraper-select">
