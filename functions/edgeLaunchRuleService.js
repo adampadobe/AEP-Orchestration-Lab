@@ -323,40 +323,68 @@ async function findDevelopmentEnvironment({ accessToken, clientId, orgId, proper
 }
 
 /**
- * Build a fresh library in "development" state, bind it to the Development
- * environment, add the single rule as a resource, trigger a build, and poll
- * until the build reaches a terminal state.
+ * Publish a rule change to the Development environment.
+ *
+ * Launch allows only one library per environment. We therefore prefer the
+ * library currently bound to Development (commonly 'Main') and add our
+ * rule as a resource there. Only if nothing is bound do we create + bind
+ * a fresh library.
+ *
+ * If the bound library isn't in 'development' state (it's been submitted/
+ * approved/published and is frozen), we create a new library and bind it —
+ * which Launch allows because the previous library has detached.
  */
 async function publishRuleToDevelopment({ accessToken, clientId, orgId, propertyId, ruleId, libraryName, buildPollMs = 2000, buildTimeoutMs = 120000 }) {
-  // 1) Find Development environment.
+  // 1) Find Development environment + the library (if any) bound to it.
   const envRes = await findDevelopmentEnvironment({ accessToken, clientId, orgId, propertyId });
   if (!envRes.ok) return envRes;
   const { environment } = envRes;
 
-  // 2) Create a fresh library.
-  const libRes = await tagsReactorService.createLibrary(
-    accessToken, clientId, orgId, propertyId,
-    { name: libraryName || `AEP Lab — auto-publish ${new Date().toISOString().slice(0, 19).replace('T', ' ')}` },
+  const envWithLib = await tagsReactorService.getEnvironment(
+    accessToken, clientId, orgId, environment.environmentId, { includeLibrary: true },
   );
-  if (!libRes.ok) return { ok: false, step: 'createLibrary', error: libRes.error };
-  const library = libRes.item;
+  if (!envWithLib.ok) return { ok: false, step: 'getEnvironment', error: envWithLib.error };
 
-  // 3) Bind to Development environment.
-  const bindRes = await tagsReactorService.setLibraryEnvironment(
-    accessToken, clientId, orgId, library.libraryId, environment.environmentId,
-  );
-  if (!bindRes.ok) return { ok: false, step: 'setLibraryEnvironment', error: bindRes.error, library };
+  let library = envWithLib.library;
+  let libraryReused = false;
 
-  // 4) Add the rule as a resource. (Rule_component changes ride with their parent rule.)
+  if (library && String(library.state || '').toLowerCase() === 'development') {
+    // Reuse the library currently bound to Development.
+    libraryReused = true;
+  } else {
+    // Either nothing bound, or bound library is frozen — create + bind a new one.
+    const libRes = await tagsReactorService.createLibrary(
+      accessToken, clientId, orgId, propertyId,
+      { name: libraryName || `AEP Lab — auto-publish ${new Date().toISOString().slice(0, 19).replace('T', ' ')}` },
+    );
+    if (!libRes.ok) return { ok: false, step: 'createLibrary', error: libRes.error };
+    library = libRes.item;
+
+    const bindRes = await tagsReactorService.setLibraryEnvironment(
+      accessToken, clientId, orgId, library.libraryId, environment.environmentId,
+    );
+    if (!bindRes.ok) return { ok: false, step: 'setLibraryEnvironment', error: bindRes.error, library };
+  }
+
+  // 2) Add the rule as a resource. Tolerate "already a resource" —
+  //    POST relationships/resources is not idempotent by default and may
+  //    error if the rule is already in the library, which is fine.
   const addRes = await tagsReactorService.addLibraryResources(
     accessToken, clientId, orgId, library.libraryId,
     [{ type: 'rules', id: ruleId }],
   );
-  if (!addRes.ok) return { ok: false, step: 'addLibraryResources', error: addRes.error, library };
+  if (!addRes.ok) {
+    const msg = String(addRes.error || '');
+    const isDup = /already|duplicate|conflict/i.test(msg);
+    if (!isDup) {
+      return { ok: false, step: 'addLibraryResources', error: addRes.error, library, libraryReused };
+    }
+    // Duplicate resource — proceed.
+  }
 
-  // 5) Kick off build.
+  // 3) Kick off build.
   const buildRes = await tagsReactorService.createBuild(accessToken, clientId, orgId, library.libraryId);
-  if (!buildRes.ok) return { ok: false, step: 'createBuild', error: buildRes.error, library };
+  if (!buildRes.ok) return { ok: false, step: 'createBuild', error: buildRes.error, library, libraryReused };
   let build = buildRes.build;
 
   // 6) Poll.
@@ -386,6 +414,7 @@ async function publishRuleToDevelopment({ accessToken, clientId, orgId, property
     step: ok ? 'published' : 'buildFailed',
     error: ok ? null : `Build ended in state "${build && build.status || 'unknown'}".`,
     library,
+    libraryReused,
     build,
     environment,
     elapsedMs: Date.now() - started,
