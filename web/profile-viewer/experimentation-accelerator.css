@@ -1995,9 +1995,9 @@ a.ajo-table-link:hover {
   padding-right: 0;
 }
 
-/* Single inner column: Invest, Hypothesis, Details/Opportunities, Results share one width */
+/* Single inner column: Invest, Hypothesis, Details/Opportunities, Results share one width (wider on hero experiment page) */
 .experimentation-accelerator-page--exp-detail .ajo-exp-detail-inner {
-  max-width: min(1540px, 100%);
+  max-width: min(1760px, 100%);
   margin-left: auto;
   margin-right: auto;
   width: 100%;
@@ -2267,8 +2267,8 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
 @media (min-width: 920px) {
   /* Details (incl. leader image row) gets most width; Opportunities a fixed right rail */
   .ajo-exp-detail-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(300px, min(30%, 420px));
-    gap: 1.75rem;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, min(32%, 480px));
+    gap: 1.75rem 2rem;
   }
 }
 
@@ -2627,6 +2627,12 @@ button.ajo-exp-opp-card:focus-visible {
   opacity: 0.65;
 }
 
+.experimentation-accelerator-page--exp-detail .ajo-exp-insights--under-traffic {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ajo-border);
+}
+
 .ajo-exp-results {
   margin-top: 0.25rem;
 }
@@ -2640,9 +2646,11 @@ button.ajo-exp-opp-card:focus-visible {
 
 .ajo-results-table-wrap {
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--ajo-border);
   border-radius: var(--dash-radius-sm, 12px);
   background: var(--ajo-surface);
+  min-width: 0;
 }
 
 .ajo-results-table {
@@ -2676,8 +2684,8 @@ button.ajo-exp-opp-card:focus-visible {
 
 .ajo-results-td--name {
   white-space: normal;
-  min-width: 11rem;
-  max-width: 18rem;
+  min-width: 12rem;
+  max-width: min(28rem, 40vw);
 }
 
 .ajo-results-name {
@@ -3193,7 +3201,7 @@ button.ajo-exp-opp-card:focus-visible {
   --ajo-muted: var(--dash-muted, #6e6e73);
   --ajo-work-bg: var(--dash-surface-alt, #fafafa);
 
-  max-width: min(1100px, calc(100vw - 2rem));
+  max-width: min(1140px, calc(100vw - 2rem));
   width: 100%;
   max-height: min(92vh, 920px);
   padding: 0;
@@ -3209,7 +3217,12 @@ button.ajo-exp-opp-card:focus-visible {
 
 .ajo-insight-dialog::backdrop,
 .ajo-opp-detail-dialog::backdrop {
-  background: color-mix(in srgb, var(--dash-text, #2c2c2c) 32%, transparent);
+  background: color-mix(in srgb, var(--dash-text, #1e1e24) 48%, rgb(255 255 255));
+}
+
+html[data-aep-theme='dark'] .ajo-insight-dialog::backdrop,
+html[data-aep-theme='dark'] .ajo-opp-detail-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
 }
 
 /* Lab dark theme: dialogs sit on <body>; re-use light AJO paper so panels stay opaque white */
@@ -3346,6 +3359,13 @@ html[data-aep-theme='dark'] .ajo-opp-detail-inner {
   background: var(--dash-success-bg);
   color: var(--dash-success-text);
   white-space: nowrap;
+}
+
+.ajo-insight-dialog-compare-heading {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ajo-text);
 }
 
 .ajo-insight-dialog-compare {
