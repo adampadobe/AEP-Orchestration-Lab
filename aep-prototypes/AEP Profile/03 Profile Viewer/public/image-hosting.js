@@ -245,6 +245,89 @@
     return card;
   }
 
+  function setManualMsg(msg, cls) {
+    var el = document.getElementById('imageHostingManualMsg');
+    if (!el) return;
+    el.textContent = msg || '';
+    el.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function fileToBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { resolve(String(r.result || '').split(',')[1] || ''); };
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  async function manualUpload() {
+    var sb = getSandbox();
+    if (!sb) { setManualMsg('Select a sandbox first.', 'err'); return; }
+    var category = (document.getElementById('imageHostingManualCategory') || {}).value || '';
+    var folder = ((document.getElementById('imageHostingManualFolder') || {}).value || '').trim();
+    var fileName = ((document.getElementById('imageHostingManualFile') || {}).value || '').trim();
+    var url = ((document.getElementById('imageHostingManualUrl') || {}).value || '').trim();
+    var fileEl = document.getElementById('imageHostingManualFile2');
+    var file = fileEl && fileEl.files && fileEl.files[0];
+
+    if (!file && !url) {
+      setManualMsg('Choose a file or paste an image URL.', 'err');
+      return;
+    }
+
+    var body = { sandbox: sb, scrapeId: '_manual', imageIndex: -1 };
+    if (category) body.classification = { category: category };
+    if (folder) body.overrideFolder = folder;
+    if (fileName) body.overrideFile = fileName;
+
+    var btn = document.getElementById('imageHostingManualUploadBtn');
+    var originalText = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+    setManualMsg('Uploading…');
+
+    try {
+      if (file) {
+        body.imageBase64 = await fileToBase64(file);
+        body.imageContentType = file.type || '';
+        body.srcName = file.name.replace(/\.[a-z0-9]+$/i, '');
+      } else if (url) {
+        // Try client-side fetch first (for CDNs that allow CORS), then
+        // hand the URL to the server to fetch with realistic UA.
+        try {
+          var r = await fetch(url, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' });
+          if (r.ok) {
+            var blob = await r.blob();
+            body.imageBase64 = await fileToBase64(new File([blob], 'img', { type: blob.type }));
+            body.imageContentType = blob.type || '';
+          }
+        } catch (_e) { /* fall through — server will try */ }
+        body.imageUrl = url;
+      }
+
+      var resp = await fetch('/api/image-hosting/library/publish?sandbox=' + encodeURIComponent(sb), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      var data = await resp.json().catch(function () { return {}; });
+      if (!resp.ok) {
+        setManualMsg('Upload failed: ' + (data.error || resp.statusText), 'err');
+        return;
+      }
+      setManualMsg('Uploaded ' + (data.published && data.published.file) + '.', 'ok');
+      // Clear inputs on success.
+      if (fileEl) fileEl.value = '';
+      var urlEl = document.getElementById('imageHostingManualUrl');
+      if (urlEl) urlEl.value = '';
+      await renderLibrary();
+    } catch (e) {
+      setManualMsg('Upload failed: ' + (e.message || e), 'err');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = originalText || 'Upload to library'; }
+    }
+  }
+
   async function renderLibrary() {
     if (!libraryGridEl) return;
     libraryGridEl.innerHTML = '';
@@ -510,6 +593,14 @@
   }
 
   if (refreshBtn) refreshBtn.addEventListener('click', refresh);
+  var manualBtn = document.getElementById('imageHostingManualUploadBtn');
+  if (manualBtn) manualBtn.addEventListener('click', manualUpload);
+  var manualFileInput = document.getElementById('imageHostingManualFile2');
+  if (manualFileInput) manualFileInput.addEventListener('change', function () {
+    if (manualFileInput.files && manualFileInput.files[0]) {
+      setManualMsg('Ready: ' + manualFileInput.files[0].name + ' — click Upload to library.', '');
+    }
+  });
   if (categoryFilterEl) {
     categoryFilterEl.addEventListener('change', function () {
       currentFilter = categoryFilterEl.value || '';
