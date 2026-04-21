@@ -91,36 +91,31 @@ body.experimentation-accelerator-page[data-ajo-tab='overview'] .dashboard-main-w
 body.experimentation-accelerator-page[data-ajo-tab='overview'] .profile-viewer-main {
   flex: none;
   min-height: auto;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: visible;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] #expAccelApp {
   flex: none;
   min-height: auto;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: visible;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock {
   flex: none;
   min-height: auto;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: visible;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock-workspace {
   flex: none;
   min-height: auto;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: visible;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-panel-stack {
   flex: none;
   min-height: auto;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: visible;
   position: relative;
   height: auto;
 }
@@ -128,15 +123,14 @@ body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-panel-stack 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview.ajo-panel {
   position: relative;
   inset: auto;
-  overflow-x: hidden;
-  overflow-y: visible;
+  /* visible so the KPI deck is not clipped where it overlaps the next section */
+  overflow: visible;
   height: auto;
   min-height: auto;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview .ajo-panel-inner.ajo-overview-scroll {
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: visible;
   flex: none;
   min-height: auto;
 }
@@ -646,19 +640,23 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   max-width: 100%;
   box-sizing: border-box;
   padding-bottom: 1.5rem;
-  overflow-x: hidden;
+  /* Do not set overflow-x: hidden here — it can clip the absolutely positioned KPI deck
+     that overlaps the next section (numbers appear “cut in half”). Page uses body overflow-x. */
+  padding-left: clamp(0.5rem, 1.25vw, 1.25rem);
+  padding-right: clamp(0.5rem, 1.25vw, 1.25rem);
+  overflow: visible;
 }
 
 .ajo-hero {
   position: relative;
+  z-index: 2;
   width: 100%;
   max-width: 100%;
   padding: 2rem 1.25rem 5.5rem;
   box-sizing: border-box;
   background: var(--dash-hero-grad);
   border-bottom: 1px solid color-mix(in srgb, var(--ajo-border) 70%, transparent);
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: visible;
 }
 
 .ajo-hero-inner {
@@ -696,6 +694,8 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   width: min(720px, calc(100% - 2rem));
   max-width: 100%;
   box-sizing: border-box;
+  z-index: 3;
+  pointer-events: auto;
 }
 
 /* Single white plate, vertical dividers, centered columns (reference KPI strip) */
@@ -814,8 +814,10 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
 }
 
 .ajo-section {
+  position: relative;
+  z-index: 1;
   margin-top: 5.75rem;
-  padding: 0 1.25rem;
+  padding: 0;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -1966,7 +1968,7 @@ a.ajo-table-link:hover {
 
 /* ——— Experiment detail (Homepage Hero Image Test) ——— */
 .ajo-exp-detail-scroll {
-  padding: 0 clamp(0.75rem, 2.5vw, 1.5rem) 2.5rem;
+  padding: 0 clamp(1rem, 3vw, 2rem) 2.75rem;
   max-width: 100%;
   width: 100%;
   margin: 0 auto;
@@ -2231,11 +2233,15 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
   gap: 1.25rem;
   margin-bottom: 1.5rem;
   align-items: start;
+  max-width: min(1040px, 100%);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (min-width: 920px) {
+  /* Details column ~half the previous share: narrow left column, Opportunities gets the rest */
   .ajo-exp-detail-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    grid-template-columns: minmax(0, 38%) minmax(260px, 1fr);
     gap: 1.5rem;
   }
 }
@@ -2246,6 +2252,11 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
   border-radius: var(--dash-radius-sm, 12px);
   padding: 1rem 1.1rem 1.15rem;
   box-shadow: var(--dash-shadow, 0 2px 12px rgba(15, 15, 25, 0.05));
+  min-width: 0;
+  overflow: visible;
+}
+
+.ajo-exp-detail-col {
   min-width: 0;
 }
 
@@ -2428,6 +2439,9 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
+  position: relative;
+  z-index: 1;
+  padding-bottom: 0.15rem;
 }
 
 .ajo-exp-chip {
