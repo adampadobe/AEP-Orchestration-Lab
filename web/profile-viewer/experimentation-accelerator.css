@@ -2644,6 +2644,268 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
   border-bottom: none;
 }
 
+.ajo-results-row--winner td {
+  background: color-mix(in srgb, var(--dash-success-bg) 75%, var(--ajo-surface));
+}
+
+.ajo-results-td--name {
+  white-space: normal;
+  min-width: 11rem;
+  max-width: 18rem;
+}
+
+.ajo-results-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ajo-results-name-text {
+  font-weight: 600;
+  color: var(--ajo-text);
+  line-height: 1.3;
+}
+
+.ajo-result-thumb {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--ajo-border) 80%, transparent);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ajo-result-thumb--mosaic {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--dash-success-border) 35%, var(--ajo-surface)),
+    color-mix(in srgb, var(--dash-blue) 28%, var(--ajo-surface))
+  );
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--ajo-surface) 70%, transparent);
+}
+
+.ajo-result-thumb--apps {
+  background:
+    radial-gradient(circle at 30% 35%, color-mix(in srgb, var(--dash-warning-border) 65%, var(--ajo-surface)) 0 38%, transparent 40%),
+    radial-gradient(circle at 70% 55%, color-mix(in srgb, var(--dash-blue) 50%, var(--ajo-surface)) 0 42%, transparent 44%),
+    color-mix(in srgb, var(--ajo-muted) 15%, var(--ajo-surface));
+}
+
+.ajo-result-thumb--lr {
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--dash-blue) 55%, var(--ajo-text)),
+    color-mix(in srgb, var(--dash-info-border) 40%, var(--ajo-surface))
+  );
+}
+
+.ajo-result-thumb--abstract {
+  background: conic-gradient(
+    from 0.25turn at 50% 50%,
+    color-mix(in srgb, var(--dash-warning-border) 70%, var(--ajo-surface)),
+    color-mix(in srgb, var(--dash-error-border) 55%, var(--ajo-surface)),
+    color-mix(in srgb, var(--dash-blue) 60%, var(--ajo-surface)),
+    color-mix(in srgb, var(--dash-success-border) 50%, var(--ajo-surface))
+  );
+}
+
+.ajo-results-trophy {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--dash-success-text, var(--dash-success-border));
+  opacity: 0.95;
+}
+
+.ajo-results-td--info {
+  text-align: center;
+}
+
+.ajo-results-info-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+  color: var(--ajo-muted);
+  cursor: default;
+  vertical-align: middle;
+}
+
+.ajo-results-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+}
+
+.ajo-results-status--inactive {
+  color: var(--ajo-muted);
+}
+
+.ajo-results-lift-plain {
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.ajo-results-lift-plain--up {
+  color: var(--dash-success-text);
+}
+
+/* Traffic distribution (Homepage Hero experiment) */
+.ajo-traffic-dist {
+  margin-top: 1.35rem;
+  padding: 1rem 1.1rem 1.1rem;
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--ajo-surface);
+  box-shadow: var(--dash-shadow, 0 2px 12px rgba(15, 15, 25, 0.05));
+}
+
+.ajo-traffic-dist-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.ajo-traffic-dist-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-traffic-dist-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.ajo-traffic-fake-select {
+  cursor: default;
+}
+
+.ajo-traffic-dist-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .ajo-traffic-dist-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .ajo-traffic-stats {
+    justify-self: stretch;
+  }
+}
+
+.ajo-traffic-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.6875rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-traffic-legend-label {
+  font-weight: 600;
+  margin-right: 0.15rem;
+  color: var(--ajo-text);
+}
+
+.ajo-traffic-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--ajo-surface);
+}
+
+.ajo-traffic-swatch--a {
+  background: color-mix(in srgb, var(--dash-blue) 38%, var(--dash-text) 62%);
+}
+
+.ajo-traffic-swatch--b {
+  background: color-mix(in srgb, var(--dash-error-border) 52%, var(--dash-warning-border) 48%);
+}
+
+.ajo-traffic-swatch--c {
+  background: color-mix(in srgb, var(--dash-warning-border) 70%, var(--dash-text) 30%);
+}
+
+.ajo-traffic-swatch--d {
+  background: color-mix(in srgb, var(--dash-blue) 72%, var(--ajo-surface) 28%);
+}
+
+.ajo-traffic-chart {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+
+.ajo-traffic-line {
+  fill: none;
+}
+
+/* Legend colours align with chart strokes (A–D) */
+.ajo-traffic-line--a {
+  stroke: color-mix(in srgb, var(--dash-blue) 38%, var(--dash-text) 62%);
+}
+
+.ajo-traffic-line--b {
+  stroke: color-mix(in srgb, var(--dash-error-border) 52%, var(--dash-warning-border) 48%);
+}
+
+.ajo-traffic-line--c {
+  stroke: color-mix(in srgb, var(--dash-warning-border) 70%, var(--dash-text) 30%);
+}
+
+.ajo-traffic-line--d {
+  stroke: color-mix(in srgb, var(--dash-blue) 72%, var(--ajo-surface) 28%);
+}
+
+.ajo-traffic-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-width: 7.5rem;
+  font-size: 0.75rem;
+}
+
+.ajo-traffic-stat-val {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+  line-height: 1.15;
+}
+
+.ajo-traffic-stat-lbl {
+  color: var(--ajo-muted);
+  font-weight: 500;
+  font-size: 0.6875rem;
+}
+
 /* Light AJO workspace when lab theme is dark */
 html[data-aep-theme='dark'] .ajo-mock {
   --ajo-work-bg: var(--dash-surface-alt, #fafafa);
