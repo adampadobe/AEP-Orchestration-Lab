@@ -186,19 +186,37 @@
 .image-hosting-lib-card-actions button:hover { border-color: var(--dash-blue); color: var(--dash-blue); }
 .image-hosting-lib-card-actions button.danger:hover { border-color: var(--dash-error, #d7373f); color: var(--dash-error, #d7373f); }
 
-.image-hosting-card-publish {
+.image-hosting-card-publish,
+.image-hosting-card-ai {
   margin-top: 0.25rem;
   font-size: 0.65rem;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
   border: 1px solid var(--dash-border);
-  background: var(--dash-blue);
-  color: #fff;
   cursor: pointer;
   align-self: flex-start;
 }
+.image-hosting-card-publish { background: var(--dash-blue); color: #fff; }
+.image-hosting-card-ai { background: transparent; color: var(--dash-text); border-style: dashed; }
 .image-hosting-card-publish:hover { filter: brightness(1.1); }
-.image-hosting-card-publish[disabled] { opacity: 0.5; cursor: wait; }
+.image-hosting-card-ai:hover { border-color: var(--dash-blue); color: var(--dash-blue); border-style: solid; }
+.image-hosting-card-publish[disabled],
+.image-hosting-card-ai[disabled] { opacity: 0.55; cursor: wait; }
+
+.image-hosting-lib-card-ai-badge {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+  color: #fff;
+  letter-spacing: 0.08em;
+  pointer-events: auto;
+  cursor: help;
+}
 
 .image-hosting-empty {
   padding: 1rem;

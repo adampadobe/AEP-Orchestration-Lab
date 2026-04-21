@@ -239,6 +239,7 @@ async function listLibrary(sandbox) {
     const file = parts.pop();
     const folder = parts.join('/');
     const md = f.metadata || {};
+    const custom = md.metadata || {};
     return {
       sandbox: sandboxPrefix(sandbox),
       folder,
@@ -250,6 +251,9 @@ async function listLibrary(sandbox) {
       cdnUrl: publicCdnUrl(sandbox, rel),
       publicUrl: `https://storage.googleapis.com/${BUCKET_NAME}/${f.name.split('/').map(encodeURIComponent).join('/')}`,
       updatedAt: md.updated || null,
+      aiGenerated: custom.aiGenerated === 'true',
+      aiModel: custom.aiModel || '',
+      aiPrompt: custom.aiPrompt || '',
     };
   }).sort((a, b) => a.relPath.localeCompare(b.relPath));
 }
@@ -347,6 +351,125 @@ async function renameLibraryObject(sandbox, relPath, newRelPath) {
  *   2. A scrape storage path in the same bucket (classified image).
  *   3. A direct URL — last-resort server fetch with a realistic UA.
  */
+/**
+ * Generate an AI-made substitute image when the real bytes are
+ * unreachable (Cloudflare-protected CDNs etc.). Uses Vertex AI's
+ * Gemini 2.5 Flash Image model to synthesise a plausible
+ * brand-context image from the scrape's classification + metadata.
+ *
+ * Returns raw bytes ready for upload. The caller is responsible for
+ * marking the stored object as `aiGenerated` so the UI can label it.
+ */
+async function aiGenerateReplacement(opts) {
+  const { classification, brandName, subject, sourceUrl, alt } = opts || {};
+  const { VertexAI } = require('@google-cloud/vertexai');
+  const project = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'aep-orchestration-lab';
+  const location = process.env.VERTEX_LOCATION || 'us-central1';
+  const modelName = process.env.VERTEX_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image-preview';
+
+  const vertex = new VertexAI({ project, location });
+  const model = vertex.getGenerativeModel({
+    model: modelName,
+    // Flash Image returns both IMAGE and TEXT parts; we only use the image.
+    generationConfig: { temperature: 0.3, responseModalities: ['IMAGE', 'TEXT'] },
+  });
+
+  const cat = (classification && classification.category) || '';
+  const brand = String(brandName || '').trim();
+  const descBits = [subject, alt].filter(Boolean).join(' — ');
+  const siteHost = (function () {
+    try { return new URL(sourceUrl).hostname; } catch (_e) { return ''; }
+  })();
+
+  let prompt;
+  if (cat === 'logo') {
+    prompt = `Create a clean, professional logo mark` +
+      (brand ? ` suitable for the brand "${brand}"` : '') +
+      `. ${descBits}. Flat, high-contrast, centred on a transparent or white background, no extra text, suitable for use at small sizes.`;
+  } else if (cat === 'hero_banner') {
+    prompt = `Create a wide marketing hero banner` +
+      (brand ? ` for ${brand}` : '') +
+      `. ${descBits}. Professional photography style, clean composition, brand-appropriate colours.`;
+  } else if (cat === 'product') {
+    prompt = `Create a clean product photo. ${descBits || 'A product from this brand.'} White background, soft studio lighting, centred subject.`;
+  } else if (cat === 'portrait') {
+    prompt = `Create a professional business portrait headshot. ${descBits}. Neutral background, friendly expression.`;
+  } else {
+    prompt = `Create a brand-appropriate image` +
+      (brand ? ` for ${brand}` : '') +
+      `. ${descBits || cat || 'Marketing imagery.'}. Professional quality.`;
+  }
+  if (siteHost && brand && !prompt.includes(siteHost)) {
+    prompt += ` (Source reference: ${siteHost}.)`;
+  }
+
+  const resp = await model.generateContent({
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  });
+  const cand = resp && resp.response && resp.response.candidates && resp.response.candidates[0];
+  if (!cand) throw new Error('Gemini image: no candidate returned');
+  const parts = (cand.content && cand.content.parts) || [];
+  const imagePart = parts.find(p => p && p.inlineData && p.inlineData.data);
+  if (!imagePart) {
+    const finish = cand.finishReason || 'unknown';
+    const text = parts.map(p => p.text || '').join('').slice(0, 200);
+    throw new Error('Gemini image: no image in response (finish=' + finish + (text ? ', text="' + text + '"' : '') + ')');
+  }
+  return {
+    bytes: Buffer.from(imagePart.inlineData.data, 'base64'),
+    contentType: imagePart.inlineData.mimeType || 'image/png',
+    prompt,
+  };
+}
+
+/**
+ * Upload an AI-generated image into the library using the existing
+ * naming pipeline, adding `aiGenerated: true` + the source prompt to
+ * the object's custom metadata so the UI can render an "AI" badge.
+ */
+async function publishAiImage(sandbox, opts) {
+  const generated = await aiGenerateReplacement(opts);
+  const target = await resolveTargetName(sandbox, {
+    classification: opts.classification || {},
+    srcName: (opts.classification && opts.classification.subject) || opts.alt || '',
+    contentType: generated.contentType,
+    bytes: generated.bytes,
+    overrideFolder: opts.overrideFolder,
+    overrideFile: opts.overrideFile,
+  });
+  const bucket = getBucket();
+  const file = bucket.file(target.key);
+  await file.save(target.bytes, {
+    contentType: target.contentType,
+    resumable: false,
+    metadata: {
+      cacheControl: `public, max-age=${CACHE_SECONDS}, immutable`,
+      metadata: {
+        sandbox: sandboxPrefix(sandbox),
+        aiGenerated: 'true',
+        aiModel: process.env.VERTEX_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image-preview',
+        aiPrompt: String(generated.prompt || '').slice(0, 2000),
+      },
+    },
+  });
+  try { await file.makePublic(); } catch (_e) {}
+  const [md] = await file.getMetadata().catch(() => [null]);
+  return {
+    sandbox: sandboxPrefix(sandbox),
+    folder: target.folder,
+    file: target.file,
+    path: target.key,
+    relPath: target.key.slice(libraryRoot(sandbox).length + 1),
+    contentType: target.contentType,
+    size: (md && Number(md.size)) || target.bytes.length,
+    cdnUrl: publicCdnUrl(sandbox, target.key.slice(libraryRoot(sandbox).length + 1)),
+    publicUrl: `https://storage.googleapis.com/${BUCKET_NAME}/${target.key.split('/').map(encodeURIComponent).join('/')}`,
+    updatedAt: (md && md.updated) || new Date().toISOString(),
+    aiGenerated: true,
+    aiPrompt: generated.prompt,
+  };
+}
+
 async function publishScrapeImage(sandbox, opts) {
   const { scrapeStoragePath, imageUrl, clientBytes, clientContentType,
     classification, srcName, overrideFolder, overrideFile } = opts;
@@ -578,4 +701,6 @@ module.exports = {
   batchUpload,
   classifyFromFilename,
   replaceLibraryObject,
+  aiGenerateReplacement,
+  publishAiImage,
 };
