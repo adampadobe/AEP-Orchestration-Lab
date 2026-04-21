@@ -338,6 +338,11 @@
     var badge = el('cdLabConfigBadge');
     if (badge) badge.hidden = !ok;
     if (details) details.open = !ok;
+    // Step 1 (DSN instructions) collapses once Step 2 is configured —
+    // the DSN steps are only needed until the user has wired a
+    // datastream + launch script + target URL.
+    var dsnDetails = el('cdLabDsnDetails');
+    if (dsnDetails) dsnDetails.open = !ok;
   }
 
   function loadRecordIntoForm(rec) {
