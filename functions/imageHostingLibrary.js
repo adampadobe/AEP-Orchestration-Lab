@@ -1,0 +1,308 @@
+/**
+ * Image hosting library — per-sandbox curated asset store.
+ *
+ * Layout:
+ *   gs://<BUCKET>/<sandbox>/library/<folder?>/<file>
+ *   gs://<BUCKET>/<sandbox>/library_backups/<brandSlug>/<folder?>/<file>
+ *
+ * Public URLs (rewritten via Firebase Hosting → imageHostingAsset):
+ *   https://aep-orchestration-lab.web.app/cdn/<sandbox>/<folder?>/<file>
+ *
+ * Naming convention (applied automatically, user can override):
+ *   classification 'logo'         → logo/logo.<ext>
+ *   classification 'hero_banner'  → hero-banner.<ext>   (next: hero-banner-2.<ext>)
+ *   everything else               → image-1.<ext>, image-2.<ext>, …
+ *
+ * SVG uploads are converted to PNG so the public URL can be embedded in
+ * <img> tags by external consumers that don't render SVG reliably.
+ */
+
+'use strict';
+
+const admin = require('firebase-admin');
+
+const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
+const LIBRARY_PREFIX = 'library';
+const BACKUPS_PREFIX = 'library_backups';
+const CACHE_SECONDS = 60 * 60 * 24 * 7; // 1 week CDN cache
+
+function getBucket() {
+  if (!admin.apps.length) admin.initializeApp();
+  return admin.storage().bucket(BUCKET_NAME);
+}
+
+function safeSlug(s, fallback) {
+  const v = String(s || '').toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120);
+  return v || (fallback || 'item');
+}
+
+function sandboxPrefix(sandbox) {
+  return safeSlug(sandbox, 'default');
+}
+
+function libraryRoot(sandbox) {
+  return `${sandboxPrefix(sandbox)}/${LIBRARY_PREFIX}`;
+}
+
+function backupsRoot(sandbox) {
+  return `${sandboxPrefix(sandbox)}/${BACKUPS_PREFIX}`;
+}
+
+function publicCdnUrl(sandbox, relPath) {
+  // relPath excludes the leading '<sandbox>/library/'.
+  return `/cdn/${sandboxPrefix(sandbox)}/${relPath}`;
+}
+
+function extensionFromContentType(ct) {
+  const clean = String(ct || '').split(';')[0].trim().toLowerCase();
+  const map = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/svg+xml': 'svg',
+    'image/avif': 'avif',
+    'image/bmp': 'bmp',
+    'image/x-icon': 'ico',
+  };
+  return map[clean] || (clean.startsWith('image/') ? clean.split('/')[1] : 'bin');
+}
+
+function contentTypeFromExt(ext) {
+  const e = String(ext || '').toLowerCase().replace(/^\./, '');
+  const map = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    svg: 'image/svg+xml',
+    avif: 'image/avif',
+    bmp: 'image/bmp',
+    ico: 'image/x-icon',
+  };
+  return map[e] || 'application/octet-stream';
+}
+
+/**
+ * Convert SVG bytes → PNG bytes at up to 1024px on the longest edge.
+ * The sharp import is lazy so the cold-start cost isn't paid on every
+ * function boot.
+ */
+async function svgToPng(bytes) {
+  const sharp = require('sharp');
+  return sharp(bytes).resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true }).png().toBuffer();
+}
+
+/**
+ * Pick a target file name + folder for a published image given its
+ * classification, the sandbox's existing library state, and any
+ * user-supplied overrides. Returns { folder, file, contentType, bytes }.
+ */
+async function resolveTargetName(sandbox, opts) {
+  const { classification, srcName, contentType, bytes, overrideFolder, overrideFile } = opts;
+  let ct = contentType || '';
+  let ext = extensionFromContentType(ct) || 'bin';
+  let body = bytes;
+
+  // Convert SVG → PNG so external consumers can embed the URL in <img> tags.
+  if (ext === 'svg') {
+    try {
+      body = await svgToPng(bytes);
+      ct = 'image/png';
+      ext = 'png';
+    } catch (_e) { /* fall back to the raw SVG if sharp fails */ }
+  }
+
+  const cat = (classification && classification.category) || '';
+
+  let folder = '';
+  let baseName = '';
+  if (overrideFile) {
+    // User provided an explicit name. Respect it but derive folder from slashes.
+    const parts = String(overrideFile).replace(/^\/+|\/+$/g, '').split('/');
+    baseName = safeSlug(parts.pop().replace(/\.[a-z0-9]+$/i, ''), 'image');
+    folder = parts.map(p => safeSlug(p, '')).filter(Boolean).join('/');
+    if (overrideFolder) folder = String(overrideFolder).split('/').map(p => safeSlug(p, '')).filter(Boolean).join('/');
+  } else if (cat === 'logo') {
+    folder = 'logo';
+    baseName = 'logo';
+  } else if (cat === 'hero_banner') {
+    folder = '';
+    baseName = 'hero-banner';
+  } else if (cat === 'product') {
+    folder = 'products';
+    baseName = safeSlug(srcName || (classification && classification.subject) || 'product', 'product');
+  } else {
+    folder = '';
+    baseName = 'image';
+  }
+  if (overrideFolder && !overrideFile) {
+    folder = String(overrideFolder).split('/').map(p => safeSlug(p, '')).filter(Boolean).join('/');
+  }
+
+  const prefix = `${libraryRoot(sandbox)}/${folder ? folder + '/' : ''}`;
+  // Avoid collisions for non-logo entries by appending -2, -3, … if the
+  // candidate already exists. Logos always overwrite the single slot.
+  const candidates = [baseName].concat(
+    Array.from({ length: 50 }, (_, i) => `${baseName}-${i + 2}`)
+  );
+  const bucket = getBucket();
+  for (const c of candidates) {
+    const key = `${prefix}${c}.${ext}`;
+    if (cat === 'logo') {
+      // Always write to logo.<ext>; if a different extension is already
+      // there (e.g. legacy logo.svg), delete it so there's exactly one.
+      await deleteSiblings(key, prefix + c);
+      return { folder, file: `${c}.${ext}`, key, contentType: ct || contentTypeFromExt(ext), bytes: body };
+    }
+    const [exists] = await bucket.file(key).exists();
+    if (!exists) {
+      return { folder, file: `${c}.${ext}`, key, contentType: ct || contentTypeFromExt(ext), bytes: body };
+    }
+  }
+  // Fallback: timestamp-suffix.
+  const ts = Date.now().toString(36);
+  const key = `${prefix}${baseName}-${ts}.${ext}`;
+  return { folder, file: `${baseName}-${ts}.${ext}`, key, contentType: ct || contentTypeFromExt(ext), bytes: body };
+}
+
+async function deleteSiblings(keepKey, prefixWithoutExt) {
+  try {
+    const [files] = await getBucket().getFiles({ prefix: prefixWithoutExt });
+    await Promise.all(files.map(async (f) => {
+      if (f.name === keepKey) return;
+      // Only delete siblings whose name is exactly <prefixWithoutExt>.<ext>
+      if (f.name.startsWith(prefixWithoutExt + '.')) {
+        try { await f.delete({ ignoreNotFound: true }); }
+        catch (_e) {}
+      }
+    }));
+  } catch (_e) { /* best-effort */ }
+}
+
+/**
+ * Upload bytes to the library at the resolved path, make public, and
+ * return the record the UI needs.
+ */
+async function putLibraryObject(sandbox, target) {
+  const bucket = getBucket();
+  const file = bucket.file(target.key);
+  await file.save(target.bytes, {
+    contentType: target.contentType,
+    resumable: false,
+    metadata: {
+      cacheControl: `public, max-age=${CACHE_SECONDS}, immutable`,
+      metadata: { sandbox: sandboxPrefix(sandbox) },
+    },
+  });
+  try { await file.makePublic(); } catch (_e) { /* uniform access — still accessible via cdn proxy */ }
+  const [metadata] = await file.getMetadata().catch(() => [null]);
+  return {
+    sandbox: sandboxPrefix(sandbox),
+    folder: target.folder,
+    file: target.file,
+    path: target.key,
+    relPath: target.key.slice(libraryRoot(sandbox).length + 1),
+    contentType: target.contentType,
+    size: (metadata && Number(metadata.size)) || target.bytes.length,
+    cdnUrl: publicCdnUrl(sandbox, target.key.slice(libraryRoot(sandbox).length + 1)),
+    publicUrl: `https://storage.googleapis.com/${BUCKET_NAME}/${target.key.split('/').map(encodeURIComponent).join('/')}`,
+    updatedAt: (metadata && metadata.updated) || new Date().toISOString(),
+  };
+}
+
+/** List every object under <sandbox>/library/ */
+async function listLibrary(sandbox) {
+  const prefix = libraryRoot(sandbox) + '/';
+  const [files] = await getBucket().getFiles({ prefix });
+  return files.map((f) => {
+    const rel = f.name.slice(prefix.length);
+    const parts = rel.split('/');
+    const file = parts.pop();
+    const folder = parts.join('/');
+    const md = f.metadata || {};
+    return {
+      sandbox: sandboxPrefix(sandbox),
+      folder,
+      file,
+      path: f.name,
+      relPath: rel,
+      contentType: md.contentType,
+      size: Number(md.size) || 0,
+      cdnUrl: publicCdnUrl(sandbox, rel),
+      publicUrl: `https://storage.googleapis.com/${BUCKET_NAME}/${f.name.split('/').map(encodeURIComponent).join('/')}`,
+      updatedAt: md.updated || null,
+    };
+  }).sort((a, b) => a.relPath.localeCompare(b.relPath));
+}
+
+async function deleteLibraryObject(sandbox, relPath) {
+  const prefix = libraryRoot(sandbox) + '/';
+  if (!relPath || relPath.indexOf('..') !== -1) throw new Error('bad path');
+  const key = prefix + relPath;
+  await getBucket().file(key).delete({ ignoreNotFound: true });
+  return { deleted: key };
+}
+
+async function renameLibraryObject(sandbox, relPath, newRelPath) {
+  const prefix = libraryRoot(sandbox) + '/';
+  if (!relPath || !newRelPath || relPath.indexOf('..') !== -1 || newRelPath.indexOf('..') !== -1) {
+    throw new Error('bad path');
+  }
+  const src = prefix + relPath;
+  const dst = prefix + newRelPath;
+  const bucket = getBucket();
+  await bucket.file(src).copy(bucket.file(dst));
+  try { await bucket.file(dst).makePublic(); } catch (_e) {}
+  await bucket.file(src).delete({ ignoreNotFound: true });
+  return { src, dst };
+}
+
+/**
+ * Publish one classified image from a scrape into the library.
+ * Fetches bytes from the existing scrape path (in the same bucket) and
+ * re-uploads under the curated name. No re-download from the customer.
+ */
+async function publishScrapeImage(sandbox, opts) {
+  const { scrapeStoragePath, classification, srcName, overrideFolder, overrideFile } = opts;
+  if (!scrapeStoragePath) throw new Error('scrapeStoragePath is required');
+  const bucket = getBucket();
+  const src = bucket.file(scrapeStoragePath);
+  const [buf] = await src.download();
+  const [md] = await src.getMetadata().catch(() => [null]);
+  const target = await resolveTargetName(sandbox, {
+    classification,
+    srcName,
+    contentType: (md && md.contentType) || '',
+    bytes: buf,
+    overrideFolder,
+    overrideFile,
+  });
+  return putLibraryObject(sandbox, target);
+}
+
+/**
+ * Resolve a `/cdn/<sandbox>/<relPath>` request to a file reference.
+ * Used by the public asset proxy.
+ */
+function resolveAsset(sandbox, relPath) {
+  const key = libraryRoot(sandbox) + '/' + relPath.replace(/^\/+/, '');
+  return { bucket: getBucket(), file: getBucket().file(key), key };
+}
+
+module.exports = {
+  BUCKET_NAME,
+  listLibrary,
+  publishScrapeImage,
+  deleteLibraryObject,
+  renameLibraryObject,
+  resolveAsset,
+  libraryRoot,
+  backupsRoot,
+  sandboxPrefix,
+};

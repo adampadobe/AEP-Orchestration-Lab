@@ -65,6 +65,8 @@ const edgeLaunchRuleService = lazyRequireMod('./edgeLaunchRuleService');
 const profileStreamingCore = lazyRequireMod('./profileStreamingCore');
 const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const brandScraperService = lazyRequireMod('./brandScraperService');
+const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
+const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -2852,5 +2854,136 @@ exports.brandScraperExport = onRequest(
   async (req, res) => {
     setCors(res, 'POST, OPTIONS');
     await brandScraperService.handleExport(req, res);
+  }
+);
+
+/**
+ * Image hosting library API — per-sandbox curated assets promoted from
+ * brand-scraper classifications.
+ *   GET    /api/image-hosting/library?sandbox=X       list current library
+ *   POST   /api/image-hosting/library/publish         { sandbox, scrapeId, imageIndex, overrideFolder?, overrideFile? }
+ *   DELETE /api/image-hosting/library?sandbox=X&relPath=...
+ *   POST   /api/image-hosting/library/rename          { sandbox, relPath, newRelPath }
+ */
+exports.imageHostingLibrary = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, POST, DELETE, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    try {
+      const path = String(req.path || '').replace(/\/+$/, '');
+      const sandbox = String((req.query && req.query.sandbox) || (req.body && req.body.sandbox) || '').trim();
+      if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+
+      if (req.method === 'GET') {
+        const items = await imageHostingLibrary.listLibrary(sandbox);
+        res.status(200).json({ sandbox, items });
+        return;
+      }
+
+      if (req.method === 'POST' && /\/publish$/.test(path)) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const scrapeId = String(body.scrapeId || '').trim();
+        const imageIndex = Number.isInteger(body.imageIndex) ? body.imageIndex : -1;
+        if (!scrapeId || imageIndex < 0) {
+          res.status(400).json({ error: 'scrapeId + imageIndex are required' });
+          return;
+        }
+        const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
+        if (!record) { res.status(404).json({ error: 'scrape not found' }); return; }
+        const imgs = (record.crawlSummary && record.crawlSummary.assets && record.crawlSummary.assets.imagesV2) || [];
+        const img = imgs[imageIndex];
+        if (!img || !img.storagePath) {
+          res.status(404).json({ error: 'image not found on scrape — classify assets first' });
+          return;
+        }
+        const published = await imageHostingLibrary.publishScrapeImage(sandbox, {
+          scrapeStoragePath: img.storagePath,
+          classification: img.classification || {},
+          srcName: (img.classification && img.classification.subject) || img.alt || '',
+          overrideFolder: body.overrideFolder,
+          overrideFile: body.overrideFile,
+        });
+        res.status(200).json({ sandbox, published });
+        return;
+      }
+
+      if (req.method === 'POST' && /\/rename$/.test(path)) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        if (!body.relPath || !body.newRelPath) {
+          res.status(400).json({ error: 'relPath + newRelPath required' });
+          return;
+        }
+        const out = await imageHostingLibrary.renameLibraryObject(sandbox, body.relPath, body.newRelPath);
+        res.status(200).json({ sandbox, ...out });
+        return;
+      }
+
+      if (req.method === 'DELETE') {
+        const relPath = String((req.query && req.query.relPath) || '').trim();
+        if (!relPath) { res.status(400).json({ error: 'relPath is required' }); return; }
+        const out = await imageHostingLibrary.deleteLibraryObject(sandbox, relPath);
+        res.status(200).json({ sandbox, ...out });
+        return;
+      }
+
+      res.status(405).json({ error: 'Method not allowed' });
+    } catch (e) {
+      console.error('[imageHostingLibrary]', String(e && e.message || e));
+      res.status(500).json({ error: String((e && e.message) || e) });
+    }
+  }
+);
+
+/**
+ * Public CDN proxy — streams bytes from the library bucket at
+ * gs://<bucket>/<sandbox>/library/<relPath>. Publicly readable; the
+ * bucket stores only curated images promoted from brand scrapes.
+ */
+exports.imageHostingAsset = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 30,
+    memory: '256MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      res.status(405).send('GET only'); return;
+    }
+    try {
+      // Hosting rewrites /cdn/** to this function, so req.path is the
+      // full /cdn/<sandbox>/<relPath...> the client requested.
+      const p = String(req.path || '').replace(/^\/cdn\//, '');
+      const parts = p.split('/').filter(Boolean);
+      if (parts.length < 2) { res.status(400).send('bad path'); return; }
+      const sandbox = parts.shift();
+      const relPath = parts.join('/');
+      if (!sandbox || !relPath) { res.status(400).send('bad path'); return; }
+      const { file } = imageHostingLibrary.resolveAsset(sandbox, relPath);
+      const [exists] = await file.exists();
+      if (!exists) { res.status(404).send('not found'); return; }
+      const [md] = await file.getMetadata().catch(() => [null]);
+      const ct = (md && md.contentType) || 'application/octet-stream';
+      res.setHeader('Content-Type', ct);
+      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+      if (md && md.size) res.setHeader('Content-Length', String(md.size));
+      if (md && md.etag) res.setHeader('ETag', md.etag);
+      if (req.method === 'HEAD') { res.status(200).end(); return; }
+      file.createReadStream().on('error', (e) => {
+        console.error('[imageHostingAsset] stream', String(e && e.message || e));
+        if (!res.headersSent) res.status(500).send('read error');
+      }).pipe(res);
+    } catch (e) {
+      console.error('[imageHostingAsset]', String(e && e.message || e));
+      if (!res.headersSent) res.status(500).send('internal error');
+    }
   }
 );

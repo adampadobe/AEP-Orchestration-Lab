@@ -113,6 +113,27 @@
         }
       },
       {
+        "source": "/api/image-hosting/library/**",
+        "function": {
+          "functionId": "imageHostingLibrary",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/image-hosting/library",
+        "function": {
+          "functionId": "imageHostingLibrary",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/cdn/**",
+        "function": {
+          "functionId": "imageHostingAsset",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/ajo/live-activity",
         "function": {
           "functionId": "ajoLiveActivityProxy",

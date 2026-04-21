@@ -69,7 +69,10 @@ function docId(sandbox, id) {
 }
 
 function storageKey(sandbox, scrapeId) {
-  return `${safeSlug(sandbox || 'default')}/${safeSlug(scrapeId)}/${RECORD_OBJECT_NAME}`;
+  // Scrape artifacts live under the `scrapes/` prefix so the bucket
+  // lifecycle can expire them after 3 days without touching the
+  // curated `<sandbox>/library/` tree.
+  return `scrapes/${safeSlug(sandbox || 'default')}/${safeSlug(scrapeId)}/${RECORD_OBJECT_NAME}`;
 }
 
 function genId() {
