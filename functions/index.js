@@ -2890,22 +2890,48 @@ exports.imageHostingLibrary = onRequest(
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const scrapeId = String(body.scrapeId || '').trim();
         const imageIndex = Number.isInteger(body.imageIndex) ? body.imageIndex : -1;
-        if (!scrapeId || imageIndex < 0) {
-          res.status(400).json({ error: 'scrapeId + imageIndex are required' });
+        if (!scrapeId) { res.status(400).json({ error: 'scrapeId is required' }); return; }
+
+        // Optional: client-supplied bytes (base64). When the origin CDN
+        // blocks our server's User-Agent (Flynas, etc.) the browser has
+        // already fetched the image successfully for rendering — posting
+        // those bytes through is the most reliable publish path.
+        let clientBytes = null;
+        let clientContentType = '';
+        if (body.imageBase64 && typeof body.imageBase64 === 'string') {
+          try { clientBytes = Buffer.from(body.imageBase64, 'base64'); }
+          catch (_e) { clientBytes = null; }
+          clientContentType = String(body.imageContentType || '');
+        }
+
+        let img = null;
+        if (imageIndex >= 0) {
+          const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
+          if (record) {
+            const imgs = (record.crawlSummary && record.crawlSummary.assets && record.crawlSummary.assets.imagesV2) || [];
+            img = imgs[imageIndex] || null;
+          }
+        }
+
+        // If we have neither server bytes nor client bytes, we can't publish.
+        const haveServerBytes = !!(img && img.storagePath);
+        const haveClientBytes = !!(clientBytes && clientBytes.length);
+        const haveDirectUrl = !!(body.imageUrl || (img && img.src));
+        if (!haveServerBytes && !haveClientBytes && !haveDirectUrl) {
+          res.status(400).json({ error: 'no image bytes available — classify, send imageBase64, or imageUrl' });
           return;
         }
-        const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
-        if (!record) { res.status(404).json({ error: 'scrape not found' }); return; }
-        const imgs = (record.crawlSummary && record.crawlSummary.assets && record.crawlSummary.assets.imagesV2) || [];
-        const img = imgs[imageIndex];
-        if (!img || !img.storagePath) {
-          res.status(404).json({ error: 'image not found on scrape — classify assets first' });
-          return;
-        }
+
         const published = await imageHostingLibrary.publishScrapeImage(sandbox, {
-          scrapeStoragePath: img.storagePath,
-          classification: img.classification || {},
-          srcName: (img.classification && img.classification.subject) || img.alt || '',
+          scrapeStoragePath: haveServerBytes ? img.storagePath : '',
+          imageUrl: body.imageUrl || (img && img.src) || '',
+          clientBytes,
+          clientContentType,
+          classification: (img && img.classification) || body.classification || {},
+          srcName: (img && img.classification && img.classification.subject)
+            || (img && img.alt)
+            || body.srcName
+            || '',
           overrideFolder: body.overrideFolder,
           overrideFile: body.overrideFile,
         });

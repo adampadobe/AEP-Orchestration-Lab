@@ -67,12 +67,19 @@ async function downloadImage(url) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), DOWNLOAD_TIMEOUT_MS);
   try {
+    // Use a realistic desktop-Chrome UA + Referer — some CDNs (Flynas,
+    // anything behind Cloudflare with bot-fight) 403 generic UAs.
+    let referer = '';
+    try { referer = new URL(url).origin; } catch (_e) {}
     const resp = await fetch(url, {
       signal: ctrl.signal,
       redirect: 'follow',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; AEPOrchestrationLab-BrandScraper/1.0)',
-        Accept: 'image/*,*/*;q=0.5',
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        Referer: referer,
       },
     });
     if (!resp.ok) return { error: `HTTP ${resp.status}` };

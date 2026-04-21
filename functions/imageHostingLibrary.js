@@ -268,17 +268,50 @@ async function renameLibraryObject(sandbox, relPath, newRelPath) {
  * Fetches bytes from the existing scrape path (in the same bucket) and
  * re-uploads under the curated name. No re-download from the customer.
  */
+/**
+ * Publish an image into the library. Source precedence:
+ *   1. Raw bytes provided by the client (browser already fetched the
+ *      image successfully — most reliable path when the origin blocks
+ *      server-side requests).
+ *   2. A scrape storage path in the same bucket (classified image).
+ *   3. A direct URL — last-resort server fetch with a realistic UA.
+ */
 async function publishScrapeImage(sandbox, opts) {
-  const { scrapeStoragePath, classification, srcName, overrideFolder, overrideFile } = opts;
-  if (!scrapeStoragePath) throw new Error('scrapeStoragePath is required');
-  const bucket = getBucket();
-  const src = bucket.file(scrapeStoragePath);
-  const [buf] = await src.download();
-  const [md] = await src.getMetadata().catch(() => [null]);
+  const { scrapeStoragePath, imageUrl, clientBytes, clientContentType,
+    classification, srcName, overrideFolder, overrideFile } = opts;
+  let buf;
+  let contentType = '';
+  if (clientBytes && clientBytes.length) {
+    buf = clientBytes;
+    contentType = clientContentType || '';
+  } else if (scrapeStoragePath) {
+    const bucket = getBucket();
+    const src = bucket.file(scrapeStoragePath);
+    const [exists] = await src.exists();
+    if (!exists) throw new Error('scrape object missing at ' + scrapeStoragePath);
+    [buf] = await src.download();
+    const [md] = await src.getMetadata().catch(() => [null]);
+    contentType = (md && md.contentType) || '';
+  } else if (imageUrl) {
+    const resp = await fetch(imageUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122 Safari/537.36',
+        Accept: 'image/*,*/*;q=0.5',
+        Referer: new URL(imageUrl).origin,
+      },
+      redirect: 'follow',
+    });
+    if (!resp.ok) throw new Error('origin ' + resp.status + ' on ' + imageUrl);
+    buf = Buffer.from(await resp.arrayBuffer());
+    contentType = resp.headers.get('content-type') || '';
+  } else {
+    throw new Error('no bytes, scrapeStoragePath, or imageUrl provided');
+  }
   const target = await resolveTargetName(sandbox, {
     classification,
     srcName,
-    contentType: (md && md.contentType) || '',
+    contentType,
     bytes: buf,
     overrideFolder,
     overrideFile,
