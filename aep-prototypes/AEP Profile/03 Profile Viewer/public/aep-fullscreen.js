@@ -81,14 +81,29 @@
   function injectButton() {
     var doc = global.document;
     if (shouldSkip(doc)) return;
-    var right = doc.querySelector('.dashboard-topbar .dashboard-topbar-right');
-    if (!right) return;
-    if (right.querySelector('[data-aep-fullscreen-btn]')) return;
+    if (doc.querySelector('[data-aep-fullscreen-btn]')) return;
+
     var btn = doc.createElement('button');
     btn.type = 'button';
-    btn.className = 'dashboard-topbar-icon aep-fullscreen-btn';
     btn.setAttribute('data-aep-fullscreen-btn', '1');
-    right.insertBefore(btn, right.firstChild);
+
+    // Preferred: drop the icon into the dashboard topbar's right-side cluster.
+    var right = doc.querySelector('.dashboard-topbar .dashboard-topbar-right');
+    if (right) {
+      btn.className = 'dashboard-topbar-icon aep-fullscreen-btn';
+      right.insertBefore(btn, right.firstChild);
+    } else {
+      // Fallback: dashboard topbar exists but no right-side cluster — append.
+      var topbar = doc.querySelector('.dashboard-topbar');
+      if (topbar) {
+        btn.className = 'dashboard-topbar-icon aep-fullscreen-btn';
+        topbar.appendChild(btn);
+      } else {
+        // No topbar at all (e.g. walnut-guided demos) — use a floating button.
+        btn.className = 'aep-fullscreen-btn aep-fullscreen-btn--floating';
+        (doc.body || doc.documentElement).appendChild(btn);
+      }
+    }
     syncBtn(btn);
     btn.addEventListener('click', function () { toggle(btn); });
     ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(function (evt) {
