@@ -39,6 +39,17 @@ function trim(val, max) {
   return String(val).trim().slice(0, max);
 }
 
+const PLACEMENT_TYPES = new Set(['exd', 'contentCard']);
+
+function inferDefaultPlacementType(fragment) {
+  // Match the naming convention the sample Race-for-Life + content-card
+  // demos already use so existing sandboxes keep their semantics without
+  // having to re-save every placement.
+  return /content\s*card|message\s*feed|cardcontainer/i.test(String(fragment || ''))
+    ? 'contentCard'
+    : 'exd';
+}
+
 function sanitizePlacements(raw) {
   if (!raw) return DEFAULT_PLACEMENTS.slice();
   if (!Array.isArray(raw)) return DEFAULT_PLACEMENTS.slice();
@@ -49,7 +60,8 @@ function sanitizePlacements(raw) {
     const fragment = trim(p.fragment, 128);
     const label = trim(p.label, 128);
     if (!fragment) continue;
-    out.push({ key, fragment, label: label || fragment });
+    const type = PLACEMENT_TYPES.has(p.type) ? p.type : inferDefaultPlacementType(fragment);
+    out.push({ key, fragment, label: label || fragment, type });
   }
   return out.length ? out : DEFAULT_PLACEMENTS.slice();
 }
