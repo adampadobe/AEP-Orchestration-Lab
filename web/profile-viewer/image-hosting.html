@@ -89,7 +89,36 @@
             </p>
           </div>
           <p id="imageHostingManualMsg" class="status" role="status" aria-live="polite"></p>
-          <div id="imageHostingLibraryGrid" class="image-hosting-library-grid" aria-live="polite"></div>
+          <div class="image-hosting-library-toolbar" aria-label="View controls">
+            <div class="image-hosting-view-toggle" role="tablist" aria-label="View">
+              <button type="button" role="tab" data-view="grid" aria-selected="true" title="Grid view">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/></svg>
+                Grid
+              </button>
+              <button type="button" role="tab" data-view="list" aria-selected="false" title="List view">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="2.5" width="14" height="2" rx="1" fill="currentColor"/><rect x="1" y="7" width="14" height="2" rx="1" fill="currentColor"/><rect x="1" y="11.5" width="14" height="2" rx="1" fill="currentColor"/></svg>
+                List
+              </button>
+              <button type="button" role="tab" data-view="waterfall" aria-selected="false" title="Waterfall / masonry view">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="6" height="9" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="1" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="12" width="6" height="3" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="8" width="6" height="7" rx="1" stroke="currentColor" stroke-width="1.4"/></svg>
+                Waterfall
+              </button>
+            </div>
+            <label class="image-hosting-sort-label" for="imageHostingLibrarySort">
+              Sort by
+              <select id="imageHostingLibrarySort" class="sandbox-select" aria-label="Sort library by">
+                <option value="name">Name (A → Z)</option>
+                <option value="name-desc">Name (Z → A)</option>
+                <option value="date-desc">Date (newest)</option>
+                <option value="date-asc">Date (oldest)</option>
+                <option value="size-desc">Size (largest)</option>
+                <option value="size-asc">Size (smallest)</option>
+                <option value="folder">Folder</option>
+              </select>
+            </label>
+            <p class="image-hosting-paste-hint">Paste <kbd>⌘/Ctrl&nbsp;+&nbsp;V</kbd> an image anywhere on this page to upload it. Paste on a card to replace it.</p>
+          </div>
+          <div id="imageHostingLibraryGrid" class="image-hosting-library-grid image-hosting-library-grid--grid" aria-live="polite"></div>
           <p id="imageHostingLibraryEmpty" class="image-hosting-empty" hidden>Library empty. Classify a scrape below, then click <strong>Publish</strong> on the images you want to keep.</p>
         </section>
 
@@ -114,6 +143,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script src="image-hosting.js?v=20260421j"></script>
+  <script src="image-hosting.js?v=20260421k"></script>
 </body>
 </html>

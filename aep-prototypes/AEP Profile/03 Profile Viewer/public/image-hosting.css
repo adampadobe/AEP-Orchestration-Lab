@@ -126,7 +126,48 @@
 .image-hosting-drop-hint code { font-family: ui-monospace, monospace; font-size: 0.88em; padding: 0 0.2em; background: var(--dash-input-bg, rgba(0,0,0,0.05)); border-radius: 4px; }
 .image-hosting-file-label { cursor: pointer; font-size: 0.8rem; padding: 0.3rem 0.7rem; display: inline-flex; align-items: center; justify-content: center; }
 
-.image-hosting-library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.6rem; }
+.image-hosting-library-toolbar {
+  display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: center;
+  padding: 0.3rem 0 0.1rem;
+}
+.image-hosting-view-toggle { display: inline-flex; background: var(--dash-input-bg, rgba(0,0,0,0.04)); border: 1px solid var(--dash-border); border-radius: 999px; padding: 2px; gap: 2px; }
+.image-hosting-view-toggle button { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; padding: 0.25rem 0.65rem; border: 0; border-radius: 999px; background: transparent; color: var(--dash-text-secondary, var(--dash-muted)); cursor: pointer; }
+.image-hosting-view-toggle button:hover { color: var(--dash-text); }
+.image-hosting-view-toggle button[aria-selected="true"] { background: var(--dash-surface); color: var(--dash-text); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+.image-hosting-sort-label { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; color: var(--dash-text-secondary, var(--dash-muted)); }
+.image-hosting-sort-label select { font-size: 0.74rem; padding: 0.2rem 0.5rem; }
+.image-hosting-paste-hint { margin: 0; margin-left: auto; font-size: 0.68rem; color: var(--dash-text-secondary, var(--dash-muted)); }
+.image-hosting-paste-hint kbd { font-family: ui-monospace, monospace; font-size: 0.85em; background: var(--dash-input-bg, rgba(0,0,0,0.06)); padding: 0.1rem 0.35rem; border-radius: 4px; border: 1px solid var(--dash-border); }
+
+.image-hosting-library-grid { gap: 0.6rem; }
+
+/* Grid view — fixed cells. */
+.image-hosting-library-grid.image-hosting-library-grid--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+/* List view — one row per item, small thumb left, meta right. */
+.image-hosting-library-grid.image-hosting-library-grid--list { display: flex; flex-direction: column; gap: 0.35rem; }
+.image-hosting-library-grid--list .image-hosting-lib-card { flex-direction: row; align-items: center; padding: 0.4rem 0.6rem; gap: 0.75rem; }
+.image-hosting-library-grid--list .image-hosting-lib-card-img-wrap { flex: 0 0 auto; width: 56px; height: 56px; aspect-ratio: auto; }
+.image-hosting-library-grid--list .image-hosting-lib-card-name { flex: 0 0 auto; min-width: 140px; }
+.image-hosting-library-grid--list .image-hosting-lib-card-url { flex: 1 1 auto; min-width: 0; }
+.image-hosting-library-grid--list .image-hosting-lib-card-actions { flex: 0 0 auto; margin-left: auto; }
+.image-hosting-library-grid--list .image-hosting-lib-card.is-drop-target::after { inset: auto 0.5rem 0.5rem auto; width: auto; }
+
+/* Waterfall / masonry view — columns, variable heights. */
+.image-hosting-library-grid.image-hosting-library-grid--waterfall {
+  display: block;
+  column-count: 4;
+  column-gap: 0.6rem;
+}
+@media (max-width: 1100px) { .image-hosting-library-grid--waterfall { column-count: 3; } }
+@media (max-width: 760px)  { .image-hosting-library-grid--waterfall { column-count: 2; } }
+.image-hosting-library-grid--waterfall .image-hosting-lib-card { break-inside: avoid; margin: 0 0 0.6rem; }
+.image-hosting-library-grid--waterfall .image-hosting-lib-card-img-wrap { aspect-ratio: auto; }
+.image-hosting-library-grid--waterfall .image-hosting-lib-card img { width: 100%; height: auto; max-height: none; }
+
 .image-hosting-lib-card { display: flex; flex-direction: column; gap: 0.35rem; background: var(--dash-surface-alt, var(--dash-bg)); border: 1px solid var(--dash-border); border-radius: var(--dash-radius-sm, 12px); padding: 0.5rem; position: relative; transition: border-color 0.12s ease, box-shadow 0.12s ease; }
 .image-hosting-lib-card.is-drop-target { border-color: var(--dash-blue); box-shadow: 0 0 0 2px rgba(75, 159, 255, 0.35); background: rgba(75, 159, 255, 0.08); }
 .image-hosting-lib-card.is-drop-target::after {

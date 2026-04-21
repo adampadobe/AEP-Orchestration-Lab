@@ -22,6 +22,21 @@
   var lastRecords = [];
   var classifying = {}; // scrapeId → true while a classify is in flight
 
+  // Persist view + sort preferences per-browser so switching pages
+  // or reloading keeps the user's last choice.
+  var LS_VIEW = 'imageHostingLibraryView';
+  var LS_SORT = 'imageHostingLibrarySort';
+  var viewMode = (function () {
+    try { return localStorage.getItem(LS_VIEW) || 'grid'; } catch (_e) { return 'grid'; }
+  })();
+  var sortBy = (function () {
+    try { return localStorage.getItem(LS_SORT) || 'name'; } catch (_e) { return 'name'; }
+  })();
+  // Most-recently-focused library card — used to decide whether a paste
+  // should replace that specific card vs. add a new file.
+  var focusedLibraryCard = null;
+  var lastLibraryItems = [];
+
   function getSandbox() {
     try {
       return (window.AepGlobalSandbox && window.AepGlobalSandbox.getSandboxName()) || '';
@@ -246,6 +261,13 @@
   function renderLibraryCard(item) {
     var card = document.createElement('div');
     card.className = 'image-hosting-lib-card';
+    card.tabIndex = 0;
+    card.dataset.relPath = item.relPath;
+    card.addEventListener('focus', function () { focusedLibraryCard = card; });
+    card.addEventListener('mousedown', function () { focusedLibraryCard = card; });
+    card.addEventListener('blur', function () {
+      if (focusedLibraryCard === card) focusedLibraryCard = null;
+    });
 
     var wrap = document.createElement('div');
     wrap.className = 'image-hosting-lib-card-img-wrap';
@@ -399,13 +421,44 @@
     await renderLibrary();
   }
 
+  function sortLibraryItems(items) {
+    var copy = items.slice();
+    switch (sortBy) {
+      case 'name-desc': copy.sort(function (a, b) { return b.relPath.localeCompare(a.relPath); }); break;
+      case 'date-desc': copy.sort(function (a, b) { return (Date.parse(b.updatedAt || 0) || 0) - (Date.parse(a.updatedAt || 0) || 0); }); break;
+      case 'date-asc':  copy.sort(function (a, b) { return (Date.parse(a.updatedAt || 0) || 0) - (Date.parse(b.updatedAt || 0) || 0); }); break;
+      case 'size-desc': copy.sort(function (a, b) { return (b.size || 0) - (a.size || 0); }); break;
+      case 'size-asc':  copy.sort(function (a, b) { return (a.size || 0) - (b.size || 0); }); break;
+      case 'folder':    copy.sort(function (a, b) { var fa = a.folder || '', fb = b.folder || ''; return fa.localeCompare(fb) || a.relPath.localeCompare(b.relPath); }); break;
+      case 'name':
+      default:          copy.sort(function (a, b) { return a.relPath.localeCompare(b.relPath); }); break;
+    }
+    return copy;
+  }
+
+  function applyViewClass() {
+    if (!libraryGridEl) return;
+    libraryGridEl.className = 'image-hosting-library-grid image-hosting-library-grid--' + viewMode;
+  }
+
+  function renderLibraryItems() {
+    if (!libraryGridEl) return;
+    libraryGridEl.innerHTML = '';
+    applyViewClass();
+    sortLibraryItems(lastLibraryItems).forEach(function (it) {
+      libraryGridEl.appendChild(renderLibraryCard(it));
+    });
+  }
+
   async function renderLibrary() {
     if (!libraryGridEl) return;
     libraryGridEl.innerHTML = '';
+    applyViewClass();
     var sb = getSandbox();
     if (!sb) {
       if (libraryEmptyEl) libraryEmptyEl.hidden = false;
       if (libraryCountEl) libraryCountEl.textContent = '0';
+      lastLibraryItems = [];
       return;
     }
     var items;
@@ -414,14 +467,15 @@
       if (libraryEmptyEl) { libraryEmptyEl.hidden = false; libraryEmptyEl.textContent = 'Library load failed: ' + (e.message || e); }
       return;
     }
-    if (!items.length) {
-      if (libraryEmptyEl) { libraryEmptyEl.hidden = false; libraryEmptyEl.textContent = 'Library empty. Classify a scrape below, then click Publish on the images you want to keep.'; }
+    lastLibraryItems = items || [];
+    if (!lastLibraryItems.length) {
+      if (libraryEmptyEl) { libraryEmptyEl.hidden = false; libraryEmptyEl.textContent = 'Library empty. Drop a ZIP or images above — or publish a classified image from a scrape below.'; }
       if (libraryCountEl) libraryCountEl.textContent = '0';
       return;
     }
     if (libraryEmptyEl) libraryEmptyEl.hidden = true;
-    if (libraryCountEl) libraryCountEl.textContent = String(items.length);
-    items.forEach(function (it) { libraryGridEl.appendChild(renderLibraryCard(it)); });
+    if (libraryCountEl) libraryCountEl.textContent = String(lastLibraryItems.length);
+    renderLibraryItems();
   }
 
   async function classifyScrape(scrapeId, btn) {
@@ -718,6 +772,63 @@
       setStatus('Restore failed: ' + (e.message || e), 'err');
     }
   }
+
+  // View toggle + sort controls.
+  function wireViewToolbar() {
+    var btns = document.querySelectorAll('.image-hosting-view-toggle button[data-view]');
+    function markActive() {
+      btns.forEach(function (b) { b.setAttribute('aria-selected', b.dataset.view === viewMode ? 'true' : 'false'); });
+    }
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        viewMode = b.dataset.view;
+        try { localStorage.setItem(LS_VIEW, viewMode); } catch (_e) {}
+        markActive();
+        renderLibraryItems();
+      });
+    });
+    markActive();
+    var sortSel = document.getElementById('imageHostingLibrarySort');
+    if (sortSel) {
+      sortSel.value = sortBy;
+      sortSel.addEventListener('change', function () {
+        sortBy = sortSel.value || 'name';
+        try { localStorage.setItem(LS_SORT, sortBy); } catch (_e) {}
+        renderLibraryItems();
+      });
+    }
+  }
+  wireViewToolbar();
+
+  // Paste handler: Cmd/Ctrl+V anywhere on the page with an image on the
+  // clipboard adds it to the library. If a library card currently has
+  // focus (last clicked/tabbed) the paste replaces that card instead.
+  function onPaste(e) {
+    if (!e.clipboardData) return;
+    // Don't hijack paste inside text inputs/selects/textareas.
+    var tag = (e.target && e.target.tagName) || '';
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) && e.target.type !== 'file') return;
+    var items = e.clipboardData.items || [];
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (!it || typeof it.type !== 'string' || !/^image\//.test(it.type)) continue;
+      var blob = it.getAsFile();
+      if (!blob) continue;
+      e.preventDefault();
+      // Force a plausible filename so auto-naming heuristics work
+      // (clipboard blobs often come in as "image.png" with no context).
+      var ext = (it.type.split('/')[1] || 'png').toLowerCase();
+      var fileName = (blob.name && blob.name !== 'image.png') ? blob.name : ('paste-' + Date.now() + '.' + ext);
+      var file = new File([blob], fileName, { type: blob.type });
+      if (focusedLibraryCard && focusedLibraryCard.dataset && focusedLibraryCard.dataset.relPath) {
+        replaceLibraryItem(focusedLibraryCard.dataset.relPath, file, focusedLibraryCard);
+      } else {
+        handleDroppedFiles([file]);
+      }
+      return;
+    }
+  }
+  document.addEventListener('paste', onPaste);
 
   if (refreshBtn) refreshBtn.addEventListener('click', refresh);
 
