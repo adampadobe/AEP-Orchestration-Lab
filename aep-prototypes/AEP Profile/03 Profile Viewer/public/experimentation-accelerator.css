@@ -2564,6 +2564,44 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
   position: relative;
 }
 
+button.ajo-exp-opp-card {
+  display: block;
+  width: 100%;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+button.ajo-exp-opp-card:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+.ajo-exp-opp-text {
+  display: block;
+  margin: 0 2.5rem 0.65rem 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+  line-height: 1.4;
+}
+
+.ajo-exp-opp-fake-btn {
+  pointer-events: none;
+  opacity: 1;
+}
+
+.ajo-exp-opp-ico {
+  opacity: 0.65;
+}
+
+.ajo-exp-opp-card .ajo-exp-opp-feedback {
+  opacity: 0.65;
+}
+
 .ajo-exp-opp-time {
   position: absolute;
   top: 0.65rem;
@@ -3342,6 +3380,435 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
   background: color-mix(in srgb, var(--ajo-muted) 14%, var(--ajo-surface));
   color: var(--ajo-text);
   flex-shrink: 0;
+}
+
+/* Opportunity details modal (experiment detail) */
+.ajo-exp-detail-admin-label {
+  font-size: 0.6875rem;
+  color: var(--ajo-muted);
+  margin-right: 0.25rem;
+}
+
+.ajo-opp-detail-dialog {
+  max-width: min(960px, calc(100vw - 1.75rem));
+  width: 100%;
+  max-height: min(92vh, 900px);
+  padding: 0;
+  border: none;
+  border-radius: var(--dash-radius, 16px);
+  background: color-mix(in srgb, var(--ajo-border) 10%, var(--ajo-work-bg));
+  color: var(--ajo-text);
+  box-shadow: var(--dash-shadow-hover, 0 16px 48px rgba(15, 15, 25, 0.18));
+}
+
+.ajo-opp-detail-dialog::backdrop {
+  background: color-mix(in srgb, var(--ajo-text) 28%, transparent);
+}
+
+.ajo-opp-detail-inner {
+  max-height: min(92vh, 900px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem 1.15rem 1.35rem;
+  box-sizing: border-box;
+}
+
+.ajo-opp-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--ajo-border);
+}
+
+.ajo-opp-detail-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-opp-detail-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ajo-opp-detail-header-actions .ajo-btn-sec {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ajo-opp-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.ajo-opp-detail-meta-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  min-width: 0;
+}
+
+.ajo-opp-detail-meta-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+}
+
+.ajo-opp-detail-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-opp-detail-meta-right .ajo-exp-detail-admin {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.4rem;
+  font-size: 0.6875rem;
+}
+
+.ajo-opp-tabs {
+  display: flex;
+  gap: 0.15rem 1.25rem;
+  border-bottom: 1px solid var(--ajo-border);
+  margin-bottom: 1rem;
+}
+
+.ajo-opp-tab {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.45rem 0 0.6rem;
+  margin-bottom: -1px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--ajo-muted);
+  cursor: default;
+}
+
+.ajo-opp-tab[aria-selected='true'] {
+  color: var(--ajo-text);
+  border-bottom-color: var(--ajo-text);
+}
+
+.ajo-opp-tab[disabled] {
+  opacity: 0.42;
+}
+
+.ajo-opp-detail-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem 1.25rem;
+}
+
+@media (min-width: 720px) {
+  .ajo-opp-detail-body {
+    grid-template-columns: minmax(0, 1fr) min(280px, 34%);
+    align-items: start;
+  }
+}
+
+.ajo-opp-card {
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1rem 1.05rem;
+  margin-bottom: 0.75rem;
+  box-shadow: var(--dash-shadow, 0 1px 4px rgba(15, 15, 25, 0.05));
+}
+
+.ajo-opp-card-headline {
+  margin: 0 0 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-opp-card-lede {
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
+  color: var(--ajo-muted);
+  line-height: 1.5;
+}
+
+.ajo-opp-hypothesis-box {
+  position: relative;
+  padding: 0.85rem 2rem 0.85rem 0.95rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  background: color-mix(in srgb, var(--ajo-border) 22%, var(--ajo-surface));
+  border: 1px solid color-mix(in srgb, var(--ajo-border) 70%, transparent);
+}
+
+.ajo-opp-hypothesis-box p {
+  margin: 0;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--ajo-text);
+  line-height: 1.5;
+}
+
+.ajo-opp-copy-ico {
+  position: absolute;
+  bottom: 0.45rem;
+  right: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--dash-radius-sm, 6px);
+  background: transparent;
+  color: var(--ajo-muted);
+  cursor: default;
+}
+
+.ajo-opp-subhead {
+  margin: 0 0 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-opp-examples-intro {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  color: var(--ajo-muted);
+  line-height: 1.45;
+}
+
+.ajo-opp-example-pills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ajo-opp-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--ajo-border);
+  background: color-mix(in srgb, var(--ajo-muted) 6%, var(--ajo-surface));
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ajo-text);
+}
+
+.ajo-opp-pill-copy {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem;
+  border: none;
+  background: transparent;
+  color: var(--ajo-muted);
+  cursor: default;
+}
+
+.ajo-opp-rationale-teaser {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ajo-muted);
+  line-height: 1.5;
+}
+
+.ajo-opp-eval-card {
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1rem 0.95rem;
+  box-shadow: var(--dash-shadow, 0 1px 4px rgba(15, 15, 25, 0.05));
+}
+
+.ajo-opp-eval-title {
+  margin: 0 0 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-opp-eval-block + .ajo-opp-eval-block {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ajo-border);
+}
+
+.ajo-opp-eval-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.ajo-opp-eval-label {
+  font-size: 0.71rem;
+  font-weight: 600;
+  color: var(--ajo-muted);
+}
+
+.ajo-opp-eval-value {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--dash-blue);
+}
+
+.ajo-opp-eval-value--muted {
+  color: var(--ajo-muted);
+}
+
+.ajo-opp-meter {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 0.45rem;
+}
+
+.ajo-opp-meter-seg {
+  flex: 1;
+  height: 8px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ajo-border) 55%, var(--ajo-surface));
+  min-width: 0;
+}
+
+.ajo-opp-meter-seg--on {
+  background: var(--dash-blue);
+}
+
+.ajo-opp-eval-hint {
+  margin: 0;
+  font-size: 0.65rem;
+  color: var(--ajo-muted);
+  line-height: 1.45;
+}
+
+.ajo-opp-rationale-deep {
+  margin-top: 1.25rem;
+  padding: 1rem 1.05rem;
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  box-shadow: var(--dash-shadow, 0 1px 4px rgba(15, 15, 25, 0.05));
+}
+
+.ajo-opp-rationale-deep-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-opp-rationale-deep-body {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--ajo-muted);
+  line-height: 1.5;
+}
+
+.ajo-opp-rationale-deep-body strong {
+  color: var(--ajo-text);
+  font-weight: 700;
+}
+
+.ajo-opp-rationale-deep-subhead {
+  margin: 0 0 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-opp-rationale-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 10px);
+  background: var(--ajo-surface);
+}
+
+.ajo-opp-rationale-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.ajo-opp-rationale-table th,
+.ajo-opp-rationale-table td {
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--ajo-border);
+}
+
+.ajo-opp-rationale-table th {
+  background: color-mix(in srgb, var(--ajo-muted) 6%, var(--ajo-surface));
+  font-weight: 600;
+  color: var(--ajo-muted);
+  white-space: nowrap;
+}
+
+.ajo-opp-rationale-th-link {
+  text-align: right;
+  width: 3rem;
+}
+
+.ajo-opp-rationale-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ajo-opp-rationale-exp-title {
+  display: block;
+  font-weight: 700;
+  color: var(--ajo-text);
+  margin-bottom: 0.2rem;
+}
+
+.ajo-opp-rationale-exp-desc {
+  display: block;
+  color: var(--ajo-muted);
+  line-height: 1.4;
+}
+
+.ajo-opp-rationale-td-link {
+  text-align: right;
+  vertical-align: middle;
+}
+
+.ajo-opp-link-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--dash-radius-sm, 8px);
+  background: transparent;
+  color: var(--ajo-muted);
+  cursor: default;
 }
 
 /* Light AJO workspace when lab theme is dark */

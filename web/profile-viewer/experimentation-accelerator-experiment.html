@@ -33,8 +33,8 @@
   <link rel="stylesheet" href="home.css?v=20260422d">
   <link rel="stylesheet" href="aep-theme.css?v=20260422d-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260423a">
-  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260423a">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260423c">
+  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260423c">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive experimentation-accelerator-page--exp-detail">
   <a href="index.html" class="exp-accel-lab-exit">Profile Viewer</a>
@@ -203,17 +203,14 @@
                     <aside class="ajo-exp-opp-col" aria-labelledby="ajoOppHead">
                       <h2 id="ajoOppHead">Opportunities</h2>
                       <div class="ajo-exp-opp-list">
-                        <div class="ajo-exp-opp-card">
+                        <button type="button" class="ajo-exp-opp-card ajo-exp-opp-card--open" id="ajoOppDetailOpen" aria-haspopup="dialog" aria-controls="ajoOppDetailDialog">
                           <span class="ajo-exp-opp-time">1hr ago</span>
-                          <p>Add an emotional appeal to increase revenue.</p>
-                          <div class="ajo-exp-opp-actions">
-                            <button type="button" class="ajo-btn-outline" disabled>View opportunity</button>
-                            <div class="ajo-exp-opp-feedback">
-                              <button type="button" disabled aria-label="Thumbs up">👍</button>
-                              <button type="button" disabled aria-label="Thumbs down">👎</button>
-                            </div>
-                          </div>
-                        </div>
+                          <span class="ajo-exp-opp-text">Add an emotional appeal to increase revenue.</span>
+                          <span class="ajo-exp-opp-actions">
+                            <span class="ajo-btn-outline ajo-exp-opp-fake-btn">View opportunity</span>
+                            <span class="ajo-exp-opp-feedback" aria-hidden="true"><span class="ajo-exp-opp-ico">👍</span><span class="ajo-exp-opp-ico">👎</span></span>
+                          </span>
+                        </button>
                         <div class="ajo-exp-opp-card">
                           <span class="ajo-exp-opp-time">3hr ago</span>
                           <p>Tighten the hero headline for clarity on small screens.</p>
@@ -542,6 +539,145 @@
     </div>
   </div>
 
+  <dialog id="ajoOppDetailDialog" class="ajo-opp-detail-dialog" aria-labelledby="ajoOppDetailTitle" aria-modal="true">
+    <div class="ajo-opp-detail-inner">
+      <header class="ajo-opp-detail-header">
+        <h2 id="ajoOppDetailTitle" class="ajo-opp-detail-title">Opportunity details</h2>
+        <div class="ajo-opp-detail-header-actions">
+          <button type="button" class="ajo-btn-sec" id="ajoOppDetailCancel">Cancel</button>
+          <button type="button" class="ajo-btn-sec" disabled title="Demo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+            Share
+          </button>
+          <button type="button" class="ajo-btn-prim" disabled title="Demo">Open experiment</button>
+        </div>
+      </header>
+      <div class="ajo-opp-detail-meta">
+        <div class="ajo-opp-detail-meta-left">
+          <span class="ajo-exp-detail-badge">A/B</span>
+          <span class="ajo-opp-detail-meta-title">Homepage Hero Image Test</span>
+          <span class="ajo-status ajo-status--active">Active</span>
+          <span class="ajo-opp-detail-date">
+            <svg class="ajo-exp-cal-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            May 1, 2025&nbsp;&ndash;&nbsp;Today
+          </span>
+        </div>
+        <div class="ajo-opp-detail-meta-right">
+          <span class="ajo-exp-detail-admin">
+            <span class="ajo-exp-detail-admin-label">Administered by</span>
+            <span class="ajo-exp-detail-admin-ajo">
+              <img class="ajo-adobe-mark-img ajo-adobe-mark-img--sm" src="https://contenthosting.web.app/experiments/adobelogo.png" width="72" height="18" alt="" decoding="async" />
+              Adobe Journey Optimizer
+            </span>
+          </span>
+        </div>
+      </div>
+      <div class="ajo-opp-tabs" role="tablist" aria-label="Opportunity tabs">
+        <button type="button" role="tab" class="ajo-opp-tab" aria-selected="true" id="ajoOppTab1">Opportunity 1</button>
+        <button type="button" role="tab" class="ajo-opp-tab" aria-selected="false" id="ajoOppTab2" disabled>Opportunity 2</button>
+        <button type="button" role="tab" class="ajo-opp-tab" aria-selected="false" id="ajoOppTab3" disabled>Opportunity 3</button>
+      </div>
+      <div class="ajo-opp-detail-body">
+        <div class="ajo-opp-detail-main">
+          <article class="ajo-opp-card">
+            <h3 class="ajo-opp-card-headline">Add an emotional appeal to increase revenue</h3>
+            <p class="ajo-opp-card-lede">Emotional messaging drives deeper engagement by tapping into aspirational motivations such as self-actualization and creativity.</p>
+            <div class="ajo-opp-hypothesis-box">
+              <p>If we emphasize emotional transformation rather than functional utility, users will feel a stronger connection and motivation to engage or convert, leading to increased revenue.</p>
+              <button type="button" class="ajo-opp-copy-ico" disabled title="Copy (demo)" aria-label="Copy hypothesis">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </article>
+          <article class="ajo-opp-card">
+            <h4 class="ajo-opp-subhead">New text treatment examples</h4>
+            <p class="ajo-opp-examples-intro">Try invoking emotions to make the offer more enticing. Instead of &ldquo;Accomplish more with Acrobat Pro&rdquo;, explore examples like:</p>
+            <ul class="ajo-opp-example-pills">
+              <li><span class="ajo-opp-pill">Unlock a world of creative potential <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
+              <li><span class="ajo-opp-pill">Unleash your full potential <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
+              <li><span class="ajo-opp-pill">Bring your imagination to life <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
+              <li><span class="ajo-opp-pill">Supercharge your creativity <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
+            </ul>
+          </article>
+          <p class="ajo-opp-rationale-teaser">Experiments analysis shows that making emotional appeals tend to lead to favorable outcomes. Previous experiments show higher click-through rates on landing pages for emotionally framed advertising than ones that lead with benefits vs. features.</p>
+        </div>
+        <aside class="ajo-opp-detail-aside">
+          <div class="ajo-opp-eval-card">
+            <h3 class="ajo-opp-eval-title">Opportunity evaluation</h3>
+            <div class="ajo-opp-eval-block">
+              <div class="ajo-opp-eval-head">
+                <span class="ajo-opp-eval-label">Learning potential</span>
+                <span class="ajo-opp-eval-value">Very High</span>
+              </div>
+              <div class="ajo-opp-meter" role="img" aria-label="Learning potential: three of four segments">
+                <span class="ajo-opp-meter-seg ajo-opp-meter-seg--on"></span>
+                <span class="ajo-opp-meter-seg ajo-opp-meter-seg--on"></span>
+                <span class="ajo-opp-meter-seg ajo-opp-meter-seg--on"></span>
+                <span class="ajo-opp-meter-seg"></span>
+              </div>
+              <p class="ajo-opp-eval-hint">Estimates how much new insight this opportunity could provide based on differences from what&rsquo;s been tested in the past.</p>
+            </div>
+            <div class="ajo-opp-eval-block">
+              <div class="ajo-opp-eval-head">
+                <span class="ajo-opp-eval-label">Conversion potential</span>
+                <span class="ajo-opp-eval-value ajo-opp-eval-value--muted">Unknown</span>
+              </div>
+              <div class="ajo-opp-meter" role="img" aria-label="Conversion potential: none">
+                <span class="ajo-opp-meter-seg"></span>
+                <span class="ajo-opp-meter-seg"></span>
+                <span class="ajo-opp-meter-seg"></span>
+                <span class="ajo-opp-meter-seg"></span>
+              </div>
+              <p class="ajo-opp-eval-hint">Estimates how likely this opportunity is to outperform your current treatment, based on its similarity to strategies that have worked well in the past.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <section class="ajo-opp-rationale-deep" aria-labelledby="ajoOppRationaleHead">
+        <h3 id="ajoOppRationaleHead" class="ajo-opp-rationale-deep-title">Rationale</h3>
+        <p class="ajo-opp-rationale-deep-body">Experiments analysis shows that making emotional appeals tend to lead to favorable outcomes. Previous experiments show higher click-through rates and <strong>increased revenue</strong> on landing pages for emotionally framed advertising than ones that lead with benefits vs. features.</p>
+        <p class="ajo-opp-rationale-deep-subhead">Past experiments with higher revenue using emotional appeal treatment</p>
+        <div class="ajo-opp-rationale-table-wrap">
+          <table class="ajo-opp-rationale-table">
+            <thead>
+              <tr>
+                <th scope="col">Lift over baseline</th>
+                <th scope="col">Previous experiment examples</th>
+                <th scope="col" class="ajo-opp-rationale-th-link">Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="ajo-lift ajo-lift--up">↑ 25.5%</span></td>
+                <td>
+                  <span class="ajo-opp-rationale-exp-title">Photoshop home headline test</span>
+                  <span class="ajo-opp-rationale-exp-desc">&ldquo;Bring your imagination to life&rdquo; outperforms &ldquo;Edit photos easily&rdquo; by 25.5% in revenue lift.</span>
+                </td>
+                <td class="ajo-opp-rationale-td-link"><button type="button" class="ajo-opp-link-ico" disabled title="Demo" aria-label="Link (demo)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><span class="ajo-lift ajo-lift--up">↑ 19.5%</span></td>
+                <td>
+                  <span class="ajo-opp-rationale-exp-title">A.com home headline test</span>
+                  <span class="ajo-opp-rationale-exp-desc">&ldquo;Give lift to your ideas&rdquo; outperforms &ldquo;Create new videos&rdquo; by 19.5% in revenue lift.</span>
+                </td>
+                <td class="ajo-opp-rationale-td-link"><button type="button" class="ajo-opp-link-ico" disabled title="Demo" aria-label="Link (demo)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><span class="ajo-lift ajo-lift--up">↑ 15.5%</span></td>
+                <td>
+                  <span class="ajo-opp-rationale-exp-title">Experiment: Premiere email subject line test</span>
+                  <span class="ajo-opp-rationale-exp-desc">&ldquo;Creativity at your fingertips&rdquo; outperforms &ldquo;Edit more clips easily&rdquo; by 15.5% in revenue lift.</span>
+                </td>
+                <td class="ajo-opp-rationale-td-link"><button type="button" class="ajo-opp-link-ico" disabled title="Demo" aria-label="Link (demo)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
   <dialog id="ajoInsightDetailDialog" class="ajo-insight-dialog" aria-labelledby="ajoInsightDialogTitle" aria-modal="true">
     <div class="ajo-insight-dialog-surface">
       <div class="ajo-insight-dialog-top">
@@ -600,7 +736,7 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script defer src="experimentation-accelerator.js?v=20260423a"></script>
-  <script defer src="experimentation-accelerator-customise.js?v=20260423a"></script>
+  <script defer src="experimentation-accelerator.js?v=20260423c"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260423c"></script>
 </body>
 </html>

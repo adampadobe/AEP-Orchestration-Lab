@@ -179,11 +179,51 @@
     });
   }
 
+  function initOpportunityDetailDialog() {
+    var dlg = document.getElementById('ajoOppDetailDialog');
+    var openBtn = document.getElementById('ajoOppDetailOpen');
+    var closeBtn = document.getElementById('ajoOppDetailCancel');
+    if (!dlg || !openBtn || !closeBtn) return;
+
+    openBtn.addEventListener('click', function () {
+      try {
+        if (typeof dlg.showModal === 'function') dlg.showModal();
+      } catch (e) {
+        return;
+      }
+      try {
+        closeBtn.focus();
+      } catch (e2) {}
+    });
+
+    closeBtn.addEventListener('click', function () {
+      try {
+        dlg.close();
+      } catch (e) {}
+    });
+
+    dlg.addEventListener('click', function (ev) {
+      if (ev.target === dlg) {
+        try {
+          dlg.close();
+        } catch (e) {}
+      }
+    });
+
+    dlg.addEventListener('cancel', function (ev) {
+      ev.preventDefault();
+      try {
+        dlg.close();
+      } catch (e) {}
+    });
+  }
+
   function init() {
     initTabs();
     initExpFilters();
     initFlyoutSidebar();
     initExperimentInsightDialog();
+    initOpportunityDetailDialog();
   }
 
   if (document.readyState === 'loading') {
