@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image hosting – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="image-hosting.css?v=20260421a">
+  <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="image-hosting-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Images per brand scrape">Image hosting</span>
+          <a href="brand-scraper.html" class="dashboard-topbar-link">Brand scraper</a>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main image-hosting-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingImageHosting">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingImageHosting" class="dashboard-hero-title">Image hosting</h2>
+              <p class="dashboard-hero-subtitle">
+                Public URLs for images captured by <strong>Brand scraper</strong>. Each scrape's classified images are uploaded to Cloud Storage and served over public URLs so you can preview them here and embed them elsewhere. Images are retained for 3 days per bucket lifecycle.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="image-hosting-controls panel" aria-label="Controls">
+          <div class="image-hosting-controls-row">
+            <div class="form-row image-hosting-sandbox-row">
+              <label for="sandboxSelect">Sandbox</label>
+              <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                <option value="">Loading sandboxes…</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="imageHostingCategoryFilter">Category filter</label>
+              <select id="imageHostingCategoryFilter" class="sandbox-select" aria-label="Filter images by classification">
+                <option value="">All categories</option>
+              </select>
+            </div>
+            <div class="form-row image-hosting-actions-row">
+              <button type="button" id="imageHostingRefreshBtn" class="primary">Refresh scrapes</button>
+            </div>
+          </div>
+          <p id="imageHostingStatus" class="status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="image-hosting-list" id="imageHostingList" aria-label="Brand scrapes with hosted images"></section>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="imageHostingLightbox" class="image-hosting-lightbox" aria-label="Image preview">
+    <button type="button" id="imageHostingLightboxClose" class="image-hosting-lightbox-close" aria-label="Close preview">×</button>
+    <figure>
+      <img id="imageHostingLightboxImg" alt="" />
+      <figcaption id="imageHostingLightboxCaption" class="image-hosting-lightbox-caption"></figcaption>
+    </figure>
+  </dialog>
+
+  <script src="aep-global-sandbox.js"></script>
+  <script src="image-hosting.js?v=20260421a"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
+</body>
+</html>
