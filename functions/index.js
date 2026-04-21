@@ -2888,9 +2888,11 @@ exports.imageHostingLibrary = onRequest(
 
       if (req.method === 'POST' && /\/publish$/.test(path)) {
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        // scrapeId is optional — callers may publish directly from an
+        // uploaded file or a URL with no backing scrape ('_manual'
+        // sentinel from the UI, or just omitted entirely).
         const scrapeId = String(body.scrapeId || '').trim();
         const imageIndex = Number.isInteger(body.imageIndex) ? body.imageIndex : -1;
-        if (!scrapeId) { res.status(400).json({ error: 'scrapeId is required' }); return; }
 
         // Optional: client-supplied bytes (base64). When the origin CDN
         // blocks our server's User-Agent (Flynas, etc.) the browser has
@@ -2905,7 +2907,7 @@ exports.imageHostingLibrary = onRequest(
         }
 
         let img = null;
-        if (imageIndex >= 0) {
+        if (imageIndex >= 0 && scrapeId && scrapeId !== '_manual') {
           const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
           if (record) {
             const imgs = (record.crawlSummary && record.crawlSummary.assets && record.crawlSummary.assets.imagesV2) || [];
