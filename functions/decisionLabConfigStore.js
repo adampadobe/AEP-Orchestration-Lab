@@ -289,7 +289,31 @@ async function saveUserDecisionLabConfig(uid, sandbox, patch) {
   });
 
   const after = await ref.get();
-  return after.exists ? { id: after.id, ...after.data() } : null;
+  const savedUser = after.exists ? { id: after.id, ...after.data() } : null;
+
+  // Mirror the user's saved config to the shared sandbox doc so a new
+  // anonymous-auth uid (different browser / cleared storage / incognito)
+  // has a working baseline to fall back to. Best-effort — if the
+  // shared write fails we still return the user record.
+  if (savedUser) {
+    try {
+      await saveDecisionLabConfig(name, {
+        launchScriptUrl: savedUser.launchScriptUrl,
+        datastreamId: savedUser.datastreamId,
+        schemaTitle: savedUser.schemaTitle,
+        datasetName: savedUser.datasetName,
+        edgePersonalizationMode: savedUser.edgePersonalizationMode,
+        tagsPropertyRef: savedUser.tagsPropertyRef,
+        targetPageUrl: savedUser.targetPageUrl,
+        placements: savedUser.placements,
+        surfaceOverrides: savedUser.surfaceOverrides,
+        surfaceStyles: savedUser.surfaceStyles,
+      });
+    } catch (e) {
+      console.warn('[decisionLabConfigStore] shared mirror failed', String((e && e.message) || e));
+    }
+  }
+  return savedUser;
 }
 
 async function getEffectiveDecisionLabConfig(sandbox, uid) {

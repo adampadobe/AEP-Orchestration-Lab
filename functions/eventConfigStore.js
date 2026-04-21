@@ -157,7 +157,26 @@ async function saveUserEventConfig(uid, sandbox, patch) {
   });
 
   const after = await ref.get();
-  return after.exists ? { id: after.id, ...after.data() } : null;
+  const savedUser = after.exists ? { id: after.id, ...after.data() } : null;
+
+  // Mirror the user's saved config to the shared sandbox doc so a new
+  // anonymous-auth uid has a working baseline to fall back to. Best-
+  // effort — if the shared write fails we still return the user record.
+  if (savedUser) {
+    try {
+      await saveEventConfig(name, {
+        datastreamId: savedUser.datastreamId,
+        datastreamTitle: savedUser.datastreamTitle,
+        schemaTitle: savedUser.schemaTitle,
+        datasetName: savedUser.datasetName,
+        customTriggers: savedUser.customTriggers,
+        quickMenuTriggers: savedUser.quickMenuTriggers,
+      });
+    } catch (e) {
+      console.warn('[eventConfigStore] shared mirror failed', String((e && e.message) || e));
+    }
+  }
+  return savedUser;
 }
 
 /** Prefer user doc when present; otherwise shared sandbox doc (legacy / team default). */
