@@ -281,15 +281,24 @@
     if (!list) return;
     if (placementRowCount() >= MAX_PLACEMENTS) return;
     var n = placementRowCount() + 1;
+    var newFragment = 'placement-' + n;
     list.appendChild(
       createPlacementRow({
         key: 'slot' + n,
-        fragment: 'placement-' + n,
+        fragment: newFragment,
         label: 'Placement ' + n,
       })
     );
     updateRemoveButtonsEnabled();
     applyPlacementsToMountsModule();
+    // Jump the Style dropdown to the surface we just created so the
+    // user can start designing it immediately. This happens after
+    // applyPlacementsToMountsModule so the option exists in the <select>.
+    var sel = el('cdLabStyleSurface');
+    if (sel) {
+      sel.value = newFragment;
+      try { loadStyleEditorForSelectedSurface(); } catch (_e) {}
+    }
   }
 
   function applyPlacementsToMountsModule() {
@@ -297,6 +306,11 @@
     if (typeof CdEdgeMounts !== 'undefined' && CdEdgeMounts.setPlacements) {
       CdEdgeMounts.setPlacements(getPlacementsFromForm());
     }
+    // Keep the Step 4 "Surface styling" dropdown in sync with the
+    // placements list — any add / remove / edit appears there too so
+    // the user can immediately start styling a new surface without
+    // a manual refresh. Preserves current selection when still valid.
+    try { populateStyleSurfaceDropdown(); } catch (_e) {}
   }
 
   function toggleScopesRow() {
