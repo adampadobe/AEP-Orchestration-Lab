@@ -97,6 +97,17 @@ body.experimentation-accelerator-page.experimentation-accelerator-page--immersiv
   box-sizing: border-box;
 }
 
+/* Overview tab: extra horizontal inset so cards’ rounded corners stay inside the viewport */
+body[data-ajo-tab='overview'].experimentation-accelerator-page .ajo-mock-workspace {
+  padding-inline: clamp(0.85rem, 2.8vw, 1.5rem);
+}
+
+body[data-ajo-tab='overview'].experimentation-accelerator-page .ajo-overview-native {
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
 /* Overview tab: window scrolls native overview (no inner flex trap) — ported from pre-Walnut polish */
 body.experimentation-accelerator-page[data-ajo-tab='overview'] .dashboard-main-wrap {
   min-height: auto;
@@ -666,7 +677,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   z-index: 2;
   width: 100%;
   max-width: 100%;
-  padding: 2rem 1.25rem 5.5rem;
+  padding: 2rem clamp(1rem, 2.5vw, 1.5rem) 5.5rem;
   box-sizing: border-box;
   background: var(--dash-hero-grad);
   border-bottom: 1px solid color-mix(in srgb, var(--ajo-border) 70%, transparent);
@@ -705,7 +716,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   left: 50%;
   transform: translateX(-50%);
   bottom: -3.35rem;
-  width: min(720px, calc(100% - 2rem));
+  width: min(720px, calc(100% - 2.75rem));
   max-width: 100%;
   box-sizing: border-box;
   z-index: 3;
@@ -784,7 +795,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
 
   .ajo-kpi-deck {
     bottom: -6.75rem;
-    width: min(720px, calc(100% - 1.5rem));
+    width: min(720px, calc(100% - 2.25rem));
   }
 }
 
@@ -807,7 +818,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
     left: auto;
     transform: none;
     bottom: auto;
-    width: min(720px, calc(100% - 1.5rem));
+    width: min(720px, calc(100% - 2.25rem));
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
@@ -1988,6 +1999,25 @@ a.ajo-table-link:hover {
   margin: 0 auto;
   box-sizing: border-box;
   overflow-x: hidden;
+}
+
+/* One horizontal gutter from mock workspace only — keeps Invest / Hypothesis / grid / Results aligned */
+.experimentation-accelerator-page--exp-detail .ajo-exp-detail-scroll {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Shared content column: same left/right edges for header strip, cards, and results table */
+.experimentation-accelerator-page--exp-detail .ajo-exp-detail-top,
+.experimentation-accelerator-page--exp-detail .ajo-exp-lead,
+.experimentation-accelerator-page--exp-detail .ajo-exp-hypothesis,
+.experimentation-accelerator-page--exp-detail .ajo-exp-detail-grid,
+.experimentation-accelerator-page--exp-detail .ajo-exp-results {
+  max-width: min(1200px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .experimentation-accelerator-page--exp-detail .ajo-mock-body {
