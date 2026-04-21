@@ -10,6 +10,7 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge {
   --dash-bg: #0f1114;
   --dash-surface: #181b21;
   --dash-surface-alt: #14161b;
+  --dash-mock-rail-bg: #1e2229;
   --dash-sidebar: #12151a;
   --dash-border: #2a3038;
   --dash-text: #e8eaed;

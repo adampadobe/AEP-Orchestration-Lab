@@ -684,6 +684,8 @@ body.home-dashboard-concierge {
   --dash-bg: #f0f0f2;
   --dash-surface: #ffffff;
   --dash-surface-alt: #f8f9fa;
+  /* AJO mock left rail (Experimentation Accelerator) — solid neutral */
+  --dash-mock-rail-bg: #f8f8f8;
   --dash-sidebar: #eae8ee;
   --dash-border: #e6e4ea;
   --dash-text: #2c2c2c;
