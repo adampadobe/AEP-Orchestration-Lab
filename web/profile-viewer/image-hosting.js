@@ -85,16 +85,53 @@
     return Array.isArray(data.items) ? data.items : [];
   }
 
-  async function publishToLibrary(scrapeId, imageIndex, btn) {
+  // Try to fetch the image bytes in the browser (where the origin CDN
+  // already trusts us) so the server doesn't have to re-fetch from a
+  // potentially-blocking origin. Returns null if CORS or any other
+  // failure — server will fall back to its own fetch / scrape-storage.
+  async function fetchImageBytesClient(imgUrl) {
+    if (!imgUrl || /^data:/i.test(imgUrl)) return null;
+    try {
+      var resp = await fetch(imgUrl, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' });
+      if (!resp.ok) return null;
+      var blob = await resp.blob();
+      if (!blob || !blob.size) return null;
+      var reader = new FileReader();
+      var p = new Promise(function (resolve, reject) {
+        reader.onload = function () { resolve(String(reader.result || '')); };
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(blob);
+      var dataUrl = await p;
+      var base64 = dataUrl.split(',')[1] || '';
+      return { base64: base64, contentType: blob.type || '' };
+    } catch (_e) { return null; }
+  }
+
+  async function publishToLibrary(scrapeId, imageIndex, btn, img) {
     var sb = getSandbox();
     if (!sb || !scrapeId || imageIndex == null) return;
     var originalText = btn ? btn.textContent : '';
     if (btn) { btn.disabled = true; btn.textContent = 'Publishing…'; }
     try {
+      var body = { sandbox: sb, scrapeId: scrapeId, imageIndex: imageIndex };
+      // First try to capture bytes from the browser (works if CDN allows
+      // CORS). If not, the server will try its own UA fetch, falling
+      // back to the scrape-bucket storagePath.
+      if (img && img.src) {
+        var bytes = await fetchImageBytesClient(img.src);
+        if (bytes && bytes.base64) {
+          body.imageBase64 = bytes.base64;
+          body.imageContentType = bytes.contentType;
+        }
+        body.imageUrl = img.src;
+        body.classification = img.classification || null;
+        body.srcName = (img.classification && img.classification.subject) || img.alt || '';
+      }
       var r = await fetch('/api/image-hosting/library/publish?sandbox=' + encodeURIComponent(sb), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sandbox: sb, scrapeId: scrapeId, imageIndex: imageIndex }),
+        body: JSON.stringify(body),
       });
       var data = await r.json().catch(function () { return {}; });
       if (!r.ok) {
@@ -381,7 +418,7 @@
       pubBtn.title = 'Promote this image to the curated library with a standard name.';
       pubBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        publishToLibrary(rec.scrapeId, originalIndex, pubBtn);
+        publishToLibrary(rec.scrapeId, originalIndex, pubBtn, img);
       });
       card.appendChild(pubBtn);
 
