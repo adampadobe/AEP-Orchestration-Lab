@@ -2,22 +2,9 @@
  * Runs inside walnut-guided-page1/page2 wrappers.
  * - Removes nested iframe scrollbars (all same-origin Walnut frames)
  * - Normalizes dark canvas backgrounds to white to avoid black seams
- * - Keeps only one "Latest updates" section in page2 captures
+ * - Keeps nested content stable without independent inner scrolling
  */
 (function () {
-  var title = (document.title || '').toLowerCase();
-  var isPage2 = title.indexOf('page 2') !== -1;
-
-  function parseTopPct(el) {
-    try {
-      var txt = (el && el.getAttribute && el.getAttribute('style')) || '';
-      var m = txt.match(/top:\s*([\d.]+)%/i);
-      return m ? parseFloat(m[1]) : NaN;
-    } catch (e) {
-      return NaN;
-    }
-  }
-
   function squashScroll(doc) {
     try {
       if (doc.documentElement) {
@@ -48,49 +35,10 @@
     } catch (e) {}
   }
 
-  function dedupeLatestInPage2(doc) {
-    if (!isPage2) return;
-    var labels;
-    var matches = [];
-    var i;
-    var t;
-    var p;
-    var all;
-    var j;
-    var q;
-    try {
-      labels = doc.querySelectorAll('p, h1, h2, h3, h4, h5, h6, span, div');
-      for (i = 0; i < labels.length; i++) {
-        t = (labels[i].textContent || '').trim();
-        if (t !== 'Latest updates') continue;
-        p = parseTopPct(labels[i]);
-        if (isNaN(p)) continue;
-        matches.push({ el: labels[i], top: p });
-      }
-      if (matches.length <= 1) return;
-      // Keep only the first/upper section; hide duplicates below it.
-      matches.sort(function (a, b) {
-        return a.top - b.top;
-      });
-      for (i = 1; i < matches.length; i++) {
-        matches[i].el.style.display = 'none';
-        all = doc.querySelectorAll('[style*="top"]');
-        for (j = 0; j < all.length; j++) {
-          q = parseTopPct(all[j]);
-          if (isNaN(q)) continue;
-          if (q >= matches[i].top - 1 && q <= matches[i].top + 17) {
-            all[j].style.display = 'none';
-          }
-        }
-      }
-    } catch (e) {}
-  }
-
   function applyToDoc(doc) {
     if (!doc) return;
     squashScroll(doc);
     lightenDarkCanvas(doc);
-    dedupeLatestInPage2(doc);
   }
 
   function walk(win, depth) {
