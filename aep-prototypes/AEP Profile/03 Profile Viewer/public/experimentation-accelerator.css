@@ -19,6 +19,17 @@
   border: 0;
 }
 
+/* Keep mock layout within the viewport — no horizontal page scroll */
+body.experimentation-accelerator-page {
+  overflow-x: hidden;
+}
+
+.experimentation-accelerator-page .dashboard-shell {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
 .experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-topbar {
   display: none;
 }
@@ -68,31 +79,36 @@ body.experimentation-accelerator-page[data-ajo-tab='overview'] .dashboard-main-w
 body.experimentation-accelerator-page[data-ajo-tab='overview'] .profile-viewer-main {
   flex: none;
   min-height: auto;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] #expAccelApp {
   flex: none;
   min-height: auto;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock {
   flex: none;
   min-height: auto;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock-workspace {
   flex: none;
   min-height: auto;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-panel-stack {
   flex: none;
   min-height: auto;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
   position: relative;
   height: auto;
 }
@@ -100,13 +116,15 @@ body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-panel-stack 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview.ajo-panel {
   position: relative;
   inset: auto;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
   height: auto;
   min-height: auto;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview .ajo-panel-inner.ajo-overview-scroll {
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
   flex: none;
   min-height: auto;
 }
@@ -219,22 +237,27 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
 
 .ajo-adobe-mark-img {
   display: block;
-  width: 24px;
+  width: auto;
+  max-width: min(200px, 46vw);
   height: 24px;
   flex-shrink: 0;
   border-radius: 5px;
   object-fit: contain;
+  object-position: left center;
 }
 
 .ajo-adobe-mark-img--sm {
-  width: 18px;
+  width: auto;
+  max-width: min(96px, 28vw);
   height: 18px;
 }
 
 .ajo-hero-ajo-icon-img {
   display: block;
-  width: 48px;
-  height: 48px;
+  width: auto;
+  max-width: min(280px, 88vw);
+  height: auto;
+  max-height: 56px;
   margin: 0 auto;
   border-radius: 12px;
   object-fit: contain;
@@ -271,6 +294,8 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .ajo-mock-product-name {
