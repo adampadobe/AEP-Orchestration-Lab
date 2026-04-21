@@ -522,6 +522,99 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   }
 }
 
+/* Overview — stitched Walnut exports (scroll parent; each iframe is one viewport tall). */
+#ajoPanelOverview .ajo-panel-inner.ajo-walnut-overview {
+  padding: 0;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--ajo-work-bg);
+}
+
+.ajo-walnut-stitch {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: min-content;
+}
+
+.ajo-walnut-stitch-iframe {
+  flex: 0 0 auto;
+  width: 100%;
+  border: 0;
+  display: block;
+  height: calc(100dvh - 116px);
+  min-height: calc(100dvh - 116px);
+}
+
+@media (max-width: 768px) {
+  .ajo-walnut-stitch-iframe {
+    height: calc(100dvh - 108px);
+    min-height: calc(100dvh - 108px);
+  }
+}
+
+/* Full-screen layer: page 4 (opened from Experiments → Hero link). */
+.ajo-walnut-page4-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  background: var(--dash-bg);
+  color: var(--dash-text);
+}
+
+.ajo-walnut-page4-overlay[hidden] {
+  display: none !important;
+}
+
+.ajo-walnut-page4-overlay-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ajo-walnut-page4-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--dash-shadow);
+}
+
+.ajo-walnut-page4-close:hover {
+  background: var(--dash-hover);
+}
+
+.ajo-walnut-page4-iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  display: block;
+}
+
+body.ajo-walnut-page4-open {
+  overflow: hidden;
+}
+
 /* Overview — native blocks below tabs (matches reference layout). */
 .ajo-overview-scroll {
   padding: 0;
