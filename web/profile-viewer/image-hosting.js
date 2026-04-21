@@ -203,8 +203,25 @@
   async function replaceLibraryItem(relPath, file, card) {
     var sb = getSandbox();
     if (!sb || !relPath || !file) return;
-    setManualMsg('Replacing ' + relPath + '…');
+
+    // Optimistic UI: swap the card's thumbnail to a local preview
+    // immediately, and mark the card busy. The network round-trip
+    // happens in the background. On success we cache-bust just this
+    // one thumbnail — no full library re-fetch — so the swap feels
+    // instant to the user.
+    var previewUrl = '';
+    var originalSrc = '';
+    var imgEl = card && card.querySelector('.image-hosting-lib-card-img');
+    if (imgEl && file) {
+      try {
+        previewUrl = URL.createObjectURL(file);
+        originalSrc = imgEl.src;
+        imgEl.src = previewUrl;
+      } catch (_e) {}
+    }
     if (card) card.classList.add('is-busy');
+    setManualMsg('Replacing ' + relPath + '…');
+
     try {
       var base64 = await fileToBase64(file);
       var resp = await fetch('/api/image-hosting/library/replace?sandbox=' + encodeURIComponent(sb), {
@@ -214,6 +231,8 @@
       });
       var data = await resp.json().catch(function () { return {}; });
       if (!resp.ok) {
+        // Revert the thumbnail and surface the error.
+        if (imgEl && originalSrc) imgEl.src = originalSrc;
         setManualMsg('Replace failed for ' + relPath + ': ' + (data.error || resp.statusText), 'err');
         return;
       }
@@ -221,8 +240,28 @@
         ? ' (converted → ' + relPath.split('.').pop().toUpperCase() + ')'
         : '';
       setManualMsg('Replaced ' + relPath + note + '.', 'ok');
-      await renderLibrary();
+
+      // Cache-bust just this card's image so the new file loads from
+      // the CDN next time. Local preview URL keeps the pixels on
+      // screen until the CDN response arrives — zero visible latency.
+      if (imgEl) {
+        var published = data.published || {};
+        var cdn = published.cdnUrl ? absoluteCdnUrl(published.cdnUrl) : imgEl.src.replace(/[?&]_cb=[^&]*$/, '');
+        var cacheBust = cdn + (cdn.indexOf('?') === -1 ? '?' : '&') + '_cb=' + Date.now();
+        // Preload the new image so the swap is flicker-free.
+        var pre = new Image();
+        pre.onload = function () {
+          imgEl.src = cacheBust;
+          if (previewUrl) { try { URL.revokeObjectURL(previewUrl); } catch (_e) {} }
+        };
+        pre.onerror = function () {
+          // Fall back to a full refresh if the CDN isn't ready yet.
+          renderLibrary();
+        };
+        pre.src = cacheBust;
+      }
     } catch (e) {
+      if (imgEl && originalSrc) imgEl.src = originalSrc;
       setManualMsg('Replace failed: ' + (e.message || e), 'err');
     } finally {
       if (card) card.classList.remove('is-busy');
@@ -230,30 +269,38 @@
   }
 
   function wireCardReplace(card, item) {
-    card.setAttribute('title', 'Drop an image here to replace ' + item.relPath);
+    card.setAttribute('title', 'Drop or paste an image here to replace ' + item.relPath);
+    // Always preventDefault on dragenter/dragover/drop so the browser
+    // doesn't navigate away / open the file / fall through to a parent
+    // drop zone. We stopPropagation so the global drop-zone's "add
+    // new file" path never runs when the target is a specific card.
     ['dragenter', 'dragover'].forEach(function (evt) {
       card.addEventListener(evt, function (e) {
-        // Only react if an actual file is being dragged (avoids flicker when
-        // dragging within the same card or onto a child).
-        if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
-        e.preventDefault(); e.stopPropagation();
+        var types = (e.dataTransfer && e.dataTransfer.types) || [];
+        var hasFiles = Array.prototype.indexOf.call(types, 'Files') !== -1;
+        if (!hasFiles) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
         card.classList.add('is-drop-target');
       });
     });
-    ['dragleave', 'drop'].forEach(function (evt) {
-      card.addEventListener(evt, function (e) {
-        e.stopPropagation();
-        card.classList.remove('is-drop-target');
-      });
+    card.addEventListener('dragleave', function (e) {
+      e.stopPropagation();
+      card.classList.remove('is-drop-target');
     });
     card.addEventListener('drop', function (e) {
-      if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+      // Always prevent the default so the browser never takes over.
       e.preventDefault();
-      var file = e.dataTransfer.files[0];
+      e.stopPropagation();
+      card.classList.remove('is-drop-target');
+      var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!file) return;
       if (!/^image\//.test(file.type) && !/\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(file.name)) {
         setManualMsg('Drop an image file to replace ' + item.relPath + '.', 'err');
         return;
       }
+      // Fire the replace immediately — no confirm, optimistic UI.
       replaceLibraryItem(item.relPath, file, card);
     });
   }
