@@ -983,6 +983,24 @@
             <section class="cd-lab-step">
               <h3 class="cd-lab-step-title">3. Placement fragments (AJO surface hash)</h3>
               <p class="hint">Each row is a preview region. <strong>Key</strong> becomes the DOM id <code>cd-edge-…</code> and must stay unique. <strong>Fragment</strong> is the hash in <code>web://host/path#fragment</code> and must match your Journey Optimizer code-based channel for this page.</p>
+              <div class="cd-lab-ajo-channel-note" style="margin:0.5rem 0 0.65rem; padding:0.6rem 0.75rem; border:1px solid var(--dash-info-border, rgba(75,159,255,0.25)); background: var(--dash-info-bg, rgba(75,159,255,0.08)); border-radius: 8px;">
+                <p class="hint" style="margin:0 0 0.35rem; font-weight:600; color:var(--dash-text);">Before a fragment can return personalisation</p>
+                <p class="hint" style="margin:0;">
+                  Every placement / fragment you add here also needs a matching
+                  <strong>code-based channel configuration</strong> in
+                  <a href="https://experience.adobe.com/#/@_/sname/journey-optimizer" target="_blank" rel="noopener">Adobe Journey Optimizer</a>.
+                  Create the channel config with surface <code>web://&lt;your-host&gt;/&lt;path&gt;#&lt;fragment&gt;</code>,
+                  then author a code-based experience against it. Until the channel config exists, the edge will respond with zero propositions for that fragment.
+                </p>
+                <p class="hint" style="margin:0.35rem 0 0;">
+                  Docs:
+                  <a href="https://experienceleague.adobe.com/en/docs/journey-optimizer/using/create-channels/create-code-based-experience/code-based-configuration" target="_blank" rel="noopener">Create a code-based channel configuration</a>
+                  ·
+                  <a href="https://experienceleague.adobe.com/en/docs/journey-optimizer/using/create-channels/create-code-based-experience/code-based-about" target="_blank" rel="noopener">Code-based experiences overview</a>
+                  ·
+                  <a href="https://experienceleague.adobe.com/en/docs/journey-optimizer/using/create-channels/create-code-based-experience/create-code-based" target="_blank" rel="noopener">Create a code-based experience</a>
+                </p>
+              </div>
               <p class="status" id="cdLabPlacementKeyMsg" role="status" aria-live="polite" hidden></p>
               <div id="cdLabPlacementsList" class="cd-lab-placements-list" aria-label="Placement fragments"></div>
               <div class="actions" style="margin-top:0.35rem;">
