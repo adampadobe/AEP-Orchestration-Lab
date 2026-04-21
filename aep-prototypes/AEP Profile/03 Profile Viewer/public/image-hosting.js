@@ -592,9 +592,74 @@
     setStatus(lastRecords.length + ' scrape(s), ' + classified + ' classified, ' + hostedCount + ' hosted image(s).', 'ok');
   }
 
+  async function downloadLibrary() {
+    var sb = getSandbox();
+    if (!sb) { setStatus('Select a sandbox first.', 'err'); return; }
+    var customer = window.prompt('Download the library as logo_<name>.zip\n\nEnter a customer name (letters, numbers, hyphens):', '');
+    if (customer == null) return;
+    customer = String(customer).trim();
+    if (!customer) customer = sb;
+    var url = '/api/image-hosting/library/download?sandbox=' + encodeURIComponent(sb) + '&customer=' + encodeURIComponent(customer);
+    setStatus('Preparing ZIP…');
+    try {
+      var resp = await fetch(url);
+      if (!resp.ok) {
+        var e = await resp.json().catch(function () { return {}; });
+        setStatus('Download failed: ' + (e.error || resp.statusText), 'err');
+        return;
+      }
+      var blob = await resp.blob();
+      var safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'library';
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'logo_' + safe + '.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      setStatus('Downloaded logo_' + safe + '.zip (' + Math.round(blob.size / 1024) + ' KB).', 'ok');
+    } catch (e) {
+      setStatus('Download failed: ' + (e.message || e), 'err');
+    }
+  }
+
+  async function restoreLibraryFromFile(file) {
+    var sb = getSandbox();
+    if (!sb) { setStatus('Select a sandbox first.', 'err'); return; }
+    if (!file) return;
+    if (!confirm('Replace this sandbox\'s library with the contents of "' + file.name + '"?\n\nAll current library files will be removed first.')) return;
+    setStatus('Restoring from ' + file.name + '…');
+    try {
+      var base64 = await fileToBase64(file);
+      var resp = await fetch('/api/image-hosting/library/restore?sandbox=' + encodeURIComponent(sb), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox: sb, zipBase64: base64, replace: true }),
+      });
+      var data = await resp.json().catch(function () { return {}; });
+      if (!resp.ok) {
+        setStatus('Restore failed: ' + (data.error || resp.statusText), 'err');
+        return;
+      }
+      setStatus('Restored ' + (data.restored || 0) + ' file(s) from ' + file.name + '.', 'ok');
+      await renderLibrary();
+    } catch (e) {
+      setStatus('Restore failed: ' + (e.message || e), 'err');
+    }
+  }
+
   if (refreshBtn) refreshBtn.addEventListener('click', refresh);
   var manualBtn = document.getElementById('imageHostingManualUploadBtn');
   if (manualBtn) manualBtn.addEventListener('click', manualUpload);
+  var downloadBtn = document.getElementById('imageHostingDownloadBtn');
+  if (downloadBtn) downloadBtn.addEventListener('click', downloadLibrary);
+  var restoreInput = document.getElementById('imageHostingRestoreInput');
+  if (restoreInput) restoreInput.addEventListener('change', function () {
+    if (restoreInput.files && restoreInput.files[0]) {
+      restoreLibraryFromFile(restoreInput.files[0]);
+      restoreInput.value = ''; // allow same file to be chosen again
+    }
+  });
   var manualFileInput = document.getElementById('imageHostingManualFile2');
   if (manualFileInput) manualFileInput.addEventListener('change', function () {
     if (manualFileInput.files && manualFileInput.files[0]) {

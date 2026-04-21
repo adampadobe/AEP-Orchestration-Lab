@@ -2941,6 +2941,30 @@ exports.imageHostingLibrary = onRequest(
         return;
       }
 
+      if (req.method === 'GET' && /\/download$/.test(path)) {
+        const customer = String((req.query && req.query.customer) || 'library').trim();
+        const safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'library';
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="logo_${safe}.zip"`);
+        await imageHostingLibrary.streamLibraryZip(sandbox, res);
+        return;
+      }
+
+      if (req.method === 'POST' && /\/restore$/.test(path)) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        if (!body.zipBase64 || typeof body.zipBase64 !== 'string') {
+          res.status(400).json({ error: 'zipBase64 is required' });
+          return;
+        }
+        let zipBytes;
+        try { zipBytes = Buffer.from(body.zipBase64, 'base64'); }
+        catch (_e) { res.status(400).json({ error: 'invalid base64' }); return; }
+        const replace = body.replace !== false; // default to replacing
+        const out = await imageHostingLibrary.restoreLibraryFromZip(sandbox, zipBytes, { replace });
+        res.status(200).json({ sandbox, restored: out.length, items: out, replace });
+        return;
+      }
+
       if (req.method === 'POST' && /\/rename$/.test(path)) {
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         if (!body.relPath || !body.newRelPath) {

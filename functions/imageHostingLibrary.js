@@ -328,6 +328,71 @@ function resolveAsset(sandbox, relPath) {
   return { bucket: getBucket(), file: getBucket().file(key), key };
 }
 
+/**
+ * Stream a ZIP archive of the current library to the Express response.
+ * Flattens the <sandbox>/library/ prefix so the ZIP contents are
+ * identical to what a user would upload back to replace the folder.
+ */
+async function streamLibraryZip(sandbox, res) {
+  const prefix = libraryRoot(sandbox) + '/';
+  const [files] = await getBucket().getFiles({ prefix });
+  const archiver = require('archiver');
+  const archive = archiver('zip', { zlib: { level: 6 } });
+  archive.on('error', (e) => {
+    console.error('[imageHostingLibrary] zip error', String((e && e.message) || e));
+    try { res.end(); } catch (_e) {}
+  });
+  archive.pipe(res);
+  for (const f of files) {
+    const rel = f.name.slice(prefix.length);
+    if (!rel) continue;
+    archive.append(f.createReadStream(), { name: rel });
+  }
+  await archive.finalize();
+}
+
+/**
+ * Replace the current library contents with the files from a ZIP. The
+ * old library is deleted first so stale names don't linger.
+ */
+async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
+  const unzipper = require('unzipper');
+  const stream = require('stream');
+  const bucket = getBucket();
+  const prefix = libraryRoot(sandbox) + '/';
+  if (opts && opts.replace) {
+    const [existing] = await bucket.getFiles({ prefix });
+    await Promise.all(existing.map((f) => f.delete({ ignoreNotFound: true }).catch(() => {})));
+  }
+  const pass = new stream.Readable();
+  pass._read = () => {};
+  pass.push(zipBytes);
+  pass.push(null);
+  const directory = await unzipper.Open.buffer(zipBytes);
+  const out = [];
+  for (const entry of directory.files) {
+    if (entry.type !== 'File') continue;
+    const name = String(entry.path || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!name || name.indexOf('..') !== -1) continue;
+    const buf = await entry.buffer();
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    const contentType = contentTypeFromExt(ext);
+    const key = prefix + name;
+    const file = bucket.file(key);
+    await file.save(buf, {
+      contentType,
+      resumable: false,
+      metadata: {
+        cacheControl: `public, max-age=${CACHE_SECONDS}, immutable`,
+        metadata: { sandbox: sandboxPrefix(sandbox) },
+      },
+    });
+    try { await file.makePublic(); } catch (_e) {}
+    out.push({ relPath: name, size: buf.length });
+  }
+  return out;
+}
+
 module.exports = {
   BUCKET_NAME,
   listLibrary,
@@ -338,4 +403,6 @@ module.exports = {
   libraryRoot,
   backupsRoot,
   sandboxPrefix,
+  streamLibraryZip,
+  restoreLibraryFromZip,
 };
