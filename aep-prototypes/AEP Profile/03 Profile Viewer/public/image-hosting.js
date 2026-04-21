@@ -261,71 +261,63 @@
     });
   }
 
-  async function manualUpload() {
+  /**
+   * Send one file to the server /upload endpoint. Individual requests
+   * (rather than one big batch) keep each payload under Cloud Run's
+   * 32 MB body cap and let the status line update per-file.
+   */
+  async function uploadOneFile(sb, file) {
+    var base64 = await fileToBase64(file);
+    var resp = await fetch('/api/image-hosting/library/upload?sandbox=' + encodeURIComponent(sb), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sandbox: sb,
+        files: [{ name: file.name, base64: base64, contentType: file.type || '' }],
+      }),
+    });
+    var data = await resp.json().catch(function () { return {}; });
+    if (!resp.ok) throw new Error(data.error || resp.statusText);
+    return data;
+  }
+
+  async function handleDroppedFiles(files) {
     var sb = getSandbox();
     if (!sb) { setManualMsg('Select a sandbox first.', 'err'); return; }
-    var category = (document.getElementById('imageHostingManualCategory') || {}).value || '';
-    var folder = ((document.getElementById('imageHostingManualFolder') || {}).value || '').trim();
-    var fileName = ((document.getElementById('imageHostingManualFile') || {}).value || '').trim();
-    var url = ((document.getElementById('imageHostingManualUrl') || {}).value || '').trim();
-    var fileEl = document.getElementById('imageHostingManualFile2');
-    var file = fileEl && fileEl.files && fileEl.files[0];
+    var list = Array.from(files || []).filter(function (f) {
+      return /^image\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico|zip)$/i.test(f.name);
+    });
+    if (!list.length) { setManualMsg('No images or ZIP detected in that drop.', 'err'); return; }
 
-    if (!file && !url) {
-      setManualMsg('Choose a file or paste an image URL.', 'err');
-      return;
-    }
-
-    var body = { sandbox: sb, scrapeId: '_manual', imageIndex: -1 };
-    if (category) body.classification = { category: category };
-    if (folder) body.overrideFolder = folder;
-    if (fileName) body.overrideFile = fileName;
-
-    var btn = document.getElementById('imageHostingManualUploadBtn');
-    var originalText = btn ? btn.textContent : '';
-    if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
-    setManualMsg('Uploading…');
-
-    try {
-      if (file) {
-        body.imageBase64 = await fileToBase64(file);
-        body.imageContentType = file.type || '';
-        body.srcName = file.name.replace(/\.[a-z0-9]+$/i, '');
-      } else if (url) {
-        // Try client-side fetch first (for CDNs that allow CORS), then
-        // hand the URL to the server to fetch with realistic UA.
-        try {
-          var r = await fetch(url, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' });
-          if (r.ok) {
-            var blob = await r.blob();
-            body.imageBase64 = await fileToBase64(new File([blob], 'img', { type: blob.type }));
-            body.imageContentType = blob.type || '';
-          }
-        } catch (_e) { /* fall through — server will try */ }
-        body.imageUrl = url;
+    var drop = document.getElementById('imageHostingDropZone');
+    if (drop) drop.classList.add('is-busy');
+    var totalOk = 0;
+    var totalErr = 0;
+    var errors = [];
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i];
+      setManualMsg('Uploading ' + f.name + ' (' + (i + 1) + '/' + list.length + ')…');
+      try {
+        var data = await uploadOneFile(sb, f);
+        totalOk += (data.uploaded || []).length;
+        (data.errors || []).forEach(function (e) { errors.push(e); });
+      } catch (e) {
+        totalErr += 1;
+        errors.push({ name: f.name, error: String(e.message || e) });
       }
-
-      var resp = await fetch('/api/image-hosting/library/publish?sandbox=' + encodeURIComponent(sb), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      var data = await resp.json().catch(function () { return {}; });
-      if (!resp.ok) {
-        setManualMsg('Upload failed: ' + (data.error || resp.statusText), 'err');
-        return;
-      }
-      setManualMsg('Uploaded ' + (data.published && data.published.file) + '.', 'ok');
-      // Clear inputs on success.
-      if (fileEl) fileEl.value = '';
-      var urlEl = document.getElementById('imageHostingManualUrl');
-      if (urlEl) urlEl.value = '';
-      await renderLibrary();
-    } catch (e) {
-      setManualMsg('Upload failed: ' + (e.message || e), 'err');
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = originalText || 'Upload to library'; }
     }
+    if (drop) drop.classList.remove('is-busy');
+
+    if (errors.length) {
+      setManualMsg(
+        'Added ' + totalOk + ' file(s). ' + errors.length + ' failed: ' +
+        errors.map(function (e) { return e.name + ' (' + e.error + ')'; }).join(', '),
+        totalOk ? 'warn' : 'err'
+      );
+    } else {
+      setManualMsg('Added ' + totalOk + ' file(s) to the library.', 'ok');
+    }
+    await renderLibrary();
   }
 
   async function renderLibrary() {
@@ -649,8 +641,39 @@
   }
 
   if (refreshBtn) refreshBtn.addEventListener('click', refresh);
-  var manualBtn = document.getElementById('imageHostingManualUploadBtn');
-  if (manualBtn) manualBtn.addEventListener('click', manualUpload);
+
+  // Drop zone: click-to-browse + native drag/drop for files and ZIPs.
+  var dropZone = document.getElementById('imageHostingDropZone');
+  var dropInput = document.getElementById('imageHostingDropInput');
+  if (dropZone && dropInput) {
+    dropZone.addEventListener('click', function () { dropInput.click(); });
+    dropZone.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dropInput.click(); }
+    });
+    dropInput.addEventListener('change', function () {
+      if (dropInput.files && dropInput.files.length) {
+        handleDroppedFiles(dropInput.files).then(function () { dropInput.value = ''; });
+      }
+    });
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      dropZone.addEventListener(evt, function (e) {
+        e.preventDefault(); e.stopPropagation();
+        dropZone.classList.add('is-dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (evt) {
+      dropZone.addEventListener(evt, function (e) {
+        e.preventDefault(); e.stopPropagation();
+        dropZone.classList.remove('is-dragover');
+      });
+    });
+    dropZone.addEventListener('drop', function (e) {
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        handleDroppedFiles(e.dataTransfer.files);
+      }
+    });
+  }
+
   var downloadBtn = document.getElementById('imageHostingDownloadBtn');
   if (downloadBtn) downloadBtn.addEventListener('click', downloadLibrary);
   var restoreInput = document.getElementById('imageHostingRestoreInput');
@@ -658,12 +681,6 @@
     if (restoreInput.files && restoreInput.files[0]) {
       restoreLibraryFromFile(restoreInput.files[0]);
       restoreInput.value = ''; // allow same file to be chosen again
-    }
-  });
-  var manualFileInput = document.getElementById('imageHostingManualFile2');
-  if (manualFileInput) manualFileInput.addEventListener('change', function () {
-    if (manualFileInput.files && manualFileInput.files[0]) {
-      setManualMsg('Ready: ' + manualFileInput.files[0].name + ' — click Upload to library.', '');
     }
   });
   if (categoryFilterEl) {
