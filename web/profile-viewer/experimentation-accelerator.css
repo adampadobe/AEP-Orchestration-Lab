@@ -3172,24 +3172,60 @@ button.ajo-exp-opp-card:focus-visible {
   cursor: default;
 }
 
-/* Insight + Opportunity modals — shared chrome (solid surface, same size) */
+/* Insight + Opportunity modals — shared chrome (solid surface, same size)
+   Dialogs are direct children of <body>, outside .ajo-mock — re-hoist AJO aliases
+   from dashboard tokens so backgrounds are not transparent (undefined --ajo-*). */
 .ajo-insight-dialog,
 .ajo-opp-detail-dialog {
+  --ajo-surface: var(--dash-surface, #ffffff);
+  --ajo-surface-2: var(--dash-surface-alt, #f8f9fa);
+  --ajo-border: var(--dash-border, #e6e4ea);
+  --ajo-text: var(--dash-text, #2c2c2c);
+  --ajo-muted: var(--dash-muted, #6e6e73);
+  --ajo-work-bg: var(--dash-surface-alt, #fafafa);
+
   max-width: min(1100px, calc(100vw - 2rem));
   width: 100%;
   max-height: min(92vh, 920px);
   padding: 0;
   border: 1px solid var(--ajo-border);
   border-radius: var(--dash-radius, 16px);
-  background: var(--ajo-surface);
-  color: var(--ajo-text);
+  background-color: var(--dash-surface, #ffffff);
+  background: var(--dash-surface, #ffffff);
+  color: var(--dash-text, #2c2c2c);
+  opacity: 1;
   box-shadow: var(--dash-shadow-hover, 0 16px 48px rgba(15, 15, 25, 0.18));
   overflow: hidden;
 }
 
 .ajo-insight-dialog::backdrop,
 .ajo-opp-detail-dialog::backdrop {
-  background: color-mix(in srgb, var(--ajo-text) 32%, transparent);
+  background: color-mix(in srgb, var(--dash-text, #2c2c2c) 32%, transparent);
+}
+
+/* Lab dark theme: dialogs sit on <body>; re-use light AJO paper so panels stay opaque white */
+html[data-aep-theme='dark'] .ajo-insight-dialog,
+html[data-aep-theme='dark'] .ajo-opp-detail-dialog {
+  --dash-surface: #ffffff;
+  --dash-surface-alt: #f8f9fa;
+  --dash-text: #2c2c2c;
+  --dash-muted: #6e6e73;
+  --dash-border: #e6e4ea;
+  --ajo-surface: #ffffff;
+  --ajo-surface-2: #f8f9fa;
+  --ajo-border: #e6e4ea;
+  --ajo-text: #2c2c2c;
+  --ajo-muted: #6e6e73;
+  --ajo-work-bg: #fafafa;
+  background-color: #ffffff;
+  background: #ffffff;
+  color: #2c2c2c;
+}
+
+html[data-aep-theme='dark'] .ajo-insight-dialog-surface,
+html[data-aep-theme='dark'] .ajo-opp-detail-inner {
+  background-color: #ffffff;
+  background: #ffffff;
 }
 
 .experimentation-accelerator-page--exp-detail .ajo-insight-dialog {
@@ -3202,7 +3238,8 @@ button.ajo-exp-opp-card:focus-visible {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
-  background: var(--ajo-surface);
+  background-color: var(--dash-surface, #ffffff);
+  background: var(--dash-surface, #ffffff);
 }
 
 .ajo-insight-dialog-top {
@@ -3217,7 +3254,7 @@ button.ajo-exp-opp-card:focus-visible {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
-  color: var(--ajo-text);
+  color: var(--dash-text, #2c2c2c);
 }
 
 .ajo-insight-dialog-close {
@@ -3404,7 +3441,8 @@ button.ajo-exp-opp-card:focus-visible {
   -webkit-overflow-scrolling: touch;
   padding: 1.15rem 1.3rem 1.4rem;
   box-sizing: border-box;
-  background: var(--ajo-surface);
+  background-color: var(--dash-surface, #ffffff);
+  background: var(--dash-surface, #ffffff);
 }
 
 .ajo-opp-detail-header {
