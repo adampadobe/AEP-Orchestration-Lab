@@ -36,6 +36,7 @@
   // should replace that specific card vs. add a new file.
   var focusedLibraryCard = null;
   var lastLibraryItems = [];
+  var libraryFilterText = '';
 
   function getSandbox() {
     try {
@@ -532,13 +533,38 @@
     libraryGridEl.className = 'image-hosting-library-grid image-hosting-library-grid--' + viewMode;
   }
 
+  function filterLibraryItems(items) {
+    var q = (libraryFilterText || '').trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(function (it) {
+      var hay = ((it.relPath || '') + ' ' + (it.folder || '') + ' ' + (it.file || '')).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+  }
+
+  function updateFilterCount(matched, total) {
+    var el = document.getElementById('imageHostingFilterCount');
+    if (!el) return;
+    if (!(libraryFilterText || '').trim()) { el.textContent = ''; return; }
+    el.textContent = matched + ' / ' + total;
+  }
+
   function renderLibraryItems() {
     if (!libraryGridEl) return;
     libraryGridEl.innerHTML = '';
     applyViewClass();
-    sortLibraryItems(lastLibraryItems).forEach(function (it) {
+    var filtered = filterLibraryItems(lastLibraryItems);
+    updateFilterCount(filtered.length, lastLibraryItems.length);
+    sortLibraryItems(filtered).forEach(function (it) {
       libraryGridEl.appendChild(renderLibraryCard(it));
     });
+    // Show a dedicated empty state when a filter is active but nothing matches.
+    if (!filtered.length && (libraryFilterText || '').trim() && lastLibraryItems.length) {
+      var empty = document.createElement('p');
+      empty.className = 'image-hosting-empty';
+      empty.textContent = 'No library items match "' + libraryFilterText + '".';
+      libraryGridEl.appendChild(empty);
+    }
   }
 
   async function renderLibrary() {
@@ -899,6 +925,25 @@
         sortBy = sortSel.value || 'name';
         try { localStorage.setItem(LS_SORT, sortBy); } catch (_e) {}
         renderLibraryItems();
+      });
+    }
+    // Type-to-filter — re-render on every keystroke. For the library
+    // sizes we're dealing with (dozens to low hundreds of items)
+    // the render is cheap enough that debouncing adds no value.
+    var filterInput = document.getElementById('imageHostingFilterInput');
+    if (filterInput) {
+      filterInput.addEventListener('input', function () {
+        libraryFilterText = filterInput.value || '';
+        renderLibraryItems();
+      });
+      // Esc clears the filter, matches the native search-input UX.
+      filterInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && libraryFilterText) {
+          e.preventDefault();
+          filterInput.value = '';
+          libraryFilterText = '';
+          renderLibraryItems();
+        }
       });
     }
   }

@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
-  <link rel="stylesheet" href="image-hosting.css?v=20260421c">
+  <link rel="stylesheet" href="image-hosting.css?v=20260421d">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -116,6 +116,10 @@
                 <option value="folder">Folder</option>
               </select>
             </label>
+            <div class="image-hosting-filter-wrap">
+              <input id="imageHostingFilterInput" type="search" placeholder="Filter by name or folder…" aria-label="Filter library items" autocomplete="off" spellcheck="false" />
+              <span id="imageHostingFilterCount" class="image-hosting-filter-count" aria-live="polite"></span>
+            </div>
             <p class="image-hosting-paste-hint">Paste <kbd>⌘/Ctrl&nbsp;+&nbsp;V</kbd> an image anywhere on this page to upload it. Paste on a card to replace it.</p>
           </div>
           <div id="imageHostingLibraryGrid" class="image-hosting-library-grid image-hosting-library-grid--grid" aria-live="polite"></div>
@@ -143,6 +147,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script src="image-hosting.js?v=20260421m"></script>
+  <script src="image-hosting.js?v=20260421n"></script>
 </body>
 </html>
