@@ -2869,8 +2869,11 @@ exports.imageHostingLibrary = onRequest(
   {
     region: REGION,
     invoker: 'public',
-    timeoutSeconds: 60,
-    memory: '512MiB',
+    // AI image generation via Gemini 2.5 Flash Image can take ~10-30s
+    // on top of normal publish/restore/upload operations, so give the
+    // function headroom.
+    timeoutSeconds: 120,
+    memory: '1GiB',
   },
   async (req, res) => {
     setCors(res, 'GET, POST, DELETE, OPTIONS');
@@ -2938,6 +2941,43 @@ exports.imageHostingLibrary = onRequest(
           overrideFile: body.overrideFile,
         });
         res.status(200).json({ sandbox, published });
+        return;
+      }
+
+      if (req.method === 'POST' && /\/ai-publish$/.test(path)) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const scrapeId = String(body.scrapeId || '').trim();
+        const imageIndex = Number.isInteger(body.imageIndex) ? body.imageIndex : -1;
+
+        // Reach into the scrape record so the prompt gets the real brand
+        // context. Fall back to whatever the client provided (lets the
+        // UI trigger AI generation even without a scrape binding).
+        let img = null;
+        let brandName = body.brandName || '';
+        if (scrapeId && imageIndex >= 0) {
+          const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
+          if (record) {
+            brandName = brandName || record.brandName || '';
+            const imgs = (record.crawlSummary && record.crawlSummary.assets && record.crawlSummary.assets.imagesV2) || [];
+            img = imgs[imageIndex] || null;
+          }
+        }
+
+        try {
+          const published = await imageHostingLibrary.publishAiImage(sandbox, {
+            classification: (img && img.classification) || body.classification || {},
+            brandName,
+            subject: (img && img.classification && img.classification.subject) || body.subject || '',
+            alt: (img && img.alt) || body.alt || '',
+            sourceUrl: (img && img.src) || body.imageUrl || '',
+            overrideFolder: body.overrideFolder,
+            overrideFile: body.overrideFile,
+          });
+          res.status(200).json({ sandbox, published });
+        } catch (e) {
+          console.error('[imageHostingLibrary.ai-publish]', String(e && e.message || e));
+          res.status(502).json({ error: 'AI generation failed: ' + String((e && e.message) || e) });
+        }
         return;
       }
 
