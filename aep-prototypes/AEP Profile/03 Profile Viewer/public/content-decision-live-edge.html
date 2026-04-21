@@ -818,6 +818,12 @@
     .cd-lab-step { margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border); }
     .cd-lab-step:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
     .cd-lab-step-title { font-size: 0.8125rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--text); }
+    .cd-lab-config-details > summary.cd-lab-config-summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; user-select: none; }
+    .cd-lab-config-details > summary.cd-lab-config-summary::-webkit-details-marker { display: none; }
+    .cd-lab-config-details > summary.cd-lab-config-summary::before { content: '\25B6'; font-size: 0.65rem; color: var(--muted, #8a90a2); transition: transform 0.15s ease; }
+    .cd-lab-config-details[open] > summary.cd-lab-config-summary::before { transform: rotate(90deg); }
+    .cd-lab-config-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.68rem; font-weight: 600; padding: 0.15rem 0.45rem; border-radius: 999px; background: rgba(52, 199, 89, 0.15); color: #2fa24f; border: 1px solid rgba(52, 199, 89, 0.35); line-height: 1.2; }
+    .cd-lab-config-badge::before { content: '\2714'; font-size: 0.7rem; }
     .cd-lab-frag-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
     @media (max-width: 720px) { .cd-lab-frag-grid { grid-template-columns: 1fr; } }
     .cd-lab-placements-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.35rem; }
@@ -921,7 +927,11 @@
             </section>
 
             <section class="cd-lab-step">
-              <h3 class="cd-lab-step-title">2. Datastream ID &amp; Launch extension</h3>
+              <details id="cdLabConfigDetails" class="cd-lab-config-details">
+                <summary class="cd-lab-config-summary">
+                  <h3 class="cd-lab-step-title" style="display:inline;margin:0;">2. Datastream ID &amp; Launch extension</h3>
+                  <span id="cdLabConfigBadge" class="cd-lab-config-badge" hidden>Configured</span>
+                </summary>
               <label for="edgeConfigId">Datastream ID</label>
               <input id="edgeConfigId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
               <label for="cdLabLaunchUrl">Launch script URL (Web SDK extension)</label>
@@ -962,6 +972,7 @@
                   </div>
                   <p class="status" id="cdLabTagsApiMsg" role="status" aria-live="polite"></p>
                 </div>
+              </details>
               </details>
             </section>
 
