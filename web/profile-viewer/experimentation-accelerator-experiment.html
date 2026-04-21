@@ -33,8 +33,8 @@
   <link rel="stylesheet" href="home.css?v=20260422d">
   <link rel="stylesheet" href="aep-theme.css?v=20260422d-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260422i">
-  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260422i">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260423a">
+  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260423a">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive experimentation-accelerator-page--exp-detail">
   <a href="index.html" class="exp-accel-lab-exit">Profile Viewer</a>
@@ -391,6 +391,87 @@
                       </div>
                     </div>
                   </section>
+
+                  <section class="ajo-exp-insights" aria-labelledby="ajoInsightsHead">
+                    <div class="ajo-exp-insights-head">
+                      <h2 id="ajoInsightsHead" class="ajo-exp-insights-title">Experiment insights</h2>
+                      <button type="button" class="ajo-exp-insights-info" disabled aria-label="About insights (demo)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>
+                      </button>
+                    </div>
+                    <div class="ajo-exp-insights-grid">
+                      <button type="button" class="ajo-insight-card ajo-insight-card--interactive" id="ajoInsightCardUrgency" aria-haspopup="dialog" aria-controls="ajoInsightDetailDialog">
+                        <span class="ajo-insight-card-inner">
+                          <span class="ajo-insight-card-top">
+                            <span class="ajo-insight-tag ajo-insight-tag--content">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 10h3M8 14h8" stroke-linecap="round"/></svg>
+                              Content
+                            </span>
+                            <span class="ajo-insight-valid"><span class="ajo-insight-valid-ico" aria-hidden="true">✓</span> Statistically Validated</span>
+                          </span>
+                          <span class="ajo-insight-title-row">
+                            <svg class="ajo-insight-sparkle" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.2 4.2L17 7.5l-4.2 1.2L12 13l-1.2-4.3L6.5 7.5l4.3-1.3L12 2z"/></svg>
+                            <span class="ajo-insight-title">Urgency is the top performing attribute</span>
+                          </span>
+                          <p class="ajo-insight-body">Urgency-based messaging consistently improved conversion rates by 10–18%.</p>
+                          <span class="ajo-insight-meta">
+                            <span class="ajo-insight-meta-lbl">Top attributes</span>
+                            <span class="ajo-insight-pill"><span aria-hidden="true">T</span> Urgency</span>
+                          </span>
+                          <span class="ajo-insight-card-foot">
+                            <span class="ajo-insight-details-btn">View details</span>
+                            <span class="ajo-insight-feedback" aria-hidden="true"><span>👍</span><span>👎</span></span>
+                          </span>
+                        </span>
+                      </button>
+                      <article class="ajo-insight-card">
+                        <div class="ajo-insight-card-inner">
+                          <div class="ajo-insight-card-top">
+                            <span class="ajo-insight-tag ajo-insight-tag--audience">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-3-3.87M9 21v-2a4 4 0 01-3-3.87"/><circle cx="9" cy="7" r="3"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                              Audience
+                            </span>
+                            <span class="ajo-insight-valid"><span class="ajo-insight-valid-ico" aria-hidden="true">✓</span> Statistically Validated</span>
+                          </div>
+                          <div class="ajo-insight-title-row">
+                            <svg class="ajo-insight-sparkle" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.2 4.2L17 7.5l-4.2 1.2L12 13l-1.2-4.3L6.5 7.5l4.3-1.3L12 2z"/></svg>
+                            <h3 class="ajo-insight-title">Biggest lift for new visitors</h3>
+                          </div>
+                          <p class="ajo-insight-body">First-time visitors showed a 25% increase in conversions with lifestyle imagery, while returning visitors showed only a 7% increase. This suggests contextual visuals are especially useful for customers less familiar with the brand.</p>
+                          <div class="ajo-insight-card-foot">
+                            <span class="ajo-insight-details-btn">View details</span>
+                            <span class="ajo-insight-feedback" aria-hidden="true">
+                              <button type="button" disabled>👍</button>
+                              <button type="button" disabled>👎</button>
+                            </span>
+                          </div>
+                        </div>
+                      </article>
+                      <article class="ajo-insight-card">
+                        <div class="ajo-insight-card-inner">
+                          <div class="ajo-insight-card-top">
+                            <span class="ajo-insight-tag ajo-insight-tag--behavior">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M12 7v5l3 3" stroke-linecap="round"/></svg>
+                              Behavior
+                            </span>
+                            <span class="ajo-insight-valid"><span class="ajo-insight-valid-ico" aria-hidden="true">✓</span> Statistically Validated</span>
+                          </div>
+                          <div class="ajo-insight-title-row">
+                            <svg class="ajo-insight-sparkle" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.2 4.2L17 7.5l-4.2 1.2L12 13l-1.2-4.3L6.5 7.5l4.3-1.3L12 2z"/></svg>
+                            <h3 class="ajo-insight-title">Slightly higher returns on clothing items</h3>
+                          </div>
+                          <p class="ajo-insight-body">Clothing items with lifestyle photos saw a 4% increase in returns, possibly due to mismatched expectations based on modeled fit. This insight flagged a need for better sizing or fit guidance.</p>
+                          <div class="ajo-insight-card-foot">
+                            <span class="ajo-insight-details-btn">View details</span>
+                            <span class="ajo-insight-feedback" aria-hidden="true">
+                              <button type="button" disabled>👍</button>
+                              <button type="button" disabled>👎</button>
+                            </span>
+                          </div>
+                        </div>
+                      </article>
+                    </div>
+                  </section>
                   </div>
                 </div>
               </div>
@@ -461,6 +542,55 @@
     </div>
   </div>
 
+  <dialog id="ajoInsightDetailDialog" class="ajo-insight-dialog" aria-labelledby="ajoInsightDialogTitle" aria-modal="true">
+    <div class="ajo-insight-dialog-surface">
+      <div class="ajo-insight-dialog-top">
+        <h2 id="ajoInsightDialogTitle" class="ajo-insight-dialog-title">Insight Details</h2>
+        <button type="button" class="ajo-insight-dialog-close" id="ajoInsightDialogClose">Close</button>
+      </div>
+      <div class="ajo-insight-dialog-card">
+        <div class="ajo-insight-dialog-highlight">
+          <div class="ajo-insight-dialog-highlight-main">
+            <div class="ajo-insight-dialog-hl-row">
+              <svg class="ajo-insight-sparkle" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.2 4.2L17 7.5l-4.2 1.2L12 13l-1.2-4.3L6.5 7.5l4.3-1.3L12 2z"/></svg>
+            </div>
+            <p class="ajo-insight-dialog-hl-title">Urgency is the top performing attribute</p>
+            <p class="ajo-insight-dialog-hl-sub">Urgency-based messaging improved conversion rates by 10–18%.</p>
+            <p class="ajo-insight-dialog-exp-line">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M10 2.5h4v4.8l2.8 6.4a3.2 3.2 0 01-2.9 4.3h-3.8a3.2 3.2 0 01-2.9-4.3L10 7.3V2.5z"/></svg>
+              <span>Experiment: Homepage Hero Image Test</span>
+            </p>
+          </div>
+          <span class="ajo-insight-dialog-badge" role="status"><span aria-hidden="true">✓</span> Statistically Validated</span>
+        </div>
+        <div class="ajo-insight-dialog-compare">
+          <div class="ajo-insight-dialog-col">
+            <h3>Treatment A (Baseline)</h3>
+            <ul class="ajo-insight-attr-list">
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><span class="ajo-insight-attr-ico-t" aria-hidden="true">T</span> Tone of voice: Assertive</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><span class="ajo-insight-attr-ico-t" aria-hidden="true">T</span> Tone of voice: Personal</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><span class="ajo-insight-attr-ico-t" aria-hidden="true">T</span> Strategy: Simple</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 10h3M8 14h8" stroke-linecap="round"/></svg> Scene: Home</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 10h3M8 14h8" stroke-linecap="round"/></svg> Style: Still life</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 10h3M8 14h8" stroke-linecap="round"/></svg> Subject: Family</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+            </ul>
+          </div>
+          <div class="ajo-insight-dialog-col">
+            <h3>Treatment B (Winning)</h3>
+            <ul class="ajo-insight-attr-list">
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><span class="ajo-insight-attr-ico-t" aria-hidden="true">T</span> Tone of voice: Urgent</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><span class="ajo-insight-attr-ico-t" aria-hidden="true">T</span> Tone of voice: Educational</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><span class="ajo-insight-attr-ico-t" aria-hidden="true">T</span> Strategy: Transparent</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 10h3M8 14h8" stroke-linecap="round"/></svg> Scene: Landscape</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 10h3M8 14h8" stroke-linecap="round"/></svg> Style: Still life</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+              <li class="ajo-insight-attr-row"><span class="ajo-insight-attr-txt"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 10h3M8 14h8" stroke-linecap="round"/></svg> Color: Warm</span><button type="button" class="ajo-insight-attr-info" disabled aria-label="Info (demo)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v4M12 8h.01" stroke-linecap="round"/></svg></button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <script src="firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -470,7 +600,7 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script defer src="experimentation-accelerator.js?v=20260422i"></script>
-  <script defer src="experimentation-accelerator-customise.js?v=20260422i"></script>
+  <script defer src="experimentation-accelerator.js?v=20260423a"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260423a"></script>
 </body>
 </html>

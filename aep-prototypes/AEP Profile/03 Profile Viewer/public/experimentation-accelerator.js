@@ -139,10 +139,51 @@
     setFlyoutOpen(false);
   }
 
+  function initExperimentInsightDialog() {
+    var dlg = document.getElementById('ajoInsightDetailDialog');
+    var openBtn = document.getElementById('ajoInsightCardUrgency');
+    var closeBtn = document.getElementById('ajoInsightDialogClose');
+    if (!dlg || !openBtn || !closeBtn) return;
+
+    openBtn.addEventListener('click', function () {
+      try {
+        if (typeof dlg.showModal === 'function') dlg.showModal();
+        else alert('Insight details (demo)');
+      } catch (e) {
+        return;
+      }
+      try {
+        closeBtn.focus();
+      } catch (e2) {}
+    });
+
+    closeBtn.addEventListener('click', function () {
+      try {
+        dlg.close();
+      } catch (e) {}
+    });
+
+    dlg.addEventListener('click', function (ev) {
+      if (ev.target === dlg) {
+        try {
+          dlg.close();
+        } catch (e) {}
+      }
+    });
+
+    dlg.addEventListener('cancel', function (ev) {
+      ev.preventDefault();
+      try {
+        dlg.close();
+      } catch (e) {}
+    });
+  }
+
   function init() {
     initTabs();
     initExpFilters();
     initFlyoutSidebar();
+    initExperimentInsightDialog();
   }
 
   if (document.readyState === 'loading') {

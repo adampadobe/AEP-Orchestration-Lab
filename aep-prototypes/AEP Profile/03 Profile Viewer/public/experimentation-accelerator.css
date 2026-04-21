@@ -2009,7 +2009,7 @@ a.ajo-table-link:hover {
 
 /* Single inner column: Invest, Hypothesis, Details/Opportunities, Results share one width */
 .experimentation-accelerator-page--exp-detail .ajo-exp-detail-inner {
-  max-width: min(1200px, 100%);
+  max-width: min(1540px, 100%);
   margin-left: auto;
   margin-right: auto;
   width: 100%;
@@ -2279,7 +2279,7 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
 @media (min-width: 920px) {
   /* Details (incl. leader image row) gets most width; Opportunities a fixed right rail */
   .ajo-exp-detail-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, min(32%, 360px));
+    grid-template-columns: minmax(0, 1fr) minmax(300px, min(30%, 420px));
     gap: 1.75rem;
   }
 }
@@ -2904,6 +2904,444 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
   color: var(--ajo-muted);
   font-weight: 500;
   font-size: 0.6875rem;
+}
+
+/* Experiment insights (Homepage Hero detail) */
+.ajo-exp-insights {
+  margin-top: 1.75rem;
+}
+
+.ajo-exp-insights-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+
+.ajo-exp-insights-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-exp-insights-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ajo-muted);
+  cursor: default;
+}
+
+.ajo-exp-insights-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+@media (min-width: 900px) {
+  .ajo-exp-insights-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+.ajo-insight-card {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--ajo-surface);
+  box-shadow: var(--dash-shadow, 0 2px 12px rgba(15, 15, 25, 0.05));
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.ajo-insight-card:not(.ajo-insight-card--interactive) {
+  cursor: default;
+}
+
+.ajo-insight-card:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+.ajo-insight-card-inner {
+  padding: 1rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.ajo-insight-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ajo-insight-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+.ajo-insight-tag--content {
+  background: color-mix(in srgb, var(--dash-blue) 16%, var(--ajo-surface));
+  color: color-mix(in srgb, var(--dash-blue) 50%, var(--dash-text));
+}
+
+.ajo-insight-tag--audience {
+  background: color-mix(in srgb, var(--dash-error-border) 14%, var(--ajo-surface));
+  color: color-mix(in srgb, var(--dash-error-border) 45%, var(--dash-text));
+}
+
+.ajo-insight-tag--behavior {
+  background: color-mix(in srgb, var(--dash-success-border) 14%, var(--ajo-surface));
+  color: color-mix(in srgb, var(--dash-success-text) 55%, var(--dash-text));
+}
+
+.ajo-insight-valid {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--ajo-muted);
+  flex-shrink: 0;
+}
+
+.ajo-insight-valid-ico {
+  color: var(--dash-success-text);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.ajo-insight-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.ajo-insight-sparkle {
+  flex-shrink: 0;
+  margin-top: 0.08rem;
+  color: color-mix(in srgb, var(--dash-blue) 55%, var(--dash-text));
+}
+
+.ajo-insight-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+  line-height: 1.35;
+}
+
+.ajo-insight-body {
+  margin: 0;
+  font-size: 0.78125rem;
+  color: var(--ajo-muted);
+  line-height: 1.5;
+}
+
+.ajo-insight-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.ajo-insight-meta-lbl {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--ajo-muted);
+  text-transform: none;
+}
+
+.ajo-insight-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--ajo-muted) 10%, var(--ajo-surface));
+  color: var(--ajo-text);
+  border: 1px solid var(--ajo-border);
+}
+
+.ajo-insight-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-top: auto;
+  padding-top: 0.35rem;
+}
+
+.ajo-insight-details-btn {
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.38rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--ajo-text);
+  background: var(--ajo-surface);
+  color: var(--ajo-text);
+  cursor: default;
+  pointer-events: none;
+}
+
+.ajo-insight-card--interactive .ajo-insight-details-btn {
+  pointer-events: none;
+}
+
+.ajo-insight-feedback {
+  display: inline-flex;
+  gap: 0.25rem;
+  opacity: 0.55;
+  font-size: 0.85rem;
+}
+
+.ajo-insight-feedback button {
+  font: inherit;
+  background: none;
+  border: none;
+  padding: 0.1rem;
+  cursor: default;
+}
+
+/* Insight details modal */
+.ajo-insight-dialog {
+  max-width: min(680px, calc(100vw - 2.5rem));
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: var(--dash-radius, 16px);
+  background: color-mix(in srgb, var(--ajo-border) 12%, var(--ajo-work-bg));
+  color: var(--ajo-text);
+  box-shadow: var(--dash-shadow-hover, 0 16px 48px rgba(15, 15, 25, 0.18));
+}
+
+.ajo-insight-dialog::backdrop {
+  background: color-mix(in srgb, var(--ajo-text) 28%, transparent);
+}
+
+.experimentation-accelerator-page--exp-detail .ajo-insight-dialog {
+  font-family: inherit;
+}
+
+.ajo-insight-dialog-surface {
+  padding: 1rem 1.15rem 1.25rem;
+}
+
+.ajo-insight-dialog-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.ajo-insight-dialog-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-insight-dialog-close {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.4rem 1.15rem;
+  border-radius: 999px;
+  border: none;
+  background: var(--dash-blue);
+  color: var(--dash-surface, #fff);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ajo-insight-dialog-close:hover {
+  filter: brightness(1.05);
+}
+
+.ajo-insight-dialog-card {
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1.15rem 1.2rem 1.25rem;
+  box-shadow: var(--dash-shadow, 0 2px 12px rgba(15, 15, 25, 0.06));
+}
+
+.ajo-insight-dialog-highlight {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.65rem 1rem;
+  align-items: start;
+  padding-bottom: 1.1rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 1px solid var(--ajo-border);
+}
+
+.ajo-insight-dialog-highlight-main {
+  min-width: 0;
+}
+
+.ajo-insight-dialog-hl-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+}
+
+.ajo-insight-dialog-hl-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+  line-height: 1.35;
+}
+
+.ajo-insight-dialog-hl-sub {
+  margin: 0 0 0.65rem;
+  font-size: 0.8125rem;
+  color: var(--ajo-muted);
+  line-height: 1.45;
+}
+
+.ajo-insight-dialog-exp-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-insight-dialog-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  background: var(--dash-success-bg);
+  color: var(--dash-success-text);
+  white-space: nowrap;
+}
+
+.ajo-insight-dialog-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.25rem;
+}
+
+@media (max-width: 560px) {
+  .ajo-insight-dialog-compare {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ajo-insight-dialog-col h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-insight-attr-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 10px);
+  overflow: hidden;
+  background: var(--ajo-surface);
+}
+
+.ajo-insight-attr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.6875rem;
+  color: var(--ajo-text);
+  border-bottom: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+}
+
+.ajo-insight-attr-row:last-child {
+  border-bottom: none;
+}
+
+.ajo-insight-attr-txt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.ajo-insight-attr-txt svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.ajo-insight-attr-info {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ajo-muted);
+  cursor: default;
+}
+
+.ajo-insight-attr-ico-t {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 4px;
+  font-size: 0.56rem;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--ajo-muted) 14%, var(--ajo-surface));
+  color: var(--ajo-text);
+  flex-shrink: 0;
 }
 
 /* Light AJO workspace when lab theme is dark */
