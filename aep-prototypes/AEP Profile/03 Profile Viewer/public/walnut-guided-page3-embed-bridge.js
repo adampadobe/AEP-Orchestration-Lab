@@ -33,6 +33,25 @@
     } catch (e) {}
   }
 
+  function markHeroLinks(doc) {
+    if (!doc || !doc.querySelectorAll) return;
+    try {
+      var candidates = doc.querySelectorAll(
+        'a, button, [role="link"], [role="row"], [role="gridcell"], td, th, span, p, div, li'
+      );
+      var i;
+      var el;
+      var t;
+      for (i = 0; i < candidates.length; i++) {
+        el = candidates[i];
+        t = (el.textContent || '').trim();
+        if (t.indexOf(NEEDLE) === -1) continue;
+        if (t.length > 200) continue;
+        el.style.setProperty('cursor', 'pointer');
+      }
+    } catch (e0) {}
+  }
+
   function textAround(el) {
     if (!el || el.nodeType !== 1) return '';
     var node = el;
@@ -72,8 +91,26 @@
     }
   }
 
+  function markHeroDeep(win, depth) {
+    if (!win || depth > 12) return;
+    try {
+      markHeroLinks(win.document);
+    } catch (e) {}
+    try {
+      var ifr = win.document.querySelectorAll('iframe');
+      var j;
+      for (j = 0; j < ifr.length; j++) {
+        try {
+          var w = ifr[j].contentWindow;
+          if (w) markHeroDeep(w, depth + 1);
+        } catch (e2) {}
+      }
+    } catch (e3) {}
+  }
+
   function scan() {
     attachToDocument(document, 0);
+    markHeroDeep(window, 0);
   }
 
   if (document.readyState === 'loading') {

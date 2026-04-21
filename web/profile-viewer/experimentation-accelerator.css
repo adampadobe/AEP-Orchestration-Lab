@@ -285,6 +285,11 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
   border: 1px solid var(--ajo-border);
 }
 
+/* Hide AJO mock header — Walnut captures already include product chrome; hiding removes double top bars */
+.experimentation-accelerator-page .ajo-mock-topbar {
+  display: none !important;
+}
+
 /* Body: rail + workspace */
 .ajo-mock-body {
   flex: 1;
@@ -293,9 +298,16 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
   flex-direction: row;
   align-items: stretch;
   width: 100%;
+  position: relative;
 }
 
-.ajo-mock-rail {
+/* Left module rail: fixed so stitched Walnut iframes scroll underneath in the workspace */
+.experimentation-accelerator-page .ajo-mock-rail {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 2100;
   flex-shrink: 0;
   width: 48px;
   display: flex;
@@ -360,7 +372,7 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
   height: 21px;
 }
 
-html[data-aep-theme='dark'] .ajo-mock-rail {
+html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-mock-rail {
   background: color-mix(in srgb, var(--dash-sidebar, #1e2128) 70%, var(--ajo-surface) 30%);
 }
 
@@ -368,6 +380,12 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   color: color-mix(in srgb, var(--ajo-text) 58%, var(--ajo-muted));
 }
 
+.experimentation-accelerator-page .ajo-mock-workspace {
+  margin-left: 48px;
+  width: calc(100% - 48px);
+  max-width: calc(100% - 48px);
+  box-sizing: border-box;
+}
 
 .ajo-mock-workspace {
   flex: 1;
@@ -512,13 +530,16 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   min-height: 0;
   border: 0;
   display: block;
-  /* Near full viewport under AJO top bar + page title/tabs */
-  height: calc(100dvh - 116px);
+  /* Mock AJO top bar removed — only page head + tabs consume vertical space */
+  height: calc(100dvh - 64px);
+  /* Crop duplicate AJO header + left rail + letterboxing inside the Walnut capture */
+  clip-path: inset(9% 0 14% 6%);
 }
 
 @media (max-width: 768px) {
   .ajo-experiments-guided-iframe {
-    height: calc(100dvh - 108px);
+    height: calc(100dvh - 56px);
+    clip-path: inset(8% 0 16% 7%);
   }
 }
 
@@ -537,6 +558,21 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   flex-direction: column;
   width: 100%;
   min-height: min-content;
+  /* Tunable crops (percent of iframe box) — trim duplicate chrome + black bars in saved captures */
+  --ajo-walnut-clip-p1: inset(10% 0 32% 6%);
+  --ajo-walnut-clip-p2: inset(23% 0 14% 6%);
+}
+
+.ajo-walnut-stitch-row {
+  flex: 0 0 auto;
+  width: 100%;
+  overflow: hidden;
+  background: var(--ajo-work-bg);
+}
+
+/* Pull page 2 up so the stitch reads as one continuous canvas */
+.ajo-walnut-stitch-row--p2 {
+  margin-top: clamp(-3rem, -5vh, -1rem);
 }
 
 .ajo-walnut-stitch-iframe {
@@ -544,14 +580,29 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   width: 100%;
   border: 0;
   display: block;
-  height: calc(100dvh - 116px);
-  min-height: calc(100dvh - 116px);
+  height: calc(100dvh - 64px);
+  min-height: calc(100dvh - 64px);
+}
+
+/* Page 1: drop tail after “Latest updates” + bottom black letterbox */
+.ajo-walnut-stitch-iframe--p1 {
+  clip-path: var(--ajo-walnut-clip-p1);
+}
+
+/* Page 2: drop duplicate header/top black bar so it continues from page 1 */
+.ajo-walnut-stitch-iframe--p2 {
+  clip-path: var(--ajo-walnut-clip-p2);
 }
 
 @media (max-width: 768px) {
+  .ajo-walnut-stitch {
+    --ajo-walnut-clip-p1: inset(11% 0 34% 7%);
+    --ajo-walnut-clip-p2: inset(25% 0 16% 7%);
+  }
+
   .ajo-walnut-stitch-iframe {
-    height: calc(100dvh - 108px);
-    min-height: calc(100dvh - 108px);
+    height: calc(100dvh - 56px);
+    min-height: calc(100dvh - 56px);
   }
 }
 
