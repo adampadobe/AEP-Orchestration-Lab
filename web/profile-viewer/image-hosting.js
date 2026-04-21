@@ -256,11 +256,24 @@
   window.addEventListener('aep-lab-sandbox-synced', refresh);
   window.addEventListener('aep-lab-sandbox-keys-applied', refresh);
 
-  // Wait for sandbox sync to sign in + load sandboxes before the first fetch
-  // (otherwise we race and show "no sandbox selected").
-  if (typeof AepLabSandboxSync !== 'undefined' && AepLabSandboxSync.whenReady) {
-    AepLabSandboxSync.whenReady.then(refresh).catch(function () { refresh(); });
-  } else {
-    setTimeout(refresh, 300);
-  }
+  // Populate the sandbox <select>, wire change handler, then pull scrapes.
+  (async function initSandboxAndLoad() {
+    var sel = document.getElementById('sandboxSelect');
+    try {
+      if (window.AepGlobalSandbox && window.AepGlobalSandbox.loadSandboxesIntoSelect) {
+        await window.AepGlobalSandbox.loadSandboxesIntoSelect(sel);
+      }
+    } catch (e) {
+      setStatus('Failed to load sandboxes: ' + (e.message || e), 'err');
+    }
+    if (sel && !sel.dataset.aepImageHostingWired) {
+      sel.dataset.aepImageHostingWired = '1';
+      sel.addEventListener('change', refresh);
+    }
+    if (typeof AepLabSandboxSync !== 'undefined' && AepLabSandboxSync.whenReady) {
+      AepLabSandboxSync.whenReady.then(refresh).catch(function () { refresh(); });
+    } else {
+      refresh();
+    }
+  })();
 })();
