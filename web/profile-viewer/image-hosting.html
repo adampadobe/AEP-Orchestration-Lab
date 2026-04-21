@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
-  <link rel="stylesheet" href="image-hosting.css?v=20260421d">
+  <link rel="stylesheet" href="image-hosting.css?v=20260421e">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -122,6 +122,12 @@
             </div>
             <p class="image-hosting-paste-hint">Paste <kbd>⌘/Ctrl&nbsp;+&nbsp;V</kbd> an image anywhere on this page to upload it. Paste on a card to replace it.</p>
           </div>
+          <div id="imageHostingBulkBar" class="image-hosting-bulk-bar" hidden aria-live="polite">
+            <span id="imageHostingBulkCount" class="image-hosting-bulk-count">0 selected</span>
+            <button type="button" id="imageHostingBulkSelectAll" class="dashboard-btn-outline">Select all</button>
+            <button type="button" id="imageHostingBulkClear" class="dashboard-btn-outline">Clear selection</button>
+            <button type="button" id="imageHostingBulkDelete" class="dashboard-btn-outline image-hosting-bulk-delete">Delete selected</button>
+          </div>
           <div id="imageHostingLibraryGrid" class="image-hosting-library-grid image-hosting-library-grid--grid" aria-live="polite"></div>
           <p id="imageHostingLibraryEmpty" class="image-hosting-empty" hidden>Library empty. Classify a scrape below, then click <strong>Publish</strong> on the images you want to keep.</p>
         </section>
@@ -147,6 +153,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script src="image-hosting.js?v=20260421n"></script>
+  <script src="image-hosting.js?v=20260421o"></script>
 </body>
 </html>

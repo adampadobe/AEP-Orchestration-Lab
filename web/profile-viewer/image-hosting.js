@@ -37,6 +37,11 @@
   var focusedLibraryCard = null;
   var lastLibraryItems = [];
   var libraryFilterText = '';
+  // Bulk-select state for multi-delete. Tracks item relPaths.
+  var selectedRelPaths = Object.create(null);
+  function selectionCount() {
+    return Object.keys(selectedRelPaths).length;
+  }
 
   function getSandbox() {
     try {
@@ -197,6 +202,66 @@
     }
   }
 
+  function updateBulkBar() {
+    var bar = document.getElementById('imageHostingBulkBar');
+    var countEl = document.getElementById('imageHostingBulkCount');
+    var n = selectionCount();
+    if (!bar) return;
+    bar.hidden = n === 0;
+    if (countEl) countEl.textContent = n + ' selected';
+  }
+
+  function selectAllVisible() {
+    var filtered = filterLibraryItems(lastLibraryItems);
+    filtered.forEach(function (it) { selectedRelPaths[it.relPath] = true; });
+    renderLibraryItems();
+    updateBulkBar();
+  }
+
+  function clearSelection() {
+    selectedRelPaths = Object.create(null);
+    renderLibraryItems();
+    updateBulkBar();
+  }
+
+  async function deleteSelectedItems() {
+    var sb = getSandbox();
+    var paths = Object.keys(selectedRelPaths);
+    if (!sb || !paths.length) return;
+    if (!confirm('Delete ' + paths.length + ' file' + (paths.length === 1 ? '' : 's') + ' from the library?\n\n' + paths.join('\n'))) return;
+    var bar = document.getElementById('imageHostingBulkBar');
+    if (bar) bar.setAttribute('aria-busy', 'true');
+    setManualMsg('Deleting ' + paths.length + ' file(s)…');
+    var failures = [];
+    // Cap concurrency at 6 so we don't overwhelm the function.
+    var CONCURRENCY = 6;
+    for (var i = 0; i < paths.length; i += CONCURRENCY) {
+      var chunk = paths.slice(i, i + CONCURRENCY);
+      await Promise.all(chunk.map(async function (rel) {
+        try {
+          var r = await fetch('/api/image-hosting/library?sandbox=' + encodeURIComponent(sb) + '&relPath=' + encodeURIComponent(rel), { method: 'DELETE' });
+          if (!r.ok) {
+            var d = await r.json().catch(function () { return {}; });
+            failures.push({ rel: rel, error: d.error || r.statusText });
+          } else {
+            delete selectedRelPaths[rel];
+          }
+        } catch (e) {
+          failures.push({ rel: rel, error: String(e.message || e) });
+        }
+      }));
+    }
+    if (bar) bar.removeAttribute('aria-busy');
+    if (failures.length) {
+      setManualMsg('Deleted ' + (paths.length - failures.length) + '/' + paths.length + '. Failures: ' +
+        failures.map(function (f) { return f.rel + ' (' + f.error + ')'; }).join(', '), 'err');
+    } else {
+      setManualMsg('Deleted ' + paths.length + ' file(s).', 'ok');
+    }
+    updateBulkBar();
+    await renderLibrary();
+  }
+
   async function deleteLibraryItem(relPath) {
     var sb = getSandbox();
     if (!sb || !relPath) return;
@@ -345,11 +410,33 @@
     card.className = 'image-hosting-lib-card';
     card.tabIndex = 0;
     card.dataset.relPath = item.relPath;
+    if (selectedRelPaths[item.relPath]) card.classList.add('is-selected');
     card.addEventListener('focus', function () { focusedLibraryCard = card; });
     card.addEventListener('mousedown', function () { focusedLibraryCard = card; });
     card.addEventListener('blur', function () {
       if (focusedLibraryCard === card) focusedLibraryCard = null;
     });
+
+    // Bulk-select checkbox overlay.
+    var selectLabel = document.createElement('label');
+    selectLabel.className = 'image-hosting-lib-card-select';
+    selectLabel.title = 'Select for bulk actions';
+    selectLabel.addEventListener('click', function (e) { e.stopPropagation(); });
+    var selectBox = document.createElement('input');
+    selectBox.type = 'checkbox';
+    selectBox.checked = !!selectedRelPaths[item.relPath];
+    selectBox.addEventListener('change', function () {
+      if (selectBox.checked) {
+        selectedRelPaths[item.relPath] = true;
+        card.classList.add('is-selected');
+      } else {
+        delete selectedRelPaths[item.relPath];
+        card.classList.remove('is-selected');
+      }
+      updateBulkBar();
+    });
+    selectLabel.appendChild(selectBox);
+    card.appendChild(selectLabel);
 
     var wrap = document.createElement('div');
     wrap.className = 'image-hosting-lib-card-img-wrap';
@@ -585,6 +672,14 @@
       return;
     }
     lastLibraryItems = items || [];
+    // Drop any selected paths that no longer exist in the latest fetch
+    // (e.g. a bulk-delete just ran or another user/tab removed them).
+    var liveSet = Object.create(null);
+    lastLibraryItems.forEach(function (it) { liveSet[it.relPath] = true; });
+    Object.keys(selectedRelPaths).forEach(function (k) {
+      if (!liveSet[k]) delete selectedRelPaths[k];
+    });
+    updateBulkBar();
     if (!lastLibraryItems.length) {
       if (libraryEmptyEl) { libraryEmptyEl.hidden = false; libraryEmptyEl.textContent = 'Library empty. Drop a ZIP or images above — or publish a classified image from a scrape below.'; }
       if (libraryCountEl) libraryCountEl.textContent = '0';
@@ -980,6 +1075,14 @@
   document.addEventListener('paste', onPaste);
 
   if (refreshBtn) refreshBtn.addEventListener('click', refresh);
+
+  // Bulk-selection action bar.
+  var bulkSelectAll = document.getElementById('imageHostingBulkSelectAll');
+  if (bulkSelectAll) bulkSelectAll.addEventListener('click', selectAllVisible);
+  var bulkClear = document.getElementById('imageHostingBulkClear');
+  if (bulkClear) bulkClear.addEventListener('click', clearSelection);
+  var bulkDelete = document.getElementById('imageHostingBulkDelete');
+  if (bulkDelete) bulkDelete.addEventListener('click', deleteSelectedItems);
 
   // Drop zone: click-to-browse + native drag/drop for files and ZIPs.
   var dropZone = document.getElementById('imageHostingDropZone');
