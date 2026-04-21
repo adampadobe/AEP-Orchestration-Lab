@@ -97,11 +97,6 @@ body.experimentation-accelerator-page.experimentation-accelerator-page--immersiv
   box-sizing: border-box;
 }
 
-/* Overview tab: extra horizontal inset so cards’ rounded corners stay inside the viewport */
-body[data-ajo-tab='overview'].experimentation-accelerator-page .ajo-mock-workspace {
-  padding-inline: clamp(0.85rem, 2.8vw, 1.5rem);
-}
-
 body[data-ajo-tab='overview'].experimentation-accelerator-page .ajo-overview-native {
   max-width: 100%;
   box-sizing: border-box;
@@ -660,9 +655,9 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   box-sizing: border-box;
 }
 
-/* Overview — native blocks below tabs (matches reference layout). */
+/* Overview — same horizontal inset as Experiments tab (.ajo-experiments-scroll) so boxes align. */
 .ajo-overview-scroll {
-  padding: 0;
+  padding: 0 1.25rem 2rem;
   background: var(--ajo-work-bg);
   max-width: 100%;
   box-sizing: border-box;
@@ -672,7 +667,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding-bottom: 1.5rem;
+  padding-bottom: 0;
   /* Do not set overflow-x: hidden here — it can clip the absolutely positioned KPI deck
      that overlaps the next section (numbers appear “cut in half”). Page uses body overflow-x. */
   overflow: visible;
@@ -683,7 +678,8 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   z-index: 2;
   width: 100%;
   max-width: 100%;
-  padding: 2rem clamp(1rem, 2.5vw, 1.5rem) 5.5rem;
+  /* Horizontal inset comes from .ajo-overview-scroll (matches Experiments); avoid double padding. */
+  padding: 2rem 0 5.5rem;
   box-sizing: border-box;
   background: var(--dash-hero-grad);
   border-bottom: 1px solid color-mix(in srgb, var(--ajo-border) 70%, transparent);
@@ -722,7 +718,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   left: 50%;
   transform: translateX(-50%);
   bottom: -3.35rem;
-  width: min(720px, calc(100% - 2.75rem));
+  width: min(720px, 100%);
   max-width: 100%;
   box-sizing: border-box;
   z-index: 3;
@@ -801,7 +797,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
 
   .ajo-kpi-deck {
     bottom: -6.75rem;
-    width: min(720px, calc(100% - 2.25rem));
+    width: min(720px, 100%);
   }
 }
 
@@ -824,7 +820,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
     left: auto;
     transform: none;
     bottom: auto;
-    width: min(720px, calc(100% - 2.25rem));
+    width: min(720px, 100%);
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
