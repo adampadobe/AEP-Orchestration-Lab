@@ -256,6 +256,11 @@
   window.addEventListener('aep-lab-sandbox-synced', refresh);
   window.addEventListener('aep-lab-sandbox-keys-applied', refresh);
 
-  // Initial load — wait a tick so AepGlobalSandbox has restored from storage.
-  setTimeout(refresh, 50);
+  // Wait for sandbox sync to sign in + load sandboxes before the first fetch
+  // (otherwise we race and show "no sandbox selected").
+  if (typeof AepLabSandboxSync !== 'undefined' && AepLabSandboxSync.whenReady) {
+    AepLabSandboxSync.whenReady.then(refresh).catch(function () { refresh(); });
+  } else {
+    setTimeout(refresh, 300);
+  }
 })();
