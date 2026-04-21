@@ -206,6 +206,14 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-topbar-icon
 }
 .aep-fullscreen-btn svg { width: 20px; height: 20px; display: block; }
 html[data-aep-theme='dark'] body.home-dashboard-concierge .aep-fullscreen-btn { color: var(--dash-text, #e6e9ef); background: #1a1e25; }
+.aep-fullscreen-btn--floating {
+  position: fixed; top: 14px; right: 14px; z-index: 9999;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.9); border: 1px solid rgba(0,0,0,0.15);
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+html[data-aep-theme='dark'] .aep-fullscreen-btn--floating { background: rgba(26,30,37,0.92); border-color: rgba(255,255,255,0.15); color: #e6e9ef; }
 
 html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-btn-outline:hover {
   background: rgba(255, 255, 255, 0.06);
