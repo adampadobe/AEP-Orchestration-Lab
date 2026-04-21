@@ -227,6 +227,7 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
 #expAccelApp {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -235,6 +236,7 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
 .ajo-mock {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -554,6 +556,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.65rem;
+  min-width: 0;
 }
 
 .ajo-page-title {
@@ -562,11 +565,14 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   font-weight: 700;
   color: var(--ajo-text);
   letter-spacing: -0.02em;
+  min-width: 0;
 }
 
 .ajo-team-slot {
   font-size: 0.8125rem;
   color: var(--ajo-muted);
+  min-width: 0;
+  text-align: right;
 }
 
 .ajo-team-val {
@@ -860,6 +866,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.85rem;
+  min-width: 0;
 }
 
 .ajo-section-title {
@@ -867,12 +874,16 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   font-size: 1.0625rem;
   font-weight: 700;
   color: var(--ajo-text);
+  min-width: 0;
 }
 
 .ajo-section-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.65rem;
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 .ajo-pill-select {
@@ -963,6 +974,8 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .ajo-metric-card-head {
@@ -970,23 +983,30 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   justify-content: space-between;
   align-items: baseline;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .ajo-metric-name {
   font-weight: 600;
   font-size: 0.9375rem;
   color: color-mix(in srgb, var(--ajo-text) 78%, var(--ajo-muted));
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .ajo-metric-exp-n {
   font-size: 0.6875rem;
   color: var(--ajo-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .ajo-metric-values {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .ajo-metric-big {
@@ -1016,9 +1036,12 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
   font-size: 0.6875rem;
   color: var(--ajo-muted);
   margin-top: 0.25rem;
+  min-width: 0;
 }
 
 .ajo-dot-legend::before {
@@ -1039,6 +1062,9 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   align-items: center;
   gap: 0.35rem;
   color: color-mix(in srgb, var(--ajo-text) 72%, var(--ajo-muted));
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .ajo-brand-dot {
@@ -1267,7 +1293,7 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
 
 .ajo-exp-row {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 0.75rem 1rem;
   align-items: center;
   padding: 0.85rem 1rem;
@@ -1275,6 +1301,8 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
   border: 1px solid var(--ajo-border);
   border-radius: var(--dash-radius-sm, 12px);
   box-shadow: var(--dash-shadow, 0 1px 4px rgba(15, 15, 25, 0.05));
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (max-width: 720px) {
@@ -1318,7 +1346,7 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
 }
 
 .ajo-exp-row--featured {
-  grid-template-columns: 6rem 1fr auto;
+  grid-template-columns: 6rem minmax(0, 1fr) auto;
   grid-template-rows: auto auto;
   gap: 0.55rem 1.1rem;
   padding: 1rem 1.15rem;
@@ -1419,6 +1447,14 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
   justify-self: end;
   align-self: start;
   white-space: nowrap;
+  max-width: 100%;
+}
+
+@media (max-width: 900px) {
+  .ajo-exp-row--featured .ajo-exp-stats {
+    white-space: normal;
+    text-align: right;
+  }
 }
 
 .ajo-exp-row--featured .ajo-btn-ghost {
@@ -1534,6 +1570,7 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
 .ajo-exp-title {
   font-size: 0.8125rem;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .ajo-exp-sub {
