@@ -191,6 +191,7 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page #expAccelDockOuter
 }
 
 .experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll input[type='url'],
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll input[type='text'],
 .experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll select {
   width: 100%;
   max-width: 100%;
@@ -216,6 +217,13 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page #expAccelDockOuter
   font-size: 0.9375rem;
   font-weight: 700;
   margin: 0 0 0.5rem;
+  color: var(--text);
+}
+
+.experimentation-accelerator-page #expAccelDockOuter .workflow-drawer-scroll .workflow-drawer-scroll__subhead {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin: 1rem 0 0.35rem;
   color: var(--text);
 }
 

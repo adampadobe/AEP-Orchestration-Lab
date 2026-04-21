@@ -47,6 +47,17 @@
   margin: 0;
   padding: 0;
   width: 100%;
+  min-width: 0;
+}
+
+.experimentation-accelerator-page #expAccelApp,
+.experimentation-accelerator-page .ajo-mock,
+.experimentation-accelerator-page .ajo-mock-body,
+.experimentation-accelerator-page .ajo-mock-workspace {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* Overview tab: window scrolls native overview (no inner flex trap) — ported from pre-Walnut polish */
@@ -204,6 +215,29 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
 /* Vector charts: uniform scale only (never preserveAspectRatio="none" — that stretches strokes and looks fuzzy). */
 .experimentation-accelerator-page .ajo-mock svg {
   shape-rendering: geometricPrecision;
+}
+
+.ajo-adobe-mark-img {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  object-fit: contain;
+}
+
+.ajo-adobe-mark-img--sm {
+  width: 18px;
+  height: 18px;
+}
+
+.ajo-hero-ajo-icon-img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto;
+  border-radius: 12px;
+  object-fit: contain;
 }
 
 /* Lighter chart blue (reference), via currentColor on .ajo-spark--core */
@@ -608,20 +642,6 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   display: flex;
   justify-content: center;
   margin-bottom: 0.65rem;
-}
-
-/* AJO app icon: red squircle + white Adobe “A” (matches product lockup) */
-.ajo-hero-ajo-icon {
-  display: block;
-  flex-shrink: 0;
-}
-
-.ajo-hero-ajo-squircle {
-  fill: var(--dash-error-border, #e34850);
-}
-
-.ajo-hero-ajo-a {
-  fill: var(--dash-surface, #fff);
 }
 
 .ajo-hero-title {
@@ -1254,7 +1274,7 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
   position: absolute;
   top: 0.32rem;
   left: 0.32rem;
-  z-index: 2;
+  z-index: 3;
   min-width: 1.45rem;
   padding: 0.12rem 0.32rem;
   border-radius: 4px;
@@ -1265,6 +1285,25 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
   color: var(--ajo-surface);
   letter-spacing: -0.02em;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.ajo-exp-row--featured .ajo-exp-thumb-custom {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  border-radius: inherit;
+  display: none;
+}
+
+.ajo-exp-row--featured .ajo-exp-thumb--custom .ajo-exp-thumb-custom {
+  display: block;
+}
+
+.ajo-exp-row--featured .ajo-exp-thumb--custom .ajo-exp-thumb-mock {
+  opacity: 0.35;
 }
 
 .ajo-exp-thumb-mock {
@@ -1887,10 +1926,30 @@ a.ajo-table-link:hover {
 
 /* ——— Experiment detail (Homepage Hero Image Test) ——— */
 .ajo-exp-detail-scroll {
-  padding: 0 1.25rem 2.5rem;
-  max-width: 1160px;
+  padding: 0 clamp(0.75rem, 2.5vw, 1.5rem) 2.5rem;
+  max-width: 100%;
+  width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
+}
+
+.experimentation-accelerator-page--exp-detail .ajo-mock-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.experimentation-accelerator-page--exp-detail .ajo-mock-workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.experimentation-accelerator-page--exp-detail .ajo-exp-detail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ajo-exp-detail-top {
@@ -1977,9 +2036,7 @@ a.ajo-table-link:hover {
   color: var(--ajo-text);
 }
 
-.ajo-exp-detail-admin-ajo .ajo-adobe-a {
-  width: 18px;
-  height: 18px;
+.ajo-exp-detail-admin-ajo .ajo-adobe-mark-img {
   flex-shrink: 0;
 }
 
@@ -2254,6 +2311,7 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
 }
 
 .ajo-exp-leader-thumb {
+  position: relative;
   border-radius: var(--dash-radius-sm, 10px);
   background: linear-gradient(
     135deg,
@@ -2262,15 +2320,41 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
   );
   border: 1px solid var(--ajo-border);
   min-height: 88px;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.ajo-exp-leader-thumb-placeholder {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
   gap: 4px;
   padding: 6px;
+  min-height: 88px;
   box-sizing: border-box;
 }
 
-.ajo-exp-leader-thumb span {
+.ajo-exp-leader-thumb--has-custom-img .ajo-exp-leader-thumb-placeholder {
+  display: none;
+}
+
+.ajo-exp-leader-thumb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  z-index: 1;
+  display: none;
+}
+
+.ajo-exp-leader-thumb--has-custom-img .ajo-exp-leader-thumb-img {
+  display: block;
+}
+
+.ajo-exp-leader-thumb-placeholder span {
   border-radius: 4px;
   background: color-mix(in srgb, var(--ajo-text) 12%, var(--ajo-surface));
   opacity: 0.85;

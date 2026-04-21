@@ -12,10 +12,10 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260425a">
-  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260425a">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260421g">
+  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260421g">
 </head>
-<body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive">
+<body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive experimentation-accelerator-page--exp-detail">
   <a href="index.html" class="exp-accel-lab-exit">Profile Viewer</a>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
@@ -39,7 +39,7 @@
                   <svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
                 </button>
                 <span class="ajo-mock-adobe-lockup" aria-hidden="true">
-                  <svg class="ajo-adobe-a" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="var(--dash-error-border, #e34850)"/><path fill="var(--dash-surface, #fff)" d="M7 17V7h4.2c2.9 0 4.5 1.6 4.5 4s-1.6 4-4.5 4H10v2H7zm3-6h1.1c1.2 0 1.8-.6 1.8-1.7 0-1.1-.6-1.7-1.8-1.7H10v3.4z"/></svg>
+                  <img class="ajo-adobe-mark-img" src="images/experimentation-accelerator-adobe-logo.svg" width="24" height="24" alt="" decoding="async" />
                   <span class="ajo-mock-product-name">Adobe Journey Optimizer</span>
                 </span>
               </div>
@@ -76,7 +76,7 @@
                       <span class="ajo-exp-detail-admin">
                         Administered by
                         <span class="ajo-exp-detail-admin-ajo">
-                          <svg class="ajo-adobe-a" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="24" height="24" rx="4" fill="var(--dash-error-border)"/><path fill="var(--dash-surface)" d="M7 17V7h4.2c2.9 0 4.5 1.6 4.5 4s-1.6 4-4.5 4H10v2H7zm3-6h1.1c1.2 0 1.8-.6 1.8-1.7 0-1.1-.6-1.7-1.8-1.7H10v3.4z"/></svg>
+                          <img class="ajo-adobe-mark-img ajo-adobe-mark-img--sm" src="images/experimentation-accelerator-adobe-logo.svg" width="18" height="18" alt="" decoding="async" />
                           Adobe Journey Optimizer
                         </span>
                       </span>
@@ -146,7 +146,10 @@
                             <dd>82k</dd>
                           </dl>
                           <div class="ajo-exp-leader-thumb" aria-hidden="true">
-                            <span></span><span></span><span></span><span></span><span></span><span></span>
+                            <img id="expAccelHeroDetailImg" class="ajo-exp-leader-thumb-img" src="" alt="" />
+                            <div class="ajo-exp-leader-thumb-placeholder">
+                              <span></span><span></span><span></span><span></span><span></span><span></span>
+                            </div>
                           </div>
                         </div>
 
@@ -278,13 +281,43 @@
               <div class="workflow-drawer-scroll">
                 <div class="panel">
                   <h2>Demo labels</h2>
-                  <p class="hint">Same settings as the Experiments list page.</p>
+                  <p class="hint">Same settings as the main Experimentation Accelerator page.</p>
                   <label for="expAccelSandboxSelect">Sandbox</label>
                   <select id="expAccelSandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox"></select>
                   <label for="expAccelDisplayNameInput">First name (hero greeting)</label>
                   <input id="expAccelDisplayNameInput" type="text" autocomplete="off" placeholder="Tina">
                   <label for="expAccelTeamInput">Team display (My Team …)</label>
                   <input id="expAccelTeamInput" type="text" autocomplete="off" placeholder="Adobe.com">
+                  <h2 class="workflow-drawer-scroll__subhead">Top experiments (Overview)</h2>
+                  <p class="hint">Image URLs for the four experiment tiles (ACE… rows). Leave blank to use colored placeholders.</p>
+                  <label for="expAccelDockExpImgUrl1">Experiment 1 image URL</label>
+                  <input id="expAccelDockExpImgUrl1" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expAccelDockExpTitle1">Experiment 1 title (ACE… line)</label>
+                  <input id="expAccelDockExpTitle1" type="text" autocomplete="off" placeholder="ACE0998 | US | …">
+                  <label for="expAccelDockExpSub1">Experiment 1 subtitle</label>
+                  <input id="expAccelDockExpSub1" type="text" autocomplete="off" placeholder="Illustrator product page">
+                  <label for="expAccelDockExpImgUrl2">Experiment 2 image URL</label>
+                  <input id="expAccelDockExpImgUrl2" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expAccelDockExpTitle2">Experiment 2 title</label>
+                  <input id="expAccelDockExpTitle2" type="text" autocomplete="off">
+                  <label for="expAccelDockExpSub2">Experiment 2 subtitle</label>
+                  <input id="expAccelDockExpSub2" type="text" autocomplete="off">
+                  <label for="expAccelDockExpImgUrl3">Experiment 3 image URL</label>
+                  <input id="expAccelDockExpImgUrl3" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expAccelDockExpTitle3">Experiment 3 title</label>
+                  <input id="expAccelDockExpTitle3" type="text" autocomplete="off">
+                  <label for="expAccelDockExpSub3">Experiment 3 subtitle</label>
+                  <input id="expAccelDockExpSub3" type="text" autocomplete="off">
+                  <label for="expAccelDockExpImgUrl4">Experiment 4 image URL</label>
+                  <input id="expAccelDockExpImgUrl4" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expAccelDockExpTitle4">Experiment 4 title</label>
+                  <input id="expAccelDockExpTitle4" type="text" autocomplete="off">
+                  <label for="expAccelDockExpSub4">Experiment 4 subtitle</label>
+                  <input id="expAccelDockExpSub4" type="text" autocomplete="off">
+                  <h2 class="workflow-drawer-scroll__subhead">Hero experiment detail page</h2>
+                  <p class="hint">Large image in Details on <strong>Homepage Hero Image Test</strong> (same sandbox).</p>
+                  <label for="expAccelDockHeroDetailImgUrl">Hero detail image URL</label>
+                  <input id="expAccelDockHeroDetailImgUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
                   <div class="actions">
                     <button type="button" class="primary" id="expAccelCustomiseUpdate">Update</button>
                   </div>
@@ -308,7 +341,7 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script defer src="experimentation-accelerator.js?v=20260425a"></script>
-  <script defer src="experimentation-accelerator-customise.js?v=20260425a"></script>
+  <script defer src="experimentation-accelerator.js?v=20260421g"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260421g"></script>
 </body>
 </html>

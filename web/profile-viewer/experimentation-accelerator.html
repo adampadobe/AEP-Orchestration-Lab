@@ -12,8 +12,8 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260421f">
-  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260421f">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260421g">
+  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260421g">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive" data-ajo-tab="overview">
   <a href="index.html" class="exp-accel-lab-exit">Profile Viewer</a>
@@ -39,7 +39,7 @@
                   <svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
                 </button>
                 <span class="ajo-mock-adobe-lockup" aria-hidden="true">
-                  <svg class="ajo-adobe-a" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="var(--dash-error-border, #e34850)"/><path fill="var(--dash-surface, #fff)" d="M7 17V7h4.2c2.9 0 4.5 1.6 4.5 4s-1.6 4-4.5 4H10v2H7zm3-6h1.1c1.2 0 1.8-.6 1.8-1.7 0-1.1-.6-1.7-1.8-1.7H10v3.4z"/></svg>
+                  <img class="ajo-adobe-mark-img" src="images/experimentation-accelerator-adobe-logo.svg" width="24" height="24" alt="" decoding="async" />
                   <span class="ajo-mock-product-name">Adobe Journey Optimizer</span>
                 </span>
               </div>
@@ -123,11 +123,7 @@
                         <section class="ajo-hero" aria-labelledby="ajoHeroGreeting">
                           <div class="ajo-hero-inner">
                             <div class="ajo-hero-brand" aria-hidden="true">
-                              <!-- Adobe Journey Optimizer lockup: red squircle, white Adobe “A” -->
-                              <svg class="ajo-hero-ajo-icon" width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                                <rect class="ajo-hero-ajo-squircle" width="24" height="24" rx="7" ry="7"/>
-                                <path class="ajo-hero-ajo-a" d="M7 17V7h4.2c2.9 0 4.5 1.6 4.5 4s-1.6 4-4.5 4H10v2H7zm3-6h1.1c1.2 0 1.8-.6 1.8-1.7 0-1.1-.6-1.7-1.8-1.7H10v3.4z"/>
-                              </svg>
+                              <img class="ajo-hero-ajo-icon-img" src="images/experimentation-accelerator-adobe-logo.svg" width="48" height="48" alt="" decoding="async" />
                             </div>
                             <h2 id="ajoHeroGreeting" class="ajo-hero-title">Good morning, <span id="expAccelDisplayName">Tina</span>!</h2>
                             <p class="ajo-hero-sub">
@@ -317,12 +313,13 @@
                           <ul class="ajo-exp-list">
                             <li class="ajo-exp-row ajo-exp-row--featured">
                               <span class="ajo-exp-thumb ajo-exp-thumb--ai" title="Illustrator">
+                                <img class="ajo-exp-thumb-custom" id="expAccelExpImg1" alt="" width="96" height="84" decoding="async" hidden />
                                 <span class="ajo-exp-thumb-badge">Ai</span>
                                 <span class="ajo-exp-thumb-mock" aria-hidden="true"></span>
                               </span>
                               <div class="ajo-exp-main">
-                                <span class="ajo-exp-title-row"><span class="ajo-exp-pill">A/B</span> <span class="ajo-exp-title">ACE0998 | US | TwP Modals</span></span>
-                                <span class="ajo-exp-sub">Illustrator product page</span>
+                                <span class="ajo-exp-title-row"><span class="ajo-exp-pill">A/B</span> <span class="ajo-exp-title" id="expAccelExpTitle1">ACE0998 | US | TwP Modals</span></span>
+                                <span class="ajo-exp-sub" id="expAccelExpSub1">Illustrator product page</span>
                                 <div class="ajo-exp-metric-row">
                                   <span class="ajo-exp-metric-name">Revenue</span>
                                   <span class="ajo-exp-metric-pill">↗ 350k</span>
@@ -337,12 +334,13 @@
                             </li>
                             <li class="ajo-exp-row ajo-exp-row--featured">
                               <span class="ajo-exp-thumb ajo-exp-thumb--pr" title="Premiere Pro">
+                                <img class="ajo-exp-thumb-custom" id="expAccelExpImg2" alt="" width="96" height="84" decoding="async" hidden />
                                 <span class="ajo-exp-thumb-badge">Pr</span>
                                 <span class="ajo-exp-thumb-mock" aria-hidden="true"></span>
                               </span>
                               <div class="ajo-exp-main">
-                                <span class="ajo-exp-title-row"><span class="ajo-exp-pill">Multi-armed</span> <span class="ajo-exp-title">ACE0916 | US | Catalog | AICS on Premiere page</span></span>
-                                <span class="ajo-exp-sub">Premiere Pro page</span>
+                                <span class="ajo-exp-title-row"><span class="ajo-exp-pill">Multi-armed</span> <span class="ajo-exp-title" id="expAccelExpTitle2">ACE0916 | US | Catalog | AICS on Premiere page</span></span>
+                                <span class="ajo-exp-sub" id="expAccelExpSub2">Premiere Pro page</span>
                                 <div class="ajo-exp-metric-row">
                                   <span class="ajo-exp-metric-name">CTR</span>
                                   <span class="ajo-exp-metric-pill">↗ 10%</span>
@@ -357,12 +355,13 @@
                             </li>
                             <li class="ajo-exp-row ajo-exp-row--featured">
                               <span class="ajo-exp-thumb ajo-exp-thumb--pdf" title="Acrobat">
+                                <img class="ajo-exp-thumb-custom" id="expAccelExpImg3" alt="" width="96" height="84" decoding="async" hidden />
                                 <span class="ajo-exp-thumb-badge">PDF</span>
                                 <span class="ajo-exp-thumb-mock" aria-hidden="true"></span>
                               </span>
                               <div class="ajo-exp-main">
-                                <span class="ajo-exp-title-row"><span class="ajo-exp-pill">A/B</span> <span class="ajo-exp-title">ACE0918 | US | Catalog | AICS on Catalog page</span></span>
-                                <span class="ajo-exp-sub">Acrobat DC page</span>
+                                <span class="ajo-exp-title-row"><span class="ajo-exp-pill">A/B</span> <span class="ajo-exp-title" id="expAccelExpTitle3">ACE0918 | US | Catalog | AICS on Catalog page</span></span>
+                                <span class="ajo-exp-sub" id="expAccelExpSub3">Acrobat DC page</span>
                                 <div class="ajo-exp-metric-row">
                                   <span class="ajo-exp-metric-name">Revenue</span>
                                   <span class="ajo-exp-metric-pill">↗ 350k</span>
@@ -377,12 +376,13 @@
                             </li>
                             <li class="ajo-exp-row ajo-exp-row--featured">
                               <span class="ajo-exp-thumb ajo-exp-thumb--ps" title="Photoshop">
+                                <img class="ajo-exp-thumb-custom" id="expAccelExpImg4" alt="" width="96" height="84" decoding="async" hidden />
                                 <span class="ajo-exp-thumb-badge">Ps</span>
                                 <span class="ajo-exp-thumb-mock" aria-hidden="true"></span>
                               </span>
                               <div class="ajo-exp-main">
-                                <span class="ajo-exp-title-row"><span class="ajo-exp-pill">A/B</span> <span class="ajo-exp-title">ACE0930 | US | HP | Logged-out | SMB | AICS</span></span>
-                                <span class="ajo-exp-sub">Photoshop product page</span>
+                                <span class="ajo-exp-title-row"><span class="ajo-exp-pill">A/B</span> <span class="ajo-exp-title" id="expAccelExpTitle4">ACE0930 | US | HP | Logged-out | SMB | AICS</span></span>
+                                <span class="ajo-exp-sub" id="expAccelExpSub4">Photoshop product page</span>
                                 <div class="ajo-exp-metric-row">
                                   <span class="ajo-exp-metric-name">Revenue</span>
                                   <span class="ajo-exp-metric-pill">↗ 210k</span>
@@ -674,6 +674,36 @@
                   <input id="expAccelDisplayNameInput" type="text" autocomplete="off" placeholder="Tina">
                   <label for="expAccelTeamInput">Team display (My Team …)</label>
                   <input id="expAccelTeamInput" type="text" autocomplete="off" placeholder="Adobe.com">
+                  <h2 class="workflow-drawer-scroll__subhead">Top experiments (Overview)</h2>
+                  <p class="hint">Image URLs for the four experiment tiles (ACE… rows). Leave blank to use colored placeholders.</p>
+                  <label for="expAccelDockExpImgUrl1">Experiment 1 image URL</label>
+                  <input id="expAccelDockExpImgUrl1" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expAccelDockExpTitle1">Experiment 1 title (ACE… line)</label>
+                  <input id="expAccelDockExpTitle1" type="text" autocomplete="off" placeholder="ACE0998 | US | …">
+                  <label for="expAccelDockExpSub1">Experiment 1 subtitle</label>
+                  <input id="expAccelDockExpSub1" type="text" autocomplete="off" placeholder="Illustrator product page">
+                  <label for="expAccelDockExpImgUrl2">Experiment 2 image URL</label>
+                  <input id="expAccelDockExpImgUrl2" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expAccelDockExpTitle2">Experiment 2 title</label>
+                  <input id="expAccelDockExpTitle2" type="text" autocomplete="off">
+                  <label for="expAccelDockExpSub2">Experiment 2 subtitle</label>
+                  <input id="expAccelDockExpSub2" type="text" autocomplete="off">
+                  <label for="expAccelDockExpImgUrl3">Experiment 3 image URL</label>
+                  <input id="expAccelDockExpImgUrl3" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expAccelDockExpTitle3">Experiment 3 title</label>
+                  <input id="expAccelDockExpTitle3" type="text" autocomplete="off">
+                  <label for="expAccelDockExpSub3">Experiment 3 subtitle</label>
+                  <input id="expAccelDockExpSub3" type="text" autocomplete="off">
+                  <label for="expAccelDockExpImgUrl4">Experiment 4 image URL</label>
+                  <input id="expAccelDockExpImgUrl4" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
+                  <label for="expAccelDockExpTitle4">Experiment 4 title</label>
+                  <input id="expAccelDockExpTitle4" type="text" autocomplete="off">
+                  <label for="expAccelDockExpSub4">Experiment 4 subtitle</label>
+                  <input id="expAccelDockExpSub4" type="text" autocomplete="off">
+                  <h2 class="workflow-drawer-scroll__subhead">Hero experiment detail page</h2>
+                  <p class="hint">Large image in Details on <strong>Homepage Hero Image Test</strong> (same sandbox).</p>
+                  <label for="expAccelDockHeroDetailImgUrl">Hero detail image URL</label>
+                  <input id="expAccelDockHeroDetailImgUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://…">
                   <div class="actions">
                     <button type="button" class="primary" id="expAccelCustomiseUpdate">Update</button>
                   </div>
@@ -697,7 +727,7 @@
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script defer src="experimentation-accelerator.js?v=20260421f"></script>
-  <script defer src="experimentation-accelerator-customise.js?v=20260421f"></script>
+  <script defer src="experimentation-accelerator.js?v=20260421g"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260421g"></script>
 </body>
 </html>
