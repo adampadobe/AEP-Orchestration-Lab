@@ -2706,12 +2706,33 @@ button.ajo-exp-opp-card:focus-visible {
 
 .ajo-result-thumb {
   flex-shrink: 0;
+  position: relative;
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 6px;
   border: 1px solid color-mix(in srgb, var(--ajo-border) 80%, transparent);
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.ajo-result-thumb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  z-index: 1;
+  display: none;
+}
+
+.ajo-result-thumb--has-img .ajo-result-thumb-img {
+  display: block;
+}
+
+.ajo-result-thumb.ajo-result-thumb--has-img {
+  background: var(--ajo-surface);
+  box-shadow: none;
 }
 
 .ajo-result-thumb--mosaic {

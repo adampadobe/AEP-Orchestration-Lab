@@ -69,6 +69,27 @@
     }
   }
 
+  /** Results table treatment thumbnails (Homepage Hero experiment page) — same expImg1..4 URLs as Overview tiles */
+  function applyResultsTableTreatmentImages(p) {
+    var raw = p && typeof p === 'object' ? p : {};
+    var i;
+    for (i = 1; i <= 4; i++) {
+      var imgEl = document.getElementById('expAccelResultTreatmentImg' + i);
+      var thumb = imgEl && imgEl.closest('.ajo-result-thumb');
+      if (!imgEl) continue;
+      var u = raw['expImg' + i] != null ? String(raw['expImg' + i]).trim() : '';
+      if (u) {
+        imgEl.src = u;
+        imgEl.removeAttribute('hidden');
+        if (thumb) thumb.classList.add('ajo-result-thumb--has-img');
+      } else {
+        imgEl.removeAttribute('src');
+        imgEl.setAttribute('hidden', '');
+        if (thumb) thumb.classList.remove('ajo-result-thumb--has-img');
+      }
+    }
+  }
+
   var lastResolvedFirstName = '';
   var fetchGen = 0;
 
@@ -205,6 +226,7 @@
     var teamEl = document.getElementById('expAccelTeamDisplay');
     if (teamEl) teamEl.textContent = mergeTeam(raw);
     applyExperimentCustomisation(raw);
+    applyResultsTableTreatmentImages(raw);
     applyHeroDetailImage(raw);
     resolveAndApplyHeroName();
   }
