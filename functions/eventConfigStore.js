@@ -109,9 +109,17 @@ async function saveUserEventConfig(uid, sandbox, patch) {
 
   const ref = getDb().collection(USER_COLLECTION).doc(userDocId(u, name));
 
+  // First-save seed: if the user has no prior user-scoped record yet,
+  // inherit field values from the shared sandbox record so a partial
+  // patch (e.g. saveConfigField({customTriggers})) doesn't blank out
+  // datastreamId / schemaTitle / datasetName.
+  const sharedFallback = await getEventConfig(name);
+
   await getDb().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const prev = snap.exists && snap.data() ? snap.data() : {};
+    const prev = snap.exists && snap.data()
+      ? snap.data()
+      : (sharedFallback || {});
 
     const customTriggers = patch.customTriggers !== undefined
       ? (Array.isArray(patch.customTriggers) ? patch.customTriggers.slice(0, 200) : [])

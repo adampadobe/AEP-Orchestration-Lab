@@ -230,9 +230,16 @@ async function saveUserDecisionLabConfig(uid, sandbox, patch) {
 
   const ref = getDb().collection(USER_COLLECTION).doc(userDocId(u, name));
 
+  // First-save seed: if there's no prior user-scoped record, inherit
+  // the shared sandbox record so a partial patch doesn't create a
+  // user-scoped doc with blanks that then override the shared one.
+  const sharedFallback = await getDecisionLabConfig(name);
+
   await getDb().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const prev = snap.exists && snap.data() ? snap.data() : {};
+    const prev = snap.exists && snap.data()
+      ? snap.data()
+      : (sharedFallback || {});
 
     const merged = {
       uid: u,
