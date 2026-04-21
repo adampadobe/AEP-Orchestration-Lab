@@ -63,8 +63,19 @@
 
         <section class="image-hosting-library-panel panel" aria-labelledby="imageHostingLibraryHeader">
           <header class="image-hosting-library-header">
-            <h2 id="imageHostingLibraryHeader" style="margin:0;">Current library <span id="imageHostingLibraryCountPill" class="dashboard-env-pill" style="margin-left:0.5rem;">0</span></h2>
-            <p class="hint" style="margin:0.25rem 0 0;">Curated assets for this sandbox. Publish classified images below to promote them here with standard names. Every file gets a stable <code>/cdn/&lt;sandbox&gt;/&lt;file&gt;</code> URL that you can embed in demos.</p>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+              <div>
+                <h2 id="imageHostingLibraryHeader" style="margin:0;">Current library <span id="imageHostingLibraryCountPill" class="dashboard-env-pill" style="margin-left:0.5rem;">0</span></h2>
+                <p class="hint" style="margin:0.25rem 0 0;">Curated assets for this sandbox. Upload directly or publish a classified image from a scrape below. Every file gets a stable <code>/cdn/&lt;sandbox&gt;/&lt;file&gt;</code> URL that stays the same even when you replace the image.</p>
+              </div>
+              <div class="image-hosting-library-actions">
+                <button type="button" id="imageHostingDownloadBtn" class="dashboard-btn-outline">Download as <code>logo_…</code></button>
+                <label class="dashboard-btn-outline image-hosting-file-label" title="Replace the library contents with the zip">
+                  Restore from ZIP
+                  <input id="imageHostingRestoreInput" type="file" accept=".zip,application/zip" hidden />
+                </label>
+              </div>
+            </div>
           </header>
           <div class="image-hosting-upload-row" aria-label="Manual upload">
             <label for="imageHostingManualFolder" class="hint" style="font-weight:600;">Upload directly</label>
@@ -111,6 +122,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script src="image-hosting.js?v=20260421g"></script>
+  <script src="image-hosting.js?v=20260421h"></script>
 </body>
 </html>
