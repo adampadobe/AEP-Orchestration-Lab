@@ -33,6 +33,28 @@ function getDb() {
   return db;
 }
 
+/**
+ * Firestore rejects `undefined` values outright. LLM outputs routinely
+ * contain undefined sub-fields (e.g. industryInfo.raw_response). Walk the
+ * object and replace them with null so the write succeeds — the GCS blob
+ * is the source of truth for the full payload anyway.
+ */
+function stripUndefined(value) {
+  if (value === undefined) return null;
+  if (value === null) return null;
+  if (Array.isArray(value)) return value.map(stripUndefined);
+  if (typeof value === 'object') {
+    const out = {};
+    for (const k of Object.keys(value)) {
+      const v = value[k];
+      if (v === undefined) continue;
+      out[k] = stripUndefined(v);
+    }
+    return out;
+  }
+  return value;
+}
+
 function getBucket() {
   if (!admin.apps.length) admin.initializeApp();
   return admin.storage().bucket(BUCKET_NAME);
@@ -157,12 +179,13 @@ async function saveScrape(sandbox, payload) {
   };
 
   const ref = getDb().collection(COLLECTION).doc(docId(name, scrapeId));
+  const safeIndexDoc = stripUndefined(indexDoc);
   await getDb().runTransaction(async (tx) => {
     const prev = await tx.get(ref);
     const now = admin.firestore.FieldValue.serverTimestamp();
     const base = prev.exists ? prev.data() : {};
     tx.set(ref, {
-      ...indexDoc,
+      ...safeIndexDoc,
       createdAt: base.createdAt || now,
       updatedAt: now,
     }, { merge: true });
