@@ -107,29 +107,39 @@ async function toPng(bytes) {
  * user-supplied overrides. Returns { folder, file, contentType, bytes }.
  */
 async function resolveTargetName(sandbox, opts) {
-  const { classification, srcName, contentType, bytes, overrideFolder, overrideFile } = opts;
+  const {
+    classification, srcName, contentType, bytes,
+    overrideFolder, overrideFile,
+    // When false, skip the sharp PNG transcode and keep bytes in the
+    // source format. Defaults to true — the longstanding behaviour.
+    convertToPng = true,
+  } = opts;
   let ct = contentType || '';
   let ext = extensionFromContentType(ct) || 'bin';
   let body = bytes;
 
-  // Standardise every uploaded image to PNG for consumer consistency.
-  // GIFs are the exception — re-encoding to PNG would flatten the
-  // animation — so we keep them as-is. Anything else (JPG/JPEG, SVG,
-  // WEBP, AVIF, BMP, ICO) is transcoded via sharp.
-  if (ext !== 'gif' && ext !== 'png' && ext !== 'bin') {
-    try {
-      body = await toPng(bytes);
-      ct = 'image/png';
-      ext = 'png';
-    } catch (e) {
-      console.warn('[imageHostingLibrary] toPng failed, keeping original', ext, String((e && e.message) || e));
+  if (convertToPng) {
+    // Standardise every uploaded image to PNG for consumer consistency.
+    // GIFs are the exception — re-encoding to PNG would flatten the
+    // animation — so we keep them as-is. Anything else (JPG/JPEG, SVG,
+    // WEBP, AVIF, BMP, ICO) is transcoded via sharp.
+    if (ext !== 'gif' && ext !== 'png' && ext !== 'bin') {
+      try {
+        body = await toPng(bytes);
+        ct = 'image/png';
+        ext = 'png';
+      } catch (e) {
+        console.warn('[imageHostingLibrary] toPng failed, keeping original', ext, String((e && e.message) || e));
+      }
+    } else if (ext === 'png') {
+      // Existing PNGs still get run through sharp so the 1024px cap
+      // applies uniformly — cheap and keeps the library small.
+      try { body = await toPng(bytes); }
+      catch (_e) { /* keep original bytes on failure */ }
     }
-  } else if (ext === 'png') {
-    // Even existing PNGs get run through sharp so we apply the same
-    // 1024px cap — cheap and keeps the library uniform.
-    try { body = await toPng(bytes); }
-    catch (_e) { /* keep original bytes on failure */ }
   }
+  // convertToPng=false: keep the bytes exactly as uploaded (preserves
+  // JPG/WEBP/SVG originals for demos that need format fidelity).
 
   const cat = (classification && classification.category) || '';
 
@@ -561,13 +571,28 @@ function decodeBase64File(name, base64, contentType) {
  * Upload a single in-memory image into the library with auto-naming.
  * Shared code path for loose images and ZIP entries.
  */
-async function uploadSingleFile(sandbox, fileName, bytes, contentType) {
-  const target = await resolveTargetName(sandbox, {
-    classification: classifyFromFilename(fileName),
-    srcName: fileName.replace(/\.[a-z0-9]+$/i, ''),
-    contentType,
-    bytes,
-  });
+async function uploadSingleFile(sandbox, fileName, bytes, contentType, opts) {
+  const keepFilename = !!(opts && opts.keepFilename);
+  const convertToPng = opts && opts.convertToPng !== undefined ? !!opts.convertToPng : true;
+
+  // In "keep filename" mode we bypass the classification heuristic and
+  // use the incoming filename as-is (sanitised) for the target path.
+  const tgtOpts = keepFilename
+    ? {
+        srcName: fileName.replace(/\.[a-z0-9]+$/i, ''),
+        contentType,
+        bytes,
+        overrideFile: fileName,
+        convertToPng,
+      }
+    : {
+        classification: classifyFromFilename(fileName),
+        srcName: fileName.replace(/\.[a-z0-9]+$/i, ''),
+        contentType,
+        bytes,
+        convertToPng,
+      };
+  const target = await resolveTargetName(sandbox, tgtOpts);
   return putLibraryObject(sandbox, target);
 }
 
@@ -580,6 +605,10 @@ async function uploadSingleFile(sandbox, fileName, bytes, contentType) {
 async function batchUpload(sandbox, entries, opts) {
   const uploaded = [];
   const errors = [];
+  const passOpts = {
+    keepFilename: !!(opts && opts.keepFilename),
+    convertToPng: opts && opts.convertToPng !== undefined ? !!opts.convertToPng : true,
+  };
   if (opts && opts.replace) {
     const bucket = getBucket();
     const prefix = libraryRoot(sandbox) + '/';
@@ -604,14 +633,14 @@ async function batchUpload(sandbox, entries, opts) {
           if (!/^(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/.test(ext)) continue;
           try {
             const buf = await zEntry.buffer();
-            const published = await uploadSingleFile(sandbox, base, buf, contentTypeFromExt(ext));
+            const published = await uploadSingleFile(sandbox, base, buf, contentTypeFromExt(ext), passOpts);
             uploaded.push(published);
           } catch (e) {
             errors.push({ name: zName, error: String((e && e.message) || e) });
           }
         }
       } else {
-        const published = await uploadSingleFile(sandbox, name, bytes, contentType);
+        const published = await uploadSingleFile(sandbox, name, bytes, contentType, passOpts);
         uploaded.push(published);
       }
     } catch (e) {
