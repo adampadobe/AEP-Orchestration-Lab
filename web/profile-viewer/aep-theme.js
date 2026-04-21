@@ -92,10 +92,21 @@
     });
   }
 
+  function injectFullscreenHelper() {
+    var doc = global.document;
+    if (!doc.head || doc.querySelector('script[data-aep-fullscreen="1"]')) return;
+    var s = doc.createElement('script');
+    s.defer = true;
+    s.src = 'aep-fullscreen.js?v=20260421-fs-icon';
+    s.setAttribute('data-aep-fullscreen', '1');
+    doc.head.appendChild(s);
+  }
+
   function init() {
     injectFavicon();
     applyToDocument(getMode());
     injectSidebarToggle();
+    injectFullscreenHelper();
     bindToggleButtons();
     global.addEventListener('storage', function (e) {
       if (e.key !== LS) return;

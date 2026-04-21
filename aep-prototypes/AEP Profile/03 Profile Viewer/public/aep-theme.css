@@ -197,6 +197,16 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-topbar-icon
   background: #22262e;
 }
 
+/* Shared full-screen toggle button (injected by aep-fullscreen.js). */
+.aep-fullscreen-btn {
+  cursor: pointer;
+  color: var(--dash-text, #222);
+  padding: 0;
+  line-height: 0;
+}
+.aep-fullscreen-btn svg { width: 20px; height: 20px; display: block; }
+html[data-aep-theme='dark'] body.home-dashboard-concierge .aep-fullscreen-btn { color: var(--dash-text, #e6e9ef); background: #1a1e25; }
+
 html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-btn-outline:hover {
   background: rgba(255, 255, 255, 0.06);
 }
