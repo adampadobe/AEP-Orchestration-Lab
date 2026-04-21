@@ -16,6 +16,9 @@
       panOv.hidden = !isOv;
       panEx.hidden = isOv;
       try {
+        document.body.setAttribute('data-ajo-tab', isOv ? 'overview' : 'experiments');
+      } catch (eAttr) {}
+      try {
         var pathOnly = location.pathname || 'experimentation-accelerator.html';
         if (isOv) history.replaceState(null, '', pathOnly);
         else history.replaceState(null, '', pathOnly + '#experiments');

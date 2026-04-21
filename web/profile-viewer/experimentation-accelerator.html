@@ -12,10 +12,10 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260420b">
-  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260420b">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260421a">
+  <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260421a">
 </head>
-<body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive">
+<body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive" data-ajo-tab="overview">
   <a href="index.html" class="exp-accel-lab-exit">Profile Viewer</a>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
@@ -93,13 +93,7 @@
               </nav>
 
               <div class="ajo-mock-workspace">
-                <header class="ajo-page-head">
-                  <div class="ajo-page-head-row">
-                    <h1 class="ajo-page-title">Experimentation Accelerator</h1>
-                    <div class="ajo-team-slot">
-                      My Team <span class="ajo-team-val" id="expAccelTeamDisplay">Adobe.com</span>
-                    </div>
-                  </div>
+                <header class="ajo-page-head ajo-page-head--tabs-first">
                   <div class="ajo-tabs" role="tablist" aria-label="Accelerator sections">
                     <button type="button" role="tab" id="ajoTabOverview" aria-controls="ajoPanelOverview" aria-selected="true">
                       <svg class="ajo-tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
@@ -113,6 +107,12 @@
                       <svg class="ajo-tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M5 19V9M10 19v-5M15 19V5M20 19v-9" stroke-linecap="round"/></svg>
                       Metrics
                     </button>
+                  </div>
+                  <div class="ajo-page-head-row">
+                    <h1 class="ajo-page-title">Experimentation Accelerator</h1>
+                    <div class="ajo-team-slot">
+                      My Team <span class="ajo-team-val" id="expAccelTeamDisplay">Adobe.com</span>
+                    </div>
                   </div>
                 </header>
 
@@ -195,7 +195,7 @@
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script defer src="experimentation-accelerator.js?v=20260420b"></script>
-  <script defer src="experimentation-accelerator-customise.js?v=20260420b"></script>
+  <script defer src="experimentation-accelerator.js?v=20260421a"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260421a"></script>
 </body>
 </html>

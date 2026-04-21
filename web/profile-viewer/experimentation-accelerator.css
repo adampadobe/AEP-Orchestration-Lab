@@ -49,6 +49,69 @@
   width: 100%;
 }
 
+/* Overview tab: let the window scroll the stitched Walnut stack (no inner scroll trap) */
+body.experimentation-accelerator-page[data-ajo-tab='overview'] .dashboard-main-wrap {
+  min-height: auto;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] .profile-viewer-main {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] #expAccelApp {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock-workspace {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-panel-stack {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+  position: relative;
+  height: auto;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview.ajo-panel {
+  position: relative;
+  inset: auto;
+  overflow: visible;
+  height: auto;
+  min-height: auto;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview .ajo-panel-inner.ajo-walnut-overview {
+  overflow: visible;
+  flex: none;
+  min-height: auto;
+}
+
+/* Experiments tab: restore fill layout for the embedded player */
+body.experimentation-accelerator-page[data-ajo-tab='experiments'] .ajo-panel-stack {
+  flex: 1;
+  min-height: 0;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='experiments'] #ajoPanelExperiments.ajo-panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
 @media (min-width: 769px) {
   body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar {
     position: fixed;
@@ -407,6 +470,25 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   box-sizing: border-box;
 }
 
+/* Tabs first: tabs sit flush under the app chrome; title row is directly below tabs (no stray band above the banner) */
+.ajo-page-head--tabs-first {
+  padding: 0 1.25rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ajo-page-head--tabs-first .ajo-tabs {
+  margin: 0 -1.25rem;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--ajo-border);
+}
+
+.ajo-page-head--tabs-first .ajo-page-head-row {
+  margin-top: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
 .ajo-page-head-row {
   display: flex;
   flex-wrap: wrap;
@@ -572,7 +654,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
 
 /* Pull page 2 up so the stitch reads as one continuous canvas */
 .ajo-walnut-stitch-row--p2 {
-  margin-top: clamp(-3rem, -5vh, -1rem);
+  margin-top: clamp(-1.5rem, -2.5vh, -0.35rem);
 }
 
 .ajo-walnut-stitch-iframe {
