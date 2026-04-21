@@ -111,11 +111,22 @@ async function uploadBytes(sandbox, scrapeId, index, bytes, contentType, extensi
     contentType: contentType || 'application/octet-stream',
     resumable: false,
     metadata: {
-      cacheControl: 'private, max-age=60',
+      cacheControl: 'public, max-age=300',
       metadata: { sandbox: safeSandbox, scrapeId: safeScrape },
     },
   });
-  return { path: name, bytes: bytes.length };
+  // Best-effort: flip the object to public-read so the Image Hosting page
+  // can render it without a fresh signed URL every time. If the bucket has
+  // uniform bucket-level access enabled this call throws — we swallow and
+  // fall back to the signed URL on the client.
+  let publicUrl = '';
+  try {
+    await file.makePublic();
+    publicUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${name.split('/').map(encodeURIComponent).join('/')}`;
+  } catch (_e) {
+    publicUrl = '';
+  }
+  return { path: name, bytes: bytes.length, publicUrl };
 }
 
 async function signedUrlFor(path) {
@@ -209,6 +220,7 @@ async function classifyScrapeAssets(sandbox, scrapeId, record) {
       contentType: dl.contentType,
       signedUrl,
       signedUrlExpiresAt: new Date(Date.now() + SIGNED_URL_EXPIRY_MS).toISOString(),
+      publicUrl: stored.publicUrl || '',
       classification,
     };
   });
