@@ -17,6 +17,7 @@
 
   var currentFilter = '';
   var lastRecords = [];
+  var classifying = {}; // scrapeId → true while a classify is in flight
 
   function getSandbox() {
     try {
@@ -72,6 +73,34 @@
     if (keep && cats.indexOf(keep) !== -1) categoryFilterEl.value = keep;
   }
 
+  async function classifyScrape(scrapeId, btn) {
+    var sb = getSandbox();
+    if (!sb || !scrapeId || classifying[scrapeId]) return;
+    classifying[scrapeId] = true;
+    var originalText = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Classifying…'; }
+    setStatus('Classifying images for ' + scrapeId + '…');
+    try {
+      var r = await fetch('/api/brand-scraper/scrapes/classify?sandbox=' + encodeURIComponent(sb), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scrapeId: scrapeId }),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        setStatus('Classify failed: ' + (data.error || r.statusText), 'err');
+        return;
+      }
+      setStatus('Classified ' + (data.classified || 0) + ' images. Refreshing…', 'ok');
+      await refresh();
+    } catch (e) {
+      setStatus('Classify failed: ' + (e.message || e), 'err');
+    } finally {
+      classifying[scrapeId] = false;
+      if (btn) { btn.disabled = false; btn.textContent = originalText; }
+    }
+  }
+
   function renderBrand(rec) {
     var brand = document.createElement('section');
     brand.className = 'image-hosting-brand';
@@ -106,11 +135,26 @@
     });
 
     if (!filteredImgs.length) {
-      var empty = document.createElement('p');
+      var empty = document.createElement('div');
       empty.className = 'image-hosting-empty';
-      empty.textContent = currentFilter
-        ? 'No images in this brand match the current category filter.'
-        : 'No hosted images for this scrape yet. Run classify in Brand scraper to populate.';
+      if (currentFilter) {
+        empty.textContent = 'No images in this brand match the current category filter.';
+      } else {
+        var msg = document.createElement('p');
+        msg.style.margin = '0 0 0.6rem';
+        msg.textContent = rec.rawImageCount
+          ? rec.rawImageCount + ' images were found during crawl but haven’t been classified + uploaded to Cloud Storage yet.'
+          : 'No images captured during crawl.';
+        empty.appendChild(msg);
+        if (rec.rawImageCount) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'primary';
+          btn.textContent = 'Classify images';
+          btn.addEventListener('click', function () { classifyScrape(rec.scrapeId, btn); });
+          empty.appendChild(btn);
+        }
+      }
       brand.appendChild(empty);
       return brand;
     }
@@ -205,25 +249,27 @@
       return;
     }
     setStatus('Loading images for ' + summaries.length + ' scrape(s)…');
-    // Pull full records in parallel so we get imagesV2 for each.
+    // Pull full records in parallel so we get imagesV2 + raw image counts.
     var records = await Promise.all(summaries.map(function (s) { return fetchScrape(sb, s.scrapeId); }));
-    var withImages = [];
+    var brands = [];
     records.forEach(function (rec, i) {
       if (!rec) return;
-      var imgs = rec.crawlSummary && rec.crawlSummary.assets && rec.crawlSummary.assets.imagesV2;
-      if (!Array.isArray(imgs) || !imgs.length) return;
-      withImages.push({
+      var assets = rec.crawlSummary && rec.crawlSummary.assets;
+      var classified = (assets && Array.isArray(assets.imagesV2)) ? assets.imagesV2 : [];
+      var rawCount = (assets && Array.isArray(assets.images)) ? assets.images.length : 0;
+      brands.push({
         scrapeId: rec.scrapeId,
         brandName: rec.brandName || (summaries[i] && summaries[i].brandName),
         url: rec.url || (summaries[i] && summaries[i].url),
         industry: rec.industry || (summaries[i] && summaries[i].industry),
         pagesScraped: (rec.crawlSummary && rec.crawlSummary.pagesScraped) || null,
         updatedAt: rec.updatedAt || (summaries[i] && summaries[i].updatedAt),
-        images: imgs,
+        rawImageCount: rawCount,
+        images: classified,
       });
     });
-    lastRecords = withImages;
-    populateCategoryFilter(collectCategories(withImages));
+    lastRecords = brands;
+    populateCategoryFilter(collectCategories(brands));
     render();
   }
 
@@ -231,15 +277,18 @@
     if (!listEl) return;
     listEl.innerHTML = '';
     if (!lastRecords.length) {
-      setStatus('No hosted images. Open Brand scraper, run a scrape, then Classify assets to upload images here.', '');
+      setStatus('No scrapes in this sandbox yet. Run one in Brand scraper first.', '');
       return;
     }
-    var totalImages = 0;
+    var classified = 0;
+    var hostedCount = 0;
     lastRecords.forEach(function (rec) {
       listEl.appendChild(renderBrand(rec));
-      totalImages += (rec.images || []).filter(function (i) { return imageUrl(i); }).length;
+      var hosted = (rec.images || []).filter(function (i) { return imageUrl(i); });
+      if (hosted.length) classified += 1;
+      hostedCount += hosted.length;
     });
-    setStatus(lastRecords.length + ' scrape(s), ' + totalImages + ' hosted image(s).', 'ok');
+    setStatus(lastRecords.length + ' scrape(s), ' + classified + ' classified, ' + hostedCount + ' hosted image(s).', 'ok');
   }
 
   if (refreshBtn) refreshBtn.addEventListener('click', refresh);
