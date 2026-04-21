@@ -103,56 +103,10 @@ body[data-ajo-tab='overview'].experimentation-accelerator-page .ajo-overview-nat
   min-width: 0;
 }
 
-/* Overview tab: window scrolls native overview (no inner flex trap) — ported from pre-Walnut polish */
-body.experimentation-accelerator-page[data-ajo-tab='overview'] .dashboard-main-wrap {
-  min-height: auto;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] .profile-viewer-main {
-  flex: none;
-  min-height: auto;
-  overflow: visible;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] #expAccelApp {
-  flex: none;
-  min-height: auto;
-  overflow: visible;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock {
-  flex: none;
-  min-height: auto;
-  overflow: visible;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock-workspace {
-  flex: none;
-  min-height: auto;
-  overflow: visible;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-panel-stack {
-  flex: none;
-  min-height: auto;
-  overflow: visible;
-  position: relative;
-  height: auto;
-}
-
+/* Overview uses the same flex + in-panel scroll chain as Experiments so panel width
+   (including scrollbar gutter) matches. KPI overlap is inside the scrollable column. */
 body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview.ajo-panel {
-  position: relative;
-  inset: auto;
-  /* visible so the KPI deck is not clipped where it overlaps the next section */
   overflow: visible;
-  height: auto;
-  min-height: auto;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview .ajo-panel-inner.ajo-overview-scroll {
-  overflow: visible;
-  flex: none;
-  min-height: auto;
 }
 
 /* Experiments tab: panel fills workspace below tabs */
@@ -651,6 +605,7 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   min-height: 0;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
   width: 100%;
   box-sizing: border-box;
 }
