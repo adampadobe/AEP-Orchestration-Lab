@@ -185,6 +185,64 @@
     return origin + cdnPath;
   }
 
+  async function replaceLibraryItem(relPath, file, card) {
+    var sb = getSandbox();
+    if (!sb || !relPath || !file) return;
+    setManualMsg('Replacing ' + relPath + '…');
+    if (card) card.classList.add('is-busy');
+    try {
+      var base64 = await fileToBase64(file);
+      var resp = await fetch('/api/image-hosting/library/replace?sandbox=' + encodeURIComponent(sb), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox: sb, relPath: relPath, base64: base64, contentType: file.type || '' }),
+      });
+      var data = await resp.json().catch(function () { return {}; });
+      if (!resp.ok) {
+        setManualMsg('Replace failed for ' + relPath + ': ' + (data.error || resp.statusText), 'err');
+        return;
+      }
+      var note = data.published && data.published.converted
+        ? ' (converted → ' + relPath.split('.').pop().toUpperCase() + ')'
+        : '';
+      setManualMsg('Replaced ' + relPath + note + '.', 'ok');
+      await renderLibrary();
+    } catch (e) {
+      setManualMsg('Replace failed: ' + (e.message || e), 'err');
+    } finally {
+      if (card) card.classList.remove('is-busy');
+    }
+  }
+
+  function wireCardReplace(card, item) {
+    card.setAttribute('title', 'Drop an image here to replace ' + item.relPath);
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      card.addEventListener(evt, function (e) {
+        // Only react if an actual file is being dragged (avoids flicker when
+        // dragging within the same card or onto a child).
+        if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+        e.preventDefault(); e.stopPropagation();
+        card.classList.add('is-drop-target');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (evt) {
+      card.addEventListener(evt, function (e) {
+        e.stopPropagation();
+        card.classList.remove('is-drop-target');
+      });
+    });
+    card.addEventListener('drop', function (e) {
+      if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+      e.preventDefault();
+      var file = e.dataTransfer.files[0];
+      if (!/^image\//.test(file.type) && !/\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(file.name)) {
+        setManualMsg('Drop an image file to replace ' + item.relPath + '.', 'err');
+        return;
+      }
+      replaceLibraryItem(item.relPath, file, card);
+    });
+  }
+
   function renderLibraryCard(item) {
     var card = document.createElement('div');
     card.className = 'image-hosting-lib-card';
@@ -241,7 +299,28 @@
     delBtn.addEventListener('click', function () { deleteLibraryItem(item.relPath); });
     actions.appendChild(delBtn);
 
+    // Add a "Replace" button as a secondary affordance alongside the
+    // drag-drop (discoverability for users who don't think to drag).
+    var replaceLabel = document.createElement('label');
+    replaceLabel.className = 'image-hosting-file-label';
+    replaceLabel.style.fontSize = '0.65rem';
+    replaceLabel.style.padding = '0.2rem 0.55rem';
+    replaceLabel.textContent = 'Replace';
+    var replaceInput = document.createElement('input');
+    replaceInput.type = 'file';
+    replaceInput.accept = 'image/*';
+    replaceInput.hidden = true;
+    replaceInput.addEventListener('change', function () {
+      if (replaceInput.files && replaceInput.files[0]) {
+        replaceLibraryItem(item.relPath, replaceInput.files[0], card);
+        replaceInput.value = '';
+      }
+    });
+    replaceLabel.appendChild(replaceInput);
+    actions.appendChild(replaceLabel);
+
     card.appendChild(actions);
+    wireCardReplace(card, item);
     return card;
   }
 

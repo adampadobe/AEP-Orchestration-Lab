@@ -2941,6 +2941,24 @@ exports.imageHostingLibrary = onRequest(
         return;
       }
 
+      if (req.method === 'POST' && /\/replace$/.test(path)) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const relPath = String(body.relPath || '').trim();
+        if (!relPath) { res.status(400).json({ error: 'relPath is required' }); return; }
+        if (!body.base64 || typeof body.base64 !== 'string') {
+          res.status(400).json({ error: 'base64 is required' });
+          return;
+        }
+        let bytes;
+        try { bytes = Buffer.from(body.base64, 'base64'); }
+        catch (_e) { res.status(400).json({ error: 'invalid base64' }); return; }
+        const published = await imageHostingLibrary.replaceLibraryObject(
+          sandbox, relPath, bytes, String(body.contentType || '')
+        );
+        res.status(200).json({ sandbox, published });
+        return;
+      }
+
       if (req.method === 'POST' && /\/upload$/.test(path)) {
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const files = Array.isArray(body.files) ? body.files : [];
