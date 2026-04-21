@@ -3003,7 +3003,11 @@ exports.imageHostingLibrary = onRequest(
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const files = Array.isArray(body.files) ? body.files : [];
         if (!files.length) { res.status(400).json({ error: 'files[] is required' }); return; }
-        const result = await imageHostingLibrary.batchUpload(sandbox, files, { replace: !!body.replace });
+        const result = await imageHostingLibrary.batchUpload(sandbox, files, {
+          replace: !!body.replace,
+          keepFilename: !!body.keepFilename,
+          convertToPng: body.convertToPng !== undefined ? !!body.convertToPng : true,
+        });
         res.status(200).json({ sandbox, ...result });
         return;
       }

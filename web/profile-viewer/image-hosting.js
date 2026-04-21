@@ -546,14 +546,26 @@
    * (rather than one big batch) keep each payload under Cloud Run's
    * 32 MB body cap and let the status line update per-file.
    */
+  function readUploadOptions() {
+    var modeEl = document.getElementById('imageHostingDropMode');
+    var convEl = document.getElementById('imageHostingDropConvert');
+    return {
+      keepFilename: modeEl && modeEl.value === 'keep',
+      convertToPng: convEl ? !!convEl.checked : true,
+    };
+  }
+
   async function uploadOneFile(sb, file) {
     var base64 = await fileToBase64(file);
+    var opts = readUploadOptions();
     var resp = await fetch('/api/image-hosting/library/upload?sandbox=' + encodeURIComponent(sb), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sandbox: sb,
         files: [{ name: file.name, base64: base64, contentType: file.type || '' }],
+        keepFilename: opts.keepFilename,
+        convertToPng: opts.convertToPng,
       }),
     });
     var data = await resp.json().catch(function () { return {}; });

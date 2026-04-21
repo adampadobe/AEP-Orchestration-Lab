@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
-  <link rel="stylesheet" href="image-hosting.css?v=20260421e">
+  <link rel="stylesheet" href="image-hosting.css?v=20260421f">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -77,15 +77,24 @@
               </div>
             </div>
           </header>
+          <div class="image-hosting-drop-options" aria-label="Upload options">
+            <label class="image-hosting-drop-option">
+              <span>Mode</span>
+              <select id="imageHostingDropMode" aria-label="Upload naming mode">
+                <option value="auto">Auto-rename (logo → logo.png, hero → hero-banner.png…)</option>
+                <option value="keep">Keep original filename</option>
+              </select>
+            </label>
+            <label class="image-hosting-drop-option image-hosting-drop-option-checkbox">
+              <input type="checkbox" id="imageHostingDropConvert" checked />
+              <span>Convert to PNG (except GIF)</span>
+            </label>
+          </div>
           <div id="imageHostingDropZone" class="image-hosting-drop-zone" tabindex="0" role="button" aria-label="Drop ZIP or images to add to library">
             <input id="imageHostingDropInput" type="file" accept="image/*,.zip,application/zip" multiple hidden />
             <p class="image-hosting-drop-title">Drop a ZIP or images here</p>
             <p class="image-hosting-drop-hint">
-              Files are auto-renamed with our convention —
-              <code>logo</code> → <code>logo/logo.png</code>,
-              <code>hero</code>/<code>banner</code> → <code>hero-banner.png</code>,
-              <code>product</code> → <code>products/&lt;name&gt;</code>.
-              SVGs convert to PNG automatically. Or click to browse.
+              Use the options above to choose auto-rename or keep the original filename, and whether to convert formats to PNG. Click to browse.
             </p>
           </div>
           <p id="imageHostingManualMsg" class="status" role="status" aria-live="polite"></p>
@@ -153,6 +162,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script src="image-hosting.js?v=20260421o"></script>
+  <script src="image-hosting.js?v=20260421p"></script>
 </body>
 </html>
