@@ -8,6 +8,9 @@
 
   var listEl = document.getElementById('imageHostingList');
   var statusEl = document.getElementById('imageHostingStatus');
+  var libraryGridEl = document.getElementById('imageHostingLibraryGrid');
+  var libraryEmptyEl = document.getElementById('imageHostingLibraryEmpty');
+  var libraryCountEl = document.getElementById('imageHostingLibraryCountPill');
   var refreshBtn = document.getElementById('imageHostingRefreshBtn');
   var categoryFilterEl = document.getElementById('imageHostingCategoryFilter');
   var lightbox = document.getElementById('imageHostingLightbox');
@@ -73,6 +76,163 @@
     if (keep && cats.indexOf(keep) !== -1) categoryFilterEl.value = keep;
   }
 
+  // ----- Library (curated per-sandbox assets) -----
+
+  async function fetchLibrary(sb) {
+    var r = await fetch('/api/image-hosting/library?sandbox=' + encodeURIComponent(sb));
+    var data = await r.json().catch(function () { return {}; });
+    if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+    return Array.isArray(data.items) ? data.items : [];
+  }
+
+  async function publishToLibrary(scrapeId, imageIndex, btn) {
+    var sb = getSandbox();
+    if (!sb || !scrapeId || imageIndex == null) return;
+    var originalText = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Publishing…'; }
+    try {
+      var r = await fetch('/api/image-hosting/library/publish?sandbox=' + encodeURIComponent(sb), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox: sb, scrapeId: scrapeId, imageIndex: imageIndex }),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        setStatus('Publish failed: ' + (data.error || r.statusText), 'err');
+        return;
+      }
+      setStatus('Published ' + (data.published && data.published.file) + '.', 'ok');
+      await renderLibrary();
+    } catch (e) {
+      setStatus('Publish failed: ' + (e.message || e), 'err');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = originalText || 'Publish'; }
+    }
+  }
+
+  async function deleteLibraryItem(relPath) {
+    var sb = getSandbox();
+    if (!sb || !relPath) return;
+    if (!confirm('Remove ' + relPath + ' from the library?')) return;
+    try {
+      var r = await fetch('/api/image-hosting/library?sandbox=' + encodeURIComponent(sb) + '&relPath=' + encodeURIComponent(relPath), { method: 'DELETE' });
+      if (!r.ok) {
+        var d = await r.json().catch(function () { return {}; });
+        setStatus('Delete failed: ' + (d.error || r.statusText), 'err');
+        return;
+      }
+      setStatus('Removed ' + relPath + '.', 'ok');
+      await renderLibrary();
+    } catch (e) {
+      setStatus('Delete failed: ' + (e.message || e), 'err');
+    }
+  }
+
+  function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+    } catch (_e) {}
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (_e) {}
+    document.body.removeChild(ta);
+    return Promise.resolve();
+  }
+
+  function absoluteCdnUrl(cdnPath) {
+    if (!cdnPath) return '';
+    if (/^https?:\/\//i.test(cdnPath)) return cdnPath;
+    var origin = window.location.origin || '';
+    return origin + cdnPath;
+  }
+
+  function renderLibraryCard(item) {
+    var card = document.createElement('div');
+    card.className = 'image-hosting-lib-card';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'image-hosting-lib-card-img-wrap';
+    var img = document.createElement('img');
+    img.loading = 'lazy';
+    img.referrerPolicy = 'no-referrer';
+    img.alt = item.file;
+    img.src = absoluteCdnUrl(item.cdnUrl);
+    img.onerror = function () { img.style.opacity = '0.3'; };
+    wrap.appendChild(img);
+    card.appendChild(wrap);
+
+    var name = document.createElement('div');
+    name.className = 'image-hosting-lib-card-name';
+    name.textContent = item.relPath;
+    name.title = item.relPath;
+    card.appendChild(name);
+
+    var url = document.createElement('div');
+    url.className = 'image-hosting-lib-card-url';
+    url.textContent = absoluteCdnUrl(item.cdnUrl);
+    url.title = absoluteCdnUrl(item.cdnUrl);
+    card.appendChild(url);
+
+    var actions = document.createElement('div');
+    actions.className = 'image-hosting-lib-card-actions';
+    var copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.textContent = 'Copy URL';
+    copyBtn.addEventListener('click', function () {
+      copyToClipboard(absoluteCdnUrl(item.cdnUrl)).then(function () {
+        var prev = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = prev; }, 1200);
+      });
+    });
+    actions.appendChild(copyBtn);
+
+    var openBtn = document.createElement('a');
+    openBtn.href = absoluteCdnUrl(item.cdnUrl);
+    openBtn.target = '_blank';
+    openBtn.rel = 'noopener';
+    openBtn.textContent = 'Open';
+    openBtn.style.cssText = 'font-size:0.65rem;padding:0.2rem 0.55rem;border-radius:999px;border:1px solid var(--dash-border);text-decoration:none;color:var(--dash-text);';
+    actions.appendChild(openBtn);
+
+    var delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'danger';
+    delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', function () { deleteLibraryItem(item.relPath); });
+    actions.appendChild(delBtn);
+
+    card.appendChild(actions);
+    return card;
+  }
+
+  async function renderLibrary() {
+    if (!libraryGridEl) return;
+    libraryGridEl.innerHTML = '';
+    var sb = getSandbox();
+    if (!sb) {
+      if (libraryEmptyEl) libraryEmptyEl.hidden = false;
+      if (libraryCountEl) libraryCountEl.textContent = '0';
+      return;
+    }
+    var items;
+    try { items = await fetchLibrary(sb); }
+    catch (e) {
+      if (libraryEmptyEl) { libraryEmptyEl.hidden = false; libraryEmptyEl.textContent = 'Library load failed: ' + (e.message || e); }
+      return;
+    }
+    if (!items.length) {
+      if (libraryEmptyEl) { libraryEmptyEl.hidden = false; libraryEmptyEl.textContent = 'Library empty. Classify a scrape below, then click Publish on the images you want to keep.'; }
+      if (libraryCountEl) libraryCountEl.textContent = '0';
+      return;
+    }
+    if (libraryEmptyEl) libraryEmptyEl.hidden = true;
+    if (libraryCountEl) libraryCountEl.textContent = String(items.length);
+    items.forEach(function (it) { libraryGridEl.appendChild(renderLibraryCard(it)); });
+  }
+
   async function classifyScrape(scrapeId, btn) {
     var sb = getSandbox();
     if (!sb || !scrapeId || classifying[scrapeId]) return;
@@ -127,7 +287,13 @@
 
     brand.appendChild(header);
 
-    var filteredImgs = (rec.images || []).filter(function (img) {
+    // Keep the original index in imagesV2 alongside each image so the
+    // Publish endpoint can fetch the right storagePath server-side.
+    var indexedImgs = (rec.images || []).map(function (img, idx) {
+      return { img: img, index: idx };
+    });
+    var filteredImgs = indexedImgs.filter(function (entry) {
+      var img = entry.img;
       if (!imageUrl(img)) return false;
       if (!currentFilter) return true;
       var cat = img.classification && img.classification.category;
@@ -161,7 +327,9 @@
 
     var grid = document.createElement('div');
     grid.className = 'image-hosting-grid';
-    filteredImgs.forEach(function (img) {
+    filteredImgs.forEach(function (entry) {
+      var img = entry.img;
+      var originalIndex = entry.index;
       var url = imageUrl(img);
       var card = document.createElement('div');
       card.className = 'image-hosting-card';
@@ -201,10 +369,21 @@
         urlLink.href = img.publicUrl;
         urlLink.target = '_blank';
         urlLink.rel = 'noopener';
-        urlLink.textContent = 'Public URL';
+        urlLink.textContent = 'GCS URL';
         urlLink.addEventListener('click', function (e) { e.stopPropagation(); });
         card.appendChild(urlLink);
       }
+
+      var pubBtn = document.createElement('button');
+      pubBtn.type = 'button';
+      pubBtn.className = 'image-hosting-card-publish';
+      pubBtn.textContent = 'Publish to library';
+      pubBtn.title = 'Promote this image to the curated library with a standard name.';
+      pubBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        publishToLibrary(rec.scrapeId, originalIndex, pubBtn);
+      });
+      card.appendChild(pubBtn);
 
       card.addEventListener('click', function () { openLightbox(url, img); });
       card.addEventListener('keydown', function (e) {
@@ -271,6 +450,8 @@
     lastRecords = brands;
     populateCategoryFilter(collectCategories(brands));
     render();
+    // Library is independent of scrape records; always refresh in parallel.
+    renderLibrary().catch(function () { /* surfaced inline */ });
   }
 
   function render() {

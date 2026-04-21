@@ -61,6 +61,15 @@
           <p id="imageHostingStatus" class="status" role="status" aria-live="polite"></p>
         </section>
 
+        <section class="image-hosting-library-panel panel" aria-labelledby="imageHostingLibraryHeader">
+          <header class="image-hosting-library-header">
+            <h2 id="imageHostingLibraryHeader" style="margin:0;">Current library <span id="imageHostingLibraryCountPill" class="dashboard-env-pill" style="margin-left:0.5rem;">0</span></h2>
+            <p class="hint" style="margin:0.25rem 0 0;">Curated assets for this sandbox. Publish classified images below to promote them here with standard names. Every file gets a stable <code>/cdn/&lt;sandbox&gt;/&lt;file&gt;</code> URL that you can embed in demos.</p>
+          </header>
+          <div id="imageHostingLibraryGrid" class="image-hosting-library-grid" aria-live="polite"></div>
+          <p id="imageHostingLibraryEmpty" class="image-hosting-empty" hidden>Library empty. Classify a scrape below, then click <strong>Publish</strong> on the images you want to keep.</p>
+        </section>
+
         <section class="image-hosting-list" id="imageHostingList" aria-label="Brand scrapes with hosted images"></section>
       </main>
     </div>
@@ -82,6 +91,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script src="image-hosting.js?v=20260421d"></script>
+  <script src="image-hosting.js?v=20260421e"></script>
 </body>
 </html>

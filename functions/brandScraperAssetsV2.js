@@ -105,7 +105,7 @@ async function uploadBytes(sandbox, scrapeId, index, bytes, contentType, extensi
   const hash = crypto.createHash('sha1').update(bytes).digest('hex').slice(0, 10);
   const safeScrape = String(scrapeId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
   const safeSandbox = String(sandbox || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const name = `${safeSandbox}/${safeScrape}/images/${String(index).padStart(3, '0')}-${hash}.${extension}`;
+  const name = `scrapes/${safeSandbox}/${safeScrape}/images/${String(index).padStart(3, '0')}-${hash}.${extension}`;
   const file = bucket.file(name);
   await file.save(bytes, {
     contentType: contentType || 'application/octet-stream',
