@@ -83,6 +83,20 @@ body.experimentation-accelerator-page.experimentation-accelerator-page--immersiv
   box-sizing: border-box;
 }
 
+/* Inset mock workspace so overview/experiments fit the viewport with even side gaps */
+.experimentation-accelerator-page .ajo-mock-workspace {
+  padding-inline: clamp(0.65rem, 2vw, 1.25rem);
+}
+
+/* Cancel tab strip negative margins inside padded workspace (prevents horizontal overflow) */
+.experimentation-accelerator-page .ajo-mock-workspace .ajo-tabs,
+.experimentation-accelerator-page .ajo-mock-workspace .ajo-page-head--tabs-first .ajo-tabs {
+  margin-left: 0;
+  margin-right: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 /* Overview tab: window scrolls native overview (no inner flex trap) — ported from pre-Walnut polish */
 body.experimentation-accelerator-page[data-ajo-tab='overview'] .dashboard-main-wrap {
   min-height: auto;
@@ -633,6 +647,8 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
 .ajo-overview-scroll {
   padding: 0;
   background: var(--ajo-work-bg);
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .ajo-overview-native {
@@ -642,8 +658,6 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   padding-bottom: 1.5rem;
   /* Do not set overflow-x: hidden here — it can clip the absolutely positioned KPI deck
      that overlaps the next section (numbers appear “cut in half”). Page uses body overflow-x. */
-  padding-left: clamp(0.5rem, 1.25vw, 1.25rem);
-  padding-right: clamp(0.5rem, 1.25vw, 1.25rem);
   overflow: visible;
 }
 
@@ -2233,16 +2247,17 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
   gap: 1.25rem;
   margin-bottom: 1.5rem;
   align-items: start;
-  max-width: min(1040px, 100%);
+  max-width: min(1200px, 100%);
   margin-left: auto;
   margin-right: auto;
 }
 
 @media (min-width: 920px) {
-  /* Details column ~half the previous share: narrow left column, Opportunities gets the rest */
+  /* Details (incl. leader image row) gets most width; Opportunities a fixed right rail */
   .ajo-exp-detail-grid {
-    grid-template-columns: minmax(0, 38%) minmax(260px, 1fr);
-    gap: 1.5rem;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, min(32%, 360px));
+    gap: 1.75rem;
+    max-width: min(1200px, 100%);
   }
 }
 
@@ -2330,15 +2345,22 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
 
 .ajo-exp-leader-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, min(42vw, 280px));
-  gap: 1rem 1.25rem;
-  align-items: stretch;
+  /* Columns are % of this card only (no vw) so copy + image stay side-by-side when Details is wide */
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, min(62%, 30rem));
+  gap: 1rem 1.5rem;
+  align-items: start;
   background: var(--ajo-surface-2);
   border: 1px solid var(--ajo-border);
   border-radius: var(--dash-radius-sm, 12px);
-  padding: 1rem 1.1rem;
+  padding: 1rem 1.15rem;
   margin-bottom: 1rem;
   min-width: 0;
+}
+
+@media (min-width: 720px) {
+  .ajo-exp-leader-card {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, min(64%, 36rem));
+  }
 }
 
 @media (max-width: 640px) {
@@ -2392,11 +2414,13 @@ html[data-aep-theme='dark'] .ajo-exp-lead-ico {
   );
   border: 1px solid var(--ajo-border);
   width: 100%;
+  max-width: 100%;
   aspect-ratio: 4 / 3;
   min-height: 140px;
   min-width: 0;
   box-sizing: border-box;
   overflow: hidden;
+  justify-self: stretch;
 }
 
 .ajo-exp-leader-thumb-placeholder {
