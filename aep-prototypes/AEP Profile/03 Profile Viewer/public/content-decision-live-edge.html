@@ -853,7 +853,47 @@
     }
     .cd-lab-placement-row label { margin-bottom: 0.25rem; }
     .cd-lab-placement-row input, .cd-lab-placement-row select { margin-bottom: 0; }
-    .cd-lab-placement-type { width: 100%; font-size: 0.8rem; padding: 0.45rem 0.55rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-panel); color: var(--text); }
+
+    /* Type toggle — two-segment pill, same visual height as a text input
+       so the placement row aligns cleanly on the baseline. */
+    .cd-lab-placement-type-wrap { display: flex; flex-direction: column; }
+    .cd-lab-placement-type-toggle {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: stretch;
+      height: 2.2rem;                    /* matches ~input height */
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--bg);
+      cursor: pointer;
+      user-select: none;
+      overflow: hidden;
+      font-size: 0.74rem;
+      line-height: 1;
+    }
+    .cd-lab-placement-type-toggle input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+    .cd-lab-placement-type-seg {
+      position: relative; z-index: 1;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 600;
+      color: var(--muted);
+      transition: color 0.15s ease;
+      padding: 0 0.5rem;
+      white-space: nowrap;
+    }
+    .cd-lab-placement-type-pill {
+      position: absolute; top: 2px; bottom: 2px; left: 2px;
+      width: calc(50% - 2px);
+      background: var(--accent);
+      border-radius: 999px;
+      transition: transform 0.18s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .cd-lab-placement-type-toggle input:checked ~ .cd-lab-placement-type-pill { transform: translateX(100%); }
+    .cd-lab-placement-type-toggle input:not(:checked) ~ .cd-lab-placement-type-seg--left { color: var(--cd-primary-btn-fg, #fff); }
+    .cd-lab-placement-type-toggle input:checked ~ .cd-lab-placement-type-seg--right { color: var(--cd-primary-btn-fg, #fff); }
+    .cd-lab-placement-type-toggle input:focus-visible ~ .cd-lab-placement-type-pill { outline: 2px solid var(--accent); outline-offset: 2px; }
     .cd-lab-placement-row-remove {
       padding: 0.45rem 0.65rem;
       font-size: 0.8125rem;
@@ -864,7 +904,7 @@
         grid-template-columns: 1fr 1fr;
       }
       .cd-lab-placement-row-remove { grid-column: 1 / -1; justify-self: end; }
-      .cd-lab-placement-type { grid-column: 1 / -1; }
+      .cd-lab-placement-type-wrap { grid-column: 1 / -1; }
     }
   </style>
   <!-- Launch rules sometimes push to dataLayer (GTM-style); define before Launch to avoid ReferenceError — same as /index.html -->
