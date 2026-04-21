@@ -1305,14 +1305,24 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     }
 
     let saved = null;
+    let persistError = null;
     try {
       saved = await brandScrapeStore.saveScrape(sandbox, recordToPersist);
     } catch (e) {
-      analysisError = analysisError || ('Persist failed: ' + String(e && e.message || e));
+      persistError = String(e && e.message || e);
+      console.error('[brandScraperAnalyze] persist failed', {
+        sandbox,
+        scrapeId: recordToPersist.scrapeId,
+        brandName: recordToPersist.brandName,
+        url: recordToPersist.url,
+        error: persistError,
+      });
+      analysisError = analysisError || ('Persist failed: ' + persistError);
     }
 
     res.status(200).json({
       scrapeId: saved && saved.scrapeId,
+      persistError,
       sandbox,
       brandName: (saved && saved.brandName) || crawl.brandName,
       baseUrl: (saved && saved.baseUrl) || crawl.baseUrl,

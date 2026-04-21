@@ -78,12 +78,59 @@ async function saveScrape(sandbox, payload) {
     lastExport: payload.lastExport || null,
     elapsedMs: typeof payload.elapsedMs === 'number' ? payload.elapsedMs : null,
   };
-  const encoded = JSON.stringify(record);
-  if (encoded.length > MAX_RECORD_CHARS) {
-    // If the record is too large (e.g. huge analysis), drop page text details.
-    record.crawlSummary = record.crawlSummary
-      ? { ...record.crawlSummary, pages: (record.crawlSummary.pages || []).slice(0, 20) }
-      : null;
+  // Progressive size guard: Firestore caps documents at 1 MiB. The crawl +
+  // LLM outputs for a large brand (especially airlines / retailers) routinely
+  // blow past that if we persist naively, which silently drops the entire
+  // scrape. Drop the heaviest fields first, log what we trimmed, and fall
+  // back to a minimal record rather than losing the scrape.
+  const sizeOf = (obj) => JSON.stringify(obj).length;
+  const trimmed = [];
+  const trimPages = (limit) => {
+    if (!record.crawlSummary || !Array.isArray(record.crawlSummary.pages)) return false;
+    const before = record.crawlSummary.pages.length;
+    if (before <= limit) return false;
+    record.crawlSummary = { ...record.crawlSummary, pages: record.crawlSummary.pages.slice(0, limit) };
+    trimmed.push(`crawlSummary.pages:${before}→${limit}`);
+    return true;
+  };
+  const trimText = (field, chars) => {
+    const val = record[field];
+    if (!val) return false;
+    const json = JSON.stringify(val);
+    if (json.length <= chars) return false;
+    record[field] = { ...(typeof val === 'object' ? val : {}), truncated: true, truncatedFrom: json.length };
+    trimmed.push(`${field}:~${json.length}→truncated`);
+    return true;
+  };
+  const dropField = (field) => {
+    if (record[field] == null) return false;
+    record[field] = { dropped: true, reason: 'firestore 1MiB limit' };
+    trimmed.push(field);
+    return true;
+  };
+
+  let encodedLen = sizeOf(record);
+  const steps = [
+    () => trimPages(30),
+    () => trimPages(15),
+    () => trimPages(5),
+    () => trimText('analysis', 200_000),
+    () => trimText('personas', 150_000),
+    () => trimText('campaigns', 150_000),
+    () => trimText('segments', 100_000),
+    () => trimText('stakeholders', 100_000),
+    () => dropField('analysis'),
+    () => dropField('personas'),
+    () => dropField('campaigns'),
+    () => dropField('segments'),
+    () => dropField('stakeholders'),
+  ];
+  for (let i = 0; encodedLen > MAX_RECORD_CHARS && i < steps.length; i++) {
+    steps[i]();
+    encodedLen = sizeOf(record);
+  }
+  if (trimmed.length) {
+    console.warn('[brandScrapeStore] trimmed oversized record', JSON.stringify({ sandbox: name, scrapeId, size: encodedLen, trimmed }));
   }
   const ref = getDb().collection(COLLECTION).doc(docId(name, scrapeId));
   await getDb().runTransaction(async (tx) => {
