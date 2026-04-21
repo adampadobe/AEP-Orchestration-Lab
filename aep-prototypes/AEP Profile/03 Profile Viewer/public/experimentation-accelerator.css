@@ -461,13 +461,9 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
 }
 
 /* Page chrome */
+/* Remove duplicate outer header/tabs above the stitched Walnut banner */
 .ajo-page-head {
-  flex-shrink: 0;
-  padding: 1rem 1.25rem 0;
-  background: var(--ajo-work-bg);
-  border-bottom: 1px solid var(--ajo-border);
-  width: 100%;
-  box-sizing: border-box;
+  display: none;
 }
 
 /* Tabs first: tabs sit flush under the app chrome; title row is directly below tabs (no stray band above the banner) */
@@ -613,25 +609,24 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   border: 0;
   display: block;
   /* Mock AJO top bar removed — only page head + tabs consume vertical space */
-  height: calc(100dvh - 64px);
+  height: 100dvh;
   /* Crop duplicate AJO header + left rail + letterboxing inside the Walnut capture */
   clip-path: inset(9% 0 14% 6%);
 }
 
 @media (max-width: 768px) {
   .ajo-experiments-guided-iframe {
-    height: calc(100dvh - 56px);
+    height: 100dvh;
     clip-path: inset(8% 0 16% 7%);
   }
 }
 
-/* Overview — stitched Walnut exports (scroll parent; each iframe is one viewport tall). */
+/* Overview — stitched Walnut exports. */
 #ajoPanelOverview .ajo-panel-inner.ajo-walnut-overview {
   padding: 0;
   margin: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
+  -webkit-overflow-scrolling: auto;
   background: var(--ajo-work-bg);
 }
 
@@ -639,52 +634,67 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: min-content;
-  /* Tunable crops (percent of iframe box) — trim duplicate chrome + black bars in saved captures */
-  --ajo-walnut-clip-p1: inset(10% 0 32% 6%);
-  --ajo-walnut-clip-p2: inset(23% 0 14% 6%);
+  min-height: 0;
 }
 
 .ajo-walnut-stitch-row {
+  position: relative;
   flex: 0 0 auto;
   width: 100%;
   overflow: hidden;
   background: var(--ajo-work-bg);
 }
 
-/* Pull page 2 up so the stitch reads as one continuous canvas */
+.ajo-walnut-stitch-row--p1 {
+  height: min(53vw, 560px);
+}
+
+/* Bottom section starts immediately after top section (no whitespace gap). */
 .ajo-walnut-stitch-row--p2 {
-  margin-top: clamp(-1.5rem, -2.5vh, -0.35rem);
+  height: min(39vw, 420px);
+  margin-top: 0;
 }
 
 .ajo-walnut-stitch-iframe {
-  flex: 0 0 auto;
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 100%;
   border: 0;
   display: block;
-  height: calc(100dvh - 64px);
-  min-height: calc(100dvh - 64px);
+  height: min(92vw, 980px);
+  min-height: 900px;
+  transform-origin: top left;
 }
 
-/* Page 1: drop tail after “Latest updates” + bottom black letterbox */
 .ajo-walnut-stitch-iframe--p1 {
-  clip-path: var(--ajo-walnut-clip-p1);
+  transform: translateY(-12%);
 }
 
-/* Page 2: drop duplicate header/top black bar so it continues from page 1 */
 .ajo-walnut-stitch-iframe--p2 {
-  clip-path: var(--ajo-walnut-clip-p2);
+  transform: translateY(-52%);
 }
 
 @media (max-width: 768px) {
-  .ajo-walnut-stitch {
-    --ajo-walnut-clip-p1: inset(11% 0 34% 7%);
-    --ajo-walnut-clip-p2: inset(25% 0 16% 7%);
+  .ajo-walnut-stitch-row--p1 {
+    height: min(110vw, 540px);
+  }
+
+  .ajo-walnut-stitch-row--p2 {
+    height: min(88vw, 420px);
   }
 
   .ajo-walnut-stitch-iframe {
-    height: calc(100dvh - 56px);
-    min-height: calc(100dvh - 56px);
+    height: min(140vw, 740px);
+    min-height: 640px;
+  }
+
+  .ajo-walnut-stitch-iframe--p1 {
+    transform: translateY(-13%);
+  }
+
+  .ajo-walnut-stitch-iframe--p2 {
+    transform: translateY(-54%);
   }
 }
 
