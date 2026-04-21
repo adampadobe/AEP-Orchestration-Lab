@@ -13,10 +13,11 @@
   ];
 
   var DEFAULT_PLACEMENTS = [
-    { key: 'topRibbon', fragment: 'TopRibbon', label: 'Top ribbon' },
-    { key: 'hero', fragment: 'hero-banner', label: 'Hero banner' },
-    { key: 'contentCard', fragment: 'ContentCardContainer', label: 'Content card' },
+    { key: 'topRibbon', fragment: 'TopRibbon', label: 'Top ribbon', type: 'exd' },
+    { key: 'hero', fragment: 'hero-banner', label: 'Hero banner', type: 'exd' },
+    { key: 'contentCard', fragment: 'ContentCardContainer', label: 'Content card', type: 'contentCard' },
   ];
+  var PLACEMENT_TYPES = { exd: 1, contentCard: 1 };
 
   var _placements = DEFAULT_PLACEMENTS.slice();
 
@@ -37,10 +38,15 @@
         .trim()
         .replace(/^#/, '');
       if (!fragment) continue;
+      var type = p.type && PLACEMENT_TYPES[p.type] ? p.type : null;
+      if (!type) {
+        type = /content\s*card|message\s*feed|cardcontainer/i.test(fragment) ? 'contentCard' : 'exd';
+      }
       next.push({
         key: key,
         fragment: fragment,
         label: String(p.label || fragment).trim().slice(0, 128),
+        type: type,
       });
     }
     if (next.length) _placements = next;
@@ -334,6 +340,149 @@
     return true;
   }
 
+  // ── AJO message / content-card renderer ─────────────────────────────
+  //
+  // Separate from the slot-based EXD banner renderer because content
+  // cards ship a richer payload: nested title/body objects, an image
+  // with alt, an array of buttons, and an optional dismiss control.
+  // Flattening them into the EXD 4-field shape lost the buttons and
+  // collapsed the dismiss affordance.
+
+  var CARD_SCHEMA = 'https://ns.adobe.com/personalization/message/content-card';
+  var RULESET_SCHEMA = 'https://ns.adobe.com/personalization/ruleset-item';
+
+  /** Pull the content-card `data.content` block out of any legal shape. */
+  function extractContentCardDetail(item) {
+    if (!item) return null;
+    if (item.schema === CARD_SCHEMA) return item.data || null;
+    if (item.schema === RULESET_SCHEMA) {
+      var rules = item.data && item.data.rules;
+      if (!Array.isArray(rules)) return null;
+      for (var i = 0; i < rules.length; i++) {
+        var cs = rules[i] && rules[i].consequences;
+        if (!Array.isArray(cs)) continue;
+        for (var j = 0; j < cs.length; j++) {
+          var detail = cs[j] && cs[j].detail;
+          if (detail && detail.schema === CARD_SCHEMA) return detail.data || null;
+        }
+      }
+    }
+    return null;
+  }
+
+  function renderMessageContentCard(el, cardData) {
+    if (!el || !cardData) return false;
+    var content = cardData.content;
+    if (!content || typeof content !== 'object') return false;
+
+    var titleText = (content.title && typeof content.title === 'object')
+      ? (content.title.content || '')
+      : (content.title || '');
+    var bodyText = (content.body && typeof content.body === 'object')
+      ? (content.body.content || '')
+      : (content.body || '');
+    var imgUrl = '';
+    var imgAlt = '';
+    if (content.image && typeof content.image === 'object') {
+      imgUrl = content.image.url || content.image.src || '';
+      imgAlt = content.image.alt || '';
+    } else if (typeof content.image === 'string') {
+      imgUrl = content.image;
+    }
+    var buttons = Array.isArray(content.buttons) ? content.buttons : [];
+    var dismissStyle = content.dismissBtn && content.dismissBtn.style;
+
+    // Mark the mount so CSS can style content cards distinctly from EXD banners.
+    el.classList.add('cd-banner-wrap');
+    el.innerHTML = '';
+
+    var card = document.createElement('div');
+    card.className = 'cd-banner cd-banner--overlay cd-banner--card';
+    card.setAttribute('data-cd-kind', 'contentCard');
+
+    if (imgUrl) {
+      var fig = document.createElement('div');
+      fig.className = 'cd-banner-figure';
+      var img = document.createElement('img');
+      img.className = 'cd-banner-image';
+      img.src = imgUrl;
+      img.alt = imgAlt;
+      img.loading = 'lazy';
+      img.referrerPolicy = 'no-referrer';
+      fig.appendChild(img);
+      card.appendChild(fig);
+    }
+
+    var copy = document.createElement('div');
+    copy.className = 'cd-banner-copy';
+
+    if (titleText) {
+      var titleSlot = document.createElement('div');
+      titleSlot.className = 'cd-slot cd-slot--title';
+      var tEl = document.createElement('div');
+      tEl.className = 'cd-slot-title';
+      tEl.textContent = String(titleText);
+      titleSlot.appendChild(tEl);
+      copy.appendChild(titleSlot);
+    }
+    if (bodyText) {
+      var descSlot = document.createElement('div');
+      descSlot.className = 'cd-slot cd-slot--desc';
+      var dEl = document.createElement('div');
+      dEl.className = 'cd-slot-desc';
+      dEl.textContent = String(bodyText);
+      descSlot.appendChild(dEl);
+      copy.appendChild(descSlot);
+    }
+
+    if (buttons.length) {
+      var btnSlot = document.createElement('div');
+      btnSlot.className = 'cd-slot cd-slot--cta cd-slot--cta-group';
+      for (var b = 0; b < buttons.length; b++) {
+        var btnDef = buttons[b] || {};
+        var actionUrl = btnDef.actionUrl || '';
+        var btnText = (btnDef.text && typeof btnDef.text === 'object')
+          ? (btnDef.text.content || '')
+          : (btnDef.text || '');
+        if (!btnText) continue;
+        var ctaEl = document.createElement(actionUrl ? 'a' : 'span');
+        ctaEl.className = 'cd-slot-cta';
+        ctaEl.textContent = String(btnText);
+        if (actionUrl) { ctaEl.href = actionUrl; ctaEl.target = '_blank'; ctaEl.rel = 'noopener'; }
+        btnSlot.appendChild(ctaEl);
+      }
+      if (btnSlot.children.length) copy.appendChild(btnSlot);
+    } else if (content.actionUrl) {
+      var only = document.createElement('div');
+      only.className = 'cd-slot cd-slot--cta';
+      var a = document.createElement('a');
+      a.className = 'cd-slot-cta';
+      a.href = content.actionUrl;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = 'Learn more';
+      only.appendChild(a);
+      copy.appendChild(only);
+    }
+
+    card.appendChild(copy);
+
+    if (dismissStyle) {
+      var dismiss = document.createElement('button');
+      dismiss.type = 'button';
+      dismiss.className = 'cd-card-dismiss cd-card-dismiss--' + String(dismissStyle).replace(/[^a-z0-9_-]/gi, '');
+      dismiss.setAttribute('aria-label', 'Dismiss');
+      dismiss.textContent = '×';
+      dismiss.addEventListener('click', function () {
+        try { el.setAttribute('hidden', ''); } catch (_e) {}
+      });
+      card.appendChild(dismiss);
+    }
+
+    el.appendChild(card);
+    return true;
+  }
+
   function looksLikeHtmlString(s) {
     if (typeof s !== 'string') return false;
     var t = s.trim();
@@ -342,12 +491,18 @@
 
   function applyItemToElement(el, item) {
     if (!el || !item) return false;
+
+    // 1. Schema-first branch: AJO message/content-card (maybe wrapped in
+    //    a ruleset-item) gets the rich renderer with buttons + dismiss.
+    var cardDetail = extractContentCardDetail(item);
+    if (cardDetail) {
+      return renderMessageContentCard(el, cardDetail);
+    }
+
     var data = getItemData(item);
     if (!data) return false;
 
-    // Try the slot-based banner renderer first for structured JSON payloads.
-    // Raw HTML / iframes fall through below if the payload doesn't look
-    // like a content-card.
+    // 2. Slot-based EXD banner renderer for flat json-content-item.
     var cardPayload = normalizeContentCardPayload(data);
     if (cardPayload) {
       return renderContentCardPayload(el, cardPayload);
@@ -391,6 +546,14 @@
 
   function firstContentCardMount(mountByKey) {
     var i;
+    // Prefer placements explicitly typed as contentCard; fall back to
+    // the legacy fragment-name regex for configs saved before the type
+    // field existed.
+    for (i = 0; i < _placements.length; i++) {
+      if (_placements[i].type === 'contentCard') {
+        return mountByKey[_placements[i].key] || null;
+      }
+    }
     for (i = 0; i < _placements.length; i++) {
       if (/contentcard|content.card/i.test(_placements[i].fragment)) {
         return mountByKey[_placements[i].key] || null;
@@ -422,10 +585,16 @@
       if (resolveTargetForProposition(p, mountByKey)) continue;
       items = p.items || [];
       for (j = 0; j < items.length; j++) {
-        var data = getItemData(items[j]);
-        if (!normalizeContentCardPayload(data)) continue;
+        var itm = items[j];
+        // An unrouted proposition goes to the first content-card mount
+        // if EITHER the item is an AJO message/content-card OR the
+        // payload smells like a card.
+        var looksLikeCard =
+          extractContentCardDetail(itm) ||
+          normalizeContentCardPayload(getItemData(itm));
+        if (!looksLikeCard) continue;
         if (cards && surfaceNotYetRendered(cards)) {
-          applyItemToElement(cards, items[j]);
+          applyItemToElement(cards, itm);
           break;
         }
       }
