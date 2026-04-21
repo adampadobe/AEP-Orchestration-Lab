@@ -49,6 +49,69 @@
   width: 100%;
 }
 
+/* Overview tab: window scrolls native overview (no inner flex trap) — ported from pre-Walnut polish */
+body.experimentation-accelerator-page[data-ajo-tab='overview'] .dashboard-main-wrap {
+  min-height: auto;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] .profile-viewer-main {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] #expAccelApp {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock-workspace {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-panel-stack {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+  position: relative;
+  height: auto;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview.ajo-panel {
+  position: relative;
+  inset: auto;
+  overflow: visible;
+  height: auto;
+  min-height: auto;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview .ajo-panel-inner.ajo-overview-scroll {
+  overflow: visible;
+  flex: none;
+  min-height: auto;
+}
+
+/* Experiments tab: panel fills workspace below tabs */
+body.experimentation-accelerator-page[data-ajo-tab='experiments'] .ajo-panel-stack {
+  flex: 1;
+  min-height: 0;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab='experiments'] #ajoPanelExperiments.ajo-panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
 @media (min-width: 769px) {
   body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar {
     position: fixed;
@@ -387,6 +450,24 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   border-bottom: 1px solid var(--ajo-border);
   width: 100%;
   box-sizing: border-box;
+}
+
+.ajo-page-head--tabs-first {
+  padding: 0 1.25rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ajo-page-head--tabs-first .ajo-tabs {
+  margin: 0 -1.25rem;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--ajo-border);
+}
+
+.ajo-page-head--tabs-first .ajo-page-head-row {
+  margin-top: 0.75rem;
+  margin-bottom: 0.65rem;
 }
 
 .ajo-page-head-row {
