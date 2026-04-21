@@ -3172,20 +3172,24 @@ button.ajo-exp-opp-card:focus-visible {
   cursor: default;
 }
 
-/* Insight details modal */
-.ajo-insight-dialog {
-  max-width: min(680px, calc(100vw - 2.5rem));
+/* Insight + Opportunity modals — shared chrome (solid surface, same size) */
+.ajo-insight-dialog,
+.ajo-opp-detail-dialog {
+  max-width: min(1100px, calc(100vw - 2rem));
   width: 100%;
+  max-height: min(92vh, 920px);
   padding: 0;
-  border: none;
+  border: 1px solid var(--ajo-border);
   border-radius: var(--dash-radius, 16px);
-  background: color-mix(in srgb, var(--ajo-border) 12%, var(--ajo-work-bg));
+  background: var(--ajo-surface);
   color: var(--ajo-text);
   box-shadow: var(--dash-shadow-hover, 0 16px 48px rgba(15, 15, 25, 0.18));
+  overflow: hidden;
 }
 
-.ajo-insight-dialog::backdrop {
-  background: color-mix(in srgb, var(--ajo-text) 28%, transparent);
+.ajo-insight-dialog::backdrop,
+.ajo-opp-detail-dialog::backdrop {
+  background: color-mix(in srgb, var(--ajo-text) 32%, transparent);
 }
 
 .experimentation-accelerator-page--exp-detail .ajo-insight-dialog {
@@ -3193,7 +3197,12 @@ button.ajo-exp-opp-card:focus-visible {
 }
 
 .ajo-insight-dialog-surface {
-  padding: 1rem 1.15rem 1.25rem;
+  padding: 1.15rem 1.3rem 1.4rem;
+  max-height: min(92vh, 920px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  background: var(--ajo-surface);
 }
 
 .ajo-insight-dialog-top {
@@ -3389,28 +3398,13 @@ button.ajo-exp-opp-card:focus-visible {
   margin-right: 0.25rem;
 }
 
-.ajo-opp-detail-dialog {
-  max-width: min(960px, calc(100vw - 1.75rem));
-  width: 100%;
-  max-height: min(92vh, 900px);
-  padding: 0;
-  border: none;
-  border-radius: var(--dash-radius, 16px);
-  background: color-mix(in srgb, var(--ajo-border) 10%, var(--ajo-work-bg));
-  color: var(--ajo-text);
-  box-shadow: var(--dash-shadow-hover, 0 16px 48px rgba(15, 15, 25, 0.18));
-}
-
-.ajo-opp-detail-dialog::backdrop {
-  background: color-mix(in srgb, var(--ajo-text) 28%, transparent);
-}
-
 .ajo-opp-detail-inner {
-  max-height: min(92vh, 900px);
+  max-height: min(92vh, 920px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 1rem 1.15rem 1.35rem;
+  padding: 1.15rem 1.3rem 1.4rem;
   box-sizing: border-box;
+  background: var(--ajo-surface);
 }
 
 .ajo-opp-detail-header {
