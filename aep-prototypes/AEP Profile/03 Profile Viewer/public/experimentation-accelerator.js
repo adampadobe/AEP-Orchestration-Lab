@@ -136,10 +136,60 @@
     setFlyoutOpen(false);
   }
 
+  function initWalnutPage4Overlay() {
+    var overlay = document.getElementById('ajoWalnutPage4Overlay');
+    var closeBtn = document.getElementById('ajoWalnutPage4Close');
+    var iframe = document.getElementById('ajoWalnutPage4Iframe');
+    if (!overlay || !iframe) return;
+
+    function loadIframeOnce() {
+      var ds = iframe.getAttribute('data-src');
+      if (!ds || iframe.getAttribute('src')) return;
+      iframe.setAttribute('src', ds);
+    }
+
+    function openOverlay() {
+      loadIframeOnce();
+      overlay.hidden = false;
+      overlay.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('ajo-walnut-page4-open');
+      if (closeBtn) closeBtn.focus();
+    }
+
+    function closeOverlay() {
+      overlay.hidden = true;
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('ajo-walnut-page4-open');
+    }
+
+    window.addEventListener('message', function (ev) {
+      try {
+        if (ev.origin !== window.location.origin) return;
+      } catch (e) {}
+      var d = ev && ev.data;
+      if (!d || d.type !== 'aep-exp-accel-walnut' || d.action !== 'openPage4') return;
+      openOverlay();
+    });
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function () {
+        closeOverlay();
+      });
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !overlay.hidden) {
+        e.preventDefault();
+        closeOverlay();
+      }
+    });
+  }
+
   function init() {
     initTabs();
     initExpFilters();
     initFlyoutSidebar();
+    initWalnutPage4Overlay();
   }
 
   if (document.readyState === 'loading') {
