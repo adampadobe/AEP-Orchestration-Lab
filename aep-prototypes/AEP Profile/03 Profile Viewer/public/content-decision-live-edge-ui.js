@@ -326,6 +326,20 @@
     return v;
   }
 
+  // Mark the config section as "already configured" — collapse the details
+  // and show a green OK badge if the three fields that drive Launch injection
+  // (datastream id, launch script, target URL) are all present.
+  function updateConfigBadge() {
+    var ds = el('edgeConfigId') && el('edgeConfigId').value.trim();
+    var lu = el('cdLabLaunchUrl') && el('cdLabLaunchUrl').value.trim();
+    var tu = el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim();
+    var ok = !!(ds && lu && tu);
+    var details = el('cdLabConfigDetails');
+    var badge = el('cdLabConfigBadge');
+    if (badge) badge.hidden = !ok;
+    if (details) details.open = !ok;
+  }
+
   function loadRecordIntoForm(rec) {
     if (!rec || typeof rec !== 'object') return;
     if (rec.datastreamId && el('edgeConfigId')) el('edgeConfigId').value = rec.datastreamId;
@@ -354,6 +368,7 @@
     populateStyleSurfaceDropdown();
     loadStyleEditorForSelectedSurface();
     applySurfaceStylesToMounts();
+    updateConfigBadge();
   }
 
   // ===== Per-surface styling =====
@@ -1002,6 +1017,10 @@
         launchEl.addEventListener('paste', function () { setTimeout(normaliseLaunchInput, 0); });
         launchEl.addEventListener('change', maybeReinjectLaunch);
       }
+
+      ['edgeConfigId', 'cdLabLaunchUrl', 'cdLabTargetPageUrl'].forEach(function (id) {
+        if (el(id)) el(id).addEventListener('input', updateConfigBadge);
+      });
 
       if (el('cdLabPreviewLaunchBtn')) {
         el('cdLabPreviewLaunchBtn').addEventListener('click', previewLaunchRuleChange);

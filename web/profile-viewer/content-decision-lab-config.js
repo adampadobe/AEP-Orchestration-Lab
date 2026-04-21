@@ -56,8 +56,9 @@
     });
   }
 
-  function injectLaunchFromUrl(scriptUrl, scriptId) {
+  function injectLaunchFromUrl(scriptUrl, scriptId, opts) {
     scriptId = scriptId || 'cd-edge-launch-script';
+    opts = opts || {};
     return new Promise(function (resolve, reject) {
       var existing = document.getElementById(scriptId);
       if (existing) existing.remove();
@@ -70,10 +71,14 @@
         reject(new Error('Launch URL must start with https://'));
         return;
       }
+      var src = u;
+      if (opts.cacheBust) {
+        src += (u.indexOf('?') === -1 ? '?' : '&') + '_cb=' + Date.now();
+      }
       var s = document.createElement('script');
       s.id = scriptId;
       s.async = true;
-      s.src = u;
+      s.src = src;
       s.onload = function () {
         resolve(u);
       };

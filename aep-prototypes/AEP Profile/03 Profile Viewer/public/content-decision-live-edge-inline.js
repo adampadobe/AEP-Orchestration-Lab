@@ -227,7 +227,7 @@ waitForAlloy()
     initSandboxSelectWithReload();
   }
 
-  function injectLaunchFromConfiguredUrl() {
+  function injectLaunchFromConfiguredUrl(opts) {
     var url = '';
     var el = document.getElementById('cdLabLaunchUrl');
     if (el) url = el.value.trim();
@@ -235,7 +235,7 @@ waitForAlloy()
     if (typeof CdLabConfigApi === 'undefined' || !CdLabConfigApi.injectLaunchFromUrl) {
       return Promise.reject(new Error('CdLabConfigApi.injectLaunchFromUrl unavailable'));
     }
-    return CdLabConfigApi.injectLaunchFromUrl(url, 'cd-edge-launch-script').then(function (u) {
+    return CdLabConfigApi.injectLaunchFromUrl(url, 'cd-edge-launch-script', opts || {}).then(function (u) {
       beginAfterLaunchInject({ src: u, mode: 'configured' });
       if (window.CdLabUi && typeof window.CdLabUi.noteLaunchInjected === 'function') {
         window.CdLabUi.noteLaunchInjected(u);
@@ -247,7 +247,7 @@ waitForAlloy()
   // Re-inject the Launch script when the user changes the URL live. We reset
   // the cached datastream-configure marker + the alloy global so the new
   // Launch bundle's Web SDK extension takes over cleanly.
-  function reinjectLaunch() {
+  function reinjectLaunch(opts) {
     try { alloyConfiguredFor = ''; } catch (e) {}
     try { if (typeof window.alloy === 'function') delete window.alloy; } catch (e) {}
     try { if (window.__alloyNS && window.__alloyNS.alloy) delete window.__alloyNS.alloy; } catch (e) {}
@@ -258,7 +258,9 @@ waitForAlloy()
       el.className = 'status' + (cls ? ' ' + cls : '');
     };
     setInit('Reloading Launch script…', '');
-    return injectLaunchFromConfiguredUrl().catch(function (e) {
+    // Sandbox switches pass { cacheBust: true } so the new property's Launch
+    // bundle is re-downloaded and any cached alloy state is discarded.
+    return injectLaunchFromConfiguredUrl(opts || { cacheBust: true }).catch(function (e) {
       setInit('Launch reload failed: ' + (e && e.message || e), 'err');
       throw e;
     });
@@ -962,7 +964,10 @@ waitForAlloy()
   function onSandboxSyncedReloadConfig() {
     if (typeof window.CdLabUi === 'undefined' || !window.CdLabUi.fetchConfigFromFirebase) return;
     window.CdLabUi.fetchConfigFromFirebase().then(function () {
-      return injectLaunchFromConfiguredUrl();
+      // Sandbox swap can change the Launch property entirely, so force a full
+      // reinject (clears alloy + datastream-configure cache) rather than a
+      // lightweight script swap.
+      return reinjectLaunch();
     }).catch(function (e) {
       cdLog('Sandbox sync reload failed', String(e.message || e));
     });
