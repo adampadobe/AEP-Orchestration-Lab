@@ -496,6 +496,32 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   box-sizing: border-box;
 }
 
+/* Experiments tab: embedded Walnut guided demo — edge-to-edge under tabs */
+#ajoPanelExperiments .ajo-panel-inner.ajo-experiments-guided {
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--ajo-work-bg);
+}
+
+.ajo-experiments-guided-iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  display: block;
+  /* Near full viewport under AJO top bar + page title/tabs */
+  height: calc(100dvh - 116px);
+}
+
+@media (max-width: 768px) {
+  .ajo-experiments-guided-iframe {
+    height: calc(100dvh - 108px);
+  }
+}
+
 /* Overview — native blocks below tabs (matches reference layout). */
 .ajo-overview-scroll {
   padding: 0;
