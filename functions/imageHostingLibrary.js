@@ -89,13 +89,16 @@ function contentTypeFromExt(ext) {
 }
 
 /**
- * Convert SVG bytes → PNG bytes at up to 1024px on the longest edge.
- * The sharp import is lazy so the cold-start cost isn't paid on every
- * function boot.
+ * Convert arbitrary image bytes to PNG, capped at 1024px on the
+ * longest edge to keep library files small. Sharp is loaded lazily to
+ * avoid paying the cold-start cost when we don't need to transcode.
  */
-async function svgToPng(bytes) {
+async function toPng(bytes) {
   const sharp = require('sharp');
-  return sharp(bytes).resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true }).png().toBuffer();
+  return sharp(bytes)
+    .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
+    .png()
+    .toBuffer();
 }
 
 /**
@@ -109,13 +112,23 @@ async function resolveTargetName(sandbox, opts) {
   let ext = extensionFromContentType(ct) || 'bin';
   let body = bytes;
 
-  // Convert SVG → PNG so external consumers can embed the URL in <img> tags.
-  if (ext === 'svg') {
+  // Standardise every uploaded image to PNG for consumer consistency.
+  // GIFs are the exception — re-encoding to PNG would flatten the
+  // animation — so we keep them as-is. Anything else (JPG/JPEG, SVG,
+  // WEBP, AVIF, BMP, ICO) is transcoded via sharp.
+  if (ext !== 'gif' && ext !== 'png' && ext !== 'bin') {
     try {
-      body = await svgToPng(bytes);
+      body = await toPng(bytes);
       ct = 'image/png';
       ext = 'png';
-    } catch (_e) { /* fall back to the raw SVG if sharp fails */ }
+    } catch (e) {
+      console.warn('[imageHostingLibrary] toPng failed, keeping original', ext, String((e && e.message) || e));
+    }
+  } else if (ext === 'png') {
+    // Even existing PNGs get run through sharp so we apply the same
+    // 1024px cap — cheap and keeps the library uniform.
+    try { body = await toPng(bytes); }
+    catch (_e) { /* keep original bytes on failure */ }
   }
 
   const cat = (classification && classification.category) || '';
