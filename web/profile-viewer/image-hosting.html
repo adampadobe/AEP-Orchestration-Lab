@@ -77,26 +77,18 @@
               </div>
             </div>
           </header>
-          <div class="image-hosting-upload-row" aria-label="Manual upload">
-            <label for="imageHostingManualFolder" class="hint" style="font-weight:600;">Upload directly</label>
-            <div class="image-hosting-upload-controls">
-              <select id="imageHostingManualCategory" class="sandbox-select" aria-label="Target slot">
-                <option value="logo">Logo → <code>logo/logo.&lt;ext&gt;</code></option>
-                <option value="hero_banner">Hero banner → <code>hero-banner.&lt;ext&gt;</code></option>
-                <option value="product">Product → <code>products/&lt;name&gt;</code></option>
-                <option value="">Other (custom name)</option>
-              </select>
-              <input id="imageHostingManualFolder" type="text" placeholder="folder (optional)" autocomplete="off" spellcheck="false" />
-              <input id="imageHostingManualFile" type="text" placeholder="filename.ext (optional)" autocomplete="off" spellcheck="false" />
-              <input id="imageHostingManualUrl" type="url" placeholder="…or paste an image URL" autocomplete="off" spellcheck="false" />
-              <label class="dashboard-btn-outline image-hosting-file-label">
-                Choose file
-                <input id="imageHostingManualFile2" type="file" accept="image/*" hidden />
-              </label>
-              <button type="button" id="imageHostingManualUploadBtn" class="primary">Upload to library</button>
-            </div>
-            <p id="imageHostingManualMsg" class="status" role="status" aria-live="polite"></p>
+          <div id="imageHostingDropZone" class="image-hosting-drop-zone" tabindex="0" role="button" aria-label="Drop ZIP or images to add to library">
+            <input id="imageHostingDropInput" type="file" accept="image/*,.zip,application/zip" multiple hidden />
+            <p class="image-hosting-drop-title">Drop a ZIP or images here</p>
+            <p class="image-hosting-drop-hint">
+              Files are auto-renamed with our convention —
+              <code>logo</code> → <code>logo/logo.png</code>,
+              <code>hero</code>/<code>banner</code> → <code>hero-banner.png</code>,
+              <code>product</code> → <code>products/&lt;name&gt;</code>.
+              SVGs convert to PNG automatically. Or click to browse.
+            </p>
           </div>
+          <p id="imageHostingManualMsg" class="status" role="status" aria-live="polite"></p>
           <div id="imageHostingLibraryGrid" class="image-hosting-library-grid" aria-live="polite"></div>
           <p id="imageHostingLibraryEmpty" class="image-hosting-empty" hidden>Library empty. Classify a scrape below, then click <strong>Publish</strong> on the images you want to keep.</p>
         </section>
@@ -122,6 +114,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260426-edge-indev-label"></script>
-  <script src="image-hosting.js?v=20260421h"></script>
+  <script src="image-hosting.js?v=20260421i"></script>
 </body>
 </html>

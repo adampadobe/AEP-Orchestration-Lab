@@ -329,6 +329,105 @@ function resolveAsset(sandbox, relPath) {
 }
 
 /**
+ * Guess a target folder + base-name from an incoming filename using
+ * simple keyword heuristics. Matches the UX promise: drop a file called
+ * `flynas-logo.svg` → land at logo/logo.png; drop `hero-banner-1.jpg`
+ * → land at hero-banner.jpg.
+ */
+function classifyFromFilename(name) {
+  const base = String(name || '').toLowerCase().replace(/\.[a-z0-9]+$/i, '');
+  if (/(^|[^a-z])(logo)([^a-z]|$)/.test(base)) return { category: 'logo' };
+  if (/(hero|banner)/.test(base)) return { category: 'hero_banner' };
+  if (/(product)/.test(base)) return { category: 'product' };
+  return {};
+}
+
+/**
+ * Decode a single uploaded file → bytes + content type. Supports data
+ * URLs and raw base64.
+ */
+function decodeBase64File(name, base64, contentType) {
+  const b = String(base64 || '');
+  const commaIx = b.indexOf(',');
+  const body = (b.startsWith('data:') && commaIx !== -1) ? b.slice(commaIx + 1) : b;
+  const bytes = Buffer.from(body, 'base64');
+  let ct = String(contentType || '');
+  if (!ct && b.startsWith('data:')) {
+    const m = /^data:([^;]+)[;,]/.exec(b);
+    if (m) ct = m[1];
+  }
+  if (!ct) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    ct = contentTypeFromExt(ext);
+  }
+  return { bytes, contentType: ct };
+}
+
+/**
+ * Upload a single in-memory image into the library with auto-naming.
+ * Shared code path for loose images and ZIP entries.
+ */
+async function uploadSingleFile(sandbox, fileName, bytes, contentType) {
+  const target = await resolveTargetName(sandbox, {
+    classification: classifyFromFilename(fileName),
+    srcName: fileName.replace(/\.[a-z0-9]+$/i, ''),
+    contentType,
+    bytes,
+  });
+  return putLibraryObject(sandbox, target);
+}
+
+/**
+ * Batch upload. Each entry is either a raw image or a ZIP.
+ *   entries: [{ name, base64, contentType }]
+ *   opts: { replace }
+ * Returns { uploaded: [publishedObj, …], errors: [{ name, error }, …] }.
+ */
+async function batchUpload(sandbox, entries, opts) {
+  const uploaded = [];
+  const errors = [];
+  if (opts && opts.replace) {
+    const bucket = getBucket();
+    const prefix = libraryRoot(sandbox) + '/';
+    const [existing] = await bucket.getFiles({ prefix });
+    await Promise.all(existing.map((f) => f.delete({ ignoreNotFound: true }).catch(() => {})));
+  }
+  for (const entry of entries || []) {
+    try {
+      const name = String(entry.name || 'file').trim();
+      const isZip = /\.zip$/i.test(name) || /zip/.test(String(entry.contentType || ''));
+      const { bytes, contentType } = decodeBase64File(name, entry.base64, entry.contentType);
+      if (isZip) {
+        const unzipper = require('unzipper');
+        const directory = await unzipper.Open.buffer(bytes);
+        for (const zEntry of directory.files) {
+          if (zEntry.type !== 'File') continue;
+          const zName = String(zEntry.path || '').replace(/\\/g, '/').replace(/^\/+/, '');
+          if (!zName || zName.indexOf('..') !== -1) continue;
+          const base = zName.split('/').pop();
+          if (!base || base.startsWith('.')) continue;
+          const ext = (base.split('.').pop() || '').toLowerCase();
+          if (!/^(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/.test(ext)) continue;
+          try {
+            const buf = await zEntry.buffer();
+            const published = await uploadSingleFile(sandbox, base, buf, contentTypeFromExt(ext));
+            uploaded.push(published);
+          } catch (e) {
+            errors.push({ name: zName, error: String((e && e.message) || e) });
+          }
+        }
+      } else {
+        const published = await uploadSingleFile(sandbox, name, bytes, contentType);
+        uploaded.push(published);
+      }
+    } catch (e) {
+      errors.push({ name: entry && entry.name, error: String((e && e.message) || e) });
+    }
+  }
+  return { uploaded, errors };
+}
+
+/**
  * Stream a ZIP archive of the current library to the Express response.
  * Flattens the <sandbox>/library/ prefix so the ZIP contents are
  * identical to what a user would upload back to replace the folder.
@@ -405,4 +504,6 @@ module.exports = {
   sandboxPrefix,
   streamLibraryZip,
   restoreLibraryFromZip,
+  batchUpload,
+  classifyFromFilename,
 };

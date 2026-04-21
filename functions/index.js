@@ -2941,6 +2941,15 @@ exports.imageHostingLibrary = onRequest(
         return;
       }
 
+      if (req.method === 'POST' && /\/upload$/.test(path)) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const files = Array.isArray(body.files) ? body.files : [];
+        if (!files.length) { res.status(400).json({ error: 'files[] is required' }); return; }
+        const result = await imageHostingLibrary.batchUpload(sandbox, files, { replace: !!body.replace });
+        res.status(200).json({ sandbox, ...result });
+        return;
+      }
+
       if (req.method === 'GET' && /\/download$/.test(path)) {
         const customer = String((req.query && req.query.customer) || 'library').trim();
         const safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'library';
