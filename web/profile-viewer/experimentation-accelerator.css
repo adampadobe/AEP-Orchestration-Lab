@@ -30,17 +30,29 @@ body.experimentation-accelerator-page {
   overflow-x: hidden;
 }
 
+/* Immersive mode: always full-bleed (home.css centers .dashboard-main at 1680px — that must not apply here). */
+body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-shell,
+body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-main-wrap {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
 .experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-topbar {
   display: none;
 }
 
 .experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-main {
-  padding: 0;
-  max-width: none;
+  padding: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-main-wrap {
@@ -141,32 +153,23 @@ body.experimentation-accelerator-page[data-ajo-tab='experiments'] #ajoPanelExper
   overflow: hidden;
 }
 
-@media (min-width: 769px) {
-  body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 238px;
-    z-index: 3000;
-    transform: translateX(-100%);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: none;
-  }
-
-  body.experimentation-accelerator-page.experimentation-accelerator-page--immersive.experimentation-accelerator-page--nav-open .dashboard-sidebar,
-  body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar:focus-within {
-    transform: translateX(0);
-    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
-  }
+/* Lab sidebar: off-canvas at all widths so it never consumes a 240px column next to the AJO mock. */
+body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: min(238px, 92vw);
+  z-index: 3000;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: none;
 }
 
-@media (max-width: 768px) {
-  body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar {
-    position: relative;
-    transform: none;
-    z-index: auto;
-  }
+body.experimentation-accelerator-page.experimentation-accelerator-page--immersive.experimentation-accelerator-page--nav-open .dashboard-sidebar,
+body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar:focus-within {
+  transform: translateX(0);
+  box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
 }
 
 @media (prefers-reduced-motion: reduce) {
