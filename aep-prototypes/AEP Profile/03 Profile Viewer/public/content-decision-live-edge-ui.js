@@ -92,7 +92,15 @@
       var labIn = row.querySelector('.cd-lab-placement-label');
       var typeIn = row.querySelector('.cd-lab-placement-type');
       var frag = fragIn ? fragIn.value : '';
-      var type = typeIn && typeIn.value ? typeIn.value : inferPlacementTypeFromFragment(frag);
+      var type;
+      if (typeIn && typeIn.type === 'checkbox') {
+        type = typeIn.checked ? 'contentCard' : 'exd';
+      } else if (typeIn && typeIn.value) {
+        // Back-compat with the old <select> (if any row was rendered before this patch).
+        type = typeIn.value;
+      } else {
+        type = inferPlacementTypeFromFragment(frag);
+      }
       if (PLACEMENT_TYPES.indexOf(type) === -1) type = 'exd';
       out.push({
         key: keyIn ? keyIn.value : '',
@@ -207,31 +215,42 @@
     row.appendChild(field('Fragment (hash)', 'cd-lab-placement-fragment', p.fragment, 'e.g. hero-banner'));
     row.appendChild(field('Label', 'cd-lab-placement-label', p.label, 'Preview title'));
 
-    // Placement type dropdown — drives which AJO channel this placement
-    // expects (code-based experience vs. content-card / message feed)
-    // AND which render path the browser uses when the edge returns a
-    // proposition for this surface.
+    // Placement type — compact two-state toggle. Left = EXD (code-based),
+    // right = Content card (AJO message feed). Drives which channel
+    // config the user needs in AJO AND which browser render path the
+    // proposition takes when it comes back.
     var typeWrap = document.createElement('div');
+    typeWrap.className = 'cd-lab-placement-type-wrap';
     var typeLab = document.createElement('label');
     typeLab.setAttribute('for', uid + '_type');
     typeLab.textContent = 'Type';
-    var typeSel = document.createElement('select');
-    typeSel.id = uid + '_type';
-    typeSel.className = 'cd-lab-placement-type';
-    typeSel.title = 'EXD = code-based experience (flat JSON). Content card = AJO message feed with buttons, dismiss, nested title/body.';
-    var optExd = document.createElement('option');
-    optExd.value = 'exd';
-    optExd.textContent = 'EXD (code-based)';
-    typeSel.appendChild(optExd);
-    var optCc = document.createElement('option');
-    optCc.value = 'contentCard';
-    optCc.textContent = 'Content card (message feed)';
-    typeSel.appendChild(optCc);
+    typeWrap.appendChild(typeLab);
+
+    var toggle = document.createElement('label');
+    toggle.className = 'cd-lab-placement-type-toggle';
+    toggle.setAttribute('title', 'EXD = code-based experience (flat JSON). Content card = AJO message feed with buttons, dismiss, nested title/body.');
+    var toggleInput = document.createElement('input');
+    toggleInput.type = 'checkbox';
+    toggleInput.id = uid + '_type';
+    toggleInput.className = 'cd-lab-placement-type';
     var initialType = p.type;
     if (PLACEMENT_TYPES.indexOf(initialType) === -1) initialType = inferPlacementTypeFromFragment(p.fragment);
-    typeSel.value = initialType;
-    typeWrap.appendChild(typeLab);
-    typeWrap.appendChild(typeSel);
+    toggleInput.checked = initialType === 'contentCard';
+    toggleInput.setAttribute('data-type-exd', 'exd');
+    toggleInput.setAttribute('data-type-card', 'contentCard');
+    var left = document.createElement('span');
+    left.className = 'cd-lab-placement-type-seg cd-lab-placement-type-seg--left';
+    left.textContent = 'EXD';
+    var right = document.createElement('span');
+    right.className = 'cd-lab-placement-type-seg cd-lab-placement-type-seg--right';
+    right.textContent = 'Content card';
+    var pill = document.createElement('span');
+    pill.className = 'cd-lab-placement-type-pill';
+    toggle.appendChild(toggleInput);
+    toggle.appendChild(left);
+    toggle.appendChild(right);
+    toggle.appendChild(pill);
+    typeWrap.appendChild(toggle);
     row.appendChild(typeWrap);
 
     var rm = document.createElement('button');
