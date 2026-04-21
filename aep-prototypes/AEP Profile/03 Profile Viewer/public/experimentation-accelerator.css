@@ -49,69 +49,6 @@
   width: 100%;
 }
 
-/* Overview tab: let the window scroll the stitched Walnut stack (no inner scroll trap) */
-body.experimentation-accelerator-page[data-ajo-tab='overview'] .dashboard-main-wrap {
-  min-height: auto;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] .profile-viewer-main {
-  flex: none;
-  min-height: auto;
-  overflow: visible;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] #expAccelApp {
-  flex: none;
-  min-height: auto;
-  overflow: visible;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock {
-  flex: none;
-  min-height: auto;
-  overflow: visible;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-mock-workspace {
-  flex: none;
-  min-height: auto;
-  overflow: visible;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] .ajo-panel-stack {
-  flex: none;
-  min-height: auto;
-  overflow: visible;
-  position: relative;
-  height: auto;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview.ajo-panel {
-  position: relative;
-  inset: auto;
-  overflow: visible;
-  height: auto;
-  min-height: auto;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='overview'] #ajoPanelOverview .ajo-panel-inner.ajo-walnut-overview {
-  overflow: visible;
-  flex: none;
-  min-height: auto;
-}
-
-/* Experiments tab: restore fill layout for the embedded player */
-body.experimentation-accelerator-page[data-ajo-tab='experiments'] .ajo-panel-stack {
-  flex: 1;
-  min-height: 0;
-}
-
-body.experimentation-accelerator-page[data-ajo-tab='experiments'] #ajoPanelExperiments.ajo-panel {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-
 @media (min-width: 769px) {
   body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-sidebar {
     position: fixed;
@@ -348,11 +285,6 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
   border: 1px solid var(--ajo-border);
 }
 
-/* Hide AJO mock header — Walnut captures already include product chrome; hiding removes double top bars */
-.experimentation-accelerator-page .ajo-mock-topbar {
-  display: none !important;
-}
-
 /* Body: rail + workspace */
 .ajo-mock-body {
   flex: 1;
@@ -361,16 +293,9 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
   flex-direction: row;
   align-items: stretch;
   width: 100%;
-  position: relative;
 }
 
-/* Left module rail: fixed so stitched Walnut iframes scroll underneath in the workspace */
-.experimentation-accelerator-page .ajo-mock-rail {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  z-index: 2100;
+.ajo-mock-rail {
   flex-shrink: 0;
   width: 48px;
   display: flex;
@@ -435,7 +360,7 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
   height: 21px;
 }
 
-html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-mock-rail {
+html[data-aep-theme='dark'] .ajo-mock-rail {
   background: color-mix(in srgb, var(--dash-sidebar, #1e2128) 70%, var(--ajo-surface) 30%);
 }
 
@@ -443,12 +368,6 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   color: color-mix(in srgb, var(--ajo-text) 58%, var(--ajo-muted));
 }
 
-.experimentation-accelerator-page .ajo-mock-workspace {
-  margin-left: 48px;
-  width: calc(100% - 48px);
-  max-width: calc(100% - 48px);
-  box-sizing: border-box;
-}
 
 .ajo-mock-workspace {
   flex: 1;
@@ -461,28 +380,13 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
 }
 
 /* Page chrome */
-/* Remove duplicate outer header/tabs above the stitched Walnut banner */
 .ajo-page-head {
-  display: none;
-}
-
-/* Tabs first: tabs sit flush under the app chrome; title row is directly below tabs (no stray band above the banner) */
-.ajo-page-head--tabs-first {
-  padding: 0 1.25rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.ajo-page-head--tabs-first .ajo-tabs {
-  margin: 0 -1.25rem;
-  padding: 0 1.25rem;
+  flex-shrink: 0;
+  padding: 1rem 1.25rem 0;
+  background: var(--ajo-work-bg);
   border-bottom: 1px solid var(--ajo-border);
-}
-
-.ajo-page-head--tabs-first .ajo-page-head-row {
-  margin-top: 0.75rem;
-  margin-bottom: 0.65rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .ajo-page-head-row {
@@ -590,176 +494,6 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   -webkit-overflow-scrolling: touch;
   width: 100%;
   box-sizing: border-box;
-}
-
-/* Experiments tab: embedded Walnut guided demo — edge-to-edge under tabs */
-#ajoPanelExperiments .ajo-panel-inner.ajo-experiments-guided {
-  padding: 0;
-  margin: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  background: var(--ajo-work-bg);
-}
-
-.ajo-experiments-guided-iframe {
-  flex: 1 1 auto;
-  width: 100%;
-  min-height: 0;
-  border: 0;
-  display: block;
-  /* Mock AJO top bar removed — only page head + tabs consume vertical space */
-  height: 100dvh;
-  /* Crop duplicate AJO header + left rail + letterboxing inside the Walnut capture */
-  clip-path: inset(9% 0 14% 6%);
-}
-
-@media (max-width: 768px) {
-  .ajo-experiments-guided-iframe {
-    height: 100dvh;
-    clip-path: inset(8% 0 16% 7%);
-  }
-}
-
-/* Overview — stitched Walnut exports. */
-#ajoPanelOverview .ajo-panel-inner.ajo-walnut-overview {
-  padding: 0;
-  margin: 0;
-  overflow: visible;
-  -webkit-overflow-scrolling: auto;
-  background: var(--ajo-work-bg);
-}
-
-.ajo-walnut-stitch {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-height: 0;
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 0 clamp(0px, 1.5vw, 18px);
-  box-sizing: border-box;
-}
-
-.ajo-walnut-stitch-row {
-  position: relative;
-  flex: 0 0 auto;
-  width: 100%;
-  overflow: hidden;
-  background: var(--ajo-work-bg);
-}
-
-.ajo-walnut-stitch-row--p1 {
-  height: min(31vw, 340px);
-}
-
-/* Bottom section starts immediately after top section (no whitespace gap). */
-.ajo-walnut-stitch-row--p2 {
-  height: min(56vw, 620px);
-  margin-top: 0;
-}
-
-.ajo-walnut-stitch-iframe {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  border: 0;
-  display: block;
-  height: min(92vw, 980px);
-  min-height: 900px;
-  transform-origin: top left;
-}
-
-.ajo-walnut-stitch-iframe--p1 {
-  transform: translateY(-24%);
-}
-
-.ajo-walnut-stitch-iframe--p2 {
-  transform: translateY(-36%);
-}
-
-@media (max-width: 768px) {
-  .ajo-walnut-stitch-row--p1 {
-    height: min(70vw, 320px);
-  }
-
-  .ajo-walnut-stitch-row--p2 {
-    height: min(118vw, 530px);
-  }
-
-  .ajo-walnut-stitch-iframe {
-    height: min(140vw, 740px);
-    min-height: 640px;
-  }
-
-  .ajo-walnut-stitch-iframe--p1 {
-    transform: translateY(-25%);
-  }
-
-  .ajo-walnut-stitch-iframe--p2 {
-    transform: translateY(-38%);
-  }
-}
-
-/* Full-screen layer: page 4 (opened from Experiments → Hero link). */
-.ajo-walnut-page4-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 5000;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  background: var(--dash-bg);
-  color: var(--dash-text);
-}
-
-.ajo-walnut-page4-overlay[hidden] {
-  display: none !important;
-}
-
-.ajo-walnut-page4-overlay-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.ajo-walnut-page4-close {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 2;
-  width: 2.5rem;
-  height: 2.5rem;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--dash-border);
-  border-radius: var(--dash-radius-sm);
-  background: var(--dash-surface);
-  color: var(--dash-text);
-  font-size: 1.5rem;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: var(--dash-shadow);
-}
-
-.ajo-walnut-page4-close:hover {
-  background: var(--dash-hover);
-}
-
-.ajo-walnut-page4-iframe {
-  flex: 1 1 auto;
-  width: 100%;
-  min-height: 0;
-  border: 0;
-  display: block;
-}
-
-body.ajo-walnut-page4-open {
-  overflow: hidden;
 }
 
 /* Overview — native blocks below tabs (matches reference layout). */
