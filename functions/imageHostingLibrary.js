@@ -241,6 +241,64 @@ async function listLibrary(sandbox) {
   }).sort((a, b) => a.relPath.localeCompare(b.relPath));
 }
 
+/**
+ * Replace the bytes behind an existing library file while keeping the
+ * exact path (and therefore the /cdn URL). If the incoming source
+ * format doesn't match the target extension, sharp converts it so the
+ * object on disk always matches its extension + Content-Type.
+ */
+async function replaceLibraryObject(sandbox, relPath, bytes, sourceContentType) {
+  if (!relPath || relPath.indexOf('..') !== -1) throw new Error('bad path');
+  const key = libraryRoot(sandbox) + '/' + relPath.replace(/^\/+/, '');
+  const bucket = getBucket();
+  const targetExt = (relPath.split('.').pop() || '').toLowerCase();
+  const targetCt = contentTypeFromExt(targetExt);
+  const sourceExt = (extensionFromContentType(sourceContentType) || '').toLowerCase();
+
+  let body = bytes;
+  const sharp = (() => { try { return require('sharp'); } catch (_e) { return null; } })();
+
+  // Convert when the incoming bytes don't match the target extension.
+  // Special-cases: don't try to re-encode GIF (animation would be
+  // flattened) or SVG targets (raster→vector isn't a thing); reject
+  // those mismatches outright.
+  if (sourceExt && sourceExt !== targetExt) {
+    if (targetExt === 'svg' || sourceExt === 'gif') {
+      throw new Error('cannot convert ' + sourceExt + ' → ' + targetExt);
+    }
+    if (!sharp) throw new Error('image conversion library unavailable');
+    const pipeline = sharp(body);
+    if (targetExt === 'png') body = await pipeline.png().toBuffer();
+    else if (targetExt === 'jpg' || targetExt === 'jpeg') body = await pipeline.jpeg({ quality: 90 }).toBuffer();
+    else if (targetExt === 'webp') body = await pipeline.webp({ quality: 90 }).toBuffer();
+    else if (targetExt === 'avif') body = await pipeline.avif({ quality: 60 }).toBuffer();
+    else throw new Error('unsupported target extension: ' + targetExt);
+  }
+
+  const file = bucket.file(key);
+  await file.save(body, {
+    contentType: targetCt,
+    resumable: false,
+    metadata: {
+      cacheControl: `public, max-age=${CACHE_SECONDS}, immutable`,
+      metadata: { sandbox: sandboxPrefix(sandbox) },
+    },
+  });
+  try { await file.makePublic(); } catch (_e) {}
+  const [md] = await file.getMetadata().catch(() => [null]);
+  return {
+    sandbox: sandboxPrefix(sandbox),
+    path: key,
+    relPath,
+    contentType: targetCt,
+    size: (md && Number(md.size)) || body.length,
+    cdnUrl: publicCdnUrl(sandbox, relPath),
+    publicUrl: `https://storage.googleapis.com/${BUCKET_NAME}/${key.split('/').map(encodeURIComponent).join('/')}`,
+    updatedAt: (md && md.updated) || new Date().toISOString(),
+    converted: sourceExt && sourceExt !== targetExt,
+  };
+}
+
 async function deleteLibraryObject(sandbox, relPath) {
   const prefix = libraryRoot(sandbox) + '/';
   if (!relPath || relPath.indexOf('..') !== -1) throw new Error('bad path');
@@ -506,4 +564,5 @@ module.exports = {
   restoreLibraryFromZip,
   batchUpload,
   classifyFromFilename,
+  replaceLibraryObject,
 };
