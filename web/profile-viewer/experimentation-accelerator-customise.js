@@ -69,6 +69,26 @@
     }
   }
 
+  /** Email template / campaign preview heroes — Customise “Experiment 1 image URL” (treatment 1). */
+  function applyEmailTemplateImages(p) {
+    var raw = p && typeof p === 'object' ? p : {};
+    var u = raw.expImg1 != null ? String(raw.expImg1).trim() : '';
+    ['expAccelEmailTemplateHeroImg', 'expAccelEmailCampaignHeroImg'].forEach(function (id) {
+      var img = document.getElementById(id);
+      var wrap = img && img.closest('.ajo-email-hero-frame');
+      if (!img) return;
+      if (u) {
+        img.src = u;
+        img.removeAttribute('hidden');
+        if (wrap) wrap.classList.add('ajo-email-hero-frame--has-img');
+      } else {
+        img.removeAttribute('src');
+        img.setAttribute('hidden', '');
+        if (wrap) wrap.classList.remove('ajo-email-hero-frame--has-img');
+      }
+    });
+  }
+
   /** Results table treatment thumbnails (Homepage Hero experiment page) — same expImg1..4 URLs as Overview tiles */
   function applyResultsTableTreatmentImages(p) {
     var raw = p && typeof p === 'object' ? p : {};
@@ -228,6 +248,7 @@
     applyExperimentCustomisation(raw);
     applyResultsTableTreatmentImages(raw);
     applyHeroDetailImage(raw);
+    applyEmailTemplateImages(raw);
     resolveAndApplyHeroName();
   }
 
@@ -402,14 +423,22 @@
           var urlEl = document.getElementById('expAccelDockExpImgUrl' + j);
           var titleIn = document.getElementById('expAccelDockExpTitle' + j);
           var subIn = document.getElementById('expAccelDockExpSub' + j);
-          var u = urlEl && urlEl.value != null ? String(urlEl.value).trim() : '';
-          payload['expImg' + j] = u || '';
-          payload['expTitle' + j] = titleIn && titleIn.value != null ? String(titleIn.value).trim() : '';
-          payload['expSub' + j] = subIn && subIn.value != null ? String(subIn.value).trim() : '';
+          if (urlEl) {
+            var u = urlEl.value != null ? String(urlEl.value).trim() : '';
+            payload['expImg' + j] = u || '';
+          }
+          if (titleIn) {
+            payload['expTitle' + j] = titleIn.value != null ? String(titleIn.value).trim() : '';
+          }
+          if (subIn) {
+            payload['expSub' + j] = subIn.value != null ? String(subIn.value).trim() : '';
+          }
         }
         var heroIn = document.getElementById('expAccelDockHeroDetailImgUrl');
-        var heroTrim = heroIn && heroIn.value != null ? String(heroIn.value).trim() : '';
-        payload.heroDetailImg = heroTrim;
+        if (heroIn) {
+          var heroTrim = heroIn.value != null ? String(heroIn.value).trim() : '';
+          payload.heroDetailImg = heroTrim;
+        }
 
         saveForSandbox(sb, payload);
         refreshFromStorage();

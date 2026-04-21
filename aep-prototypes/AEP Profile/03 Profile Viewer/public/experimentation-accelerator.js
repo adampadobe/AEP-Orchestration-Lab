@@ -183,6 +183,7 @@
     var dlg = document.getElementById('ajoOppDetailDialog');
     var openBtn = document.getElementById('ajoOppDetailOpen');
     var closeBtn = document.getElementById('ajoOppDetailCancel');
+    var openExperimentBtn = document.getElementById('ajoOppDialogOpenExperiment');
     if (!dlg || !openBtn || !closeBtn) return;
 
     openBtn.addEventListener('click', function () {
@@ -195,6 +196,15 @@
         closeBtn.focus();
       } catch (e2) {}
     });
+
+    if (openExperimentBtn) {
+      openExperimentBtn.addEventListener('click', function () {
+        try {
+          dlg.close();
+        } catch (e) {}
+        window.location.href = 'experimentation-accelerator-email-template.html';
+      });
+    }
 
     closeBtn.addEventListener('click', function () {
       try {

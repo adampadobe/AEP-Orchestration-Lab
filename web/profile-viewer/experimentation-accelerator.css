@@ -3852,6 +3852,603 @@ html[data-aep-theme='dark'] .ajo-opp-detail-inner {
   cursor: default;
 }
 
+/* ── Email campaign template (split preview + sidebar) + Properties ── */
+.experimentation-accelerator-page--exp-detail .ajo-email-campaign-workspace {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--ajo-work-bg);
+}
+
+.ajo-email-campaign-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  box-sizing: border-box;
+}
+
+.ajo-email-campaign-inner {
+  max-width: min(1200px, 100%);
+  margin: 0 auto;
+  padding: 0.85rem 1rem 2rem;
+  box-sizing: border-box;
+}
+
+.ajo-email-campaign-pagehead {
+  padding: 0.25rem 0 1rem;
+  border-bottom: 1px solid var(--ajo-border);
+  margin-bottom: 0.85rem;
+}
+
+.ajo-email-campaign-pagehead--email {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0.65rem;
+}
+
+.ajo-email-campaign-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.ajo-email-campaign-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  border: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+  color: var(--ajo-text);
+  text-decoration: none;
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ajo-email-campaign-title {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-email-campaign-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.75rem;
+}
+
+.ajo-email-campaign-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--ajo-muted);
+  border: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+}
+
+.ajo-email-campaign-pill--draft {
+  color: var(--ajo-text);
+}
+
+.ajo-email-campaign-pill--ok {
+  color: var(--dash-success-text, #1a6b4d);
+  border-color: color-mix(in srgb, var(--dash-success-border) 45%, var(--ajo-border));
+  background: color-mix(in srgb, var(--dash-success-bg) 35%, var(--ajo-surface));
+}
+
+.ajo-email-campaign-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dash-success-text, #1a6b4d);
+  flex-shrink: 0;
+}
+
+.ajo-email-campaign-saved {
+  color: var(--ajo-muted);
+}
+
+.ajo-email-campaign-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.ajo-email-campaign-actions--wrap {
+  justify-content: flex-end;
+}
+
+.ajo-email-campaign-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  border-bottom: 1px solid var(--ajo-border);
+  margin: 0 0 1.1rem;
+  padding: 0;
+}
+
+.ajo-email-campaign-tab {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.55rem 0.45rem 0.65rem;
+  margin-bottom: -1px;
+  color: var(--ajo-muted);
+  border-bottom: 2px solid transparent;
+  background: none;
+  cursor: default;
+}
+
+.ajo-email-campaign-tab--active {
+  color: var(--ajo-text);
+  border-bottom-color: var(--ajo-text);
+}
+
+.ajo-email-two-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .ajo-email-two-col {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+    gap: 1.5rem;
+  }
+}
+
+.ajo-email-device-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--ajo-muted);
+  margin-bottom: 0.45rem;
+}
+
+.ajo-email-preview-col {
+  min-width: 0;
+}
+
+.ajo-email-mock-card {
+  background: color-mix(in srgb, var(--ajo-border) 12%, var(--ajo-surface));
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius, 16px);
+  padding: 1rem 1.1rem 1.15rem;
+  max-width: 28rem;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.ajo-email-mock-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-email-mock-d {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 6px;
+  background: var(--ajo-text);
+  color: var(--ajo-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.ajo-email-mock-release {
+  letter-spacing: 0.04em;
+}
+
+.ajo-email-mock-h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.45rem;
+  line-height: 1.2;
+  color: var(--ajo-text);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.ajo-email-mock-p {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--ajo-text) 88%, var(--ajo-muted));
+}
+
+.ajo-email-mock-cta {
+  display: inline-block;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  margin-bottom: 0.85rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--ajo-text);
+  color: var(--ajo-surface);
+  cursor: default;
+}
+
+.ajo-email-hero-frame {
+  position: relative;
+  border-radius: var(--dash-radius-sm, 12px);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ajo-muted) 10%, var(--ajo-surface));
+  border: 1px solid var(--ajo-border);
+  aspect-ratio: 1;
+  margin-bottom: 1rem;
+}
+
+.ajo-email-hero-frame--email {
+  max-width: 100%;
+}
+
+.ajo-email-hero-frame--has-img .ajo-email-hero-placeholder {
+  display: none;
+}
+
+.ajo-email-hero-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ajo-email-hero-placeholder {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+  padding: 1.25rem;
+  height: 100%;
+  min-height: 140px;
+  box-sizing: border-box;
+}
+
+.ajo-email-hero-placeholder span {
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--dash-blue) 18%, var(--ajo-surface));
+  min-height: 2.5rem;
+}
+
+.ajo-email-mock-resources-h {
+  margin: 0 0 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-email-mock-link {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--dash-blue);
+  text-decoration: none;
+  margin-bottom: 0.35rem;
+  cursor: default;
+}
+
+.ajo-email-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.ajo-email-side-card {
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 0.85rem 1rem;
+  box-shadow: var(--dash-shadow, 0 1px 4px rgba(15, 15, 25, 0.05));
+}
+
+.ajo-email-side-h {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-email-side-muted {
+  margin: 0.25rem 0 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--ajo-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ajo-email-side-dl {
+  margin: 0;
+  display: grid;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+}
+
+.ajo-email-side-dl dt {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ajo-muted);
+}
+
+.ajo-email-side-dl dd {
+  margin: 0.1rem 0 0;
+  color: var(--ajo-text);
+}
+
+.ajo-email-side-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.7rem;
+  margin-bottom: 0.65rem;
+}
+
+.ajo-email-side-table th,
+.ajo-email-side-table td {
+  padding: 0.35rem 0.4rem;
+  text-align: left;
+  border-bottom: 1px solid color-mix(in srgb, var(--ajo-border) 80%, transparent);
+}
+
+.ajo-email-side-table th {
+  color: var(--ajo-muted);
+  font-weight: 600;
+}
+
+.ajo-email-side-ab {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--ajo-text);
+}
+
+.ajo-email-side-winner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  margin-bottom: 0.45rem;
+}
+
+.ajo-email-side-meta {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  color: color-mix(in srgb, var(--ajo-text) 85%, var(--ajo-muted));
+  line-height: 1.4;
+}
+
+.ajo-email-opportunities-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-top: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  border: 1px solid color-mix(in srgb, var(--dash-blue) 35%, var(--ajo-border));
+  background: color-mix(in srgb, var(--dash-blue) 8%, var(--ajo-surface));
+}
+
+.ajo-email-opportunities-banner--compact {
+  margin-top: 0.5rem;
+}
+
+.ajo-email-opportunities-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+}
+
+.ajo-email-prop-layout {
+  display: block;
+  padding-top: 0.25rem;
+}
+
+.ajo-email-prop-main {
+  background: var(--ajo-surface);
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1rem 1.1rem 1.25rem;
+  box-sizing: border-box;
+}
+
+.ajo-email-prop-main--full {
+  max-width: min(720px, 100%);
+  margin: 0 auto;
+}
+
+.ajo-email-prop-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.65rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--ajo-border);
+}
+
+.ajo-email-prop-h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ajo-text);
+}
+
+.ajo-email-prop-required {
+  font-size: 0.6875rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-email-prop-field {
+  margin-bottom: 1rem;
+}
+
+.ajo-email-prop-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ajo-text);
+  margin-bottom: 0.35rem;
+}
+
+.ajo-email-prop-input,
+.ajo-email-prop-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--dash-radius-sm, 8px);
+  border: 1px solid var(--ajo-border);
+  background: var(--ajo-surface);
+  color: var(--ajo-text);
+}
+
+.ajo-email-prop-textarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.ajo-email-prop-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-email-prop-meta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.8125rem;
+}
+
+.ajo-email-prop-meta-label {
+  display: block;
+  font-weight: 600;
+  color: var(--ajo-muted);
+  font-size: 0.6875rem;
+  margin-bottom: 0.15rem;
+}
+
+.ajo-email-prop-meta-val {
+  color: var(--ajo-text);
+}
+
+.ajo-email-prop-muted {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ajo-muted);
+}
+
+.ajo-email-prop-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 1px solid var(--ajo-border);
+  font-size: 0.65rem;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.ajo-email-prop-select-fake {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius-sm, 8px);
+  background: var(--ajo-surface);
+  color: var(--ajo-muted);
+  font-size: 0.8125rem;
+}
+
+/* Modify campaign dialog — solid surface (same pattern as insight / opportunity modals) */
+.ajo-modify-campaign-dialog {
+  --ajo-surface: var(--dash-surface, #ffffff);
+  --ajo-border: var(--dash-border, #e6e4ea);
+  --ajo-text: var(--dash-text, #2c2c2c);
+  --ajo-muted: var(--dash-muted, #6e6e73);
+
+  max-width: min(420px, calc(100vw - 2rem));
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--ajo-border);
+  border-radius: var(--dash-radius, 16px);
+  background-color: var(--dash-surface, #ffffff);
+  background: var(--dash-surface, #ffffff);
+  color: var(--dash-text, #2c2c2c);
+  opacity: 1;
+  box-shadow: var(--dash-shadow-hover, 0 16px 48px rgba(15, 15, 25, 0.18));
+}
+
+.ajo-modify-campaign-dialog::backdrop {
+  background: color-mix(in srgb, var(--dash-text, #2c2c2c) 32%, transparent);
+}
+
+html[data-aep-theme='dark'] .ajo-modify-campaign-dialog {
+  --dash-surface: #ffffff;
+  --dash-text: #2c2c2c;
+  --dash-muted: #6e6e73;
+  --dash-border: #e6e4ea;
+  background-color: #ffffff;
+  background: #ffffff;
+  color: #2c2c2c;
+}
+
+.ajo-modify-campaign-inner {
+  padding: 1.35rem 1.35rem 1.25rem;
+  box-sizing: border-box;
+  background: var(--dash-surface, #ffffff);
+}
+
+.ajo-modify-campaign-title {
+  margin: 0 0 0.85rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.ajo-modify-campaign-body {
+  margin: 0 0 1.35rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--dash-text, #2c2c2c);
+}
+
+.ajo-modify-campaign-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 /* Light AJO workspace when lab theme is dark */
 html[data-aep-theme='dark'] .ajo-mock {
   --ajo-work-bg: var(--dash-surface-alt, #fafafa);
