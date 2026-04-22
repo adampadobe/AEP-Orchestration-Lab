@@ -141,6 +141,15 @@ async function resolveTargetName(sandbox, opts) {
   // convertToPng=false: keep the bytes exactly as uploaded (preserves
   // JPG/WEBP/SVG originals for demos that need format fidelity).
 
+  // Unknown/generic MIME types map to extension "bin"; when the user chose an
+  // explicit filename (keep-filename uploads), preserve the leaf extension so
+  // e.g. deck.pdf stays .pdf instead of .bin.
+  if (overrideFile && ext === 'bin') {
+    const leaf = String(overrideFile).replace(/\\/g, '/').split('/').pop() || '';
+    const m = /\.([a-z0-9]{1,24})$/i.exec(leaf);
+    if (m && m[1]) ext = m[1].toLowerCase();
+  }
+
   const cat = (classification && classification.category) || '';
 
   let folder = '';

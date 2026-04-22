@@ -555,6 +555,23 @@
     };
   }
 
+  /**
+   * Browsing for files uses the hidden <input accept>. When "keep original
+   * filename" is on, allow any type; otherwise only images + ZIP (same as drag).
+   */
+  function syncDropInputAccept() {
+    var dropInput = document.getElementById('imageHostingDropInput');
+    if (!dropInput) return;
+    var opts = readUploadOptions();
+    dropInput.setAttribute('accept', opts.keepFilename ? '*/*' : 'image/*,.zip,application/zip');
+  }
+
+  function isAcceptedDropFile(f, keepFilename) {
+    if (!f || !f.name) return false;
+    if (keepFilename) return true;
+    return /^image\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico|zip)$/i.test(f.name);
+  }
+
   async function uploadOneFile(sb, file) {
     var base64 = await fileToBase64(file);
     var opts = readUploadOptions();
@@ -576,10 +593,14 @@
   async function handleDroppedFiles(files) {
     var sb = getSandbox();
     if (!sb) { setManualMsg('Select a sandbox first.', 'err'); return; }
+    var opts = readUploadOptions();
     var list = Array.from(files || []).filter(function (f) {
-      return /^image\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico|zip)$/i.test(f.name);
+      return isAcceptedDropFile(f, opts.keepFilename);
     });
-    if (!list.length) { setManualMsg('No images or ZIP detected in that drop.', 'err'); return; }
+    if (!list.length) {
+      setManualMsg(opts.keepFilename ? 'No files detected in that drop.' : 'No images or ZIP detected in that drop.', 'err');
+      return;
+    }
 
     var drop = document.getElementById('imageHostingDropZone');
     if (drop) drop.classList.add('is-busy');
@@ -1099,7 +1120,10 @@
   // Drop zone: click-to-browse + native drag/drop for files and ZIPs.
   var dropZone = document.getElementById('imageHostingDropZone');
   var dropInput = document.getElementById('imageHostingDropInput');
+  var dropModeEl = document.getElementById('imageHostingDropMode');
+  if (dropModeEl) dropModeEl.addEventListener('change', syncDropInputAccept);
   if (dropZone && dropInput) {
+    syncDropInputAccept();
     dropZone.addEventListener('click', function () { dropInput.click(); });
     dropZone.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dropInput.click(); }
