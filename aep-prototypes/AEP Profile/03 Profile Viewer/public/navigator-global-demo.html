@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Launch: Web SDK extension must use datastream (Edge config) ID 46677fd7-9db0-4f16-898c-b424d0245c38 — same ID AJO uses for this lab. Do not duplicate alloy.configure in page code. -->
+  <script src="https://assets.adobedtm.com/60e5fd51ad90/1e9ecb8bbc4a/launch-2070346dc211-development.min.js" async></script>
+  <title>Navigator Global (demo) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260416c">
+  <link rel="stylesheet" href="mod-demo.css">
+  <link rel="stylesheet" href="brand-concierge-controls.css?v=20260427-corner">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
+  <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="mod-demo-page navigator-global-demo-page home-dashboard-concierge aep-bc-panel-dismissed">
+  <!-- Lab identity strip: hover top edge to reveal (same pattern as British Army demo) -->
+  <div class="mod-demo-top-anchor" id="modDemoTopAnchor">
+    <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
+      <div class="mod-demo-id-inner">
+        <div class="form-row">
+          <label for="modNs">Namespace</label>
+          <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
+            <option value="email">Email</option>
+            <option value="ecid">ECID</option>
+            <option value="crmId">CRM ID</option>
+            <option value="loyaltyId">Loyalty ID</option>
+            <option value="phone">Phone</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="customerEmail">Identifier value</label>
+          <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="mod-demo-id-actions">
+          <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+          <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+        </div>
+        <div class="form-row">
+          <label for="generatorTarget">Event destination</label>
+          <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+        </div>
+      </div>
+      <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
+      <p class="mod-demo-disclaimer">
+        Embedded snapshot (saved HTML + asset folder from browser export). Imagery may load from Navigator Global / Scene7 CDNs where the save did not include local copies. Not affiliated with Navigator Global or Santander UK.
+      </p>
+    </div>
+  </div>
+
+  <iframe
+    class="mod-demo-site-frame"
+    title="Navigator Global UK — saved page snapshot (embedded)"
+    src="navigator-global-demo-assets/navigator-global-snapshot.html"
+    referrerpolicy="no-referrer-when-downgrade"
+    loading="eager"
+  ></iframe>
+
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <main class="dashboard-main app-page mod-demo-empty-main" aria-hidden="true"></main>
+    </div>
+  </div>
+
+  <div class="aep-profile-drawer-hover-zone" id="profileHoverZone" aria-hidden="true"></div>
+  <aside class="aep-profile-drawer" id="profileDrawer" tabindex="-1" aria-label="Profile preview">
+    <div class="aep-profile-drawer-inner">
+      <section
+        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--customer"
+        aria-labelledby="profileDrawerCustomerHeading"
+      >
+        <h2 class="aep-profile-drawer-card-title aep-profile-drawer-panel-heading" id="profileDrawerCustomerHeading">CUSTOMER PROFILE</h2>
+        <div class="aep-profile-drawer-avatar-ring">
+          <img
+            id="profileDrawerAvatar"
+            class="aep-profile-drawer-avatar"
+            src="https://contenthosting.web.app/AEPProfile/avatar-female.png"
+            alt="Customer profile photo"
+            width="124"
+            height="124"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        <div class="aep-profile-drawer-card-fields">
+          <p><strong>Name:</strong> <span id="profileDrawerName">No profile loaded</span></p>
+          <p><strong>Gender:</strong> <span id="profileDrawerGender">—</span></p>
+          <p><strong>Age:</strong> <span id="profileDrawerAge">—</span></p>
+          <p><strong>Email:</strong> <span id="profileDrawerEmail">—</span></p>
+          <p><strong>Phone:</strong> <span id="profileDrawerPhone">Unknown</span></p>
+          <p><strong>City:</strong> <span id="profileDrawerCity">—</span></p>
+          <p><strong>Customer Lifetime Value:</strong> <span id="profileDrawerLtv">$500</span></p>
+        </div>
+        <div class="aep-profile-drawer-card-consent" aria-label="Marketing channel consent">
+          <label><input type="checkbox" id="profileDrawerConsentEmail" disabled title="consents.marketing.email.val" /><span class="aep-profile-drawer-consent-label">Email</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentSms" disabled title="consents.marketing.sms.val" /><span class="aep-profile-drawer-consent-label">SMS</span></label>
+          <label><input type="checkbox" id="profileDrawerConsentPush" disabled title="consents.marketing.push.val" /><span class="aep-profile-drawer-consent-label">Push</span></label>
+        </div>
+      </section>
+      <section
+        class="aep-profile-drawer-col aep-profile-drawer-block aep-profile-drawer-block--identity"
+        aria-labelledby="profileDrawerIdentityHeading"
+      >
+        <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerIdentityHeading">IDENTITY</h2>
+        <div class="aep-profile-drawer-identity-fields">
+          <div class="aep-profile-drawer-identity-row">
+            <strong>ECID</strong>
+            <span id="profileDrawerDesktopId">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.scoring.core.propensityScore">Propensity score</strong>
+            <span id="profileDrawerPropensityScore">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong title="_demoemea.scoring.churn.churnPrediction">Churn score</strong>
+            <span id="profileDrawerChurnScore">—</span>
+          </div>
+          <div class="aep-profile-drawer-identity-row">
+            <strong>Loyalty Status</strong>
+            <span id="profileDrawerLoyalty">Unknown</span>
+          </div>
+        </div>
+      </section>
+      <div class="aep-profile-drawer-col aep-profile-drawer-col--graph" aria-label="Identity graph">
+        <div class="aep-profile-drawer-graph-head">
+          <h2 class="aep-profile-drawer-panel-heading">IDENTITY GRAPH</h2>
+          <div class="aep-profile-drawer-graph-zoom" role="group" aria-label="Zoom">
+            <button type="button" id="identityGraphZoomIn" class="aep-profile-drawer-zoom-btn" aria-label="Zoom in">+</button>
+            <button type="button" id="identityGraphZoomOut" class="aep-profile-drawer-zoom-btn" aria-label="Zoom out">−</button>
+          </div>
+        </div>
+        <div class="aep-profile-drawer-graph-viewport" id="identityGraphViewport">
+          <svg
+            class="aep-profile-drawer-graph-svg"
+            id="identityGraphSvg"
+            viewBox="0 0 320 320"
+            preserveAspectRatio="xMidYMid meet"
+            aria-hidden="true"
+          ></svg>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col-group" aria-label="Audiences and messages sent">
+        <div class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel">
+          <h2 class="aep-profile-drawer-panel-heading">AUDIENCES</h2>
+          <ul class="aep-profile-drawer-audiences" id="profileDrawerAudiences">
+            <li>No audience membership loaded</li>
+          </ul>
+        </div>
+        <div
+          class="aep-profile-drawer-col aep-profile-drawer-col--stacked-panel aep-profile-drawer-col--messages-sent"
+          aria-labelledby="profileDrawerMessageSentHeading"
+        >
+          <div class="aep-profile-drawer-message-sent-heading-row">
+            <h2 class="aep-profile-drawer-panel-heading" id="profileDrawerMessageSentHeading">MESSAGES SENT</h2>
+            <p class="aep-profile-drawer-email-sends-subheading">(last 24 hours)</p>
+          </div>
+          <div class="aep-profile-drawer-email-sends-body">
+            <p class="aep-profile-drawer-email-sends-count-row" aria-live="polite">
+              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerMessageSentValue">—</span><span
+                class="aep-profile-drawer-email-sends-unit"
+                id="profileDrawerMessageSentUnit"
+              ></span>
+            </p>
+            <p
+              class="aep-profile-drawer-email-sends-count-row aep-profile-drawer-push-sends-row"
+              id="profileDrawerPushSendsRow"
+              hidden
+              aria-live="polite"
+            >
+              <span class="aep-profile-drawer-email-sends-count" id="profileDrawerPushSentValue"></span><span
+                class="aep-profile-drawer-email-sends-unit"
+                id="profileDrawerPushSentUnit"
+              ></span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="aep-profile-drawer-col">
+        <h2 class="aep-profile-drawer-panel-heading">LAST 5 EVENTS</h2>
+        <div class="aep-profile-drawer-events" id="profileDrawerEvents">
+          <p>No events found for this profile</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="aep-profile-drawer.js?v=20260415"></script>
+  <script src="navigator-global-demo.js"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
+
+  <script src="styleConfigurations.js?v=bc-4-hide-ai-chat-icon"></script>
+  <script src="brand-concierge-deferred-bootstrap.js?v=20260425-bc-defer"></script>
+
+  <style>
+    .bc-card__image {
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+    }
+
+    #brand-concierge-mount-host {
+      width: min(420px, calc(100vw - 32px));
+      max-height: min(720px, calc(100vh - 32px));
+      pointer-events: auto;
+      background: transparent;
+    }
+
+    html[data-aep-theme="dark"] #brand-concierge-mount-host {
+      color-scheme: dark;
+    }
+  </style>
+
+  <button type="button" id="aepBcReopenBtn" class="aep-bc-reopen-btn" hidden aria-label="Open Brand Concierge">
+    <img src="assets/brand-concierge-launch.png" alt="" width="48" height="48" decoding="async" />
+  </button>
+
+  <div id="brand-concierge-mount-host" aria-live="polite">
+    <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">
+      ×
+    </button>
+    <div id="brand-concierge-mount"></div>
+  </div>
+
+  <script src="brand-concierge-controls.js?v=20260427-corner"></script>
+</body>
+</html>
