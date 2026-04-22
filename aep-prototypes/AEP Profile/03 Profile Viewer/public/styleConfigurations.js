@@ -1,0 +1,1 @@
+window.styleConfiguration = window.styleConfiguration || {};

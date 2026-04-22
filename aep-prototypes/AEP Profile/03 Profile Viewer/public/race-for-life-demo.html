@@ -16,8 +16,52 @@
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <script src="styleConfigurations.js"></script>
+  <script>
+    !function (n, o) {
+      o.forEach(function (o) {
+        n[o] || ((n.__alloyNS = n.__alloyNS ||
+          []).push(o), n[o] = function () {
+            var u = arguments; return new Promise(
+              function (i, l) { n[o].q.push([i, l, u]); });
+          }, n[o].q = []);
+      });
+    }
+    (window, ["alloy"]);
+  </script>
+  <style>
+    .bc-card__image {
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+    }
+  </style>
+  <script src="https://cdn1.adoberesources.net/alloy/2.32.0/alloy.min.js"></script>
+  <script src="https://experience-stage.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js"></script>
+  <script>
+    alloy("configure", {
+      defaultConsent: "in",
+      edgeDomain: "edge-int.adobedc.net",
+      edgeBasePath: "ee",
+      datastreamId: "46677fd7-9db0-4f16-898c-b424d0245c38",
+      orgId: "BF9C27AA6464801C0A495FD0@AdobeOrg",
+      debugEnabled: true,
+      idMigrationEnabled: false,
+      thirdPartyCookiesEnabled: false,
+      prehidingStyle: ".personalization-container { opacity: 0 !important }"
+    });
+    alloy("sendEvent", {});
+  </script>
 </head>
 <body class="race-page home-dashboard-concierge">
+  <div id="brand-concierge-mount"></div>
+  <script>
+    window.adobe.concierge.bootstrap({
+      instanceName: "alloy",
+      stylingConfigurations: window.styleConfiguration,
+      selector: "#brand-concierge-mount",
+      stickySession: false
+    });
+  </script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
