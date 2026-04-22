@@ -13,12 +13,11 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="race-for-life-demo.css">
-  <link rel="stylesheet" href="brand-concierge-launcher.css?v=20260422-bc-toggle">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
-<body class="race-page home-dashboard-concierge aep-bc-launcher-page">
+<body class="race-page home-dashboard-concierge">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -311,17 +310,6 @@
   <!-- Brand Concierge styling/theme export (paste real JSON from Brand Concierge UI into styleConfigurations.js) -->
   <script src="styleConfigurations.js?v=bc-3"></script>
 
-  <button
-    type="button"
-    id="brandConciergeLaunchBtn"
-    class="aep-bc-launch-btn"
-    aria-expanded="false"
-    aria-controls="brand-concierge-mount-host"
-    title="Brand Concierge"
-  >
-    <img src="assets/brand-concierge-launch.png" alt="" width="44" height="44" decoding="async" />
-  </button>
-
   <style>
     /* Keep card imagery crisp inside concierge cards */
     .bc-card__image {
@@ -350,11 +338,9 @@
   </style>
 
   <!-- Host + mount point where the Brand Concierge web agent should render -->
-  <div id="brand-concierge-mount-host" aria-live="polite" aria-hidden="true">
+  <div id="brand-concierge-mount-host" aria-live="polite">
     <div id="brand-concierge-mount"></div>
   </div>
-
-  <script src="brand-concierge-launcher.js?v=20260422-bc-toggle"></script>
 
   <script>
     (function installBrandConciergeWebAgent() {
