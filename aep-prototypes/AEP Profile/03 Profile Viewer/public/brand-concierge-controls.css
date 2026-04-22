@@ -1,7 +1,20 @@
 /**
  * Close + reopen controls for Brand Concierge (MOD + Race for Life demos).
- * Host keeps fixed layout from each page’s inline styles; dismiss control is absolute within it.
+ * FAB + panel share the same bottom-right inset so opening the widget covers extension/FAB turf.
  */
+
+body.home-dashboard-concierge {
+  --aep-bc-corner-inset: 8px;
+  --aep-bc-fab-size: 48px;
+}
+
+/* Anchor panel to same corner as launcher (pages load this stylesheet only on BC demos) */
+body.home-dashboard-concierge #brand-concierge-mount-host {
+  position: fixed !important;
+  right: var(--aep-bc-corner-inset) !important;
+  bottom: var(--aep-bc-corner-inset) !important;
+  z-index: 7500 !important;
+}
 
 .aep-bc-dismiss-btn {
   position: absolute;
@@ -44,13 +57,13 @@ body.aep-bc-panel-dismissed #brand-concierge-mount-host {
 
 .aep-bc-reopen-btn {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
+  right: var(--aep-bc-corner-inset);
+  bottom: var(--aep-bc-corner-inset);
   z-index: 12000;
   margin: 0;
   padding: 0;
-  width: 48px;
-  height: 48px;
+  width: var(--aep-bc-fab-size);
+  height: var(--aep-bc-fab-size);
   cursor: pointer;
   border-radius: 50%;
   border: none;
