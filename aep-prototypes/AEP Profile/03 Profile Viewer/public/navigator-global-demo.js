@@ -1,6 +1,11 @@
 /**
  * Navigator Global demo — profile lookup + flyout lab nav; saved navigator.global page in iframe.
  * Top identity strip and shell behavior match mod-demo (British Army).
+ *
+ * AEP experience events: JSON body for `POST /api/events/generator` matches the first argument to
+ * `sendGeneratorEvent()` in `navigator-global-demo-assets/aep-event-sender-bundle/send-aep-event.js`
+ * (see `buildEventGeneratorXdm` / `sendGeneratorEvent`). Do not import that file in the browser
+ * (no tokens). Replication checklist: `navigator-global-demo-assets/AEP-EVENT-REPLICATION.md`.
  */
 
 const customerEmail = document.getElementById('customerEmail');
@@ -160,6 +165,38 @@ function navigatorGlobalCtaLabelToEventType(text) {
   return parts && parts.length ? parts.join('.') : 'link.clicked';
 }
 
+/**
+ * Body for `POST /api/events/generator` — same contract as
+ * `sendGeneratorEvent(requestBody, …)` in aep-event-sender-bundle/send-aep-event.js.
+ *
+ * @param {object} o
+ * @param {string} o.eventType
+ * @param {string} o.viewUrl
+ * @param {string} [o.ctaLabel]
+ * @param {string} [o.viewName]
+ * @param {string} o.email
+ * @param {string | null} o.ecid
+ * @param {{ id?: string } | null} o.target
+ */
+function buildNavigatorGlobalGeneratorRequestBody(o) {
+  const viewName = o.viewName != null && String(o.viewName).trim() ? String(o.viewName).trim() : 'Navigator Global';
+  const body = {
+    targetId: o.target && o.target.id ? o.target.id : undefined,
+    email: o.email,
+    eventType: o.eventType,
+    viewName,
+    viewUrl: o.viewUrl,
+    channel: 'Web',
+    timestamp: new Date().toISOString(),
+    public: {
+      linkUrl: o.viewUrl,
+      ...(o.ctaLabel && String(o.ctaLabel).trim() ? { ctaLabel: String(o.ctaLabel).trim() } : {}),
+    },
+  };
+  if (o.ecid) body.ecid = o.ecid;
+  return body;
+}
+
 async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) {
   const emailForEvent = getEmail().trim();
   if (!emailForEvent) {
@@ -172,20 +209,14 @@ async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) 
     const ecid =
       ecidText && ecidText !== '—' && /^\d+$/.test(ecidText) && ecidText.length >= 10 ? ecidText : null;
     const target = getSelectedGeneratorTarget();
-    const body = {
-      targetId: target ? target.id : undefined,
-      email: emailForEvent,
+    const body = buildNavigatorGlobalGeneratorRequestBody({
       eventType,
-      viewName: 'Navigator Global',
       viewUrl: destinationUrl,
-      channel: 'Web',
-      timestamp: new Date().toISOString(),
-      public: {
-        linkUrl: destinationUrl,
-        ...(ctaLabel ? { ctaLabel: ctaLabel } : {}),
-      },
-    };
-    if (ecid) body.ecid = ecid;
+      ctaLabel,
+      email: emailForEvent,
+      ecid,
+      target,
+    });
     const res = await fetch('/api/events/generator', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
