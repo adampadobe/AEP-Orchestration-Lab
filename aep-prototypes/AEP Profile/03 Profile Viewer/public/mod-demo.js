@@ -1,5 +1,5 @@
 /**
- * MOD (British Army) demo — profile lookup + flyout lab nav; live site in iframe.
+ * MOD (British Army) demo — profile lookup + flyout lab nav; saved homepage in iframe.
  */
 
 const customerEmail = document.getElementById('customerEmail');
