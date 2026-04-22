@@ -53,14 +53,33 @@
   </script>
 </head>
 <body class="race-page home-dashboard-concierge">
-  <div id="brand-concierge-mount"></div>
+  <div
+    id="brand-concierge-mount"
+    style="position: fixed; right: 16px; bottom: 16px; z-index: 4000; width: min(420px, calc(100vw - 32px));"
+  ></div>
   <script>
-    window.adobe.concierge.bootstrap({
-      instanceName: "alloy",
-      stylingConfigurations: window.styleConfiguration,
-      selector: "#brand-concierge-mount",
-      stickySession: false
-    });
+    (function initBrandConcierge(attempt) {
+      if (
+        window.adobe &&
+        window.adobe.concierge &&
+        typeof window.adobe.concierge.bootstrap === "function"
+      ) {
+        window.adobe.concierge.bootstrap({
+          instanceName: "alloy",
+          stylingConfigurations: window.styleConfiguration,
+          selector: "#brand-concierge-mount",
+          stickySession: false
+        });
+        return;
+      }
+      if ((attempt || 0) < 40) {
+        window.setTimeout(function () {
+          initBrandConcierge((attempt || 0) + 1);
+        }, 250);
+      } else {
+        console.warn("Brand Concierge bootstrap unavailable after retry window.");
+      }
+    }(0));
   </script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
