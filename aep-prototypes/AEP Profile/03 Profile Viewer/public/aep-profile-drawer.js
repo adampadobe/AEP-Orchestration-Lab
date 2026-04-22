@@ -203,10 +203,10 @@ function updateProfileDrawer(profile) {
     profileDrawerGender.textContent = source ? formatDrawerGenderDisplay(source.gender) : '—';
   }
   setDrawerValue(profileDrawerAge, source ? source.age : null, '—');
-  setDrawerValue(profileDrawerEmail, source ? source.email : null, '—');
+  setDrawerValue(profileDrawerEmail, source ? source.email : null, '');
   setDrawerValue(profileDrawerPhone, source ? source.phone : null, 'Unknown');
   setDrawerValue(profileDrawerCity, source ? source.city : null, '—');
-  setDrawerValue(profileDrawerLtv, source ? source.customerLifetimeValue : null, '$500');
+  setDrawerValue(profileDrawerLtv, source ? source.customerLifetimeValue : null, '');
   setDrawerValue(profileDrawerDesktopId, source ? source.ecid : null, '—');
   setDrawerValue(profileDrawerPropensityScore, source ? source.propensityScore : null, '—');
   setDrawerValue(profileDrawerChurnScore, source ? source.churnPrediction : null, '—');
@@ -910,10 +910,9 @@ async function loadProfileDataForDrawer(email, options) {
       data.ecid == null ? '' : Array.isArray(data.ecid) ? (data.ecid[0] != null ? String(data.ecid[0]) : '') : String(data.ecid);
     if (infoEcid) infoEcid.textContent = ecidVal && ecidVal.length >= 10 ? ecidVal : '—';
 
-    const canonicalEmail = data.email || emailTrim;
     const [audiences, eventsAll] = await Promise.all([
-      fetchAudienceMembership(canonicalEmail),
-      fetchProfileEventsList(canonicalEmail),
+      fetchAudienceMembership(emailTrim),
+      fetchProfileEventsList(emailTrim),
     ]);
     const eventsForTimeline = filterRecentApplicationLoginForDrawer(eventsAll);
     const events = eventsForTimeline.slice(0, 5);
@@ -935,7 +934,9 @@ async function loadProfileDataForDrawer(email, options) {
       pushSendsLast24h = undefined;
     }
 
-    const identities = mergeIdentitiesFromConsent(data, ecidVal, canonicalEmail);
+    const profileEmailForGraph =
+      data.email != null && String(data.email).trim() ? String(data.email).trim() : '';
+    const identities = mergeIdentitiesFromConsent(data, ecidVal, profileEmailForGraph);
 
     const prev = lastLookedUpProfile || {};
     lastLookedUpProfile = {
@@ -948,7 +949,11 @@ async function loadProfileDataForDrawer(email, options) {
       propensityScore: data.propensityScore != null && data.propensityScore !== '' ? data.propensityScore : null,
       churnPrediction: data.churnPrediction != null && data.churnPrediction !== '' ? data.churnPrediction : null,
       loyaltyStatus: data.loyaltyStatus != null && data.loyaltyStatus !== '' ? data.loyaltyStatus : null,
-      email: canonicalEmail,
+      email: data.email != null && data.email !== '' ? data.email : null,
+      customerLifetimeValue:
+        data.customerLifetimeValue != null && data.customerLifetimeValue !== ''
+          ? data.customerLifetimeValue
+          : null,
       ecid: ecidVal || null,
       marketingConsent: data.marketingConsent || null,
       channels: data.channels && typeof data.channels === 'object' ? { ...data.channels } : null,
@@ -964,7 +969,7 @@ async function loadProfileDataForDrawer(email, options) {
 
     updateProfileDrawer(lastLookedUpProfile);
 
-    if (data.found && _config.getSelectedGeneratorTarget) {
+    if (typeof _config.getSelectedGeneratorTarget === 'function') {
       sendApplicationLoginExperienceEvent(emailTrim, _config.getSelectedGeneratorTarget).catch(() => {});
     }
 

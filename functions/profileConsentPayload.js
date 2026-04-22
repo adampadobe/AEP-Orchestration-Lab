@@ -506,6 +506,48 @@ function getDemoemeaScoringForConsent(entity, response) {
   return { propensityScore, churnPrediction };
 }
 
+/**
+ * Customer lifetime value from profile when present (otherwise null for empty UI).
+ */
+function getCustomerLifetimeValueForConsent(entity, response) {
+  let ltv = null;
+  const roots = [];
+  if (entity && typeof entity === 'object') roots.push(entity);
+  for (const r of collectProfileRootCandidates(response)) {
+    if (r && !roots.includes(r)) roots.push(r);
+  }
+  for (const root of roots) {
+    const v =
+      get(root, '_demoemea.metrics.customerLifetimeValue') ??
+      get(root, 'metrics.customerLifetimeValue') ??
+      root?._demoemea?.metrics?.customerLifetimeValue ??
+      root?.metrics?.customerLifetimeValue;
+    const s = stringifyConsentScalar(v);
+    if (s) {
+      ltv = s;
+      break;
+    }
+  }
+  if (ltv == null) {
+    try {
+      const rows = flattenEntityToTableRows(entity);
+      for (const row of rows || []) {
+        const p = String(row.path || '').toLowerCase();
+        if (p.includes('customerlifetimevalue') || (p.includes('lifetime') && p.includes('value'))) {
+          const s = stringifyConsentScalar(row.value);
+          if (s) {
+            ltv = s;
+            break;
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return ltv;
+}
+
 function getDemoemeaLoyaltyLevelForConsent(entity, response) {
   let level = null;
   const roots = [];
@@ -593,7 +635,7 @@ function getProfileAgeAndHomeCityForConsent(entity, response) {
 function buildConsentGetPayload(email, response) {
   const entity = getEntityFromProfileResponse(response);
   if (!entity || typeof entity !== 'object') {
-    return { email, found: false };
+    return { email: null, found: false };
   }
   const profile = getProfileForConsent(entity);
   const extracted = extractConsents(entity);
@@ -631,11 +673,13 @@ function buildConsentGetPayload(email, response) {
   const identities = collectIdentitiesForGraph(entity, flatRows);
   const { propensityScore, churnPrediction } = getDemoemeaScoringForConsent(entity, response);
   const loyaltyStatus = getDemoemeaLoyaltyLevelForConsent(entity, response);
+  const customerLifetimeValue = getCustomerLifetimeValueForConsent(entity, response);
   const { age: profileAge, city: homeCity } = getProfileAgeAndHomeCityForConsent(entity, response);
   const lastModifiedAt = entity?.lastModifiedAt ?? payload?.lastModifiedAt ?? response?.lastModifiedAt ?? null;
+  const profileEmailTrim = profileEmail && String(profileEmail).trim() ? String(profileEmail).trim() : null;
   return {
     found: true,
-    email: profileEmail || email,
+    email: profileEmailTrim,
     firstName: firstName || null,
     lastName: lastName || null,
     gender: gender || null,
@@ -644,6 +688,7 @@ function buildConsentGetPayload(email, response) {
     propensityScore: propensityScore ?? null,
     churnPrediction: churnPrediction ?? null,
     loyaltyStatus: loyaltyStatus ?? null,
+    customerLifetimeValue: customerLifetimeValue ?? null,
     lastModifiedAt: lastModifiedAt ?? null,
     profileSource: 'Adobe Experience Platform',
     ecid: ecid || null,

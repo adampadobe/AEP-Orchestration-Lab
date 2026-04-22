@@ -151,3 +151,98 @@ DemoProfileDrawer.init({
   messageSetter: setModMessage,
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
 });
+
+/** CTA label → event type (e.g. Get started → get.started). */
+function navigatorGlobalCtaLabelToEventType(text) {
+  const parts = String(text || '')
+    .toLowerCase()
+    .match(/[a-z0-9]+/g);
+  return parts && parts.length ? parts.join('.') : 'link.clicked';
+}
+
+async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) {
+  const emailForEvent = getEmail().trim();
+  if (!emailForEvent) {
+    setModMessage('Enter a customer identifier at the top before using page links.', 'error');
+    return;
+  }
+  setModMessage('Sending event to AEP…', '');
+  try {
+    const ecidText = infoEcid ? String(infoEcid.textContent || '').trim() : '';
+    const ecid =
+      ecidText && ecidText !== '—' && /^\d+$/.test(ecidText) && ecidText.length >= 10 ? ecidText : null;
+    const target = getSelectedGeneratorTarget();
+    const body = {
+      targetId: target ? target.id : undefined,
+      email: emailForEvent,
+      eventType,
+      viewName: 'Navigator Global',
+      viewUrl: destinationUrl,
+      channel: 'Web',
+      timestamp: new Date().toISOString(),
+      public: {
+        linkUrl: destinationUrl,
+        ...(ctaLabel ? { ctaLabel: ctaLabel } : {}),
+      },
+    };
+    if (ecid) body.ecid = ecid;
+    const res = await fetch('/api/events/generator', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const errMsg = data.error || data.message || 'Request failed.';
+      setModMessage(errMsg, 'error');
+      return;
+    }
+    let idPart = '';
+    if (data.transport === 'edge' && data.requestId) idPart = ' Request ID: ' + data.requestId;
+    else if (data.eventId) idPart = ' Event ID: ' + data.eventId;
+    setModMessage((data.message || 'Event sent to AEP.') + idPart, 'success');
+  } catch (err) {
+    setModMessage(err.message || 'Network error', 'error');
+  }
+}
+
+/** Primary CTAs in the embedded snapshot: new tab + Experience Event to AEP (same pattern as Race for Life submit). */
+(function wireNavigatorGlobalSnapshotCtas() {
+  const body = document.body;
+  if (!body || !body.classList.contains('navigator-global-demo-page')) return;
+  const frame = document.querySelector('iframe.mod-demo-site-frame');
+  if (!frame) return;
+
+  function onIframeDocClick(e) {
+    if (e.defaultPrevented) return;
+    const t = e.target;
+    if (!t || t.closest('#onetrust-consent-sdk')) return;
+    const a = t.closest('a[href].cmp-button, a[href].auth-link');
+    if (!a || !a.getAttribute('href')) return;
+    const href = a.getAttribute('href').trim();
+    if (!href || href.startsWith('#') || href.toLowerCase().startsWith('javascript:')) return;
+    const labelEl = a.querySelector('.cmp-button__text');
+    const raw = ((labelEl && labelEl.textContent) || a.textContent || '').trim();
+    const eventType = navigatorGlobalCtaLabelToEventType(raw);
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(href, '_blank', 'noopener,noreferrer');
+    void sendNavigatorGlobalCtaEvent(eventType, href, raw);
+  }
+
+  function attach() {
+    let doc;
+    try {
+      doc = frame.contentDocument;
+    } catch {
+      return;
+    }
+    if (!doc || !doc.documentElement) return;
+    if (doc.documentElement.getAttribute('data-aep-nav-cta-bridge') === '1') return;
+    doc.documentElement.setAttribute('data-aep-nav-cta-bridge', '1');
+    doc.addEventListener('click', onIframeDocClick, true);
+  }
+
+  frame.addEventListener('load', attach);
+  if (frame.contentDocument && frame.contentDocument.readyState === 'complete') attach();
+})();
