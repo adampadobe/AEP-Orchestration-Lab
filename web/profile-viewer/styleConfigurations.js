@@ -17,9 +17,7 @@ window.styleConfiguration = {
       "enableVoiceInput": false,
       "continuousVoiceMode": false,
       "disableMultiline": true,
-      "showAiChatIcon": {
-        "icon": "test"
-      }
+      "showAiChatIcon": false
     },
     "chat": {
       "messageAlignment": "normal",

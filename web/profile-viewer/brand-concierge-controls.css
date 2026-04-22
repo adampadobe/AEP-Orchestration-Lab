@@ -77,16 +77,16 @@ body.aep-bc-panel-dismissed #brand-concierge-mount-host {
   border-radius: 50%;
   object-fit: cover;
   object-position: center;
-  transform: scale(1.12);
+}
+
+/* Fallback: hide legacy chat-row glyph if an older cached style config still enables it */
+#brand-concierge-mount-host .input-container .ai-chat-label {
+  display: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .aep-bc-reopen-btn:hover {
     filter: none;
-  }
-
-  .aep-bc-reopen-btn img {
-    transform: none;
   }
 }
 
