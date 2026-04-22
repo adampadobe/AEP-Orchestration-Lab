@@ -1,0 +1,75 @@
+/**
+ * Close + reopen controls for Brand Concierge (MOD + Race for Life demos).
+ * Host keeps fixed layout from each page’s inline styles; dismiss control is absolute within it.
+ */
+
+.aep-bc-dismiss-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 7601;
+  margin: 0;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-text-secondary);
+  box-shadow: var(--dash-shadow);
+}
+
+.aep-bc-dismiss-btn:hover {
+  background: var(--dash-hover);
+  color: var(--dash-text);
+}
+
+.aep-bc-dismiss-btn:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+body.aep-bc-panel-dismissed #brand-concierge-mount-host {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.aep-bc-reopen-btn {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 7499;
+  margin: 0;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  box-shadow: var(--dash-shadow);
+}
+
+.aep-bc-reopen-btn:hover {
+  background: var(--dash-hover);
+}
+
+.aep-bc-reopen-btn:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+body:not(.aep-bc-panel-dismissed) .aep-bc-reopen-btn {
+  display: none;
+}
+
+body.aep-bc-panel-dismissed .aep-bc-reopen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
