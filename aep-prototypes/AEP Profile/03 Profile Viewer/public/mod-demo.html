@@ -6,167 +6,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Launch: Web SDK extension must use datastream (Edge config) ID 46677fd7-9db0-4f16-898c-b424d0245c38 — same ID AJO uses for this lab. Do not duplicate alloy.configure in page code. -->
   <script src="https://assets.adobedtm.com/60e5fd51ad90/1e9ecb8bbc4a/launch-2070346dc211-development.min.js" async></script>
-  <title>Race for Life (demo) - AEP Profile Viewer</title>
+  <title>MOD (British Army demo) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
-  <link rel="stylesheet" href="race-for-life-demo.css">
+  <link rel="stylesheet" href="mod-demo.css">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
-<body class="race-page home-dashboard-concierge">
+<body class="mod-demo-page home-dashboard-concierge">
+  <!-- Lab identity strip: hover top edge to reveal (sits above embedded MOD site) -->
+  <div class="mod-demo-top-anchor" id="modDemoTopAnchor">
+    <div class="mod-demo-id-banner" role="region" aria-label="Customer identity">
+      <div class="mod-demo-id-inner">
+        <div class="form-row">
+          <label for="modNs">Namespace</label>
+          <select id="modNs" class="sandbox-select" aria-label="Identity namespace">
+            <option value="email">Email</option>
+            <option value="ecid">ECID</option>
+            <option value="crmId">CRM ID</option>
+            <option value="loyaltyId">Loyalty ID</option>
+            <option value="phone">Phone</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="customerEmail">Identifier value</label>
+          <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="mod-demo-id-actions">
+          <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
+          <span class="mod-demo-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
+        </div>
+        <div class="form-row">
+          <label for="generatorTarget">Event destination</label>
+          <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
+        </div>
+      </div>
+      <p id="modMessage" class="mod-demo-message" role="status" aria-live="polite" hidden></p>
+      <p class="mod-demo-disclaimer">
+        Embedded preview: <a href="https://www.army.mod.uk/" target="_blank" rel="noopener">British Army</a> official site in a frame. Not affiliated with the Ministry of Defence.
+      </p>
+    </div>
+  </div>
+
+  <iframe
+    class="mod-demo-site-frame"
+    title="British Army — official homepage (embedded)"
+    src="https://www.army.mod.uk/"
+    referrerpolicy="no-referrer-when-downgrade"
+    loading="eager"
+  ></iframe>
+
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
-
     <div class="dashboard-main-wrap">
-      <header class="dashboard-topbar">
-        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
-      </header>
-
-      <main class="dashboard-main app-page">
-        <header class="donate-cruk-site-header">
-          <div class="donate-cruk-site-header-top">
-            <div class="donate-cruk-site-header-inner">
-              <a
-                class="donate-cruk-logo-link"
-                href="https://www.cancerresearchuk.org/"
-                target="_blank"
-                rel="noopener"
-                aria-label="Cancer Research UK (official site opens in new tab)"
-              >
-                <img
-                  class="donate-cruk-logo"
-                  src="images/race-for-life-logo.png"
-                  width="320"
-                  height="112"
-                  alt="Cancer Research UK Race for Life"
-                  decoding="async"
-                >
-              </a>
-              <button type="button" class="donate-cruk-search-btn" aria-label="Search (demo only, not connected)">Search</button>
-            </div>
-          </div>
-          <nav class="donate-cruk-nav" aria-label="Race for Life primary navigation (links to official site)">
-            <a href="https://raceforlife.cancerresearchuk.org/about-our-events" target="_blank" rel="noopener">About our events</a>
-            <a href="https://raceforlife.cancerresearchuk.org/find-an-event" target="_blank" rel="noopener">Find an event</a>
-            <a href="https://raceforlife.cancerresearchuk.org/prepare-for-your-event" target="_blank" rel="noopener">Prepare for your event</a>
-            <a href="https://raceforlife.cancerresearchuk.org/shop" target="_blank" rel="noopener">Shop</a>
-            <a href="https://raceforlife.cancerresearchuk.org/about-us" target="_blank" rel="noopener">About us</a>
-            <a href="https://raceforlife.cancerresearchuk.org/volunteer" target="_blank" rel="noopener">Volunteer</a>
-          </nav>
-        </header>
-
-        <section class="race-email-bar" aria-label="Customer identity">
-          <div class="race-email-inner">
-            <div class="form-row">
-              <label for="raceNs">Namespace</label>
-              <select id="raceNs" class="sandbox-select" aria-label="Identity namespace">
-                <option value="email">Email</option>
-                <option value="ecid">ECID</option>
-                <option value="crmId">CRM ID</option>
-                <option value="loyaltyId">Loyalty ID</option>
-                <option value="phone">Phone</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="customerEmail">Identifier value</label>
-              <input type="text" id="customerEmail" placeholder="Enter email address" autocomplete="off" spellcheck="false">
-            </div>
-            <div class="race-email-actions">
-              <button type="button" id="queryProfileBtn" class="btn-lookup">Look up profile</button>
-              <span class="race-ecid-hint" id="ecidHint" aria-live="polite">ECID: <strong id="infoEcid">—</strong></span>
-            </div>
-            <div class="race-advanced">
-              <label for="generatorTarget">Event destination</label>
-              <select id="generatorTarget" aria-label="Edge or DCS streaming target"></select>
-            </div>
-          </div>
-        </section>
-
-        <section class="race-hero" aria-label="Race for Life inspired hero">
-          <div class="race-content">
-            <figure class="race-cover" aria-hidden="true">
-              <img
-                src="https://raceforlife.cancerresearchuk.org/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Ffub10iisfoab%2FR2TeB8tcIsXQUy3mqJZHZ%2F6a9e624ddc35f329f96ed70cb3866f05%2F2025-06-07-CRUK-RaceForLife-4834__2___1_.jpg&w=3840&q=75"
-                alt=""
-                width="3840"
-                height="1730"
-                loading="lazy"
-                decoding="async"
-              >
-            </figure>
-            <div class="race-copy-card">
-              <h1>Race for Life</h1>
-              <p>Enter Cancer Research UK's Race for Life and raise money for life-saving cancer research.</p>
-            </div>
-            <div class="race-ajo-mounts">
-              <!-- HERO – driven by Decisioning / Code-based Experience (surface fragment #hero-banner, e.g. web://…/race-for-life-demo.html#hero-banner) -->
-              <section id="hero-banner" class="race-ajo-hero" role="region" aria-label="Personalized hero">
-                <!-- default hero content; AJO injects or replaces -->
-              </section>
-              <!-- CONTENT CARDS – persistent UI messages (Journey Optimizer Content Cards / Web SDK) -->
-              <section id="ContentCardContainer" class="race-ajo-content-cards ContentCardContainer" role="region" aria-label="Content cards">
-                <!-- cards will be injected here -->
-              </section>
-            </div>
-            <section class="race-join">
-              <h2>Join Race for Life</h2>
-              <p>
-                There's a Race for everyone. Walk, jog or run and join events that raise funds for cancer research.
-              </p>
-            </section>
-          </div>
-        </section>
-
-        <section class="race-find" aria-labelledby="findEventHeading">
-          <div class="race-find-inner">
-            <h2 id="findEventHeading">Find an event</h2>
-            <form id="raceEventForm" class="race-form" novalidate>
-              <div class="race-field race-field--full">
-                <label for="eventLocation">Location</label>
-                <select id="eventLocation" required>
-                  <option value="">Choose location</option>
-                  <option value="Race for Life Heaton Park">Race for Life Heaton Park</option>
-                  <option value="Race for Life Manchester">Race for Life Manchester</option>
-                </select>
-              </div>
-
-              <div class="race-field">
-                <label for="eventType">Event type</label>
-                <select id="eventType">
-                  <option value="All types">All types</option>
-                  <option value="3k">3k</option>
-                  <option value="5k">5k</option>
-                  <option value="10k">10k</option>
-                  <option value="Pretty Muddy 5k">Pretty Muddy 5k</option>
-                  <option value="Pretty Muddy Kids">Pretty Muddy Kids</option>
-                </select>
-              </div>
-
-              <div class="race-field">
-                <label for="startDate">Start date</label>
-                <input type="date" id="startDate">
-              </div>
-
-              <div class="race-field">
-                <label for="endDate">End date</label>
-                <input type="date" id="endDate">
-              </div>
-
-              <div class="race-field race-field--submit">
-                <button type="submit" id="eventSubmitBtn" class="race-submit-btn">Submit</button>
-              </div>
-              <div class="race-field race-field--submit">
-                <button type="button" id="abandonedBasketBtn" class="race-submit-btn race-submit-btn--secondary">Abandoned basket</button>
-              </div>
-            </form>
-            <div id="raceMessage" class="race-message" role="status" aria-live="polite" hidden></div>
-          </div>
-        </section>
-      </main>
+      <main class="dashboard-main app-page mod-demo-empty-main" aria-hidden="true"></main>
     </div>
   </div>
 
@@ -301,33 +198,26 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260415"></script>
-  <script src="race-for-life-ajo.js?v=20260420b"></script>
-  <script src="race-for-life-demo.js"></script>
+  <script src="mod-demo.js"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260209-mod-demo"></script>
 
-  <!-- Brand Concierge styling/theme export (paste real JSON from Brand Concierge UI into styleConfigurations.js) -->
   <script src="styleConfigurations.js?v=bc-3"></script>
 
   <style>
-    /* Keep card imagery crisp inside concierge cards */
     .bc-card__image {
       background-size: contain !important;
       background-repeat: no-repeat !important;
     }
 
-    /*
-      Fixed mount so the agent isn't buried under the dashboard shell stacking contexts.
-      Uses theme tokens (no raw hex colors).
-    */
     #brand-concierge-mount-host {
       position: fixed;
       right: 16px;
       bottom: 16px;
       width: min(420px, calc(100vw - 32px));
       max-height: min(720px, calc(100vh - 32px));
-      z-index: 5000;
+      z-index: 7500;
       pointer-events: auto;
       background: transparent;
     }
@@ -337,7 +227,6 @@
     }
   </style>
 
-  <!-- Host + mount point where the Brand Concierge web agent should render -->
   <div id="brand-concierge-mount-host" aria-live="polite">
     <div id="brand-concierge-mount"></div>
   </div>
@@ -394,10 +283,8 @@
         }
       }
 
-      // Kick off agent load immediately; Alloy is owned by Tags/Launch on this page.
       ensureMainJs();
 
-      // Wait for Tags/Launch Alloy + concierge main.js (Launch can easily beat 8s on slow networks).
       var maxWaitMs = 30000;
       var start = Date.now();
 
@@ -409,11 +296,7 @@
               "ms. alloy=" +
               alloyReady() +
               ", concierge=" +
-              conciergeReady() +
-              ", styleConfiguration keys=" +
-              (window.styleConfiguration && typeof window.styleConfiguration === "object"
-                ? Object.keys(window.styleConfiguration).length
-                : "n/a")
+              conciergeReady()
           );
           return;
         }

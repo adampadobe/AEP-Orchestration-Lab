@@ -1,0 +1,201 @@
+/**
+ * MOD demo: British Army homepage (iframe) + hidden top identity strip + flyout nav.
+ * Sidebar behavior matches donate / Race for Life demos (peek from left edge).
+ */
+
+.mod-demo-page .dashboard-main {
+  padding: 0;
+  max-width: none;
+}
+
+.mod-demo-page {
+  --mod-demo-content-max: 1200px;
+}
+
+/* Let clicks reach the iframe; only the sidebar intercepts pointer events */
+.mod-demo-page .dashboard-shell {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.mod-demo-page .dashboard-sidebar {
+  pointer-events: auto;
+}
+
+/* Full-bleed shell: only sidebar participates in layout; main column is collapsed */
+.mod-demo-page .dashboard-main-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  pointer-events: none;
+}
+
+.mod-demo-page .dashboard-main.mod-demo-empty-main {
+  flex: 1;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Live site fills the viewport behind chrome */
+.mod-demo-site-frame {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  z-index: 1;
+  background: var(--dash-bg);
+}
+
+/* Hover-reveal identity strip at top (lab chrome over MOD site) */
+.mod-demo-top-anchor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6500;
+  pointer-events: none;
+}
+
+/* Invisible hover target so the banner can stay revealed while moving into it */
+.mod-demo-top-anchor::before {
+  content: "";
+  display: block;
+  height: 14px;
+  pointer-events: auto;
+}
+
+.mod-demo-id-banner {
+  pointer-events: auto;
+  background: var(--dash-surface);
+  border-bottom: 1px solid var(--dash-border);
+  box-shadow: var(--dash-shadow);
+  transform: translateY(calc(-100% - 14px));
+  transition: transform 0.2s ease;
+}
+
+.mod-demo-top-anchor:hover .mod-demo-id-banner,
+.mod-demo-top-anchor:focus-within .mod-demo-id-banner {
+  transform: translateY(0);
+}
+
+.mod-demo-id-inner {
+  max-width: var(--mod-demo-content-max);
+  margin: 0 auto;
+  padding: 0.65rem 1rem 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem 1rem;
+}
+
+.mod-demo-id-inner .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.mod-demo-id-inner label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mod-demo-id-inner .sandbox-select,
+.mod-demo-id-inner input[type="text"] {
+  min-width: 12rem;
+}
+
+.mod-demo-id-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mod-demo-ecid-hint {
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.mod-demo-message {
+  max-width: var(--mod-demo-content-max);
+  margin: 0 auto;
+  padding: 0 1rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+}
+
+.mod-demo-message.mod-demo-message--error {
+  color: var(--dash-error-text);
+}
+
+.mod-demo-message.mod-demo-message--success {
+  color: var(--dash-success-text);
+}
+
+.mod-demo-disclaimer {
+  max-width: var(--mod-demo-content-max);
+  margin: 0 auto;
+  padding: 0 1rem 0.35rem;
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+}
+
+/* App sidebar: hidden by default; reveal from left edge (see mod-demo.js) */
+@media (min-width: 769px) {
+  body.mod-demo-page .dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 238px;
+    z-index: 7000;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+  }
+
+  body.mod-demo-page--nav-open .dashboard-sidebar,
+  body.mod-demo-page .dashboard-sidebar:focus-within {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.14);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body.mod-demo-page .dashboard-sidebar {
+      transition: none;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  body.mod-demo-page .dashboard-sidebar {
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
+    z-index: auto;
+    box-shadow: none;
+  }
+
+  body.mod-demo-page--nav-open .dashboard-sidebar {
+    transform: none;
+  }
+
+  .mod-demo-id-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
