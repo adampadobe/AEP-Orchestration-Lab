@@ -27,7 +27,13 @@
 
     reopenBtn &&
       reopenBtn.addEventListener('click', function () {
-        setDismissed(false);
+        if (typeof window.aepBcBootstrapWhenReady === 'function') {
+          window.aepBcBootstrapWhenReady(function () {
+            setDismissed(false);
+          });
+        } else {
+          setDismissed(false);
+        }
       });
 
     document.addEventListener('keydown', function (ev) {

@@ -13,12 +13,12 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="race-for-life-demo.css">
-  <link rel="stylesheet" href="brand-concierge-controls.css?v=20260424-adobe-x">
+  <link rel="stylesheet" href="brand-concierge-controls.css?v=20260425-bc-defer">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260415">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
-<body class="race-page home-dashboard-concierge">
+<body class="race-page home-dashboard-concierge aep-bc-panel-dismissed">
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -310,6 +310,7 @@
 
   <!-- Brand Concierge styling/theme export (paste real JSON from Brand Concierge UI into styleConfigurations.js) -->
   <script src="styleConfigurations.js?v=bc-3"></script>
+  <script src="brand-concierge-deferred-bootstrap.js?v=20260425-bc-defer"></script>
 
   <style>
     /* Keep card imagery crisp inside concierge cards */
@@ -339,7 +340,7 @@
   </style>
 
   <button type="button" id="aepBcReopenBtn" class="aep-bc-reopen-btn" hidden aria-label="Open Brand Concierge">
-    <img src="assets/brand-concierge-launch.png" alt="" width="44" height="44" decoding="async" />
+    <img src="assets/brand-concierge-launch.png" alt="" width="48" height="48" decoding="async" />
   </button>
 
   <!-- Host + mount point where the Brand Concierge web agent should render -->
@@ -350,92 +351,6 @@
     <div id="brand-concierge-mount"></div>
   </div>
 
-  <script src="brand-concierge-controls.js?v=20260424-adobe-x"></script>
-
-  <script>
-    (function installBrandConciergeWebAgent() {
-      var MAIN_JS =
-        "https://experience-stage.adobe.net/solutions/experience-platform-brand-concierge-web-agent/static-assets/main.js";
-
-      function ensureMainJs() {
-        if (window.__brandConciergeMainJsLoading) return;
-        window.__brandConciergeMainJsLoading = true;
-
-        var existing = document.querySelector('script[data-brand-concierge-main="1"]');
-        if (existing) return;
-
-        var s = document.createElement("script");
-        s.async = true;
-        s.dataset.brandConciergeMain = "1";
-        s.src = MAIN_JS;
-        s.onerror = function () {
-          console.warn("Brand Concierge: failed to load main.js:", MAIN_JS);
-        };
-        document.head.appendChild(s);
-      }
-
-      function conciergeReady() {
-        return !!(
-          window.adobe &&
-          window.adobe.concierge &&
-          typeof window.adobe.concierge.bootstrap === "function"
-        );
-      }
-
-      function alloyReady() {
-        return typeof window.alloy === "function";
-      }
-
-      function bootstrapOnce() {
-        if (window.__brandConciergeBootstrapped) return;
-        if (!conciergeReady() || !alloyReady()) return;
-
-        window.__brandConciergeBootstrapped = true;
-
-        try {
-          window.adobe.concierge.bootstrap({
-            instanceName: "alloy",
-            stylingConfigurations: window.styleConfiguration,
-            selector: "#brand-concierge-mount",
-            stickySession: false
-          });
-        } catch (e) {
-          console.warn("Brand Concierge: bootstrap threw.", e);
-        }
-      }
-
-      // Kick off agent load immediately; Alloy is owned by Tags/Launch on this page.
-      ensureMainJs();
-
-      // Wait for Tags/Launch Alloy + concierge main.js (Launch can easily beat 8s on slow networks).
-      var maxWaitMs = 30000;
-      var start = Date.now();
-
-      function tick() {
-        if (Date.now() - start > maxWaitMs) {
-          console.warn(
-            "Brand Concierge: timed out after " +
-              maxWaitMs +
-              "ms. alloy=" +
-              alloyReady() +
-              ", concierge=" +
-              conciergeReady() +
-              ", styleConfiguration keys=" +
-              (window.styleConfiguration && typeof window.styleConfiguration === "object"
-                ? Object.keys(window.styleConfiguration).length
-                : "n/a")
-          );
-          return;
-        }
-
-        bootstrapOnce();
-        if (window.__brandConciergeBootstrapped) return;
-
-        setTimeout(tick, 50);
-      }
-
-      tick();
-    })();
-  </script>
+  <script src="brand-concierge-controls.js?v=20260425-bc-defer"></script>
 </body>
 </html>

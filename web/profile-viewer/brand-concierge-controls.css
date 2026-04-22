@@ -46,35 +46,48 @@ body.aep-bc-panel-dismissed #brand-concierge-mount-host {
   position: fixed;
   right: 16px;
   bottom: 16px;
-  z-index: 7499;
+  z-index: 12000;
   margin: 0;
-  padding: 2px;
-  width: 52px;
-  height: 52px;
+  padding: 0;
+  width: 48px;
+  height: 48px;
   cursor: pointer;
   border-radius: 50%;
-  border: 1px solid var(--dash-border);
-  background: var(--dash-surface);
+  border: none;
+  background: transparent;
   color: var(--dash-text);
-  box-shadow: var(--dash-shadow);
+  overflow: hidden;
+  box-shadow: none;
 }
 
 .aep-bc-reopen-btn:hover {
-  box-shadow: var(--dash-shadow-hover);
-}
-
-.aep-bc-reopen-btn img {
-  display: block;
-  width: 44px;
-  height: 44px;
-  margin: 0 auto;
-  border-radius: 50%;
-  object-fit: cover;
+  filter: brightness(1.06);
 }
 
 .aep-bc-reopen-btn:focus-visible {
   outline: 2px solid var(--dash-blue);
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+
+.aep-bc-reopen-btn img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aep-bc-reopen-btn:hover {
+    filter: none;
+  }
+
+  .aep-bc-reopen-btn img {
+    transform: none;
+  }
 }
 
 body:not(.aep-bc-panel-dismissed) .aep-bc-reopen-btn {
