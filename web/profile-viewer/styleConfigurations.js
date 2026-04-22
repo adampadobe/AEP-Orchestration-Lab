@@ -107,6 +107,10 @@ window.styleConfiguration = {
     },
     "productCard": {
       "actionButtonSize": "S"
+    },
+    "disclaimer": {
+      "attachWithInput": true,
+      "useDynamicDisclaimerMinHeight": true
     }
   },
   "disclaimer": {
