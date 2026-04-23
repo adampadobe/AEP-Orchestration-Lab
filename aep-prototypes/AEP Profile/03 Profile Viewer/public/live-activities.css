@@ -1472,10 +1472,70 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
   border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.12));
   background: var(--dash-surface-2, rgba(0, 0, 0, 0.03));
 }
-.live-activities-page .la-travel-brand-panel--in-step3 {
-  margin-top: 1.35rem;
-  padding-top: 1.1rem;
+.live-activities-page .la-merge-demo-bar {
+  margin: 0.85rem 0 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--dash-radius, 12px);
+  border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.1));
+  background: var(--dash-surface-2, rgba(0, 0, 0, 0.03));
+}
+.live-activities-page .la-merge-message-btn {
+  font-size: 1rem;
+  padding: 0.55rem 1.15rem;
+}
+.live-activities-page .la-merge-demo-hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary, var(--aep-text-muted, #6b6f78));
+  max-width: 52rem;
+}
+.live-activities-page .la-merge-demo-msg {
+  margin-top: 0.5rem;
+}
+.live-activities-page .la-json-editor-details {
+  margin-top: 0.35rem;
+  border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.08));
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface, transparent);
+}
+.live-activities-page .la-json-editor-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.55rem 0.75rem;
+  list-style: none;
+}
+.live-activities-page .la-json-editor-details > summary::-webkit-details-marker {
+  display: none;
+}
+.live-activities-page .la-json-editor-details-muted {
+  font-weight: 400;
+  color: var(--dash-text-secondary, var(--aep-text-muted, #6b6f78));
+}
+.live-activities-page .la-json-editor-details-body {
+  padding: 0 0.5rem 0.75rem;
+  border-top: 1px solid var(--dash-border, rgba(0, 0, 0, 0.06));
+}
+.live-activities-page .la-travel-appearance-section {
+  margin-top: 1.15rem;
+  padding: 1rem 1rem 0.5rem;
+  border-radius: var(--dash-radius, 14px);
+  border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.1));
+  background: var(--dash-surface-2, rgba(0, 0, 0, 0.03));
+}
+.live-activities-page .la-travel-appearance-section[hidden] {
+  display: none !important;
+}
+.live-activities-page .la-travel-appearance-title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.live-activities-page .la-travel-brand-panel--nested {
+  margin-top: 0.75rem;
   border-top: 1px solid var(--dash-border, rgba(0, 0, 0, 0.08));
+  padding-top: 0.85rem;
 }
 .live-activities-page .la-travel-brandname-row {
   display: flex;

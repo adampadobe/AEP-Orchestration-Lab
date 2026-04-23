@@ -1876,45 +1876,15 @@
       laShowTravelBrandMsg('Not a Travel generic payload (attributes-type must be TravelLiveActivityAttributes).', true);
       return;
     }
-    var aps = findApsInParsedForMutation(parsed);
-    if (!aps) {
-      laShowTravelBrandMsg('Could not find aps in JSON.', true);
-      return;
-    }
-    var phase = String(($('laTravelPhase') && $('laTravelPhase').value) || 'flight').toLowerCase();
-    if (phase !== 'flight' && phase !== 'boarding' && phase !== 'airport') phase = 'flight';
-    var oldCs = aps['content-state'] && typeof aps['content-state'] === 'object' ? aps['content-state'] : {};
-    var merged = laTravelMergeContentStateForPhase(oldCs, phase);
-    merged.theme = laGetBrandingThemeFromInputs();
-    if (phase === 'flight') {
-      var jinp = $('laTravelJourneyProgress');
-      var jv = jinp ? Number(String(jinp.value || '').trim()) : NaN;
-      if (Number.isFinite(jv)) merged.journeyProgress = Math.max(0, Math.min(100, Math.round(jv)));
-    }
-    aps['content-state'] = merged;
-    if (!aps.attributes || typeof aps.attributes !== 'object' || Array.isArray(aps.attributes)) aps.attributes = {};
-    var agVal = String(($('laTravelAppGroupId') && $('laTravelAppGroupId').value) || '').trim();
-    aps.attributes.appGroupID = agVal || LA_TRAVEL_DEFAULT_APP_GROUP;
-    var brand = String(($('laTravelBrandName') && $('laTravelBrandName').value) || '').trim();
-    aps.attributes.brandName = brand || null;
-    var logoUrl = String(($('laTravelLogoUrl') && $('laTravelLogoUrl').value) || '').trim();
     laShowTravelBrandMsg('Updating…', false);
-    var done = function (logoFile) {
-      aps.attributes.logoFileName = logoFile;
-      if (logoUrl) laRememberTravelLogoUrl(logoUrl);
-      laTravelWriteParsedToPaste(parsed);
-      laShowTravelBrandMsg('Applied to JSON.', false);
-    };
-    var fail = function (err) {
-      laShowTravelBrandMsg(String(err && err.message ? err.message : err), true);
-    };
-    if (!logoUrl) {
-      done(null);
-      return;
-    }
-    laLogoFilenameFromUrl(logoUrl)
-      .then(done)
-      .catch(fail);
+    laApplyTravelBrandToParsedObject(parsed)
+      .then(function () {
+        laTravelWriteParsedToPaste(parsed);
+        laShowTravelBrandMsg('Applied to JSON.', false);
+      })
+      .catch(function (err) {
+        laShowTravelBrandMsg(String(err && err.message ? err.message : err), true);
+      });
   }
 
   /**
@@ -2030,6 +2000,135 @@
       renderPasteTree();
     }
     laSyncTravelBrandPanel();
+    laUpdateTravelAppearanceVisibility();
+  }
+
+  function laUpdateTravelAppearanceVisibility() {
+    var sec = $('laTravelAppearanceSection');
+    var ta = $('laImportPaste');
+    if (!sec || !ta) return;
+    var raw = String(ta.value || '').trim();
+    var show = false;
+    if (raw) {
+      try {
+        show = laIsTravelGeneric(parseUserJson(raw));
+      } catch (e) {
+        show = false;
+      }
+    }
+    sec.hidden = !show;
+  }
+
+  function showMergeDemoMsg(text, isErr) {
+    var el = $('laMergeDemoMsg');
+    if (!el) return;
+    el.textContent = text || '';
+    el.hidden = !text;
+    el.classList.toggle('la-template-msg--err', !!isErr);
+  }
+
+  /**
+   * Mutates parsed JSON in place. Resolves when Travel brand fields (incl. logo hash) are applied; no-op if not Travel generic.
+   */
+  function laApplyTravelBrandToParsedObject(parsed) {
+    return new Promise(function (resolve, reject) {
+      if (!laIsTravelGeneric(parsed)) {
+        resolve();
+        return;
+      }
+      var aps = findApsInParsedForMutation(parsed);
+      if (!aps) {
+        reject(new Error('Could not find aps in JSON.'));
+        return;
+      }
+      var phase = String(($('laTravelPhase') && $('laTravelPhase').value) || 'flight').toLowerCase();
+      if (phase !== 'flight' && phase !== 'boarding' && phase !== 'airport') phase = 'flight';
+      var oldCs = aps['content-state'] && typeof aps['content-state'] === 'object' ? aps['content-state'] : {};
+      var merged = laTravelMergeContentStateForPhase(oldCs, phase);
+      merged.theme = laGetBrandingThemeFromInputs();
+      if (phase === 'flight') {
+        var jinp = $('laTravelJourneyProgress');
+        var jv = jinp ? Number(String(jinp.value || '').trim()) : NaN;
+        if (Number.isFinite(jv)) merged.journeyProgress = Math.max(0, Math.min(100, Math.round(jv)));
+      }
+      aps['content-state'] = merged;
+      if (!aps.attributes || typeof aps.attributes !== 'object' || Array.isArray(aps.attributes)) aps.attributes = {};
+      var agVal = String(($('laTravelAppGroupId') && $('laTravelAppGroupId').value) || '').trim();
+      aps.attributes.appGroupID = agVal || LA_TRAVEL_DEFAULT_APP_GROUP;
+      var brand = String(($('laTravelBrandName') && $('laTravelBrandName').value) || '').trim();
+      aps.attributes.brandName = brand || null;
+      var logoUrl = String(($('laTravelLogoUrl') && $('laTravelLogoUrl').value) || '').trim();
+      if (!logoUrl) {
+        aps.attributes.logoFileName = null;
+        resolve();
+        return;
+      }
+      laLogoFilenameFromUrl(logoUrl)
+        .then(function (logoFile) {
+          aps.attributes.logoFileName = logoFile;
+          laRememberTravelLogoUrl(logoUrl);
+          resolve();
+        })
+        .catch(reject);
+    });
+  }
+
+  function laMergeMessageFromFields() {
+    var ta = $('laImportPaste');
+    if (!ta || !String(ta.value || '').trim()) {
+      showMergeDemoMsg('Choose a template and click Load, then try again.', true);
+      return;
+    }
+    var ev = String($('laEvent') && $('laEvent').value || '').trim().toLowerCase();
+    if (ev !== 'start' && ev !== 'update' && ev !== 'end') {
+      showMergeDemoMsg('Choose start, update, or end in step 2.', true);
+      return;
+    }
+    var parsed;
+    try {
+      parsed = parseUserJson(ta.value);
+    } catch (e) {
+      showMergeDemoMsg('Invalid JSON — ' + (e.message || e), true);
+      return;
+    }
+    var patch = {};
+    var c = String($('laCampaignId') && $('laCampaignId').value || '').trim();
+    var u = String($('laUserId') && $('laUserId').value || '').trim();
+    var lid = String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim();
+    if (c) patch.campaignId = c;
+    if (u) patch.userId = u;
+    if (lid) patch.liveActivityId = lid;
+    patch.event = ev;
+    patch.requestId = randomUuid();
+    patch.timestamp = Math.floor(Date.now() / 1000);
+
+    var result = mutateLaImportJson(parsed, patch);
+    var isTravel = laIsTravelGeneric(result.obj);
+    if (!isTravel && !result.changes.length) {
+      showMergeDemoMsg('Nothing matched this JSON — check the template or step 2 fields.', true);
+      return;
+    }
+    var o = result.obj;
+    laApplyTravelBrandToParsedObject(o)
+      .then(function () {
+        ta.value = formatJsonTextarea(o);
+        bumpJsonMirror(ta);
+        try {
+          ta.focus();
+        } catch (e2) {}
+        afterImportPasteMutation();
+        var msg = 'Message updated';
+        if (result.changes.length) msg += ' (' + result.changes.join(', ') + ')';
+        if (result.missed && result.missed.length) msg += '. Skipped: ' + result.missed.join('; ') + '.';
+        if (isTravel) msg += ' — Travel theme & brand applied.';
+        showMergeDemoMsg(msg + ' Preview refreshed.', false);
+        laShowTravelBrandMsg('', false);
+        showImportMsg('', false);
+        laRefreshOutgoingPreview();
+      })
+      .catch(function (err) {
+        showMergeDemoMsg(String(err.message || err), true);
+      });
   }
 
   /**
@@ -2675,22 +2774,7 @@
   }
 
   function injectAllFromExecutionFields() {
-    var patch = {};
-    var c = String($('laCampaignId') && $('laCampaignId').value || '').trim();
-    var u = String($('laUserId') && $('laUserId').value || '').trim();
-    var lid = String($('laLiveActivityId') && $('laLiveActivityId').value || '').trim();
-    var ev = String($('laEvent') && $('laEvent').value || '').trim().toLowerCase();
-    if (ev !== 'start' && ev !== 'update' && ev !== 'end') {
-      showImportMsg('Choose start, update, or end in the Event field.', true);
-      return;
-    }
-    if (c) patch.campaignId = c;
-    if (u) patch.userId = u;
-    if (lid) patch.liveActivityId = lid;
-    patch.event = ev;
-    patch.requestId = randomUuid();
-    patch.timestamp = Math.floor(Date.now() / 1000);
-    injectLaImportPaste(patch, { applyBrandingAfter: true });
+    laMergeMessageFromFields();
   }
 
   function onLaJsonPanelPaste(e) {
@@ -2709,7 +2793,7 @@
       e.preventDefault();
       applyExtracted(ext);
       setPayloadView('paste');
-      showImportMsg('Imported payload into the JSON editor — set step 2 fields, then Apply all from fields.', false);
+      showImportMsg('Imported payload — set step 2, then Update message from fields.', false);
       return;
     }
     e.preventDefault();
@@ -2956,7 +3040,7 @@
     var raw = String($('laImportPaste') && $('laImportPaste').value || '').trim();
     if (!raw) {
       throw new Error(
-        'Load a template or paste JSON in the box (step 3), then use Apply all from fields before Preview or Send.'
+        'Load a template (step 3), press Update message from fields, then Preview or Send.'
       );
     }
     return buildPayloadFromImportPaste();
@@ -3110,7 +3194,7 @@
     bumpJsonMirror(ta);
     afterImportPasteMutation();
     setPayloadView('paste');
-    laShowTemplateMsg('Loaded — Beautify if needed, then Apply all from fields (next to Beautify) to merge step 2 into the JSON.', false);
+    laShowTemplateMsg('Loaded — press Update message from fields when ready (open JSON editor below only if needed).', false);
   }
 
   function laSaveCurrentAsTemplate() {
@@ -3230,6 +3314,7 @@
     laWireBrandingPanel();
     laLoadBrandingThemeFromStorage();
     laWireTravelLogoControls();
+    laUpdateTravelAppearanceVisibility();
 
     setupJsonMirrors();
 
@@ -3299,11 +3384,8 @@
     if (injLai) injLai.addEventListener('click', injectLiveActivityFromField);
     var injEv = $('laInjectEvent');
     if (injEv) injEv.addEventListener('click', injectEventFromField);
-    var injAll = $('laInjectAllFromFields');
-    if (injAll) injAll.addEventListener('click', injectAllFromExecutionFields);
-
-    var laTravelApplyBtn = $('laTravelApplyBrand');
-    if (laTravelApplyBtn) laTravelApplyBtn.addEventListener('click', laTravelApplyBrandToPaste);
+    var mergeBtn = $('laMergeMessageFromFields');
+    if (mergeBtn) mergeBtn.addEventListener('click', laMergeMessageFromFields);
     var laTravelBrandScrapeNameBtn = $('laTravelBrandNameFromScrape');
     if (laTravelBrandScrapeNameBtn) laTravelBrandScrapeNameBtn.addEventListener('click', laApplyTravelBrandNameFromScrape);
     var laTravelPhaseEl = $('laTravelPhase');

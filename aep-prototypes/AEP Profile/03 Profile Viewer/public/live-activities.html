@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260424d">
+  <link rel="stylesheet" href="live-activities.css?v=20260425a">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -37,12 +37,11 @@
             <header class="dashboard-hero-header">
               <h2 id="laBanner" class="dashboard-hero-title">Live activities</h2>
               <p class="dashboard-hero-subtitle la-hero-flow">
-                Send a Live Activity push through AJO in five steps:
+                Send a Live Activity push in four quick steps:
                 <strong>1)</strong> find the person ·
                 <strong>2)</strong> campaign, ECID, Live Activity ID, and event ·
-                <strong>3)</strong> branding colours (pickers, dropper, or a brand scrape palette) ·
-                <strong>4)</strong> load a template / paste JSON ·
-                <strong>5)</strong> <strong>Apply all from fields</strong> (merges 2 + 3 into the editor), then preview and <strong>Send to Adobe</strong>.
+                <strong>3)</strong> load a template, then <strong>Update message from fields</strong> (Travel templates reveal theme + brand controls below first) ·
+                <strong>4)</strong> preview and <strong>Send to Adobe</strong>.
                 For a <strong>brand-agnostic</strong> iOS widget, use <strong>Travel (Generic)</strong> templates with
                 <code class="dashboard-code">TravelLiveActivityAttributes</code> — <code class="dashboard-code">theme</code> + <code class="dashboard-code">phase</code> drive the layout.
               </p>
@@ -86,12 +85,11 @@
         </section>
 
         <section class="consent-panel" id="laPanel">
-          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">2–5</span> Build &amp; send the unitary message</h2>
+          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">2–4</span> Build &amp; send the unitary message</h2>
           <p class="panel-desc la-panel-lead la-panel-lead--compact">
-            <strong>2)</strong> Campaign &amp; recipient row ·
-            <strong>3)</strong> Branding style — theme colours, brand scrapes, and <strong>Travel brand</strong> (App Group, name, logo, phase) in one place ·
-            <strong>4)</strong> Message JSON (template or paste) ·
-            <strong>5)</strong> <strong>Apply all from fields</strong> merges <strong>2 + 3</strong> into the JSON; use <strong>Apply to JSON</strong> in step 3 for Travel layout/attributes when the body is Travel generic; then <strong>Refresh preview</strong> and <strong>Send to Adobe</strong>.
+            <strong>2)</strong> Campaign &amp; recipient ·
+            <strong>3)</strong> Pick a template, then <strong>Update message from fields</strong> (one action merges campaign IDs + Travel theme/brand when applicable). JSON editor stays tucked away unless you need it ·
+            <strong>4)</strong> Preview &amp; <strong>Send to Adobe</strong>.
             <span class="la-panel-meta">Uses <code class="dashboard-code">POST /ajo/im/executions/unitary</code> via this app’s proxy.</span>
           </p>
 
@@ -99,7 +97,7 @@
             <h3 class="la-subpanel-title"><span class="profile-box-icon" aria-hidden="true">2</span> Campaign &amp; recipient</h3>
             <div class="profile-box-content">
               <p class="la-ts-note la-ts-note--compact" role="note">
-                Check these match your AJO setup. Each send refreshes <code class="dashboard-code">requestId</code> and <code class="dashboard-code">timestamp</code> when you use <strong>Apply all from fields</strong> or send.
+                Check these match your AJO setup. Each merge refreshes <code class="dashboard-code">requestId</code> and <code class="dashboard-code">timestamp</code> when you use <strong>Update message from fields</strong> or send.
               </p>
               <div class="la-grid la-grid--exec">
                 <div class="la-field">
@@ -144,7 +142,7 @@
               </div>
               <div class="la-exec-sync" aria-describedby="laExecSyncHelp">
                 <p id="laExecSyncHelp" class="la-exec-sync-lead">
-                  Fill step 2, set colours in <strong>step 3</strong>, then in <strong>Message JSON</strong> (step 4) load a template or paste JSON. Use <strong>Apply all from fields</strong> beside <strong>Beautify</strong> to merge <strong>steps 2 and 3</strong> into the editor.
+                  Load a <strong>Travel generic</strong> (or other) template in step 3, tweak optional per-field injects below if needed, then press <strong>Update message from fields</strong> — one click applies campaign row and, for Travel, theme + brand together.
                 </p>
                 <details class="la-inject-advanced">
                   <summary>Optional: update one value in the JSON</summary>
@@ -172,137 +170,7 @@
               </div>
             </div>
 
-            <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">3</span> Branding style</h3>
-            <div class="profile-box-content">
-              <p class="la-ts-note la-ts-note--compact" role="note">
-                These colours feed <code class="dashboard-code">content-state.theme</code> for <code class="dashboard-code">TravelLiveActivityAttributes</code> payloads.
-                Use the native colour control, type a <code class="dashboard-code">#RRGGBB</code> value, or the dropper (Chromium / desktop). Pull ranked colours from an existing <strong>brand scrape</strong> for this sandbox.
-              </p>
-              <div class="la-brand-theme-rows">
-                <div class="la-brand-theme-row" data-la-brand-row="bg">
-                  <span class="la-brand-theme-label">Background</span>
-                  <input type="color" id="laBrandThemeBgColor" class="la-brand-theme-color" value="#0f7d47" aria-label="Background colour" />
-                  <input type="text" id="laBrandThemeBgHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="#0F7D47" aria-label="Background hex" />
-                  <button type="button" class="btn btn-secondary la-brand-dropper" id="laBrandBgDropper" title="Pick colour from screen">Dropper</button>
-                </div>
-                <div class="la-brand-theme-row" data-la-brand-row="accent">
-                  <span class="la-brand-theme-label">Accent</span>
-                  <input type="color" id="laBrandThemeAccentColor" class="la-brand-theme-color" value="#69d444" aria-label="Accent colour" />
-                  <input type="text" id="laBrandThemeAccentHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="#69D444" aria-label="Accent hex" />
-                  <button type="button" class="btn btn-secondary la-brand-dropper" id="laBrandAccentDropper" title="Pick colour from screen">Dropper</button>
-                </div>
-                <div class="la-brand-theme-row" data-la-brand-row="text">
-                  <span class="la-brand-theme-label">Text on background</span>
-                  <input type="color" id="laBrandThemeTextColor" class="la-brand-theme-color" value="#ffffff" aria-label="Text colour" />
-                  <input type="text" id="laBrandThemeTextHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="#FFFFFF" aria-label="Text hex" />
-                  <button type="button" class="btn btn-secondary la-brand-dropper" id="laBrandTextDropper" title="Pick colour from screen">Dropper</button>
-                </div>
-              </div>
-              <div class="la-brand-scrape-toolbar">
-                <button type="button" class="btn btn-secondary" id="laBrandScrapeRefresh">Refresh brand scrapes</button>
-                <select id="laBrandScrapeSelect" class="sandbox-select la-brand-scrape-select" aria-label="Brand scrape">
-                  <option value="">Select a scrape…</option>
-                </select>
-                <button type="button" class="btn btn-secondary" id="laBrandScrapeLoadPalette" title="Load colour palette from selected scrape">Load palette</button>
-                <button type="button" class="btn btn-secondary" id="laBrandScrapeTop3" title="Assign first three ranked colours to background, accent, text">Use top 3 colours</button>
-              </div>
-              <p class="la-field-hint">Click a swatch to apply it to the target below (same order as theme fields).</p>
-              <div class="la-brand-scrape-target" role="radiogroup" aria-label="Apply swatch to">
-                <label class="la-brand-scrape-target-opt"><input type="radio" name="laBrandSwatchTarget" value="bg" checked /> Background</label>
-                <label class="la-brand-scrape-target-opt"><input type="radio" name="laBrandSwatchTarget" value="accent" /> Accent</label>
-                <label class="la-brand-scrape-target-opt"><input type="radio" name="laBrandSwatchTarget" value="text" /> Text</label>
-              </div>
-              <div id="laBrandScrapePalette" class="la-brand-scrape-palette" aria-live="polite"></div>
-              <p id="laBrandScrapeMsg" class="la-template-msg" hidden role="status"></p>
-
-              <section id="laTravelBrandPanel" class="la-travel-brand-panel consent-panel la-travel-brand-panel--in-step3" aria-labelledby="laTravelBrandHeading">
-                <h4 id="laTravelBrandHeading" class="la-travel-brand-title">Brand &amp; theme (Travel generic)</h4>
-                <p class="la-travel-brand-lead panel-desc">
-                  For unitary bodies whose <code class="dashboard-code">attributes-type</code> is <code class="dashboard-code">TravelLiveActivityAttributes</code>.
-                  Theme colours are the rows at the top of this step. Set App Group, customer/brand name, logo URL, and phase here, then press <strong>Apply to JSON</strong> to merge into the Message JSON editor (step 4) when you have Travel generic JSON loaded or pasted there.
-                  Changing <strong>Phase</strong> updates <code class="dashboard-code">content-state</code> keys for flight / boarding / airport while keeping your theme, route, and brand fields where they still apply.
-                </p>
-                <div class="la-grid la-grid--exec la-travel-brand-grid">
-                  <div class="la-field la-field--block">
-                    <label for="laTravelAppGroupId">App Group ID</label>
-                    <input type="text" id="laTravelAppGroupId" autocomplete="off" spellcheck="false" placeholder="group.com.adampadobe.aep-messaging-demo" />
-                    <span class="la-field-hint">Must match the App Group on the iOS host + widget targets.</span>
-                  </div>
-                  <div class="la-field la-field--block">
-                    <label for="laTravelBrandName">Brand name</label>
-                    <div class="la-travel-brandname-row">
-                      <input type="text" id="laTravelBrandName" class="la-travel-brandname-input" autocomplete="off" spellcheck="false" placeholder="Acme Air" />
-                      <button type="button" class="btn btn-secondary" id="laTravelBrandNameFromScrape" title="Fill from the scrape selected above (Refresh scrapes if the list is empty)">
-                        Use scrape name
-                      </button>
-                    </div>
-                    <span class="la-field-hint">Widget text fallback when no logo file is cached. <strong>Use scrape name</strong> copies the customer/brand label from the selected brand scrape.</span>
-                  </div>
-                <div class="la-field la-field--block">
-                  <label for="laTravelLogoUrl">Logo image URL</label>
-                  <div class="la-travel-logo-toolbar" role="group" aria-label="Hosted logo library">
-                    <select id="laTravelLogoLibrary" class="sandbox-select la-travel-logo-library" aria-label="Pick a logo from Firebase image library">
-                      <option value="">Hosted logos (Firebase library)…</option>
-                    </select>
-                    <button type="button" class="btn btn-secondary" id="laTravelLogoLibraryRefresh" title="Reload list from Image Hosting library for this sandbox">
-                      Refresh list
-                    </button>
-                    <button type="button" class="btn btn-secondary" id="laTravelLogoUploadBtn" title="Upload an image into your sandbox library (CDN URL), then set it here">
-                      Upload to library…
-                    </button>
-                    <input type="file" id="laTravelLogoFile" accept="image/*" hidden />
-                  </div>
-                  <input
-                    type="url"
-                    id="laTravelLogoUrl"
-                    list="laTravelLogoUrlDatalist"
-                    autocomplete="off"
-                    spellcheck="false"
-                    placeholder="https://… or choose / upload above"
-                  />
-                  <datalist id="laTravelLogoUrlDatalist"></datalist>
-                  <span id="laTravelLogoHint" class="la-field-hint">Host app prefetches this URL into the App Group. We set <code class="dashboard-code">attributes.logoFileName</code> to <code class="dashboard-code">SHA-256(URL).png</code> so it matches the cached filename (no <code class="dashboard-code">logoURL</code> in the push contract). <strong>Hosted logos</strong> use your per-sandbox Image Hosting library on Firebase; recent URLs are remembered in this browser.</span>
-                </div>
-                  <div class="la-field">
-                    <label for="laTravelPhase">Phase (layout)</label>
-                    <select id="laTravelPhase" aria-label="Travel Live Activity phase">
-                      <option value="flight">flight</option>
-                      <option value="boarding">boarding</option>
-                      <option value="airport">airport</option>
-                    </select>
-                  </div>
-                  <p class="la-field-hint la-travel-theme-hint">Theme colours use the Background / Accent / Text controls at the top of this step.</p>
-                  <div class="la-field">
-                    <label for="laTravelJourneyProgress">Journey progress % (flight)</label>
-                    <div class="la-travel-journey-row">
-                      <input
-                        type="range"
-                        id="laTravelJourneyProgress"
-                        class="la-travel-journey-slider"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value="25"
-                        aria-valuemin="0"
-                        aria-valuemax="100"
-                        aria-valuenow="25"
-                        aria-describedby="laTravelJourneyHint"
-                      />
-                      <output id="laTravelJourneyProgressOut" class="la-travel-journey-out" for="laTravelJourneyProgress">25%</output>
-                    </div>
-                    <span id="laTravelJourneyHint" class="la-field-hint">0–100; written only when phase is <code class="dashboard-code">flight</code>.</span>
-                  </div>
-                </div>
-                <div class="la-travel-brand-actions">
-                  <button type="button" class="btn btn-primary" id="laTravelApplyBrand" title="Merge App Group, brand name, logo filename, phase, journey %, and theme colours into the JSON in step 4">
-                    Apply to JSON
-                  </button>
-                </div>
-                <p id="laTravelBrandMsg" class="la-template-msg" hidden role="status"></p>
-              </section>
-            </div>
-
-            <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">4</span> Message JSON</h3>
+            <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">3</span> Message &amp; template</h3>
             <div class="profile-box-content">
               <div class="la-payload-workspace" id="laPayloadWorkspace">
                 <div class="la-template-bar" id="laTemplateBar" aria-label="Payload templates">
@@ -324,9 +192,30 @@
                   </div>
                   <p id="laTemplateMsg" class="la-template-msg" hidden role="status"></p>
                 </div>
+
+                <div class="la-merge-demo-bar" id="laMergeDemoBar">
+                  <button
+                    type="button"
+                    class="btn btn-primary la-merge-message-btn"
+                    id="laMergeMessageFromFields"
+                    title="Merge step 2 into the template; for Travel generic, also applies theme colours and Travel brand fields"
+                  >
+                    Update message from fields
+                  </button>
+                  <p class="la-merge-demo-hint">
+                    Demo flow: set <strong>step 2</strong>, load a template, then press this once. Travel templates pick up theme + App Group + brand + logo + phase automatically. Open the JSON panel below only if you need to inspect or tweak raw JSON.
+                  </p>
+                  <p id="laMergeDemoMsg" class="la-template-msg la-merge-demo-msg" hidden role="status"></p>
+                </div>
+
+                <details class="la-json-editor-details" id="laJsonEditorDetails">
+                  <summary class="la-json-editor-details-summary">
+                    JSON editor <span class="la-json-editor-details-muted">(optional — expand to view or edit)</span>
+                  </summary>
+                  <div class="la-json-editor-details-body">
                 <div class="la-payload-view-head">
                   <p class="la-payload-view-lead la-payload-view-lead--compact">
-                    Load a template or paste JSON, then <strong>Beautify</strong> if needed. In <strong>step 3</strong>, use <strong>Apply to JSON</strong> on the Travel block to merge App Group, name, logo, phase, and theme into this editor when the payload is Travel generic. <strong>Apply all from fields</strong> merges <strong>steps 2 and 3</strong> (campaign row + theme colours). Use <strong>Refresh preview</strong> (step 5) for the outgoing payload. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify.
+                    <strong>Beautify</strong> formats placeholders. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify. Use <strong>Update message from fields</strong> above for the normal merge — you rarely need to touch the raw JSON during a demo.
                   </p>
                   <div class="la-payload-view-toggle" role="tablist" aria-label="JSON editor view">
                     <button
@@ -359,19 +248,16 @@
                     class="la-json la-import-paste"
                     spellcheck="false"
                     rows="18"
-                    placeholder="Load a template or paste JSON. Apply all from fields merges step 2 (campaign, ECID, event, IDs) and step 3 (Travel theme colours) — then preview before Send."
+                    placeholder="Load a template or paste JSON, then use Update message from fields above."
                     title="Required for Preview and Send"
                     aria-describedby="laImportPasteHint"
                   ></textarea>
                   <p id="laImportPasteHint" class="la-import-title-hint">
-                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. <strong>Apply all from fields</strong> merges steps 2 and 3. For Travel generic, use <strong>Apply to JSON</strong> in step 3 once this editor has Travel JSON.
+                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. Prefer <strong>Update message from fields</strong> above — it applies step 2 and Travel appearance in one step.
                   </p>
                   <div class="la-import-actions">
-                    <div class="la-import-actions-btns" role="group" aria-label="Format JSON and merge execution fields">
+                    <div class="la-import-actions-btns" role="group" aria-label="Format pasted JSON">
                       <button type="button" class="btn btn-secondary" id="laImportBeautify">Beautify</button>
-                      <button type="button" class="btn btn-primary" id="laInjectAllFromFields" title="Merge step 2 (campaign, ECID, event, Live Activity ID, IDs) and step 3 (Travel theme colours) into the JSON editor">
-                        Apply all from fields
-                      </button>
                     </div>
                     <span id="laImportMsg" class="la-import-msg" hidden role="status"></span>
                   </div>
@@ -522,11 +408,139 @@
               </div>
                   </details>
                 </div>
+                  </div>
+                </details>
+
+                <div id="laTravelAppearanceSection" class="la-travel-appearance-section" hidden>
+                  <h4 class="la-travel-appearance-title">Travel appearance</h4>
+                  <p class="la-ts-note la-ts-note--compact" role="note">
+                    Shown for <code class="dashboard-code">TravelLiveActivityAttributes</code>. Set theme and brand below, then use <strong>Update message from fields</strong> above to push everything into the JSON.
+                  </p>
+                  <p class="la-ts-note la-ts-note--compact la-brand-theme-lead" role="note">
+                    Theme colours feed <code class="dashboard-code">content-state.theme</code>. Use hex, native colour controls, droppers, or ranked colours from a <strong>brand scrape</strong>.
+                  </p>
+                  <div class="la-brand-theme-rows">
+                    <div class="la-brand-theme-row" data-la-brand-row="bg">
+                      <span class="la-brand-theme-label">Background</span>
+                      <input type="color" id="laBrandThemeBgColor" class="la-brand-theme-color" value="#0f7d47" aria-label="Background colour" />
+                      <input type="text" id="laBrandThemeBgHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="#0F7D47" aria-label="Background hex" />
+                      <button type="button" class="btn btn-secondary la-brand-dropper" id="laBrandBgDropper" title="Pick colour from screen">Dropper</button>
+                    </div>
+                    <div class="la-brand-theme-row" data-la-brand-row="accent">
+                      <span class="la-brand-theme-label">Accent</span>
+                      <input type="color" id="laBrandThemeAccentColor" class="la-brand-theme-color" value="#69d444" aria-label="Accent colour" />
+                      <input type="text" id="laBrandThemeAccentHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="#69D444" aria-label="Accent hex" />
+                      <button type="button" class="btn btn-secondary la-brand-dropper" id="laBrandAccentDropper" title="Pick colour from screen">Dropper</button>
+                    </div>
+                    <div class="la-brand-theme-row" data-la-brand-row="text">
+                      <span class="la-brand-theme-label">Text on background</span>
+                      <input type="color" id="laBrandThemeTextColor" class="la-brand-theme-color" value="#ffffff" aria-label="Text colour" />
+                      <input type="text" id="laBrandThemeTextHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="#FFFFFF" aria-label="Text hex" />
+                      <button type="button" class="btn btn-secondary la-brand-dropper" id="laBrandTextDropper" title="Pick colour from screen">Dropper</button>
+                    </div>
+                  </div>
+                  <div class="la-brand-scrape-toolbar">
+                    <button type="button" class="btn btn-secondary" id="laBrandScrapeRefresh">Refresh brand scrapes</button>
+                    <select id="laBrandScrapeSelect" class="sandbox-select la-brand-scrape-select" aria-label="Brand scrape">
+                      <option value="">Select a scrape…</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary" id="laBrandScrapeLoadPalette" title="Load colour palette from selected scrape">Load palette</button>
+                    <button type="button" class="btn btn-secondary" id="laBrandScrapeTop3" title="Assign first three ranked colours to background, accent, text">Use top 3 colours</button>
+                  </div>
+                  <p class="la-field-hint">Click a swatch to apply it to the target below (same order as theme fields).</p>
+                  <div class="la-brand-scrape-target" role="radiogroup" aria-label="Apply swatch to">
+                    <label class="la-brand-scrape-target-opt"><input type="radio" name="laBrandSwatchTarget" value="bg" checked /> Background</label>
+                    <label class="la-brand-scrape-target-opt"><input type="radio" name="laBrandSwatchTarget" value="accent" /> Accent</label>
+                    <label class="la-brand-scrape-target-opt"><input type="radio" name="laBrandSwatchTarget" value="text" /> Text</label>
+                  </div>
+                  <div id="laBrandScrapePalette" class="la-brand-scrape-palette" aria-live="polite"></div>
+                  <p id="laBrandScrapeMsg" class="la-template-msg" hidden role="status"></p>
+
+                  <section id="laTravelBrandPanel" class="la-travel-brand-panel consent-panel la-travel-brand-panel--nested" aria-labelledby="laTravelBrandHeading">
+                    <h4 id="laTravelBrandHeading" class="la-travel-brand-title">Brand &amp; theme (Travel generic)</h4>
+                    <p class="la-travel-brand-lead panel-desc">
+                      App Group, customer/brand name, logo URL, phase, and journey progress. Changing <strong>Phase</strong> updates <code class="dashboard-code">content-state</code> keys for flight / boarding / airport while keeping theme, route, and brand fields where they still apply. Phase changes write to JSON immediately; everything else merges when you press <strong>Update message from fields</strong>.
+                    </p>
+                    <div class="la-grid la-grid--exec la-travel-brand-grid">
+                      <div class="la-field la-field--block">
+                        <label for="laTravelAppGroupId">App Group ID</label>
+                        <input type="text" id="laTravelAppGroupId" autocomplete="off" spellcheck="false" placeholder="group.com.adampadobe.aep-messaging-demo" />
+                        <span class="la-field-hint">Must match the App Group on the iOS host + widget targets.</span>
+                      </div>
+                      <div class="la-field la-field--block">
+                        <label for="laTravelBrandName">Brand name</label>
+                        <div class="la-travel-brandname-row">
+                          <input type="text" id="laTravelBrandName" class="la-travel-brandname-input" autocomplete="off" spellcheck="false" placeholder="Acme Air" />
+                          <button type="button" class="btn btn-secondary" id="laTravelBrandNameFromScrape" title="Fill from the scrape selected above (Refresh scrapes if the list is empty)">
+                            Use scrape name
+                          </button>
+                        </div>
+                        <span class="la-field-hint">Widget text fallback when no logo file is cached.</span>
+                      </div>
+                      <div class="la-field la-field--block">
+                        <label for="laTravelLogoUrl">Logo image URL</label>
+                        <div class="la-travel-logo-toolbar" role="group" aria-label="Hosted logo library">
+                          <select id="laTravelLogoLibrary" class="sandbox-select la-travel-logo-library" aria-label="Pick a logo from Firebase image library">
+                            <option value="">Hosted logos (Firebase library)…</option>
+                          </select>
+                          <button type="button" class="btn btn-secondary" id="laTravelLogoLibraryRefresh" title="Reload list from Image Hosting library for this sandbox">
+                            Refresh list
+                          </button>
+                          <button type="button" class="btn btn-secondary" id="laTravelLogoUploadBtn" title="Upload an image into your sandbox library (CDN URL), then set it here">
+                            Upload to library…
+                          </button>
+                          <input type="file" id="laTravelLogoFile" accept="image/*" hidden />
+                        </div>
+                        <input
+                          type="url"
+                          id="laTravelLogoUrl"
+                          list="laTravelLogoUrlDatalist"
+                          autocomplete="off"
+                          spellcheck="false"
+                          placeholder="https://… or choose / upload above"
+                        />
+                        <datalist id="laTravelLogoUrlDatalist"></datalist>
+                        <span id="laTravelLogoHint" class="la-field-hint">Host app prefetches this URL into the App Group. We set <code class="dashboard-code">attributes.logoFileName</code> to <code class="dashboard-code">SHA-256(URL).png</code> so it matches the cached filename (no <code class="dashboard-code">logoURL</code> in the push contract). <strong>Hosted logos</strong> use your per-sandbox Image Hosting library on Firebase; recent URLs are remembered in this browser.</span>
+                      </div>
+                      <div class="la-field">
+                        <label for="laTravelPhase">Phase (layout)</label>
+                        <select id="laTravelPhase" aria-label="Travel Live Activity phase">
+                          <option value="flight">flight</option>
+                          <option value="boarding">boarding</option>
+                          <option value="airport">airport</option>
+                        </select>
+                      </div>
+                      <p class="la-field-hint la-travel-theme-hint">Theme colours use the Background / Accent / Text controls above.</p>
+                      <div class="la-field">
+                        <label for="laTravelJourneyProgress">Journey progress % (flight)</label>
+                        <div class="la-travel-journey-row">
+                          <input
+                            type="range"
+                            id="laTravelJourneyProgress"
+                            class="la-travel-journey-slider"
+                            min="0"
+                            max="100"
+                            step="1"
+                            value="25"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                            aria-valuenow="25"
+                            aria-describedby="laTravelJourneyHint"
+                          />
+                          <output id="laTravelJourneyProgressOut" class="la-travel-journey-out" for="laTravelJourneyProgress">25%</output>
+                        </div>
+                        <span id="laTravelJourneyHint" class="la-field-hint">0–100; written only when phase is <code class="dashboard-code">flight</code>.</span>
+                      </div>
+                    </div>
+                    <p id="laTravelBrandMsg" class="la-template-msg" hidden role="status"></p>
+                  </section>
+                </div>
+
               </div>
 
               <div class="la-actions la-actions--send">
-                <p class="la-send-step"><span class="la-send-step-num">5</span> Preview (outgoing payload) &amp; send</p>
-                <p class="la-send-step-hint">Click to fill the preview with the exact JSON that <strong>Send to Adobe</strong> will use (after <strong>Apply all from fields</strong> merges steps 2 and 3 into the editor).</p>
+                <p class="la-send-step"><span class="la-send-step-num">4</span> Preview (outgoing payload) &amp; send</p>
+                <p class="la-send-step-hint"><strong>Update message from fields</strong> above also refreshes this preview. Use <strong>Refresh preview</strong> if you edited JSON manually.</p>
                 <button type="button" class="btn btn-secondary" id="laPreviewBtn">Refresh preview</button>
                 <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
               </div>
@@ -555,6 +569,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script defer src="live-activities.js?v=20260424d"></script>
+  <script defer src="live-activities.js?v=20260425a"></script>
 </body>
 </html>
