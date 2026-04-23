@@ -402,6 +402,9 @@
       statusMessage: 'Status line',
       timeStatus: 'On-time status',
       dwellTimeMessage: 'Dwell / shopping message',
+      journeyStage: 'Journey stage (status pill)',
+      statusColor: 'Status pill colour (hex override)',
+      seatNumber: 'Seat number',
     },
     laAttributes: {
       flightNumber: 'Flight number',
@@ -1027,6 +1030,32 @@
   /** iOS generic Travel Live Activity (MessagingDemoAppSwiftUI). */
   var LA_TRAVEL_ATTR_TYPE = 'TravelLiveActivityAttributes';
   var LA_TRAVEL_DEFAULT_APP_GROUP = 'group.com.adampadobe.aep-messaging-demo';
+  /**
+   * Payload `content-state.journeyStage` strings — mirrors
+   * `TravelLiveActivityAttributes.JourneyStage` in aep-messaging-demo.
+   */
+  var LA_TRAVEL_JOURNEY_STAGE_OPTIONS = [
+    { id: 'checkInOpen', label: 'Check-in Open' },
+    { id: 'checkedIn', label: 'Checked In' },
+    { id: 'goToSecurity', label: 'Go to Security' },
+    { id: 'throughSecurity', label: 'Through Security' },
+    { id: 'exploreAirport', label: 'Explore Airport' },
+    { id: 'goToGate', label: 'Go to Gate' },
+    { id: 'boardingSoon', label: 'Boarding Soon' },
+    { id: 'boardingNow', label: 'Boarding Now' },
+    { id: 'finalCall', label: 'Final Call' },
+    { id: 'gateChange', label: 'Gate Change' },
+    { id: 'gateClosing', label: 'Gate Closing' },
+    { id: 'gateClosed', label: 'Gate Closed' },
+    { id: 'boarded', label: 'Boarded' },
+    { id: 'departed', label: 'Departed' },
+    { id: 'inFlight', label: 'In Flight' },
+    { id: 'landed', label: 'Landed' },
+    { id: 'arrivedAtGate', label: 'At Gate' },
+    { id: 'baggageReady', label: 'Baggage Ready' },
+    { id: 'delayed', label: 'Delayed' },
+    { id: 'cancelled', label: 'Cancelled' },
+  ];
   var LA_TRAVEL_LOGO_LAST_KEY = 'aepLaTravelLogoUrlLast';
   var LA_TRAVEL_LOGO_HISTORY_KEY = 'aepLaTravelLogoUrlHistoryV1';
   var LA_TRAVEL_LOGO_HISTORY_MAX = 20;
@@ -1066,7 +1095,9 @@
         boardingStatus: 'Boarding',
         terminal: 'Terminal 4',
         gate: 'A22',
+        seatNumber: '12A',
         statusMessage: 'Please proceed to gate',
+        journeyStage: 'boardingNow',
       };
     }
     if (phase === 'airport') {
@@ -1080,8 +1111,10 @@
         arrivalTime: '21:10',
         timeStatus: 'On time',
         boardingStatus: 'At airport',
+        seatNumber: '12A',
         statusMessage: 'Explore concessions before security',
         dwellTimeMessage: 'Duty-free offers today',
+        journeyStage: 'exploreAirport',
       };
     }
     return {
@@ -1097,6 +1130,7 @@
       journeyProgress: 25,
       wifiAvailable: true,
       currentLocation: 'Wi-Fi available onboard',
+      journeyStage: 'departed',
     };
   }
 
@@ -1111,6 +1145,9 @@
       arrivalTime: true,
       timeStatus: true,
     };
+    o.journeyStage = true;
+    o.statusColor = true;
+    o.seatNumber = true;
     if (phase === 'flight') {
       o.status = true;
       o.journeyProgress = true;
@@ -1758,6 +1795,39 @@
         jpv != null && String(jpv) !== '' && Number.isFinite(Number(jpv)) ? String(Math.max(0, Math.min(100, Math.round(Number(jpv))))) : '25';
       laSyncTravelJourneyProgressOutput();
     }
+    var jStageSel = $('laTravelJourneyStage');
+    if (jStageSel) {
+      var jsRaw = cs.journeyStage != null ? String(cs.journeyStage).trim() : '';
+      var jsOk = false;
+      for (var q = 0; q < LA_TRAVEL_JOURNEY_STAGE_OPTIONS.length; q++) {
+        if (LA_TRAVEL_JOURNEY_STAGE_OPTIONS[q].id === jsRaw) {
+          jsOk = true;
+          break;
+        }
+      }
+      jStageSel.value = jsOk ? jsRaw : '';
+    }
+    var seatNum = $('laTravelSeatNumber');
+    if (seatNum) seatNum.value = cs.seatNumber != null ? String(cs.seatNumber) : '';
+    var statusCol = $('laTravelStatusColorHex');
+    if (statusCol) statusCol.value = cs.statusColor != null ? String(cs.statusColor) : '';
+  }
+
+  function laWireTravelJourneyStageSelect() {
+    var sel = $('laTravelJourneyStage');
+    if (!sel || sel.getAttribute('data-la-journey-wired') === '1') return;
+    sel.setAttribute('data-la-journey-wired', '1');
+    sel.innerHTML = '';
+    var blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = '(None — pill uses boarding status / status line)';
+    sel.appendChild(blank);
+    LA_TRAVEL_JOURNEY_STAGE_OPTIONS.forEach(function (opt) {
+      var o = document.createElement('option');
+      o.value = opt.id;
+      o.textContent = opt.label;
+      sel.appendChild(o);
+    });
   }
 
   function laTravelWriteParsedToPaste(parsed) {
@@ -2055,6 +2125,18 @@
         var jv = jinp ? Number(String(jinp.value || '').trim()) : NaN;
         if (Number.isFinite(jv)) merged.journeyProgress = Math.max(0, Math.min(100, Math.round(jv)));
       }
+      var jStageEl = $('laTravelJourneyStage');
+      var jStageVal = jStageEl ? String(jStageEl.value || '').trim() : '';
+      if (jStageVal) merged.journeyStage = jStageVal;
+      else delete merged.journeyStage;
+      var seatEl = $('laTravelSeatNumber');
+      var seatVal = seatEl ? String(seatEl.value || '').trim() : '';
+      if (seatVal) merged.seatNumber = seatVal;
+      else delete merged.seatNumber;
+      var statusHexEl = $('laTravelStatusColorHex');
+      var statusHex = statusHexEl ? laParseHexColor6(statusHexEl.value) : null;
+      if (statusHex) merged.statusColor = statusHex;
+      else delete merged.statusColor;
       aps['content-state'] = merged;
       if (!aps.attributes || typeof aps.attributes !== 'object' || Array.isArray(aps.attributes)) aps.attributes = {};
       var agVal = String(($('laTravelAppGroupId') && $('laTravelAppGroupId').value) || '').trim();
@@ -3503,6 +3585,7 @@
     if (mergeBtn) mergeBtn.addEventListener('click', laMergeMessageFromFields);
     var laTravelBrandScrapeNameBtn = $('laTravelBrandNameFromScrape');
     if (laTravelBrandScrapeNameBtn) laTravelBrandScrapeNameBtn.addEventListener('click', laApplyTravelBrandNameFromScrape);
+    laWireTravelJourneyStageSelect();
     var laTravelPhaseEl = $('laTravelPhase');
     if (laTravelPhaseEl) laTravelPhaseEl.addEventListener('change', laTravelOnPhaseSelectChange);
     var laJourney = $('laTravelJourneyProgress');

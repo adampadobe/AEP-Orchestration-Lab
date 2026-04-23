@@ -1516,6 +1516,11 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
 .live-activities-page .la-merge-demo-msg {
   margin-top: 0.5rem;
 }
+
+.live-activities-page .la-travel-journey-stage-select {
+  width: 100%;
+  max-width: 28rem;
+}
 .live-activities-page .la-json-editor-details {
   margin-top: 0.35rem;
   border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.08));
