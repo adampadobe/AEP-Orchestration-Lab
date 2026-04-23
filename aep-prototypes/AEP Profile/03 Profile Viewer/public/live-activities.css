@@ -1472,12 +1472,34 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
   border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.12));
   background: var(--dash-surface-2, rgba(0, 0, 0, 0.03));
 }
+.live-activities-page .la-message-actions-stack {
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--dash-border, rgba(0, 0, 0, 0.1));
+}
 .live-activities-page .la-merge-demo-bar {
-  margin: 0.85rem 0 1rem;
+  margin: 0;
   padding: 0.9rem 1rem;
   border-radius: var(--dash-radius, 12px);
   border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.1));
   background: var(--dash-surface-2, rgba(0, 0, 0, 0.03));
+}
+.live-activities-page .la-send-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+.live-activities-page .la-send-actions-row .btn {
+  margin: 0;
+}
+.live-activities-page .la-send-step--inline {
+  margin-bottom: 0.35rem;
+}
+.live-activities-page .la-send-step-hint--after-actions {
+  margin-top: 0.65rem;
+  margin-bottom: 0;
 }
 .live-activities-page .la-merge-message-btn {
   font-size: 1rem;
