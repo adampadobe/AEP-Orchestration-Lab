@@ -50,6 +50,9 @@
 
   /** localStorage for user-saved payload bodies (name + json string). */
   var LA_TEMPLATE_STORAGE_KEY = 'aepLaPayloadTemplatesV1';
+  /** Per-sandbox MRU template ids for the “Frequently used” optgroup (max ~12 each). */
+  var LA_FREQ_TEMPLATE_IDS_KEY = 'aepLaFrequentTemplateIdsV1';
+  var LA_FREQ_TEMPLATE_MAX = 12;
 
   /**
    * Bundled Postman collection bodies (Etihad, KSIA, Travel generic, …) list first under “Saved in this sandbox”
@@ -3094,6 +3097,74 @@
     return String(id || '').indexOf('la-example-') === 0;
   }
 
+  function laFrequentIdsMapRead() {
+    try {
+      var raw = localStorage.getItem(LA_FREQ_TEMPLATE_IDS_KEY);
+      var o = raw ? JSON.parse(raw) : {};
+      return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function laFrequentIdsMapWrite(map) {
+    try {
+      localStorage.setItem(LA_FREQ_TEMPLATE_IDS_KEY, JSON.stringify(map));
+    } catch (e) {}
+  }
+
+  function laFrequentSandboxKey() {
+    var cur = String(laCurrentSandboxForTemplates() || '').trim().toLowerCase();
+    return cur || '_default';
+  }
+
+  function laGetFrequentTemplateIdsOrdered() {
+    var map = laFrequentIdsMapRead();
+    var arr = map[laFrequentSandboxKey()];
+    return Array.isArray(arr) ? arr.filter(function (id) { return !!id; }) : [];
+  }
+
+  /** Bump id to front of this sandbox’s MRU list (after a successful Load). */
+  function laTouchFrequentTemplateId(id) {
+    if (!id) return;
+    var key = laFrequentSandboxKey();
+    var map = laFrequentIdsMapRead();
+    var prev = Array.isArray(map[key]) ? map[key].slice() : [];
+    var next = prev.filter(function (x) { return x !== id; });
+    next.unshift(id);
+    if (next.length > LA_FREQ_TEMPLATE_MAX) next = next.slice(0, LA_FREQ_TEMPLATE_MAX);
+    map[key] = next;
+    laFrequentIdsMapWrite(map);
+  }
+
+  function laRemoveFromFrequentTemplateIds(id) {
+    if (!id) return;
+    var key = laFrequentSandboxKey();
+    var map = laFrequentIdsMapRead();
+    var prev = Array.isArray(map[key]) ? map[key] : [];
+    map[key] = prev.filter(function (x) { return x !== id; });
+    laFrequentIdsMapWrite(map);
+  }
+
+  /** Display label for a template id (built-ins / examples / saved). */
+  function laGetTemplateDisplayName(id) {
+    if (!id) return '';
+    var gi, bi, sj;
+    for (gi = 0; gi < LA_GLOBAL_EXAMPLES.length; gi++) {
+      if (LA_GLOBAL_EXAMPLES[gi].id === id) return String(LA_GLOBAL_EXAMPLES[gi].name || id).trim() || id;
+    }
+    if (laSandboxShowsPostmanBuiltins() && LA_BUILTIN_TEMPLATES.length) {
+      for (bi = 0; bi < LA_BUILTIN_TEMPLATES.length; bi++) {
+        if (LA_BUILTIN_TEMPLATES[bi].id === id) return String(LA_BUILTIN_TEMPLATES[bi].name || id).trim() || id;
+      }
+    }
+    var saved = laGetSavedTemplates();
+    for (sj = 0; sj < saved.length; sj++) {
+      if (saved[sj].id === id) return String(saved[sj].name || saved[sj].id || id).trim() || id;
+    }
+    return id;
+  }
+
   function laPopulateTemplateSelect() {
     var sel = $('laTemplateSelect');
     if (!sel) return;
@@ -3103,16 +3174,39 @@
     ph.value = '';
     ph.textContent = 'Select a template…';
     sel.appendChild(ph);
+
+    var frequentSet = Object.create(null);
+    var frequentOrdered = [];
+    laGetFrequentTemplateIdsOrdered().forEach(function (fid) {
+      if (!fid || frequentSet[fid]) return;
+      if (!String(laGetTemplateJsonById(fid) || '').trim()) return;
+      frequentSet[fid] = true;
+      frequentOrdered.push(fid);
+    });
+
+    if (frequentOrdered.length) {
+      var ogFreq = document.createElement('optgroup');
+      ogFreq.label = 'Frequently used';
+      frequentOrdered.forEach(function (fid) {
+        var o = document.createElement('option');
+        o.value = fid;
+        o.textContent = laGetTemplateDisplayName(fid);
+        ogFreq.appendChild(o);
+      });
+      sel.appendChild(ogFreq);
+    }
+
     if (LA_GLOBAL_EXAMPLES.length) {
       var ogEx = document.createElement('optgroup');
       ogEx.label = 'Example';
       LA_GLOBAL_EXAMPLES.forEach(function (t) {
+        if (frequentSet[t.id]) return;
         var o = document.createElement('option');
         o.value = t.id;
         o.textContent = t.name;
         ogEx.appendChild(o);
       });
-      sel.appendChild(ogEx);
+      if (ogEx.children.length) sel.appendChild(ogEx);
     }
     var showBuiltins = laSandboxShowsPostmanBuiltins() && LA_BUILTIN_TEMPLATES.length;
     var saved = laGetSavedTemplates();
@@ -3121,6 +3215,7 @@
       og.label = 'Saved in this sandbox';
       if (showBuiltins) {
         LA_BUILTIN_TEMPLATES.forEach(function (t) {
+          if (frequentSet[t.id]) return;
           var o = document.createElement('option');
           o.value = t.id;
           o.textContent = t.name;
@@ -3128,12 +3223,13 @@
         });
       }
       saved.forEach(function (t) {
+        if (frequentSet[t.id]) return;
         var o = document.createElement('option');
         o.value = t.id;
         o.textContent = t.name || t.id;
         og.appendChild(o);
       });
-      sel.appendChild(og);
+      if (og.children.length) sel.appendChild(og);
     }
     if (
       preserved &&
@@ -3183,7 +3279,8 @@
       laShowTemplateMsg('Choose a template first.', true);
       return;
     }
-    var json = laGetTemplateJsonById(sel.value);
+    var loadedId = sel.value;
+    var json = laGetTemplateJsonById(loadedId);
     if (!json) {
       laShowTemplateMsg('Template not found.', true);
       return;
@@ -3194,6 +3291,19 @@
     bumpJsonMirror(ta);
     afterImportPasteMutation();
     setPayloadView('paste');
+    laTouchFrequentTemplateId(loadedId);
+    laPopulateTemplateSelect();
+    var sel2 = $('laTemplateSelect');
+    if (
+      sel2 &&
+      loadedId &&
+      Array.prototype.some.call(sel2.options, function (x) {
+        return x.value === loadedId;
+      })
+    ) {
+      sel2.value = loadedId;
+    }
+    laUpdateTemplateDeleteState();
     laShowTemplateMsg('Loaded — configure Travel if needed, then merge at the bottom.', false);
   }
 
@@ -3230,8 +3340,10 @@
     var sel = $('laTemplateSelect');
     if (!sel || !sel.value || laIsBuiltinTemplateId(sel.value) || laIsGlobalExampleId(sel.value)) return;
     if (!window.confirm('Delete this saved template?')) return;
+    var deletedId = sel.value;
+    laRemoveFromFrequentTemplateIds(deletedId);
     var next = laGetSavedTemplatesRaw().filter(function (t) {
-      return t.id !== sel.value;
+      return t.id !== deletedId;
     });
     laSetSavedTemplates(next);
     laPopulateTemplateSelect();
