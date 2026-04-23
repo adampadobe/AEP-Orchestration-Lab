@@ -2146,6 +2146,12 @@
   }
 
   function showMergeDemoMsg(text, isErr) {
+    var q = $('laSendQuickMsg');
+    if (q) {
+      q.textContent = '';
+      q.hidden = true;
+      q.classList.remove('la-template-msg--ok', 'la-template-msg--err', 'la-template-msg--sending');
+    }
     var el = $('laMergeDemoMsg');
     if (!el) return;
     el.textContent = text || '';
@@ -3505,7 +3511,7 @@
   }
 
   /**
-   * @param {{ statusText?: string, isError?: boolean, isOk?: boolean, loading?: boolean, rawText?: string, detailsOpen?: boolean }} options
+   * @param {{ statusText?: string, isError?: boolean, isOk?: boolean, loading?: boolean, rawText?: string, detailsOpen?: boolean, updateActionBarSend?: boolean }} options
    */
   function laShowSendFeedback(options) {
     options = options || {};
@@ -3532,6 +3538,30 @@
         det.open = false;
       }
     }
+    if (options.updateActionBarSend) {
+      var quick = $('laSendQuickMsg');
+      if (quick) {
+        quick.classList.remove('la-template-msg--ok', 'la-template-msg--err', 'la-template-msg--sending');
+        if (options.loading) {
+          quick.textContent = 'Sending…';
+          quick.hidden = false;
+          quick.classList.add('la-template-msg--sending');
+        } else if (options.isOk) {
+          quick.textContent = 'Sent successfully.';
+          quick.hidden = false;
+          quick.classList.add('la-template-msg--ok');
+        } else if (options.isError) {
+          var detail = String(options.statusText || '').trim();
+          var line = 'Send unsuccessful.';
+          if (detail && !/^send unsuccessful/i.test(detail)) {
+            line += ' ' + (detail.length > 160 ? detail.slice(0, 157) + '…' : detail);
+          }
+          quick.textContent = line;
+          quick.hidden = false;
+          quick.classList.add('la-template-msg--err');
+        }
+      }
+    }
   }
 
   /** Fills #laPreview with getOutgoingPayload() — same bytes Send to Adobe uses. */
@@ -3548,6 +3578,7 @@
       laShowSendFeedback({
         statusText: String(e.message || e),
         isError: true,
+        updateActionBarSend: false,
       });
     }
   }
@@ -3773,11 +3804,20 @@
       try {
         payload = getOutgoingPayload();
       } catch (e) {
-        laShowSendFeedback({ statusText: String(e.message || e), isError: true });
+        laShowSendFeedback({
+          statusText: String(e.message || e),
+          isError: true,
+          updateActionBarSend: true,
+        });
         return;
       }
 
-      laShowSendFeedback({ statusText: 'Sending…', loading: true, rawText: '' });
+      laShowSendFeedback({
+        statusText: 'Sending…',
+        loading: true,
+        rawText: '',
+        updateActionBarSend: true,
+      });
       try {
         var res = await fetch(API, {
           method: 'POST',
@@ -3801,6 +3841,7 @@
             isOk: true,
             rawText: out,
             detailsOpen: false,
+            updateActionBarSend: true,
           });
         } else {
           var shortErr = 'Request failed (HTTP ' + res.status + '). Open “Show response body” below for details.';
@@ -3812,12 +3853,14 @@
             isError: true,
             rawText: out,
             detailsOpen: true,
+            updateActionBarSend: true,
           });
         }
       } catch (e) {
         laShowSendFeedback({
           statusText: 'Request failed: ' + String(e.message || e),
           isError: true,
+          updateActionBarSend: true,
         });
       }
     });

@@ -1517,6 +1517,20 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
   margin-top: 0.5rem;
 }
 
+.live-activities-page .la-send-quick-msg {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.live-activities-page .la-template-msg--sending {
+  color: var(--dash-text-secondary, #5c5f66);
+}
+
+html[data-aep-theme='dark'] .live-activities-page .la-template-msg--sending {
+  color: #a1a1aa;
+}
+
 .live-activities-page .la-travel-journey-stage-select {
   width: 100%;
   max-width: 28rem;
