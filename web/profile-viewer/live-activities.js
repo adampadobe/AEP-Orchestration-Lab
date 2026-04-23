@@ -797,6 +797,7 @@
     bumpJsonMirror(ta);
     if (ta.id === 'laImportPaste') {
       showImportMsg('', false);
+      afterImportPasteMutation();
     }
     var block = ta.closest('[data-json-editor]');
     if (block && block.getAttribute('data-mode') === 'simple') {
@@ -853,6 +854,7 @@
     ta.selectionStart = ta.selectionEnd = pos;
     ta.scrollTop = 0;
     bumpJsonMirror(ta);
+    if (ta.id === 'laImportPaste') afterImportPasteMutation();
   }
 
   /** True if object looks like the APS block (not a random single-field snippet). */
@@ -1024,6 +1026,321 @@
     return null;
   }
 
+  /** iOS generic Travel Live Activity (MessagingDemoAppSwiftUI). */
+  var LA_TRAVEL_ATTR_TYPE = 'TravelLiveActivityAttributes';
+  var LA_TRAVEL_DEFAULT_APP_GROUP = 'group.com.adampadobe.aep-messaging-demo';
+
+  /**
+   * True when the unitary (or compatible) payload uses TravelLiveActivityAttributes.
+   * @param {object} payload — root JSON object (e.g. full unitary body)
+   */
+  function laIsTravelGeneric(payload) {
+    try {
+      if (!payload || typeof payload !== 'object') return false;
+      var aps = findApsInParsedForMutation(payload);
+      if (!aps) return false;
+      return String(aps['attributes-type'] || '') === LA_TRAVEL_ATTR_TYPE;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function laTravelDefaultTheme() {
+    return { background: '#0F7D47', accent: '#69D444', onBackground: '#FFFFFF' };
+  }
+
+  function laTravelDefaultContentState(phase) {
+    var t = laTravelDefaultTheme();
+    if (phase === 'boarding') {
+      return {
+        phase: 'boarding',
+        theme: JSON.parse(JSON.stringify(t)),
+        flightNumber: 'AA 101',
+        departureAirport: 'RUH',
+        arrivalAirport: 'DXB',
+        departureTime: '18:45',
+        arrivalTime: '21:10',
+        timeStatus: 'On time',
+        boardingStatus: 'Boarding',
+        terminal: 'Terminal 4',
+        gate: 'A22',
+        statusMessage: 'Please proceed to gate',
+      };
+    }
+    if (phase === 'airport') {
+      return {
+        phase: 'airport',
+        theme: JSON.parse(JSON.stringify(t)),
+        flightNumber: 'AA 101',
+        departureAirport: 'RUH',
+        arrivalAirport: 'DXB',
+        departureTime: '18:45',
+        arrivalTime: '21:10',
+        timeStatus: 'On time',
+        boardingStatus: 'At airport',
+        statusMessage: 'Explore concessions before security',
+        dwellTimeMessage: 'Duty-free offers today',
+      };
+    }
+    return {
+      phase: 'flight',
+      theme: JSON.parse(JSON.stringify(t)),
+      flightNumber: 'AA 101',
+      departureAirport: 'RUH',
+      arrivalAirport: 'DXB',
+      departureTime: '18:45',
+      arrivalTime: '21:10',
+      timeStatus: 'On time',
+      status: 'Departed',
+      journeyProgress: 25,
+      wifiAvailable: true,
+      currentLocation: 'Wi-Fi available onboard',
+    };
+  }
+
+  function laTravelAllowedKeySet(phase) {
+    var o = {
+      phase: true,
+      theme: true,
+      flightNumber: true,
+      departureAirport: true,
+      arrivalAirport: true,
+      departureTime: true,
+      arrivalTime: true,
+      timeStatus: true,
+    };
+    if (phase === 'flight') {
+      o.status = true;
+      o.journeyProgress = true;
+      o.wifiAvailable = true;
+      o.currentLocation = true;
+    } else if (phase === 'boarding') {
+      o.boardingStatus = true;
+      o.terminal = true;
+      o.gate = true;
+      o.statusMessage = true;
+    } else if (phase === 'airport') {
+      o.boardingStatus = true;
+      o.statusMessage = true;
+      o.dwellTimeMessage = true;
+    }
+    return o;
+  }
+
+  function laTravelMergeContentStateForPhase(oldCs, newPhase) {
+    var def = laTravelDefaultContentState(newPhase);
+    var allowed = laTravelAllowedKeySet(newPhase);
+    var old = oldCs && typeof oldCs === 'object' && !Array.isArray(oldCs) ? oldCs : {};
+    var out = JSON.parse(JSON.stringify(def));
+    Object.keys(old).forEach(function (k) {
+      if (!allowed[k]) return;
+      if (k === 'theme' && old.theme && typeof old.theme === 'object' && !Array.isArray(old.theme)) {
+        out.theme = Object.assign({}, def.theme, old.theme);
+      } else {
+        out[k] = old[k];
+      }
+    });
+    out.phase = newPhase;
+    if (newPhase === 'flight' && out.journeyProgress != null) {
+      var jp = Number(out.journeyProgress);
+      if (!Number.isFinite(jp)) jp = def.journeyProgress;
+      out.journeyProgress = Math.max(0, Math.min(100, Math.round(jp)));
+    }
+    return out;
+  }
+
+  /** Normalize hex to #RRGGBB; null if invalid. */
+  function laParseHexColor6(input) {
+    var s = String(input || '').trim();
+    if (!s) return null;
+    if (s.charAt(0) === '#') s = s.slice(1);
+    if (!/^[0-9a-fA-F]{6}$/.test(s)) return null;
+    return '#' + s.toLowerCase();
+  }
+
+  function laShowTravelBrandMsg(text, isErr) {
+    var el = $('laTravelBrandMsg');
+    if (!el) return;
+    el.textContent = text || '';
+    el.hidden = !text;
+    el.classList.toggle('la-template-msg--err', !!isErr);
+  }
+
+  function laSyncTravelBrandPanel() {
+    var panel = $('laTravelBrandPanel');
+    var ta = $('laImportPaste');
+    if (!panel || !ta) return;
+    var raw = String(ta.value || '').trim();
+    if (!raw) {
+      panel.hidden = true;
+      return;
+    }
+    var parsed;
+    try {
+      parsed = parseUserJson(raw);
+    } catch (e) {
+      panel.hidden = true;
+      return;
+    }
+    if (!laIsTravelGeneric(parsed)) {
+      panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    var aps = findApsInParsedForMutation(parsed);
+    var attr = (aps && aps.attributes) || {};
+    var cs = (aps && aps['content-state']) || {};
+    var ag = $('laTravelAppGroupId');
+    var bn = $('laTravelBrandName');
+    var logo = $('laTravelLogoUrl');
+    var ph = $('laTravelPhase');
+    var tb = $('laTravelThemeBg');
+    var ta2 = $('laTravelThemeAccent');
+    var to = $('laTravelThemeOnBg');
+    var jp = $('laTravelJourneyProgress');
+    var hint = $('laTravelLogoHint');
+    if (ag) ag.value = attr.appGroupID != null && String(attr.appGroupID) !== '' ? String(attr.appGroupID) : LA_TRAVEL_DEFAULT_APP_GROUP;
+    if (bn) bn.value = attr.brandName != null && attr.brandName !== null ? String(attr.brandName) : '';
+    if (logo) logo.value = '';
+    if (hint) {
+      var lf = attr.logoFileName;
+      hint.textContent =
+        lf != null && String(lf).trim() !== ''
+          ? 'Current attributes.logoFileName: ' + String(lf) + ' — paste a new logo URL to replace, or clear URL and Apply to set null.'
+          : 'Host app prefetches this URL into the App Group. We set attributes.logoFileName to SHA-256(URL).png so it matches the cached filename (no logoURL in the push contract).';
+    }
+    var phv = String(cs.phase || 'flight').toLowerCase();
+    if (ph) ph.value = phv === 'boarding' || phv === 'airport' ? phv : 'flight';
+    var th = cs.theme && typeof cs.theme === 'object' && !Array.isArray(cs.theme) ? cs.theme : {};
+    if (tb) tb.value = laParseHexColor6(th.background) || laTravelDefaultTheme().background;
+    if (ta2) ta2.value = laParseHexColor6(th.accent) || laTravelDefaultTheme().accent;
+    if (to) to.value = laParseHexColor6(th.onBackground) || laTravelDefaultTheme().onBackground;
+    if (jp) {
+      var jpv = cs.journeyProgress;
+      jp.value =
+        jpv != null && String(jpv) !== '' && Number.isFinite(Number(jpv)) ? String(Math.max(0, Math.min(100, Math.round(Number(jpv))))) : '25';
+    }
+  }
+
+  function laTravelWriteParsedToPaste(parsed) {
+    var ta = $('laImportPaste');
+    if (!ta) return;
+    try {
+      ta.value = JSON.stringify(parsed, null, 2);
+      ta.scrollTop = 0;
+      bumpJsonMirror(ta);
+      afterImportPasteMutation();
+    } catch (e) {
+      laShowTravelBrandMsg(String(e.message || e), true);
+    }
+  }
+
+  function laTravelOnPhaseSelectChange() {
+    var ta = $('laImportPaste');
+    var ph = $('laTravelPhase');
+    if (!ta || !ph) return;
+    var raw = String(ta.value || '').trim();
+    if (!raw) return;
+    var parsed;
+    try {
+      parsed = parseUserJson(raw);
+    } catch (e) {
+      return;
+    }
+    if (!laIsTravelGeneric(parsed)) return;
+    var aps = findApsInParsedForMutation(parsed);
+    if (!aps) return;
+    var newPhase = String(ph.value || 'flight').toLowerCase();
+    if (newPhase !== 'flight' && newPhase !== 'boarding' && newPhase !== 'airport') newPhase = 'flight';
+    var oldCs = aps['content-state'] && typeof aps['content-state'] === 'object' ? aps['content-state'] : {};
+    aps['content-state'] = laTravelMergeContentStateForPhase(oldCs, newPhase);
+    laTravelWriteParsedToPaste(parsed);
+    laShowTravelBrandMsg('Phase set to ' + newPhase + ' — content-state keys updated.', false);
+  }
+
+  function laLogoFilenameFromUrl(url) {
+    var u = String(url || '').trim();
+    if (!u) return Promise.resolve(null);
+    var enc = new TextEncoder();
+    var buf = enc.encode(u);
+    if (!crypto || !crypto.subtle || !crypto.subtle.digest) {
+      return Promise.reject(new Error('SHA-256 not available — use HTTPS or a modern browser.'));
+    }
+    return crypto.subtle.digest('SHA-256', buf).then(function (hashBuf) {
+      var hex = Array.from(new Uint8Array(hashBuf))
+        .map(function (b) {
+          return b.toString(16).padStart(2, '0');
+        })
+        .join('');
+      return hex + '.png';
+    });
+  }
+
+  function laTravelApplyBrandToPaste() {
+    var ta = $('laImportPaste');
+    if (!ta || !String(ta.value || '').trim()) {
+      laShowTravelBrandMsg('Load or paste JSON first.', true);
+      return;
+    }
+    var parsed;
+    try {
+      parsed = parseUserJson(ta.value);
+    } catch (e) {
+      laShowTravelBrandMsg('Invalid JSON — ' + (e.message || e), true);
+      return;
+    }
+    if (!laIsTravelGeneric(parsed)) {
+      laShowTravelBrandMsg('Not a Travel generic payload (attributes-type must be TravelLiveActivityAttributes).', true);
+      return;
+    }
+    var aps = findApsInParsedForMutation(parsed);
+    if (!aps) {
+      laShowTravelBrandMsg('Could not find aps in JSON.', true);
+      return;
+    }
+    var bg = laParseHexColor6($('laTravelThemeBg') && $('laTravelThemeBg').value);
+    var ac = laParseHexColor6($('laTravelThemeAccent') && $('laTravelThemeAccent').value);
+    var ob = laParseHexColor6($('laTravelThemeOnBg') && $('laTravelThemeOnBg').value);
+    if (!bg || !ac) {
+      laShowTravelBrandMsg('Background and accent must be valid #RRGGBB (optional leading #).', true);
+      return;
+    }
+    if (!ob) ob = '#ffffff';
+    var phase = String(($('laTravelPhase') && $('laTravelPhase').value) || 'flight').toLowerCase();
+    if (phase !== 'flight' && phase !== 'boarding' && phase !== 'airport') phase = 'flight';
+    var oldCs = aps['content-state'] && typeof aps['content-state'] === 'object' ? aps['content-state'] : {};
+    var merged = laTravelMergeContentStateForPhase(oldCs, phase);
+    merged.theme = { background: bg, accent: ac, onBackground: ob };
+    if (phase === 'flight') {
+      var jinp = $('laTravelJourneyProgress');
+      var jv = jinp ? Number(String(jinp.value || '').trim()) : NaN;
+      if (Number.isFinite(jv)) merged.journeyProgress = Math.max(0, Math.min(100, Math.round(jv)));
+    }
+    aps['content-state'] = merged;
+    if (!aps.attributes || typeof aps.attributes !== 'object' || Array.isArray(aps.attributes)) aps.attributes = {};
+    var agVal = String(($('laTravelAppGroupId') && $('laTravelAppGroupId').value) || '').trim();
+    aps.attributes.appGroupID = agVal || LA_TRAVEL_DEFAULT_APP_GROUP;
+    var brand = String(($('laTravelBrandName') && $('laTravelBrandName').value) || '').trim();
+    aps.attributes.brandName = brand || null;
+    var logoUrl = String(($('laTravelLogoUrl') && $('laTravelLogoUrl').value) || '').trim();
+    laShowTravelBrandMsg('Updating…', false);
+    var done = function (logoFile) {
+      aps.attributes.logoFileName = logoFile;
+      laTravelWriteParsedToPaste(parsed);
+      laShowTravelBrandMsg('Merged brand & theme into JSON.', false);
+    };
+    var fail = function (err) {
+      laShowTravelBrandMsg(String(err && err.message ? err.message : err), true);
+    };
+    if (!logoUrl) {
+      done(null);
+      return;
+    }
+    laLogoFilenameFromUrl(logoUrl)
+      .then(done)
+      .catch(fail);
+  }
+
   /**
    * Apply known keys from the execution fields into parsed JSON (structure-aware).
    * patch: { campaignId?, userId?, requestId?, timestamp?, liveActivityId?, event? } — omit keys to skip.
@@ -1136,6 +1453,7 @@
     if (treeTab && treeTab.getAttribute('aria-selected') === 'true') {
       renderPasteTree();
     }
+    laSyncTravelBrandPanel();
   }
 
   /**
@@ -1419,6 +1737,7 @@
       return;
     }
     bumpJsonMirror(ta);
+    afterImportPasteMutation();
     laTreeSelectedPathKey = pathKey;
     closeLaTreeEditAfterSave();
     renderPasteTree();
@@ -2395,6 +2714,12 @@
     if (injEv) injEv.addEventListener('click', injectEventFromField);
     var injAll = $('laInjectAllFromFields');
     if (injAll) injAll.addEventListener('click', injectAllFromExecutionFields);
+
+    var laTravelApplyBtn = $('laTravelApplyBrand');
+    if (laTravelApplyBtn) laTravelApplyBtn.addEventListener('click', laTravelApplyBrandToPaste);
+    var laTravelPhaseEl = $('laTravelPhase');
+    if (laTravelPhaseEl) laTravelPhaseEl.addEventListener('change', laTravelOnPhaseSelectChange);
+    if (typeof window !== 'undefined') window.laIsTravelGeneric = laIsTravelGeneric;
 
     Promise.all([
       laFetchBuiltinTemplates().catch(function (err) {

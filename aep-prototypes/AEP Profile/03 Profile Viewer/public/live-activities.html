@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260474">
+  <link rel="stylesheet" href="live-activities.css?v=20260423c">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -42,6 +42,8 @@
                 <strong>2)</strong> enter campaign, ECID, Live Activity ID, and event ·
                 <strong>3)</strong> load or paste JSON ·
                 <strong>4)</strong> <strong>Apply all from fields</strong>, then <strong>Send to Adobe</strong>.
+                For a <strong>brand-agnostic</strong> demo (no per-brand iOS widget), use templates under <strong>Travel (Generic)</strong> with
+                <code class="dashboard-code">attributes-type: TravelLiveActivityAttributes</code> — same activity reskins via <code class="dashboard-code">theme</code> + <code class="dashboard-code">phase</code>.
               </p>
             </header>
           </div>
@@ -243,6 +245,61 @@
                   </div>
                 </div>
 
+                <section id="laTravelBrandPanel" class="la-travel-brand-panel consent-panel" hidden aria-labelledby="laTravelBrandHeading">
+                  <h4 id="laTravelBrandHeading" class="la-travel-brand-title">Brand &amp; theme (Travel generic)</h4>
+                  <p class="la-travel-brand-lead panel-desc">
+                    Shown when <code class="dashboard-code">attributes-type</code> is <code class="dashboard-code">TravelLiveActivityAttributes</code>.
+                    Edit below, then <strong>Apply brand &amp; theme to JSON</strong> to merge into the unitary body (same idea as <strong>Apply all from fields</strong>).
+                    Changing <strong>Phase</strong> updates <code class="dashboard-code">content-state</code> keys for flight / boarding / airport while keeping your theme, route, and brand fields where they still apply.
+                  </p>
+                  <div class="la-grid la-grid--exec la-travel-brand-grid">
+                    <div class="la-field la-field--block">
+                      <label for="laTravelAppGroupId">App Group ID</label>
+                      <input type="text" id="laTravelAppGroupId" autocomplete="off" spellcheck="false" placeholder="group.com.adampadobe.aep-messaging-demo" />
+                      <span class="la-field-hint">Must match the App Group on the iOS host + widget targets.</span>
+                    </div>
+                    <div class="la-field">
+                      <label for="laTravelBrandName">Brand name</label>
+                      <input type="text" id="laTravelBrandName" autocomplete="off" spellcheck="false" placeholder="Acme Air" />
+                      <span class="la-field-hint">Widget text fallback when no logo file is cached.</span>
+                    </div>
+                    <div class="la-field la-field--block">
+                      <label for="laTravelLogoUrl">Logo image URL</label>
+                      <input type="url" id="laTravelLogoUrl" autocomplete="off" spellcheck="false" placeholder="https://example.com/logo.png" />
+                      <span id="laTravelLogoHint" class="la-field-hint">Host app prefetches this URL into the App Group. We set <code class="dashboard-code">attributes.logoFileName</code> to <code class="dashboard-code">SHA-256(URL).png</code> so it matches the cached filename (no <code class="dashboard-code">logoURL</code> in the push contract).</span>
+                    </div>
+                    <div class="la-field">
+                      <label for="laTravelPhase">Phase (layout)</label>
+                      <select id="laTravelPhase" aria-label="Travel Live Activity phase">
+                        <option value="flight">flight</option>
+                        <option value="boarding">boarding</option>
+                        <option value="airport">airport</option>
+                      </select>
+                    </div>
+                    <div class="la-field">
+                      <label for="laTravelThemeBg">Theme — background</label>
+                      <input type="text" id="laTravelThemeBg" autocomplete="off" spellcheck="false" placeholder="#0F7D47" maxlength="9" />
+                    </div>
+                    <div class="la-field">
+                      <label for="laTravelThemeAccent">Theme — accent</label>
+                      <input type="text" id="laTravelThemeAccent" autocomplete="off" spellcheck="false" placeholder="#69D444" maxlength="9" />
+                    </div>
+                    <div class="la-field">
+                      <label for="laTravelThemeOnBg">Theme — text on background</label>
+                      <input type="text" id="laTravelThemeOnBg" autocomplete="off" spellcheck="false" placeholder="#FFFFFF" maxlength="9" />
+                    </div>
+                    <div class="la-field">
+                      <label for="laTravelJourneyProgress">Journey progress % (flight)</label>
+                      <input type="number" id="laTravelJourneyProgress" min="0" max="100" step="1" placeholder="25" aria-describedby="laTravelJourneyHint" />
+                      <span id="laTravelJourneyHint" class="la-field-hint">0–100; written only when phase is <code class="dashboard-code">flight</code>.</span>
+                    </div>
+                  </div>
+                  <div class="la-travel-brand-actions">
+                    <button type="button" class="btn btn-primary" id="laTravelApplyBrand">Apply brand &amp; theme to JSON</button>
+                  </div>
+                  <p id="laTravelBrandMsg" class="la-template-msg" hidden role="status"></p>
+                </section>
+
                 <div id="laPayloadTreePanel" class="la-payload-panel la-payload-panel--tree" role="tabpanel" hidden aria-labelledby="laPayloadTabTree">
                   <p class="la-tree-view-lead la-tree-view-lead--compact">
                     Click values to edit (updates Paste JSON). <strong>Expand all</strong> for large trees.
@@ -421,6 +478,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script defer src="live-activities.js?v=20260474"></script>
+  <script defer src="live-activities.js?v=20260423c"></script>
 </body>
 </html>

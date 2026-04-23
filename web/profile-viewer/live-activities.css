@@ -1463,3 +1463,36 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
+
+/* Travel generic (TravelLiveActivityAttributes) — brand & theme helper */
+.live-activities-page .la-travel-brand-panel {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--dash-radius, 16px);
+  border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.12));
+  background: var(--dash-surface-2, rgba(0, 0, 0, 0.03));
+}
+.live-activities-page .la-travel-brand-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text, inherit);
+}
+.live-activities-page .la-travel-brand-lead {
+  margin: 0 0 0.85rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--dash-text-secondary, var(--aep-text-muted, #6b6f78));
+}
+.live-activities-page .la-travel-brand-grid {
+  margin-bottom: 0.75rem;
+}
+.live-activities-page .la-travel-brand-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.live-activities-page .la-travel-brand-panel .la-template-msg {
+  margin-top: 0.65rem;
+}
