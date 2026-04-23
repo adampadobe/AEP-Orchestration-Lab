@@ -360,6 +360,12 @@
     return origin + cdnPath;
   }
 
+  function libraryCardThumbImg(card) {
+    if (!card) return null;
+    return card.querySelector('.image-hosting-lib-card-img')
+      || card.querySelector('.image-hosting-lib-card-img-wrap img');
+  }
+
   async function replaceLibraryItem(relPath, file, card) {
     var sb = getSandbox();
     if (!sb || !relPath || !file) return;
@@ -371,7 +377,7 @@
     // instant to the user.
     var previewUrl = '';
     var originalSrc = '';
-    var imgEl = card && card.querySelector('.image-hosting-lib-card-img');
+    var imgEl = libraryCardThumbImg(card);
     if (imgEl && file) {
       try {
         previewUrl = URL.createObjectURL(file);
@@ -401,24 +407,45 @@
         : '';
       setManualMsg('Replaced ' + relPath + note + '.', 'ok');
 
-      // Cache-bust just this card's image so the new file loads from
-      // the CDN next time. Local preview URL keeps the pixels on
-      // screen until the CDN response arrives — zero visible latency.
+      // Swap to CDN URL with cache-bust. While that loads, the card may
+      // still show the local blob from above — revoke only after the
+      // remote `load` so the visible pixels never disappear.
       if (imgEl) {
         var published = data.published || {};
-        var cdn = published.cdnUrl ? absoluteCdnUrl(published.cdnUrl) : imgEl.src.replace(/[?&]_cb=[^&]*$/, '');
+        var cdn = published.cdnUrl ? absoluteCdnUrl(published.cdnUrl) : '';
+        var revokePreview = function () {
+          if (previewUrl) {
+            try { URL.revokeObjectURL(previewUrl); } catch (_e1) {}
+            previewUrl = '';
+          }
+        };
+        if (!cdn) {
+          revokePreview();
+          await renderLibrary();
+          return;
+        }
         var cacheBust = cdn + (cdn.indexOf('?') === -1 ? '?' : '&') + '_cb=' + Date.now();
-        // Preload the new image so the swap is flicker-free.
-        var pre = new Image();
-        pre.onload = function () {
+        if (previewUrl) {
+          var onRemoteErr = function () {
+            imgEl.removeEventListener('load', onRemote);
+            imgEl.removeEventListener('error', onRemoteErr);
+            try {
+              previewUrl = URL.createObjectURL(file);
+              imgEl.src = previewUrl;
+            } catch (_e2) {}
+            setManualMsg('Saved to library; CDN preview may take a moment for ' + relPath + '.', 'ok');
+          };
+          var onRemote = function () {
+            revokePreview();
+            imgEl.removeEventListener('load', onRemote);
+            imgEl.removeEventListener('error', onRemoteErr);
+          };
+          imgEl.addEventListener('load', onRemote);
+          imgEl.addEventListener('error', onRemoteErr);
           imgEl.src = cacheBust;
-          if (previewUrl) { try { URL.revokeObjectURL(previewUrl); } catch (_e) {} }
-        };
-        pre.onerror = function () {
-          // Fall back to a full refresh if the CDN isn't ready yet.
-          renderLibrary();
-        };
-        pre.src = cacheBust;
+        } else {
+          imgEl.src = cacheBust;
+        }
       }
     } catch (e) {
       if (imgEl && originalSrc) imgEl.src = originalSrc;
@@ -501,6 +528,7 @@
     var wrap = document.createElement('div');
     wrap.className = 'image-hosting-lib-card-img-wrap';
     var img = document.createElement('img');
+    img.className = 'image-hosting-lib-card-img';
     img.loading = 'lazy';
     img.referrerPolicy = 'no-referrer';
     img.alt = item.file;
