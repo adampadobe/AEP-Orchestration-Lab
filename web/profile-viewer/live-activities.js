@@ -1555,6 +1555,54 @@
     });
   }
 
+  function laApplyTravelBrandNameFromScrape() {
+    var nameInput = $('laTravelBrandName');
+    var scrapeSel = $('laBrandScrapeSelect');
+    if (!nameInput) return;
+    var id = scrapeSel && String(scrapeSel.value || '').trim();
+    if (!id) {
+      laShowTravelBrandMsg('Choose a brand scrape in step 3 (Refresh scrapes if the list is empty).', true);
+      return;
+    }
+    var cachedName = '';
+    for (var i = 0; i < laBrandScrapesCache.length; i++) {
+      var it = laBrandScrapesCache[i];
+      var sid = String((it && (it.scrapeId || it.id)) || '').trim();
+      if (sid !== id) continue;
+      cachedName = it.brandName != null ? String(it.brandName).trim() : '';
+      break;
+    }
+    if (cachedName) {
+      nameInput.value = cachedName;
+      laShowTravelBrandMsg('Brand name set from scrape.', false);
+      return;
+    }
+    var sb = getSandboxForRequest();
+    if (!sb) {
+      laShowTravelBrandMsg('Select a sandbox first.', true);
+      return;
+    }
+    laShowTravelBrandMsg('Loading scrape…', false);
+    fetch('/api/brand-scraper/scrapes/' + encodeURIComponent(id) + '?sandbox=' + encodeURIComponent(sb), {
+      credentials: 'same-origin',
+    })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, status: res.status, data: data };
+        });
+      })
+      .then(function (x) {
+        if (!x.ok) throw new Error((x.data && x.data.error) || 'HTTP ' + x.status);
+        var bn = x.data.brandName != null ? String(x.data.brandName).trim() : '';
+        if (!bn) throw new Error('This scrape has no brand / customer name stored.');
+        nameInput.value = bn;
+        laShowTravelBrandMsg('Brand name set from scrape.', false);
+      })
+      .catch(function (e) {
+        laShowTravelBrandMsg(String(e.message || e), true);
+      });
+  }
+
   function laTravelApplyBrandToPaste() {
     var ta = $('laImportPaste');
     if (!ta || !String(ta.value || '').trim()) {
@@ -1598,7 +1646,7 @@
     var done = function (logoFile) {
       aps.attributes.logoFileName = logoFile;
       laTravelWriteParsedToPaste(parsed);
-      laShowTravelBrandMsg('Merged brand & theme into JSON.', false);
+      laShowTravelBrandMsg('Applied to JSON.', false);
     };
     var fail = function (err) {
       laShowTravelBrandMsg(String(err && err.message ? err.message : err), true);
@@ -2998,6 +3046,8 @@
 
     var laTravelApplyBtn = $('laTravelApplyBrand');
     if (laTravelApplyBtn) laTravelApplyBtn.addEventListener('click', laTravelApplyBrandToPaste);
+    var laTravelBrandScrapeNameBtn = $('laTravelBrandNameFromScrape');
+    if (laTravelBrandScrapeNameBtn) laTravelBrandScrapeNameBtn.addEventListener('click', laApplyTravelBrandNameFromScrape);
     var laTravelPhaseEl = $('laTravelPhase');
     if (laTravelPhaseEl) laTravelPhaseEl.addEventListener('change', laTravelOnPhaseSelectChange);
     if (typeof window !== 'undefined') window.laIsTravelGeneric = laIsTravelGeneric;
