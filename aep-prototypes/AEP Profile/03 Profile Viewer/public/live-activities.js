@@ -1482,10 +1482,57 @@
     laShowBrandScrapeMsg('Set background / accent / text from top ' + nodes.length + ' ranked colours.', false);
   }
 
+  function laSyncStatusPillColorRowFromHex() {
+    var hexEl = $('laTravelStatusColorHex');
+    var colorEl = $('laTravelStatusColor');
+    if (!hexEl || !colorEl) return;
+    var p = laParseHexColor6(hexEl.value);
+    if (p) colorEl.value = p;
+    else colorEl.value = '#e53935';
+  }
+
+  function laSyncStatusPillColorRowFromPicker() {
+    var hexEl = $('laTravelStatusColorHex');
+    var colorEl = $('laTravelStatusColor');
+    if (!hexEl || !colorEl) return;
+    hexEl.value = colorEl.value;
+  }
+
+  /** Status pill override: picker + hex + dropper (not part of saved theme localStorage). */
+  function laWireTravelStatusPillColorRow() {
+    var hexEl = $('laTravelStatusColorHex');
+    var colorEl = $('laTravelStatusColor');
+    var drop = $('laTravelStatusDropper');
+    if (!hexEl || !colorEl) return;
+    hexEl.addEventListener('input', laSyncStatusPillColorRowFromHex);
+    colorEl.addEventListener('input', laSyncStatusPillColorRowFromPicker);
+    if (drop && window.EyeDropper) {
+      drop.addEventListener('click', function () {
+        try {
+          new EyeDropper()
+            .open()
+            .then(function (res) {
+              if (res && res.sRGBHex) {
+                var p = laParseHexColor6(res.sRGBHex);
+                if (p) {
+                  hexEl.value = p;
+                  colorEl.value = p;
+                }
+              }
+            })
+            .catch(function () {});
+        } catch (e) {}
+      });
+    } else if (drop) {
+      drop.hidden = true;
+    }
+  }
+
   function laWireBrandingPanel() {
     laWireBrandingColorRow('laBrandThemeBgHex', 'laBrandThemeBgColor', 'laBrandBgDropper');
     laWireBrandingColorRow('laBrandThemeAccentHex', 'laBrandThemeAccentColor', 'laBrandAccentDropper');
     laWireBrandingColorRow('laBrandThemeTextHex', 'laBrandThemeTextColor', 'laBrandTextDropper');
+    laWireTravelStatusPillColorRow();
     var rb = $('laBrandScrapeRefresh');
     if (rb) rb.addEventListener('click', laRefreshBrandScrapeSelect);
     var lp = $('laBrandScrapeLoadPalette');
@@ -1809,8 +1856,14 @@
     }
     var seatNum = $('laTravelSeatNumber');
     if (seatNum) seatNum.value = cs.seatNumber != null ? String(cs.seatNumber) : '';
-    var statusCol = $('laTravelStatusColorHex');
-    if (statusCol) statusCol.value = cs.statusColor != null ? String(cs.statusColor) : '';
+    var statusHexEl = $('laTravelStatusColorHex');
+    var statusPicker = $('laTravelStatusColor');
+    var scP = laParseHexColor6(cs.statusColor != null ? String(cs.statusColor) : '');
+    if (statusHexEl) statusHexEl.value = scP || '';
+    if (statusPicker) {
+      if (scP) statusPicker.value = scP;
+      else statusPicker.value = '#e53935';
+    }
   }
 
   function laWireTravelJourneyStageSelect() {

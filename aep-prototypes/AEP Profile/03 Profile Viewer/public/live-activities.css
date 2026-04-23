@@ -1521,6 +1521,18 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
   width: 100%;
   max-width: 28rem;
 }
+
+.live-activities-page .la-travel-status-pill-field-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--dash-text, inherit);
+}
+
+.live-activities-page .la-brand-theme-row--travel-status-pill {
+  margin-top: 0;
+}
 .live-activities-page .la-json-editor-details {
   margin-top: 0.35rem;
   border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.08));

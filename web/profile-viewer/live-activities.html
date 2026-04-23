@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260426a">
+  <link rel="stylesheet" href="live-activities.css?v=20260426b">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -507,9 +507,14 @@
                         <span class="la-field-hint"><code class="dashboard-code">content-state.seatNumber</code> — shown on boarding and airport layouts.</span>
                       </div>
                       <div class="la-field la-field--block">
-                        <label for="laTravelStatusColorHex">Status pill colour (hex)</label>
-                        <input type="text" id="laTravelStatusColorHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="#E53935 or leave blank" aria-label="Status pill colour override hex" />
-                        <span class="la-field-hint">Optional <code class="dashboard-code">content-state.statusColor</code> — must be <code class="dashboard-code">#RRGGBB</code>. Leave blank to use the stage default.</span>
+                        <span id="laTravelStatusPillLabel" class="la-travel-status-pill-field-label">Status pill colour override</span>
+                        <div class="la-brand-theme-row la-brand-theme-row--travel-status-pill" role="group" aria-labelledby="laTravelStatusPillLabel">
+                          <span class="la-brand-theme-label">Pill</span>
+                          <input type="color" id="laTravelStatusColor" class="la-brand-theme-color" value="#e53935" aria-label="Status pill colour" />
+                          <input type="text" id="laTravelStatusColorHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="Clear for stage default" aria-label="Status pill hex" />
+                          <button type="button" class="btn btn-secondary la-brand-dropper" id="laTravelStatusDropper" title="Pick colour from screen">Dropper</button>
+                        </div>
+                        <span class="la-field-hint">Optional <code class="dashboard-code">content-state.statusColor</code> (<code class="dashboard-code">#RRGGBB</code>). Clear the hex field to use the journey-stage default.</span>
                       </div>
                       <p class="la-field-hint la-travel-theme-hint">Theme colours use the Background / Accent / Text controls above.</p>
                       <div class="la-field">
@@ -587,6 +592,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script defer src="live-activities.js?v=20260426a"></script>
+  <script defer src="live-activities.js?v=20260426b"></script>
 </body>
 </html>
