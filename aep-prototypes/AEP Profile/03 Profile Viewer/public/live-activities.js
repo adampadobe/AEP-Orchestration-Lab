@@ -1864,6 +1864,7 @@
       if (scP) statusPicker.value = scP;
       else statusPicker.value = '#e53935';
     }
+    laUpdateTravelPhaseFieldVisibility();
   }
 
   function laWireTravelJourneyStageSelect() {
@@ -1916,6 +1917,7 @@
     var oldCs = aps['content-state'] && typeof aps['content-state'] === 'object' ? aps['content-state'] : {};
     aps['content-state'] = laTravelMergeContentStateForPhase(oldCs, newPhase);
     laTravelWriteParsedToPaste(parsed);
+    laUpdateTravelPhaseFieldVisibility();
     laShowTravelBrandMsg('Phase set to ' + newPhase + ' — content-state keys updated.', false);
   }
 
@@ -2143,6 +2145,30 @@
       }
     }
     sec.hidden = !show;
+    if (show) laUpdateTravelPhaseFieldVisibility();
+  }
+
+  /**
+   * Show only fields relevant to the selected Travel phase (flight vs boarding vs airport).
+   * `data-la-travel-phases` is a space-separated list of phases where the wrapper is shown.
+   */
+  function laUpdateTravelPhaseFieldVisibility() {
+    var sec = $('laTravelAppearanceSection');
+    if (!sec || sec.hidden) return;
+    var ph = $('laTravelPhase');
+    var phase = ph ? String(ph.value || 'flight').toLowerCase() : 'flight';
+    if (phase !== 'flight' && phase !== 'boarding' && phase !== 'airport') phase = 'flight';
+    document.querySelectorAll('[data-la-travel-phases]').forEach(function (wrap) {
+      var raw = String(wrap.getAttribute('data-la-travel-phases') || '').trim();
+      var list = raw ? raw.split(/\s+/) : [];
+      var show = list.indexOf(phase) >= 0;
+      wrap.hidden = !show;
+      wrap.setAttribute('aria-hidden', show ? 'false' : 'true');
+      wrap.querySelectorAll('input, select, textarea, button').forEach(function (el) {
+        if (show) el.removeAttribute('disabled');
+        else el.setAttribute('disabled', 'disabled');
+      });
+    });
   }
 
   function showMergeDemoMsg(text, isErr) {
