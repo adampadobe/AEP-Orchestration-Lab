@@ -1491,6 +1491,21 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
   flex: 0 0 auto;
   white-space: nowrap;
 }
+.live-activities-page .la-travel-logo-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+.live-activities-page .la-travel-logo-library {
+  flex: 1 1 14rem;
+  min-width: 10rem;
+  max-width: 28rem;
+}
+.live-activities-page .la-travel-logo-toolbar .btn {
+  font-size: 0.78rem;
+}
 .live-activities-page .la-travel-brand-title {
   margin: 0 0 0.35rem;
   font-size: 1rem;

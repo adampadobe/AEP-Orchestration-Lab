@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260424b">
+  <link rel="stylesheet" href="live-activities.css?v=20260424c">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -238,11 +238,31 @@
                     </div>
                     <span class="la-field-hint">Widget text fallback when no logo file is cached. <strong>Use scrape name</strong> copies the customer/brand label from the selected brand scrape.</span>
                   </div>
-                  <div class="la-field la-field--block">
-                    <label for="laTravelLogoUrl">Logo image URL</label>
-                    <input type="url" id="laTravelLogoUrl" autocomplete="off" spellcheck="false" placeholder="https://example.com/logo.png" />
-                    <span id="laTravelLogoHint" class="la-field-hint">Host app prefetches this URL into the App Group. We set <code class="dashboard-code">attributes.logoFileName</code> to <code class="dashboard-code">SHA-256(URL).png</code> so it matches the cached filename (no <code class="dashboard-code">logoURL</code> in the push contract).</span>
+                <div class="la-field la-field--block">
+                  <label for="laTravelLogoUrl">Logo image URL</label>
+                  <div class="la-travel-logo-toolbar" role="group" aria-label="Hosted logo library">
+                    <select id="laTravelLogoLibrary" class="sandbox-select la-travel-logo-library" aria-label="Pick a logo from Firebase image library">
+                      <option value="">Hosted logos (Firebase library)…</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary" id="laTravelLogoLibraryRefresh" title="Reload list from Image Hosting library for this sandbox">
+                      Refresh list
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="laTravelLogoUploadBtn" title="Upload an image into your sandbox library (CDN URL), then set it here">
+                      Upload to library…
+                    </button>
+                    <input type="file" id="laTravelLogoFile" accept="image/*" hidden />
                   </div>
+                  <input
+                    type="url"
+                    id="laTravelLogoUrl"
+                    list="laTravelLogoUrlDatalist"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="https://… or choose / upload above"
+                  />
+                  <datalist id="laTravelLogoUrlDatalist"></datalist>
+                  <span id="laTravelLogoHint" class="la-field-hint">Host app prefetches this URL into the App Group. We set <code class="dashboard-code">attributes.logoFileName</code> to <code class="dashboard-code">SHA-256(URL).png</code> so it matches the cached filename (no <code class="dashboard-code">logoURL</code> in the push contract). <strong>Hosted logos</strong> use your per-sandbox Image Hosting library on Firebase; recent URLs are remembered in this browser.</span>
+                </div>
                   <div class="la-field">
                     <label for="laTravelPhase">Phase (layout)</label>
                     <select id="laTravelPhase" aria-label="Travel Live Activity phase">
@@ -520,6 +540,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script defer src="live-activities.js?v=20260424b"></script>
+  <script defer src="live-activities.js?v=20260424c"></script>
 </body>
 </html>

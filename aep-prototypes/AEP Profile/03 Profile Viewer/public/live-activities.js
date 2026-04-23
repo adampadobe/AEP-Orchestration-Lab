@@ -1024,6 +1024,10 @@
   /** iOS generic Travel Live Activity (MessagingDemoAppSwiftUI). */
   var LA_TRAVEL_ATTR_TYPE = 'TravelLiveActivityAttributes';
   var LA_TRAVEL_DEFAULT_APP_GROUP = 'group.com.adampadobe.aep-messaging-demo';
+  var LA_TRAVEL_LOGO_LAST_KEY = 'aepLaTravelLogoUrlLast';
+  var LA_TRAVEL_LOGO_HISTORY_KEY = 'aepLaTravelLogoUrlHistoryV1';
+  var LA_TRAVEL_LOGO_HISTORY_MAX = 20;
+  var laTravelLogoRememberTimer = null;
 
   /**
    * True when the unitary (or compatible) payload uses TravelLiveActivityAttributes.
@@ -1450,6 +1454,255 @@
     if (t3) t3.addEventListener('click', laBrandScrapeTop3);
   }
 
+  function laTravelLogoFullUrl(cdnUrl) {
+    if (!cdnUrl) return '';
+    var u = String(cdnUrl);
+    if (/^https?:\/\//i.test(u)) return u;
+    return String(typeof window !== 'undefined' && window.location && window.location.origin ? window.location.origin : '')
+      .replace(/\/$/, '') + u;
+  }
+
+  function laGetTravelLogoHistory() {
+    try {
+      var raw = localStorage.getItem(LA_TRAVEL_LOGO_HISTORY_KEY);
+      var o = raw ? JSON.parse(raw) : [];
+      return Array.isArray(o) ? o.filter(function (x) { return typeof x === 'string' && String(x).trim(); }) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function laFillTravelLogoDatalist() {
+    var dl = $('laTravelLogoUrlDatalist');
+    if (!dl) return;
+    dl.innerHTML = '';
+    laGetTravelLogoHistory().forEach(function (url) {
+      var o = document.createElement('option');
+      o.value = String(url).trim();
+      dl.appendChild(o);
+    });
+  }
+
+  function laRememberTravelLogoUrl(url) {
+    var s = String(url || '').trim();
+    if (!s || !/^https?:\/\//i.test(s)) return;
+    try {
+      localStorage.setItem(LA_TRAVEL_LOGO_LAST_KEY, s);
+      var hist = laGetTravelLogoHistory().filter(function (h) {
+        return h !== s;
+      });
+      hist.unshift(s);
+      while (hist.length > LA_TRAVEL_LOGO_HISTORY_MAX) hist.pop();
+      localStorage.setItem(LA_TRAVEL_LOGO_HISTORY_KEY, JSON.stringify(hist));
+    } catch (e2) {}
+    laFillTravelLogoDatalist();
+  }
+
+  function laSyncTravelLogoLibrarySelectToInput() {
+    var lib = $('laTravelLogoLibrary');
+    var inp = $('laTravelLogoUrl');
+    if (!lib || !inp) return;
+    var v = String(lib.value || '').trim();
+    if (v) {
+      inp.value = v;
+      laRememberTravelLogoUrl(v);
+    }
+  }
+
+  function laSelectTravelLogoLibraryOptionForUrl(url) {
+    var lib = $('laTravelLogoLibrary');
+    if (!lib || !url) return;
+    var want = String(url).trim();
+    var found = '';
+    Array.prototype.forEach.call(lib.options, function (op) {
+      if (op.value && op.value === want) found = op.value;
+    });
+    lib.value = found || '';
+  }
+
+  function laIsLibraryImageItem(item) {
+    if (!item) return false;
+    var ct = String(item.contentType || '').toLowerCase();
+    if (ct.indexOf('image/') === 0) return true;
+    var f = String(item.file || item.relPath || '');
+    return /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(f);
+  }
+
+  function laPopulateTravelLogoLibrarySelect(items) {
+    var lib = $('laTravelLogoLibrary');
+    if (!lib) return;
+    var keep = lib.value;
+    lib.innerHTML = '<option value="">Hosted logos (Firebase library)…</option>';
+    (items || []).filter(laIsLibraryImageItem).forEach(function (it) {
+      var abs = laTravelLogoFullUrl(it.cdnUrl);
+      if (!abs) return;
+      var label = (it.relPath || it.file || abs).slice(0, 88);
+      var o = document.createElement('option');
+      o.value = abs;
+      o.textContent = label;
+      lib.appendChild(o);
+    });
+    if (
+      keep &&
+      Array.prototype.some.call(lib.options, function (op) {
+        return op.value === keep;
+      })
+    ) {
+      lib.value = keep;
+    }
+  }
+
+  function laRefreshTravelLogoLibrarySelect(opts) {
+    opts = opts || {};
+    var sb = getSandboxForRequest();
+    if (!sb) {
+      laPopulateTravelLogoLibrarySelect([]);
+      if (!opts.silent) laShowTravelBrandMsg('Select a sandbox to load hosted logos.', true);
+      return Promise.resolve();
+    }
+    return fetch('/api/image-hosting/library?sandbox=' + encodeURIComponent(sb), { credentials: 'same-origin' })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, data: data };
+        });
+      })
+      .then(function (x) {
+        if (!x.ok) throw new Error((x.data && x.data.error) || 'HTTP ' + x.status);
+        var items = Array.isArray(x.data.items) ? x.data.items : [];
+        laPopulateTravelLogoLibrarySelect(items);
+        var n = items.filter(laIsLibraryImageItem).length;
+        if (!opts.silent) {
+          laShowTravelBrandMsg('Loaded ' + n + ' hosted image(s) from Firebase library.', false);
+        }
+        var inp = $('laTravelLogoUrl');
+        if (inp && String(inp.value || '').trim()) laSelectTravelLogoLibraryOptionForUrl(inp.value);
+      })
+      .catch(function (e) {
+        if (!opts.silent) laShowTravelBrandMsg(String(e.message || e), true);
+      });
+  }
+
+  function laFileToBase64Data(file) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () {
+        resolve(String(r.result || '').split(',')[1] || '');
+      };
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  function laUploadTravelLogoLibraryFile(file) {
+    var sb = getSandboxForRequest();
+    if (!sb) {
+      laShowTravelBrandMsg('Select a sandbox first.', true);
+      return Promise.resolve();
+    }
+    var okType = file && file.type && /^image\//i.test(file.type);
+    var okName = file && /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(file.name || '');
+    if (!file || (!okType && !okName)) {
+      laShowTravelBrandMsg('Choose an image file.', true);
+      return Promise.resolve();
+    }
+    laShowTravelBrandMsg('Uploading to library…', false);
+    return laFileToBase64Data(file)
+      .then(function (b64) {
+        var m = /\.([a-z0-9]+)$/i.exec(file.name || '');
+        var ext = m && m[1] ? '.' + String(m[1]).toLowerCase() : '.png';
+        if (!/\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/.test(ext)) ext = '.png';
+        var uploadName = 'live-activity-logo' + ext;
+        return fetch('/api/image-hosting/library/upload?sandbox=' + encodeURIComponent(sb), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sandbox: sb,
+            files: [{ name: uploadName, base64: b64, contentType: file.type || '' }],
+            keepFilename: false,
+            convertToPng: true,
+          }),
+        }).then(function (res) {
+          return res.json().then(function (data) {
+            return { ok: res.ok, data: data };
+          });
+        });
+      })
+      .then(function (x) {
+        if (!x.ok) throw new Error((x.data && x.data.error) || 'upload failed');
+        var u = x.data.uploaded && x.data.uploaded[0];
+        var url = u && u.cdnUrl ? laTravelLogoFullUrl(u.cdnUrl) : '';
+        if (!url) throw new Error('No CDN URL returned');
+        var inp = $('laTravelLogoUrl');
+        if (inp) inp.value = url;
+        laRememberTravelLogoUrl(url);
+        return laRefreshTravelLogoLibrarySelect({ silent: true }).then(function () {
+          laSelectTravelLogoLibraryOptionForUrl(url);
+          laShowTravelBrandMsg('Uploaded to Firebase library — URL set. Apply to JSON when your Travel payload is in the editor.', false);
+        });
+      })
+      .catch(function (e) {
+        laShowTravelBrandMsg(String(e.message || e), true);
+      });
+  }
+
+  function laScheduleRememberTravelLogoFromInput() {
+    clearTimeout(laTravelLogoRememberTimer);
+    laTravelLogoRememberTimer = setTimeout(function () {
+      var inp = $('laTravelLogoUrl');
+      var v = inp && String(inp.value || '').trim();
+      if (v && /^https?:\/\//i.test(v)) laRememberTravelLogoUrl(v);
+    }, 600);
+  }
+
+  function laRestoreTravelLogoUrlLast() {
+    var inp = $('laTravelLogoUrl');
+    if (!inp || String(inp.value || '').trim()) return;
+    try {
+      var last = localStorage.getItem(LA_TRAVEL_LOGO_LAST_KEY);
+      if (last && /^https?:\/\//i.test(String(last).trim())) inp.value = String(last).trim();
+    } catch (e) {}
+    laFillTravelLogoDatalist();
+  }
+
+  function laWireTravelLogoControls() {
+    laFillTravelLogoDatalist();
+    laRestoreTravelLogoUrlLast();
+    var lib = $('laTravelLogoLibrary');
+    if (lib) lib.addEventListener('change', laSyncTravelLogoLibrarySelectToInput);
+    var ref = $('laTravelLogoLibraryRefresh');
+    if (ref) {
+      ref.addEventListener('click', function () {
+        laRefreshTravelLogoLibrarySelect();
+      });
+    }
+    var up = $('laTravelLogoUploadBtn');
+    var fin = $('laTravelLogoFile');
+    if (up && fin) {
+      up.addEventListener('click', function () {
+        fin.click();
+      });
+      fin.addEventListener('change', function () {
+        var f = fin.files && fin.files[0];
+        fin.value = '';
+        if (f) laUploadTravelLogoLibraryFile(f);
+      });
+    }
+    var inp = $('laTravelLogoUrl');
+    if (inp) {
+      inp.addEventListener('input', laScheduleRememberTravelLogoFromInput);
+      inp.addEventListener('blur', function () {
+        var v = String(inp.value || '').trim();
+        if (v && /^https?:\/\//i.test(v)) {
+          laRememberTravelLogoUrl(v);
+          laSelectTravelLogoLibraryOptionForUrl(v);
+        }
+      });
+    }
+    if (getSandboxForRequest()) {
+      laRefreshTravelLogoLibrarySelect({ silent: true }).catch(function () {});
+    }
+  }
+
   function laSyncTravelBrandPanel() {
     var ta = $('laImportPaste');
     if (!ta) return;
@@ -1474,6 +1727,8 @@
     if (ag) ag.value = attr.appGroupID != null && String(attr.appGroupID) !== '' ? String(attr.appGroupID) : LA_TRAVEL_DEFAULT_APP_GROUP;
     if (bn) bn.value = attr.brandName != null && attr.brandName !== null ? String(attr.brandName) : '';
     if (logo) logo.value = '';
+    var libSel = $('laTravelLogoLibrary');
+    if (libSel) libSel.value = '';
     if (hint) {
       var lf = attr.logoFileName;
       hint.textContent =
@@ -1636,6 +1891,7 @@
     laShowTravelBrandMsg('Updating…', false);
     var done = function (logoFile) {
       aps.attributes.logoFileName = logoFile;
+      if (logoUrl) laRememberTravelLogoUrl(logoUrl);
       laTravelWriteParsedToPaste(parsed);
       laShowTravelBrandMsg('Applied to JSON.', false);
     };
@@ -2963,6 +3219,7 @@
     laLoadExecutionFieldsFromStorage();
     laWireBrandingPanel();
     laLoadBrandingThemeFromStorage();
+    laWireTravelLogoControls();
 
     setupJsonMirrors();
 
@@ -3054,10 +3311,12 @@
     window.addEventListener('aep-global-sandbox-change', function () {
       laPopulateTemplateSelect();
       laLoadExecutionFieldsFromStorage();
+      laRefreshTravelLogoLibrarySelect({ silent: true }).catch(function () {});
     });
     document.addEventListener('aep-lab-sandbox-keys-applied', function () {
       laPopulateTemplateSelect();
       laLoadExecutionFieldsFromStorage();
+      laRefreshTravelLogoLibrarySelect({ silent: true }).catch(function () {});
     });
     var laTsel = $('laTemplateSelect');
     if (laTsel) laTsel.addEventListener('change', laUpdateTemplateDeleteState);
