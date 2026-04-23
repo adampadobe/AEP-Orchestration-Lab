@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260425b">
+  <link rel="stylesheet" href="live-activities.css?v=20260425c">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -143,7 +143,7 @@
               </div>
               <div class="la-exec-sync" aria-describedby="laExecSyncHelp">
                 <p id="laExecSyncHelp" class="la-exec-sync-lead">
-                  Load a <strong>Travel generic</strong> (or other) template in step 3, tweak optional per-field injects below if needed, then press <strong>Update message from fields</strong> — one click applies campaign row and, for Travel, theme + brand together.
+                  Optional: inject a single field into JSON without a full merge. Most demos use a template + Travel controls, then <strong>Update message from fields</strong> once at the bottom of step 3.
                 </p>
                 <details class="la-inject-advanced">
                   <summary>Optional: update one value in the JSON</summary>
@@ -201,7 +201,7 @@
                   <div class="la-json-editor-details-body">
                 <div class="la-payload-view-head">
                   <p class="la-payload-view-lead la-payload-view-lead--compact">
-                    <strong>Beautify</strong> formats placeholders. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify. Use <strong>Update message from fields</strong> under Travel appearance for the normal merge — you rarely need raw JSON during a demo.
+                    <strong>Beautify</strong> formats placeholders. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify. Collapsed by default — open only to inspect or hand-edit JSON.
                   </p>
                   <div class="la-payload-view-toggle" role="tablist" aria-label="JSON editor view">
                     <button
@@ -234,12 +234,12 @@
                     class="la-json la-import-paste"
                     spellcheck="false"
                     rows="18"
-                    placeholder="Load a template or paste JSON, then use Update message from fields (under Travel appearance for Travel templates)."
+                    placeholder="Load a template or paste JSON, then merge at the bottom of this step."
                     title="Required for Preview and Send"
                     aria-describedby="laImportPasteHint"
                   ></textarea>
                   <p id="laImportPasteHint" class="la-import-title-hint">
-                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. Prefer <strong>Update message from fields</strong> below — it applies step 2 and Travel appearance in one step.
+                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. Use the merge button at the bottom of this step to apply step 2 and Travel appearance together.
                   </p>
                   <div class="la-import-actions">
                     <div class="la-import-actions-btns" role="group" aria-label="Format pasted JSON">
@@ -400,7 +400,7 @@
                 <div id="laTravelAppearanceSection" class="la-travel-appearance-section" hidden>
                   <h4 class="la-travel-appearance-title">Travel appearance</h4>
                   <p class="la-ts-note la-ts-note--compact" role="note">
-                    Shown for <code class="dashboard-code">TravelLiveActivityAttributes</code>. Set theme and brand here, then use <strong>Update message from fields</strong> in the action row below to push everything into the JSON.
+                    For <code class="dashboard-code">TravelLiveActivityAttributes</code>: set colours, scrape, logo, and customer name here, then run <strong>Update message from fields</strong> in the row below to write everything into the JSON.
                   </p>
                   <p class="la-ts-note la-ts-note--compact la-brand-theme-lead" role="note">
                     Theme colours feed <code class="dashboard-code">content-state.theme</code>. Use hex, native colour controls, droppers, or ranked colours from a <strong>brand scrape</strong>.
@@ -445,7 +445,7 @@
                   <section id="laTravelBrandPanel" class="la-travel-brand-panel consent-panel la-travel-brand-panel--nested" aria-labelledby="laTravelBrandHeading">
                     <h4 id="laTravelBrandHeading" class="la-travel-brand-title">Brand &amp; theme (Travel generic)</h4>
                     <p class="la-travel-brand-lead panel-desc">
-                      App Group, customer/brand name, logo URL, phase, and journey progress. Changing <strong>Phase</strong> updates <code class="dashboard-code">content-state</code> keys for flight / boarding / airport while keeping theme, route, and brand fields where they still apply. Phase changes write to JSON immediately; everything else merges when you use <strong>Update message from fields</strong> in the action row below.
+                      App Group, customer/brand name, logo URL, phase, and journey progress. <strong>Phase</strong> updates <code class="dashboard-code">content-state</code> for flight / boarding / airport and writes to JSON immediately. Other fields apply when you press <strong>Update message from fields</strong> below.
                     </p>
                     <div class="la-grid la-grid--exec la-travel-brand-grid">
                       <div class="la-field la-field--block">
@@ -523,27 +523,26 @@
                 </div>
 
                 <div class="la-message-actions-stack" id="laMessageActionsStack">
-                  <div class="la-merge-demo-bar" id="laMergeDemoBar">
-                    <p class="la-send-step la-send-step--inline"><span class="la-send-step-num">4</span> Merge, preview, and send</p>
-                    <p class="la-merge-demo-hint">
-                      After <strong>Message &amp; template</strong> (and <strong>Travel appearance</strong> when shown), run these in order: merge fields into JSON, refresh the preview if needed, then send.
-                    </p>
-                    <div class="la-send-actions-row" role="group" aria-label="Merge, preview, and send">
+                  <div class="la-merge-demo-bar la-merge-demo-bar--compact" id="laMergeDemoBar">
+                    <div
+                      class="la-send-actions-row"
+                      role="group"
+                      aria-label="Step 4: merge campaign and Travel fields into JSON, refresh preview, send to Adobe"
+                    >
                       <button
                         type="button"
                         class="btn btn-primary la-merge-message-btn"
                         id="laMergeMessageFromFields"
-                        title="Merge step 2 into the template; for Travel generic, also applies theme colours and Travel brand fields"
+                        title="Merges step 2 (campaign, ECID, Live Activity ID, event) and Travel theme, colours, logo, and brand name into handlebars/JSON, then refreshes the preview"
                       >
                         Update message from fields
                       </button>
-                      <button type="button" class="btn btn-secondary" id="laPreviewBtn">Refresh preview</button>
+                      <button type="button" class="btn btn-secondary" id="laPreviewBtn" title="Rebuild preview from current JSON">
+                        Refresh preview
+                      </button>
                       <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
                     </div>
                     <p id="laMergeDemoMsg" class="la-template-msg la-merge-demo-msg" hidden role="status"></p>
-                    <p class="la-send-step-hint la-send-step-hint--after-actions">
-                      <strong>Update message from fields</strong> also refreshes the preview. Use <strong>Refresh preview</strong> again if you edited JSON manually in the optional editor.
-                    </p>
                   </div>
                 </div>
 
@@ -573,6 +572,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script defer src="live-activities.js?v=20260425b"></script>
+  <script defer src="live-activities.js?v=20260425c"></script>
 </body>
 </html>

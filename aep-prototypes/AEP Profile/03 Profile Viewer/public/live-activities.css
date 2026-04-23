@@ -1484,6 +1484,9 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
   border: 1px solid var(--dash-border, rgba(0, 0, 0, 0.1));
   background: var(--dash-surface-2, rgba(0, 0, 0, 0.03));
 }
+.live-activities-page .la-merge-demo-bar--compact {
+  padding: 0.65rem 0.85rem;
+}
 .live-activities-page .la-send-actions-row {
   display: flex;
   flex-wrap: wrap;
@@ -1491,26 +1494,15 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
   gap: 0.5rem;
   margin-top: 0.65rem;
 }
+.live-activities-page .la-merge-demo-bar--compact .la-send-actions-row {
+  margin-top: 0;
+}
 .live-activities-page .la-send-actions-row .btn {
   margin: 0;
-}
-.live-activities-page .la-send-step--inline {
-  margin-bottom: 0.35rem;
-}
-.live-activities-page .la-send-step-hint--after-actions {
-  margin-top: 0.65rem;
-  margin-bottom: 0;
 }
 .live-activities-page .la-merge-message-btn {
   font-size: 1rem;
   padding: 0.55rem 1.15rem;
-}
-.live-activities-page .la-merge-demo-hint {
-  margin: 0.55rem 0 0;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  color: var(--dash-text-secondary, var(--aep-text-muted, #6b6f78));
-  max-width: 52rem;
 }
 .live-activities-page .la-merge-demo-msg {
   margin-top: 0.5rem;

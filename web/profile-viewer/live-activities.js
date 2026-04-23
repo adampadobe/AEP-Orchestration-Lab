@@ -2793,7 +2793,7 @@
       e.preventDefault();
       applyExtracted(ext);
       setPayloadView('paste');
-      showImportMsg('Imported payload — set step 2, then Update message from fields.', false);
+      showImportMsg('Imported payload — set step 2, then merge at the bottom of step 3.', false);
       return;
     }
     e.preventDefault();
@@ -3040,7 +3040,7 @@
     var raw = String($('laImportPaste') && $('laImportPaste').value || '').trim();
     if (!raw) {
       throw new Error(
-        'Load a template (step 3), press Update message from fields, then Preview or Send.'
+        'Load a template in step 3, merge at the bottom of that step, then preview or send.'
       );
     }
     return buildPayloadFromImportPaste();
@@ -3194,7 +3194,7 @@
     bumpJsonMirror(ta);
     afterImportPasteMutation();
     setPayloadView('paste');
-    laShowTemplateMsg('Loaded — press Update message from fields when ready (open JSON editor below only if needed).', false);
+    laShowTemplateMsg('Loaded — configure Travel if needed, then merge at the bottom.', false);
   }
 
   function laSaveCurrentAsTemplate() {
