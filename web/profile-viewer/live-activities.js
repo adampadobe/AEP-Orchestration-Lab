@@ -52,16 +52,11 @@
   var LA_TEMPLATE_STORAGE_KEY = 'aepLaPayloadTemplatesV1';
 
   /**
-   * Bundled Postman collection bodies (Etihad, KSIA, …) list first under “Saved in this sandbox” on allowed
-   * technical sandboxes only; other sandboxes see only user-saved templates (Firestore sync).
+   * Bundled Postman collection bodies (Etihad, KSIA, Travel generic, …) list first under “Saved in this sandbox”
+   * for every AEP sandbox name. (Previously gated to `apalmer` only, which hid templates for most presenters.)
    */
-  var LA_POSTMAN_BUILTINS_SANDBOXES = ['apalmer'];
-
   function laSandboxShowsPostmanBuiltins() {
-    var sb = String(getSandboxForRequest() || '')
-      .trim()
-      .toLowerCase();
-    return LA_POSTMAN_BUILTINS_SANDBOXES.indexOf(sb) >= 0;
+    return true;
   }
 
   /** Per-sandbox unitary execution row (Campaign / ECID / Live Activity ID / Event) — synced via aep-lab-sandbox-sync. */
