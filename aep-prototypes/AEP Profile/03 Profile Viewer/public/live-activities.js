@@ -1161,6 +1161,295 @@
     el.classList.toggle('la-template-msg--err', !!isErr);
   }
 
+  var LA_BRANDING_STORAGE_KEY = 'aepLaBrandingThemeV1';
+  var laBrandingSaveTimer = null;
+  var laBrandScrapesCache = [];
+
+  function laScheduleSaveBrandingTheme() {
+    clearTimeout(laBrandingSaveTimer);
+    laBrandingSaveTimer = setTimeout(function () {
+      try {
+        localStorage.setItem(
+          LA_BRANDING_STORAGE_KEY,
+          JSON.stringify({
+            bg: String(($('laBrandThemeBgHex') && $('laBrandThemeBgHex').value) || ''),
+            accent: String(($('laBrandThemeAccentHex') && $('laBrandThemeAccentHex').value) || ''),
+            text: String(($('laBrandThemeTextHex') && $('laBrandThemeTextHex').value) || ''),
+          })
+        );
+      } catch (e) {}
+    }, 400);
+  }
+
+  function laSyncBrandingColorRowFromHex(hexId, colorId) {
+    var hexEl = $(hexId);
+    var colorEl = $(colorId);
+    if (!hexEl || !colorEl) return;
+    var p = laParseHexColor6(hexEl.value);
+    if (p) colorEl.value = p;
+  }
+
+  function laSyncBrandingColorRowFromPicker(hexId, colorId) {
+    var hexEl = $(hexId);
+    var colorEl = $(colorId);
+    if (!hexEl || !colorEl) return;
+    hexEl.value = colorEl.value;
+    laScheduleSaveBrandingTheme();
+  }
+
+  function laSetHexAndSyncRow(hexId, colorId, hex) {
+    var p = laParseHexColor6(hex);
+    if (!p) return;
+    var hexEl = $(hexId);
+    var colorEl = $(colorId);
+    if (hexEl) hexEl.value = p;
+    if (colorEl) colorEl.value = p;
+    laScheduleSaveBrandingTheme();
+  }
+
+  function laGetBrandingThemeFromInputs() {
+    var bg = laParseHexColor6($('laBrandThemeBgHex') && $('laBrandThemeBgHex').value);
+    var ac = laParseHexColor6($('laBrandThemeAccentHex') && $('laBrandThemeAccentHex').value);
+    var ob = laParseHexColor6($('laBrandThemeTextHex') && $('laBrandThemeTextHex').value);
+    var d = laTravelDefaultTheme();
+    return {
+      background: bg || d.background,
+      accent: ac || d.accent,
+      onBackground: ob || d.onBackground,
+    };
+  }
+
+  function laSetBrandingInputsFromTheme(th) {
+    var t = th && typeof th === 'object' && !Array.isArray(th) ? th : {};
+    var d = laTravelDefaultTheme();
+    laSetHexAndSyncRow('laBrandThemeBgHex', 'laBrandThemeBgColor', t.background || d.background);
+    laSetHexAndSyncRow('laBrandThemeAccentHex', 'laBrandThemeAccentColor', t.accent || d.accent);
+    laSetHexAndSyncRow('laBrandThemeTextHex', 'laBrandThemeTextColor', t.onBackground || d.onBackground);
+  }
+
+  function laApplyBrandingThemeToTravelAps(aps) {
+    if (!aps) return;
+    if (!aps['content-state'] || typeof aps['content-state'] !== 'object' || Array.isArray(aps['content-state'])) {
+      aps['content-state'] = {};
+    }
+    aps['content-state'].theme = laGetBrandingThemeFromInputs();
+  }
+
+  function laLoadBrandingThemeFromStorage() {
+    if (!$('laBrandThemeBgHex')) return;
+    try {
+      var raw = localStorage.getItem(LA_BRANDING_STORAGE_KEY);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      if (!o || typeof o !== 'object') return;
+      if (o.bg) $('laBrandThemeBgHex').value = o.bg;
+      if (o.accent && $('laBrandThemeAccentHex')) $('laBrandThemeAccentHex').value = o.accent;
+      if (o.text && $('laBrandThemeTextHex')) $('laBrandThemeTextHex').value = o.text;
+      laSyncBrandingColorRowFromHex('laBrandThemeBgHex', 'laBrandThemeBgColor');
+      laSyncBrandingColorRowFromHex('laBrandThemeAccentHex', 'laBrandThemeAccentColor');
+      laSyncBrandingColorRowFromHex('laBrandThemeTextHex', 'laBrandThemeTextColor');
+    } catch (e2) {}
+  }
+
+  function laWireBrandingColorRow(hexId, colorId, dropperId) {
+    var hexEl = $(hexId);
+    var colorEl = $(colorId);
+    var drop = $(dropperId);
+    if (!hexEl || !colorEl) return;
+    hexEl.addEventListener('input', function () {
+      laSyncBrandingColorRowFromHex(hexId, colorId);
+      laScheduleSaveBrandingTheme();
+    });
+    colorEl.addEventListener('input', function () {
+      laSyncBrandingColorRowFromPicker(hexId, colorId);
+    });
+    if (drop && window.EyeDropper) {
+      drop.addEventListener('click', function () {
+        try {
+          new EyeDropper()
+            .open()
+            .then(function (res) {
+              if (res && res.sRGBHex) laSetHexAndSyncRow(hexId, colorId, res.sRGBHex);
+            })
+            .catch(function () {});
+        } catch (e) {}
+      });
+    } else if (drop) {
+      drop.hidden = true;
+    }
+  }
+
+  function laShowBrandScrapeMsg(text, isErr) {
+    var el = $('laBrandScrapeMsg');
+    if (!el) return;
+    el.textContent = text || '';
+    el.hidden = !text;
+    el.classList.toggle('la-template-msg--err', !!isErr);
+  }
+
+  function laGetBrandSwatchTarget() {
+    var r = document.querySelector('input[name="laBrandSwatchTarget"]:checked');
+    return r ? String(r.value || 'bg') : 'bg';
+  }
+
+  function laApplySwatchHexToTarget(hex) {
+    var p = laParseHexColor6(hex);
+    if (!p) return;
+    var t = laGetBrandSwatchTarget();
+    if (t === 'accent') laSetHexAndSyncRow('laBrandThemeAccentHex', 'laBrandThemeAccentColor', p);
+    else if (t === 'text') laSetHexAndSyncRow('laBrandThemeTextHex', 'laBrandThemeTextColor', p);
+    else laSetHexAndSyncRow('laBrandThemeBgHex', 'laBrandThemeBgColor', p);
+  }
+
+  function laExtractColoursFromScrapeRecord(rec) {
+    var assets = rec && rec.crawlSummary && rec.crawlSummary.assets;
+    var arr = assets && Array.isArray(assets.colours) ? assets.colours : [];
+    return arr
+      .filter(function (c) {
+        return c && c.value;
+      })
+      .map(function (c) {
+        return { value: String(c.value).trim(), count: c.count != null ? c.count : 0 };
+      });
+  }
+
+  function laRenderBrandScrapePalette(colours) {
+    var host = $('laBrandScrapePalette');
+    if (!host) return;
+    host.innerHTML = '';
+    (colours || []).slice(0, 24).forEach(function (c) {
+      var v = laParseHexColor6(c.value);
+      if (!v) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'la-brand-scrape-swatch';
+      btn.title = c.value + (c.count != null ? ' · ' + c.count + '×' : '');
+      btn.setAttribute('data-hex', v);
+      btn.style.background = v;
+      var lab = document.createElement('span');
+      lab.className = 'la-brand-scrape-swatch-code';
+      lab.textContent = v;
+      btn.appendChild(lab);
+      btn.addEventListener('click', function () {
+        laApplySwatchHexToTarget(v);
+        laShowBrandScrapeMsg('Applied ' + v + ' to ' + laGetBrandSwatchTarget() + '.', false);
+      });
+      host.appendChild(btn);
+    });
+  }
+
+  function laRefreshBrandScrapeSelect() {
+    var sb = getSandboxForRequest();
+    if (!sb) {
+      laShowBrandScrapeMsg('Select a sandbox first.', true);
+      return;
+    }
+    laShowBrandScrapeMsg('Loading scrapes…', false);
+    fetch('/api/brand-scraper/scrapes?sandbox=' + encodeURIComponent(sb), { credentials: 'same-origin' })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, status: res.status, data: data };
+        });
+      })
+      .then(function (x) {
+        if (!x.ok) throw new Error((x.data && x.data.error) || 'HTTP ' + x.status);
+        laBrandScrapesCache = Array.isArray(x.data.items) ? x.data.items : [];
+        var sel = $('laBrandScrapeSelect');
+        if (!sel) return;
+        var keep = sel.value;
+        sel.innerHTML = '<option value="">Select a scrape…</option>';
+        laBrandScrapesCache.forEach(function (it) {
+          var id = String(it.scrapeId || it.id || '').trim();
+          if (!id) return;
+          var o = document.createElement('option');
+          o.value = id;
+          o.textContent =
+            (it.brandName ? String(it.brandName) + ' — ' : '') +
+            id.slice(0, 12) +
+            (id.length > 12 ? '…' : '');
+          sel.appendChild(o);
+        });
+        if (
+          keep &&
+          Array.prototype.some.call(sel.options, function (op) {
+            return op.value === keep;
+          })
+        ) {
+          sel.value = keep;
+        }
+        laShowBrandScrapeMsg('Loaded ' + laBrandScrapesCache.length + ' scrape(s). Pick one, then Load palette.', false);
+      })
+      .catch(function (e) {
+        laBrandScrapesCache = [];
+        laShowBrandScrapeMsg(String(e.message || e), true);
+      });
+  }
+
+  function laLoadBrandScrapePalette() {
+    var sb = getSandboxForRequest();
+    var sel = $('laBrandScrapeSelect');
+    var id = sel && String(sel.value || '').trim();
+    if (!sb || !id) {
+      laShowBrandScrapeMsg('Select a sandbox and a scrape first.', true);
+      return;
+    }
+    laShowBrandScrapeMsg('Loading scrape…', false);
+    fetch('/api/brand-scraper/scrapes/' + encodeURIComponent(id) + '?sandbox=' + encodeURIComponent(sb), {
+      credentials: 'same-origin',
+    })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, status: res.status, data: data };
+        });
+      })
+      .then(function (x) {
+        if (!x.ok) throw new Error((x.data && x.data.error) || 'HTTP ' + x.status);
+        var cols = laExtractColoursFromScrapeRecord(x.data);
+        if (!cols.length) {
+          laRenderBrandScrapePalette([]);
+          laShowBrandScrapeMsg('No colours in this scrape yet — run a crawl that extracts CSS colours first.', true);
+          return;
+        }
+        laRenderBrandScrapePalette(cols);
+        laShowBrandScrapeMsg('Click a swatch to apply to the selected slot (background / accent / text).', false);
+      })
+      .catch(function (e) {
+        laShowBrandScrapeMsg(String(e.message || e), true);
+      });
+  }
+
+  function laBrandScrapeTop3() {
+    var host = $('laBrandScrapePalette');
+    if (!host || !host.children.length) {
+      laShowBrandScrapeMsg('Load palette first.', true);
+      return;
+    }
+    var nodes = Array.prototype.slice.call(host.querySelectorAll('.la-brand-scrape-swatch[data-hex]'), 0, 3);
+    if (!nodes.length) {
+      laShowBrandScrapeMsg('No swatches to use.', true);
+      return;
+    }
+    var h0 = nodes[0] && nodes[0].getAttribute('data-hex');
+    var h1 = nodes[1] && nodes[1].getAttribute('data-hex');
+    var h2 = nodes[2] && nodes[2].getAttribute('data-hex');
+    if (h0) laSetHexAndSyncRow('laBrandThemeBgHex', 'laBrandThemeBgColor', h0);
+    if (h1) laSetHexAndSyncRow('laBrandThemeAccentHex', 'laBrandThemeAccentColor', h1);
+    if (h2) laSetHexAndSyncRow('laBrandThemeTextHex', 'laBrandThemeTextColor', h2);
+    laShowBrandScrapeMsg('Set background / accent / text from top ' + nodes.length + ' ranked colours.', false);
+  }
+
+  function laWireBrandingPanel() {
+    laWireBrandingColorRow('laBrandThemeBgHex', 'laBrandThemeBgColor', 'laBrandBgDropper');
+    laWireBrandingColorRow('laBrandThemeAccentHex', 'laBrandThemeAccentColor', 'laBrandAccentDropper');
+    laWireBrandingColorRow('laBrandThemeTextHex', 'laBrandThemeTextColor', 'laBrandTextDropper');
+    var rb = $('laBrandScrapeRefresh');
+    if (rb) rb.addEventListener('click', laRefreshBrandScrapeSelect);
+    var lp = $('laBrandScrapeLoadPalette');
+    if (lp) lp.addEventListener('click', laLoadBrandScrapePalette);
+    var t3 = $('laBrandScrapeTop3');
+    if (t3) t3.addEventListener('click', laBrandScrapeTop3);
+  }
+
   function laSyncTravelBrandPanel() {
     var panel = $('laTravelBrandPanel');
     var ta = $('laImportPaste');
@@ -1189,9 +1478,6 @@
     var bn = $('laTravelBrandName');
     var logo = $('laTravelLogoUrl');
     var ph = $('laTravelPhase');
-    var tb = $('laTravelThemeBg');
-    var ta2 = $('laTravelThemeAccent');
-    var to = $('laTravelThemeOnBg');
     var jp = $('laTravelJourneyProgress');
     var hint = $('laTravelLogoHint');
     if (ag) ag.value = attr.appGroupID != null && String(attr.appGroupID) !== '' ? String(attr.appGroupID) : LA_TRAVEL_DEFAULT_APP_GROUP;
@@ -1207,9 +1493,7 @@
     var phv = String(cs.phase || 'flight').toLowerCase();
     if (ph) ph.value = phv === 'boarding' || phv === 'airport' ? phv : 'flight';
     var th = cs.theme && typeof cs.theme === 'object' && !Array.isArray(cs.theme) ? cs.theme : {};
-    if (tb) tb.value = laParseHexColor6(th.background) || laTravelDefaultTheme().background;
-    if (ta2) ta2.value = laParseHexColor6(th.accent) || laTravelDefaultTheme().accent;
-    if (to) to.value = laParseHexColor6(th.onBackground) || laTravelDefaultTheme().onBackground;
+    laSetBrandingInputsFromTheme(th);
     if (jp) {
       var jpv = cs.journeyProgress;
       jp.value =
@@ -1293,19 +1577,11 @@
       laShowTravelBrandMsg('Could not find aps in JSON.', true);
       return;
     }
-    var bg = laParseHexColor6($('laTravelThemeBg') && $('laTravelThemeBg').value);
-    var ac = laParseHexColor6($('laTravelThemeAccent') && $('laTravelThemeAccent').value);
-    var ob = laParseHexColor6($('laTravelThemeOnBg') && $('laTravelThemeOnBg').value);
-    if (!bg || !ac) {
-      laShowTravelBrandMsg('Background and accent must be valid #RRGGBB (optional leading #).', true);
-      return;
-    }
-    if (!ob) ob = '#ffffff';
     var phase = String(($('laTravelPhase') && $('laTravelPhase').value) || 'flight').toLowerCase();
     if (phase !== 'flight' && phase !== 'boarding' && phase !== 'airport') phase = 'flight';
     var oldCs = aps['content-state'] && typeof aps['content-state'] === 'object' ? aps['content-state'] : {};
     var merged = laTravelMergeContentStateForPhase(oldCs, phase);
-    merged.theme = { background: bg, accent: ac, onBackground: ob };
+    merged.theme = laGetBrandingThemeFromInputs();
     if (phase === 'flight') {
       var jinp = $('laTravelJourneyProgress');
       var jv = jinp ? Number(String(jinp.value || '').trim()) : NaN;
@@ -1455,7 +1731,8 @@
    * Writes formatted JSON back to #laImportPaste. Shows combined success / skip hints.
    * @returns {boolean} true if at least one field was updated
    */
-  function injectLaImportPaste(patch) {
+  function injectLaImportPaste(patch, opts) {
+    opts = opts || {};
     var ta = $('laImportPaste');
     if (!ta || !String(ta.value || '').trim()) {
       showImportMsg('Load a template or paste JSON in the unitary editor first.', true);
@@ -1474,6 +1751,10 @@
       showImportMsg(hint, true);
       return false;
     }
+    if (opts.applyBrandingAfter && laIsTravelGeneric(result.obj)) {
+      var apsB = findApsInParsedForMutation(result.obj);
+      if (apsB) laApplyBrandingThemeToTravelAps(apsB);
+    }
     ta.value = formatJsonTextarea(result.obj);
     bumpJsonMirror(ta);
     try {
@@ -1483,6 +1764,9 @@
     var msg = 'Updated ' + result.changes.join(', ') + '.';
     if (result.missed && result.missed.length) {
       msg += ' Skipped: ' + result.missed.join('; ') + '.';
+    }
+    if (opts.applyBrandingAfter && laIsTravelGeneric(result.obj)) {
+      msg += ' Travel theme from step 3 applied.';
     }
     showImportMsg(msg, false);
     return true;
@@ -2101,7 +2385,7 @@
     patch.event = ev;
     patch.requestId = randomUuid();
     patch.timestamp = Math.floor(Date.now() / 1000);
-    injectLaImportPaste(patch);
+    injectLaImportPaste(patch, { applyBrandingAfter: true });
   }
 
   function onLaJsonPanelPaste(e) {
@@ -2638,6 +2922,8 @@
 
     laWireExecutionFieldsPersistence();
     laLoadExecutionFieldsFromStorage();
+    laWireBrandingPanel();
+    laLoadBrandingThemeFromStorage();
 
     setupJsonMirrors();
 

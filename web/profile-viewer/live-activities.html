@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260423c">
+  <link rel="stylesheet" href="live-activities.css?v=20260423f">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -37,13 +37,14 @@
             <header class="dashboard-hero-header">
               <h2 id="laBanner" class="dashboard-hero-title">Live activities</h2>
               <p class="dashboard-hero-subtitle la-hero-flow">
-                Send a Live Activity push through AJO in four steps:
+                Send a Live Activity push through AJO in five steps:
                 <strong>1)</strong> find the person ·
-                <strong>2)</strong> enter campaign, ECID, Live Activity ID, and event ·
-                <strong>3)</strong> load or paste JSON ·
-                <strong>4)</strong> <strong>Apply all from fields</strong>, then <strong>Send to Adobe</strong>.
-                For a <strong>brand-agnostic</strong> demo (no per-brand iOS widget), use templates under <strong>Travel (Generic)</strong> with
-                <code class="dashboard-code">attributes-type: TravelLiveActivityAttributes</code> — same activity reskins via <code class="dashboard-code">theme</code> + <code class="dashboard-code">phase</code>.
+                <strong>2)</strong> campaign, ECID, Live Activity ID, and event ·
+                <strong>3)</strong> branding colours (pickers, dropper, or a brand scrape palette) ·
+                <strong>4)</strong> load a template / paste JSON ·
+                <strong>5)</strong> <strong>Apply all from fields</strong> (merges 2 + 3 into the editor), then preview and <strong>Send to Adobe</strong>.
+                For a <strong>brand-agnostic</strong> iOS widget, use <strong>Travel (Generic)</strong> templates with
+                <code class="dashboard-code">TravelLiveActivityAttributes</code> — <code class="dashboard-code">theme</code> + <code class="dashboard-code">phase</code> drive the layout.
               </p>
             </header>
           </div>
@@ -85,11 +86,12 @@
         </section>
 
         <section class="consent-panel" id="laPanel">
-          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">2–4</span> Build &amp; send the unitary message</h2>
+          <h2 class="panel-title"><span class="profile-box-icon" aria-hidden="true">2–5</span> Build &amp; send the unitary message</h2>
           <p class="panel-desc la-panel-lead la-panel-lead--compact">
-            <strong>2)</strong> Enter the values below (they must match your campaign and device).
-            <strong>3)</strong> Load a template or paste JSON.
-            <strong>4)</strong> Use <strong>Refresh preview</strong> when you want to see the exact outgoing body, then <strong>Send to Adobe</strong>.
+            <strong>2)</strong> Campaign &amp; recipient row ·
+            <strong>3)</strong> Branding style (colours for Travel generic <code class="dashboard-code">theme</code>) ·
+            <strong>4)</strong> Message JSON (template or paste) ·
+            <strong>5)</strong> <strong>Apply all from fields</strong> merges <strong>2 + 3</strong> into the JSON, then <strong>Refresh preview</strong> and <strong>Send to Adobe</strong>.
             <span class="la-panel-meta">Uses <code class="dashboard-code">POST /ajo/im/executions/unitary</code> via this app’s proxy.</span>
           </p>
 
@@ -142,7 +144,7 @@
               </div>
               <div class="la-exec-sync" aria-describedby="laExecSyncHelp">
                 <p id="laExecSyncHelp" class="la-exec-sync-lead">
-                  Fill these first. In <strong>Message JSON</strong> below, load a template (or paste JSON), then use <strong>Apply all from fields</strong> next to <strong>Beautify</strong> to merge this row into the editor.
+                  Fill step 2, set colours in <strong>step 3</strong>, then in <strong>Message JSON</strong> (step 4) load a template or paste JSON. Use <strong>Apply all from fields</strong> beside <strong>Beautify</strong> to merge <strong>steps 2 and 3</strong> into the editor.
                 </p>
                 <details class="la-inject-advanced">
                   <summary>Optional: update one value in the JSON</summary>
@@ -170,7 +172,51 @@
               </div>
             </div>
 
-            <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">3</span> Message JSON</h3>
+            <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">3</span> Branding style</h3>
+            <div class="profile-box-content">
+              <p class="la-ts-note la-ts-note--compact" role="note">
+                These colours feed <code class="dashboard-code">content-state.theme</code> for <code class="dashboard-code">TravelLiveActivityAttributes</code> payloads.
+                Use the native colour control, type a <code class="dashboard-code">#RRGGBB</code> value, or the dropper (Chromium / desktop). Pull ranked colours from an existing <strong>brand scrape</strong> for this sandbox.
+              </p>
+              <div class="la-brand-theme-rows">
+                <div class="la-brand-theme-row" data-la-brand-row="bg">
+                  <span class="la-brand-theme-label">Background</span>
+                  <input type="color" id="laBrandThemeBgColor" class="la-brand-theme-color" value="#0f7d47" aria-label="Background colour" />
+                  <input type="text" id="laBrandThemeBgHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="#0F7D47" aria-label="Background hex" />
+                  <button type="button" class="btn btn-secondary la-brand-dropper" id="laBrandBgDropper" title="Pick colour from screen">Dropper</button>
+                </div>
+                <div class="la-brand-theme-row" data-la-brand-row="accent">
+                  <span class="la-brand-theme-label">Accent</span>
+                  <input type="color" id="laBrandThemeAccentColor" class="la-brand-theme-color" value="#69d444" aria-label="Accent colour" />
+                  <input type="text" id="laBrandThemeAccentHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="#69D444" aria-label="Accent hex" />
+                  <button type="button" class="btn btn-secondary la-brand-dropper" id="laBrandAccentDropper" title="Pick colour from screen">Dropper</button>
+                </div>
+                <div class="la-brand-theme-row" data-la-brand-row="text">
+                  <span class="la-brand-theme-label">Text on background</span>
+                  <input type="color" id="laBrandThemeTextColor" class="la-brand-theme-color" value="#ffffff" aria-label="Text colour" />
+                  <input type="text" id="laBrandThemeTextHex" class="la-brand-theme-hex" maxlength="9" spellcheck="false" autocomplete="off" placeholder="#FFFFFF" aria-label="Text hex" />
+                  <button type="button" class="btn btn-secondary la-brand-dropper" id="laBrandTextDropper" title="Pick colour from screen">Dropper</button>
+                </div>
+              </div>
+              <div class="la-brand-scrape-toolbar">
+                <button type="button" class="btn btn-secondary" id="laBrandScrapeRefresh">Refresh brand scrapes</button>
+                <select id="laBrandScrapeSelect" class="sandbox-select la-brand-scrape-select" aria-label="Brand scrape">
+                  <option value="">Select a scrape…</option>
+                </select>
+                <button type="button" class="btn btn-secondary" id="laBrandScrapeLoadPalette" title="Load colour palette from selected scrape">Load palette</button>
+                <button type="button" class="btn btn-secondary" id="laBrandScrapeTop3" title="Assign first three ranked colours to background, accent, text">Use top 3 colours</button>
+              </div>
+              <p class="la-field-hint">Click a swatch to apply it to the target below (same order as theme fields).</p>
+              <div class="la-brand-scrape-target" role="radiogroup" aria-label="Apply swatch to">
+                <label class="la-brand-scrape-target-opt"><input type="radio" name="laBrandSwatchTarget" value="bg" checked /> Background</label>
+                <label class="la-brand-scrape-target-opt"><input type="radio" name="laBrandSwatchTarget" value="accent" /> Accent</label>
+                <label class="la-brand-scrape-target-opt"><input type="radio" name="laBrandSwatchTarget" value="text" /> Text</label>
+              </div>
+              <div id="laBrandScrapePalette" class="la-brand-scrape-palette" aria-live="polite"></div>
+              <p id="laBrandScrapeMsg" class="la-template-msg" hidden role="status"></p>
+            </div>
+
+            <h3 class="la-subpanel-title la-subpanel-title--divider"><span class="profile-box-icon" aria-hidden="true">4</span> Message JSON</h3>
             <div class="profile-box-content">
               <div class="la-payload-workspace" id="laPayloadWorkspace">
                 <div class="la-template-bar" id="laTemplateBar" aria-label="Payload templates">
@@ -194,7 +240,7 @@
                 </div>
                 <div class="la-payload-view-head">
                   <p class="la-payload-view-lead la-payload-view-lead--compact">
-                    Load a template or paste JSON, then <strong>Beautify</strong> if needed. <strong>Apply all from fields</strong> merges step 2 into this text. Use <strong>Refresh preview</strong> (step 4) to see the outgoing payload. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify.
+                    Load a template or paste JSON, then <strong>Beautify</strong> if needed. <strong>Apply all from fields</strong> merges <strong>steps 2 and 3</strong> (campaign row + branding theme for Travel generic). Use <strong>Refresh preview</strong> (step 5) to see the outgoing payload. <kbd class="la-kbd">Ctrl</kbd>/<kbd class="la-kbd">⌘</kbd>+<kbd class="la-kbd">Enter</kbd> runs Beautify.
                   </p>
                   <div class="la-payload-view-toggle" role="tablist" aria-label="JSON editor view">
                     <button
@@ -227,17 +273,17 @@
                     class="la-json la-import-paste"
                     spellcheck="false"
                     rows="18"
-                    placeholder="Load a template or paste JSON. Use Apply all from fields (next to Beautify) to merge campaign, ECID, event, and IDs — then check the preview before Send."
+                    placeholder="Load a template or paste JSON. Apply all from fields merges step 2 (campaign, ECID, event, IDs) and step 3 (Travel theme colours) — then preview before Send."
                     title="Required for Preview and Send"
                     aria-describedby="laImportPasteHint"
                   ></textarea>
                   <p id="laImportPasteHint" class="la-import-title-hint">
-                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. <strong>Apply all from fields</strong> merges the Campaign &amp; recipient row into this JSON (use <strong>Refresh preview</strong> below when you want to see the exact body).
+                    <strong>Beautify</strong> quotes placeholders like <code class="dashboard-code">{{$timestamp}}</code>. <strong>Apply all from fields</strong> merges step 2 and step 3 into this JSON for Travel generic templates (use <strong>Refresh preview</strong> below for the exact body).
                   </p>
                   <div class="la-import-actions">
                     <div class="la-import-actions-btns" role="group" aria-label="Format JSON and merge execution fields">
                       <button type="button" class="btn btn-secondary" id="laImportBeautify">Beautify</button>
-                      <button type="button" class="btn btn-primary" id="laInjectAllFromFields" title="Merge campaign, ECID, event, Live Activity ID, timestamp, and requestId into the JSON editor">
+                      <button type="button" class="btn btn-primary" id="laInjectAllFromFields" title="Merge step 2 (campaign, ECID, event, Live Activity ID, IDs) and step 3 (Travel theme colours) into the JSON editor">
                         Apply all from fields
                       </button>
                     </div>
@@ -276,18 +322,7 @@
                         <option value="airport">airport</option>
                       </select>
                     </div>
-                    <div class="la-field">
-                      <label for="laTravelThemeBg">Theme — background</label>
-                      <input type="text" id="laTravelThemeBg" autocomplete="off" spellcheck="false" placeholder="#0F7D47" maxlength="9" />
-                    </div>
-                    <div class="la-field">
-                      <label for="laTravelThemeAccent">Theme — accent</label>
-                      <input type="text" id="laTravelThemeAccent" autocomplete="off" spellcheck="false" placeholder="#69D444" maxlength="9" />
-                    </div>
-                    <div class="la-field">
-                      <label for="laTravelThemeOnBg">Theme — text on background</label>
-                      <input type="text" id="laTravelThemeOnBg" autocomplete="off" spellcheck="false" placeholder="#FFFFFF" maxlength="9" />
-                    </div>
+                    <p class="la-field-hint la-travel-theme-hint">Theme hex colours are edited in <strong>step 3 — Branding style</strong> above.</p>
                     <div class="la-field">
                       <label for="laTravelJourneyProgress">Journey progress % (flight)</label>
                       <input type="number" id="laTravelJourneyProgress" min="0" max="100" step="1" placeholder="25" aria-describedby="laTravelJourneyHint" />
@@ -448,8 +483,8 @@
               </div>
 
               <div class="la-actions la-actions--send">
-                <p class="la-send-step"><span class="la-send-step-num">4</span> Preview (outgoing payload) &amp; send</p>
-                <p class="la-send-step-hint">Click to fill the preview with the exact JSON that <strong>Send to Adobe</strong> will use (after <strong>Apply all from fields</strong> updates the editor).</p>
+                <p class="la-send-step"><span class="la-send-step-num">5</span> Preview (outgoing payload) &amp; send</p>
+                <p class="la-send-step-hint">Click to fill the preview with the exact JSON that <strong>Send to Adobe</strong> will use (after <strong>Apply all from fields</strong> merges steps 2 and 3 into the editor).</p>
                 <button type="button" class="btn btn-secondary" id="laPreviewBtn">Refresh preview</button>
                 <button type="button" class="btn btn-primary" id="laSendBtn">Send to Adobe</button>
               </div>
@@ -478,6 +513,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script defer src="live-activities.js?v=20260423d"></script>
+  <script defer src="live-activities.js?v=20260423f"></script>
 </body>
 </html>
