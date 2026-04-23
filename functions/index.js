@@ -49,6 +49,7 @@ const consentFlowLookup = lazyRequireMod('./consentFlowLookup');
 const consentConnectionStore = lazyRequireMod('./consentConnectionStore');
 const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
+const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
 const eventConfigStore = lazyRequireMod('./eventConfigStore');
 const catalogConfigStore = lazyRequireMod('./catalogConfigStore');
 const decisionLabConfigStore = lazyRequireMod('./decisionLabConfigStore');
@@ -1829,6 +1830,184 @@ exports.eventEdgeProxy = onRequest(
     }
   },
 );
+
+/** GET /api/events/generator-targets — Edge / DCS presets (event-generator-targets.json). */
+exports.eventGeneratorTargetsProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'GET, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  try {
+    const targets = eventGeneratorService.loadEventGeneratorTargets().map((t) => ({
+      id: t.id,
+      label: t.label,
+      transport: t.transport,
+      dataStreamId: t.dataStreamId || null,
+      xdmStyle: t.xdmStyle || 'full',
+      streamingUrl: t.streamingUrl || null,
+    }));
+    res.status(200).json({ targets });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+/** POST /api/events/generator — Event Generator (same contract as aep-event-sender-bundle). */
+exports.eventGeneratorProxy = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const email = (body.email || '').trim();
+  if (!email) {
+    res.status(400).json({ error: 'Missing email. Enter a customer identifier in the lab strip first.' });
+    return;
+  }
+  const targets = eventGeneratorService.loadEventGeneratorTargets();
+  const wantId = (body.targetId || '').trim();
+  let preset = targets.find((t) => t && typeof t === 'object' && t.id === wantId);
+  if (!preset && targets.length) preset = targets[0];
+  if (!preset) {
+    res.status(500).json({ error: 'No event-generator-targets.json presets found in functions copy.' });
+    return;
+  }
+
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  const clientId = ADOBE_CLIENT_ID.value();
+  const orgId = ADOBE_IMS_ORG.value();
+  const transport = (preset.transport || 'dcs').toLowerCase() === 'edge' ? 'edge' : 'dcs';
+
+  try {
+    if (transport === 'edge') {
+      if (!preset.dataStreamId || typeof preset.dataStreamId !== 'string') {
+        res.status(500).json({ error: 'Preset is missing dataStreamId.' });
+        return;
+      }
+      const xdmStyle = preset.xdmStyle === 'minimal' ? 'minimal' : 'full';
+      const xdm = eventGeneratorService.buildEventGeneratorXdm(body, {
+        style: xdmStyle,
+        defaultOrchestrationEventID: preset.defaultOrchestrationEventID || '',
+      });
+      const edgeBase = (preset.edgeInteractBase || 'https://server.adobedc.net/ee/v2/interact').split('?')[0];
+      const edgeUrl = `${edgeBase}?dataStreamId=${encodeURIComponent(preset.dataStreamId)}`;
+      const payload = { event: { xdm } };
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        'x-api-key': clientId,
+        'x-gw-ims-org-id': orgId,
+      };
+      const edgeRes = await fetch(edgeUrl, { method: 'POST', headers, body: JSON.stringify(payload) });
+      const text = await edgeRes.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = {};
+      }
+      if (!edgeRes.ok) {
+        const msg =
+          data.message || data.title || data.detail || data.error || text.slice(0, 200) || `Edge ${edgeRes.status}`;
+        return res.status(502).json({
+          error: msg,
+          edgeStatus: edgeRes.status,
+          edgeBody: text.slice(0, 500),
+          edgeUrl,
+        });
+      }
+      return res.json({
+        ok: true,
+        message: 'Event sent to Edge interact.',
+        transport: 'edge',
+        edgeUrl,
+        requestId: data.requestId || null,
+        targetId: preset.id,
+      });
+    }
+
+    const xdm = eventGeneratorService.buildEventGeneratorXdm(body, { style: 'full' });
+    const idStr = xdm._id != null ? String(xdm._id) : `event-${Date.now()}`;
+    const ts = xdm.timestamp || new Date().toISOString();
+    const xdmEntity = {
+      ...xdm,
+      _id: idStr,
+      '@id': idStr,
+      'xdm:timestamp': ts,
+      timestamp: ts,
+    };
+    const streamEnvelope = {
+      header: {
+        schemaRef: {
+          id: eventGeneratorService.EVENT_GENERATOR_SCHEMA_ID,
+          contentType: eventGeneratorService.EVENT_SCHEMA_CONTENT_TYPE,
+        },
+        imsOrgId: orgId,
+        datasetId: eventGeneratorService.EVENT_GENERATOR_DATASET_ID,
+        source: { name: 'AEP Orchestration Lab Event Generator' },
+      },
+      body: {
+        xdmMeta: {
+          schemaRef: { id: eventGeneratorService.EVENT_GENERATOR_SCHEMA_ID, contentType: eventGeneratorService.EVENT_SCHEMA_CONTENT_TYPE },
+        },
+        xdmEntity,
+      },
+    };
+    const sandbox = eventGeneratorService.DEFAULT_SANDBOX;
+    const streamUrl = (preset.streamingUrl && String(preset.streamingUrl).trim()) || eventGeneratorService.EVENT_GENERATOR_STREAMING_URL;
+    const streamRes = await fetch(streamUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'sandbox-name': sandbox,
+        Authorization: `Bearer ${accessToken}`,
+        'x-adobe-flow-id': eventGeneratorService.EVENT_GENERATOR_FLOW_ID,
+      },
+      body: JSON.stringify(streamEnvelope),
+    });
+    const rtext = await streamRes.text();
+    let sdata = {};
+    try {
+      sdata = rtext ? JSON.parse(rtext) : {};
+    } catch {
+      sdata = {};
+    }
+    if (!streamRes.ok) {
+      return res.status(502).json({
+        error: sdata.message || sdata.title || sdata.detail || sdata.report?.message || `Streaming ${streamRes.status}`,
+        streamingResponse: sdata,
+        streamingUrl: streamUrl,
+        targetId: preset.id,
+      });
+    }
+    return res.json({
+      ok: true,
+      message: 'Event sent to AEP (streaming).',
+      eventId: xdmEntity['@id'],
+      streamingUrl: streamUrl,
+      targetId: preset.id,
+      transport: 'dcs',
+    });
+  } catch (err) {
+    res.status(500).json({ error: err && err.message ? err.message : String(err) });
+  }
+});
 
 /** GET/POST /api/events/config — per-sandbox Edge config (Firestore) */
 exports.eventConfigStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {

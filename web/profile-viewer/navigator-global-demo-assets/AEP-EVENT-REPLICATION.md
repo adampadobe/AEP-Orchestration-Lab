@@ -9,6 +9,10 @@ This page sends Experience Events the same way the portable **`aep-event-sender-
 | **Look up profile** | `DemoProfileDrawer.loadProfileDataForDrawer` → `GET /api/profile/consent` | Then **`application.login`** is sent with `POST /api/events/generator` (from `aep-profile-drawer.js`, shared with other demos) |
 | **Primary CTA in iframe** (e.g. Get started) | `navigator-global-demo.js` intercepts `a.cmp-button` / `a.auth-link`, opens URL in a new tab, then `POST /api/events/generator` | Derived from label: `get.started`, `book.a.demo`, … |
 
+### Navigator CTA XDM (Edge)
+
+The generator request includes **`xdmTenantKey: _demosystem5`**, **`identityMapEcidKey: ecid`**, the active profile **`ecid`**, and **`eventID`** (orchestration / trigger), matching the `event: { xdm: { … } }` shape sent to Edge. Default **preset** on this page: **`edge-46677-navigator`**. A valid **ECID** (after a successful lookup) is **required** before a CTA send; the strip shows an error if it is missing.
+
 ## Request body contract (must match the bundle)
 
 The browser builds a **plain object** (same fields the Node `sendGeneratorEvent` helper expects). Implemented in `navigator-global-demo.js` as `buildNavigatorGlobalGeneratorRequestBody()`.

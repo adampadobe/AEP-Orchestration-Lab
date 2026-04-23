@@ -22,5 +22,14 @@
     "transport": "dcs",
     "xdmStyle": "full",
     "streamingUrl": "https://dcs.adobedc.net/collection/d7824b017e820f769cb6efe11330d650136377522b4e75515fdd14102a4a9449"
+  },
+  {
+    "id": "edge-46677-navigator",
+    "label": "Edge — 46677… (Navigator CTA, full XDM, orchestration for _demosystem5)",
+    "transport": "edge",
+    "dataStreamId": "46677fd7-9db0-4f16-898c-b424d0245c38",
+    "edgeInteractBase": "https://server.adobedc.net/ee/v2/interact",
+    "xdmStyle": "full",
+    "defaultOrchestrationEventID": "780960c9b920edefc4283c3d21ab58a32c3dd5a7e38de212865d8d308fd53873"
   }
 ]

@@ -295,6 +295,20 @@
         }
       },
       {
+        "source": "/api/events/generator",
+        "function": {
+          "functionId": "eventGeneratorProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/events/generator-targets",
+        "function": {
+          "functionId": "eventGeneratorTargetsProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/events/config",
         "function": {
           "functionId": "eventConfigStore",

@@ -6,7 +6,16 @@
  * `sendGeneratorEvent()` in `navigator-global-demo-assets/aep-event-sender-bundle/send-aep-event.js`
  * (see `buildEventGeneratorXdm` / `sendGeneratorEvent`). Do not import that file in the browser
  * (no tokens). Replication checklist: `navigator-global-demo-assets/AEP-EVENT-REPLICATION.md`.
+ *
+ * CTA payload shape: `identityMap.ecid`, `_demosystem5.identification.core.ecid`,
+ * `_experience.campaign.orchestration.eventID`, `eventType` from button (e.g. get.started).
+ * Default preset: edge-46677-navigator. Change NAVIGATOR_ORCHESTRATION_EVENT_ID if your trigger hash differs.
  */
+const NAVIGATOR_XDM_TENANT_KEY = '_demosystem5';
+const NAVIGATOR_IDENTITY_ECID_KEY = 'ecid';
+const NAVIGATOR_PRESET_ID = 'edge-46677-navigator';
+const NAVIGATOR_ORCHESTRATION_EVENT_ID =
+  '780960c9b920edefc4283c3d21ab58a32c3dd5a7e38de212865d8d308fd53873';
 
 const customerEmail = document.getElementById('customerEmail');
 if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
@@ -57,6 +66,9 @@ async function loadGeneratorTargets() {
       opt.textContent = t.label || t.id;
       generatorTargetSelect.appendChild(opt);
     });
+    if (generatorTargetSelect.querySelector('option[value="' + NAVIGATOR_PRESET_ID + '"]')) {
+      generatorTargetSelect.value = NAVIGATOR_PRESET_ID;
+    }
   } catch {
     generatorTargetSelect.innerHTML = '';
     const opt = document.createElement('option');
@@ -175,8 +187,9 @@ function navigatorGlobalCtaLabelToEventType(text) {
  * @param {string} [o.ctaLabel]
  * @param {string} [o.viewName]
  * @param {string} o.email
- * @param {string | null} o.ecid
+ * @param {string} o.ecid
  * @param {{ id?: string } | null} o.target
+ * @param {string} [o.eventID] — journey / trigger orchestration event id
  */
 function buildNavigatorGlobalGeneratorRequestBody(o) {
   const viewName = o.viewName != null && String(o.viewName).trim() ? String(o.viewName).trim() : 'Navigator Global';
@@ -188,13 +201,23 @@ function buildNavigatorGlobalGeneratorRequestBody(o) {
     viewUrl: o.viewUrl,
     channel: 'Web',
     timestamp: new Date().toISOString(),
+    xdmTenantKey: NAVIGATOR_XDM_TENANT_KEY,
+    identityMapEcidKey: NAVIGATOR_IDENTITY_ECID_KEY,
+    eventID: o.eventID || NAVIGATOR_ORCHESTRATION_EVENT_ID,
     public: {
       linkUrl: o.viewUrl,
       ...(o.ctaLabel && String(o.ctaLabel).trim() ? { ctaLabel: String(o.ctaLabel).trim() } : {}),
     },
   };
-  if (o.ecid) body.ecid = o.ecid;
+  body.ecid = o.ecid;
   return body;
+}
+
+function getActiveEcidString() {
+  const ecidText = infoEcid ? String(infoEcid.textContent || '').trim() : '';
+  if (!ecidText || ecidText === '—' || ecidText === '-') return '';
+  if (!/^\d+$/.test(ecidText) || ecidText.length < 10) return '';
+  return ecidText;
 }
 
 async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) {
@@ -203,11 +226,13 @@ async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) 
     setModMessage('Enter a customer identifier at the top before using page links.', 'error');
     return;
   }
+  const ecid = getActiveEcidString();
+  if (!ecid) {
+    setModMessage('Look up a profile first so a valid ECID is available to attach to the event.', 'error');
+    return;
+  }
   setModMessage('Sending event to AEP…', '');
   try {
-    const ecidText = infoEcid ? String(infoEcid.textContent || '').trim() : '';
-    const ecid =
-      ecidText && ecidText !== '—' && /^\d+$/.test(ecidText) && ecidText.length >= 10 ? ecidText : null;
     const target = getSelectedGeneratorTarget();
     const body = buildNavigatorGlobalGeneratorRequestBody({
       eventType,
@@ -257,6 +282,14 @@ async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) 
     const eventType = navigatorGlobalCtaLabelToEventType(raw);
     e.preventDefault();
     e.stopPropagation();
+    if (!getEmail().trim()) {
+      setModMessage('Enter a customer identifier at the top before using page links.', 'error');
+      return;
+    }
+    if (!getActiveEcidString()) {
+      setModMessage('Look up a profile first so a valid ECID is available to attach to the event.', 'error');
+      return;
+    }
     window.open(href, '_blank', 'noopener,noreferrer');
     void sendNavigatorGlobalCtaEvent(eventType, href, raw);
   }
