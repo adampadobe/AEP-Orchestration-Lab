@@ -1451,26 +1451,17 @@
   }
 
   function laSyncTravelBrandPanel() {
-    var panel = $('laTravelBrandPanel');
     var ta = $('laImportPaste');
-    if (!panel || !ta) return;
+    if (!ta) return;
     var raw = String(ta.value || '').trim();
-    if (!raw) {
-      panel.hidden = true;
-      return;
-    }
+    if (!raw) return;
     var parsed;
     try {
       parsed = parseUserJson(raw);
     } catch (e) {
-      panel.hidden = true;
       return;
     }
-    if (!laIsTravelGeneric(parsed)) {
-      panel.hidden = true;
-      return;
-    }
-    panel.hidden = false;
+    if (!laIsTravelGeneric(parsed)) return;
     var aps = findApsInParsedForMutation(parsed);
     var attr = (aps && aps.attributes) || {};
     var cs = (aps && aps['content-state']) || {};
@@ -1561,7 +1552,7 @@
     if (!nameInput) return;
     var id = scrapeSel && String(scrapeSel.value || '').trim();
     if (!id) {
-      laShowTravelBrandMsg('Choose a brand scrape in step 3 (Refresh scrapes if the list is empty).', true);
+      laShowTravelBrandMsg('Choose a brand scrape above (Refresh scrapes if the list is empty).', true);
       return;
     }
     var cachedName = '';
