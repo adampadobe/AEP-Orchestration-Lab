@@ -1506,6 +1506,28 @@ html[data-aep-theme='dark'] .live-activities-page .la-paste-tree-viewport {
 .live-activities-page .la-travel-logo-toolbar .btn {
   font-size: 0.78rem;
 }
+.live-activities-page .la-travel-journey-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.15rem 0 0.25rem;
+}
+.live-activities-page .la-travel-journey-slider {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 1.35rem;
+  accent-color: var(--dash-blue, #1473e6);
+  cursor: pointer;
+}
+.live-activities-page .la-travel-journey-out {
+  flex: 0 0 auto;
+  min-width: 2.75rem;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--dash-text, inherit);
+  text-align: right;
+}
 .live-activities-page .la-travel-brand-title {
   margin: 0 0 0.35rem;
   font-size: 1rem;

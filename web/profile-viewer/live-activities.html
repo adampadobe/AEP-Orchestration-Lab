@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="profile-generation.css">
   <link rel="stylesheet" href="profile-viewer.css">
-  <link rel="stylesheet" href="live-activities.css?v=20260424c">
+  <link rel="stylesheet" href="live-activities.css?v=20260424d">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -274,7 +274,22 @@
                   <p class="la-field-hint la-travel-theme-hint">Theme colours use the Background / Accent / Text controls at the top of this step.</p>
                   <div class="la-field">
                     <label for="laTravelJourneyProgress">Journey progress % (flight)</label>
-                    <input type="number" id="laTravelJourneyProgress" min="0" max="100" step="1" placeholder="25" aria-describedby="laTravelJourneyHint" />
+                    <div class="la-travel-journey-row">
+                      <input
+                        type="range"
+                        id="laTravelJourneyProgress"
+                        class="la-travel-journey-slider"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value="25"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="25"
+                        aria-describedby="laTravelJourneyHint"
+                      />
+                      <output id="laTravelJourneyProgressOut" class="la-travel-journey-out" for="laTravelJourneyProgress">25%</output>
+                    </div>
                     <span id="laTravelJourneyHint" class="la-field-hint">0–100; written only when phase is <code class="dashboard-code">flight</code>.</span>
                   </div>
                 </div>
@@ -540,6 +555,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script defer src="live-activities.js?v=20260424c"></script>
+  <script defer src="live-activities.js?v=20260424d"></script>
 </body>
 </html>

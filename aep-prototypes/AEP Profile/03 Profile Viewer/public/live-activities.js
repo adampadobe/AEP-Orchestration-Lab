@@ -1703,6 +1703,15 @@
     }
   }
 
+  function laSyncTravelJourneyProgressOutput() {
+    var jp = $('laTravelJourneyProgress');
+    var jpo = $('laTravelJourneyProgressOut');
+    if (!jp) return;
+    var v = String(jp.value != null && jp.value !== '' ? jp.value : '0');
+    if (jpo) jpo.textContent = v + '%';
+    jp.setAttribute('aria-valuenow', v);
+  }
+
   function laSyncTravelBrandPanel() {
     var ta = $('laImportPaste');
     if (!ta) return;
@@ -1744,6 +1753,7 @@
       var jpv = cs.journeyProgress;
       jp.value =
         jpv != null && String(jpv) !== '' && Number.isFinite(Number(jpv)) ? String(Math.max(0, Math.min(100, Math.round(Number(jpv))))) : '25';
+      laSyncTravelJourneyProgressOutput();
     }
   }
 
@@ -3298,6 +3308,12 @@
     if (laTravelBrandScrapeNameBtn) laTravelBrandScrapeNameBtn.addEventListener('click', laApplyTravelBrandNameFromScrape);
     var laTravelPhaseEl = $('laTravelPhase');
     if (laTravelPhaseEl) laTravelPhaseEl.addEventListener('change', laTravelOnPhaseSelectChange);
+    var laJourney = $('laTravelJourneyProgress');
+    if (laJourney) {
+      laJourney.addEventListener('input', laSyncTravelJourneyProgressOutput);
+      laJourney.addEventListener('change', laSyncTravelJourneyProgressOutput);
+      laSyncTravelJourneyProgressOutput();
+    }
     if (typeof window !== 'undefined') window.laIsTravelGeneric = laIsTravelGeneric;
 
     Promise.all([
