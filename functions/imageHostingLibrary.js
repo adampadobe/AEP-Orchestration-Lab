@@ -345,16 +345,25 @@ async function deleteLibraryObject(sandbox, relPath) {
 
 async function renameLibraryObject(sandbox, relPath, newRelPath) {
   const prefix = libraryRoot(sandbox) + '/';
-  if (!relPath || !newRelPath || relPath.indexOf('..') !== -1 || newRelPath.indexOf('..') !== -1) {
+  const r1 = String(relPath || '').trim().replace(/^\/+/, '');
+  const r2 = String(newRelPath || '').trim().replace(/^\/+/, '');
+  if (!r1 || !r2 || r1.indexOf('..') !== -1 || r2.indexOf('..') !== -1) {
     throw new Error('bad path');
   }
-  const src = prefix + relPath;
-  const dst = prefix + newRelPath;
+  if (r1 === r2) {
+    return { src: prefix + r1, dst: prefix + r2, relPath: r1, newRelPath: r2, noop: true };
+  }
+  const src = prefix + r1;
+  const dst = prefix + r2;
   const bucket = getBucket();
+  const [srcExists] = await bucket.file(src).exists();
+  if (!srcExists) throw new Error('source not found');
+  const [dstExists] = await bucket.file(dst).exists();
+  if (dstExists) throw new Error('target path already exists');
   await bucket.file(src).copy(bucket.file(dst));
   try { await bucket.file(dst).makePublic(); } catch (_e) {}
   await bucket.file(src).delete({ ignoreNotFound: true });
-  return { src, dst };
+  return { src, dst, relPath: r1, newRelPath: r2 };
 }
 
 /**

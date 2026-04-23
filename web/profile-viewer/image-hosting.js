@@ -280,6 +280,66 @@
     }
   }
 
+  function libraryDirAndFilename(relPath) {
+    var s = String(relPath || '');
+    var i = s.lastIndexOf('/');
+    if (i === -1) return { dir: '', file: s };
+    return { dir: s.slice(0, i), file: s.slice(i + 1) };
+  }
+
+  function sanitizeLibraryFilename(name) {
+    var n = String(name || '').trim();
+    if (!n) return null;
+    if (n.indexOf('..') !== -1) return null;
+    if (/[/\\]/.test(n)) return null;
+    n = n.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/_+/g, '_');
+    if (!n) return null;
+    if (n.length > 180) n = n.slice(0, 180);
+    return n;
+  }
+
+  async function renameLibraryItem(relPath) {
+    var sb = getSandbox();
+    if (!sb || !relPath) return;
+    var parts = libraryDirAndFilename(relPath);
+    var msg = parts.dir
+      ? 'New file name (keeps folder ' + parts.dir + '/):'
+      : 'New file name:';
+    var entered = window.prompt(msg, parts.file);
+    if (entered === null) return;
+    var newFile = sanitizeLibraryFilename(entered);
+    if (!newFile) {
+      setManualMsg('Invalid name. Use letters, numbers, dots, dashes, underscores — no slashes or "..".', 'err');
+      return;
+    }
+    var newRelPath = parts.dir ? parts.dir + '/' + newFile : newFile;
+    if (newRelPath === relPath) {
+      setManualMsg('Name unchanged.', 'ok');
+      return;
+    }
+    try {
+      var r = await fetch('/api/image-hosting/library/rename?sandbox=' + encodeURIComponent(sb), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox: sb, relPath: relPath, newRelPath: newRelPath }),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        setManualMsg('Rename failed: ' + (data.error || r.statusText), 'err');
+        return;
+      }
+      if (data.noop) {
+        setManualMsg('Name unchanged.', 'ok');
+        return;
+      }
+      delete selectedRelPaths[relPath];
+      setManualMsg('Renamed to ' + (data.newRelPath || newRelPath) + '.', 'ok');
+      await renderLibrary();
+    } catch (e) {
+      setManualMsg('Rename failed: ' + (e.message || e), 'err');
+    }
+  }
+
   function copyToClipboard(text) {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
@@ -492,6 +552,13 @@
     openBtn.textContent = 'Open';
     openBtn.style.cssText = 'font-size:0.65rem;padding:0.2rem 0.55rem;border-radius:999px;border:1px solid var(--dash-border);text-decoration:none;color:var(--dash-text);';
     actions.appendChild(openBtn);
+
+    var renameBtn = document.createElement('button');
+    renameBtn.type = 'button';
+    renameBtn.textContent = 'Rename';
+    renameBtn.title = 'Change file name in the same folder (e.g. logo.png → logo_1.png)';
+    renameBtn.addEventListener('click', function () { renameLibraryItem(item.relPath); });
+    actions.appendChild(renameBtn);
 
     var delBtn = document.createElement('button');
     delBtn.type = 'button';
