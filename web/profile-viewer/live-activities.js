@@ -2027,7 +2027,8 @@
     if (!el) return;
     el.textContent = text || '';
     el.hidden = !text;
-    el.classList.toggle('la-template-msg--err', !!isErr);
+    el.classList.toggle('la-template-msg--err', !!text && !!isErr);
+    el.classList.toggle('la-template-msg--ok', !!text && !isErr);
   }
 
   /**
@@ -2120,11 +2121,13 @@
           ta.focus();
         } catch (e2) {}
         afterImportPasteMutation();
-        var msg = 'Message updated';
-        if (result.changes.length) msg += ' (' + result.changes.join(', ') + ')';
-        if (result.missed && result.missed.length) msg += '. Skipped: ' + result.missed.join('; ') + '.';
-        if (isTravel) msg += ' — Travel theme & brand applied.';
-        showMergeDemoMsg(msg + ' Preview refreshed.', false);
+        var msg = isTravel
+          ? 'All set — your fields are in the message, including Travel colours, logo, and brand. Preview is up to date.'
+          : 'All set — your fields are in the message. Preview is up to date.';
+        if (result.missed && result.missed.length) {
+          msg += ' Some items could not be auto-filled.';
+        }
+        showMergeDemoMsg(msg, false);
         laShowTravelBrandMsg('', false);
         showImportMsg('', false);
         laRefreshOutgoingPreview();

@@ -152,6 +152,15 @@
   color: #b03030;
 }
 
+.live-activities-page .la-template-msg--ok {
+  color: #1b5e20;
+  font-weight: 600;
+}
+
+html[data-aep-theme='dark'] .live-activities-page .la-template-msg--ok {
+  color: #86efac;
+}
+
 .live-activities-page .la-payload-view-lead--compact {
   margin-bottom: 0.5rem;
 }
