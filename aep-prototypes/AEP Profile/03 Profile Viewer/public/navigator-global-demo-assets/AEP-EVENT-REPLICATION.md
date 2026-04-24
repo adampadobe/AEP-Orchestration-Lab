@@ -7,7 +7,8 @@ This page sends Experience Events the same way the portable **`aep-event-sender-
 | Action | How | eventType (examples) |
 |--------|-----|----------------------|
 | **Look up profile** | `DemoProfileDrawer.loadProfileDataForDrawer` → `GET /api/profile/consent` | Then **`application.login`** is sent with `POST /api/events/generator` (from `aep-profile-drawer.js`, shared with other demos) |
-| **Primary CTA in iframe** (e.g. Get started) | `navigator-global-demo.js` intercepts `a.cmp-button` / `a.auth-link`, opens URL in a new tab, then `POST /api/events/generator` | Derived from label: `get.started`, `book.a.demo`, … |
+| **Links in iframe** (CTAs, nav, teaser buttons) | Intercepts `a.cmp-button`, `a.auth-link`, `a.nav-item__link`, `a.cmp-teaser__action-link` → new tab + generator | **URL-first** `navigator.global.*` types, e.g. **`navigator.global.events.pageView`** (`/gb/events`), **`navigator.global.user.registrationStarted`** (`/gb/sign-up`), **`navigator.global.membership.pageView`** (membership tiers), **`navigator.global.home.pageView`** (`/gb`). Unmapped links fall back to label tokens (`get.started`, …). |
+| **Demo flow** (lab banner under disclaimer) | Buttons send generator only (no new tab) | **`navigator.global.sector.alcoholPageView`**, **`navigator.global.sector.nonAlcoholPageView`**, **`navigator.global.membership.freeEnrolled`**, **`navigator.global.membership.paidEnrolled`**, **`navigator.global.webinar.sessionJoined`** — use these in AEP segments / journey filters. |
 
 ### Navigator CTA XDM (Edge)
 
@@ -18,7 +19,7 @@ The generator request includes **`xdmTenantKey: _demosystem5`**, **`identityMapE
 The browser builds a **plain object** (same fields the Node `sendGeneratorEvent` helper expects). Implemented in `navigator-global-demo.js` as `buildNavigatorGlobalGeneratorRequestBody()`.
 
 - **Required (for CTA + generator):** `email` (primary identity in this lab), `eventType`, `viewName`, `viewUrl` (becomes `web.webPageDetails.URL` in XDM), `channel` (e.g. `Web`)
-- **Optional:** `ecid` if the ECID hint is valid, `targetId` (from preset), `timestamp` (ISO; server/XDM also default time), `public` (merged into `_demoemea` for known shapes; CTAs pass `linkUrl` + `ctaLabel`)
+- **Optional:** `ecid` if the ECID hint is valid, `targetId` (from preset), `timestamp` (ISO; server/XDM also default time), `public` (merged into `_demoemea` for known shapes; CTAs pass `linkUrl` + `ctaLabel`; registration CTA may set **`public.eventRegistration`**)
 - **Do not** embed IMS tokens in the page; the lab backend attaches OAuth.
 
 Reference implementation of XDM build: `send-aep-event.js` → `buildEventGeneratorXdm` and `sendGeneratorEvent`.

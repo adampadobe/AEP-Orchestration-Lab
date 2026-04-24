@@ -8,7 +8,8 @@
  * (no tokens). Replication checklist: `navigator-global-demo-assets/AEP-EVENT-REPLICATION.md`.
  *
  * CTA payload shape: `identityMap.ecid`, `_demosystem5.identification.core.ecid`,
- * `_experience.campaign.orchestration.eventID`, `eventType` from button (e.g. get.started).
+ * `_experience.campaign.orchestration.eventID`, `eventType` from destination URL where possible
+ * (`navigator.global.*` types for registration, events hub, membership, etc.), else label-derived.
  * Default preset: edge-46677-navigator. Change NAVIGATOR_ORCHESTRATION_EVENT_ID if your trigger hash differs.
  */
 const NAVIGATOR_XDM_TENANT_KEY = '_demosystem5';
@@ -169,13 +170,152 @@ DemoProfileDrawer.init({
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
 });
 
-/** CTA label → event type (e.g. Get started → get.started). */
+/** CTA label → event type (e.g. Get started → get.started) when URL does not map to a demo type. */
 function navigatorGlobalCtaLabelToEventType(text) {
   const parts = String(text || '')
     .toLowerCase()
     .match(/[a-z0-9]+/g);
   return parts && parts.length ? parts.join('.') : 'link.clicked';
 }
+
+/** @returns {string} normalized pathname */
+function navigatorGlobalPathname(href) {
+  try {
+    const u = new URL(href, 'https://navigator.global');
+    let pathname = (u.pathname || '/').replace(/\/+$/, '') || '/';
+    return pathname.toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Map snapshot link destinations to stable `navigator.global.*` event types for segments and timeline.
+ * @returns {{ eventType: string, viewName: string, eventRegistration?: string }}
+ */
+function resolveNavigatorGlobalDemoEvent(href, ctaLabel) {
+  const p = navigatorGlobalPathname(href);
+  const lab = String(ctaLabel || '').trim();
+
+  if (p.includes('/sign-up')) {
+    return {
+      eventType: 'navigator.global.user.registrationStarted',
+      viewName: 'Navigator Global — Registration',
+      eventRegistration: 'navigator_signup_cta',
+    };
+  }
+  if (p.includes('/login')) {
+    return {
+      eventType: 'navigator.global.user.authenticationPageView',
+      viewName: 'Navigator Global — Sign in',
+    };
+  }
+  if (p.endsWith('/events') || p.includes('/events')) {
+    return {
+      eventType: 'navigator.global.events.pageView',
+      viewName: 'Navigator Global — Events & webinars',
+    };
+  }
+  if (p.includes('membership-tiers')) {
+    return {
+      eventType: 'navigator.global.membership.pageView',
+      viewName: 'Navigator Global — Membership tiers',
+    };
+  }
+  if (p.includes('keep-me-informed')) {
+    return {
+      eventType: 'navigator.global.lead.keepMeInformed',
+      viewName: 'Navigator Global — Keep me informed',
+    };
+  }
+  if (p.includes('/library')) {
+    return {
+      eventType: 'navigator.global.library.pageView',
+      viewName: 'Navigator Global — Insights library',
+    };
+  }
+  if (p.includes('/who-is-it-for')) {
+    return {
+      eventType: 'navigator.global.product.whoIsItFor',
+      viewName: 'Navigator Global — Who is it for',
+    };
+  }
+  if (p.includes('/capabilities/coaching')) {
+    return {
+      eventType: 'navigator.global.capabilities.coaching',
+      viewName: 'Navigator Global — Coaching',
+    };
+  }
+  if (p.includes('/capabilities/insights')) {
+    return {
+      eventType: 'navigator.global.capabilities.insights',
+      viewName: 'Navigator Global — Insights capability',
+    };
+  }
+  if (p.includes('/capabilities/connections')) {
+    return {
+      eventType: 'navigator.global.capabilities.connections',
+      viewName: 'Navigator Global — Connections',
+    };
+  }
+  if (p.includes('/platform')) {
+    return {
+      eventType: 'navigator.global.platform.pageView',
+      viewName: 'Navigator Global — Platform overview',
+    };
+  }
+  if (p.includes('/knowledge-centre')) {
+    return {
+      eventType: 'navigator.global.support.knowledgeCentre',
+      viewName: 'Navigator Global — Knowledge centre',
+    };
+  }
+  if (p.includes('/cookie-policy') || p.includes('/privacy-policy') || p.includes('/terms')) {
+    return {
+      eventType: 'navigator.global.legal.pageView',
+      viewName: lab ? 'Navigator Global — ' + lab : 'Navigator Global — Legal',
+    };
+  }
+  if (p === '/gb' || p === '') {
+    return {
+      eventType: 'navigator.global.home.pageView',
+      viewName: 'Navigator Global — Home',
+    };
+  }
+
+  const fallbackType = navigatorGlobalCtaLabelToEventType(lab || href);
+  const viewName = lab ? 'Navigator Global — ' + lab : 'Navigator Global';
+  return { eventType: fallbackType, viewName };
+}
+
+/** Preset synthetic destinations for the in-banner Demo flow buttons (no new tab). */
+const NAVIGATOR_GLOBAL_DEMO_FLOW_PRESETS = {
+  'sector-alcohol': {
+    eventType: 'navigator.global.sector.alcoholPageView',
+    viewUrl: 'https://navigator.global/gb/sectors/alcohol-exports',
+    viewName: 'Navigator Global — Alcohol sector',
+  },
+  'sector-nonalcohol': {
+    eventType: 'navigator.global.sector.nonAlcoholPageView',
+    viewUrl: 'https://navigator.global/gb/sectors/non-alcohol-exports',
+    viewName: 'Navigator Global — Non-alcohol sector',
+  },
+  'membership-free': {
+    eventType: 'navigator.global.membership.freeEnrolled',
+    viewUrl: 'https://navigator.global/gb/membership/free',
+    viewName: 'Navigator Global — Free membership',
+  },
+  'membership-paid': {
+    eventType: 'navigator.global.membership.paidEnrolled',
+    viewUrl: 'https://navigator.global/gb/membership/paid',
+    viewName: 'Navigator Global — Paid membership',
+  },
+  'webinar-joined': {
+    eventType: 'navigator.global.webinar.sessionJoined',
+    viewUrl: 'https://navigator.global/gb/events/webinar-session',
+    viewName: 'Navigator Global — Webinar session',
+  },
+};
 
 /**
  * Body for `POST /api/events/generator` — same contract as
@@ -186,6 +326,7 @@ function navigatorGlobalCtaLabelToEventType(text) {
  * @param {string} o.viewUrl
  * @param {string} [o.ctaLabel]
  * @param {string} [o.viewName]
+ * @param {string} [o.eventRegistration] — merged into `_demoemea.public.eventRegistration` when set
  * @param {string} o.email
  * @param {string} o.ecid
  * @param {{ id?: string } | null} o.target
@@ -193,6 +334,13 @@ function navigatorGlobalCtaLabelToEventType(text) {
  */
 function buildNavigatorGlobalGeneratorRequestBody(o) {
   const viewName = o.viewName != null && String(o.viewName).trim() ? String(o.viewName).trim() : 'Navigator Global';
+  const pub = {
+    linkUrl: o.viewUrl,
+    ...(o.ctaLabel && String(o.ctaLabel).trim() ? { ctaLabel: String(o.ctaLabel).trim() } : {}),
+  };
+  if (o.eventRegistration && String(o.eventRegistration).trim()) {
+    pub.eventRegistration = String(o.eventRegistration).trim();
+  }
   const body = {
     targetId: o.target && o.target.id ? o.target.id : undefined,
     email: o.email,
@@ -204,10 +352,7 @@ function buildNavigatorGlobalGeneratorRequestBody(o) {
     xdmTenantKey: NAVIGATOR_XDM_TENANT_KEY,
     identityMapEcidKey: NAVIGATOR_IDENTITY_ECID_KEY,
     eventID: o.eventID || NAVIGATOR_ORCHESTRATION_EVENT_ID,
-    public: {
-      linkUrl: o.viewUrl,
-      ...(o.ctaLabel && String(o.ctaLabel).trim() ? { ctaLabel: String(o.ctaLabel).trim() } : {}),
-    },
+    public: pub,
   };
   body.ecid = o.ecid;
   return body;
@@ -220,7 +365,15 @@ function getActiveEcidString() {
   return ecidText;
 }
 
-async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) {
+/**
+ * @param {object} opts
+ * @param {string} opts.eventType
+ * @param {string} opts.viewUrl
+ * @param {string} [opts.viewName]
+ * @param {string} [opts.ctaLabel]
+ * @param {string} [opts.eventRegistration]
+ */
+async function sendNavigatorGlobalExperienceEvent(opts) {
   const emailForEvent = getEmail().trim();
   if (!emailForEvent) {
     setModMessage('Enter a customer identifier at the top before using page links.', 'error');
@@ -235,9 +388,11 @@ async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) 
   try {
     const target = getSelectedGeneratorTarget();
     const body = buildNavigatorGlobalGeneratorRequestBody({
-      eventType,
-      viewUrl: destinationUrl,
-      ctaLabel,
+      eventType: opts.eventType,
+      viewUrl: opts.viewUrl,
+      viewName: opts.viewName,
+      ctaLabel: opts.ctaLabel,
+      eventRegistration: opts.eventRegistration,
       email: emailForEvent,
       ecid,
       target,
@@ -262,24 +417,30 @@ async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) 
   }
 }
 
-/** Primary CTAs in the embedded snapshot: new tab + Experience Event to AEP (same pattern as Race for Life submit). */
+/**
+ * Primary links in the embedded snapshot: new tab + Experience Event to AEP.
+ * Captures CTAs, header auth, main nav, and teaser links so Events / registration paths emit demo types.
+ */
 (function wireNavigatorGlobalSnapshotCtas() {
   const body = document.body;
   if (!body || !body.classList.contains('navigator-global-demo-page')) return;
   const frame = document.querySelector('iframe.mod-demo-site-frame');
   if (!frame) return;
 
+  const LINK_SELECTOR =
+    'a[href].cmp-button, a[href].auth-link, a[href].nav-item__link, a[href].cmp-teaser__action-link';
+
   function onIframeDocClick(e) {
     if (e.defaultPrevented) return;
     const t = e.target;
     if (!t || t.closest('#onetrust-consent-sdk')) return;
-    const a = t.closest('a[href].cmp-button, a[href].auth-link');
+    const a = t.closest(LINK_SELECTOR);
     if (!a || !a.getAttribute('href')) return;
     const href = a.getAttribute('href').trim();
     if (!href || href.startsWith('#') || href.toLowerCase().startsWith('javascript:')) return;
     const labelEl = a.querySelector('.cmp-button__text');
     const raw = ((labelEl && labelEl.textContent) || a.textContent || '').trim();
-    const eventType = navigatorGlobalCtaLabelToEventType(raw);
+    const resolved = resolveNavigatorGlobalDemoEvent(href, raw);
     e.preventDefault();
     e.stopPropagation();
     if (!getEmail().trim()) {
@@ -291,7 +452,13 @@ async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) 
       return;
     }
     window.open(href, '_blank', 'noopener,noreferrer');
-    void sendNavigatorGlobalCtaEvent(eventType, href, raw);
+    void sendNavigatorGlobalExperienceEvent({
+      eventType: resolved.eventType,
+      viewUrl: href,
+      viewName: resolved.viewName,
+      ctaLabel: raw,
+      eventRegistration: resolved.eventRegistration,
+    });
   }
 
   function attach() {
@@ -309,4 +476,24 @@ async function sendNavigatorGlobalCtaEvent(eventType, destinationUrl, ctaLabel) 
 
   frame.addEventListener('load', attach);
   if (frame.contentDocument && frame.contentDocument.readyState === 'complete') attach();
+})();
+
+/** Lab-only demo flow buttons (sector / membership / webinar) — same generator contract, no new tab. */
+(function wireNavigatorGlobalDemoFlowBar() {
+  const body = document.body;
+  if (!body || !body.classList.contains('navigator-global-demo-page')) return;
+  body.addEventListener('click', (e) => {
+    const btn = e.target && e.target.closest ? e.target.closest('[data-ng-demo-event]') : null;
+    if (!btn || btn.disabled) return;
+    const key = btn.getAttribute('data-ng-demo-event');
+    const preset = key && NAVIGATOR_GLOBAL_DEMO_FLOW_PRESETS[key];
+    if (!preset) return;
+    e.preventDefault();
+    void sendNavigatorGlobalExperienceEvent({
+      eventType: preset.eventType,
+      viewUrl: preset.viewUrl,
+      viewName: preset.viewName,
+      ctaLabel: 'Demo flow: ' + key.replace(/-/g, ' '),
+    });
+  });
 })();

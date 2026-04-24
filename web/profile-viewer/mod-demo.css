@@ -199,3 +199,55 @@
     align-items: stretch;
   }
 }
+
+/* Navigator Global demo: lab-only buttons that emit sector / membership / webinar event types */
+.navigator-global-demo-page .navigator-demo-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  padding: 0.4rem 1rem 0.65rem;
+  border-top: 1px solid var(--dash-border);
+  background: color-mix(in srgb, var(--dash-surface) 92%, var(--dash-muted));
+  pointer-events: auto;
+}
+
+.navigator-global-demo-page .navigator-demo-flow-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+  margin-right: 0.25rem;
+}
+
+.navigator-global-demo-page .navigator-demo-flow-btn {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-fg, inherit);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.navigator-global-demo-page .navigator-demo-flow-btn:hover {
+  border-color: color-mix(in srgb, var(--dash-border) 55%, var(--dash-fg, #0f172a));
+}
+
+.navigator-global-demo-page .navigator-demo-flow-btn:focus-visible {
+  outline: 2px solid var(--dash-accent, #2563eb);
+  outline-offset: 2px;
+}
+
+.navigator-global-demo-page .navigator-demo-flow-sep {
+  display: inline-block;
+  width: 1px;
+  height: 1rem;
+  margin: 0 0.15rem;
+  background: var(--dash-border);
+  align-self: center;
+}

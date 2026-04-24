@@ -662,6 +662,12 @@ function eventThumbForName(eventName) {
     return { url: aepProfileImageCssUrl('event-mobile-icon.png'), variant: 'event-mobile' };
   }
   const keyLoose = String(eventName || '').toLowerCase();
+  if (keyLoose.includes('navigator.global')) {
+    return { url: aepProfileImageCssUrl('event-web-icon.png'), variant: 'event-web' };
+  }
+  if (keyLoose.includes('webinar')) {
+    return { url: aepProfileImageCssUrl('event-login-icon.png'), variant: 'event-login' };
+  }
   if (keyLoose.includes('donation')) {
     return { url: "url('https://www.cancerresearchuk.org/_next/image?url=https%3A%2F%2Fdownloads.ctfassets.net%2Fu7vsjnoopqo5%2FrvcPK0YbxqEl9Gt41Azzq%2Fac926460962e2c75c0a0038ca8bfa45c%2F230613_CR_Trampoline187.jpg&w=256&q=65')" };
   }
