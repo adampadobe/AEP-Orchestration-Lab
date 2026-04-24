@@ -1,0 +1,13 @@
+{
+  "_comment": "Documented in web/profile-viewer/race-for-life-demo.html (Web SDK + Retail Demo Launch). Verify in Tags/AJO before treating as authoritative for your org.",
+  "datastreamId": "46677fd7-9db0-4f16-898c-b424d0245c38",
+  "launchScriptUrl": "https://assets.adobedtm.com/60e5fd51ad90/1e9ecb8bbc4a/launch-2070346dc211-development.min.js",
+  "tagsPropertyRef": "kirkham - Retail Demo (web)",
+  "targetPageUrl": "https://aep-orchestration-lab.web.app/profile-viewer/race-for-life-demo.html",
+  "edgePersonalizationMode": "surfaces",
+  "placements": [
+    { "key": "topRibbon", "fragment": "TopRibbon", "label": "Top ribbon", "type": "exd" },
+    { "key": "hero", "fragment": "hero-banner", "label": "Hero banner", "type": "exd" },
+    { "key": "contentCard", "fragment": "ContentCardContainer", "label": "Content card", "type": "contentCard" }
+  ]
+}

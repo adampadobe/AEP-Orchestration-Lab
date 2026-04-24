@@ -15,7 +15,8 @@
     "vendor:spectrum-icons": "node scripts/build-spectrum-workflow-icons.cjs",
     "test:arch-line-e2e": "node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs",
     "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",
-    "validate:ecosystem-vendor-index": "python3 scripts/validate-ecosystem-vendor-index.py"
+    "validate:ecosystem-vendor-index": "python3 scripts/validate-ecosystem-vendor-index.py",
+    "restore:decision-lab:kirkham-preset": "node scripts/restore-decision-lab-config.mjs kirkham --preset=race-for-life-retail"
   },
   "devDependencies": {
     "@adobe/spectrum-css-workflow-icons": "^5.0.0",

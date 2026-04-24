@@ -16,3 +16,6 @@ aep-prototypes/**/node_modules/
 
 # Root npm (repo scripts: vendor:spectrum-icons, etc.)
 node_modules/
+
+# Local-only Firestore restore payloads (do not commit secrets)
+scripts/data/*-restore.local.json
