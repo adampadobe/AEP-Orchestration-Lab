@@ -24,7 +24,12 @@ const admin = require('firebase-admin');
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const LIBRARY_PREFIX = 'library';
 const BACKUPS_PREFIX = 'library_backups';
-const CACHE_SECONDS = 60 * 60 * 24 * 7; // 1 week CDN cache
+/**
+ * Library objects keep stable paths across replace — `immutable` + long
+ * max-age makes browsers/CDNs serve stale bytes after overwrite.
+ * Revalidate every use; ETag from GCS still allows cheap 304s.
+ */
+const LIBRARY_CACHE_CONTROL = 'public, max-age=0, must-revalidate';
 
 function getBucket() {
   if (!admin.apps.length) admin.initializeApp();
@@ -228,7 +233,7 @@ async function putLibraryObject(sandbox, target) {
     contentType: target.contentType,
     resumable: false,
     metadata: {
-      cacheControl: `public, max-age=${CACHE_SECONDS}, immutable`,
+      cacheControl: LIBRARY_CACHE_CONTROL,
       metadata: { sandbox: sandboxPrefix(sandbox) },
     },
   });
@@ -316,7 +321,7 @@ async function replaceLibraryObject(sandbox, relPath, bytes, sourceContentType) 
     contentType: targetCt,
     resumable: false,
     metadata: {
-      cacheControl: `public, max-age=${CACHE_SECONDS}, immutable`,
+      cacheControl: LIBRARY_CACHE_CONTROL,
       metadata: { sandbox: sandboxPrefix(sandbox) },
     },
   });
@@ -471,7 +476,7 @@ async function publishAiImage(sandbox, opts) {
     contentType: target.contentType,
     resumable: false,
     metadata: {
-      cacheControl: `public, max-age=${CACHE_SECONDS}, immutable`,
+      cacheControl: LIBRARY_CACHE_CONTROL,
       metadata: {
         sandbox: sandboxPrefix(sandbox),
         aiGenerated: 'true',
@@ -723,7 +728,7 @@ async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
       contentType,
       resumable: false,
       metadata: {
-        cacheControl: `public, max-age=${CACHE_SECONDS}, immutable`,
+        cacheControl: LIBRARY_CACHE_CONTROL,
         metadata: { sandbox: sandboxPrefix(sandbox) },
       },
     });

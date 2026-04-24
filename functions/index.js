@@ -3275,7 +3275,9 @@ exports.imageHostingAsset = onRequest(
       const [md] = await file.getMetadata().catch(() => [null]);
       const ct = (md && md.contentType) || 'application/octet-stream';
       res.setHeader('Content-Type', ct);
-      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+      // Library URLs are stable across replace — never `immutable` or
+      // clients keep old pixels until hard-refresh. ETag enables 304.
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
       if (md && md.size) res.setHeader('Content-Length', String(md.size));
       if (md && md.etag) res.setHeader('ETag', md.etag);
       if (req.method === 'HEAD') { res.status(200).end(); return; }

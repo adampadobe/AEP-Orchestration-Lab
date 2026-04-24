@@ -360,6 +360,20 @@
     return origin + cdnPath;
   }
 
+  /** CDN URL for <img> / previews — busts intermediaries when metadata generation changes. */
+  function libraryCdnUrlForDisplay(item) {
+    var base = absoluteCdnUrl(item && item.cdnUrl);
+    if (!base) return base;
+    var token =
+      item && item.updatedAt
+        ? String(item.updatedAt)
+        : item && item.size != null && item.relPath != null
+          ? String(item.size) + '-' + String(item.relPath)
+          : String(Date.now());
+    var v = encodeURIComponent(token).slice(0, 240);
+    return base + (base.indexOf('?') === -1 ? '?' : '&') + 'v=' + v;
+  }
+
   function libraryCardThumbImg(card) {
     if (!card) return null;
     return card.querySelector('.image-hosting-lib-card-img')
@@ -424,11 +438,26 @@
           await renderLibrary();
           return;
         }
-        var cacheBust = cdn + (cdn.indexOf('?') === -1 ? '?' : '&') + '_cb=' + Date.now();
+        var bustBase = published.updatedAt
+          ? encodeURIComponent(String(published.updatedAt)).slice(0, 240)
+          : String(Date.now());
+        var attempt = 0;
+        var maxAttempts = 5;
+        function cdnTryUrl() {
+          return cdn + (cdn.indexOf('?') === -1 ? '?' : '&') + '_cb=' + bustBase + '&_try=' + String(++attempt);
+        }
         if (previewUrl) {
           var onRemoteErr = function () {
             imgEl.removeEventListener('load', onRemote);
             imgEl.removeEventListener('error', onRemoteErr);
+            if (attempt < maxAttempts) {
+              window.setTimeout(function () {
+                imgEl.addEventListener('load', onRemote);
+                imgEl.addEventListener('error', onRemoteErr);
+                imgEl.src = cdnTryUrl();
+              }, 350 * attempt);
+              return;
+            }
             try {
               previewUrl = URL.createObjectURL(file);
               imgEl.src = previewUrl;
@@ -442,9 +471,9 @@
           };
           imgEl.addEventListener('load', onRemote);
           imgEl.addEventListener('error', onRemoteErr);
-          imgEl.src = cacheBust;
+          imgEl.src = cdnTryUrl();
         } else {
-          imgEl.src = cacheBust;
+          imgEl.src = cdnTryUrl();
         }
       }
     } catch (e) {
@@ -532,7 +561,7 @@
     img.loading = 'lazy';
     img.referrerPolicy = 'no-referrer';
     img.alt = item.file;
-    img.src = absoluteCdnUrl(item.cdnUrl);
+    img.src = libraryCdnUrlForDisplay(item);
     img.onerror = function () { img.style.opacity = '0.3'; };
     wrap.appendChild(img);
     card.appendChild(wrap);
@@ -574,7 +603,7 @@
     actions.appendChild(copyBtn);
 
     var openBtn = document.createElement('a');
-    openBtn.href = absoluteCdnUrl(item.cdnUrl);
+    openBtn.href = libraryCdnUrlForDisplay(item);
     openBtn.target = '_blank';
     openBtn.rel = 'noopener';
     openBtn.textContent = 'Open';
