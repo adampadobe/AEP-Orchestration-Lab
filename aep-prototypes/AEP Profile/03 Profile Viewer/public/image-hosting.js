@@ -22,6 +22,15 @@
   var lastRecords = [];
   var classifying = {}; // scrapeId → true while a classify is in flight
 
+  /**
+   * Classify/download images for a scrape runs on `brandScraperClassify` (up to
+   * several minutes). Firebase Hosting rewrites to `/api/*` are proxied with a
+   * short timeout, so we call the Cloud Function URL directly — same pattern
+   * as `brand-scraper.js` (CLASSIFY_URL).
+   */
+  var BRAND_SCRAPER_FUNCTIONS_BASE = 'https://us-central1-aep-orchestration-lab.cloudfunctions.net';
+  var BRAND_SCRAPER_CLASSIFY_URL = BRAND_SCRAPER_FUNCTIONS_BASE + '/brandScraperClassify';
+
   // Persist view + sort preferences per-browser so switching pages
   // or reloading keeps the user's last choice.
   var LS_VIEW = 'imageHostingLibraryView';
@@ -1170,22 +1179,30 @@
     classifying[scrapeId] = true;
     var originalText = btn ? btn.textContent : '';
     if (btn) { btn.disabled = true; btn.textContent = 'Classifying…'; }
-    setStatus('Classifying images for ' + scrapeId + '…');
+    setStatus('Classifying images for ' + scrapeId + '… (this can take 1–3 minutes)', '');
+    setManualMsg('Downloading images to GCS and classifying with Gemini vision…');
     try {
-      var r = await fetch('/api/brand-scraper/scrapes/classify?sandbox=' + encodeURIComponent(sb), {
+      var url = BRAND_SCRAPER_CLASSIFY_URL + '?sandbox=' + encodeURIComponent(sb);
+      var r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scrapeId: scrapeId }),
+        body: JSON.stringify({ sandbox: sb, scrapeId: scrapeId }),
       });
       var data = await r.json().catch(function () { return {}; });
       if (!r.ok) {
-        setStatus('Classify failed: ' + (data.error || r.statusText), 'err');
+        var errLine = 'Classify failed: ' + (data.error || r.statusText);
+        setStatus(errLine, 'err');
+        setManualMsg(errLine, 'err');
         return;
       }
-      setStatus('Classified ' + (data.classified || 0) + ' images. Refreshing…', 'ok');
+      var okLine = 'Classified ' + (data.classified || 0) + '/' + (data.total != null ? data.total : (data.images || []).length) + ' images. Refreshing…';
+      setStatus(okLine, 'ok');
+      setManualMsg(okLine, 'ok');
       await refresh();
     } catch (e) {
-      setStatus('Classify failed: ' + (e.message || e), 'err');
+      var net = 'Classify failed: ' + (e.message || e);
+      setStatus(net, 'err');
+      setManualMsg(net, 'err');
     } finally {
       classifying[scrapeId] = false;
       if (btn) { btn.disabled = false; btn.textContent = originalText; }
