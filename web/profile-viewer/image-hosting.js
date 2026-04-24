@@ -37,6 +37,14 @@
   var focusedLibraryCard = null;
   var lastLibraryItems = [];
   var libraryFilterText = '';
+  /** Last sandbox we loaded the library for — reset folder scope when it changes. */
+  var lastLibrarySandbox = '';
+  /** null = show all folders; '' = root only; 'a/b' = assets in that folder path. */
+  var libraryFolderScope = null;
+  var LS_FOLDER_PANEL = 'imageHostingFolderPanelOpen';
+  var folderPanelOpen = (function () {
+    try { return localStorage.getItem(LS_FOLDER_PANEL) === '1'; } catch (_e) { return false; }
+  })();
   // Bulk-select state for multi-delete. Tracks item relPaths.
   var selectedRelPaths = Object.create(null);
   /** Hidden GCS object that materialises an otherwise-empty folder prefix. */
@@ -215,7 +223,7 @@
   }
 
   function selectAllVisible() {
-    var filtered = filterLibraryItems(assetLibraryItems());
+    var filtered = filterLibraryItems(applyFolderScope(assetLibraryItems()));
     filtered.forEach(function (it) { selectedRelPaths[it.relPath] = true; });
     renderLibraryItems();
     updateBulkBar();
@@ -416,6 +424,50 @@
     }
   }
 
+  function applyFolderScope(items) {
+    if (libraryFolderScope === null || libraryFolderScope === undefined) return items;
+    return items.filter(function (it) {
+      return (it.folder || '') === libraryFolderScope;
+    });
+  }
+
+  function setLibraryFolderScope(fp) {
+    libraryFolderScope = fp;
+    updateFolderScopeBar();
+    renderLibraryItems();
+  }
+
+  function updateFolderScopeBar() {
+    var bar = document.getElementById('imageHostingFolderScopeBar');
+    var label = document.getElementById('imageHostingFolderScopeLabel');
+    if (!bar || !label) return;
+    if (libraryFolderScope === null || libraryFolderScope === undefined) {
+      bar.hidden = true;
+      label.textContent = '';
+      return;
+    }
+    bar.hidden = false;
+    var n = applyFolderScope(assetLibraryItems()).length;
+    var name = libraryFolderScope === '' ? 'Library root (top level)' : libraryFolderScope;
+    label.textContent = 'Viewing folder: ' + name + ' · ' + n + (n === 1 ? ' item' : ' items');
+  }
+
+  function syncFolderPanelLayout() {
+    var layout = document.getElementById('imageHostingLibraryLayout');
+    var btn = document.getElementById('imageHostingFolderPanelToggle');
+    if (layout) layout.classList.toggle('is-folder-panel-open', folderPanelOpen);
+    if (btn) {
+      btn.setAttribute('aria-expanded', folderPanelOpen ? 'true' : 'false');
+      btn.textContent = folderPanelOpen ? 'Hide folder panel' : 'Organize folders';
+    }
+  }
+
+  function setFolderPanelOpen(open) {
+    folderPanelOpen = !!open;
+    try { localStorage.setItem(LS_FOLDER_PANEL, folderPanelOpen ? '1' : '0'); } catch (_e) {}
+    syncFolderPanelLayout();
+  }
+
   function folderMayDeleteMarkerOnly(folderPath) {
     var markerRel = folderPath + '/' + LIB_FOLDER_MARKER;
     var hasMarker = false;
@@ -471,12 +523,20 @@
       var row = document.createElement('div');
       row.className = 'image-hosting-folder-row';
       row.setAttribute('role', 'listitem');
+      if (libraryFolderScope !== null && libraryFolderScope !== undefined && libraryFolderScope === fp) {
+        row.classList.add('is-folder-view-active');
+      }
       var pad = 8 + (fp ? Math.max(0, fp.split('/').length - 1) * 10 : 0);
       row.style.paddingLeft = pad + 'px';
-      var label = document.createElement('span');
+      var label = document.createElement('button');
+      label.type = 'button';
       label.className = 'image-hosting-folder-row-label';
       label.textContent = fp || 'Library root';
-      label.title = fp || '(top level)';
+      label.title = (fp || '(top level)') + ' — click to show only this folder';
+      label.addEventListener('click', function (e) {
+        e.stopPropagation();
+        setLibraryFolderScope(fp);
+      });
       row.appendChild(label);
       if (fp && folderMayDeleteMarkerOnly(fp)) {
         var delBtn = document.createElement('button');
@@ -1029,19 +1089,25 @@
     if (!libraryGridEl) return;
     libraryGridEl.innerHTML = '';
     applyViewClass();
-    var base = assetLibraryItems();
+    updateFolderScopeBar();
+    var baseAll = assetLibraryItems();
+    var base = applyFolderScope(baseAll);
     var filtered = filterLibraryItems(base);
     updateFilterCount(filtered.length, base.length);
     sortLibraryItems(filtered).forEach(function (it) {
       var card = renderLibraryCard(it);
       if (card) libraryGridEl.appendChild(card);
     });
-    // Show a dedicated empty state when a filter is active but nothing matches.
     if (!filtered.length && (libraryFilterText || '').trim() && base.length) {
-      var empty = document.createElement('p');
-      empty.className = 'image-hosting-empty';
-      empty.textContent = 'No library items match "' + libraryFilterText + '".';
-      libraryGridEl.appendChild(empty);
+      var emptySearch = document.createElement('p');
+      emptySearch.className = 'image-hosting-empty';
+      emptySearch.textContent = 'No library items match "' + libraryFilterText + '".';
+      libraryGridEl.appendChild(emptySearch);
+    } else if (!filtered.length && !base.length && baseAll.length && libraryFolderScope !== null && libraryFolderScope !== undefined) {
+      var emptyFolder = document.createElement('p');
+      emptyFolder.className = 'image-hosting-empty';
+      emptyFolder.textContent = 'No assets in this folder. Use Show all folders to see the full library, or Organize folders to move items here.';
+      libraryGridEl.appendChild(emptyFolder);
     }
     renderFolderPanel();
   }
@@ -1055,6 +1121,7 @@
       if (libraryEmptyEl) libraryEmptyEl.hidden = false;
       if (libraryCountEl) libraryCountEl.textContent = '0';
       lastLibraryItems = [];
+      updateFolderScopeBar();
       renderFolderPanel();
       return;
     }
@@ -1063,6 +1130,7 @@
     catch (e) {
       lastLibraryItems = [];
       if (libraryEmptyEl) { libraryEmptyEl.hidden = false; libraryEmptyEl.textContent = 'Library load failed: ' + (e.message || e); }
+      updateFolderScopeBar();
       renderFolderPanel();
       return;
     }
@@ -1087,6 +1155,7 @@
           : 'Library empty. Drop a ZIP or images above — or publish a classified image from a scrape below.';
       }
       if (libraryCountEl) libraryCountEl.textContent = '0';
+      updateFolderScopeBar();
       renderFolderPanel();
       return;
     }
@@ -1359,6 +1428,11 @@
     if (!listEl) return;
     listEl.innerHTML = '';
     var sb = getSandbox();
+    if (sb !== lastLibrarySandbox) {
+      libraryFolderScope = null;
+      updateFolderScopeBar();
+    }
+    lastLibrarySandbox = sb || '';
     if (!sb) { setStatus('Select a sandbox to see hosted images.', 'warn'); return; }
     setStatus('Loading scrapes…');
     var summaries;
@@ -1560,6 +1634,12 @@
   if (bulkDelete) bulkDelete.addEventListener('click', deleteSelectedItems);
   var newFolderBtn = document.getElementById('imageHostingNewFolderBtn');
   if (newFolderBtn) newFolderBtn.addEventListener('click', function () { createEmptyLibraryFolder(); });
+  var folderPanelToggle = document.getElementById('imageHostingFolderPanelToggle');
+  if (folderPanelToggle) {
+    folderPanelToggle.addEventListener('click', function () { setFolderPanelOpen(!folderPanelOpen); });
+  }
+  var folderScopeClear = document.getElementById('imageHostingFolderScopeClear');
+  if (folderScopeClear) folderScopeClear.addEventListener('click', function () { setLibraryFolderScope(null); });
 
   // Drop zone: click-to-browse + native drag/drop for files and ZIPs.
   var dropZone = document.getElementById('imageHostingDropZone');
@@ -1627,6 +1707,9 @@
   }
   window.addEventListener('aep-lab-sandbox-synced', refresh);
   window.addEventListener('aep-lab-sandbox-keys-applied', refresh);
+
+  syncFolderPanelLayout();
+  updateFolderScopeBar();
 
   // Populate the sandbox <select>, wire change handler, then pull scrapes.
   (async function initSandboxAndLoad() {

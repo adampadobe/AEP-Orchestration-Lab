@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="brand-scraper.css?v=20260420a">
-  <link rel="stylesheet" href="image-hosting.css?v=20260427a">
+  <link rel="stylesheet" href="image-hosting.css?v=20260427b">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -126,22 +126,27 @@
                 <option value="folder">Folder</option>
               </select>
             </label>
+            <button type="button" id="imageHostingFolderPanelToggle" class="dashboard-btn-outline image-hosting-folder-panel-toggle" aria-expanded="false" aria-controls="imageHostingFolderPanel" title="Show folder list to move assets or pick a folder view">Organize folders</button>
             <div class="image-hosting-filter-wrap">
               <input id="imageHostingFilterInput" type="search" placeholder="Filter by name or folder…" aria-label="Filter library items" autocomplete="off" spellcheck="false" />
               <span id="imageHostingFilterCount" class="image-hosting-filter-count" aria-live="polite"></span>
             </div>
             <p class="image-hosting-paste-hint">Paste <kbd>⌘/Ctrl&nbsp;+&nbsp;V</kbd> an image anywhere on this page to upload it. Paste on a card to replace it.</p>
           </div>
-          <div class="image-hosting-library-layout">
+          <div id="imageHostingLibraryLayout" class="image-hosting-library-layout">
             <aside id="imageHostingFolderPanel" class="image-hosting-folder-panel" aria-label="Library folders">
               <div class="image-hosting-folder-panel-head">
                 <span class="image-hosting-folder-panel-title">Folders</span>
                 <button type="button" id="imageHostingNewFolderBtn" class="dashboard-btn-outline" title="Create an empty folder, then drag assets onto it">New folder</button>
               </div>
-              <p class="image-hosting-folder-hint">Drag a library card onto a folder to move it. Root keeps files at the top level.</p>
+              <p class="image-hosting-folder-hint">Click a folder name to filter the library to that folder. Drag a card onto a row to move it into that folder.</p>
               <div id="imageHostingFolderList" class="image-hosting-folder-list" role="list"></div>
             </aside>
             <div class="image-hosting-library-main">
+              <div id="imageHostingFolderScopeBar" class="image-hosting-folder-scope-bar" hidden role="status" aria-live="polite">
+                <span id="imageHostingFolderScopeLabel" class="image-hosting-folder-scope-label"></span>
+                <button type="button" id="imageHostingFolderScopeClear" class="dashboard-btn-outline">Show all folders</button>
+              </div>
               <div id="imageHostingBulkBar" class="image-hosting-bulk-bar" hidden aria-live="polite">
                 <span id="imageHostingBulkCount" class="image-hosting-bulk-count">0 selected</span>
                 <button type="button" id="imageHostingBulkSelectAll" class="dashboard-btn-outline">Select all</button>
@@ -175,6 +180,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script src="image-hosting.js?v=20260427a"></script>
+  <script src="image-hosting.js?v=20260427b"></script>
 </body>
 </html>

@@ -218,11 +218,19 @@
 .image-hosting-filter-wrap input[type="search"]:focus { border-color: var(--dash-blue); outline: none; box-shadow: 0 0 0 2px rgba(75, 159, 255, 0.2); }
 .image-hosting-filter-count { font-size: 0.68rem; color: var(--dash-text-secondary, var(--dash-muted)); min-width: 4rem; }
 
+.image-hosting-folder-panel-toggle {
+  font-size: 0.72rem;
+  padding: 0.25rem 0.65rem;
+}
+
 .image-hosting-library-layout {
   display: flex;
   align-items: stretch;
   gap: 1rem;
   margin-top: 0.35rem;
+}
+.image-hosting-library-layout:not(.is-folder-panel-open) .image-hosting-folder-panel {
+  display: none;
 }
 @media (max-width: 900px) {
   .image-hosting-library-layout { flex-direction: column; }
@@ -238,6 +246,30 @@
   flex-direction: column;
   gap: 0.45rem;
   min-height: 120px;
+}
+
+.image-hosting-folder-scope-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  border: 1px solid color-mix(in srgb, var(--dash-blue) 28%, var(--dash-border));
+  background: color-mix(in srgb, var(--dash-blue) 8%, var(--dash-surface-alt, var(--dash-bg)));
+}
+.image-hosting-folder-scope-bar[hidden] { display: none !important; }
+.image-hosting-folder-scope-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  min-width: 0;
+}
+.image-hosting-folder-scope-bar .dashboard-btn-outline {
+  font-size: 0.68rem;
+  padding: 0.22rem 0.55rem;
+  flex-shrink: 0;
 }
 .image-hosting-folder-panel-head {
   display: flex;
@@ -290,6 +322,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.image-hosting-folder-row-label:hover {
+  color: var(--dash-blue);
+}
+.image-hosting-folder-row.is-folder-view-active {
+  border-color: var(--dash-blue);
+  background: rgba(75, 159, 255, 0.1);
 }
 .image-hosting-folder-row-delete {
   flex: 0 0 auto;
