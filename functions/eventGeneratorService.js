@@ -48,6 +48,26 @@ function getIdentityMapEcidKey(body) {
   return 'ECID';
 }
 
+/**
+ * Profile / Identity resolve Experience Cloud IDs under namespace code "ECID".
+ * identityMap.ecid (lowercase) is a different key and often does not stitch to the same profile
+ * as UPS queries using relatedEntityIdNS=ECID — coalesce to the standard code.
+ * @param {Record<string, unknown>} identityMap
+ */
+function normalizeExperienceCloudIdNamespaceInIdentityMap(identityMap) {
+  if (!identityMap || typeof identityMap !== 'object') return;
+  const lower = identityMap.ecid;
+  const upper = identityMap.ECID;
+  if (lower && !upper) {
+    identityMap.ECID = lower;
+    delete identityMap.ecid;
+    return;
+  }
+  if (lower && upper) {
+    delete identityMap.ecid;
+  }
+}
+
 function syncXdmDemoemeaLowercaseAlias(xdm) {
   if (!xdm || typeof xdm !== 'object' || !xdm._demoemea || typeof xdm._demoemea !== 'object') return;
   try {
@@ -199,6 +219,7 @@ function buildEventGeneratorXdm(reqBody, options) {
     }
     if (useDemoemea) syncXdmDemoemeaLowercaseAlias(xdm);
     if (useDemosystem5) syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
+    normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
     return xdm;
   }
 
@@ -235,6 +256,7 @@ function buildEventGeneratorXdm(reqBody, options) {
       xdm.web = { webPageDetails: { URL: viewUrl, name: viewName, viewName: viewName } };
     }
     syncXdmTenantLowercaseAlias(xdm, '_demosystem5');
+    normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
     return xdm;
   }
 
@@ -282,6 +304,7 @@ function buildEventGeneratorXdm(reqBody, options) {
   mergeGeneratorPublicIntoTenant(xdm._demoemea, body.public);
   mergeGeneratorInteractionDetailsChannel(xdm._demoemea, body.channel);
   syncXdmDemoemeaLowercaseAlias(xdm);
+  normalizeExperienceCloudIdNamespaceInIdentityMap(xdm.identityMap);
   return xdm;
 }
 

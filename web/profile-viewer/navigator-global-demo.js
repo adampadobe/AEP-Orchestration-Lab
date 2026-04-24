@@ -14,7 +14,8 @@
  * Change NAVIGATOR_ORCHESTRATION_EVENT_ID if your trigger hash differs.
  */
 const NAVIGATOR_XDM_TENANT_KEY = '_demosystem5';
-const NAVIGATOR_IDENTITY_ECID_KEY = 'ecid';
+/** Must match Adobe Identity namespace code "ECID" so events stitch to the same profile UPS returns for ECID lookups. */
+const NAVIGATOR_IDENTITY_ECID_KEY = 'ECID';
 const NAVIGATOR_PRESET_ID = 'edge-a7f9-default';
 const NAVIGATOR_ORCHESTRATION_EVENT_ID =
   '780960c9b920edefc4283c3d21ab58a32c3dd5a7e38de212865d8d308fd53873';
