@@ -304,6 +304,11 @@
       img.loading = 'lazy';
       img.decoding = 'async';
       banner.appendChild(img);
+    } else {
+      var figEmpty = document.createElement('div');
+      figEmpty.className = 'cd-banner-figure cd-banner-figure--empty';
+      figEmpty.setAttribute('aria-hidden', 'true');
+      banner.appendChild(figEmpty);
     }
     var copy = document.createElement('div');
     copy.className = 'cd-banner-copy';

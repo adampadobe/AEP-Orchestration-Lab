@@ -850,8 +850,15 @@
       banner.style.setProperty('--cd-cta-bg', st.ctaBg);
       banner.style.setProperty('--cd-cta-text', st.ctaText);
       var nib = st.noImageBg != null && String(st.noImageBg).trim() ? normaliseHex(st.noImageBg) : '';
-      if (nib) banner.style.setProperty('--cd-no-image-bg', nib);
-      else banner.style.removeProperty('--cd-no-image-bg');
+      if (nib) {
+        banner.style.setProperty('--cd-no-image-bg', nib);
+        /* Lab CSS gives .cd-banner a dark default (#11131a). Empty-slot colour must paint the banner itself
+           because many payloads render without a .cd-banner-figure--empty layer (only copy + optional img). */
+        banner.style.setProperty('background-color', nib);
+      } else {
+        banner.style.removeProperty('--cd-no-image-bg');
+        banner.style.removeProperty('background-color');
+      }
     }
     var copy = mount.querySelector('.cd-banner-copy');
     if (copy) copy.style.setProperty('--cd-block-justify', st.blockY);
