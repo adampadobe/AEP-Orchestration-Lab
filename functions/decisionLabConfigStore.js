@@ -39,6 +39,24 @@ function trim(val, max) {
   return String(val).trim().slice(0, max);
 }
 
+/** True when all three Edge lab connection fields are non-empty. */
+function hasCoreEdgeConfig(rec) {
+  if (!rec || typeof rec !== 'object') return false;
+  return !!(trim(rec.datastreamId, 256) && trim(rec.launchScriptUrl, 512) && trim(rec.targetPageUrl, 512));
+}
+
+/**
+ * Merge a string field from a PATCH: undefined keeps previous.
+ * Empty string does NOT wipe a previously saved value (avoids accidental blank saves clearing Firebase).
+ */
+function mergeCoreString(patchVal, prevVal, max) {
+  if (patchVal === undefined) return trim(prevVal, max);
+  const next = trim(patchVal, max);
+  const prevT = trim(prevVal, max);
+  if (next === '' && prevT !== '') return prevT;
+  return next;
+}
+
 const PLACEMENT_TYPES = new Set(['exd', 'contentCard']);
 
 function inferDefaultPlacementType(fragment) {
@@ -185,12 +203,14 @@ async function saveDecisionLabConfig(sandbox, patch) {
 
     const merged = {
       sandbox: name,
-      launchScriptUrl: trim(
-        patch.launchScriptUrl !== undefined ? patch.launchScriptUrl : prev.launchScriptUrl,
+      launchScriptUrl: mergeCoreString(
+        patch.launchScriptUrl,
+        prev.launchScriptUrl,
         512,
       ),
-      datastreamId: trim(
-        patch.datastreamId !== undefined ? patch.datastreamId : prev.datastreamId,
+      datastreamId: mergeCoreString(
+        patch.datastreamId,
+        prev.datastreamId,
         256,
       ),
       schemaTitle: trim(
@@ -210,8 +230,9 @@ async function saveDecisionLabConfig(sandbox, patch) {
         patch.tagsPropertyRef !== undefined ? patch.tagsPropertyRef : prev.tagsPropertyRef,
         256,
       ),
-      targetPageUrl: trim(
-        patch.targetPageUrl !== undefined ? patch.targetPageUrl : prev.targetPageUrl,
+      targetPageUrl: mergeCoreString(
+        patch.targetPageUrl,
+        prev.targetPageUrl,
         512,
       ),
       placements: sanitizePlacements(
@@ -265,12 +286,14 @@ async function saveUserDecisionLabConfig(uid, sandbox, patch) {
     const merged = {
       uid: u,
       sandbox: name,
-      launchScriptUrl: trim(
-        patch.launchScriptUrl !== undefined ? patch.launchScriptUrl : prev.launchScriptUrl,
+      launchScriptUrl: mergeCoreString(
+        patch.launchScriptUrl,
+        prev.launchScriptUrl,
         512,
       ),
-      datastreamId: trim(
-        patch.datastreamId !== undefined ? patch.datastreamId : prev.datastreamId,
+      datastreamId: mergeCoreString(
+        patch.datastreamId,
+        prev.datastreamId,
         256,
       ),
       schemaTitle: trim(
@@ -290,8 +313,9 @@ async function saveUserDecisionLabConfig(uid, sandbox, patch) {
         patch.tagsPropertyRef !== undefined ? patch.tagsPropertyRef : prev.tagsPropertyRef,
         256,
       ),
-      targetPageUrl: trim(
-        patch.targetPageUrl !== undefined ? patch.targetPageUrl : prev.targetPageUrl,
+      targetPageUrl: mergeCoreString(
+        patch.targetPageUrl,
+        prev.targetPageUrl,
         512,
       ),
       placements: sanitizePlacements(
@@ -337,13 +361,31 @@ async function saveUserDecisionLabConfig(uid, sandbox, patch) {
   return savedUser;
 }
 
+/**
+ * If a per-user doc exists but lost core Edge fields (e.g. accidental blank save),
+ * still surface the shared sandbox baseline for datastream / Launch / target so the lab recovers.
+ */
+function mergeUserWithSharedForRead(userRec, sharedRec) {
+  if (!userRec) return sharedRec;
+  if (hasCoreEdgeConfig(userRec)) return userRec;
+  if (!sharedRec || !hasCoreEdgeConfig(sharedRec)) return userRec;
+  return {
+    ...sharedRec,
+    ...userRec,
+    datastreamId: trim(userRec.datastreamId, 256) || trim(sharedRec.datastreamId, 256),
+    launchScriptUrl: trim(userRec.launchScriptUrl, 512) || trim(sharedRec.launchScriptUrl, 512),
+    targetPageUrl: trim(userRec.targetPageUrl, 512) || trim(sharedRec.targetPageUrl, 512),
+  };
+}
+
 async function getEffectiveDecisionLabConfig(sandbox, uid) {
   const u = String(uid || '').trim();
+  const sharedRec = await getDecisionLabConfig(sandbox);
   if (u) {
     const userRec = await getUserDecisionLabConfig(u, sandbox);
-    if (userRec) return userRec;
+    return mergeUserWithSharedForRead(userRec, sharedRec);
   }
-  return getDecisionLabConfig(sandbox);
+  return sharedRec;
 }
 
 async function saveEffectiveDecisionLabConfig(sandbox, uid, patch) {

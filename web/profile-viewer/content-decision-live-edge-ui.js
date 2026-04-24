@@ -1323,6 +1323,14 @@
       setMsg(el('cdLabPlacementKeyMsg'), keyCheck.msg, 'err');
       return { ok: false, error: keyCheck.msg };
     }
+    if (global.CdLabUi && typeof global.CdLabUi.isLabEdgeConfigured === 'function' && !global.CdLabUi.isLabEdgeConfigured()) {
+      setMsg(
+        el('cdLabSaveStatus'),
+        'Enter Datastream ID, Launch script URL, and Target page URL before saving. Empty values are not written.',
+        'err',
+      );
+      return { ok: false, error: 'Datastream, Launch URL, and Target URL are required before save.' };
+    }
     setMsg(el('cdLabPlacementKeyMsg'), '', '');
     setMsg(el('cdLabSaveStatus'), 'Saving…', '');
     var body = {
