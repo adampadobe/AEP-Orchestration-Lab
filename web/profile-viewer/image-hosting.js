@@ -1123,151 +1123,217 @@
     }
   }
 
+  function truncateScrapeAbout(text, maxLen) {
+    var s = String(text || '').trim().replace(/\s+/g, ' ');
+    if (!s) return '';
+    if (s.length <= maxLen) return s;
+    return s.slice(0, Math.max(1, maxLen - 1)).trim() + '…';
+  }
+
   function renderBrand(rec) {
-    var brand = document.createElement('section');
-    brand.className = 'image-hosting-brand';
+    var article = document.createElement('article');
+    article.className = 'brand-scraper-history-card image-hosting-scrape-card';
 
-    var header = document.createElement('header');
-    header.className = 'image-hosting-brand-header';
-    var title = document.createElement('h3');
-    title.className = 'image-hosting-brand-title';
-    title.textContent = rec.brandName || rec.url || rec.scrapeId;
-    header.appendChild(title);
+    var main = document.createElement('div');
+    main.className = 'brand-scraper-history-card-main';
 
-    var meta = document.createElement('div');
-    meta.className = 'image-hosting-brand-meta';
-    var metaBits = [];
-    if (rec.url) metaBits.push('<a href="' + encodeURI(rec.url) + '" target="_blank" rel="noopener">' + rec.url + '</a>');
-    if (rec.industry) metaBits.push(rec.industry);
-    if (rec.pagesScraped != null) metaBits.push(rec.pagesScraped + ' pages');
-    if (rec.updatedAt) {
-      var dt = new Date(rec.updatedAt);
-      if (!isNaN(dt.getTime())) metaBits.push('updated ' + dt.toLocaleString());
+    var h4 = document.createElement('h4');
+    h4.textContent = rec.brandName || rec.url || rec.scrapeId;
+    main.appendChild(h4);
+
+    if (rec.industry) {
+      var ind = document.createElement('p');
+      ind.className = 'brand-scraper-history-industry';
+      ind.textContent = rec.industry;
+      main.appendChild(ind);
     }
-    meta.innerHTML = metaBits.join(' · ');
-    header.appendChild(meta);
 
-    brand.appendChild(header);
+    if (rec.analysisAbout) {
+      var ab = document.createElement('p');
+      ab.className = 'brand-scraper-result-muted image-hosting-scrape-about';
+      ab.textContent = truncateScrapeAbout(rec.analysisAbout, 240);
+      ab.title = rec.analysisAbout;
+      main.appendChild(ab);
+    }
 
-    // Keep the original index in imagesV2 alongside each image so the
-    // Publish endpoint can fetch the right storagePath server-side.
+    if (rec.url) {
+      var urlP = document.createElement('p');
+      urlP.className = 'brand-scraper-result-muted';
+      var a = document.createElement('a');
+      a.href = rec.url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = rec.url;
+      urlP.appendChild(a);
+      main.appendChild(urlP);
+    }
+
     var indexedImgs = (rec.images || []).map(function (img, idx) {
       return { img: img, index: idx };
     });
-    var filteredImgs = indexedImgs.filter(function (entry) {
-      var img = entry.img;
-      if (!imageUrl(img)) return false;
+    var withUrl = indexedImgs.filter(function (entry) { return imageUrl(entry.img); });
+    var filteredImgs = withUrl.filter(function (entry) {
       if (!currentFilter) return true;
-      var cat = img.classification && img.classification.category;
+      var cat = entry.img.classification && entry.img.classification.category;
       return cat === currentFilter;
     });
+    var hostedCount = withUrl.length;
+    var classifiedTotal = (rec.images || []).length;
 
+    var stats = document.createElement('p');
+    stats.className = 'brand-scraper-result-muted';
+    var statParts = [];
+    statParts.push(hostedCount + (hostedCount === 1 ? ' image' : ' images') + ' ready to publish');
+    if (classifiedTotal && classifiedTotal !== hostedCount) {
+      statParts[statParts.length - 1] += ' (' + classifiedTotal + ' classified)';
+    }
+    if (rec.rawImageCount) statParts.push(rec.rawImageCount + ' discovered in crawl');
+    if (rec.pagesScraped != null) statParts.push(rec.pagesScraped + ' pages scraped');
+    if (rec.updatedAt) {
+      var dt = new Date(rec.updatedAt);
+      if (!isNaN(dt.getTime())) statParts.push('updated ' + dt.toLocaleDateString());
+    }
+    stats.textContent = statParts.join(' · ');
+    main.appendChild(stats);
+
+    article.appendChild(main);
+
+    var details = document.createElement('details');
+    details.className = 'image-hosting-scrape-images-details';
+
+    var summary = document.createElement('summary');
+    var sumLabel = document.createElement('span');
+    sumLabel.textContent = 'Classified images';
+    summary.appendChild(sumLabel);
+    var badge = document.createElement('span');
+    badge.className = 'image-hosting-scrape-images-badge';
+    if (currentFilter && hostedCount) {
+      badge.textContent = filteredImgs.length + ' / ' + hostedCount + ' (filter)';
+    } else {
+      badge.textContent = String(filteredImgs.length || hostedCount);
+    }
+    summary.appendChild(badge);
+    var chev = document.createElement('span');
+    chev.className = 'image-hosting-scrape-images-summary-chevron';
+    chev.setAttribute('aria-hidden', 'true');
+    chev.textContent = '›';
+    summary.appendChild(chev);
+    details.appendChild(summary);
+
+    var body = document.createElement('div');
     if (!filteredImgs.length) {
       var empty = document.createElement('div');
       empty.className = 'image-hosting-empty';
       if (currentFilter) {
-        empty.textContent = 'No images in this brand match the current category filter.';
+        empty.textContent = 'No images match the category filter. Clear the filter or open another scrape.';
+      } else if (rec.rawImageCount) {
+        var p = document.createElement('p');
+        p.style.margin = '0 0 0.6rem';
+        p.textContent = rec.rawImageCount + ' images were found during crawl but have not been classified and stored yet. Use Classify images below.';
+        empty.appendChild(p);
       } else {
-        var msg = document.createElement('p');
-        msg.style.margin = '0 0 0.6rem';
-        msg.textContent = rec.rawImageCount
-          ? rec.rawImageCount + ' images were found during crawl but haven’t been classified + uploaded to Cloud Storage yet.'
-          : 'No images captured during crawl.';
-        empty.appendChild(msg);
-        if (rec.rawImageCount) {
-          var btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'primary';
-          btn.textContent = 'Classify images';
-          btn.addEventListener('click', function () { classifyScrape(rec.scrapeId, btn); });
-          empty.appendChild(btn);
-        }
+        empty.textContent = 'No images captured during this crawl.';
       }
-      brand.appendChild(empty);
-      return brand;
+      body.appendChild(empty);
+    } else {
+      var grid = document.createElement('div');
+      grid.className = 'image-hosting-grid';
+      filteredImgs.forEach(function (entry) {
+        var img = entry.img;
+        var originalIndex = entry.index;
+        var url = imageUrl(img);
+        var card = document.createElement('div');
+        card.className = 'image-hosting-card';
+        card.tabIndex = 0;
+        var wrap = document.createElement('div');
+        wrap.className = 'image-hosting-card-img-wrap';
+        var thumb = document.createElement('img');
+        thumb.className = 'image-hosting-card-img';
+        thumb.loading = 'lazy';
+        thumb.referrerPolicy = 'no-referrer';
+        thumb.alt = img.alt || '';
+        thumb.src = url;
+        thumb.onerror = function () {
+          thumb.style.opacity = '0.3';
+          thumb.alt = 'failed to load';
+        };
+        wrap.appendChild(thumb);
+        card.appendChild(wrap);
+
+        var cat = img.classification && img.classification.category;
+        if (cat) {
+          var catEl = document.createElement('div');
+          catEl.className = 'image-hosting-card-category';
+          catEl.textContent = cat;
+          card.appendChild(catEl);
+        }
+
+        var label = document.createElement('div');
+        label.className = 'image-hosting-card-label';
+        label.textContent = (img.classification && img.classification.subject) || img.alt || img.storagePath || '';
+        label.title = label.textContent;
+        card.appendChild(label);
+
+        if (img.publicUrl) {
+          var urlLink = document.createElement('a');
+          urlLink.className = 'image-hosting-card-url';
+          urlLink.href = img.publicUrl;
+          urlLink.target = '_blank';
+          urlLink.rel = 'noopener';
+          urlLink.textContent = 'GCS URL';
+          urlLink.addEventListener('click', function (e) { e.stopPropagation(); });
+          card.appendChild(urlLink);
+        }
+
+        var pubBtn = document.createElement('button');
+        pubBtn.type = 'button';
+        pubBtn.className = 'image-hosting-card-publish';
+        pubBtn.textContent = 'Publish to library';
+        pubBtn.title = 'Promote this image to the curated library with a standard name.';
+        pubBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          publishToLibrary(rec.scrapeId, originalIndex, pubBtn, img);
+        });
+        card.appendChild(pubBtn);
+
+        var aiBtn = document.createElement('button');
+        aiBtn.type = 'button';
+        aiBtn.className = 'image-hosting-card-ai';
+        aiBtn.textContent = 'AI generate';
+        aiBtn.title = 'Generate a brand-plausible substitute image via Vertex AI (useful when the customer CDN blocks our fetch).';
+        aiBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          aiGenerateToLibrary(rec.scrapeId, originalIndex, aiBtn, img, rec);
+        });
+        card.appendChild(aiBtn);
+
+        card.addEventListener('click', function () { openLightbox(url, img); });
+        card.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(url, img); }
+        });
+        grid.appendChild(card);
+      });
+      body.appendChild(grid);
+    }
+    details.appendChild(body);
+    article.appendChild(details);
+
+    if (rec.rawImageCount > 0) {
+      var actions = document.createElement('div');
+      actions.className = 'brand-scraper-history-card-actions image-hosting-scrape-card-actions';
+      var clsBtn = document.createElement('button');
+      clsBtn.type = 'button';
+      clsBtn.className = 'dashboard-btn-outline';
+      clsBtn.textContent = 'Classify images';
+      clsBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        classifyScrape(rec.scrapeId, clsBtn);
+      });
+      actions.appendChild(clsBtn);
+      article.appendChild(actions);
     }
 
-    var grid = document.createElement('div');
-    grid.className = 'image-hosting-grid';
-    filteredImgs.forEach(function (entry) {
-      var img = entry.img;
-      var originalIndex = entry.index;
-      var url = imageUrl(img);
-      var card = document.createElement('div');
-      card.className = 'image-hosting-card';
-      card.tabIndex = 0;
-      var wrap = document.createElement('div');
-      wrap.className = 'image-hosting-card-img-wrap';
-      var thumb = document.createElement('img');
-      thumb.className = 'image-hosting-card-img';
-      thumb.loading = 'lazy';
-      thumb.referrerPolicy = 'no-referrer';
-      thumb.alt = img.alt || '';
-      thumb.src = url;
-      thumb.onerror = function () {
-        thumb.style.opacity = '0.3';
-        thumb.alt = 'failed to load';
-      };
-      wrap.appendChild(thumb);
-      card.appendChild(wrap);
-
-      var cat = img.classification && img.classification.category;
-      if (cat) {
-        var catEl = document.createElement('div');
-        catEl.className = 'image-hosting-card-category';
-        catEl.textContent = cat;
-        card.appendChild(catEl);
-      }
-
-      var label = document.createElement('div');
-      label.className = 'image-hosting-card-label';
-      label.textContent = (img.classification && img.classification.subject) || img.alt || img.storagePath || '';
-      label.title = label.textContent;
-      card.appendChild(label);
-
-      if (img.publicUrl) {
-        var urlLink = document.createElement('a');
-        urlLink.className = 'image-hosting-card-url';
-        urlLink.href = img.publicUrl;
-        urlLink.target = '_blank';
-        urlLink.rel = 'noopener';
-        urlLink.textContent = 'GCS URL';
-        urlLink.addEventListener('click', function (e) { e.stopPropagation(); });
-        card.appendChild(urlLink);
-      }
-
-      var pubBtn = document.createElement('button');
-      pubBtn.type = 'button';
-      pubBtn.className = 'image-hosting-card-publish';
-      pubBtn.textContent = 'Publish to library';
-      pubBtn.title = 'Promote this image to the curated library with a standard name.';
-      pubBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        publishToLibrary(rec.scrapeId, originalIndex, pubBtn, img);
-      });
-      card.appendChild(pubBtn);
-
-      // Secondary AI fallback — synthesises a brand-plausible image via
-      // Gemini 2.5 Flash Image for sites whose CDN blocks direct fetch.
-      var aiBtn = document.createElement('button');
-      aiBtn.type = 'button';
-      aiBtn.className = 'image-hosting-card-ai';
-      aiBtn.textContent = 'AI generate';
-      aiBtn.title = 'Generate a brand-plausible substitute image via Vertex AI (useful when the customer CDN blocks our fetch).';
-      aiBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        aiGenerateToLibrary(rec.scrapeId, originalIndex, aiBtn, img, rec);
-      });
-      card.appendChild(aiBtn);
-
-      card.addEventListener('click', function () { openLightbox(url, img); });
-      card.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(url, img); }
-      });
-      grid.appendChild(card);
-    });
-    brand.appendChild(grid);
-    return brand;
+    return article;
   }
 
   function openLightbox(url, img) {
@@ -1311,6 +1377,8 @@
       var assets = rec.crawlSummary && rec.crawlSummary.assets;
       var classified = (assets && Array.isArray(assets.imagesV2)) ? assets.imagesV2 : [];
       var rawCount = (assets && Array.isArray(assets.images)) ? assets.images.length : 0;
+      var about = '';
+      if (rec.analysis && typeof rec.analysis.about === 'string') about = rec.analysis.about.trim();
       brands.push({
         scrapeId: rec.scrapeId,
         brandName: rec.brandName || (summaries[i] && summaries[i].brandName),
@@ -1320,6 +1388,7 @@
         updatedAt: rec.updatedAt || (summaries[i] && summaries[i].updatedAt),
         rawImageCount: rawCount,
         images: classified,
+        analysisAbout: about,
       });
     });
     lastRecords = brands;
@@ -1331,6 +1400,7 @@
 
   function render() {
     if (!listEl) return;
+    listEl.className = 'image-hosting-list image-hosting-scrape-list';
     listEl.innerHTML = '';
     if (!lastRecords.length) {
       setStatus('No scrapes in this sandbox yet. Run one in Brand scraper first.', '');
