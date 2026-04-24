@@ -163,6 +163,15 @@
     } else if (byName['kirkham']) {
       sandboxSelect.value = 'kirkham';
     }
+    // getSandboxName() reads #sandboxSelect before localStorage. If we set the
+    // dropdown programmatically (e.g. default to apalmer) while LS still held
+    // another sandbox, API calls would use the wrong technical name until the
+    // user changed the select manually — Decisioning lab looked "configured"
+    // for one sandbox but loaded another org's Firestore config.
+    var resolved = String(sandboxSelect.value || '').trim();
+    if (resolved && resolved !== getSelected().trim()) {
+      setSelected(resolved);
+    }
   }
 
   async function loadSandboxesIntoSelect(sandboxSelect) {

@@ -260,6 +260,12 @@ waitForAlloy()
     AepGlobalSandbox.loadSandboxesIntoSelect(sel).then(function () {
       AepGlobalSandbox.onSandboxSelectChange(sel);
       AepGlobalSandbox.attachStorageSync(sel);
+      // Bootstrap ran before this async fill; the resolved <select> value can
+      // differ from what fetchConfigFromFirebase first used — reload lab config
+      // for the sandbox now shown in the header.
+      if (typeof window.CdLabUi !== 'undefined' && window.CdLabUi.fetchConfigFromFirebase) {
+        return window.CdLabUi.fetchConfigFromFirebase().catch(function () {});
+      }
     });
   }
 
