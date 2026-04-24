@@ -1548,6 +1548,20 @@
         return;
       }
       var blob = await resp.blob();
+      var head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+      var isZip = head.length >= 2 && head[0] === 0x50 && head[1] === 0x4b; /* PK — ZIP local file header */
+      if (!isZip) {
+        var errText = '';
+        try {
+          errText = await blob.text();
+        } catch (_e) {}
+        setStatus(
+          'Download was not a valid ZIP file (server returned JSON or HTML instead). If this persists after deploy, check the image-hosting API.',
+          'err'
+        );
+        if (errText && errText.length < 400) console.warn('[image-hosting] download non-zip body:', errText.slice(0, 400));
+        return;
+      }
       var safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'library';
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);

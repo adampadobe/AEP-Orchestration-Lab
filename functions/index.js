@@ -3039,6 +3039,7 @@ exports.brandScraperExport = onRequest(
 /**
  * Image hosting library API — per-sandbox curated assets promoted from
  * brand-scraper classifications.
+ *   GET    /api/image-hosting/library/download?sandbox=X&customer=name   ZIP download (must stay before generic GET list)
  *   GET    /api/image-hosting/library?sandbox=X       list current library
  *   POST   /api/image-hosting/library/publish         { sandbox, scrapeId, imageIndex, overrideFolder?, overrideFile? }
  *   DELETE /api/image-hosting/library?sandbox=X&relPath=...
@@ -3062,6 +3063,17 @@ exports.imageHostingLibrary = onRequest(
       const path = String(req.path || '').replace(/\/+$/, '');
       const sandbox = String((req.query && req.query.sandbox) || (req.body && req.body.sandbox) || '').trim();
       if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+
+      // Must run before the generic GET list handler — otherwise download
+      // requests return JSON and the browser saves a non-ZIP as .zip.
+      if (req.method === 'GET' && /\/download$/.test(path)) {
+        const customer = String((req.query && req.query.customer) || 'library').trim();
+        const safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'library';
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="logo_${safe}.zip"`);
+        await imageHostingLibrary.streamLibraryZip(sandbox, res);
+        return;
+      }
 
       if (req.method === 'GET') {
         const items = await imageHostingLibrary.listLibrary(sandbox);
@@ -3189,15 +3201,6 @@ exports.imageHostingLibrary = onRequest(
           convertToPng: body.convertToPng !== undefined ? !!body.convertToPng : true,
         });
         res.status(200).json({ sandbox, ...result });
-        return;
-      }
-
-      if (req.method === 'GET' && /\/download$/.test(path)) {
-        const customer = String((req.query && req.query.customer) || 'library').trim();
-        const safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'library';
-        res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', `attachment; filename="logo_${safe}.zip"`);
-        await imageHostingLibrary.streamLibraryZip(sandbox, res);
         return;
       }
 

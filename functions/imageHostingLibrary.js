@@ -719,14 +719,30 @@ async function streamLibraryZip(sandbox, res) {
     console.error('[imageHostingLibrary] zip error', String((e && e.message) || e));
     try { res.end(); } catch (_e) {}
   });
+  const streamDone = new Promise((resolve, reject) => {
+    res.once('finish', resolve);
+    res.once('error', reject);
+    archive.once('error', reject);
+  });
   archive.pipe(res);
+  let entries = 0;
   for (const f of files) {
     const rel = f.name.slice(prefix.length);
     if (!rel) continue;
     if (rel === LIBRARY_FOLDER_MARKER || rel.endsWith(`/${LIBRARY_FOLDER_MARKER}`)) continue;
     archive.append(f.createReadStream(), { name: rel });
+    entries += 1;
+  }
+  // macOS Archive Utility rejects some zero-entry ZIPs; also helps users
+  // who download before uploading any images.
+  if (entries === 0) {
+    const note =
+      'This library had no image files to export (only folder placeholders).\r\n' +
+      'Upload PNG/JPEG/WebP images in Image hosting, then download the ZIP again.\r\n';
+    archive.append(Buffer.from(note, 'utf8'), { name: 'README-empty-library.txt' });
   }
   await archive.finalize();
+  await streamDone;
 }
 
 /**
