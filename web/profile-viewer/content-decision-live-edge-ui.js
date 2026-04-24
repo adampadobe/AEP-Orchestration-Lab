@@ -410,14 +410,37 @@
     if (dsnDetails) dsnDetails.open = !ok;
   }
 
+  /** Same dev default as content-decision-live-edge-inline.js — only used when form datastream is empty after load. */
+  var DEFAULT_EDGE_CONFIG_ID_RESTORE = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
+
+  function restoreEdgeConfigIdFromLocalStorageIfEmpty() {
+    var eid = el('edgeConfigId');
+    if (!eid || eid.value.trim()) return;
+    try {
+      var ls = localStorage.getItem('aep-edge-config-id');
+      eid.value = (ls && String(ls).trim()) || DEFAULT_EDGE_CONFIG_ID_RESTORE;
+    } catch (e) {
+      eid.value = DEFAULT_EDGE_CONFIG_ID_RESTORE;
+    }
+  }
+
   function loadRecordIntoForm(rec) {
     if (!rec || typeof rec !== 'object') return;
-    if (rec.datastreamId && el('edgeConfigId')) el('edgeConfigId').value = rec.datastreamId;
-    if (rec.launchScriptUrl && el('cdLabLaunchUrl')) {
-      el('cdLabLaunchUrl').value = sanitiseLaunchScriptUrl(rec.launchScriptUrl);
+    // Always set from record (clear when missing) so switching to a sandbox
+    // with no Firestore doc does not leave another sandbox’s Launch/target
+    // in the form — that hid the first-run onboarding wizard incorrectly.
+    if (el('edgeConfigId')) {
+      el('edgeConfigId').value = rec.datastreamId ? String(rec.datastreamId).trim() : '';
     }
-    if (rec.tagsPropertyRef && el('cdLabTagsProperty')) el('cdLabTagsProperty').value = rec.tagsPropertyRef;
-    if (rec.targetPageUrl && el('cdLabTargetPageUrl')) el('cdLabTargetPageUrl').value = rec.targetPageUrl;
+    if (el('cdLabLaunchUrl')) {
+      el('cdLabLaunchUrl').value = rec.launchScriptUrl ? sanitiseLaunchScriptUrl(rec.launchScriptUrl) : '';
+    }
+    if (el('cdLabTagsProperty')) {
+      el('cdLabTagsProperty').value = rec.tagsPropertyRef ? String(rec.tagsPropertyRef).trim() : '';
+    }
+    if (el('cdLabTargetPageUrl')) {
+      el('cdLabTargetPageUrl').value = rec.targetPageUrl ? String(rec.targetPageUrl).trim() : '';
+    }
     if (rec.edgePersonalizationMode && el('cdLabEdgeMode')) {
       el('cdLabEdgeMode').value =
         rec.edgePersonalizationMode === 'decisionScopes' ? 'decisionScopes' : 'surfaces';
@@ -1020,6 +1043,7 @@
       return null;
     }
     loadRecordIntoForm(data.record || {});
+    restoreEdgeConfigIdFromLocalStorageIfEmpty();
     setMsg(
       el('cdLabSaveStatus'),
       data.record ? 'Loaded saved configuration (' + (data.storage || 'user') + ').' : 'No saved config yet — fill and save.',
@@ -1296,6 +1320,7 @@
       return { ok: false, error: data.error || 'Save failed.' };
     }
     loadRecordIntoForm(data.record || {});
+    restoreEdgeConfigIdFromLocalStorageIfEmpty();
     setMsg(el('cdLabSaveStatus'), 'Saved for sandbox ' + sb + '.', 'ok');
     // If the sandbox has a Tags property + target URL configured, show the
     // diff against the Launch rule so the user sees what a subsequent write

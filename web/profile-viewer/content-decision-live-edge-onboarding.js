@@ -34,6 +34,16 @@
     }
   }
 
+  /** Add ?edgeSetup=1 to the page URL to clear “configure later” for this tab and reopen the wizard when unconfigured. */
+  function shouldClearDeferFromQuery() {
+    try {
+      if (typeof global.location === 'undefined' || !global.location.search) return false;
+      return /(?:^|[?&])edgeSetup=1(?:&|$)/.test(global.location.search);
+    } catch (e) {
+      return false;
+    }
+  }
+
   function setDeferred() {
     try {
       sessionStorage.setItem(deferKey(), '1');
@@ -411,6 +421,11 @@
   }
 
   function syncAfterConfigLoad() {
+    if (shouldClearDeferFromQuery()) {
+      try {
+        sessionStorage.removeItem(deferKey());
+      } catch (e) {}
+    }
     if (isLabConfigured()) {
       hide();
       return;
