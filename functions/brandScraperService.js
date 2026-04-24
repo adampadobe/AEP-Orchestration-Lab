@@ -1166,6 +1166,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     const maxPages = requestedPages > 0 ? Math.min(requestedPages, 25) : undefined;
     const crawlerMode = String(body.crawler || body.useJs || 'fetch').toLowerCase();
     const wantJs = crawlerMode === 'js' || crawlerMode === 'true' || body.useJs === true;
+    const inc = (key) => !body.include || body.include[key] !== false;
+    const wantTagAudit = inc('tagAudit');
     let crawl;
     try {
       if (wantJs) {
@@ -1204,9 +1206,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
 
     // Selective run: body.include = { analysis, personas, campaigns, segments }.
     // Any key omitted or truthy → run; false → skip (returns {skipped:true} so UI knows).
-    const inc = (key) => !body.include || body.include[key] !== false;
     const skipped = (reason) => ({ skipped: true, reason: reason || 'disabled by user' });
-    const wantTagAudit = inc('tagAudit');
 
     let analysis = null;
     let analysisError = null;
