@@ -12,7 +12,7 @@ This page sends Experience Events the same way the portable **`aep-event-sender-
 
 ### Navigator CTA XDM (Edge)
 
-The generator request includes **`xdmTenantKey: _demosystem5`**, **`identityMapEcidKey: ecid`**, the active profile **`ecid`**, and **`eventID`** (orchestration / trigger), matching the `event: { xdm: { … } }` shape sent to Edge. Default **preset** on this page: **`edge-46677-navigator`**. A valid **ECID** (after a successful lookup) is **required** before a CTA send; the strip shows an error if it is missing.
+The generator request includes **`xdmTenantKey: _demosystem5`**, **`identityMapEcidKey: ecid`**, the active profile **`ecid`**, and **`eventID`** (orchestration / trigger), matching the `event: { xdm: { … } }` shape sent to Edge. Default **event destination** on this page: **`edge-a7f9-default`** (Edge datastream **a7f9f0c6…**, full XDM + identityMap). A valid **ECID** (browser SDK after load, or after lookup) is **required** before a CTA send; the strip shows an error if it is missing.
 
 ## Request body contract (must match the bundle)
 

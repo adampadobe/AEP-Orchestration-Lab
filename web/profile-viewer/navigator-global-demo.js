@@ -10,11 +10,12 @@
  * CTA payload shape: `identityMap.ecid`, `_demosystem5.identification.core.ecid`,
  * `_experience.campaign.orchestration.eventID`, `eventType` from destination URL where possible
  * (`navigator.global.*` types for registration, events hub, membership, etc.), else label-derived.
- * Default preset: edge-46677-navigator. Change NAVIGATOR_ORCHESTRATION_EVENT_ID if your trigger hash differs.
+ * Default event destination: edge-a7f9-default (datastream a7f9f0c6…, full XDM + identityMap).
+ * Change NAVIGATOR_ORCHESTRATION_EVENT_ID if your trigger hash differs.
  */
 const NAVIGATOR_XDM_TENANT_KEY = '_demosystem5';
 const NAVIGATOR_IDENTITY_ECID_KEY = 'ecid';
-const NAVIGATOR_PRESET_ID = 'edge-46677-navigator';
+const NAVIGATOR_PRESET_ID = 'edge-a7f9-default';
 const NAVIGATOR_ORCHESTRATION_EVENT_ID =
   '780960c9b920edefc4283c3d21ab58a32c3dd5a7e38de212865d8d308fd53873';
 
