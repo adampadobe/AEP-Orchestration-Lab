@@ -249,6 +249,9 @@
   }
 
   const LS_CRAWLER = 'aepBrandScraperCrawler';
+  /** Includes AI/run flags plus JS-rendered crawl (Playwright) — seven checkboxes in the Options menu. */
+  const RUN_OPTIONS_MENU_TOTAL = RUN_OPTION_KEYS.length + 1;
+
   try {
     const stored = localStorage.getItem(LS_CRAWLER);
     if (crawlerJsCb && stored === 'js') crawlerJsCb.checked = true;
@@ -256,6 +259,7 @@
   if (crawlerJsCb) {
     crawlerJsCb.addEventListener('change', () => {
       try { localStorage.setItem(LS_CRAWLER, crawlerJsCb.checked ? 'js' : 'fetch'); } catch (_e) {}
+      applyRunOptionsToUI();
     });
   }
 
@@ -268,8 +272,9 @@
       cb.checked = !!runOptions[key];
       if (runOptions[key]) on++;
     });
-    if (optionsCountEl) optionsCountEl.textContent = on + '/' + RUN_OPTION_KEYS.length;
-    if (optionsBtn) optionsBtn.classList.toggle('is-reduced', on < RUN_OPTION_KEYS.length);
+    if (crawlerJsCb && crawlerJsCb.checked) on++;
+    if (optionsCountEl) optionsCountEl.textContent = on + '/' + RUN_OPTIONS_MENU_TOTAL;
+    if (optionsBtn) optionsBtn.classList.toggle('is-reduced', on < RUN_OPTIONS_MENU_TOTAL);
   }
 
   if (optionsMenu) {
