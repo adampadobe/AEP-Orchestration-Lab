@@ -80,12 +80,20 @@ const DEFAULT_SURFACE_STYLE = {
   descColor: '#c5c9d3',
   ctaBg: '#f0f2f6',
   ctaText: '#1a1d23',
+  noImageBg: '',
 };
 
 function sanitizeSurfaceStyleEntry(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const pickJustify = (v, fallback) => (JUSTIFY_VALUES.has(v) ? v : fallback);
   const pickHex = (v, fallback) => (typeof v === 'string' && HEX_RE.test(v.trim()) ? v.trim() : fallback);
+  const rawNoImg = raw.noImageBg;
+  const noImageBg =
+    rawNoImg == null || String(rawNoImg).trim() === ''
+      ? ''
+      : typeof rawNoImg === 'string' && HEX_RE.test(rawNoImg.trim())
+        ? rawNoImg.trim()
+        : '';
   const out = {
     layoutMode: LAYOUT_MODES.has(raw.layoutMode) ? raw.layoutMode : DEFAULT_SURFACE_STYLE.layoutMode,
     blockY: pickJustify(raw.blockY, DEFAULT_SURFACE_STYLE.blockY),
@@ -99,6 +107,7 @@ function sanitizeSurfaceStyleEntry(raw) {
     descColor: pickHex(raw.descColor, DEFAULT_SURFACE_STYLE.descColor),
     ctaBg: pickHex(raw.ctaBg, DEFAULT_SURFACE_STYLE.ctaBg),
     ctaText: pickHex(raw.ctaText, DEFAULT_SURFACE_STYLE.ctaText),
+    noImageBg,
     updatedAt: raw.updatedAt || new Date().toISOString(),
   };
   return out;

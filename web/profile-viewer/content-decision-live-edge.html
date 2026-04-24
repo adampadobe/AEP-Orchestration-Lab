@@ -300,7 +300,8 @@
     .cd-banner--overlay .cd-banner-figure.cd-banner-figure--empty {
       display: block;
       background-image: none !important;
-      background: linear-gradient(165deg, var(--bg-hover) 0%, var(--bg-panel) 100%);
+      /* Solid via --cd-no-image-bg (set from lab UI); else gradient fallback */
+      background: var(--cd-no-image-bg, linear-gradient(165deg, var(--bg-hover) 0%, var(--bg-panel) 100%));
     }
     .cd-banner--overlay .cd-banner-scrim {
       display: block;
@@ -875,6 +876,60 @@
     .cd-color-row { display: flex; gap: 0.4rem; align-items: center; }
     .cd-color-row input[type="color"] { width: 34px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: transparent; cursor: pointer; }
     .cd-color-row input[type="text"] { flex: 1 1 auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .cd-lab-palette-sel {
+      flex: 0 0 auto;
+      max-width: 10rem;
+      font-size: 0.72rem;
+      padding: 0.25rem 0.35rem;
+      margin-bottom: 0;
+    }
+    .cd-lab-eyedropper-btn { flex: 0 0 auto; font-size: 0.68rem; padding: 0.25rem 0.45rem; white-space: nowrap; margin-bottom: 0; }
+    .cd-lab-brand-palette-panel {
+      margin: 0 0 0.75rem;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-panel);
+    }
+    .cd-lab-brand-palette-panel .cd-lab-brand-palette-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+      margin-top: 0.35rem;
+    }
+    .cd-lab-brand-palette-swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.45rem;
+      min-height: 0;
+    }
+    .cd-lab-brand-swatch {
+      position: relative;
+      width: 2.1rem;
+      height: 2.1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    .cd-lab-brand-swatch-code {
+      position: absolute;
+      bottom: 1px;
+      left: 1px;
+      right: 1px;
+      font-size: 0.45rem;
+      line-height: 1;
+      color: #fff;
+      text-shadow: 0 0 2px #000, 0 0 4px #000;
+      text-align: center;
+      pointer-events: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .cd-style-editor-block--full { grid-column: 1 / -1; }
 
     .cd-lab-override-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
@@ -1090,14 +1145,31 @@
 
             <section class="cd-lab-step">
               <h3 class="cd-lab-step-title">4. Surface styling</h3>
-              <p class="hint">AJO delivers the <em>content</em> (title, image, text, link) as JSON. The <em>styling</em> — layout, alignment, colours — is yours. Pick a surface and adjust. You can also <strong>hide returned slots</strong> (e.g. the ribbon CTA) and set a <strong>preview box min-height</strong> (e.g. <code>100px</code>) for that mount. Changes apply instantly and save per sandbox + surface in Firebase.</p>
+              <p class="hint">AJO delivers the <em>content</em> (title, image, text, link) as JSON. The <em>styling</em> — layout, alignment, colours — is yours. Pick a surface and adjust. You can also <strong>hide returned slots</strong> (e.g. the ribbon CTA) and set a <strong>preview box height</strong> (e.g. <code>100px</code>) for that mount. Changes apply instantly and save per sandbox + surface in Firebase.</p>
               <div class="cd-lab-override-row">
                 <label for="cdLabStyleSurface">Surface</label>
                 <select id="cdLabStyleSurface" class="sandbox-select" aria-label="Pick a surface to edit its styling"></select>
               </div>
               <p class="status" id="cdLabStyleMsg" role="status" aria-live="polite"></p>
 
-              <div class="cd-style-editor">
+              <div class="cd-lab-brand-palette-panel">
+                <strong style="font-size:0.78rem;">Brand colours (load once)</strong>
+                <p class="hint" style="margin:0.25rem 0 0; font-size:0.72rem;">
+                  Pull swatches from a <strong>Brand Scrape</strong> in this sandbox. One <strong>Load palette</strong> fills the shared list for every colour field below (not per surface). Colours stay in this browser tab until you clear them or reload the page.
+                </p>
+                <div class="cd-lab-brand-palette-row">
+                  <button type="button" class="secondary" id="cdLabBrandRefreshScrapesBtn">Refresh scrape list</button>
+                  <select id="cdLabBrandScrapeSelect" class="sandbox-select" aria-label="Brand scrape to load colours from" style="min-width:12rem;">
+                    <option value="">Select a scrape…</option>
+                  </select>
+                  <button type="button" class="primary" id="cdLabBrandLoadPaletteBtn">Load palette</button>
+                  <button type="button" class="secondary" id="cdLabBrandClearPaletteBtn">Clear palette</button>
+                </div>
+                <p class="status" id="cdLabBrandPaletteMsg" role="status" aria-live="polite" hidden></p>
+                <div id="cdLabBrandPaletteSwatches" class="cd-lab-brand-palette-swatches" aria-label="Loaded brand colour swatches"></div>
+              </div>
+
+              <div class="cd-style-editor" id="cdLabStyleEditorRoot">
                 <strong style="font-size:0.78rem;">Banner layout &amp; colours</strong>
                 <div class="cd-style-editor-grid">
                   <div class="cd-style-editor-block cd-style-editor-block--full">
@@ -1108,6 +1180,19 @@
                       <option value="half">Half overlaid (card on seam)</option>
                       <option value="below">Below image</option>
                     </select>
+                    <p class="hint" style="margin:0.35rem 0 0; font-size:0.7rem;">When there is <strong>no image</strong> (overlay empty slot), the preview uses your <strong>No-image background</strong> colour below, or the default gradient if you leave it blank.</p>
+                  </div>
+                  <div class="cd-style-editor-block cd-style-editor-block--full">
+                    <strong>No-image background (overlay)</strong>
+                    <label for="cdStyleNoImageBgHex">Fill behind text when the payload has no image</label>
+                    <div class="cd-color-row">
+                      <input type="color" id="cdStyleNoImageBgPick" value="#2a2d34" title="Colour when figure is empty">
+                      <input type="text" id="cdStyleNoImageBgHex" value="" placeholder="Optional hex — empty = default gradient" maxlength="9" autocomplete="off" spellcheck="false">
+                      <select class="cd-lab-palette-sel" id="cdStyleNoImageBgPaletteSel" data-hex-id="cdStyleNoImageBgHex" data-pick-id="cdStyleNoImageBgPick" aria-label="Apply loaded brand colour to no-image background" title="From loaded palette">
+                        <option value="">Palette…</option>
+                      </select>
+                      <button type="button" class="secondary cd-lab-eyedropper-btn" data-hex-id="cdStyleNoImageBgHex" data-pick-id="cdStyleNoImageBgPick">Dropper</button>
+                    </div>
                   </div>
                   <div class="cd-style-editor-block">
                     <strong>Copy block</strong>
@@ -1128,6 +1213,10 @@
                     <div class="cd-color-row">
                       <input type="color" id="cdStyleTitleColorPick" value="#e6e9ef">
                       <input type="text" id="cdStyleTitleColorHex" value="#e6e9ef" maxlength="9">
+                      <select class="cd-lab-palette-sel" id="cdStyleTitleColorPaletteSel" data-hex-id="cdStyleTitleColorHex" data-pick-id="cdStyleTitleColorPick" aria-label="Apply loaded brand colour to title" title="From loaded palette">
+                        <option value="">Palette…</option>
+                      </select>
+                      <button type="button" class="secondary cd-lab-eyedropper-btn" data-hex-id="cdStyleTitleColorHex" data-pick-id="cdStyleTitleColorPick">Dropper</button>
                     </div>
                   </div>
                   <div class="cd-style-editor-block">
@@ -1140,6 +1229,10 @@
                     <div class="cd-color-row">
                       <input type="color" id="cdStyleDescColorPick" value="#c5c9d3">
                       <input type="text" id="cdStyleDescColorHex" value="#c5c9d3" maxlength="9">
+                      <select class="cd-lab-palette-sel" id="cdStyleDescColorPaletteSel" data-hex-id="cdStyleDescColorHex" data-pick-id="cdStyleDescColorPick" aria-label="Apply loaded brand colour to description" title="From loaded palette">
+                        <option value="">Palette…</option>
+                      </select>
+                      <button type="button" class="secondary cd-lab-eyedropper-btn" data-hex-id="cdStyleDescColorHex" data-pick-id="cdStyleDescColorPick">Dropper</button>
                     </div>
                   </div>
                   <div class="cd-style-editor-block">
@@ -1152,11 +1245,19 @@
                     <div class="cd-color-row">
                       <input type="color" id="cdStyleCtaBgPick" value="#f0f2f6">
                       <input type="text" id="cdStyleCtaBgHex" value="#f0f2f6" maxlength="9">
+                      <select class="cd-lab-palette-sel" id="cdStyleCtaBgPaletteSel" data-hex-id="cdStyleCtaBgHex" data-pick-id="cdStyleCtaBgPick" aria-label="Apply loaded brand colour to button background" title="From loaded palette">
+                        <option value="">Palette…</option>
+                      </select>
+                      <button type="button" class="secondary cd-lab-eyedropper-btn" data-hex-id="cdStyleCtaBgHex" data-pick-id="cdStyleCtaBgPick">Dropper</button>
                     </div>
                     <label>Button text</label>
                     <div class="cd-color-row">
                       <input type="color" id="cdStyleCtaTextPick" value="#1a1d23">
                       <input type="text" id="cdStyleCtaTextHex" value="#1a1d23" maxlength="9">
+                      <select class="cd-lab-palette-sel" id="cdStyleCtaTextPaletteSel" data-hex-id="cdStyleCtaTextHex" data-pick-id="cdStyleCtaTextPick" aria-label="Apply loaded brand colour to button text" title="From loaded palette">
+                        <option value="">Palette…</option>
+                      </select>
+                      <button type="button" class="secondary cd-lab-eyedropper-btn" data-hex-id="cdStyleCtaTextHex" data-pick-id="cdStyleCtaTextPick">Dropper</button>
                     </div>
                   </div>
                   <div class="cd-style-editor-block cd-style-editor-block--full">
@@ -1242,7 +1343,7 @@
   <script src="identity-picker.js"></script>
   <script src="content-decision-edge-mounts.js?v=20260416-placements"></script>
   <script src="content-decision-lab-config.js?v=20260216"></script>
-  <script src="content-decision-live-edge-ui.js?v=20260423-topribbon-height-clamp"></script>
+  <script src="content-decision-live-edge-ui.js?v=20260423-brand-palette-noimage-bg"></script>
   <script src="content-decision-live-edge-inline.js?v=20260423-edge-id-history"></script>
 </body>
 </html>

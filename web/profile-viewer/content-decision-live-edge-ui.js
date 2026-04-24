@@ -456,6 +456,7 @@
     descColor: '#c5c9d3',
     ctaBg: '#f0f2f6',
     ctaText: '#1a1d23',
+    noImageBg: '',
     showTitle: true,
     showDesc: true,
     showCta: true,
@@ -488,6 +489,278 @@
     return s;
   }
 
+  // ----- Brand scrape palette (session tab — one load, shared by all colour rows) -----
+  var CD_LAB_PALETTE_SESSION = 'cdLabEdgeBrandPaletteV1';
+  var labBrandPaletteColours = [];
+  /** Last colour row to receive a swatch click (updated on focusin). */
+  var labSwatchTargetHexId = 'cdStyleTitleColorHex';
+  var labSwatchTargetPickId = 'cdStyleTitleColorPick';
+
+  function cdLabPaletteMsg(text, kind) {
+    var n = el('cdLabBrandPaletteMsg');
+    if (!n) return;
+    n.textContent = text || '';
+    n.hidden = !text;
+    n.className = 'status' + (kind === 'err' ? ' err' : kind === 'ok' ? ' ok' : '');
+  }
+
+  function cdLabExtractColoursFromScrapeRecord(rec) {
+    var assets = rec && rec.crawlSummary && rec.crawlSummary.assets;
+    var arr =
+      assets && Array.isArray(assets.colours) && assets.colours.length
+        ? assets.colours
+        : assets && Array.isArray(assets.colors) && assets.colors.length
+          ? assets.colors
+          : [];
+    return arr
+      .filter(function (c) {
+        return c && (c.value != null || c.hex != null);
+      })
+      .map(function (c) {
+        return { value: String(c.value != null ? c.value : c.hex).trim(), count: c.count != null ? c.count : 0 };
+      });
+  }
+
+  function cdLabPersistPaletteSession() {
+    try {
+      if (!labBrandPaletteColours.length) {
+        sessionStorage.removeItem(CD_LAB_PALETTE_SESSION);
+        return;
+      }
+      sessionStorage.setItem(
+        CD_LAB_PALETTE_SESSION,
+        JSON.stringify({ colours: labBrandPaletteColours, savedAt: new Date().toISOString() })
+      );
+    } catch (_e) {}
+  }
+
+  function cdLabRestorePaletteSession() {
+    labBrandPaletteColours = [];
+    try {
+      var raw = sessionStorage.getItem(CD_LAB_PALETTE_SESSION);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      if (!o || !Array.isArray(o.colours)) return;
+      o.colours.forEach(function (c) {
+        var v = c && normaliseHex(c.value);
+        if (v) labBrandPaletteColours.push({ value: v, count: c.count != null ? c.count : 0 });
+      });
+    } catch (_e2) {
+      labBrandPaletteColours = [];
+    }
+  }
+
+  function cdLabFillPaletteSelects() {
+    var sels = document.querySelectorAll('select.cd-lab-palette-sel');
+    var parts = ['<option value="">Palette…</option>'];
+    labBrandPaletteColours.forEach(function (c) {
+      var v = normaliseHex(c.value);
+      if (!v) return;
+      var lab = v + (c.count ? ' (' + c.count + '×)' : '');
+      parts.push(
+        '<option value="' +
+          v.replace(/"/g, '&quot;') +
+          '">' +
+          lab.replace(/</g, '&lt;') +
+          '</option>'
+      );
+    });
+    var html = parts.join('');
+    for (var i = 0; i < sels.length; i++) {
+      var keep = normaliseHex(sels[i].value);
+      sels[i].innerHTML = html;
+      if (keep && Array.prototype.some.call(sels[i].options, function (op) { return op.value === keep; })) {
+        sels[i].value = keep;
+      }
+    }
+  }
+
+  function cdLabRenderPaletteSwatches() {
+    var host = el('cdLabBrandPaletteSwatches');
+    if (!host) return;
+    host.textContent = '';
+    labBrandPaletteColours.slice(0, 28).forEach(function (c) {
+      var v = normaliseHex(c.value);
+      if (!v) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cd-lab-brand-swatch';
+      btn.title = v + (c.count != null ? ' · ' + c.count + '×' : '');
+      btn.style.background = v;
+      var span = document.createElement('span');
+      span.className = 'cd-lab-brand-swatch-code';
+      span.textContent = v;
+      btn.appendChild(span);
+      btn.addEventListener('click', function () {
+        var hexE = el(labSwatchTargetHexId);
+        var pickE = el(labSwatchTargetPickId);
+        if (hexE) hexE.value = v;
+        if (pickE) pickE.value = v;
+        styleFormOnChange();
+        cdLabPaletteMsg('Applied ' + v + ' to the focused colour row.', 'ok');
+      });
+      host.appendChild(btn);
+    });
+  }
+
+  function cdLabClearBrandPalette() {
+    labBrandPaletteColours = [];
+    try {
+      sessionStorage.removeItem(CD_LAB_PALETTE_SESSION);
+    } catch (_e) {}
+    cdLabFillPaletteSelects();
+    cdLabRenderPaletteSwatches();
+    cdLabPaletteMsg('Palette cleared.', '');
+  }
+
+  async function cdLabRefreshBrandScrapeList() {
+    cdLabPaletteMsg('Loading scrapes…', '');
+    var sb = sandboxName();
+    if (!sb) {
+      cdLabPaletteMsg('Select a sandbox in the header first.', 'err');
+      return;
+    }
+    try {
+      var res = await labFetch('/api/brand-scraper/scrapes?sandbox=' + encodeURIComponent(sb));
+      var data = await res.json();
+      if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+      var items = Array.isArray(data.items) ? data.items : [];
+      var sel = el('cdLabBrandScrapeSelect');
+      if (sel) {
+        var keep = sel.value;
+        sel.innerHTML = '<option value="">Select a scrape…</option>';
+        items.forEach(function (it) {
+          var id = String(it.scrapeId || it.id || '').trim();
+          if (!id) return;
+          var o = document.createElement('option');
+          o.value = id;
+          o.textContent =
+            (it.brandName ? String(it.brandName) + ' — ' : '') + id.slice(0, 14) + (id.length > 14 ? '…' : '');
+          sel.appendChild(o);
+        });
+        if (
+          keep &&
+          Array.prototype.some.call(sel.options, function (op) {
+            return op.value === keep;
+          })
+        ) {
+          sel.value = keep;
+        }
+      }
+      cdLabPaletteMsg('Found ' + items.length + ' scrape(s). Pick one, then Load palette.', 'ok');
+    } catch (e) {
+      cdLabPaletteMsg(String(e.message || e), 'err');
+    }
+  }
+
+  async function cdLabLoadBrandScrapePaletteOnce() {
+    var sb = sandboxName();
+    var sel = el('cdLabBrandScrapeSelect');
+    var id = sel && String(sel.value || '').trim();
+    if (!sb || !id) {
+      cdLabPaletteMsg('Select a sandbox and a scrape first.', 'err');
+      return;
+    }
+    cdLabPaletteMsg('Loading scrape…', '');
+    try {
+      var res = await labFetch('/api/brand-scraper/scrapes/' + encodeURIComponent(id) + '?sandbox=' + encodeURIComponent(sb));
+      var data = await res.json();
+      if (!res.ok) throw new Error((data && data.error) || 'HTTP ' + res.status);
+      var cols = cdLabExtractColoursFromScrapeRecord(data);
+      labBrandPaletteColours = [];
+      cols.forEach(function (c) {
+        var v = normaliseHex(c.value);
+        if (v) labBrandPaletteColours.push({ value: v, count: c.count != null ? c.count : 0 });
+      });
+      if (!labBrandPaletteColours.length) {
+        cdLabFillPaletteSelects();
+        cdLabRenderPaletteSwatches();
+        cdLabPersistPaletteSession();
+        cdLabPaletteMsg('No colours in this scrape yet.', 'err');
+        return;
+      }
+      cdLabFillPaletteSelects();
+      cdLabRenderPaletteSwatches();
+      cdLabPersistPaletteSession();
+      cdLabPaletteMsg(
+        'Loaded ' + labBrandPaletteColours.length + ' colour(s). Use Palette menus, swatches (focused row), or Droppers.',
+        'ok'
+      );
+    } catch (e2) {
+      cdLabPaletteMsg(String(e2.message || e2), 'err');
+    }
+  }
+
+  function cdLabRunEyedropper(hexId, pickId) {
+    if (!global.EyeDropper) {
+      setMsg(el('cdLabStyleMsg'), 'EyeDropper needs Chromium (Chrome or Edge).', 'err');
+      return;
+    }
+    new global.EyeDropper()
+      .open()
+      .then(function (res) {
+        var raw = res && res.sRGBHex;
+        var v = normaliseHex(raw);
+        if (!v) return;
+        var hexE = el(hexId);
+        var pickE = el(pickId);
+        if (hexE) hexE.value = v;
+        if (pickE) pickE.value = v;
+        styleFormOnChange();
+      })
+      .catch(function () {
+        /* cancelled */
+      });
+  }
+
+  function wireCdLabBrandPaletteAndStyleEditorRoot() {
+    var root = el('cdLabStyleEditorRoot');
+    if (root) {
+      root.addEventListener('focusin', function (ev) {
+        var t = ev.target;
+        if (!t) return;
+        if (t.classList && t.classList.contains('cd-lab-palette-sel')) {
+          labSwatchTargetHexId = t.getAttribute('data-hex-id') || labSwatchTargetHexId;
+          labSwatchTargetPickId = t.getAttribute('data-pick-id') || labSwatchTargetPickId;
+          return;
+        }
+        if (t.matches && t.matches('.cd-color-row input[type="text"], .cd-color-row input[type="color"]')) {
+          var row = t.closest && t.closest('.cd-color-row');
+          if (row) {
+            var hexInput = row.querySelector('input[type="text"]');
+            var pickInput = row.querySelector('input[type="color"]');
+            if (hexInput && hexInput.id) labSwatchTargetHexId = hexInput.id;
+            if (pickInput && pickInput.id) labSwatchTargetPickId = pickInput.id;
+          }
+        }
+      });
+      root.addEventListener('change', function (ev) {
+        var t = ev.target;
+        if (t && t.classList && t.classList.contains('cd-lab-palette-sel')) {
+          var v = normaliseHex(t.value);
+          var hexEl = el(t.getAttribute('data-hex-id'));
+          var pickEl = el(t.getAttribute('data-pick-id'));
+          if (v && hexEl) hexEl.value = v;
+          if (v && pickEl) pickEl.value = v;
+          t.value = '';
+          if (v) {
+            labSwatchTargetHexId = t.getAttribute('data-hex-id') || labSwatchTargetHexId;
+            labSwatchTargetPickId = t.getAttribute('data-pick-id') || labSwatchTargetPickId;
+          }
+          styleFormOnChange();
+        }
+      });
+      root.addEventListener('click', function (ev) {
+        var btn = ev.target && ev.target.closest && ev.target.closest('.cd-lab-eyedropper-btn');
+        if (!btn) return;
+        cdLabRunEyedropper(btn.getAttribute('data-hex-id'), btn.getAttribute('data-pick-id'));
+      });
+    }
+    if (el('cdLabBrandRefreshScrapesBtn')) el('cdLabBrandRefreshScrapesBtn').addEventListener('click', cdLabRefreshBrandScrapeList);
+    if (el('cdLabBrandLoadPaletteBtn')) el('cdLabBrandLoadPaletteBtn').addEventListener('click', cdLabLoadBrandScrapePaletteOnce);
+    if (el('cdLabBrandClearPaletteBtn')) el('cdLabBrandClearPaletteBtn').addEventListener('click', cdLabClearBrandPalette);
+  }
+
   function readChk(id, defaultTrue) {
     var x = el(id);
     if (!x || x.type !== 'checkbox') return defaultTrue;
@@ -509,6 +782,7 @@
       descColor: pickHex(g('cdStyleDescColorHex'), STYLE_DEFAULTS.descColor),
       ctaBg: pickHex(g('cdStyleCtaBgHex'), STYLE_DEFAULTS.ctaBg),
       ctaText: pickHex(g('cdStyleCtaTextHex'), STYLE_DEFAULTS.ctaText),
+      noImageBg: normaliseHex(g('cdStyleNoImageBgHex')) || '',
       showTitle: readChk('cdStyleShowTitle', true),
       showDesc: readChk('cdStyleShowDesc', true),
       showCta: readChk('cdStyleShowCta', true),
@@ -532,6 +806,9 @@
     set('cdStyleDescColorHex', st.descColor); set('cdStyleDescColorPick', st.descColor);
     set('cdStyleCtaBgHex', st.ctaBg); set('cdStyleCtaBgPick', st.ctaBg);
     set('cdStyleCtaTextHex', st.ctaText); set('cdStyleCtaTextPick', st.ctaText);
+    var nib = st.noImageBg != null && String(st.noImageBg).trim() ? normaliseHex(st.noImageBg) : '';
+    set('cdStyleNoImageBgHex', nib || '');
+    if (el('cdStyleNoImageBgPick')) el('cdStyleNoImageBgPick').value = nib || '#2a2d34';
     setChk('cdStyleShowTitle', st.showTitle !== false);
     setChk('cdStyleShowDesc', st.showDesc !== false);
     setChk('cdStyleShowCta', st.showCta !== false);
@@ -572,6 +849,9 @@
       banner.style.setProperty('--cd-desc-color', st.descColor);
       banner.style.setProperty('--cd-cta-bg', st.ctaBg);
       banner.style.setProperty('--cd-cta-text', st.ctaText);
+      var nib = st.noImageBg != null && String(st.noImageBg).trim() ? normaliseHex(st.noImageBg) : '';
+      if (nib) banner.style.setProperty('--cd-no-image-bg', nib);
+      else banner.style.removeProperty('--cd-no-image-bg');
     }
     var copy = mount.querySelector('.cd-banner-copy');
     if (copy) copy.style.setProperty('--cd-block-justify', st.blockY);
@@ -1116,6 +1396,7 @@
         ['cdStyleDescColorPick', 'cdStyleDescColorHex'],
         ['cdStyleCtaBgPick', 'cdStyleCtaBgHex'],
         ['cdStyleCtaTextPick', 'cdStyleCtaTextHex'],
+        ['cdStyleNoImageBgPick', 'cdStyleNoImageBgHex'],
       ];
       colorPairs.forEach(function (pair) {
         var pick = el(pair[0]);
@@ -1143,6 +1424,11 @@
       }
       if (el('cdLabStyleResetBtn')) el('cdLabStyleResetBtn').addEventListener('click', styleResetHandler);
       populateStyleSurfaceDropdown();
+      wireCdLabBrandPaletteAndStyleEditorRoot();
+      cdLabRestorePaletteSession();
+      cdLabFillPaletteSelects();
+      cdLabRenderPaletteSwatches();
+      cdLabRefreshBrandScrapeList().catch(function () {});
 
       // Auto-sanitise the Launch input so pasting the full <script> tag,
       // an http:// URL, or a bare domain still results in a clean https URL.
