@@ -168,6 +168,7 @@ DemoProfileDrawer.init({
   emailGetter: getEmail,
   messageSetter: setModMessage,
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+  fetchBrowserEcidOnInit: true,
 });
 
 /** CTA label → event type (e.g. Get started → get.started) when URL does not map to a demo type. */

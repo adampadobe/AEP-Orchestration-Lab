@@ -149,4 +149,5 @@ DemoProfileDrawer.init({
   emailGetter: getEmail,
   messageSetter: setModMessage,
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+  fetchBrowserEcidOnInit: true,
 });

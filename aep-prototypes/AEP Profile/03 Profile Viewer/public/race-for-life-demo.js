@@ -272,4 +272,5 @@ DemoProfileDrawer.init({
   emailGetter: getEmail,
   messageSetter: setRaceMessage,
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
+  fetchBrowserEcidOnInit: true,
 });

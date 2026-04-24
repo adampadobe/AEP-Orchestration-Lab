@@ -1003,6 +1003,80 @@ function patchLastProfileOrUpdate(partial) {
   }
 }
 
+/** Parse ECID from Web SDK `getIdentity` result (shape varies by SDK version). */
+function extractEcidFromAlloyGetIdentityResult(result) {
+  if (!result || typeof result !== 'object') return '';
+  const id = result.identity;
+  if (!id || typeof id !== 'object') return '';
+  const raw = id.ECID != null ? id.ECID : id.ecid;
+  if (typeof raw === 'string') {
+    const digits = raw.replace(/\D/g, '');
+    return digits.length >= 10 ? digits : '';
+  }
+  if (raw && typeof raw === 'object') {
+    const inner = raw.id != null ? String(raw.id) : '';
+    const digits = inner.replace(/\D/g, '');
+    return digits.length >= 10 ? digits : '';
+  }
+  return '';
+}
+
+function whenAlloyGlobalReady(timeoutMs) {
+  const max = timeoutMs || 25000;
+  const start = Date.now();
+  return new Promise((resolve, reject) => {
+    function tick() {
+      if (typeof global.alloy === 'function') {
+        resolve(global.alloy);
+        return;
+      }
+      if (Date.now() - start > max) {
+        reject(new Error('Alloy not available'));
+        return;
+      }
+      global.setTimeout(tick, 50);
+    }
+    tick();
+  });
+}
+
+/**
+ * When Launch + Web SDK assign a browser ECID before any profile lookup, mirror it in the strip
+ * and drawer (IDENTITY + graph) so demos work immediately.
+ */
+async function applyBrowserEcidFromAlloyIfNeeded() {
+  cacheDomRefs();
+  const cur = infoEcid ? String(infoEcid.textContent || '').trim() : '';
+  if (cur && cur !== '—' && cur !== '-' && /^\d+$/.test(cur) && cur.length >= 10) return;
+
+  let alloyFn;
+  try {
+    alloyFn = await whenAlloyGlobalReady(25000);
+  } catch {
+    return;
+  }
+
+  let result;
+  try {
+    result = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+  } catch {
+    try {
+      result = await alloyFn('getIdentity');
+    } catch {
+      return;
+    }
+  }
+
+  const ecid = extractEcidFromAlloyGetIdentityResult(result);
+  if (!ecid || ecid.length < 10) return;
+
+  if (infoEcid) infoEcid.textContent = ecid;
+  patchLastProfileOrUpdate({
+    ecid,
+    identities: [{ namespace: 'ECID', value: ecid }],
+  });
+}
+
 function initAepProfileDrawerHover() {
   const body = document.body;
   const hover = profileHoverZone;
@@ -1073,6 +1147,19 @@ function init(config) {
   }
 
   initAepProfileDrawerHover();
+
+  if (_config.fetchBrowserEcidOnInit) {
+    const run = () => {
+      void applyBrowserEcidFromAlloyIfNeeded();
+    };
+    if (typeof window !== 'undefined') {
+      if (document.readyState === 'complete') {
+        window.setTimeout(run, 400);
+      } else {
+        window.addEventListener('load', () => window.setTimeout(run, 400), { once: true });
+      }
+    }
+  }
 }
 
 const api = {
