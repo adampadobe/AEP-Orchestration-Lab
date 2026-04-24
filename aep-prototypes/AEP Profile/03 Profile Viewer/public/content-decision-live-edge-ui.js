@@ -410,18 +410,38 @@
     if (dsnDetails) dsnDetails.open = !ok;
   }
 
-  /** Same dev default as content-decision-live-edge-inline.js — only used when form datastream is empty after load. */
-  var DEFAULT_EDGE_CONFIG_ID_RESTORE = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
+  /** Per-sandbox draft datastream IDs (browser only) — key aligns with content-decision-live-edge-inline.js */
+  var LS_EDGE_BY_SANDBOX = 'aep-edge-config-id-by-sandbox';
 
+  function sandboxSlugForEdgeConfigStorage() {
+    if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
+      var s = String(AepGlobalSandbox.getSandboxName() || '').trim().toLowerCase();
+      return s ? s.replace(/[^a-z0-9._-]+/g, '_').slice(0, 120) : '';
+    }
+    return '';
+  }
+
+  function readEdgeConfigIdPerSandboxMap() {
+    try {
+      var raw = localStorage.getItem(LS_EDGE_BY_SANDBOX);
+      if (!raw) return {};
+      var o = JSON.parse(raw);
+      return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /** After Firestore load left datastream blank, restore this sandbox’s last typed draft (if any). */
   function restoreEdgeConfigIdFromLocalStorageIfEmpty() {
     var eid = el('edgeConfigId');
-    if (!eid || eid.value.trim()) return;
-    try {
-      var ls = localStorage.getItem('aep-edge-config-id');
-      eid.value = (ls && String(ls).trim()) || DEFAULT_EDGE_CONFIG_ID_RESTORE;
-    } catch (e) {
-      eid.value = DEFAULT_EDGE_CONFIG_ID_RESTORE;
-    }
+    if (!eid) return;
+    if (eid.value.trim()) return;
+    var slug = sandboxSlugForEdgeConfigStorage();
+    if (!slug) return;
+    var map = readEdgeConfigIdPerSandboxMap();
+    var v = map[slug] && String(map[slug]).trim();
+    if (v) eid.value = v;
   }
 
   function loadRecordIntoForm(rec) {

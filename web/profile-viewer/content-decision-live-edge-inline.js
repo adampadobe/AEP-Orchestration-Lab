@@ -6,7 +6,8 @@
   'use strict';
 
   var LS_EMAIL = 'aep-cd-live-email';
-  var DEFAULT_EDGE_CONFIG_ID = 'ef0ee758-260c-4596-8a97-d8474d11c0ca';
+  /** Browser draft datastream IDs keyed by sandbox (not shared across sandboxes). */
+  var LS_EDGE_BY_SANDBOX = 'aep-edge-config-id-by-sandbox';
   /** Dev fallback when no Launch URL is saved yet */
   var EDGE_LAUNCH_DEFAULT = {
     src: 'https://assets.adobedtm.com/60e5fd51ad90/a1f1412e037f/launch-e28cecaab26e-development.min.js',
@@ -96,13 +97,42 @@
     } catch (e2) {}
   }
 
+  function sandboxSlugForEdgeConfigStorage() {
+    try {
+      if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
+        var s = String(AepGlobalSandbox.getSandboxName() || '').trim().toLowerCase();
+        return s ? s.replace(/[^a-z0-9._-]+/g, '_').slice(0, 120) : '';
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  function readEdgeConfigIdPerSandboxMap() {
+    try {
+      var raw = localStorage.getItem(LS_EDGE_BY_SANDBOX);
+      if (!raw) return {};
+      var o = JSON.parse(raw);
+      return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+    } catch (e2) {
+      return {};
+    }
+  }
+
+  function writeEdgeConfigIdForSandbox(slug, value) {
+    if (!slug) return;
+    var map = readEdgeConfigIdPerSandboxMap();
+    if (value) map[slug] = value;
+    else delete map[slug];
+    try {
+      if (Object.keys(map).length) localStorage.setItem(LS_EDGE_BY_SANDBOX, JSON.stringify(map));
+      else localStorage.removeItem(LS_EDGE_BY_SANDBOX);
+    } catch (e3) {}
+  }
+
   (function initEdgeFieldsFromStorage() {
     try {
-      var ec = localStorage.getItem('aep-edge-config-id');
       var sc = localStorage.getItem('aep-decision-scopes');
       var fc = localStorage.getItem('aep-edge-force-configure');
-      var eid = document.getElementById('edgeConfigId');
-      if (eid) eid.value = ec || DEFAULT_EDGE_CONFIG_ID;
       var ds = document.getElementById('decisionScopes');
       if (ds && sc) ds.value = sc;
       var fcfg = document.getElementById('edgeForceConfigure');
@@ -118,8 +148,8 @@
     var sc = scEl ? scEl.value.trim() : '';
     var fc = fcEl ? fcEl.checked : false;
     try {
-      if (ec) localStorage.setItem('aep-edge-config-id', ec);
-      else localStorage.removeItem('aep-edge-config-id');
+      var slug = sandboxSlugForEdgeConfigStorage();
+      if (slug) writeEdgeConfigIdForSandbox(slug, ec);
       if (sc) localStorage.setItem('aep-decision-scopes', sc);
       else localStorage.removeItem('aep-decision-scopes');
       localStorage.setItem('aep-edge-force-configure', fc ? '1' : '0');
