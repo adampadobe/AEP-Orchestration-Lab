@@ -224,6 +224,15 @@ async function sendNavigatorProfileSeedToUps(ecid) {
   } catch {
     /* noop */
   }
+  if (typeof DemoProfileDrawer !== 'undefined' && typeof DemoProfileDrawer.refreshDrawerEventsForIdentity === 'function') {
+    void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecidDigits, 'ecid');
+    window.setTimeout(() => {
+      void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecidDigits, 'ecid');
+    }, 3000);
+    window.setTimeout(() => {
+      void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecidDigits, 'ecid');
+    }, 10000);
+  }
 }
 
 /** CTA label → event type (e.g. Get started → get.started) when URL does not map to a demo type. */
@@ -432,17 +441,20 @@ function getActiveEcidString() {
  */
 /** @returns {Promise<boolean>} */
 async function sendNavigatorGlobalExperienceEvent(opts) {
-  const emailForEvent =
+  let emailForEvent =
     opts.emailOverride != null && String(opts.emailOverride).trim()
       ? String(opts.emailOverride).trim()
       : getEmail().trim();
+  const ecid = getActiveEcidString();
+  if (!emailForEvent && ecid) {
+    emailForEvent = navigatorGlobalBootstrapEmailForEcid(ecid);
+  }
   if (!emailForEvent) {
-    setModMessage('Enter a customer identifier at the top before using page links.', 'error');
+    setModMessage('Enter a customer identifier at the top, or wait for the browser ECID.', 'error');
     return false;
   }
-  const ecid = getActiveEcidString();
   if (!ecid) {
-    setModMessage('Look up a profile first so a valid ECID is available to attach to the event.', 'error');
+    setModMessage('Wait for the browser ECID in the strip, or look up a profile.', 'error');
     return false;
   }
   setModMessage('Sending event to AEP…', '');
@@ -473,6 +485,15 @@ async function sendNavigatorGlobalExperienceEvent(opts) {
     if (data.transport === 'edge' && data.requestId) idPart = ' Request ID: ' + data.requestId;
     else if (data.eventId) idPart = ' Event ID: ' + data.eventId;
     setModMessage((data.message || 'Event sent to AEP.') + idPart, 'success');
+    if (typeof DemoProfileDrawer !== 'undefined' && typeof DemoProfileDrawer.refreshDrawerEventsForIdentity === 'function') {
+      void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+      window.setTimeout(() => {
+        void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+      }, 2500);
+      window.setTimeout(() => {
+        void DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
+      }, 8000);
+    }
     return true;
   } catch (err) {
     setModMessage(err.message || 'Network error', 'error');
@@ -506,12 +527,12 @@ async function sendNavigatorGlobalExperienceEvent(opts) {
     const resolved = resolveNavigatorGlobalDemoEvent(href, raw);
     e.preventDefault();
     e.stopPropagation();
-    if (!getEmail().trim()) {
-      setModMessage('Enter a customer identifier at the top before using page links.', 'error');
+    if (!getEmail().trim() && !getActiveEcidString()) {
+      setModMessage('Enter a customer identifier at the top, or wait for the browser ECID.', 'error');
       return;
     }
     if (!getActiveEcidString()) {
-      setModMessage('Look up a profile first so a valid ECID is available to attach to the event.', 'error');
+      setModMessage('Wait for the browser ECID in the strip, or look up a profile.', 'error');
       return;
     }
     window.open(href, '_blank', 'noopener,noreferrer');

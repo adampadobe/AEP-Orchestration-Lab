@@ -819,9 +819,12 @@ function filterRecentApplicationLoginForDrawer(events) {
 }
 
 /** Full event list for metrics + timeline (same API as Profile Viewer Events tab). */
-async function fetchProfileEventsList(email) {
+async function fetchProfileEventsList(email, namespaceOverride) {
   if (!email) return [];
-  const ns = getNamespaceForDrawer();
+  const ns =
+    namespaceOverride != null && String(namespaceOverride).trim()
+      ? String(namespaceOverride).trim().toLowerCase()
+      : getNamespaceForDrawer();
   try {
     const res = await fetch(
       '/api/profile/events?identifier=' +
@@ -1023,12 +1026,29 @@ async function loadProfileDataForDrawer(email, options) {
 }
 
 function patchLastProfileOrUpdate(partial) {
+  const p = partial && typeof partial === 'object' ? partial : {};
   if (lastLookedUpProfile) {
-    Object.assign(lastLookedUpProfile, partial);
+    Object.assign(lastLookedUpProfile, p);
     updateProfileDrawer(lastLookedUpProfile);
   } else {
-    updateProfileDrawer(partial);
+    lastLookedUpProfile = { ...p };
+    updateProfileDrawer(lastLookedUpProfile);
   }
+}
+
+/**
+ * Refresh LAST 5 EVENTS using a specific identity (e.g. ECID) without running full consent lookup.
+ * @param {string} identifier
+ * @param {string} [namespaceOverride] - e.g. 'ecid'
+ */
+async function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
+  const id = String(identifier || '').trim();
+  if (!id) return;
+  cacheDomRefs();
+  const eventsAll = await fetchProfileEventsList(id, namespaceOverride);
+  const eventsForTimeline = filterRecentApplicationLoginForDrawer(eventsAll);
+  const events = eventsForTimeline.slice(0, 5);
+  patchLastProfileOrUpdate({ events });
 }
 
 /** Parse ECID from Web SDK `getIdentity` result (shape varies by SDK version). */
@@ -1103,6 +1123,7 @@ async function applyBrowserEcidFromAlloyIfNeeded() {
     ecid,
     identities: [{ namespace: 'ECID', value: ecid }],
   });
+  void refreshDrawerEventsForIdentity(ecid, 'ecid');
 
   if (typeof _config.afterBrowserEcidApplied === 'function') {
     try {
@@ -1206,6 +1227,7 @@ const api = {
   getLastLookedUpProfile: () => lastLookedUpProfile,
   getLastProfile: () => lastLookedUpProfile,
   patchLastProfileOrUpdate,
+  refreshDrawerEventsForIdentity,
   initHover: initAepProfileDrawerHover,
 };
 
