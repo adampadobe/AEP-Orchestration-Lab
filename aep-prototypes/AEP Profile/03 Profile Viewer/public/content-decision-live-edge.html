@@ -981,6 +981,9 @@
       max-width: 12rem;
       cursor: pointer;
       appearance: auto;
+      /* ~2pt smaller than text inputs so “EXD” / “Content card” read cleanly in the control */
+      font-size: calc(0.8125rem - 2pt);
+      line-height: 1.2;
     }
 
     .cd-lab-placement-type-wrap {
