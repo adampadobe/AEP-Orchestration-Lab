@@ -1,6 +1,7 @@
 /**
  * Decisioning lab (Edge) — first-run wizard for sandboxes without datastream + Launch + target URL.
  * Dismiss for this browser tab only (sessionStorage); returns on next visit until lab is configured.
+ * Add ?edgeOnboarding=1 to reopen the wizard even when the lab already looks configured (support / re-tour).
  */
 (function (global) {
   'use strict';
@@ -34,11 +35,21 @@
     }
   }
 
-  /** Add ?edgeSetup=1 to the page URL to clear “configure later” for this tab and reopen the wizard when unconfigured. */
+  /** Add ?edgeSetup=1 to clear “configure later” for this tab; wizard still opens only when the lab is not yet configured. */
   function shouldClearDeferFromQuery() {
     try {
       if (typeof global.location === 'undefined' || !global.location.search) return false;
       return /(?:^|[?&])edgeSetup=1(?:&|$)/.test(global.location.search);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** Add ?edgeOnboarding=1 to always show the wizard (clears defer too), even if datastream + Launch + target are filled. */
+  function shouldForceOnboardingFromQuery() {
+    try {
+      if (typeof global.location === 'undefined' || !global.location.search) return false;
+      return /(?:^|[?&])edgeOnboarding=1(?:&|$)/.test(global.location.search);
     } catch (e) {
       return false;
     }
@@ -392,8 +403,9 @@
   }
 
   function show() {
-    if (isLabConfigured()) return;
-    if (isDeferred()) return;
+    var forceTour = shouldForceOnboardingFromQuery();
+    if (!forceTour && isLabConfigured()) return;
+    if (!forceTour && isDeferred()) return;
     stepIndex = 0;
     ensureOverlay();
     overlayEl.hidden = false;
@@ -425,6 +437,13 @@
       try {
         sessionStorage.removeItem(deferKey());
       } catch (e) {}
+    }
+    if (shouldForceOnboardingFromQuery()) {
+      try {
+        sessionStorage.removeItem(deferKey());
+      } catch (e) {}
+      show();
+      return;
     }
     if (isLabConfigured()) {
       hide();
