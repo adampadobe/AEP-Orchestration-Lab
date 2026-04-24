@@ -1199,19 +1199,6 @@
                       <option value="half">Half overlaid (card on seam)</option>
                       <option value="below">Below image</option>
                     </select>
-                    <p class="hint" style="margin:0.35rem 0 0; font-size:0.7rem;">When there is <strong>no image</strong> (overlay empty slot), the preview uses your <strong>No-image background</strong> colour below, or the default gradient if you leave it blank.</p>
-                  </div>
-                  <div class="cd-style-editor-block cd-style-editor-block--full">
-                    <strong>No-image background (overlay)</strong>
-                    <label for="cdStyleNoImageBgHex">Fill behind text when the payload has no image</label>
-                    <div class="cd-color-row">
-                      <input type="color" id="cdStyleNoImageBgPick" value="#2a2d34" title="Colour when figure is empty">
-                      <input type="text" id="cdStyleNoImageBgHex" value="" placeholder="Optional hex — empty = default gradient" maxlength="9" autocomplete="off" spellcheck="false">
-                      <select class="cd-lab-palette-sel" id="cdStyleNoImageBgPaletteSel" data-hex-id="cdStyleNoImageBgHex" data-pick-id="cdStyleNoImageBgPick" aria-label="Apply loaded brand colour to no-image background" title="From loaded palette">
-                        <option value="">Palette…</option>
-                      </select>
-                      <button type="button" class="secondary cd-lab-eyedropper-btn" data-hex-id="cdStyleNoImageBgHex" data-pick-id="cdStyleNoImageBgPick">Dropper</button>
-                    </div>
                   </div>
                   <div class="cd-style-editor-block">
                     <strong>Copy block</strong>
@@ -1221,6 +1208,16 @@
                       <option value="center">Middle</option>
                       <option value="flex-end">Bottom</option>
                     </select>
+                    <label for="cdStyleNoImageBgHex">No-image background (overlay)</label>
+                    <p class="hint" style="margin:0.2rem 0 0.25rem; font-size:0.7rem;">When the payload has no image, this colour fills behind the copy; leave blank for the default gradient.</p>
+                    <div class="cd-color-row">
+                      <input type="color" id="cdStyleNoImageBgPick" value="#2a2d34" title="Colour when there is no image">
+                      <input type="text" id="cdStyleNoImageBgHex" value="" placeholder="Optional hex — empty = default gradient" maxlength="9" autocomplete="off" spellcheck="false">
+                      <select class="cd-lab-palette-sel" id="cdStyleNoImageBgPaletteSel" data-hex-id="cdStyleNoImageBgHex" data-pick-id="cdStyleNoImageBgPick" aria-label="Apply loaded brand colour to no-image background" title="From loaded palette">
+                        <option value="">Palette…</option>
+                      </select>
+                      <button type="button" class="secondary cd-lab-eyedropper-btn" data-hex-id="cdStyleNoImageBgHex" data-pick-id="cdStyleNoImageBgPick">Dropper</button>
+                    </div>
                   </div>
                   <div class="cd-style-editor-block">
                     <strong>Title</strong>
