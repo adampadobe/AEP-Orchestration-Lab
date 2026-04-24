@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
   <link rel="stylesheet" href="brand-scraper.css?v=20260420a">
-  <link rel="stylesheet" href="image-hosting.css?v=20260427c">
+  <link rel="stylesheet" href="image-hosting.css?v=20260427d">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -23,7 +23,7 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Images per brand scrape">Image hosting</span>
+          <span class="dashboard-env-pill" title="Stable CDN library for DSN, AJO, and scraper-fed brand assets">Image hosting</span>
           <a href="brand-scraper.html" class="dashboard-topbar-link">Brand scraper</a>
           <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
         </div>
@@ -35,7 +35,7 @@
             <header class="dashboard-hero-header">
               <h2 id="bannerHeadingImageHosting" class="dashboard-hero-title">Image hosting</h2>
               <p class="dashboard-hero-subtitle">
-                Public URLs for images captured by <strong>Brand scraper</strong>. Each scrape's classified images are uploaded to Cloud Storage and served over public URLs so you can preview them here and embed them elsewhere. Images are retained for 3 days per bucket lifecycle.
+                <strong>Image hosting</strong> for Experience Platform demos where brand visuals ship on <strong>stable <code>/cdn/</code> URLs</strong> and <strong>predictable names</strong> (for example <code>logo</code>, <code>hero-banner</code>)—so you <strong>replace the file once</strong> and every surface that references the same link can pick up the new creative: <strong>DSN-driven websites and mobile experiences</strong>, <strong>Adobe Journey Optimizer</strong> content such as email headers and heroes, and any other embed you wire into a prototype or conversation. <strong>Brand scraper</strong> promotes classified assets into this library; you can also upload or restore from ZIP. In this lab, objects follow a <strong>~3 day</strong> bucket lifecycle.
               </p>
             </header>
           </div>
@@ -67,7 +67,7 @@
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
               <div>
                 <h2 id="imageHostingLibraryHeader" style="margin:0;">Current library <span id="imageHostingLibraryCountPill" class="dashboard-env-pill" style="margin-left:0.5rem;">0</span></h2>
-                <p class="hint" style="margin:0.25rem 0 0;">Curated assets for this sandbox. Upload directly or publish a classified image from a scrape below. Every file gets a stable <code>/cdn/&lt;sandbox&gt;/&lt;file&gt;</code> URL that stays the same even when you replace the image.</p>
+                <p class="hint" style="margin:0.25rem 0 0;">Sandbox library for reusable brand files. Upload, restore from ZIP, or publish from <strong>Brand scraper</strong> below. Each path keeps a stable <code>/cdn/&lt;sandbox&gt;/…</code> URL so swapping the bytes behind <code>logo</code> or <code>hero-banner</code> updates everywhere that URL is used.</p>
               </div>
               <div class="image-hosting-library-actions">
                 <button type="button" id="imageHostingDownloadBtn" class="dashboard-btn-outline">Download as <code>logo_…</code></button>
@@ -180,6 +180,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script src="image-hosting.js?v=20260427c"></script>
+  <script src="image-hosting.js?v=20260427d"></script>
 </body>
 </html>
