@@ -1534,7 +1534,7 @@
   async function downloadLibrary() {
     var sb = getSandbox();
     if (!sb) { setStatus('Select a sandbox first.', 'err'); return; }
-    var customer = window.prompt('Download the library as logo_<name>.zip\n\nEnter a customer name (letters, numbers, hyphens):', '');
+    var customer = window.prompt('Backup images as logo_<name>.zip\n\nEnter a customer name (letters, numbers, hyphens):', '');
     if (customer == null) return;
     customer = String(customer).trim();
     if (!customer) customer = sb;
