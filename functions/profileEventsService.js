@@ -316,20 +316,39 @@ async function buildEventsPayload(identityValue, namespace, sandboxName, token, 
     }
   }
 
-  // Fetch profile first to resolve ECID for the events lookup
-  const profileWithEvents = await getProfileWithExperienceEvents(identityValue, 1, sandboxName, token, clientId, orgId, ns);
+  // Fetch profile first to resolve ECID for the events lookup. ECID namespace may have no UPS entity yet
+  // (browser-minted ID) — do not 500; fall back to querying experience events by ECID directly.
+  let profileWithEvents = {};
+  try {
+    profileWithEvents = await getProfileWithExperienceEvents(identityValue, 1, sandboxName, token, clientId, orgId, ns);
+  } catch (err) {
+    if (ns !== 'ecid') throw err;
+    profileWithEvents = {};
+  }
   const entityId = Object.keys(profileWithEvents).filter((k) => !k.startsWith('_'))[0];
   const entityPayload = entityId ? profileWithEvents[entityId] : null;
   const entity = entityPayload?.entity ?? entityPayload;
-  const ecid =
+  const ecidFromProfile =
     entity && (entity._demoemea?.identification?.core?.ecid ?? entity._demoemea?.identification?.core?.ECID != null)
       ? toEcidString(entity._demoemea.identification.core.ecid ?? entity._demoemea.identification.core.ECID)
       : null;
+  const idDigits = String(identityValue || '').replace(/\D/g, '');
+  const ecid =
+    ecidFromProfile && ecidFromProfile.length >= 10
+      ? ecidFromProfile
+      : ns === 'ecid' && idDigits.length >= 10
+        ? idDigits
+        : null;
   const relatedId = ecid && ecid.length >= 10 ? ecid : identityValue;
-  const relatedNS = ecid && ecid.length >= 10 ? 'ECID' : (isEmailLookup ? 'email' : ns);
+  const relatedNS = ecid && ecid.length >= 10 ? 'ECID' : isEmailLookup ? 'email' : ns;
 
   // Always use the paginating experience events endpoint
-  const raw = await getProfileExperienceEvents(relatedId, relatedNS, sandboxName, token, clientId, orgId);
+  let raw;
+  try {
+    raw = await getProfileExperienceEvents(relatedId, relatedNS, sandboxName, token, clientId, orgId);
+  } catch {
+    return { email: identityValue, events: [], source: 'experience_events_unavailable' };
+  }
   const children = raw.children || raw.results || [];
   const events = children.map((child) => {
     const eventEntity = child.entity || child;
