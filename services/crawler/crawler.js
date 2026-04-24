@@ -8,6 +8,7 @@
 
 const { chromium } = require('playwright');
 const E = require('./extractors');
+const tagAudit = require('./tagAudit');
 
 const DEFAULT_PAGE_TIMEOUT_MS = 25000;
 const MAX_DISCOVERED = 200;
@@ -34,8 +35,53 @@ function prioritise(urls) {
   return urls.slice().sort((a, b) => score(a) - score(b));
 }
 
-async function tryFetchPage(context, url, { pageTimeout } = {}) {
+function shouldLogNetworkRequest(pageUrl, reqUrl, resourceType) {
+  if (tagAudit.classifyUrl(reqUrl)) return true;
+  if (resourceType === 'script' && tagAudit.isThirdParty(pageUrl, reqUrl)) return true;
+  if ((resourceType === 'xhr' || resourceType === 'fetch' || resourceType === 'ping') &&
+      tagAudit.isThirdParty(pageUrl, reqUrl)) {
+    if (/collect|analytics|beacon|\/b\/ss\/|\/ss\/|pixel|events?|\/tr\?|ads|conversion|omtrdc|demdex/i.test(reqUrl)) return true;
+  }
+  return false;
+}
+
+async function tryFetchPage(context, url, { pageTimeout, tagAudit: doTagAudit = true } = {}) {
   const page = await context.newPage();
+  const networkLog = [];
+  const consoleErrors = [];
+
+  const onConsole = (msg) => {
+    if (!doTagAudit) return;
+    if (msg.type() === 'error' && consoleErrors.length < 22) {
+      consoleErrors.push({ type: msg.type(), text: tagAudit.trunc(msg.text(), 800) });
+    }
+  };
+  const onReqFin = (request) => {
+    if (!doTagAudit || networkLog.length >= tagAudit.MAX_NETWORK_ROWS) return;
+    try {
+      const reqUrl = request.url();
+      const rt = request.resourceType();
+      if (!shouldLogNetworkRequest(url, reqUrl, rt)) return;
+      const resp = request.response();
+      const status = resp ? resp.status() : 0;
+      let durationMs = 0;
+      try {
+        const t = request.timing();
+        durationMs = Math.max(0, Math.round(t.responseEnd || 0));
+      } catch (_e) { /* ignore */ }
+      const cls = tagAudit.classifyUrl(reqUrl);
+      networkLog.push({
+        url: reqUrl,
+        resourceType: rt,
+        status,
+        durationMs,
+        vendorId: cls ? cls.id : null,
+      });
+    } catch (_e) { /* ignore */ }
+  };
+
+  page.on('console', onConsole);
+  page.on('requestfinished', onReqFin);
   try {
     const response = await page.goto(url, {
       waitUntil: 'domcontentloaded',
@@ -47,20 +93,61 @@ async function tryFetchPage(context, url, { pageTimeout } = {}) {
     } catch (_e) { /* ignore — domcontentloaded is enough */ }
     const status = response ? response.status() : 0;
     if (status && status >= 400) {
-      return { status, html: '', reason: 'http_error', error: `HTTP ${status}` };
+      return { status, html: '', reason: 'http_error', error: `HTTP ${status}`, tagAudit: null };
     }
+
+    let probe = null;
+    let navigationTiming = null;
+    if (doTagAudit) {
+      try {
+        probe = await page.evaluate(() => ({
+          dataLayerLength: Array.isArray(window.dataLayer)
+            ? window.dataLayer.length
+            : (window.dataLayer == null ? null : 1),
+          hasSatellite: !!(window._satellite && typeof window._satellite.track === 'function'),
+          satelliteBuild: (window._satellite && window._satellite.buildInfo &&
+            (window._satellite.buildInfo.buildDate || window._satellite.buildInfo.environment)) || null,
+          alloyVersion: (typeof window.alloy === 'function') ? 'runtime' : null,
+        }));
+      } catch (_e) { probe = null; }
+      try {
+        const nt = await page.evaluate(() => {
+          const n = performance.getEntriesByType('navigation')[0];
+          if (!n) return null;
+          return {
+            domContentLoaded: Math.round(n.domContentLoadedEventEnd || 0),
+            loadEventEnd: Math.round(n.loadEventEnd || 0),
+            transferSize: n.transferSize != null ? n.transferSize : null,
+          };
+        });
+        navigationTiming = nt;
+      } catch (_e) { navigationTiming = null; }
+    }
+
     const html = await page.content();
-    return { status: status || 200, html, reason: 'ok' };
+    const pageTagAudit = doTagAudit
+      ? tagAudit.buildPlaywrightPageAudit({
+        pageUrl: url,
+        html,
+        networkLog,
+        consoleErrors,
+        probe,
+        navigationTiming,
+      })
+      : null;
+    return { status: status || 200, html, reason: 'ok', tagAudit: pageTagAudit };
   } catch (e) {
     const msg = String((e && e.message) || e);
     const reason = /timeout/i.test(msg) ? 'timeout' : 'network';
-    return { status: 0, html: '', reason, error: msg };
+    return { status: 0, html: '', reason, error: msg, tagAudit: null };
   } finally {
+    page.off('console', onConsole);
+    page.off('requestfinished', onReqFin);
     await page.close().catch(() => {});
   }
 }
 
-async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_MS } = {}) {
+async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_MS, tagAudit: runTagAudit = true } = {}) {
   const baseUrl = normaliseUrl(rawUrl);
   const browser = await chromium.launch({
     headless: true,
@@ -93,7 +180,7 @@ async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_
       if (visited.has(current)) continue;
       visited.add(current);
 
-      const { status, html, reason, error } = await tryFetchPage(context, current, { pageTimeout });
+      const { status, html, reason, error, tagAudit: pageTagAudit } = await tryFetchPage(context, current, { pageTimeout, tagAudit: runTagAudit });
       if (reason !== 'ok' || !html) {
         failures.push({ url: current, status, reason, error });
         // For the seed URL, try the www-toggle once.
@@ -103,11 +190,11 @@ async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_
             const altHost = u.hostname.startsWith('www.') ? u.hostname.slice(4) : 'www.' + u.hostname;
             const altUrl = u.protocol + '//' + altHost + u.pathname;
             if (!visited.has(altUrl)) {
-              const alt = await tryFetchPage(context, altUrl, { pageTimeout });
+              const alt = await tryFetchPage(context, altUrl, { pageTimeout, tagAudit: runTagAudit });
               visited.add(altUrl);
               if (alt.reason === 'ok' && alt.html) {
                 discovered.add(altUrl);
-                pages.push(buildPage(altUrl, alt.status, alt.html, baseUrl));
+                pages.push(buildPage(altUrl, alt.status, alt.html, baseUrl, alt.tagAudit));
                 if (!brandName) brandName = E.extractBrandName(alt.html, baseUrl);
                 for (const l of E.extractLinks(alt.html, altUrl, baseUrl)) {
                   if (discovered.size < MAX_DISCOVERED) discovered.add(l);
@@ -123,7 +210,7 @@ async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_
         continue;
       }
 
-      pages.push(buildPage(current, status, html, baseUrl));
+      pages.push(buildPage(current, status, html, baseUrl, pageTagAudit));
       if (!brandName) brandName = E.extractBrandName(html, baseUrl);
       const links = E.extractLinks(html, current, baseUrl);
       for (const l of links) {
@@ -138,6 +225,8 @@ async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_
       brandName = host.charAt(0).toUpperCase() + host.slice(1);
     }
 
+    const tagAuditSummary = runTagAudit ? tagAudit.summarizeAcrossPages(pages) : null;
+
     return {
       brandName,
       baseUrl,
@@ -146,15 +235,16 @@ async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_
       assets: E.aggregateAssets(pages),
       failures,
       engine: 'playwright',
+      tagAuditSummary,
     };
   } finally {
     await browser.close().catch(() => {});
   }
 }
 
-function buildPage(url, status, html, baseUrl) {
+function buildPage(url, status, html, baseUrl, pageTagAudit) {
   const text = E.extractText(html);
-  return {
+  const row = {
     url,
     status,
     title: E.extractTitle(html),
@@ -167,6 +257,8 @@ function buildPage(url, status, html, baseUrl) {
     _colours: E.extractColours(html),
     _fonts: E.extractFonts(html),
   };
+  if (pageTagAudit) row.tagAudit = pageTagAudit;
+  return row;
 }
 
 module.exports = { crawl };

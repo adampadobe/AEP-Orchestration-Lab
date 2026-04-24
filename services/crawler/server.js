@@ -21,7 +21,8 @@ app.post('/crawl', async (req, res) => {
     if (!url) { res.status(400).json({ error: 'url is required' }); return; }
     const maxPages = Math.min(Math.max(Number(body.maxPages) || 5, 1), 25);
     const pageTimeout = Math.min(Math.max(Number(body.pageTimeout) || 25000, 5000), 60000);
-    const result = await crawl(url, { maxPages, pageTimeout });
+    const tagAudit = body.tagAudit !== false;
+    const result = await crawl(url, { maxPages, pageTimeout, tagAudit });
     result.elapsedMs = Date.now() - started;
     res.status(200).json(result);
   } catch (e) {

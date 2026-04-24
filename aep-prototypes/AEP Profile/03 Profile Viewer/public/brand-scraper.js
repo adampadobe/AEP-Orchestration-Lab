@@ -59,10 +59,10 @@
   }
 
   const LS_RUN_OPTIONS = 'aepBrandScraperRunOptions';
-  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments', 'stakeholders'];
+  const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments', 'stakeholders', 'tagAudit'];
 
   function loadRunOptions() {
-    const defaults = { analysis: true, personas: true, campaigns: true, segments: true, stakeholders: true };
+    const defaults = { analysis: true, personas: true, campaigns: true, segments: true, stakeholders: true, tagAudit: true };
     try {
       const raw = localStorage.getItem(LS_RUN_OPTIONS);
       if (!raw) return defaults;
@@ -344,8 +344,10 @@
 
   function estimateAnalyzeDurationMs(opts) {
     // Rough per-phase Gemini Pro / Flash durations (seconds) observed in prod.
-    const crawl = opts.crawler === 'js' ? 15 : 5;
-    const includes = opts.include || {};
+    let crawl = opts.crawler === 'js' ? 15 : 5;
+    const inc = opts.include || {};
+    if (inc.tagAudit !== false && opts.crawler === 'js') crawl += 3;
+    const includes = inc;
     const trio = [includes.analysis, includes.personas, includes.campaigns, includes.stakeholders]
       .filter(Boolean).length;
     // trio members run in parallel — wall time ≈ max of them, not sum.
@@ -854,20 +856,59 @@
     '</section>';
   }
 
+  function renderTagAuditSummary(s) {
+    if (!s) return '';
+    const opps = Array.isArray(s.opportunities) ? s.opportunities : [];
+    const tags = Array.isArray(s.vendorTags) ? s.vendorTags : [];
+    if (!tags.length && !opps.length && !s.pagesWithConsoleErrors) return '';
+    const chips = tags.map(function (t) {
+      return '<span class="brand-scraper-chip brand-scraper-chip--tag">' + esc(t) + '</span>';
+    }).join(' ');
+    const mix = s.engineMix || {};
+    const mixLine = (mix.playwright || mix.fetch)
+      ? ('<p class="brand-scraper-result-muted">Audit depth: ' +
+        (mix.playwright ? mix.playwright + ' page(s) JS-rendered' : '') +
+        (mix.playwright && mix.fetch ? '; ' : '') +
+        (mix.fetch ? mix.fetch + ' page(s) HTML-only' : '') +
+        '.</p>')
+      : '';
+    return '<section class="brand-scraper-result-block brand-scraper-tag-audit">' +
+      '<h4>Tag &amp; analytics snapshot</h4>' +
+      '<p class="brand-scraper-result-muted">Directional signals from the crawl sample — not a certified compliance audit. Prefer <strong>JS-rendered crawl</strong> for network timings, duplicate collectors, and console errors.</p>' +
+      mixLine +
+      (tags.length ? '<p class="brand-scraper-result-muted"><strong>Detected</strong></p><p class="brand-scraper-tag-chips">' + chips + '</p>' : '') +
+      (s.pagesWithConsoleErrors ? '<p class="brand-scraper-result-warn">Browser console errors on ' + s.pagesWithConsoleErrors + ' page(s) while loading.</p>' : '') +
+      (opps.length ? (
+        '<details class="brand-scraper-tag-opps">' +
+          '<summary>Conversation starters (' + opps.length + ')</summary>' +
+          '<ul>' + opps.map(function (o) { return '<li>' + esc(o) + '</li>'; }).join('') + '</ul>' +
+        '</details>'
+      ) : '') +
+    '</section>';
+  }
+
   function renderCrawl(c) {
     if (!c || !Array.isArray(c.pages)) return '';
-    const rows = c.pages.map(p => (
-      '<tr>' +
-        '<td><a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.url) + '</a></td>' +
-        '<td>' + esc(p.title || '—') + '</td>' +
-        '<td class="brand-scraper-num">' + esc(p.status) + '</td>' +
-        '<td class="brand-scraper-num">' + esc((p.textLength || 0).toLocaleString()) + '</td>' +
-      '</tr>'
-    )).join('');
+    const rows = c.pages.map(function (p) {
+      const ta = p.tagAudit;
+      const mode = ta && ta.mode ? ta.mode : '—';
+      const errs = ta && ta.consoleErrors ? ta.consoleErrors.length : 0;
+      const errCell = errs ? ('<span class="brand-scraper-result-warn">' + errs + '</span>') : '0';
+      return (
+        '<tr>' +
+          '<td><a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.url) + '</a></td>' +
+          '<td>' + esc(p.title || '—') + '</td>' +
+          '<td class="brand-scraper-num">' + esc(p.status) + '</td>' +
+          '<td class="brand-scraper-num">' + esc((p.textLength || 0).toLocaleString()) + '</td>' +
+          '<td><code>' + esc(mode) + '</code></td>' +
+          '<td class="brand-scraper-num">' + errCell + '</td>' +
+        '</tr>'
+      );
+    }).join('');
     return '<section class="brand-scraper-result-block">' +
       '<h4>Crawl summary</h4>' +
       '<p class="brand-scraper-result-muted">' + (c.pagesScraped || 0) + ' pages scraped, ' + (c.totalDiscovered || 0) + ' URLs discovered.</p>' +
-      '<table class="brand-scraper-table"><thead><tr><th>URL</th><th>Title</th><th>Status</th><th>Chars</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<table class="brand-scraper-table"><thead><tr><th>URL</th><th>Title</th><th>Status</th><th>Chars</th><th>Tag audit</th><th>JS errors</th></tr></thead><tbody>' + rows + '</tbody></table>' +
     '</section>';
   }
 
@@ -908,6 +949,7 @@
       renderCampaigns(data.campaigns) +
       renderPersonas(data.personas) +
       renderAssets(crawl && crawl.assets) +
+      renderTagAuditSummary(crawl && crawl.tagAuditSummary) +
       renderCrawl(crawl)
     );
     resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });

@@ -1453,6 +1453,42 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   border-color: color-mix(in srgb, var(--dash-blue) 35%, var(--dash-border));
 }
 
+.brand-scraper-chip--tag {
+  background: color-mix(in srgb, #0d9488 14%, var(--dash-surface));
+  color: #0f766e;
+  border-color: color-mix(in srgb, #0d9488 32%, var(--dash-border));
+}
+
+.brand-scraper-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.brand-scraper-tag-audit .brand-scraper-tag-opps {
+  margin-top: 10px;
+}
+
+.brand-scraper-tag-opps summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.brand-scraper-tag-opps ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--dash-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.brand-scraper-result-warn {
+  color: #b45309;
+  font-weight: 600;
+}
+
 .brand-scraper-asset-row {
   display: flex;
   flex-direction: column;

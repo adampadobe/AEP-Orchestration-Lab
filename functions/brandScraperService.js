@@ -1,6 +1,6 @@
 /**
  * Brand Scraper — first-slice port of aep-prototypes/brandscrape-studio.
- * Vertical: fetch-based crawler (no Playwright yet) + Anthropic brand analysis.
+ * Vertical: fetch-based crawler + optional Playwright (Cloud Run) + tag/analytics audit + LLM brand analysis.
  * Intentionally dependency-free (no cheerio, no SDK) — regex-level HTML parsing is
  * good enough for the public pages we target here, and keeps the function lean.
  */
@@ -10,11 +10,12 @@ const brandScrapeStore = require('./brandScrapeStore');
 const assetsV2 = require('./brandScraperAssetsV2');
 const exportKit = require('./brandScraperExport');
 const modelConfigStore = require('./brandScraperModelConfigStore');
+const tagAudit = require('./brandScraperTagAudit');
 
 const PLAYWRIGHT_CRAWLER_URL = process.env.PLAYWRIGHT_CRAWLER_URL
   || 'https://brand-scraper-crawler-109406613852.us-central1.run.app';
 
-async function crawlViaPlaywrightService(url, { maxPages } = {}) {
+async function crawlViaPlaywrightService(url, { maxPages, tagAudit: runTagAudit = true } = {}) {
   const { GoogleAuth } = require('google-auth-library');
   const auth = new GoogleAuth();
   const client = await auth.getIdTokenClient(PLAYWRIGHT_CRAWLER_URL);
@@ -22,7 +23,7 @@ async function crawlViaPlaywrightService(url, { maxPages } = {}) {
     url: PLAYWRIGHT_CRAWLER_URL + '/crawl',
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    data: { url, maxPages },
+    data: { url, maxPages, tagAudit: runTagAudit },
     timeout: 280000,
   });
   return resp.data;
@@ -341,7 +342,7 @@ function prioritise(urls, baseUrl) {
   return urls.slice().sort((a, b) => score(a) - score(b));
 }
 
-async function crawlSite(rawUrl, { maxPages = MAX_PAGES } = {}) {
+async function crawlSite(rawUrl, { maxPages = MAX_PAGES, tagAudit: runTagAudit = true } = {}) {
   const baseUrl = normaliseUrl(rawUrl);
   const visited = new Set();
   const discovered = new Set([baseUrl]);
@@ -402,7 +403,7 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES } = {}) {
     // Re-prioritise queue after every page so priority paths bubble up
     queue.splice(0, queue.length, ...prioritise(queue, baseUrl));
 
-    pages.push({
+    const pageRow = {
       url: current,
       status,
       title: extractTitle(html),
@@ -414,7 +415,9 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES } = {}) {
       _ogImages: extractOgImages(html, current),
       _colours: extractColours(html),
       _fonts: extractFonts(html),
-    });
+    };
+    if (runTagAudit) pageRow.tagAudit = tagAudit.buildFetchPageAudit(html, current);
+    pages.push(pageRow);
   }
 
   const assets = aggregateAssets(pages);
@@ -424,6 +427,8 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES } = {}) {
     brandName = host.charAt(0).toUpperCase() + host.slice(1);
   }
 
+  const tagAuditSummary = runTagAudit ? tagAudit.summarizeAcrossPages(pages) : null;
+
   return {
     brandName,
     baseUrl,
@@ -431,6 +436,7 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES } = {}) {
     totalDiscovered: discovered.size,
     assets,
     failures,
+    tagAuditSummary,
   };
 }
 
@@ -1054,10 +1060,14 @@ function mergeScrapeRecords(existing, fresh) {
       .map(([value, count]) => ({ value, count }));
   };
 
+  const mergedPages = Array.from(pagesByUrl.values());
+  const mergedTagAuditSummary = tagAudit.summarizeAcrossPages(mergedPages) || null;
+
   out.crawlSummary = {
-    pagesScraped: pagesByUrl.size,
+    pagesScraped: mergedPages.length,
     totalDiscovered: Math.max((e.crawlSummary && e.crawlSummary.totalDiscovered) || 0, (f.crawlSummary && f.crawlSummary.totalDiscovered) || 0),
-    pages: Array.from(pagesByUrl.values()),
+    pages: mergedPages,
+    tagAuditSummary: mergedTagAuditSummary,
     assets: {
       images: mergeByKey(eAssets.images, fAssets.images, x => x.src).slice(0, 120),
       favicons: mergeByKey(eAssets.favicons, fAssets.favicons, x => x.href),
@@ -1159,9 +1169,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     let crawl;
     try {
       if (wantJs) {
-        crawl = await crawlViaPlaywrightService(url, { maxPages: maxPages || 5 });
+        crawl = await crawlViaPlaywrightService(url, { maxPages: maxPages || 5, tagAudit: wantTagAudit });
       } else {
-        crawl = await crawlSite(url, maxPages ? { maxPages } : undefined);
+        crawl = await crawlSite(url, { ...(maxPages ? { maxPages } : {}), tagAudit: wantTagAudit });
       }
     } catch (e) {
       res.status(502).json({ error: 'Crawler failed: ' + String((e && e.message) || e) });
@@ -1196,6 +1206,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     // Any key omitted or truthy → run; false → skip (returns {skipped:true} so UI knows).
     const inc = (key) => !body.include || body.include[key] !== false;
     const skipped = (reason) => ({ skipped: true, reason: reason || 'disabled by user' });
+    const wantTagAudit = inc('tagAudit');
 
     let analysis = null;
     let analysisError = null;
@@ -1261,8 +1272,10 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       pagesScraped: crawl.pages.length,
       totalDiscovered: crawl.totalDiscovered,
       engine: crawl.engine || 'fetch',
+      tagAuditSummary: crawl.tagAuditSummary || null,
       pages: crawl.pages.map(p => ({
         url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
+        tagAudit: p.tagAudit || null,
       })),
       assets: crawl.assets,
     };
