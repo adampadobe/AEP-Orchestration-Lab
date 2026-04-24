@@ -161,7 +161,7 @@
                 <li><a href="consent.html">Consent</a></li>
                 <li class="dashboard-link-list-heading">Decisioning</li>
                 <li data-aep-nav-indev-li="decisioningLab"><a href="content-decision-live.html">Decisioning lab (in development)</a></li>
-                <li data-aep-nav-indev-li="decisioningLabEdge"><a href="content-decision-live-edge.html">Decisioning lab (Edge) (in development)</a></li>
+                <li data-aep-nav-sidebar-hide-key="decisioningLabEdge"><a href="content-decision-live-edge.html">Decisioning lab (Edge)</a></li>
                 <li><a href="decisioning-catalog.html">Decisioning catalog</a></li>
                 <li><a href="decisioning-visualiser.html">Decisioning visualiser</a></li>
                 <li class="dashboard-link-list-heading">Architecture</li>
@@ -229,9 +229,20 @@
           });
         } catch (e) {}
       }
+      function syncHomeSidebarHideKeys() {
+        try {
+          var api = window.AepNavInDev;
+          if (!api || typeof api.isNavInDevHidden !== 'function') return;
+          document.querySelectorAll('[data-aep-nav-sidebar-hide-key]').forEach(function (li) {
+            var key = li.getAttribute('data-aep-nav-sidebar-hide-key');
+            li.hidden = api.isNavInDevHidden(key);
+          });
+        } catch (e) {}
+      }
       function syncHome() {
         syncHomeDemos();
         syncHomeInDevLinks();
+        syncHomeSidebarHideKeys();
       }
       document.addEventListener('DOMContentLoaded', syncHome);
       syncHomeDemos();

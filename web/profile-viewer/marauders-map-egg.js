@@ -1,6 +1,6 @@
 /**
  * Marauder’s Map easter egg — tiny speck(s), oath, map, register (notify founders).
- * Per-page copy: data-map-egg-flavor="home|journeys|catalog|profile" on .map-egg-speck
+ * Per-page copy: data-map-egg-flavor="home|journeys|catalog|profile|edge" on .map-egg-speck
  */
 (function () {
   'use strict';
@@ -124,6 +124,35 @@
         'If attributes disagree, trust the sandbox. If sandboxes disagree, trust coffee.',
       registerBlurb:
         'You found the map on the profile pensieve—leave your name; the founders enjoy knowing who digs past the fold.',
+    },
+    edge: {
+      introTag: 'Messrs. of the edge shard',
+      coverProudly: 'proudly render',
+      oathHint:
+        'The network hums; the parchment wants the oath before it spills propositions across your mounts.',
+      innerLead:
+        'Here decisions leave the hub quietly and arrive as <em>propositions</em>—Launch whispers, Alloy listens, and three surfaces pretend they were always meant to match. The map does not cache your datastream; it merely approves of low latency.',
+      charms: [
+        {
+          rune: '⎚',
+          title: 'sendEvent',
+          text: 'One polite envelope to the Edge; may your identity namespaces travel first-class.',
+        },
+        {
+          rune: '◇',
+          title: 'Placements',
+          text: 'Fragments find their slots like owls to roosts—mind the schema of your surfaces.',
+        },
+        {
+          rune: '✦',
+          title: 'applyPropositions',
+          text: 'When the response returns, DOM updates are the applause line.',
+        },
+      ],
+      signoff:
+        'If the hero stays blank, check the placement, the sandbox, and whether the Ministry of Consent signed off.',
+      registerBlurb:
+        'You spotted the fleck beside the lab setup—sign the register; edge cartographers raise a mug to you.',
     },
   };
 
