@@ -95,9 +95,8 @@
       var type;
       if (typeIn && typeIn.type === 'checkbox') {
         type = typeIn.checked ? 'contentCard' : 'exd';
-      } else if (typeIn && typeIn.value) {
-        // Back-compat with the old <select> (if any row was rendered before this patch).
-        type = typeIn.value;
+      } else if (typeIn && typeIn.value != null && String(typeIn.value)) {
+        type = String(typeIn.value);
       } else {
         type = inferPlacementTypeFromFragment(frag);
       }
@@ -215,10 +214,7 @@
     row.appendChild(field('Fragment (hash)', 'cd-lab-placement-fragment', p.fragment, 'e.g. hero-banner'));
     row.appendChild(field('Label', 'cd-lab-placement-label', p.label, 'Preview title'));
 
-    // Placement type — compact two-state toggle. Left = EXD (code-based),
-    // right = Content card (AJO message feed). Drives which channel
-    // config the user needs in AJO AND which browser render path the
-    // proposition takes when it comes back.
+    // Placement type — EXD (code-based) vs content card (AJO message feed).
     var typeWrap = document.createElement('div');
     typeWrap.className = 'cd-lab-placement-type-wrap';
     var typeLab = document.createElement('label');
@@ -226,31 +222,23 @@
     typeLab.textContent = 'Type';
     typeWrap.appendChild(typeLab);
 
-    var toggle = document.createElement('label');
-    toggle.className = 'cd-lab-placement-type-toggle';
-    toggle.setAttribute('title', 'EXD = code-based experience (flat JSON). Content card = AJO message feed with buttons, dismiss, nested title/body.');
-    var toggleInput = document.createElement('input');
-    toggleInput.type = 'checkbox';
-    toggleInput.id = uid + '_type';
-    toggleInput.className = 'cd-lab-placement-type';
+    var typeSel = document.createElement('select');
+    typeSel.id = uid + '_type';
+    typeSel.className = 'cd-lab-placement-type';
+    typeSel.title =
+      'EXD = code-based experience (flat JSON). Content card = AJO message feed (buttons, dismiss, nested title/body).';
     var initialType = p.type;
     if (PLACEMENT_TYPES.indexOf(initialType) === -1) initialType = inferPlacementTypeFromFragment(p.fragment);
-    toggleInput.checked = initialType === 'contentCard';
-    toggleInput.setAttribute('data-type-exd', 'exd');
-    toggleInput.setAttribute('data-type-card', 'contentCard');
-    var left = document.createElement('span');
-    left.className = 'cd-lab-placement-type-seg cd-lab-placement-type-seg--left';
-    left.textContent = 'EXD';
-    var right = document.createElement('span');
-    right.className = 'cd-lab-placement-type-seg cd-lab-placement-type-seg--right';
-    right.textContent = 'Content card';
-    var pill = document.createElement('span');
-    pill.className = 'cd-lab-placement-type-pill';
-    toggle.appendChild(toggleInput);
-    toggle.appendChild(left);
-    toggle.appendChild(right);
-    toggle.appendChild(pill);
-    typeWrap.appendChild(toggle);
+    var oExd = document.createElement('option');
+    oExd.value = 'exd';
+    oExd.textContent = 'EXD';
+    var oCard = document.createElement('option');
+    oCard.value = 'contentCard';
+    oCard.textContent = 'Content card';
+    typeSel.appendChild(oExd);
+    typeSel.appendChild(oCard);
+    typeSel.value = initialType === 'contentCard' ? 'contentCard' : 'exd';
+    typeWrap.appendChild(typeSel);
     row.appendChild(typeWrap);
 
     var rm = document.createElement('button');
@@ -372,6 +360,7 @@
     // the user can immediately start styling a new surface without
     // a manual refresh. Preserves current selection when still valid.
     try { populateStyleSurfaceDropdown(); } catch (_e) {}
+    try { applySurfaceStylesToMounts(); } catch (_e2) {}
   }
 
   function toggleScopesRow() {
@@ -550,6 +539,26 @@
 
   var VIS_CLASS = ['cd-edge-vis--no-title', 'cd-edge-vis--no-desc', 'cd-edge-vis--no-cta', 'cd-edge-vis--no-fig'];
 
+  /** True when this mount is the TopRibbon code surface (by key or #fragment). */
+  function mountUsesTopRibbonSurface(mount) {
+    if (!mount || !mount.id || mount.id.indexOf('cd-edge-') !== 0) return false;
+    var suffix = mount.id.slice('cd-edge-'.length);
+    var list = currentPlacementList();
+    var i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].key !== suffix) continue;
+      var f = String(list[i].fragment || '')
+        .trim()
+        .replace(/^#/, '')
+        .toLowerCase();
+      var k = String(list[i].key || '')
+        .trim()
+        .toLowerCase();
+      return f === 'topribbon' || k === 'topribbon';
+    }
+    return mount.id === 'cd-edge-topRibbon';
+  }
+
   /** Apply one style entry's CSS custom properties + layout class to a mount. */
   function applyStyleToMount(mount, st) {
     if (!mount || !st) return;
@@ -577,12 +586,20 @@
     if (st.showCta === false) mount.classList.add('cd-edge-vis--no-cta');
     if (st.showImage === false) mount.classList.add('cd-edge-vis--no-fig');
     var mh = sanitizeMountMinHeight(st.mountMinHeight);
-    mount.style.minHeight = mh || '';
-  }
-
-  function currentPlacementList() {
-    var arr = getPlacementsFromForm();
-    return Array.isArray(arr) && arr.length ? arr : DEFAULT_PLACEMENTS.slice();
+    var ribbonFixed = mountUsesTopRibbonSurface(mount) && !!mh;
+    if (ribbonFixed) {
+      mount.classList.add('cd-edge-mount-body--ribbon-fixed');
+      mount.style.minHeight = mh;
+      mount.style.maxHeight = mh;
+      mount.style.height = mh;
+      mount.style.overflow = 'hidden';
+    } else {
+      mount.classList.remove('cd-edge-mount-body--ribbon-fixed');
+      mount.style.maxHeight = '';
+      mount.style.height = '';
+      mount.style.overflow = '';
+      mount.style.minHeight = mh || '';
+    }
   }
 
   function populateStyleSurfaceDropdown() {

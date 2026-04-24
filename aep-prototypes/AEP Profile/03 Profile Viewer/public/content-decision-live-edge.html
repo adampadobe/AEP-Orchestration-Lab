@@ -162,6 +162,41 @@
       color: var(--text);
       box-sizing: border-box;
     }
+    .cd-edge-mount-body.cd-edge-mount-body--ribbon-fixed {
+      padding: 0.2rem 0.65rem;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+    .cd-edge-mount-body--ribbon-fixed .cd-banner.cd-banner--overlay {
+      min-height: 0 !important;
+      max-height: 100%;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
+    .cd-edge-mount-body--ribbon-fixed .cd-banner--overlay .cd-banner-copy {
+      min-height: 0 !important;
+      flex: 1 1 auto;
+      max-height: 100%;
+      overflow: hidden;
+      padding: 0.2rem 0.5rem !important;
+      gap: 0.2rem !important;
+      justify-content: center;
+    }
+    .cd-edge-mount-body--ribbon-fixed .cd-slot--title,
+    .cd-edge-mount-body--ribbon-fixed .cd-slot--desc {
+      min-width: 0;
+      overflow: hidden;
+    }
+    .cd-edge-mount-body--ribbon-fixed .cd-slot-title,
+    .cd-edge-mount-body--ribbon-fixed .cd-slot-desc {
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.75rem;
+      line-height: 1.25;
+    }
     .cd-edge-mount-body:empty::before {
       content: '—';
       color: var(--muted);
@@ -869,46 +904,16 @@
     .cd-lab-placement-row label { margin-bottom: 0.25rem; }
     .cd-lab-placement-row input, .cd-lab-placement-row select { margin-bottom: 0; }
 
-    /* Type toggle — two-segment pill, same visual height as a text input
-       so the placement row aligns cleanly on the baseline. */
-    .cd-lab-placement-type-wrap { display: flex; flex-direction: column; }
-    .cd-lab-placement-type-toggle {
-      position: relative;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      align-items: stretch;
-      height: 2.2rem;                    /* matches ~input height */
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: var(--bg);
-      cursor: pointer;
-      user-select: none;
-      overflow: hidden;
-      font-size: 0.74rem;
-      line-height: 1;
+    .cd-lab-placement-type-wrap {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
     }
-    .cd-lab-placement-type-toggle input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
-    .cd-lab-placement-type-seg {
-      position: relative; z-index: 1;
-      display: inline-flex; align-items: center; justify-content: center;
-      font-weight: 600;
-      color: var(--muted);
-      transition: color 0.15s ease;
-      padding: 0 0.5rem;
-      white-space: nowrap;
+    .cd-lab-placement-type-wrap select.cd-lab-placement-type {
+      width: 100%;
+      max-width: 12rem;
+      box-sizing: border-box;
     }
-    .cd-lab-placement-type-pill {
-      position: absolute; top: 2px; bottom: 2px; left: 2px;
-      width: calc(50% - 2px);
-      background: var(--accent);
-      border-radius: 999px;
-      transition: transform 0.18s ease;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    }
-    .cd-lab-placement-type-toggle input:checked ~ .cd-lab-placement-type-pill { transform: translateX(100%); }
-    .cd-lab-placement-type-toggle input:not(:checked) ~ .cd-lab-placement-type-seg--left { color: var(--cd-primary-btn-fg, #fff); }
-    .cd-lab-placement-type-toggle input:checked ~ .cd-lab-placement-type-seg--right { color: var(--cd-primary-btn-fg, #fff); }
-    .cd-lab-placement-type-toggle input:focus-visible ~ .cd-lab-placement-type-pill { outline: 2px solid var(--accent); outline-offset: 2px; }
     .cd-lab-placement-row-remove {
       padding: 0.45rem 0.65rem;
       font-size: 0.8125rem;
@@ -1162,8 +1167,11 @@
                   </div>
                   <div class="cd-style-editor-block cd-style-editor-block--full">
                     <strong>Preview box</strong>
-                    <label for="cdStyleMountMinHeight">Min-height (CSS)</label>
-                    <input type="text" id="cdStyleMountMinHeight" placeholder="e.g. 100px or 8rem — leave empty for default" maxlength="40" autocomplete="off" spellcheck="false" />
+                    <label for="cdStyleMountMinHeight">Height (CSS)</label>
+                    <input type="text" id="cdStyleMountMinHeight" placeholder="e.g. 32px or 6rem — leave empty for default" maxlength="40" autocomplete="off" spellcheck="false" />
+                    <p class="hint" style="margin: 0.35rem 0 0; font-size: 0.72rem;">
+                      <strong>Top ribbon (#TopRibbon):</strong> this value fixes the preview bar height (text truncates with ellipsis). Other surfaces: minimum height only; content can still grow taller.
+                    </p>
                   </div>
                 </div>
                 <div class="actions" style="margin-top:0.35rem;">
@@ -1230,7 +1238,7 @@
   <script src="identity-picker.js"></script>
   <script src="content-decision-edge-mounts.js?v=20260416-placements"></script>
   <script src="content-decision-lab-config.js?v=20260216"></script>
-  <script src="content-decision-live-edge-ui.js?v=20260423-surface-visibility-size"></script>
+  <script src="content-decision-live-edge-ui.js?v=20260423-topribbon-height-clamp"></script>
   <script src="content-decision-live-edge-inline.js?v=20260423-edge-id-history"></script>
 </body>
 </html>
