@@ -170,6 +170,11 @@
     .cd-edge-mount-body.cd-edge-mount-body--hero:empty::before {
       content: 'No hero proposition yet.';
     }
+    .cd-edge-mount-body.cd-edge-vis--no-title .cd-slot--title { display: none !important; }
+    .cd-edge-mount-body.cd-edge-vis--no-desc .cd-slot--desc { display: none !important; }
+    .cd-edge-mount-body.cd-edge-vis--no-cta .cd-slot--cta { display: none !important; }
+    .cd-edge-mount-body.cd-edge-vis--no-fig .cd-banner-figure,
+    .cd-edge-mount-body.cd-edge-vis--no-fig .cd-banner-image { display: none !important; }
     #cd-edge-topRibbon:empty::before { content: 'No top ribbon proposition yet.'; }
     #cd-edge-contentCard:empty::before { content: 'No content card proposition yet.'; }
     .cd-edge-mount-body--hero.cd-banner-wrap {
@@ -807,6 +812,16 @@
       color: var(--muted);
       margin-top: 0.15rem;
     }
+    .cd-style-editor label.chk {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    .cd-style-editor label.chk input { width: auto; margin: 2px 0 0 0; flex-shrink: 0; }
     .cd-style-editor-block select,
     .cd-style-editor-block input[type="text"] {
       width: 100%;
@@ -1066,7 +1081,7 @@
 
             <section class="cd-lab-step">
               <h3 class="cd-lab-step-title">4. Surface styling</h3>
-              <p class="hint">AJO delivers the <em>content</em> (title, image, text, link) as JSON. The <em>styling</em> — layout, alignment, colours — is yours. Pick a surface and adjust. Changes apply to the preview instantly and save per sandbox + surface in Firebase, so your formatting survives every decisioning run.</p>
+              <p class="hint">AJO delivers the <em>content</em> (title, image, text, link) as JSON. The <em>styling</em> — layout, alignment, colours — is yours. Pick a surface and adjust. You can also <strong>hide returned slots</strong> (e.g. the ribbon CTA) and set a <strong>preview box min-height</strong> (e.g. <code>100px</code>) for that mount. Changes apply instantly and save per sandbox + surface in Firebase.</p>
               <div class="cd-lab-override-row">
                 <label for="cdLabStyleSurface">Surface</label>
                 <select id="cdLabStyleSurface" class="sandbox-select" aria-label="Pick a surface to edit its styling"></select>
@@ -1135,6 +1150,21 @@
                       <input type="text" id="cdStyleCtaTextHex" value="#1a1d23" maxlength="9">
                     </div>
                   </div>
+                  <div class="cd-style-editor-block cd-style-editor-block--full">
+                    <strong>Returned content</strong>
+                    <p class="hint" style="margin: 0 0 0.45rem; font-size: 0.72rem;">Uncheck to hide parts of the Edge payload in this surface’s preview (layout/colours above still apply to visible slots).</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem;">
+                      <label class="chk"><input type="checkbox" id="cdStyleShowTitle" checked /> Show title</label>
+                      <label class="chk"><input type="checkbox" id="cdStyleShowDesc" checked /> Show description</label>
+                      <label class="chk"><input type="checkbox" id="cdStyleShowImage" checked /> Show image</label>
+                      <label class="chk"><input type="checkbox" id="cdStyleShowCta" checked /> Show button / CTA</label>
+                    </div>
+                  </div>
+                  <div class="cd-style-editor-block cd-style-editor-block--full">
+                    <strong>Preview box</strong>
+                    <label for="cdStyleMountMinHeight">Min-height (CSS)</label>
+                    <input type="text" id="cdStyleMountMinHeight" placeholder="e.g. 100px or 8rem — leave empty for default" maxlength="40" autocomplete="off" spellcheck="false" />
+                  </div>
                 </div>
                 <div class="actions" style="margin-top:0.35rem;">
                   <button type="button" class="secondary" id="cdLabStyleResetBtn">Reset styles for this surface</button>
@@ -1200,7 +1230,7 @@
   <script src="identity-picker.js"></script>
   <script src="content-decision-edge-mounts.js?v=20260416-placements"></script>
   <script src="content-decision-lab-config.js?v=20260216"></script>
-  <script src="content-decision-live-edge-ui.js?v=20260416-placements"></script>
+  <script src="content-decision-live-edge-ui.js?v=20260423-surface-visibility-size"></script>
   <script src="content-decision-live-edge-inline.js?v=20260423-edge-id-history"></script>
 </body>
 </html>

@@ -466,6 +466,11 @@
     descColor: '#c5c9d3',
     ctaBg: '#f0f2f6',
     ctaText: '#1a1d23',
+    showTitle: true,
+    showDesc: true,
+    showCta: true,
+    showImage: true,
+    mountMinHeight: '',
   };
   var JUSTIFY_VALUES = { 'flex-start': 1, 'center': 1, 'flex-end': 1 };
   var LAYOUT_MODES = { overlay: 1, half: 1, below: 1 };
@@ -484,6 +489,20 @@
   function pickHex(v, fb) { var n = normaliseHex(v); return n || fb; }
   function pickLayout(v, fb) { return LAYOUT_MODES[v] ? v : fb; }
 
+  function sanitizeMountMinHeight(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return '';
+    if (s.length > 40) s = s.slice(0, 40);
+    if (!/^[0-9a-zA-Z%().,\s+-]+$/.test(s)) return '';
+    return s;
+  }
+
+  function readChk(id, defaultTrue) {
+    var x = el(id);
+    if (!x || x.type !== 'checkbox') return defaultTrue;
+    return !!x.checked;
+  }
+
   function readStyleEditorForm() {
     function g(id) { var x = el(id); return x ? x.value : ''; }
     return {
@@ -499,11 +518,20 @@
       descColor: pickHex(g('cdStyleDescColorHex'), STYLE_DEFAULTS.descColor),
       ctaBg: pickHex(g('cdStyleCtaBgHex'), STYLE_DEFAULTS.ctaBg),
       ctaText: pickHex(g('cdStyleCtaTextHex'), STYLE_DEFAULTS.ctaText),
+      showTitle: readChk('cdStyleShowTitle', true),
+      showDesc: readChk('cdStyleShowDesc', true),
+      showCta: readChk('cdStyleShowCta', true),
+      showImage: readChk('cdStyleShowImage', true),
+      mountMinHeight: sanitizeMountMinHeight(g('cdStyleMountMinHeight')) || '',
     };
   }
 
   function writeStyleEditorForm(st) {
     function set(id, val) { var x = el(id); if (x) x.value = val; }
+    function setChk(id, on) {
+      var x = el(id);
+      if (x && x.type === 'checkbox') x.checked = on !== false;
+    }
     set('cdStyleLayoutMode', st.layoutMode);
     set('cdStyleBlockY', st.blockY);
     set('cdStyleTitleH', st.titleH); set('cdStyleTitleV', st.titleV);
@@ -513,7 +541,14 @@
     set('cdStyleDescColorHex', st.descColor); set('cdStyleDescColorPick', st.descColor);
     set('cdStyleCtaBgHex', st.ctaBg); set('cdStyleCtaBgPick', st.ctaBg);
     set('cdStyleCtaTextHex', st.ctaText); set('cdStyleCtaTextPick', st.ctaText);
+    setChk('cdStyleShowTitle', st.showTitle !== false);
+    setChk('cdStyleShowDesc', st.showDesc !== false);
+    setChk('cdStyleShowCta', st.showCta !== false);
+    setChk('cdStyleShowImage', st.showImage !== false);
+    set('cdStyleMountMinHeight', st.mountMinHeight != null ? String(st.mountMinHeight) : '');
   }
+
+  var VIS_CLASS = ['cd-edge-vis--no-title', 'cd-edge-vis--no-desc', 'cd-edge-vis--no-cta', 'cd-edge-vis--no-fig'];
 
   /** Apply one style entry's CSS custom properties + layout class to a mount. */
   function applyStyleToMount(mount, st) {
@@ -535,6 +570,14 @@
     if (d) { d.style.setProperty('--cd-slot-justify', st.descH); d.style.setProperty('--cd-slot-align', st.descV); }
     var c = mount.querySelector('.cd-slot--cta');
     if (c) { c.style.setProperty('--cd-slot-justify', st.ctaH); c.style.setProperty('--cd-slot-align', st.ctaV); }
+
+    VIS_CLASS.forEach(function (cls) { mount.classList.remove(cls); });
+    if (st.showTitle === false) mount.classList.add('cd-edge-vis--no-title');
+    if (st.showDesc === false) mount.classList.add('cd-edge-vis--no-desc');
+    if (st.showCta === false) mount.classList.add('cd-edge-vis--no-cta');
+    if (st.showImage === false) mount.classList.add('cd-edge-vis--no-fig');
+    var mh = sanitizeMountMinHeight(st.mountMinHeight);
+    mount.style.minHeight = mh || '';
   }
 
   function currentPlacementList() {
@@ -1072,6 +1115,13 @@
           });
         }
       });
+      ['cdStyleShowTitle', 'cdStyleShowDesc', 'cdStyleShowImage', 'cdStyleShowCta'].forEach(function (id) {
+        if (el(id)) el(id).addEventListener('change', styleFormOnChange);
+      });
+      if (el('cdStyleMountMinHeight')) {
+        el('cdStyleMountMinHeight').addEventListener('input', styleFormOnChange);
+        el('cdStyleMountMinHeight').addEventListener('change', styleFormOnChange);
+      }
       if (el('cdLabStyleResetBtn')) el('cdLabStyleResetBtn').addEventListener('click', styleResetHandler);
       populateStyleSurfaceDropdown();
 
