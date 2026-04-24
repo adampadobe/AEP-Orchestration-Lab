@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260416c">
-  <link rel="stylesheet" href="image-hosting.css?v=20260423b">
+  <link rel="stylesheet" href="image-hosting.css?v=20260426f">
   <link rel="stylesheet" href="aep-theme.css?v=20260421-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -131,13 +131,25 @@
             </div>
             <p class="image-hosting-paste-hint">Paste <kbd>⌘/Ctrl&nbsp;+&nbsp;V</kbd> an image anywhere on this page to upload it. Paste on a card to replace it.</p>
           </div>
-          <div id="imageHostingBulkBar" class="image-hosting-bulk-bar" hidden aria-live="polite">
-            <span id="imageHostingBulkCount" class="image-hosting-bulk-count">0 selected</span>
-            <button type="button" id="imageHostingBulkSelectAll" class="dashboard-btn-outline">Select all</button>
-            <button type="button" id="imageHostingBulkClear" class="dashboard-btn-outline">Clear selection</button>
-            <button type="button" id="imageHostingBulkDelete" class="dashboard-btn-outline image-hosting-bulk-delete">Delete selected</button>
+          <div class="image-hosting-library-layout">
+            <aside id="imageHostingFolderPanel" class="image-hosting-folder-panel" aria-label="Library folders">
+              <div class="image-hosting-folder-panel-head">
+                <span class="image-hosting-folder-panel-title">Folders</span>
+                <button type="button" id="imageHostingNewFolderBtn" class="dashboard-btn-outline" title="Create an empty folder, then drag assets onto it">New folder</button>
+              </div>
+              <p class="image-hosting-folder-hint">Drag a library card onto a folder to move it. Root keeps files at the top level.</p>
+              <div id="imageHostingFolderList" class="image-hosting-folder-list" role="list"></div>
+            </aside>
+            <div class="image-hosting-library-main">
+              <div id="imageHostingBulkBar" class="image-hosting-bulk-bar" hidden aria-live="polite">
+                <span id="imageHostingBulkCount" class="image-hosting-bulk-count">0 selected</span>
+                <button type="button" id="imageHostingBulkSelectAll" class="dashboard-btn-outline">Select all</button>
+                <button type="button" id="imageHostingBulkClear" class="dashboard-btn-outline">Clear selection</button>
+                <button type="button" id="imageHostingBulkDelete" class="dashboard-btn-outline image-hosting-bulk-delete">Delete selected</button>
+              </div>
+              <div id="imageHostingLibraryGrid" class="image-hosting-library-grid image-hosting-library-grid--grid" aria-live="polite"></div>
+            </div>
           </div>
-          <div id="imageHostingLibraryGrid" class="image-hosting-library-grid image-hosting-library-grid--grid" aria-live="polite"></div>
           <p id="imageHostingLibraryEmpty" class="image-hosting-empty" hidden>Library empty. Classify a scrape below, then click <strong>Publish</strong> on the images you want to keep.</p>
         </section>
 
@@ -162,6 +174,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script src="image-hosting.js?v=20260426e"></script>
+  <script src="image-hosting.js?v=20260426f"></script>
 </body>
 </html>

@@ -3043,6 +3043,7 @@ exports.brandScraperExport = onRequest(
  *   POST   /api/image-hosting/library/publish         { sandbox, scrapeId, imageIndex, overrideFolder?, overrideFile? }
  *   DELETE /api/image-hosting/library?sandbox=X&relPath=...
  *   POST   /api/image-hosting/library/rename          { sandbox, relPath, newRelPath }
+ *   POST   /api/image-hosting/library/folder          { sandbox, folder } — empty folder marker
  */
 exports.imageHostingLibrary = onRequest(
   {
@@ -3222,6 +3223,18 @@ exports.imageHostingLibrary = onRequest(
           return;
         }
         const out = await imageHostingLibrary.renameLibraryObject(sandbox, body.relPath, body.newRelPath);
+        res.status(200).json({ sandbox, ...out });
+        return;
+      }
+
+      if (req.method === 'POST' && /\/folder$/.test(path)) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const folder = String(body.folder || '').trim();
+        if (!folder) {
+          res.status(400).json({ error: 'folder is required (e.g. campaign-2025 or logos/primary)' });
+          return;
+        }
+        const out = await imageHostingLibrary.createLibraryFolder(sandbox, folder);
         res.status(200).json({ sandbox, ...out });
         return;
       }

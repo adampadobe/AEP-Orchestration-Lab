@@ -24,6 +24,8 @@ const admin = require('firebase-admin');
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const LIBRARY_PREFIX = 'library';
 const BACKUPS_PREFIX = 'library_backups';
+/** Hidden JSON object so empty folders exist as a real GCS prefix. */
+const LIBRARY_FOLDER_MARKER = '.aep-library-folder';
 /**
  * Library objects keep stable paths across replace — `immutable` + long
  * max-age makes browsers/CDNs serve stale bytes after overwrite.
@@ -264,6 +266,7 @@ async function listLibrary(sandbox) {
     const folder = parts.join('/');
     const md = f.metadata || {};
     const custom = md.metadata || {};
+    const isFolderMarker = file === LIBRARY_FOLDER_MARKER;
     return {
       sandbox: sandboxPrefix(sandbox),
       folder,
@@ -278,8 +281,37 @@ async function listLibrary(sandbox) {
       aiGenerated: custom.aiGenerated === 'true',
       aiModel: custom.aiModel || '',
       aiPrompt: custom.aiPrompt || '',
+      isFolderMarker,
     };
   }).sort((a, b) => a.relPath.localeCompare(b.relPath));
+}
+
+/**
+ * Create an empty folder by writing a tiny marker object at
+ * `<folderPath>/.aep-library-folder`. Each path segment is slug-sanitized.
+ */
+async function createLibraryFolder(sandbox, folderPathRaw) {
+  const raw = String(folderPathRaw || '').trim().replace(/^\/+|\/+$/g, '');
+  if (!raw || raw.indexOf('..') !== -1) throw new Error('invalid folder path');
+  const parts = raw.split('/').map(p => safeSlug(p, '')).filter(Boolean);
+  if (!parts.length) throw new Error('invalid folder path');
+  const folder = parts.join('/');
+  const relPath = `${folder}/${LIBRARY_FOLDER_MARKER}`;
+  const key = `${libraryRoot(sandbox)}/${relPath}`;
+  const bucket = getBucket();
+  const [exists] = await bucket.file(key).exists();
+  if (exists) throw new Error('folder already exists');
+  const body = Buffer.from('{}');
+  await bucket.file(key).save(body, {
+    contentType: 'application/json',
+    resumable: false,
+    metadata: {
+      cacheControl: LIBRARY_CACHE_CONTROL,
+      metadata: { sandbox: sandboxPrefix(sandbox), libraryFolderMarker: 'true' },
+    },
+  });
+  try { await bucket.file(key).makePublic(); } catch (_e) {}
+  return { folder, relPath };
 }
 
 /**
@@ -691,6 +723,7 @@ async function streamLibraryZip(sandbox, res) {
   for (const f of files) {
     const rel = f.name.slice(prefix.length);
     if (!rel) continue;
+    if (rel === LIBRARY_FOLDER_MARKER || rel.endsWith(`/${LIBRARY_FOLDER_MARKER}`)) continue;
     archive.append(f.createReadStream(), { name: rel });
   }
   await archive.finalize();
@@ -740,7 +773,9 @@ async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
 
 module.exports = {
   BUCKET_NAME,
+  LIBRARY_FOLDER_MARKER,
   listLibrary,
+  createLibraryFolder,
   publishScrapeImage,
   deleteLibraryObject,
   renameLibraryObject,

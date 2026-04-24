@@ -39,6 +39,9 @@
   var libraryFilterText = '';
   // Bulk-select state for multi-delete. Tracks item relPaths.
   var selectedRelPaths = Object.create(null);
+  /** Hidden GCS object that materialises an otherwise-empty folder prefix. */
+  var LIB_FOLDER_MARKER = '.aep-library-folder';
+  var DT_LIBRARY_PATH = 'text/x-image-hosting-relpath';
   function selectionCount() {
     return Object.keys(selectedRelPaths).length;
   }
@@ -212,7 +215,7 @@
   }
 
   function selectAllVisible() {
-    var filtered = filterLibraryItems(lastLibraryItems);
+    var filtered = filterLibraryItems(assetLibraryItems());
     filtered.forEach(function (it) { selectedRelPaths[it.relPath] = true; });
     renderLibraryItems();
     updateBulkBar();
@@ -285,6 +288,214 @@
     var i = s.lastIndexOf('/');
     if (i === -1) return { dir: '', file: s };
     return { dir: s.slice(0, i), file: s.slice(i + 1) };
+  }
+
+  function assetLibraryItems() {
+    return lastLibraryItems.filter(function (it) { return !it.isFolderMarker; });
+  }
+
+  function folderPathFromMarkerRel(relPath) {
+    var suf = '/' + LIB_FOLDER_MARKER;
+    if (relPath && relPath.endsWith(suf)) return relPath.slice(0, -suf.length);
+    return null;
+  }
+
+  function collectFolderPaths(items) {
+    var set = Object.create(null);
+    set[''] = true;
+    (items || []).forEach(function (it) {
+      if (it.isFolderMarker) {
+        var fp = folderPathFromMarkerRel(it.relPath);
+        if (fp != null) set[fp] = true;
+        return;
+      }
+      var rp = String(it.relPath || '');
+      var i = rp.lastIndexOf('/');
+      while (i > 0) {
+        set[rp.slice(0, i)] = true;
+        i = rp.slice(0, i).lastIndexOf('/');
+      }
+    });
+    return set;
+  }
+
+  function sortedFolderPaths(set) {
+    var keys = Object.keys(set);
+    keys.sort(function (a, b) { return a.localeCompare(b, undefined, { sensitivity: 'base' }); });
+    var zi = keys.indexOf('');
+    if (zi > 0) {
+      keys.splice(zi, 1);
+      keys.unshift('');
+    }
+    return keys;
+  }
+
+  function uniqueTargetRelPathForMove(desiredRelPath, movingRelPath) {
+    var names = Object.create(null);
+    lastLibraryItems.forEach(function (it) { names[it.relPath] = true; });
+    if (!names[desiredRelPath] || desiredRelPath === movingRelPath) return desiredRelPath;
+    var parts = libraryDirAndFilename(desiredRelPath);
+    var file = parts.file;
+    var m = /^(.+)\.([a-z0-9]{1,12})$/i.exec(file);
+    var stem = m ? m[1] : file;
+    var ext = m ? '.' + m[2] : '';
+    for (var n = 2; n < 200; n++) {
+      var candidate = (parts.dir ? parts.dir + '/' : '') + stem + '-' + n + ext;
+      if (!names[candidate]) return candidate;
+    }
+    return (parts.dir ? parts.dir + '/' : '') + stem + '-' + Date.now().toString(36) + ext;
+  }
+
+  async function moveLibraryItemToFolder(relPath, targetFolder) {
+    var sb = getSandbox();
+    if (!sb || !relPath) return;
+    var srcParts = libraryDirAndFilename(relPath);
+    if (srcParts.file === LIB_FOLDER_MARKER) return;
+    var destFolder = String(targetFolder == null ? '' : targetFolder).replace(/^\/+|\/+$/g, '');
+    if (destFolder.indexOf('..') !== -1) {
+      setManualMsg('Invalid folder.', 'err');
+      return;
+    }
+    var currentDir = srcParts.dir || '';
+    if (currentDir === destFolder) {
+      setManualMsg('Already in that folder.', 'ok');
+      return;
+    }
+    var baseName = srcParts.file;
+    var desired = destFolder ? destFolder + '/' + baseName : baseName;
+    var newRelPath = uniqueTargetRelPathForMove(desired, relPath);
+    if (newRelPath === relPath) return;
+    try {
+      var r = await fetch('/api/image-hosting/library/rename?sandbox=' + encodeURIComponent(sb), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox: sb, relPath: relPath, newRelPath: newRelPath }),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        setManualMsg('Move failed: ' + (data.error || r.statusText), 'err');
+        return;
+      }
+      var wasSel = !!selectedRelPaths[relPath];
+      delete selectedRelPaths[relPath];
+      var finalPath = data.newRelPath || newRelPath;
+      if (wasSel) selectedRelPaths[finalPath] = true;
+      var into = libraryDirAndFilename(finalPath).dir;
+      setManualMsg(into ? ('Moved into ' + into + '/') : 'Moved to library root.', 'ok');
+      await renderLibrary();
+    } catch (e) {
+      setManualMsg('Move failed: ' + (e.message || e), 'err');
+    }
+  }
+
+  async function createEmptyLibraryFolder() {
+    var sb = getSandbox();
+    if (!sb) { setManualMsg('Select a sandbox first.', 'err'); return; }
+    var entered = window.prompt('Folder path (use / for nested), e.g. campaign-2025 or logos/primary:', '');
+    if (entered === null) return;
+    entered = String(entered).trim().replace(/^\/+|\/+$/g, '');
+    if (!entered || entered.indexOf('..') !== -1) {
+      setManualMsg('Enter a non-empty path without "..".', 'err');
+      return;
+    }
+    try {
+      var r = await fetch('/api/image-hosting/library/folder?sandbox=' + encodeURIComponent(sb), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sandbox: sb, folder: entered }),
+      });
+      var data = await r.json().catch(function () { return {}; });
+      if (!r.ok) {
+        setManualMsg('Create folder failed: ' + (data.error || r.statusText), 'err');
+        return;
+      }
+      setManualMsg('Created folder "' + (data.folder || entered) + '".', 'ok');
+      await renderLibrary();
+    } catch (e) {
+      setManualMsg('Create folder failed: ' + (e.message || e), 'err');
+    }
+  }
+
+  function folderMayDeleteMarkerOnly(folderPath) {
+    var markerRel = folderPath + '/' + LIB_FOLDER_MARKER;
+    var hasMarker = false;
+    var hasAssetInTree = false;
+    lastLibraryItems.forEach(function (it) {
+      if (it.isFolderMarker) {
+        if (it.relPath === markerRel) hasMarker = true;
+        return;
+      }
+      var rp = it.relPath || '';
+      if (rp === markerRel) return;
+      if (rp === folderPath || rp.indexOf(folderPath + '/') === 0) hasAssetInTree = true;
+    });
+    return hasMarker && !hasAssetInTree;
+  }
+
+  function wireFolderRowDrop(el, folderPath) {
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      el.addEventListener(evt, function (e) {
+        var types = (e.dataTransfer && e.dataTransfer.types) || [];
+        if (Array.prototype.indexOf.call(types, DT_LIBRARY_PATH) === -1) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        el.classList.add('is-drop-hover');
+      });
+    });
+    el.addEventListener('dragleave', function () {
+      el.classList.remove('is-drop-hover');
+    });
+    el.addEventListener('drop', function (e) {
+      el.classList.remove('is-drop-hover');
+      var types = (e.dataTransfer && e.dataTransfer.types) || [];
+      if (Array.prototype.indexOf.call(types, DT_LIBRARY_PATH) === -1) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var from = e.dataTransfer.getData(DT_LIBRARY_PATH) || e.dataTransfer.getData('text/plain');
+      if (!from) return;
+      moveLibraryItemToFolder(from, folderPath);
+    });
+  }
+
+  function renderFolderPanel() {
+    var host = document.getElementById('imageHostingFolderList');
+    if (!host) return;
+    var sb = getSandbox();
+    if (!sb) {
+      host.innerHTML = '';
+      return;
+    }
+    var paths = sortedFolderPaths(collectFolderPaths(lastLibraryItems));
+    host.innerHTML = '';
+    paths.forEach(function (fp) {
+      var row = document.createElement('div');
+      row.className = 'image-hosting-folder-row';
+      row.setAttribute('role', 'listitem');
+      var pad = 8 + (fp ? Math.max(0, fp.split('/').length - 1) * 10 : 0);
+      row.style.paddingLeft = pad + 'px';
+      var label = document.createElement('span');
+      label.className = 'image-hosting-folder-row-label';
+      label.textContent = fp || 'Library root';
+      label.title = fp || '(top level)';
+      row.appendChild(label);
+      if (fp && folderMayDeleteMarkerOnly(fp)) {
+        var delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'image-hosting-folder-row-delete';
+        delBtn.title = 'Remove empty folder';
+        delBtn.setAttribute('aria-label', 'Remove empty folder');
+        delBtn.textContent = '×';
+        delBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var mr = fp + '/' + LIB_FOLDER_MARKER;
+          if (!confirm('Remove empty folder "' + fp + '"?')) return;
+          deleteLibraryItem(mr);
+        });
+        row.appendChild(delBtn);
+      }
+      wireFolderRowDrop(row, fp);
+      host.appendChild(row);
+    });
   }
 
   function sanitizeLibraryFilename(name) {
@@ -493,6 +704,12 @@
     ['dragenter', 'dragover'].forEach(function (evt) {
       card.addEventListener(evt, function (e) {
         var types = (e.dataTransfer && e.dataTransfer.types) || [];
+        if (Array.prototype.indexOf.call(types, DT_LIBRARY_PATH) !== -1) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
+          return;
+        }
         var hasFiles = Array.prototype.indexOf.call(types, 'Files') !== -1;
         if (!hasFiles) return;
         e.preventDefault();
@@ -522,10 +739,12 @@
   }
 
   function renderLibraryCard(item) {
+    if (item.isFolderMarker) return null;
     var card = document.createElement('div');
     card.className = 'image-hosting-lib-card';
     card.tabIndex = 0;
     card.dataset.relPath = item.relPath;
+    card.draggable = true;
     if (selectedRelPaths[item.relPath]) card.classList.add('is-selected');
     card.addEventListener('focus', function () { focusedLibraryCard = card; });
     card.addEventListener('mousedown', function () { focusedLibraryCard = card; });
@@ -645,6 +864,19 @@
     actions.appendChild(replaceLabel);
 
     card.appendChild(actions);
+    card.addEventListener('dragstart', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.image-hosting-lib-card-actions, .image-hosting-lib-card-select, button, a, input, label')) {
+        e.preventDefault();
+        return;
+      }
+      e.dataTransfer.setData(DT_LIBRARY_PATH, item.relPath);
+      e.dataTransfer.setData('text/plain', item.relPath);
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('is-dragging-source');
+    });
+    card.addEventListener('dragend', function () {
+      card.classList.remove('is-dragging-source');
+    });
     wireCardReplace(card, item);
     return card;
   }
@@ -797,18 +1029,21 @@
     if (!libraryGridEl) return;
     libraryGridEl.innerHTML = '';
     applyViewClass();
-    var filtered = filterLibraryItems(lastLibraryItems);
-    updateFilterCount(filtered.length, lastLibraryItems.length);
+    var base = assetLibraryItems();
+    var filtered = filterLibraryItems(base);
+    updateFilterCount(filtered.length, base.length);
     sortLibraryItems(filtered).forEach(function (it) {
-      libraryGridEl.appendChild(renderLibraryCard(it));
+      var card = renderLibraryCard(it);
+      if (card) libraryGridEl.appendChild(card);
     });
     // Show a dedicated empty state when a filter is active but nothing matches.
-    if (!filtered.length && (libraryFilterText || '').trim() && lastLibraryItems.length) {
+    if (!filtered.length && (libraryFilterText || '').trim() && base.length) {
       var empty = document.createElement('p');
       empty.className = 'image-hosting-empty';
       empty.textContent = 'No library items match "' + libraryFilterText + '".';
       libraryGridEl.appendChild(empty);
     }
+    renderFolderPanel();
   }
 
   async function renderLibrary() {
@@ -820,15 +1055,21 @@
       if (libraryEmptyEl) libraryEmptyEl.hidden = false;
       if (libraryCountEl) libraryCountEl.textContent = '0';
       lastLibraryItems = [];
+      renderFolderPanel();
       return;
     }
     var items;
     try { items = await fetchLibrary(sb); }
     catch (e) {
+      lastLibraryItems = [];
       if (libraryEmptyEl) { libraryEmptyEl.hidden = false; libraryEmptyEl.textContent = 'Library load failed: ' + (e.message || e); }
+      renderFolderPanel();
       return;
     }
-    lastLibraryItems = items || [];
+    lastLibraryItems = (items || []).map(function (it) {
+      it.isFolderMarker = !!it.isFolderMarker || it.file === LIB_FOLDER_MARKER;
+      return it;
+    });
     // Drop any selected paths that no longer exist in the latest fetch
     // (e.g. a bulk-delete just ran or another user/tab removed them).
     var liveSet = Object.create(null);
@@ -837,13 +1078,20 @@
       if (!liveSet[k]) delete selectedRelPaths[k];
     });
     updateBulkBar();
-    if (!lastLibraryItems.length) {
-      if (libraryEmptyEl) { libraryEmptyEl.hidden = false; libraryEmptyEl.textContent = 'Library empty. Drop a ZIP or images above — or publish a classified image from a scrape below.'; }
+    var assets = assetLibraryItems();
+    if (!assets.length) {
+      if (libraryEmptyEl) {
+        libraryEmptyEl.hidden = false;
+        libraryEmptyEl.textContent = lastLibraryItems.length
+          ? 'No image files yet — use New folder to add structure, then upload or publish assets.'
+          : 'Library empty. Drop a ZIP or images above — or publish a classified image from a scrape below.';
+      }
       if (libraryCountEl) libraryCountEl.textContent = '0';
+      renderFolderPanel();
       return;
     }
     if (libraryEmptyEl) libraryEmptyEl.hidden = true;
-    if (libraryCountEl) libraryCountEl.textContent = String(lastLibraryItems.length);
+    if (libraryCountEl) libraryCountEl.textContent = String(assets.length);
     renderLibraryItems();
   }
 
@@ -1240,6 +1488,8 @@
   if (bulkClear) bulkClear.addEventListener('click', clearSelection);
   var bulkDelete = document.getElementById('imageHostingBulkDelete');
   if (bulkDelete) bulkDelete.addEventListener('click', deleteSelectedItems);
+  var newFolderBtn = document.getElementById('imageHostingNewFolderBtn');
+  if (newFolderBtn) newFolderBtn.addEventListener('click', function () { createEmptyLibraryFolder(); });
 
   // Drop zone: click-to-browse + native drag/drop for files and ZIPs.
   var dropZone = document.getElementById('imageHostingDropZone');
@@ -1259,6 +1509,14 @@
     });
     ['dragenter', 'dragover'].forEach(function (evt) {
       dropZone.addEventListener(evt, function (e) {
+        var types = (e.dataTransfer && e.dataTransfer.types) || [];
+        if (Array.prototype.indexOf.call(types, DT_LIBRARY_PATH) !== -1) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
+          dropZone.classList.remove('is-dragover');
+          return;
+        }
         e.preventDefault(); e.stopPropagation();
         dropZone.classList.add('is-dragover');
       });
@@ -1270,6 +1528,8 @@
       });
     });
     dropZone.addEventListener('drop', function (e) {
+      var types = (e.dataTransfer && e.dataTransfer.types) || [];
+      if (Array.prototype.indexOf.call(types, DT_LIBRARY_PATH) !== -1) return;
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
         handleDroppedFiles(e.dataTransfer.files);
       }
