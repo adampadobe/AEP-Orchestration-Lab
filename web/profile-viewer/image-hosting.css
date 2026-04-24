@@ -2,6 +2,25 @@
 
 .image-hosting-main { display: flex; flex-direction: column; gap: 1rem; }
 
+/* Hero: home.css caps `.dashboard-hero--page-banner` copy at ~36–42rem (centered), which wraps this long intro into many short lines. Use the full main width and left alignment for fewer lines and a shorter banner. */
+.image-hosting-page .dashboard-hero--page-banner .dashboard-hero-header {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  text-align: left;
+}
+.image-hosting-page .dashboard-hero--page-banner .dashboard-hero-title {
+  text-align: left;
+}
+.image-hosting-page .dashboard-hero--page-banner .dashboard-hero-subtitle {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  text-align: left;
+}
+
 .image-hosting-controls { padding: 1rem 1.1rem; }
 .image-hosting-controls-row {
   display: grid;
