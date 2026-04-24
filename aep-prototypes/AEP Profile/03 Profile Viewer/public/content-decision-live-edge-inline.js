@@ -76,12 +76,25 @@
     }
   }
 
-  (function initFields() {
+  function hydrateCdLiveEmailFromRecents() {
+    var input = document.getElementById('cdLiveEmail');
+    var nsSel = document.getElementById('cdNs');
+    if (!input || (input.value || '').trim()) return;
+    var ns = nsSel && nsSel.value ? String(nsSel.value).trim().toLowerCase() : 'email';
+    try {
+      if (typeof getRecentForNamespace === 'function') {
+        var rec = getRecentForNamespace(ns);
+        if (rec.length) {
+          input.value = rec[0];
+          return;
+        }
+      }
+    } catch (e) {}
     try {
       var em = localStorage.getItem(LS_EMAIL);
-      if (em && document.getElementById('cdLiveEmail')) document.getElementById('cdLiveEmail').value = em;
-    } catch (e) {}
-  })();
+      if (em) input.value = em;
+    } catch (e2) {}
+  }
 
   (function initEdgeFieldsFromStorage() {
     try {
@@ -795,6 +808,18 @@ waitForAlloy()
     applyDefaultHeroBannerLayout();
   }
 
+  function rememberCdLiveIdentifierAfterProfileOk() {
+    var idVal = getIdentifierValue();
+    if (!idVal) return;
+    var ns =
+      typeof AepIdentityPicker !== 'undefined' && typeof AepIdentityPicker.getNamespace === 'function'
+        ? AepIdentityPicker.getNamespace('cdLiveEmail')
+        : (document.getElementById('cdNs') && document.getElementById('cdNs').value) || 'email';
+    if (typeof addRecentIdentifier === 'function') {
+      addRecentIdentifier(idVal, String(ns || 'email').trim().toLowerCase());
+    }
+  }
+
   async function runProfileAndEdgeDecisions() {
     persistLiveIdentity();
     var idVal = getIdentifierValue();
@@ -832,6 +857,7 @@ waitForAlloy()
       : 'No ECID in payload — Edge may rely on the primary identifier only.';
     st.textContent = 'Profile OK — requesting Edge…';
     st.className = 'status ok';
+    rememberCdLiveIdentifierAfterProfileOk();
     edgeSt.textContent = 'Loading Alloy / Edge…';
     try {
       var edgeResult = await runEdgePropositions({ upsClientData: r.data, profileEcid: ecid });
@@ -1007,6 +1033,7 @@ waitForAlloy()
       cdLog('Fetch profile only ✓', { ecid: ecid ? ecid.slice(0, 8) + '…' : null });
       st.textContent = 'Profile loaded.';
       st.className = 'status ok';
+      rememberCdLiveIdentifierAfterProfileOk();
       hint.textContent = ecid ? 'ECID in profile: ' + ecid : 'No ECID in identityMap; journey may still key on the primary id.';
     });
 
@@ -1041,6 +1068,10 @@ waitForAlloy()
         if (typeof AepIdentityPicker !== 'undefined' && AepIdentityPicker.init) {
           AepIdentityPicker.init('cdLiveEmail', 'cdNs');
         }
+        if (typeof attachEmailDatalist === 'function') {
+          attachEmailDatalist('cdLiveEmail', 'cdLiveEmailRecent', 'cdNs');
+        }
+        hydrateCdLiveEmailFromRecents();
         return typeof window.CdLabUi !== 'undefined' && window.CdLabUi.bootstrapAfterAuth
           ? window.CdLabUi.bootstrapAfterAuth()
           : null;

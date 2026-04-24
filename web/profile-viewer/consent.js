@@ -10,7 +10,9 @@ const profileResolvedEmailDisplay = document.getElementById('profileResolvedEmai
 let consentStreamingEmail = '';
 /** Optional ECID from loaded profile; added to stream payload when present (email-primary flows work without it). */
 let consentOptionalEcid = '';
-if (typeof attachEmailDatalist === 'function') attachEmailDatalist('customerEmail');
+if (typeof attachEmailDatalist === 'function') {
+  attachEmailDatalist('customerEmail', 'recentEmails', 'identityNamespace');
+}
 const queryProfileBtn = document.getElementById('queryProfileBtn');
 const clearFormBtn = document.getElementById('clearFormBtn');
 const sampleDataBtn = document.getElementById('sampleDataBtn');
@@ -899,6 +901,7 @@ async function queryProfile() {
       showMessage(step1Message, 'No profile found for this identifier in Adobe Experience Platform.', 'error');
       return;
     }
+    if (typeof addRecentIdentifier === 'function') addRecentIdentifier(identifier, ns);
     if (typeof addEmail === 'function' && data.email) addEmail(data.email);
     applyProfileToForm(data);
     const displayName = data.email || identifier;
