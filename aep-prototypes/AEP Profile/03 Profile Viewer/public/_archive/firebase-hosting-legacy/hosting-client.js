@@ -285,7 +285,7 @@
         msg =
           'Cannot reach ' +
           getApiBase() +
-          '. Run npm start in "03 Profile Viewer", then open http://localhost:3333/firebase-hosting.html.';
+          '. Run npm start in "03 Profile Viewer", then open http://localhost:3333/_archive/firebase-hosting-legacy/firebase-hosting.html (or the equivalent path under profile-viewer).';
       }
       setTreeError(msg);
       folderTree.innerHTML = '';
