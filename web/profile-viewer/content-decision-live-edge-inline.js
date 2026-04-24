@@ -1114,8 +1114,8 @@ waitForAlloy()
         return injectLaunchFromConfiguredUrl();
       })
       .then(function () {
-        if (typeof global.CdEdgeOnboarding !== 'undefined' && global.CdEdgeOnboarding.initAfterBoot) {
-          global.CdEdgeOnboarding.initAfterBoot();
+        if (typeof window.CdEdgeOnboarding !== 'undefined' && window.CdEdgeOnboarding.initAfterBoot) {
+          window.CdEdgeOnboarding.initAfterBoot();
         }
         cdLog('initialized — filter console by', LOG_PREFIX);
       })
