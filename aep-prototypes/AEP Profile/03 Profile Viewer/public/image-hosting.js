@@ -1273,6 +1273,7 @@
     var summary = document.createElement('summary');
     var sumLabel = document.createElement('span');
     sumLabel.textContent = 'Classified images';
+    summary.title = 'Opens across the full content width so thumbnails use more columns with less vertical scroll.';
     summary.appendChild(sumLabel);
     var badge = document.createElement('span');
     badge.className = 'image-hosting-scrape-images-badge';
@@ -1386,6 +1387,28 @@
     }
     details.appendChild(body);
     article.appendChild(details);
+
+    details.addEventListener('toggle', function () {
+      if (!listEl) return;
+      if (details.open) {
+        article.classList.add('image-hosting-scrape-card--expanded');
+        var siblings = listEl.querySelectorAll('.image-hosting-scrape-card');
+        for (var si = 0; si < siblings.length; si++) {
+          var other = siblings[si];
+          if (other === article) continue;
+          var od = other.querySelector('.image-hosting-scrape-images-details');
+          if (od && od.open) od.open = false;
+          other.classList.remove('image-hosting-scrape-card--expanded');
+        }
+        try {
+          requestAnimationFrame(function () {
+            article.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          });
+        } catch (_e1) {}
+      } else {
+        article.classList.remove('image-hosting-scrape-card--expanded');
+      }
+    });
 
     if (rec.rawImageCount > 0) {
       var actions = document.createElement('div');
