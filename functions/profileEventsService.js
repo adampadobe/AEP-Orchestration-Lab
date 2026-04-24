@@ -5,11 +5,25 @@ const {
   flattenEntityToTableRows,
   get,
   toEcidString,
+  getProfileEcid,
 } = require('./profileTableHelpers');
 
 const QUERY_SERVICE_BASE = 'https://platform.adobe.io/data/foundation/query';
 const CATALOG_BASE = 'https://platform.adobe.io/data/foundation/catalog';
 const ACCESS_ENTITIES_ENDPOINT = 'https://platform.adobe.io/data/core/ups/access/entities';
+
+/** Optional; improves Profile Access consistency when org default merge policy is unset. */
+function profileAccessMergePolicyId() {
+  const id = String(
+    process.env.AEP_PROFILE_EVENTS_MERGE_POLICY_ID || process.env.AEP_PROFILE_ACCESS_MERGE_POLICY_ID || '',
+  ).trim();
+  return id || null;
+}
+
+function appendMergePolicy(params) {
+  const mp = profileAccessMergePolicyId();
+  if (mp) params.set('mergePolicyId', mp);
+}
 
 const DATASET_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 const datasetTableNameCache = new Map();
@@ -212,6 +226,7 @@ async function getProfileWithExperienceEvents(identityValue, limit, sandboxName,
       relatedEntities: 'experienceEvents',
       limit: String(limit),
     });
+    appendMergePolicy(params);
     const url = `${ACCESS_ENTITIES_ENDPOINT}?${params.toString()}`;
     const res = await fetch(url, { method: 'GET', headers });
     const data = await res.json().catch(() => ({}));
@@ -259,6 +274,7 @@ async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sa
         orderby: '-timestamp',
         limit: String(PAGE_SIZE),
       });
+      appendMergePolicy(params);
       url = `${ACCESS_ENTITIES_ENDPOINT}?${params.toString()}`;
     } else {
       url = nextUrl;
@@ -298,6 +314,61 @@ async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sa
 }
 
 /**
+ * ECID-related lookups: try standard namespace code then lowercase (org Identity config varies).
+ */
+async function getProfileExperienceEventsWithNamespaceFallback(
+  relatedEntityId,
+  relatedEntityIdNS,
+  sandboxName,
+  token,
+  clientId,
+  orgId,
+) {
+  const rawNs = String(relatedEntityIdNS || '').trim();
+  const ridInput = String(relatedEntityId || '').trim();
+  const digitId = ridInput.replace(/\D/g, '');
+  const useEcidNs =
+    digitId.length >= 10 &&
+    /^\d+$/.test(digitId) &&
+    (rawNs === 'ECID' || rawNs === 'ecid' || rawNs.toLowerCase() === 'ecid');
+  const ridForRequest = useEcidNs ? digitId : ridInput;
+  const nsTries = useEcidNs ? ['ECID', 'ecid'] : [rawNs || 'ECID'];
+
+  let last = { children: [] };
+  for (const tryNs of nsTries) {
+    try {
+      const raw = await getProfileExperienceEvents(ridForRequest, tryNs, sandboxName, token, clientId, orgId);
+      last = raw;
+      const n = (raw.children || raw.results || []).length;
+      if (n > 0) return raw;
+    } catch {
+      /* try next namespace */
+    }
+  }
+  return last;
+}
+
+function mapExperienceEventChildrenToPayload(children) {
+  const list = children || [];
+  return list.map((child) => {
+    const eventEntity = child.entity || child;
+    const ts =
+      child.timestamp != null
+        ? child.timestamp
+        : eventEntity.timestamp
+          ? new Date(eventEntity.timestamp).getTime()
+          : null;
+    const rows = flattenEntityToTableRows(eventEntity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
+    return {
+      entityId: child.entityId || child.id || '',
+      timestamp: ts,
+      eventName: deriveEventName(eventEntity),
+      rows,
+    };
+  });
+}
+
+/**
  * @returns {Promise<{ email: string, events: object[], source?: string }>}
  */
 async function buildEventsPayload(identityValue, namespace, sandboxName, token, clientId, orgId) {
@@ -316,22 +387,34 @@ async function buildEventsPayload(identityValue, namespace, sandboxName, token, 
     }
   }
 
-  // Fetch profile first to resolve ECID for the events lookup. ECID namespace may have no UPS entity yet
-  // (browser-minted ID) — do not 500; fall back to querying experience events by ECID directly.
+  const profileEventsLimit = Math.min(parseInt(process.env.AEP_PROFILE_EVENTS_LIMIT || '50', 10) || 50, 100);
+
+  // Fetch profile + related experience events (limit must be high enough or Adobe omits related events).
   let profileWithEvents = {};
   try {
-    profileWithEvents = await getProfileWithExperienceEvents(identityValue, 1, sandboxName, token, clientId, orgId, ns);
+    profileWithEvents = await getProfileWithExperienceEvents(
+      identityValue,
+      profileEventsLimit,
+      sandboxName,
+      token,
+      clientId,
+      orgId,
+      ns,
+    );
   } catch (err) {
     if (ns !== 'ecid') throw err;
     profileWithEvents = {};
   }
+
+  const fromProfile = extractExperienceEventsFromProfileResponse(profileWithEvents);
+  if (fromProfile.length) {
+    return { email: identityValue, events: fromProfile, source: 'profile_related' };
+  }
+
   const entityId = Object.keys(profileWithEvents).filter((k) => !k.startsWith('_'))[0];
   const entityPayload = entityId ? profileWithEvents[entityId] : null;
   const entity = entityPayload?.entity ?? entityPayload;
-  const ecidFromProfile =
-    entity && (entity._demoemea?.identification?.core?.ecid ?? entity._demoemea?.identification?.core?.ECID != null)
-      ? toEcidString(entity._demoemea.identification.core.ecid ?? entity._demoemea.identification.core.ECID)
-      : null;
+  const ecidFromProfile = entity ? getProfileEcid(entity) : null;
   const idDigits = String(identityValue || '').replace(/\D/g, '');
   const ecid =
     ecidFromProfile && ecidFromProfile.length >= 10
@@ -342,32 +425,22 @@ async function buildEventsPayload(identityValue, namespace, sandboxName, token, 
   const relatedId = ecid && ecid.length >= 10 ? ecid : identityValue;
   const relatedNS = ecid && ecid.length >= 10 ? 'ECID' : isEmailLookup ? 'email' : ns;
 
-  // Always use the paginating experience events endpoint
-  let raw;
-  try {
-    raw = await getProfileExperienceEvents(relatedId, relatedNS, sandboxName, token, clientId, orgId);
-  } catch {
-    return { email: identityValue, events: [], source: 'experience_events_unavailable' };
-  }
+  const raw = await getProfileExperienceEventsWithNamespaceFallback(
+    relatedId,
+    relatedNS,
+    sandboxName,
+    token,
+    clientId,
+    orgId,
+  );
   const children = raw.children || raw.results || [];
-  const events = children.map((child) => {
-    const eventEntity = child.entity || child;
-    const ts =
-      child.timestamp != null
-        ? child.timestamp
-        : eventEntity.timestamp
-          ? new Date(eventEntity.timestamp).getTime()
-          : null;
-    const rows = flattenEntityToTableRows(eventEntity).sort((a, b) => (a.path || '').localeCompare(b.path || ''));
-    return {
-      entityId: child.entityId || child.id || '',
-      timestamp: ts,
-      eventName: deriveEventName(eventEntity),
-      rows,
-    };
-  });
+  const events = mapExperienceEventChildrenToPayload(children);
 
-  return { email: identityValue, events };
+  return {
+    email: identityValue,
+    events,
+    ...(events.length ? { source: 'experience_events_paginated' } : { source: 'experience_events_empty' }),
+  };
 }
 
 module.exports = { buildEventsPayload };
