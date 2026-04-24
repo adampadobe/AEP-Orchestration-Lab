@@ -907,14 +907,34 @@ async function loadProfileDataForDrawer(email, options) {
     );
     const data = await res.json();
     if (!res.ok) {
-      if (messageFn) messageFn(data.error || 'Profile request failed.', 'error');
+      if (messageFn) {
+        let errMsg = String(data.message || data.error || 'Profile request failed.');
+        const raw = String(errMsg || '');
+        if (ns === 'ecid' && /entity not found|profile not found|not found/i.test(raw)) {
+          errMsg =
+            'No Unified Profile for this ECID yet (normal for a brand-new browser ID). Send at least one experience event to this sandbox, wait for ingestion, then try again — or look up by email.';
+        }
+        messageFn(errMsg, 'error');
+      }
       return false;
     }
     if (typeof addEmail === 'function' && (opts.addEmailOnSuccess || opts.updateMessage)) addEmail(emailTrim);
 
     const ecidVal =
       data.ecid == null ? '' : Array.isArray(data.ecid) ? (data.ecid[0] != null ? String(data.ecid[0]) : '') : String(data.ecid);
-    if (infoEcid) infoEcid.textContent = ecidVal && ecidVal.length >= 10 ? ecidVal : '—';
+    const incomingEcid = ecidVal && ecidVal.length >= 10 ? ecidVal : '';
+    if (infoEcid) {
+      const prevHint = String(infoEcid.textContent || '').trim();
+      const digitsOnly = (s) => String(s || '').replace(/\D/g, '');
+      const lookupIsEcidNs = ns === 'ecid' && digitsOnly(emailTrim).length >= 10;
+      const sameBrowserEcid =
+        lookupIsEcidNs && digitsOnly(emailTrim) === digitsOnly(prevHint) && prevHint !== '—' && prevHint !== '-';
+      if (incomingEcid) infoEcid.textContent = incomingEcid;
+      else if (sameBrowserEcid && !data.found) infoEcid.textContent = prevHint;
+      else if (!incomingEcid && !data.found && prevHint && /^\d+$/.test(prevHint) && prevHint.length >= 10)
+        infoEcid.textContent = prevHint;
+      else if (!incomingEcid) infoEcid.textContent = '—';
+    }
 
     const [audiences, eventsAll] = await Promise.all([
       fetchAudienceMembership(emailTrim),
@@ -942,9 +962,15 @@ async function loadProfileDataForDrawer(email, options) {
 
     const profileEmailForGraph =
       data.email != null && String(data.email).trim() ? String(data.email).trim() : '';
-    const identities = mergeIdentitiesFromConsent(data, ecidVal, profileEmailForGraph);
-
     const prev = lastLookedUpProfile || {};
+    const ecidMerged =
+      incomingEcid ||
+      (ecidVal && String(ecidVal).length >= 10 ? String(ecidVal) : '') ||
+      (prev.ecid != null && String(prev.ecid).length >= 10 ? String(prev.ecid) : '') ||
+      null;
+    const ecidForGraph = ecidMerged || '';
+    const identities = mergeIdentitiesFromConsent(data, ecidForGraph, profileEmailForGraph);
+
     lastLookedUpProfile = {
       ...prev,
       firstName: data.firstName || null,
@@ -960,7 +986,7 @@ async function loadProfileDataForDrawer(email, options) {
         data.customerLifetimeValue != null && data.customerLifetimeValue !== ''
           ? data.customerLifetimeValue
           : null,
-      ecid: ecidVal || null,
+      ecid: ecidMerged,
       marketingConsent: data.marketingConsent || null,
       channels: data.channels && typeof data.channels === 'object' ? { ...data.channels } : null,
       preferredMarketingChannel: data.preferredMarketingChannel || null,
@@ -975,7 +1001,7 @@ async function loadProfileDataForDrawer(email, options) {
 
     updateProfileDrawer(lastLookedUpProfile);
 
-    if (typeof _config.getSelectedGeneratorTarget === 'function') {
+    if (data.found && typeof _config.getSelectedGeneratorTarget === 'function') {
       sendApplicationLoginExperienceEvent(emailTrim, _config.getSelectedGeneratorTarget).catch(() => {});
     }
 
@@ -983,8 +1009,10 @@ async function loadProfileDataForDrawer(email, options) {
       messageFn(
         data.found
           ? 'Profile found. ECID will be sent with the event if valid.'
-          : 'No profile found; event can still be sent (no ECID).',
-        'success',
+          : ns === 'ecid'
+            ? 'No profile entity for this ECID yet. After events ingest (~1–2 min), try again or use email namespace.'
+            : 'No profile found; event can still be sent (no ECID).',
+        data.found ? 'success' : '',
       );
     }
     return true;
@@ -1075,6 +1103,15 @@ async function applyBrowserEcidFromAlloyIfNeeded() {
     ecid,
     identities: [{ namespace: 'ECID', value: ecid }],
   });
+
+  if (typeof _config.afterBrowserEcidApplied === 'function') {
+    try {
+      const out = _config.afterBrowserEcidApplied(ecid);
+      if (out && typeof out.then === 'function') void out.then(() => {}).catch(() => {});
+    } catch {
+      /* noop */
+    }
+  }
 }
 
 function initAepProfileDrawerHover() {

@@ -170,7 +170,61 @@ DemoProfileDrawer.init({
   messageSetter: setModMessage,
   getSelectedGeneratorTarget: getSelectedGeneratorTarget,
   fetchBrowserEcidOnInit: true,
+  afterBrowserEcidApplied: (ecid) => {
+    void sendNavigatorProfileSeedToUps(ecid);
+  },
 });
+
+/** Stable lab email so Edge/UPS can create a fragment linked to this browser ECID. */
+function navigatorGlobalBootstrapEmailForEcid(ecid) {
+  const digits = String(ecid || '').replace(/\D/g, '');
+  const tail = digits.length >= 12 ? digits.slice(-12) : digits || '0';
+  return `navigator-browser-${tail}@example.net`;
+}
+
+async function waitForNavigatorGeneratorTargets(maxMs) {
+  const max = maxMs || 12000;
+  const t0 = Date.now();
+  while (Date.now() - t0 < max) {
+    const t = getSelectedGeneratorTarget();
+    if (t && t.id) return true;
+    await new Promise((r) => setTimeout(r, 80));
+  }
+  return false;
+}
+
+/**
+ * One-time experience event so Alan's sandbox UPS has an entity for this ECID (ingestion delay still applies).
+ */
+async function sendNavigatorProfileSeedToUps(ecid) {
+  const ecidDigits = String(ecid || '').replace(/\D/g, '');
+  if (ecidDigits.length < 10) return;
+  let sk = '';
+  try {
+    sk = sessionStorage.getItem('navigatorProfileSeedEcid') || '';
+  } catch {
+    sk = '';
+  }
+  if (sk === ecidDigits) return;
+
+  const okTargets = await waitForNavigatorGeneratorTargets(12000);
+  if (!okTargets) return;
+
+  const emailOverride = navigatorGlobalBootstrapEmailForEcid(ecidDigits);
+  const ok = await sendNavigatorGlobalExperienceEvent({
+    eventType: 'navigator.global.browser.profileSeed',
+    viewUrl: typeof window !== 'undefined' ? window.location.href.split('?')[0] : '',
+    viewName: 'Navigator Global — Browser profile seed',
+    ctaLabel: 'profile-seed',
+    emailOverride,
+  });
+  if (!ok) return;
+  try {
+    sessionStorage.setItem('navigatorProfileSeedEcid', ecidDigits);
+  } catch {
+    /* noop */
+  }
+}
 
 /** CTA label → event type (e.g. Get started → get.started) when URL does not map to a demo type. */
 function navigatorGlobalCtaLabelToEventType(text) {
@@ -374,17 +428,22 @@ function getActiveEcidString() {
  * @param {string} [opts.viewName]
  * @param {string} [opts.ctaLabel]
  * @param {string} [opts.eventRegistration]
+ * @param {string} [opts.emailOverride] — lab-only email (e.g. profile seed); skips empty identifier check
  */
+/** @returns {Promise<boolean>} */
 async function sendNavigatorGlobalExperienceEvent(opts) {
-  const emailForEvent = getEmail().trim();
+  const emailForEvent =
+    opts.emailOverride != null && String(opts.emailOverride).trim()
+      ? String(opts.emailOverride).trim()
+      : getEmail().trim();
   if (!emailForEvent) {
     setModMessage('Enter a customer identifier at the top before using page links.', 'error');
-    return;
+    return false;
   }
   const ecid = getActiveEcidString();
   if (!ecid) {
     setModMessage('Look up a profile first so a valid ECID is available to attach to the event.', 'error');
-    return;
+    return false;
   }
   setModMessage('Sending event to AEP…', '');
   try {
@@ -408,14 +467,16 @@ async function sendNavigatorGlobalExperienceEvent(opts) {
     if (!res.ok) {
       const errMsg = data.error || data.message || 'Request failed.';
       setModMessage(errMsg, 'error');
-      return;
+      return false;
     }
     let idPart = '';
     if (data.transport === 'edge' && data.requestId) idPart = ' Request ID: ' + data.requestId;
     else if (data.eventId) idPart = ' Event ID: ' + data.eventId;
     setModMessage((data.message || 'Event sent to AEP.') + idPart, 'success');
+    return true;
   } catch (err) {
     setModMessage(err.message || 'Network error', 'error');
+    return false;
   }
 }
 
