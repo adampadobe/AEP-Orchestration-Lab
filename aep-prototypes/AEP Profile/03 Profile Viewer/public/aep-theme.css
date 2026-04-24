@@ -96,14 +96,15 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-hero-inner 
 
 html[data-aep-theme='dark'] body.home-dashboard-concierge .dashboard-hero--page-banner .dashboard-hero-inner {
   background: linear-gradient(
-    90deg,
-    #252038 0%,
-    #2a2438 38%,
-    #302428 72%,
-    #322820 100%
+    180deg,
+    #24222c 0%,
+    #28262f 50%,
+    #2a2832 100%
   );
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.25),
+    0 4px 18px rgba(0, 0, 0, 0.22);
 }
 
 /* ── Buttons (dark mode primary/secondary swap) ── */

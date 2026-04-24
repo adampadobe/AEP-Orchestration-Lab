@@ -432,8 +432,10 @@ body.decisioning-catalog-page .dashboard-hero--page-banner .dashboard-hero-inner
 body.decisioning-catalog-page .dashboard-hero--page-banner .dashboard-hero-header {
   max-width: none;
   width: 100%;
+  text-align: center;
 }
 
 body.decisioning-catalog-page .dashboard-hero--page-banner .dashboard-hero-subtitle {
   max-width: none;
+  text-align: center;
 }
