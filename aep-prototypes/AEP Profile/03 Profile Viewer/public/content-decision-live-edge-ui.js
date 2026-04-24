@@ -1267,16 +1267,17 @@
     }
   }
 
+  /** @returns {Promise<{ ok: boolean, error?: string }>} */
   async function saveConfigToFirebase() {
     var sb = sandboxName();
     if (!sb) {
       setMsg(el('cdLabSaveStatus'), 'Select a sandbox first.', 'err');
-      return;
+      return { ok: false, error: 'Select a sandbox first.' };
     }
     var keyCheck = validatePlacementKeysForSave();
     if (!keyCheck.ok) {
       setMsg(el('cdLabPlacementKeyMsg'), keyCheck.msg, 'err');
-      return;
+      return { ok: false, error: keyCheck.msg };
     }
     setMsg(el('cdLabPlacementKeyMsg'), '', '');
     setMsg(el('cdLabSaveStatus'), 'Saving…', '');
@@ -1292,7 +1293,7 @@
     var data = await CdLabConfigApi.saveDecisionLabConfig(body);
     if (!data.ok) {
       setMsg(el('cdLabSaveStatus'), data.error || 'Save failed.', 'err');
-      return;
+      return { ok: false, error: data.error || 'Save failed.' };
     }
     loadRecordIntoForm(data.record || {});
     setMsg(el('cdLabSaveStatus'), 'Saved for sandbox ' + sb + '.', 'ok');
@@ -1304,6 +1305,7 @@
     if (hasTags && hasTarget) {
       previewLaunchRuleChange().catch(function () { /* already surfaced via renderLaunchPreview */ });
     }
+    return { ok: true };
   }
 
   async function probeTagsApiStep() {
@@ -1483,6 +1485,15 @@
     getLastInjectedLaunchUrl: function () {
       return __lastLaunchInjected;
     },
+    /** Datastream + Launch URL + target page URL (same gate as the green “Configured” badge). */
+    isLabEdgeConfigured: function () {
+      var ds = el('edgeConfigId') && el('edgeConfigId').value.trim();
+      var lu = el('cdLabLaunchUrl') && el('cdLabLaunchUrl').value.trim();
+      var tu = el('cdLabTargetPageUrl') && el('cdLabTargetPageUrl').value.trim();
+      return !!(ds && lu && tu);
+    },
+    saveLabConfigToFirebase: saveConfigToFirebase,
+    refreshConfigBadge: updateConfigBadge,
   };
 
   if (document.readyState === 'loading') {

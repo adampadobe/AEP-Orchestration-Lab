@@ -1005,6 +1005,198 @@
       .cd-lab-placement-row-remove { grid-column: 1 / -1; justify-self: end; }
       .cd-lab-placement-type-wrap { grid-column: 1 / -1; }
     }
+
+    /* First-run onboarding wizard (unconfigured sandbox) */
+    body.cd-onboarding-open {
+      overflow: hidden;
+    }
+    .cd-onboarding-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    .cd-onboarding-overlay[hidden] {
+      display: none !important;
+    }
+    .cd-onboarding-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 22, 28, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .cd-onboarding-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 34rem;
+      max-height: min(88vh, 40rem);
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel, #fff);
+      color: var(--text, #2c2c2c);
+      border: 1px solid var(--border, #d8dde6);
+      border-radius: 12px;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.22);
+      overflow: hidden;
+    }
+    html[data-aep-theme='dark'] .cd-onboarding-card {
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+    }
+    .cd-onboarding-head {
+      flex-shrink: 0;
+      padding: 1.1rem 1.25rem 0.75rem;
+      border-bottom: 1px solid var(--border, #d8dde6);
+    }
+    .cd-onboarding-kicker {
+      margin: 0 0 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted, #6e6e6e);
+    }
+    .cd-onboarding-title {
+      margin: 0 0 0.35rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .cd-onboarding-progress {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--muted, #6e6e6e);
+    }
+    .cd-onboarding-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 1rem 1.25rem 1.25rem;
+      font-size: 0.9375rem;
+      line-height: 1.55;
+    }
+    .cd-onb-lead {
+      margin: 0 0 0.75rem;
+      font-weight: 500;
+    }
+    .cd-onb-p {
+      margin: 0 0 0.65rem;
+    }
+    .cd-onb-hint {
+      margin: 0.75rem 0 0;
+      font-size: 0.875rem;
+      color: var(--muted, #6e6e6e);
+    }
+    .cd-onb-ol,
+    .cd-onb-ul {
+      margin: 0.35rem 0 0.75rem;
+      padding-left: 1.25rem;
+    }
+    .cd-onb-ol li,
+    .cd-onb-ul li {
+      margin-bottom: 0.4rem;
+    }
+    .cd-onb-code {
+      display: inline-block;
+      margin-top: 0.25rem;
+      padding: 0.15rem 0.4rem;
+      font-size: 0.8125rem;
+      border-radius: 4px;
+      background: var(--bg-hover, #eef0f4);
+      word-break: break-all;
+    }
+    .cd-onb-checks {
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed var(--border, #d8dde6);
+    }
+    .cd-onb-check {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+      margin-bottom: 0.65rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .cd-onb-check input {
+      margin-top: 0.2rem;
+      flex-shrink: 0;
+    }
+    .cd-onb-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+    }
+    .cd-onb-fields label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      margin-top: 0.35rem;
+    }
+    .cd-onb-fields input {
+      font: inherit;
+      padding: 0.5rem 0.6rem;
+      border: 1px solid var(--border, #d8dde6);
+      border-radius: 6px;
+      background: var(--bg-panel, #fff);
+      color: inherit;
+    }
+    .cd-onb-row-btns {
+      margin: 0.25rem 0 0.5rem;
+    }
+    .cd-onb-row-btns .secondary {
+      font-size: 0.8125rem;
+      padding: 0.4rem 0.65rem;
+    }
+    .cd-onboarding-foot {
+      flex-shrink: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 1.25rem 1rem;
+      border-top: 1px solid var(--border, #d8dde6);
+      background: var(--bg, #f5f6f8);
+    }
+    html[data-aep-theme='dark'] .cd-onboarding-foot {
+      background: var(--bg-panel, #252830);
+    }
+    .cd-onboarding-foot-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: auto;
+    }
+    button.quiet#cdOnbLater,
+    .cd-onboarding-foot .quiet {
+      background: transparent;
+      border: none;
+      color: var(--muted, #6e6e6e);
+      text-decoration: underline;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      padding: 0.35rem 0.25rem;
+    }
+    button.quiet#cdOnbLater:hover,
+    .cd-onboarding-foot .quiet:hover {
+      color: var(--accent, #1473e6);
+    }
+    .cd-onb-status {
+      margin-top: 0.75rem;
+      font-size: 0.875rem;
+    }
+    .cd-onb-status--ok {
+      color: var(--success, #268e6c);
+    }
+    .cd-onb-status--err {
+      color: var(--error, #d7373f);
+    }
   </style>
   <!-- Launch rules sometimes push to dataLayer (GTM-style); define before Launch to avoid ReferenceError — same as /index.html -->
   <script>
@@ -1360,8 +1552,9 @@
   <script src="identity-picker.js"></script>
   <script src="content-decision-edge-mounts.js?v=20260423-noimage-bg-banner"></script>
   <script src="content-decision-lab-config.js?v=20260216"></script>
-  <script src="content-decision-live-edge-ui.js?v=20260423-noimage-bg-banner"></script>
-  <script src="content-decision-live-edge-inline.js?v=20260423-edge-id-history"></script>
+  <script src="content-decision-live-edge-ui.js?v=20260423-onboarding"></script>
+  <script src="content-decision-live-edge-onboarding.js?v=20260423-onboarding"></script>
+  <script src="content-decision-live-edge-inline.js?v=20260423-onboarding-boot"></script>
   <script defer src="marauders-map-egg.js?v=20260423-edge-flavor"></script>
 </body>
 </html>

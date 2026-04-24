@@ -994,6 +994,10 @@ waitForAlloy()
       // reinject (clears alloy + datastream-configure cache) rather than a
       // lightweight script swap.
       return reinjectLaunch();
+    }).then(function () {
+      if (typeof window.CdEdgeOnboarding !== 'undefined' && window.CdEdgeOnboarding.syncAfterConfigLoad) {
+        window.CdEdgeOnboarding.syncAfterConfigLoad();
+      }
     }).catch(function (e) {
       cdLog('Sandbox sync reload failed', String(e.message || e));
     });
@@ -1080,6 +1084,9 @@ waitForAlloy()
         return injectLaunchFromConfiguredUrl();
       })
       .then(function () {
+        if (typeof global.CdEdgeOnboarding !== 'undefined' && global.CdEdgeOnboarding.initAfterBoot) {
+          global.CdEdgeOnboarding.initAfterBoot();
+        }
         cdLog('initialized — filter console by', LOG_PREFIX);
       })
       .catch(function (e) {
