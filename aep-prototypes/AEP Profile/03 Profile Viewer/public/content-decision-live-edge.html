@@ -967,11 +967,11 @@
     .cd-lab-placement-row select.cd-lab-placement-type {
       box-sizing: border-box;
       width: 100%;
-      min-height: 2.125rem;
-      height: 2.125rem;
-      padding: 0.35rem 0.5rem;
-      font-size: 0.8125rem;
-      line-height: 1.25;
+      min-height: 2.375rem;
+      height: 2.375rem;
+      padding: 0.25rem 0.45rem;
+      font-size: 0.75rem;
+      line-height: 1.2;
       border: 1px solid var(--border);
       border-radius: var(--radius, 6px);
       background: var(--bg);
@@ -981,9 +981,9 @@
       max-width: 12rem;
       cursor: pointer;
       appearance: auto;
-      /* ~2pt smaller than text inputs so “EXD” / “Content card” read cleanly in the control */
-      font-size: calc(0.8125rem - 2pt);
-      line-height: 1.2;
+      /* Native selects use larger font metrics; keep text a touch smaller + normal line-height to avoid clipping */
+      font-size: 0.6875rem;
+      line-height: normal;
     }
 
     .cd-lab-placement-type-wrap {
