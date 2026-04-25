@@ -416,6 +416,15 @@
     ],
     "headers": [
       {
+        "source": "/api/brand-scraper/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "private, no-store, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
         "source": "/profile-viewer/**/*.html",
         "headers": [
           {

@@ -2971,6 +2971,7 @@ exports.brandScraperAnalyze = onRequest(
   },
   async (req, res) => {
     setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
     res.set('Access-Control-Expose-Headers', 'X-Brand-Scrape-Id');
     try {
       const anthropicKey = (process.env.ANTHROPIC_API_KEY || '').trim();
@@ -3008,6 +3009,7 @@ exports.brandScraperScrapes = onRequest(
   },
   async (req, res) => {
     setCors(res, 'GET, DELETE, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
     await brandScraperService.handleScrapes(req, res);
   }
 );
