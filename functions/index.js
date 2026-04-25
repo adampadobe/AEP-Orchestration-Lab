@@ -4,7 +4,7 @@
  */
 const { onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
-const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const functionsV1 = require('firebase-functions/v1');
 const { defineSecret } = require('firebase-functions/params');
 
 const ADOBE_CLIENT_ID = defineSecret('ADOBE_CLIENT_ID');
@@ -2982,19 +2982,19 @@ exports.brandScraperAnalyze = onRequest(
   }
 );
 
-/** Firestore-triggered worker: runs queued analyze jobs (default async mode). */
-exports.brandScraperAnalyzeWorker = onDocumentCreated(
-  {
-    document: 'brandScrapeAnalyzeJobs/{jobId}',
-    region: REGION,
-    timeoutSeconds: 540,
-    memory: '1GiB',
-  },
-  async (event) => {
+/**
+ * Firestore-triggered worker: runs queued analyze jobs (default async mode).
+ * Uses v1 Firestore trigger so deploy does not depend on Eventarc propagation
+ * (v2 onDocumentCreated can fail with Eventarc Service Agent permission errors).
+ */
+exports.brandScraperAnalyzeWorker = functionsV1
+  .region(REGION)
+  .runWith({ timeoutSeconds: 540, memory: '1GB' })
+  .firestore.document('brandScrapeAnalyzeJobs/{jobId}')
+  .onCreate(async (snap) => {
     const svc = require('./brandScraperService');
-    await svc.processAnalyzeJob(event);
-  },
-);
+    await svc.processAnalyzeJob({ data: snap });
+  });
 
 /** Fail stale running scrapes and stuck analyze queue docs. */
 exports.brandScraperStaleCleanup = onSchedule(
