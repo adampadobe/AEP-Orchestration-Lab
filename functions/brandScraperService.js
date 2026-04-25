@@ -1654,11 +1654,21 @@ async function handleScrapes(req, res) {
   const sandbox = resolveSandbox(req);
   if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
 
-  // Firebase Hosting rewrites often leave `req.path` truncated; prefer the URL
-  // the client requested so GET /scrapes/:id matches Cloud Run direct invokes.
+  // Hosting rewrites sometimes forward only the trailing segment (e.g. `/moew4…`)
+  // without `/api/brand-scraper/scrapes/`. Prefer full URL parts, then fall back
+  // to a lone path segment that looks like a generated scrape id.
   const path = String(req.originalUrl || req.url || req.path || '').split('?')[0].replace(/\/+$/, '');
-  const m = /\/scrapes(?:\/([^/]+))?$/.exec(path);
-  const scrapeId = m && m[1] ? decodeURIComponent(m[1]) : '';
+  let scrapeId = '';
+  const m = /\/scrapes\/([^/]+)$/.exec(path);
+  if (m) {
+    scrapeId = decodeURIComponent(m[1]);
+  } else {
+    const segs = path.split('/').filter(Boolean);
+    const last = segs.length ? segs[segs.length - 1] : '';
+    if (last && last !== 'scrapes' && /^[a-z0-9]{10,24}$/i.test(last)) {
+      scrapeId = last;
+    }
+  }
 
   try {
     if (req.method === 'GET' && !scrapeId) {
