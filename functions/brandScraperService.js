@@ -1654,8 +1654,9 @@ async function handleScrapes(req, res) {
   const sandbox = resolveSandbox(req);
   if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
 
-  // Route by path: /api/brand-scraper/scrapes | /api/brand-scraper/scrapes/:id
-  const path = String(req.path || '').replace(/\/+$/, '');
+  // Firebase Hosting rewrites often leave `req.path` truncated; prefer the URL
+  // the client requested so GET /scrapes/:id matches Cloud Run direct invokes.
+  const path = String(req.originalUrl || req.url || req.path || '').split('?')[0].replace(/\/+$/, '');
   const m = /\/scrapes(?:\/([^/]+))?$/.exec(path);
   const scrapeId = m && m[1] ? decodeURIComponent(m[1]) : '';
 
