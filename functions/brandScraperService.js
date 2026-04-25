@@ -1594,7 +1594,11 @@ async function handleAnalyse(req, res, { anthropicKey }) {
         scrapeId: runScrapeId,
         sandbox,
       });
-      return executeAnalyzePipeline({
+      // Do not return/await this promise from handleAnalyse: the HTTPS wrapper
+      // would treat the request as still open and can emit a second response after
+      // the 202 body (ERR_HTTP_HEADERS_SENT). Fire-and-forget; the instance usually
+      // stays warm long enough for crawl + checkpoint + LLMs to finish.
+      void executeAnalyzePipeline({
         sandbox,
         body,
         runScrapeId,
@@ -1611,6 +1615,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
           analyzePipelineLog(runScrapeId, 'async_pipeline_throw', { sandbox });
           return brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
         });
+      return;
     }
 
     const out = await executeAnalyzePipeline({
@@ -1625,7 +1630,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     if (runScrapeId) {
       try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: String(e && e.message || e) }); } catch (_e2) { /* ignore */ }
     }
-    res.status(500).json({ error: String(e && e.message || e), scrapeId: runScrapeId || undefined });
+    if (!res.headersSent) {
+      res.status(500).json({ error: String(e && e.message || e), scrapeId: runScrapeId || undefined });
+    }
   }
 }
 

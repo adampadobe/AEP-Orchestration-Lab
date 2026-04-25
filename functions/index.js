@@ -2976,7 +2976,11 @@ exports.brandScraperAnalyze = onRequest(
       const anthropicKey = (process.env.ANTHROPIC_API_KEY || '').trim();
       await brandScraperService.handleAnalyse(req, res, { anthropicKey });
     } catch (e) {
-      res.status(500).json({ error: String(e && e.message || e) });
+      if (!res.headersSent) {
+        res.status(500).json({ error: String(e && e.message || e) });
+      } else {
+        console.error('[brandScraperAnalyze] error after response started', String((e && e.message) || e));
+      }
     }
   }
 );
