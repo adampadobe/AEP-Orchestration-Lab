@@ -1587,44 +1587,43 @@ async function handleAnalyse(req, res, { anthropicKey }) {
 
     const useAsync = body.async !== false && body.sync !== true;
     if (useAsync) {
-      // Respond before Firestore so Firebase Hosting (~60s to first byte) does not
-      // time out on cold start + markScrapeRunning. Client may poll before the index
-      // row exists; retry until GET /scrapes/:id succeeds.
+      // Send 202 before Firestore so Hosting (~60s to first byte) is not blocked by
+      // cold start + transaction. Then await markScrapeRunning so the invocation
+      // stays alive (Gen2 can freeze immediately after the handler returns if work
+      // was only scheduled via an unawaited async IIFE).
       res.status(202).json({
         accepted: true,
         async: true,
         scrapeId: runScrapeId,
         sandbox,
       });
-      void (async () => {
-        try {
-          await brandScrapeStore.markScrapeRunning(sandbox, runningMeta);
-        } catch (e) {
-          const msg = String((e && e.message) || e);
-          analyzePipelineLog(runScrapeId, 'mark_running_failed', { sandbox });
-          await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
-          return;
-        }
-        // Do not await from handleAnalyse: would keep the HTTPS request open and risk
-        // ERR_HTTP_HEADERS_SENT if the wrapper sends 500 after 202.
-        void executeAnalyzePipeline({
+      try {
+        await brandScrapeStore.markScrapeRunning(sandbox, runningMeta);
+      } catch (e) {
+        const msg = String((e && e.message) || e);
+        analyzePipelineLog(runScrapeId, 'mark_running_failed', { sandbox });
+        await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
+        return;
+      }
+      // Await the pipeline so Gen2 does not freeze the instance while work is still
+      // scheduled (unawaited promises). 202 is already sent; index.js avoids a
+      // second res.json when res.headersSent (ERR_HTTP_HEADERS_SENT).
+      try {
+        const out = await executeAnalyzePipeline({
           sandbox,
           body,
           runScrapeId,
           anthropicKey,
           started,
-        })
-          .then((out) => {
-            if (out.status !== 200) {
-              analyzePipelineLog(runScrapeId, 'async_pipeline_terminal', { sandbox, httpStatus: out.status });
-            }
-          })
-          .catch((e) => {
-            const msg = String((e && e.message) || e);
-            analyzePipelineLog(runScrapeId, 'async_pipeline_throw', { sandbox });
-            return brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
-          });
-      })();
+        });
+        if (out.status !== 200) {
+          analyzePipelineLog(runScrapeId, 'async_pipeline_terminal', { sandbox, httpStatus: out.status });
+        }
+      } catch (e) {
+        const msg = String((e && e.message) || e);
+        analyzePipelineLog(runScrapeId, 'async_pipeline_throw', { sandbox });
+        await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
+      }
       return;
     }
 
