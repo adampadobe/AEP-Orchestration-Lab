@@ -457,6 +457,105 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  function tagAuditVendorTags(v) {
+    if (!v || typeof v !== 'object') return [];
+    return Object.keys(v).filter(function (k) { return v[k]; }).sort();
+  }
+
+  function renderTagAuditPageDetails(ta) {
+    if (!ta) {
+      return '<div class="brand-scraper-tag-page-details"><p class="brand-scraper-result-muted">No tag audit for this page.</p></div>';
+    }
+    var blocks = [];
+    if (ta.depthNote) {
+      blocks.push('<p class="brand-scraper-result-muted"><strong>Coverage</strong> · ' + esc(ta.depthNote) + '</p>');
+    }
+    var vtags = tagAuditVendorTags(ta.vendors);
+    if (vtags.length) {
+      blocks.push('<p class="brand-scraper-result-muted"><strong>Vendors</strong></p><p class="brand-scraper-tag-chips">' +
+        vtags.map(function (t) { return '<span class="brand-scraper-chip brand-scraper-chip--tag">' + esc(t) + '</span>'; }).join(' ') + '</p>');
+    }
+    var arch = ta.architecture;
+    if (arch && ((arch.gtmContainerIds && arch.gtmContainerIds.length) || (arch.adobeLaunchScriptHints && arch.adobeLaunchScriptHints.length))) {
+      var archBits = [];
+      if (arch.gtmContainerIds && arch.gtmContainerIds.length) {
+        archBits.push('GTM ' + arch.gtmContainerIds.map(function (id) { return esc(id); }).join(', '));
+      }
+      if (arch.adobeLaunchScriptHints && arch.adobeLaunchScriptHints.length) {
+        archBits.push('Launch hints: ' + arch.adobeLaunchScriptHints.map(function (h) { return esc(h); }).join('; '));
+      }
+      blocks.push('<p class="brand-scraper-result-muted"><strong>Architecture</strong> · ' + archBits.join(' · ') + '</p>');
+    }
+    if (ta.dataLayer && (ta.dataLayer.present || ta.dataLayer.length != null)) {
+      var dlMeta = 'length ' + esc(String(ta.dataLayer.length != null ? ta.dataLayer.length : '—'));
+      if (ta.dataLayer.pushCount != null) dlMeta += ' · pushes ' + esc(String(ta.dataLayer.pushCount));
+      blocks.push('<p class="brand-scraper-result-muted"><strong>Data layer</strong> · ' + dlMeta + '</p>');
+      if (ta.dataLayer.recentEntries && ta.dataLayer.recentEntries.length) {
+        blocks.push('<pre class="brand-scraper-tag-pre">' + esc(JSON.stringify(ta.dataLayer.recentEntries)) + '</pre>');
+      }
+    }
+    if (ta.adobeSatellite && ta.adobeSatellite.present) {
+      blocks.push('<p class="brand-scraper-result-muted"><strong>Adobe _satellite</strong> · ' + esc(ta.adobeSatellite.buildInfo || '—') + '</p>');
+    }
+    if (ta.alloy && ta.alloy.detected) {
+      blocks.push('<p class="brand-scraper-result-muted"><strong>Adobe Alloy</strong> · ' + esc(ta.alloy.version || '') + '</p>');
+    }
+    if (ta.navigationTiming) {
+      blocks.push('<p class="brand-scraper-result-muted"><strong>Navigation timing</strong> (ms)</p><pre class="brand-scraper-tag-pre">' +
+        esc(JSON.stringify(ta.navigationTiming)) + '</pre>');
+    }
+    if (ta.networkBeaconSummary && typeof ta.networkBeaconSummary === 'object') {
+      var bs = ta.networkBeaconSummary;
+      var topIds = Object.keys(bs.countsByVendorId || {}).sort(function (a, b) {
+        return (bs.countsByVendorId[b] || 0) - (bs.countsByVendorId[a] || 0);
+      }).slice(0, 14);
+      var fb = bs.firstAnalyticsCollectorHit;
+      var countsLine = topIds.map(function (id) { return '<code>' + esc(id) + '</code> × ' + esc(String(bs.countsByVendorId[id])); }).join(', ');
+      var netMeta = 'Failed tag-related HTTP: ' + esc(String(bs.failedBeaconRequests || 0));
+      if (fb && fb.vendorId) {
+        netMeta += ' · first strict collector <code>' + esc(fb.vendorId) + '</code> at seq ' + esc(String(fb.sequenceIndex != null ? fb.sequenceIndex : '—'));
+      }
+      blocks.push('<p class="brand-scraper-result-muted"><strong>Network (aggregates)</strong> · ' + netMeta + '</p>');
+      if (countsLine) blocks.push('<p class="brand-scraper-result-muted">' + countsLine + '</p>');
+    }
+    if (ta.consentOrderHint && ta.consentOrderHint.state) {
+      var st = ta.consentOrderHint.state;
+      var cls = st === 'analytics_before_cmp' ? 'brand-scraper-result-warn' : 'brand-scraper-result-muted';
+      blocks.push('<p class="' + cls + '"><strong>Consent order (heuristic)</strong> · <code>' + esc(st) + '</code> — ' + esc(ta.consentOrderHint.note || '') + '</p>');
+    }
+    if (ta.duplicateCollectors && ta.duplicateCollectors.length) {
+      blocks.push('<p class="brand-scraper-result-warn"><strong>Possible duplicate collectors</strong></p><ul class="brand-scraper-tag-list">' +
+        ta.duplicateCollectors.map(function (d) {
+          return '<li><code>' + esc(d.key) + '</code> × ' + esc(String(d.count)) + '</li>';
+        }).join('') + '</ul>');
+    }
+    if (ta.slowThirdPartyScripts && ta.slowThirdPartyScripts.length) {
+      blocks.push('<p class="brand-scraper-result-muted"><strong>Slow third-party scripts</strong></p><ul class="brand-scraper-tag-list">' +
+        ta.slowThirdPartyScripts.map(function (s) {
+          return '<li>' + esc(String(s.durationMs)) + ' ms · <code>' + esc(s.url) + '</code></li>';
+        }).join('') + '</ul>');
+    }
+    if (ta.networkSample && ta.networkSample.length) {
+      var nr = ta.networkSample.map(function (r) {
+        return '<tr><td class="brand-scraper-num">' + esc(String(r.sequenceIndex != null ? r.sequenceIndex : '')) + '</td>' +
+          '<td class="brand-scraper-num">' + esc(String(r.status)) + '</td>' +
+          '<td><code>' + esc(r.resourceType || '') + '</code></td>' +
+          '<td><code>' + esc(r.vendorId || '—') + '</code></td>' +
+          '<td class="brand-scraper-tag-url"><code>' + esc(r.url) + '</code></td></tr>';
+      }).join('');
+      blocks.push('<p class="brand-scraper-result-muted"><strong>Network sample</strong> (capture order)</p>' +
+        '<table class="brand-scraper-table brand-scraper-table--compact"><thead><tr><th>#</th><th>HTTP</th><th>Type</th><th>Vendor</th><th>URL</th></tr></thead><tbody>' +
+        nr + '</tbody></table>');
+    }
+    if (ta.consoleErrors && ta.consoleErrors.length) {
+      blocks.push('<p class="brand-scraper-result-warn"><strong>Console errors</strong></p><ul class="brand-scraper-tag-list">' +
+        ta.consoleErrors.map(function (e) {
+          return '<li><code>' + esc(e.text || '') + '</code></li>';
+        }).join('') + '</ul>');
+    }
+    return '<div class="brand-scraper-tag-page-details">' + blocks.join('') + '</div>';
+  }
+
   function fmtDate(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -865,7 +964,9 @@
     if (!s) return '';
     const opps = Array.isArray(s.opportunities) ? s.opportunities : [];
     const tags = Array.isArray(s.vendorTags) ? s.vendorTags : [];
-    if (!tags.length && !opps.length && !s.pagesWithConsoleErrors) return '';
+    const hasRollups = (s.pagesWithDuplicateCollectors | 0) > 0 || (s.pagesWithFailedBeacons | 0) > 0 || (s.pagesWithAnalyticsBeforeCmp | 0) > 0;
+    const hasCov = s.vendorCoverage && typeof s.vendorCoverage === 'object' && Object.keys(s.vendorCoverage).length;
+    if (!tags.length && !opps.length && !s.pagesWithConsoleErrors && !hasRollups && !hasCov) return '';
     const chips = tags.map(function (t) {
       return '<span class="brand-scraper-chip brand-scraper-chip--tag">' + esc(t) + '</span>';
     }).join(' ');
@@ -877,12 +978,38 @@
         (mix.fetch ? mix.fetch + ' page(s) HTML-only' : '') +
         '.</p>')
       : '';
+    const rollupParts = [];
+    if ((s.pagesWithDuplicateCollectors | 0) > 0) {
+      rollupParts.push('Possible duplicate collectors on ' + s.pagesWithDuplicateCollectors + ' page(s)');
+    }
+    if ((s.pagesWithFailedBeacons | 0) > 0) {
+      rollupParts.push('Tag-related HTTP failures on ' + s.pagesWithFailedBeacons + ' page(s)');
+    }
+    if ((s.pagesWithAnalyticsBeforeCmp | 0) > 0) {
+      rollupParts.push('"Analytics before CMP" request order on ' + s.pagesWithAnalyticsBeforeCmp + ' page(s) (heuristic)');
+    }
+    const rollupHtml = rollupParts.length
+      ? '<p class="brand-scraper-result-muted"><strong>Roll-ups</strong></p><ul class="brand-scraper-tag-list">' +
+        rollupParts.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'
+      : '';
+    const covRows = tags.map(function (t) {
+      const c = (s.vendorCoverage && s.vendorCoverage[t]) || { pages: 0, pct: 0 };
+      return '<tr><td><code>' + esc(t) + '</code></td><td class="brand-scraper-num">' + esc(String(c.pages)) + ' / ' + esc(String(s.pagesAudited || 0)) + '</td><td class="brand-scraper-num">' + esc(String(c.pct)) + '%</td></tr>';
+    }).join('');
+    const covHtml = hasCov
+      ? '<details class="brand-scraper-tag-opps"><summary>Vendor coverage by audited page</summary>' +
+        '<table class="brand-scraper-table brand-scraper-table--compact"><thead><tr><th>Vendor</th><th>Pages</th><th>%</th></tr></thead><tbody>' +
+        covRows + '</tbody></table></details>'
+      : '';
     return '<section class="brand-scraper-result-block brand-scraper-tag-audit">' +
       '<h4>Tag &amp; analytics snapshot</h4>' +
       '<p class="brand-scraper-result-muted">Directional signals from the crawl sample — not a certified compliance audit. Prefer <strong>JS-rendered crawl</strong> for network timings, duplicate collectors, and console errors.</p>' +
+      '<p class="brand-scraper-result-muted">We report <strong>inventory</strong>, a <strong>sample of network requests</strong>, <strong>console errors</strong>, <strong>duplicate-collector heuristics</strong>, and <strong>rough CMP vs collector order</strong>. Enterprise tools add scripted journeys, payload rules, and attestations — we do not.</p>' +
       mixLine +
-      (tags.length ? '<p class="brand-scraper-result-muted"><strong>Detected</strong></p><p class="brand-scraper-tag-chips">' + chips + '</p>' : '') +
+      (tags.length ? '<p class="brand-scraper-result-muted"><strong>Detected (crawl-wide)</strong></p><p class="brand-scraper-tag-chips">' + chips + '</p>' : '') +
       (s.pagesWithConsoleErrors ? '<p class="brand-scraper-result-warn">Browser console errors on ' + s.pagesWithConsoleErrors + ' page(s) while loading.</p>' : '') +
+      rollupHtml +
+      covHtml +
       (opps.length ? (
         '<details class="brand-scraper-tag-opps">' +
           '<summary>Conversation starters (' + opps.length + ')</summary>' +
@@ -903,15 +1030,25 @@
       const mode = ta && ta.mode ? ta.mode : '—';
       const errs = ta && ta.consoleErrors ? ta.consoleErrors.length : 0;
       const errCell = errs ? ('<span class="brand-scraper-result-warn">' + errs + '</span>') : '0';
+      const dupN = ta && ta.duplicateCollectors ? ta.duplicateCollectors.length : 0;
+      const failN = ta && ta.networkBeaconSummary ? (ta.networkBeaconSummary.failedBeaconRequests || 0) : 0;
+      const hint = ta && ta.consentOrderHint ? ta.consentOrderHint.state : '';
+      const tagCellExtra = (dupN ? ' · dup ' + dupN : '') + (failN ? ' · HTTP ' + failN : '') + (hint === 'analytics_before_cmp' ? ' · consent?' : '');
       return (
         '<tr>' +
           '<td><a href="' + esc(p.url) + '" target="_blank" rel="noopener">' + esc(p.url) + '</a></td>' +
           '<td>' + esc(p.title || '—') + '</td>' +
           '<td class="brand-scraper-num">' + esc(p.status) + '</td>' +
           '<td class="brand-scraper-num">' + esc((p.textLength || 0).toLocaleString()) + '</td>' +
-          '<td><code>' + esc(mode) + '</code></td>' +
+          '<td><code>' + esc(mode) + '</code>' + (tagCellExtra ? '<span class="brand-scraper-result-muted">' + esc(tagCellExtra) + '</span>' : '') + '</td>' +
           '<td class="brand-scraper-num">' + errCell + '</td>' +
-        '</tr>'
+        '</tr>' +
+        '<tr class="brand-scraper-crawl-detail"><td colspan="6">' +
+          '<details class="brand-scraper-tag-page-wrap">' +
+            '<summary>Tag / network detail for this URL</summary>' +
+            renderTagAuditPageDetails(ta) +
+          '</details>' +
+        '</td></tr>'
       );
     }).join('');
     return '<section class="brand-scraper-result-block">' +

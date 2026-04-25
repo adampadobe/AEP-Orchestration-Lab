@@ -1484,6 +1484,65 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   line-height: 1.45;
 }
 
+.brand-scraper-tag-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--dash-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.brand-scraper-tag-pre {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  max-height: 180px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.4;
+  background: color-mix(in srgb, var(--dash-surface) 92%, var(--dash-border));
+  border: 1px solid var(--dash-border);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.brand-scraper-crawl-detail td {
+  padding-top: 0;
+  border-top: none;
+  background: color-mix(in srgb, var(--dash-surface) 96%, var(--dash-border));
+}
+
+.brand-scraper-tag-page-wrap {
+  margin: 4px 0 12px;
+}
+
+.brand-scraper-tag-page-wrap summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--dash-text);
+  font-size: 13px;
+}
+
+.brand-scraper-tag-page-details {
+  padding: 8px 0 4px;
+  font-size: 13px;
+}
+
+.brand-scraper-table--compact {
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.brand-scraper-table--compact th,
+.brand-scraper-table--compact td {
+  padding: 4px 8px;
+}
+
+.brand-scraper-tag-url {
+  max-width: 420px;
+  word-break: break-all;
+}
+
 .brand-scraper-result-warn {
   color: #b45309;
   font-weight: 600;

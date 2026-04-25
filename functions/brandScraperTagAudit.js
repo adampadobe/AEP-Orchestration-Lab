@@ -195,8 +195,88 @@ function countDuplicateCollectors(networkRows) {
     .slice(0, 8);
 }
 
+/** CMP-aware classification for a network row (URL patterns beat generic vendorId). */
+function effectiveClassifyRow(row) {
+  const fromUrl = classifyUrl(row.url);
+  if (fromUrl && fromUrl.category === 'cmp') return fromUrl;
+  if (row.vendorId && String(row.vendorId).startsWith('cmp_')) return { id: row.vendorId, category: 'cmp' };
+  return fromUrl || (row.vendorId ? { id: row.vendorId, category: 'unknown' } : null);
+}
+
+function collectorIdForRow(row) {
+  const c = row.vendorId ? { id: row.vendorId } : classifyUrl(row.url);
+  return c ? c.id : null;
+}
+
+function isStrictAnalyticsCollectorRow(row) {
+  const id = collectorIdForRow(row);
+  return id === 'google_ga4_collect' || id === 'google_ua_collect' || id === 'adobe_analytics_collect';
+}
+
+function isTagRelatedClass(cls) {
+  if (!cls) return false;
+  if (String(cls.id).startsWith('cmp_')) return true;
+  return ['analytics', 'adobe', 'cmp', 'tms', 'ads'].includes(cls.category);
+}
+
+function isFailedHttpStatus(status) {
+  const s = Number(status) || 0;
+  return !s || s < 200 || s >= 400;
+}
+
+function buildBeaconSummary(networkRows) {
+  const countsByVendorId = {};
+  let failedBeaconRequests = 0;
+  let firstAnalyticsCollectorHit = null;
+  for (const row of networkRows || []) {
+    const cls = effectiveClassifyRow(row);
+    if (cls && cls.id) {
+      countsByVendorId[cls.id] = (countsByVendorId[cls.id] || 0) + 1;
+      if (isTagRelatedClass(cls) && isFailedHttpStatus(row.status)) failedBeaconRequests += 1;
+    }
+    if (!firstAnalyticsCollectorHit && isStrictAnalyticsCollectorRow(row)) {
+      firstAnalyticsCollectorHit = {
+        vendorId: collectorIdForRow(row),
+        sequenceIndex: row.sequenceIndex != null ? row.sequenceIndex : null,
+      };
+    }
+  }
+  return { countsByVendorId, failedBeaconRequests, firstAnalyticsCollectorHit };
+}
+
+function buildConsentOrderHint(networkRows) {
+  let cmpMin = null;
+  let anaMin = null;
+  for (const row of networkRows || []) {
+    const seq = row.sequenceIndex;
+    if (seq == null) continue;
+    const cls = effectiveClassifyRow(row);
+    const isCmp = (cls && cls.category === 'cmp') || (row.vendorId && String(row.vendorId).startsWith('cmp_'));
+    if (isCmp && (cmpMin === null || seq < cmpMin)) cmpMin = seq;
+    if (isStrictAnalyticsCollectorRow(row) && (anaMin === null || seq < anaMin)) anaMin = seq;
+  }
+  if (cmpMin == null || anaMin == null) {
+    let note = 'Not enough CMP vs strict collector (GA4/UA/AA) traffic in the sampled network log to compare order.';
+    if (cmpMin == null && anaMin == null) note = 'No CMP and no GA4/UA/AA collection beacons in the sampled network log.';
+    else if (cmpMin == null) note = 'CMP not observed in sampled network requests; cannot compare order.';
+    else note = 'No GA4/UA/AA collection beacons in sample; cannot compare order.';
+    return {
+      state: 'insufficient_data',
+      cmpFirstSeq: cmpMin,
+      analyticsFirstSeq: anaMin,
+      note,
+    };
+  }
+  const state = anaMin < cmpMin ? 'analytics_before_cmp' : 'cmp_before_analytics';
+  const note = state === 'analytics_before_cmp'
+    ? 'Sampled request order shows strict analytics collectors before CMP-related traffic (heuristic only; not a legal or consent verdict).'
+    : 'Sampled request order shows CMP-related traffic before strict analytics collectors (directional signal).';
+  return { state, cmpFirstSeq: cmpMin, analyticsFirstSeq: anaMin, note };
+}
+
 function networkRowsFromPlaywright(networkLog) {
-  return (networkLog || []).slice(0, MAX_NETWORK_ROWS).map(r => ({
+  return (networkLog || []).slice(0, MAX_NETWORK_ROWS).map((r, i) => ({
+    sequenceIndex: r.sequenceIndex != null ? Number(r.sequenceIndex) : i,
     url: trunc(r.url, MAX_URL_LEN),
     resourceType: r.resourceType || '',
     status: r.status || 0,
@@ -251,6 +331,8 @@ function buildFetchPageAudit(html, pageUrl) {
     slowThirdPartyScripts: [],
     networkSample: [],
     htmlScriptSrcCount: inv.scriptSrcs.length,
+    networkBeaconSummary: null,
+    consentOrderHint: null,
   };
 }
 
@@ -295,6 +377,19 @@ function buildPlaywrightPageAudit({
   slow.sort((a, b) => b.durationMs - a.durationMs);
 
   const dup = countDuplicateCollectors(networkRows);
+  const networkBeaconSummary = buildBeaconSummary(networkRows);
+  const consentOrderHint = buildConsentOrderHint(networkRows);
+
+  const dataLayerBlock = probe && typeof probe === 'object'
+    ? {
+      present: probe.dataLayerLength != null && Number(probe.dataLayerLength) > 0,
+      length: probe.dataLayerLength,
+      pushCount: probe.dataLayerPushCount != null ? probe.dataLayerPushCount : null,
+      recentEntries: Array.isArray(probe.dataLayerRecentShape)
+        ? probe.dataLayerRecentShape.slice(0, 6)
+        : [],
+    }
+    : null;
 
   return {
     mode: 'playwright',
@@ -304,9 +399,7 @@ function buildPlaywrightPageAudit({
       gtmContainerIds: inv.gtmContainerIds,
       adobeLaunchScriptHints: inv.launchHints,
     },
-    dataLayer: probe && typeof probe === 'object'
-      ? { present: probe.dataLayerLength != null, length: probe.dataLayerLength }
-      : null,
+    dataLayer: dataLayerBlock,
     adobeSatellite: probe && typeof probe === 'object'
       ? { present: !!probe.hasSatellite, buildInfo: probe.satelliteBuild || null }
       : null,
@@ -319,6 +412,8 @@ function buildPlaywrightPageAudit({
     slowThirdPartyScripts: slow.slice(0, MAX_SLOW),
     networkSample: networkRows.slice(0, 28),
     htmlScriptSrcCount: inv.scriptSrcs.length,
+    networkBeaconSummary,
+    consentOrderHint,
   };
 }
 
@@ -335,6 +430,9 @@ function summarizeAcrossPages(pages) {
   let playwrightPages = 0;
   let fetchPages = 0;
   const perPageScores = [];
+  let pagesWithDuplicateCollectors = 0;
+  let pagesWithFailedBeacons = 0;
+  let pagesWithAnalyticsBeforeCmp = 0;
 
   for (const p of audited) {
     const a = p.tagAudit;
@@ -343,6 +441,10 @@ function summarizeAcrossPages(pages) {
     if (a.mode === 'fetch') fetchPages++;
     merged = mergeVendorFlags(merged, a.vendors || {});
     if ((a.consoleErrors || []).length) pagesWithErrors++;
+    if ((a.duplicateCollectors || []).length) pagesWithDuplicateCollectors += 1;
+    const nFailed = a.networkBeaconSummary && Number(a.networkBeaconSummary.failedBeaconRequests);
+    if (nFailed > 0) pagesWithFailedBeacons += 1;
+    if (a.consentOrderHint && a.consentOrderHint.state === 'analytics_before_cmp') pagesWithAnalyticsBeforeCmp += 1;
     let thirdMs = 0;
     for (const s of a.slowThirdPartyScripts || []) thirdMs += s.durationMs || 0;
     perPageScores.push({ url: p.url, title: p.title || '', thirdPartyHeavyMs: thirdMs, consoleErrorCount: (a.consoleErrors || []).length });
@@ -350,22 +452,46 @@ function summarizeAcrossPages(pages) {
 
   perPageScores.sort((a, b) => b.thirdPartyHeavyMs - a.thirdPartyHeavyMs);
 
-  const opportunities = buildOpportunities(merged, pagesWithErrors, audited.length, playwrightPages, fetchPages, perPageScores, pages);
+  const vendorTagsSorted = vendorKeysTrue(merged).sort();
+  const vendorCoverage = {};
+  for (const tag of vendorTagsSorted) {
+    let n = 0;
+    for (const p of audited) {
+      const v = p.tagAudit && p.tagAudit.vendors;
+      if (v && v[tag]) n += 1;
+    }
+    vendorCoverage[tag] = {
+      pages: n,
+      pct: audited.length ? Math.round((1000 * n) / audited.length) / 10 : 0,
+    };
+  }
+
+  const rollupMetrics = {
+    pagesWithDuplicateCollectors,
+    pagesWithFailedBeacons,
+    pagesWithAnalyticsBeforeCmp,
+  };
+  const opportunities = buildOpportunities(merged, pagesWithErrors, audited.length, playwrightPages, fetchPages, perPageScores, pages, rollupMetrics);
 
   return {
     pagesInCrawl: pages.length,
     pagesAudited: audited.length,
     engineMix: { playwright: playwrightPages, fetch: fetchPages },
     vendorsDetected: merged,
-    vendorTags: vendorKeysTrue(merged).sort(),
+    vendorTags: vendorTagsSorted,
+    vendorCoverage,
     pagesWithConsoleErrors: pagesWithErrors,
+    pagesWithDuplicateCollectors,
+    pagesWithFailedBeacons,
+    pagesWithAnalyticsBeforeCmp,
     heaviestThirdPartyPages: perPageScores.slice(0, 8),
     opportunities,
   };
 }
 
-function buildOpportunities(merged, pagesWithErrors, totalPages, playwrightPages, fetchPages, perPageScores, pages) {
+function buildOpportunities(merged, pagesWithErrors, totalPages, playwrightPages, fetchPages, perPageScores, pages, rollupMetrics) {
   const lines = [];
+  const rm = rollupMetrics || {};
   const hasAdobe = !!(merged.adobe_launch || merged.adobe_launch_inline || merged.adobe_experience_edge ||
     merged.adobe_analytics_collect || merged.adobe_ecid || merged.adobe_target || merged.adobe_experience_web_sdk);
   const hasGoogle = !!(merged.google_gtm || merged.google_gtag || merged.google_ga4 || merged.google_ga4_collect || merged.google_ua || merged.google_ua_collect);
@@ -399,7 +525,13 @@ function buildOpportunities(merged, pagesWithErrors, totalPages, playwrightPages
   if (merged.tealium || merged.segment || merged.google_gtm) {
     lines.push('Tag management / CDP tooling detected — good foundation for governance; next step is standardising data layer and reducing one-off hard-coded pixels.');
   }
-  return lines.slice(0, 10);
+  if (rm.pagesWithFailedBeacons > 0) {
+    lines.push(`${rm.pagesWithFailedBeacons} page(s) had non-success HTTP statuses on sampled tag-related network requests — verify broken beacons or blocked endpoints.`);
+  }
+  if (rm.pagesWithAnalyticsBeforeCmp > 0) {
+    lines.push('On at least one page, sampled network order shows strict analytics collectors before CMP-related traffic — verify against your consent and tag-suppression rules (heuristic only).');
+  }
+  return lines.slice(0, 12);
 }
 
 module.exports = {

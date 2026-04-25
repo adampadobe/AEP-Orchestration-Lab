@@ -48,6 +48,7 @@ function shouldLogNetworkRequest(pageUrl, reqUrl, resourceType) {
 async function tryFetchPage(context, url, { pageTimeout, tagAudit: doTagAudit = true } = {}) {
   const page = await context.newPage();
   const networkLog = [];
+  let networkSeq = 0;
   const consoleErrors = [];
 
   const onConsole = (msg) => {
@@ -71,6 +72,7 @@ async function tryFetchPage(context, url, { pageTimeout, tagAudit: doTagAudit = 
       } catch (_e) { /* ignore */ }
       const cls = tagAudit.classifyUrl(reqUrl);
       networkLog.push({
+        sequenceIndex: networkSeq++,
         url: reqUrl,
         resourceType: rt,
         status,
@@ -100,15 +102,37 @@ async function tryFetchPage(context, url, { pageTimeout, tagAudit: doTagAudit = 
     let navigationTiming = null;
     if (doTagAudit) {
       try {
-        probe = await page.evaluate(() => ({
-          dataLayerLength: Array.isArray(window.dataLayer)
-            ? window.dataLayer.length
-            : (window.dataLayer == null ? null : 1),
-          hasSatellite: !!(window._satellite && typeof window._satellite.track === 'function'),
-          satelliteBuild: (window._satellite && window._satellite.buildInfo &&
-            (window._satellite.buildInfo.buildDate || window._satellite.buildInfo.environment)) || null,
-          alloyVersion: (typeof window.alloy === 'function') ? 'runtime' : null,
-        }));
+        probe = await page.evaluate(() => {
+          function shapeDlEntry(entry) {
+            if (entry == null) return { kind: 'null' };
+            const t = typeof entry;
+            if (t !== 'object') return { kind: t };
+            const keys = Object.keys(entry).slice(0, 14);
+            const ev = typeof entry.event === 'string' ? String(entry.event).slice(0, 64) : null;
+            return { kind: 'object', keys, event: ev };
+          }
+          const dl = window.dataLayer;
+          let dataLayerPushCount = null;
+          let dataLayerRecentShape = [];
+          if (Array.isArray(dl)) {
+            dataLayerPushCount = dl.length;
+            dataLayerRecentShape = dl.slice(-6).map(shapeDlEntry);
+          } else if (window.dataLayer != null) {
+            dataLayerPushCount = 1;
+            dataLayerRecentShape = [{ kind: 'non_array' }];
+          }
+          return {
+            dataLayerLength: Array.isArray(dl)
+              ? dl.length
+              : (window.dataLayer == null ? null : 1),
+            dataLayerPushCount,
+            dataLayerRecentShape,
+            hasSatellite: !!(window._satellite && typeof window._satellite.track === 'function'),
+            satelliteBuild: (window._satellite && window._satellite.buildInfo &&
+              (window._satellite.buildInfo.buildDate || window._satellite.buildInfo.environment)) || null,
+            alloyVersion: (typeof window.alloy === 'function') ? 'runtime' : null,
+          };
+        });
       } catch (_e) { probe = null; }
       try {
         const nt = await page.evaluate(() => {
