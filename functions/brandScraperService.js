@@ -1252,23 +1252,6 @@ function resolveSandbox(req) {
   return fromQuery;
 }
 
-function buildAnalyzeJobRequest(body, sandbox) {
-  const out = {
-    url: body.url,
-    sandbox: String(sandbox || '').trim(),
-    mode: body.mode,
-    existingScrapeId: body.existingScrapeId,
-    maxPages: body.maxPages,
-    crawler: body.crawler,
-    useJs: body.useJs,
-    businessType: body.businessType,
-    country: body.country,
-    provider: body.provider,
-  };
-  if (body.include && typeof body.include === 'object') out.include = body.include;
-  return out;
-}
-
 function analyzePipelineLog(scrapeId, phase, extra = {}) {
   console.log(JSON.stringify({
     src: 'brandScraper.analyze',
@@ -1569,48 +1552,6 @@ async function executeAnalyzePipeline({
   };
 }
 
-/** Firestore trigger: run queued analyze job (async mode). */
-async function processAnalyzeJob(event) {
-  const snap = event.data;
-  if (!snap || !snap.exists) return;
-  const ref = snap.ref;
-  const d = snap.data();
-  if (!d || d.status !== 'queued') return;
-
-  const claimed = await brandScrapeStore.claimAnalyzeJob(ref);
-  if (!claimed) return;
-
-  const scrapeId = String(d.scrapeId || '').trim();
-  const sandbox = String(d.sandbox || '').trim();
-  const body = { ...(d.request || {}) };
-  body.sandbox = sandbox;
-  if (!body.url || !sandbox || !scrapeId) {
-    try { await brandScrapeStore.markScrapeFailed(sandbox || 'default', scrapeId || 'unknown', { error: 'Invalid analyze job payload' }); } catch (_e) { /* ignore */ }
-    try { await ref.delete(); } catch (_e2) { /* ignore */ }
-    return;
-  }
-
-  const started = Date.now();
-  const anthropicKey = (process.env.ANTHROPIC_API_KEY || '').trim();
-  try {
-    const out = await executeAnalyzePipeline({
-      sandbox,
-      body,
-      runScrapeId: scrapeId,
-      anthropicKey,
-      started,
-    });
-    if (out.status >= 500 && out.payload && out.payload.error) {
-      analyzePipelineLog(scrapeId, 'worker_http_error', { sandbox, ms: Date.now() - started });
-    }
-  } catch (e) {
-    try { await brandScrapeStore.markScrapeFailed(sandbox, scrapeId, { error: String(e && e.message || e) }); } catch (_e2) { /* ignore */ }
-    analyzePipelineLog(scrapeId, 'worker_throw', { sandbox, ms: Date.now() - started });
-  } finally {
-    try { await ref.delete(); } catch (_e) { /* ignore */ }
-  }
-}
-
 async function handleAnalyse(req, res, { anthropicKey }) {
   if (req.method === 'OPTIONS') { res.status(204).end(); return; }
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
@@ -1647,22 +1588,29 @@ async function handleAnalyse(req, res, { anthropicKey }) {
 
     const useAsync = body.async !== false && body.sync !== true;
     if (useAsync) {
-      try {
-        const jobReq = buildAnalyzeJobRequest(body, sandbox);
-        const { created } = await brandScrapeStore.createAnalyzeJob(runScrapeId, sandbox, jobReq);
-        res.status(202).json({
-          accepted: true,
-          async: true,
-          scrapeId: runScrapeId,
-          sandbox,
-          alreadyQueued: !created,
+      res.status(202).json({
+        accepted: true,
+        async: true,
+        scrapeId: runScrapeId,
+        sandbox,
+      });
+      return executeAnalyzePipeline({
+        sandbox,
+        body,
+        runScrapeId,
+        anthropicKey,
+        started,
+      })
+        .then((out) => {
+          if (out.status !== 200) {
+            analyzePipelineLog(runScrapeId, 'async_pipeline_terminal', { sandbox, httpStatus: out.status });
+          }
+        })
+        .catch((e) => {
+          const msg = String((e && e.message) || e);
+          analyzePipelineLog(runScrapeId, 'async_pipeline_throw', { sandbox });
+          return brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
         });
-      } catch (e) {
-        const pe = String((e && e.message) || e);
-        try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: 'Failed to queue job: ' + pe }); } catch (_e2) { /* ignore */ }
-        res.status(500).json({ error: 'Failed to queue scrape job', detail: pe, scrapeId: runScrapeId });
-      }
-      return;
     }
 
     const out = await executeAnalyzePipeline({
@@ -1830,7 +1778,6 @@ module.exports = {
   crawlSite,
   analyseBrand,
   handleAnalyse,
-  processAnalyzeJob,
   handleScrapes,
   handleClassifyAssets,
   handleExport,

@@ -24,8 +24,6 @@
 const admin = require('firebase-admin');
 
 const COLLECTION = 'brandScrapes';
-/** One queued/processing job doc per scrapeId — worker consumes; doc id == scrapeId. */
-const ANALYZE_JOBS_COLLECTION = 'brandScrapeAnalyzeJobs';
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const RECORD_OBJECT_NAME = 'record.json';
 
@@ -384,61 +382,13 @@ async function getScrape(sandbox, id) {
   return hydrate({ ...full, ...data, scrapeId: data.scrapeId || snap.id });
 }
 
-/**
- * Queue background analyze (Firestore doc triggers worker). Doc id matches brandScrapes doc id.
- * @returns {{ created: boolean }} created false = ALREADY_EXISTS (job already queued for this scrape).
- */
-async function createAnalyzeJob(scrapeId, sandbox, request) {
-  const sid = String(scrapeId || '').trim();
-  const sb = String(sandbox || '').trim();
-  if (!sid || !sb) throw new Error('scrapeId and sandbox are required');
-  const ref = getDb().collection(ANALYZE_JOBS_COLLECTION).doc(docId(sb, sid));
-  try {
-    await ref.create(stripUndefined({
-      status: 'queued',
-      sandbox: sb,
-      scrapeId: sid,
-      request: stripUndefined(request || {}),
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }));
-    return { created: true };
-  } catch (e) {
-    const code = e && e.code;
-    if (code === 6) return { created: false };
-    const msg = String((e && e.message) || e);
-    if (/ALREADY_EXISTS|already exists/i.test(msg)) return { created: false };
-    throw e;
-  }
-}
-
-/** Move job queued → processing; false if doc missing or not queued. */
-async function claimAnalyzeJob(jobRef) {
-  return getDb().runTransaction(async (tx) => {
-    const doc = await tx.get(jobRef);
-    if (!doc.exists) return false;
-    const data = doc.data() || {};
-    if (data.status !== 'queued') return false;
-    tx.update(jobRef, stripUndefined({
-      status: 'processing',
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }));
-    return true;
-  });
-}
-
 const STALE_RUNNING_SCRAPE_MS = 95 * 60 * 1000;
-const STALE_JOB_PROCESSING_MS = 100 * 60 * 1000;
-const STALE_JOB_QUEUED_MS = 25 * 60 * 1000;
 
-/**
- * Scheduled maintenance: fail very old running scrapes; drop stuck analyze jobs and mark scrape failed.
- */
+/** Scheduled maintenance: fail very old running scrapes (stuck index rows). */
 async function runBrandScrapeStaleMaintenance() {
   const db = getDb();
   const nowMs = Date.now();
   let failedStaleRunning = 0;
-  let removedStaleJobs = 0;
 
   const runSnap = await db.collection(COLLECTION).where('scrapeStatus', '==', 'running').limit(300).get();
   for (const doc of runSnap.docs) {
@@ -453,36 +403,10 @@ async function runBrandScrapeStaleMaintenance() {
     }
   }
 
-  const jobSnap = await db.collection(ANALYZE_JOBS_COLLECTION).limit(500).get();
-  for (const doc of jobSnap.docs) {
-    const d = doc.data() || {};
-    const rs = d.updatedAt || d.createdAt;
-    const t = rs && typeof rs.toMillis === 'function' ? rs.toMillis() : 0;
-    if (!t) continue;
-    const age = nowMs - t;
-    const staleProcessing = d.status === 'processing' && age > STALE_JOB_PROCESSING_MS;
-    const staleQueued = d.status === 'queued' && age > STALE_JOB_QUEUED_MS;
-    if (!staleProcessing && !staleQueued) continue;
-    const sb = String(d.sandbox || '');
-    const sid = String(d.scrapeId || '');
-    if (sb && sid) {
-      await markScrapeFailed(sb, sid, {
-        error: staleQueued
-          ? 'Analyze job queue timed out (no worker). Retry the scrape.'
-          : 'Analyze job timed out (stale processing). Retry the scrape.',
-      });
-    }
-    try {
-      await doc.ref.delete();
-    } catch (_e) { /* ignore */ }
-    removedStaleJobs += 1;
-  }
-
   console.log(JSON.stringify({
     src: 'brandScrapeStore.maintenance',
     phase: 'stale_cleanup',
     failedStaleRunning,
-    removedStaleJobs,
     t: new Date().toISOString(),
   }));
 }
@@ -514,7 +438,5 @@ module.exports = {
   genId,
   markScrapeRunning,
   markScrapeFailed,
-  createAnalyzeJob,
-  claimAnalyzeJob,
   runBrandScrapeStaleMaintenance,
 };
