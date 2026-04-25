@@ -466,6 +466,15 @@ function buildSeedCandidates(rawUrl) {
   return out.length ? out : [rawUrl];
 }
 
+function looksHardBlocked(crawl) {
+  if (!crawl || !Array.isArray(crawl.pages) || crawl.pages.length) return false;
+  const summary = summariseFailures(crawl.failures || []);
+  if (!summary || !summary.byReason) return false;
+  const by = summary.byReason;
+  const hard = (by.http_403 || 0) + (by.http_429 || 0) + (by.bot_challenge || 0);
+  return hard > 0;
+}
+
 /**
  * Re-run crawl when zero pages come back (403 / rate-limit / flaky edge) or the engine throws.
  * Strategy:
@@ -500,6 +509,9 @@ async function runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, maxAtt
             lastCrawl._crawlSeedUrl = seed;
             return lastCrawl;
           }
+          // Repeated hard blocks (403/429/captcha) on this engine+seed rarely
+          // recover within the same loop. Cut over sooner to alternate seed/engine.
+          if (looksHardBlocked(lastCrawl) && i >= 2) break;
         } catch (e) {
           lastErr = e;
           lastCrawl = null;
