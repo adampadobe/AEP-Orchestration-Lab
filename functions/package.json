@@ -7,7 +7,8 @@
   },
   "scripts": {
     "serve": "firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "test": "node --test ./test/*.test.cjs"
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^6.1.1",

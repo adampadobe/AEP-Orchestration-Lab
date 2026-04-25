@@ -1252,57 +1252,73 @@ function resolveSandbox(req) {
   return fromQuery;
 }
 
-async function handleAnalyse(req, res, { anthropicKey }) {
-  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
-  if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
+function buildAnalyzeJobRequest(body, sandbox) {
+  const out = {
+    url: body.url,
+    sandbox: String(sandbox || '').trim(),
+    mode: body.mode,
+    existingScrapeId: body.existingScrapeId,
+    maxPages: body.maxPages,
+    crawler: body.crawler,
+    useJs: body.useJs,
+    businessType: body.businessType,
+    country: body.country,
+    provider: body.provider,
+  };
+  if (body.include && typeof body.include === 'object') out.include = body.include;
+  return out;
+}
 
-  const body = (req.body && typeof req.body === 'object') ? req.body : {};
+function analyzePipelineLog(scrapeId, phase, extra = {}) {
+  console.log(JSON.stringify({
+    src: 'brandScraper.analyze',
+    scrapeId: String(scrapeId || ''),
+    phase,
+    ms: typeof extra.ms === 'number' ? extra.ms : undefined,
+    sandbox: extra.sandbox,
+    t: new Date().toISOString(),
+  }));
+}
+
+/**
+ * Crawl → checkpoint → LLMs → final save. Caller must have already called markScrapeRunning.
+ * @returns {{ status: number, payload: object }}
+ */
+async function executeAnalyzePipeline({
+  sandbox,
+  body,
+  runScrapeId,
+  anthropicKey,
+  started,
+}) {
   const url = body.url;
-  if (!url) { res.status(400).json({ error: 'url is required' }); return; }
+  const requestedPages = Math.floor(Number(body.maxPages));
+  const maxPages = requestedPages > 0 ? Math.min(requestedPages, 25) : undefined;
+  const crawlerMode = String(body.crawler || body.useJs || 'fetch').toLowerCase();
+  const wantJs = crawlerMode === 'js' || crawlerMode === 'true' || body.useJs === true;
+  const inc = (key) => !body.include || body.include[key] !== false;
+  const wantTagAudit = inc('tagAudit');
+  const appendMode = body.mode === 'append' && body.existingScrapeId;
+  const existingSid = appendMode ? String(body.existingScrapeId || '').trim() : '';
 
-  const sandbox = resolveSandbox(req);
-  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
-
-  const started = Date.now();
-  let runScrapeId = null;
+  analyzePipelineLog(runScrapeId, 'crawl_start', { sandbox });
+  let crawl;
   try {
-    const requestedPages = Math.floor(Number(body.maxPages));
-    const maxPages = requestedPages > 0 ? Math.min(requestedPages, 25) : undefined;
-    const crawlerMode = String(body.crawler || body.useJs || 'fetch').toLowerCase();
-    const wantJs = crawlerMode === 'js' || crawlerMode === 'true' || body.useJs === true;
-    const inc = (key) => !body.include || body.include[key] !== false;
-    const wantTagAudit = inc('tagAudit');
-    const appendMode = body.mode === 'append' && body.existingScrapeId;
-    const existingSid = appendMode ? String(body.existingScrapeId || '').trim() : '';
-    runScrapeId = (appendMode && existingSid) ? existingSid : brandScrapeStore.genId();
-    const includeSnap = (body.include && typeof body.include === 'object') ? body.include : null;
-    await brandScrapeStore.markScrapeRunning(sandbox, {
-      scrapeId: runScrapeId,
-      url,
-      baseUrl: normaliseUrl(url),
-      brandName: inferBrandNameFromUrl(url),
-      businessType: body.businessType || 'b2c',
-      country: body.country || '',
-      crawlEngine: wantJs ? 'js' : 'fetch',
-      includeSummary: includeSnap ? JSON.stringify(includeSnap).slice(0, 900) : null,
-    });
-    res.set('X-Brand-Scrape-Id', runScrapeId);
-    if (typeof res.flushHeaders === 'function') res.flushHeaders();
-
-    let crawl;
-    try {
-      crawl = await runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit });
-    } catch (e) {
-      const msg = 'Crawler failed: ' + String((e && e.message) || e);
-      try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }); } catch (_e) { /* ignore */ }
-      res.status(502).json({ error: msg, scrapeId: runScrapeId });
-      return;
-    }
-    if (!crawl.pages || !crawl.pages.length) {
-      const fails = (crawl && crawl.failures) || [];
-      const failureSummary = summariseFailures(fails);
-      try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: 'Crawl could not fetch pages' }); } catch (_e) { /* ignore */ }
-      res.status(502).json({
+    crawl = await runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit });
+  } catch (e) {
+    const msg = 'Crawler failed: ' + String((e && e.message) || e);
+    try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }); } catch (_e) { /* ignore */ }
+    analyzePipelineLog(runScrapeId, 'crawl_failed', { sandbox, ms: Date.now() - started });
+    return { status: 502, payload: { error: msg, scrapeId: runScrapeId } };
+  }
+  if (!crawl.pages || !crawl.pages.length) {
+    const fails = (crawl && crawl.failures) || [];
+    const failureSummary = summariseFailures(fails);
+    try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: 'Crawl could not fetch pages' }); } catch (_e) { /* ignore */ }
+    analyzePipelineLog(runScrapeId, 'crawl_empty', { sandbox, ms: Date.now() - started });
+    return {
+      status: 502,
+      payload: {
         error: friendlyFailureMessage(url, fails),
         scrapeId: runScrapeId,
         details: failureSummary,
@@ -1328,204 +1344,205 @@ async function handleAnalyse(req, res, { anthropicKey }) {
           },
           analysisError: 'Crawl could not fetch pages; showing partial diagnostics only.',
         },
-      });
-      return;
-    }
-
-    const crawlSummary = {
-      pagesScraped: crawl.pages.length,
-      totalDiscovered: crawl.totalDiscovered,
-      engine: crawl._crawlEngineUsed || crawl.engine || 'fetch',
-      seedUrl: crawl._crawlSeedUrl || url,
-      crawlAttemptsUsed: crawl._crawlAttemptsUsed || 1,
-      tagAuditSummary: crawl.tagAuditSummary || null,
-      failures: crawl.failures || [],
-      failureSummary: summariseFailures(crawl.failures || []),
-      pages: crawl.pages.map(p => ({
-        url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
-        tagAudit: p.tagAudit || null,
-      })),
-      assets: crawl.assets,
+      },
     };
+  }
 
-    const checkpointElapsed = Date.now() - started;
-    let checkpointRecord = {
-      url,
-      baseUrl: crawl.baseUrl,
-      brandName: crawl.brandName,
-      businessType: body.businessType || 'b2c',
-      country: body.country || '',
-      industry: '',
-      industryInfo: null,
-      crawlSummary,
-      analysis: null,
-      analysisError: null,
-      personas: null,
-      personasError: null,
-      campaigns: null,
-      campaignsError: null,
-      segments: null,
-      segmentsError: null,
-      stakeholders: null,
-      stakeholdersError: null,
-      elapsedMs: checkpointElapsed,
-    };
-    if (appendMode && existingSid) {
-      try {
-        const existingCk = await brandScrapeStore.getScrape(sandbox, existingSid);
-        if (existingCk) {
-          checkpointRecord = mergeScrapeRecords(existingCk, checkpointRecord);
-          checkpointRecord.scrapeId = existingCk.scrapeId;
-        }
-      } catch (_e) { /* fall through — checkpoint as new id */ }
-    }
-    if (!checkpointRecord.scrapeId) checkpointRecord.scrapeId = runScrapeId;
-    try {
-      await brandScrapeStore.saveScrape(sandbox, checkpointRecord, { checkpoint: true });
-    } catch (e) {
-      const pe = String((e && e.message) || e);
-      try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: 'Crawl checkpoint failed: ' + pe }); } catch (_e2) { /* ignore */ }
-      res.status(500).json({ error: 'Crawl checkpoint failed: ' + pe, scrapeId: runScrapeId });
-      return;
-    }
+  analyzePipelineLog(runScrapeId, 'crawl_ok', { sandbox, ms: Date.now() - started });
 
-    // Per-sandbox LLM resolution: Firestore + Secret Manager. The client may
-    // still send body.provider to override for one-off testing, but the
-    // sandbox config is the default.
-    let resolvedProvider = 'gemini';
-    let resolvedAnthropicKey = anthropicKey || '';
-    let resolvedOpenAIKey = '';
+  const crawlSummary = {
+    pagesScraped: crawl.pages.length,
+    totalDiscovered: crawl.totalDiscovered,
+    engine: crawl._crawlEngineUsed || crawl.engine || 'fetch',
+    seedUrl: crawl._crawlSeedUrl || url,
+    crawlAttemptsUsed: crawl._crawlAttemptsUsed || 1,
+    tagAuditSummary: crawl.tagAuditSummary || null,
+    failures: crawl.failures || [],
+    failureSummary: summariseFailures(crawl.failures || []),
+    pages: crawl.pages.map(p => ({
+      url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
+      tagAudit: p.tagAudit || null,
+    })),
+    assets: crawl.assets,
+  };
+
+  const checkpointElapsed = Date.now() - started;
+  let checkpointRecord = {
+    url,
+    baseUrl: crawl.baseUrl,
+    brandName: crawl.brandName,
+    businessType: body.businessType || 'b2c',
+    country: body.country || '',
+    industry: '',
+    industryInfo: null,
+    crawlSummary,
+    analysis: null,
+    analysisError: null,
+    personas: null,
+    personasError: null,
+    campaigns: null,
+    campaignsError: null,
+    segments: null,
+    segmentsError: null,
+    stakeholders: null,
+    stakeholdersError: null,
+    elapsedMs: checkpointElapsed,
+  };
+  if (appendMode && existingSid) {
     try {
-      const resolved = await modelConfigStore.resolveProviderForSandbox(sandbox);
-      if (resolved && resolved.provider) {
-        resolvedProvider = resolved.provider;
-        if (resolved.provider === 'anthropic') resolvedAnthropicKey = resolved.apiKey || resolvedAnthropicKey;
-        if (resolved.provider === 'openai') resolvedOpenAIKey = resolved.apiKey || '';
+      const existingCk = await brandScrapeStore.getScrape(sandbox, existingSid);
+      if (existingCk) {
+        checkpointRecord = mergeScrapeRecords(existingCk, checkpointRecord);
+        checkpointRecord.scrapeId = existingCk.scrapeId;
       }
-    } catch (_e) { /* fall back to default */ }
-    const providerPref = String(body.provider || resolvedProvider || '').toLowerCase();
-    const providerOpts = { provider: providerPref, anthropicKey: resolvedAnthropicKey, openaiKey: resolvedOpenAIKey };
+    } catch (_e) { /* fall through */ }
+  }
+  if (!checkpointRecord.scrapeId) checkpointRecord.scrapeId = runScrapeId;
+  try {
+    await brandScrapeStore.saveScrape(sandbox, checkpointRecord, { checkpoint: true });
+  } catch (e) {
+    const pe = String((e && e.message) || e);
+    try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: 'Crawl checkpoint failed: ' + pe }); } catch (_e2) { /* ignore */ }
+    analyzePipelineLog(runScrapeId, 'checkpoint_failed', { sandbox });
+    return { status: 500, payload: { error: 'Crawl checkpoint failed: ' + pe, scrapeId: runScrapeId } };
+  }
+  analyzePipelineLog(runScrapeId, 'checkpoint_saved', { sandbox, ms: Date.now() - started });
 
-    // Selective run: body.include = { analysis, personas, campaigns, segments }.
-    // Any key omitted or truthy → run; false → skip (returns {skipped:true} so UI knows).
-    const skipped = (reason) => ({ skipped: true, reason: reason || 'disabled by user' });
-
-    let analysis = null;
-    let analysisError = null;
-    let personas = null;
-    let personasError = null;
-    let campaigns = null;
-    let campaignsError = null;
-    let segments = null;
-    let segmentsError = null;
-    let stakeholders = null;
-    let stakeholdersError = null;
-    let recordClassification = null;
-    try {
-      const [analysisResult, personasResult, campaignsResult, stakeholdersResult] = await Promise.all([
-        inc('analysis')
-          ? analyseBrand(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
-          : Promise.resolve(skipped('Brand guidelines disabled in Options')),
-        inc('personas')
-          ? generatePersonas(crawl, null, {
-              country: body.country || '',
-              businessType: body.businessType || 'b2c',
-            }, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
-          : Promise.resolve(skipped('Personas disabled in Options')),
-        inc('campaigns')
-          ? generateCampaigns(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
-          : Promise.resolve(skipped('Campaigns disabled in Options')),
-        inc('stakeholders')
-          ? generateStakeholders(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
-          : Promise.resolve(skipped('Stakeholders disabled in Options')),
-      ]);
-      analysis = analysisResult;
-      personas = personasResult;
-      campaigns = campaignsResult;
-      stakeholders = stakeholdersResult;
-
-      // Segments + industry classification run AFTER the trio in parallel.
-      // Segments consumes personas + campaigns; industry consumes analysis.about
-      // (falls back on brand name + crawl snippets if analysis was skipped).
-      const crawlSnippet = crawl.pages.map(p =>
-        [p.title, p.description, (p.text || '').slice(0, 400)].filter(Boolean).join(' · ')
-      ).join('\n').slice(0, 2000);
-      const industryInputs = {
-        about: (analysis && !analysis.skipped && !analysis.error) ? analysis.about : '',
-        brandName: crawl.brandName,
-        baseUrl: crawl.baseUrl,
-        crawlText: crawlSnippet,
-      };
-
-      const [segmentsResult, industryClassification] = await Promise.all([
-        inc('segments')
-          ? generateSegments(crawl, personas, campaigns, providerOpts)
-              .catch(e => ({ error: String(e && e.message || e) }))
-          : Promise.resolve(skipped('Segments disabled in Options')),
-        classifyIndustry(industryInputs).catch(e => ({ error: String(e && e.message || e) })),
-      ]);
-      segments = segmentsResult;
-      // Expose classification result for persistence below.
-      recordClassification = industryClassification;
-    } catch (e) {
-      analysisError = String(e && e.message || e);
+  let resolvedProvider = 'gemini';
+  let resolvedAnthropicKey = anthropicKey || '';
+  let resolvedOpenAIKey = '';
+  try {
+    const resolved = await modelConfigStore.resolveProviderForSandbox(sandbox);
+    if (resolved && resolved.provider) {
+      resolvedProvider = resolved.provider;
+      if (resolved.provider === 'anthropic') resolvedAnthropicKey = resolved.apiKey || resolvedAnthropicKey;
+      if (resolved.provider === 'openai') resolvedOpenAIKey = resolved.apiKey || '';
     }
-    const elapsedMs = Date.now() - started;
+  } catch (_e) { /* fall back */ }
+  const providerPref = String(body.provider || resolvedProvider || '').toLowerCase();
+  const providerOpts = { provider: providerPref, anthropicKey: resolvedAnthropicKey, openaiKey: resolvedOpenAIKey };
 
-    const inferredIndustry = (recordClassification && !recordClassification.error && !recordClassification.skipped)
-      ? String(recordClassification.industry || '').trim()
-      : '';
+  const skipped = (reason) => ({ skipped: true, reason: reason || 'disabled by user' });
 
-    let recordToPersist = {
-      url,
-      baseUrl: crawl.baseUrl,
+  analyzePipelineLog(runScrapeId, 'llm_start', { sandbox });
+  let analysis = null;
+  let analysisError = null;
+  let personas = null;
+  let personasError = null;
+  let campaigns = null;
+  let campaignsError = null;
+  let segments = null;
+  let segmentsError = null;
+  let stakeholders = null;
+  let stakeholdersError = null;
+  let recordClassification = null;
+  try {
+    const [analysisResult, personasResult, campaignsResult, stakeholdersResult] = await Promise.all([
+      inc('analysis')
+        ? analyseBrand(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
+        : Promise.resolve(skipped('Brand guidelines disabled in Options')),
+      inc('personas')
+        ? generatePersonas(crawl, null, {
+            country: body.country || '',
+            businessType: body.businessType || 'b2c',
+          }, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
+        : Promise.resolve(skipped('Personas disabled in Options')),
+      inc('campaigns')
+        ? generateCampaigns(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
+        : Promise.resolve(skipped('Campaigns disabled in Options')),
+      inc('stakeholders')
+        ? generateStakeholders(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
+        : Promise.resolve(skipped('Stakeholders disabled in Options')),
+    ]);
+    analysis = analysisResult;
+    personas = personasResult;
+    campaigns = campaignsResult;
+    stakeholders = stakeholdersResult;
+
+    const crawlSnippet = crawl.pages.map(p =>
+      [p.title, p.description, (p.text || '').slice(0, 400)].filter(Boolean).join(' · ')
+    ).join('\n').slice(0, 2000);
+    const industryInputs = {
+      about: (analysis && !analysis.skipped && !analysis.error) ? analysis.about : '',
       brandName: crawl.brandName,
-      businessType: body.businessType || 'b2c',
-      country: body.country || '',
-      industry: inferredIndustry,
-      industryInfo: recordClassification,
-      crawlSummary,
-      analysis,
-      analysisError,
-      personas,
-      personasError,
-      campaigns,
-      campaignsError,
-      segments,
-      segmentsError,
-      stakeholders,
-      stakeholdersError,
-      elapsedMs,
+      baseUrl: crawl.baseUrl,
+      crawlText: crawlSnippet,
     };
-    if (appendMode) {
-      try {
-        const existing = await brandScrapeStore.getScrape(sandbox, body.existingScrapeId);
-        if (existing) {
-          recordToPersist = mergeScrapeRecords(existing, recordToPersist);
-          recordToPersist.scrapeId = existing.scrapeId;
-        }
-      } catch (_e) { /* fall through — save as new */ }
-    }
-    if (!recordToPersist.scrapeId) recordToPersist.scrapeId = runScrapeId;
 
-    let saved = null;
-    let persistError = null;
+    const [segmentsResult, industryClassification] = await Promise.all([
+      inc('segments')
+        ? generateSegments(crawl, personas, campaigns, providerOpts)
+            .catch(e => ({ error: String(e && e.message || e) }))
+        : Promise.resolve(skipped('Segments disabled in Options')),
+      classifyIndustry(industryInputs).catch(e => ({ error: String(e && e.message || e) })),
+    ]);
+    segments = segmentsResult;
+    recordClassification = industryClassification;
+  } catch (e) {
+    analysisError = String(e && e.message || e);
+  }
+  analyzePipelineLog(runScrapeId, 'llm_done', { sandbox, ms: Date.now() - started });
+
+  const elapsedMs = Date.now() - started;
+
+  const inferredIndustry = (recordClassification && !recordClassification.error && !recordClassification.skipped)
+    ? String(recordClassification.industry || '').trim()
+    : '';
+
+  let recordToPersist = {
+    url,
+    baseUrl: crawl.baseUrl,
+    brandName: crawl.brandName,
+    businessType: body.businessType || 'b2c',
+    country: body.country || '',
+    industry: inferredIndustry,
+    industryInfo: recordClassification,
+    crawlSummary,
+    analysis,
+    analysisError,
+    personas,
+    personasError,
+    campaigns,
+    campaignsError,
+    segments,
+    segmentsError,
+    stakeholders,
+    stakeholdersError,
+    elapsedMs,
+  };
+  if (appendMode) {
     try {
-      saved = await brandScrapeStore.saveScrape(sandbox, recordToPersist);
-    } catch (e) {
-      persistError = String(e && e.message || e);
-      console.error('[brandScraperAnalyze] persist failed', {
-        sandbox,
-        scrapeId: recordToPersist.scrapeId,
-        brandName: recordToPersist.brandName,
-        url: recordToPersist.url,
-        error: persistError,
-      });
-      analysisError = analysisError || ('Persist failed: ' + persistError);
-      try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: persistError }); } catch (_e2) { /* ignore */ }
-    }
+      const existing = await brandScrapeStore.getScrape(sandbox, body.existingScrapeId);
+      if (existing) {
+        recordToPersist = mergeScrapeRecords(existing, recordToPersist);
+        recordToPersist.scrapeId = existing.scrapeId;
+      }
+    } catch (_e) { /* fall through */ }
+  }
+  if (!recordToPersist.scrapeId) recordToPersist.scrapeId = runScrapeId;
 
-    res.status(200).json({
+  let saved = null;
+  let persistError = null;
+  try {
+    saved = await brandScrapeStore.saveScrape(sandbox, recordToPersist);
+  } catch (e) {
+    persistError = String(e && e.message || e);
+    console.error('[brandScraperAnalyze] persist failed', {
+      sandbox,
+      scrapeId: recordToPersist.scrapeId,
+      brandName: recordToPersist.brandName,
+      url: recordToPersist.url,
+      error: persistError,
+    });
+    analysisError = analysisError || ('Persist failed: ' + persistError);
+    try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: persistError }); } catch (_e2) { /* ignore */ }
+  }
+
+  analyzePipelineLog(runScrapeId, 'persist_done', { sandbox, ms: Date.now() - started });
+
+  return {
+    status: 200,
+    payload: {
       scrapeId: (saved && saved.scrapeId) || runScrapeId,
       persistError,
       sandbox,
@@ -1548,7 +1565,114 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       stakeholdersError: (saved && saved.stakeholdersError) || stakeholdersError,
       appended: !!appendMode,
       elapsedMs,
+    },
+  };
+}
+
+/** Firestore trigger: run queued analyze job (async mode). */
+async function processAnalyzeJob(event) {
+  const snap = event.data;
+  if (!snap || !snap.exists) return;
+  const ref = snap.ref;
+  const d = snap.data();
+  if (!d || d.status !== 'queued') return;
+
+  const claimed = await brandScrapeStore.claimAnalyzeJob(ref);
+  if (!claimed) return;
+
+  const scrapeId = String(d.scrapeId || '').trim();
+  const sandbox = String(d.sandbox || '').trim();
+  const body = { ...(d.request || {}) };
+  body.sandbox = sandbox;
+  if (!body.url || !sandbox || !scrapeId) {
+    try { await brandScrapeStore.markScrapeFailed(sandbox || 'default', scrapeId || 'unknown', { error: 'Invalid analyze job payload' }); } catch (_e) { /* ignore */ }
+    try { await ref.delete(); } catch (_e2) { /* ignore */ }
+    return;
+  }
+
+  const started = Date.now();
+  const anthropicKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+  try {
+    const out = await executeAnalyzePipeline({
+      sandbox,
+      body,
+      runScrapeId: scrapeId,
+      anthropicKey,
+      started,
     });
+    if (out.status >= 500 && out.payload && out.payload.error) {
+      analyzePipelineLog(scrapeId, 'worker_http_error', { sandbox, ms: Date.now() - started });
+    }
+  } catch (e) {
+    try { await brandScrapeStore.markScrapeFailed(sandbox, scrapeId, { error: String(e && e.message || e) }); } catch (_e2) { /* ignore */ }
+    analyzePipelineLog(scrapeId, 'worker_throw', { sandbox, ms: Date.now() - started });
+  } finally {
+    try { await ref.delete(); } catch (_e) { /* ignore */ }
+  }
+}
+
+async function handleAnalyse(req, res, { anthropicKey }) {
+  if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+  if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
+
+  const body = (req.body && typeof req.body === 'object') ? req.body : {};
+  const url = body.url;
+  if (!url) { res.status(400).json({ error: 'url is required' }); return; }
+
+  const sandbox = resolveSandbox(req);
+  if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+
+  const started = Date.now();
+  let runScrapeId = null;
+  try {
+    const crawlerMode = String(body.crawler || body.useJs || 'fetch').toLowerCase();
+    const wantJs = crawlerMode === 'js' || crawlerMode === 'true' || body.useJs === true;
+    const appendMode = body.mode === 'append' && body.existingScrapeId;
+    const existingSid = appendMode ? String(body.existingScrapeId || '').trim() : '';
+    runScrapeId = (appendMode && existingSid) ? existingSid : brandScrapeStore.genId();
+    const includeSnap = (body.include && typeof body.include === 'object') ? body.include : null;
+
+    await brandScrapeStore.markScrapeRunning(sandbox, {
+      scrapeId: runScrapeId,
+      url,
+      baseUrl: normaliseUrl(url),
+      brandName: inferBrandNameFromUrl(url),
+      businessType: body.businessType || 'b2c',
+      country: body.country || '',
+      crawlEngine: wantJs ? 'js' : 'fetch',
+      includeSummary: includeSnap ? JSON.stringify(includeSnap).slice(0, 900) : null,
+    });
+    res.set('X-Brand-Scrape-Id', runScrapeId);
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+    const useAsync = body.async !== false && body.sync !== true;
+    if (useAsync) {
+      try {
+        const jobReq = buildAnalyzeJobRequest(body, sandbox);
+        const { created } = await brandScrapeStore.createAnalyzeJob(runScrapeId, sandbox, jobReq);
+        res.status(202).json({
+          accepted: true,
+          async: true,
+          scrapeId: runScrapeId,
+          sandbox,
+          alreadyQueued: !created,
+        });
+      } catch (e) {
+        const pe = String((e && e.message) || e);
+        try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: 'Failed to queue job: ' + pe }); } catch (_e2) { /* ignore */ }
+        res.status(500).json({ error: 'Failed to queue scrape job', detail: pe, scrapeId: runScrapeId });
+      }
+      return;
+    }
+
+    const out = await executeAnalyzePipeline({
+      sandbox,
+      body,
+      runScrapeId,
+      anthropicKey,
+      started,
+    });
+    res.status(out.status).json(out.payload);
   } catch (e) {
     if (runScrapeId) {
       try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: String(e && e.message || e) }); } catch (_e2) { /* ignore */ }
@@ -1702,4 +1826,13 @@ async function handleModelConfig(req, res) {
   }
 }
 
-module.exports = { crawlSite, analyseBrand, handleAnalyse, handleScrapes, handleClassifyAssets, handleExport, handleModelConfig };
+module.exports = {
+  crawlSite,
+  analyseBrand,
+  handleAnalyse,
+  processAnalyzeJob,
+  handleScrapes,
+  handleClassifyAssets,
+  handleExport,
+  handleModelConfig,
+};

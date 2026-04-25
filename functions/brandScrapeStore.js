@@ -9,6 +9,7 @@
  *       stakeholdersPresent, storagePath, storageSize, hasFullRecord,
  *       lastExport, createdAt, updatedAt,
  *       scrapeStatus ('running' | 'crawl_complete' | 'failed' | 'complete'), scrapeError,
+ *       analysisPending (boolean, index only — true after crawl checkpoint until final save),
  *       runStartedAt, crawlEngine, includeSummary }
  *
  * Cloud Storage: gs://<BUCKET>/<sandbox>/<scrapeId>/record.json
@@ -23,6 +24,8 @@
 const admin = require('firebase-admin');
 
 const COLLECTION = 'brandScrapes';
+/** One queued/processing job doc per scrapeId — worker consumes; doc id == scrapeId. */
+const ANALYZE_JOBS_COLLECTION = 'brandScrapeAnalyzeJobs';
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const RECORD_OBJECT_NAME = 'record.json';
 
@@ -195,17 +198,28 @@ async function saveScrape(sandbox, payload, options = {}) {
 
   const path = storageKey(name, scrapeId);
   const blob = Buffer.from(JSON.stringify(fullRecord), 'utf8');
-  try {
-    await getBucket().file(path).save(blob, {
-      contentType: 'application/json; charset=utf-8',
-      resumable: false,
-      metadata: {
-        cacheControl: 'private, max-age=60',
-        metadata: { sandbox: safeSlug(name), scrapeId: safeSlug(scrapeId) },
-      },
-    });
-  } catch (e) {
-    throw new Error('GCS write failed for ' + path + ': ' + ((e && e.message) || e));
+  const saveOpts = {
+    contentType: 'application/json; charset=utf-8',
+    resumable: false,
+    metadata: {
+      cacheControl: 'private, max-age=60',
+      metadata: { sandbox: safeSlug(name), scrapeId: safeSlug(scrapeId) },
+    },
+  };
+  const file = getBucket().file(path);
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await file.save(blob, saveOpts);
+      lastErr = null;
+      break;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
+  }
+  if (lastErr) {
+    throw new Error('GCS write failed for ' + path + ': ' + ((lastErr && lastErr.message) || lastErr));
   }
 
   // 2. Write the slim, queryable index doc to Firestore.
@@ -234,6 +248,7 @@ async function saveScrape(sandbox, payload, options = {}) {
     schemaVersion: 2,
     scrapeStatus: isCheckpoint ? 'crawl_complete' : 'complete',
     scrapeError: null,
+    analysisPending: !!isCheckpoint,
   };
 
   const ref = getDb().collection(COLLECTION).doc(docId(name, scrapeId));
@@ -309,6 +324,7 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
         : (data.crawlSummary ? data.crawlSummary.pagesScraped : null),
       scrapeStatus: data.scrapeStatus || null,
       scrapeError: data.scrapeError || null,
+      analysisPending: typeof data.analysisPending === 'boolean' ? data.analysisPending : null,
       runStartedAt: data.runStartedAt,
       crawlEngine: data.crawlEngine || null,
       createdAt: data.createdAt,
@@ -368,6 +384,109 @@ async function getScrape(sandbox, id) {
   return hydrate({ ...full, ...data, scrapeId: data.scrapeId || snap.id });
 }
 
+/**
+ * Queue background analyze (Firestore doc triggers worker). Doc id matches brandScrapes doc id.
+ * @returns {{ created: boolean }} created false = ALREADY_EXISTS (job already queued for this scrape).
+ */
+async function createAnalyzeJob(scrapeId, sandbox, request) {
+  const sid = String(scrapeId || '').trim();
+  const sb = String(sandbox || '').trim();
+  if (!sid || !sb) throw new Error('scrapeId and sandbox are required');
+  const ref = getDb().collection(ANALYZE_JOBS_COLLECTION).doc(docId(sb, sid));
+  try {
+    await ref.create(stripUndefined({
+      status: 'queued',
+      sandbox: sb,
+      scrapeId: sid,
+      request: stripUndefined(request || {}),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }));
+    return { created: true };
+  } catch (e) {
+    const code = e && e.code;
+    if (code === 6) return { created: false };
+    const msg = String((e && e.message) || e);
+    if (/ALREADY_EXISTS|already exists/i.test(msg)) return { created: false };
+    throw e;
+  }
+}
+
+/** Move job queued → processing; false if doc missing or not queued. */
+async function claimAnalyzeJob(jobRef) {
+  return getDb().runTransaction(async (tx) => {
+    const doc = await tx.get(jobRef);
+    if (!doc.exists) return false;
+    const data = doc.data() || {};
+    if (data.status !== 'queued') return false;
+    tx.update(jobRef, stripUndefined({
+      status: 'processing',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }));
+    return true;
+  });
+}
+
+const STALE_RUNNING_SCRAPE_MS = 95 * 60 * 1000;
+const STALE_JOB_PROCESSING_MS = 100 * 60 * 1000;
+const STALE_JOB_QUEUED_MS = 25 * 60 * 1000;
+
+/**
+ * Scheduled maintenance: fail very old running scrapes; drop stuck analyze jobs and mark scrape failed.
+ */
+async function runBrandScrapeStaleMaintenance() {
+  const db = getDb();
+  const nowMs = Date.now();
+  let failedStaleRunning = 0;
+  let removedStaleJobs = 0;
+
+  const runSnap = await db.collection(COLLECTION).where('scrapeStatus', '==', 'running').limit(300).get();
+  for (const doc of runSnap.docs) {
+    const d = doc.data() || {};
+    const rs = d.runStartedAt;
+    const t = rs && typeof rs.toMillis === 'function' ? rs.toMillis() : 0;
+    if (t && nowMs - t > STALE_RUNNING_SCRAPE_MS && d.scrapeId && d.sandbox) {
+      await markScrapeFailed(String(d.sandbox), String(d.scrapeId), {
+        error: 'Run timed out (stale). The tab or worker may have been interrupted; delete and retry.',
+      });
+      failedStaleRunning += 1;
+    }
+  }
+
+  const jobSnap = await db.collection(ANALYZE_JOBS_COLLECTION).limit(500).get();
+  for (const doc of jobSnap.docs) {
+    const d = doc.data() || {};
+    const rs = d.updatedAt || d.createdAt;
+    const t = rs && typeof rs.toMillis === 'function' ? rs.toMillis() : 0;
+    if (!t) continue;
+    const age = nowMs - t;
+    const staleProcessing = d.status === 'processing' && age > STALE_JOB_PROCESSING_MS;
+    const staleQueued = d.status === 'queued' && age > STALE_JOB_QUEUED_MS;
+    if (!staleProcessing && !staleQueued) continue;
+    const sb = String(d.sandbox || '');
+    const sid = String(d.scrapeId || '');
+    if (sb && sid) {
+      await markScrapeFailed(sb, sid, {
+        error: staleQueued
+          ? 'Analyze job queue timed out (no worker). Retry the scrape.'
+          : 'Analyze job timed out (stale processing). Retry the scrape.',
+      });
+    }
+    try {
+      await doc.ref.delete();
+    } catch (_e) { /* ignore */ }
+    removedStaleJobs += 1;
+  }
+
+  console.log(JSON.stringify({
+    src: 'brandScrapeStore.maintenance',
+    phase: 'stale_cleanup',
+    failedStaleRunning,
+    removedStaleJobs,
+    t: new Date().toISOString(),
+  }));
+}
+
 async function deleteScrape(sandbox, id) {
   const name = String(sandbox || '').trim();
   const sid = String(id || '').trim();
@@ -395,4 +514,7 @@ module.exports = {
   genId,
   markScrapeRunning,
   markScrapeFailed,
+  createAnalyzeJob,
+  claimAnalyzeJob,
+  runBrandScrapeStaleMaintenance,
 };

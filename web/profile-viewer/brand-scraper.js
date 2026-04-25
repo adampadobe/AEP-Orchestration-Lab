@@ -1112,7 +1112,7 @@
     const runPill = runState === 'running'
       ? '<span class="brand-scraper-run-pill" title="Crawler in progress">Running…</span>'
       : (runState === 'crawl_complete'
-        ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--stage" title="Crawl saved; LLM analysis in progress">Analysing…</span>'
+        ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--stage" title="Crawl saved; LLM analysis in progress">Analyzing…</span>'
         : (runState === 'failed'
           ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--fail" title="' + esc(it.scrapeError || 'Run failed') + '">Failed</span>'
           : ''));
@@ -1137,6 +1137,7 @@
             (it.campaignsPresent ? ' · campaigns' : '') +
             (it.segmentsPresent ? ' · segments' : '') +
             (it.stakeholdersPresent ? ' · stakeholders' : '') +
+            (it.analysisPending ? ' · analysis pending' : '') +
           '</p>' +
         '</div>' +
         '<div class="brand-scraper-history-card-actions">' +
@@ -1210,29 +1211,63 @@
 
   let historyItemsCache = [];
   let scrapePollTimer = null;
+  /** When set, analyze returned 202 — keep polling until terminal (submit finally skips stop poll). */
+  let pendingAsyncScrapeId = null;
 
   function stopScrapePoll() {
     if (scrapePollTimer) {
-      clearInterval(scrapePollTimer);
+      clearTimeout(scrapePollTimer);
       scrapePollTimer = null;
     }
   }
 
-  /** While scrapeStatus is running or crawl_complete, refresh history until terminal (same tab: between fetch and JSON body). */
-  function startScrapePoll(expectedId) {
+  function pollDelayMs(tick) {
+    if (tick < 15) return 2500;
+    if (tick < 45) return 3500;
+    return 5000;
+  }
+
+  /**
+   * While scrapeStatus is running or crawl_complete, refresh history until terminal.
+   * opts.onTerminal(row, st, timedOut)
+   * opts.progressPhases — optional; syncs progress bar label with Firestore status during async runs.
+   */
+  function startScrapePoll(expectedId, opts) {
+    opts = opts || {};
     if (!expectedId) return;
     stopScrapePoll();
     let ticks = 0;
-    const maxTicks = 120;
-    scrapePollTimer = setInterval(function () {
+    const maxTicks = 200;
+    const onTerminal = opts.onTerminal;
+    const progressPhases = opts.progressPhases;
+
+    function scheduleNext() {
       ticks += 1;
       loadHistory().then(function () {
         const row = historyItemsCache.find(function (x) { return x.scrapeId === expectedId; });
         const st = row && row.scrapeStatus;
+        if (!row && ticks < 10) {
+          scrapePollTimer = setTimeout(scheduleNext, pollDelayMs(ticks));
+          return;
+        }
+        if (progressPhases && progressPhaseEl) {
+          if (st === 'running') {
+            progressPhaseEl.textContent = progressPhases[0] || 'Crawling pages…';
+          } else if (st === 'crawl_complete') {
+            const mid = Math.min(Math.max(1, progressPhases.length - 2), progressPhases.length - 1);
+            progressPhaseEl.textContent = progressPhases[mid] || 'Running brand analysis…';
+          }
+        }
         const inProgress = st === 'running' || st === 'crawl_complete';
-        if (!row || !inProgress || ticks >= maxTicks) stopScrapePoll();
+        if (!row || !inProgress || ticks >= maxTicks) {
+          scrapePollTimer = null;
+          if (onTerminal) onTerminal(row, st, ticks >= maxTicks || !row);
+          return;
+        }
+        scrapePollTimer = setTimeout(scheduleNext, pollDelayMs(ticks));
       });
-    }, 3000);
+    }
+    scrapePollTimer = setTimeout(scheduleNext, 900);
   }
 
   async function loadHistory() {
@@ -1281,12 +1316,12 @@
       if (data.scrapeStatus === 'running') {
         setStatus('This scrape is still running. Watch the history list for a Running badge, or refresh in a moment.', 'info');
         loadHistory();
-        startScrapePoll(scrapeId);
+        startScrapePoll(scrapeId, {});
         return;
       }
       if (data.scrapeStatus === 'crawl_complete') {
         setStatus('Crawl and tag data are saved; brand analysis is still running. You can review the crawl below — refresh the list shortly for full results.', 'info');
-        startScrapePoll(scrapeId);
+        startScrapePoll(scrapeId, {});
       }
       if (data.scrapeStatus === 'failed') {
         setStatus('Last run failed: ' + (data.scrapeError || 'Unknown error') + '. You can delete this row and try again.', 'error');
@@ -1560,6 +1595,7 @@
     startProgress(estMs, phases);
 
     try {
+      pendingAsyncScrapeId = null;
       const analyzeUrl = ANALYZE_URL + (ANALYZE_URL.includes('?') ? '&' : '?') + 'sandbox=' + encodeURIComponent(sb);
       const resp = await fetchWithRetry(analyzeUrl, {
         method: 'POST',
@@ -1579,12 +1615,71 @@
         retries: 2,
         onRetry: (n, status) => setStatus('Warming Cloud Run (retry ' + n + ' of 2, previous response ' + status + ') \u2026 this is normal after idle periods.', 'info'),
       });
-      const headerScrapeId = resp.headers.get('x-brand-scrape-id');
+      const data = await resp.json().catch(() => ({}));
+      const headerScrapeId = resp.headers.get('x-brand-scrape-id') || data.scrapeId;
+
+      if (resp.status === 202) {
+        pendingAsyncScrapeId = String(data.scrapeId || headerScrapeId || '');
+        if (!pendingAsyncScrapeId) {
+          setStatus('Server returned 202 but no scrape id. Try again.', 'error');
+          stopProgress();
+          return;
+        }
+        setStatus(
+          data.alreadyQueued
+            ? 'This scrape is already queued or running. The history list will update when it finishes.'
+            : 'Scrape accepted — crawl and analysis are running in the background. Watch the history row for status.',
+          'info',
+        );
+        loadHistory();
+        startScrapePoll(pendingAsyncScrapeId, {
+          progressPhases: phases,
+          onTerminal: function (row, st, timedOut) {
+            pendingAsyncScrapeId = null;
+            if (runBtn) runBtn.disabled = false;
+            if (timedOut || !row) {
+              setStatus('Stopped watching this scrape (timeout or row missing). Refresh the history list.', 'info');
+              stopProgress();
+              return;
+            }
+            if (st === 'failed') {
+              setStatus('Scrape failed: ' + (row.scrapeError || 'Unknown error'), 'error');
+              stopProgress();
+              loadHistory();
+              return;
+            }
+            if (st !== 'complete') {
+              stopProgress();
+              loadHistory();
+              return;
+            }
+            const sid = row.scrapeId;
+            fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(sid)))
+              .then(function (r) { return r.json().then(function (j) { return { r: r, j: j }; }); })
+              .then(function (o) {
+                if (!o.r.ok) {
+                  setStatus('Could not load finished scrape: ' + (o.j.error || o.r.statusText), 'error');
+                  stopProgress();
+                  return;
+                }
+                renderResults(Object.assign({}, o.j, { crawl: o.j.crawlSummary }));
+                setStatus('Done — crawled ' + (o.j.crawlSummary && o.j.crawlSummary.pagesScraped) + ' pages. Saved in sandbox "' + sb + '".', 'info');
+                stopProgress({ success: true });
+                loadHistory();
+              })
+              .catch(function (e) {
+                setStatus('Network error loading result: ' + (e && e.message || e), 'error');
+                stopProgress();
+              });
+          },
+        });
+        return;
+      }
+
       if (headerScrapeId) {
         loadHistory();
-        startScrapePoll(headerScrapeId);
+        startScrapePoll(headerScrapeId, {});
       }
-      const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
         let msg = 'Analysis failed: ' + (data.error || resp.statusText);
         if (data.details && data.details.byReason) {
@@ -1610,8 +1705,8 @@
       setStatus('Network error: ' + (e && e.message || e), 'error');
       stopProgress();
     } finally {
-      stopScrapePoll();
-      if (runBtn) runBtn.disabled = false;
+      if (!pendingAsyncScrapeId) stopScrapePoll();
+      if (!pendingAsyncScrapeId && runBtn) runBtn.disabled = false;
     }
   });
 

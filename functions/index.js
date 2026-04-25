@@ -4,6 +4,7 @@
  */
 const { onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { defineSecret } = require('firebase-functions/params');
 
 const ADOBE_CLIENT_ID = defineSecret('ADOBE_CLIENT_ID');
@@ -2966,7 +2967,7 @@ exports.brandScraperAnalyze = onRequest(
   {
     region: REGION,
     invoker: 'public',
-    timeoutSeconds: 120,
+    timeoutSeconds: 540,
     memory: '512MiB',
   },
   async (req, res) => {
@@ -2979,6 +2980,33 @@ exports.brandScraperAnalyze = onRequest(
       res.status(500).json({ error: String(e && e.message || e) });
     }
   }
+);
+
+/** Firestore-triggered worker: runs queued analyze jobs (default async mode). */
+exports.brandScraperAnalyzeWorker = onDocumentCreated(
+  {
+    document: 'brandScrapeAnalyzeJobs/{jobId}',
+    region: REGION,
+    timeoutSeconds: 540,
+    memory: '1GiB',
+  },
+  async (event) => {
+    const svc = require('./brandScraperService');
+    await svc.processAnalyzeJob(event);
+  },
+);
+
+/** Fail stale running scrapes and stuck analyze queue docs. */
+exports.brandScraperStaleCleanup = onSchedule(
+  {
+    schedule: 'every 15 minutes',
+    region: REGION,
+    timeoutSeconds: 120,
+    memory: '256MiB',
+  },
+  async () => {
+    await brandScrapeStore.runBrandScrapeStaleMaintenance();
+  },
 );
 
 /** GET /api/brand-scraper/scrapes?sandbox=… — list, one by id, or DELETE by id. */
