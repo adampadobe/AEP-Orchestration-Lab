@@ -440,6 +440,48 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES, tagAudit: runTagAudit =
   };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Inclusive random delay in milliseconds (jitter between crawl retries). */
+function randomDelayMs(minMs, maxMs) {
+  return minMs + Math.floor(Math.random() * (maxMs - minMs + 1));
+}
+
+/**
+ * Re-run the same crawl when zero pages come back (403 / rate-limit / flaky edge) or the engine throws.
+ * Random gaps between attempts can clear brief anti-bot or WAF windows without user intervention.
+ */
+async function runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, maxAttempts = 4 } = {}) {
+  let lastCrawl = null;
+  let lastErr = null;
+  const attempts = Math.max(1, Math.min(Number(maxAttempts) || 4, 8));
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      if (wantJs) {
+        lastCrawl = await crawlViaPlaywrightService(url, { maxPages: maxPages || 5, tagAudit: wantTagAudit });
+      } else {
+        lastCrawl = await crawlSite(url, { ...(maxPages ? { maxPages } : {}), tagAudit: wantTagAudit });
+      }
+      lastErr = null;
+      if (lastCrawl && Array.isArray(lastCrawl.pages) && lastCrawl.pages.length > 0) {
+        lastCrawl._crawlAttemptsUsed = i;
+        return lastCrawl;
+      }
+    } catch (e) {
+      lastErr = e;
+      lastCrawl = null;
+    }
+    if (i < attempts) {
+      await sleep(randomDelayMs(750, 4200));
+    }
+  }
+  if (lastErr) throw lastErr;
+  if (lastCrawl) lastCrawl._crawlAttemptsUsed = attempts;
+  return lastCrawl;
+}
+
 function summariseFailures(failures) {
   if (!failures || !failures.length) return null;
   const byReason = {};
@@ -1170,20 +1212,18 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     const wantTagAudit = inc('tagAudit');
     let crawl;
     try {
-      if (wantJs) {
-        crawl = await crawlViaPlaywrightService(url, { maxPages: maxPages || 5, tagAudit: wantTagAudit });
-      } else {
-        crawl = await crawlSite(url, { ...(maxPages ? { maxPages } : {}), tagAudit: wantTagAudit });
-      }
+      crawl = await runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit });
     } catch (e) {
       res.status(502).json({ error: 'Crawler failed: ' + String((e && e.message) || e) });
       return;
     }
     if (!crawl.pages || !crawl.pages.length) {
+      const fails = (crawl && crawl.failures) || [];
       res.status(502).json({
-        error: friendlyFailureMessage(url, crawl.failures),
-        details: summariseFailures(crawl.failures),
-        engine: crawl.engine || 'fetch',
+        error: friendlyFailureMessage(url, fails),
+        details: summariseFailures(fails),
+        engine: (crawl && crawl.engine) || 'fetch',
+        crawlAttemptsUsed: (crawl && crawl._crawlAttemptsUsed) || 1,
       });
       return;
     }
@@ -1272,6 +1312,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       pagesScraped: crawl.pages.length,
       totalDiscovered: crawl.totalDiscovered,
       engine: crawl.engine || 'fetch',
+      crawlAttemptsUsed: crawl._crawlAttemptsUsed || 1,
       tagAuditSummary: crawl.tagAuditSummary || null,
       pages: crawl.pages.map(p => ({
         url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
