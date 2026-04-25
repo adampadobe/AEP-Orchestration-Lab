@@ -1572,8 +1572,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     const existingSid = appendMode ? String(body.existingScrapeId || '').trim() : '';
     runScrapeId = (appendMode && existingSid) ? existingSid : brandScrapeStore.genId();
     const includeSnap = (body.include && typeof body.include === 'object') ? body.include : null;
-
-    await brandScrapeStore.markScrapeRunning(sandbox, {
+    const runningMeta = {
       scrapeId: runScrapeId,
       url,
       baseUrl: normaliseUrl(url),
@@ -1582,41 +1581,55 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       country: body.country || '',
       crawlEngine: wantJs ? 'js' : 'fetch',
       includeSummary: includeSnap ? JSON.stringify(includeSnap).slice(0, 900) : null,
-    });
+    };
+
     res.set('X-Brand-Scrape-Id', runScrapeId);
-    if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
     const useAsync = body.async !== false && body.sync !== true;
     if (useAsync) {
+      // Respond before Firestore so Firebase Hosting (~60s to first byte) does not
+      // time out on cold start + markScrapeRunning. Client may poll before the index
+      // row exists; retry until GET /scrapes/:id succeeds.
       res.status(202).json({
         accepted: true,
         async: true,
         scrapeId: runScrapeId,
         sandbox,
       });
-      // Do not return/await this promise from handleAnalyse: the HTTPS wrapper
-      // would treat the request as still open and can emit a second response after
-      // the 202 body (ERR_HTTP_HEADERS_SENT). Fire-and-forget; the instance usually
-      // stays warm long enough for crawl + checkpoint + LLMs to finish.
-      void executeAnalyzePipeline({
-        sandbox,
-        body,
-        runScrapeId,
-        anthropicKey,
-        started,
-      })
-        .then((out) => {
-          if (out.status !== 200) {
-            analyzePipelineLog(runScrapeId, 'async_pipeline_terminal', { sandbox, httpStatus: out.status });
-          }
-        })
-        .catch((e) => {
+      void (async () => {
+        try {
+          await brandScrapeStore.markScrapeRunning(sandbox, runningMeta);
+        } catch (e) {
           const msg = String((e && e.message) || e);
-          analyzePipelineLog(runScrapeId, 'async_pipeline_throw', { sandbox });
-          return brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
-        });
+          analyzePipelineLog(runScrapeId, 'mark_running_failed', { sandbox });
+          await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
+          return;
+        }
+        // Do not await from handleAnalyse: would keep the HTTPS request open and risk
+        // ERR_HTTP_HEADERS_SENT if the wrapper sends 500 after 202.
+        void executeAnalyzePipeline({
+          sandbox,
+          body,
+          runScrapeId,
+          anthropicKey,
+          started,
+        })
+          .then((out) => {
+            if (out.status !== 200) {
+              analyzePipelineLog(runScrapeId, 'async_pipeline_terminal', { sandbox, httpStatus: out.status });
+            }
+          })
+          .catch((e) => {
+            const msg = String((e && e.message) || e);
+            analyzePipelineLog(runScrapeId, 'async_pipeline_throw', { sandbox });
+            return brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
+          });
+      })();
       return;
     }
+
+    await brandScrapeStore.markScrapeRunning(sandbox, runningMeta);
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
     const out = await executeAnalyzePipeline({
       sandbox,
