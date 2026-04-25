@@ -8,7 +8,7 @@
  *       analysisPresent, personasPresent, campaignsPresent, segmentsPresent,
  *       stakeholdersPresent, storagePath, storageSize, hasFullRecord,
  *       lastExport, createdAt, updatedAt,
- *       scrapeStatus ('running' | 'failed' | 'complete'), scrapeError,
+ *       scrapeStatus ('running' | 'crawl_complete' | 'failed' | 'complete'), scrapeError,
  *       runStartedAt, crawlEngine, includeSummary }
  *
  * Cloud Storage: gs://<BUCKET>/<sandbox>/<scrapeId>/record.json
@@ -158,10 +158,11 @@ async function markScrapeFailed(sandbox, scrapeId, { error } = {}) {
  * Strategy: the full payload goes to Cloud Storage; a slim searchable
  * index doc goes to Firestore with a pointer (storagePath) to the blob.
  */
-async function saveScrape(sandbox, payload) {
+async function saveScrape(sandbox, payload, options = {}) {
   const name = String(sandbox || '').trim();
   if (!name) throw new Error('sandbox is required');
   const scrapeId = String((payload && payload.scrapeId) || '').trim() || genId();
+  const isCheckpoint = options.checkpoint === true;
 
   // 1. Write the full payload to GCS first. If this fails, we abort —
   //    we refuse to create a dangling Firestore index that can't hydrate.
@@ -231,7 +232,7 @@ async function saveScrape(sandbox, payload) {
     storageSize: blob.length,
     hasFullRecord: true,
     schemaVersion: 2,
-    scrapeStatus: 'complete',
+    scrapeStatus: isCheckpoint ? 'crawl_complete' : 'complete',
     scrapeError: null,
   };
 

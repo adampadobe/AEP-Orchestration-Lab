@@ -1110,10 +1110,12 @@
     const isChecked = selected.has(it.scrapeId);
     const runState = it.scrapeStatus || '';
     const runPill = runState === 'running'
-      ? '<span class="brand-scraper-run-pill" title="Analyse request in progress">Running…</span>'
-      : (runState === 'failed'
-        ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--fail" title="' + esc(it.scrapeError || 'Run failed') + '">Failed</span>'
-        : '');
+      ? '<span class="brand-scraper-run-pill" title="Crawler in progress">Running…</span>'
+      : (runState === 'crawl_complete'
+        ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--stage" title="Crawl saved; LLM analysis in progress">Analysing…</span>'
+        : (runState === 'failed'
+          ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--fail" title="' + esc(it.scrapeError || 'Run failed') + '">Failed</span>'
+          : ''));
     const viewDisabled = runState === 'running';
     return (
       '<article class="brand-scraper-history-card' + (selectMode ? ' is-selectable' : '') + (isChecked ? ' is-selected' : '') + '" data-scrape-id="' + esc(it.scrapeId) + '">' +
@@ -1128,7 +1130,7 @@
           '<p class="brand-scraper-result-muted">' + esc(it.baseUrl || it.url || '') + '</p>' +
           '<p class="brand-scraper-result-muted">' +
             fmtDate(it.updatedAt || it.createdAt) +
-            (runState === 'running' && it.crawlEngine ? ' · engine ' + esc(it.crawlEngine) : '') +
+            ((runState === 'running' || runState === 'crawl_complete') && it.crawlEngine ? ' · engine ' + esc(it.crawlEngine) : '') +
             (typeof it.pagesScraped === 'number' ? ' · ' + it.pagesScraped + ' pages' : '') +
             (it.analysisPresent ? ' · analysed' : (it.analysisError ? ' · error' : ' · no analysis')) +
             (it.personasPresent ? ' · personas' : '') +
@@ -1216,7 +1218,7 @@
     }
   }
 
-  /** While Firestore shows scrapeStatus=running, refresh history until it clears (same tab: between fetch and JSON body). */
+  /** While scrapeStatus is running or crawl_complete, refresh history until terminal (same tab: between fetch and JSON body). */
   function startScrapePoll(expectedId) {
     if (!expectedId) return;
     stopScrapePoll();
@@ -1227,7 +1229,8 @@
       loadHistory().then(function () {
         const row = historyItemsCache.find(function (x) { return x.scrapeId === expectedId; });
         const st = row && row.scrapeStatus;
-        if (!row || st !== 'running' || ticks >= maxTicks) stopScrapePoll();
+        const inProgress = st === 'running' || st === 'crawl_complete';
+        if (!row || !inProgress || ticks >= maxTicks) stopScrapePoll();
       });
     }, 3000);
   }
@@ -1266,6 +1269,7 @@
     if (!key) return null;
     return historyItemsCache.find(it =>
       it.scrapeStatus !== 'running' &&
+      it.scrapeStatus !== 'crawl_complete' &&
       (urlKey(it.baseUrl) === key || urlKey(it.url) === key)) || null;
   }
 
@@ -1280,6 +1284,10 @@
         startScrapePoll(scrapeId);
         return;
       }
+      if (data.scrapeStatus === 'crawl_complete') {
+        setStatus('Crawl and tag data are saved; brand analysis is still running. You can review the crawl below — refresh the list shortly for full results.', 'info');
+        startScrapePoll(scrapeId);
+      }
       if (data.scrapeStatus === 'failed') {
         setStatus('Last run failed: ' + (data.scrapeError || 'Unknown error') + '. You can delete this row and try again.', 'error');
         return;
@@ -1288,7 +1296,9 @@
         ...data,
         crawl: data.crawlSummary,
       });
-      setStatus('Loaded scrape from ' + fmtDate(data.updatedAt || data.createdAt) + '.', 'info');
+      if (data.scrapeStatus !== 'crawl_complete') {
+        setStatus('Loaded scrape from ' + fmtDate(data.updatedAt || data.createdAt) + '.', 'info');
+      }
     } catch (e) {
       setStatus('Network error: ' + (e && e.message || e), 'error');
     }

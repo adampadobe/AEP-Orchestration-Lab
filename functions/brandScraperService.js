@@ -1240,6 +1240,7 @@ function mergeScrapeRecords(existing, fresh) {
   out.country = f.country || e.country;
   out.industry = f.industry || e.industry || '';
   out.industryInfo = f.industryInfo || e.industryInfo || null;
+  out.lastExport = f.lastExport !== undefined ? f.lastExport : (e.lastExport || null);
   return out;
 }
 
@@ -1330,6 +1331,64 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       });
       return;
     }
+
+    const crawlSummary = {
+      pagesScraped: crawl.pages.length,
+      totalDiscovered: crawl.totalDiscovered,
+      engine: crawl._crawlEngineUsed || crawl.engine || 'fetch',
+      seedUrl: crawl._crawlSeedUrl || url,
+      crawlAttemptsUsed: crawl._crawlAttemptsUsed || 1,
+      tagAuditSummary: crawl.tagAuditSummary || null,
+      failures: crawl.failures || [],
+      failureSummary: summariseFailures(crawl.failures || []),
+      pages: crawl.pages.map(p => ({
+        url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
+        tagAudit: p.tagAudit || null,
+      })),
+      assets: crawl.assets,
+    };
+
+    const checkpointElapsed = Date.now() - started;
+    let checkpointRecord = {
+      url,
+      baseUrl: crawl.baseUrl,
+      brandName: crawl.brandName,
+      businessType: body.businessType || 'b2c',
+      country: body.country || '',
+      industry: '',
+      industryInfo: null,
+      crawlSummary,
+      analysis: null,
+      analysisError: null,
+      personas: null,
+      personasError: null,
+      campaigns: null,
+      campaignsError: null,
+      segments: null,
+      segmentsError: null,
+      stakeholders: null,
+      stakeholdersError: null,
+      elapsedMs: checkpointElapsed,
+    };
+    if (appendMode && existingSid) {
+      try {
+        const existingCk = await brandScrapeStore.getScrape(sandbox, existingSid);
+        if (existingCk) {
+          checkpointRecord = mergeScrapeRecords(existingCk, checkpointRecord);
+          checkpointRecord.scrapeId = existingCk.scrapeId;
+        }
+      } catch (_e) { /* fall through — checkpoint as new id */ }
+    }
+    if (!checkpointRecord.scrapeId) checkpointRecord.scrapeId = runScrapeId;
+    try {
+      await brandScrapeStore.saveScrape(sandbox, checkpointRecord, { checkpoint: true });
+    } catch (e) {
+      const pe = String((e && e.message) || e);
+      try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: 'Crawl checkpoint failed: ' + pe }); } catch (_e2) { /* ignore */ }
+      res.status(500).json({ error: 'Crawl checkpoint failed: ' + pe, scrapeId: runScrapeId });
+      return;
+    }
+
     // Per-sandbox LLM resolution: Firestore + Secret Manager. The client may
     // still send body.provider to override for one-off testing, but the
     // sandbox config is the default.
@@ -1411,21 +1470,6 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     } catch (e) {
       analysisError = String(e && e.message || e);
     }
-    const crawlSummary = {
-      pagesScraped: crawl.pages.length,
-      totalDiscovered: crawl.totalDiscovered,
-      engine: crawl._crawlEngineUsed || crawl.engine || 'fetch',
-      seedUrl: crawl._crawlSeedUrl || url,
-      crawlAttemptsUsed: crawl._crawlAttemptsUsed || 1,
-      tagAuditSummary: crawl.tagAuditSummary || null,
-      failures: crawl.failures || [],
-      failureSummary: summariseFailures(crawl.failures || []),
-      pages: crawl.pages.map(p => ({
-        url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
-        tagAudit: p.tagAudit || null,
-      })),
-      assets: crawl.assets,
-    };
     const elapsedMs = Date.now() - started;
 
     const inferredIndustry = (recordClassification && !recordClassification.error && !recordClassification.skipped)

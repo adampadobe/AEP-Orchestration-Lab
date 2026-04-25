@@ -1557,6 +1557,12 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   border: 1px solid color-mix(in srgb, #0d9488 35%, var(--dash-border));
 }
 
+.brand-scraper-run-pill--stage {
+  background: color-mix(in srgb, #7c3aed 14%, var(--dash-surface));
+  color: #6d28d9;
+  border-color: color-mix(in srgb, #7c3aed 28%, var(--dash-border));
+}
+
 .brand-scraper-run-pill--fail {
   background: color-mix(in srgb, #dc2626 14%, var(--dash-surface));
   color: #b91c1c;
