@@ -449,36 +449,74 @@ function randomDelayMs(minMs, maxMs) {
   return minMs + Math.floor(Math.random() * (maxMs - minMs + 1));
 }
 
+function buildSeedCandidates(rawUrl) {
+  const out = [];
+  const seen = new Set();
+  const push = (u) => {
+    const key = String(u || '').trim().replace(/\/+$/, '');
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(key);
+  };
+  push(rawUrl);
+  try {
+    const u = new URL(normaliseUrl(rawUrl));
+    push(u.origin);
+  } catch (_e) {}
+  return out.length ? out : [rawUrl];
+}
+
 /**
- * Re-run the same crawl when zero pages come back (403 / rate-limit / flaky edge) or the engine throws.
+ * Re-run crawl when zero pages come back (403 / rate-limit / flaky edge) or the engine throws.
+ * Strategy:
+ *   1) primary engine (requested by user) over URL candidates with jittered retries
+ *   2) fallback engine over the same candidates (smaller retry budget)
  * Random gaps between attempts can clear brief anti-bot or WAF windows without user intervention.
  */
 async function runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, maxAttempts = 4 } = {}) {
   let lastCrawl = null;
   let lastErr = null;
-  const attempts = Math.max(1, Math.min(Number(maxAttempts) || 4, 8));
-  for (let i = 1; i <= attempts; i++) {
-    try {
-      if (wantJs) {
-        lastCrawl = await crawlViaPlaywrightService(url, { maxPages: maxPages || 5, tagAudit: wantTagAudit });
-      } else {
-        lastCrawl = await crawlSite(url, { ...(maxPages ? { maxPages } : {}), tagAudit: wantTagAudit });
+  let attemptsUsed = 0;
+  const primaryAttempts = Math.max(1, Math.min(Number(maxAttempts) || 4, 8));
+  const fallbackAttempts = Math.max(1, Math.ceil(primaryAttempts / 2));
+  const seeds = buildSeedCandidates(url);
+  const engines = wantJs ? ['js', 'fetch'] : ['fetch', 'js'];
+  for (let eIdx = 0; eIdx < engines.length; eIdx++) {
+    const engine = engines[eIdx];
+    const budget = eIdx === 0 ? primaryAttempts : fallbackAttempts;
+    for (const seed of seeds) {
+      for (let i = 1; i <= budget; i++) {
+        attemptsUsed++;
+        try {
+          if (engine === 'js') {
+            lastCrawl = await crawlViaPlaywrightService(seed, { maxPages: maxPages || 5, tagAudit: wantTagAudit });
+          } else {
+            lastCrawl = await crawlSite(seed, { ...(maxPages ? { maxPages } : {}), tagAudit: wantTagAudit });
+          }
+          lastErr = null;
+          if (lastCrawl && Array.isArray(lastCrawl.pages) && lastCrawl.pages.length > 0) {
+            lastCrawl._crawlAttemptsUsed = attemptsUsed;
+            lastCrawl._crawlEngineUsed = engine;
+            lastCrawl._crawlSeedUrl = seed;
+            return lastCrawl;
+          }
+        } catch (e) {
+          lastErr = e;
+          lastCrawl = null;
+        }
+        if (i < budget) {
+          await sleep(randomDelayMs(750, 4200));
+        }
       }
-      lastErr = null;
-      if (lastCrawl && Array.isArray(lastCrawl.pages) && lastCrawl.pages.length > 0) {
-        lastCrawl._crawlAttemptsUsed = i;
-        return lastCrawl;
-      }
-    } catch (e) {
-      lastErr = e;
-      lastCrawl = null;
-    }
-    if (i < attempts) {
-      await sleep(randomDelayMs(750, 4200));
+      // Short pause before trying the next seed URL.
+      await sleep(randomDelayMs(250, 900));
     }
   }
   if (lastErr) throw lastErr;
-  if (lastCrawl) lastCrawl._crawlAttemptsUsed = attempts;
+  if (lastCrawl) {
+    lastCrawl._crawlAttemptsUsed = attemptsUsed || 1;
+    lastCrawl._crawlEngineUsed = engines[engines.length - 1];
+  }
   return lastCrawl;
 }
 
@@ -1222,8 +1260,9 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       res.status(502).json({
         error: friendlyFailureMessage(url, fails),
         details: summariseFailures(fails),
-        engine: (crawl && crawl.engine) || 'fetch',
+        engine: (crawl && crawl._crawlEngineUsed) || (crawl && crawl.engine) || 'fetch',
         crawlAttemptsUsed: (crawl && crawl._crawlAttemptsUsed) || 1,
+        crawlSeedUrl: (crawl && crawl._crawlSeedUrl) || url,
       });
       return;
     }
@@ -1311,7 +1350,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     const crawlSummary = {
       pagesScraped: crawl.pages.length,
       totalDiscovered: crawl.totalDiscovered,
-      engine: crawl.engine || 'fetch',
+      engine: crawl._crawlEngineUsed || crawl.engine || 'fetch',
+      seedUrl: crawl._crawlSeedUrl || url,
       crawlAttemptsUsed: crawl._crawlAttemptsUsed || 1,
       tagAuditSummary: crawl.tagAuditSummary || null,
       pages: crawl.pages.map(p => ({
