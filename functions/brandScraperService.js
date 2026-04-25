@@ -573,6 +573,16 @@ function friendlyFailureMessage(url, failures) {
   return bits.join(' ');
 }
 
+function inferBrandNameFromUrl(rawUrl) {
+  try {
+    const host = new URL(normaliseUrl(rawUrl)).hostname.replace(/^www\./, '').split('.')[0];
+    if (!host) return '';
+    return host.charAt(0).toUpperCase() + host.slice(1);
+  } catch (_e) {
+    return '';
+  }
+}
+
 const INDUSTRY_TAXONOMY = [
   'Technology & Software',
   'Financial services',
@@ -1269,12 +1279,32 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     }
     if (!crawl.pages || !crawl.pages.length) {
       const fails = (crawl && crawl.failures) || [];
+      const failureSummary = summariseFailures(fails);
       res.status(502).json({
         error: friendlyFailureMessage(url, fails),
-        details: summariseFailures(fails),
+        details: failureSummary,
         engine: (crawl && crawl._crawlEngineUsed) || (crawl && crawl.engine) || 'fetch',
         crawlAttemptsUsed: (crawl && crawl._crawlAttemptsUsed) || 1,
         crawlSeedUrl: (crawl && crawl._crawlSeedUrl) || url,
+        partial: {
+          sandbox,
+          url,
+          baseUrl: (crawl && crawl.baseUrl) || normaliseUrl(url),
+          brandName: (crawl && crawl.brandName) || inferBrandNameFromUrl(url),
+          crawl: {
+            pagesScraped: 0,
+            totalDiscovered: (crawl && crawl.totalDiscovered) || 0,
+            engine: (crawl && crawl._crawlEngineUsed) || (crawl && crawl.engine) || 'fetch',
+            seedUrl: (crawl && crawl._crawlSeedUrl) || url,
+            crawlAttemptsUsed: (crawl && crawl._crawlAttemptsUsed) || 1,
+            tagAuditSummary: (crawl && crawl.tagAuditSummary) || null,
+            assets: (crawl && crawl.assets) || {},
+            pages: [],
+            failures: fails,
+            failureSummary,
+          },
+          analysisError: 'Crawl could not fetch pages; showing partial diagnostics only.',
+        },
       });
       return;
     }
@@ -1366,6 +1396,8 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       seedUrl: crawl._crawlSeedUrl || url,
       crawlAttemptsUsed: crawl._crawlAttemptsUsed || 1,
       tagAuditSummary: crawl.tagAuditSummary || null,
+      failures: crawl.failures || [],
+      failureSummary: summariseFailures(crawl.failures || []),
       pages: crawl.pages.map(p => ({
         url: p.url, title: p.title, description: p.description, textLength: p.textLength, status: p.status,
         tagAudit: p.tagAudit || null,

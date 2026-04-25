@@ -894,6 +894,10 @@
 
   function renderCrawl(c) {
     if (!c || !Array.isArray(c.pages)) return '';
+    const failureSummary = c.failureSummary || null;
+    const failureParts = failureSummary && failureSummary.byReason
+      ? Object.entries(failureSummary.byReason).map(([k, v]) => k + ' × ' + v).join(', ')
+      : '';
     const rows = c.pages.map(function (p) {
       const ta = p.tagAudit;
       const mode = ta && ta.mode ? ta.mode : '—';
@@ -913,6 +917,7 @@
     return '<section class="brand-scraper-result-block">' +
       '<h4>Crawl summary</h4>' +
       '<p class="brand-scraper-result-muted">' + (c.pagesScraped || 0) + ' pages scraped, ' + (c.totalDiscovered || 0) + ' URLs discovered.</p>' +
+      (failureParts ? '<p class="brand-scraper-result-muted"><strong>Failures observed:</strong> ' + esc(failureParts) + '.</p>' : '') +
       '<table class="brand-scraper-table"><thead><tr><th>URL</th><th>Title</th><th>Status</th><th>Chars</th><th>Tag audit</th><th>JS errors</th></tr></thead><tbody>' + rows + '</tbody></table>' +
     '</section>';
   }
@@ -1388,6 +1393,12 @@
         let msg = 'Analysis failed: ' + (data.error || resp.statusText);
         if (data.details && data.details.byReason) {
           msg += '\n\nFailure breakdown: ' + Object.entries(data.details.byReason).map(([k,v]) => k + ' × ' + v).join(', ') + '.';
+        }
+        if (data.partial && data.partial.crawl) {
+          setStatus(msg + '\n\nShowing partial scrape diagnostics below.', 'error');
+          stopProgress();
+          renderResults(data.partial);
+          return;
         }
         setStatus(msg, 'error');
         stopProgress();
