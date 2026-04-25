@@ -1108,6 +1108,13 @@
 
   function cardHtml(it) {
     const isChecked = selected.has(it.scrapeId);
+    const runState = it.scrapeStatus || '';
+    const runPill = runState === 'running'
+      ? '<span class="brand-scraper-run-pill" title="Analyse request in progress">Running…</span>'
+      : (runState === 'failed'
+        ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--fail" title="' + esc(it.scrapeError || 'Run failed') + '">Failed</span>'
+        : '');
+    const viewDisabled = runState === 'running';
     return (
       '<article class="brand-scraper-history-card' + (selectMode ? ' is-selectable' : '') + (isChecked ? ' is-selected' : '') + '" data-scrape-id="' + esc(it.scrapeId) + '">' +
         (selectMode ? (
@@ -1116,11 +1123,12 @@
           '</label>'
         ) : '') +
         '<div class="brand-scraper-history-card-main">' +
-          '<h4>' + esc(it.brandName || it.baseUrl || it.url) + '</h4>' +
+          '<h4>' + esc(it.brandName || it.baseUrl || it.url) + runPill + '</h4>' +
           (it.industry ? '<p class="brand-scraper-history-industry">' + esc(it.industry) + '</p>' : '') +
           '<p class="brand-scraper-result-muted">' + esc(it.baseUrl || it.url || '') + '</p>' +
           '<p class="brand-scraper-result-muted">' +
             fmtDate(it.updatedAt || it.createdAt) +
+            (runState === 'running' && it.crawlEngine ? ' · engine ' + esc(it.crawlEngine) : '') +
             (typeof it.pagesScraped === 'number' ? ' · ' + it.pagesScraped + ' pages' : '') +
             (it.analysisPresent ? ' · analysed' : (it.analysisError ? ' · error' : ' · no analysis')) +
             (it.personasPresent ? ' · personas' : '') +
@@ -1130,7 +1138,7 @@
           '</p>' +
         '</div>' +
         '<div class="brand-scraper-history-card-actions">' +
-          '<button type="button" class="dashboard-btn-outline" data-action="view">View</button>' +
+          '<button type="button" class="dashboard-btn-outline" data-action="view"' + (viewDisabled ? ' disabled' : '') + '>View</button>' +
           '<button type="button" class="dashboard-btn-outline" data-action="delete">Delete</button>' +
         '</div>' +
       '</article>'
@@ -1199,6 +1207,30 @@
   }
 
   let historyItemsCache = [];
+  let scrapePollTimer = null;
+
+  function stopScrapePoll() {
+    if (scrapePollTimer) {
+      clearInterval(scrapePollTimer);
+      scrapePollTimer = null;
+    }
+  }
+
+  /** While Firestore shows scrapeStatus=running, refresh history until it clears (same tab: between fetch and JSON body). */
+  function startScrapePoll(expectedId) {
+    if (!expectedId) return;
+    stopScrapePoll();
+    let ticks = 0;
+    const maxTicks = 120;
+    scrapePollTimer = setInterval(function () {
+      ticks += 1;
+      loadHistory().then(function () {
+        const row = historyItemsCache.find(function (x) { return x.scrapeId === expectedId; });
+        const st = row && row.scrapeStatus;
+        if (!row || st !== 'running' || ticks >= maxTicks) stopScrapePoll();
+      });
+    }, 3000);
+  }
 
   async function loadHistory() {
     const sb = getSandbox();
@@ -1232,7 +1264,9 @@
   function findExistingScrape(targetUrl) {
     const key = urlKey(targetUrl);
     if (!key) return null;
-    return historyItemsCache.find(it => urlKey(it.baseUrl) === key || urlKey(it.url) === key) || null;
+    return historyItemsCache.find(it =>
+      it.scrapeStatus !== 'running' &&
+      (urlKey(it.baseUrl) === key || urlKey(it.url) === key)) || null;
   }
 
   async function viewScrape(scrapeId) {
@@ -1240,6 +1274,16 @@
       const resp = await fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId)));
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) { setStatus('Could not load scrape: ' + (data.error || resp.statusText), 'error'); return; }
+      if (data.scrapeStatus === 'running') {
+        setStatus('This scrape is still running. Watch the history list for a Running badge, or refresh in a moment.', 'info');
+        loadHistory();
+        startScrapePoll(scrapeId);
+        return;
+      }
+      if (data.scrapeStatus === 'failed') {
+        setStatus('Last run failed: ' + (data.scrapeError || 'Unknown error') + '. You can delete this row and try again.', 'error');
+        return;
+      }
       renderResults({
         ...data,
         crawl: data.crawlSummary,
@@ -1525,6 +1569,11 @@
         retries: 2,
         onRetry: (n, status) => setStatus('Warming Cloud Run (retry ' + n + ' of 2, previous response ' + status + ') \u2026 this is normal after idle periods.', 'info'),
       });
+      const headerScrapeId = resp.headers.get('x-brand-scrape-id');
+      if (headerScrapeId) {
+        loadHistory();
+        startScrapePoll(headerScrapeId);
+      }
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
         let msg = 'Analysis failed: ' + (data.error || resp.statusText);
@@ -1551,6 +1600,7 @@
       setStatus('Network error: ' + (e && e.message || e), 'error');
       stopProgress();
     } finally {
+      stopScrapePoll();
       if (runBtn) runBtn.disabled = false;
     }
   });

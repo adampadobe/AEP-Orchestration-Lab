@@ -1263,6 +1263,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
   if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
 
   const started = Date.now();
+  let runScrapeId = null;
   try {
     const requestedPages = Math.floor(Number(body.maxPages));
     const maxPages = requestedPages > 0 ? Math.min(requestedPages, 25) : undefined;
@@ -1270,18 +1271,39 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     const wantJs = crawlerMode === 'js' || crawlerMode === 'true' || body.useJs === true;
     const inc = (key) => !body.include || body.include[key] !== false;
     const wantTagAudit = inc('tagAudit');
+    const appendMode = body.mode === 'append' && body.existingScrapeId;
+    const existingSid = appendMode ? String(body.existingScrapeId || '').trim() : '';
+    runScrapeId = (appendMode && existingSid) ? existingSid : brandScrapeStore.genId();
+    const includeSnap = (body.include && typeof body.include === 'object') ? body.include : null;
+    await brandScrapeStore.markScrapeRunning(sandbox, {
+      scrapeId: runScrapeId,
+      url,
+      baseUrl: normaliseUrl(url),
+      brandName: inferBrandNameFromUrl(url),
+      businessType: body.businessType || 'b2c',
+      country: body.country || '',
+      crawlEngine: wantJs ? 'js' : 'fetch',
+      includeSummary: includeSnap ? JSON.stringify(includeSnap).slice(0, 900) : null,
+    });
+    res.set('X-Brand-Scrape-Id', runScrapeId);
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
     let crawl;
     try {
       crawl = await runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit });
     } catch (e) {
-      res.status(502).json({ error: 'Crawler failed: ' + String((e && e.message) || e) });
+      const msg = 'Crawler failed: ' + String((e && e.message) || e);
+      try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }); } catch (_e) { /* ignore */ }
+      res.status(502).json({ error: msg, scrapeId: runScrapeId });
       return;
     }
     if (!crawl.pages || !crawl.pages.length) {
       const fails = (crawl && crawl.failures) || [];
       const failureSummary = summariseFailures(fails);
+      try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: 'Crawl could not fetch pages' }); } catch (_e) { /* ignore */ }
       res.status(502).json({
         error: friendlyFailureMessage(url, fails),
+        scrapeId: runScrapeId,
         details: failureSummary,
         engine: (crawl && crawl._crawlEngineUsed) || (crawl && crawl.engine) || 'fetch',
         crawlAttemptsUsed: (crawl && crawl._crawlAttemptsUsed) || 1,
@@ -1410,7 +1432,6 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       ? String(recordClassification.industry || '').trim()
       : '';
 
-    const appendMode = body.mode === 'append' && body.existingScrapeId;
     let recordToPersist = {
       url,
       baseUrl: crawl.baseUrl,
@@ -1441,6 +1462,7 @@ async function handleAnalyse(req, res, { anthropicKey }) {
         }
       } catch (_e) { /* fall through — save as new */ }
     }
+    if (!recordToPersist.scrapeId) recordToPersist.scrapeId = runScrapeId;
 
     let saved = null;
     let persistError = null;
@@ -1456,10 +1478,11 @@ async function handleAnalyse(req, res, { anthropicKey }) {
         error: persistError,
       });
       analysisError = analysisError || ('Persist failed: ' + persistError);
+      try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: persistError }); } catch (_e2) { /* ignore */ }
     }
 
     res.status(200).json({
-      scrapeId: saved && saved.scrapeId,
+      scrapeId: (saved && saved.scrapeId) || runScrapeId,
       persistError,
       sandbox,
       brandName: (saved && saved.brandName) || crawl.brandName,
@@ -1483,7 +1506,10 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       elapsedMs,
     });
   } catch (e) {
-    res.status(500).json({ error: String(e && e.message || e) });
+    if (runScrapeId) {
+      try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: String(e && e.message || e) }); } catch (_e2) { /* ignore */ }
+    }
+    res.status(500).json({ error: String(e && e.message || e), scrapeId: runScrapeId || undefined });
   }
 }
 

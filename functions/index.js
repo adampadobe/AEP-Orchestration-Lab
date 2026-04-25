@@ -2971,6 +2971,7 @@ exports.brandScraperAnalyze = onRequest(
   },
   async (req, res) => {
     setCors(res, 'POST, OPTIONS');
+    res.set('Access-Control-Expose-Headers', 'X-Brand-Scrape-Id');
     try {
       const anthropicKey = (process.env.ANTHROPIC_API_KEY || '').trim();
       await brandScraperService.handleAnalyse(req, res, { anthropicKey });

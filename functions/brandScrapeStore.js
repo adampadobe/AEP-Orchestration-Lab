@@ -7,7 +7,9 @@
  *       industry, industryInfo, elapsedMs, analysisError, pagesScraped,
  *       analysisPresent, personasPresent, campaignsPresent, segmentsPresent,
  *       stakeholdersPresent, storagePath, storageSize, hasFullRecord,
- *       lastExport, createdAt, updatedAt }
+ *       lastExport, createdAt, updatedAt,
+ *       scrapeStatus ('running' | 'failed' | 'complete'), scrapeError,
+ *       runStartedAt, crawlEngine, includeSummary }
  *
  * Cloud Storage: gs://<BUCKET>/<sandbox>/<scrapeId>/record.json
  *   Full payload — crawlSummary + analysis + personas + campaigns +
@@ -91,6 +93,7 @@ function hydrate(data) {
     ...data,
     createdAt: serializeTimestamp(data.createdAt),
     updatedAt: serializeTimestamp(data.updatedAt),
+    runStartedAt: serializeTimestamp(data.runStartedAt),
   };
 }
 
@@ -99,6 +102,55 @@ function hasRealPayload(val, innerArrayKey) {
   if (val.skipped || val.error || val.dropped) return false;
   if (innerArrayKey) return Array.isArray(val[innerArrayKey]) && val[innerArrayKey].length > 0;
   return true;
+}
+
+/**
+ * Mark a scrape as in-flight (Firestore index only — no GCS blob yet).
+ * Append re-runs keep hasFullRecord/storagePath when a completed payload already exists.
+ */
+async function markScrapeRunning(sandbox, meta) {
+  const name = String(sandbox || '').trim();
+  const scrapeId = String((meta && meta.scrapeId) || '').trim();
+  if (!name || !scrapeId) throw new Error('sandbox and scrapeId are required');
+  const ref = getDb().collection(COLLECTION).doc(docId(name, scrapeId));
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  await getDb().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const prev = snap.exists ? (snap.data() || {}) : {};
+    const hadFull = !!(prev.storagePath && prev.hasFullRecord);
+    const createdAt = prev.createdAt || now;
+    const patch = stripUndefined({
+      sandbox: name,
+      scrapeId,
+      url: meta.url != null ? String(meta.url) : '',
+      baseUrl: meta.baseUrl != null ? String(meta.baseUrl) : '',
+      brandName: meta.brandName != null ? String(meta.brandName) : '',
+      businessType: meta.businessType || 'b2c',
+      country: meta.country != null ? String(meta.country) : '',
+      crawlEngine: meta.crawlEngine || null,
+      includeSummary: meta.includeSummary || null,
+      scrapeStatus: 'running',
+      scrapeError: null,
+      runStartedAt: now,
+      updatedAt: now,
+      hasFullRecord: hadFull,
+      storagePath: prev.storagePath || null,
+    });
+    tx.set(ref, { ...patch, createdAt }, { merge: true });
+  });
+}
+
+/** Terminal failure while a run is in progress (does not delete prior GCS payloads). */
+async function markScrapeFailed(sandbox, scrapeId, { error } = {}) {
+  const name = String(sandbox || '').trim();
+  const sid = String(scrapeId || '').trim();
+  if (!name || !sid) return;
+  const ref = getDb().collection(COLLECTION).doc(docId(name, sid));
+  await ref.set(stripUndefined({
+    scrapeStatus: 'failed',
+    scrapeError: String(error || 'unknown error').slice(0, 800),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }), { merge: true });
 }
 
 /**
@@ -179,6 +231,8 @@ async function saveScrape(sandbox, payload) {
     storageSize: blob.length,
     hasFullRecord: true,
     schemaVersion: 2,
+    scrapeStatus: 'complete',
+    scrapeError: null,
   };
 
   const ref = getDb().collection(COLLECTION).doc(docId(name, scrapeId));
@@ -252,6 +306,10 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
       pagesScraped: data.pagesScraped != null
         ? data.pagesScraped
         : (data.crawlSummary ? data.crawlSummary.pagesScraped : null),
+      scrapeStatus: data.scrapeStatus || null,
+      scrapeError: data.scrapeError || null,
+      runStartedAt: data.runStartedAt,
+      crawlEngine: data.crawlEngine || null,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     }));
@@ -328,4 +386,12 @@ async function deleteScrape(sandbox, id) {
   return true;
 }
 
-module.exports = { saveScrape, listScrapes, getScrape, deleteScrape, genId };
+module.exports = {
+  saveScrape,
+  listScrapes,
+  getScrape,
+  deleteScrape,
+  genId,
+  markScrapeRunning,
+  markScrapeFailed,
+};
