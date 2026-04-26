@@ -9,6 +9,7 @@
  *       stakeholdersPresent, storagePath, storageSize, hasFullRecord,
  *       lastExport, createdAt, updatedAt,
  *       scrapeStatus ('running' | 'crawl_complete' | 'failed' | 'complete'), scrapeError,
+ *       runSteps: [{ id, label, status: 'ok'|'failed'|'skipped', detail? }] — last-fail trace,
  *       analysisPending (boolean, index only — true after crawl checkpoint until final save),
  *       runStartedAt, crawlEngine, includeSummary,
  *       scrapeVersions: [{ version, storagePath, savedAt }] — archived snapshots
@@ -252,21 +253,43 @@ async function markScrapeRunning(sandbox, meta) {
       hasFullRecord: hadFull,
       storagePath: prev.storagePath || null,
     });
-    tx.set(ref, { ...patch, createdAt }, { merge: true });
+    tx.set(ref, {
+      ...patch,
+      createdAt,
+      runSteps: admin.firestore.FieldValue.delete(),
+    }, { merge: true });
   });
 }
 
+function normalizeRunSteps(steps) {
+  if (!Array.isArray(steps) || !steps.length) return null;
+  const out = [];
+  for (const s of steps.slice(0, 24)) {
+    if (!s || typeof s !== 'object') continue;
+    const status = ['ok', 'failed', 'skipped'].includes(s.status) ? s.status : 'failed';
+    out.push(stripUndefined({
+      id: String(s.id || '').slice(0, 36),
+      label: String(s.label || '').slice(0, 80),
+      status,
+      detail: s.detail != null ? String(s.detail).slice(0, 600) : null,
+    }));
+  }
+  return out.length ? out : null;
+}
+
 /** Terminal failure while a run is in progress (does not delete prior GCS payloads). */
-async function markScrapeFailed(sandbox, scrapeId, { error } = {}) {
+async function markScrapeFailed(sandbox, scrapeId, { error, steps } = {}) {
   const name = String(sandbox || '').trim();
   const sid = String(scrapeId || '').trim();
   if (!name || !sid) return;
   const ref = getDb().collection(COLLECTION).doc(docId(name, sid));
-  await ref.set(stripUndefined({
+  const normalized = normalizeRunSteps(steps);
+  await ref.set({
     scrapeStatus: 'failed',
     scrapeError: String(error || 'unknown error').slice(0, 800),
+    runSteps: normalized && normalized.length ? normalized : admin.firestore.FieldValue.delete(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  }), { merge: true });
+  }, { merge: true });
 }
 
 /**
@@ -379,6 +402,7 @@ async function saveScrape(sandbox, payload, options = {}) {
       ...safeIndexDoc,
       createdAt: base.createdAt || now,
       updatedAt: now,
+      runSteps: admin.firestore.FieldValue.delete(),
     }, { merge: true });
   });
 
@@ -446,6 +470,7 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
       runStartedAt: data.runStartedAt,
       crawlEngine: data.crawlEngine || null,
       archiveVersionCount: Array.isArray(data.scrapeVersions) ? data.scrapeVersions.length : 0,
+      runSteps: Array.isArray(data.runSteps) ? data.runSteps : [],
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     }));
@@ -546,6 +571,12 @@ async function runBrandScrapeStaleMaintenance() {
     if (t && nowMs - t > STALE_RUNNING_SCRAPE_MS && d.scrapeId && d.sandbox) {
       await markScrapeFailed(String(d.sandbox), String(d.scrapeId), {
         error: 'Run timed out (stale). The tab or worker may have been interrupted; delete and retry.',
+        steps: [{
+          id: 'runtime',
+          label: 'Run did not finish',
+          status: 'failed',
+          detail: 'Status stayed "running" past the timeout window (worker disconnect or crash).',
+        }],
       });
       failedStaleRunning += 1;
     }

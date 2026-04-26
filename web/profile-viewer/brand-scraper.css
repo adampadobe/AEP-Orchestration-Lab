@@ -792,6 +792,91 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   max-width: 48rem;
 }
 
+.brand-scraper-history-fail-details {
+  margin-top: 10px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 10px);
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--dash-surface-alt) 88%, var(--dash-surface));
+}
+
+.brand-scraper-history-fail-summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.brand-scraper-history-fail-summary-text {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.brand-scraper-run-trace {
+  margin: 0 0 8px;
+}
+
+.brand-scraper-run-trace h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--dash-text);
+}
+
+.brand-scraper-run-step-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.brand-scraper-run-step {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+}
+
+.brand-scraper-run-step-pill {
+  display: inline-block;
+  min-width: 2.25rem;
+  margin-right: 8px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.brand-scraper-step--ok .brand-scraper-run-step-pill {
+  background: color-mix(in srgb, #0a7 18%, var(--dash-surface));
+  color: #0a7;
+}
+
+.brand-scraper-step--skipped .brand-scraper-run-step-pill {
+  background: color-mix(in srgb, var(--dash-text-secondary) 14%, var(--dash-surface));
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-step--fail .brand-scraper-run-step-pill {
+  background: color-mix(in srgb, #c43 16%, var(--dash-surface));
+  color: #b42;
+}
+
+.brand-scraper-run-step-label {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.brand-scraper-run-step-detail {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--dash-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .brand-scraper-result-header h3 {
   margin: 0 0 4px;
   font-size: 20px;

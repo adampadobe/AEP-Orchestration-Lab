@@ -1070,6 +1070,39 @@
 
   let currentScrapeData = null;
 
+  function renderFailTraceSection(data) {
+    const steps = Array.isArray(data.runSteps) ? data.runSteps : [];
+    const failed = data.scrapeStatus === 'failed';
+    if (!failed && !steps.length) return '';
+    if (!steps.length) {
+      return (
+        '<section class="brand-scraper-run-trace">' +
+          '<h4>Run trace</h4>' +
+          '<p class="brand-scraper-result-muted">' + esc(data.scrapeError || 'Run failed') + '</p>' +
+        '</section>'
+      );
+    }
+    const rows = steps.map(function (s) {
+      const st = s.status || 'failed';
+      const pill = st === 'ok' ? 'ok' : (st === 'skipped' ? 'skip' : 'fail');
+      const cls = st === 'ok' ? 'brand-scraper-step--ok' : (st === 'skipped' ? 'brand-scraper-step--skipped' : 'brand-scraper-step--fail');
+      return (
+        '<li class="brand-scraper-run-step ' + cls + '">' +
+          '<span class="brand-scraper-run-step-pill">' + esc(pill) + '</span>' +
+          '<span class="brand-scraper-run-step-label">' + esc(s.label || s.id || '') + '</span>' +
+          (s.detail ? '<p class="brand-scraper-run-step-detail">' + esc(s.detail) + '</p>' : '') +
+        '</li>'
+      );
+    }).join('');
+    return (
+      '<section class="brand-scraper-run-trace">' +
+        '<h4>Run trace</h4>' +
+        '<ol class="brand-scraper-run-step-list">' + rows + '</ol>' +
+        (data.scrapeError ? '<p class="brand-scraper-result-muted"><strong>Summary:</strong> ' + esc(data.scrapeError) + '</p>' : '') +
+      '</section>'
+    );
+  }
+
   function renderResults(data) {
     currentScrapeData = data;
     resultsEl.hidden = false;
@@ -1113,6 +1146,7 @@
           (data.scrapeId && !hist ? '<button type="button" class="dashboard-btn-primary" data-action="export-kit">Export kit (ZIP)</button>' : '') +
         '</div>' +
       '</header>' +
+      renderFailTraceSection(data) +
       (lastExport && lastExport.signedUrl ? (
         '<div class="brand-scraper-export-link">' +
           '<span>Latest export ready:</span> ' +
@@ -1147,6 +1181,29 @@
         : (runState === 'failed'
           ? '<span class="brand-scraper-run-pill brand-scraper-run-pill--fail" title="' + esc(it.scrapeError || 'Run failed') + '">Failed</span>'
           : ''));
+    const runSteps = Array.isArray(it.runSteps) ? it.runSteps : [];
+    const failDetails = runState === 'failed'
+      ? (
+        '<details class="brand-scraper-history-fail-details">' +
+          '<summary class="brand-scraper-history-fail-summary">What failed</summary>' +
+          (runSteps.length
+            ? '<ol class="brand-scraper-run-step-list">' + runSteps.map(function (s) {
+              const st = s.status || 'failed';
+              const pill = st === 'ok' ? 'ok' : (st === 'skipped' ? 'skip' : 'fail');
+              const cls = st === 'ok' ? 'brand-scraper-step--ok' : (st === 'skipped' ? 'brand-scraper-step--skipped' : 'brand-scraper-step--fail');
+              return (
+                '<li class="brand-scraper-run-step ' + cls + '">' +
+                  '<span class="brand-scraper-run-step-pill">' + esc(pill) + '</span>' +
+                  '<span class="brand-scraper-run-step-label">' + esc(s.label || s.id || '') + '</span>' +
+                  (s.detail ? '<p class="brand-scraper-run-step-detail">' + esc(s.detail) + '</p>' : '') +
+                '</li>'
+              );
+            }).join('') + '</ol>'
+            : '') +
+          (it.scrapeError ? '<p class="brand-scraper-result-muted brand-scraper-history-fail-summary-text">' + esc(it.scrapeError) + '</p>' : '') +
+        '</details>'
+      )
+      : '';
     const viewDisabled = runState === 'running';
     return (
       '<article class="brand-scraper-history-card' + (selectMode ? ' is-selectable' : '') + (isChecked ? ' is-selected' : '') + '" data-scrape-id="' + esc(it.scrapeId) + '">' +
@@ -1171,6 +1228,7 @@
             (it.analysisPending ? ' · analysis pending' : '') +
             (it.archiveVersionCount ? ' · ' + it.archiveVersionCount + ' snapshot' + (it.archiveVersionCount === 1 ? '' : 's') : '') +
           '</p>' +
+          failDetails +
         '</div>' +
         '<div class="brand-scraper-history-card-actions">' +
           '<button type="button" class="dashboard-btn-outline" data-action="view"' + (viewDisabled ? ' disabled' : '') + '>View</button>' +
@@ -1360,7 +1418,12 @@
         startScrapePoll(scrapeId, {});
       }
       if (data.scrapeStatus === 'failed') {
-        setStatus('Last run failed: ' + (data.scrapeError || 'Unknown error') + '. You can delete this row and try again.', 'error');
+        setStatus('Last run failed: ' + (data.scrapeError || 'Unknown error') + '. Expand “What failed” on the card for each step, or see the trace below.', 'error');
+        renderResults({
+          ...data,
+          crawl: data.crawlSummary,
+          scrapeStatus: 'failed',
+        });
         return;
       }
       renderResults({

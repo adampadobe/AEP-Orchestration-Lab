@@ -1306,6 +1306,26 @@ function analyzePipelineLog(scrapeId, phase, extra = {}) {
   }));
 }
 
+function runStepOk(id, label, detail) {
+  const d = detail != null ? String(detail).slice(0, 500) : null;
+  return { id, label, status: 'ok', detail: d || null };
+}
+
+function runStepFailed(id, label, detail) {
+  return { id, label, status: 'failed', detail: String(detail || '').slice(0, 600) };
+}
+
+function runStepSkipped(id, label, detail) {
+  return { id, label, status: 'skipped', detail: detail != null ? String(detail).slice(0, 400) : null };
+}
+
+function runStepFromLlm(id, label, result) {
+  if (!result) return runStepOk(id, label, null);
+  if (result.skipped) return runStepSkipped(id, label, result.reason || 'skipped');
+  if (result.error) return runStepFailed(id, label, result.error);
+  return runStepOk(id, label, null);
+}
+
 /**
  * Crawl → checkpoint → LLMs → final save. Caller must have already called markScrapeRunning.
  * @returns {{ status: number, payload: object }}
@@ -1326,6 +1346,7 @@ async function executeAnalyzePipeline({
   const wantTagAudit = inc('tagAudit');
   const appendMode = body.mode === 'append' && body.existingScrapeId;
   const existingSid = appendMode ? String(body.existingScrapeId || '').trim() : '';
+  const runSteps = [];
 
   analyzePipelineLog(runScrapeId, 'crawl_start', { sandbox });
   let crawl;
@@ -1333,19 +1354,35 @@ async function executeAnalyzePipeline({
     crawl = await runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit });
   } catch (e) {
     const msg = 'Crawler failed: ' + String((e && e.message) || e);
-    try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }); } catch (_e) { /* ignore */ }
+    try {
+      await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+        error: msg,
+        steps: [runStepFailed('crawl', 'Crawl pages', msg)],
+      });
+    } catch (_e) { /* ignore */ }
     analyzePipelineLog(runScrapeId, 'crawl_failed', { sandbox, ms: Date.now() - started });
     return { status: 502, payload: { error: msg, scrapeId: runScrapeId } };
   }
   if (!crawl.pages || !crawl.pages.length) {
     const fails = (crawl && crawl.failures) || [];
     const failureSummary = summariseFailures(fails);
-    try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: 'Crawl could not fetch pages' }); } catch (_e) { /* ignore */ }
+    const friendly = friendlyFailureMessage(url, fails);
+    const detailBits = [friendly];
+    if (failureSummary && failureSummary.byReason) {
+      detailBits.push('Attempts: ' + JSON.stringify(failureSummary.byReason).slice(0, 320));
+    }
+    const crawlDetail = detailBits.join(' ').slice(0, 700);
+    try {
+      await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+        error: friendly.slice(0, 800),
+        steps: [runStepFailed('crawl', 'Crawl pages', crawlDetail)],
+      });
+    } catch (_e) { /* ignore */ }
     analyzePipelineLog(runScrapeId, 'crawl_empty', { sandbox, ms: Date.now() - started });
     return {
       status: 502,
       payload: {
-        error: friendlyFailureMessage(url, fails),
+        error: friendly,
         scrapeId: runScrapeId,
         details: failureSummary,
         engine: (crawl && crawl._crawlEngineUsed) || (crawl && crawl.engine) || 'fetch',
@@ -1375,6 +1412,11 @@ async function executeAnalyzePipeline({
   }
 
   analyzePipelineLog(runScrapeId, 'crawl_ok', { sandbox, ms: Date.now() - started });
+  runSteps.push(runStepOk(
+    'crawl',
+    'Crawl pages',
+    `${crawl.pages.length} page(s) · engine ${crawl._crawlEngineUsed || crawl.engine || 'fetch'}`,
+  ));
 
   let appendBaseline = null;
   if (appendMode && existingSid) {
@@ -1430,11 +1472,17 @@ async function executeAnalyzePipeline({
     await brandScrapeStore.saveScrape(sandbox, checkpointRecord, { checkpoint: true });
   } catch (e) {
     const pe = String((e && e.message) || e);
-    try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: 'Crawl checkpoint failed: ' + pe }); } catch (_e2) { /* ignore */ }
+    try {
+      await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+        error: 'Crawl checkpoint failed: ' + pe,
+        steps: [...runSteps, runStepFailed('checkpoint', 'Save crawl checkpoint', pe)],
+      });
+    } catch (_e2) { /* ignore */ }
     analyzePipelineLog(runScrapeId, 'checkpoint_failed', { sandbox });
     return { status: 500, payload: { error: 'Crawl checkpoint failed: ' + pe, scrapeId: runScrapeId } };
   }
   analyzePipelineLog(runScrapeId, 'checkpoint_saved', { sandbox, ms: Date.now() - started });
+  runSteps.push(runStepOk('checkpoint', 'Save crawl checkpoint', 'Crawl saved to storage'));
 
   let resolvedProvider = 'gemini';
   let resolvedAnthropicKey = anthropicKey || '';
@@ -1510,6 +1558,12 @@ async function executeAnalyzePipeline({
     analysisError = String(e && e.message || e);
   }
   analyzePipelineLog(runScrapeId, 'llm_done', { sandbox, ms: Date.now() - started });
+  runSteps.push(runStepFromLlm('analysis', 'Brand guidelines', analysis));
+  runSteps.push(runStepFromLlm('personas', 'Customer personas', personas));
+  runSteps.push(runStepFromLlm('campaigns', 'Campaigns', campaigns));
+  runSteps.push(runStepFromLlm('stakeholders', 'Stakeholders', stakeholders));
+  runSteps.push(runStepFromLlm('segments', 'Audience segments', segments));
+  runSteps.push(runStepFromLlm('industry', 'Industry classification', recordClassification));
 
   const elapsedMs = Date.now() - started;
 
@@ -1560,7 +1614,12 @@ async function executeAnalyzePipeline({
       error: persistError,
     });
     analysisError = analysisError || ('Persist failed: ' + persistError);
-    try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: persistError }); } catch (_e2) { /* ignore */ }
+    try {
+      await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+        error: persistError,
+        steps: [...runSteps, runStepFailed('persist', 'Save final record', persistError)],
+      });
+    } catch (_e2) { /* ignore */ }
   }
 
   analyzePipelineLog(runScrapeId, 'persist_done', { sandbox, ms: Date.now() - started });
@@ -1644,7 +1703,10 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       } catch (e) {
         const msg = String((e && e.message) || e);
         analyzePipelineLog(runScrapeId, 'mark_running_failed', { sandbox });
-        await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
+        await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+          error: msg,
+          steps: [{ id: 'firestore', label: 'Reserve scrape run', status: 'failed', detail: String(msg).slice(0, 500) }],
+        }).catch(() => {});
         return;
       }
       // Await the pipeline so Gen2 does not freeze the instance while work is still
@@ -1664,7 +1726,10 @@ async function handleAnalyse(req, res, { anthropicKey }) {
       } catch (e) {
         const msg = String((e && e.message) || e);
         analyzePipelineLog(runScrapeId, 'async_pipeline_throw', { sandbox });
-        await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: msg }).catch(() => {});
+        await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+          error: msg,
+          steps: [{ id: 'pipeline', label: 'Analyse pipeline', status: 'failed', detail: String(msg).slice(0, 500) }],
+        }).catch(() => {});
       }
       return;
     }
@@ -1682,7 +1747,17 @@ async function handleAnalyse(req, res, { anthropicKey }) {
     res.status(out.status).json(out.payload);
   } catch (e) {
     if (runScrapeId) {
-      try { await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, { error: String(e && e.message || e) }); } catch (_e2) { /* ignore */ }
+      try {
+        await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+          error: String(e && e.message || e),
+          steps: [{
+            id: 'handler',
+            label: 'Analyse request',
+            status: 'failed',
+            detail: String(e && e.message || e).slice(0, 500),
+          }],
+        });
+      } catch (_e2) { /* ignore */ }
     }
     if (!res.headersSent) {
       res.status(500).json({ error: String(e && e.message || e), scrapeId: runScrapeId || undefined });
