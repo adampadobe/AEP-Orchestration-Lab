@@ -1133,6 +1133,28 @@ async function analyseBrand(crawl, { provider, anthropicKey, openaiKey } = {}) {
   }
 }
 
+/** Brand guidelines JSON has usable prose (not only provider metadata). */
+function analysisHasSubstance(a) {
+  if (!a || typeof a !== 'object') return false;
+  if (a.error || a.skipped) return false;
+  const about = String(a.about || '').trim();
+  if (about.length >= 40) return true;
+  const mission = String(a.mission_statement || a.missionStatement || '').trim();
+  if (mission.length >= 25) return true;
+  const summary = String(a.brand_summary || a.executive_summary || '').trim();
+  if (summary.length >= 40) return true;
+  if (a.brand_voice && typeof a.brand_voice === 'object' && Object.keys(a.brand_voice).length) return true;
+  if (a.brand_personality && typeof a.brand_personality === 'object' && Object.keys(a.brand_personality).length) return true;
+  if (Array.isArray(a.key_messages) && a.key_messages.length) return true;
+  return false;
+}
+
+function industryInfoHasSubstance(info) {
+  if (!info || typeof info !== 'object') return false;
+  if (info.error || info.skipped) return false;
+  return String(info.industry || '').trim().length > 0;
+}
+
 function mergeScrapeRecords(existing, fresh) {
   if (!existing || !existing.crawlSummary) return fresh;
   const out = { ...fresh };
@@ -1179,9 +1201,28 @@ function mergeScrapeRecords(existing, fresh) {
     },
   };
 
-  // Analysis: latest fresh value wins (brand guidelines don't compose).
-  out.analysis = f.analysis || e.analysis || null;
-  out.analysisError = f.analysisError || null;
+  // Analysis: prefer fresh when it has substance; otherwise keep existing so
+  // a weaker re-run does not wipe a good prior append baseline.
+  if (analysisHasSubstance(f.analysis)) {
+    out.analysis = f.analysis;
+    out.analysisError = f.analysisError || null;
+  } else if (analysisHasSubstance(e.analysis)) {
+    out.analysis = e.analysis;
+    out.analysisError = f.analysisError != null && f.analysisError !== ''
+      ? f.analysisError
+      : (e.analysisError || null);
+  } else {
+    out.analysis = f.analysis || e.analysis || null;
+    out.analysisError = f.analysisError || null;
+  }
+
+  if (industryInfoHasSubstance(f.industryInfo)) {
+    out.industryInfo = f.industryInfo;
+  } else if (industryInfoHasSubstance(e.industryInfo)) {
+    out.industryInfo = e.industryInfo;
+  } else {
+    out.industryInfo = f.industryInfo || e.industryInfo || null;
+  }
 
   // Personas: union by name. Growing library across appends.
   const personaMap = new Map();
@@ -1239,7 +1280,9 @@ function mergeScrapeRecords(existing, fresh) {
   out.businessType = f.businessType || e.businessType;
   out.country = f.country || e.country;
   out.industry = f.industry || e.industry || '';
-  out.industryInfo = f.industryInfo || e.industryInfo || null;
+  if (!String(out.industry || '').trim() && String(e.industry || '').trim()) {
+    out.industry = e.industry;
+  }
   out.lastExport = f.lastExport !== undefined ? f.lastExport : (e.lastExport || null);
   return out;
 }
@@ -1333,6 +1376,13 @@ async function executeAnalyzePipeline({
 
   analyzePipelineLog(runScrapeId, 'crawl_ok', { sandbox, ms: Date.now() - started });
 
+  let appendBaseline = null;
+  if (appendMode && existingSid) {
+    try {
+      appendBaseline = await brandScrapeStore.getScrape(sandbox, existingSid);
+    } catch (_e) { /* ignore */ }
+  }
+
   const crawlSummary = {
     pagesScraped: crawl.pages.length,
     totalDiscovered: crawl.totalDiscovered,
@@ -1371,14 +1421,9 @@ async function executeAnalyzePipeline({
     stakeholdersError: null,
     elapsedMs: checkpointElapsed,
   };
-  if (appendMode && existingSid) {
-    try {
-      const existingCk = await brandScrapeStore.getScrape(sandbox, existingSid);
-      if (existingCk) {
-        checkpointRecord = mergeScrapeRecords(existingCk, checkpointRecord);
-        checkpointRecord.scrapeId = existingCk.scrapeId;
-      }
-    } catch (_e) { /* fall through */ }
+  if (appendMode && appendBaseline) {
+    checkpointRecord = mergeScrapeRecords(appendBaseline, checkpointRecord);
+    checkpointRecord.scrapeId = appendBaseline.scrapeId;
   }
   if (!checkpointRecord.scrapeId) checkpointRecord.scrapeId = runScrapeId;
   try {
@@ -1493,21 +1538,18 @@ async function executeAnalyzePipeline({
     stakeholdersError,
     elapsedMs,
   };
-  if (appendMode) {
-    try {
-      const existing = await brandScrapeStore.getScrape(sandbox, body.existingScrapeId);
-      if (existing) {
-        recordToPersist = mergeScrapeRecords(existing, recordToPersist);
-        recordToPersist.scrapeId = existing.scrapeId;
-      }
-    } catch (_e) { /* fall through */ }
+  if (appendMode && appendBaseline) {
+    recordToPersist = mergeScrapeRecords(appendBaseline, recordToPersist);
+    recordToPersist.scrapeId = appendBaseline.scrapeId;
   }
   if (!recordToPersist.scrapeId) recordToPersist.scrapeId = runScrapeId;
 
   let saved = null;
   let persistError = null;
   try {
-    saved = await brandScrapeStore.saveScrape(sandbox, recordToPersist);
+    saved = await brandScrapeStore.saveScrape(sandbox, recordToPersist, {
+      archiveSnapshotOf: appendMode ? appendBaseline : null,
+    });
   } catch (e) {
     persistError = String(e && e.message || e);
     console.error('[brandScraperAnalyze] persist failed', {
@@ -1677,7 +1719,11 @@ async function handleScrapes(req, res) {
       return;
     }
     if (req.method === 'GET' && scrapeId) {
-      const record = await brandScrapeStore.getScrape(sandbox, scrapeId);
+      const versionRaw = String((req.query && req.query.version) || '').trim();
+      const versionOpts = versionRaw && versionRaw.toLowerCase() !== 'latest'
+        ? { version: versionRaw }
+        : {};
+      const record = await brandScrapeStore.getScrape(sandbox, scrapeId, versionOpts);
       if (!record) { res.status(404).json({ error: 'not found' }); return; }
       res.status(200).json(record);
       return;

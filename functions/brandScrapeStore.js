@@ -10,9 +10,11 @@
  *       lastExport, createdAt, updatedAt,
  *       scrapeStatus ('running' | 'crawl_complete' | 'failed' | 'complete'), scrapeError,
  *       analysisPending (boolean, index only — true after crawl checkpoint until final save),
- *       runStartedAt, crawlEngine, includeSummary }
+ *       runStartedAt, crawlEngine, includeSummary,
+ *       scrapeVersions: [{ version, storagePath, savedAt }] — archived snapshots
+ *         before append/overwrite (GCS under …/versions/vN.json, max 25) }
  *
- * Cloud Storage: gs://<BUCKET>/<sandbox>/<scrapeId>/record.json
+ * Cloud Storage: gs://<BUCKET>/scrapes/<sandbox>/<scrapeId>/record.json
  *   Full payload — crawlSummary + analysis + personas + campaigns +
  *   segments + stakeholders. No size ceiling (Firestore doc cap bypassed).
  *
@@ -88,13 +90,27 @@ function serializeTimestamp(v) {
   return v;
 }
 
+function hydrateScrapeVersions(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((v) => ({
+      version: Number(v.version) || 0,
+      storagePath: v.storagePath || '',
+      savedAt: serializeTimestamp(v.savedAt),
+    }))
+    .filter((v) => v.version > 0)
+    .sort((a, b) => a.version - b.version);
+}
+
 function hydrate(data) {
   if (!data) return null;
+  const scrapeVersions = hydrateScrapeVersions(data.scrapeVersions);
   return {
     ...data,
     createdAt: serializeTimestamp(data.createdAt),
     updatedAt: serializeTimestamp(data.updatedAt),
     runStartedAt: serializeTimestamp(data.runStartedAt),
+    scrapeVersions,
   };
 }
 
@@ -103,6 +119,105 @@ function hasRealPayload(val, innerArrayKey) {
   if (val.skipped || val.error || val.dropped) return false;
   if (innerArrayKey) return Array.isArray(val[innerArrayKey]) && val[innerArrayKey].length > 0;
   return true;
+}
+
+/** True if a hydrated scrape is worth freezing before an append overwrites record.json */
+function snapshotWorthy(rec) {
+  if (!rec || typeof rec !== 'object') return false;
+  if (hasRealPayload(rec.analysis)) return true;
+  if (hasRealPayload(rec.personas, 'personas')) return true;
+  if (hasRealPayload(rec.campaigns, 'campaigns')) return true;
+  if (hasRealPayload(rec.segments, 'segments')) return true;
+  if (hasRealPayload(rec.stakeholders, 'people')) return true;
+  const pages = rec.crawlSummary && rec.crawlSummary.pages;
+  if (Array.isArray(pages) && pages.some((p) => (p.textLength || 0) > 400)) return true;
+  return false;
+}
+
+/**
+ * Persist a frozen JSON snapshot of `snapshot` (pre-merge baseline) before the
+ * caller writes the new main record.json. Updates Firestore scrapeVersions only.
+ */
+async function writeArchiveSnapshotIfWorthy(sandboxName, scrapeId, snapshot) {
+  const name = String(sandboxName || '').trim();
+  const sid = String(scrapeId || '').trim();
+  if (!name || !sid || !snapshot || !snapshotWorthy(snapshot)) return null;
+
+  const ref = getDb().collection(COLLECTION).doc(docId(name, sid));
+  const snap = await ref.get();
+  if (!snap.exists) return null;
+  const data = snap.data() || {};
+  if (!data.storagePath) return null;
+
+  const prevVersions = Array.isArray(data.scrapeVersions) ? data.scrapeVersions : [];
+  const nextV = prevVersions.length
+    ? Math.max(0, ...prevVersions.map((x) => Number(x.version) || 0)) + 1
+    : 1;
+  const vPath = `scrapes/${safeSlug(name)}/${safeSlug(sid)}/versions/v${nextV}.json`;
+
+  const toStore = stripUndefined({
+    sandbox: name,
+    scrapeId: sid,
+    url: snapshot.url || '',
+    baseUrl: snapshot.baseUrl || '',
+    brandName: snapshot.brandName || '',
+    businessType: snapshot.businessType || '',
+    country: snapshot.country || '',
+    industry: snapshot.industry || '',
+    industryInfo: snapshot.industryInfo !== undefined ? snapshot.industryInfo : null,
+    crawlSummary: snapshot.crawlSummary || null,
+    analysis: snapshot.analysis || null,
+    analysisError: snapshot.analysisError || null,
+    personas: snapshot.personas || null,
+    personasError: snapshot.personasError || null,
+    campaigns: snapshot.campaigns || null,
+    campaignsError: snapshot.campaignsError || null,
+    segments: snapshot.segments || null,
+    segmentsError: snapshot.segmentsError || null,
+    stakeholders: snapshot.stakeholders || null,
+    stakeholdersError: snapshot.stakeholdersError || null,
+    lastExport: snapshot.lastExport || null,
+    elapsedMs: typeof snapshot.elapsedMs === 'number' ? snapshot.elapsedMs : null,
+    schemaVersion: 2,
+    snapshotKind: 'pre_append',
+    archivedAt: new Date().toISOString(),
+  });
+
+  const blob = Buffer.from(JSON.stringify(toStore), 'utf8');
+  const file = getBucket().file(vPath);
+  const saveOpts = {
+    contentType: 'application/json; charset=utf-8',
+    resumable: false,
+    metadata: {
+      cacheControl: 'private, max-age=60',
+      metadata: { sandbox: safeSlug(name), scrapeId: safeSlug(sid), archiveVersion: String(nextV) },
+    },
+  };
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await file.save(blob, saveOpts);
+      lastErr = null;
+      break;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
+  }
+  if (lastErr) {
+    console.error('[brandScrapeStore] archive snapshot GCS failed', vPath, String((lastErr && lastErr.message) || lastErr));
+    return null;
+  }
+
+  const savedIso = new Date().toISOString();
+  const newEntry = stripUndefined({ version: nextV, storagePath: vPath, savedAt: savedIso });
+  const merged = [...prevVersions, newEntry].slice(-25);
+  await ref.set(stripUndefined({
+    scrapeVersions: merged,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }), { merge: true });
+
+  return nextV;
 }
 
 /**
@@ -164,6 +279,11 @@ async function saveScrape(sandbox, payload, options = {}) {
   if (!name) throw new Error('sandbox is required');
   const scrapeId = String((payload && payload.scrapeId) || '').trim() || genId();
   const isCheckpoint = options.checkpoint === true;
+  const archiveSnapshotOf = options.archiveSnapshotOf || null;
+
+  if (!isCheckpoint && archiveSnapshotOf) {
+    await writeArchiveSnapshotIfWorthy(name, scrapeId, archiveSnapshotOf);
+  }
 
   // 1. Write the full payload to GCS first. If this fails, we abort —
   //    we refuse to create a dangling Firestore index that can't hydrate.
@@ -325,6 +445,7 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
       analysisPending: typeof data.analysisPending === 'boolean' ? data.analysisPending : null,
       runStartedAt: data.runStartedAt,
       crawlEngine: data.crawlEngine || null,
+      archiveVersionCount: Array.isArray(data.scrapeVersions) ? data.scrapeVersions.length : 0,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     }));
@@ -342,7 +463,7 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
  * merges with the Firestore index. Schema v1 (legacy) returns the index
  * doc alone since it still has the payload inline.
  */
-async function getScrape(sandbox, id) {
+async function getScrape(sandbox, id, opts = {}) {
   const name = String(sandbox || '').trim();
   const sid = String(id || '').trim();
   if (!name || !sid) return null;
@@ -352,34 +473,61 @@ async function getScrape(sandbox, id) {
   const data = snap.data() || {};
   if (data.sandbox && data.sandbox !== name) return null;
 
+  const availableVersions = hydrateScrapeVersions(data.scrapeVersions);
+  const rawVer = opts && opts.version != null && opts.version !== ''
+    ? Number(opts.version)
+    : NaN;
+  const wantVersion = Number.isFinite(rawVer) && rawVer > 0 ? rawVer : null;
+
   // Legacy: no storagePath → payload is inline on the Firestore doc.
   if (!data.storagePath) {
-    return hydrate({ scrapeId: data.scrapeId || snap.id, ...data });
+    if (wantVersion != null) return null;
+    const base = hydrate({ scrapeId: data.scrapeId || snap.id, ...data });
+    if (!base) return null;
+    return { ...base, availableVersions, viewingVersion: null };
   }
 
   // Hybrid (v2): read the full blob from GCS and layer the Firestore
-  // fields (storagePath + timestamps) on top.
+  // fields (storagePath + timestamps) on top. Optional historical version.
+  let gcsPath = data.storagePath;
+  if (wantVersion != null) {
+    const vers = Array.isArray(data.scrapeVersions) ? data.scrapeVersions : [];
+    const hit = vers.find((x) => Number(x.version) === wantVersion);
+    gcsPath = (hit && hit.storagePath) || `scrapes/${safeSlug(name)}/${safeSlug(sid)}/versions/v${wantVersion}.json`;
+  }
+
   let full = null;
   try {
-    const [buf] = await getBucket().file(data.storagePath).download();
+    const [buf] = await getBucket().file(gcsPath).download();
     full = JSON.parse(buf.toString('utf8'));
   } catch (e) {
     console.error('[brandScrapeStore] GCS read failed', {
       sandbox: name,
       scrapeId: sid,
-      storagePath: data.storagePath,
+      storagePath: gcsPath,
       error: String((e && e.message) || e),
     });
+    if (wantVersion != null) return null;
     // Bucket lifecycle can delete the blob after 3 days — in that case
     // we still return the index-doc summary so the UI can display what
     // it knows and the user gets a clear "payload expired" state.
-    return hydrate({
+    const expired = hydrate({
       scrapeId: data.scrapeId || snap.id,
       ...data,
       payloadExpired: true,
     });
+    return expired
+      ? { ...expired, availableVersions, viewingVersion: null }
+      : null;
   }
-  return hydrate({ ...full, ...data, scrapeId: data.scrapeId || snap.id });
+  const merged = hydrate({
+    ...full,
+    ...data,
+    scrapeId: data.scrapeId || snap.id,
+  });
+  return merged
+    ? { ...merged, availableVersions, viewingVersion: wantVersion }
+    : null;
 }
 
 const STALE_RUNNING_SCRAPE_MS = 95 * 60 * 1000;
@@ -422,9 +570,13 @@ async function deleteScrape(sandbox, id) {
   if (data.sandbox && data.sandbox !== name) return false;
 
   // Best-effort GCS delete; Firestore index doc is the source of truth.
-  const path = data.storagePath || storageKey(name, sid);
-  try { await getBucket().file(path).delete({ ignoreNotFound: true }); }
-  catch (e) { console.warn('[brandScrapeStore] GCS delete failed', path, String((e && e.message) || e)); }
+  const prefix = `scrapes/${safeSlug(name)}/${safeSlug(sid)}/`;
+  try {
+    const [files] = await getBucket().getFiles({ prefix, maxResults: 500 });
+    await Promise.all((files || []).map((f) => f.delete({ ignoreNotFound: true }).catch(() => {})));
+  } catch (e) {
+    console.warn('[brandScrapeStore] GCS prefix delete failed', prefix, String((e && e.message) || e));
+  }
 
   await ref.delete();
   return true;
@@ -439,4 +591,5 @@ module.exports = {
   markScrapeRunning,
   markScrapeFailed,
   runBrandScrapeStaleMaintenance,
+  hasRealPayload,
 };

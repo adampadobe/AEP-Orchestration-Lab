@@ -326,10 +326,19 @@
     });
   }
 
-  function withSandboxQuery(path) {
+  function withSandboxQuery(path, extraParams) {
     const sb = getSandbox();
-    const sep = path.includes('?') ? '&' : '?';
-    return sb ? path + sep + 'sandbox=' + encodeURIComponent(sb) : path;
+    const parts = [];
+    if (sb) parts.push('sandbox=' + encodeURIComponent(sb));
+    if (extraParams && typeof extraParams === 'object') {
+      Object.keys(extraParams).forEach(function (k) {
+        const v = extraParams[k];
+        if (v == null || v === '') return;
+        parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(v)));
+      });
+    }
+    if (!parts.length) return path;
+    return path + (path.indexOf('?') >= 0 ? '&' : '?') + parts.join('&');
   }
 
   // ---------- Progress bar (client-side elapsed-time estimate) ----------
@@ -1066,6 +1075,27 @@
     resultsEl.hidden = false;
     const crawl = data.crawl || data.crawlSummary;
     const lastExport = data.lastExport || null;
+    const versions = Array.isArray(data.availableVersions) ? data.availableVersions : [];
+    const hist = data.viewingVersion != null && data.viewingVersion !== '';
+    const versionBar = versions.length
+      ? (
+        '<div class="brand-scraper-version-bar">' +
+          '<label class="brand-scraper-version-label">Snapshot ' +
+            '<select id="brandScraperVersionSelect" class="brand-scraper-select brand-scraper-version-select" aria-label="Scrape snapshot version">' +
+              '<option value=""' + (!hist ? ' selected' : '') + '>Latest (current)</option>' +
+              versions.map(function (v) {
+                const lab = 'v' + v.version + (v.savedAt ? ' · ' + fmtDate(v.savedAt) : '');
+                const sel = Number(data.viewingVersion) === Number(v.version) ? ' selected' : '';
+                return '<option value="' + esc(String(v.version)) + '"' + sel + '>' + esc(lab) + '</option>';
+              }).join('') +
+            '</select>' +
+          '</label>' +
+          (hist
+            ? '<p class="brand-scraper-result-muted brand-scraper-version-hint">Viewing archived snapshot v' + esc(String(data.viewingVersion)) + '. Classify and export use the latest saved run — pick “Latest” first.</p>'
+            : '') +
+        '</div>'
+      )
+      : '';
     resultsEl.innerHTML = (
       '<header class="brand-scraper-result-header">' +
         '<div class="brand-scraper-result-header-main">' +
@@ -1076,10 +1106,11 @@
             (crawl && crawl.engine ? ' · crawler: <code>' + esc(crawl.engine) + '</code>' : '') +
             (data.sandbox ? ' · sandbox: <code>' + esc(data.sandbox) + '</code>' : '') +
           '</p>' +
+          versionBar +
         '</div>' +
         '<div class="brand-scraper-result-actions">' +
-          (data.scrapeId ? '<button type="button" class="dashboard-btn-outline" data-action="classify-assets">Classify images</button>' : '') +
-          (data.scrapeId ? '<button type="button" class="dashboard-btn-primary" data-action="export-kit">Export kit (ZIP)</button>' : '') +
+          (data.scrapeId && !hist ? '<button type="button" class="dashboard-btn-outline" data-action="classify-assets">Classify images</button>' : '') +
+          (data.scrapeId && !hist ? '<button type="button" class="dashboard-btn-primary" data-action="export-kit">Export kit (ZIP)</button>' : '') +
         '</div>' +
       '</header>' +
       (lastExport && lastExport.signedUrl ? (
@@ -1138,6 +1169,7 @@
             (it.segmentsPresent ? ' · segments' : '') +
             (it.stakeholdersPresent ? ' · stakeholders' : '') +
             (it.analysisPending ? ' · analysis pending' : '') +
+            (it.archiveVersionCount ? ' · ' + it.archiveVersionCount + ' snapshot' + (it.archiveVersionCount === 1 ? '' : 's') : '') +
           '</p>' +
         '</div>' +
         '<div class="brand-scraper-history-card-actions">' +
@@ -1302,9 +1334,13 @@
       (urlKey(it.baseUrl) === key || urlKey(it.url) === key)) || null;
   }
 
-  async function viewScrape(scrapeId) {
+  async function viewScrape(scrapeId, optVersion) {
     try {
-      const resp = await fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId)));
+      const extra = {};
+      if (optVersion != null && String(optVersion).trim() !== '' && String(optVersion).toLowerCase() !== 'latest') {
+        extra.version = String(optVersion).trim();
+      }
+      const resp = await fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId), extra));
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) { setStatus('Could not load scrape: ' + (data.error || resp.statusText), 'error'); return; }
       if (data.scrapeStatus === 'running') {
@@ -1422,6 +1458,10 @@
 
   async function runClassify() {
     if (!currentScrapeData || !currentScrapeData.scrapeId) return;
+    if (currentScrapeData.viewingVersion != null && currentScrapeData.viewingVersion !== '') {
+      setStatus('Switch to “Latest (current)” in the snapshot menu to classify images on the saved run.', 'info');
+      return;
+    }
     const sb = getSandbox();
     if (!sb) { setStatus('Select a sandbox first.', 'error'); return; }
     const btn = resultsEl.querySelector('[data-action="classify-assets"]');
@@ -1461,6 +1501,10 @@
 
   async function runExport() {
     if (!currentScrapeData || !currentScrapeData.scrapeId) return;
+    if (currentScrapeData.viewingVersion != null && currentScrapeData.viewingVersion !== '') {
+      setStatus('Switch to “Latest (current)” in the snapshot menu to export the saved run.', 'info');
+      return;
+    }
     const sb = getSandbox();
     if (!sb) { setStatus('Select a sandbox first.', 'error'); return; }
     const btn = resultsEl.querySelector('[data-action="export-kit"]');
@@ -1523,6 +1567,12 @@
     else if (btn.dataset.action === 'export-kit') runExport();
   });
 
+  resultsEl.addEventListener('change', (evt) => {
+    const sel = evt.target && evt.target.id === 'brandScraperVersionSelect' ? evt.target : null;
+    if (!sel || !currentScrapeData || !currentScrapeData.scrapeId) return;
+    viewScrape(currentScrapeData.scrapeId, sel.value);
+  });
+
   if (historyRefreshBtn) historyRefreshBtn.addEventListener('click', loadHistory);
 
   window.addEventListener('aep-global-sandbox-change', () => {
@@ -1557,7 +1607,7 @@
       const when = fmtDate(existing.updatedAt || existing.createdAt);
       const append = confirm(
         'You already have a scrape for "' + (existing.brandName || existing.baseUrl || url) + '" from ' + when + '.\n\n' +
-        'OK → append this run to the existing scrape (merge pages, assets, colours, fonts; grow personas list).\n' +
+        'OK → append this run to the existing scrape (merge pages, assets, colours, fonts; grow personas list). Prior good data is kept when the new run is weaker, and a snapshot is saved so you can compare versions in View.\n' +
         'Cancel → create a new, separate scrape.'
       );
       if (append) {

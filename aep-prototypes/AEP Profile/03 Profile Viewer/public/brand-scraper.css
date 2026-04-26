@@ -759,6 +759,39 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
 
 .brand-scraper-result-header-main { min-width: 0; }
 
+.brand-scraper-version-bar {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.brand-scraper-version-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-text-secondary);
+}
+
+.brand-scraper-version-select {
+  max-width: min(100%, 360px);
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: normal;
+  font-size: 14px;
+}
+
+.brand-scraper-version-hint {
+  margin: 0;
+  max-width: 48rem;
+}
+
 .brand-scraper-result-header h3 {
   margin: 0 0 4px;
   font-size: 20px;
