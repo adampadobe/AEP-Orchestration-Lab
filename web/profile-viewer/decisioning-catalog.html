@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260426">
-  <link rel="stylesheet" href="decisioning-catalog-embed-fs.css?v=20260427">
+  <link rel="stylesheet" href="decisioning-catalog-embed-fs.css?v=20260427b">
   <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
@@ -32,6 +32,18 @@
       </header>
 
       <main class="dashboard-main profile-viewer-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingDceCat">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingDceCat" class="dashboard-hero-title">Decisioning catalog</h2>
+              <p class="dashboard-hero-subtitle">
+                Browse <strong>Experience Decisioning</strong> objects in the selected Platform sandbox: <strong>offer items</strong> (personalized content and offers you can surface in journeys),
+                <strong>item collections</strong> (rule-based groupings of those items), and                 <strong>selection strategies</strong> (how offers are ranked, constrained by profile or audiences, and tied to a collection).<button type="button" class="map-egg-speck" data-map-egg-flavor="catalog" title="" aria-label="A stray ink fleck on the banner"></button>
+              </p>
+            </header>
+          </div>
+        </section>
+
         <div id="dceCatEmbedMount" class="dce-cat-embed-wrap" aria-label="Decisioning catalog">
           <div class="dce-cat-fs-toolbar" aria-label="Embed display">
             <button
@@ -44,18 +56,6 @@
             ></button>
           </div>
           <div class="dce-cat-embed-body">
-            <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingDceCat">
-              <div class="dashboard-hero-inner">
-                <header class="dashboard-hero-header">
-                  <h2 id="bannerHeadingDceCat" class="dashboard-hero-title">Decisioning catalog</h2>
-                  <p class="dashboard-hero-subtitle">
-                    Browse <strong>Experience Decisioning</strong> objects in the selected Platform sandbox: <strong>offer items</strong> (personalized content and offers you can surface in journeys),
-                    <strong>item collections</strong> (rule-based groupings of those items), and                 <strong>selection strategies</strong> (how offers are ranked, constrained by profile or audiences, and tied to a collection).<button type="button" class="map-egg-speck" data-map-egg-flavor="catalog" title="" aria-label="A stray ink fleck on the banner"></button>
-                  </p>
-                </header>
-              </div>
-            </section>
-
             <div class="dce-catalog-layout">
               <div class="dce-catalog-surface" aria-label="Catalog explorer">
                 <div class="cd-catalog-sandbox-row">

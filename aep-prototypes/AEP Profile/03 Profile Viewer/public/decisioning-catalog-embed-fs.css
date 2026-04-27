@@ -63,6 +63,7 @@ html[data-aep-theme='dark'] body.decisioning-catalog-page .dce-cat-fullscreen-bt
   margin: 0;
 }
 
+/* Functional column only (banner stays in page chrome, outside mount). */
 #dceCatEmbedMount:fullscreen .dce-cat-embed-body,
 #dceCatEmbedMount:-webkit-full-screen .dce-cat-embed-body,
 #dceCatEmbedMount:-moz-full-screen .dce-cat-embed-body,
@@ -70,6 +71,8 @@ html[data-aep-theme='dark'] body.decisioning-catalog-page .dce-cat-fullscreen-bt
   flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 #dceCatEmbedMount:fullscreen .dce-catalog-layout,
