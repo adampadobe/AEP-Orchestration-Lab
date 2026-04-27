@@ -144,13 +144,6 @@
           ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v-4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M12.24 12.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h-4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M12.24 7.76l2.83-2.83"/><path d="M17 3v3h3"/></svg>',
         },
         {
-          label: 'Journey arbitration (in development)',
-          href: 'journey-arbitration.html',
-          inDevelopment: true,
-          navHideKey: 'journeyArbitration',
-          ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12v4H4z"/><path d="M4 12h8v4H4z"/><circle cx="15" cy="14" r="2"/></svg>',
-        },
-        {
           label: 'Journey arbitration v2 (in development)',
           href: 'journey-arbitration-v2.html',
           inDevelopment: true,

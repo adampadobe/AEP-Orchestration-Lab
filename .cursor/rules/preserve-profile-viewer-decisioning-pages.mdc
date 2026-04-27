@@ -1,5 +1,5 @@
 ---
-description: Keep journey-arbitration, decisioning-overview-v2, and decisioning-overview-v3 Profile Viewer pages from being removed or orphaned.
+description: Keep journey-arbitration URL (redirect to v2), journey-arbitration-v2, decisioning-overview-v2, and decisioning-overview-v3 Profile Viewer pages from being removed or orphaned.
 alwaysApply: true
 ---
 
@@ -7,12 +7,12 @@ alwaysApply: true
 
 These **Firebase Hosting** URLs are part of the product surface and must remain on **`main`** under **`web/profile-viewer/`**:
 
-- `profile-viewer/journey-arbitration.html` (and `journey-arbitration.js`, `journey-arbitration.css`)
+- `profile-viewer/journey-arbitration.html` — **redirect stub** to `journey-arbitration-v2.html` (same directory); do not restore the old standalone app assets on this URL
 - `profile-viewer/journey-arbitration-v2.html`, `journey-arbitration-v2.css`, `journey-arbitration-v2.js`, `journey-arbitration-v2-iframe-bridge.css`, and embed asset `ajo-decisioning-pipeline-v8-demo.html`
 - `profile-viewer/decisioning-overview-v2.html`
 - `profile-viewer/decisioning-overview-v3.html` (and `decisioning-overview-v3.css`; embeds `decisioning-visualiser.html?embed=1&panel=overview`)
 
-**Do not** delete, rename, or drop nav / Global values wiring for these routes without an explicit product decision and redirect plan.
+**Do not** delete, rename, or drop nav / Global values wiring for these routes without an explicit product decision and redirect plan. The legacy **`journey-arbitration.html`** URL is satisfied by a **redirect stub** to **`journey-arbitration-v2.html`**; lab nav lists **v2** only.
 
 **After** editing `web/profile-viewer/`, run **`npm run sync-profile-viewer-ui`** so the Express mirror stays aligned (`rsync` uses `--delete`; the canonical tree must always include these files).
 
