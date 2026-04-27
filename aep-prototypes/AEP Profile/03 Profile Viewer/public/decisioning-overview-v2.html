@@ -5,7 +5,7 @@
   <script src="aep-head-sync.js?v=20260416c"></script>
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Decisioning overview – AEP Profile Viewer</title>
+  <title>Decisioning overview v2 – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="experience-decisioning.css?v=20260430e">
   <link rel="stylesheet" href="/profile-viewer/experience-decisioning/assets/edp.css?v=20260414-exp-white">
 </head>
-<body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page decisioning-catalog-page">
+<body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page decisioning-catalog-page decisioning-overview-v2-page">
   <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
@@ -37,28 +37,27 @@
       </header>
 
       <main class="dashboard-main profile-viewer-main app-page">
-        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingEdp">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingEdpV2">
           <div class="dashboard-hero-inner">
             <header class="dashboard-hero-header">
-              <h2 id="bannerHeadingEdp" class="dashboard-hero-title">Decisioning overview</h2>
+              <h2 id="bannerHeadingEdpV2" class="dashboard-hero-title">Decisioning overview v2</h2>
               <p class="dashboard-hero-subtitle">
-                Step-through demo: schema → items → collections → rules → ranking → strategy → policy → result.
-                Industries match Profile generation.
+                Same step-through Experience Decisioning demo as v1, on a dedicated route for parallel iteration and hosting checks.
               </p>
             </header>
           </div>
         </section>
 
-        <div id="edpBlocked" class="edp-blocked" hidden>
+        <div id="edpBlockedV2" class="edp-blocked" hidden>
           <p style="margin:0 0 0.75rem;">
             This page is hidden from the sidebar. Turn it back on under
             <a href="global-settings.html"><strong>Global values</strong></a>
-            (uncheck “Hide Decisioning overview”).
+            (uncheck “Hide Decisioning overview v2”).
           </p>
         </div>
 
-        <section class="dce-viz-section" id="decisioning-overview" aria-label="Decisioning overview">
-          <div id="edp-root" class="dce-viz-scope dce-viz-core schema-aep-edp-root" role="region" aria-label="Decisioning overview"></div>
+        <section class="dce-viz-section" id="decisioning-overview-v2" aria-label="Decisioning overview v2">
+          <div id="edp-root" class="dce-viz-scope dce-viz-core schema-aep-edp-root" role="region" aria-label="Decisioning overview v2"></div>
         </section>
       </main>
     </div>
@@ -66,17 +65,14 @@
 
   <script>
     (function () {
-      var LS_HIDE = 'aepHideDataViewerDecisioningPlayground';
-      var LS_NAV = 'aepNavHideInDev_decisioningOverview';
+      var LS_NAV = 'aepNavHideInDev_decisioningOverviewV2';
       function applyVisibility() {
         var hide = false;
         try {
-          hide =
-            localStorage.getItem(LS_HIDE) === '1' ||
-            localStorage.getItem(LS_NAV) === '1';
+          hide = localStorage.getItem(LS_NAV) === '1';
         } catch (e) {}
-        var blocked = document.getElementById('edpBlocked');
-        var mount = document.getElementById('decisioning-overview');
+        var blocked = document.getElementById('edpBlockedV2');
+        var mount = document.getElementById('decisioning-overview-v2');
         if (blocked && mount) {
           blocked.hidden = !hide;
           mount.hidden = hide;
@@ -89,14 +85,11 @@
         }
       }
       applyVisibility();
-      window.addEventListener('aep-edp-visibility-change', function () {
-        window.location.reload();
-      });
       window.addEventListener('aep-nav-indev-visibility-change', function () {
         window.location.reload();
       });
       window.addEventListener('storage', function (e) {
-        if (e.key === LS_HIDE || e.key === LS_NAV) window.location.reload();
+        if (e.key === LS_NAV) window.location.reload();
       });
     })();
   </script>

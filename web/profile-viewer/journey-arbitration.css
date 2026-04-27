@@ -1,0 +1,28 @@
+/* Journey arbitration page — map legacy journey accent vars to dashboard tokens (no new hex). */
+.decisioning-catalog-page .dce-viz-scope.dce-journey-standalone-root .dce-journey-panel {
+  --journey-red: var(--dash-error-border);
+  --journey-red-dim: var(--dash-error-bg);
+}
+
+.journey-arbitration-page .dce-ja-title-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  margin-right: auto;
+  padding: 0.25rem 0;
+}
+
+.journey-arbitration-page .ja-method-badge {
+  color: var(--dash-error-text);
+}
+
+.journey-arbitration-page .dce-edp-tab-scroll--ja {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
