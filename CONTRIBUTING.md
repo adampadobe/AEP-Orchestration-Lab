@@ -75,7 +75,6 @@ These hosted paths are part of the lab surface and must stay in **`web/profile-v
 | `/profile-viewer/journey-arbitration.html` | `journey-arbitration.html` only — **redirect stub** to `journey-arbitration-v2.html` (legacy `.js` / `.css` removed) |
 | `/profile-viewer/journey-arbitration-v2.html` | `journey-arbitration-v2.html`, `journey-arbitration-v2.css`, `journey-arbitration-v2.js`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html` (iframe embed) |
 | `/profile-viewer/decisioning-overview-v2.html` | `decisioning-overview-v2.html` |
-| `/profile-viewer/decisioning-overview-v3.html` | `decisioning-overview-v3.html` (+ `decisioning-overview-v3.css`) |
 
 **Guardrail:** run **`npm run verify:profile-viewer-routes`** after substantive **`web/profile-viewer/`** edits and before **`firebase deploy --only hosting`** (or combined functions+hosting). The same check runs in **GitHub Actions** (`validate.yml`) on push/PR to `main`, so a bad merge that deletes these files should fail CI before merge.
 
@@ -476,7 +475,7 @@ Every change **must** follow these steps in order. Do not skip any step.
 |------|-----------------|-----|
 | 1. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
 | 2. **Sync prototypes** | `npm run sync-profile-viewer-ui` when you changed `web/profile-viewer/` (copies **→** prototype `public/`) | Keep the vendored Express mirror aligned with Hosting |
-| 2b. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` redirect**, **journey-arbitration-v2** (and embed), **decisioning-overview-v2**, or **decisioning-overview-v3** files or nav wiring are wrong (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
+| 2b. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` redirect**, **journey-arbitration-v2** (and embed), or **decisioning-overview-v2** files or nav wiring are wrong (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
 | 3. **Commit & push** | `git add`, `git commit`, `git push` to `origin` | GitHub is the audit trail; teammates and CI see your work |
 | 4. **Deploy** | `firebase deploy --only hosting` and/or `firebase deploy --only functions` | Live site and functions pick up what you pushed |
 
@@ -490,7 +489,7 @@ Every change **must** follow these steps in order. Do not skip any step.
 
 ```bash
 npm run sync-profile-viewer-ui   # copy web/profile-viewer/ → prototype public/ (keep mirror in sync)
-npm run verify:profile-viewer-routes   # fail if journey-arbitration redirect, journey-arbitration-v2, decisioning-overview-v2, or decisioning-overview-v3 are broken
+npm run verify:profile-viewer-routes   # fail if journey-arbitration redirect, journey-arbitration-v2, or decisioning-overview-v2 are broken
 cd functions && npm install && cd ..
 ```
 
@@ -533,7 +532,7 @@ CI does **not** build or deploy functions. Deployment is manual.
 | **Don't hardcode the Firebase project ID** in JS/HTML | Use relative paths for API calls (`/api/...`). The project ID only appears in `.firebaserc`. |
 | **Don't delete or rename `home-dashboard-concierge`** | This body class gates the entire token system. |
 | **Don't add `<body>` without the dashboard shell** (sidebar + main wrap) | The sidebar nav and theme toggle won't render. |
-| **Don't delete `journey-arbitration.html` (must remain a redirect to v2), `journey-arbitration-v2.*`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html`, `decisioning-overview-v2.html`, `decisioning-overview-v3.html` / `decisioning-overview-v3.css`, or their nav / Global values wiring** without a deliberate replacement | Breaks hosted `/profile-viewer/journey-arbitration.html` (bookmark URL), `/profile-viewer/journey-arbitration-v2.html`, `/profile-viewer/decisioning-overview-v2.html`, and `/profile-viewer/decisioning-overview-v3.html`; CI runs `npm run verify:profile-viewer-routes` to catch this. |
+| **Don't delete `journey-arbitration.html` (must remain a redirect to v2), `journey-arbitration-v2.*`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html`, `decisioning-overview-v2.html`, or their nav / Global values wiring** without a deliberate replacement | Breaks hosted `/profile-viewer/journey-arbitration.html` (bookmark URL), `/profile-viewer/journey-arbitration-v2.html`, or `/profile-viewer/decisioning-overview-v2.html`; CI runs `npm run verify:profile-viewer-routes` to catch this. |
 
 ---
 

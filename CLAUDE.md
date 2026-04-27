@@ -18,7 +18,7 @@ npm run profile-viewer:install
 # After editing web/profile-viewer/, sync to vendored Express mirror
 npm run sync-profile-viewer-ui
 
-# Guard hosted routes: journey-arbitration.html redirect + journey-arbitration-v2 + decisioning-overview-v2/v3 (run before deploy if profile-viewer changed)
+# Guard hosted routes: journey-arbitration.html redirect + journey-arbitration-v2 + decisioning-overview-v2 (run before deploy if profile-viewer changed)
 npm run verify:profile-viewer-routes
 
 # Build the React/Vite Experience Decisioning Playground sub-app
