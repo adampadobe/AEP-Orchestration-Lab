@@ -1,5 +1,4 @@
-/* Journey arbitration — shell/core target #dceVizRoot; journey accent maps to semantic dash tokens. */
-.decisioning-catalog-page #dceVizRoot.dce-viz-scope.dce-journey-standalone-root .dce-journey-panel,
+/* Journey arbitration page — map legacy journey accent vars to dashboard tokens (no new hex). */
 .decisioning-catalog-page .dce-viz-scope.dce-journey-standalone-root .dce-journey-panel {
   --journey-red: var(--dash-error-border);
   --journey-red-dim: var(--dash-error-bg);
@@ -26,31 +25,4 @@
   gap: 12px;
   flex: 1;
   min-width: 0;
-}
-
-/* Replace legacy #fff / fixed reds in journey UI with theme tokens (light + dark). */
-.journey-arbitration-page .dce-journey-avatar,
-.journey-arbitration-page .dce-journey-step-num,
-.journey-arbitration-page .dce-journey-card-num {
-  color: var(--menu-nav-active-fg);
-}
-
-.journey-arbitration-page .dce-journey-signal-switch::after {
-  background: var(--dash-surface);
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--dash-text) 18%, transparent);
-}
-
-.journey-arbitration-page .dce-journey-signal.is-on {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--journey-red) 35%, transparent);
-}
-
-.journey-arbitration-page .dce-journey-card--winner {
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--journey-red) 40%, transparent),
-    0 8px 28px color-mix(in srgb, var(--journey-red) 16%, transparent);
-}
-
-.journey-arbitration-page .dce-journey-card:not(.dce-journey-card--winner) .dce-journey-pill {
-  background: color-mix(in srgb, var(--dash-blue) 22%, transparent);
-  color: var(--dash-blue);
 }

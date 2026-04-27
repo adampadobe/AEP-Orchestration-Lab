@@ -4,7 +4,6 @@
 
 .experience-decisioning-page .edp-mount,
 .experience-decisioning-page #decisioning-overview.dce-viz-section,
-.experience-decisioning-page #decisioning-overview-v2.dce-viz-section,
 .experience-decisioning-page #experimentation-overview.dce-viz-section {
   width: 100%;
   max-width: none;
@@ -54,14 +53,6 @@
   font-size: 0.9375rem;
   line-height: 1.45;
   color: var(--dash-text-secondary, #555);
-}
-
-.experience-decisioning-page .edp-blocked > p {
-  margin: 0 0 0.75rem;
-}
-
-.experience-decisioning-page .edp-blocked > p:last-child {
-  margin-bottom: 0;
 }
 
 .experience-decisioning-page .edp-blocked a {

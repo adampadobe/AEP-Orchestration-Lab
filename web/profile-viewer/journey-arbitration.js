@@ -460,7 +460,7 @@
   }
 
   function bindIndustryUi() {
-    var root = document.getElementById('dceVizRoot');
+    var root = document.getElementById('dceJourneyRoot');
     if (!root || root.getAttribute('data-dce-ja-bound') === '1') return;
     root.setAttribute('data-dce-ja-bound', '1');
     dceJaBuildIndustryDropdown();
@@ -505,7 +505,7 @@
   }
 
   function boot() {
-    if (!document.getElementById('dceVizRoot')) return;
+    if (!document.getElementById('dceJourneyRoot')) return;
     bindIndustryUi();
     bindJourneyPanel();
     initIndustry();
