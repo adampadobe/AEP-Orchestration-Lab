@@ -1,0 +1,75 @@
+/* Edge Decisioning lab — embed region fullscreen (toolbar + #cdEdgeEmbedMount :fullscreen). */
+
+body.cd-page .cd-edge-embed-wrap {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.cd-page .cd-edge-embed-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 120;
+  pointer-events: auto;
+}
+
+body.cd-page .cd-edge-fullscreen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-hover);
+  box-sizing: border-box;
+  color: var(--dash-text);
+}
+
+body.cd-page .cd-edge-fullscreen-btn:hover {
+  filter: brightness(0.98);
+}
+
+html[data-aep-theme='dark'] body.cd-page .cd-edge-fullscreen-btn {
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border-color: var(--dash-border);
+}
+
+#cdEdgeEmbedMount:fullscreen,
+#cdEdgeEmbedMount:-webkit-full-screen,
+#cdEdgeEmbedMount:-moz-full-screen,
+#cdEdgeEmbedMount:-ms-fullscreen {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  background: var(--dash-bg);
+  padding: 0;
+  margin: 0;
+}
+
+#cdEdgeEmbedMount:fullscreen .cd-content,
+#cdEdgeEmbedMount:-webkit-full-screen .cd-content,
+#cdEdgeEmbedMount:-moz-full-screen .cd-content,
+#cdEdgeEmbedMount:-ms-fullscreen .cd-content {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#cdEdgeEmbedMount:fullscreen .hero-stage,
+#cdEdgeEmbedMount:-webkit-full-screen .hero-stage,
+#cdEdgeEmbedMount:-moz-full-screen .hero-stage,
+#cdEdgeEmbedMount:-ms-fullscreen .hero-stage {
+  flex: 1 1 0;
+  min-height: 0;
+}

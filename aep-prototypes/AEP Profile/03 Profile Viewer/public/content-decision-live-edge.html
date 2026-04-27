@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="content-decision-live-edge-embed-fs.css?v=20260427-edge-embed-fs">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
   <style>
@@ -1217,6 +1218,10 @@
       </header>
 
       <main class="dashboard-main cd-main app-page">
+        <div id="cdEdgeEmbedMount" class="cd-edge-embed-wrap">
+          <div class="cd-edge-embed-toolbar" role="toolbar" aria-label="Preview area controls">
+            <button type="button" id="cd-edge-fullscreen-btn" class="cd-edge-fullscreen-btn aep-fullscreen-btn" aria-pressed="false"></button>
+          </div>
         <div class="cd-content">
           <section class="hero-stage" aria-label="Content decision preview (Edge lab)">
         <div class="cd-hero-layout">
@@ -1536,6 +1541,7 @@
         </div>
         <div class="workflow-dock-hit" id="workflowDockHit" role="presentation" aria-hidden="true" title="Move pointer to bottom edge to reveal Workflow &amp; controls"></div>
       </div>
+        </div>
       </main>
     </div>
   </div>
@@ -1555,6 +1561,7 @@
   <script src="content-decision-live-edge-ui.js?v=20260424-edge-save-guard"></script>
   <script src="content-decision-live-edge-onboarding.js?v=20260424-edge-onboarding-query"></script>
   <script src="content-decision-live-edge-inline.js?v=20260424-edge-sandbox-select-sync"></script>
+  <script src="content-decision-live-edge-embed-fs.js?v=20260427-edge-embed-fs"></script>
   <script defer src="marauders-map-egg.js?v=20260423-edge-flavor"></script>
 </body>
 </html>
