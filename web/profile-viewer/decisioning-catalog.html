@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260426">
+  <link rel="stylesheet" href="decisioning-catalog-embed-fs.css?v=20260427">
   <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
@@ -31,48 +32,62 @@
       </header>
 
       <main class="dashboard-main profile-viewer-main app-page">
-        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingDceCat">
-          <div class="dashboard-hero-inner">
-            <header class="dashboard-hero-header">
-              <h2 id="bannerHeadingDceCat" class="dashboard-hero-title">Decisioning catalog</h2>
-              <p class="dashboard-hero-subtitle">
-                Browse <strong>Experience Decisioning</strong> objects in the selected Platform sandbox: <strong>offer items</strong> (personalized content and offers you can surface in journeys),
-                <strong>item collections</strong> (rule-based groupings of those items), and                 <strong>selection strategies</strong> (how offers are ranked, constrained by profile or audiences, and tied to a collection).<button type="button" class="map-egg-speck" data-map-egg-flavor="catalog" title="" aria-label="A stray ink fleck on the banner"></button>
-              </p>
-            </header>
+        <div id="dceCatEmbedMount" class="dce-cat-embed-wrap" aria-label="Decisioning catalog">
+          <div class="dce-cat-fs-toolbar" aria-label="Embed display">
+            <button
+              type="button"
+              id="dce-cat-fullscreen-btn"
+              class="dce-cat-fullscreen-btn aep-fullscreen-btn"
+              aria-pressed="false"
+              aria-label="Enter full screen"
+              title="Fill the screen with the Decisioning catalog. Press Esc to exit."
+            ></button>
           </div>
-        </section>
-
-        <div class="dce-catalog-layout">
-          <div class="dce-catalog-surface" aria-label="Catalog explorer">
-            <div class="cd-catalog-sandbox-row">
-              <label for="sandboxSelect">Sandbox</label>
-              <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                <option value="">Loading sandboxes…</option>
-              </select>
-            </div>
-            <div class="cd-catalog-tabs" role="tablist">
-              <button type="button" class="cd-catalog-tab" role="tab" aria-selected="true" data-catalog="offer-items">Offer items</button>
-              <button type="button" class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="item-collections">Item collections</button>
-              <button type="button" class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="selection-strategies">Selection strategies</button>
-            </div>
-            <details class="cd-schema-config" id="catalogSchemaDetails">
-              <summary class="cd-schema-config-summary">
-                <span>x-schema-id</span>
-                <span class="cd-schema-badge" id="catalogSchemaBadge" hidden>Saved</span>
-              </summary>
-              <div class="cd-schema-config-body" id="catalogSchemaRow">
-                <input id="catalogSchemaId" type="text" placeholder="Decision item schema (required for offer-items on some orgs)" autocomplete="off">
-                <button type="button" class="btn btn-secondary" id="btnSchemaSave">Save</button>
+          <div class="dce-cat-embed-body">
+            <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingDceCat">
+              <div class="dashboard-hero-inner">
+                <header class="dashboard-hero-header">
+                  <h2 id="bannerHeadingDceCat" class="dashboard-hero-title">Decisioning catalog</h2>
+                  <p class="dashboard-hero-subtitle">
+                    Browse <strong>Experience Decisioning</strong> objects in the selected Platform sandbox: <strong>offer items</strong> (personalized content and offers you can surface in journeys),
+                    <strong>item collections</strong> (rule-based groupings of those items), and                 <strong>selection strategies</strong> (how offers are ranked, constrained by profile or audiences, and tied to a collection).<button type="button" class="map-egg-speck" data-map-egg-flavor="catalog" title="" aria-label="A stray ink fleck on the banner"></button>
+                  </p>
+                </header>
               </div>
-            </details>
-            <div class="cd-catalog-actions">
-              <button type="button" class="primary" id="btnCatalogFetch">Fetch</button>
-              <p class="status" id="catalogStatus" style="margin:0;"></p>
-              <span class="cd-catalog-count" id="catalogCount"></span>
-            </div>
-            <div class="dce-catalog-results-wrap" id="catalogResultsWrap">
-              <div id="catalogResults"></div>
+            </section>
+
+            <div class="dce-catalog-layout">
+              <div class="dce-catalog-surface" aria-label="Catalog explorer">
+                <div class="cd-catalog-sandbox-row">
+                  <label for="sandboxSelect">Sandbox</label>
+                  <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+                    <option value="">Loading sandboxes…</option>
+                  </select>
+                </div>
+                <div class="cd-catalog-tabs" role="tablist">
+                  <button type="button" class="cd-catalog-tab" role="tab" aria-selected="true" data-catalog="offer-items">Offer items</button>
+                  <button type="button" class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="item-collections">Item collections</button>
+                  <button type="button" class="cd-catalog-tab" role="tab" aria-selected="false" data-catalog="selection-strategies">Selection strategies</button>
+                </div>
+                <details class="cd-schema-config" id="catalogSchemaDetails">
+                  <summary class="cd-schema-config-summary">
+                    <span>x-schema-id</span>
+                    <span class="cd-schema-badge" id="catalogSchemaBadge" hidden>Saved</span>
+                  </summary>
+                  <div class="cd-schema-config-body" id="catalogSchemaRow">
+                    <input id="catalogSchemaId" type="text" placeholder="Decision item schema (required for offer-items on some orgs)" autocomplete="off">
+                    <button type="button" class="btn btn-secondary" id="btnSchemaSave">Save</button>
+                  </div>
+                </details>
+                <div class="cd-catalog-actions">
+                  <button type="button" class="primary" id="btnCatalogFetch">Fetch</button>
+                  <p class="status" id="catalogStatus" style="margin:0;"></p>
+                  <span class="cd-catalog-count" id="catalogCount"></span>
+                </div>
+                <div class="dce-catalog-results-wrap" id="catalogResultsWrap">
+                  <div id="catalogResults"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -90,6 +105,7 @@
   <script src="aep-global-sandbox.js?v=20260408"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script defer src="decisioning-catalog.js?v=20260419"></script>
+  <script defer src="decisioning-catalog-embed-fs.js?v=20260427"></script>
   <script defer src="marauders-map-egg.js?v=20260420"></script>
 </body>
 </html>

@@ -1,0 +1,90 @@
+/* Decisioning catalog — embed region fullscreen (toolbar + #dceCatEmbedMount :fullscreen). */
+
+body.decisioning-catalog-page .dce-cat-embed-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.decisioning-catalog-page .dce-cat-embed-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.decisioning-catalog-page .dce-cat-fs-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 120;
+  pointer-events: auto;
+}
+
+body.decisioning-catalog-page .dce-cat-fullscreen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-hover);
+  box-sizing: border-box;
+  color: var(--dash-text);
+}
+
+body.decisioning-catalog-page .dce-cat-fullscreen-btn:hover {
+  filter: brightness(0.98);
+}
+
+html[data-aep-theme='dark'] body.decisioning-catalog-page .dce-cat-fullscreen-btn {
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border-color: var(--dash-border);
+}
+
+#dceCatEmbedMount:fullscreen,
+#dceCatEmbedMount:-webkit-full-screen,
+#dceCatEmbedMount:-moz-full-screen,
+#dceCatEmbedMount:-ms-fullscreen {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  background: var(--dash-bg);
+  padding: 0;
+  margin: 0;
+}
+
+#dceCatEmbedMount:fullscreen .dce-cat-embed-body,
+#dceCatEmbedMount:-webkit-full-screen .dce-cat-embed-body,
+#dceCatEmbedMount:-moz-full-screen .dce-cat-embed-body,
+#dceCatEmbedMount:-ms-fullscreen .dce-cat-embed-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#dceCatEmbedMount:fullscreen .dce-catalog-layout,
+#dceCatEmbedMount:-webkit-full-screen .dce-catalog-layout,
+#dceCatEmbedMount:-moz-full-screen .dce-catalog-layout,
+#dceCatEmbedMount:-ms-fullscreen .dce-catalog-layout {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+#dceCatEmbedMount:fullscreen .dce-catalog-surface,
+#dceCatEmbedMount:-webkit-full-screen .dce-catalog-surface,
+#dceCatEmbedMount:-moz-full-screen .dce-catalog-surface,
+#dceCatEmbedMount:-ms-fullscreen .dce-catalog-surface {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
