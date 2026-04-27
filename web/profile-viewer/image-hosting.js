@@ -68,6 +68,20 @@
       return (window.AepGlobalSandbox && window.AepGlobalSandbox.getSandboxName()) || '';
     } catch (_e) { return ''; }
   }
+  var sandboxAtPageLoad = getSandbox();
+  var sandboxReloadPending = false;
+
+  function refreshOrReloadForSandboxChange() {
+    if (sandboxReloadPending) return;
+    var current = getSandbox();
+    if (current !== sandboxAtPageLoad) {
+      sandboxReloadPending = true;
+      setStatus('Sandbox changed. Reloading page…', 'warn');
+      window.location.reload();
+      return;
+    }
+    refresh();
+  }
 
   function setStatus(msg, cls) {
     if (!statusEl) return;
@@ -1759,8 +1773,8 @@
   if (lightbox) {
     lightbox.addEventListener('click', function (e) { if (e.target === lightbox) closeLightbox(); });
   }
-  window.addEventListener('aep-lab-sandbox-synced', refresh);
-  window.addEventListener('aep-lab-sandbox-keys-applied', refresh);
+  window.addEventListener('aep-lab-sandbox-synced', refreshOrReloadForSandboxChange);
+  window.addEventListener('aep-lab-sandbox-keys-applied', refreshOrReloadForSandboxChange);
 
   syncFolderPanelLayout();
   updateFolderScopeBar();
@@ -1777,7 +1791,7 @@
     }
     if (sel && !sel.dataset.aepImageHostingWired) {
       sel.dataset.aepImageHostingWired = '1';
-      sel.addEventListener('change', refresh);
+      sel.addEventListener('change', refreshOrReloadForSandboxChange);
     }
     if (typeof AepLabSandboxSync !== 'undefined' && AepLabSandboxSync.whenReady) {
       AepLabSandboxSync.whenReady.then(refresh).catch(function () { refresh(); });

@@ -877,6 +877,34 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   word-break: break-word;
 }
 
+.brand-scraper-summary-block {
+  border: 1px solid var(--dash-border);
+  background: color-mix(in srgb, var(--dash-surface-alt) 76%, var(--dash-surface));
+}
+
+.brand-scraper-summary-intro {
+  margin: 0 0 10px;
+  color: var(--dash-text);
+}
+
+.brand-scraper-tech-profile {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--dash-border);
+}
+
+.brand-scraper-tech-profile h5 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--dash-text);
+}
+
+.brand-scraper-tech-profile-line {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--dash-text-secondary);
+}
+
 .brand-scraper-result-header h3 {
   margin: 0 0 4px;
   font-size: 20px;

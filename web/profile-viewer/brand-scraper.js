@@ -1028,6 +1028,65 @@
     '</section>';
   }
 
+  function renderExecutiveSummary(data, crawl) {
+    const analysis = (data.analysis && !data.analysis.skipped && !data.analysis.error) ? data.analysis : null;
+    const about = analysis && analysis.about ? String(analysis.about).trim() : '';
+    const tagSummary = crawl && crawl.tagAuditSummary ? crawl.tagAuditSummary : null;
+    const vendors = tagSummary && Array.isArray(tagSummary.vendorTags) ? tagSummary.vendorTags.slice(0, 8) : [];
+    const opportunities = tagSummary && Array.isArray(tagSummary.opportunities) ? tagSummary.opportunities.slice(0, 3) : [];
+    const campaigns = (data.campaigns && !data.campaigns.error && !data.campaigns.skipped && Array.isArray(data.campaigns.campaigns))
+      ? data.campaigns.campaigns
+      : [];
+    const detectedCampaigns = campaigns.filter(function (cp) { return !cp.is_recommendation; }).slice(0, 2);
+    const segments = (data.segments && !data.segments.error && !data.segments.skipped && Array.isArray(data.segments.segments))
+      ? data.segments.segments
+      : [];
+    const stakeholders = (data.stakeholders && !data.stakeholders.error && !data.stakeholders.skipped && Array.isArray(data.stakeholders.people))
+      ? data.stakeholders.people
+      : [];
+    const starters = [];
+    if (data.industry) starters.push('Primary industry signal: ' + data.industry + '.');
+    if (vendors.length) starters.push('Detected martech vendors on sampled pages: ' + vendors.slice(0, 4).join(', ') + '.');
+    if (opportunities.length) starters.push(opportunities[0]);
+    if (detectedCampaigns.length) {
+      const names = detectedCampaigns.map(function (cp) { return cp.name || 'campaign'; }).filter(Boolean);
+      if (names.length) starters.push('Current on-site campaign evidence: ' + names.join('; ') + '.');
+    }
+    if (segments.length) starters.push('Demo-ready audience ideas: ' + segments.length + ' segment(s) inferred from website behavior and messaging.');
+    if (stakeholders.length) starters.push('Named stakeholders identified on the site: ' + stakeholders.length + '.');
+
+    const coverage = tagSummary && tagSummary.vendorCoverage ? tagSummary.vendorCoverage : null;
+    const topCoverage = coverage
+      ? Object.entries(coverage)
+        .sort(function (a, b) { return (b[1] && b[1].pct ? b[1].pct : 0) - (a[1] && a[1].pct ? a[1].pct : 0); })
+        .slice(0, 3)
+      : [];
+    const hasTech = vendors.length || topCoverage.length || (crawl && crawl.engine);
+    if (!about && !starters.length && !hasTech) return '';
+
+    return (
+      '<section class="brand-scraper-result-block brand-scraper-summary-block">' +
+        '<h4>Summary &amp; conversation starters</h4>' +
+        (about ? '<p class="brand-scraper-summary-intro">' + esc(about) + '</p>' : '') +
+        (starters.length
+          ? '<ul class="brand-scraper-result-list">' + starters.map(function (line) { return '<li>' + esc(line) + '</li>'; }).join('') + '</ul>'
+          : '<p class="brand-scraper-result-muted">No concise starter points were generated from this crawl.</p>') +
+        (hasTech
+          ? (
+            '<div class="brand-scraper-tech-profile">' +
+              '<h5>Technology profile (crawl sample)</h5>' +
+              (vendors.length ? '<p class="brand-scraper-tech-profile-line"><strong>Detected vendors:</strong> ' + vendors.map(function (v) { return '<code>' + esc(v) + '</code>'; }).join(' ') + '</p>' : '') +
+              (topCoverage.length ? '<p class="brand-scraper-tech-profile-line"><strong>Coverage:</strong> ' + topCoverage.map(function (entry) {
+                return entry[0] + ' on ' + (((entry[1] && entry[1].pct) || 0)) + '% of audited pages';
+              }).join('; ') + '.</p>' : '') +
+              (crawl && crawl.engine ? '<p class="brand-scraper-result-muted">Crawler mode: <code>' + esc(crawl.engine) + '</code>. Pair this with BuiltWith for deeper technology confidence.</p>' : '') +
+            '</div>'
+          )
+          : '') +
+      '</section>'
+    );
+  }
+
   function renderCrawl(c) {
     if (!c || !Array.isArray(c.pages)) return '';
     const failureSummary = c.failureSummary || null;
@@ -1155,6 +1214,7 @@
         '</div>'
       ) : '') +
       (data.analysisError ? '<p class="brand-scraper-result-muted">Analysis error: ' + esc(data.analysisError) + '</p>' : '') +
+      renderExecutiveSummary(data, crawl) +
       renderAnalysis(data.analysis) +
       renderStakeholders(data.stakeholders) +
       renderSegments(data.segments) +

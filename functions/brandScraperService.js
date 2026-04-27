@@ -1065,7 +1065,7 @@ async function generatePersonas(crawl, analysis, { country, businessType }, { pr
     `Brand: ${crawl.brandName}\n` +
     `Website: ${crawl.baseUrl}\n` +
     `Business type: ${(businessType || 'b2c').toUpperCase()}\n` +
-    `Persona country: ${country || 'Germany'}\n` +
+    `Persona country: ${country || 'United Kingdom'}\n` +
     (aboutLine ? `About: ${aboutLine}\n` : '') +
     `\nWebsite content:\n${combinedText}`;
 
