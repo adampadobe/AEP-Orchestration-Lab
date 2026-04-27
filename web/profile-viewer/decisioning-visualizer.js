@@ -1105,7 +1105,9 @@
       if (tab) tab.classList.toggle('active', on);
     });
     var sec = document.getElementById('decisioning-visualiser');
-    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (sec && !document.documentElement.getAttribute('data-dce-embed')) {
+      sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     var innerContent = root.querySelector('.content');
     if (innerContent) innerContent.scrollTop = 0;
   }
@@ -1270,6 +1272,21 @@
 
   bindVizRootClicks();
   initIndustry();
+
+  (function dceVizApplyDeepLinkPanel() {
+    var allowed = ['overview', 'priority', 'formula', 'ai', 'experiment'];
+    function panelFromLocation() {
+      var h = (location.hash || '').replace(/^#/, '').trim();
+      if (allowed.indexOf(h) >= 0) return h;
+      try {
+        var q = new URLSearchParams(location.search).get('panel');
+        if (q && allowed.indexOf(q) >= 0) return q;
+      } catch (e) {}
+      return null;
+    }
+    var pid = panelFromLocation();
+    if (pid) dceVizShowPanel(pid);
+  })();
 
   var sortBtn = document.getElementById('dce-core-ai-sort-btn');
   if (sortBtn) {

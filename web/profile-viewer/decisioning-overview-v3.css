@@ -1,0 +1,46 @@
+/* Decisioning overview v3 — embed shell for chromeless decisioning visualiser iframe */
+
+.decisioning-overview-v3-page .dce-overview-v3-embed-wrap {
+  width: 100%;
+  max-width: none;
+  margin: 0 0 2rem;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.decisioning-overview-v3-page .dce-overview-v3-iframe {
+  display: block;
+  width: 100%;
+  min-height: min(88vh, 1400px);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+}
+
+.decisioning-overview-v3-page .edp-blocked {
+  max-width: 42rem;
+  margin: 0 1.5rem 2rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary);
+}
+
+.decisioning-overview-v3-page .edp-blocked a {
+  color: var(--dash-blue);
+  text-decoration: none;
+}
+
+.decisioning-overview-v3-page .edp-blocked a:hover {
+  text-decoration: underline;
+}
+
+html[data-aep-theme='dark'] .decisioning-overview-v3-page .edp-blocked {
+  background: var(--dash-surface-alt);
+  border-color: var(--dash-border);
+  color: var(--dash-muted);
+}

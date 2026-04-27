@@ -8,7 +8,8 @@ alwaysApply: true
 For this repo’s **Firebase Hosting** (`web/`) and **Cloud Functions** (`functions/`):
 
 1. `git status` → `git add` (focused scope) → `git commit` → **`git push origin` (current branch)**.
-2. Then **`npx -y firebase-tools@latest deploy --only functions,hosting`** from the repo root (see **github-git-workflow** and **firebase-basics** skills).
+2. If **`web/profile-viewer/`** changed: run **`npm run verify:profile-viewer-routes`** (guards hosted **journey-arbitration**, **decisioning-overview-v2**, and **decisioning-overview-v3** pages).
+3. Then **`npx -y firebase-tools@latest deploy --only functions,hosting`** from the repo root (see **github-git-workflow** and **firebase-basics** skills).
 
 Do **not** deploy without committing. If the user explicitly asks for Git-only or local-only, skip deploy and say so.
 

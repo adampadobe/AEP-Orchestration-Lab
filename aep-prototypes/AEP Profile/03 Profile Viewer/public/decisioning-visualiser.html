@@ -15,10 +15,10 @@
   <link rel="stylesheet" href="decisioning-catalog.css?v=20260426">
   <link rel="stylesheet" href="decisioning-visualizer-core.css?v=parity20260414">
   <link rel="stylesheet" href="decisioning-edp-shell.css?v=parity20260414">
-  <link rel="stylesheet" href="decisioning-visualizer.css?v=parity20260414-healthcare">
+  <link rel="stylesheet" href="decisioning-visualizer.css?v=20260427-overview-v3-embed">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page">
-  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
+  <script>(function(){try{var q=String(window.location.search||'');if(/\bembed=1\b/.test(q)||/\bembed=chromeless\b/.test(q))document.documentElement.setAttribute('data-dce-embed','');var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -1642,6 +1642,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260427-overview-v2-journey"></script>
-  <script defer src="decisioning-visualizer.js?v=core20260430-healthcare"></script>
+  <script defer src="decisioning-visualizer.js?v=core20260427-overview-v3-embed"></script>
 </body>
 </html>

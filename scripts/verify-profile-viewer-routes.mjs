@@ -15,6 +15,8 @@ const REQUIRED_FILES = [
   'web/profile-viewer/journey-arbitration.js',
   'web/profile-viewer/journey-arbitration.css',
   'web/profile-viewer/decisioning-overview-v2.html',
+  'web/profile-viewer/decisioning-overview-v3.html',
+  'web/profile-viewer/decisioning-overview-v3.css',
   'web/profile-viewer/journey-arbitration-v2.html',
   'web/profile-viewer/journey-arbitration-v2.css',
   'web/profile-viewer/journey-arbitration-v2.js',
@@ -44,6 +46,10 @@ if (!nav.includes('decisioning-overview-v2.html')) {
   console.error('aep-lab-nav.js must include href decisioning-overview-v2.html');
   failed = true;
 }
+if (!nav.includes('decisioning-overview-v3.html')) {
+  console.error('aep-lab-nav.js must include href decisioning-overview-v3.html');
+  failed = true;
+}
 if (!nav.includes('journey-arbitration-v2.html')) {
   console.error('aep-lab-nav.js must include href journey-arbitration-v2.html');
   failed = true;
@@ -59,6 +65,10 @@ if (!gs.includes('decisioningOverviewV2')) {
   console.error('global-settings.html must include nav hide key decisioningOverviewV2');
   failed = true;
 }
+if (!gs.includes('decisioningOverviewV3')) {
+  console.error('global-settings.html must include nav hide key decisioningOverviewV3');
+  failed = true;
+}
 if (!gs.includes('journeyArbitrationV2')) {
   console.error('global-settings.html must include nav hide key journeyArbitrationV2');
   failed = true;
@@ -67,4 +77,4 @@ if (!gs.includes('journeyArbitrationV2')) {
 if (failed) {
   process.exit(1);
 }
-console.log('OK: profile-viewer routes (journey-arbitration, journey-arbitration-v2, decisioning-overview-v2) verified');
+console.log('OK: profile-viewer routes (journey-arbitration, journey-arbitration-v2, decisioning-overview-v2, decisioning-overview-v3) verified');

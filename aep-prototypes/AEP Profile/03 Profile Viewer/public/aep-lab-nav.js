@@ -137,6 +137,13 @@
           ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v-4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M12.24 12.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h-4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M12.24 7.76l2.83-2.83"/><path d="M15 4h2v2"/></svg>',
         },
         {
+          label: 'Decisioning overview v3 (in development)',
+          href: 'decisioning-overview-v3.html',
+          inDevelopment: true,
+          navHideKey: 'decisioningOverviewV3',
+          ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v-4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M12.24 12.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h-4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M12.24 7.76l2.83-2.83"/><path d="M17 3v3h3"/></svg>',
+        },
+        {
           label: 'Journey arbitration (in development)',
           href: 'journey-arbitration.html',
           inDevelopment: true,

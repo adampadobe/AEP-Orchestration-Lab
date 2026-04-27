@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="aep-head-sync.js?v=20260416c"></script>
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Decisioning overview v3 – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260423b">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="decisioning-catalog.css?v=20260426">
+  <link rel="stylesheet" href="decisioning-overview-v3.css?v=20260427">
+</head>
+<body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page decisioning-overview-v3-page">
+  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="AEP sandbox APIs">AEP</span>
+          <a href="https://experienceleague.adobe.com/docs/journey-optimizer/using/ajo-orchestration/decision-management/decision-management.html" class="dashboard-topbar-link" target="_blank" rel="noopener">Decision management</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="decisioning-visualiser.html" class="dashboard-topbar-icon" title="Decisioning visualiser">◇</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main profile-viewer-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingEdpV3">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingEdpV3" class="dashboard-hero-title">Decisioning overview v3</h2>
+              <p class="dashboard-hero-subtitle">
+                Ranking-methods <strong>overview</strong> from the Decisioning visualiser — the same overview grid and comparison table the team refers to as the decisioning whiteboard (see <code>decisioning-visualiser-core-fragment.html</code> for the mirrored markup). Embedded here without duplicate React; industry sync still uses <code>dceVizIndustry</code> / <code>aepEdpIndustry</code> inside the frame.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <div id="edpBlockedV3" class="edp-blocked" hidden>
+          <p style="margin:0 0 0.75rem;">
+            This page is hidden from the sidebar. Turn it back on under
+            <a href="global-settings.html"><strong>Global values</strong></a>
+            (uncheck “Hide Decisioning overview v3”).
+          </p>
+        </div>
+
+        <section class="dce-overview-v3-embed-wrap" id="dceOverviewV3Mount" aria-label="Decisioning overview v3 embed">
+          <iframe
+            id="dceOverviewV3Iframe"
+            class="dce-overview-v3-iframe"
+            title="Decisioning visualiser — overview (embedded)"
+            src="decisioning-visualiser.html?embed=1&amp;panel=overview"
+            referrerpolicy="no-referrer-when-downgrade"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            loading="lazy"
+          ></iframe>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var LS_NAV = 'aepNavHideInDev_decisioningOverviewV3';
+      function applyVisibility() {
+        var hide = false;
+        try {
+          hide = localStorage.getItem(LS_NAV) === '1';
+        } catch (e) {}
+        var blocked = document.getElementById('edpBlockedV3');
+        var mount = document.getElementById('dceOverviewV3Mount');
+        var frame = document.getElementById('dceOverviewV3Iframe');
+        if (blocked && mount) {
+          blocked.hidden = !hide;
+          mount.hidden = hide;
+        }
+        if (frame) {
+          try {
+            frame.tabIndex = hide ? -1 : 0;
+          } catch (e2) {}
+        }
+      }
+      applyVisibility();
+      window.addEventListener('aep-nav-indev-visibility-change', function () {
+        window.location.reload();
+      });
+      window.addEventListener('storage', function (e) {
+        if (e.key === LS_NAV) window.location.reload();
+      });
+    })();
+  </script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260427-overview-v3"></script>
+</body>
+</html>
