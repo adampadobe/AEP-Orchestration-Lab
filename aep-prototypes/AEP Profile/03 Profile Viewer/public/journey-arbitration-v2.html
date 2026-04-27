@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="journey-arbitration-v2.css?v=20260427">
+  <link rel="stylesheet" href="journey-arbitration-v2.css?v=20260427b">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge journey-arbitration-v2-page">
   <div class="dashboard-shell">
@@ -65,38 +65,9 @@
     </div>
   </div>
 
-  <script>
-    (function () {
-      var LS_NAV = 'aepNavHideInDev_journeyArbitrationV2';
-      function applyVisibility() {
-        var hide = false;
-        try {
-          hide = localStorage.getItem(LS_NAV) === '1';
-        } catch (e) {}
-        var blocked = document.getElementById('jaV2Blocked');
-        var mount = document.getElementById('jaV2Mount');
-        var frame = document.getElementById('jaV2Iframe');
-        if (blocked && mount) {
-          blocked.hidden = !hide;
-          mount.hidden = hide;
-        }
-        if (frame) {
-          try {
-            frame.tabIndex = hide ? -1 : 0;
-          } catch (e2) {}
-        }
-      }
-      applyVisibility();
-      window.addEventListener('aep-nav-indev-visibility-change', function () {
-        window.location.reload();
-      });
-      window.addEventListener('storage', function (e) {
-        if (e.key === LS_NAV) window.location.reload();
-      });
-    })();
-  </script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="journey-arbitration-v2.js?v=20260427b"></script>
   <script defer src="aep-lab-nav.js?v=20260427-ja-v2"></script>
 </body>
 </html>

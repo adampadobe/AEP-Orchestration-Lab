@@ -17,6 +17,8 @@ const REQUIRED_FILES = [
   'web/profile-viewer/decisioning-overview-v2.html',
   'web/profile-viewer/journey-arbitration-v2.html',
   'web/profile-viewer/journey-arbitration-v2.css',
+  'web/profile-viewer/journey-arbitration-v2.js',
+  'web/profile-viewer/journey-arbitration-v2-iframe-bridge.css',
   'web/profile-viewer/ajo-decisioning-pipeline-v8-demo.html',
 ];
 

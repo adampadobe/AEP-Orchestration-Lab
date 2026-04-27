@@ -73,7 +73,7 @@ These hosted paths are part of the lab surface and must stay in **`web/profile-v
 | Path on Hosting | Canonical files |
 |-----------------|-------------------|
 | `/profile-viewer/journey-arbitration.html` | `journey-arbitration.html`, `journey-arbitration.js`, `journey-arbitration.css` |
-| `/profile-viewer/journey-arbitration-v2.html` | `journey-arbitration-v2.html`, `journey-arbitration-v2.css`, `ajo-decisioning-pipeline-v8-demo.html` (iframe embed) |
+| `/profile-viewer/journey-arbitration-v2.html` | `journey-arbitration-v2.html`, `journey-arbitration-v2.css`, `journey-arbitration-v2.js`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html` (iframe embed) |
 | `/profile-viewer/decisioning-overview-v2.html` | `decisioning-overview-v2.html` |
 
 **Guardrail:** run **`npm run verify:profile-viewer-routes`** after substantive **`web/profile-viewer/`** edits and before **`firebase deploy --only hosting`** (or combined functions+hosting). The same check runs in **GitHub Actions** (`validate.yml`) on push/PR to `main`, so a bad merge that deletes these files should fail CI before merge.
@@ -532,7 +532,7 @@ CI does **not** build or deploy functions. Deployment is manual.
 | **Don't hardcode the Firebase project ID** in JS/HTML | Use relative paths for API calls (`/api/...`). The project ID only appears in `.firebaserc`. |
 | **Don't delete or rename `home-dashboard-concierge`** | This body class gates the entire token system. |
 | **Don't add `<body>` without the dashboard shell** (sidebar + main wrap) | The sidebar nav and theme toggle won't render. |
-| **Don't delete `journey-arbitration.*`, `journey-arbitration-v2.*`, `ajo-decisioning-pipeline-v8-demo.html`, `decisioning-overview-v2.html`, or their nav / Global values keys** without a deliberate replacement | Breaks hosted `/profile-viewer/journey-arbitration.html`, `/profile-viewer/journey-arbitration-v2.html`, and `/profile-viewer/decisioning-overview-v2.html`; CI runs `npm run verify:profile-viewer-routes` to catch this. |
+| **Don't delete `journey-arbitration.*`, `journey-arbitration-v2.*`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html`, `decisioning-overview-v2.html`, or their nav / Global values keys** without a deliberate replacement | Breaks hosted `/profile-viewer/journey-arbitration.html`, `/profile-viewer/journey-arbitration-v2.html`, and `/profile-viewer/decisioning-overview-v2.html`; CI runs `npm run verify:profile-viewer-routes` to catch this. |
 
 ---
 

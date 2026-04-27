@@ -8,7 +8,7 @@ alwaysApply: true
 These **Firebase Hosting** URLs are part of the product surface and must remain on **`main`** under **`web/profile-viewer/`**:
 
 - `profile-viewer/journey-arbitration.html` (and `journey-arbitration.js`, `journey-arbitration.css`)
-- `profile-viewer/journey-arbitration-v2.html`, `journey-arbitration-v2.css`, and embed asset `ajo-decisioning-pipeline-v8-demo.html`
+- `profile-viewer/journey-arbitration-v2.html`, `journey-arbitration-v2.css`, `journey-arbitration-v2.js`, `journey-arbitration-v2-iframe-bridge.css`, and embed asset `ajo-decisioning-pipeline-v8-demo.html`
 - `profile-viewer/decisioning-overview-v2.html`
 
 **Do not** delete, rename, or drop nav / Global values wiring for these routes without an explicit product decision and redirect plan.

@@ -52,3 +52,19 @@ html[data-aep-theme='dark'] .journey-arbitration-v2-page .edp-blocked {
   border-color: var(--dash-border);
   color: var(--dash-muted);
 }
+
+/* Hero subtitle code chip — same token rhythm as other tool pages */
+.journey-arbitration-v2-page .dashboard-hero-subtitle code {
+  font-size: 0.9em;
+  padding: 0.12em 0.4em;
+  border-radius: 6px;
+  background: var(--dash-code-bg);
+  color: var(--dash-text-secondary);
+  border: 1px solid var(--dash-border);
+}
+
+html[data-aep-theme='dark'] .journey-arbitration-v2-page .dashboard-hero-subtitle code {
+  background: var(--dash-code-bg);
+  color: var(--dash-muted);
+  border-color: var(--dash-border);
+}

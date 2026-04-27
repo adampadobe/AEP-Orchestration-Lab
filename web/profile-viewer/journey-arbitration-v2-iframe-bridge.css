@@ -1,0 +1,128 @@
+/**
+ * Loaded inside ajo-decisioning-pipeline-v8-demo.html (iframe) after parent copies
+ * --dash-* / --menu-* onto :root. Maps vendor AJO tokens to dashboard tokens only.
+ */
+
+:root {
+  --bg-cream: var(--dash-bg);
+  --bg-warm: var(--dash-surface-alt);
+  --bg-card: var(--dash-surface);
+  --bg-card-hover: var(--dash-hover);
+  --bg-surface: var(--dash-surface-alt);
+  --text-primary: var(--dash-text);
+  --text-secondary: var(--dash-text-secondary);
+  --text-muted: var(--dash-muted);
+  --accent: var(--dash-error-border);
+  --accent-soft: var(--dash-error-bg);
+  --accent-dim: color-mix(in srgb, var(--dash-error-border) 10%, transparent);
+  --accent-border: color-mix(in srgb, var(--dash-error-border) 42%, var(--dash-border));
+  --accent-glow: color-mix(in srgb, var(--dash-error-border) 22%, transparent);
+  --teal: var(--dash-success-border);
+  --teal-soft: var(--dash-success-bg);
+  --teal-border: color-mix(in srgb, var(--dash-success-border) 35%, var(--dash-border));
+  --amber: var(--dash-warning-text);
+  --amber-soft: var(--dash-warning-bg);
+  --amber-border: color-mix(in srgb, var(--dash-warning-border) 45%, var(--dash-border));
+  --coral: var(--dash-error-text);
+  --coral-soft: var(--dash-error-bg);
+  --coral-border: color-mix(in srgb, var(--dash-error-border) 32%, var(--dash-border));
+  --blue: var(--dash-blue);
+  --blue-soft: var(--dash-info-bg);
+  --blue-border: color-mix(in srgb, var(--dash-blue) 28%, var(--dash-border));
+  --border: color-mix(in srgb, var(--dash-text) 9%, var(--dash-border));
+  --border-strong: var(--dash-border);
+  --radius: var(--dash-radius-sm);
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+}
+
+/* Vendor rules use literal rgba/# — re-tie common surfaces and accents to tokens */
+.hero::before {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--dash-error-border) 8%, transparent) 0%,
+    transparent 65%
+  );
+}
+
+.hero-cta,
+.message-cta {
+  color: var(--menu-nav-active-fg);
+}
+
+.hero-cta:hover {
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--dash-error-border) 28%, transparent);
+}
+
+.pipeline-step:hover {
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--dash-text) 6%, transparent);
+}
+
+.card,
+.profile-stat,
+.cascade-stage-inner {
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--dash-text) 4%, transparent);
+}
+
+.cascade-stage-inner.highlighted {
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--dash-error-border) 14%, transparent);
+}
+
+.bar-track {
+  background: color-mix(in srgb, var(--dash-text) 8%, transparent);
+}
+
+.branch:hover .branch-card-inner {
+  background: var(--dash-surface);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--dash-text) 10%, transparent);
+}
+
+.avatar-ring,
+.profile-avatar-lg,
+.sf-avatar {
+  background: linear-gradient(
+    135deg,
+    var(--dash-error-border),
+    color-mix(in srgb, var(--dash-error-border) 55%, var(--dash-error-text))
+  );
+  color: var(--menu-nav-active-fg);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--dash-error-border) 28%, transparent);
+}
+
+.profile-avatar-lg {
+  box-shadow: 0 6px 28px color-mix(in srgb, var(--dash-error-border) 32%, transparent);
+}
+
+.profile-avatar-lg::after,
+.sf-avatar::after {
+  border-color: color-mix(in srgb, var(--dash-error-border) 22%, transparent);
+}
+
+.journey-item.selected .journey-rank,
+.cascade-item.selected .ci-rank,
+.sf-step.active .sf-step-circle,
+.sf-journey.selected .sf-j-rank,
+.sf-journey.expanded .sf-j-rank,
+.sf-path.selected .sf-p-rank,
+.sf-phase-num.active,
+.sf-attr.active .sf-attr-icon,
+.sf-attr.active .sf-attr-check {
+  color: var(--menu-nav-active-fg);
+}
+
+.view-toggle-btn.active {
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--dash-text) 10%, transparent);
+}
+
+.sf-mp-slider::-webkit-slider-thumb,
+.sf-mp-slider::-moz-range-thumb {
+  border-color: var(--dash-surface);
+}
+
+.sf-st-cell.peak {
+  outline-color: var(--dash-error-border);
+}
+
+.time-cell.peak {
+  outline-color: var(--dash-error-border);
+}
