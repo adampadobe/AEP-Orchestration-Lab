@@ -1,11 +1,177 @@
 /* Journey arbitration v2 — shell + iframe chrome only (demo body lives in ajo-decisioning-pipeline-v8-demo.html). */
 
 .journey-arbitration-v2-page .ja-v2-embed-wrap {
+  position: relative;
   width: 100%;
   max-width: none;
   margin: 0 0 2rem;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* Industry control — top-left over iframe (matches decisioning-edp-shell dropdown tokens). */
+.journey-arbitration-v2-page .ja-v2-industry-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-dropdown-wrap {
+  position: relative;
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--dash-hover);
+  border: 1px solid var(--dash-border);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--dash-text);
+  cursor: pointer;
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-dropdown-btn:hover {
+  filter: brightness(0.98);
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-industry-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--dash-blue);
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-industry-ico svg {
+  display: block;
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-chev {
+  flex-shrink: 0;
+  opacity: 0.75;
+  color: var(--dash-muted);
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 3px;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: 9px;
+  padding: 3px;
+  box-shadow: var(--dash-shadow);
+  min-width: 200px;
+  z-index: 600;
+  box-sizing: border-box;
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-dropdown-menu[hidden] {
+  display: none !important;
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--dash-text);
+  background: transparent;
+  border: none;
+  box-sizing: border-box;
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-dropdown-item:hover {
+  background: var(--dash-hover);
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-dropdown-item.dce-edp-dropdown-item--active {
+  font-weight: 600;
+  color: var(--dash-blue);
+  background: color-mix(in srgb, var(--dash-blue) 10%, transparent);
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-menu-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--dash-blue);
+  opacity: 0.95;
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-menu-label {
+  flex: 1;
+  min-width: 0;
+}
+
+#jaV2IndustryScope.dce-viz-core .dce-edp-dropdown-item:not(.dce-edp-dropdown-item--active) .dce-edp-menu-ico {
+  color: var(--dash-muted);
+  opacity: 1;
+}
+
+/* Fullscreen — top-right (Spectrum S2 enter/exit icons, same paths as aep-fullscreen.js). */
+.journey-arbitration-v2-page .ja-v2-fullscreen-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.journey-arbitration-v2-page .ja-v2-fullscreen-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-hover);
+  box-sizing: border-box;
+}
+
+.journey-arbitration-v2-page .ja-v2-fullscreen-btn:hover {
+  filter: brightness(0.98);
+}
+
+html[data-aep-theme='dark'] .journey-arbitration-v2-page .ja-v2-fullscreen-btn {
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border-color: var(--dash-border);
+}
+
+#jaV2Mount:fullscreen,
+#jaV2Mount:-webkit-full-screen {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: auto;
+  background: var(--dash-bg);
+  padding: 0.5rem;
+  margin: 0;
+}
+
+#jaV2Mount:fullscreen .ja-v2-iframe,
+#jaV2Mount:-webkit-full-screen .ja-v2-iframe {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
 
 .journey-arbitration-v2-page .ja-v2-iframe {

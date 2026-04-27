@@ -2796,7 +2796,7 @@ agent_intent:{label:'Voice-agent signal',color:'amber'},
 email_cap:{label:'Email cap reached',color:'coral'}
 };
 
-const SF_JOURNEYS=[
+var SF_JOURNEYS=[
 {id:'mortgage',name:'Mortgage refinance',desc:'Highest margin · Rate lock window',bankValue:1.5,issue:'sales',
 weights:{mortgage_need:1.80,refi_intent:1.50,rewards_interest:.05,debt_consolidation:.15,savings_growth:.05,family_protection:.10,school_savings:.05,churn_risk:.05,mobile_first:.10,agent_intent:.70}},
 {id:'invest',name:'Investment advisory',desc:'Wealth management · ISA products',bankValue:1.3,issue:'sales',
@@ -2809,7 +2809,7 @@ weights:{mortgage_need:.05,refi_intent:.02,rewards_interest:.85,debt_consolidati
 weights:{mortgage_need:.10,refi_intent:.05,rewards_interest:.05,debt_consolidation:.10,savings_growth:.10,family_protection:.10,school_savings:.10,churn_risk:.90,mobile_first:.05,agent_intent:.25}}
 ];
 
-const SF_PATHS={
+var SF_PATHS={
 mortgage:[
 {id:'mp1',name:'Rate calculator',actions:'Eligibility check → Dynamic APR → Personalised offer',base:.55,
 boosts:{refi_intent:.40,mobile_first:.20,mortgage_need:.10},desc:'Self-service digital flow'},
@@ -3597,6 +3597,8 @@ document.querySelectorAll('.sf-email-container').forEach(c=>c.classList.remove('
 document.querySelectorAll('#sfEmailConnectors [data-ec]').forEach(el=>el.classList.remove('active'));
 }
 
+window.__AEP_SF_JOURNEYS_BASE = JSON.parse(JSON.stringify(SF_JOURNEYS));
+window.__AEP_SF_PATHS_BASE = JSON.parse(JSON.stringify(SF_PATHS));
 sfRender();
 
 /* ═══ SMOOTH NAV ═══ */
@@ -3608,5 +3610,7 @@ if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
 });
 });
 </script>
+<script src="ajo-pipeline-industry-labels.js?v=20260427"></script>
+<script src="ajo-pipeline-industry-apply.js?v=20260427"></script>
 </body>
 </html>

@@ -13,9 +13,10 @@
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="journey-arbitration-v2.css?v=20260427b">
+  <link rel="stylesheet" href="journey-arbitration-v2.css?v=20260427d">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge journey-arbitration-v2-page">
+  <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
 
@@ -51,6 +52,26 @@
         </div>
 
         <section class="ja-v2-embed-wrap" id="jaV2Mount" aria-label="Journey arbitration v2 demo">
+          <div id="jaV2IndustryScope" class="dce-viz-core ja-v2-industry-toolbar" aria-label="Industry context for embedded demo">
+            <div class="dce-edp-dropdown-wrap">
+              <button type="button" class="dce-edp-dropdown-btn" id="ja-v2-industry-btn" aria-expanded="false" aria-haspopup="listbox" aria-controls="ja-v2-industry-menu" aria-label="Industry">
+                <span id="ja-v2-industry-ico" class="dce-edp-industry-ico" aria-hidden="true"></span>
+                <span id="ja-v2-industry-label">Media</span>
+                <svg class="dce-edp-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <div class="dce-edp-dropdown-menu" id="ja-v2-industry-menu" role="listbox" hidden></div>
+            </div>
+          </div>
+          <div class="ja-v2-fullscreen-toolbar" aria-label="Embed display">
+            <button
+              type="button"
+              id="ja-v2-fullscreen-btn"
+              class="ja-v2-fullscreen-btn aep-fullscreen-btn"
+              aria-pressed="false"
+              aria-label="Enter full screen"
+              title="Fill the screen with the pipeline demo. Press Esc to exit."
+            ></button>
+          </div>
           <iframe
             id="jaV2Iframe"
             class="ja-v2-iframe"
@@ -67,7 +88,7 @@
 
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="journey-arbitration-v2.js?v=20260427b"></script>
+  <script defer src="journey-arbitration-v2.js?v=20260427d"></script>
   <script defer src="aep-lab-nav.js?v=20260427-ja-v2"></script>
 </body>
 </html>

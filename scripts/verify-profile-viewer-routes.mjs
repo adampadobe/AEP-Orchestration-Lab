@@ -20,6 +20,8 @@ const REQUIRED_FILES = [
   'web/profile-viewer/journey-arbitration-v2.js',
   'web/profile-viewer/journey-arbitration-v2-iframe-bridge.css',
   'web/profile-viewer/ajo-decisioning-pipeline-v8-demo.html',
+  'web/profile-viewer/ajo-pipeline-industry-labels.js',
+  'web/profile-viewer/ajo-pipeline-industry-apply.js',
 ];
 
 let failed = false;
