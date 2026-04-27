@@ -43,13 +43,16 @@
   pointer-events: none;
 }
 
-/* Live site fills the viewport behind chrome */
+/* Keep embedded MOD snapshot centered at every viewport size */
 .mod-demo-site-frame {
   position: fixed;
-  inset: 0;
-  width: 100%;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: min(100vw, 1680px);
   height: 100%;
   border: 0;
+  transform: translateX(-50%);
   z-index: 1;
   background: var(--dash-bg);
 }
