@@ -17,9 +17,10 @@
   <link rel="stylesheet" href="decisioning-visualizer-core.css?v=parity20260414">
   <link rel="stylesheet" href="decisioning-edp-shell.css?v=parity20260414">
   <link rel="stylesheet" href="decisioning-visualizer.css?v=parity20260414-healthcare">
-  <link rel="stylesheet" href="journey-arbitration.css?v=20260427">
+  <link rel="stylesheet" href="experience-decisioning.css?v=20260430f">
+  <link rel="stylesheet" href="journey-arbitration.css?v=20260430">
 </head>
-<body class="profile-viewer-page home-dashboard-concierge decisioning-catalog-page journey-arbitration-page">
+<body class="profile-viewer-page home-dashboard-concierge experience-decisioning-page decisioning-catalog-page journey-arbitration-page">
   <script>(function(){try{var V=['retail','fsi','travel','media','sports','telecommunications','public','healthcare'];var m={telco:'telecommunications',automotive:'sports'};var k=localStorage.getItem('dceVizIndustry');try{var e=localStorage.getItem('aepEdpIndustry');if(e&&V.indexOf(m[e]||e)>=0)k=m[e]||e;}catch(x){}if(k&&m[k])k=m[k];if(V.indexOf(k)>=0)document.body.setAttribute('data-dce-industry',k);else document.body.setAttribute('data-dce-industry','media');}catch(e){document.body.setAttribute('data-dce-industry','media');}})();</script>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Primary"></aside>
@@ -48,7 +49,7 @@
         </section>
 
         <div id="jaBlocked" class="edp-blocked" hidden>
-          <p style="margin:0 0 0.75rem;">
+          <p>
             This page is hidden from the sidebar. Turn it back on under
             <a href="global-settings.html"><strong>Global values</strong></a>
             (uncheck “Hide Journey arbitration”).
@@ -56,7 +57,7 @@
         </div>
 
         <section class="dce-viz-section" id="journey-arbitration" aria-label="Journey arbitration demo">
-          <div id="dceJourneyRoot" class="dce-viz-scope dce-viz-core dce-journey-standalone-root" role="region" aria-label="Journey arbitration">
+          <div id="dceVizRoot" class="dce-viz-scope dce-viz-core dce-journey-standalone-root" role="region" aria-label="Journey arbitration">
             <div class="dce-edp-shell-header">
               <div class="dce-edp-progress" aria-hidden="true">
                 <div class="dce-edp-progress-track">
