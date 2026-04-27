@@ -28,6 +28,7 @@ const queryProfileBtn = document.getElementById('queryProfileBtn');
 const infoEcid = document.getElementById('infoEcid');
 const generatorTargetSelect = document.getElementById('generatorTarget');
 const modMessage = document.getElementById('modMessage');
+const sandboxSelect = document.getElementById('sandboxSelect');
 
 /** @type {Array<{ id: string, label: string, transport: string }>} */
 let generatorTargets = [];
@@ -47,6 +48,20 @@ function setModMessage(text, type) {
 function getSelectedGeneratorTarget() {
   const id = (generatorTargetSelect && generatorTargetSelect.value) || '';
   return generatorTargets.find((t) => t.id === id) || generatorTargets[0] || null;
+}
+
+function initNavigatorSandboxSelect() {
+  if (!sandboxSelect) return;
+  if (typeof AepGlobalSandbox === 'undefined') return;
+  if (typeof AepGlobalSandbox.onSandboxSelectChange === 'function') {
+    AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
+  }
+  if (typeof AepGlobalSandbox.attachStorageSync === 'function') {
+    AepGlobalSandbox.attachStorageSync(sandboxSelect);
+  }
+  if (typeof AepGlobalSandbox.loadSandboxesIntoSelect === 'function') {
+    void AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
+  }
 }
 
 async function loadGeneratorTargets() {
@@ -93,6 +108,7 @@ queryProfileBtn &&
   });
 
 loadGeneratorTargets();
+initNavigatorSandboxSelect();
 
 (function initNavigatorGlobalDemoFlyoutSidebar() {
   const body = document.body;

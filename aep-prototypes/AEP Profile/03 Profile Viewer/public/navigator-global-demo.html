@@ -35,6 +35,12 @@
           </select>
         </div>
         <div class="form-row">
+          <label for="sandboxSelect">Sandbox</label>
+          <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
+            <option value="">Loading sandboxes…</option>
+          </select>
+        </div>
+        <div class="form-row">
           <label for="customerEmail">Identifier value</label>
           <input type="text" id="customerEmail" placeholder="Enter identifier" autocomplete="off" spellcheck="false">
         </div>
@@ -209,7 +215,7 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="aep-profile-drawer.js?v=20260424-ecid-events-refresh"></script>
-  <script src="navigator-global-demo.js?v=20260424-identitymap-ecid"></script>
+  <script src="navigator-global-demo.js?v=20260427-sandbox-select"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
