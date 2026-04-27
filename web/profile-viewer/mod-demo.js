@@ -73,6 +73,48 @@ queryProfileBtn &&
 
 loadGeneratorTargets();
 
+(function normalizeSnapshotFrame() {
+  const frame = document.querySelector('.mod-demo-site-frame');
+  if (!frame) return;
+
+  function applySnapshotLayoutFix(doc) {
+    const root = doc.documentElement;
+    const body = doc.body;
+    if (!root || !body) return;
+
+    root.classList.remove('lenis', 'lenis-scrolling');
+    root.style.removeProperty('--viewport-width');
+    root.style.removeProperty('--viewport-height');
+    root.style.removeProperty('--scrollbar-width');
+    root.style.removeProperty('scroll-behavior');
+
+    let styleEl = doc.getElementById('aep-mod-snapshot-runtime-fix');
+    if (!styleEl) {
+      styleEl = doc.createElement('style');
+      styleEl.id = 'aep-mod-snapshot-runtime-fix';
+      doc.head.appendChild(styleEl);
+    }
+
+    styleEl.textContent = [
+      'html,body{margin:0!important;width:100%!important;max-width:none!important;overflow-x:hidden!important;}',
+      '.pin-spacer{width:100%!important;max-width:100%!important;left:0!important;right:0!important;padding:0!important;margin:0!important;transform:none!important;overflow:visible!important;}',
+      '.pin-spacer>.exp-content__block-container,.pin-spacer>[x-ref=\"blockInner\"]{width:100%!important;max-width:100%!important;left:0!important;right:0!important;top:0!important;margin:0!important;transform:none!important;}',
+      '.exp-hero-banner__logo{position:fixed!important;top:18px!important;left:50%!important;transform:translateX(-50%)!important;z-index:1200!important;margin:0!important;}',
+      '.exp-hero-banner__cta-btn{position:fixed!important;top:18px!important;left:22px!important;transform:none!important;z-index:1200!important;margin:0!important;}',
+      '.exp-hero-banner__text-container,.exp-hero-banner__media-container,.exp-hero-banner__scroll-prompt{transform:none!important;}',
+    ].join('');
+  }
+
+  frame.addEventListener('load', function () {
+    const doc = frame.contentDocument;
+    if (!doc) return;
+    applySnapshotLayoutFix(doc);
+    try {
+      frame.contentWindow.scrollTo(0, 0);
+    } catch {}
+  });
+})();
+
 (function initModDemoFlyoutSidebar() {
   const body = document.body;
   if (!body.classList.contains('mod-demo-page')) return;
