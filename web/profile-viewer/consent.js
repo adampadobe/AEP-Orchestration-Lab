@@ -46,6 +46,276 @@ const fetchFlowFromAepBtn = document.getElementById('fetchFlowFromAepBtn');
 const STREAM_LS_KEY = 'aepDecisioningConsentStream_v1';
 
 const SAMPLE_EMAIL = 'kirkham+media-1@adobetest.com';
+const CONSENT_ONBOARDING_OVERLAY_ID = 'consentSetupOnboardingOverlay';
+const CONSENT_ONBOARDING_DEFER_PREFIX = 'consentSetupOnboardingDefer_';
+
+function consentOnboardingSandboxSlug() {
+  const sb = String(getSandboxNameForApi() || '')
+    .trim()
+    .toLowerCase();
+  return sb ? sb.replace(/[^a-z0-9._-]+/g, '_').slice(0, 120) : '_no_sandbox_';
+}
+
+function consentOnboardingDeferKey() {
+  return CONSENT_ONBOARDING_DEFER_PREFIX + consentOnboardingSandboxSlug();
+}
+
+function consentOnboardingIsDeferred() {
+  try {
+    return sessionStorage.getItem(consentOnboardingDeferKey()) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function consentOnboardingSetDeferred() {
+  try {
+    sessionStorage.setItem(consentOnboardingDeferKey(), '1');
+  } catch {
+    /* ignore */
+  }
+}
+
+function consentOnboardingClearDeferred() {
+  try {
+    sessionStorage.removeItem(consentOnboardingDeferKey());
+  } catch {
+    /* ignore */
+  }
+}
+
+function consentOnboardingShouldForceFromQuery() {
+  try {
+    return /(?:^|[?&])consentOnboarding=1(?:&|$)/.test(window.location.search || '');
+  } catch {
+    return false;
+  }
+}
+
+function consentOnboardingShouldClearDeferFromQuery() {
+  try {
+    return /(?:^|[?&])consentSetup=1(?:&|$)/.test(window.location.search || '');
+  } catch {
+    return false;
+  }
+}
+
+function consentOnboardingIsLocallyConfigured() {
+  const s = getStreamingPayload();
+  return !!(s.url && s.flowId && s.datasetId && s.schemaId);
+}
+
+const CONSENT_ONBOARDING_STEPS = [
+  {
+    title: 'Welcome — Consent backend setup',
+    body:
+      '<p class="consent-onb-lead">This sandbox does not have a saved Consent Manager connection yet.</p>' +
+      '<p class="consent-onb-p">Follow this guided flow once, then click <strong>Save connection (browser &amp; Firebase)</strong>. After that, this sandbox is ready for consent updates.</p>' +
+      '<p class="consent-onb-hint">You can reopen this wizard anytime with <code>?consentOnboarding=1</code> in the URL.</p>',
+    checks: [],
+  },
+  {
+    title: 'Step 1 — Create schema in AEP',
+    body:
+      '<ol class="consent-onb-ol">' +
+      '<li>Create a schema using <strong>XDM Individual Profile</strong>.</li>' +
+      '<li>Attach field groups: <strong>Profile Core v2</strong>, <strong>Preference Details</strong>, <strong>Consent and Preference Details</strong>, <strong>Demographic Details</strong>.</li>' +
+      '<li>Set primary identity to your tenant email path (namespace: <strong>Email</strong>).</li>' +
+      '<li>Copy the schema <strong>$id</strong>.</li>' +
+      '</ol>',
+    checks: [{ id: 'consentOnbCheckSchema', label: 'I created/verified the schema and have the Schema $id.' }],
+  },
+  {
+    title: 'Step 2 — Create dataset + HTTP API dataflow',
+    body:
+      '<ol class="consent-onb-ol">' +
+      '<li>Create a dataset from that schema (enable Real-Time Profile if required).</li>' +
+      '<li>Create an HTTP API streaming connection to that dataset.</li>' +
+      '<li>Copy the <strong>Dataset ID</strong>, <strong>Flow ID</strong>, and <strong>Collection URL</strong>.</li>' +
+      '</ol>',
+    checks: [{ id: 'consentOnbCheckDataflow', label: 'I have Dataset ID, Flow ID, and Collection URL.' }],
+  },
+  {
+    title: 'Step 3 — Fill the connection form',
+    body:
+      '<p class="consent-onb-p">Open the setup section and paste values into:</p>' +
+      '<ul class="consent-onb-ul">' +
+      '<li><strong>Schema $id</strong></li>' +
+      '<li><strong>Dataset ID</strong></li>' +
+      '<li><strong>Flow ID</strong></li>' +
+      '<li><strong>Collection URL</strong></li>' +
+      '</ul>' +
+      '<p class="consent-onb-p"><button type="button" class="btn btn-secondary consent-onb-inline-btn" id="consentOnbOpenSetupBtn">Open setup section now</button></p>',
+    checks: [{ id: 'consentOnbCheckFilled', label: 'I filled the connection fields for this sandbox.' }],
+  },
+  {
+    title: 'Step 4 — Save to Firebase',
+    body:
+      '<p class="consent-onb-p">Click <strong>Save connection (browser &amp; Firebase)</strong> in the setup section. That stores this sandbox config so the page loads it automatically next time.</p>' +
+      '<p class="consent-onb-status" id="consentOnbSaveHint" role="status" aria-live="polite"></p>',
+    checks: [{ id: 'consentOnbCheckSave', label: 'I am ready to save the connection for this sandbox.' }],
+  },
+];
+
+let consentOnboardingOverlayEl = null;
+let consentOnboardingStepIndex = 0;
+
+function consentOnboardingEl(id) {
+  return document.getElementById(id);
+}
+
+function consentOnboardingStepChecksOk() {
+  const step = CONSENT_ONBOARDING_STEPS[consentOnboardingStepIndex];
+  if (!step || !Array.isArray(step.checks) || !step.checks.length) return true;
+  return step.checks.every((c) => {
+    const cb = consentOnboardingEl(c.id);
+    return !!(cb && cb.checked);
+  });
+}
+
+function openConsentSetupSection() {
+  const details = document.querySelector('#stepInfra details.consent-streaming-details');
+  if (details) details.open = true;
+  const panel = document.getElementById('stepInfra');
+  if (panel) {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function ensureConsentOnboardingOverlay() {
+  if (consentOnboardingOverlayEl) return consentOnboardingOverlayEl;
+  const wrap = document.createElement('div');
+  wrap.id = CONSENT_ONBOARDING_OVERLAY_ID;
+  wrap.className = 'consent-onboarding-overlay';
+  wrap.setAttribute('role', 'dialog');
+  wrap.setAttribute('aria-modal', 'true');
+  wrap.setAttribute('aria-labelledby', 'consentOnbTitle');
+  wrap.hidden = true;
+  wrap.innerHTML =
+    '<div class="consent-onboarding-backdrop" data-consent-onb-backdrop></div>' +
+    '<div class="consent-onboarding-card">' +
+    '<div class="consent-onboarding-head">' +
+    '<p class="consent-onboarding-kicker">Guided setup</p>' +
+    '<h2 class="consent-onboarding-title" id="consentOnbTitle"></h2>' +
+    '<p class="consent-onboarding-progress"><span id="consentOnbStepNum"></span> of ' +
+    String(CONSENT_ONBOARDING_STEPS.length) +
+    '</p>' +
+    '</div>' +
+    '<div class="consent-onboarding-body" id="consentOnbBody"></div>' +
+    '<div class="consent-onboarding-foot">' +
+    '<button type="button" class="btn btn-secondary" id="consentOnbBack">Back</button>' +
+    '<div class="consent-onboarding-foot-right">' +
+    '<button type="button" class="consent-onboarding-later" id="consentOnbLater">I\'ll configure this later</button>' +
+    '<button type="button" class="btn btn-primary" id="consentOnbNext">Next</button>' +
+    '</div>' +
+    '</div>' +
+    '</div>';
+  document.body.appendChild(wrap);
+  consentOnboardingOverlayEl = wrap;
+  consentOnboardingEl('consentOnbBack')?.addEventListener('click', () => {
+    if (consentOnboardingStepIndex <= 0) return;
+    consentOnboardingStepIndex -= 1;
+    renderConsentOnboardingStep();
+  });
+  consentOnboardingEl('consentOnbNext')?.addEventListener('click', () => {
+    if (!consentOnboardingStepChecksOk()) return;
+    if (consentOnboardingStepIndex < CONSENT_ONBOARDING_STEPS.length - 1) {
+      consentOnboardingStepIndex += 1;
+      renderConsentOnboardingStep();
+      return;
+    }
+    openConsentSetupSection();
+    if (consentOnboardingIsLocallyConfigured()) {
+      consentOnboardingClearDeferred();
+      hideConsentOnboarding();
+    } else {
+      const msg = consentOnboardingEl('consentOnbSaveHint');
+      if (msg) {
+        msg.textContent = 'Open the setup section, save the connection, then this wizard will close automatically.';
+        msg.className = 'consent-onb-status consent-onb-status--warn';
+      }
+    }
+  });
+  consentOnboardingEl('consentOnbLater')?.addEventListener('click', () => {
+    consentOnboardingSetDeferred();
+    hideConsentOnboarding();
+  });
+  return consentOnboardingOverlayEl;
+}
+
+function renderConsentOnboardingStep() {
+  ensureConsentOnboardingOverlay();
+  const step = CONSENT_ONBOARDING_STEPS[consentOnboardingStepIndex];
+  if (!step) return;
+  const title = consentOnboardingEl('consentOnbTitle');
+  const body = consentOnboardingEl('consentOnbBody');
+  const stepNum = consentOnboardingEl('consentOnbStepNum');
+  if (title) title.textContent = step.title;
+  if (stepNum) stepNum.textContent = `Step ${consentOnboardingStepIndex + 1}`;
+  const checksHtml = Array.isArray(step.checks)
+    ? step.checks
+        .map(
+          (c) =>
+            `<label class="consent-onb-check"><input type="checkbox" class="consent-onb-cb" id="${c.id}"><span>${c.label}</span></label>`,
+        )
+        .join('')
+    : '';
+  if (body) body.innerHTML = step.body + (checksHtml ? `<div class="consent-onb-checks">${checksHtml}</div>` : '');
+  consentOnboardingEl('consentOnbOpenSetupBtn')?.addEventListener('click', openConsentSetupSection);
+  const back = consentOnboardingEl('consentOnbBack');
+  const next = consentOnboardingEl('consentOnbNext');
+  if (back) back.hidden = consentOnboardingStepIndex === 0;
+  if (next) {
+    next.textContent =
+      consentOnboardingStepIndex === CONSENT_ONBOARDING_STEPS.length - 1 ? 'Open setup section' : 'Next';
+    next.disabled = !consentOnboardingStepChecksOk();
+  }
+  body?.querySelectorAll('.consent-onb-cb').forEach((cb) => {
+    cb.addEventListener('change', () => {
+      const n = consentOnboardingEl('consentOnbNext');
+      if (n) n.disabled = !consentOnboardingStepChecksOk();
+    });
+  });
+}
+
+function showConsentOnboarding() {
+  ensureConsentOnboardingOverlay();
+  if (!consentOnboardingOverlayEl) return;
+  document.body.classList.add('consent-onboarding-open');
+  consentOnboardingOverlayEl.hidden = false;
+  consentOnboardingOverlayEl.setAttribute('aria-hidden', 'false');
+  consentOnboardingStepIndex = 0;
+  renderConsentOnboardingStep();
+}
+
+function hideConsentOnboarding() {
+  if (!consentOnboardingOverlayEl) return;
+  consentOnboardingOverlayEl.hidden = true;
+  consentOnboardingOverlayEl.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('consent-onboarding-open');
+}
+
+function syncConsentOnboardingAfterConnectionLoad(hasFirebaseConfig) {
+  if (consentOnboardingShouldClearDeferFromQuery()) {
+    consentOnboardingClearDeferred();
+  }
+  const force = consentOnboardingShouldForceFromQuery();
+  if (force) {
+    consentOnboardingClearDeferred();
+    showConsentOnboarding();
+    return;
+  }
+  if (hasFirebaseConfig || consentOnboardingIsLocallyConfigured()) {
+    consentOnboardingClearDeferred();
+    hideConsentOnboarding();
+    return;
+  }
+  if (consentOnboardingIsDeferred()) {
+    hideConsentOnboarding();
+    return;
+  }
+  showConsentOnboarding();
+}
 
 function streamStorageKey() {
   const sb = getSandboxNameForApi().trim();
@@ -323,6 +593,7 @@ function attachConsentFirestoreSandboxSync() {
     const found = await pullConsentConnectionFromFirestore();
     if (found) {
       showInfraMessage('Streaming connection loaded from Firebase for this sandbox.', 'success');
+      syncConsentOnboardingAfterConnectionLoad(true);
     } else {
       showInfraMessage(
         'No streaming connection saved for this sandbox. Create the schema, dataset and HTTP API dataflow in AEP, then enter the details below and click Save connection.',
@@ -330,6 +601,7 @@ function attachConsentFirestoreSandboxSync() {
       );
       const det = document.querySelector('#stepInfra details.consent-streaming-details');
       if (det) det.open = true;
+      syncConsentOnboardingAfterConnectionLoad(false);
     }
   };
   el.addEventListener('change', run);
@@ -1061,12 +1333,21 @@ async function previewData() {
 loadConsentPageSandboxes()
   .then(() => {
     attachConsentFirestoreSandboxSync();
-    return pullConsentConnectionFromFirestore();
+    return pullConsentConnectionFromFirestore().then((found) => {
+      syncConsentOnboardingAfterConnectionLoad(!!found);
+      return found;
+    });
   })
   .catch(() => {
     attachConsentFirestoreSandboxSync();
     loadStreamFieldsFromStorage();
-    pullConsentConnectionFromFirestore().catch(() => {});
+    pullConsentConnectionFromFirestore()
+      .then((found) => {
+        syncConsentOnboardingAfterConnectionLoad(!!found);
+      })
+      .catch(() => {
+        syncConsentOnboardingAfterConnectionLoad(false);
+      });
   });
 
 checkInfraBtn && checkInfraBtn.addEventListener('click', checkConsentInfra);
@@ -1089,14 +1370,17 @@ loadFromFirebaseBtn &&
       const found = await pullConsentConnectionFromFirestore();
       if (found) {
         showInfraMessage('Streaming connection loaded from Firebase for this sandbox.', 'success');
+        syncConsentOnboardingAfterConnectionLoad(true);
       } else {
         showInfraMessage(
           'No streaming connection found in Firebase for this sandbox. Create the required AEP resources first, then enter the details and Save connection.',
           'error',
         );
+        syncConsentOnboardingAfterConnectionLoad(false);
       }
     } catch {
       showInfraMessage('Failed to load from Firebase.', 'error');
+      syncConsentOnboardingAfterConnectionLoad(false);
     } finally {
       loadFromFirebaseBtn.disabled = false;
     }
@@ -1107,6 +1391,8 @@ saveStreamBtn &&
     try {
       await pushConsentConnectionToFirestore();
       showInfraMessage('Saved streaming connection to this browser and Firebase (per sandbox).', 'success');
+      consentOnboardingClearDeferred();
+      hideConsentOnboarding();
     } catch (e) {
       showInfraMessage(
         (e && e.message) || 'Saved locally only — Firebase save failed (enable Firestore and deploy rules).',
