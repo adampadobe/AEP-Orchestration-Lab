@@ -1,0 +1,54 @@
+/* Journey arbitration v2 — shell + iframe chrome only (demo body lives in ajo-decisioning-pipeline-v8-demo.html). */
+
+.journey-arbitration-v2-page .ja-v2-embed-wrap {
+  width: 100%;
+  max-width: none;
+  margin: 0 0 2rem;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.journey-arbitration-v2-page .ja-v2-iframe {
+  display: block;
+  width: 100%;
+  min-height: min(88vh, 1200px);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+}
+
+.journey-arbitration-v2-page .edp-blocked {
+  max-width: 42rem;
+  margin: 0 1.5rem 2rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary);
+}
+
+.journey-arbitration-v2-page .edp-blocked > p {
+  margin: 0 0 0.75rem;
+}
+
+.journey-arbitration-v2-page .edp-blocked > p:last-child {
+  margin-bottom: 0;
+}
+
+.journey-arbitration-v2-page .edp-blocked a {
+  color: var(--dash-blue);
+  text-decoration: none;
+}
+
+.journey-arbitration-v2-page .edp-blocked a:hover {
+  text-decoration: underline;
+}
+
+html[data-aep-theme='dark'] .journey-arbitration-v2-page .edp-blocked {
+  background: var(--dash-surface-alt);
+  border-color: var(--dash-border);
+  color: var(--dash-muted);
+}

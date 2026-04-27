@@ -60,11 +60,23 @@ If `npm install` prints **`EBADENGINE`** under **`functions/`** because your glo
 
 ### Continuous integration
 
-The **Validate** workflow (`.github/workflows/validate.yml`) installs Node from **`.nvmrc`** and runs **`npm ci`** in **`functions/`** on pull requests so dependencies install cleanly on the pinned version.
+The **Validate** workflow (`.github/workflows/validate.yml`) installs Node from **`.nvmrc`** and runs **`npm ci`** in **`functions/`** on pull requests so dependencies install cleanly on the pinned version. It also runs **`npm run verify:profile-viewer-routes`** so preserved Decisioning pages (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) are not accidentally removed.
 
 ### Profile Viewer UI — canonical path
 
 Firebase Hosting serves static files from **`web/`**. The lab nav, themes, and assets under **`web/profile-viewer/`** are **canonical**. The Express prototype at **`aep-prototypes/AEP Profile/03 Profile Viewer/public/`** is a **mirror**: after you edit **`web/profile-viewer/`**, run **`npm run sync-profile-viewer-ui`** (see [Sync between prototypes and hosting](#sync-between-prototypes-and-hosting)). Running sync **from prototype → `web/`** in the wrong direction has overwritten Hosting in the past.
+
+### Preserved Decisioning Profile Viewer routes
+
+These hosted paths are part of the lab surface and must stay in **`web/profile-viewer/`** on **`main`** (with nav + Global values wiring intact). Do **not** remove or orphan them without an explicit product decision and a redirect or replacement plan:
+
+| Path on Hosting | Canonical files |
+|-----------------|-------------------|
+| `/profile-viewer/journey-arbitration.html` | `journey-arbitration.html`, `journey-arbitration.js`, `journey-arbitration.css` |
+| `/profile-viewer/journey-arbitration-v2.html` | `journey-arbitration-v2.html`, `journey-arbitration-v2.css`, `ajo-decisioning-pipeline-v8-demo.html` (iframe embed) |
+| `/profile-viewer/decisioning-overview-v2.html` | `decisioning-overview-v2.html` |
+
+**Guardrail:** run **`npm run verify:profile-viewer-routes`** after substantive **`web/profile-viewer/`** edits and before **`firebase deploy --only hosting`** (or combined functions+hosting). The same check runs in **GitHub Actions** (`validate.yml`) on push/PR to `main`, so a bad merge that deletes these files should fail CI before merge.
 
 ### Architecture diagram (`aep-architecture-apps`) — logos & martech taxonomy
 
@@ -463,6 +475,7 @@ Every change **must** follow these steps in order. Do not skip any step.
 |------|-----------------|-----|
 | 1. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
 | 2. **Sync prototypes** | `npm run sync-profile-viewer-ui` when you changed `web/profile-viewer/` (copies **→** prototype `public/`) | Keep the vendored Express mirror aligned with Hosting |
+| 2b. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **journey-arbitration**, **journey-arbitration-v2** (and embed), or **decisioning-overview-v2** files or nav wiring are missing (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
 | 3. **Commit & push** | `git add`, `git commit`, `git push` to `origin` | GitHub is the audit trail; teammates and CI see your work |
 | 4. **Deploy** | `firebase deploy --only hosting` and/or `firebase deploy --only functions` | Live site and functions pick up what you pushed |
 
@@ -476,6 +489,7 @@ Every change **must** follow these steps in order. Do not skip any step.
 
 ```bash
 npm run sync-profile-viewer-ui   # copy web/profile-viewer/ → prototype public/ (keep mirror in sync)
+npm run verify:profile-viewer-routes   # fail if journey-arbitration, journey-arbitration-v2, or decisioning-overview-v2 are broken
 cd functions && npm install && cd ..
 ```
 
@@ -497,6 +511,7 @@ firebase deploy --only functions:aepProxy
 GitHub Actions runs on push/PR to `main`:
 - Python syntax check on `proxy_server.py` and `scripts/*.py`
 - JSON validation on `samples/` and `schemas/`
+- **`npm run verify:profile-viewer-routes`** (preserved Decisioning pages under `web/profile-viewer/`)
 
 CI does **not** build or deploy functions. Deployment is manual.
 
@@ -517,6 +532,7 @@ CI does **not** build or deploy functions. Deployment is manual.
 | **Don't hardcode the Firebase project ID** in JS/HTML | Use relative paths for API calls (`/api/...`). The project ID only appears in `.firebaserc`. |
 | **Don't delete or rename `home-dashboard-concierge`** | This body class gates the entire token system. |
 | **Don't add `<body>` without the dashboard shell** (sidebar + main wrap) | The sidebar nav and theme toggle won't render. |
+| **Don't delete `journey-arbitration.*`, `journey-arbitration-v2.*`, `ajo-decisioning-pipeline-v8-demo.html`, `decisioning-overview-v2.html`, or their nav / Global values keys** without a deliberate replacement | Breaks hosted `/profile-viewer/journey-arbitration.html`, `/profile-viewer/journey-arbitration-v2.html`, and `/profile-viewer/decisioning-overview-v2.html`; CI runs `npm run verify:profile-viewer-routes` to catch this. |
 
 ---
 
@@ -531,6 +547,7 @@ CI does **not** build or deploy functions. Deployment is manual.
 - [ ] No `.env` or credential files staged
 - [ ] New API routes added to both `functions/index.js` and `firebase.json`
 - [ ] `firebase.json` rewrites use `"region": "us-central1"`
+- [ ] If you edited **`web/profile-viewer/`**: `npm run verify:profile-viewer-routes` passes (preserved Decisioning routes — see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes))
 
 ---
 

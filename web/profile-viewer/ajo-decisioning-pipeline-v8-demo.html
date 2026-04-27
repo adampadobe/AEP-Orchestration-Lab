@@ -1,0 +1,3612 @@
+<!DOCTYPE html>
+<!-- Vendored AJO decisioning pipeline demo (v8.1). Bundled HTML/CSS/JS for iframe embed on journey-arbitration-v2.html. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The anatomy of a decision — Adobe Journey Optimizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg-cream:#FAF7F2;
+--bg-warm:#F3EDE4;
+--bg-card:#FFFFFF;
+--bg-card-hover:#FFFDFB;
+--bg-surface:#F6F2EB;
+--text-primary:#1E1A15;
+--text-secondary:#6B6259;
+--text-muted:#9C9488;
+--accent:#EB1000;
+--accent-soft:#FEF0EE;
+--accent-dim:rgba(235,16,0,.06);
+--accent-border:rgba(235,16,0,.18);
+--accent-glow:rgba(235,16,0,.12);
+--teal:#1A7A5C;
+--teal-soft:#EDFAF4;
+--teal-border:rgba(26,122,92,.15);
+--amber:#B8760C;
+--amber-soft:#FFF8EC;
+--amber-border:rgba(184,118,12,.15);
+--coral:#C44A2D;
+--coral-soft:#FEF0EC;
+--coral-border:rgba(196,74,45,.15);
+--blue:#2B6CB0;
+--blue-soft:#EBF4FF;
+--blue-border:rgba(43,108,176,.15);
+--border:rgba(30,26,21,.08);
+--border-strong:rgba(30,26,21,.12);
+--radius:12px;
+--radius-sm:8px;
+--radius-xs:6px;
+--font-display:'Instrument Serif',Georgia,serif;
+--font-body:'DM Sans',system-ui,sans-serif;
+--font-mono:'JetBrains Mono',monospace;
+--ease:cubic-bezier(.4,0,.2,1);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg-cream);color:var(--text-primary);font-family:var(--font-body);line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* ─── HERO ─── */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:3rem 2rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;width:900px;height:900px;border-radius:50%;background:radial-gradient(circle,rgba(235,16,0,.04) 0%,transparent 65%);top:-250px;left:50%;transform:translateX(-50%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border-strong),transparent)}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--accent-soft);border:1px solid var(--accent-border);border-radius:100px;padding:6px 18px 6px 12px;font-size:12px;color:var(--accent);letter-spacing:.5px;text-transform:uppercase;font-weight:500;margin-bottom:2rem;opacity:0;animation:fadeUp .8s var(--ease) .2s forwards}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+.hero h1{font-family:var(--font-display);font-size:clamp(2.6rem,5.5vw,4.4rem);font-weight:400;line-height:1.12;max-width:780px;margin-bottom:1.4rem;opacity:0;animation:fadeUp .8s var(--ease) .4s forwards;color:var(--text-primary)}
+.hero h1 em{font-style:italic;color:var(--amber)}
+.hero h1 .hero-period{color:var(--amber);font-style:normal}
+.hero p{font-size:1.05rem;color:var(--text-secondary);max-width:560px;margin-bottom:2.5rem;opacity:0;animation:fadeUp .8s var(--ease) .6s forwards;line-height:1.7}
+.hero-cta{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:none;padding:14px 32px;border-radius:100px;font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font-body);transition:all .3s var(--ease);opacity:0;animation:fadeUp .8s var(--ease) .8s forwards;text-decoration:none;letter-spacing:.3px}
+.hero-cta:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(235,16,0,.2)}
+.hero-cta svg{transition:transform .3s}
+.hero-cta:hover svg{transform:translateX(3px)}
+.scroll-hint{position:absolute;bottom:2rem;opacity:0;animation:fadeUp .8s var(--ease) 1.2s forwards}
+.scroll-hint span{display:block;font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.scroll-line{width:1px;height:40px;background:linear-gradient(to bottom,var(--accent),transparent);margin:0 auto;animation:scrollPulse 2s infinite}
+
+/* ─── PIPELINE OVERVIEW ─── */
+.pipeline-overview{padding:6rem 2rem;max-width:1200px;margin:0 auto}
+.section-label{font-size:12px;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;font-weight:500;margin-bottom:.8rem}
+.section-title{font-family:var(--font-display);font-size:clamp(1.8rem,3vw,2.6rem);font-weight:400;margin-bottom:1rem;color:var(--text-primary)}
+.section-desc{font-size:1rem;color:var(--text-secondary);max-width:640px;margin-bottom:3rem;line-height:1.7}
+.pipeline-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.pipeline-step{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.4rem;cursor:pointer;transition:all .35s var(--ease);position:relative;overflow:hidden;text-decoration:none;color:inherit}
+.pipeline-step::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .35s var(--ease)}
+.pipeline-step:hover{border-color:var(--accent-border);box-shadow:0 4px 20px rgba(30,26,21,.06);transform:translateY(-3px)}
+.pipeline-step:hover::before{transform:scaleX(1)}
+.pipeline-step .step-num{font-size:11px;font-family:var(--font-mono);color:var(--accent);margin-bottom:10px;font-weight:500}
+.pipeline-step h3{font-size:15px;font-weight:500;margin-bottom:5px}
+.pipeline-step p{font-size:12px;color:var(--text-muted);line-height:1.5}
+
+/* ─── DIVIDER ─── */
+.divider{width:1px;height:80px;background:linear-gradient(to bottom,transparent,var(--border-strong),transparent);margin:0 auto}
+
+/* ─── STAGE SECTIONS ─── */
+.stage-section{padding:5rem 2rem;max-width:1100px;margin:0 auto;opacity:0;transform:translateY(40px);transition:all .8s var(--ease)}
+.stage-section.visible{opacity:1;transform:translateY(0)}
+.stage-header{display:flex;align-items:flex-start;gap:20px;margin-bottom:2.5rem}
+.stage-number{width:48px;height:48px;border-radius:var(--radius-sm);background:var(--accent-soft);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:16px;color:var(--accent);font-weight:500;flex-shrink:0}
+.stage-info h2{font-family:var(--font-display);font-size:clamp(1.4rem,2.5vw,1.9rem);font-weight:400;margin-bottom:6px}
+.stage-info p{font-size:14px;color:var(--text-secondary);line-height:1.65;max-width:600px}
+
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:16px;box-shadow:0 1px 3px rgba(30,26,21,.03)}
+.card-title{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:1rem}
+.card-lg{padding:2rem}
+
+/* ─── PROFILE ─── */
+.profile-block{display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap}
+.avatar-ring{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#EB1000,#D44A2D);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(235,16,0,.18)}
+.profile-name{font-family:var(--font-display);font-size:20px;font-weight:400;margin-bottom:2px}
+.profile-meta{font-size:13px;color:var(--text-secondary)}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.tag{font-size:11px;padding:4px 12px;border-radius:100px;font-weight:500}
+.tag-red{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border)}
+.tag-teal{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal-border)}
+.tag-amber{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-border)}
+.tag-coral{background:var(--coral-soft);color:var(--coral);border:1px solid var(--coral-border)}
+
+/* ─── UNIFIED PROFILE HUB ─── */
+.profile-hub{position:relative;min-height:580px;margin-bottom:2rem}
+.profile-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10;text-align:center}
+.profile-avatar-lg{width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#EB1000,#D44A2D);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;color:#fff;margin:0 auto 10px;box-shadow:0 6px 28px rgba(235,16,0,.2);position:relative}
+.profile-avatar-lg::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(235,16,0,.15);animation:ringPulse 3s ease-in-out infinite}
+@keyframes ringPulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:.8;transform:scale(1.06)}}
+.profile-center-name{font-family:var(--font-display);font-size:20px;font-weight:400;margin-bottom:2px}
+.profile-center-sub{font-size:12px;color:var(--text-secondary)}
+.profile-center-badge{display:inline-block;margin-top:8px;font-size:10px;padding:3px 12px;border-radius:100px;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);font-weight:500}
+
+.branch{position:absolute;width:220px;transition:all .4s var(--ease);cursor:default}
+.branch:hover{transform:scale(1.06);z-index:20}
+.branch:hover .branch-card-inner{box-shadow:0 8px 32px rgba(30,26,21,.1);border-color:var(--border-strong)}
+.branch-card-inner{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;transition:all .4s var(--ease);position:relative}
+.branch:hover .branch-card-inner{background:#fff}
+.branch-icon-wrap{width:32px;height:32px;border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px;flex-shrink:0}
+.branch-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.branch-detail{font-size:12px;color:var(--text-secondary);line-height:1.55}
+.branch-detail strong{color:var(--text-primary);font-weight:500}
+.branch-connector{position:absolute;pointer-events:none;z-index:1}
+
+.branch.b-identities{top:20px;left:2%}
+.branch.b-devices{top:20px;right:2%}
+.branch.b-segments{bottom:20px;left:2%}
+.branch.b-events{bottom:20px;right:2%}
+.branch.b-support{top:50%;left:0;transform:translateY(-50%)}
+.branch.b-support:hover{transform:translateY(-50%) scale(1.06)}
+.branch.b-propensity{top:50%;right:0;transform:translateY(-50%)}
+.branch.b-propensity:hover{transform:translateY(-50%) scale(1.06)}
+
+.branch .data-row{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;color:var(--text-muted)}
+.branch .data-row .data-key{color:var(--text-secondary);min-width:50px}
+.branch .data-row .data-val{font-family:var(--font-mono);font-size:10px;color:var(--text-primary);word-break:break-all}
+.branch .data-tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:100px;margin:2px 2px 0 0;font-weight:500}
+
+.profile-stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:1rem}
+.profile-stat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;text-align:center;box-shadow:0 1px 3px rgba(30,26,21,.03)}
+.profile-stat .stat-val{font-size:22px;font-weight:600;margin-bottom:2px}
+.profile-stat .stat-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+
+@media(max-width:900px){
+.profile-hub{min-height:auto;display:flex;flex-direction:column;gap:12px;align-items:stretch}
+.profile-center{position:relative;left:auto;top:auto;transform:none;order:-1;margin-bottom:8px}
+.branch{position:relative!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;transform:none!important}
+.branch:hover{transform:scale(1.02)!important}
+.branch-connector{display:none}
+}
+
+/* ─── METRICS ─── */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:16px}
+.metric-card{background:var(--bg-surface);border-radius:var(--radius-sm);padding:14px 16px;border:1px solid var(--border)}
+.metric-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;font-weight:500}
+.metric-value{font-size:24px;font-weight:600}
+.metric-value.red{color:var(--accent)}
+.metric-value.teal{color:var(--teal)}
+.metric-value.amber{color:var(--amber)}
+.metric-value.coral{color:var(--coral)}
+.metric-value.blue{color:var(--blue)}
+.bar-track{height:4px;background:rgba(30,26,21,.06);border-radius:2px;margin-top:8px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;width:0;transition:width 1.2s var(--ease)}
+.bar-red{background:var(--accent)}
+.bar-teal{background:var(--teal)}
+.bar-amber{background:var(--amber)}
+.bar-coral{background:var(--coral)}
+.bar-blue{background:var(--blue)}
+
+/* ─── JOURNEY RANKING ─── */
+.journey-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:8px;transition:all .3s var(--ease)}
+.journey-item:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+.journey-item.selected{border-color:var(--accent-border);background:var(--accent-soft)}
+.journey-rank{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;font-family:var(--font-mono);background:var(--bg-surface);color:var(--text-muted);flex-shrink:0}
+.journey-item.selected .journey-rank{background:var(--accent);color:#fff}
+.journey-name{flex:1;font-size:14px;font-weight:500}
+.journey-bar{width:120px}
+.journey-score{font-family:var(--font-mono);font-size:13px;color:var(--text-muted);min-width:40px;text-align:right}
+
+.formula-box{background:var(--bg-surface);border-radius:var(--radius-sm);padding:14px 18px;font-family:var(--font-mono);font-size:13px;color:var(--accent);line-height:1.8;overflow-x:auto;white-space:nowrap;border-left:3px solid var(--accent)}
+
+.result-banner{background:var(--accent-soft);border:1px solid var(--accent-border);border-radius:var(--radius);padding:18px 22px;margin-top:16px}
+.result-banner h3{font-family:var(--font-display);font-size:17px;font-weight:400;color:var(--accent);margin-bottom:4px}
+.result-banner p{font-size:13px;color:var(--text-secondary);line-height:1.65}
+
+/* ─── PATH ─── */
+.path-flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:16px 0}
+.path-node{padding:8px 16px;border-radius:var(--radius-xs);font-size:12px;font-weight:500;white-space:nowrap;border:1px solid}
+.path-node.red{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-border)}
+.path-node.teal{background:var(--teal-soft);color:var(--teal);border-color:var(--teal-border)}
+.path-node.amber{background:var(--amber-soft);color:var(--amber);border-color:var(--amber-border)}
+.path-arrow{color:var(--text-muted);font-size:18px;margin:0 6px}
+
+.branch-card{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:6px;font-size:13px;transition:all .3s}
+.branch-card.winner{border-color:var(--accent-border);background:var(--accent-soft)}
+.branch-label{font-weight:500;min-width:60px}
+.branch-desc{flex:1;color:var(--text-secondary)}
+.branch-pct{font-family:var(--font-mono);font-weight:500;min-width:40px;text-align:right}
+.branch-card.winner .branch-pct{color:var(--accent)}
+
+/* ─── CHANNEL ─── */
+.channel-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:8px;transition:all .3s}
+.channel-item.winner{border-color:var(--teal-border);background:var(--teal-soft)}
+.channel-icon{width:36px;height:36px;border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.channel-icon.email{background:var(--blue-soft)}
+.channel-icon.push{background:var(--teal-soft)}
+.channel-icon.sms{background:var(--amber-soft)}
+.channel-icon.inapp{background:var(--accent-soft)}
+.channel-name{flex:1;font-size:14px;font-weight:500}
+.channel-bar{width:140px}
+.channel-score{font-family:var(--font-mono);font-size:13px;color:var(--text-muted);min-width:40px;text-align:right}
+.channel-item.winner .channel-score{color:var(--teal);font-weight:600}
+
+/* ─── SEND TIME ─── */
+.time-heatmap{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;margin:12px 0}
+.time-cell{height:40px;border-radius:4px;transition:all .6s var(--ease);cursor:default}
+.time-cell.peak{outline:2px solid var(--accent);outline-offset:-1px;z-index:1}
+.time-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:4px;padding:0 1px}
+
+/* ─── CONTENT ─── */
+.content-item{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:8px;transition:all .3s}
+.content-item.chosen{border-color:var(--accent-border);background:var(--accent-soft)}
+.content-name{flex:1;font-size:14px;font-weight:500}
+.content-type{font-size:10px;padding:3px 10px;border-radius:100px;font-weight:500}
+.content-score{font-family:var(--font-mono);font-size:13px;color:var(--text-muted)}
+.content-item.chosen .content-score{color:var(--accent);font-weight:600}
+
+.message-preview{background:var(--bg-surface);border-radius:var(--radius);padding:1.5rem;margin-top:16px;border-left:3px solid var(--accent)}
+.message-preview .subject{font-family:var(--font-display);font-weight:400;font-size:17px;margin-bottom:8px}
+.message-preview .body{font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:14px}
+.message-cta{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:8px 20px;border-radius:100px;font-size:12px;font-weight:500;cursor:default}
+
+/* ─── CASCADE VISUALISATION ─── */
+.cascade-section{padding:6rem 2rem;max-width:1200px;margin:0 auto}
+.cascade-controls{margin-bottom:2.5rem}
+.control-group{margin-bottom:1.2rem}
+.control-group-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.control-group-label .ctrl-icon{width:18px;height:18px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12px;padding:6px 14px;border-radius:100px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-secondary);cursor:pointer;transition:all .25s var(--ease);font-family:var(--font-body);font-weight:500;user-select:none;white-space:nowrap}
+.chip:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+.chip.active{border-color:var(--accent-border);background:var(--accent-soft);color:var(--accent)}
+.chip.active-teal{border-color:var(--teal-border);background:var(--teal-soft);color:var(--teal)}
+.chip.active-blue{border-color:var(--blue-border);background:var(--blue-soft);color:var(--blue)}
+.chip .chip-val{font-family:var(--font-mono);font-size:10px;opacity:.7;margin-left:4px}
+
+.cascade-pipeline{position:relative;overflow:hidden}
+.cascade-flow{display:grid;grid-template-columns:repeat(6,1fr);gap:0;position:relative}
+.cascade-stage{position:relative;padding:0 6px}
+.cascade-stage-inner{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 14px;transition:all .5s var(--ease);min-height:260px;box-shadow:0 1px 3px rgba(30,26,21,.03)}
+.cascade-stage-inner.highlighted{border-color:var(--accent-border);box-shadow:0 4px 20px rgba(235,16,0,.08)}
+.cascade-stage-num{font-family:var(--font-mono);font-size:10px;color:var(--accent);font-weight:500;margin-bottom:4px}
+.cascade-stage-title{font-size:12px;font-weight:600;margin-bottom:10px;line-height:1.3;min-height:30px}
+.cascade-content{transition:all .4s var(--ease)}
+.cascade-content.fading{opacity:0;transform:translateY(8px)}
+
+.cascade-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--radius-xs);margin-bottom:4px;font-size:11px;transition:all .35s var(--ease);border:1px solid transparent}
+.cascade-item.selected{background:var(--accent-soft);border-color:var(--accent-border)}
+.cascade-item.selected-teal{background:var(--teal-soft);border-color:var(--teal-border)}
+.cascade-item .ci-rank{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;background:var(--bg-surface);color:var(--text-muted);flex-shrink:0;font-family:var(--font-mono)}
+.cascade-item.selected .ci-rank{background:var(--accent);color:#fff}
+.cascade-item .ci-name{flex:1;font-weight:500;color:var(--text-primary)}
+.cascade-item .ci-score{font-family:var(--font-mono);font-size:10px;color:var(--text-muted)}
+.cascade-item.selected .ci-score{color:var(--accent);font-weight:600}
+.cascade-item .ci-bar{width:40px;height:3px;background:var(--bg-surface);border-radius:2px;overflow:hidden}
+.cascade-item .ci-bar-fill{height:100%;border-radius:2px;transition:width .8s var(--ease)}
+
+.cascade-mini-label{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px;font-weight:600}
+.cascade-formula{font-family:var(--font-mono);font-size:9px;color:var(--accent);background:var(--accent-dim);padding:6px 8px;border-radius:var(--radius-xs);line-height:1.5;margin-top:6px;border-left:2px solid var(--accent);word-break:break-all}
+.cascade-time-row{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;margin-top:4px}
+.cascade-time-cell{height:16px;border-radius:2px;transition:all .5s var(--ease)}
+.cascade-time-cell.peak{outline:1.5px solid var(--accent);outline-offset:-1px}
+
+.cascade-msg-block{background:var(--bg-surface);border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:4px;border-left:2px solid transparent;transition:all .4s var(--ease);font-size:10px;color:var(--text-secondary);line-height:1.5}
+.cascade-msg-block.active{border-left-color:var(--accent);background:var(--accent-dim)}
+.cascade-msg-block .msg-section-name{font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
+.cascade-msg-block.active .msg-section-name{color:var(--accent)}
+
+/* Arrow connectors between stages */
+.cascade-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:5;color:var(--text-muted);font-size:14px;pointer-events:none;transition:color .4s}
+.cascade-arrow.lit{color:var(--accent)}
+
+.cascade-influence-tag{display:inline-block;font-size:9px;padding:2px 6px;border-radius:100px;margin:1px;font-weight:500;opacity:0;transform:scale(.8);transition:all .4s var(--ease)}
+.cascade-influence-tag.visible{opacity:1;transform:scale(1)}
+.cascade-influence-tag.red{background:var(--accent-soft);color:var(--accent)}
+.cascade-influence-tag.teal{background:var(--teal-soft);color:var(--teal)}
+.cascade-influence-tag.blue{background:var(--blue-soft);color:var(--blue)}
+.cascade-influence-tag.amber{background:var(--amber-soft);color:var(--amber)}
+
+.cascade-result{margin-top:1.5rem;background:var(--accent-soft);border:1px solid var(--accent-border);border-radius:var(--radius);padding:16px 20px;transition:all .5s var(--ease)}
+.cascade-result h4{font-family:var(--font-display);font-size:16px;font-weight:400;color:var(--accent);margin-bottom:4px}
+.cascade-result p{font-size:12px;color:var(--text-secondary);line-height:1.6}
+
+@media(max-width:960px){
+.cascade-flow{grid-template-columns:repeat(3,1fr);gap:12px}
+.cascade-arrow{display:none}
+}
+@media(max-width:600px){
+.cascade-flow{grid-template-columns:1fr;gap:12px}
+}
+
+/* ─── FLOW VISUALISATION ─── */
+.view-toggle{display:flex;gap:4px;margin-bottom:2rem;background:var(--bg-surface);border-radius:100px;padding:3px;width:fit-content;border:1px solid var(--border)}
+.view-toggle-btn{font-size:12px;padding:7px 18px;border-radius:100px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font-body);font-weight:500;transition:all .25s var(--ease)}
+.view-toggle-btn.active{background:var(--bg-card);color:var(--text-primary);box-shadow:0 1px 4px rgba(30,26,21,.08)}
+.view-toggle-btn:hover:not(.active){color:var(--text-secondary)}
+.flow-view{display:none}
+.flow-view.active{display:block}
+.cascade-pipeline-wrap{display:none}
+.cascade-pipeline-wrap.active{display:block}
+
+/* Main layout */
+.sf-container{display:flex;gap:20px;align-items:flex-start}
+.sf-profile-panel{width:250px;flex-shrink:0;position:sticky;top:2rem}
+.sf-pipeline-panel{flex:1;min-width:0;position:relative}
+
+.sf-avatar-row{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.sf-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#EB1000,#D44A2D);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(235,16,0,.18);position:relative}
+.sf-avatar::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid rgba(235,16,0,.12);animation:ringPulse 3s ease-in-out infinite}
+.sf-avatar-info .sf-name{font-family:var(--font-display);font-size:17px}
+.sf-avatar-info .sf-meta{font-size:11px;color:var(--text-muted)}
+
+.sf-section-label{font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 8px}
+.sf-attr{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-card);cursor:pointer;transition:all .3s var(--ease);margin-bottom:5px;user-select:none}
+.sf-attr:hover{border-color:var(--border-strong);background:var(--bg-surface)}
+.sf-attr.active{border-color:var(--accent-border);background:var(--accent-soft)}
+.sf-attr .sf-attr-icon{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;background:var(--bg-surface);transition:all .3s}
+.sf-attr.active .sf-attr-icon{background:var(--accent);color:#fff!important}
+.sf-attr .sf-attr-text{flex:1}
+.sf-attr .sf-attr-name{font-size:11px;font-weight:600;color:var(--text-primary);line-height:1.3}
+.sf-attr .sf-attr-detail{font-size:9px;color:var(--text-muted);line-height:1.3}
+.sf-attr .sf-attr-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-size:9px;color:transparent;transition:all .2s;flex-shrink:0}
+.sf-attr.active .sf-attr-check{background:var(--accent);border-color:var(--accent);color:#fff}
+.sf-empty-hint{font-size:11px;color:var(--text-muted);font-style:italic;padding:12px 0}
+
+/* ═══ Message personalisation controls (profile panel) ═══ */
+.sf-mp-control{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 12px;
+}
+.sf-mp-label{
+  font-size:10px;font-weight:600;color:var(--text-primary);
+  margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:6px;
+}
+.sf-mp-val{
+  font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--accent);
+  background:var(--accent-soft);padding:2px 7px;border-radius:100px;border:1px solid var(--accent-border);
+}
+.sf-mp-val.urgent{color:#B8760C;background:#FFF8EC;border-color:#E8D5A8;animation:pulse 1.4s ease-in-out infinite}
+.sf-mp-pills{display:flex;flex-wrap:wrap;gap:4px}
+.sf-mp-pill{
+  background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:100px;padding:4px 9px;font-size:10px;font-weight:500;
+  color:var(--text-secondary);cursor:pointer;font-family:var(--font-body);
+  transition:all .2s var(--ease);
+}
+.sf-mp-pill:hover{border-color:var(--border-strong);color:var(--text-primary)}
+.sf-mp-pill.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.sf-mp-hint{font-size:9px;color:var(--text-muted);font-style:italic;margin-top:6px;line-height:1.4}
+
+/* Slider */
+.sf-mp-slider{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:4px;border-radius:2px;
+  background:linear-gradient(to right,#B8760C 0%,#B8760C 13%,var(--border-strong) 13%,var(--border-strong) 100%);
+  outline:none;margin:8px 0 4px;cursor:pointer;
+}
+.sf-mp-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--accent);border:2px solid #fff;cursor:pointer;
+  box-shadow:0 1px 3px rgba(0,0,0,.15);
+  transition:transform .15s var(--ease);
+}
+.sf-mp-slider::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.sf-mp-slider::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;
+  background:var(--accent);border:2px solid #fff;cursor:pointer;
+}
+.sf-mp-slider.urgent{background:linear-gradient(to right,#B8760C 0%,#B8760C 100%)}
+.sf-mp-slider-scale{display:flex;justify-content:space-between;font-size:8px;font-family:var(--font-mono);color:var(--text-muted);margin-top:2px}
+
+/* Urgency variant of the Selection Strategy card */
+.em-offer-card.urgent{background:linear-gradient(135deg,#FFF8EC,#FEF0D4);border-color:#E8D5A8;animation:urgentPulse 3s ease-in-out infinite}
+.em-offer-card.urgent::before{content:'SELECTION STRATEGY · URGENCY VARIANT';color:#8B6914;background:#FFF0D4}
+@keyframes urgentPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(184,118,12,0)}
+  50%{box-shadow:0 0 0 6px rgba(184,118,12,0.06)}
+}
+.em-offer-timer{
+  display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E8D5A8;
+  border-radius:6px;padding:8px 12px;margin-bottom:12px;
+}
+.em-offer-timer-icon{font-size:14px}
+.em-offer-timer-label{font-size:9px;color:#8B6914;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.em-offer-timer-val{font-family:var(--font-mono);font-size:14px;font-weight:600;color:#8B6914;margin-left:auto}
+
+/* ═══ Message-personalisation swap animations ═══ */
+/* Fade/scale transition for swapping email containers */
+#sfDynamicCard,#sfSelectionCard{
+  transition:opacity .35s var(--ease),transform .35s var(--ease);
+  will-change:opacity,transform;
+}
+#sfDynamicCard.swapping,#sfSelectionCard.swapping{
+  opacity:0;transform:translateY(-6px) scale(.97);
+}
+
+/* Spotlight halo — brief coloured glow on the parent em-section */
+.em-section.em-spotlight{
+  animation:emSpotlight 1.6s var(--ease);
+}
+@keyframes emSpotlight{
+  0%{box-shadow:inset 3px 0 0 transparent,0 0 0 0 rgba(235,16,0,0)}
+  18%{box-shadow:inset 3px 0 0 var(--accent),0 0 0 3px rgba(235,16,0,.14)}
+  55%{box-shadow:inset 3px 0 0 var(--accent),0 0 0 8px rgba(235,16,0,.07)}
+  100%{box-shadow:inset 3px 0 0 transparent,0 0 0 0 rgba(235,16,0,0)}
+}
+.em-section.em-spotlight[data-container="dynamic"]{animation-name:emSpotlightTeal}
+@keyframes emSpotlightTeal{
+  0%{box-shadow:inset 3px 0 0 transparent,0 0 0 0 rgba(26,122,92,0)}
+  18%{box-shadow:inset 3px 0 0 var(--teal),0 0 0 3px rgba(26,122,92,.18)}
+  55%{box-shadow:inset 3px 0 0 var(--teal),0 0 0 8px rgba(26,122,92,.08)}
+  100%{box-shadow:inset 3px 0 0 transparent,0 0 0 0 rgba(26,122,92,0)}
+}
+.em-section.em-spotlight[data-container="offer"]{animation-name:emSpotlightBlue}
+@keyframes emSpotlightBlue{
+  0%{box-shadow:inset 3px 0 0 transparent,0 0 0 0 rgba(43,108,176,0)}
+  18%{box-shadow:inset 3px 0 0 var(--blue),0 0 0 3px rgba(43,108,176,.18)}
+  55%{box-shadow:inset 3px 0 0 var(--blue),0 0 0 8px rgba(43,108,176,.08)}
+  100%{box-shadow:inset 3px 0 0 transparent,0 0 0 0 rgba(43,108,176,0)}
+}
+
+/* Right-panel card pulse — synchronized with the swap */
+.sf-email-container.em-pulse{
+  animation:ecPulse 1.6s var(--ease);
+}
+@keyframes ecPulse{
+  0%{box-shadow:0 0 0 0 rgba(30,26,21,.03)}
+  25%{box-shadow:0 4px 20px rgba(43,108,176,.22),0 0 0 2px rgba(43,108,176,.35)}
+  60%{box-shadow:0 2px 10px rgba(43,108,176,.12),0 0 0 1px rgba(43,108,176,.15)}
+  100%{box-shadow:0 1px 3px rgba(30,26,21,.03)}
+}
+
+/* Small "CHANGED" tag that briefly appears next to the swapped content */
+.em-change-badge{
+  position:absolute;top:12px;right:12px;z-index:5;
+  font-size:8px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  padding:3px 8px;border-radius:100px;
+  background:#fff;border:1px solid currentColor;
+  opacity:0;transform:translateY(-4px);
+  animation:changeBadge 1.6s var(--ease);pointer-events:none;
+}
+.em-change-badge.dynamic{color:var(--teal)}
+.em-change-badge.offer{color:var(--blue)}
+@keyframes changeBadge{
+  0%{opacity:0;transform:translateY(-4px) scale(.9)}
+  15%{opacity:1;transform:translateY(0) scale(1)}
+  70%{opacity:1;transform:translateY(0) scale(1)}
+  100%{opacity:0;transform:translateY(-2px) scale(.95)}
+}
+
+/* Connector line flash on swap */
+.sf-email-connectors path.em-flash{
+  animation:connFlash 1.6s var(--ease);
+}
+@keyframes connFlash{
+  0%{opacity:.18;stroke-width:1.5}
+  20%{opacity:1;stroke-width:3}
+  60%{opacity:.6;stroke-width:2.2}
+  100%{opacity:.18;stroke-width:1.5}
+}
+
+/* Two-column flow: journeys + paths side by side */
+.sf-flow-row{display:flex;gap:0;align-items:flex-start;position:relative}
+.sf-journeys-col{width:340px;flex-shrink:0;position:relative;z-index:2}
+.sf-paths-col{flex:1;min-width:0;padding-left:24px;position:relative;z-index:2}
+.sf-connector-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+
+.sf-phase-label{font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sf-phase-num{width:20px;height:20px;border-radius:50%;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--text-muted);transition:all .3s}
+.sf-phase-num.active{background:var(--accent);color:#fff}
+
+.sf-formula-bar{background:var(--bg-surface);border-radius:var(--radius-xs);padding:6px 10px;font-family:var(--font-mono);font-size:9px;color:var(--accent);line-height:1.5;border-left:3px solid var(--accent);margin-bottom:12px}
+
+/* Journey cards with reorder animation */
+.sf-journey-list{position:relative}
+.sf-journey{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-card);transition:transform .55s var(--ease),opacity .4s,border-color .3s,background .3s,box-shadow .3s;position:relative;margin-bottom:6px;cursor:default}
+.sf-journey.dimmed{opacity:.28}
+.sf-journey.selected{border-color:var(--accent-border);background:var(--accent-soft);box-shadow:0 4px 16px rgba(235,16,0,.08);cursor:pointer}
+.sf-journey.selected:hover{box-shadow:0 6px 24px rgba(235,16,0,.12)}
+.sf-journey.selected::after{content:'Click to explore paths →';position:absolute;right:14px;bottom:4px;font-size:8px;color:var(--accent);opacity:.6;font-style:italic}
+.sf-journey.expanded::after{content:''}
+.sf-journey .sf-j-rank{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--bg-surface);color:var(--text-muted);flex-shrink:0;transition:all .3s}
+.sf-journey.selected .sf-j-rank,.sf-journey.expanded .sf-j-rank{background:var(--accent);color:#fff}
+.sf-journey .sf-j-info{flex:1;min-width:0}
+.sf-journey .sf-j-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.sf-journey .sf-j-desc{font-size:10px;color:var(--text-muted);margin-top:1px}
+.sf-journey .sf-j-score-wrap{text-align:right;flex-shrink:0;min-width:70px}
+.sf-journey .sf-j-score{font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--text-muted);transition:color .3s}
+.sf-journey.selected .sf-j-score,.sf-journey.expanded .sf-j-score{color:var(--accent)}
+.sf-journey .sf-j-bar{width:70px;height:4px;background:var(--bg-surface);border-radius:2px;margin-top:4px;overflow:hidden}
+.sf-journey .sf-j-bar-fill{height:100%;border-radius:2px;background:var(--border-strong);transition:width .8s var(--ease),background .3s}
+.sf-journey.selected .sf-j-bar-fill,.sf-journey.expanded .sf-j-bar-fill{background:var(--accent)}
+.sf-j-multiplier{font-size:8px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px}
+.sf-contrib{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.sf-contrib-tag{font-size:8px;padding:2px 7px;border-radius:100px;font-weight:500;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border);transition:all .35s var(--ease)}
+.sf-contrib-tag.amber{background:var(--amber-soft);color:var(--amber);border-color:var(--amber-border)}
+.sf-contrib-tag.blue{background:var(--blue-soft);color:var(--blue);border-color:var(--blue-border)}
+.sf-contrib-tag.teal{background:var(--teal-soft);color:var(--teal);border-color:var(--teal-border)}
+.sf-contrib-tag.coral{background:var(--coral-soft);color:var(--coral);border-color:var(--coral-border)}
+
+/* Path cards with FLIP reorder animation */
+.sf-paths-intro{font-size:11px;color:var(--text-muted);font-style:italic;padding:20px 0;text-align:center}
+.sf-path-list{position:relative}
+.sf-path{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-card);margin-bottom:6px;transition:transform .55s var(--ease),opacity .4s,border-color .3s,background .3s,box-shadow .3s}
+.sf-path.dimmed{opacity:.22}
+.sf-path.selected{border-color:var(--accent-border);background:var(--accent-soft);box-shadow:0 4px 16px rgba(235,16,0,.08)}
+.sf-path .sf-p-rank{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;font-weight:600;background:var(--bg-surface);color:var(--text-muted);flex-shrink:0;margin-top:2px;transition:all .3s}
+.sf-path.selected .sf-p-rank{background:var(--accent);color:#fff}
+.sf-path .sf-p-info{flex:1;min-width:0}
+.sf-path .sf-p-name{font-size:12px;font-weight:600;color:var(--text-primary)}
+.sf-path .sf-p-actions{font-size:9px;color:var(--text-muted);margin-top:2px;line-height:1.4}
+.sf-path .sf-p-desc{font-size:9px;color:var(--text-muted);font-style:italic;margin-top:2px}
+.sf-path .sf-p-score{font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--text-muted);flex-shrink:0;transition:color .3s}
+.sf-path.selected .sf-p-score{color:var(--accent)}
+.sf-path .sf-p-contrib{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.sf-p-ctag{font-size:7px;padding:2px 6px;border-radius:100px;font-weight:500;display:inline-flex;align-items:center;gap:3px;transition:all .3s}
+.sf-p-ctag .cdot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.sf-p-no-boost{font-size:8px;color:var(--text-muted);font-style:italic;margin-top:6px}
+
+/* Reorder animation class */
+.sf-reordering{transition:transform .55s var(--ease)!important}
+
+.sf-connector-line{fill:none;stroke:var(--accent);stroke-width:2;stroke-opacity:.2;transition:stroke-opacity .4s}
+.sf-connector-line.active{stroke-opacity:.5;stroke-width:2.5}
+
+/* Phase 3+4 row */
+.sf-lower-row{display:flex;gap:20px;margin-top:20px;align-items:flex-start}
+.sf-lower-row .sf-phase-panel{flex:1;min-width:0}
+.sf-phase-panel.locked{opacity:.35;pointer-events:none}
+.sf-phase-panel.locked .sf-phase-num{background:var(--bg-surface);color:var(--text-muted)}
+
+/* Channel cards */
+.sf-channel{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-card);margin-bottom:6px;transition:all .45s var(--ease);cursor:default}
+.sf-channel.selected{border-color:var(--teal-border);background:var(--teal-soft);box-shadow:0 4px 16px rgba(26,122,92,.08)}
+.sf-channel.dimmed{opacity:.25}
+.sf-channel .sf-ch-icon{width:32px;height:32px;border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:var(--bg-surface)}
+.sf-channel.selected .sf-ch-icon{background:var(--teal);color:#fff}
+.sf-channel .sf-ch-info{flex:1}
+.sf-channel .sf-ch-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.sf-channel .sf-ch-detail{font-size:9px;color:var(--text-muted);margin-top:1px}
+.sf-channel .sf-ch-bar-wrap{width:100px;flex-shrink:0}
+.sf-channel .sf-ch-bar{height:4px;background:var(--bg-surface);border-radius:2px;overflow:hidden}
+.sf-channel .sf-ch-bar-fill{height:100%;border-radius:2px;transition:width .8s var(--ease)}
+.sf-channel .sf-ch-score{font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--text-muted);min-width:36px;text-align:right;flex-shrink:0;transition:color .3s}
+.sf-channel.selected .sf-ch-score{color:var(--teal)}
+.sf-ch-contrib{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+
+/* Send time heatmap */
+.sf-st-heatmap{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;margin:10px 0}
+.sf-st-cell{height:36px;border-radius:4px;transition:all .5s var(--ease);cursor:default;position:relative}
+.sf-st-cell.peak{outline:2px solid var(--accent);outline-offset:-1px;z-index:1}
+.sf-st-cell:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--text-primary);color:var(--bg-cream);font-size:9px;padding:3px 8px;border-radius:4px;white-space:nowrap;z-index:20;font-family:var(--font-mono)}
+.sf-st-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);font-family:var(--font-mono);padding:0 1px}
+.sf-st-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.sf-st-metric{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+.sf-st-metric .stm-label{font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.sf-st-metric .stm-value{font-size:22px;font-weight:600}
+.sf-st-bar{height:4px;background:var(--bg-surface);border-radius:2px;margin-top:6px;overflow:hidden}
+.sf-st-bar-fill{height:100%;border-radius:2px;transition:width .8s var(--ease)}
+.sf-selected-banner{background:var(--teal-soft);border:1px solid var(--teal-border);border-radius:var(--radius);padding:14px 18px;margin-top:12px}
+.sf-selected-banner h4{font-family:var(--font-display);font-size:15px;font-weight:400;color:var(--teal);margin-bottom:3px}
+.sf-selected-banner p{font-size:11px;color:var(--text-secondary);line-height:1.55}
+
+@media(max-width:900px){
+.sf-container{flex-direction:column}
+.sf-profile-panel{width:100%;position:static}
+.sf-flow-row{flex-direction:column}
+.sf-journeys-col{width:100%}
+.sf-paths-col{padding-left:0;padding-top:16px}
+.sf-connector-svg{display:none}
+.sf-lower-row{flex-direction:column}
+}
+
+/* ─── NEW: Pipeline header + stepper ─── */
+.sf-pipeline-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;gap:16px;flex-wrap:wrap;
+}
+.sf-pipeline-title{
+  font-size:11px;font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:1px;
+  display:flex;align-items:center;gap:8px;
+}
+.sf-pipeline-title::before{
+  content:'';display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--accent);
+}
+.sf-pipeline-badges{display:flex;gap:8px;flex-wrap:wrap}
+.sf-pipe-badge{
+  font-size:10px;font-family:var(--font-mono);color:var(--text-secondary);
+  background:var(--bg-card);border:1px solid var(--border);
+  padding:4px 10px;border-radius:100px;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:all .3s var(--ease);
+}
+.sf-pipe-badge.accent{color:var(--accent);border-color:var(--accent-border);background:var(--accent-soft)}
+.sf-pipe-badge.teal{color:var(--teal);border-color:var(--teal-border);background:var(--teal-soft)}
+.sf-pipe-badge .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7}
+.sf-pipe-badge.accent .dot{animation:pulse 2s infinite}
+
+/* The stepper itself */
+.sf-pipeline-stepper{
+  display:flex;align-items:flex-start;gap:0;
+  padding:16px 22px;margin-bottom:22px;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);
+  position:relative;overflow:hidden;
+}
+.sf-pipeline-stepper::before{
+  /* subtle grain texture for character */
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at top left,var(--accent-dim) 0%,transparent 50%);
+  opacity:.5;
+}
+.sf-step{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  min-width:0;position:relative;z-index:1;flex-shrink:0;
+  transition:all .35s var(--ease);
+}
+.sf-step-circle{
+  width:34px;height:34px;border-radius:50%;
+  border:1.5px solid var(--border-strong);background:var(--bg-card);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--text-muted);
+  transition:all .4s var(--ease);
+}
+.sf-step.active .sf-step-circle{
+  background:var(--accent);border-color:var(--accent);color:#fff;
+  box-shadow:0 0 0 5px var(--accent-glow);
+}
+.sf-step.active .sf-step-circle::before{
+  content:'';position:absolute;width:44px;height:44px;border-radius:50%;
+  border:1.5px solid var(--accent);opacity:.35;animation:ringPulse 2s ease-out infinite;
+}
+.sf-step.complete .sf-step-circle{
+  background:var(--teal);border-color:var(--teal);color:#fff;
+}
+.sf-step.complete .sf-step-circle::after{
+  content:'✓';font-size:14px;font-family:var(--font-body);font-weight:600;
+}
+.sf-step.complete .sf-step-num{display:none}
+.sf-step-label{
+  font-size:10.5px;font-weight:600;color:var(--text-muted);
+  letter-spacing:.2px;transition:color .3s;white-space:nowrap;
+}
+.sf-step-sub{
+  font-size:8.5px;color:var(--text-muted);font-family:var(--font-mono);
+  opacity:.6;letter-spacing:.3px;transition:opacity .3s;white-space:nowrap;
+}
+.sf-step.active .sf-step-label{color:var(--accent)}
+.sf-step.active .sf-step-sub{opacity:.85;color:var(--accent)}
+.sf-step.complete .sf-step-label{color:var(--teal)}
+.sf-step.complete .sf-step-sub{color:var(--teal);opacity:.7}
+.sf-step-connector{
+  flex:1;height:2px;background:var(--border-strong);
+  margin-top:17px;min-width:30px;
+  transition:background .5s var(--ease);position:relative;
+}
+.sf-step-connector::after{
+  content:'';position:absolute;left:0;top:0;height:100%;width:0;
+  background:var(--teal);transition:width .6s var(--ease);
+}
+.sf-step-connector.complete::after{width:100%}
+.sf-step-connector.active::after{width:50%;background:linear-gradient(90deg,var(--teal) 0%,var(--accent) 100%)}
+
+/* ─── NEW: Enhanced formula bar with P × C × V × L ─── */
+.sf-formula-expr{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);line-height:1.5}
+.sf-formula-expr .sf-f-kw{color:var(--text-muted);margin-right:4px}
+.sf-f-term{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:22px;padding:0 6px;border-radius:5px;
+  font-family:var(--font-mono);font-size:11px;font-weight:600;
+  cursor:help;position:relative;transition:all .25s var(--ease);
+}
+.sf-f-term.p{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border)}
+.sf-f-term.c{background:var(--blue-soft);color:var(--blue);border:1px solid var(--blue-border)}
+.sf-f-term.v{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal-border)}
+.sf-f-term.l{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-border)}
+.sf-f-term:hover::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:var(--text-primary);color:var(--bg-cream);font-size:9px;padding:5px 9px;border-radius:5px;
+  white-space:nowrap;z-index:30;font-family:var(--font-body);font-weight:500;pointer-events:none;
+}
+.sf-f-op{color:var(--text-muted);font-size:11px;padding:0 1px}
+.sf-f-eq{color:var(--text-muted);font-size:11px;padding:0 4px}
+.sf-f-result{color:var(--accent);font-weight:700;font-size:12px}
+.sf-formula-bar{
+  background:var(--bg-card);border-radius:var(--radius-sm);
+  padding:8px 12px;border:1px solid var(--accent-border);
+  border-left:3px solid var(--accent);margin-bottom:12px;
+}
+.sf-formula-legend{
+  display:flex;gap:10px;margin-top:6px;font-size:9px;color:var(--text-muted);flex-wrap:wrap;
+}
+.sf-formula-legend span{display:inline-flex;align-items:center;gap:4px}
+.sf-formula-legend .ldot{width:6px;height:6px;border-radius:50%}
+
+/* ─── NEW: NBA Issue pill on journeys ─── */
+.sf-j-issue{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:8px;font-weight:600;font-family:var(--font-mono);
+  padding:2px 7px;border-radius:100px;letter-spacing:.5px;
+  text-transform:uppercase;margin-bottom:3px;
+}
+.sf-j-issue.sales{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border)}
+.sf-j-issue.retention{background:var(--coral-soft);color:var(--coral);border:1px solid var(--coral-border)}
+.sf-j-issue.nurture{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal-border)}
+.sf-j-issue.service{background:var(--blue-soft);color:var(--blue);border:1px solid var(--blue-border)}
+.sf-j-issue.resilience{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-border)}
+.sf-j-issue::before{content:'';width:4px;height:4px;border-radius:50%;background:currentColor}
+
+/* ─── NEW: "NEW" badge for agentic signal ─── */
+.sf-new-badge{
+  display:inline-flex;align-items:center;font-size:7.5px;
+  font-weight:700;letter-spacing:.8px;padding:2px 6px;border-radius:100px;
+  background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-border);
+  margin-left:6px;vertical-align:middle;
+}
+
+/* ─── NEW: Channel group labels ─── */
+.sf-ch-group-label{
+  font-size:9px;font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.8px;
+  margin:12px 0 6px;padding-left:2px;
+  display:flex;align-items:center;gap:6px;
+}
+.sf-ch-group-label:first-child{margin-top:0}
+.sf-ch-group-label::before{content:'';width:3px;height:10px;border-radius:2px}
+.sf-ch-group-label.inbound::before{background:var(--teal)}
+.sf-ch-group-label.outbound::before{background:var(--blue)}
+.sf-ch-group-label.agent::before{background:var(--amber)}
+
+/* Inline per-row group tag on channel cards */
+.sf-ch-group-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:8px;font-weight:600;font-family:var(--font-mono);
+  padding:2px 7px;border-radius:100px;letter-spacing:.6px;
+  text-transform:uppercase;margin-bottom:4px;
+}
+.sf-ch-group-tag.inbound{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal-border)}
+.sf-ch-group-tag.outbound{background:var(--blue-soft);color:var(--blue);border:1px solid var(--blue-border)}
+.sf-ch-group-tag.agent{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-border)}
+.sf-ch-group-tag::before{content:'';width:4px;height:4px;border-radius:50%;background:currentColor}
+
+@media(max-width:1100px){
+.sf-pipeline-stepper{padding:12px 14px}
+.sf-step-sub{display:none}
+.sf-step-connector{min-width:12px}
+}
+@media(max-width:700px){
+.sf-pipeline-stepper{flex-wrap:wrap;gap:10px 4px}
+.sf-step-connector{display:none}
+.sf-step{width:auto}
+.sf-pipeline-header{flex-direction:column;align-items:flex-start}
+}
+
+/* ═══ NEW: Journey/Path Formula Builder + Simulate ═══ */
+.sf-fb-block{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;
+}
+.sf-fb-header,.sf-sim-header{
+  font-size:10px;font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;
+  font-family:var(--font-mono);
+}
+.sf-fb-header .sf-fb-num,.sf-sim-header .sf-sim-num{
+  display:inline-block;width:16px;height:16px;border-radius:50%;
+  background:var(--bg-surface);color:var(--text-muted);
+  text-align:center;line-height:16px;font-size:9px;margin-right:6px;
+  font-family:var(--font-mono);
+}
+.sf-fb-rules{display:flex;flex-direction:column;gap:0}
+.sf-fb-rule{
+  display:flex;align-items:center;gap:14px;
+  background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 14px;
+  transition:all .3s var(--ease);position:relative;
+}
+.sf-fb-rule.active{background:var(--bg-card);border-color:var(--border-strong);box-shadow:0 1px 4px rgba(30,26,21,.04)}
+.sf-fb-rule.not-firing{opacity:.5}
+.sf-fb-rule[data-rule-color="journey"].active{border-color:var(--blue-border);background:var(--blue-soft)}
+.sf-fb-rule[data-rule-color="profile"].active{border-color:var(--teal-border);background:var(--teal-soft)}
+.sf-fb-rule[data-rule-color="external"].active{border-color:#9B7AE0;background:#F3EEFC}
+.sf-fb-rule[data-rule-color="business"].active{border-color:var(--accent-border);background:var(--accent-soft)}
+.sf-fb-rule[data-rule-color="amber"].active{border-color:var(--amber-border);background:var(--amber-soft)}
+
+.sf-fb-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:9px;font-weight:600;font-family:var(--font-mono);
+  padding:3px 10px;border-radius:100px;letter-spacing:.3px;flex-shrink:0;
+}
+.sf-fb-tag::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+.sf-fb-tag.journey{background:var(--blue-soft);color:var(--blue);border:1px solid var(--blue-border)}
+.sf-fb-tag.profile{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal-border)}
+.sf-fb-tag.external{background:#F3EEFC;color:#7B5CC7;border:1px solid #D8CCEF}
+.sf-fb-tag.business{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-border)}
+.sf-fb-tag.amber{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-border)}
+
+.sf-fb-name{
+  font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-primary);
+  flex-shrink:0;
+}
+.sf-fb-cond{flex:1;min-width:0;font-size:11px;color:var(--text-muted);font-style:italic}
+.sf-fb-cond .sf-fb-cond-val{color:var(--text-secondary);font-style:normal;font-family:var(--font-mono);font-weight:500}
+.sf-fb-op{
+  font-family:var(--font-mono);font-size:12px;font-weight:600;
+  padding:5px 11px;border-radius:5px;flex-shrink:0;letter-spacing:.3px;
+}
+.sf-fb-op.eq{background:var(--blue);color:#fff}
+.sf-fb-op.add{background:var(--teal);color:#fff}
+.sf-fb-op.mult{background:#7B5CC7;color:#fff}
+.sf-fb-op.add-red{background:var(--accent);color:#fff}
+.sf-fb-op.mult-blue{background:var(--blue);color:#fff}
+.sf-fb-op.mult-amber{background:var(--amber);color:#fff}
+
+.sf-fb-connector{
+  display:block;text-align:center;font-size:9px;font-family:var(--font-mono);
+  color:var(--text-muted);padding:4px 0;letter-spacing:1px;font-weight:600;
+}
+
+.sf-fb-expr{
+  background:var(--blue-soft);border:1px solid var(--blue-border);
+  border-radius:var(--radius-sm);padding:12px 18px;margin-top:14px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.sf-fb-expr-label{font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-mono);margin-bottom:3px}
+.sf-fb-expr-text{font-family:var(--font-mono);font-size:12px;color:var(--text-primary);line-height:1.5}
+.sf-fb-expr-val{font-family:var(--font-display);font-size:36px;font-weight:400;color:var(--blue);letter-spacing:-1px;line-height:1;flex-shrink:0}
+
+/* Simulate panel */
+.sf-sim-block{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px 20px;margin-bottom:22px;
+}
+.sf-sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sf-sim-card{
+  background:var(--bg-surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:14px 16px;
+  transition:all .3s var(--ease);
+}
+.sf-sim-card.firing{background:var(--bg-card);border-color:var(--teal-border)}
+.sf-sim-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.sf-sim-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:600;font-family:var(--font-mono);
+  color:var(--text-secondary);letter-spacing:.2px;
+}
+.sf-sim-tag .sf-sim-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.sf-sim-tag.profile .sf-sim-dot{background:var(--teal)}
+.sf-sim-tag.external .sf-sim-dot{background:#7B5CC7}
+.sf-sim-tag.business .sf-sim-dot{background:var(--accent)}
+.sf-sim-tag.context .sf-sim-dot{background:var(--amber)}
+.sf-sim-tag.journey .sf-sim-dot{background:var(--blue)}
+
+.sf-sim-status{
+  font-size:8.5px;font-family:var(--font-mono);font-weight:600;
+  padding:3px 8px;border-radius:100px;letter-spacing:.4px;
+  background:var(--bg-surface);color:var(--text-muted);border:1px solid var(--border);
+  text-transform:uppercase;
+}
+.sf-sim-status.firing{background:var(--teal-soft);color:var(--teal);border-color:var(--teal-border)}
+.sf-sim-status.not-firing{background:var(--bg-surface);color:var(--text-muted)}
+.sf-sim-desc{font-size:11px;color:var(--text-secondary);line-height:1.5;margin-bottom:10px;font-style:italic}
+.sf-sim-controls{display:flex;gap:6px;flex-wrap:wrap}
+.sf-sim-btn{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-xs);padding:6px 12px;font-size:11px;font-weight:500;
+  color:var(--text-secondary);cursor:pointer;font-family:var(--font-body);
+  transition:all .2s var(--ease);
+}
+.sf-sim-btn:hover{border-color:var(--border-strong);color:var(--text-primary)}
+.sf-sim-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.sf-sim-card[data-sim-color="business"] .sf-sim-btn.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.sf-sim-card[data-sim-color="journey"] .sf-sim-btn.active{background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
+.sf-sim-card[data-sim-color="context"] .sf-sim-btn.active{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
+.sf-sim-readout{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--text-secondary);font-family:var(--font-mono);
+  padding:6px 10px;background:var(--bg-card);border:1px dashed var(--border);border-radius:var(--radius-xs);
+}
+.sf-sim-readout .sf-sim-readval{font-weight:600;color:var(--text-primary)}
+
+@media(max-width:900px){
+.sf-sim-grid{grid-template-columns:1fr}
+.sf-fb-rule{flex-wrap:wrap}
+.sf-fb-cond{flex:1 1 100%;order:3}
+}
+
+/* ═══ Collapsible blocks (Formula Builder + Simulate) ═══ */
+.sf-collapsible .sf-fb-header,
+.sf-collapsible .sf-sim-header{
+  cursor:pointer;display:flex;align-items:center;
+  user-select:none;position:relative;padding-right:32px;
+  transition:color .2s var(--ease);
+}
+.sf-collapsible .sf-fb-header:hover,
+.sf-collapsible .sf-sim-header:hover{color:var(--text-primary)}
+.sf-collapse-chev{
+  position:absolute;right:0;top:50%;transform:translateY(-50%);
+  font-size:10px;color:var(--text-muted);
+  transition:transform .25s var(--ease);
+  width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:var(--bg-surface);
+  font-family:var(--font-body);
+}
+.sf-collapsible[data-collapsed="true"] .sf-collapse-chev{
+  transform:translateY(-50%) rotate(-90deg);
+}
+.sf-collapsible[data-collapsed="true"] .sf-collapsible-inner{display:none}
+.sf-collapsible[data-collapsed="true"] .sf-fb-header,
+.sf-collapsible[data-collapsed="true"] .sf-sim-header{margin-bottom:0}
+.sf-collapsible[data-collapsed="true"] .sf-fb-expr{margin-top:10px}
+
+/* ─── EMAIL MOCKUP ─── */
+.sf-email-phase{margin-top:24px;transition:all .5s var(--ease)}
+.sf-email-phase.locked{opacity:.35;pointer-events:none}
+.sf-email-phase.locked .sf-phase-num{background:var(--bg-surface);color:var(--text-muted)}
+.sf-email-wrap{display:flex;gap:24px;align-items:flex-start;position:relative}
+.sf-email-connectors{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;z-index:0;overflow:visible;
+}
+.sf-email-connectors path{
+  fill:none;stroke-width:1.5;stroke-linecap:round;
+  opacity:.18;transition:opacity .35s var(--ease),stroke-width .3s var(--ease);
+}
+.sf-email-connectors path.active{opacity:.9;stroke-width:2.5}
+.sf-email-connectors .sf-ec-dot{
+  transition:r .3s var(--ease),opacity .3s var(--ease);
+  opacity:.35;
+}
+.sf-email-connectors .sf-ec-dot.active{opacity:1;r:5}
+.sf-email-device,.sf-email-breakdown{position:relative;z-index:1}
+.sf-email-device{flex-shrink:0;width:420px;background:#f5f3ee;border-radius:16px;padding:12px;box-shadow:0 4px 24px rgba(30,26,21,.08);border:1px solid var(--border)}
+.sf-email-topbar{display:flex;align-items:center;gap:6px;padding:6px 8px 10px;border-bottom:1px solid var(--border);margin-bottom:0}
+.sf-email-dot{width:8px;height:8px;border-radius:50%}
+.sf-email-subject-bar{flex:1;text-align:center;font-size:10px;color:var(--text-muted);font-weight:500}
+.sf-email-body{background:#fff;border-radius:8px;overflow:hidden}
+.sf-email-header{background:linear-gradient(135deg,#0B3D2E,#145A3E);padding:20px 24px;position:relative}
+.sf-email-logo{font-size:16px;font-weight:700;color:#fff;font-family:var(--font-display);letter-spacing:.5px;margin-bottom:2px}
+.sf-email-logo-sub{font-size:9px;color:rgba(255,255,255,.55);letter-spacing:1.5px;text-transform:uppercase}
+.sf-email-nav{display:flex;gap:14px;margin-top:12px}
+.sf-email-nav a{font-size:9px;color:rgba(255,255,255,.7);text-decoration:none;font-weight:500}
+
+.em-section{padding:20px 24px;border-bottom:1px solid #f0ede6;position:relative;transition:all .3s var(--ease);cursor:default}
+.em-section:last-child{border-bottom:none}
+.em-section:hover{background:rgba(235,16,0,.02)}
+.em-section.em-highlight{background:rgba(235,16,0,.04);box-shadow:inset 3px 0 0 var(--accent)}
+
+.em-greeting{font-family:var(--font-display);font-size:20px;color:#1a1a1a;margin-bottom:6px}
+.em-greeting .em-hl{color:var(--accent);font-style:italic}
+.em-body-text{font-size:12px;color:#555;line-height:1.7}
+.em-body-text strong{color:#1a1a1a}
+.em-tier-badge{display:inline-flex;align-items:center;gap:4px;background:#FFF8EC;border:1px solid #E8D5A8;border-radius:100px;padding:2px 10px;font-size:9px;font-weight:600;color:#8B6914;margin-left:4px}
+
+.em-hero-banner{background:linear-gradient(135deg,#0B3D2E,#1A7A5C);padding:24px;border-radius:8px;margin:0 0 4px;position:relative;overflow:hidden}
+.em-hero-banner::after{content:'';position:absolute;top:-20px;right:-20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.04)}
+.em-hero-title{font-family:var(--font-display);font-size:22px;color:#fff;margin-bottom:6px}
+.em-hero-rate{font-size:36px;font-weight:600;color:#3dd9a8;font-family:var(--font-mono)}
+.em-hero-sub{font-size:11px;color:rgba(255,255,255,.65);margin-top:4px}
+
+/* Service-awareness card (Savings Goals — underused feature) */
+.em-service-card{background:#F4F8F7;border:1px solid #DBE9E4;border-radius:8px;padding:18px 20px;margin:0 0 4px;position:relative;overflow:hidden}
+.em-service-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:#1A7A5C}
+.em-service-label{font-size:9px;font-weight:600;color:#1A7A5C;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.em-service-title{font-family:var(--font-display);font-size:22px;color:#0B3D2E;margin-bottom:8px;line-height:1.2}
+.em-service-body{font-size:12px;color:#4B5560;line-height:1.6;margin-bottom:12px}
+.em-service-meta{display:flex;flex-direction:column;gap:4px}
+.em-service-meta-item{display:flex;align-items:center;gap:8px;font-size:10px;color:#4B5560}
+.em-service-dot{width:6px;height:6px;border-radius:50%;background:#1A7A5C;flex-shrink:0}
+
+.em-context-card{background:#FAFAF6;border:1px solid #EDE9DF;border-radius:8px;padding:16px;margin:4px 0}
+.em-context-title{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.em-context-title .em-ctx-icon{font-size:12px}
+.em-context-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.em-ctx-item{display:flex;flex-direction:column;gap:1px}
+.em-ctx-label{font-size:9px;color:var(--text-muted)}
+.em-ctx-value{font-size:13px;font-weight:600;color:#1a1a1a}
+.em-ctx-value.highlight{color:var(--accent)}
+
+.em-offer-card{background:linear-gradient(135deg,#F0F5F9,#E4EEF5);border:1px solid #C7D6E3;border-radius:8px;padding:18px;position:relative;overflow:hidden}
+.em-offer-card::before{content:'SELECTION STRATEGY';position:absolute;top:8px;right:8px;font-size:7px;font-weight:700;color:#2B6CB0;letter-spacing:1px;background:#DDE8F3;padding:2px 8px;border-radius:100px}
+.em-offer-title{font-family:var(--font-display);font-size:16px;font-weight:400;color:#0B2B4A;margin-bottom:6px;padding-right:110px;line-height:1.3}
+.em-offer-body{font-size:11px;color:#4B5560;line-height:1.6;margin-bottom:12px}
+.em-offer-savings{display:flex;align-items:baseline;gap:6px;margin-bottom:14px}
+.em-offer-amount{font-size:28px;font-weight:600;color:#145A3E;font-family:var(--font-mono)}
+.em-offer-period{font-size:10px;color:var(--text-muted);font-style:italic}
+
+.em-cta-btn{display:inline-block;background:#1A7A5C;color:#fff;padding:10px 20px;border-radius:100px;font-size:12px;font-weight:600;text-decoration:none;letter-spacing:.3px}
+.em-cta-secondary{display:inline-block;margin-left:10px;color:#4B5560;font-size:11px;text-decoration:underline}
+
+.em-footer{background:#F8F6F0;padding:16px 24px;font-size:9px;color:#999;line-height:1.6;border-top:1px solid #EDE9DF}
+.em-footer-links{margin-bottom:6px}
+.em-footer-links a{color:#888;text-decoration:underline;margin-right:10px}
+
+/* Annotation markers */
+.em-annotation{position:absolute;right:-8px;top:50%;transform:translate(100%,-50%);display:flex;align-items:center;gap:6px;white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none}
+.em-section:hover .em-annotation{opacity:1}
+.em-ann-line{width:24px;height:1px;background:var(--accent)}
+.em-ann-tag{font-size:8px;font-weight:600;padding:3px 8px;border-radius:100px;color:#fff;letter-spacing:.3px}
+.em-ann-tag.profile{background:#EB1000}
+.em-ann-tag.dynamic{background:#1A7A5C}
+.em-ann-tag.context{background:#2B6CB0}
+.em-ann-tag.offer{background:#B8760C}
+.em-ann-tag.decisioning{background:#534AB7}
+
+/* Annotation legend below */
+.sf-email-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+.sf-email-legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-secondary)}
+.sf-email-legend-dot{width:8px;height:8px;border-radius:50%}
+
+/* Right panel: container breakdown */
+.sf-email-breakdown{flex:1;min-width:0}
+.sf-email-container{padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-card);margin-bottom:8px;transition:all .3s var(--ease);cursor:default}
+.sf-email-container:hover{border-color:var(--accent-border);box-shadow:0 4px 14px rgba(30,26,21,.06)}
+.sf-email-container.active{border-color:var(--accent-border);background:var(--accent-soft)}
+.sf-ec-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sf-ec-badge{font-size:7px;font-weight:700;padding:2px 7px;border-radius:100px;color:#fff;letter-spacing:.3px}
+.sf-ec-name{font-size:12px;font-weight:600;color:var(--text-primary)}
+.sf-ec-desc{font-size:10px;color:var(--text-secondary);line-height:1.5}
+.sf-ec-source{font-size:9px;color:var(--text-muted);margin-top:4px;font-style:italic;display:flex;align-items:center;gap:4px}
+.sf-ec-source::before{content:'';width:10px;height:1px;background:var(--text-muted)}
+
+@media(max-width:900px){
+.sf-email-wrap{flex-direction:column}
+.sf-email-device{width:100%;max-width:420px}
+.em-annotation{display:none!important}
+}
+
+/* ─── IMPACT ─── */
+.impact-section{padding:6rem 2rem;max-width:1100px;margin:0 auto;opacity:0;transform:translateY(40px);transition:all .8s var(--ease)}
+.impact-section.visible{opacity:1;transform:translateY(0)}
+.impact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:2rem}
+.impact-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;text-align:center;transition:all .35s var(--ease);box-shadow:0 1px 3px rgba(30,26,21,.03)}
+.impact-card:hover{border-color:var(--accent-border);transform:translateY(-4px);box-shadow:0 8px 24px rgba(30,26,21,.06)}
+.impact-number{font-family:var(--font-display);font-size:40px;font-weight:400;margin-bottom:4px}
+.impact-label{font-size:13px;color:var(--text-secondary);font-weight:500}
+.impact-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+/* ─── FOOTER ─── */
+.footer{padding:4rem 2rem;text-align:center;border-top:1px solid var(--border)}
+.footer p{font-size:12px;color:var(--text-muted)}
+
+/* ─── PROPENSITY ROW ─── */
+.propensity-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.propensity-row .bar-track{flex:1}
+.propensity-label{font-family:var(--font-mono);font-size:12px;color:var(--text-muted);min-width:70px;text-align:right}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes scrollPulse{0%{opacity:.3;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}100%{opacity:.3;transform:scaleY(.6)}}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:768px){
+.profile-block{flex-direction:column}
+.time-heatmap{grid-template-columns:repeat(12,1fr)}
+.path-flow{flex-direction:column;align-items:flex-start}
+.path-arrow{transform:rotate(90deg);margin:4px 0 4px 20px}
+.stage-header{flex-direction:column;gap:12px}
+.hero h1{font-size:2.2rem}
+.channel-bar{width:80px}
+.journey-bar{width:80px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+<div class="hero-badge"><span class="dot"></span> Adobe Journey Optimizer</div>
+<h1>The anatomy of a <em>decision</em><span class="hero-period">.</span></h1>
+<p>Optimise and prioritise every layer of the customer experience — from journey selection to last-mile message personalisation — to maximise conversion.</p>
+<a href="#overview" class="hero-cta">Explore the pipeline <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+<div class="scroll-hint"><span>Scroll</span><div class="scroll-line"></div></div>
+</section>
+
+<!-- ═══ INTERACTIVE CASCADE ═══ -->
+<section class="cascade-section" id="overview">
+<div class="section-label">The framework</div>
+<h2 class="section-title">Six layers of optimisation</h2>
+<p class="section-desc">See how profile attributes, product propensities, and business formulas cascade through every decisioning layer. Switch views to explore the detailed controls or visualise the end-to-end data flow.</p>
+
+<!-- VIEW TOGGLE -->
+<div class="view-toggle">
+<button class="view-toggle-btn" onclick="switchView('cascade',this)">Decisioning controls</button>
+<button class="view-toggle-btn active" onclick="switchView('flow',this)">Flow analysis</button>
+</div>
+
+<!-- ═══ VIEW 1: CASCADE (existing) ═══ -->
+<div class="cascade-pipeline-wrap" id="viewCascade">
+
+<!-- CONTROL PANEL -->
+<div class="cascade-controls">
+<div class="control-group">
+<div class="control-group-label"><span class="ctrl-icon" style="background:var(--accent-soft);color:var(--accent)">👤</span> Profile attributes</div>
+<div class="chip-row">
+<div class="chip active" data-attr="high-value" onclick="toggleAttr(this)">High-value segment</div>
+<div class="chip active" data-attr="mobile-first" onclick="toggleAttr(this)">Mobile-first</div>
+<div class="chip" data-attr="desktop-pref" onclick="toggleAttr(this)">Desktop preference</div>
+<div class="chip active" data-attr="mortgage-holder" onclick="toggleAttr(this)">Mortgage holder</div>
+<div class="chip" data-attr="high-churn" onclick="toggleAttr(this)">High churn risk</div>
+<div class="chip" data-attr="new-customer" onclick="toggleAttr(this)">New customer</div>
+</div>
+</div>
+<div class="control-group">
+<div class="control-group-label"><span class="ctrl-icon" style="background:var(--teal-soft);color:var(--teal)">🧠</span> Product propensity</div>
+<div class="chip-row">
+<div class="chip active" data-prop="refi" onclick="toggleProp(this)">Mortgage refinance <span class="chip-val">0.82</span></div>
+<div class="chip" data-prop="invest" onclick="toggleProp(this)">Investment advisory <span class="chip-val">0.61</span></div>
+<div class="chip" data-prop="card" onclick="toggleProp(this)">Credit card upgrade <span class="chip-val">0.44</span></div>
+<div class="chip" data-prop="retain" onclick="toggleProp(this)">Retention / loyalty <span class="chip-val">0.38</span></div>
+</div>
+</div>
+<div class="control-group">
+<div class="control-group-label"><span class="ctrl-icon" style="background:var(--blue-soft);color:var(--blue)">⚙</span> Business formula weighting</div>
+<div class="chip-row">
+<div class="chip active" data-formula="balanced" onclick="toggleFormula(this)">Balanced <span class="chip-val">50/30/20</span></div>
+<div class="chip" data-formula="aggressive" onclick="toggleFormula(this)">Revenue-first <span class="chip-val">70/20/10</span></div>
+<div class="chip" data-formula="retention" onclick="toggleFormula(this)">Retention-focus <span class="chip-val">20/20/60</span></div>
+</div>
+</div>
+</div>
+
+<!-- CASCADE PIPELINE -->
+<div class="cascade-pipeline">
+<div class="cascade-flow" id="cascadeFlow">
+
+<!-- Stage 1: Profile -->
+<div class="cascade-stage">
+<div class="cascade-stage-inner" id="cs1">
+<div class="cascade-stage-num">01</div>
+<div class="cascade-stage-title">Customer profile</div>
+<div class="cascade-content" id="cc1">
+<div class="cascade-mini-label">Active signals</div>
+<div id="profileSignals"></div>
+<div class="cascade-mini-label" style="margin-top:8px">Propensity vector</div>
+<div id="propVector"></div>
+</div>
+</div>
+</div>
+
+<!-- Stage 2: Journey -->
+<div class="cascade-stage">
+<div class="cascade-stage-inner" id="cs2">
+<div class="cascade-stage-num">02</div>
+<div class="cascade-stage-title">Journey selection</div>
+<div class="cascade-content" id="cc2">
+<div class="cascade-mini-label">Ranking formula</div>
+<div class="cascade-formula" id="formulaDisplay"></div>
+<div class="cascade-mini-label">Ranked journeys</div>
+<div id="journeyRank"></div>
+</div>
+</div>
+</div>
+
+<!-- Stage 3: Path -->
+<div class="cascade-stage">
+<div class="cascade-stage-inner" id="cs3">
+<div class="cascade-stage-num">03</div>
+<div class="cascade-stage-title">Next best path</div>
+<div class="cascade-content" id="cc3">
+<div class="cascade-mini-label">Path evaluation</div>
+<div id="pathRank"></div>
+<div class="cascade-mini-label">Influence factors</div>
+<div id="pathInfluence"></div>
+</div>
+</div>
+</div>
+
+<!-- Stage 4: Channel -->
+<div class="cascade-stage">
+<div class="cascade-stage-inner" id="cs4">
+<div class="cascade-stage-num">04</div>
+<div class="cascade-stage-title">Channel optimisation</div>
+<div class="cascade-content" id="cc4">
+<div class="cascade-mini-label">Channel propensity</div>
+<div id="channelRank"></div>
+</div>
+</div>
+</div>
+
+<!-- Stage 5: Send time -->
+<div class="cascade-stage">
+<div class="cascade-stage-inner" id="cs5">
+<div class="cascade-stage-num">05</div>
+<div class="cascade-stage-title">Send time</div>
+<div class="cascade-content" id="cc5">
+<div class="cascade-mini-label">Engagement windows</div>
+<div class="cascade-time-row" id="miniHeatmap"></div>
+<div id="sendTimeResult" style="margin-top:8px;font-size:11px;color:var(--text-secondary)"></div>
+</div>
+</div>
+</div>
+
+<!-- Stage 6: Content -->
+<div class="cascade-stage">
+<div class="cascade-stage-inner" id="cs6">
+<div class="cascade-stage-num">06</div>
+<div class="cascade-stage-title">Message content</div>
+<div class="cascade-content" id="cc6">
+<div class="cascade-mini-label">Email sections</div>
+<div id="msgSections"></div>
+</div>
+</div>
+</div>
+
+</div><!-- /cascade-flow -->
+
+<!-- Result banner -->
+<div class="cascade-result" id="cascadeResult">
+<h4 id="cascadeResultTitle"></h4>
+<p id="cascadeResultDesc"></p>
+</div>
+</div>
+</div><!-- /viewCascade -->
+
+<!-- ═══ VIEW 2: FLOW ANALYSIS ═══ -->
+<div class="flow-view" id="viewFlow">
+
+<div class="sf-pipeline-stepper" id="sfStepper">
+  <div class="sf-step" data-sstep="1">
+    <div class="sf-step-circle"><span class="sf-step-num">1</span></div>
+    <div class="sf-step-label">Journey</div>
+    <div class="sf-step-sub">formula builder</div>
+  </div>
+  <div class="sf-step-connector" data-sconn="1-2"></div>
+  <div class="sf-step" data-sstep="2">
+    <div class="sf-step-circle"><span class="sf-step-num">2</span></div>
+    <div class="sf-step-label">Path</div>
+    <div class="sf-step-sub">branches &amp; actions</div>
+  </div>
+  <div class="sf-step-connector" data-sconn="2-3"></div>
+  <div class="sf-step" data-sstep="3">
+    <div class="sf-step-circle"><span class="sf-step-num">3</span></div>
+    <div class="sf-step-label">Channel</div>
+    <div class="sf-step-sub">fit &amp; fatigue</div>
+  </div>
+  <div class="sf-step-connector" data-sconn="3-4"></div>
+  <div class="sf-step" data-sstep="4">
+    <div class="sf-step-circle"><span class="sf-step-num">4</span></div>
+    <div class="sf-step-label">Send time</div>
+    <div class="sf-step-sub">scheduled or trigger</div>
+  </div>
+  <div class="sf-step-connector" data-sconn="4-5"></div>
+  <div class="sf-step" data-sstep="5">
+    <div class="sf-step-circle"><span class="sf-step-num">5</span></div>
+    <div class="sf-step-label">Message</div>
+    <div class="sf-step-sub">personalisation</div>
+  </div>
+</div>
+
+<div class="sf-container">
+
+<!-- LEFT: Profile panel -->
+<div class="sf-profile-panel">
+<div class="sf-avatar-row">
+<div class="sf-avatar">SR</div>
+<div class="sf-avatar-info">
+<div class="sf-name">Sarah Reynolds</div>
+<div class="sf-meta">Gold tier · London, UK · Age 34</div>
+</div>
+</div>
+
+<div class="sf-section-label">Life goals &amp; signals</div>
+<div id="sfAttrs">
+<div class="sf-attr" data-sid="mortgage_need" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--accent)">🏠</div>
+<div class="sf-attr-text"><div class="sf-attr-name">Reduce my mortgage?</div><div class="sf-attr-detail">Rate lock expiring · £320k outstanding</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+<div class="sf-attr" data-sid="refi_intent" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--accent)">📊</div>
+<div class="sf-attr-text"><div class="sf-attr-name">Checked refinance rates</div><div class="sf-attr-detail">Viewed calculator 2h ago · Opened email</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+<div class="sf-attr" data-sid="rewards_interest" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--amber)">💳</div>
+<div class="sf-attr-text"><div class="sf-attr-name">Improve my rewards?</div><div class="sf-attr-detail">£3.2k/mo spend · Standard card tier</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+<div class="sf-attr" data-sid="debt_consolidation" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--amber)">🔄</div>
+<div class="sf-attr-text"><div class="sf-attr-name">Consolidate card debt</div><div class="sf-attr-detail">Balance transfer enquiry · 2 active cards</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+<div class="sf-attr" data-sid="savings_growth" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--blue)">📈</div>
+<div class="sf-attr-text"><div class="sf-attr-name">Grow my savings?</div><div class="sf-attr-detail">ISA eligible · £18k cash sitting idle</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+<div class="sf-attr" data-sid="family_protection" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--teal)">🛡</div>
+<div class="sf-attr-text"><div class="sf-attr-name">Protect my family</div><div class="sf-attr-detail">No life cover on file · Mortgage dependent</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+<div class="sf-attr" data-sid="school_savings" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--blue)">🎓</div>
+<div class="sf-attr-text"><div class="sf-attr-name">Save for school fees?</div><div class="sf-attr-detail">Child age 6 · No junior ISA</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+<div class="sf-attr" data-sid="churn_risk" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--coral)">⚠</div>
+<div class="sf-attr-text"><div class="sf-attr-name">High churn risk</div><div class="sf-attr-detail">Competitor offer detected · Low recent logins</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+<div class="sf-attr" data-sid="mobile_first" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--teal)">📱</div>
+<div class="sf-attr-text"><div class="sf-attr-name">Mobile-first behaviour</div><div class="sf-attr-detail">68% sessions on iPhone · App power user</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+
+<div class="sf-section-label" style="margin-top:14px">Agentic signals<span class="sf-new-badge">NEW</span></div>
+<div class="sf-attr" data-sid="agent_intent" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--amber)">🤖</div>
+<div class="sf-attr-text"><div class="sf-attr-name">Voice-agent dialogue</div><div class="sf-attr-detail">"Reduce my outgoings" · 3m ago</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+
+<div class="sf-section-label" style="margin-top:14px">Contact policy</div>
+<div class="sf-attr" data-sid="email_cap" onclick="sfToggle(this)">
+<div class="sf-attr-icon" style="color:var(--coral)">🚫</div>
+<div class="sf-attr-text"><div class="sf-attr-name">Reached email contact frequency</div><div class="sf-attr-detail">Weekly cap hit (3/3 emails sent) · Cooldown active</div></div>
+<div class="sf-attr-check">✓</div>
+</div>
+
+<!-- ═══ Message personalisation controls ═══ -->
+<div class="sf-section-label" style="margin-top:14px">Message personalisation</div>
+
+<div class="sf-mp-control">
+  <div class="sf-mp-label">Underused feature</div>
+  <div class="sf-mp-pills" id="sfMpFeaturePills">
+    <button class="sf-mp-pill active" data-feature="savings" onclick="sfSetDynamicFeature('savings',this)">Savings Goals</button>
+    <button class="sf-mp-pill" data-feature="roundups" onclick="sfSetDynamicFeature('roundups',this)">Round-ups</button>
+    <button class="sf-mp-pill" data-feature="credit" onclick="sfSetDynamicFeature('credit',this)">Credit score</button>
+  </div>
+  <div class="sf-mp-hint">Swaps the Dynamic content container in the email</div>
+</div>
+
+<div class="sf-mp-control" style="margin-top:12px">
+  <div class="sf-mp-label">Rate-lock expiry <span class="sf-mp-val" id="sfMpExpiryVal">72h</span></div>
+  <input type="range" id="sfMpExpirySlider" class="sf-mp-slider" min="2" max="168" step="2" value="72" oninput="sfSetExpiry(this.value)">
+  <div class="sf-mp-slider-scale"><span>2h</span><span>24h</span><span>72h</span><span>168h</span></div>
+  <div class="sf-mp-hint">Pull below 24h to trigger the urgency variant of the Selection Strategy</div>
+</div>
+</div>
+<div class="sf-empty-hint" id="sfHint">Select attributes to see how they influence journey and path selection</div>
+</div>
+
+<!-- RIGHT: Journey + Paths side by side -->
+<div class="sf-pipeline-panel">
+
+<!-- ═══ Phase 1 · Journey Formula Builder + Simulate ═══ -->
+<div class="sf-fb-block sf-collapsible" id="sfJourneyFb" data-collapsed="true">
+  <div class="sf-fb-header" onclick="sfToggleCollapse('sfJourneyFb')">
+    <span class="sf-fb-num">①</span> FORMULA BUILDER  ·  JOURNEY RANKING
+    <span class="sf-collapse-chev">▾</span>
+  </div>
+  <div class="sf-fb-rules sf-collapsible-inner" id="sfFbRules">
+
+    <div class="sf-fb-rule active" data-rule="baseScore" data-rule-color="journey">
+      <div class="sf-fb-tag journey">Journey</div>
+      <div class="sf-fb-name">baseScore</div>
+      <div class="sf-fb-cond">use as <span class="sf-fb-cond-val" id="sfFbBaseVal">Starting score · 20 per journey</span></div>
+      <div class="sf-fb-op eq">= score</div>
+    </div>
+    <div class="sf-fb-connector">+ IF</div>
+
+    <div class="sf-fb-rule" data-rule="signals" data-rule-color="profile">
+      <div class="sf-fb-tag profile">Profile</div>
+      <div class="sf-fb-name">signalPropensity</div>
+      <div class="sf-fb-cond">Σ (active signals × journey affinity × 100) <span class="sf-fb-cond-val" id="sfFbSignalVal">· select profile signals →</span></div>
+      <div class="sf-fb-op add">+ propensity</div>
+    </div>
+    <div class="sf-fb-connector">+ IF</div>
+
+    <div class="sf-fb-rule" data-rule="agentic" data-rule-color="external">
+      <div class="sf-fb-tag external">External ML</div>
+      <div class="sf-fb-name">agenticLift</div>
+      <div class="sf-fb-cond">voice-agent dialogue detected <span class="sf-fb-cond-val" id="sfFbAgenticVal">· off</span></div>
+      <div class="sf-fb-op mult">× 1.5</div>
+    </div>
+    <div class="sf-fb-connector">+ IF</div>
+
+    <div class="sf-fb-rule active" data-rule="bankValue" data-rule-color="journey">
+      <div class="sf-fb-tag journey">Journey</div>
+      <div class="sf-fb-name">bankValue</div>
+      <div class="sf-fb-cond">product revenue multiplier <span class="sf-fb-cond-val" id="sfFbBankVal">· default</span></div>
+      <div class="sf-fb-op mult-blue">× bankValue</div>
+    </div>
+    <div class="sf-fb-connector">+ IF</div>
+
+    <div class="sf-fb-rule" data-rule="lever" data-rule-color="business">
+      <div class="sf-fb-tag business">Business</div>
+      <div class="sf-fb-name">strategicLever</div>
+      <div class="sf-fb-cond">quarterly business priority <span class="sf-fb-cond-val" id="sfFbLeverVal">· none</span></div>
+      <div class="sf-fb-op add-red">× 1.3</div>
+    </div>
+
+  </div>
+  <div class="sf-fb-expr">
+    <div>
+      <div class="sf-fb-expr-label">SCORE EXPRESSION (TOP JOURNEY)</div>
+      <div class="sf-fb-expr-text" id="sfFbExprText">Select signals to compute —</div>
+    </div>
+    <div class="sf-fb-expr-val" id="sfFbExprVal">—</div>
+  </div>
+</div>
+
+<div class="sf-sim-block sf-collapsible" id="sfJourneySim" data-collapsed="true">
+  <div class="sf-sim-header" onclick="sfToggleCollapse('sfJourneySim')">
+    <span class="sf-fb-num">②</span> SIMULATE  ·  SET THE CONTEXT
+    <span class="sf-collapse-chev">▾</span>
+  </div>
+  <div class="sf-sim-grid sf-collapsible-inner">
+
+    <!-- Strategic lever -->
+    <div class="sf-sim-card" data-sim="lever" data-sim-color="business">
+      <div class="sf-sim-top">
+        <div class="sf-sim-tag business"><span class="sf-sim-dot"></span>Business · strategicLever</div>
+        <div class="sf-sim-status not-firing" id="sfSimLeverStatus">not firing</div>
+      </div>
+      <div class="sf-sim-desc">What is the business pushing this quarter?</div>
+      <div class="sf-sim-controls">
+        <button class="sf-sim-btn active" onclick="sfSetSim('lever','none',this)">None</button>
+        <button class="sf-sim-btn" onclick="sfSetSim('lever','mortgage',this)">Mortgage</button>
+        <button class="sf-sim-btn" onclick="sfSetSim('lever','retention',this)">Retention</button>
+        <button class="sf-sim-btn" onclick="sfSetSim('lever','cards',this)">Cards</button>
+      </div>
+    </div>
+
+    <!-- Bank value override -->
+    <div class="sf-sim-card" data-sim="bankBoost" data-sim-color="journey">
+      <div class="sf-sim-top">
+        <div class="sf-sim-tag journey"><span class="sf-sim-dot"></span>Journey · bankValue</div>
+        <div class="sf-sim-status not-firing" id="sfSimBankStatus">default</div>
+      </div>
+      <div class="sf-sim-desc">Override the product-revenue multiplier for a specific journey.</div>
+      <div class="sf-sim-controls">
+        <button class="sf-sim-btn active" onclick="sfSetSim('bankBoost','none',this)">Default</button>
+        <button class="sf-sim-btn" onclick="sfSetSim('bankBoost','mortgage',this)">Boost mortgage</button>
+        <button class="sf-sim-btn" onclick="sfSetSim('bankBoost','retention',this)">Boost retention</button>
+        <button class="sf-sim-btn" onclick="sfSetSim('bankBoost','card',this)">Boost cards</button>
+      </div>
+    </div>
+
+    <!-- Profile signals status (read-only) -->
+    <div class="sf-sim-card" data-sim="signals" data-sim-color="profile">
+      <div class="sf-sim-top">
+        <div class="sf-sim-tag profile"><span class="sf-sim-dot"></span>Profile · activeSignals</div>
+        <div class="sf-sim-status not-firing" id="sfSimSignalsStatus">0 of 11 active</div>
+      </div>
+      <div class="sf-sim-desc">Member signals — toggled in the left profile panel. Feeds the propensity rule.</div>
+      <div class="sf-sim-readout">
+        Active signals: <span class="sf-sim-readval" id="sfSimSignalsList">—</span>
+      </div>
+    </div>
+
+    <!-- Agentic signal status (read-only) -->
+    <div class="sf-sim-card" data-sim="agentic" data-sim-color="external">
+      <div class="sf-sim-top">
+        <div class="sf-sim-tag external"><span class="sf-sim-dot"></span>External ML · agentIntent</div>
+        <div class="sf-sim-status not-firing" id="sfSimAgenticStatus">not firing</div>
+      </div>
+      <div class="sf-sim-desc">Agentic channel signal — toggled via 'Voice-agent dialogue' in profile.</div>
+      <div class="sf-sim-readout">
+        <span id="sfSimAgenticText">No voice-agent dialogue detected</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="sf-flow-row" id="sfFlowRow">
+<svg class="sf-connector-svg" id="sfConnSvg"></svg>
+
+<!-- Journeys column -->
+<div class="sf-journeys-col">
+<div class="sf-phase-label"><span class="sf-phase-num" id="sfPhase1">1</span> Journey ranking</div>
+<div class="sf-journey-list" id="sfJourneys"></div>
+</div>
+
+<!-- Paths column -->
+<div class="sf-paths-col" id="sfPathsCol">
+<div class="sf-phase-label"><span class="sf-phase-num" id="sfPhase2">2</span> Path branches &amp; actions</div>
+
+<!-- ═══ Phase 2 · Path Formula Builder + Simulate (narrative-connected) ═══ -->
+<div class="sf-fb-block sf-collapsible" id="sfPathFb" data-collapsed="true" style="display:none;padding:14px 16px;margin-bottom:12px">
+  <div class="sf-fb-header" onclick="sfToggleCollapse('sfPathFb')">
+    <span class="sf-fb-num">①</span> FORMULA BUILDER  ·  PATH PRIORITISATION
+    <span class="sf-collapse-chev">▾</span>
+  </div>
+  <div class="sf-fb-rules sf-collapsible-inner">
+    <div class="sf-fb-rule active" data-rule="pBase" data-rule-color="journey">
+      <div class="sf-fb-tag journey">Path</div>
+      <div class="sf-fb-name">pathBase</div>
+      <div class="sf-fb-cond">intrinsic path effectiveness <span class="sf-fb-cond-val">· 0.35 – 0.55</span></div>
+      <div class="sf-fb-op eq">= score</div>
+    </div>
+    <div class="sf-fb-connector">+ IF</div>
+    <div class="sf-fb-rule" data-rule="pSignals" data-rule-color="profile">
+      <div class="sf-fb-tag profile">Profile</div>
+      <div class="sf-fb-name">signalResonance</div>
+      <div class="sf-fb-cond">Σ(active signals × path boosts) <span class="sf-fb-cond-val" id="sfPFbResVal">· 0 — no signals aligned</span></div>
+      <div class="sf-fb-op add">+ resonance</div>
+    </div>
+    <div class="sf-fb-connector">+ IF</div>
+    <div class="sf-fb-rule" data-rule="pBehaviour" data-rule-color="external">
+      <div class="sf-fb-tag external">Profile</div>
+      <div class="sf-fb-name">behaviouralFit</div>
+      <div class="sf-fb-cond">path's channel matches member's habit <span class="sf-fb-cond-val" id="sfPFbBhVal">· auto</span></div>
+      <div class="sf-fb-op mult">× 1.2</div>
+    </div>
+    <div class="sf-fb-connector">+ IF</div>
+    <div class="sf-fb-rule" data-rule="pUrgency" data-rule-color="business">
+      <div class="sf-fb-tag business">Context</div>
+      <div class="sf-fb-name">urgencyWindow</div>
+      <div class="sf-fb-cond">time-pressure lifts fast paths, dampens slow ones <span class="sf-fb-cond-val" id="sfPFbUrgVal">· standard</span></div>
+      <div class="sf-fb-op add-red">× 1.15</div>
+    </div>
+  </div>
+  <div class="sf-fb-expr" style="padding:10px 14px">
+    <div>
+      <div class="sf-fb-expr-label">TOP PATH SCORE</div>
+      <div class="sf-fb-expr-text" id="sfPFbExprText">—</div>
+    </div>
+    <div class="sf-fb-expr-val" id="sfPFbExprVal" style="font-size:28px">—</div>
+  </div>
+</div>
+
+<div class="sf-sim-block sf-collapsible" id="sfPathSim" data-collapsed="true" style="display:none;padding:14px 16px">
+  <div class="sf-sim-header" onclick="sfToggleCollapse('sfPathSim')">
+    <span class="sf-fb-num">②</span> SIMULATE  ·  PATH CONTEXT
+    <span class="sf-collapse-chev">▾</span>
+  </div>
+  <div class="sf-sim-grid sf-collapsible-inner">
+    <div class="sf-sim-card" data-sim="urgency" data-sim-color="business">
+      <div class="sf-sim-top">
+        <div class="sf-sim-tag business"><span class="sf-sim-dot"></span>Context · urgencyWindow</div>
+        <div class="sf-sim-status not-firing" id="sfSimUrgStatus">standard</div>
+      </div>
+      <div class="sf-sim-desc">Time-sensitive context that lifts fast paths and dampens slow ones.</div>
+      <div class="sf-sim-controls">
+        <button class="sf-sim-btn active" onclick="sfSetSim('urgency','none',this)">Standard</button>
+        <button class="sf-sim-btn" onclick="sfSetSim('urgency','rateLock',this)">Rate-lock ending</button>
+        <button class="sf-sim-btn" onclick="sfSetSim('urgency','churn',this)">Churn imminent</button>
+      </div>
+    </div>
+    <div class="sf-sim-card" data-sim="channelStrategy" data-sim-color="journey">
+      <div class="sf-sim-top">
+        <div class="sf-sim-tag journey"><span class="sf-sim-dot"></span>Business · channelStrategy</div>
+        <div class="sf-sim-status firing" id="sfSimChStatus">auto · from signals</div>
+      </div>
+      <div class="sf-sim-desc">How should the business execute? Auto reads the member's mobile-first signal. Overrides force digital or advisor.</div>
+      <div class="sf-sim-controls">
+        <button class="sf-sim-btn active" onclick="sfSetSim('channelStrategy','auto',this)">Auto</button>
+        <button class="sf-sim-btn" onclick="sfSetSim('channelStrategy','digital',this)">Digital-first</button>
+        <button class="sf-sim-btn" onclick="sfSetSim('channelStrategy','advisor',this)">Advisor-led</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="sfPathsContent">
+<div class="sf-paths-intro" id="sfPathsIntro">Select attributes, then click the top journey to explore its paths</div>
+<div class="sf-path-list" id="sfPaths"></div>
+</div>
+</div>
+
+</div>
+
+<!-- Phase 3 + 4: Channel + Send Time -->
+<div class="sf-lower-row">
+<div class="sf-phase-panel locked" id="sfPhase3Panel">
+<div class="sf-phase-label"><span class="sf-phase-num" id="sfPhase3">3</span> Channel optimisation</div>
+<div id="sfChannelsContent">
+<div class="sf-paths-intro" id="sfChannelsIntro">Click the top path to see channel ranking</div>
+<div id="sfChannels"></div>
+<div id="sfChannelBanner"></div>
+</div>
+</div>
+
+<div class="sf-phase-panel locked" id="sfPhase4Panel">
+<div class="sf-phase-label"><span class="sf-phase-num" id="sfPhase4">4</span> Send time optimisation</div>
+<div id="sfSendTimeContent">
+<div class="sf-paths-intro" id="sfSendTimeIntro">Channel selection determines send time</div>
+<div id="sfSendTime"></div>
+</div>
+</div>
+</div>
+
+<!-- Phase 5: Message personalisation -->
+<div class="sf-email-phase locked" id="sfPhase5Panel" style="margin-top:24px">
+<div class="sf-phase-label"><span class="sf-phase-num" id="sfPhase5">5</span> Message personalisation</div>
+<div class="sf-paths-intro" id="sfEmailIntro">Send time determines when — this shows what Sarah sees</div>
+
+<div class="sf-email-wrap" id="sfEmailWrap" style="display:none">
+<svg class="sf-email-connectors" id="sfEmailConnectors" aria-hidden="true"></svg>
+
+<!-- Email device mockup -->
+<div class="sf-email-device">
+<div class="sf-email-topbar">
+<div class="sf-email-dot" style="background:#E8593C"></div>
+<div class="sf-email-dot" style="background:#EFAA2C"></div>
+<div class="sf-email-dot" style="background:#5AC44D"></div>
+<div class="sf-email-subject-bar">Clarity on your refinance options</div>
+</div>
+<div class="sf-email-body">
+
+<!-- Header -->
+<div class="sf-email-header">
+<div class="sf-email-logo">SecurFinancial</div>
+<div class="sf-email-logo-sub">Clarity for every financial decision</div>
+<div class="sf-email-nav">
+<a>Accounts</a><a>Mortgages</a><a>Investments</a><a>Support</a>
+</div>
+</div>
+
+<!-- Section 1: Profile personalisation -->
+<div class="em-section" data-container="profile" onmouseenter="sfHighlightContainer('profile')" onmouseleave="sfClearContainer()">
+<div class="em-greeting">Good evening, <span class="em-hl">Sarah</span> <span class="em-tier-badge">★ Gold member</span></div>
+<div class="em-body-text">Thank you for being a Gold member since <strong>2019</strong>. Based on your <strong>London, SE1</strong> property, we've prepared a clear view of your refinance options.</div>
+<div class="em-annotation"><div class="em-ann-line"></div><span class="em-ann-tag profile">Profile attributes</span></div>
+</div>
+
+<!-- Section 2: Dynamic content — underused service awareness -->
+<div class="em-section" data-container="dynamic" onmouseenter="sfHighlightContainer('dynamic')" onmouseleave="sfClearContainer()">
+<div id="sfDynamicCard"></div>
+<div class="em-annotation"><div class="em-ann-line"></div><span class="em-ann-tag dynamic">Dynamic content</span></div>
+</div>
+
+<!-- Section 3: Context — saved simulation -->
+<div class="em-section" data-container="context" onmouseenter="sfHighlightContainer('context')" onmouseleave="sfClearContainer()">
+<div class="em-context-card">
+<div class="em-context-title"><span class="em-ctx-icon">📋</span> Your mortgage simulation — ready when you are</div>
+<div class="em-context-grid">
+<div class="em-ctx-item"><div class="em-ctx-label">Property value</div><div class="em-ctx-value">£520,000</div></div>
+<div class="em-ctx-item"><div class="em-ctx-label">Outstanding balance</div><div class="em-ctx-value">£320,000</div></div>
+<div class="em-ctx-item"><div class="em-ctx-label">Current rate</div><div class="em-ctx-value em-highlight">4.65% SVR</div></div>
+<div class="em-ctx-item"><div class="em-ctx-label">Potential monthly saving</div><div class="em-ctx-value highlight">£187/mo</div></div>
+</div>
+</div>
+<div class="em-body-text" style="margin-top:8px;font-size:11px">We've kept your progress safe. Pick up where you left off whenever it suits you.</div>
+<div class="em-annotation"><div class="em-ann-line"></div><span class="em-ann-tag context">Contextual data</span></div>
+</div>
+
+<!-- Section 4: Selection strategy -->
+<div class="em-section" data-container="offer" onmouseenter="sfHighlightContainer('offer')" onmouseleave="sfClearContainer()">
+<div class="em-offer-card" id="sfSelectionCard"></div>
+<div class="em-annotation"><div class="em-ann-line"></div><span class="em-ann-tag offer">Selection strategy</span></div>
+</div>
+
+<!-- Section 5: Cross-sell — AI ranked -->
+<div class="em-section" data-container="decisioning" onmouseenter="sfHighlightContainer('decisioning')" onmouseleave="sfClearContainer()">
+<div style="display:flex;gap:10px">
+<div style="flex:1;background:#F4F8F7;border-radius:6px;padding:10px 12px;border:1px solid #DBE9E4">
+<div style="font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Suggested for you</div>
+<div style="font-size:12px;font-weight:600;color:#1a1a1a">Home insurance bundle</div>
+<div style="font-size:10px;color:#666;margin-top:2px">Align your home cover with your mortgage.</div>
+</div>
+<div style="flex:1;background:#F4F8F7;border-radius:6px;padding:10px 12px;border:1px solid #DBE9E4">
+<div style="font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Worth exploring</div>
+<div style="font-size:12px;font-weight:600;color:#1a1a1a">Life cover assessment</div>
+<div style="font-size:10px;color:#666;margin-top:2px">Understand what protection may suit your family.</div>
+</div>
+</div>
+<div class="em-annotation"><div class="em-ann-line"></div><span class="em-ann-tag decisioning">AI-ranked next best</span></div>
+</div>
+
+<!-- Footer -->
+<div class="em-footer">
+<div class="em-footer-links"><a>Unsubscribe</a><a>Manage preferences</a><a>Privacy policy</a></div>
+SecurFinancial Ltd · Registered in England No. 04827491 · FCA Ref 302587<br>
+71 Lombard Street, London EC3V 9BS · © 2026 SecurFinancial
+</div>
+
+</div><!-- /email body -->
+</div><!-- /device -->
+
+<!-- Container breakdown -->
+<div class="sf-email-breakdown" id="sfEmailBreakdown">
+<div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px;line-height:1.6">Each section of the email is populated by a different data source. Hover over the email or the cards below to see how each container is personalised.</div>
+
+<div class="sf-email-container" data-container="profile" onmouseenter="sfHighlightContainer('profile')" onmouseleave="sfClearContainer()">
+<div class="sf-ec-header"><span class="sf-ec-badge" style="background:#EB1000">Profile</span><span class="sf-ec-name">Greeting &amp; context</span></div>
+<div class="sf-ec-desc">First name, loyalty tier, membership year, and property location pulled from the unified customer profile in AEP.</div>
+<div class="sf-ec-source">Real-time Profile API · Attributes: firstName, loyaltyTier, memberSince, propertyPostcode</div>
+</div>
+
+<div class="sf-email-container" data-container="dynamic" onmouseenter="sfHighlightContainer('dynamic')" onmouseleave="sfClearContainer()">
+<div class="sf-ec-header"><span class="sf-ec-badge" style="background:#1A7A5C">Dynamic</span><span class="sf-ec-name">Underused feature surfacing</span></div>
+<div class="sf-ec-desc">Savings Goals is included with Sarah's account but hasn't been enabled. Surfacing this service aligns with the nurture-first journey and the long-term wellness brand value.</div>
+<div class="sf-ec-source">Feature-adoption signal · feature_enabled=false · tenure≥12mo · nurture journey active</div>
+</div>
+
+<div class="sf-email-container" data-container="context" onmouseenter="sfHighlightContainer('context')" onmouseleave="sfClearContainer()">
+<div class="sf-ec-header"><span class="sf-ec-badge" style="background:#2B6CB0">Context</span><span class="sf-ec-name">Saved simulation state</span></div>
+<div class="sf-ec-desc">Property value, outstanding balance, current rate, and calculated saving retrieved from Sarah's in-progress mortgage calculator session.</div>
+<div class="sf-ec-source">Experience Events · simulationState schema · sessionId: 8f3a-e29b</div>
+</div>
+
+<div class="sf-email-container" data-container="offer" onmouseenter="sfHighlightContainer('offer')" onmouseleave="sfClearContainer()">
+<div class="sf-ec-header"><span class="sf-ec-badge" style="background:#2B6CB0">Strategy</span><span class="sf-ec-name">Selection strategy</span></div>
+<div class="sf-ec-desc" id="sfSelectionDesc">Top-ranked item from the selection strategy — swaps variant based on time-to-expiry context. Indicative saving calculated from the rate delta between current SVR and SecurFinancial's fixed offer.</div>
+<div class="sf-ec-source" id="sfSelectionSource">Selection Strategy · highest_margin × propensity_score · variant: standard</div>
+</div>
+
+<div class="sf-email-container" data-container="decisioning" onmouseenter="sfHighlightContainer('decisioning')" onmouseleave="sfClearContainer()">
+<div class="sf-ec-header"><span class="sf-ec-badge" style="background:#534AB7">AI-ranked</span><span class="sf-ec-name">Cross-sell recommendations</span></div>
+<div class="sf-ec-desc">Next-best-item engine surfaces two secondary products from the item library. Home insurance bundle ranked #1 (mortgage affinity), life cover ranked #2 (family protection propensity).</div>
+<div class="sf-ec-source">Decisioning · AI model: personalized_optimization · Ranking: affinity × recency × margin</div>
+</div>
+</div>
+
+</div><!-- /email wrap -->
+
+<div class="sf-email-legend" id="sfEmailLegend" style="display:none">
+<div class="sf-email-legend-item"><div class="sf-email-legend-dot" style="background:#EB1000"></div>Profile attributes</div>
+<div class="sf-email-legend-item"><div class="sf-email-legend-dot" style="background:#1A7A5C"></div>Dynamic content</div>
+<div class="sf-email-legend-item"><div class="sf-email-legend-dot" style="background:#2B6CB0"></div>Contextual data</div>
+<div class="sf-email-legend-item"><div class="sf-email-legend-dot" style="background:#B8760C"></div>Decisioning offer</div>
+<div class="sf-email-legend-item"><div class="sf-email-legend-dot" style="background:#534AB7"></div>AI-ranked next best</div>
+<div class="sf-email-legend-item" style="margin-left:auto;font-style:italic;color:var(--text-muted);font-size:10px">Hover sections to explore</div>
+</div>
+</div>
+
+</div>
+</div>
+</div><!-- /viewFlow -->
+
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 1: PROFILE ═══ -->
+<section class="stage-section" id="s1">
+<div class="stage-header">
+<div class="stage-number">01</div>
+<div class="stage-info">
+<h2>Customer profile intelligence</h2>
+<p>The engine begins by assembling a unified real-time profile — stitching together identities, devices, behavioural events, segment membership, support interactions, and AI-predicted propensities from Adobe Experience Platform.</p>
+</div>
+</div>
+
+<!-- Hub-and-spoke profile visualisation -->
+<div class="profile-hub" id="profileHub">
+
+<!-- SVG connectors drawn by JS -->
+<svg class="branch-connector" id="connectorSvg" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1"></svg>
+
+<!-- CENTER: Profile card -->
+<div class="profile-center">
+<div class="profile-avatar-lg">SR</div>
+<div class="profile-center-name">Sarah Reynolds</div>
+<div class="profile-center-sub">Age 34 · London, UK · Gold tier</div>
+<div class="profile-center-badge">Unified profile</div>
+</div>
+
+<!-- BRANCH: Identities -->
+<div class="branch b-identities" data-branch="identities">
+<div class="branch-card-inner">
+<div class="branch-icon-wrap" style="background:var(--accent-soft)">🔑</div>
+<div class="branch-title" style="color:var(--accent)">Identities</div>
+<div class="branch-detail">
+<div class="data-row"><span class="data-key">ECID</span><span class="data-val">8029969881209...</span></div>
+<div class="data-row"><span class="data-key">UUID</span><span class="data-val">550e8400-e29b-41d4</span></div>
+<div class="data-row"><span class="data-key">CRM ID</span><span class="data-val">60013ABC</span></div>
+<div class="data-row"><span class="data-key">Email</span><span class="data-val"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9deeb3eff8e4f3f2f1f9eeddf0fcf4f1b3fef2f0">[email&#160;protected]</a></span></div>
+</div>
+</div>
+</div>
+
+<!-- BRANCH: Devices -->
+<div class="branch b-devices" data-branch="devices">
+<div class="branch-card-inner">
+<div class="branch-icon-wrap" style="background:var(--blue-soft)">💻</div>
+<div class="branch-title" style="color:var(--blue)">Devices</div>
+<div class="branch-detail">
+<div class="data-row"><span class="data-key">Mobile</span><span class="data-val">iPhone 15 Pro</span></div>
+<div class="data-row"><span class="data-key">Desktop</span><span class="data-val">MacBook Air — Chrome</span></div>
+<div class="data-row"><span class="data-key">Tablet</span><span class="data-val">iPad Air — Safari</span></div>
+<div style="margin-top:6px;font-size:10px;color:var(--text-muted)">Primary: Mobile (68% sessions)</div>
+</div>
+</div>
+</div>
+
+<!-- BRANCH: Segments -->
+<div class="branch b-segments" data-branch="segments">
+<div class="branch-card-inner">
+<div class="branch-icon-wrap" style="background:var(--teal-soft)">👥</div>
+<div class="branch-title" style="color:var(--teal)">Segmentation</div>
+<div class="branch-detail">
+<span class="data-tag" style="background:var(--accent-soft);color:var(--accent)">High-value</span>
+<span class="data-tag" style="background:var(--teal-soft);color:var(--teal)">Mortgage holder</span>
+<span class="data-tag" style="background:var(--amber-soft);color:var(--amber)">Mobile-first</span>
+<span class="data-tag" style="background:var(--coral-soft);color:var(--coral)">Refinance window</span>
+<span class="data-tag" style="background:var(--blue-soft);color:var(--blue)">Gold loyalty</span>
+<span class="data-tag" style="background:var(--accent-soft);color:var(--accent)">Digital native</span>
+<span class="data-tag" style="background:var(--teal-soft);color:var(--teal)">UK resident</span>
+</div>
+</div>
+</div>
+
+<!-- BRANCH: Experience Events -->
+<div class="branch b-events" data-branch="events">
+<div class="branch-card-inner">
+<div class="branch-icon-wrap" style="background:var(--amber-soft)">⚡</div>
+<div class="branch-title" style="color:var(--amber)">Experience events</div>
+<div class="branch-detail" style="font-size:11px;line-height:1.7">
+<div>→ Viewed refinance calculator <span style="color:var(--text-muted);font-size:10px">2h ago</span></div>
+<div>→ Opened mortgage email <span style="color:var(--text-muted);font-size:10px">1d ago</span></div>
+<div>→ Visited rate comparison page <span style="color:var(--text-muted);font-size:10px">3d ago</span></div>
+<div>→ App login (mobile) <span style="color:var(--text-muted);font-size:10px">3d ago</span></div>
+<div>→ Clicked savings banner <span style="color:var(--text-muted);font-size:10px">5d ago</span></div>
+</div>
+</div>
+</div>
+
+<!-- BRANCH: Support Data -->
+<div class="branch b-support" data-branch="support">
+<div class="branch-card-inner">
+<div class="branch-icon-wrap" style="background:var(--coral-soft)">🛟</div>
+<div class="branch-title" style="color:var(--coral)">Support &amp; CRM</div>
+<div class="branch-detail">
+<div class="data-row"><span class="data-key">Last call</span><span class="data-val">14 Feb 2026</span></div>
+<div class="data-row"><span class="data-key">Topic</span><span class="data-val">Rate lock enquiry</span></div>
+<div class="data-row"><span class="data-key">CSAT</span><span class="data-val">4.8 / 5</span></div>
+<div class="data-row"><span class="data-key">Open case</span><span class="data-val">None</span></div>
+</div>
+</div>
+</div>
+
+<!-- BRANCH: AI Propensities -->
+<div class="branch b-propensity" data-branch="propensity">
+<div class="branch-card-inner">
+<div class="branch-icon-wrap" style="background:var(--accent-soft)">🧠</div>
+<div class="branch-title" style="color:var(--accent)">AI propensities</div>
+<div class="branch-detail">
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div class="bar-track" style="flex:1;height:5px"><div class="bar-fill bar-red" data-w="82%" style="height:100%"></div></div><span style="font-family:var(--font-mono);font-size:10px;min-width:56px">0.82 Refi</span></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div class="bar-track" style="flex:1;height:5px"><div class="bar-fill bar-blue" data-w="61%" style="height:100%"></div></div><span style="font-family:var(--font-mono);font-size:10px;min-width:56px">0.61 Invest</span></div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><div class="bar-track" style="flex:1;height:5px"><div class="bar-fill bar-amber" data-w="44%" style="height:100%"></div></div><span style="font-family:var(--font-mono);font-size:10px;min-width:56px">0.44 Card</span></div>
+<div style="display:flex;align-items:center;gap:6px"><div class="bar-track" style="flex:1;height:5px"><div class="bar-fill bar-teal" data-w="39%" style="height:100%"></div></div><span style="font-family:var(--font-mono);font-size:10px;min-width:56px">0.39 Insure</span></div>
+</div>
+</div>
+</div>
+
+</div>
+
+<!-- Summary stats below the hub -->
+<div class="profile-stats-row">
+<div class="profile-stat"><div class="stat-val" style="color:var(--accent)">78%</div><div class="stat-label">Propensity to convert</div></div>
+<div class="profile-stat"><div class="stat-val" style="color:var(--coral)">23%</div><div class="stat-label">Churn risk</div></div>
+<div class="profile-stat"><div class="stat-val" style="color:var(--teal)">8.4</div><div class="stat-label">Engagement score</div></div>
+<div class="profile-stat"><div class="stat-val" style="color:var(--amber)">£42,800</div><div class="stat-label">Lifetime value</div></div>
+<div class="profile-stat"><div class="stat-val" style="color:var(--blue)">6</div><div class="stat-label">Identity stitches</div></div>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 2: JOURNEY ═══ -->
+<section class="stage-section" id="s2">
+<div class="stage-header">
+<div class="stage-number">02</div>
+<div class="stage-info">
+<h2>Journey prioritisation</h2>
+<p>From the journey repository, the engine ranks all eligible journeys using a composite formula that blends AI model scores, business priority, and customer context — then selects the highest-value journey.</p>
+</div>
+</div>
+<div class="card">
+<div class="card-title">Ranking formula</div>
+<div class="formula-box">score = (AI_propensity &times; 0.5) + (business_value &times; 0.3) + (churn_risk_offset &times; 0.2)</div>
+</div>
+<div class="card">
+<div class="card-title">Ranked journeys for Sarah</div>
+<div class="journey-item selected">
+<div class="journey-rank">1</div>
+<div class="journey-name">Mortgage refinance</div>
+<div class="journey-bar"><div class="bar-track"><div class="bar-fill bar-red" data-w="87%"></div></div></div>
+<div class="journey-score">0.87</div>
+</div>
+<div class="journey-item">
+<div class="journey-rank">2</div>
+<div class="journey-name">Investment advisory</div>
+<div class="journey-bar"><div class="bar-track"><div class="bar-fill bar-red" data-w="64%" style="opacity:.45"></div></div></div>
+<div class="journey-score">0.64</div>
+</div>
+<div class="journey-item">
+<div class="journey-rank">3</div>
+<div class="journey-name">Credit card upgrade</div>
+<div class="journey-bar"><div class="bar-track"><div class="bar-fill bar-red" data-w="51%" style="opacity:.3"></div></div></div>
+<div class="journey-score">0.51</div>
+</div>
+<div class="journey-item">
+<div class="journey-rank">4</div>
+<div class="journey-name">Insurance cross-sell</div>
+<div class="journey-bar"><div class="bar-track"><div class="bar-fill bar-red" data-w="38%" style="opacity:.2"></div></div></div>
+<div class="journey-score">0.38</div>
+</div>
+<div class="journey-item">
+<div class="journey-rank">5</div>
+<div class="journey-name">Loyalty renewal</div>
+<div class="journey-bar"><div class="bar-track"><div class="bar-fill bar-red" data-w="29%" style="opacity:.15"></div></div></div>
+<div class="journey-score">0.29</div>
+</div>
+</div>
+<div class="result-banner">
+<h3>Selected: Mortgage refinance journey</h3>
+<p>Highest composite score (0.87) driven by strong propensity (0.82), high product margin, and moderate churn risk that favours proactive engagement rather than passive retention.</p>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 3: PATH ═══ -->
+<section class="stage-section" id="s3">
+<div class="stage-header">
+<div class="stage-number">03</div>
+<div class="stage-info">
+<h2>Next best path</h2>
+<p>Within the selected journey, the engine evaluates branching paths and identifies the optimal sequence — maximising conversion probability at each decision node.</p>
+</div>
+</div>
+<div class="card card-lg">
+<div class="card-title">Optimal path for Sarah</div>
+<div class="path-flow">
+<span class="path-node red">Entry event</span><span class="path-arrow">→</span>
+<span class="path-node teal">Eligibility check</span><span class="path-arrow">→</span>
+<span class="path-node teal">Rate comparison</span><span class="path-arrow">→</span>
+<span class="path-node red">Personalised offer</span><span class="path-arrow">→</span>
+<span class="path-node amber">Follow-up</span>
+</div>
+</div>
+<div class="card">
+<div class="card-title">Branch evaluation at rate comparison node</div>
+<div class="branch-card">
+<div class="branch-label" style="color:var(--text-muted)">Path A</div>
+<div class="branch-desc">Standard rate offer — generic landing page</div>
+<div class="branch-pct">42%</div>
+</div>
+<div class="branch-card winner">
+<div class="branch-label" style="color:var(--accent)">Path B ✓</div>
+<div class="branch-desc">Personalised rate with interactive savings calculator</div>
+<div class="branch-pct">67%</div>
+</div>
+<div class="branch-card">
+<div class="branch-label" style="color:var(--text-muted)">Path C</div>
+<div class="branch-desc">Advisor callback request — human-assisted flow</div>
+<div class="branch-pct">58%</div>
+</div>
+</div>
+<div class="metrics-grid">
+<div class="metric-card">
+<div class="metric-label">Paths evaluated</div>
+<div class="metric-value red">3</div>
+</div>
+<div class="metric-card">
+<div class="metric-label">Estimated conversion</div>
+<div class="metric-value teal">67%</div>
+<div class="bar-track"><div class="bar-fill bar-teal" data-w="67%"></div></div>
+</div>
+<div class="metric-card">
+<div class="metric-label">Lift vs default</div>
+<div class="metric-value amber">+25%</div>
+</div>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 4: CHANNEL ═══ -->
+<section class="stage-section" id="s4">
+<div class="stage-header">
+<div class="stage-number">04</div>
+<div class="stage-info">
+<h2>Channel optimisation</h2>
+<p>The engine selects the best delivery channel based on Sarah's historical channel consumption, propensity of engagement, and reachability — ensuring the message arrives where she's most likely to act.</p>
+</div>
+</div>
+<div class="card">
+<div class="card-title">Channel engagement propensity</div>
+<div class="channel-item">
+<div class="channel-icon email">✉</div>
+<div class="channel-name">Email</div>
+<div class="channel-bar"><div class="bar-track"><div class="bar-fill bar-blue" data-w="71%"></div></div></div>
+<div class="channel-score">0.71</div>
+</div>
+<div class="channel-item winner">
+<div class="channel-icon push">📱</div>
+<div class="channel-name">Push notification</div>
+<div class="channel-bar"><div class="bar-track"><div class="bar-fill bar-teal" data-w="84%"></div></div></div>
+<div class="channel-score">0.84</div>
+</div>
+<div class="channel-item">
+<div class="channel-icon sms">💬</div>
+<div class="channel-name">SMS</div>
+<div class="channel-bar"><div class="bar-track"><div class="bar-fill bar-amber" data-w="66%"></div></div></div>
+<div class="channel-score">0.66</div>
+</div>
+<div class="channel-item">
+<div class="channel-icon inapp">🌐</div>
+<div class="channel-name">In-app message</div>
+<div class="channel-bar"><div class="bar-track"><div class="bar-fill bar-red" data-w="52%"></div></div></div>
+<div class="channel-score">0.52</div>
+</div>
+</div>
+<div class="result-banner" style="background:var(--teal-soft);border-color:var(--teal-border)">
+<h3 style="color:var(--teal)">Selected: Push notification</h3>
+<p>Sarah's push engagement rate (84%) significantly outperforms other channels. Her mobile-first behaviour pattern and 78% push open rate make this the optimal delivery channel.</p>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 5: SEND TIME ═══ -->
+<section class="stage-section" id="s5">
+<div class="stage-header">
+<div class="stage-number">05</div>
+<div class="stage-info">
+<h2>Send time optimisation</h2>
+<p>For outbound channels (email, push), the engine applies AI-driven send time optimisation — predicting the exact window when Sarah is most likely to engage based on her historical open and click patterns.</p>
+</div>
+</div>
+<div class="card card-lg">
+<div class="card-title">Engagement probability by hour of day</div>
+<div class="time-heatmap" id="heatmap"></div>
+<div class="time-labels">
+<span>12am</span><span>3am</span><span>6am</span><span>9am</span><span>12pm</span><span>3pm</span><span>6pm</span><span>9pm</span>
+</div>
+<div style="margin-top:14px;font-size:13px;color:var(--text-secondary);line-height:1.65">
+The highlighted cell represents the optimal send window. For Sarah, the model predicts peak engagement at <strong style="color:var(--accent)">19:00 – 20:00</strong> — aligning with her evening mobile usage pattern. Delivery is scheduled automatically.
+</div>
+</div>
+<div class="metrics-grid">
+<div class="metric-card">
+<div class="metric-label">Optimal send time</div>
+<div class="metric-value red">19:00</div>
+</div>
+<div class="metric-card">
+<div class="metric-label">Predicted open rate</div>
+<div class="metric-value teal">95%</div>
+<div class="bar-track"><div class="bar-fill bar-teal" data-w="95%"></div></div>
+</div>
+<div class="metric-card">
+<div class="metric-label">Lift vs batch send</div>
+<div class="metric-value amber">+31%</div>
+</div>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ STAGE 6: MESSAGE ═══ -->
+<section class="stage-section" id="s6">
+<div class="stage-header">
+<div class="stage-number">06</div>
+<div class="stage-info">
+<h2>Message personalisation</h2>
+<p>The last mile: the Decisioning engine selects the next best content from the defined item library — arbitrating across offer variants, CTAs, and content blocks. Eligibility rules, capping, and frequency rules are applied before final assembly.</p>
+</div>
+</div>
+<div class="card">
+<div class="card-title">Content decisioning — item library</div>
+<div class="content-item chosen">
+<div class="content-name">Personalised rate offer</div>
+<span class="content-type" style="background:var(--accent-soft);color:var(--accent)">Offer</span>
+<div class="content-score">0.92</div>
+</div>
+<div class="content-item">
+<div class="content-name">Savings calculator CTA</div>
+<span class="content-type" style="background:var(--teal-soft);color:var(--teal)">Interactive</span>
+<div class="content-score">0.78</div>
+</div>
+<div class="content-item">
+<div class="content-name">Refinance guide article</div>
+<span class="content-type" style="background:var(--amber-soft);color:var(--amber)">Content</span>
+<div class="content-score">0.65</div>
+</div>
+<div class="content-item">
+<div class="content-name">Advisor booking link</div>
+<span class="content-type" style="background:var(--coral-soft);color:var(--coral)">Action</span>
+<div class="content-score">0.54</div>
+</div>
+</div>
+<div class="card">
+<div class="card-title">Assembled push notification</div>
+<div class="message-preview">
+<div class="subject">Sarah, your personalised refinance rate is ready</div>
+<div class="body">Based on your mortgage profile and current market rates, we've found a refinance option that could save you <strong style="color:var(--teal)">£187/month</strong>. Your personalised rate: <strong style="color:var(--accent)">3.89% APR</strong>.</div>
+<span class="message-cta">View my personalised rate →</span>
+</div>
+</div>
+<div class="result-banner">
+<h3>End-to-end optimisation complete</h3>
+<p>Every layer — journey selection, path optimisation, channel routing, send timing, and content decisioning — worked together to maximise Sarah's probability of conversion.</p>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ IMPACT SUMMARY ═══ -->
+<section class="impact-section" id="impact">
+<div class="section-label">Business impact</div>
+<h2 class="section-title">Estimated uplift vs unoptimised delivery</h2>
+<p class="section-desc">When all six layers work in concert, the cumulative effect compounds at each stage — turning marginal gains into transformative business outcomes.</p>
+<div class="impact-grid">
+<div class="impact-card">
+<div class="impact-number" style="color:var(--accent)">+41%</div>
+<div class="impact-label">Conversion uplift</div>
+<div class="impact-sub">vs batch delivery baseline</div>
+</div>
+<div class="impact-card">
+<div class="impact-number" style="color:var(--teal)">+31%</div>
+<div class="impact-label">Open rate improvement</div>
+<div class="impact-sub">via send time optimisation</div>
+</div>
+<div class="impact-card">
+<div class="impact-number" style="color:var(--amber)">+25%</div>
+<div class="impact-label">Path conversion lift</div>
+<div class="impact-sub">vs default journey branch</div>
+</div>
+<div class="impact-card">
+<div class="impact-number" style="color:var(--blue)">3.89%</div>
+<div class="impact-label">Personalised APR</div>
+<div class="impact-sub">tailored to profile attributes</div>
+</div>
+</div>
+</section>
+
+<footer class="footer">
+<p>The anatomy of a decision · Adobe Journey Optimizer · Interactive Presentation</p>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+/* ═══ CASCADE ENGINE ═══ */
+const state={
+attrs:new Set(['high-value','mobile-first','mortgage-holder']),
+prop:'refi',
+formula:'balanced'
+};
+
+const SCENARIOS={
+refi:{
+label:'Mortgage refinance',propScore:.82,
+journeys:[
+{name:'Mortgage refinance',scores:{balanced:.87,aggressive:.91,retention:.62}},
+{name:'Investment advisory',scores:{balanced:.64,aggressive:.72,retention:.48}},
+{name:'Credit card upgrade',scores:{balanced:.51,aggressive:.68,retention:.35}},
+{name:'Insurance cross-sell',scores:{balanced:.38,aggressive:.42,retention:.31}},
+{name:'Loyalty renewal',scores:{balanced:.29,aggressive:.18,retention:.78}}
+],
+paths:[
+{name:'Personalised rate + calculator',pct:67,sel:true},
+{name:'Advisor callback flow',pct:58,sel:false},
+{name:'Standard offer page',pct:42,sel:false}
+],
+pathInfluence:['Refinance propensity','Savings behaviour','Digital engagement'],
+channels:{mobile:[
+{name:'Push notification',score:.84,sel:true},{name:'Email',score:.71,sel:false},
+{name:'SMS',score:.66,sel:false},{name:'In-app',score:.52,sel:false}
+],desktop:[
+{name:'Email',score:.82,sel:true},{name:'In-app',score:.68,sel:false},
+{name:'Push notification',score:.54,sel:false},{name:'SMS',score:.48,sel:false}
+]},
+sendTime:{mobile:'19:00',desktop:'09:00',
+hours_m:[.15,.12,.08,.06,.05,.10,.25,.55,.82,.75,.60,.48,.52,.58,.45,.38,.50,.72,.90,.95,.85,.65,.42,.22],
+hours_d:[.08,.05,.04,.03,.02,.15,.45,.78,.90,.85,.72,.55,.48,.52,.60,.58,.42,.35,.25,.18,.12,.10,.08,.06]},
+msgSections:[
+{section:'Hero banner',content:'Personalised refinance rate: 3.89% APR',active:true},
+{section:'Body copy',content:'Savings calculator showing £187/mo reduction',active:true},
+{section:'Social proof',content:'12,400 customers refinanced this quarter',active:false},
+{section:'CTA block',content:'"View my personalised rate" — deep-link to app',active:true},
+{section:'Secondary offer',content:'Home insurance bundle — cross-sell (decisioning)',active:true}
+],
+resultTitle:'Optimised for mortgage refinance conversion',
+resultDesc:'Profile propensity (0.82), mobile-first behaviour, and high-value segment status cascade through all layers — selecting the highest-margin journey, the most engaging path, the channel with 84% engagement, evening delivery, and personalised rate content.'
+},
+invest:{
+label:'Investment advisory',propScore:.61,
+journeys:[
+{name:'Investment advisory',scores:{balanced:.76,aggressive:.82,retention:.52}},
+{name:'Mortgage refinance',scores:{balanced:.64,aggressive:.68,retention:.55}},
+{name:'Credit card upgrade',scores:{balanced:.48,aggressive:.62,retention:.38}},
+{name:'Insurance cross-sell',scores:{balanced:.42,aggressive:.45,retention:.35}},
+{name:'Loyalty renewal',scores:{balanced:.31,aggressive:.20,retention:.72}}
+],
+paths:[
+{name:'Webinar registration + portfolio review',pct:61,sel:true},
+{name:'Advisory booking with RM',pct:55,sel:false},
+{name:'Generic investment landing page',pct:38,sel:false}
+],
+pathInfluence:['Investment propensity','Portfolio activity','Income bracket'],
+channels:{mobile:[
+{name:'Email',score:.76,sel:true},{name:'Push notification',score:.68,sel:false},
+{name:'In-app',score:.55,sel:false},{name:'SMS',score:.42,sel:false}
+],desktop:[
+{name:'Email',score:.88,sel:true},{name:'In-app',score:.72,sel:false},
+{name:'Push notification',score:.45,sel:false},{name:'SMS',score:.38,sel:false}
+]},
+sendTime:{mobile:'18:00',desktop:'09:00',
+hours_m:[.10,.08,.06,.04,.03,.08,.20,.45,.65,.60,.55,.50,.52,.55,.48,.40,.55,.72,.85,.80,.70,.52,.30,.15],
+hours_d:[.06,.04,.03,.02,.02,.18,.55,.82,.92,.88,.75,.58,.52,.55,.62,.58,.45,.38,.28,.20,.14,.10,.08,.05]},
+msgSections:[
+{section:'Hero banner',content:'Market insights: Q1 portfolio opportunities',active:true},
+{section:'Body copy',content:'Personalised advisory session with your RM',active:true},
+{section:'Social proof',content:'£2.4M average portfolio growth in 2025',active:false},
+{section:'CTA block',content:'"Book my consultation" — calendar integration',active:true},
+{section:'Secondary offer',content:'Tax-efficient ISA wrapper — cross-sell (decisioning)',active:true}
+],
+resultTitle:'Optimised for investment advisory engagement',
+resultDesc:'Investment propensity (0.61) with desktop-preference signals shift the cascade toward email delivery at 09:00, advisory-focused path, and consultation-oriented content blocks.'
+},
+card:{
+label:'Credit card upgrade',propScore:.44,
+journeys:[
+{name:'Credit card upgrade',scores:{balanced:.68,aggressive:.78,retention:.42}},
+{name:'Mortgage refinance',scores:{balanced:.55,aggressive:.58,retention:.48}},
+{name:'Investment advisory',scores:{balanced:.48,aggressive:.52,retention:.40}},
+{name:'Insurance cross-sell',scores:{balanced:.40,aggressive:.44,retention:.36}},
+{name:'Loyalty renewal',scores:{balanced:.35,aggressive:.22,retention:.75}}
+],
+paths:[
+{name:'Premium card showcase + benefit comparison',pct:54,sel:true},
+{name:'Cashback calculator flow',pct:48,sel:false},
+{name:'Standard upgrade page',pct:35,sel:false}
+],
+pathInfluence:['Spend patterns','Card usage frequency','Reward redemption'],
+channels:{mobile:[
+{name:'Push notification',score:.78,sel:true},{name:'Email',score:.65,sel:false},
+{name:'In-app',score:.62,sel:false},{name:'SMS',score:.48,sel:false}
+],desktop:[
+{name:'Email',score:.80,sel:true},{name:'In-app',score:.65,sel:false},
+{name:'Push notification',score:.48,sel:false},{name:'SMS',score:.40,sel:false}
+]},
+sendTime:{mobile:'12:00',desktop:'10:00',
+hours_m:[.10,.06,.05,.04,.03,.08,.22,.48,.60,.55,.52,.82,.78,.62,.50,.45,.55,.65,.72,.68,.55,.40,.25,.12],
+hours_d:[.05,.04,.03,.02,.02,.12,.42,.72,.80,.88,.82,.65,.58,.55,.60,.55,.42,.35,.28,.22,.15,.10,.06,.04]},
+msgSections:[
+{section:'Hero banner',content:'Upgrade to Platinum: 3x reward points',active:true},
+{section:'Body copy',content:'Your spending last quarter could have earned £340 more',active:true},
+{section:'Social proof',content:'87% of upgraders increased their reward earnings',active:false},
+{section:'CTA block',content:'"Compare my options" — instant pre-approval',active:true},
+{section:'Secondary offer',content:'Travel insurance add-on — cross-sell (decisioning)',active:true}
+],
+resultTitle:'Optimised for credit card upgrade conversion',
+resultDesc:'Card propensity (0.44) combined with spend-pattern data targets the lunchtime engagement window and benefit-comparison path to maximise upgrade conversion.'
+},
+retain:{
+label:'Retention / loyalty',propScore:.38,
+journeys:[
+{name:'Loyalty renewal',scores:{balanced:.72,aggressive:.35,retention:.92}},
+{name:'Mortgage refinance',scores:{balanced:.55,aggressive:.60,retention:.68}},
+{name:'Insurance cross-sell',scores:{balanced:.48,aggressive:.42,retention:.58}},
+{name:'Investment advisory',scores:{balanced:.42,aggressive:.48,retention:.45}},
+{name:'Credit card upgrade',scores:{balanced:.35,aggressive:.52,retention:.38}}
+],
+paths:[
+{name:'Personalised retention offer + loyalty bonus',pct:72,sel:true},
+{name:'Dedicated RM outreach',pct:65,sel:false},
+{name:'Standard renewal notice',pct:40,sel:false}
+],
+pathInfluence:['Churn risk score','Tenure & LTV','Engagement decline'],
+channels:{mobile:[
+{name:'SMS',score:.80,sel:true},{name:'Push notification',score:.72,sel:false},
+{name:'Email',score:.65,sel:false},{name:'In-app',score:.48,sel:false}
+],desktop:[
+{name:'Email',score:.78,sel:true},{name:'In-app',score:.60,sel:false},
+{name:'Push notification',score:.42,sel:false},{name:'SMS',score:.55,sel:false}
+]},
+sendTime:{mobile:'10:00',desktop:'11:00',
+hours_m:[.08,.05,.04,.03,.03,.10,.35,.60,.72,.82,.78,.65,.58,.55,.50,.48,.52,.60,.68,.62,.50,.35,.20,.10],
+hours_d:[.05,.04,.03,.02,.02,.10,.38,.65,.78,.82,.88,.80,.62,.58,.55,.52,.48,.42,.35,.28,.18,.12,.08,.05]},
+msgSections:[
+{section:'Hero banner',content:'Sarah, we value your 6 years with us',active:true},
+{section:'Body copy',content:'Exclusive Gold tier renewal: waived fees + bonus perks',active:true},
+{section:'Social proof',content:'Your personalised value summary for 2025',active:true},
+{section:'CTA block',content:'"Renew my Gold membership" — one-tap renewal',active:true},
+{section:'Secondary offer',content:'Rate loyalty discount on mortgage — cross-sell (decisioning)',active:false}
+],
+resultTitle:'Optimised for retention & loyalty renewal',
+resultDesc:'High churn risk combined with retention-focus formula dramatically shifts the cascade — prioritising the loyalty journey (0.92), personal SMS at 10:00, and value-reinforcement content over cross-sell.'
+}
+};
+
+const FORMULAS={
+balanced:{label:'Balanced',expr:'(propensity × 0.5) + (biz_value × 0.3) + (churn_offset × 0.2)',weights:[.5,.3,.2]},
+aggressive:{label:'Revenue-first',expr:'(propensity × 0.7) + (biz_value × 0.2) + (churn_offset × 0.1)',weights:[.7,.2,.1]},
+retention:{label:'Retention-focus',expr:'(propensity × 0.2) + (biz_value × 0.2) + (churn_offset × 0.6)',weights:[.2,.2,.6]}
+};
+
+function toggleAttr(el){
+const a=el.dataset.attr;
+if(state.attrs.has(a)){state.attrs.delete(a);el.classList.remove('active');}
+else{state.attrs.add(a);el.classList.add('active');}
+renderCascade();
+}
+function toggleProp(el){
+document.querySelectorAll('[data-prop]').forEach(c=>{c.classList.remove('active');});
+el.classList.add('active');
+state.prop=el.dataset.prop;
+renderCascade();
+}
+function toggleFormula(el){
+document.querySelectorAll('[data-formula]').forEach(c=>{c.classList.remove('active');});
+el.classList.add('active');
+state.formula=el.dataset.formula;
+renderCascade();
+}
+
+function renderCascade(){
+const S=SCENARIOS[state.prop];
+const F=FORMULAS[state.formula];
+const isMobile=state.attrs.has('mobile-first')&&!state.attrs.has('desktop-pref');
+
+// Fade out
+document.querySelectorAll('.cascade-content').forEach(c=>c.classList.add('fading'));
+
+setTimeout(()=>{
+// Stage 1: Profile signals
+const sigEl=document.getElementById('profileSignals');
+let sigHtml='';
+state.attrs.forEach(a=>{
+const labels={'high-value':'High-value','mobile-first':'Mobile-first','desktop-pref':'Desktop pref.','mortgage-holder':'Mortgage holder','high-churn':'High churn risk','new-customer':'New customer'};
+const colors={'high-value':'red','mobile-first':'teal','desktop-pref':'blue','mortgage-holder':'amber','high-churn':'red','new-customer':'teal'};
+sigHtml+=`<span class="cascade-influence-tag visible ${colors[a]||'red'}">${labels[a]||a}</span>`;
+});
+sigEl.innerHTML=sigHtml||'<span style="font-size:11px;color:var(--text-muted)">No attributes selected</span>';
+
+const propEl=document.getElementById('propVector');
+propEl.innerHTML=`<div style="display:flex;align-items:center;gap:6px;margin:2px 0">
+<span style="font-size:11px;font-weight:500;color:var(--text-primary)">${S.label}</span>
+<div class="ci-bar" style="flex:1"><div class="ci-bar-fill" style="width:${S.propScore*100}%;background:var(--accent)"></div></div>
+<span style="font-family:var(--font-mono);font-size:10px;color:var(--accent)">${S.propScore}</span></div>`;
+
+// Stage 2: Journey ranking
+document.getElementById('formulaDisplay').textContent=F.expr;
+const sorted=[...S.journeys].sort((a,b)=>b.scores[state.formula]-a.scores[state.formula]);
+const jEl=document.getElementById('journeyRank');
+jEl.innerHTML=sorted.map((j,i)=>{
+const s=j.scores[state.formula];
+const sel=i===0;
+return `<div class="cascade-item${sel?' selected':''}">
+<div class="ci-rank">${i+1}</div>
+<div class="ci-name">${j.name}</div>
+<div class="ci-bar"><div class="ci-bar-fill" style="width:${s*100}%;background:${sel?'var(--accent)':'var(--border-strong)'}"></div></div>
+<div class="ci-score">${s.toFixed(2)}</div></div>`;
+}).join('');
+
+// Stage 3: Paths
+const pEl=document.getElementById('pathRank');
+pEl.innerHTML=S.paths.map(p=>{
+return `<div class="cascade-item${p.sel?' selected':''}">
+<div class="ci-name">${p.name}</div>
+<div class="ci-score">${p.pct}%</div></div>`;
+}).join('');
+const piEl=document.getElementById('pathInfluence');
+piEl.innerHTML=S.pathInfluence.map(f=>`<span class="cascade-influence-tag visible red">${f}</span>`).join('');
+
+// Stage 4: Channels
+const chans=isMobile?S.channels.mobile:S.channels.desktop;
+const cEl=document.getElementById('channelRank');
+cEl.innerHTML=chans.map(c=>{
+return `<div class="cascade-item${c.sel?' selected-teal':''}">
+<div class="ci-name">${c.name}</div>
+<div class="ci-bar"><div class="ci-bar-fill" style="width:${c.score*100}%;background:${c.sel?'var(--teal)':'var(--border-strong)'}"></div></div>
+<div class="ci-score">${c.score.toFixed(2)}</div></div>`;
+}).join('')+`<div style="margin-top:6px"><span class="cascade-influence-tag visible ${isMobile?'teal':'blue'}">${isMobile?'Mobile-first signal':'Desktop preference signal'}</span></div>`;
+
+// Stage 5: Send time mini heatmap
+const hrs=isMobile?S.sendTime.hours_m:S.sendTime.hours_d;
+const peakIdx=hrs.indexOf(Math.max(...hrs));
+const miniEl=document.getElementById('miniHeatmap');
+// show 6 blocks representing 4-hour windows
+const windows=[];
+for(let i=0;i<6;i++){
+const slice=hrs.slice(i*4,(i+1)*4);
+windows.push(slice.reduce((a,b)=>a+b,0)/4);
+}
+const wpeak=windows.indexOf(Math.max(...windows));
+miniEl.innerHTML=windows.map((w,i)=>{
+const op=Math.max(.1,w);
+return `<div class="cascade-time-cell${i===wpeak?' peak':''}" style="background:rgba(235,16,0,${op*.7})" title="${i*4}:00–${(i+1)*4}:00"></div>`;
+}).join('');
+const stEl=document.getElementById('sendTimeResult');
+const sTime=isMobile?S.sendTime.mobile:S.sendTime.desktop;
+stEl.innerHTML=`<strong style="color:var(--accent)">${sTime}</strong> optimal send · ${isMobile?'Evening mobile peak':'Morning desktop peak'}`;
+
+// Stage 6: Message sections
+const mEl=document.getElementById('msgSections');
+mEl.innerHTML=S.msgSections.map(m=>{
+return `<div class="cascade-msg-block${m.active?' active':''}">
+<div class="msg-section-name">${m.section}</div>
+${m.content}</div>`;
+}).join('');
+
+// Result banner
+document.getElementById('cascadeResultTitle').textContent=S.resultTitle;
+document.getElementById('cascadeResultDesc').textContent=S.resultDesc;
+
+// Highlight active stages
+document.querySelectorAll('.cascade-stage-inner').forEach(s=>s.classList.add('highlighted'));
+setTimeout(()=>document.querySelectorAll('.cascade-stage-inner').forEach(s=>s.classList.remove('highlighted')),1500);
+
+// Fade in
+document.querySelectorAll('.cascade-content').forEach(c=>c.classList.remove('fading'));
+},250);
+}
+
+// Initial render
+renderCascade();
+
+/* ═══ HEATMAP (warm tones — detail section) ═══ */
+const hours=[.15,.12,.08,.06,.05,.10,.25,.55,.82,.75,.60,.48,.52,.58,.45,.38,.50,.72,.90,.95,.85,.65,.42,.22];
+const heatmap=document.getElementById('heatmap');
+const peak=hours.indexOf(Math.max(...hours));
+hours.forEach((v,i)=>{
+const c=document.createElement('div');
+c.className='time-cell'+(i===peak?' peak':'');
+const r=Math.round(235+(1-v)*15);
+const g=Math.round(16+v*80+(1-v)*200);
+const b=Math.round(0+v*40+(1-v)*195);
+const a=Math.max(.08,.06+v*.55);
+c.style.background=`rgba(${Math.min(r,250)},${Math.min(g,220)},${Math.min(b,200)},${a})`;
+if(v>.6)c.style.background=`rgba(235,${Math.round(16+80*(1-v))},0,${.12+v*.45})`;
+c.title=`${String(i).padStart(2,'0')}:00 — ${Math.round(v*100)}% propensity`;
+heatmap.appendChild(c);
+});
+
+/* ═══ PROFILE HUB: Draw SVG connectors ═══ */
+function drawConnectors(){
+const hub=document.getElementById('profileHub');
+const svg=document.getElementById('connectorSvg');
+if(!hub||!svg||window.innerWidth<900)return;
+const hubRect=hub.getBoundingClientRect();
+const center=hub.querySelector('.profile-center');
+if(!center)return;
+const cRect=center.getBoundingClientRect();
+const cx=cRect.left+cRect.width/2-hubRect.left;
+const cy=cRect.top+cRect.height/2-hubRect.top;
+
+let paths='';
+const branchColors={
+identities:'#EB1000',devices:'#2B6CB0',segments:'#1A7A5C',
+events:'#B8760C',support:'#C44A2D',propensity:'#EB1000'
+};
+
+hub.querySelectorAll('.branch').forEach(b=>{
+const name=b.dataset.branch;
+const bRect=b.getBoundingClientRect();
+const bx=bRect.left+bRect.width/2-hubRect.left;
+const by=bRect.top+bRect.height/2-hubRect.top;
+const color=branchColors[name]||'#9C9488';
+const midX=(cx+bx)/2;
+const midY=(cy+by)/2;
+const cpx1=cx+(midX-cx)*.3;
+const cpy1=cy+(midY-cy)*.8;
+const cpx2=bx-(bx-midX)*.3;
+const cpy2=by-(by-midY)*.8;
+paths+=`<path d="M${cx},${cy} C${cpx1},${cpy1} ${cpx2},${cpy2} ${bx},${by}" 
+  fill="none" stroke="${color}" stroke-width="1.5" stroke-opacity="0.18" 
+  class="connector-path" data-branch="${name}"/>`;
+paths+=`<circle cx="${bx}" cy="${by}" r="3" fill="${color}" opacity="0.25" class="connector-dot" data-branch="${name}"/>`;
+});
+svg.innerHTML=paths;
+}
+
+setTimeout(drawConnectors,600);
+window.addEventListener('resize',drawConnectors);
+
+/* ═══ BRANCH HOVER: highlight connector ═══ */
+document.querySelectorAll('.branch').forEach(b=>{
+b.addEventListener('mouseenter',()=>{
+const name=b.dataset.branch;
+document.querySelectorAll('.connector-path').forEach(p=>{
+if(p.dataset.branch===name){p.setAttribute('stroke-opacity','0.55');p.setAttribute('stroke-width','2.5');}
+else{p.setAttribute('stroke-opacity','0.06');}
+});
+document.querySelectorAll('.connector-dot').forEach(d=>{
+if(d.dataset.branch===name){d.setAttribute('opacity','0.7');d.setAttribute('r','5');}
+else{d.setAttribute('opacity','0.08');}
+});
+});
+b.addEventListener('mouseleave',()=>{
+document.querySelectorAll('.connector-path').forEach(p=>{p.setAttribute('stroke-opacity','0.18');p.setAttribute('stroke-width','1.5');});
+document.querySelectorAll('.connector-dot').forEach(d=>{d.setAttribute('opacity','0.25');d.setAttribute('r','3');});
+});
+});
+
+/* ═══ SCROLL REVEAL + BAR ANIMATION ═══ */
+const observer=new IntersectionObserver((entries)=>{
+entries.forEach(e=>{
+if(e.isIntersecting){
+e.target.classList.add('visible');
+e.target.querySelectorAll('.bar-fill[data-w]').forEach(b=>{
+setTimeout(()=>b.style.width=b.dataset.w,200);
+});
+if(e.target.id==='s1')setTimeout(drawConnectors,400);
+}
+});
+},{threshold:.12});
+document.querySelectorAll('.stage-section, .impact-section').forEach(s=>observer.observe(s));
+
+
+
+/* ═══ VIEW TOGGLE ═══ */
+function switchView(view,btn){
+document.querySelectorAll('.view-toggle-btn').forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+document.getElementById('viewCascade').classList.toggle('active',view==='cascade');
+document.getElementById('viewFlow').classList.toggle('active',view==='flow');
+if(view==='flow'){sfRender();setTimeout(sfDrawConnectors,100);}
+}
+
+/* ═══ STAGED FLOW ENGINE ═══ */
+const sfActive=new Set();
+let sfExpandedJourney=null;
+let sfSelectedPath=null;
+const sfSimContext={lever:'none',bankBoost:'none',urgency:'none',channelStrategy:'auto'};
+
+// Message-personalisation state (profile panel controls)
+const sfMsgContext={dynamicFeature:'savings',expiryHours:72};
+
+// Dynamic-content (underused feature) variants
+const SF_FEATURES={
+  savings:{
+    label:'A feature we think you\u2019d value',
+    title:'Savings Goals',
+    body:'Set targets for the moments that matter \u2014 a deposit, a holiday, a rainy-day fund \u2014 and see your progress clearly in the app.',
+    meta:['Included with your account','No fees, no minimum'],
+    signal:'feature_enabled=false \u00B7 savings_goals \u00B7 tenure\u226512mo'
+  },
+  roundups:{
+    label:'A small habit, a steady impact',
+    title:'Round-ups',
+    body:'Round every card purchase up to the nearest pound, and let the spare change build toward the goals you care about \u2014 no effort, no pressure.',
+    meta:['Pause or switch off anytime','Works with any current account'],
+    signal:'feature_enabled=false \u00B7 round_ups \u00B7 card_spend\u2265\u00A3500/mo'
+  },
+  credit:{
+    label:'Understand your position',
+    title:'Credit score check',
+    body:'See a clear view of your credit score and how it changes over time. Soft-search only \u2014 checking does not affect your rating.',
+    meta:['Updated monthly','No impact on your score'],
+    signal:'feature_enabled=false \u00B7 credit_insights \u00B7 refi_intent active'
+  }
+};
+
+// Selection-strategy variants
+const SF_STRATEGY={
+  standard:{
+    title:'Your refinance options, explained clearly',
+    body:'Review how a SecurFinancial refinance would work alongside your Gold benefits, with waived arrangement fees and a complimentary property valuation included.',
+    savingPeriod:'indicative annual saving, based on your figures',
+    cta:'Review Options',
+    secondary:'Speak to an advisor',
+    timer:null
+  },
+  urgency:{
+    title:'Your reserved rate is close to expiring',
+    body:'The fixed rate we prepared for you is held under our 7-day rate-lock policy. Review your options while the current figures still apply.',
+    savingPeriod:'indicative annual saving at the current reserved rate',
+    cta:'Review Options',
+    secondary:'Speak to an advisor',
+    timer:true
+  }
+};
+
+function sfSetDynamicFeature(key,btn){
+  if(sfMsgContext.dynamicFeature===key)return;
+  sfMsgContext.dynamicFeature=key;
+  if(btn){
+    btn.parentNode.querySelectorAll('.sf-mp-pill').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  sfAnimateSwap('dynamic','sfDynamicCard',sfRenderDynamicCard);
+}
+
+// Debounced expiry setter so dragging the slider doesn't thrash the animation
+let sfExpiryDebounce=null;
+let sfExpiryLastVariant=null;
+function sfSetExpiry(hours){
+  sfMsgContext.expiryHours=parseInt(hours,10);
+  const isUrgent=sfMsgContext.expiryHours<24;
+  const valEl=document.getElementById('sfMpExpiryVal');
+  const slider=document.getElementById('sfMpExpirySlider');
+  if(valEl){
+    valEl.textContent=sfMsgContext.expiryHours+'h';
+    valEl.classList.toggle('urgent',isUrgent);
+  }
+  if(slider){
+    const fillStop=(sfMsgContext.expiryHours/168)*100;
+    if(isUrgent){
+      slider.style.background='linear-gradient(to right,#B8760C 0%,#B8760C '+fillStop+'%,var(--border-strong) '+fillStop+'%,var(--border-strong) 100%)';
+    }else{
+      slider.style.background='linear-gradient(to right,var(--accent) 0%,var(--accent) '+fillStop+'%,var(--border-strong) '+fillStop+'%,var(--border-strong) 100%)';
+    }
+  }
+  // If variant didn't change (still urgent or still standard), just live-update the timer in place —
+  // no expensive re-animation. The full animated swap only fires when the variant crosses the 24h threshold.
+  const variant=isUrgent?'urgency':'standard';
+  if(sfExpiryLastVariant===null)sfExpiryLastVariant=variant;
+  if(variant===sfExpiryLastVariant){
+    const timerVal=document.querySelector('#sfSelectionCard .em-offer-timer-val');
+    if(timerVal&&isUrgent)timerVal.textContent=sfMsgContext.expiryHours+'h';
+    clearTimeout(sfExpiryDebounce);
+    sfExpiryDebounce=setTimeout(()=>setTimeout(sfDrawEmailConnectors,30),60);
+    return;
+  }
+  // Variant flipped — animate the swap
+  sfExpiryLastVariant=variant;
+  clearTimeout(sfExpiryDebounce);
+  sfExpiryDebounce=setTimeout(()=>{
+    sfAnimateSwap('offer','sfSelectionCard',sfRenderSelectionCard);
+  },80);
+}
+
+// Shared animated-swap helper for email container variants
+// Sequence: fade-out old (220ms) → replace content → fade-in new (350ms) + spotlight + right-panel pulse + connector flash
+function sfAnimateSwap(containerType,cardElId,renderFn){
+  const card=document.getElementById(cardElId);
+  const section=document.querySelector('.em-section[data-container="'+containerType+'"]');
+  const rightCard=document.querySelector('.sf-email-container[data-container="'+containerType+'"]');
+  const connector=document.querySelector('#sfEmailConnectors path[data-ec="'+containerType+'"]');
+
+  // Fade out if the card currently has any content
+  const firstRender=!card||!card.innerHTML.trim();
+  if(firstRender){
+    renderFn();
+    setTimeout(sfDrawEmailConnectors,50);
+    return;
+  }
+
+  card.classList.add('swapping');
+  // Wait for fade-out to finish (~220ms), then swap and fade in
+  setTimeout(()=>{
+    renderFn();
+    // Force reflow so the transition from swapping→default triggers
+    void card.offsetWidth;
+    card.classList.remove('swapping');
+
+    // Insert the brief "CHANGED" badge
+    if(section){
+      const old=section.querySelector('.em-change-badge');
+      if(old)old.remove();
+      const badge=document.createElement('div');
+      badge.className='em-change-badge '+containerType;
+      badge.textContent='Updated';
+      section.appendChild(badge);
+      setTimeout(()=>badge.remove(),1650);
+    }
+
+    // Spotlight halo on the section
+    if(section){
+      section.classList.remove('em-spotlight');
+      void section.offsetWidth;
+      section.classList.add('em-spotlight');
+      setTimeout(()=>section.classList.remove('em-spotlight'),1650);
+    }
+    // Right-panel card pulse
+    if(rightCard){
+      rightCard.classList.remove('em-pulse');
+      void rightCard.offsetWidth;
+      rightCard.classList.add('em-pulse');
+      setTimeout(()=>rightCard.classList.remove('em-pulse'),1650);
+    }
+    // Redraw connectors (positions may shift if the swapped card has different height)
+    setTimeout(sfDrawEmailConnectors,60);
+    // Flash the matching connector line
+    setTimeout(()=>{
+      const conn2=document.querySelector('#sfEmailConnectors path[data-ec="'+containerType+'"]');
+      if(conn2){
+        conn2.classList.remove('em-flash');
+        void conn2.getBoundingClientRect();
+        conn2.classList.add('em-flash');
+        setTimeout(()=>conn2.classList.remove('em-flash'),1650);
+      }
+    },80);
+  },220);
+}
+
+function sfRenderDynamicCard(){
+  const target=document.getElementById('sfDynamicCard');
+  if(!target)return;
+  const f=SF_FEATURES[sfMsgContext.dynamicFeature]||SF_FEATURES.savings;
+  target.innerHTML=
+    '<div class="em-service-card">'+
+      '<div class="em-service-label">'+f.label+'</div>'+
+      '<div class="em-service-title">'+f.title+'</div>'+
+      '<div class="em-service-body">'+f.body+'</div>'+
+      '<div class="em-service-meta">'+
+        f.meta.map(m=>'<div class="em-service-meta-item"><span class="em-service-dot"></span>'+m+'</div>').join('')+
+      '</div>'+
+    '</div>';
+  // Update right-panel description/source to reflect the chosen feature
+  const dynCard=document.querySelector('.sf-email-container[data-container="dynamic"] .sf-ec-desc');
+  if(dynCard){
+    dynCard.textContent=f.title+' is included with Sarah\u2019s account but hasn\u2019t been enabled. Surfacing this service aligns with the nurture-first journey and the long-term wellness brand value.';
+  }
+  const dynSrc=document.querySelector('.sf-email-container[data-container="dynamic"] .sf-ec-source');
+  if(dynSrc){
+    dynSrc.textContent='Feature-adoption signal \u00B7 '+f.signal;
+  }
+}
+
+function sfRenderSelectionCard(){
+  const card=document.getElementById('sfSelectionCard');
+  if(!card)return;
+  const isUrgent=sfMsgContext.expiryHours<24;
+  const s=isUrgent?SF_STRATEGY.urgency:SF_STRATEGY.standard;
+  card.classList.toggle('urgent',isUrgent);
+  const timerHtml=s.timer?
+    '<div class="em-offer-timer">'+
+      '<div class="em-offer-timer-icon">\u23F1</div>'+
+      '<div class="em-offer-timer-label">Reserved rate \u00B7 time remaining</div>'+
+      '<div class="em-offer-timer-val">'+sfMsgContext.expiryHours+'h</div>'+
+    '</div>':'';
+  card.innerHTML=
+    timerHtml+
+    '<div class="em-offer-title">'+s.title+'</div>'+
+    '<div class="em-offer-body">'+s.body+'</div>'+
+    '<div class="em-offer-savings">'+
+      '<div class="em-offer-amount">£2,244</div>'+
+      '<div class="em-offer-period">'+s.savingPeriod+'</div>'+
+    '</div>'+
+    '<a class="em-cta-btn">'+s.cta+'</a>'+
+    '<a class="em-cta-secondary">'+s.secondary+'</a>';
+  // Update right-panel description
+  const descEl=document.getElementById('sfSelectionDesc');
+  if(descEl){
+    descEl.textContent=isUrgent
+      ?'Rate-lock expiring soon \u2014 the selection strategy has switched to the urgency-variant item, with the same refinance recommendation but a time-aware framing and reserved-rate timer.'
+      :'Top-ranked item from the selection strategy \u2014 swaps variant based on time-to-expiry context. Indicative saving calculated from the rate delta between current SVR and SecurFinancial\u2019s fixed offer.';
+  }
+  const srcEl=document.getElementById('sfSelectionSource');
+  if(srcEl){
+    srcEl.textContent='Selection Strategy \u00B7 highest_margin \u00D7 propensity_score \u00B7 variant: '+(isUrgent?'urgency (expiry<24h)':'standard');
+  }
+}
+
+const SF_CHANNELS=[
+{id:'email',name:'Email',icon:'✉',base:.72,group:'outbound',
+boosts:{savings_growth:.08,school_savings:.05,email_cap:-.40},desc:'Rich content with personalised sections'},
+{id:'push',name:'Push notification',icon:'📱',base:.58,group:'outbound',
+boosts:{mobile_first:.32,refi_intent:.08,email_cap:.14},desc:'Mobile-first instant delivery'},
+{id:'sms',name:'SMS',icon:'💬',base:.52,group:'outbound',
+boosts:{churn_risk:.15,debt_consolidation:.10,email_cap:.06},desc:'Urgent, high-open-rate messages'},
+{id:'inapp',name:'In-app message',icon:'🌐',base:.44,group:'inbound',
+boosts:{mobile_first:.28,rewards_interest:.08,email_cap:.12},desc:'Contextual on-session triggers'},
+{id:'web',name:'Web personalisation',icon:'🖥',base:.40,group:'inbound',
+boosts:{mortgage_need:.05},desc:'On-site banner & recommendation rail'}
+];
+
+const SF_SENDTIME={
+push:{label:'Push notification',time:'19:00',peak:'Evening mobile',open:95,lift:31,
+hours:[.12,.08,.06,.05,.04,.08,.20,.45,.70,.65,.55,.45,.48,.52,.42,.36,.48,.68,.88,.95,.82,.60,.38,.18]},
+email:{label:'Email',time:'09:00',peak:'Morning commute',open:82,lift:24,
+hours:[.06,.04,.03,.02,.02,.15,.45,.78,.92,.88,.75,.55,.50,.54,.60,.56,.44,.38,.28,.22,.16,.10,.08,.05]},
+sms:{label:'SMS',time:'12:00',peak:'Lunch break',open:78,lift:18,
+hours:[.08,.05,.04,.03,.03,.08,.20,.42,.55,.52,.60,.82,.78,.58,.48,.42,.50,.60,.68,.62,.50,.35,.20,.10]},
+inapp:{label:'In-app',time:'Real-time',peak:'On app open',open:65,lift:12,
+hours:[.10,.08,.06,.05,.05,.12,.30,.55,.65,.60,.58,.55,.52,.55,.50,.48,.52,.62,.75,.72,.65,.50,.32,.15]},
+web:{label:'Web',time:'Session',peak:'On page load',open:58,lift:8,
+hours:[.05,.03,.02,.02,.02,.10,.35,.62,.78,.82,.80,.70,.65,.60,.62,.58,.50,.42,.32,.25,.18,.12,.08,.04]}
+};
+
+const SF_ATTRS={
+mortgage_need:{label:'Reduce mortgage',color:'red'},
+refi_intent:{label:'Refi rates checked',color:'red'},
+rewards_interest:{label:'Rewards interest',color:'amber'},
+debt_consolidation:{label:'Debt consolidation',color:'amber'},
+savings_growth:{label:'Savings growth',color:'blue'},
+family_protection:{label:'Family protection',color:'teal'},
+school_savings:{label:'School savings',color:'blue'},
+churn_risk:{label:'Churn risk',color:'coral'},
+mobile_first:{label:'Mobile-first',color:'teal'},
+agent_intent:{label:'Voice-agent signal',color:'amber'},
+email_cap:{label:'Email cap reached',color:'coral'}
+};
+
+const SF_JOURNEYS=[
+{id:'mortgage',name:'Mortgage refinance',desc:'Highest margin · Rate lock window',bankValue:1.5,issue:'sales',
+weights:{mortgage_need:1.80,refi_intent:1.50,rewards_interest:.05,debt_consolidation:.15,savings_growth:.05,family_protection:.10,school_savings:.05,churn_risk:.05,mobile_first:.10,agent_intent:.70}},
+{id:'invest',name:'Investment advisory',desc:'Wealth management · ISA products',bankValue:1.3,issue:'sales',
+weights:{mortgage_need:.05,refi_intent:.03,rewards_interest:.10,debt_consolidation:.05,savings_growth:.80,family_protection:.10,school_savings:.70,churn_risk:.05,mobile_first:.10,agent_intent:.15}},
+{id:'insurance',name:'Insurance cross-sell',desc:'Life cover · Home protection',bankValue:1.1,issue:'sales',
+weights:{mortgage_need:.15,refi_intent:.05,rewards_interest:.05,debt_consolidation:.05,savings_growth:.10,family_protection:.80,school_savings:.10,churn_risk:.05,mobile_first:.05,agent_intent:.10}},
+{id:'card',name:'Credit card upgrade',desc:'Premium tier · Reward optimisation',bankValue:0.9,issue:'sales',
+weights:{mortgage_need:.05,refi_intent:.02,rewards_interest:.85,debt_consolidation:.75,savings_growth:.05,family_protection:.05,school_savings:.05,churn_risk:.05,mobile_first:.10,agent_intent:.30}},
+{id:'retention',name:'Retention & loyalty',desc:'Churn prevention · Value reinforcement',bankValue:1.4,issue:'retention',
+weights:{mortgage_need:.10,refi_intent:.05,rewards_interest:.05,debt_consolidation:.10,savings_growth:.10,family_protection:.10,school_savings:.10,churn_risk:.90,mobile_first:.05,agent_intent:.25}}
+];
+
+const SF_PATHS={
+mortgage:[
+{id:'mp1',name:'Rate calculator',actions:'Eligibility check → Dynamic APR → Personalised offer',base:.55,
+boosts:{refi_intent:.40,mobile_first:.20,mortgage_need:.10},desc:'Self-service digital flow'},
+{id:'mp2',name:'Pre-approval flow',actions:'Income verify → Affordability calc → Conditional offer',base:.50,
+boosts:{mortgage_need:.30,refi_intent:.15},desc:'Fast-track qualified applicants'},
+{id:'mp3',name:'Advisor callback',actions:'Segment routing → Schedule RM → Needs assessment',base:.45,
+boosts:{mortgage_need:.25,family_protection:.10},desc:'Human-assisted for complex cases'},
+{id:'mp4',name:'Standard offer page',actions:'Generic landing → Rate table → Apply link',base:.35,
+boosts:{},desc:'Default catch-all path'}
+],
+invest:[
+{id:'ip1',name:'Webinar + portfolio review',actions:'Risk profiling → Portfolio match → Booking',base:.50,
+boosts:{savings_growth:.30,school_savings:.20},desc:'Education-led advisory engagement'},
+{id:'ip2',name:'Junior ISA setup',actions:'Eligibility check → Fund selection → Direct debit',base:.40,
+boosts:{school_savings:.40,savings_growth:.10},desc:'Targeted child savings onboarding'},
+{id:'ip3',name:'Robo-advisor onboarding',actions:'Risk quiz → Auto-allocation → Funding',base:.45,
+boosts:{mobile_first:.25,savings_growth:.15},desc:'Digital-first investment path'},
+{id:'ip4',name:'RM consultation',actions:'Calendar booking → Pre-meeting profile → Session',base:.42,
+boosts:{savings_growth:.10},desc:'High-touch advisory relationship'}
+],
+insurance:[
+{id:'np1',name:'Life cover assessment',actions:'Needs calculator → Quote → Underwriting',base:.50,
+boosts:{family_protection:.40,mortgage_need:.15},desc:'Protection gap analysis'},
+{id:'np2',name:'Home insurance bundle',actions:'Property data → Multi-product quote → Bundle offer',base:.45,
+boosts:{mortgage_need:.25,family_protection:.10},desc:'Cross-sell with mortgage product'},
+{id:'np3',name:'Income protection',actions:'Salary input → Cover options → Premium calc',base:.40,
+boosts:{family_protection:.20,churn_risk:.10},desc:'Salary continuity planning'}
+],
+card:[
+{id:'cp1',name:'Benefit comparison',actions:'Current vs upgrade → Reward projection → Showcase',base:.50,
+boosts:{rewards_interest:.35},desc:'Visual tier comparison experience'},
+{id:'cp2',name:'Cashback calculator',actions:'Spend import → Category mapping → Savings preview',base:.45,
+boosts:{rewards_interest:.20,mobile_first:.15},desc:'Personalised earnings simulator'},
+{id:'cp3',name:'Balance transfer flow',actions:'Debt import → Rate comparison → Transfer initiation',base:.40,
+boosts:{debt_consolidation:.40},desc:'Consolidation-focused path'},
+{id:'cp4',name:'Standard upgrade',actions:'Product page → Features → Apply',base:.35,
+boosts:{},desc:'Default card upgrade journey'}
+],
+retention:[
+{id:'rp1',name:'Personalised retention offer',actions:'Churn model → Offer engine → Dynamic discount',base:.55,
+boosts:{churn_risk:.40},desc:'AI-driven retention intervention'},
+{id:'rp2',name:'Loyalty bonus + fee waiver',actions:'Tenure calc → Benefit unlock → Fee reversal',base:.50,
+boosts:{churn_risk:.30,mortgage_need:.05},desc:'Value reinforcement for Gold tier'},
+{id:'rp3',name:'Dedicated RM outreach',actions:'Priority flag → RM assignment → Personal call',base:.45,
+boosts:{churn_risk:.20,mortgage_need:.10,family_protection:.05},desc:'White-glove retention for HNW'}
+]
+};
+
+/* ─── NEW: formula builder + simulate context ─── */
+
+// Helper to set a firing class on a rule row
+function sfSetRuleState(ruleName, firing, active){
+const el=document.querySelector('.sf-fb-rule[data-rule="'+ruleName+'"]');
+if(!el)return;
+el.classList.toggle('active',active);
+el.classList.toggle('not-firing',!firing);
+}
+
+function sfUpdateFormulaBuilder(winner){
+const hasAttrs=sfActive.size>0;
+
+// Rule 1: baseScore — always firing
+sfSetRuleState('baseScore',true,true);
+// Rule 2: signalPropensity — firing if any signal active
+sfSetRuleState('signals',hasAttrs,hasAttrs);
+// Rule 3: agenticLift — firing if agent_intent active
+const agenticFiring=sfActive.has('agent_intent');
+sfSetRuleState('agentic',agenticFiring,agenticFiring);
+// Rule 4: bankValue — always firing (default 1.0 still "fires" as a multiplier)
+sfSetRuleState('bankValue',true,true);
+// Rule 5: strategicLever — firing if simulate lever is set
+const leverFiring=sfSimContext.lever!=='none';
+sfSetRuleState('lever',leverFiring,leverFiring);
+
+// Update live condition values on each rule
+const sigVal=document.getElementById('sfFbSignalVal');
+if(sigVal){
+if(hasAttrs){
+const topPropensity=winner?Math.round(winner.signalStack):0;
+sigVal.textContent='· +'+topPropensity+' for top journey';
+sigVal.style.color='var(--teal)';
+}else{
+sigVal.textContent='· select profile signals →';
+sigVal.style.color='';
+}
+}
+const agVal=document.getElementById('sfFbAgenticVal');
+if(agVal){agVal.textContent=agenticFiring?'· ON — × 1.5':'· off';agVal.style.color=agenticFiring?'#7B5CC7':'';}
+const bankVal=document.getElementById('sfFbBankVal');
+if(bankVal){
+const b=sfSimContext.bankBoost;
+const texts={none:'· journey default',mortgage:'· mortgage boosted × 1.3',retention:'· retention boosted × 1.3',card:'· cards boosted × 1.3'};
+bankVal.textContent=texts[b]||'· journey default';
+bankVal.style.color=b==='none'?'':'var(--blue)';
+}
+const leverVal=document.getElementById('sfFbLeverVal');
+if(leverVal){
+const l=sfSimContext.lever;
+leverVal.textContent=l==='none'?'· none':'· pushing '+l+' × 1.3';
+leverVal.style.color=l==='none'?'':'var(--accent)';
+}
+
+// Score expression
+const exprText=document.getElementById('sfFbExprText');
+const exprVal=document.getElementById('sfFbExprVal');
+if(!winner||!hasAttrs){
+exprText.textContent='Select signals to compute —';
+exprVal.textContent='—';
+}else{
+const base=winner.base;
+const sig=Math.round(winner.signalStack);
+const bv=winner.bankValue.toFixed(2);
+const ag=winner.agenticLift.toFixed(1);
+const lv=winner.lever.toFixed(1);
+exprText.innerHTML='('+base+' + '+sig+') × '+bv+' × '+ag+' × '+lv+'  →  <strong style="color:var(--text-primary)">'+winner.name+'</strong>';
+exprVal.textContent=winner.score.toFixed(0);
+}
+}
+
+// Simulate card status updates
+function sfUpdateSimStatus(){
+// Lever
+const l=sfSimContext.lever;
+const lEl=document.getElementById('sfSimLeverStatus');
+if(lEl){lEl.textContent=l==='none'?'not firing':'firing · × 1.3 '+l;lEl.className='sf-sim-status '+(l==='none'?'not-firing':'firing');}
+// Bank boost
+const b=sfSimContext.bankBoost;
+const bEl=document.getElementById('sfSimBankStatus');
+if(bEl){
+const bankDisplay={mortgage:'mortgage',retention:'retention',card:'cards'};
+bEl.textContent=b==='none'?'default':'boost · '+(bankDisplay[b]||b);
+bEl.className='sf-sim-status '+(b==='none'?'not-firing':'firing');
+}
+// Signals status
+const sEl=document.getElementById('sfSimSignalsStatus');
+if(sEl){sEl.textContent=sfActive.size+' of 11 active';sEl.className='sf-sim-status '+(sfActive.size>0?'firing':'not-firing');}
+const listEl=document.getElementById('sfSimSignalsList');
+if(listEl){
+if(sfActive.size===0){listEl.textContent='—';}
+else{
+const labels=[...sfActive].map(sid=>SF_ATTRS[sid]?.label||sid).slice(0,4);
+listEl.textContent=labels.join(', ')+(sfActive.size>4?'  +'+(sfActive.size-4)+' more':'');
+}
+}
+// Agentic
+const ag=sfActive.has('agent_intent');
+const agEl=document.getElementById('sfSimAgenticStatus');
+if(agEl){agEl.textContent=ag?'firing · × 1.5':'not firing';agEl.className='sf-sim-status '+(ag?'firing':'not-firing');}
+const agTxtEl=document.getElementById('sfSimAgenticText');
+if(agTxtEl){agTxtEl.textContent=ag?'"Reduce my outgoings" — 3m ago':'No voice-agent dialogue detected';}
+
+// Urgency (Phase 2 sim)
+const u=sfSimContext.urgency||'none';
+const uEl=document.getElementById('sfSimUrgStatus');
+if(uEl){
+const urgLabels={none:'standard',rateLock:'rate-lock window',churn:'churn imminent'};
+uEl.textContent=urgLabels[u]||'standard';
+uEl.className='sf-sim-status '+(u==='none'?'not-firing':'firing');
+}
+// Channel strategy (Phase 2 sim)
+const cs=sfSimContext.channelStrategy||'auto';
+const csEl=document.getElementById('sfSimChStatus');
+if(csEl){
+const csLabels={auto:'auto · from signals',digital:'digital-first',advisor:'advisor-led'};
+csEl.textContent=csLabels[cs]||cs;
+csEl.className='sf-sim-status firing';
+}
+
+// Card firing highlight
+document.querySelectorAll('.sf-sim-card').forEach(c=>{
+const sim=c.dataset.sim;
+let firing=false;
+if(sim==='lever')firing=sfSimContext.lever!=='none';
+else if(sim==='bankBoost')firing=sfSimContext.bankBoost!=='none';
+else if(sim==='signals')firing=sfActive.size>0;
+else if(sim==='agentic')firing=sfActive.has('agent_intent');
+else if(sim==='urgency')firing=sfSimContext.urgency!=='none'||sfActive.has('refi_intent')||sfActive.has('churn_risk');
+else if(sim==='channelStrategy')firing=true;
+c.classList.toggle('firing',firing);
+});
+}
+
+// Click handler for simulate buttons
+function sfSetSim(key,val,btn){
+sfSimContext[key]=val;
+// Update active class on the buttons in this card
+if(btn){
+btn.parentNode.querySelectorAll('.sf-sim-btn').forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+}
+// Re-score everything
+sfRenderJourneys(true);
+if(sfExpandedJourney)sfRenderPaths(true);
+if(sfSelectedPath)sfRenderChannels(true);
+sfUpdateSimStatus();
+}
+
+// Toggle collapsible blocks
+function sfToggleCollapse(id){
+const el=document.getElementById(id);
+if(!el)return;
+el.dataset.collapsed=el.dataset.collapsed==='true'?'false':'true';
+}
+
+// Path formula builder renderer
+function sfUpdatePathFormula(winner){
+if(!winner)return;
+const pfb=document.getElementById('sfPathFb');
+const psim=document.getElementById('sfPathSim');
+if(pfb)pfb.style.display='';
+if(psim)psim.style.display='';
+
+// Live condition values
+const resVal=document.getElementById('sfPFbResVal');
+if(resVal){
+const sum=Math.round((winner.signalBoostSum||0)*100);
+resVal.textContent=sum>0?('· +'+sum+' for top path'):'· 0 — no signals aligned';
+resVal.style.color=sum>0?'var(--teal)':'';
+}
+const bhVal=document.getElementById('sfPFbBhVal');
+if(bhVal){
+const s=sfSimContext.channelStrategy||'auto';
+const memberDigital=sfActive.has('mobile_first');
+let text='';
+if(s==='auto')text='· auto — '+(memberDigital?'digital (mobile-first signal)':'assisted (no mobile signal)');
+else if(s==='digital')text='· digital-first override';
+else text='· advisor-led override';
+bhVal.textContent=text;
+bhVal.style.color=winner.behaviourFires?'#7B5CC7':'';
+}
+const urgVal=document.getElementById('sfPFbUrgVal');
+if(urgVal){
+const u=sfSimContext.urgency||'none';
+const signalUrg=sfActive.has('refi_intent')||sfActive.has('churn_risk');
+let text='· standard';
+if(u==='rateLock')text='· rate-lock window';
+else if(u==='churn')text='· churn imminent';
+else if(signalUrg){
+const which=[];
+if(sfActive.has('refi_intent'))which.push('refi_intent');
+if(sfActive.has('churn_risk'))which.push('churn_risk');
+text='· triggered by '+which.join(' + ');
+}
+urgVal.textContent=text;
+urgVal.style.color=winner.urgencyFiresForPath?'var(--accent)':'';
+}
+
+// Rule firing states
+document.querySelectorAll('#sfPathFb .sf-fb-rule').forEach(r=>{
+const rn=r.dataset.rule;
+if(rn==='pBase'){r.classList.add('active');r.classList.remove('not-firing');}
+else if(rn==='pSignals'){
+const firing=(winner.signalBoostSum||0)>0;
+r.classList.toggle('active',firing);
+r.classList.toggle('not-firing',!firing);
+}else if(rn==='pBehaviour'){
+const firing=!!winner.behaviourFires;
+r.classList.toggle('active',firing);
+r.classList.toggle('not-firing',!firing);
+}else if(rn==='pUrgency'){
+const firing=!!winner.urgencyFiresForPath;
+r.classList.toggle('active',firing);
+r.classList.toggle('not-firing',!firing);
+}
+});
+
+// Score expression at the bottom
+const exprText=document.getElementById('sfPFbExprText');
+const exprVal=document.getElementById('sfPFbExprVal');
+if(exprText&&exprVal){
+const b=winner.base.toFixed(2);
+const s=(winner.signalBoostSum||0).toFixed(2);
+const bh=(winner.behaviourMult||1).toFixed(2);
+const ur=(winner.urgencyMult||1).toFixed(2);
+exprText.innerHTML='('+b+' + '+s+') × '+bh+' × '+ur+'  →  <strong style="color:var(--text-primary)">'+winner.name+'</strong>';
+exprVal.textContent=(winner.score*100).toFixed(0)+'%';
+}
+}
+
+function sfUpdateStepper(){
+const state={1:'locked',2:'locked',3:'locked',4:'locked',5:'locked'};
+if(sfActive.size>0){
+state[1]='active';
+if(sfExpandedJourney){state[1]='complete';state[2]='active';}
+if(sfSelectedPath){state[2]='complete';state[3]='active';}
+const chEl=document.getElementById('sfChannels');
+if(sfSelectedPath&&chEl&&chEl.children.length>0){state[3]='complete';state[4]='active';}
+const stEl=document.getElementById('sfSendTime');
+if(sfSelectedPath&&stEl&&stEl.children.length>0){state[4]='complete';state[5]='active';}
+}
+
+for(const n in state){
+const el=document.querySelector('.sf-step[data-sstep="'+n+'"]');
+if(!el)continue;
+el.classList.remove('active','complete');
+if(state[n]==='active'||state[n]==='complete')el.classList.add(state[n]);
+}
+[['1-2',1],['2-3',2],['3-4',3],['4-5',4]].forEach(([k,i])=>{
+const c=document.querySelector('[data-sconn="'+k+'"]');
+if(!c)return;
+c.classList.remove('active','complete');
+if(state[i]==='complete')c.classList.add('complete');
+});
+}
+
+function sfToggle(el){
+const sid=el.dataset.sid;
+if(sfActive.has(sid)){sfActive.delete(sid);el.classList.remove('active');}
+else{sfActive.add(sid);el.classList.add('active');}
+document.getElementById('sfHint').style.display=sfActive.size?'none':'block';
+sfRenderJourneys(true);
+if(sfExpandedJourney)sfRenderPaths(true);
+if(sfSelectedPath)sfRenderChannels(true);
+}
+
+function sfRender(){
+sfRenderJourneys(false);
+if(sfExpandedJourney)sfRenderPaths(false);
+sfUpdateSimStatus();
+}
+
+function sfScoreJourneys(){
+// Formula:  score = (baseScore + signalStack) × bankValue × agenticLift × strategicLever
+// Where:
+//  baseScore     = 20 seed per journey
+//  signalStack   = Σ(active signals × journey.weights × 100)  [rule 2]
+//  bankValue     = journey.bankValue × bankBoost multiplier  [rule 4]
+//  agenticLift   = 1.5 if agent_intent active, else 1.0       [rule 3]
+//  strategicLever= 1.3 if sim.lever matches journey, else 1.0 [rule 5]
+const leverMap={mortgage:'mortgage',retention:'retention',cards:'card'};
+return SF_JOURNEYS.map(j=>{
+const base=20;
+let signalStack=0;const contribs=[];
+sfActive.forEach(a=>{
+const w=j.weights[a]||0;
+signalStack+=w*100;
+if(w>=0.15)contribs.push({attr:a,weight:w});
+});
+contribs.sort((a,b)=>b.weight-a.weight);
+
+// bank value (possibly boosted by sim)
+let bankValue=j.bankValue;
+if(sfSimContext.bankBoost==='mortgage'&&j.id==='mortgage')bankValue*=1.3;
+else if(sfSimContext.bankBoost==='retention'&&j.id==='retention')bankValue*=1.3;
+else if(sfSimContext.bankBoost==='card'&&j.id==='card')bankValue*=1.3;
+
+// agentic lift
+const agenticLift=sfActive.has('agent_intent')?1.5:1.0;
+
+// strategic lever
+let lever=1.0;
+if(sfSimContext.lever!=='none'&&leverMap[sfSimContext.lever]===j.id)lever=1.3;
+
+const pre=base+signalStack;
+const score=Math.round(pre*bankValue*agenticLift*lever*100)/100;
+return{...j,base,signalStack,bankValue,agenticLift,lever,score,contribs,
+// legacy compat for existing renderer
+raw:signalStack/100,P:signalStack/100,C:1,V:bankValue,L:lever};
+}).sort((a,b)=>b.score-a.score);
+}
+
+function sfRenderJourneys(animate){
+const hasAttrs=sfActive.size>0;
+const scored=sfScoreJourneys();
+const maxScore=scored[0]?.score||0;
+const winnerId=hasAttrs?scored[0].id:null;
+const jEl=document.getElementById('sfJourneys');
+
+document.getElementById('sfPhase1').classList.toggle('active',hasAttrs);
+
+// FLIP: capture old positions
+let oldRects={};
+if(animate){
+jEl.querySelectorAll('.sf-journey').forEach(el=>{
+oldRects[el.dataset.jid]=el.getBoundingClientRect();
+});
+}
+
+jEl.innerHTML=scored.map((j,i)=>{
+const isWinner=hasAttrs&&i===0;
+const isDim=hasAttrs&&!isWinner;
+const isExpanded=sfExpandedJourney===j.id;
+const pct=maxScore>0?Math.round(j.score/maxScore*100):0;
+const contribHtml=j.contribs.map(c=>{
+const a=SF_ATTRS[c.attr];
+return '<span class="sf-contrib-tag '+(a?.color||'')+'">'+( a?.label||c.attr)+' +'+Math.round(c.weight*100)+'%</span>';
+}).join('');
+const issueHtml = j.issue ? '<div class="sf-j-issue '+j.issue+'">ISSUE · '+j.issue+'</div>' : '';
+const cls='sf-journey'+(isWinner?' selected':'')+(isDim?' dimmed':'')+(isExpanded?' expanded':'');
+return '<div class="'+cls+'" data-jid="'+j.id+'" onclick="sfClickJourney(\''+j.id+'\')">'+
+'<div class="sf-j-rank">'+(i+1)+'</div>'+
+'<div class="sf-j-info">'+issueHtml+'<div class="sf-j-name">'+j.name+'</div><div class="sf-j-desc">'+j.desc+'</div>'+
+(contribHtml?'<div class="sf-contrib">'+contribHtml+'</div>':'')+'</div>'+
+'<div class="sf-j-score-wrap"><div class="sf-j-score">'+(hasAttrs?j.score.toFixed(0):'—')+'</div>'+
+'<div class="sf-j-bar"><div class="sf-j-bar-fill" style="width:'+(hasAttrs?pct:0)+'%"></div></div>'+
+'<div class="sf-j-multiplier">\u00D7'+j.bankValue.toFixed(2)+' value</div></div></div>';
+}).join('');
+
+// Update formula builder firing states + score expression + simulate card statuses
+sfUpdateFormulaBuilder(hasAttrs ? scored[0] : null);
+sfUpdateSimStatus();
+sfUpdateStepper();
+
+// FLIP: animate from old positions
+if(animate&&Object.keys(oldRects).length){
+jEl.querySelectorAll('.sf-journey').forEach(el=>{
+const jid=el.dataset.jid;
+const oldR=oldRects[jid];
+if(!oldR)return;
+const newR=el.getBoundingClientRect();
+const dy=oldR.top-newR.top;
+if(Math.abs(dy)>2){
+el.style.transform='translateY('+dy+'px)';
+el.style.transition='none';
+requestAnimationFrame(()=>{
+el.style.transition='transform .55s cubic-bezier(.4,0,.2,1)';
+el.style.transform='translateY(0)';
+});
+}
+});
+}
+
+setTimeout(sfDrawConnectors,60);
+}
+
+function sfClickJourney(jid){
+const scored=sfScoreJourneys();
+const winner=scored[0];
+if(!sfActive.size||winner.id!==jid)return;
+sfExpandedJourney=jid;
+document.querySelectorAll('.sf-journey').forEach(el=>{
+el.classList.toggle('expanded',el.dataset.jid===jid);
+el.classList.remove('selected');
+});
+document.getElementById('sfPhase2').classList.add('active');
+document.getElementById('sfPathsIntro').style.display='none';
+sfRenderPaths(false);
+setTimeout(sfDrawConnectors,60);
+sfUpdateStepper();
+}
+
+function sfScorePaths(journeyId){
+// ── New 4-rule path formula ──
+//  score = (pathBase + signalResonance) × behaviouralFit × urgencyWindow
+// Behavioural fit derives from the member's mobile_first signal (or sim override).
+// Urgency window fires when refi_intent/churn_risk signals are active — OR when sim
+// explicitly sets a time-pressure context. Fast paths get +15%, slow paths get -10%.
+const paths=SF_PATHS[journeyId]||[];
+
+// Derive channel + speed from path language (no metadata change needed on data)
+const getChannel=p=>{
+const s=((p.name||'')+' '+(p.actions||'')+' '+(p.desc||'')).toLowerCase();
+if(/advisor|callback|consultation|\brm\b|human-assisted|white-glove/.test(s))return 'assisted';
+if(/branch|in-branch|in-store/.test(s))return 'branch';
+return 'digital';
+};
+const getSpeed=p=>{
+const s=((p.name||'')+' '+(p.actions||'')+' '+(p.desc||'')).toLowerCase();
+if(/callback|consultation|webinar|white-glove|rm\s+outreach/.test(s))return 'slow';
+if(/calculator|robo|pre-approval|transfer|bonus|retention offer|nudge|fast-track/.test(s))return 'fast';
+return 'medium';
+};
+
+// Resolve behaviour strategy
+const chStrat=sfSimContext.channelStrategy||'auto';
+const memberDigital=sfActive.has('mobile_first');
+
+// Resolve urgency state — either sim-driven or signal-driven
+const urgSim=sfSimContext.urgency||'none';
+const urgencySignalActive=sfActive.has('refi_intent')||sfActive.has('churn_risk');
+const urgencyActive=urgSim!=='none'||urgencySignalActive;
+
+return paths.map(p=>{
+// Rule 1: pathBase
+const base=p.base;
+
+// Rule 2: signalResonance — Σ active signal × path boost
+let resonance=0;const contribs=[];
+Object.entries(p.boosts).forEach(([attr,boost])=>{
+if(sfActive.has(attr)){resonance+=boost;contribs.push({attr,boost});}
+});
+contribs.sort((a,b)=>b.boost-a.boost);
+
+// Rule 3: behaviouralFit — path channel aligned with member's habit
+const pathChannel=getChannel(p);
+let behaviourMult=1.0,behaviourFires=false;
+if(chStrat==='auto'){
+if(memberDigital&&pathChannel==='digital'){behaviourMult=1.2;behaviourFires=true;}
+else if(!memberDigital&&pathChannel==='assisted'){behaviourMult=1.2;behaviourFires=true;}
+}else if(chStrat==='digital'&&pathChannel==='digital'){behaviourMult=1.2;behaviourFires=true;}
+else if(chStrat==='advisor'&&pathChannel==='assisted'){behaviourMult=1.2;behaviourFires=true;}
+
+// Rule 4: urgencyWindow — fast paths amplified, slow paths dampened under pressure
+const pathSpeed=getSpeed(p);
+let urgencyMult=1.0,urgencyFiresForPath=false;
+if(urgencyActive){
+if(pathSpeed==='fast'){urgencyMult=1.15;urgencyFiresForPath=true;}
+else if(pathSpeed==='slow'){urgencyMult=0.90;urgencyFiresForPath=true;}
+}
+
+const score=Math.round((base+resonance)*behaviourMult*urgencyMult*100)/100;
+return{...p,score,contribs,
+base,signalBoostSum:resonance,
+pathChannel,pathSpeed,
+behaviourFires,behaviourMult,
+urgencyFiresForPath,urgencyMult,
+// legacy compat
+styleMatches:behaviourFires,styleMult:behaviourMult};
+}).sort((a,b)=>b.score-a.score);
+}
+
+function sfRenderPaths(animate){
+if(!sfExpandedJourney)return;
+const pEl=document.getElementById('sfPaths');
+const scored=sfScorePaths(sfExpandedJourney);
+
+// FLIP: capture old positions
+let oldRects={};
+if(animate){
+pEl.querySelectorAll('.sf-path').forEach(el=>{
+oldRects[el.dataset.pid]=el.getBoundingClientRect();
+});
+}
+
+pEl.innerHTML=scored.map((p,i)=>{
+const isBest=i===0;
+const isDim=i>1;
+const isPathExpanded=sfSelectedPath===p.id;
+const contribHtml=p.contribs.map(c=>{
+const a=SF_ATTRS[c.attr];const col=a?.color||'red';
+const bg=col==='red'?'var(--accent-soft)':'var(--'+col+'-soft)';
+const fg=col==='red'?'var(--accent)':'var(--'+col+')';
+const bd=col==='red'?'var(--accent-border)':'var(--'+col+'-border)';
+return '<span class="sf-p-ctag" style="background:'+bg+';color:'+fg+';border:1px solid '+bd+'">'+
+'<span class="cdot" style="background:'+fg+'"></span>'+(a?.label||c.attr)+' +'+Math.round(c.boost*100)+'%</span>';
+}).join('');
+const noBoost=p.contribs.length===0?'<div class="sf-p-no-boost">No active attribute boosts</div>':'';
+const clickHint=isBest&&!sfSelectedPath?' style="cursor:pointer" onclick="sfClickPath(\''+p.id+'\')"':'';
+const clickLabel=isBest&&!sfSelectedPath?'<div style="font-size:8px;color:var(--accent);margin-top:4px;font-style:italic">Click to explore channels →</div>':'';
+return '<div class="sf-path'+(isBest||isPathExpanded?' selected':'')+(isDim?' dimmed':'')+'" data-pid="'+p.id+'"'+clickHint+'>'+
+'<div class="sf-p-rank">'+(i+1)+'</div>'+
+'<div class="sf-p-info"><div class="sf-p-name">'+p.name+'</div>'+
+'<div class="sf-p-actions">'+p.actions+'</div>'+
+'<div class="sf-p-desc">'+p.desc+'</div>'+
+'<div class="sf-p-contrib">'+contribHtml+'</div>'+noBoost+clickLabel+'</div>'+
+'<div class="sf-p-score">'+(p.score*100).toFixed(0)+'%</div></div>';
+}).join('');
+
+// Update path formula builder
+sfUpdatePathFormula(scored[0]);
+
+// FLIP: animate from old positions
+if(animate&&Object.keys(oldRects).length){
+pEl.querySelectorAll('.sf-path').forEach(el=>{
+const pid=el.dataset.pid;
+const oldR=oldRects[pid];
+if(!oldR)return;
+const newR=el.getBoundingClientRect();
+const dy=oldR.top-newR.top;
+if(Math.abs(dy)>2){
+el.style.transform='translateY('+dy+'px)';
+el.style.transition='none';
+requestAnimationFrame(()=>{
+el.style.transition='transform .55s cubic-bezier(.4,0,.2,1)';
+el.style.transform='translateY(0)';
+});
+}
+});
+}
+
+setTimeout(sfDrawConnectors,60);
+}
+
+function sfDrawConnectors(){
+const svg=document.getElementById('sfConnSvg');
+const row=document.getElementById('sfFlowRow');
+if(!svg||!row)return;
+const rRect=row.getBoundingClientRect();
+svg.setAttribute('width',row.offsetWidth);
+svg.setAttribute('height',row.offsetHeight);
+
+let lines='';
+if(sfExpandedJourney){
+const jEl=document.querySelector('.sf-journey[data-jid="'+sfExpandedJourney+'"]');
+const pEls=document.querySelectorAll('.sf-path');
+if(jEl&&pEls.length){
+const jR=jEl.getBoundingClientRect();
+const x1=jR.right-rRect.left;
+const y1=jR.top+jR.height/2-rRect.top;
+pEls.forEach((pEl,i)=>{
+const pR=pEl.getBoundingClientRect();
+const x2=pR.left-rRect.left;
+const y2=pR.top+pR.height/2-rRect.top;
+const cp=(x2-x1)*.5;
+const isSel=i===0;
+lines+='<path class="sf-connector-line'+(isSel?' active':'')+'" d="M'+x1+','+y1+' C'+(x1+cp)+','+y1+' '+(x2-cp)+','+y2+' '+x2+','+y2+'"/>';
+});
+}
+}
+svg.innerHTML=lines;
+}
+
+function sfClickPath(pid){
+sfSelectedPath=pid;
+sfRenderPaths(false);
+sfRenderChannels(false);
+document.getElementById('sfPhase3Panel').classList.remove('locked');
+document.getElementById('sfPhase3').classList.add('active');
+document.getElementById('sfChannelsIntro').style.display='none';
+sfUpdateStepper();
+}
+
+function sfScoreChannels(){
+return SF_CHANNELS.map(ch=>{
+let sc=ch.base;const contribs=[];
+Object.entries(ch.boosts).forEach(([attr,boost])=>{
+if(sfActive.has(attr)){sc+=boost;contribs.push({attr,boost});}
+});
+contribs.sort((a,b)=>b.boost-a.boost);
+return{...ch,score:Math.round(sc*100)/100,contribs};
+}).sort((a,b)=>b.score-a.score);
+}
+
+function sfRenderChannels(animate){
+const scored=sfScoreChannels();
+const maxScore=scored[0]?.score||1;
+const chEl=document.getElementById('sfChannels');
+
+let oldRects={};
+if(animate){
+chEl.querySelectorAll('.sf-channel').forEach(el=>{
+oldRects[el.dataset.chid]=el.getBoundingClientRect();
+});
+}
+
+chEl.innerHTML=scored.map((ch,i)=>{
+const isBest=i===0;
+const isDim=i>1;
+const pct=Math.round(ch.score/maxScore*100);
+const groupLabel = ch.group==='inbound' ? 'INBOUND' : ch.group==='outbound' ? 'OUTBOUND' : 'AGENT';
+const groupTagHtml = ch.group ? '<div class="sf-ch-group-tag '+ch.group+'">'+groupLabel+'</div>' : '';
+const contribHtml=ch.contribs.map(c=>{
+const a=SF_ATTRS[c.attr];const isNeg=c.boost<0;
+const col=isNeg?'coral':(a?.color||'teal');
+const bg=col==='red'?'var(--accent-soft)':'var(--'+col+'-soft)';
+const fg=col==='red'?'var(--accent)':'var(--'+col+')';
+const bd=col==='red'?'var(--accent-border)':'var(--'+col+'-border)';
+const sign=isNeg?'':'+';
+return '<span class="sf-p-ctag" style="background:'+bg+';color:'+fg+';border:1px solid '+bd+'">'+
+'<span class="cdot" style="background:'+fg+'"></span>'+(a?.label||c.attr)+' '+sign+Math.round(c.boost*100)+'%</span>';
+}).join('');
+return '<div class="sf-channel'+(isBest?' selected':'')+(isDim?' dimmed':'')+'" data-chid="'+ch.id+'">'+
+'<div class="sf-ch-icon">'+ch.icon+'</div>'+
+'<div class="sf-ch-info">'+groupTagHtml+'<div class="sf-ch-name">'+ch.name+'</div>'+
+'<div class="sf-ch-detail">'+ch.desc+'</div>'+
+(contribHtml?'<div class="sf-ch-contrib">'+contribHtml+'</div>':'')+'</div>'+
+'<div class="sf-ch-bar-wrap"><div class="sf-ch-bar"><div class="sf-ch-bar-fill" style="width:'+pct+'%;background:'+(isBest?'var(--teal)':'var(--border-strong)')+'"></div></div></div>'+
+'<div class="sf-ch-score">'+ch.score.toFixed(2)+'</div></div>';
+}).join('');
+
+if(animate&&Object.keys(oldRects).length){
+chEl.querySelectorAll('.sf-channel').forEach(el=>{
+const chid=el.dataset.chid;
+const oldR=oldRects[chid];
+if(!oldR)return;
+const newR=el.getBoundingClientRect();
+const dy=oldR.top-newR.top;
+if(Math.abs(dy)>2){
+el.style.transform='translateY('+dy+'px)';el.style.transition='none';
+requestAnimationFrame(()=>{el.style.transition='transform .55s cubic-bezier(.4,0,.2,1)';el.style.transform='translateY(0)';});
+}
+});
+}
+
+const winner=scored[0];
+document.getElementById('sfChannelBanner').innerHTML=
+'<div class="sf-selected-banner"><h4>Selected: '+winner.name+'</h4>'+
+'<p>Engagement score '+winner.score.toFixed(2)+' — '+winner.desc+'. '+
+(winner.contribs.length?'Boosted by: '+winner.contribs.map(c=>SF_ATTRS[c.attr]?.label||c.attr).join(', ')+'.':'No active attribute boosts.')+'</p></div>';
+
+sfUpdateStepper();
+sfRenderSendTime(winner.id);
+}
+
+function sfRenderSendTime(channelId){
+const st=SF_SENDTIME[channelId];
+if(!st)return;
+document.getElementById('sfPhase4Panel').classList.remove('locked');
+document.getElementById('sfPhase4').classList.add('active');
+document.getElementById('sfSendTimeIntro').style.display='none';
+const pk=st.hours.indexOf(Math.max(...st.hours));
+let cells='';
+st.hours.forEach((v,i)=>{
+const op=Math.max(.08,v*.7);
+cells+='<div class="sf-st-cell'+(i===pk?' peak':'')+'" style="background:rgba(235,16,0,'+op+')" data-tip="'+String(i).padStart(2,'0')+':00 — '+Math.round(v*100)+'%"></div>';
+});
+const isRT=st.time==='Real-time'||st.time==='Session';
+document.getElementById('sfSendTime').innerHTML=
+'<div class="sf-st-heatmap">'+cells+'</div>'+
+'<div class="sf-st-labels"><span>12am</span><span>3am</span><span>6am</span><span>9am</span><span>12pm</span><span>3pm</span><span>6pm</span><span>9pm</span></div>'+
+'<div style="margin-top:12px;font-size:12px;color:var(--text-secondary);line-height:1.6">'+
+(isRT?'This channel triggers in <strong style="color:var(--accent)">real-time</strong> — '+st.peak+'.':
+'Optimal send window: <strong style="color:var(--accent)">'+st.time+'</strong> — '+st.peak+'. Delivery is scheduled automatically.')+'</div>'+
+'<div class="sf-st-metrics">'+
+'<div class="sf-st-metric"><div class="stm-label">'+(isRT?'Trigger':'Optimal time')+'</div><div class="stm-value" style="color:var(--accent)">'+st.time+'</div></div>'+
+'<div class="sf-st-metric"><div class="stm-label">Predicted open</div><div class="stm-value" style="color:var(--teal)">'+st.open+'%</div>'+
+'<div class="sf-st-bar"><div class="sf-st-bar-fill" style="width:'+st.open+'%;background:var(--teal)"></div></div></div>'+
+'<div class="sf-st-metric"><div class="stm-label">Lift vs batch</div><div class="stm-value" style="color:var(--amber)">+'+st.lift+'%</div></div></div>';
+sfUpdateStepper();
+sfShowEmailPreview();
+}
+
+function sfShowEmailPreview(){
+const p5=document.getElementById('sfPhase5Panel');
+p5.classList.remove('locked');
+document.getElementById('sfPhase5').classList.add('active');
+document.getElementById('sfEmailIntro').style.display='none';
+document.getElementById('sfEmailWrap').style.display='flex';
+document.getElementById('sfEmailLegend').style.display='flex';
+sfRenderDynamicCard();
+sfRenderSelectionCard();
+sfUpdateStepper();
+// Draw connectors now that the email wrap is visible
+setTimeout(sfDrawEmailConnectors,100);
+}
+
+// Colors per container type — align with the annotation tag colours
+const SF_EMAIL_COLORS={
+profile:'#EB1000',
+dynamic:'#1A7A5C',
+context:'#2B6CB0',
+offer:'#2B6CB0',
+decisioning:'#534AB7'
+};
+
+function sfDrawEmailConnectors(){
+const svg=document.getElementById('sfEmailConnectors');
+const wrap=document.getElementById('sfEmailWrap');
+if(!svg||!wrap)return;
+const wr=wrap.getBoundingClientRect();
+if(wr.width===0)return;
+svg.setAttribute('width',wr.width);
+svg.setAttribute('height',wr.height);
+
+let content='';
+document.querySelectorAll('.em-section').forEach(section=>{
+const ctype=section.dataset.container;
+if(!ctype)return;
+const target=document.querySelector('.sf-email-container[data-container="'+ctype+'"]');
+if(!target)return;
+const sr=section.getBoundingClientRect();
+const tr=target.getBoundingClientRect();
+const x1=sr.right-wr.left;
+const y1=sr.top+sr.height/2-wr.top;
+const x2=tr.left-wr.left;
+const y2=tr.top+tr.height/2-wr.top;
+const color=SF_EMAIL_COLORS[ctype]||'#888';
+const cp=(x2-x1)*.55;
+const d='M'+x1+','+y1+' C'+(x1+cp)+','+y1+' '+(x2-cp)+','+y2+' '+x2+','+y2;
+content+='<path d="'+d+'" stroke="'+color+'" data-ec="'+ctype+'"/>';
+content+='<circle cx="'+x1+'" cy="'+y1+'" r="3" fill="'+color+'" class="sf-ec-dot" data-ec="'+ctype+'"/>';
+content+='<circle cx="'+x2+'" cy="'+y2+'" r="3" fill="'+color+'" class="sf-ec-dot" data-ec="'+ctype+'"/>';
+});
+svg.innerHTML=content;
+}
+
+window.addEventListener('resize',()=>{
+if(document.getElementById('sfEmailWrap')?.style.display==='flex')sfDrawEmailConnectors();
+});
+
+function sfHighlightContainer(type){
+document.querySelectorAll('.em-section').forEach(s=>{
+s.classList.toggle('em-highlight',s.dataset.container===type);
+});
+document.querySelectorAll('.sf-email-container').forEach(c=>{
+c.classList.toggle('active',c.dataset.container===type);
+});
+document.querySelectorAll('#sfEmailConnectors [data-ec]').forEach(el=>{
+el.classList.toggle('active',el.dataset.ec===type);
+});
+}
+function sfClearContainer(){
+document.querySelectorAll('.em-section').forEach(s=>s.classList.remove('em-highlight'));
+document.querySelectorAll('.sf-email-container').forEach(c=>c.classList.remove('active'));
+document.querySelectorAll('#sfEmailConnectors [data-ec]').forEach(el=>el.classList.remove('active'));
+}
+
+sfRender();
+
+/* ═══ SMOOTH NAV ═══ */
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+a.addEventListener('click',e=>{
+e.preventDefault();
+const t=document.querySelector(a.getAttribute('href'));
+if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
+});
+});
+</script>
+</body>
+</html>

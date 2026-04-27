@@ -1,0 +1,18 @@
+---
+description: Keep journey-arbitration and decisioning-overview-v2 Profile Viewer pages from being removed or orphaned.
+alwaysApply: true
+---
+
+# Preserve hosted Decisioning pages (Profile Viewer)
+
+These **Firebase Hosting** URLs are part of the product surface and must remain on **`main`** under **`web/profile-viewer/`**:
+
+- `profile-viewer/journey-arbitration.html` (and `journey-arbitration.js`, `journey-arbitration.css`)
+- `profile-viewer/journey-arbitration-v2.html`, `journey-arbitration-v2.css`, and embed asset `ajo-decisioning-pipeline-v8-demo.html`
+- `profile-viewer/decisioning-overview-v2.html`
+
+**Do not** delete, rename, or drop nav / Global values wiring for these routes without an explicit product decision and redirect plan.
+
+**After** editing `web/profile-viewer/`, run **`npm run sync-profile-viewer-ui`** so the Express mirror stays aligned (`rsync` uses `--delete`; the canonical tree must always include these files).
+
+Before shipping hosting changes, run **`npm run verify:profile-viewer-routes`** (CI runs this on `main` / PRs). Human-readable policy: repo-root **`CONTRIBUTING.md`** → section **Preserved Decisioning Profile Viewer routes** (anchor `#preserved-decisioning-profile-viewer-routes` on GitHub).

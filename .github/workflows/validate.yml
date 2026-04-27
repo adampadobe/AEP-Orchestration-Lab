@@ -35,6 +35,9 @@ jobs:
       - name: Validate ecosystem vendor index vs SVG files
         run: python3 scripts/validate-ecosystem-vendor-index.py
 
+      - name: Verify Profile Viewer decisioning routes (journey-arbitration, v2, overview v2)
+        run: npm run verify:profile-viewer-routes
+
       - name: JSON well-formed
         run: |
           python <<'PY'
