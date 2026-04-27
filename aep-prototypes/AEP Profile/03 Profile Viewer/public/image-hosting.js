@@ -71,8 +71,20 @@
   var sandboxAtPageLoad = getSandbox();
   var sandboxReloadPending = false;
 
+  /** Keep aepGlobalSandboxName in sync with #sandboxSelect before reload (getSandboxName falls back to LS after reload). */
+  function persistSandboxFromSelect() {
+    var sel = document.getElementById('sandboxSelect');
+    var v = sel && sel.value != null ? String(sel.value).trim() : '';
+    try {
+      if (v && window.AepGlobalSandbox && typeof window.AepGlobalSandbox.setSelected === 'function') {
+        window.AepGlobalSandbox.setSelected(v);
+      }
+    } catch (_e) { /* ignore */ }
+  }
+
   function refreshOrReloadForSandboxChange() {
     if (sandboxReloadPending) return;
+    persistSandboxFromSelect();
     var current = getSandbox();
     if (current !== sandboxAtPageLoad) {
       sandboxReloadPending = true;
@@ -1788,6 +1800,14 @@
       }
     } catch (e) {
       setStatus('Failed to load sandboxes: ' + (e.message || e), 'err');
+    }
+    if (window.AepGlobalSandbox) {
+      if (typeof window.AepGlobalSandbox.onSandboxSelectChange === 'function') {
+        window.AepGlobalSandbox.onSandboxSelectChange(sel);
+      }
+      if (typeof window.AepGlobalSandbox.attachStorageSync === 'function') {
+        window.AepGlobalSandbox.attachStorageSync(sel);
+      }
     }
     if (sel && !sel.dataset.aepImageHostingWired) {
       sel.dataset.aepImageHostingWired = '1';
