@@ -551,10 +551,34 @@ CI does **not** build or deploy functions. Deployment is manual.
 
 ---
 
+## EDS Quickstart submodule
+
+The **EDS Site Bootstrap (demo)** entry under the **Demos** sidebar is a
+React + Adobe React Spectrum SPA vendored from a fork of Kasper Van Eeghem's
+private `vaneeghemk/eds-quickstart` Adobe I/O App Builder project.
+
+- **Fork**: [`adampadobe/eds-quickstart`](https://github.com/adampadobe/eds-quickstart) (our customisations live on `main`).
+- **Submodule path**: [`tools/eds-quickstart/`](tools/eds-quickstart/) — outside `web/` so Firebase Hosting never serves source files.
+- **Built static output** (committed): `web/profile-viewer/eds-quickstart/{index.html,static/js/main.<hash>.js}`.
+- **Wrapper page**: [`web/profile-viewer/eds-quickstart.html`](web/profile-viewer/eds-quickstart.html) — iframes the SPA inside the lab dashboard shell.
+- **Build**: `npm run build:eds-quickstart` (initialises submodule on first run, runs the fork's webpack 5 standalone config, rsyncs `dist/` → `web/profile-viewer/eds-quickstart/`).
+- **Upstream-promotion workflow**: read [`docs/EDS_QUICKSTART_INTEGRATION.md`](docs/EDS_QUICKSTART_INTEGRATION.md) before merging upstream changes from `vaneeghemk` into our fork.
+
+The fork adds an extra wizard step that injects Adobe Launch (Tags) and/or
+Adobe Web SDK (alloy.js) script tags into every newly-created EDS site's
+`head.html` via the GitHub Contents API, using the lab's existing
+`tagsReactorProxy` (`/api/tags/reactor`) and `eventDatastreamsProxy`
+(`/api/events/datastreams`) Cloud Functions. **Do not push the fork's `main`
+back to `vaneeghemk/eds-quickstart`** — the upstream push URL inside the
+submodule is set to a no-push dummy as a safety net.
+
+---
+
 ## Further reading
 
 - `docs/COLLEAGUE_PROFILE_VIEWER.md` — local Express setup, auth, sandbox selection
 - `docs/FIREBASE_STANDALONE_DEPLOY.md` — full deploy walkthrough with secrets
 - `docs/DECISIONING_APIS.md` — Adobe Experience Decisioning API reference
 - `docs/EDGE_TESTING.md` — Edge Network / Web SDK testing
+- `docs/EDS_QUICKSTART_INTEGRATION.md` — fork+submodule model, upstream promotion, AEP wiring
 - `aep-prototypes/README.md` — vendored prototype overview

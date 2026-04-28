@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDS Site Bootstrap (demo) – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260423b">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <style>
+    .eds-quickstart-frame-wrap {
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 64px);
+      background: var(--dash-surface);
+      border-radius: var(--dash-radius);
+      overflow: hidden;
+      box-shadow: var(--dash-shadow);
+    }
+    .eds-quickstart-frame-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: transparent;
+    }
+    .eds-quickstart-fallback {
+      padding: 2rem;
+      color: var(--dash-text-secondary);
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    .eds-quickstart-fallback code {
+      background: var(--dash-input-bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body class="eds-quickstart-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Local tool">Demo</span>
+          <a href="https://www.aem.live/" class="dashboard-topbar-link" target="_blank" rel="noopener">aem.live docs</a>
+          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main app-page">
+        <div class="eds-quickstart-frame-wrap" id="edsQuickstartFrameWrap">
+          <iframe
+            id="edsQuickstartFrame"
+            src="eds-quickstart/index.html"
+            title="EDS Site Bootstrap"
+            allow="clipboard-read; clipboard-write"
+            loading="eager"></iframe>
+        </div>
+        <noscript>
+          <div class="eds-quickstart-fallback">
+            <p>This tool requires JavaScript. The embedded React app at
+              <code>/profile-viewer/eds-quickstart/index.html</code> cannot run with JS disabled.</p>
+          </div>
+        </noscript>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var frame = document.getElementById('edsQuickstartFrame');
+      if (!frame) return;
+      frame.addEventListener('error', function () {
+        var wrap = document.getElementById('edsQuickstartFrameWrap');
+        if (!wrap) return;
+        wrap.innerHTML =
+          '<div class="eds-quickstart-fallback">' +
+          '<h2>EDS Quickstart not built yet</h2>' +
+          '<p>The static build of the EDS Quickstart React app is missing. Run' +
+          ' <code>npm run build:eds-quickstart</code> from the repo root to' +
+          ' produce <code>web/profile-viewer/eds-quickstart/index.html</code>,' +
+          ' then reload this page.</p>' +
+          '</div>';
+      });
+    })();
+  </script>
+
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260427-overview-v2-journey"></script>
+</body>
+</html>

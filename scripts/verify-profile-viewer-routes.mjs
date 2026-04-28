@@ -20,6 +20,8 @@ const REQUIRED_FILES = [
   'web/profile-viewer/ajo-decisioning-pipeline-v8-demo.html',
   'web/profile-viewer/ajo-pipeline-industry-labels.js',
   'web/profile-viewer/ajo-pipeline-industry-apply.js',
+  'web/profile-viewer/eds-quickstart.html',
+  'web/profile-viewer/eds-quickstart/index.html',
 ];
 
 let failed = false;
@@ -55,6 +57,10 @@ if (!nav.includes('decisioning-overview-v2.html')) {
 }
 if (!nav.includes('journey-arbitration-v2.html')) {
   console.error('aep-lab-nav.js must include href journey-arbitration-v2.html');
+  failed = true;
+}
+if (!nav.includes("href: 'eds-quickstart.html'")) {
+  console.error('aep-lab-nav.js must include the EDS Site Bootstrap demo entry (href: eds-quickstart.html)');
   failed = true;
 }
 

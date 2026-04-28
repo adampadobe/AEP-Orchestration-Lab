@@ -1,0 +1,4 @@
+[submodule "tools/eds-quickstart"]
+	path = tools/eds-quickstart
+	url = https://github.com/adampadobe/eds-quickstart.git
+	branch = main

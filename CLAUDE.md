@@ -24,6 +24,11 @@ npm run verify:profile-viewer-routes
 # Build the React/Vite Experience Decisioning Playground sub-app
 npm run build:edp
 
+# Build the EDS Quickstart React SPA (vendored as a fork submodule at tools/eds-quickstart/)
+# Output: web/profile-viewer/eds-quickstart/{index.html,static/js/main.<hash>.js}
+# See docs/EDS_QUICKSTART_INTEGRATION.md for the upstream-promotion workflow.
+npm run build:eds-quickstart
+
 # Validate architecture logo taxonomy tags
 npm run validate:architecture-logos-tags
 

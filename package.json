@@ -12,6 +12,7 @@
     "sync-profile-viewer-ui": "rsync -a --delete \"web/profile-viewer/\" \"aep-prototypes/AEP Profile/03 Profile Viewer/public/\"",
     "upload-live-activities-rtdb": "npx -y firebase-tools@latest database:set /profileViewerConfig/liveActivitiesPostmanCollection \"./web/profile-viewer/data/live-activities.postman_collection.json\" --project aep-orchestration-lab --force",
     "build:edp": "cd \"web/profile-viewer/experience-decisioning-playground\" && npm install && npm run build",
+    "build:eds-quickstart": "([ -f tools/eds-quickstart/package.json ] || git submodule update --init tools/eds-quickstart) && cd tools/eds-quickstart && npm install && npm run build:standalone && rsync -a --delete --exclude='*.map' --exclude='*.LICENSE.txt' dist/ ../../web/profile-viewer/eds-quickstart/",
     "vendor:spectrum-icons": "node scripts/build-spectrum-workflow-icons.cjs",
     "test:arch-line-e2e": "node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs",
     "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",
