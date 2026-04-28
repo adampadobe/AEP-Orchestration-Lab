@@ -1,16 +1,75 @@
 ---
-description: After changes to web/ or functions/, finish with git commit + push + Firebase deploy in that order (unless user excludes deploy).
+description: After changes to web/ or functions/, finish with sync→commit→sync→push→sync→Firebase deploy in that order (unless user excludes deploy).
 alwaysApply: true
 ---
 
-# Ship changes: commit → push → Firebase deploy
+# Ship changes: sync → commit → sync → push → sync → Firebase deploy
 
-For this repo’s **Firebase Hosting** (`web/`) and **Cloud Functions** (`functions/`):
+For this repo's **Firebase Hosting** (`web/`) and **Cloud Functions** (`functions/`), the ordered shipping ritual is:
 
-1. `git status` → `git add` (focused scope) → `git commit` → **`git push origin` (current branch)**.
-2. If **`web/profile-viewer/`** changed: run **`npm run verify:profile-viewer-routes`** (guards **`journey-arbitration.html` redirect**, **journey-arbitration-v2**, and **decisioning-overview-v2**).
-3. Then **`npx -y firebase-tools@latest deploy --only functions,hosting`** from the repo root (see **github-git-workflow** and **firebase-basics** skills).
+## 1. Sync (start)
 
-Do **not** deploy without committing. If the user explicitly asks for Git-only or local-only, skip deploy and say so.
+```bash
+git fetch origin && git status        # confirm 0 behind origin/main
+# If behind: git pull --ff-only origin main (or rebase feature branch)
+```
 
-Aligns with **`CONTRIBUTING.md`** (deploy after tracked commits). CI does not auto-deploy functions/hosting.
+## 2. Commit
+
+```bash
+git status                            # review focused scope
+git add <focused paths>
+git commit -m "..."
+```
+
+## 3. Sync again — IMMEDIATELY before push
+
+```bash
+git fetch origin && git status        # MUST show 0 behind
+# If now behind: git pull --rebase origin main, re-run verifiers, then push.
+```
+
+## 4. Push
+
+```bash
+git push origin <current-branch>
+```
+
+## 5. Pre-deploy verifier (only when `web/profile-viewer/` changed)
+
+```bash
+npm run verify:profile-viewer-routes
+```
+
+Guards `journey-arbitration.html` redirect, `journey-arbitration-v2`, `decisioning-overview-v2`, `eds-quickstart`.
+
+## 6. Sync again — IMMEDIATELY before Firebase deploy
+
+This is **the most often forgotten** step. `firebase deploy --only hosting` ships whatever is on YOUR local disk under `web/`, NOT what is on `origin/main`. If a teammate pushed between step 4 and step 6, you will silently overwrite their hosted assets.
+
+```bash
+git fetch origin && git status        # MUST show 0 behind
+# If behind:
+git pull --ff-only origin main
+# AND rebuild any vendored sub-apps so the deploy carries their pulled source:
+npm run build:edp                     # if their commit touched experience-decisioning-playground/
+npm run build:eds-quickstart          # if their commit touched the eds-quickstart submodule pointer
+```
+
+## 7. Deploy
+
+```bash
+npx -y firebase-tools@latest deploy --only functions,hosting
+# or scoped:
+npx -y firebase-tools@latest deploy --only hosting
+npx -y firebase-tools@latest deploy --only functions
+```
+
+## Hard rules
+
+- **Do not deploy without committing.** If the user explicitly asks for Git-only or local-only, skip deploy and say so.
+- **Do not skip step 6.** "I already fetched at step 3" is not sufficient — minutes pass between push and deploy and that is enough for a teammate's commit to land.
+- **Do not run `firebase deploy` while behind `origin/main`.** Always `git pull --ff-only` first, then rebuild any sub-apps, then deploy.
+- See companion rule `sync-origin-main.mdc` for the full three-checkpoint pull discipline.
+
+Aligns with `CONTRIBUTING.md` (deploy after tracked commits). CI does not auto-deploy functions/hosting.

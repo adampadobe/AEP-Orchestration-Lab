@@ -1,14 +1,56 @@
 ---
-description: Base work on latest origin/main; fetch and pull before substantive edits.
+description: Always pull latest origin/main BEFORE editing, BEFORE pushing, AND BEFORE Firebase deploy — never overwrite teammates' work.
 alwaysApply: true
 ---
 
-# Start from latest `main`
-
-Before making or committing changes in this repo:
-
-1. Run **`git fetch origin`** and ensure your branch is aligned with **`origin/main`** (e.g. `git status` should not show your tracking branch as **behind** `origin/main`).
-2. If you are behind: **`git pull --rebase origin main`** while on `main`, or **rebase/merge `origin/main` into your feature branch** before piling on new commits.
-3. Avoid long-lived drift from **`adampadobe/AEP-Orchestration-Lab`** **`main`** without coordinating with your teammate.
+# Stay aligned with `origin/main` at three checkpoints
 
 Upstream is **`origin`** → `https://github.com/adampadobe/AEP-Orchestration-Lab.git`.
+
+You MUST run a sync check at **all three** of these points — not just at the start of a session:
+
+## Checkpoint 1 — Before substantive edits
+
+```bash
+git fetch origin
+git status                 # confirm not behind origin/main
+# If behind on main:
+git pull --ff-only origin main
+# If on a feature branch:
+git rebase origin/main     # or merge origin/main into the feature branch
+```
+
+## Checkpoint 2 — IMMEDIATELY before `git push`
+
+Even if you fetched at the start, a teammate may have pushed while you were working:
+
+```bash
+git fetch origin
+git status                 # MUST show "Your branch is up to date with 'origin/main'"
+# If now behind:
+git pull --rebase origin main
+# Re-run any tests/verifiers that the rebase may have invalidated.
+```
+
+Only `git push` once `git status` shows you are 0 behind.
+
+## Checkpoint 3 — IMMEDIATELY before `firebase deploy`
+
+This one is the most often forgotten and the most dangerous:
+
+```bash
+git fetch origin
+git status                 # MUST show 0 behind
+# If behind:
+git pull --ff-only origin main
+# Rebuild any built artefacts (e.g. `npm run build:edp`, `npm run build:eds-quickstart`)
+# so the deploy includes the teammate's changes too.
+```
+
+**Why this matters:** `firebase deploy --only hosting` ships whatever is on YOUR local disk in `web/`. If a teammate pushes to `origin/main` between your `git push` and your `firebase deploy`, your deploy will silently overwrite their hosted assets — even though `git` itself stayed clean. Pulling at deploy time is the only protection.
+
+For built sub-apps (`web/profile-viewer/eds-quickstart/`, `web/profile-viewer/experience-decisioning/`), pulling alone is not enough — you must also re-run the relevant `npm run build:*` after the pull so the freshly-pulled source rebuilds before deploy.
+
+## When in doubt
+
+If `git status` shows you are behind at any checkpoint, **stop**. Pull first. Resolve any conflicts. Re-run verifiers. Then proceed.
