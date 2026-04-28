@@ -22,6 +22,7 @@
 /* Keep mock layout within the viewport — no horizontal page scroll */
 body.experimentation-accelerator-page {
   overflow-x: hidden;
+  scrollbar-gutter: stable;
 }
 
 .experimentation-accelerator-page .dashboard-shell {
@@ -354,14 +355,17 @@ body.experimentation-accelerator-page.experimentation-accelerator-page--immersiv
   border: 1px solid var(--ajo-border);
 }
 
-/* Main accelerator page shell matches native captured layout. */
-body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell {
+/* Main accelerator page shell matches native captured layout.
+   List page uses data-ajo-tab; experiment detail has no tab attr — same selectors so the shell does not jump. */
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell,
+body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-topbar--native-shell {
   min-height: 42px;
   padding: 0 0.5rem 0 0.35rem;
   border-bottom: 1px solid color-mix(in srgb, var(--ajo-border) 85%, transparent);
 }
 
-body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-topbar-left {
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-topbar-left,
+body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-topbar--native-shell .ajo-mock-topbar-left {
   gap: 0.2rem;
 }
 
@@ -404,36 +408,42 @@ body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-she
   letter-spacing: 0;
 }
 
-body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-topbar-search {
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-topbar-search,
+body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-topbar--native-shell .ajo-mock-topbar-search {
   max-width: min(430px, 100%);
   margin-left: auto;
   margin-right: auto;
 }
 
-body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-search-input {
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-search-input,
+body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-topbar--native-shell .ajo-mock-search-input {
   height: 1.95rem;
   padding-top: 0.35rem;
   padding-bottom: 0.35rem;
   font-size: 0.75rem;
 }
 
-body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-icon-btn {
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-icon-btn,
+body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-topbar--native-shell .ajo-icon-btn {
   width: 30px;
   height: 30px;
   border-radius: 6px;
 }
 
-body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-svg-ico {
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-svg-ico,
+body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-topbar--native-shell .ajo-svg-ico {
   width: 16px;
   height: 16px;
 }
 
-body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-org {
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-org,
+body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-topbar--native-shell .ajo-mock-org {
   font-size: 0.6875rem;
   font-weight: 600;
 }
 
-body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-avatar {
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-avatar,
+body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-topbar--native-shell .ajo-mock-avatar {
   width: 24px;
   height: 24px;
   margin-left: 0;
