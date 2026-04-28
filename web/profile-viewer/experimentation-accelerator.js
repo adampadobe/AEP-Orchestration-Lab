@@ -195,8 +195,10 @@
           label === 'active'
         ) {
           filters.status.add(label);
-        } else if (label === 'adobe target' || label === 'adobe journey optimizer') {
-          filters.source.add(label);
+        } else if (label === 'adobe target') {
+          filters.source.add('target');
+        } else if (label === 'adobe journey optimizer') {
+          filters.source.add('journey optimizer');
         }
       });
 

@@ -391,9 +391,29 @@ body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-she
   gap: 0.2rem;
 }
 
-body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-adobe-lockup--native .ajo-adobe-mark-img {
-  height: 18px;
-  max-width: min(148px, 45vw);
+.ajo-shell-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  height: 30px;
+  padding: 0 0.55rem;
+  border: 1px solid var(--ajo-border);
+  border-radius: 7px;
+  background: var(--ajo-surface);
+  color: var(--ajo-text);
+  cursor: default;
+}
+
+.ajo-shell-hero-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.ajo-shell-hero-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-topbar-search {
@@ -428,7 +448,32 @@ body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-she
 body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-avatar {
   width: 24px;
   height: 24px;
-  margin-left: 0.1rem;
+  margin-left: 0;
+}
+
+.ajo-shell-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 30px;
+  padding: 0 0.55rem;
+  border: 1px solid var(--ajo-border);
+  border-radius: 999px;
+  background: var(--ajo-surface);
+  color: var(--ajo-text);
+  cursor: default;
+}
+
+.ajo-shell-profile-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ajo-shell-profile-caret {
+  width: 12px;
+  height: 12px;
+  color: var(--ajo-muted);
 }
 
 /* Body: rail + workspace */
