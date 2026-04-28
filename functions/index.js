@@ -1575,7 +1575,14 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
   if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
   if (req.method !== 'GET') { res.status(405).json({ error: 'Method not allowed' }); return; }
 
-  const subPath = (req.path || req.url || '').replace(/^\/api\/schema-viewer\/?/, '').split('?')[0].replace(/\/$/, '');
+  let subPath = (req.path || req.url || '')
+    .replace(/^\/api\/schema-viewer\/?/, '')
+    .split('?')[0]
+    .replace(/\/$/, '')
+    .replace(/^\/+/, '');
+  if (!subPath) {
+    subPath = String(req.query.subPath || req.query.path || '').trim().replace(/^\/+/, '').replace(/\/$/, '');
+  }
   const sandbox = (req.query.sandbox || '').trim() || RESOLVED_ADOBE_SANDBOX;
   const forceRefresh = req.query.refresh === 'true';
   const CDN_TTL = 600; // 10 minutes
