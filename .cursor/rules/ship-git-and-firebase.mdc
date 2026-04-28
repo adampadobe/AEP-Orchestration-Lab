@@ -41,7 +41,7 @@ git push origin <current-branch>
 npm run verify:profile-viewer-routes
 ```
 
-Guards `journey-arbitration.html` redirect, `journey-arbitration-v2`, `decisioning-overview-v2`, `eds-quickstart`.
+Guards `journey-arbitration.html` redirect, `journey-arbitration-v2`, `eds-quickstart`. Also asserts `decisioning-overview-v2.html` is hard-deleted (forbidden file).
 
 ## 6. Sync again — IMMEDIATELY before Firebase deploy
 

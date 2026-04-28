@@ -1,5 +1,5 @@
 ---
-description: Keep journey-arbitration URL (redirect to v2), journey-arbitration-v2, and decisioning-overview-v2 Profile Viewer pages from being removed or orphaned.
+description: Keep journey-arbitration URL (redirect to v2) and journey-arbitration-v2 Profile Viewer pages from being removed or orphaned.
 alwaysApply: true
 ---
 
@@ -9,10 +9,13 @@ These **Firebase Hosting** URLs are part of the product surface and must remain 
 
 - `profile-viewer/journey-arbitration.html` — **redirect stub** to `journey-arbitration-v2.html` (same directory); do not restore the old standalone app assets on this URL
 - `profile-viewer/journey-arbitration-v2.html`, `journey-arbitration-v2.css`, `journey-arbitration-v2.js`, `journey-arbitration-v2-iframe-bridge.css`, and embed asset `ajo-decisioning-pipeline-v8-demo.html`
-- `profile-viewer/decisioning-overview-v2.html`
 
 **Do not** delete, rename, or drop nav / Global values wiring for these routes without an explicit product decision and redirect plan. The legacy **`journey-arbitration.html`** URL is satisfied by a **redirect stub** to **`journey-arbitration-v2.html`**; lab nav lists **v2** only.
 
-**After** editing `web/profile-viewer/`, run **`npm run sync-profile-viewer-ui`** so the Express mirror stays aligned (`rsync` uses `--delete`; the canonical tree must always include these files).
+## Hard-deleted (do not restore)
+
+- `profile-viewer/decisioning-overview-v2.html` — hard-deleted on Apr 28, 2026 by explicit product decision. Bookmark URLs accepted to 404. The route verifier (`scripts/verify-profile-viewer-routes.mjs`) treats this path as **forbidden** and fails CI if the file, its nav entry, or its `decisioningOverviewV2` Global values hide-key are reintroduced.
+
+**After** editing `web/profile-viewer/`, run **`npm run sync-profile-viewer-ui`** so the Express mirror stays aligned (`rsync` uses `--delete`; the canonical tree must always include the preserved files and must NOT include the hard-deleted ones).
 
 Before shipping hosting changes, run **`npm run verify:profile-viewer-routes`** (CI runs this on `main` / PRs). Human-readable policy: repo-root **`CONTRIBUTING.md`** → section **Preserved Decisioning Profile Viewer routes** (anchor `#preserved-decisioning-profile-viewer-routes` on GitHub).

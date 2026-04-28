@@ -91,7 +91,10 @@ These hosted paths are part of the lab surface and must stay in **`web/profile-v
 |-----------------|-------------------|
 | `/profile-viewer/journey-arbitration.html` | `journey-arbitration.html` only — **redirect stub** to `journey-arbitration-v2.html` (legacy `.js` / `.css` removed) |
 | `/profile-viewer/journey-arbitration-v2.html` | `journey-arbitration-v2.html`, `journey-arbitration-v2.css`, `journey-arbitration-v2.js`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html` (iframe embed) |
-| `/profile-viewer/decisioning-overview-v2.html` | `decisioning-overview-v2.html` |
+
+**Hard-deleted (do not restore):**
+
+- `/profile-viewer/decisioning-overview-v2.html` — removed on Apr 28, 2026 by explicit product decision. Bookmark URLs accepted to 404. The route verifier asserts the file does **not** exist, the nav entry is **not** present in `aep-lab-nav.js`, and the `decisioningOverviewV2` Global values hide-key is **not** present in `global-settings.html`. CI fails if any of these are reintroduced.
 
 **Guardrail:** run **`npm run verify:profile-viewer-routes`** after substantive **`web/profile-viewer/`** edits and before **`firebase deploy --only hosting`** (or combined functions+hosting). The same check runs in **GitHub Actions** (`validate.yml`) on push/PR to `main`, so a bad merge that deletes these files should fail CI before merge.
 
@@ -493,7 +496,7 @@ Every change **must** follow this ordered ritual. Do not skip any step.
 | 1. **Phase A sync** | `git fetch origin && git status` — pull if behind | Don't build on stale `main` (see [Phase A](#phase-a--start-of-session-before-substantive-edits)) |
 | 2. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
 | 3. **Sync prototypes** | `npm run sync-profile-viewer-ui` when you changed `web/profile-viewer/` (copies **→** prototype `public/`) | Keep the vendored Express mirror aligned with Hosting |
-| 4. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` redirect**, **journey-arbitration-v2** (and embed), **decisioning-overview-v2**, or **eds-quickstart** files or nav wiring are wrong (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
+| 4. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` redirect**, **journey-arbitration-v2** (and embed), or **eds-quickstart** files or nav wiring are wrong, OR if the hard-deleted **`decisioning-overview-v2.html`** is resurrected (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
 | 5. **Commit** | `git add` (focused scope) → `git commit -m "..."` | Atomic, reviewable units |
 | 6. **Phase B sync** | `git fetch origin && git status` — pull/rebase if behind | Don't push on top of a teammate's commit (see [Phase B](#phase-b--immediately-before-git-push)) |
 | 7. **Push** | `git push origin <branch>` | GitHub is the audit trail; teammates and CI see your work |
@@ -568,7 +571,8 @@ CI does **not** build or deploy functions. Deployment is manual.
 | **Don't hardcode the Firebase project ID** in JS/HTML | Use relative paths for API calls (`/api/...`). The project ID only appears in `.firebaserc`. |
 | **Don't delete or rename `home-dashboard-concierge`** | This body class gates the entire token system. |
 | **Don't add `<body>` without the dashboard shell** (sidebar + main wrap) | The sidebar nav and theme toggle won't render. |
-| **Don't delete `journey-arbitration.html` (must remain a redirect to v2), `journey-arbitration-v2.*`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html`, `decisioning-overview-v2.html`, or their nav / Global values wiring** without a deliberate replacement | Breaks hosted `/profile-viewer/journey-arbitration.html` (bookmark URL), `/profile-viewer/journey-arbitration-v2.html`, or `/profile-viewer/decisioning-overview-v2.html`; CI runs `npm run verify:profile-viewer-routes` to catch this. |
+| **Don't delete `journey-arbitration.html` (must remain a redirect to v2), `journey-arbitration-v2.*`, `journey-arbitration-v2-iframe-bridge.css`, `ajo-decisioning-pipeline-v8-demo.html`, or their nav / Global values wiring** without a deliberate replacement | Breaks hosted `/profile-viewer/journey-arbitration.html` (bookmark URL) or `/profile-viewer/journey-arbitration-v2.html`; CI runs `npm run verify:profile-viewer-routes` to catch this. |
+| **Don't resurrect `decisioning-overview-v2.html`** (file, nav entry, or `decisioningOverviewV2` Global values hide-key) | The page was hard-deleted on Apr 28, 2026 by explicit product decision. The route verifier (`npm run verify:profile-viewer-routes`) asserts it stays gone and CI fails if it is reintroduced. |
 
 ---
 
