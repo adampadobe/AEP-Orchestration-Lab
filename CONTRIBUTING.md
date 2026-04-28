@@ -26,7 +26,9 @@ Read this fully before making your first change.
 
 ## Collaboration, Git, and environment
 
-Upstream is **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (`origin`). Treat GitHub as the source of truth. Use **Phase A** at the start of a substantive work session and **Phase B** immediately before every `git push`, so you do not build or deploy on stale `main` and you reduce surprise conflicts when others have merged.
+Upstream is **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (`origin`). Treat GitHub as the source of truth. Use **Phase A** at the start of a substantive work session, **Phase B** immediately before every `git push`, **and Phase C** immediately before every `firebase deploy`, so you do not build or deploy on stale `main` and you do not silently overwrite a teammate's hosted assets.
+
+> **Why three phases (and not two)?** `firebase deploy --only hosting` ships whatever is on YOUR local disk under `web/`, NOT what is on `origin/main`. If a teammate pushes between your `git push` and your `firebase deploy`, your deploy will silently overwrite their hosted assets even though `git` itself stayed clean. Phase C is the only protection.
 
 ### Phase A — start of session (before substantive edits)
 
@@ -45,6 +47,21 @@ Someone else may have merged while you were working.
 2. If you are behind `origin/main`, integrate (`git pull --ff-only origin main` on `main`, or rebase/merge your branch onto current `origin/main`) and resolve conflicts **before** `git push`.
 
 If **`git push` is rejected**, do **not** force-push to **`main`**. Pull or rebase from `origin`, fix conflicts, then push. For other repositories, the **github-git-workflow** Cursor skill describes the same habits.
+
+### Phase C — immediately before `firebase deploy`
+
+This is the most often forgotten phase and the most dangerous. Even if your `git push` succeeded a minute ago, a teammate may have pushed in the meantime — and `firebase deploy --only hosting` does not consult Git, it just ships whatever is on your local disk.
+
+1. `git fetch origin` again.
+2. `git status` — must show `Your branch is up to date with 'origin/main'`.
+3. If you are behind: `git pull --ff-only origin main` (or rebase your feature branch onto `origin/main`).
+4. **Rebuild any vendored sub-apps** so the deploy carries the teammate's pulled source, not your stale committed build output:
+   - `npm run build:edp` — if their commit touched `web/profile-viewer/experience-decisioning-playground/`.
+   - `npm run build:eds-quickstart` — if their commit touched the `tools/eds-quickstart` submodule pointer.
+5. Re-run `npm run verify:profile-viewer-routes` if `web/profile-viewer/` was touched by either side.
+6. **Only then** run `firebase deploy --only hosting` (and/or `--only functions`).
+
+**Cursor:** **`.cursor/rules/sync-origin-main.mdc`** and **`.cursor/rules/ship-git-and-firebase.mdc`** encode all three phases as `alwaysApply: true` so any agent in this workspace is required to follow them on every commit-and-deploy cycle.
 
 ### Node.js
 
@@ -469,29 +486,46 @@ See `docs/COLLEAGUE_PROFILE_VIEWER.md` for full setup instructions.
 
 ## Change workflow (mandatory)
 
-Every change **must** follow these steps in order. Do not skip any step.
+Every change **must** follow this ordered ritual. Do not skip any step.
 
 | Step | Command / action | Why |
 |------|-----------------|-----|
-| 1. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
-| 2. **Sync prototypes** | `npm run sync-profile-viewer-ui` when you changed `web/profile-viewer/` (copies **→** prototype `public/`) | Keep the vendored Express mirror aligned with Hosting |
-| 2b. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` redirect**, **journey-arbitration-v2** (and embed), or **decisioning-overview-v2** files or nav wiring are wrong (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
-| 3. **Commit & push** | `git add`, `git commit`, `git push` to `origin` | GitHub is the audit trail; teammates and CI see your work |
-| 4. **Deploy** | `firebase deploy --only hosting` and/or `firebase deploy --only functions` | Live site and functions pick up what you pushed |
+| 1. **Phase A sync** | `git fetch origin && git status` — pull if behind | Don't build on stale `main` (see [Phase A](#phase-a--start-of-session-before-substantive-edits)) |
+| 2. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
+| 3. **Sync prototypes** | `npm run sync-profile-viewer-ui` when you changed `web/profile-viewer/` (copies **→** prototype `public/`) | Keep the vendored Express mirror aligned with Hosting |
+| 4. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` redirect**, **journey-arbitration-v2** (and embed), **decisioning-overview-v2**, or **eds-quickstart** files or nav wiring are wrong (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
+| 5. **Commit** | `git add` (focused scope) → `git commit -m "..."` | Atomic, reviewable units |
+| 6. **Phase B sync** | `git fetch origin && git status` — pull/rebase if behind | Don't push on top of a teammate's commit (see [Phase B](#phase-b--immediately-before-git-push)) |
+| 7. **Push** | `git push origin <branch>` | GitHub is the audit trail; teammates and CI see your work |
+| 8. **Phase C sync** | `git fetch origin && git status` — pull AND rebuild sub-apps if behind | Don't silently overwrite a teammate's hosted assets (see [Phase C](#phase-c--immediately-before-firebase-deploy)) |
+| 9. **Deploy** | `firebase deploy --only hosting` and/or `firebase deploy --only functions` | Live site and functions pick up what is on `origin/main` |
 
-> **Never** deploy work you care about before it is **committed and pushed**. See [Collaboration, Git, and environment](#collaboration-git-and-environment) for staying current with `origin/main` before and after you push.
+> **Never** deploy work you care about before it is **committed and pushed**. **Never** deploy without re-syncing in Phase C — `firebase deploy` does not consult Git, only your local disk under `web/`. See [Collaboration, Git, and environment](#collaboration-git-and-environment) for the full three-phase pull discipline.
 
 ---
 
 ## Deployment
 
-### Pre-deploy
+### Pre-deploy (Phase C — mandatory)
 
 ```bash
-npm run sync-profile-viewer-ui   # copy web/profile-viewer/ → prototype public/ (keep mirror in sync)
-npm run verify:profile-viewer-routes   # fail if journey-arbitration redirect, journey-arbitration-v2, or decisioning-overview-v2 are broken
+# 1. Re-sync with origin (a teammate may have pushed since your git push)
+git fetch origin
+git status                           # MUST show "Your branch is up to date with 'origin/main'"
+# If behind:
+git pull --ff-only origin main
+
+# 2. Rebuild any vendored sub-apps so the deploy carries pulled source
+npm run build:edp                    # if EDP playground source changed upstream
+npm run build:eds-quickstart         # if eds-quickstart submodule pointer changed upstream
+
+# 3. Mirror + verify
+npm run sync-profile-viewer-ui       # copy web/profile-viewer/ → prototype public/ (keep mirror in sync)
+npm run verify:profile-viewer-routes # fail if preserved Decisioning + EDS Quickstart routes are broken
 cd functions && npm install && cd ..
 ```
+
+**Why every step matters:** `firebase deploy --only hosting` ships whatever is on your local disk under `web/`, NOT what is on `origin/main`. Skip step 1 and you may silently overwrite a teammate's hosted assets. Skip step 2 and your deploy will carry stale built artefacts that don't match the freshly-pulled source.
 
 ### Deploy
 
@@ -527,6 +561,8 @@ CI does **not** build or deploy functions. Deployment is manual.
 | **Don't use `prefers-color-scheme`** | We use explicit user-chosen themes via localStorage, not OS preference. |
 | **Don't add new CSS frameworks** | The project is vanilla CSS by design. |
 | **Don't commit `.env` files or credentials** | They are gitignored. Never `git add --force` them. |
+| **Don't run `firebase deploy` while behind `origin/main`** | `firebase deploy --only hosting` ships local disk under `web/`, NOT what is on `origin/main`. Skipping the Phase C `git fetch` + `git pull --ff-only` will silently overwrite a teammate's hosted assets even though `git` itself stays clean. See [Phase C — immediately before `firebase deploy`](#phase-c--immediately-before-firebase-deploy). |
+| **Don't `git push --force` to `main`** | Destroys teammate commits irrecoverably. If your push is rejected, pull/rebase from `origin/main` and try again. |
 | **Don't change the `us-central1` region** without updating both `functions/index.js` and every entry in `firebase.json` | Mismatched regions cause 404s on `/api/*` calls. |
 | **Don't edit `firestore.rules` to allow client reads/writes** | All Firestore access goes through Admin SDK in functions. |
 | **Don't hardcode the Firebase project ID** in JS/HTML | Use relative paths for API calls (`/api/...`). The project ID only appears in `.firebaserc`. |
@@ -548,6 +584,9 @@ CI does **not** build or deploy functions. Deployment is manual.
 - [ ] New API routes added to both `functions/index.js` and `firebase.json`
 - [ ] `firebase.json` rewrites use `"region": "us-central1"`
 - [ ] If you edited **`web/profile-viewer/`**: `npm run verify:profile-viewer-routes` passes (preserved Decisioning routes — see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes))
+- [ ] **Phase A** sync ran before substantive edits (`git fetch origin && git pull --ff-only origin main` if behind)
+- [ ] **Phase B** sync ran immediately before `git push` (re-fetched, re-integrated if a teammate had pushed)
+- [ ] **Phase C** sync ran immediately before `firebase deploy` (re-fetched, pulled, AND re-ran any `npm run build:edp` / `npm run build:eds-quickstart` if the teammate's commit touched a vendored sub-app)
 
 ---
 
