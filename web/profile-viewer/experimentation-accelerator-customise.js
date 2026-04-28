@@ -405,10 +405,39 @@
     setTextById('expAccelOppPrevDesc3', copy.rows[2] ? copy.rows[2].desc : '');
   }
 
+  function shuffleArray(list) {
+    var arr = list.slice();
+    var i;
+    for (i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function applyLatestUpdateTitles(raw) {
+    var titles = [
+      rowField(raw, 1, 'sub'),
+      rowField(raw, 2, 'sub'),
+      rowField(raw, 3, 'sub'),
+      rowField(raw, 4, 'sub'),
+    ].filter(function (t) {
+      return t && String(t).trim();
+    });
+    if (!titles.length) return;
+    var shuffled = shuffleArray(titles);
+    setTextById('expAccelLatestUpdateTitle1', shuffled[0 % shuffled.length]);
+    setTextById('expAccelLatestUpdateTitle2', shuffled[1 % shuffled.length]);
+    setTextById('expAccelLatestUpdateTitle3', shuffled[2 % shuffled.length]);
+  }
+
   function applyToDom(prefs) {
     var raw = prefs && typeof prefs === 'object' ? prefs : {};
     applyTeamSelection(raw);
     applyOpportunityRationale(raw);
+    applyLatestUpdateTitles(raw);
     applyExperimentCustomisation(raw);
     applyResultsTableTreatmentImages(raw);
     applyHeroDetailImage(raw);
