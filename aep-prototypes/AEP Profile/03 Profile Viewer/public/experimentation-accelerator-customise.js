@@ -705,9 +705,25 @@
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  /** Apply Customise labels before first paint when this script is parser-inserted before the dock (sync, no defer). */
+  function bootstrapPrefs() {
+    try {
+      applyToDom(getForSandbox(currentSandboxName()) || {});
+    } catch (e) {}
   }
+
+  bootstrapPrefs();
+
+  function scheduleInit() {
+    function runInit() {
+      init();
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', runInit);
+    } else {
+      runInit();
+    }
+  }
+
+  scheduleInit();
 })();
