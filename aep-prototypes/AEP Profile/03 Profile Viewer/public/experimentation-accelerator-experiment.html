@@ -502,6 +502,15 @@
                   <label for="expAccelTeamInput">Team display (My Team …)</label>
                   <p class="hint ajo-customise-hint">Use commas to add multiple selectable options (for example: <strong>Adobe.com, Demo EMEA, Enterprise</strong>).</p>
                   <input id="expAccelTeamInput" type="text" autocomplete="off" placeholder="Adobe.com">
+                  <label for="expAccelOpportunityIndustryInput">Opportunity Rationale</label>
+                  <select id="expAccelOpportunityIndustryInput" class="sandbox-select" aria-label="Opportunity rationale industry">
+                    <option value="general">General</option>
+                    <option value="retail">Retail</option>
+                    <option value="financial">Financial services</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="travel">Travel and hospitality</option>
+                    <option value="technology">Technology</option>
+                  </select>
                   <h2 class="workflow-drawer-scroll__subhead">Top experiments (Overview)</h2>
                   <p class="hint">Image URLs for the four overview tiles (ACE… rows) and for the <strong>Results</strong> treatment thumbnails on this page (treatments 1–4). Leave blank to use colored placeholders.</p>
                   <label for="expAccelDockExpImgUrl1">Experiment 1 image URL</label>
@@ -598,12 +607,12 @@
           </article>
           <article class="ajo-opp-card">
             <h4 class="ajo-opp-subhead">New text treatment examples</h4>
-            <p class="ajo-opp-examples-intro">Try invoking emotions to make the offer more enticing. Instead of &ldquo;Accomplish more with Acrobat Pro&rdquo;, explore examples like:</p>
+            <p class="ajo-opp-examples-intro" id="expAccelOppExamplesIntro">Try invoking emotions to make the offer more enticing. Instead of &ldquo;Accomplish more with Acrobat Pro&rdquo;, explore examples like:</p>
             <ul class="ajo-opp-example-pills">
-              <li><span class="ajo-opp-pill">Unlock a world of creative potential <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
-              <li><span class="ajo-opp-pill">Unleash your full potential <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
-              <li><span class="ajo-opp-pill">Bring your imagination to life <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
-              <li><span class="ajo-opp-pill">Supercharge your creativity <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
+              <li><span class="ajo-opp-pill"><span id="expAccelOppPillText1">Unlock a world of creative potential</span> <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
+              <li><span class="ajo-opp-pill"><span id="expAccelOppPillText2">Unleash your full potential</span> <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
+              <li><span class="ajo-opp-pill"><span id="expAccelOppPillText3">Bring your imagination to life</span> <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
+              <li><span class="ajo-opp-pill"><span id="expAccelOppPillText4">Supercharge your creativity</span> <button type="button" class="ajo-opp-pill-copy" disabled aria-label="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></li>
             </ul>
           </article>
         </div>
@@ -641,8 +650,8 @@
       </div>
       <section class="ajo-opp-rationale-deep" aria-labelledby="ajoOppRationaleHead">
         <h3 id="ajoOppRationaleHead" class="ajo-opp-rationale-deep-title">Rationale</h3>
-        <p class="ajo-opp-rationale-deep-body">Experiments analysis shows that making emotional appeals tend to lead to favorable outcomes. Previous experiments show higher click-through rates and <strong>increased revenue</strong> on landing pages for emotionally framed advertising than ones that lead with benefits vs. features.</p>
-        <p class="ajo-opp-rationale-deep-subhead">Past experiments with higher revenue using emotional appeal treatment</p>
+        <p class="ajo-opp-rationale-deep-body" id="expAccelOppRationaleBody">Experiments analysis shows that making emotional appeals tend to lead to favorable outcomes. Previous experiments show higher click-through rates and <strong>increased revenue</strong> on landing pages for emotionally framed advertising than ones that lead with benefits vs. features.</p>
+        <p class="ajo-opp-rationale-deep-subhead" id="expAccelOppRationaleSubhead">Past experiments with higher revenue using emotional appeal treatment</p>
         <div class="ajo-opp-rationale-table-wrap">
           <table class="ajo-opp-rationale-table">
             <thead>
@@ -654,26 +663,26 @@
             </thead>
             <tbody>
               <tr>
-                <td><span class="ajo-lift ajo-lift--up">↑ 25.5%</span></td>
+                <td><span class="ajo-lift ajo-lift--up" id="expAccelOppLift1">↑ 25.5%</span></td>
                 <td>
-                  <span class="ajo-opp-rationale-exp-title">Photoshop home headline test</span>
-                  <span class="ajo-opp-rationale-exp-desc">&ldquo;Bring your imagination to life&rdquo; outperforms &ldquo;Edit photos easily&rdquo; by 25.5% in revenue lift.</span>
+                  <span class="ajo-opp-rationale-exp-title" id="expAccelOppPrevTitle1">Photoshop home headline test</span>
+                  <span class="ajo-opp-rationale-exp-desc" id="expAccelOppPrevDesc1">&ldquo;Bring your imagination to life&rdquo; outperforms &ldquo;Edit photos easily&rdquo; by 25.5% in revenue lift.</span>
                 </td>
                 <td class="ajo-opp-rationale-td-link"><button type="button" class="ajo-opp-link-ico" disabled title="Demo" aria-label="Link (demo)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></td>
               </tr>
               <tr>
-                <td><span class="ajo-lift ajo-lift--up">↑ 19.5%</span></td>
+                <td><span class="ajo-lift ajo-lift--up" id="expAccelOppLift2">↑ 19.5%</span></td>
                 <td>
-                  <span class="ajo-opp-rationale-exp-title">A.com home headline test</span>
-                  <span class="ajo-opp-rationale-exp-desc">&ldquo;Give lift to your ideas&rdquo; outperforms &ldquo;Create new videos&rdquo; by 19.5% in revenue lift.</span>
+                  <span class="ajo-opp-rationale-exp-title" id="expAccelOppPrevTitle2">A.com home headline test</span>
+                  <span class="ajo-opp-rationale-exp-desc" id="expAccelOppPrevDesc2">&ldquo;Give lift to your ideas&rdquo; outperforms &ldquo;Create new videos&rdquo; by 19.5% in revenue lift.</span>
                 </td>
                 <td class="ajo-opp-rationale-td-link"><button type="button" class="ajo-opp-link-ico" disabled title="Demo" aria-label="Link (demo)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></td>
               </tr>
               <tr>
-                <td><span class="ajo-lift ajo-lift--up">↑ 15.5%</span></td>
+                <td><span class="ajo-lift ajo-lift--up" id="expAccelOppLift3">↑ 15.5%</span></td>
                 <td>
-                  <span class="ajo-opp-rationale-exp-title">Experiment: Premiere email subject line test</span>
-                  <span class="ajo-opp-rationale-exp-desc">&ldquo;Creativity at your finger tips&rdquo; outperforms &ldquo;Edit more clips easily&rdquo; by 15.5% in revenue lift.</span>
+                  <span class="ajo-opp-rationale-exp-title" id="expAccelOppPrevTitle3">Experiment: Premiere email subject line test</span>
+                  <span class="ajo-opp-rationale-exp-desc" id="expAccelOppPrevDesc3">&ldquo;Creativity at your finger tips&rdquo; outperforms &ldquo;Edit more clips easily&rdquo; by 15.5% in revenue lift.</span>
                 </td>
                 <td class="ajo-opp-rationale-td-link"><button type="button" class="ajo-opp-link-ico" disabled title="Demo" aria-label="Link (demo)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></button></td>
               </tr>
@@ -743,8 +752,8 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script defer src="experimentation-accelerator.js?v=20260428f"></script>
-  <script defer src="experimentation-accelerator-customise.js?v=20260428f"></script>
+  <script defer src="experimentation-accelerator.js?v=20260428g"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260428g"></script>
 </body>
 </html>
 

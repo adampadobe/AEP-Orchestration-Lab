@@ -11,6 +11,7 @@
   var DEFAULTS = {
     displayName: 'Tina',
     teamName: 'Adobe.com',
+    opportunityIndustry: 'general',
   };
 
   /** Default copy for Top experiments rows (ACE… / subtitle). */
@@ -20,6 +21,80 @@
     { title: 'ACE0918 | US | Catalog | AICS on Catalog page', sub: 'Acrobat DC page' },
     { title: 'ACE0930 | US | HP | Logged-out | SMB | AICS', sub: 'Photoshop product page' },
   ];
+
+  var OPPORTUNITY_RATIONALE_COPY = {
+    general: {
+      body: 'Experiments analysis shows that making emotional appeals tend to lead to favorable outcomes. Previous experiments show higher click-through rates and <strong>increased revenue</strong> on landing pages for emotionally framed advertising than ones that lead with benefits vs. features.',
+      subhead: 'Past experiments with higher revenue using emotional appeal treatment',
+      intro: 'Try invoking emotions to make the offer more enticing. Instead of "Accomplish more with Acrobat Pro", explore examples like:',
+      pills: [
+        'Unlock a world of creative potential',
+        'Unleash your full potential',
+        'Bring your imagination to life',
+        'Supercharge your creativity',
+      ],
+      rows: [
+        { lift: '↑ 25.5%', title: 'Homepage headline experiment', desc: '"Turn ideas into outcomes" outperformed "Learn more about our solution" by 25.5% in revenue lift.' },
+        { lift: '↑ 19.5%', title: 'Landing page value-message experiment', desc: '"Move faster with confidence" outperformed "Compare features today" by 19.5% in revenue lift.' },
+        { lift: '↑ 15.5%', title: 'Email subject line experiment', desc: '"Build momentum with every step" outperformed "Get started with the basics" by 15.5% in revenue lift.' },
+      ],
+    },
+    retail: {
+      body: 'Retail experiments show emotional framing consistently drives stronger shopping intent. Campaigns that emphasize identity, confidence, and inspiration have produced higher engagement and <strong>increased revenue</strong> versus purely feature-led copy.',
+      subhead: 'Past retail experiments with higher revenue from emotional appeal treatment',
+      intro: 'Try emotionally framed retail messaging. Instead of "Shop the new collection", explore examples like:',
+      pills: ['Find your signature look', 'Wear what moves you', 'Style that feels like you', 'Make every day feel iconic'],
+      rows: [
+        { lift: '↑ 24.8%', title: 'Seasonal homepage hero test', desc: '"Own your moment this season" outperformed "Explore spring arrivals" by 24.8% in revenue lift.' },
+        { lift: '↑ 18.6%', title: 'Product listing banner test', desc: '"Feel confident in every fit" outperformed "Browse top-rated styles" by 18.6% in revenue lift.' },
+        { lift: '↑ 14.9%', title: 'Abandoned cart email test', desc: '"Your next favorite look is waiting" outperformed "Complete your purchase now" by 14.9% in revenue lift.' },
+      ],
+    },
+    financial: {
+      body: 'Financial services experiments indicate reassurance-led emotional messaging improves consideration and conversion. Copy focused on peace of mind and control has delivered higher trust signals and <strong>increased revenue</strong> compared with product-spec-heavy messaging.',
+      subhead: 'Past financial services experiments with higher revenue from emotional appeal treatment',
+      intro: 'Try emotionally framed financial messaging. Instead of "Compare account benefits", explore examples like:',
+      pills: ['Plan with confidence', 'Protect what matters most', 'Feel secure at every milestone', 'Build your future with clarity'],
+      rows: [
+        { lift: '↑ 22.1%', title: 'Investment landing page headline test', desc: '"Grow with confidence through every market cycle" outperformed "View portfolio options" by 22.1% in revenue lift.' },
+        { lift: '↑ 17.4%', title: 'Savings product banner test', desc: '"Peace of mind starts with one smart step" outperformed "Open a high-yield account" by 17.4% in revenue lift.' },
+        { lift: '↑ 13.8%', title: 'Credit card nurture email test', desc: '"Stay in control wherever life takes you" outperformed "Explore card features" by 13.8% in revenue lift.' },
+      ],
+    },
+    healthcare: {
+      body: 'Healthcare experiments show empathetic messaging increases engagement and action rates. Messaging that emphasizes confidence, care, and quality of life has produced better response and <strong>increased revenue</strong> than feature-first clinical copy.',
+      subhead: 'Past healthcare experiments with higher revenue from emotional appeal treatment',
+      intro: 'Try emotionally framed healthcare messaging. Instead of "Learn about treatment options", explore examples like:',
+      pills: ['Care that supports your whole life', 'Feel better with every step', 'Support you can trust', 'Health outcomes that matter to you'],
+      rows: [
+        { lift: '↑ 21.3%', title: 'Service line homepage hero test', desc: '"Feel supported from first visit to recovery" outperformed "View available services" by 21.3% in revenue lift.' },
+        { lift: '↑ 16.9%', title: 'Appointment booking page headline test', desc: '"Take the next step toward better health" outperformed "Book an appointment today" by 16.9% in revenue lift.' },
+        { lift: '↑ 12.7%', title: 'Patient re-engagement email test', desc: '"Your wellness journey deserves momentum" outperformed "Schedule your follow-up" by 12.7% in revenue lift.' },
+      ],
+    },
+    travel: {
+      body: 'Travel and hospitality experiments show aspiration-led emotional copy drives stronger booking behavior. Messaging focused on anticipation, comfort, and memorable experiences delivers better engagement and <strong>increased revenue</strong> than logistics-only messaging.',
+      subhead: 'Past travel and hospitality experiments with higher revenue from emotional appeal treatment',
+      intro: 'Try emotionally framed travel messaging. Instead of "Book your next trip", explore examples like:',
+      pills: ['Turn plans into unforgettable memories', 'Your next great escape starts here', 'Travel that feels effortless', 'Stay where every moment matters'],
+      rows: [
+        { lift: '↑ 23.6%', title: 'Destination campaign headline test', desc: '"Create stories worth retelling" outperformed "Discover top destinations" by 23.6% in revenue lift.' },
+        { lift: '↑ 18.1%', title: 'Hotel booking page banner test', desc: '"Rest, recharge, and wake up inspired" outperformed "Book premium rooms now" by 18.1% in revenue lift.' },
+        { lift: '↑ 14.2%', title: 'Loyalty reactivation email test', desc: '"Your next getaway is closer than you think" outperformed "Redeem your points today" by 14.2% in revenue lift.' },
+      ],
+    },
+    technology: {
+      body: 'Technology experiments show outcome-driven emotional messaging improves conversion for complex offerings. Messaging that highlights confidence, creativity, and progress has produced higher engagement and <strong>increased revenue</strong> versus feature-list positioning.',
+      subhead: 'Past technology experiments with higher revenue from emotional appeal treatment',
+      intro: 'Try emotionally framed technology messaging. Instead of "Explore product capabilities", explore examples like:',
+      pills: ['Build what is next with confidence', 'Turn bold ideas into real outcomes', 'Create without limits', 'Move faster with momentum'],
+      rows: [
+        { lift: '↑ 25.1%', title: 'Product homepage headline test', desc: '"Build smarter, ship faster, stay ahead" outperformed "See platform capabilities" by 25.1% in revenue lift.' },
+        { lift: '↑ 19.2%', title: 'Solution page value proposition test', desc: '"Empower every team to do their best work" outperformed "Compare technical features" by 19.2% in revenue lift.' },
+        { lift: '↑ 15.4%', title: 'Lifecycle nurture email subject test', desc: '"Turn your roadmap into measurable wins" outperformed "Read the latest release notes" by 15.4% in revenue lift.' },
+      ],
+    },
+  };
 
   function rowField(p, i, kind) {
     var def = EXP_ROW_DEFAULTS[i - 1] || { title: '', sub: '' };
@@ -287,9 +362,53 @@
     });
   }
 
+  function normaliseOpportunityIndustry(stored) {
+    var key = stored && typeof stored.opportunityIndustry === 'string' ? stored.opportunityIndustry.trim().toLowerCase() : '';
+    if (!key || !OPPORTUNITY_RATIONALE_COPY[key]) return DEFAULTS.opportunityIndustry;
+    return key;
+  }
+
+  function setTextById(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = value || '';
+  }
+
+  function setHtmlById(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = value || '';
+  }
+
+  function applyOpportunityRationale(raw) {
+    var prefs = raw && typeof raw === 'object' ? raw : {};
+    var industry = normaliseOpportunityIndustry(prefs);
+    var copy = OPPORTUNITY_RATIONALE_COPY[industry] || OPPORTUNITY_RATIONALE_COPY[DEFAULTS.opportunityIndustry];
+    var industryInput = document.getElementById('expAccelOpportunityIndustryInput');
+    if (industryInput && industryInput.tagName === 'SELECT' && document.activeElement !== industryInput) {
+      industryInput.value = industry;
+    }
+    if (!copy) return;
+    setHtmlById('expAccelOppRationaleBody', copy.body);
+    setTextById('expAccelOppRationaleSubhead', copy.subhead);
+    setTextById('expAccelOppExamplesIntro', copy.intro);
+    setTextById('expAccelOppPillText1', copy.pills[0] || '');
+    setTextById('expAccelOppPillText2', copy.pills[1] || '');
+    setTextById('expAccelOppPillText3', copy.pills[2] || '');
+    setTextById('expAccelOppPillText4', copy.pills[3] || '');
+    setTextById('expAccelOppLift1', copy.rows[0] ? copy.rows[0].lift : '');
+    setTextById('expAccelOppLift2', copy.rows[1] ? copy.rows[1].lift : '');
+    setTextById('expAccelOppLift3', copy.rows[2] ? copy.rows[2].lift : '');
+    setTextById('expAccelOppPrevTitle1', copy.rows[0] ? copy.rows[0].title : '');
+    setTextById('expAccelOppPrevTitle2', copy.rows[1] ? copy.rows[1].title : '');
+    setTextById('expAccelOppPrevTitle3', copy.rows[2] ? copy.rows[2].title : '');
+    setTextById('expAccelOppPrevDesc1', copy.rows[0] ? copy.rows[0].desc : '');
+    setTextById('expAccelOppPrevDesc2', copy.rows[1] ? copy.rows[1].desc : '');
+    setTextById('expAccelOppPrevDesc3', copy.rows[2] ? copy.rows[2].desc : '');
+  }
+
   function applyToDom(prefs) {
     var raw = prefs && typeof prefs === 'object' ? prefs : {};
     applyTeamSelection(raw);
+    applyOpportunityRationale(raw);
     applyExperimentCustomisation(raw);
     applyResultsTableTreatmentImages(raw);
     applyHeroDetailImage(raw);
@@ -404,8 +523,11 @@
   function fillInputs() {
     var m = getForSandbox(currentSandboxName());
     var team = normaliseTeam(m || {}).raw;
+    var industry = normaliseOpportunityIndustry(m || {});
     var t = document.getElementById('expAccelTeamInput');
     if (t) t.value = team;
+    var industryInput = document.getElementById('expAccelOpportunityIndustryInput');
+    if (industryInput) industryInput.value = industry;
     fillNameInputOnly();
 
     var p = m || {};
@@ -451,14 +573,19 @@
         var sb = currentSandboxName();
         var d = (document.getElementById('expAccelDisplayNameInput') || {}).value;
         var team = (document.getElementById('expAccelTeamInput') || {}).value;
+        var industry = (document.getElementById('expAccelOpportunityIndustryInput') || {}).value;
         var trimmed = d != null ? String(d).trim() : '';
         var teamTrim = team != null && String(team).trim() ? String(team).trim() : DEFAULTS.teamName;
+        var industryKey = OPPORTUNITY_RATIONALE_COPY[String(industry || '').trim().toLowerCase()]
+          ? String(industry || '').trim().toLowerCase()
+          : DEFAULTS.opportunityIndustry;
         var prev = getForSandbox(sb) || {};
         var teamCfg = normaliseTeam({ teamName: teamTrim, teamSelected: prev.teamSelected });
         var payload = Object.assign({}, prev, {
           displayNameOverride: trimmed ? trimmed : null,
           teamName: teamCfg.raw,
           teamSelected: teamCfg.selected,
+          opportunityIndustry: industryKey,
         });
         if (trimmed) {
           payload.displayName = trimmed;
