@@ -208,7 +208,7 @@ to make accidental pushes impossible.
 | [package.json](../package.json) (`build:eds-quickstart` script)     | One-shot build: webpack → rsync into `web/profile-viewer/eds-quickstart/`.                                                                    |
 | [web/profile-viewer/eds-quickstart.html](../web/profile-viewer/eds-quickstart.html) | Lab dashboard shell wrapper that iframes the SPA at `eds-quickstart/index.html` and forwards theme via the standard early-paint IIFE.        |
 | `web/profile-viewer/eds-quickstart/`                                | Built static assets (`index.html` + `static/js/main.<hash>.js`). Committed so Firebase deploy never depends on the submodule being initialised. |
-| [web/profile-viewer/aep-lab-nav.js](../web/profile-viewer/aep-lab-nav.js) | New entry under the **Demos** group: `EDS Site Bootstrap (demo)` → `eds-quickstart.html`.                                                |
+| [web/profile-viewer/aep-lab-nav.js](../web/profile-viewer/aep-lab-nav.js) | New entry under the **Demos** group: `EDS Demo Creator (in development)` → `eds-quickstart.html`.                                        |
 | [scripts/verify-profile-viewer-routes.mjs](../scripts/verify-profile-viewer-routes.mjs) | Asserts both `eds-quickstart.html` and `eds-quickstart/index.html` exist before deploy and that the nav entry is wired.            |
 
 ## Required runtime IMS / sandbox configuration

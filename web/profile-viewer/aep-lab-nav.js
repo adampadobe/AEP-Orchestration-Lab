@@ -205,7 +205,7 @@
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 2a7 7 0 015.196 11.607l2.804 2.804a1 1 0 01-1.414 1.414l-2.804-2.804A7 7 0 1112 2z"/><circle cx="12" cy="11" r="3.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
         },
         {
-          label: 'EDS Site Bootstrap (in development)',
+          label: 'EDS Demo Creator (in development)',
           href: 'eds-quickstart.html',
           inDevelopment: true,
           navHideKey: 'edsQuickstart',
