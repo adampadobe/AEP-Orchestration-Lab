@@ -380,6 +380,57 @@ html[data-aep-theme='dark'] .exp-accel-lab-exit {
   border: 1px solid var(--ajo-border);
 }
 
+/* Main accelerator page shell matches native captured layout. */
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell {
+  min-height: 42px;
+  padding: 0 0.5rem 0 0.35rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--ajo-border) 85%, transparent);
+}
+
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-topbar-left {
+  gap: 0.2rem;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-adobe-lockup--native .ajo-adobe-mark-img {
+  height: 18px;
+  max-width: min(148px, 45vw);
+}
+
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-topbar-search {
+  max-width: min(430px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-search-input {
+  height: 1.95rem;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  font-size: 0.75rem;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-svg-ico {
+  width: 16px;
+  height: 16px;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-org {
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-shell .ajo-mock-avatar {
+  width: 24px;
+  height: 24px;
+  margin-left: 0.1rem;
+}
+
 /* Body: rail + workspace */
 .ajo-mock-body {
   flex: 1;
@@ -1777,6 +1828,47 @@ html[data-aep-theme='dark'] .experimentation-accelerator-page .ajo-icon-toggle--
   border-radius: 6px;
   border: 1px solid var(--ajo-border);
   font-size: 0.8125rem;
+}
+
+.ajo-exp-toolbar--native-filters {
+  gap: 0.8rem;
+  align-items: center;
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+.ajo-exp-toolbar--native-filters .ajo-exp-filter-trigger {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+}
+
+.ajo-exp-search--native {
+  width: 8.5rem;
+  height: 2rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem 0.35rem 2rem;
+  background:
+    radial-gradient(circle at 0.9rem 0.9rem, transparent 0.36rem, currentColor 0.37rem 0.45rem, transparent 0.46rem) no-repeat,
+    linear-gradient(42deg, transparent 46%, currentColor 47% 53%, transparent 54%) no-repeat,
+    var(--ajo-surface);
+  background-size: 0.9rem 0.9rem, 0.42rem 0.42rem, auto;
+  background-position: 0.62rem 0.52rem, 1.18rem 1.18rem, 0 0;
+  color: color-mix(in srgb, var(--ajo-muted) 75%, var(--ajo-text));
+}
+
+.ajo-exp-toolbar--native-filters .ajo-checkbox-fake {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ajo-text);
+  gap: 0.42rem;
+  white-space: nowrap;
+}
+
+.ajo-exp-toolbar--native-filters .ajo-checkbox-fake input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
 }
 
 .ajo-exp-summary {

@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="home.css?v=20260422d">
   <link rel="stylesheet" href="aep-theme.css?v=20260422d">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260428a">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260428b">
   <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260423f">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive" data-ajo-tab="overview">
@@ -56,13 +56,10 @@
       <main class="dashboard-main profile-viewer-main">
         <div class="exp-accel-app" id="expAccelApp">
           <div class="ajo-mock" aria-label="Adobe Journey Optimizer demonstration">
-            <header class="ajo-mock-topbar">
+            <header class="ajo-mock-topbar ajo-mock-topbar--native-shell">
               <div class="ajo-mock-topbar-left">
-                <button type="button" class="ajo-icon-btn" aria-label="Main menu (demo)" disabled title="Demo only">
-                  <svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
-                </button>
-                <span class="ajo-mock-adobe-lockup" aria-hidden="true">
-                  <img class="ajo-adobe-mark-img" src="https://contenthosting.web.app/experiments/adobeexperiencecloud.png" width="160" height="24" alt="" decoding="async" />
+                <span class="ajo-mock-adobe-lockup ajo-mock-adobe-lockup--native" aria-hidden="true">
+                  <img class="ajo-adobe-mark-img" src="https://contenthosting.web.app/experiments/adobeexperiencecloud.png" width="138" height="20" alt="" decoding="async" />
                 </span>
               </div>
               <div class="ajo-mock-topbar-search">
@@ -71,7 +68,7 @@
                 <input type="search" id="ajoMockSearch" class="ajo-mock-search-input" placeholder="Search Experience Cloud (⌘+/)" autocomplete="off" readonly />
               </div>
               <div class="ajo-mock-topbar-right">
-                <span class="ajo-mock-org">Adobe</span>
+                <span class="ajo-mock-org">kirkham</span>
                 <span class="ajo-mock-topbar-divider" aria-hidden="true"></span>
                 <button type="button" class="ajo-icon-btn" aria-label="Feedback (demo)" disabled title="Demo only"><svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M6 10a6 6 0 0 1 12 0v3H8a2 2 0 0 0-2 2v2l-1 1V13a3 3 0 0 1-3-3h3V10Z" stroke-linejoin="round"/></svg></button>
                 <button type="button" class="ajo-icon-btn" aria-label="Help (demo)" disabled title="Demo only"><svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 10a2.5 2.5 0 1 1 4.2 1.8A1.7 1.7 0 0 0 13 13v.3M12 16.8h.05" stroke-linecap="round"/></svg></button>
@@ -480,19 +477,20 @@
                         </div>
                       </aside>
                       <div class="ajo-exp-main">
-                      <div class="ajo-exp-toolbar">
+                      <div class="ajo-exp-toolbar ajo-exp-toolbar--native-filters">
                         <button type="button" class="ajo-exp-filter-trigger" id="ajoExpFilterToggle" aria-expanded="false" aria-controls="ajoExpFilters" title="Show filters">
                           <svg class="ajo-exp-filter-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path d="M4 5h16l-6 7v6l-4 2v-8L4 5z" stroke-linejoin="round"/>
                           </svg>
                           <span class="visually-hidden">Show filters</span>
                         </button>
+                        <input type="search" class="ajo-exp-search ajo-exp-search--native" placeholder="" disabled aria-label="Search experiments (demo)" />
                         <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Starred</label>
                         <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Created by me</label>
-                        <span class="ajo-pill-select">Status: All</span>
-                        <span class="ajo-exp-toolbar-spacer"></span>
-                        <span class="ajo-exp-tools-muted">24 of 24</span>
-                        <input type="search" class="ajo-exp-search" placeholder="Search" disabled aria-label="Search experiments (demo)" />
+                        <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Has Insights</label>
+                        <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Has Opportunities</label>
+                        <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Active</label>
+                        <label class="ajo-checkbox-fake"><input type="checkbox" disabled /> Needs setup confirmation</label>
                       </div>
                       <div class="ajo-exp-summary">
                         <div class="ajo-exp-summary-card">
