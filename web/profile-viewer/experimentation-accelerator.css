@@ -394,25 +394,34 @@ body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-she
 .ajo-shell-hero-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.38rem;
+  gap: 0.42rem;
   height: 30px;
-  padding: 0 0.55rem;
-  border: 1px solid var(--ajo-border);
+  padding: 0 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--ajo-border) 55%, transparent);
   border-radius: 7px;
-  background: var(--ajo-surface);
+  background: var(--ajo-surface-2);
   color: var(--ajo-text);
   cursor: default;
 }
 
 .ajo-shell-hero-icon {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  background: #ed1000;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .ajo-shell-hero-title {
   font-size: 0.6875rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0;
 }
 
@@ -451,29 +460,70 @@ body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-she
   margin-left: 0;
 }
 
-.ajo-shell-profile-btn {
+.ajo-shell-env-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
   height: 30px;
   padding: 0 0.55rem;
   border: 1px solid var(--ajo-border);
-  border-radius: 999px;
-  background: var(--ajo-surface);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ajo-surface-2) 88%, var(--ajo-surface));
   color: var(--ajo-text);
-  cursor: default;
-}
-
-.ajo-shell-profile-label {
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.ajo-shell-profile-caret {
-  width: 12px;
-  height: 12px;
-  color: var(--ajo-muted);
+.ajo-shell-env-pill--prod {
+  height: 26px;
+  border: none;
+  background: var(--dash-blue);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ajo-shell-user-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ajo-shell-utility-btn {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+}
+
+.ajo-shell-utility-btn .ajo-svg-ico {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.ajo-shell-utility-btn--bell {
+  position: relative;
+}
+
+.ajo-shell-notice-badge {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  min-width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 999px;
+  background: #ed1000;
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 0.95rem;
+  text-align: center;
+  padding: 0 0.1rem;
+}
+
+@media (max-width: 1280px) {
+  .ajo-shell-user-name {
+    display: none;
+  }
 }
 
 /* Body: rail + workspace */

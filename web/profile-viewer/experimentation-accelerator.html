@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="home.css?v=20260422d">
   <link rel="stylesheet" href="aep-theme.css?v=20260422d">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260428c">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260428d">
   <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260423f">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive" data-ajo-tab="overview">
@@ -59,7 +59,7 @@
             <header class="ajo-mock-topbar ajo-mock-topbar--native-shell">
               <div class="ajo-mock-topbar-left">
                 <button type="button" class="ajo-shell-hero-btn" disabled aria-label="Adobe CX Enterprise">
-                  <img class="ajo-shell-hero-icon" src="https://cdn.experience.adobe.net/assets/HeroIcons.6620f5dc.svg#AdobeExperienceCloud" alt="" decoding="async" aria-hidden="true" />
+                  <span class="ajo-shell-hero-icon" aria-hidden="true">A</span>
                   <span class="ajo-shell-hero-title">Adobe CX Enterprise</span>
                 </button>
               </div>
@@ -69,13 +69,21 @@
                 <input type="search" id="ajoMockSearch" class="ajo-mock-search-input" placeholder="Search Experience Cloud (⌘+/)" autocomplete="off" readonly />
               </div>
               <div class="ajo-mock-topbar-right">
-                <span class="ajo-mock-org">kirkham</span>
+                <span class="ajo-shell-env-pill">Demo EMEA</span>
+                <span class="ajo-shell-env-pill ajo-shell-env-pill--prod">Prod</span>
+                <span class="ajo-shell-user-name">Alan Kirkham (NLD2)</span>
                 <span class="ajo-mock-topbar-divider" aria-hidden="true"></span>
-                <button type="button" class="ajo-shell-profile-btn" disabled aria-label="Profile Viewer">
-                  <span class="ajo-mock-avatar" aria-hidden="true"></span>
-                  <span class="ajo-shell-profile-label">Profile Viewer</span>
-                  <svg class="ajo-shell-profile-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 10l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <button type="button" class="ajo-icon-btn ajo-shell-utility-btn" aria-label="Help (demo)" disabled title="Demo only">
+                  <svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 10a2.5 2.5 0 1 1 4.2 1.8A1.7 1.7 0 0 0 13 13v.3M12 16.8h.05" stroke-linecap="round"/></svg>
                 </button>
+                <button type="button" class="ajo-icon-btn ajo-shell-utility-btn ajo-shell-utility-btn--bell" aria-label="Notifications (demo)" disabled title="Demo only">
+                  <svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M6 10a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" stroke-linejoin="round"/><path d="M10 20h4" stroke-linecap="round"/></svg>
+                  <span class="ajo-shell-notice-badge" aria-hidden="true">2</span>
+                </button>
+                <button type="button" class="ajo-icon-btn ajo-shell-utility-btn" aria-label="App switcher (demo)" disabled title="Demo only">
+                  <svg class="ajo-svg-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18" cy="12" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><circle cx="18" cy="18" r="1.8"/></svg>
+                </button>
+                <span class="ajo-mock-avatar" aria-hidden="true" title="Profile (demo)"></span>
               </div>
             </header>
 
@@ -143,7 +151,7 @@
                         <section class="ajo-hero" aria-labelledby="ajoHeroGreeting">
                           <div class="ajo-hero-inner">
                             <div class="ajo-hero-brand" aria-hidden="true">
-                              <img class="ajo-hero-ajo-icon-img" src="https://contenthosting.web.app/experiments/adobelogo.png" width="200" height="48" alt="" decoding="async" />
+                              <img class="ajo-hero-ajo-icon-img" src="https://cdn.experience.adobe.net/assets/HeroIcons.6620f5dc.svg#AdobeExperienceCloud" width="200" height="48" alt="" decoding="async" />
                             </div>
                             <h2 id="ajoHeroGreeting" class="ajo-hero-title">Good morning, <span id="expAccelDisplayName">Tina</span>!</h2>
                             <p class="ajo-hero-sub">
@@ -748,7 +756,7 @@
   <script defer src="aep-theme.js?v=20260406"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script defer src="experimentation-accelerator.js?v=20260428c"></script>
-  <script defer src="experimentation-accelerator-customise.js?v=20260428c"></script>
+  <script defer src="experimentation-accelerator.js?v=20260428d"></script>
+  <script defer src="experimentation-accelerator-customise.js?v=20260428d"></script>
 </body>
 </html>
