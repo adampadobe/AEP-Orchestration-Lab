@@ -417,20 +417,46 @@
     return arr;
   }
 
+  /** Meta line shares the same experiment row as the subtitle; "AICS on …" tail matches the bold title (subtitle). */
+  function buildLatestUpdateMeta(fullTitle, sub) {
+    var s = String(sub || '').trim();
+    var t = String(fullTitle || '');
+    var sep = ' | AICS on ';
+    var idx = t.indexOf(sep);
+    if (idx >= 0) {
+      return t.slice(0, idx + sep.length) + s;
+    }
+    var tailAics = ' | AICS';
+    if (t.length >= tailAics.length && t.slice(-tailAics.length) === tailAics) {
+      return t.slice(0, t.length - tailAics.length) + ' | AICS on ' + s;
+    }
+    if (t) {
+      return t + ' | AICS on ' + s;
+    }
+    return 'ACE0916 | US | Catalog | AICS on ' + s;
+  }
+
   function applyLatestUpdateTitles(raw) {
-    var titles = [
-      rowField(raw, 1, 'sub'),
-      rowField(raw, 2, 'sub'),
-      rowField(raw, 3, 'sub'),
-      rowField(raw, 4, 'sub'),
-    ].filter(function (t) {
-      return t && String(t).trim();
-    });
-    if (!titles.length) return;
-    var shuffled = shuffleArray(titles);
-    setTextById('expAccelLatestUpdateTitle1', shuffled[0 % shuffled.length]);
-    setTextById('expAccelLatestUpdateTitle2', shuffled[1 % shuffled.length]);
-    setTextById('expAccelLatestUpdateTitle3', shuffled[2 % shuffled.length]);
+    var pairs = [];
+    var i;
+    for (i = 1; i <= 4; i++) {
+      var sub = rowField(raw, i, 'sub');
+      var title = rowField(raw, i, 'title');
+      if (!sub || !String(sub).trim()) continue;
+      pairs.push({ title: title, sub: String(sub).trim() });
+    }
+    if (!pairs.length) return;
+    var shuffled = shuffleArray(pairs);
+    var n = shuffled.length;
+    var x = shuffled[0 % n];
+    var y = shuffled[1 % n];
+    var z = shuffled[2 % n];
+    setTextById('expAccelLatestUpdateTitle1', x.sub);
+    setTextById('expAccelLatestUpdateTitle2', y.sub);
+    setTextById('expAccelLatestUpdateTitle3', z.sub);
+    setTextById('expAccelLatestUpdateMeta1', buildLatestUpdateMeta(x.title, x.sub));
+    setTextById('expAccelLatestUpdateMeta2', buildLatestUpdateMeta(y.title, y.sub));
+    setTextById('expAccelLatestUpdateMeta3', buildLatestUpdateMeta(z.title, z.sub));
   }
 
   function applyToDom(prefs) {
