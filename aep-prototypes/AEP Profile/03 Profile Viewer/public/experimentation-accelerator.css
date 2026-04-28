@@ -74,6 +74,21 @@ body.experimentation-accelerator-page.experimentation-accelerator-page--immersiv
   min-width: 0;
 }
 
+/* Shell body uses --dash-bg (#f0f0f2). These layers were transparent, so that colour showed as a band between the AJO search bar and the Overview / Experiments tabs. */
+body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-main,
+body.experimentation-accelerator-page.experimentation-accelerator-page--immersive #expAccelApp,
+body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .ajo-mock,
+body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .ajo-mock-body {
+  background: var(--dash-surface);
+}
+
+html[data-aep-theme='dark'] body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .dashboard-main,
+html[data-aep-theme='dark'] body.experimentation-accelerator-page.experimentation-accelerator-page--immersive #expAccelApp,
+html[data-aep-theme='dark'] body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .ajo-mock,
+html[data-aep-theme='dark'] body.experimentation-accelerator-page.experimentation-accelerator-page--immersive .ajo-mock-body {
+  background: var(--dash-surface-alt, #fafafa);
+}
+
 .experimentation-accelerator-page #expAccelApp,
 .experimentation-accelerator-page .ajo-mock,
 .experimentation-accelerator-page .ajo-mock-body,
