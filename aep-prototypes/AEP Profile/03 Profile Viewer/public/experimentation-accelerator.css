@@ -361,6 +361,7 @@ body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-she
 body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-topbar--native-shell {
   min-height: 42px;
   padding: 0 0.5rem 0 0.35rem;
+  background: var(--ajo-surface);
   border-bottom: 1px solid color-mix(in srgb, var(--ajo-border) 85%, transparent);
 }
 
@@ -605,6 +606,12 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   width: 100%;
 }
 
+/* Seamless strip under native shell: avoid grey work-bg band between search header and tabs (main + hero experiment). Email mock keeps work-bg via .ajo-email-campaign-workspace. */
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-workspace,
+body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-workspace:not(.ajo-email-campaign-workspace) {
+  background: var(--ajo-surface);
+}
+
 /* Page chrome */
 .ajo-page-head {
   flex-shrink: 0;
@@ -613,6 +620,10 @@ html[data-aep-theme='dark'] .ajo-rail-btn {
   border-bottom: 1px solid var(--ajo-border);
   width: 100%;
   box-sizing: border-box;
+}
+
+body.experimentation-accelerator-page[data-ajo-tab] .ajo-page-head {
+  background: var(--ajo-surface);
 }
 
 .ajo-page-head--tabs-first {
@@ -4678,6 +4689,11 @@ html[data-aep-theme='dark'] .ajo-mock {
 html[data-aep-theme='dark'] .ajo-mock-topbar,
 html[data-aep-theme='dark'] .ajo-page-head,
 html[data-aep-theme='dark'] .ajo-panel-inner {
+  background: var(--dash-surface-alt, #fafafa);
+}
+
+html[data-aep-theme='dark'] body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-workspace:not(.ajo-email-campaign-workspace),
+html[data-aep-theme='dark'] body.experimentation-accelerator-page.experimentation-accelerator-page--exp-detail .ajo-mock-workspace:not(.ajo-email-campaign-workspace) {
   background: var(--dash-surface-alt, #fafafa);
 }
 
