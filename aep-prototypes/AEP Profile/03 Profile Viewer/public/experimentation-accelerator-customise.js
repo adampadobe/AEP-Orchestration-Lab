@@ -2,7 +2,7 @@
  * Customise dock: display name + team label for Experimentation Accelerator demo (native UI).
  * Hero first name: optional per-sandbox override; otherwise `/api/profile/consent` for the
  * most recent email identifier (same sandbox), then fallback default.
- * Storage: localStorage aepExpAccelUiPrefs JSON { [sandboxKey]: { displayNameOverride?, teamName,
+ * Storage: localStorage aepExpAccelUiPrefs JSON { [sandboxKey]: { displayNameOverride?, teamName, teamSelected?,
  *   expImg1..4, expTitle1..4, expSub1..4, heroDetailImg, ... } }.
  */
 (function () {
@@ -235,16 +235,61 @@
     });
   }
 
-  function mergeTeam(stored) {
-    return stored && typeof stored.teamName === 'string' && stored.teamName.trim()
-      ? stored.teamName.trim()
-      : DEFAULTS.teamName;
+  function splitTeamOptions(raw) {
+    var source = raw != null ? String(raw).trim() : '';
+    var options = source
+      .split(',')
+      .map(function (part) {
+        return String(part).trim();
+      })
+      .filter(Boolean);
+    return options.length ? options : [DEFAULTS.teamName];
+  }
+
+  function normaliseTeam(stored) {
+    var teamRaw = stored && typeof stored.teamName === 'string' && stored.teamName.trim() ? stored.teamName.trim() : DEFAULTS.teamName;
+    var options = splitTeamOptions(teamRaw);
+    var selected = stored && typeof stored.teamSelected === 'string' ? stored.teamSelected.trim() : '';
+    if (!selected || options.indexOf(selected) === -1) selected = options[0];
+    return { raw: teamRaw, options: options, selected: selected };
+  }
+
+  function applyTeamSelection(raw) {
+    var teamEl = document.getElementById('expAccelTeamDisplay');
+    if (!teamEl) return;
+    var teamCfg = normaliseTeam(raw || {});
+    if (teamEl.tagName === 'SELECT') {
+      teamEl.innerHTML = '';
+      teamCfg.options.forEach(function (opt) {
+        var optionEl = document.createElement('option');
+        optionEl.value = opt;
+        optionEl.textContent = opt;
+        teamEl.appendChild(optionEl);
+      });
+      teamEl.value = teamCfg.selected;
+      return;
+    }
+    teamEl.textContent = teamCfg.selected;
+  }
+
+  function bindTeamSelectionPersistence() {
+    var teamEl = document.getElementById('expAccelTeamDisplay');
+    if (!teamEl || teamEl.tagName !== 'SELECT' || teamEl.dataset.persistBound === '1') return;
+    teamEl.dataset.persistBound = '1';
+    teamEl.addEventListener('change', function () {
+      var sb = currentSandboxName();
+      var prev = getForSandbox(sb) || {};
+      var teamCfg = normaliseTeam(prev);
+      var selected = teamEl.value;
+      if (teamCfg.options.indexOf(selected) === -1) return;
+      var payload = Object.assign({}, prev, { teamName: teamCfg.raw, teamSelected: selected });
+      saveForSandbox(sb, payload);
+    });
   }
 
   function applyToDom(prefs) {
     var raw = prefs && typeof prefs === 'object' ? prefs : {};
-    var teamEl = document.getElementById('expAccelTeamDisplay');
-    if (teamEl) teamEl.textContent = mergeTeam(raw);
+    applyTeamSelection(raw);
     applyExperimentCustomisation(raw);
     applyResultsTableTreatmentImages(raw);
     applyHeroDetailImage(raw);
@@ -358,7 +403,7 @@
 
   function fillInputs() {
     var m = getForSandbox(currentSandboxName());
-    var team = mergeTeam(m || {});
+    var team = normaliseTeam(m || {}).raw;
     var t = document.getElementById('expAccelTeamInput');
     if (t) t.value = team;
     fillNameInputOnly();
@@ -398,6 +443,7 @@
   function init() {
     initDock();
     initSandboxSelect();
+    bindTeamSelectionPersistence();
 
     var btn = document.getElementById('expAccelCustomiseUpdate');
     if (btn) {
@@ -408,9 +454,11 @@
         var trimmed = d != null ? String(d).trim() : '';
         var teamTrim = team != null && String(team).trim() ? String(team).trim() : DEFAULTS.teamName;
         var prev = getForSandbox(sb) || {};
+        var teamCfg = normaliseTeam({ teamName: teamTrim, teamSelected: prev.teamSelected });
         var payload = Object.assign({}, prev, {
           displayNameOverride: trimmed ? trimmed : null,
-          teamName: teamTrim,
+          teamName: teamCfg.raw,
+          teamSelected: teamCfg.selected,
         });
         if (trimmed) {
           payload.displayName = trimmed;
