@@ -1641,6 +1641,16 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
         break;
       }
 
+      case 'dataset-batches': {
+        const datasetId = (req.query.datasetId || req.query.dataset_id || '').trim();
+        if (!datasetId) { res.status(400).json({ error: 'Missing datasetId query parameter.' }); return; }
+        const lim = Math.max(1, Math.min(200, Number(req.query.limit) || 25));
+        const { sandboxName, rows, metricsSource } =
+          await schemaViewerService.fetchCatalogBatchesByDataset(accessToken, clientId, orgId, sandbox, datasetId, lim);
+        result = { sandbox: sandboxName, datasetId, count: rows.length, rows, metricsSource: metricsSource || null };
+        break;
+      }
+
       case 'audiences': {
         const { sandboxName, audiences } = await schemaViewerService.fetchAudiencesList(accessToken, clientId, orgId, sandbox);
         const sorted = [...audiences].sort((a, b) => String(a.name || a.id || '').localeCompare(String(b.name || b.id || ''), undefined, { sensitivity: 'base' }));

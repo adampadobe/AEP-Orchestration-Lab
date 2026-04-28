@@ -84,6 +84,10 @@
   let browseClassFilter = 'all';
   let datasetsFilterQuery = '';
   let audiencesFilterQuery = '';
+  let expandedDatasetId = null;
+  const datasetBatchRowsById = new Map();
+  const datasetBatchLoadingById = new Set();
+  const datasetBatchErrorsById = new Map();
 
   function setStatus(msg, isError) {
     if (!statusEl) return;
@@ -523,6 +527,13 @@
     return datasetsFilterQuery.trim().toLowerCase();
   }
 
+  function clearDatasetBatchSubviewState() {
+    expandedDatasetId = null;
+    datasetBatchRowsById.clear();
+    datasetBatchLoadingById.clear();
+    datasetBatchErrorsById.clear();
+  }
+
   function filteredDatasetRows() {
     const q = getDatasetFilter();
     if (!q) return datasetRows;
@@ -654,11 +665,17 @@
       tr.appendChild(tdCb);
 
       const tdName = document.createElement('td');
-      const nameSpan = document.createElement('span');
-      nameSpan.className = 'schema-aep-dataset-link schema-aep-dataset-link--name';
-      nameSpan.textContent = d.name || '—';
-      nameSpan.title = d.id || '';
-      tdName.appendChild(nameSpan);
+      const nameBtn = document.createElement('button');
+      nameBtn.type = 'button';
+      nameBtn.className = 'schema-aep-dataset-link schema-aep-dataset-link--name schema-aep-dataset-link--name-btn';
+      nameBtn.textContent = d.name || '—';
+      nameBtn.title = d.id || '';
+      nameBtn.setAttribute('aria-label', `Open ingest details for dataset ${d.name || d.id || ''}`);
+      nameBtn.setAttribute('aria-expanded', expandedDatasetId === d.id ? 'true' : 'false');
+      nameBtn.addEventListener('click', () => {
+        toggleDatasetBatchSubview(d.id);
+      });
+      tdName.appendChild(nameBtn);
       tr.appendChild(tdName);
 
       const tdAct = document.createElement('td');
@@ -704,7 +721,186 @@
       tr.appendChild(tdUp);
 
       datasetTableBody.appendChild(tr);
+
+      if (expandedDatasetId === d.id) {
+        const subTr = document.createElement('tr');
+        subTr.className = 'schema-aep-dataset-subrow';
+        const subTd = document.createElement('td');
+        subTd.colSpan = 7;
+        subTd.className = 'schema-aep-dataset-subcell';
+        subTd.appendChild(buildDatasetBatchSubview(d));
+        subTr.appendChild(subTd);
+        datasetTableBody.appendChild(subTr);
+      }
     });
+  }
+
+  function formatBatchCount(val) {
+    if (val == null || !Number.isFinite(Number(val))) return '—';
+    return new Intl.NumberFormat('en-US').format(Number(val));
+  }
+
+  function formatBatchIngestedTs(iso) {
+    if (!iso) return '—';
+    const t = Date.parse(String(iso));
+    if (Number.isNaN(t)) return String(iso);
+    return new Date(t).toLocaleString();
+  }
+
+  function normalizeStatusForUi(status) {
+    const s = String(status || '').toLowerCase();
+    if (s.includes('succ')) return 'success';
+    if (s.includes('fail') || s.includes('error')) return 'failed';
+    if (s.includes('partial') || s.includes('warn')) return 'partial';
+    if (s.includes('run') || s.includes('progress') || s.includes('queue') || s.includes('pend')) return 'running';
+    return 'unknown';
+  }
+
+  function buildDatasetBatchSubview(datasetRow) {
+    const wrap = document.createElement('div');
+    wrap.className = 'schema-aep-dataset-subview';
+
+    const head = document.createElement('div');
+    head.className = 'schema-aep-dataset-subview-head';
+    const title = document.createElement('h3');
+    title.className = 'schema-aep-dataset-subview-title';
+    title.textContent = `Ingest details · ${datasetRow.name || datasetRow.id || 'Dataset'}`;
+    head.appendChild(title);
+    wrap.appendChild(head);
+
+    if (datasetBatchLoadingById.has(datasetRow.id)) {
+      const loading = document.createElement('p');
+      loading.className = 'schema-aep-dataset-subview-msg';
+      loading.textContent = 'Loading dataset ingest details…';
+      wrap.appendChild(loading);
+      return wrap;
+    }
+
+    const err = datasetBatchErrorsById.get(datasetRow.id);
+    if (err) {
+      const errEl = document.createElement('p');
+      errEl.className = 'schema-aep-dataset-subview-msg schema-aep-dataset-subview-msg--error';
+      errEl.textContent = err;
+      wrap.appendChild(errEl);
+      return wrap;
+    }
+
+    const rows = datasetBatchRowsById.get(datasetRow.id) || [];
+    if (rows.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'schema-aep-dataset-subview-msg';
+      empty.textContent = 'No recent ingest batches were returned for this dataset.';
+      wrap.appendChild(empty);
+      return wrap;
+    }
+
+    const scroll = document.createElement('div');
+    scroll.className = 'schema-aep-dataset-subview-scroll';
+    const table = document.createElement('table');
+    table.className = 'schema-aep-dataset-subtable';
+    const thead = document.createElement('thead');
+    thead.innerHTML =
+      '<tr>' +
+      '<th>Batch ID</th>' +
+      '<th>Dataflow run ID</th>' +
+      '<th>Ingested</th>' +
+      '<th>Records ingested</th>' +
+      '<th>Records failed</th>' +
+      '<th>New profile fragments</th>' +
+      '<th>Existing profile fragments</th>' +
+      '<th>Status</th>' +
+      '</tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    rows.forEach((row) => {
+      const tr = document.createElement('tr');
+      const status = normalizeStatusForUi(row.status);
+      const statusLabel = String(row.status || 'unknown')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (ch) => ch.toUpperCase());
+      const tdBatch = document.createElement('td');
+      const batchCode = document.createElement('code');
+      batchCode.textContent = row.batchId || '—';
+      tdBatch.appendChild(batchCode);
+      tr.appendChild(tdBatch);
+
+      const tdRun = document.createElement('td');
+      const runCode = document.createElement('code');
+      runCode.textContent = row.dataflowRunId || '—';
+      tdRun.appendChild(runCode);
+      tr.appendChild(tdRun);
+
+      const tdIngested = document.createElement('td');
+      tdIngested.textContent = formatBatchIngestedTs(row.ingestedAt);
+      tr.appendChild(tdIngested);
+
+      const tdRecordsIngested = document.createElement('td');
+      tdRecordsIngested.textContent = formatBatchCount(row.recordsIngested);
+      tr.appendChild(tdRecordsIngested);
+
+      const tdRecordsFailed = document.createElement('td');
+      tdRecordsFailed.textContent = formatBatchCount(row.recordsFailed);
+      tr.appendChild(tdRecordsFailed);
+
+      const tdNewFragments = document.createElement('td');
+      tdNewFragments.textContent = formatBatchCount(row.newProfileFragments);
+      tr.appendChild(tdNewFragments);
+
+      const tdExistingFragments = document.createElement('td');
+      tdExistingFragments.textContent = formatBatchCount(row.existingProfileFragments);
+      tr.appendChild(tdExistingFragments);
+
+      const tdStatus = document.createElement('td');
+      const statusPill = document.createElement('span');
+      statusPill.className = `schema-aep-batch-status schema-aep-batch-status--${status}`;
+      statusPill.textContent = statusLabel;
+      tdStatus.appendChild(statusPill);
+      tr.appendChild(tdStatus);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    scroll.appendChild(table);
+    wrap.appendChild(scroll);
+    return wrap;
+  }
+
+  async function loadDatasetBatchRows(datasetId, forceRefresh) {
+    const id = String(datasetId || '').trim();
+    if (!id) return;
+    if (!forceRefresh && datasetBatchRowsById.has(id)) return;
+    if (datasetBatchLoadingById.has(id)) return;
+    datasetBatchLoadingById.add(id);
+    datasetBatchErrorsById.delete(id);
+    renderDatasetTable();
+    try {
+      const params = new URLSearchParams({ datasetId: id, limit: '25' });
+      const sandbox = getSandboxQuery();
+      if (sandbox) params.set('sandbox', sandbox);
+      if (forceRefresh) params.set('refresh', 'true');
+      const r = await fetch(`/api/schema-viewer/dataset-batches?${params.toString()}`);
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body.error || 'Failed to load dataset batches');
+      datasetBatchRowsById.set(id, Array.isArray(body.rows) ? body.rows : []);
+    } catch (e) {
+      datasetBatchErrorsById.set(id, e.message || 'Could not load dataset ingest details.');
+      datasetBatchRowsById.set(id, []);
+    } finally {
+      datasetBatchLoadingById.delete(id);
+      renderDatasetTable();
+    }
+  }
+
+  function toggleDatasetBatchSubview(datasetId) {
+    const id = String(datasetId || '').trim();
+    if (!id) return;
+    if (expandedDatasetId === id) {
+      expandedDatasetId = null;
+      renderDatasetTable();
+      return;
+    }
+    expandedDatasetId = id;
+    renderDatasetTable();
+    loadDatasetBatchRows(id);
   }
 
   async function loadDatasetsFromApi(forceRefresh) {
@@ -718,10 +914,15 @@
       const body = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(body.error || 'Failed to list datasets');
       datasetRows = body.datasets || [];
+      expandedDatasetId = null;
+      datasetBatchRowsById.clear();
+      datasetBatchErrorsById.clear();
+      datasetBatchLoadingById.clear();
       renderDatasetTable();
       setStatus(`Datasets: ${body.count ?? datasetRows.length} in sandbox “${body.sandbox || 'default'}”.`);
     } catch (e) {
       datasetRows = [];
+      clearDatasetBatchSubviewState();
       renderDatasetTable();
       if (datasetBrowseCount) datasetBrowseCount.textContent = e.message || 'Error';
       setStatus(e.message || 'Could not load datasets', true);
@@ -1083,6 +1284,7 @@
   function setAepTab(tab, opts) {
     currentAepTab = tab;
     if (tab !== 'audiences' && audienceMembersPanel) audienceMembersPanel.hidden = true;
+    if (tab !== 'datasets') expandedDatasetId = null;
     document.querySelectorAll('[data-aep-tab]').forEach((el) => {
       const t = el.getAttribute('data-aep-tab');
       const active = t === tab;
@@ -1634,6 +1836,7 @@
     browseClassFilter = 'all';
     datasetsFilterQuery = '';
     audiencesFilterQuery = '';
+    clearDatasetBatchSubviewState();
     if (dataViewerSearch) {
       if (
         currentAepTab === 'browse' ||

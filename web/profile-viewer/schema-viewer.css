@@ -1212,6 +1212,21 @@ span.schema-aep-dataset-link--name {
   cursor: default;
 }
 
+button.schema-aep-dataset-link--name-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  color: var(--dash-blue);
+  text-align: left;
+}
+
+button.schema-aep-dataset-link--name-btn:hover {
+  text-decoration: underline;
+}
+
 button.schema-aep-dataset-link--action {
   padding: 0;
   border: none;
@@ -1230,6 +1245,125 @@ button.schema-aep-dataset-link--action:disabled {
 
 button.schema-aep-dataset-link--action:not(:disabled):hover {
   text-decoration: underline;
+}
+
+.schema-aep-table tbody tr.schema-aep-dataset-subrow {
+  cursor: default;
+}
+
+.schema-aep-table tbody tr.schema-aep-dataset-subrow:hover td {
+  background: transparent;
+}
+
+.schema-aep-dataset-subcell {
+  padding: 0 !important;
+}
+
+.schema-aep-dataset-subview {
+  border-top: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+  padding: 0.75rem 0.85rem;
+}
+
+.schema-aep-dataset-subview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.schema-aep-dataset-subview-title {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.schema-aep-dataset-subview-msg {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--dash-text-secondary);
+}
+
+.schema-aep-dataset-subview-msg--error {
+  color: var(--dash-error-text);
+}
+
+.schema-aep-dataset-subview-scroll {
+  overflow: auto;
+  max-height: min(32vh, 320px);
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+  background: var(--dash-surface);
+}
+
+.schema-aep-dataset-subtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  min-width: 58rem;
+}
+
+.schema-aep-dataset-subtable thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.schema-aep-dataset-subtable th,
+.schema-aep-dataset-subtable td {
+  text-align: left;
+  padding: 0.38rem 0.5rem;
+  border-bottom: 1px solid var(--dash-border);
+  white-space: nowrap;
+  color: var(--dash-text);
+  vertical-align: middle;
+}
+
+.schema-aep-dataset-subtable th {
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  background: var(--dash-surface-alt);
+}
+
+.schema-aep-batch-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.14rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  font-weight: 600;
+  text-transform: capitalize;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+}
+
+.schema-aep-batch-status--success {
+  border-color: var(--dash-success-border);
+  background: var(--dash-success-bg);
+  color: var(--dash-success-text);
+}
+
+.schema-aep-batch-status--failed {
+  border-color: var(--dash-error-border);
+  background: var(--dash-error-bg);
+  color: var(--dash-error-text);
+}
+
+.schema-aep-batch-status--running {
+  border-color: var(--dash-info-border);
+  background: var(--dash-info-bg);
+  color: var(--dash-info-text);
+}
+
+.schema-aep-batch-status--partial {
+  border-color: var(--dash-warning-border);
+  background: var(--dash-warning-bg);
+  color: var(--dash-warning-text);
 }
 
 /* ── Dark mode ── */
@@ -1710,6 +1844,45 @@ html[data-aep-theme='dark'] .schema-aep-dataset-link {
 
 html[data-aep-theme='dark'] span.schema-aep-dataset-link--name {
   color: var(--dash-text, #e8eaed);
+}
+
+html[data-aep-theme='dark'] button.schema-aep-dataset-link--name-btn {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] .schema-aep-dataset-subview {
+  border-top-color: var(--dash-border);
+  background: var(--dash-bg);
+}
+
+html[data-aep-theme='dark'] .schema-aep-dataset-subview-title {
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] .schema-aep-dataset-subview-msg {
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] .schema-aep-dataset-subview-scroll {
+  border-color: var(--dash-border);
+  background: var(--dash-surface);
+}
+
+html[data-aep-theme='dark'] .schema-aep-dataset-subtable th,
+html[data-aep-theme='dark'] .schema-aep-dataset-subtable td {
+  border-bottom-color: var(--dash-border);
+  color: var(--dash-text);
+}
+
+html[data-aep-theme='dark'] .schema-aep-dataset-subtable th {
+  background: var(--dash-bg);
+  color: var(--dash-muted);
+}
+
+html[data-aep-theme='dark'] .schema-aep-batch-status {
+  border-color: var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-text);
 }
 
 /* Responsive dark mode for sidebar stacked layout */

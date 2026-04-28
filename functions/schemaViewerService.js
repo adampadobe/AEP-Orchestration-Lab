@@ -514,6 +514,311 @@ async function enrichDatasetsWithSchemaTitles(token, clientId, orgId, sandbox, d
   });
 }
 
+function getByPath(obj, path) {
+  if (!obj || typeof obj !== 'object') return undefined;
+  const parts = String(path || '').split('.');
+  let cur = obj;
+  for (const p of parts) {
+    if (!cur || typeof cur !== 'object' || !Object.prototype.hasOwnProperty.call(cur, p)) return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
+function pickFirstString(obj, paths) {
+  for (const path of paths || []) {
+    const v = getByPath(obj, path);
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return '';
+}
+
+function pickFirstNumber(obj, paths) {
+  for (const path of paths || []) {
+    const v = getByPath(obj, path);
+    if (v == null || v === '') continue;
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function pickFirstTimestamp(obj, paths) {
+  for (const path of paths || []) {
+    const raw = getByPath(obj, path);
+    if (raw == null || raw === '') continue;
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+      const d = new Date(raw);
+      if (!Number.isNaN(d.getTime())) return d.toISOString();
+    }
+    if (typeof raw === 'string') {
+      const direct = Date.parse(raw);
+      if (!Number.isNaN(direct)) return new Date(direct).toISOString();
+      if (/^\d+$/.test(raw.trim())) {
+        const n = Number(raw.trim());
+        if (Number.isFinite(n)) {
+          const d = new Date(n);
+          if (!Number.isNaN(d.getTime())) return d.toISOString();
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function normalizeBatchStatus(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (!v) return 'unknown';
+  if (v.includes('succ')) return 'success';
+  if (v.includes('fail') || v.includes('error')) return 'failed';
+  if (v.includes('partial') || v.includes('warn')) return 'partial';
+  if (v.includes('run') || v.includes('progress') || v.includes('queue') || v.includes('pend')) return 'running';
+  return v;
+}
+
+function extractDatasetIdFromBatch(obj) {
+  const direct = pickFirstString(obj, [
+    'dataSetId',
+    'datasetId',
+    'dataset.id',
+    'dataSet.id',
+    'inputDatasetId',
+    'related.datasetId',
+    'metrics.datasetId',
+  ]);
+  if (direct) return direct;
+  const rel = getByPath(obj, 'relatedObjects');
+  if (Array.isArray(rel)) {
+    for (const item of rel) {
+      if (!item || typeof item !== 'object') continue;
+      const type = String(item.type || item.objectType || '').toLowerCase();
+      if (!type.includes('dataset')) continue;
+      const id = item.id || item.objectId || item.dataSetId || item.datasetId;
+      if (typeof id === 'string' && id.trim()) return id.trim();
+    }
+  }
+  return '';
+}
+
+function extractDataflowRunIdFromBatch(obj) {
+  const direct = pickFirstString(obj, [
+    'dataflowRunId',
+    'flowRunId',
+    'runId',
+    'related.runId',
+    'metrics.dataflowRunId',
+    'metrics.flowRunId',
+    'metrics.runId',
+    'job.runId',
+  ]);
+  if (direct) return direct;
+  const rel = getByPath(obj, 'relatedObjects');
+  if (Array.isArray(rel)) {
+    for (const item of rel) {
+      if (!item || typeof item !== 'object') continue;
+      const type = String(item.type || item.objectType || '').toLowerCase();
+      if (!type.includes('flow') && !type.includes('run')) continue;
+      const id = item.id || item.objectId || item.runId || item.dataflowRunId;
+      if (typeof id === 'string' && id.trim()) return id.trim();
+    }
+  }
+  return '';
+}
+
+function mapCatalogBatchRow(id, obj) {
+  const batchId =
+    (typeof obj.id === 'string' && obj.id.trim()) ||
+    (typeof obj['@id'] === 'string' && obj['@id'].trim()) ||
+    String(id || '').trim();
+  const statusRaw = pickFirstString(obj, [
+    'status',
+    'state',
+    'statusCode',
+    'metrics.status',
+    'metrics.state',
+    'metrics.statusSummary.status',
+    'summary.status',
+  ]);
+  const ingestedAt = pickFirstTimestamp(obj, [
+    'completed',
+    'completedAt',
+    'completedAtUTC',
+    'finishedAt',
+    'updated',
+    'updatedAt',
+    'metrics.durationSummary.completedAtUTC',
+    'metrics.durationSummary.startedAtUTC',
+    'created',
+    'createdAt',
+    'submittedAt',
+  ]);
+  const recordsIngested = pickFirstNumber(obj, [
+    'recordsIngested',
+    'outputRecordCount',
+    'recordCount',
+    'summary.recordsIngested',
+    'summary.outputRecordCount',
+    'stats.recordsIngested',
+    'metrics.outputRecordCount',
+    'metrics.recordSummary.outputRecordCount',
+    'metrics.recordSummary.inputRecordCount',
+    'metrics.ingestionSummary.recordsIngested',
+  ]);
+  const recordsFailed = pickFirstNumber(obj, [
+    'recordsFailed',
+    'failedRecordCount',
+    'summary.recordsFailed',
+    'stats.recordsFailed',
+    'metrics.failedRecordCount',
+    'metrics.recordSummary.failedRecordCount',
+    'metrics.ingestionSummary.recordsFailed',
+  ]);
+  const newProfileFragments = pickFirstNumber(obj, [
+    'newProfileFragments',
+    'metrics.newProfileFragments',
+    'summary.newProfileFragments',
+    'stats.newProfileFragments',
+  ]);
+  const existingProfileFragments = pickFirstNumber(obj, [
+    'existingProfileFragments',
+    'metrics.existingProfileFragments',
+    'summary.existingProfileFragments',
+    'stats.existingProfileFragments',
+  ]);
+  return {
+    batchId,
+    datasetId: extractDatasetIdFromBatch(obj),
+    dataflowRunId: extractDataflowRunIdFromBatch(obj) || null,
+    ingestedAt,
+    recordsIngested,
+    recordsFailed,
+    newProfileFragments,
+    existingProfileFragments,
+    status: normalizeBatchStatus(statusRaw),
+  };
+}
+
+function forEachCatalogBatchObject(data, fn) {
+  if (!data || typeof data !== 'object') return;
+  if (Array.isArray(data.children)) {
+    data.children.forEach((obj, i) => {
+      if (!obj || typeof obj !== 'object') return;
+      const id = (typeof obj.id === 'string' && obj.id) || (typeof obj['@id'] === 'string' && obj['@id']) || `child-${i}`;
+      fn(id, obj);
+    });
+    return;
+  }
+  if (Array.isArray(data.results)) {
+    data.results.forEach((obj, i) => {
+      if (!obj || typeof obj !== 'object') return;
+      const id = (typeof obj.id === 'string' && obj.id) || (typeof obj['@id'] === 'string' && obj['@id']) || `result-${i}`;
+      fn(id, obj);
+    });
+    return;
+  }
+  for (const [key, obj] of Object.entries(data)) {
+    if (key.startsWith('_')) continue;
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) continue;
+    fn(key, obj);
+  }
+}
+
+async function fetchCatalogBatchesByDataset(token, clientId, orgId, sandbox, datasetId, limit = 25) {
+  const headers = platformHeaders(token, clientId, orgId, sandbox);
+  const target = String(datasetId || '').trim();
+  if (!target) throw new Error('Missing datasetId');
+
+  const props = [
+    'dataSetId',
+    'datasetId',
+    'status',
+    'state',
+    'created',
+    'updated',
+    'completed',
+    'metrics',
+    'stats',
+    'summary',
+    'runId',
+    'flowRunId',
+    'dataflowRunId',
+    'relatedObjects',
+  ].join(',');
+
+  let batches = [];
+
+  const collectRows = (data) => {
+    forEachCatalogBatchObject(data, (id, obj) => {
+      batches.push(mapCatalogBatchRow(id, obj));
+    });
+  };
+
+  try {
+    const qs = new URLSearchParams({
+      limit: String(Math.max(1, Math.min(200, Number(limit) || 25))),
+      start: '0',
+      properties: props,
+      property: `dataSetId==${target}`,
+    });
+    const url = `${CATALOG_BASE}/batches?${qs.toString()}`;
+    const res = await fetch(url, { method: 'GET', headers });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) collectRows(data);
+  } catch {
+    /* fall through to unfiltered fallback */
+  }
+
+  if (batches.length === 0) {
+    // Fallback: list recent batches and filter by dataset id locally.
+    const pageLimit = 100;
+    let offset = 0;
+    for (let page = 0; page < 4; page++) {
+      const qs = new URLSearchParams({
+        limit: String(pageLimit),
+        start: String(offset),
+        properties: props,
+      });
+      const url = `${CATALOG_BASE}/batches?${qs.toString()}`;
+      const res = await fetch(url, { method: 'GET', headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) break;
+      const before = batches.length;
+      collectRows(data);
+      const after = batches.length;
+      const nextHref = resolveNextPageUrl(data);
+      if (!nextHref) break;
+      if (after - before < pageLimit) break;
+      offset += pageLimit;
+    }
+  }
+
+  const targetNorm = normalizeSchemaIdForDatasetMatch(target);
+  const filtered = batches.filter((row) => {
+    const ds = String(row.datasetId || '').trim();
+    if (!ds) return false;
+    const norm = normalizeSchemaIdForDatasetMatch(ds);
+    return ds === target || norm === targetNorm;
+  });
+
+  filtered.sort((a, b) => {
+    const ta = a.ingestedAt ? Date.parse(a.ingestedAt) : 0;
+    const tb = b.ingestedAt ? Date.parse(b.ingestedAt) : 0;
+    if (tb !== ta) return tb - ta;
+    return String(b.batchId || '').localeCompare(String(a.batchId || ''));
+  });
+
+  const finalRows = filtered.slice(0, Math.max(1, Math.min(200, Number(limit) || 25)));
+  return {
+    sandboxName: sandbox,
+    datasetId: target,
+    rows: finalRows,
+    metricsSource: {
+      newProfileFragments: 'unavailable',
+      existingProfileFragments: 'unavailable',
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Audiences helpers
 // ---------------------------------------------------------------------------
@@ -707,6 +1012,7 @@ module.exports = {
   fetchCatalogDatasetSchemaInfo,
   fetchCatalogDatasetsList,
   enrichDatasetsWithSchemaTitles,
+  fetchCatalogBatchesByDataset,
   fetchAudiencesList,
   runAudiencePreviewSample,
   classifySchemaOverviewKind,
