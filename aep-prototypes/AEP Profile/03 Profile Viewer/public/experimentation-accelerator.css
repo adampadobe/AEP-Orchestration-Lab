@@ -378,6 +378,11 @@ body.experimentation-accelerator-page[data-ajo-tab] .ajo-mock-topbar--native-she
   cursor: default;
 }
 
+.ajo-shell-hero-btn:disabled {
+  opacity: 1;
+  filter: none;
+}
+
 .ajo-shell-hero-icon {
   width: 18px;
   height: 18px;
