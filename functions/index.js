@@ -1686,6 +1686,7 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
       }
 
       default:
+        res.set('Cache-Control', 'no-store');
         res.status(404).json({ error: `Unknown schema-viewer sub-path: ${subPath}` });
         return;
     }
@@ -1699,6 +1700,7 @@ exports.schemaViewerProxy = onRequest(schemaViewerFnOpts, async (req, res) => {
       svCache.touchSandbox(sandbox).catch(() => {});
       res.json({ ...result, _cache: forceRefresh ? 'refreshed' : 'miss' });
     } else {
+      res.set('Cache-Control', 'no-store');
       res.json(result);
     }
   } catch (e) {
