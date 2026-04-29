@@ -342,13 +342,11 @@ function stepMockupSvg(step, brandColour, personaName, brandName) {
  * initials SVG (no external fetch — easy to replace by swapping the
  * slot contents or uploading a photo in the lab UI).
  */
-function resolvePersonaImage(images, personaName, brandName, brandColour, mode = 'html') {
+function resolvePersonaImage(images, personaName, _brandName, _brandColour, _mode = 'html') {
   if (images && typeof images.persona === 'string' && images.persona.startsWith('data:')) {
     return { kind: 'data', src: images.persona };
   }
-  const svg = mode === 'pptx'
-    ? initialsAvatarSvg(personaName, brandColour)
-    : neutralPersonaAvatarSvg(personaName);
+  const svg = neutralPersonaAvatarSvg(personaName);
   return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
 }
 
