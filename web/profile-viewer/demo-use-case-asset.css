@@ -1,0 +1,753 @@
+/*
+ * Demo use case assets page.
+ *
+ * Mirrors client-journey-asset.css for everything that's identical UX
+ * (sandbox + lookup, scrape card, refine form, swatches + eyedropper,
+ * combobox, recolour panel, progress bar, fullscreen iframes, in-dev
+ * gating). New on this page only:
+ *   - Adobe products multi-select chips + "Other (custom)" field
+ *   - Step count select
+ *   - Three image dropzones (persona / device / lifestyle) with thumbs
+ *   - Three result tabs (Framing / Experience / Value) instead of two
+ *
+ * Selectors are scoped under .demo-use-case-asset-page so the existing
+ * .client-journey-asset-page styles are untouched (the plan rules out
+ * editing client-journey for v1). Class names use a `duc-` prefix so
+ * the two pages can co-evolve; a follow-up may extract a shared module.
+ *
+ * All colours use --dash-* tokens so light/dark themes work out of the box.
+ */
+
+.demo-use-case-asset-page .duc-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 2rem;
+}
+
+.demo-use-case-asset-page .panel {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--dash-shadow);
+}
+
+/* ── Top controls row ─────────────────────────────────────────────────── */
+
+.demo-use-case-asset-page .duc-controls-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+@media (max-width: 720px) {
+  .demo-use-case-asset-page .duc-controls-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.demo-use-case-asset-page .duc-sandbox-hint {
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+  color: var(--dash-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.demo-use-case-asset-page .duc-sandbox-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--dash-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.demo-use-case-asset-page .duc-sandbox-badge.is-empty {
+  color: var(--dash-error, #b00020);
+  background: transparent;
+  font-style: italic;
+  font-family: inherit;
+}
+
+.demo-use-case-asset-page .duc-sandbox-change-link {
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary);
+}
+
+.demo-use-case-asset-page .form-row { display: flex; flex-direction: column; gap: 0.35rem; }
+.demo-use-case-asset-page .form-row label { font-weight: 600; font-size: 0.88rem; color: var(--dash-text); }
+.demo-use-case-asset-page .form-row input[type="text"],
+.demo-use-case-asset-page .form-row select,
+.demo-use-case-asset-page .form-row textarea {
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.55rem 0.7rem;
+  color: var(--dash-text);
+  font-size: 0.92rem;
+  font-family: inherit;
+}
+.demo-use-case-asset-page .form-row input[type="text"]:focus,
+.demo-use-case-asset-page .form-row select:focus,
+.demo-use-case-asset-page .form-row textarea:focus {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 1px;
+}
+
+.demo-use-case-asset-page .form-row .duc-form-hint {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--dash-muted);
+  margin-left: 0.35rem;
+}
+
+/* The .duc-textarea class is used both inside .form-row (where the flex
+   layout forces full width) AND inside .duc-refine-panel (which is plain
+   block layout). The earlier rule only set min-height + resize, leaving
+   the panel-scoped textarea to honour the default <textarea> intrinsic
+   width and render as a tiny ~200px box (visible bug in the Refine
+   panel). Mirror .cj-textarea from the journey page: explicit width 100%,
+   matching padding, focus ring + placeholder treatment so both contexts
+   look the same as every other dashboard input. */
+.demo-use-case-asset-page .duc-textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 70px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  resize: vertical;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-text);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.demo-use-case-asset-page .duc-textarea:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px rgba(17, 81, 255, 0.15);
+}
+.demo-use-case-asset-page .duc-textarea::placeholder {
+  color: var(--dash-text-secondary);
+  opacity: 0.7;
+}
+
+.demo-use-case-asset-page .status { font-size: 0.85rem; color: var(--dash-text-secondary); margin: 0.4rem 0 0; }
+.demo-use-case-asset-page .status.error { color: var(--dash-error, #b00020); }
+.demo-use-case-asset-page .status.success { color: var(--dash-success, #117a44); }
+
+.demo-use-case-asset-page button.primary {
+  background: var(--dash-blue);
+  color: #fff;
+  border: 0;
+  border-radius: var(--dash-radius-sm);
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: filter 120ms ease;
+}
+.demo-use-case-asset-page button.primary:hover { filter: brightness(1.1); }
+.demo-use-case-asset-page button.primary:disabled { opacity: 0.55; cursor: not-allowed; filter: none; }
+
+/* ── Scrape summary card ──────────────────────────────────────────────── */
+
+.demo-use-case-asset-page .duc-scrape-summary {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 880px) {
+  .demo-use-case-asset-page .duc-scrape-summary { grid-template-columns: 1fr; }
+}
+
+.demo-use-case-asset-page .duc-scrape-card {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 1rem 1.2rem;
+}
+.demo-use-case-asset-page .duc-brand-row { display: grid; grid-template-columns: 56px 1fr; gap: 0.8rem; align-items: center; margin-bottom: 0.8rem; }
+.demo-use-case-asset-page .duc-logo { width: 56px; height: 56px; object-fit: contain; border-radius: 8px; background: var(--dash-surface); border: 1px solid var(--dash-border); padding: 6px; }
+.demo-use-case-asset-page .duc-brand-name { font-weight: 700; font-size: 1.05rem; color: var(--dash-text); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.demo-use-case-asset-page .duc-brand-meta { font-size: 0.82rem; color: var(--dash-text-secondary); }
+.demo-use-case-asset-page .duc-cached-pill {
+  display: inline-flex; align-items: center;
+  padding: 0.1rem 0.5rem;
+  background: var(--dash-success-bg, #e8f5ec); color: var(--dash-success, #117a44);
+  border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+}
+.demo-use-case-asset-page .duc-scrape-card dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 0.7rem; font-size: 0.85rem; }
+.demo-use-case-asset-page .duc-scrape-card dt { color: var(--dash-text-secondary); }
+.demo-use-case-asset-page .duc-scrape-card dd { color: var(--dash-text); margin: 0; }
+.demo-use-case-asset-page .duc-colours { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.demo-use-case-asset-page .duc-colour-swatch { display: inline-block; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--dash-border); }
+.demo-use-case-asset-page .duc-empty {
+  background: var(--dash-surface-alt); border: 1px dashed var(--dash-border);
+  border-radius: var(--dash-radius-sm); padding: 1rem 1.25rem;
+  font-size: 0.92rem; color: var(--dash-text-secondary);
+}
+.demo-use-case-asset-page .duc-empty-hint { font-size: 0.82rem; color: var(--dash-muted); display: block; margin-top: 0.6rem; line-height: 1.5; }
+
+/* ── Refine form ──────────────────────────────────────────────────────── */
+
+.demo-use-case-asset-page .duc-refine-form { display: flex; flex-direction: column; gap: 0.95rem; }
+.demo-use-case-asset-page .duc-row-pair {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 0.95rem;
+}
+@media (max-width: 720px) {
+  .demo-use-case-asset-page .duc-row-pair { grid-template-columns: 1fr; }
+}
+
+.demo-use-case-asset-page .duc-colour-input { display: flex; gap: 0.5rem; align-items: center; }
+.demo-use-case-asset-page .duc-colour-input input[type="color"] { width: 38px; height: 38px; padding: 0; border: 1px solid var(--dash-input-border); border-radius: 8px; background: var(--dash-input-bg); cursor: pointer; }
+.demo-use-case-asset-page .duc-colour-input input[type="text"] { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; flex: 0 0 110px; }
+.demo-use-case-asset-page .duc-swatch-caption { margin: 0.4rem 0 0; font-size: 0.78rem; color: var(--dash-muted); }
+.demo-use-case-asset-page .duc-brand-swatch-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem; }
+.demo-use-case-asset-page .duc-brand-swatch {
+  width: 30px; height: 30px; padding: 2px; border: 2px solid transparent;
+  background: var(--dash-input-bg); border-radius: 50%;
+  cursor: pointer; position: relative; transition: border-color 120ms ease, transform 120ms ease;
+}
+.demo-use-case-asset-page .duc-brand-swatch-fill { display: block; width: 100%; height: 100%; border-radius: 50%; border: 1px solid var(--dash-border); }
+.demo-use-case-asset-page .duc-brand-swatch.is-active { border-color: var(--dash-blue); transform: scale(1.05); }
+.demo-use-case-asset-page .duc-brand-swatch.is-primary::after {
+  content: 'P'; position: absolute; right: -2px; bottom: -2px;
+  width: 14px; height: 14px; line-height: 12px; text-align: center;
+  background: var(--dash-blue); color: #fff; border-radius: 50%;
+  font-size: 8px; font-weight: 800; border: 1px solid var(--dash-surface);
+}
+
+/* ── Themed combobox (mirrors client-journey-asset.css patterns) ────── */
+
+.demo-use-case-asset-page .duc-combo { position: relative; display: block; }
+.demo-use-case-asset-page .duc-combo > input[type="text"] { width: 100%; padding-right: 36px; }
+.demo-use-case-asset-page .duc-combo-toggle {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; padding: 0;
+  background: transparent; border: 1px solid transparent; border-radius: 6px;
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 160ms ease;
+}
+.demo-use-case-asset-page .duc-combo-toggle:hover,
+.demo-use-case-asset-page .duc-combo-toggle:focus-visible {
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border-color: var(--dash-border);
+  outline: none;
+}
+.demo-use-case-asset-page .duc-combo-toggle[aria-expanded="true"] {
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border-color: var(--dash-border);
+}
+.demo-use-case-asset-page .duc-combo-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.demo-use-case-asset-page .duc-combo-toggle svg { transition: transform 160ms ease; }
+.demo-use-case-asset-page .duc-combo-panel {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+  max-height: 280px; overflow-y: auto;
+  background: var(--dash-surface); border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  box-shadow: var(--dash-shadow);
+  padding: 4px;
+  scrollbar-width: thin;
+}
+.demo-use-case-asset-page .duc-combo-panel::-webkit-scrollbar { width: 8px; }
+.demo-use-case-asset-page .duc-combo-panel::-webkit-scrollbar-thumb {
+  background: var(--dash-border);
+  border-radius: 4px;
+}
+.demo-use-case-asset-page .duc-combo-option {
+  display: block;
+  width: 100%; text-align: left;
+  background: transparent; border: 0; border-radius: 6px;
+  padding: 8px 10px; cursor: pointer;
+  font: inherit; line-height: 1.3;
+  color: var(--dash-text);
+}
+.demo-use-case-asset-page .duc-combo-option + .duc-combo-option { margin-top: 1px; }
+.demo-use-case-asset-page .duc-combo-option:hover,
+.demo-use-case-asset-page .duc-combo-option.is-active { background: var(--dash-hover); }
+.demo-use-case-asset-page .duc-combo-option-value {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--dash-text);
+}
+.demo-use-case-asset-page .duc-combo-option-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  margin-top: 2px;
+}
+.demo-use-case-asset-page .duc-combo-empty {
+  padding: 10px;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+  text-align: center;
+}
+.demo-use-case-asset-page .duc-suggest-hint { margin: 0.25rem 0 0; font-size: 0.78rem; color: var(--dash-muted); }
+.demo-use-case-asset-page .duc-suggest-mono { font-family: ui-monospace, monospace; font-size: 0.9em; color: var(--dash-text-secondary); }
+
+/* ── Adobe products multi-select ──────────────────────────────────────── */
+
+.demo-use-case-asset-page .duc-products {
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.5rem 0.55rem;
+}
+.demo-use-case-asset-page .duc-product-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  background: var(--dash-surface); color: var(--dash-text);
+  border: 1.5px solid var(--dash-border); border-radius: 999px;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.demo-use-case-asset-page .duc-product-chip:hover { border-color: var(--dash-blue); }
+.demo-use-case-asset-page .duc-product-chip.is-selected {
+  background: var(--dash-blue); color: #fff; border-color: var(--dash-blue);
+}
+.demo-use-case-asset-page .duc-product-chip .check { width: 14px; height: 14px; opacity: 0; transition: opacity 120ms ease; }
+.demo-use-case-asset-page .duc-product-chip.is-selected .check { opacity: 1; }
+.demo-use-case-asset-page .duc-custom-product { margin-top: 0.45rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.demo-use-case-asset-page .duc-custom-product-label { font-size: 0.82rem; font-weight: 500; color: var(--dash-text-secondary); }
+.demo-use-case-asset-page .duc-custom-product input[type="text"] {
+  background: var(--dash-input-bg); border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm); padding: 0.5rem 0.7rem; color: var(--dash-text);
+  font-size: 0.88rem;
+}
+
+/* ── Step count ───────────────────────────────────────────────────────── */
+
+.demo-use-case-asset-page .duc-step-count {
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.55rem 0.7rem;
+  color: var(--dash-text); font-size: 0.92rem; font-family: inherit;
+}
+
+/* ── Image dropzones ──────────────────────────────────────────────────── */
+
+.demo-use-case-asset-page .duc-dropzones {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem;
+}
+@media (max-width: 880px) {
+  .demo-use-case-asset-page .duc-dropzones { grid-template-columns: 1fr; }
+}
+.demo-use-case-asset-page .duc-dropzone {
+  display: flex; flex-direction: column; gap: 0.3rem;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.6rem 0.7rem 0.7rem;
+}
+.demo-use-case-asset-page .duc-dz-title { font-size: 0.86rem; font-weight: 700; color: var(--dash-text); }
+.demo-use-case-asset-page .duc-dz-sub { font-size: 0.74rem; color: var(--dash-muted); margin-bottom: 0.4rem; }
+.demo-use-case-asset-page .duc-dz-area {
+  position: relative; flex: 1 1 auto; min-height: 130px;
+  background: var(--dash-input-bg);
+  border: 1.5px dashed var(--dash-input-border);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; overflow: hidden;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.demo-use-case-asset-page .duc-dz-area:hover,
+.demo-use-case-asset-page .duc-dz-area.is-dragover {
+  border-color: var(--dash-blue);
+  background: var(--dash-hover);
+}
+.demo-use-case-asset-page .duc-dz-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+  font-size: 0.82rem; color: var(--dash-text-secondary); padding: 0.3rem 0.6rem;
+  text-align: center;
+}
+.demo-use-case-asset-page .duc-dz-empty small { font-size: 0.7rem; color: var(--dash-muted); }
+.demo-use-case-asset-page .duc-dz-preview {
+  width: 100%; height: 100%; max-height: 200px;
+  object-fit: cover; display: block;
+  border-radius: 8px;
+}
+.demo-use-case-asset-page .duc-dz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.2rem;
+}
+.demo-use-case-asset-page .duc-dz-pick-library {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.28rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--dash-blue);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.demo-use-case-asset-page .duc-dz-pick-library:hover {
+  border-color: var(--dash-blue);
+  background: var(--dash-hover);
+}
+.demo-use-case-asset-page .duc-dz-clear {
+  align-self: flex-start;
+  background: transparent; border: 0; cursor: pointer;
+  font-size: 0.74rem; color: var(--dash-muted);
+  text-decoration: underline; padding: 2px 0;
+}
+
+/* ── Image hosting library picker (dialog) ───────────────────────────── */
+
+.demo-use-case-asset-page .duc-library-dialog {
+  max-width: min(92vw, 760px);
+  width: 100%;
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  box-shadow: var(--dash-shadow);
+}
+.demo-use-case-asset-page .duc-library-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.42);
+}
+.demo-use-case-asset-page .duc-library-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+.demo-use-case-asset-page .duc-library-dialog-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+.demo-use-case-asset-page .duc-library-dialog-close {
+  flex-shrink: 0;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  cursor: pointer;
+  font-family: inherit;
+}
+.demo-use-case-asset-page .duc-library-dialog-close:hover {
+  border-color: var(--dash-blue);
+  background: var(--dash-hover);
+}
+.demo-use-case-asset-page .duc-library-picker-hint {
+  margin: 0.55rem 1rem 0.35rem;
+  font-size: 0.8rem;
+}
+.demo-use-case-asset-page .duc-library-picker-filter-wrap {
+  display: block;
+  margin: 0 1rem 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+}
+.demo-use-case-asset-page .duc-library-picker-filter {
+  display: block;
+  width: calc(100% - 2rem);
+  margin: 0 1rem 0.5rem;
+  box-sizing: border-box;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.88rem;
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  font-family: inherit;
+}
+.demo-use-case-asset-page .duc-library-picker-filter:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px rgba(17, 81, 255, 0.12);
+}
+.demo-use-case-asset-page .duc-library-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 0.55rem;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  padding: 0.5rem 1rem 1rem;
+}
+.demo-use-case-asset-page .duc-library-picker-tile {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--dash-input-bg);
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.demo-use-case-asset-page .duc-library-picker-tile:hover,
+.demo-use-case-asset-page .duc-library-picker-tile:focus-visible {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 2px rgba(17, 81, 255, 0.2);
+  outline: none;
+}
+.demo-use-case-asset-page .duc-library-picker-tile img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+  background: var(--dash-surface-alt);
+}
+.demo-use-case-asset-page .duc-library-tile-meta {
+  font-size: 0.65rem;
+  color: var(--dash-muted);
+  padding: 0.3rem 0.4rem 0.45rem;
+  line-height: 1.25;
+  word-break: break-word;
+}
+.demo-use-case-asset-page .duc-library-picker-empty {
+  margin: 0 1rem 1rem;
+}
+.demo-use-case-asset-page .duc-dz-clear:hover { color: var(--dash-blue); }
+
+/* ── Generate row + cache buttons ─────────────────────────────────────── */
+
+.demo-use-case-asset-page .duc-generate-row {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.demo-use-case-asset-page .duc-scrape-fill-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.88rem;
+}
+.demo-use-case-asset-page .duc-scrape-fill-row .duc-form-hint { flex: 1 1 220px; margin: 0; }
+
+.demo-use-case-asset-page .duc-prev-load,
+.demo-use-case-asset-page .duc-prev-forget {
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem; font-weight: 600;
+  cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease;
+}
+.demo-use-case-asset-page .duc-prev-load:hover,
+.demo-use-case-asset-page .duc-prev-forget:hover { background: var(--dash-hover); border-color: var(--dash-blue); }
+
+/* ── Progress bar ─────────────────────────────────────────────────────── */
+
+.demo-use-case-asset-page .duc-progress {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.7rem 0.9rem;
+  display: flex; flex-direction: column; gap: 0.45rem;
+}
+.demo-use-case-asset-page .duc-progress-header {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.82rem; color: var(--dash-text);
+}
+.demo-use-case-asset-page .duc-progress-stage { font-weight: 600; }
+.demo-use-case-asset-page .duc-progress-elapsed { color: var(--dash-muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; }
+.demo-use-case-asset-page .duc-progress-track {
+  position: relative;
+  height: 8px;
+  background: var(--dash-input-bg);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.demo-use-case-asset-page .duc-progress-fill {
+  height: 100%;
+  background: var(--dash-blue);
+  border-radius: 999px;
+  width: 0%;
+  transition: width 200ms linear;
+}
+.demo-use-case-asset-page .duc-progress.is-success .duc-progress-fill { background: var(--dash-success, #117a44); }
+.demo-use-case-asset-page .duc-progress.is-error .duc-progress-fill { background: var(--dash-error, #b00020); }
+.demo-use-case-asset-page .duc-progress.is-overrun .duc-progress-fill {
+  width: 40% !important;
+  background: linear-gradient(90deg, transparent, var(--dash-blue), transparent);
+  animation: ducProgressShimmer 1.4s linear infinite;
+}
+@keyframes ducProgressShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+/* ── Refine panel + recolour bar ──────────────────────────────────────── */
+
+.demo-use-case-asset-page .duc-refine-panel {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.demo-use-case-asset-page .duc-refine-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.demo-use-case-asset-page .duc-refine-panel-title {
+  font-size: 0.92rem; font-weight: 700; color: var(--dash-text);
+  display: inline-flex; align-items: center; gap: 0.4rem;
+}
+.demo-use-case-asset-page .duc-refine-panel-title::before {
+  content: '✦'; color: var(--dash-blue);
+}
+.demo-use-case-asset-page .duc-refine-panel-actions {
+  display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+.demo-use-case-asset-page .duc-refine-panel-hint { font-size: 0.78rem; color: var(--dash-muted); flex: 1 1 280px; }
+.demo-use-case-asset-page .duc-refine-panel-status { margin: 0; }
+
+.demo-use-case-asset-page .duc-recolour {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.55rem 0.8rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem; color: var(--dash-text-secondary);
+}
+.demo-use-case-asset-page .duc-recolour-label { font-weight: 600; }
+.demo-use-case-asset-page .duc-recolour-divider { color: var(--dash-muted); }
+.demo-use-case-asset-page .duc-recolour-swatches { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.demo-use-case-asset-page .duc-recolour-swatch {
+  width: 24px; height: 24px; padding: 2px; border: 2px solid transparent; border-radius: 50%;
+  background: var(--dash-input-bg); cursor: pointer; transition: border-color 120ms ease;
+}
+.demo-use-case-asset-page .duc-recolour-fill { display: block; width: 100%; height: 100%; border-radius: 50%; border: 1px solid var(--dash-border); }
+.demo-use-case-asset-page .duc-recolour-swatch.is-active { border-color: var(--dash-blue); }
+.demo-use-case-asset-page .duc-recolour-custom { display: inline-flex; align-items: center; gap: 0.4rem; }
+.demo-use-case-asset-page .duc-recolour-custom input[type="color"] { width: 28px; height: 28px; padding: 0; border: 1px solid var(--dash-input-border); border-radius: 6px; background: var(--dash-input-bg); cursor: pointer; }
+.demo-use-case-asset-page .duc-recolour-custom input[type="text"] { width: 90px; padding: 0.3rem 0.5rem; border: 1px solid var(--dash-input-border); background: var(--dash-input-bg); color: var(--dash-text); border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; }
+.demo-use-case-asset-page .duc-recolour-eyedropper,
+.demo-use-case-asset-page .duc-recolour-reset {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: var(--dash-surface); color: var(--dash-text);
+  border: 1px solid var(--dash-border); border-radius: 6px;
+  padding: 0.3rem 0.55rem; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.demo-use-case-asset-page .duc-recolour-eyedropper:hover,
+.demo-use-case-asset-page .duc-recolour-reset:hover { background: var(--dash-hover); border-color: var(--dash-blue); }
+.demo-use-case-asset-page .duc-recolour-eyedropper.is-active { color: var(--dash-blue); }
+
+/* ── Results tabs + iframes ───────────────────────────────────────────── */
+
+.demo-use-case-asset-page .duc-results { display: flex; flex-direction: column; gap: 0; }
+
+.demo-use-case-asset-page .duc-results-tabs {
+  display: flex; gap: 0.4rem; align-items: center;
+  margin-bottom: 0.5rem; flex-wrap: wrap;
+}
+.demo-use-case-asset-page .duc-results-tabs button[role="tab"] {
+  background: var(--dash-surface);
+  color: var(--dash-text-secondary);
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.95rem;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.demo-use-case-asset-page .duc-results-tabs button[role="tab"]:hover { background: var(--dash-hover); }
+.demo-use-case-asset-page .duc-results-tabs button[role="tab"][aria-selected="true"] {
+  background: var(--dash-blue); color: #fff; border-color: var(--dash-blue);
+}
+.demo-use-case-asset-page .duc-download-pptx {
+  margin-left: auto;
+  background: var(--dash-surface); color: var(--dash-text);
+  border: 1px solid var(--dash-border); border-radius: 999px;
+  padding: 0.4rem 0.95rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.demo-use-case-asset-page .duc-download-pptx:hover { background: var(--dash-hover); border-color: var(--dash-blue); }
+
+.demo-use-case-asset-page .duc-embed-panel {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.demo-use-case-asset-page .duc-embed-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+.demo-use-case-asset-page .duc-embed-title {
+  font-size: 0.85rem; font-weight: 600; color: var(--dash-text);
+}
+.demo-use-case-asset-page .duc-embed-sub {
+  margin-left: 0.4rem;
+  font-size: 0.72rem; font-weight: 500; color: var(--dash-text-secondary);
+  white-space: nowrap;
+}
+.demo-use-case-asset-page .duc-iframe {
+  width: 100%;
+  height: min(82vh, 1100px);
+  border: 0;
+  display: block;
+  background: var(--dash-surface);
+}
+.demo-use-case-asset-page .duc-embed-panel:fullscreen,
+.demo-use-case-asset-page .duc-embed-panel:-webkit-full-screen {
+  background: #fff;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.demo-use-case-asset-page .duc-embed-panel:fullscreen .duc-iframe,
+.demo-use-case-asset-page .duc-embed-panel:-webkit-full-screen .duc-iframe {
+  flex: 1 1 auto; height: auto;
+}
+
+.demo-use-case-asset-page .visually-hidden {
+  position: absolute !important; width: 1px !important; height: 1px !important;
+  padding: 0 !important; margin: -1px !important; overflow: hidden !important;
+  clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important;
+}

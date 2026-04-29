@@ -68,6 +68,8 @@ const consentManagerLegacy = lazyRequireMod('./consentManagerLegacy');
 const brandScraperService = lazyRequireMod('./brandScraperService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
+const clientJourneyAssetService = lazyRequireMod('./clientJourneyAssetService');
+const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -3085,6 +3087,105 @@ exports.brandScraperExport = onRequest(
   async (req, res) => {
     setCors(res, 'POST, OPTIONS');
     await brandScraperService.handleExport(req, res);
+  }
+);
+
+/**
+ * POST /api/client-journey/generate
+ * Body: { sandbox, scrapeId, brandColour?, journeyType?, personaName?, clientName? }
+ * Returns: { ok, journeyData, htmlJourney, htmlOnePager }
+ *
+ * Loads the brand scrape, asks Vertex AI Gemini to design a 12-step AEP journey,
+ * and returns the structured journey JSON plus two ready-to-render HTML strings
+ * (interactive journey map + one-pager). Memory bumped to 1 GiB to give Gemini
+ * call + HTML rendering headroom; timeout 180s for the model round-trip.
+ */
+exports.clientJourneyGenerate = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    // 240s gives headroom for: ~120s Vertex call + 30s rate-limit retry
+    // sleep + ~120s second Vertex call + ~10s rendering, so a single
+    // 429 retry can complete cleanly without the function killing it.
+    timeoutSeconds: 240,
+    memory: '1GiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await clientJourneyAssetService.handleGenerate(req, res);
+  }
+);
+
+/**
+ * POST /api/client-journey/pptx
+ * Body: { journeyData, logoBase64?, logoMime? }
+ * Returns: binary application/vnd.openxmlformats-officedocument.presentationml.presentation
+ *
+ * Clones the bundled Admiral one-pager template, replaces all table cells +
+ * step labels with the supplied journey data, and streams the PPTX back as a
+ * download. Stateless — caller may regenerate freely without re-querying the LLM.
+ */
+exports.clientJourneyPptx = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await clientJourneyAssetService.handlePptx(req, res);
+  }
+);
+
+/**
+ * POST /api/demo-use-case/generate
+ * Body: { sandbox, scrapeId, brandColour?, useCase?, personaName?, products?,
+ *         customProduct?, stepCount?, additionalContext?, previousData?,
+ *         refinementPrompt?, clientName?, images? }
+ * Returns: { ok, mode, demoData, framingHtml, experienceHtml, valueHtml }
+ *
+ * Sister of clientJourneyGenerate — produces a 3-slide demo deck (framing
+ * → experience → value) for use alongside live customer demos. Same
+ * orchestration shape (Vertex Gemini structured-output → normalise →
+ * render HTML) just with a different schema and renderers.
+ */
+exports.demoUseCaseGenerate = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 240,
+    memory: '1GiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await demoUseCaseAssetService.handleGenerate(req, res);
+  }
+);
+
+/**
+ * POST /api/demo-use-case/pptx
+ * Body: { demoData, images? }
+ * Returns: binary application/vnd.openxmlformats-officedocument.presentationml.presentation
+ *
+ * Stateless: caller supplies a previously-generated demoData JSON object
+ * plus any uploaded images (base64 data URLs); we render a 16:9 3-slide
+ * deck via PptxGenJS and stream it back. No LLM call.
+ */
+exports.demoUseCasePptx = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await demoUseCaseAssetService.handlePptx(req, res);
   }
 );
 

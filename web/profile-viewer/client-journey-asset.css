@@ -1,0 +1,1047 @@
+/*
+ * Client journey assets page.
+ *
+ * Three sections stacked vertically:
+ *   1. Top "controls" panel — sandbox + URL/domain + Look up button.
+ *   2. "Scrape summary" panel — appears after a successful lookup; shows
+ *      the matched brand and a small refinement form (brand colour, journey
+ *      type, persona name) plus the Generate button.
+ *   3. "Results" panel — appears after generation; tabbed iframe view of
+ *      the interactive journey map and the one-pager, with per-tab
+ *      Fullscreen and a Download PPTX action in the tab strip.
+ *
+ * All colours use --dash-* tokens so light/dark themes work out of the box.
+ * The two iframes are intentionally given height = min(82vh, 1100px) and
+ * grown to fill the viewport when the wrapper enters :fullscreen mode
+ * (mirrors the journey-arbitration-v2 pattern, which is the proven full-
+ * screen embed approach in this repo).
+ */
+
+.client-journey-asset-page .client-journey-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 2rem;
+}
+
+.client-journey-asset-page .panel {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--dash-shadow);
+}
+
+/* ── Top controls row ─────────────────────────────────────────────────── */
+
+.client-journey-asset-page .cj-controls-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+@media (max-width: 720px) {
+  .client-journey-asset-page .cj-controls-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.client-journey-asset-page .cj-sandbox-hint {
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+  color: var(--dash-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.client-journey-asset-page .cj-sandbox-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--dash-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.client-journey-asset-page .cj-sandbox-badge.is-empty {
+  color: var(--dash-error, #b00020);
+  background: transparent;
+  font-style: italic;
+  font-family: inherit;
+}
+
+.client-journey-asset-page .cj-sandbox-change-link {
+  color: var(--dash-blue);
+  font-weight: 600;
+}
+
+.client-journey-asset-page .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.client-journey-asset-page .form-row label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.client-journey-asset-page input[type="text"],
+.client-journey-asset-page select {
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.client-journey-asset-page input[type="text"]:focus,
+.client-journey-asset-page select:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dash-blue) 20%, transparent);
+}
+
+.client-journey-asset-page button.primary {
+  background: var(--dash-blue);
+  color: #fff;
+  border: 1px solid var(--dash-blue);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.client-journey-asset-page button.primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.client-journey-asset-page button.primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.client-journey-asset-page .status {
+  margin: 0.6rem 0 0;
+  font-size: 0.875rem;
+  color: var(--dash-text-secondary);
+  min-height: 1.2em;
+}
+
+.client-journey-asset-page .status.error {
+  color: var(--dash-error, #b00020);
+}
+
+.client-journey-asset-page .status.success {
+  color: var(--dash-success, #2e7d32);
+}
+
+/* ── Scrape summary card ──────────────────────────────────────────────── */
+
+.client-journey-asset-page .cj-scrape-summary {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 880px) {
+  .client-journey-asset-page .cj-scrape-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+.client-journey-asset-page .cj-scrape-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+}
+
+.client-journey-asset-page .cj-scrape-card .cj-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.client-journey-asset-page .cj-scrape-card img.cj-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.client-journey-asset-page .cj-scrape-card .cj-brand-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+.client-journey-asset-page .cj-scrape-card .cj-brand-meta {
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.client-journey-asset-page .cj-scrape-card dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 0.7rem;
+  row-gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.client-journey-asset-page .cj-scrape-card dt {
+  color: var(--dash-text-secondary);
+  font-weight: 600;
+}
+
+.client-journey-asset-page .cj-scrape-card dd {
+  margin: 0;
+  color: var(--dash-text);
+  word-break: break-word;
+}
+
+.client-journey-asset-page .cj-colours {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.client-journey-asset-page .cj-colour-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--dash-border);
+}
+
+/* ── Previously-generated inline actions ─────────────────────────────── */
+
+.client-journey-asset-page .cj-prev-load {
+  background: transparent;
+  border: 1px solid var(--dash-blue);
+  color: var(--dash-blue);
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--dash-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.client-journey-asset-page .cj-prev-load:hover {
+  background: var(--dash-blue);
+  color: #fff;
+}
+
+.client-journey-asset-page .cj-prev-forget {
+  background: transparent;
+  border: none;
+  color: var(--dash-text-secondary);
+  padding: 0.4rem 0.4rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.client-journey-asset-page .cj-prev-forget:hover {
+  color: var(--dash-error, #b00020);
+}
+
+/* Small "✓ Cached" badge that we drop into the scrape summary card. */
+.client-journey-asset-page .cj-cached-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.5rem;
+  padding: 1px 8px;
+  background: color-mix(in srgb, var(--dash-success, #2e7d32) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dash-success, #2e7d32) 50%, var(--dash-border));
+  color: var(--dash-success, #2e7d32);
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+/* ── Refine form ─────────────────────────────────────────────────────── */
+
+.client-journey-asset-page .cj-refine-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.client-journey-asset-page .cj-colour-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.client-journey-asset-page .cj-colour-input input[type="color"] {
+  width: 48px;
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-input-bg);
+  padding: 2px;
+  cursor: pointer;
+}
+
+.client-journey-asset-page .cj-swatch-caption {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary);
+}
+
+.client-journey-asset-page .cj-suggest-hint {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.35;
+}
+
+/* ─── Combobox (custom themed dropdown) ────────────────────────────────
+   Replaces the native <datalist> popover (which Safari/Chromium render
+   as an unstyled black box in dark mode). The chevron toggle opens the
+   panel; the panel is a scrolling, themed listbox of suggestions. The
+   underlying <input> still accepts free text — picking from the list
+   simply fills it in.
+*/
+.client-journey-asset-page .cj-combo {
+  position: relative;
+  display: block;
+}
+
+.client-journey-asset-page .cj-combo > input[type="text"] {
+  width: 100%;
+  padding-right: 36px;  /* room for the chevron */
+}
+
+.client-journey-asset-page .cj-combo-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 160ms ease;
+}
+
+.client-journey-asset-page .cj-combo-toggle:hover,
+.client-journey-asset-page .cj-combo-toggle:focus-visible {
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border-color: var(--dash-border);
+  outline: none;
+}
+
+.client-journey-asset-page .cj-combo-toggle[aria-expanded="true"] {
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border-color: var(--dash-border);
+}
+
+.client-journey-asset-page .cj-combo-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.client-journey-asset-page .cj-combo-toggle svg {
+  transition: transform 160ms ease;
+}
+
+.client-journey-asset-page .cj-combo-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  box-shadow: var(--dash-shadow);
+  z-index: 50;
+  padding: 4px;
+  /* Subtle scrollbar so it doesn't dominate the panel. */
+  scrollbar-width: thin;
+}
+
+.client-journey-asset-page .cj-combo-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.client-journey-asset-page .cj-combo-panel::-webkit-scrollbar-thumb {
+  background: var(--dash-border);
+  border-radius: 4px;
+}
+
+.client-journey-asset-page .cj-combo-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dash-text);
+  font: inherit;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.client-journey-asset-page .cj-combo-option + .cj-combo-option {
+  margin-top: 1px;
+}
+
+.client-journey-asset-page .cj-combo-option:hover,
+.client-journey-asset-page .cj-combo-option.is-active {
+  background: var(--dash-hover);
+}
+
+.client-journey-asset-page .cj-combo-option-value {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--dash-text);
+}
+
+.client-journey-asset-page .cj-combo-option-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  margin-top: 2px;
+}
+
+.client-journey-asset-page .cj-combo-section {
+  padding: 6px 10px 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+}
+
+.client-journey-asset-page .cj-combo-empty {
+  padding: 10px;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+  text-align: center;
+}
+
+.client-journey-asset-page .cj-brand-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.client-journey-asset-page .cj-brand-swatch {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid var(--dash-border);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.06s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.client-journey-asset-page .cj-brand-swatch:hover {
+  transform: translateY(-1px);
+  border-color: var(--dash-text-secondary);
+}
+
+.client-journey-asset-page .cj-brand-swatch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dash-bg), 0 0 0 4px var(--dash-blue);
+}
+
+.client-journey-asset-page .cj-brand-swatch.is-primary::after {
+  content: 'P';
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--dash-blue);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.client-journey-asset-page .cj-brand-swatch.is-active {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 2px var(--dash-bg), 0 0 0 3px var(--dash-blue);
+}
+
+.client-journey-asset-page .cj-brand-swatch .cj-brand-swatch-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
+}
+
+.client-journey-asset-page .cj-generate-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin-top: 0.4rem;
+}
+
+/* ── Generate progress bar ───────────────────────────────────────────── */
+
+.client-journey-asset-page .cj-progress {
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.85rem 0.75rem;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+}
+
+.client-journey-asset-page .cj-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.45rem;
+}
+
+.client-journey-asset-page .cj-progress-stage {
+  font-size: 0.85rem;
+  color: var(--dash-text);
+  font-weight: 500;
+}
+
+.client-journey-asset-page .cj-progress-elapsed {
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.client-journey-asset-page .cj-progress-track {
+  position: relative;
+  height: 8px;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.client-journey-asset-page .cj-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: linear-gradient(90deg, var(--dash-blue), color-mix(in srgb, var(--dash-blue) 70%, var(--dash-text)));
+  border-radius: inherit;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
+}
+
+/* Stripe overlay used for the "running long" indeterminate state. */
+.client-journey-asset-page .cj-progress.is-overrun .cj-progress-fill {
+  width: 100% !important;
+  background-image: linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--dash-blue) 80%, transparent) 0%,
+    color-mix(in srgb, var(--dash-blue) 80%, transparent) 25%,
+    color-mix(in srgb, var(--dash-blue) 60%, transparent) 25%,
+    color-mix(in srgb, var(--dash-blue) 60%, transparent) 50%,
+    color-mix(in srgb, var(--dash-blue) 80%, transparent) 50%,
+    color-mix(in srgb, var(--dash-blue) 80%, transparent) 75%,
+    color-mix(in srgb, var(--dash-blue) 60%, transparent) 75%,
+    color-mix(in srgb, var(--dash-blue) 60%, transparent) 100%
+  );
+  background-size: 24px 24px;
+  animation: cj-progress-stripes 1.1s linear infinite;
+}
+
+.client-journey-asset-page .cj-progress.is-success .cj-progress-fill {
+  background: var(--dash-success, #2e7d32);
+}
+
+.client-journey-asset-page .cj-progress.is-error .cj-progress-fill {
+  background: var(--dash-error, #b00020);
+}
+
+.client-journey-asset-page .cj-progress.is-error .cj-progress-stage,
+.client-journey-asset-page .cj-progress.is-error .cj-progress-elapsed {
+  color: var(--dash-error, #b00020);
+}
+
+@keyframes cj-progress-stripes {
+  from { background-position: 0 0; }
+  to   { background-position: 24px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .client-journey-asset-page .cj-progress-fill {
+    transition: none;
+  }
+  .client-journey-asset-page .cj-progress.is-overrun .cj-progress-fill {
+    animation: none;
+  }
+}
+
+.client-journey-asset-page .cj-generate-row #cjGenerateStatus {
+  margin: 0;
+}
+
+/* ── Empty / scrape-missing state ────────────────────────────────────── */
+
+.client-journey-asset-page .cj-empty {
+  padding: 0.9rem 1rem;
+  border: 1px dashed var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+  color: var(--dash-text-secondary);
+  font-size: 0.9rem;
+}
+
+.client-journey-asset-page .cj-empty a {
+  color: var(--dash-blue);
+  font-weight: 600;
+}
+
+.client-journey-asset-page .cj-empty-hint {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: var(--dash-text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.client-journey-asset-page .cj-empty-hint code {
+  padding: 1px 6px;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+/* ── Results: tabs + iframes + fullscreen ────────────────────────────── */
+
+.client-journey-asset-page .cj-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── Recolour palette (lives above the asset tabs) ──────────────────── */
+
+.client-journey-asset-page .cj-recolour {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.85rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+}
+
+.client-journey-asset-page .cj-recolour-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  white-space: nowrap;
+}
+
+.client-journey-asset-page .cj-recolour-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.client-journey-asset-page .cj-recolour-swatch {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--dash-border);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.06s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.client-journey-asset-page .cj-recolour-swatch:hover {
+  transform: translateY(-1px);
+  border-color: var(--dash-text-secondary);
+}
+
+.client-journey-asset-page .cj-recolour-swatch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dash-bg), 0 0 0 4px var(--dash-blue);
+}
+
+.client-journey-asset-page .cj-recolour-swatch.is-active {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 2px var(--dash-bg), 0 0 0 3px var(--dash-blue);
+}
+
+.client-journey-asset-page .cj-recolour-swatch .cj-recolour-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
+}
+
+.client-journey-asset-page .cj-recolour-divider {
+  color: var(--dash-text-secondary);
+  opacity: 0.6;
+}
+
+.client-journey-asset-page .cj-recolour-custom {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.client-journey-asset-page .cj-recolour-custom input[type="color"] {
+  width: 32px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-input-bg);
+  cursor: pointer;
+}
+
+.client-journey-asset-page .cj-recolour-custom input[type="text"] {
+  width: 88px;
+  padding: 0.3rem 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  color: var(--dash-text);
+  border-radius: var(--dash-radius-sm);
+}
+
+.client-journey-asset-page .cj-recolour-eyedropper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--dash-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.client-journey-asset-page .cj-recolour-eyedropper:hover {
+  background: var(--dash-blue);
+  border-color: var(--dash-blue);
+  color: #fff;
+}
+
+.client-journey-asset-page .cj-recolour-eyedropper.is-active {
+  background: var(--dash-blue);
+  border-color: var(--dash-blue);
+  color: #fff;
+  cursor: progress;
+}
+
+.client-journey-asset-page .cj-recolour-eyedropper svg {
+  flex: 0 0 auto;
+}
+
+.client-journey-asset-page .cj-recolour-reset {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text-secondary);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--dash-radius-sm);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.client-journey-asset-page .cj-recolour-reset:hover {
+  color: var(--dash-text);
+  border-color: var(--dash-text-secondary);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+.client-journey-asset-page .cj-results-tabs {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.4rem;
+}
+
+.client-journey-asset-page .cj-results-tabs [role="tab"] {
+  background: transparent;
+  border: none;
+  color: var(--dash-text-secondary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--dash-radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.client-journey-asset-page .cj-results-tabs [role="tab"][aria-selected="true"] {
+  background: var(--dash-blue);
+  color: #fff;
+}
+
+.client-journey-asset-page .cj-results-tabs [role="tab"]:hover:not([aria-selected="true"]) {
+  background: var(--dash-hover);
+  color: var(--dash-text);
+}
+
+.client-journey-asset-page .cj-download-pptx {
+  margin-left: auto;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text);
+  padding: 0.5rem 1rem;
+  border-radius: var(--dash-radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.client-journey-asset-page .cj-download-pptx:hover {
+  background: var(--dash-hover);
+}
+
+.client-journey-asset-page .cj-embed-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  padding: 0.6rem;
+  box-shadow: var(--dash-shadow);
+}
+
+.client-journey-asset-page .cj-embed-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.4rem;
+}
+
+.client-journey-asset-page .cj-embed-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.client-journey-asset-page .cj-fullscreen-btn {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--dash-radius-sm);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background 0.15s ease;
+}
+
+.client-journey-asset-page .cj-fullscreen-btn::before {
+  content: '⛶';
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.client-journey-asset-page .cj-fullscreen-btn:hover {
+  background: var(--dash-hover);
+}
+
+.client-journey-asset-page .cj-iframe {
+  display: block;
+  width: 100%;
+  min-height: min(82vh, 1100px);
+  height: min(82vh, 1100px);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+}
+
+/* Fullscreen wrapper rules — mirrors journey-arbitration-v2.css */
+.cj-embed-panel:fullscreen,
+.cj-embed-panel:-webkit-full-screen {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: auto;
+  background: var(--dash-bg);
+  padding: 0.5rem;
+  margin: 0;
+}
+
+.cj-embed-panel:fullscreen .cj-iframe,
+.cj-embed-panel:-webkit-full-screen .cj-iframe {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* ─── Freeform Vertex AI prompt boxes ──────────────────────────────────
+   Two text areas: one in the Refine form before generation (steers the
+   first run), one in the results section after generation (refines the
+   already-rendered assets). Both share the .cj-textarea class so they
+   pick up the same dashboard typography + focus ring as the rest of
+   the form. The post-generation "Refine with Vertex AI" panel sits in
+   its own card so it reads as a distinct workflow rather than another
+   recolour control.
+*/
+.client-journey-asset-page .cj-form-hint {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary);
+  margin-left: 4px;
+}
+
+.client-journey-asset-page .cj-textarea {
+  width: 100%;
+  min-height: 70px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--dash-text);
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.client-journey-asset-page .cj-textarea:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px rgba(17, 81, 255, 0.15);
+}
+
+.client-journey-asset-page .cj-textarea::placeholder {
+  color: var(--dash-text-secondary);
+  opacity: 0.7;
+}
+
+.client-journey-asset-page .cj-refine-panel {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  box-shadow: var(--dash-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.client-journey-asset-page .cj-refine-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.client-journey-asset-page .cj-refine-panel-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.client-journey-asset-page .cj-refine-panel-title::before {
+  content: "✦";
+  color: var(--dash-blue);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.client-journey-asset-page .cj-refine-panel-status:empty {
+  display: none;
+}
+
+.client-journey-asset-page .cj-refine-panel-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.client-journey-asset-page .cj-refine-panel-hint {
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.35;
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.client-journey-asset-page .cj-refine-panel button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

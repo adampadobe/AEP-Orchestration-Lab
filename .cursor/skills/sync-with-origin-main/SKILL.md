@@ -49,6 +49,6 @@ Confirm with **`git status`**: tracking branch should not be **behind** `origin/
 
 ## Repo-specific references
 
-- **`CONTRIBUTING.md`** — start with *Collaboration, Git, and environment* (Phase A / B), Node.js, CI, and Profile Viewer canonical path.
+- **`CONTRIBUTING.md`** — start with *Collaboration, Git, and environment* (Phase A / B), *Commit messages (GitHub handle prefix)* (`[apalmer]`-style subjects), Node.js, CI, and Profile Viewer canonical path.
 - **`.cursor/rules/sync-origin-main.mdc`** — always-on reminder to start from latest `main`.
 - Ship order for Firebase: commit → push → deploy per **`github-git-workflow`** skill and **`.cursor/rules/ship-git-and-firebase.mdc`**.

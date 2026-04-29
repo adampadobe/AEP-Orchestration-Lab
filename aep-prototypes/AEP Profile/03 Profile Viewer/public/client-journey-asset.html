@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client journey assets – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260423b">
+  <link rel="stylesheet" href="client-journey-asset.css?v=20260429a">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="client-journey-asset-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Generate a 12-step AEP customer journey for any brand using Vertex AI Gemini">Client journey assets</span>
+          <a href="brand-scraper.html" class="dashboard-topbar-link">Brand scraper</a>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main client-journey-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingClientJourney">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingClientJourney" class="dashboard-hero-title">Client journey assets</h2>
+              <p class="dashboard-hero-subtitle">
+                Drop in a customer's URL and we'll find the matching <a href="brand-scraper.html">Brand scrape</a> in your sandbox, ask <strong>Vertex AI Gemini</strong> to design a 12-step AEP customer journey from it, and produce three assets you can show on screen: an <strong>interactive HTML journey map</strong>, an <strong>HTML one-pager</strong>, and a <strong>downloadable PowerPoint</strong> as a leave behind for the customer.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="cj-controls panel" aria-label="Customer lookup">
+          <div class="cj-controls-row">
+            <div class="form-row cj-url-row">
+              <label for="cjUrl">Customer URL, domain, or brand name</label>
+              <input type="text" id="cjUrl" placeholder='e.g. admiral.com, https://www.vodafone.ie/, or "Nike"' autocomplete="off">
+            </div>
+            <div class="form-row cj-actions-row">
+              <button type="button" id="cjLookupBtn" class="primary">Look up scrape</button>
+            </div>
+          </div>
+          <p class="cj-sandbox-hint" role="status" aria-live="polite">
+            Looking up scrapes in sandbox
+            <span class="cj-sandbox-badge" id="cjSandboxBadge" title="Active sandbox (set in Global values)">…</span>
+            · <a href="global-settings.html" class="cj-sandbox-change-link">change in Global values</a>
+          </p>
+          <p id="cjLookupStatus" class="status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="cj-scrape-summary panel" id="cjScrapeSummary" hidden>
+          <div class="cj-scrape-card" id="cjScrapeCard"></div>
+          <div class="cj-refine-form" id="cjRefineForm">
+            <div class="form-row">
+              <label for="cjBrandColour">Brand colour</label>
+              <div class="cj-colour-input">
+                <input type="color" id="cjBrandColourPicker" value="#E60000" aria-label="Brand colour">
+                <input type="text" id="cjBrandColour" value="#E60000" maxlength="7" pattern="^#[0-9a-fA-F]{6}$" aria-label="Brand colour hex">
+              </div>
+              <p class="cj-swatch-caption" id="cjBrandSwatchCaption" hidden>From scrape — click to use:</p>
+              <div class="cj-brand-swatch-row" id="cjBrandSwatchRow" role="radiogroup" aria-label="Pick a brand colour from the scrape" hidden></div>
+            </div>
+            <div class="form-row">
+              <label for="cjJourneyType">Journey type (optional)</label>
+              <div class="cj-combo" id="cjJourneyTypeCombo">
+                <input type="text" id="cjJourneyType" placeholder="e.g. Insurance Renewal, Energy Switch, Broadband Acquisition" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cjJourneyTypePanel" aria-autocomplete="list">
+                <button type="button" class="cj-combo-toggle" id="cjJourneyTypeToggle" aria-label="Show journey type suggestions" aria-expanded="false" tabindex="-1" hidden>
+                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="cj-combo-panel" id="cjJourneyTypePanel" role="listbox" aria-label="Journey type suggestions" hidden></div>
+              </div>
+              <p class="cj-suggest-hint" id="cjJourneyTypeHint" hidden></p>
+            </div>
+            <div class="form-row">
+              <label for="cjPersona">Persona name (optional)</label>
+              <div class="cj-combo" id="cjPersonaCombo">
+                <input type="text" id="cjPersona" placeholder="e.g. Sarah" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cjPersonaPanel" aria-autocomplete="list">
+                <button type="button" class="cj-combo-toggle" id="cjPersonaToggle" aria-label="Show persona suggestions" aria-expanded="false" tabindex="-1" hidden>
+                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="cj-combo-panel" id="cjPersonaPanel" role="listbox" aria-label="Persona suggestions" hidden></div>
+              </div>
+              <p class="cj-suggest-hint" id="cjPersonaHint" hidden></p>
+            </div>
+            <div class="form-row">
+              <label for="cjAdditionalContext">Additional context for Vertex AI <span class="cj-form-hint">(optional)</span></label>
+              <textarea id="cjAdditionalContext" class="cj-textarea" rows="3" placeholder="e.g. Focus on first-time customers, emphasise loyalty rewards, mention sustainability throughout, target the EMEA market…" spellcheck="true"></textarea>
+              <p class="cj-suggest-hint">Anything you add here is appended to the Vertex AI prompt to steer the first generation.</p>
+            </div>
+            <div class="form-row cj-generate-row">
+              <button type="button" id="cjGenerateBtn" class="primary">Generate journey assets</button>
+              <button type="button" id="cjPrevLoadBtn" class="cj-prev-load" hidden title="Restore the previous result for this scrape from your browser cache">Load previous result</button>
+              <button type="button" id="cjPrevForgetBtn" class="cj-prev-forget" hidden title="Remove this cached result from your browser">Forget</button>
+              <span id="cjGenerateStatus" class="status" role="status" aria-live="polite"></span>
+            </div>
+            <div class="cj-progress" id="cjProgress" hidden role="status" aria-live="polite" aria-atomic="true">
+              <div class="cj-progress-header">
+                <span class="cj-progress-stage" id="cjProgressStage">Starting…</span>
+                <span class="cj-progress-elapsed" id="cjProgressElapsed">0s</span>
+              </div>
+              <div class="cj-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cjProgressTrack">
+                <div class="cj-progress-fill" id="cjProgressFill"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="cj-results" id="cjResults" hidden>
+          <div class="cj-refine-panel" id="cjRefinePanel">
+            <div class="cj-refine-panel-header">
+              <span class="cj-refine-panel-title">Refine with Vertex AI</span>
+              <span class="cj-refine-panel-status status" id="cjRefineStatus" role="status" aria-live="polite"></span>
+            </div>
+            <textarea id="cjRefinePrompt" class="cj-textarea" rows="3" placeholder="e.g. Make step 7 about a loyalty programme upgrade, swap email for SMS in step 9, add a sustainability angle throughout, tighten the persona narrative…" spellcheck="true"></textarea>
+            <div class="cj-refine-panel-actions">
+              <button type="button" id="cjRefineBtn" class="primary">Refine assets</button>
+              <span class="cj-refine-panel-hint">Sends your prompt + the current journey JSON back to Vertex AI to update the map and one-pager. Takes about as long as the first generation.</span>
+            </div>
+          </div>
+
+          <div class="cj-recolour" id="cjRecolour" hidden>
+            <span class="cj-recolour-label">Recolour with palette:</span>
+            <div class="cj-recolour-swatches" id="cjRecolourSwatches" role="radiogroup" aria-label="Apply a brand colour from the scrape"></div>
+            <span class="cj-recolour-divider" aria-hidden="true">·</span>
+            <label class="cj-recolour-custom">
+              <span class="visually-hidden">Custom hex</span>
+              <input type="color" id="cjRecolourPicker" value="#1151FF" aria-label="Pick a custom brand colour">
+              <input type="text" id="cjRecolourHex" value="#1151FF" maxlength="7" pattern="^#[0-9a-fA-F]{6}$" aria-label="Custom brand colour hex" spellcheck="false">
+            </label>
+            <button type="button" id="cjRecolourEyedropper" class="cj-recolour-eyedropper" hidden title="Pick a colour from anywhere on the screen" aria-label="Pick a colour from anywhere on the screen">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 22l3-3"/>
+                <path d="M5 19l9-9"/>
+                <path d="M14 10l4-4"/>
+                <path d="M14 10l3 3"/>
+                <path d="M18 6l-3-3a2.828 2.828 0 1 0-4 4l3 3"/>
+              </svg>
+              <span>Eyedropper</span>
+            </button>
+            <button type="button" id="cjRecolourReset" class="cj-recolour-reset" title="Restore the colour the assets were generated with">Reset</button>
+          </div>
+
+          <div class="cj-results-tabs" role="tablist" aria-label="Asset views">
+            <button type="button" role="tab" data-tab="journey" aria-selected="true" id="cjTabJourney">Journey map</button>
+            <button type="button" role="tab" data-tab="onepager" aria-selected="false" id="cjTabOnePager">One-pager</button>
+            <button type="button" id="cjDownloadPptxBtn" class="cj-download-pptx" title="Download the PPTX one-pager as a leave behind for the customer">Download PPTX</button>
+          </div>
+
+          <div class="cj-embed-panel" id="cjEmbedJourney" data-tab-panel="journey">
+            <div class="cj-embed-toolbar">
+              <span class="cj-embed-title">Interactive 12-step journey map</span>
+              <button type="button" class="cj-fullscreen-btn aep-fullscreen-btn" data-target="cjEmbedJourney" aria-pressed="false" aria-label="Enter full screen" title="Fill the screen. Press Esc to exit."></button>
+            </div>
+            <iframe id="cjJourneyIframe" class="cj-iframe" title="Interactive AEP customer journey map" sandbox="allow-scripts allow-same-origin allow-popups" loading="lazy"></iframe>
+          </div>
+
+          <div class="cj-embed-panel" id="cjEmbedOnePager" data-tab-panel="onepager" hidden>
+            <div class="cj-embed-toolbar">
+              <span class="cj-embed-title">One-pager view</span>
+              <button type="button" class="cj-fullscreen-btn aep-fullscreen-btn" data-target="cjEmbedOnePager" aria-pressed="false" aria-label="Enter full screen" title="Fill the screen. Press Esc to exit."></button>
+            </div>
+            <iframe id="cjOnePagerIframe" class="cj-iframe" title="AEP customer journey one-pager" sandbox="allow-scripts allow-same-origin allow-popups" loading="lazy"></iframe>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420a"></script>
+  <script src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260420a"></script>
+  <script src="aep-lab-nav.js?v=20260429-cj"></script>
+  <script src="client-journey-asset.js?v=20260429a"></script>
+</body>
+</html>

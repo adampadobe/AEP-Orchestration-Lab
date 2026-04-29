@@ -113,6 +113,34 @@
         }
       },
       {
+        "source": "/api/client-journey/generate",
+        "function": {
+          "functionId": "clientJourneyGenerate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/client-journey/pptx",
+        "function": {
+          "functionId": "clientJourneyPptx",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/demo-use-case/generate",
+        "function": {
+          "functionId": "demoUseCaseGenerate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/demo-use-case/pptx",
+        "function": {
+          "functionId": "demoUseCasePptx",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/image-hosting/library/**",
         "function": {
           "functionId": "imageHostingLibrary",
