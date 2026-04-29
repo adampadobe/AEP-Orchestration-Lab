@@ -717,56 +717,8 @@ async function callOpenAI(apiKey, systemPrompt, userPrompt, { maxTokens = 4096, 
   return (text || '').trim();
 }
 
-let vertexClientCache;
-function getVertexClient() {
-  if (!vertexClientCache) {
-    // Lazy require so the SDK only loads when Gemini is actually used.
-    const { VertexAI } = require('@google-cloud/vertexai');
-    const project = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'aep-orchestration-lab';
-    const location = process.env.VERTEX_LOCATION || 'us-central1';
-    vertexClientCache = new VertexAI({ project, location });
-  }
-  return vertexClientCache;
-}
-
-async function callGemini(systemPrompt, userPrompt, { maxOutputTokens = 8192, jsonMode = true, model: modelOverride, temperature = 0.4 } = {}) {
-  const client = getVertexClient();
-  const modelName = modelOverride || process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-pro';
-  const generationConfig = { temperature, maxOutputTokens };
-  if (jsonMode) generationConfig.responseMimeType = 'application/json';
-  const model = client.getGenerativeModel({
-    model: modelName,
-    systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] },
-    generationConfig,
-  });
-  const resp = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-  });
-  const candidates = resp && resp.response && resp.response.candidates;
-  if (!candidates || !candidates.length) throw new Error('Gemini returned no candidates');
-  const finish = candidates[0].finishReason;
-  const parts = (candidates[0].content && candidates[0].content.parts) || [];
-  const text = parts.map(p => p.text || '').join('').trim();
-  if (!text) {
-    throw new Error(`Gemini returned empty content (finishReason=${finish || 'unknown'})`);
-  }
-  if (finish && finish !== 'STOP' && finish !== 'MAX_TOKENS') {
-    throw new Error(`Gemini stopped with finishReason=${finish}`);
-  }
-  return text;
-}
-
-function stripJsonFences(text) {
-  if (!text) return '';
-  const s = String(text);
-  // Properly closed fenced block: ```json ... ```
-  const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(s);
-  if (fenced) return fenced[1].trim();
-  // Unterminated opening fence (model was truncated before closing ```).
-  const opening = /```(?:json)?\s*([\s\S]*)$/i.exec(s);
-  if (opening) return opening[1].trim();
-  return s.trim();
-}
+// Vertex AI Gemini client + helpers are shared with other lab functions.
+const { getVertexClient, callGemini, stripJsonFences } = require('./vertexClient');
 
 const STAKEHOLDER_SYSTEM = `You extract the business stakeholders (leadership, executives, founders, board members) from crawled website content so a sales team can see who to target.
 

@@ -1,0 +1,391 @@
+/*
+ * Client journey assets page.
+ *
+ * Three sections stacked vertically:
+ *   1. Top "controls" panel — sandbox + URL/domain + Look up button.
+ *   2. "Scrape summary" panel — appears after a successful lookup; shows
+ *      the matched brand and a small refinement form (brand colour, journey
+ *      type, persona name) plus the Generate button.
+ *   3. "Results" panel — appears after generation; tabbed iframe view of
+ *      the interactive journey map and the one-pager, with per-tab
+ *      Fullscreen and a Download PPTX action in the tab strip.
+ *
+ * All colours use --dash-* tokens so light/dark themes work out of the box.
+ * The two iframes are intentionally given height = min(82vh, 1100px) and
+ * grown to fill the viewport when the wrapper enters :fullscreen mode
+ * (mirrors the journey-arbitration-v2 pattern, which is the proven full-
+ * screen embed approach in this repo).
+ */
+
+.client-journey-asset-page .client-journey-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 2rem;
+}
+
+.client-journey-asset-page .panel {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--dash-shadow);
+}
+
+/* ── Top controls row ─────────────────────────────────────────────────── */
+
+.client-journey-asset-page .cj-controls-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(280px, 1fr) auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+@media (max-width: 720px) {
+  .client-journey-asset-page .cj-controls-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.client-journey-asset-page .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.client-journey-asset-page .form-row label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.client-journey-asset-page input[type="text"],
+.client-journey-asset-page select {
+  background: var(--dash-input-bg);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.client-journey-asset-page input[type="text"]:focus,
+.client-journey-asset-page select:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dash-blue) 20%, transparent);
+}
+
+.client-journey-asset-page button.primary {
+  background: var(--dash-blue);
+  color: #fff;
+  border: 1px solid var(--dash-blue);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.client-journey-asset-page button.primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.client-journey-asset-page button.primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.client-journey-asset-page .status {
+  margin: 0.6rem 0 0;
+  font-size: 0.875rem;
+  color: var(--dash-text-secondary);
+  min-height: 1.2em;
+}
+
+.client-journey-asset-page .status.error {
+  color: var(--dash-error, #b00020);
+}
+
+.client-journey-asset-page .status.success {
+  color: var(--dash-success, #2e7d32);
+}
+
+/* ── Scrape summary card ──────────────────────────────────────────────── */
+
+.client-journey-asset-page .cj-scrape-summary {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 880px) {
+  .client-journey-asset-page .cj-scrape-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+.client-journey-asset-page .cj-scrape-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+}
+
+.client-journey-asset-page .cj-scrape-card .cj-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.client-journey-asset-page .cj-scrape-card img.cj-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.client-journey-asset-page .cj-scrape-card .cj-brand-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--dash-text);
+}
+
+.client-journey-asset-page .cj-scrape-card .cj-brand-meta {
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+}
+
+.client-journey-asset-page .cj-scrape-card dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 0.7rem;
+  row-gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.client-journey-asset-page .cj-scrape-card dt {
+  color: var(--dash-text-secondary);
+  font-weight: 600;
+}
+
+.client-journey-asset-page .cj-scrape-card dd {
+  margin: 0;
+  color: var(--dash-text);
+  word-break: break-word;
+}
+
+.client-journey-asset-page .cj-colours {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.client-journey-asset-page .cj-colour-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--dash-border);
+}
+
+/* ── Refine form ─────────────────────────────────────────────────────── */
+
+.client-journey-asset-page .cj-refine-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.client-journey-asset-page .cj-colour-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.client-journey-asset-page .cj-colour-input input[type="color"] {
+  width: 48px;
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-input-bg);
+  padding: 2px;
+  cursor: pointer;
+}
+
+.client-journey-asset-page .cj-generate-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.4rem;
+}
+
+.client-journey-asset-page .cj-generate-row #cjGenerateStatus {
+  margin: 0;
+}
+
+/* ── Empty / scrape-missing state ────────────────────────────────────── */
+
+.client-journey-asset-page .cj-empty {
+  padding: 0.9rem 1rem;
+  border: 1px dashed var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+  color: var(--dash-text-secondary);
+  font-size: 0.9rem;
+}
+
+.client-journey-asset-page .cj-empty a {
+  color: var(--dash-blue);
+  font-weight: 600;
+}
+
+/* ── Results: tabs + iframes + fullscreen ────────────────────────────── */
+
+.client-journey-asset-page .cj-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.client-journey-asset-page .cj-results-tabs {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 0.4rem;
+}
+
+.client-journey-asset-page .cj-results-tabs [role="tab"] {
+  background: transparent;
+  border: none;
+  color: var(--dash-text-secondary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--dash-radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.client-journey-asset-page .cj-results-tabs [role="tab"][aria-selected="true"] {
+  background: var(--dash-blue);
+  color: #fff;
+}
+
+.client-journey-asset-page .cj-results-tabs [role="tab"]:hover:not([aria-selected="true"]) {
+  background: var(--dash-hover);
+  color: var(--dash-text);
+}
+
+.client-journey-asset-page .cj-download-pptx {
+  margin-left: auto;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text);
+  padding: 0.5rem 1rem;
+  border-radius: var(--dash-radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.client-journey-asset-page .cj-download-pptx:hover {
+  background: var(--dash-hover);
+}
+
+.client-journey-asset-page .cj-embed-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  padding: 0.6rem;
+  box-shadow: var(--dash-shadow);
+}
+
+.client-journey-asset-page .cj-embed-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.4rem;
+}
+
+.client-journey-asset-page .cj-embed-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.client-journey-asset-page .cj-fullscreen-btn {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--dash-radius-sm);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background 0.15s ease;
+}
+
+.client-journey-asset-page .cj-fullscreen-btn::before {
+  content: '⛶';
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.client-journey-asset-page .cj-fullscreen-btn:hover {
+  background: var(--dash-hover);
+}
+
+.client-journey-asset-page .cj-iframe {
+  display: block;
+  width: 100%;
+  min-height: min(82vh, 1100px);
+  height: min(82vh, 1100px);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+}
+
+/* Fullscreen wrapper rules — mirrors journey-arbitration-v2.css */
+.cj-embed-panel:fullscreen,
+.cj-embed-panel:-webkit-full-screen {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: auto;
+  background: var(--dash-bg);
+  padding: 0.5rem;
+  margin: 0;
+}
+
+.cj-embed-panel:fullscreen .cj-iframe,
+.cj-embed-panel:-webkit-full-screen .cj-iframe {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
