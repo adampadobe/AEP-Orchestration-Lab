@@ -60,6 +60,17 @@
 
         <section class="cj-scrape-summary panel" id="cjScrapeSummary" hidden>
           <div class="cj-scrape-card" id="cjScrapeCard"></div>
+          <div class="cj-prev-banner" id="cjPrevBanner" hidden>
+            <div class="cj-prev-banner-text">
+              <strong>Previously generated</strong>
+              <span id="cjPrevBannerWhen"></span>
+              <span id="cjPrevBannerRefinements" class="cj-prev-banner-refinements"></span>
+            </div>
+            <div class="cj-prev-banner-actions">
+              <button type="button" id="cjPrevLoadBtn" class="primary">Load previous result</button>
+              <button type="button" id="cjPrevForgetBtn" class="cj-prev-forget" title="Remove this cached result from your browser">Forget</button>
+            </div>
+          </div>
           <div class="cj-refine-form" id="cjRefineForm">
             <div class="form-row">
               <label for="cjBrandColour">Brand colour</label>

@@ -61,6 +61,11 @@
   var iframeJourney = $('cjJourneyIframe');
   var iframeOnePager = $('cjOnePagerIframe');
   var downloadPptxBtn = $('cjDownloadPptxBtn');
+  var prevBannerEl = $('cjPrevBanner');
+  var prevBannerWhenEl = $('cjPrevBannerWhen');
+  var prevBannerRefinementsEl = $('cjPrevBannerRefinements');
+  var prevLoadBtn = $('cjPrevLoadBtn');
+  var prevForgetBtn = $('cjPrevForgetBtn');
 
   // ─── State ────────────────────────────────────────────────────────────
   var state = {
@@ -69,6 +74,129 @@
     journeyBlobUrl: null,
     onePagerBlobUrl: null,
   };
+
+  // ─── Cache (per-browser) ──────────────────────────────────────────────
+  // We persist generated journeys in localStorage keyed by sandbox+scrapeId
+  // so the user can navigate away, come back, and still see / download the
+  // last result without re-paying the 60–120s Vertex AI bill. We also cap
+  // the cache to MAX_CACHE_ENTRIES with simple LRU eviction so the store
+  // doesn't balloon past localStorage's ~5MB ceiling — full HTML for both
+  // assets is typically 200–500KB per entry.
+
+  var CACHE_INDEX_KEY = 'cj-asset-cache:index';
+  var CACHE_ENTRY_PREFIX = 'cj-asset-cache:entry:';
+  var MAX_CACHE_ENTRIES = 8;
+
+  function cacheKey(sandbox, scrapeId) {
+    return CACHE_ENTRY_PREFIX + sandbox + '::' + scrapeId;
+  }
+
+  function readCacheIndex() {
+    try {
+      var raw = localStorage.getItem(CACHE_INDEX_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (_) { return []; }
+  }
+
+  function writeCacheIndex(arr) {
+    try { localStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(arr)); } catch (_) {}
+  }
+
+  function evictOldestIfNeeded() {
+    var idx = readCacheIndex();
+    while (idx.length > MAX_CACHE_ENTRIES) {
+      var oldest = idx.shift();
+      try { localStorage.removeItem(oldest); } catch (_) {}
+    }
+    writeCacheIndex(idx);
+  }
+
+  function loadFromCache(sandbox, scrapeId) {
+    if (!sandbox || !scrapeId) return null;
+    try {
+      var raw = localStorage.getItem(cacheKey(sandbox, scrapeId));
+      if (!raw) return null;
+      var entry = JSON.parse(raw);
+      if (!entry || !entry.journeyData || !entry.htmlJourney || !entry.htmlOnePager) return null;
+      return entry;
+    } catch (_) { return null; }
+  }
+
+  function saveToCache(sandbox, scrapeId, payload) {
+    if (!sandbox || !scrapeId || !payload) return;
+    var key = cacheKey(sandbox, scrapeId);
+    var entry = {
+      sandbox: sandbox,
+      scrapeId: scrapeId,
+      generatedAt: Date.now(),
+      brandName: payload.brandName || '',
+      brandColour: payload.brandColour || '',
+      journeyType: payload.journeyType || '',
+      personaName: payload.personaName || '',
+      journeyData: payload.journeyData,
+      htmlJourney: payload.htmlJourney,
+      htmlOnePager: payload.htmlOnePager,
+    };
+    try {
+      localStorage.setItem(key, JSON.stringify(entry));
+    } catch (e) {
+      // Quota exceeded — try evicting one and retry once.
+      console.warn('[client-journey] cache save failed, evicting oldest', e);
+      var idx = readCacheIndex();
+      var oldest = idx.shift();
+      if (oldest) {
+        try { localStorage.removeItem(oldest); } catch (_) {}
+        writeCacheIndex(idx);
+      }
+      try { localStorage.setItem(key, JSON.stringify(entry)); }
+      catch (e2) { console.warn('[client-journey] cache save still failing', e2); return; }
+    }
+    var index = readCacheIndex();
+    var existing = index.indexOf(key);
+    if (existing !== -1) index.splice(existing, 1);
+    index.push(key); // most-recent at end
+    writeCacheIndex(index);
+    evictOldestIfNeeded();
+  }
+
+  function relativeTime(epochMs) {
+    var diff = Date.now() - epochMs;
+    if (diff < 60000) return 'just now';
+    var mins = Math.floor(diff / 60000);
+    if (mins < 60) return mins + ' minute' + (mins === 1 ? '' : 's') + ' ago';
+    var hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + ' hour' + (hours === 1 ? '' : 's') + ' ago';
+    var days = Math.floor(hours / 24);
+    if (days < 30) return days + ' day' + (days === 1 ? '' : 's') + ' ago';
+    return new Date(epochMs).toLocaleDateString();
+  }
+
+  function showPrevBanner(entry) {
+    if (!prevBannerEl) return;
+    prevBannerWhenEl.textContent = relativeTime(entry.generatedAt) +
+      ' (' + new Date(entry.generatedAt).toLocaleString() + ')';
+    var bits = [];
+    if (entry.brandColour) bits.push(entry.brandColour);
+    if (entry.journeyType) bits.push(entry.journeyType);
+    if (entry.personaName) bits.push('persona: ' + entry.personaName);
+    prevBannerRefinementsEl.textContent = bits.length ? '· ' + bits.join(' · ') : '';
+    prevBannerEl.hidden = false;
+  }
+
+  function hidePrevBanner() {
+    if (prevBannerEl) prevBannerEl.hidden = true;
+  }
+
+  function applyCachedEntry(entry) {
+    state.journeyData = entry.journeyData;
+    mountIframe(iframeJourney, entry.htmlJourney, 'journey');
+    mountIframe(iframeOnePager, entry.htmlOnePager, 'onepager');
+    resultsSection.hidden = false;
+    activateTab('journey');
+    progress.finish('success', 'Loaded previously generated result from ' + relativeTime(entry.generatedAt));
+    setStatus(generateStatus, 'Restored previous result. Generate again to replace it, or download the PPTX.', 'success');
+  }
 
   // ─── Helpers ──────────────────────────────────────────────────────────
 
@@ -272,6 +400,7 @@
     summarySection.hidden = true;
     resultsSection.hidden = true;
     scrapeCard.innerHTML = '';
+    hidePrevBanner();
 
     try {
       var summaries = await fetchScrapes(sandbox);
@@ -388,8 +517,6 @@
     var cs = scrape.crawlSummary || {};
     var assets = cs.assets || {};
     var allColours = normaliseColourList(assets.colours);
-    // Top 8 keeps the swatch row to a single line in most layouts while
-    // still giving the user a useful spread of accent options.
     var colours = allColours.slice(0, 8);
     var primary = pickPrimaryColour(colours);
 
@@ -401,11 +528,19 @@
       return '<span class="cj-colour-swatch" style="background:' + escapeAttr(c.hex) + '" title="' + escapeAttr(c.hex) + '"></span>';
     }).join('');
 
+    // Check for a cached previous generation BEFORE writing the card so we
+    // can stamp a ✓ Cached pill onto the brand-name row.
+    var sandbox = getSandbox();
+    var cached = loadFromCache(sandbox, scrape.scrapeId);
+    var cachedPillHtml = cached
+      ? '<span class="cj-cached-pill" title="A previous result is cached in this browser">✓ Cached</span>'
+      : '';
+
     scrapeCard.innerHTML =
       '<div class="cj-brand-row">' +
         (logoSrc ? '<img class="cj-logo" alt="" src="' + escapeAttr(logoSrc) + '" onerror="this.style.display=\'none\'">' : '') +
         '<div>' +
-          '<div class="cj-brand-name">' + escapeHtml(scrape.brandName || clearbitDomain || 'Brand') + '</div>' +
+          '<div class="cj-brand-name">' + escapeHtml(scrape.brandName || clearbitDomain || 'Brand') + cachedPillHtml + '</div>' +
           '<div class="cj-brand-meta">' + escapeHtml(hostUrl || '') + '</div>' +
         '</div>' +
       '</div>' +
@@ -419,6 +554,19 @@
 
     renderBrandSwatches(colours, primary);
     applyBrandColour(primary);
+
+    // Surface previously generated assets if we have a cache hit. Pre-fill
+    // the refinement inputs with whatever was used last time so the user
+    // can either restore it or tweak + regenerate without losing context.
+    if (cached) {
+      if (cached.brandColour) applyBrandColour(cached.brandColour);
+      if (cached.journeyType) journeyTypeInput.value = cached.journeyType;
+      if (cached.personaName) personaInput.value = cached.personaName;
+      showPrevBanner(cached);
+    } else {
+      hidePrevBanner();
+      resultsSection.hidden = true;
+    }
   }
 
   // ─── Generate progress tracker ────────────────────────────────────────
@@ -566,9 +714,34 @@
       mountIframe(iframeJourney, data.htmlJourney, 'journey');
       mountIframe(iframeOnePager, data.htmlOnePager, 'onepager');
 
+      // Persist so the user can restore this result on their next visit
+      // without burning another 60–120s Vertex AI call. Keyed by sandbox
+      // + scrapeId so multiple customers and sandboxes coexist cleanly.
+      saveToCache(sandbox, state.selectedScrape.scrapeId, {
+        brandName: state.selectedScrape.brandName,
+        brandColour: brandColour,
+        journeyType: journeyType,
+        personaName: personaName,
+        journeyData: data.journeyData,
+        htmlJourney: data.htmlJourney,
+        htmlOnePager: data.htmlOnePager,
+      });
+      // Refresh the banner so it reflects "just now" + the new refinements
+      // (and the pill on the scrape card if it wasn't there before).
+      var fresh = loadFromCache(sandbox, state.selectedScrape.scrapeId);
+      if (fresh) showPrevBanner(fresh);
+      var pill = scrapeCard.querySelector('.cj-cached-pill');
+      if (!pill) {
+        var nameEl = scrapeCard.querySelector('.cj-brand-name');
+        if (nameEl) {
+          nameEl.insertAdjacentHTML('beforeend',
+            ' <span class="cj-cached-pill" title="A previous result is cached in this browser">\u2713 Cached</span>');
+        }
+      }
+
       resultsSection.hidden = false;
       progress.finish('success', 'Generated successfully');
-      setStatus(generateStatus, 'Use the tabs to switch views, the ⛶ icon for full-screen, or download the PPTX.', 'success');
+      setStatus(generateStatus, 'Use the tabs to switch views, the \u26F6 icon for full-screen, or download the PPTX.', 'success');
       activateTab('journey');
     } catch (e) {
       console.error('[client-journey] generate failed', e);
@@ -719,6 +892,32 @@
     downloadPptxBtn.addEventListener('click', downloadPptx);
     tabJourney.addEventListener('click', function () { activateTab('journey'); });
     tabOnePager.addEventListener('click', function () { activateTab('onepager'); });
+    if (prevLoadBtn) {
+      prevLoadBtn.addEventListener('click', function () {
+        if (!state.selectedScrape) return;
+        var entry = loadFromCache(getSandbox(), state.selectedScrape.scrapeId);
+        if (!entry) {
+          setStatus(generateStatus, 'No cached result for this scrape any more — generate a fresh one.', 'error');
+          hidePrevBanner();
+          return;
+        }
+        applyCachedEntry(entry);
+      });
+    }
+    if (prevForgetBtn) {
+      prevForgetBtn.addEventListener('click', function () {
+        if (!state.selectedScrape) return;
+        var sb = getSandbox();
+        var key = cacheKey(sb, state.selectedScrape.scrapeId);
+        try { localStorage.removeItem(key); } catch (_) {}
+        var idx = readCacheIndex().filter(function (k) { return k !== key; });
+        writeCacheIndex(idx);
+        hidePrevBanner();
+        var pill = scrapeCard.querySelector('.cj-cached-pill');
+        if (pill) pill.remove();
+        setStatus(generateStatus, 'Cached result forgotten.', '');
+      });
+    }
     syncBrandColourInputs();
     bindFullscreenButtons();
     refreshSandboxBadge();
