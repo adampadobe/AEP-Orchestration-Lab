@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo use case assets – AEP Profile Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260423b">
+  <link rel="stylesheet" href="demo-use-case-asset.css?v=20260429a">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="demo-use-case-asset-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Generate a 3-slide demo presentation deck (Framing → Experience → Value) using Vertex AI Gemini">Demo use case assets</span>
+          <a href="brand-scraper.html" class="dashboard-topbar-link">Brand scraper</a>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main duc-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="bannerHeadingDemoUseCase">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="bannerHeadingDemoUseCase" class="dashboard-hero-title">Demo use case assets</h2>
+              <p class="dashboard-hero-subtitle">
+                Drop in a customer's URL and we'll pull the matching <a href="brand-scraper.html">Brand scrape</a>, ask <strong>Vertex AI Gemini</strong> to design a 3-slide live-demo deck around your chosen Adobe products, and produce three assets you can present and leave behind: a <strong>Framing slide</strong>, an <strong>Experience walkthrough</strong>, and a <strong>Value statement</strong> — all downloadable as a PowerPoint.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="duc-controls panel" aria-label="Customer lookup">
+          <div class="duc-controls-row">
+            <div class="form-row duc-url-row">
+              <label for="ducUrl">Customer URL, domain, or brand name</label>
+              <input type="text" id="ducUrl" placeholder='e.g. flynas.com, https://www.three.co.uk/, or "Nike"' autocomplete="off">
+            </div>
+            <div class="form-row duc-actions-row">
+              <button type="button" id="ducLookupBtn" class="primary">Look up scrape</button>
+            </div>
+          </div>
+          <p class="duc-sandbox-hint" role="status" aria-live="polite">
+            Looking up scrapes in sandbox
+            <span class="duc-sandbox-badge" id="ducSandboxBadge" title="Active sandbox (set in Global values)">…</span>
+            · <a href="global-settings.html" class="duc-sandbox-change-link">change in Global values</a>
+          </p>
+          <p id="ducLookupStatus" class="status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="duc-scrape-summary panel" id="ducScrapeSummary" hidden>
+          <div class="duc-scrape-card" id="ducScrapeCard"></div>
+          <div class="duc-refine-form" id="ducRefineForm">
+            <div class="form-row">
+              <label for="ducBrandColour">Brand colour</label>
+              <div class="duc-colour-input">
+                <input type="color" id="ducBrandColourPicker" value="#E60000" aria-label="Brand colour">
+                <input type="text" id="ducBrandColour" value="#E60000" maxlength="7" pattern="^#[0-9a-fA-F]{6}$" aria-label="Brand colour hex">
+              </div>
+              <p class="duc-swatch-caption" id="ducBrandSwatchCaption" hidden>From scrape — click to use:</p>
+              <div class="duc-brand-swatch-row" id="ducBrandSwatchRow" role="radiogroup" aria-label="Pick a brand colour from the scrape" hidden></div>
+            </div>
+
+            <div class="form-row">
+              <label for="ducUseCase">Use case statement <span class="duc-form-hint">(first-person customer voice)</span></label>
+              <div class="duc-combo" id="ducUseCaseCombo">
+                <input type="text" id="ducUseCase" placeholder='e.g. "I want to renew my insurance with one tap"' autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ducUseCasePanel" aria-autocomplete="list">
+                <button type="button" class="duc-combo-toggle" id="ducUseCaseToggle" aria-label="Show use case suggestions" aria-expanded="false" tabindex="-1" hidden>
+                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="duc-combo-panel" id="ducUseCasePanel" role="listbox" aria-label="Use case suggestions" hidden></div>
+              </div>
+              <p class="duc-suggest-hint" id="ducUseCaseHint" hidden></p>
+            </div>
+
+            <div class="form-row">
+              <label>Adobe products to demonstrate <span class="duc-form-hint">(multi-select)</span></label>
+              <div class="duc-products" id="ducProducts" role="group" aria-label="Pick the Adobe products you'll demo"></div>
+              <div class="duc-custom-product">
+                <label for="ducCustomProduct" class="duc-custom-product-label">Other (custom) <span class="duc-form-hint">— for products not in the catalog</span></label>
+                <input type="text" id="ducCustomProduct" placeholder="e.g. Acrobat Sign, GenStudio for Performance Marketing" autocomplete="off">
+              </div>
+            </div>
+
+            <div class="duc-row-pair">
+              <div class="form-row">
+                <label for="ducPersona">Persona name (optional)</label>
+                <div class="duc-combo" id="ducPersonaCombo">
+                  <input type="text" id="ducPersona" placeholder="e.g. Sarah" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ducPersonaPanel" aria-autocomplete="list">
+                  <button type="button" class="duc-combo-toggle" id="ducPersonaToggle" aria-label="Show persona suggestions" aria-expanded="false" tabindex="-1" hidden>
+                    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="duc-combo-panel" id="ducPersonaPanel" role="listbox" aria-label="Persona suggestions" hidden></div>
+                </div>
+                <p class="duc-suggest-hint" id="ducPersonaHint" hidden></p>
+              </div>
+              <div class="form-row">
+                <label for="ducStepCount">Steps in walkthrough</label>
+                <select id="ducStepCount" class="duc-step-count">
+                  <option value="5">5 steps</option>
+                  <option value="6" selected>6 steps</option>
+                  <option value="7">7 steps</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label>Imagery <span class="duc-form-hint">(optional — drop in real photos to lift the deck)</span></label>
+              <div class="duc-dropzones">
+                <div class="duc-dropzone" data-image-slot="persona">
+                  <span class="duc-dz-title">Persona photo</span>
+                  <span class="duc-dz-sub">Slide 2 head shot</span>
+                  <div class="duc-dz-area" data-dz-target="persona">
+                    <input type="file" id="ducDzPersona" accept="image/*" hidden>
+                    <div class="duc-dz-empty"><span>Drop or click to upload</span><small>JPG / PNG · square works best</small></div>
+                    <img class="duc-dz-preview" alt="" hidden>
+                  </div>
+                  <button type="button" class="duc-dz-clear" data-dz-clear="persona" hidden>Use stock fallback</button>
+                </div>
+                <div class="duc-dropzone" data-image-slot="device">
+                  <span class="duc-dz-title">Device screenshot</span>
+                  <span class="duc-dz-sub">Slide 1 laptop screen</span>
+                  <div class="duc-dz-area" data-dz-target="device">
+                    <input type="file" id="ducDzDevice" accept="image/*" hidden>
+                    <div class="duc-dz-empty"><span>Drop or click to upload</span><small>JPG / PNG · 16:10 works best</small></div>
+                    <img class="duc-dz-preview" alt="" hidden>
+                  </div>
+                  <button type="button" class="duc-dz-clear" data-dz-clear="device" hidden>Use stock fallback</button>
+                </div>
+                <div class="duc-dropzone" data-image-slot="lifestyle">
+                  <span class="duc-dz-title">Lifestyle photo</span>
+                  <span class="duc-dz-sub">Slide 3 background</span>
+                  <div class="duc-dz-area" data-dz-target="lifestyle">
+                    <input type="file" id="ducDzLifestyle" accept="image/*" hidden>
+                    <div class="duc-dz-empty"><span>Drop or click to upload</span><small>JPG / PNG · landscape works best</small></div>
+                    <img class="duc-dz-preview" alt="" hidden>
+                  </div>
+                  <button type="button" class="duc-dz-clear" data-dz-clear="lifestyle" hidden>Use stock fallback</button>
+                </div>
+              </div>
+              <p class="duc-suggest-hint">Without an upload we render an inline SVG mockup (laptop with synthetic AJO canvas, initials avatar, brand-tinted gradient) so the deck still looks coherent.</p>
+            </div>
+
+            <div class="form-row">
+              <label for="ducAdditionalContext">Additional context for Vertex AI <span class="duc-form-hint">(optional)</span></label>
+              <textarea id="ducAdditionalContext" class="duc-textarea" rows="3" placeholder="e.g. Focus on first-time travellers, emphasise loyalty rewards, set in the EMEA market, include a Marketo handoff…" spellcheck="true"></textarea>
+              <p class="duc-suggest-hint">Anything you add here is appended to the Vertex AI prompt to steer the first generation.</p>
+            </div>
+
+            <div class="form-row duc-generate-row">
+              <button type="button" id="ducGenerateBtn" class="primary">Generate demo deck</button>
+              <button type="button" id="ducPrevLoadBtn" class="duc-prev-load" hidden title="Restore the previous result for this scrape from your browser cache">Load previous result</button>
+              <button type="button" id="ducPrevForgetBtn" class="duc-prev-forget" hidden title="Remove this cached result from your browser">Forget</button>
+              <span id="ducGenerateStatus" class="status" role="status" aria-live="polite"></span>
+            </div>
+            <div class="duc-progress" id="ducProgress" hidden role="status" aria-live="polite" aria-atomic="true">
+              <div class="duc-progress-header">
+                <span class="duc-progress-stage" id="ducProgressStage">Starting…</span>
+                <span class="duc-progress-elapsed" id="ducProgressElapsed">0s</span>
+              </div>
+              <div class="duc-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="ducProgressTrack">
+                <div class="duc-progress-fill" id="ducProgressFill"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="duc-results" id="ducResults" hidden>
+          <div class="duc-refine-panel" id="ducRefinePanel">
+            <div class="duc-refine-panel-header">
+              <span class="duc-refine-panel-title">Refine with Vertex AI</span>
+              <span class="duc-refine-panel-status status" id="ducRefineStatus" role="status" aria-live="polite"></span>
+            </div>
+            <textarea id="ducRefinePrompt" class="duc-textarea" rows="3" placeholder="e.g. Make step 4 a WhatsApp message, swap the priority to Medium, tighten the value statement to a single sentence, drop the 'Mix Modeller' product…" spellcheck="true"></textarea>
+            <div class="duc-refine-panel-actions">
+              <button type="button" id="ducRefineBtn" class="primary">Refine deck</button>
+              <span class="duc-refine-panel-hint">Sends your prompt + the current demo JSON back to Vertex AI to update all 3 slides. Takes about as long as the first generation.</span>
+            </div>
+          </div>
+
+          <div class="duc-recolour" id="ducRecolour" hidden>
+            <span class="duc-recolour-label">Recolour with palette:</span>
+            <div class="duc-recolour-swatches" id="ducRecolourSwatches" role="radiogroup" aria-label="Apply a brand colour from the scrape"></div>
+            <span class="duc-recolour-divider" aria-hidden="true">·</span>
+            <label class="duc-recolour-custom">
+              <span class="visually-hidden">Custom hex</span>
+              <input type="color" id="ducRecolourPicker" value="#1151FF" aria-label="Pick a custom brand colour">
+              <input type="text" id="ducRecolourHex" value="#1151FF" maxlength="7" pattern="^#[0-9a-fA-F]{6}$" aria-label="Custom brand colour hex" spellcheck="false">
+            </label>
+            <button type="button" id="ducRecolourEyedropper" class="duc-recolour-eyedropper" hidden title="Pick a colour from anywhere on the screen" aria-label="Pick a colour from anywhere on the screen">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 22l3-3"/>
+                <path d="M5 19l9-9"/>
+                <path d="M14 10l4-4"/>
+                <path d="M14 10l3 3"/>
+                <path d="M18 6l-3-3a2.828 2.828 0 1 0-4 4l3 3"/>
+              </svg>
+              <span>Eyedropper</span>
+            </button>
+            <button type="button" id="ducRecolourReset" class="duc-recolour-reset" title="Restore the colour the deck was generated with">Reset</button>
+          </div>
+
+          <div class="duc-results-tabs" role="tablist" aria-label="Slide views">
+            <button type="button" role="tab" data-tab="framing" aria-selected="true" id="ducTabFraming">Framing</button>
+            <button type="button" role="tab" data-tab="experience" aria-selected="false" id="ducTabExperience">Experience</button>
+            <button type="button" role="tab" data-tab="value" aria-selected="false" id="ducTabValue">Value</button>
+            <button type="button" id="ducDownloadPptxBtn" class="duc-download-pptx" title="Download the 3-slide PPTX deck as a leave behind for the customer">Download PPTX</button>
+          </div>
+
+          <div class="duc-embed-panel" id="ducEmbedFraming" data-tab-panel="framing">
+            <div class="duc-embed-toolbar">
+              <span class="duc-embed-title">Slide 1 — Framing the demo</span>
+              <button type="button" class="duc-fullscreen-btn aep-fullscreen-btn" data-target="ducEmbedFraming" aria-pressed="false" aria-label="Enter full screen" title="Fill the screen. Press Esc to exit."></button>
+            </div>
+            <iframe id="ducFramingIframe" class="duc-iframe" title="Demo framing slide" sandbox="allow-scripts allow-same-origin allow-popups" loading="lazy"></iframe>
+          </div>
+
+          <div class="duc-embed-panel" id="ducEmbedExperience" data-tab-panel="experience" hidden>
+            <div class="duc-embed-toolbar">
+              <span class="duc-embed-title">Slide 2 — Experience walkthrough</span>
+              <button type="button" class="duc-fullscreen-btn aep-fullscreen-btn" data-target="ducEmbedExperience" aria-pressed="false" aria-label="Enter full screen" title="Fill the screen. Press Esc to exit."></button>
+            </div>
+            <iframe id="ducExperienceIframe" class="duc-iframe" title="Demo experience walkthrough" sandbox="allow-scripts allow-same-origin allow-popups" loading="lazy"></iframe>
+          </div>
+
+          <div class="duc-embed-panel" id="ducEmbedValue" data-tab-panel="value" hidden>
+            <div class="duc-embed-toolbar">
+              <span class="duc-embed-title">Slide 3 — Value statement</span>
+              <button type="button" class="duc-fullscreen-btn aep-fullscreen-btn" data-target="ducEmbedValue" aria-pressed="false" aria-label="Enter full screen" title="Fill the screen. Press Esc to exit."></button>
+            </div>
+            <iframe id="ducValueIframe" class="duc-iframe" title="Demo value statement" sandbox="allow-scripts allow-same-origin allow-popups" loading="lazy"></iframe>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260420a"></script>
+  <script src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260420a"></script>
+  <script src="aep-lab-nav.js?v=20260429-duc"></script>
+  <script src="demo-use-case-asset.js?v=20260429a"></script>
+</body>
+</html>

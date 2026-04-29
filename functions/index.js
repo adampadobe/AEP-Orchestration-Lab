@@ -69,6 +69,7 @@ const brandScraperService = lazyRequireMod('./brandScraperService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
 const clientJourneyAssetService = lazyRequireMod('./clientJourneyAssetService');
+const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -3136,6 +3137,55 @@ exports.clientJourneyPptx = onRequest(
     setCors(res, 'POST, OPTIONS');
     res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
     await clientJourneyAssetService.handlePptx(req, res);
+  }
+);
+
+/**
+ * POST /api/demo-use-case/generate
+ * Body: { sandbox, scrapeId, brandColour?, useCase?, personaName?, products?,
+ *         customProduct?, stepCount?, additionalContext?, previousData?,
+ *         refinementPrompt?, clientName?, images? }
+ * Returns: { ok, mode, demoData, framingHtml, experienceHtml, valueHtml }
+ *
+ * Sister of clientJourneyGenerate — produces a 3-slide demo deck (framing
+ * → experience → value) for use alongside live customer demos. Same
+ * orchestration shape (Vertex Gemini structured-output → normalise →
+ * render HTML) just with a different schema and renderers.
+ */
+exports.demoUseCaseGenerate = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 240,
+    memory: '1GiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await demoUseCaseAssetService.handleGenerate(req, res);
+  }
+);
+
+/**
+ * POST /api/demo-use-case/pptx
+ * Body: { demoData, images? }
+ * Returns: binary application/vnd.openxmlformats-officedocument.presentationml.presentation
+ *
+ * Stateless: caller supplies a previously-generated demoData JSON object
+ * plus any uploaded images (base64 data URLs); we render a 16:9 3-slide
+ * deck via PptxGenJS and stream it back. No LLM call.
+ */
+exports.demoUseCasePptx = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await demoUseCaseAssetService.handlePptx(req, res);
   }
 );
 
