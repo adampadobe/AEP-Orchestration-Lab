@@ -94,6 +94,19 @@
     return raw;
   }
 
+  // True for inputs we can hand off to the brand-scraper as-is. Brand-name-only
+  // text like "Nike" comes back false because the scraper itself needs a real
+  // URL/domain to crawl — we still allow it for *lookup* (fuzzy match against
+  // existing scrapes), but not for kicking off a new scrape.
+  function looksLikeUrl(input) {
+    var raw = String(input || '').trim().toLowerCase();
+    if (!raw) return false;
+    if (/^https?:\/\//.test(raw)) return true;
+    var bare = raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[\/?#]/)[0];
+    // Require a dot AND a valid TLD-ish suffix (≥2 chars, letters only).
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(bare) && /\.[a-z]{2,}$/.test(bare);
+  }
+
   function hostFromUrl(u) {
     if (!u) return '';
     try {
@@ -290,7 +303,7 @@
       else if (nameContains.length){ candidates = nameContains; matchKind = 'brand name contains'; }
 
       if (!candidates.length) {
-        showScrapeMissing(domain, sandbox);
+        showScrapeMissing(domain, sandbox, /* expired */ false, urlInput.value);
         setStatus(lookupStatus, 'No brand scrape matches "' + domain + '" in sandbox "' + sandbox + '".', 'error');
         return;
       }
@@ -310,7 +323,7 @@
       var hydrated = await fetchScrape(sandbox, pick.scrapeId);
       if (!hydrated) throw new Error('Failed to load scrape ' + pick.scrapeId);
       if (hydrated.payloadExpired) {
-        showScrapeMissing(domain, sandbox, /* expired */ true);
+        showScrapeMissing(domain, sandbox, /* expired */ true, urlInput.value);
         setStatus(lookupStatus, 'Scrape payload has expired (>3 days). Re-run the scrape.', 'error');
         return;
       }
@@ -324,14 +337,33 @@
     }
   }
 
-  function showScrapeMissing(domain, sandbox, expired) {
+  function showScrapeMissing(domain, sandbox, expired, rawInput) {
     summarySection.hidden = false;
+    var hasUrl = looksLikeUrl(rawInput);
     var msg = expired
       ? 'The scrape for <strong>' + escapeHtml(domain) + '</strong> in sandbox "' + escapeHtml(sandbox) + '" exists but its payload has expired (bucket lifecycle is 3 days).'
       : 'No brand scrape for <strong>' + escapeHtml(domain) + '</strong> in sandbox "' + escapeHtml(sandbox) + '".';
-    scrapeCard.innerHTML = '<div class="cj-empty">' + msg +
-      ' <a href="brand-scraper.html?url=' + encodeURIComponent('https://' + domain) + '&sandbox=' + encodeURIComponent(sandbox) + '">Run a scrape</a> first, then come back here.</div>';
-    // Hide the refine form until we have data
+
+    var actionHtml;
+    if (hasUrl) {
+      // Input is URL-shaped — we can pre-fill the scraper safely.
+      actionHtml = ' <a href="brand-scraper.html?url=' +
+        encodeURIComponent(/^https?:\/\//.test(rawInput) ? rawInput : ('https://' + domain)) +
+        '&sandbox=' + encodeURIComponent(sandbox) +
+        '">Run a scrape</a> first, then come back here.';
+    } else {
+      // Brand-name-only input ("Nike") can't be scraped directly — the
+      // brand-scraper needs a real URL/domain to crawl. Send the user there
+      // without a pre-filled URL so they enter the customer's site themselves.
+      actionHtml = '<br><span class="cj-empty-hint">' +
+        'To run a new scrape, you need the customer\'s exact URL or domain ' +
+        '(e.g. <code>nike.com</code> or <code>https://www.nike.com/uk/</code>). ' +
+        '<a href="brand-scraper.html?sandbox=' + encodeURIComponent(sandbox) + '">Open Brand scraper</a>' +
+        ' and enter the full URL there, then come back here.' +
+        '</span>';
+    }
+
+    scrapeCard.innerHTML = '<div class="cj-empty">' + msg + actionHtml + '</div>';
     document.getElementById('cjRefineForm').style.display = 'none';
   }
 

@@ -349,6 +349,23 @@
   font-weight: 600;
 }
 
+.client-journey-asset-page .cj-empty-hint {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: var(--dash-text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.client-journey-asset-page .cj-empty-hint code {
+  padding: 1px 6px;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
 /* ── Results: tabs + iframes + fullscreen ────────────────────────────── */
 
 .client-journey-asset-page .cj-results {
