@@ -11,16 +11,17 @@ Read this fully before making your first change.
 ## Table of contents
 
 1. [Collaboration, Git, and environment](#collaboration-git-and-environment)
-2. [Architecture overview](#architecture-overview)
-3. [Directory map](#directory-map)
-4. [Light / dark theming system (critical)](#light--dark-theming-system)
-5. [Adding a new page](#adding-a-new-page)
-6. [CSS rules and conventions](#css-rules-and-conventions)
-7. [Cloud Functions patterns](#cloud-functions-patterns)
-8. [Credentials, secrets and .env files](#credentials-secrets-and-env-files)
-9. [Change workflow (mandatory)](#change-workflow-mandatory)
-10. [Deployment](#deployment)
-11. [Things you must never do](#things-you-must-never-do)
+2. [Commit messages (GitHub handle prefix)](#commit-messages-github-handle-prefix)
+3. [Architecture overview](#architecture-overview)
+4. [Directory map](#directory-map)
+5. [Light / dark theming system (critical)](#light--dark-theming-system)
+6. [Adding a new page](#adding-a-new-page)
+7. [CSS rules and conventions](#css-rules-and-conventions)
+8. [Cloud Functions patterns](#cloud-functions-patterns)
+9. [Credentials, secrets and .env files](#credentials-secrets-and-env-files)
+10. [Change workflow (mandatory)](#change-workflow-mandatory)
+11. [Deployment](#deployment)
+12. [Things you must never do](#things-you-must-never-do)
 
 ---
 
@@ -103,6 +104,25 @@ These hosted paths are part of the lab surface and must stay in **`web/profile-v
 The interactive SVG diagram uses **`data/architecture-logos.json`** for the icon/logo picker. Optional **`tags`** on each entry are validated against **`data/martech-taxonomy-reference.json`** (`npm run validate:architecture-logos-tags`, also in CI). Ecosystem vendor SVGs live under **`web/profile-viewer/images/ecosystem-vendor-logos/`**; **`vendorIndex`** in the taxonomy file must match those files (`npm run validate:ecosystem-vendor-index`). Regenerate tags after bulk catalog edits with **`python3 scripts/tag-architecture-logos.py`**.
 
 **Interop:** Full layout round-trip uses **Download JSON** / **Import JSON**. The smaller **stack summary** format is defined in **`data/diagram-interop.json`** and implemented in **`web/profile-viewer/diagram/interop.js`** (export includes **`catalogTags`** when asset paths match the logo catalog). **Import stack summary** adds vendor/icon boxes only; it does not restore connectors or canonical node positions.
+
+---
+
+## Commit messages (GitHub handle prefix)
+
+We have had **ambiguous overwrites** when multiple people ship hosting, merge built assets, or push submodule updates. Make ownership obvious in **`git log --oneline`** and in GitHub history before you open a commit:
+
+1. **Start the subject line** with your **GitHub username in brackets**, then a space, then the summary — for example: **`[apalmer] EDS quickstart: hide duplicate next-steps when repo exists`**. Use the handle people recognize on **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (not an email local-part unless it matches that handle).
+2. Keep **`git config user.name`** and **`git config user.email`** accurate; the bracket prefix is an extra signal when scanning history, when squashing, or when author metadata is generic across machines.
+3. **Submodule repositories** (for example **`tools/eds-quickstart`**): use the **same `[handle]` prefix** on commits in the submodule so the parent repo’s submodule pointer traces to a human-readable subject.
+4. **Automation** (bots, scripted commits): use a stable bracket tag such as **`[bot]`** or the service name in the same style.
+
+**Optional:** install the repo’s commit template once so your editor opens with a reminder (replace the handle each time, or keep your personal clone configured with your handle baked in):
+
+```bash
+git config commit.template .gitmessage
+```
+
+The template file **`.gitmessage`** lives at the repository root next to this document.
 
 ---
 
@@ -497,7 +517,7 @@ Every change **must** follow this ordered ritual. Do not skip any step.
 | 2. **Make changes** | Edit files in `web/` (hosting) or `functions/` | Source of truth for deployed code |
 | 3. **Sync prototypes** | `npm run sync-profile-viewer-ui` when you changed `web/profile-viewer/` (copies **→** prototype `public/`) | Keep the vendored Express mirror aligned with Hosting |
 | 4. **Verify preserved routes** | `npm run verify:profile-viewer-routes` when you changed `web/profile-viewer/` | Fails if Decisioning **`journey-arbitration.html` redirect**, **journey-arbitration-v2** (and embed), or **eds-quickstart** files or nav wiring are wrong, OR if the hard-deleted **`decisioning-overview-v2.html`** is resurrected (see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes)) |
-| 5. **Commit** | `git add` (focused scope) → `git commit -m "..."` | Atomic, reviewable units |
+| 5. **Commit** | `git add` (focused scope) → `git commit -m "[<github-handle>] …"` (see [Commit messages (GitHub handle prefix)](#commit-messages-github-handle-prefix)) | Atomic, reviewable units; handle prefix makes ownership obvious in history |
 | 6. **Phase B sync** | `git fetch origin && git status` — pull/rebase if behind | Don't push on top of a teammate's commit (see [Phase B](#phase-b--immediately-before-git-push)) |
 | 7. **Push** | `git push origin <branch>` | GitHub is the audit trail; teammates and CI see your work |
 | 8. **Phase C sync** | `git fetch origin && git status` — pull AND rebuild sub-apps if behind | Don't silently overwrite a teammate's hosted assets (see [Phase C](#phase-c--immediately-before-firebase-deploy)) |

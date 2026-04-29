@@ -19,7 +19,7 @@ git fetch origin && git status        # confirm 0 behind origin/main
 ```bash
 git status                            # review focused scope
 git add <focused paths>
-git commit -m "..."
+git commit -m "[<github-handle>] …"   # e.g. [apalmer] — see CONTRIBUTING.md § commit prefix
 ```
 
 ## 3. Sync again — IMMEDIATELY before push

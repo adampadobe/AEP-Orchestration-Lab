@@ -1,0 +1,7 @@
+[<github-handle>] Short imperative summary (≤ ~60 chars after the prefix)
+
+# Optional body: what changed and why. Remove lines starting with # before saving
+# if your editor would keep them in the final message.
+#
+# Convention: CONTRIBUTING.md → "Commit messages (GitHub handle prefix)"
+# Example: [apalmer] Fix profile-viewer nav for journey-arbitration v2

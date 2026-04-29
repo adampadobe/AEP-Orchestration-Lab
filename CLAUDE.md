@@ -77,6 +77,8 @@ Immediately before `git push`: fetch and integrate again if anyone else may have
 
 Ship order: **commit → push → deploy**. Never deploy uncommitted work. Never force-push `main`.
 
+Commit subjects: prefix with **`[<github-handle>]`** (e.g. **`[apalmer]`**) so history shows who shipped each change — see **CONTRIBUTING.md** → *Commit messages (GitHub handle prefix)*.
+
 Upstream: `https://github.com/adampadobe/AEP-Orchestration-Lab`
 
 ## Light / dark theming — critical rules
