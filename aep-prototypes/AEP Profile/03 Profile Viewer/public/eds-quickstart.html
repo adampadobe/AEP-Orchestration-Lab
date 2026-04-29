@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EDS Site Bootstrap (demo) – AEP Profile Viewer</title>
+  <title>EDS Demo Creator (in development) – AEP Profile Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,15 +13,26 @@
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <style>
+    /* Make the main column a vertical flex container so the iframe panel
+       fills the remaining viewport under the hero banner. */
+    body.eds-quickstart-page main.dashboard-main {
+      display: flex;
+      flex-direction: column;
+      min-height: calc(100vh - 64px);
+    }
+
     .eds-quickstart-frame-wrap {
       position: relative;
+      flex: 1 1 auto;
+      min-height: 600px;
       width: 100%;
-      height: calc(100vh - 64px);
       background: var(--dash-surface);
+      border: 1px solid var(--dash-border);
       border-radius: var(--dash-radius);
       overflow: hidden;
       box-shadow: var(--dash-shadow);
     }
+
     .eds-quickstart-frame-wrap iframe {
       position: absolute;
       inset: 0;
@@ -29,17 +40,43 @@
       height: 100%;
       border: 0;
       background: transparent;
+      display: block;
     }
+
     .eds-quickstart-fallback {
-      padding: 2rem;
+      padding: 1.5rem 1.75rem;
       color: var(--dash-text-secondary);
       font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.92rem;
+      line-height: 1.55;
     }
+
+    .eds-quickstart-fallback h2 {
+      margin: 0 0 0.5rem;
+      color: var(--dash-text);
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
     .eds-quickstart-fallback code {
       background: var(--dash-input-bg);
-      padding: 0.15rem 0.4rem;
+      border: 1px solid var(--dash-input-border);
+      padding: 0.12rem 0.4rem;
       border-radius: 4px;
-      font-size: 0.9em;
+      font-size: 0.86em;
+      color: var(--dash-text);
+    }
+
+    /* "In development" pill in the topbar — slightly muted vs. the standard env pill. */
+    .dashboard-env-pill.dashboard-env-pill--indev {
+      background: var(--dash-warning-soft, rgba(255, 196, 87, 0.18));
+      color: var(--dash-warning, #b8860b);
+      border: 1px solid var(--dash-warning-border, rgba(184, 134, 11, 0.35));
+    }
+    html[data-aep-theme='dark'] .dashboard-env-pill.dashboard-env-pill--indev {
+      background: rgba(255, 196, 87, 0.12);
+      color: #f0c674;
+      border-color: rgba(240, 198, 116, 0.3);
     }
   </style>
 </head>
@@ -51,18 +88,29 @@
       <header class="dashboard-topbar">
         <h1 class="dashboard-topbar-title">AEP Profile Viewer</h1>
         <div class="dashboard-topbar-right">
-          <span class="dashboard-env-pill" title="Local tool">Demo</span>
+          <span class="dashboard-env-pill dashboard-env-pill--indev" title="In development – hidden by default; enable in-dev capabilities per sandbox to see it">In development</span>
           <a href="https://www.aem.live/" class="dashboard-topbar-link" target="_blank" rel="noopener">aem.live docs</a>
-          <a href="index.html" class="dashboard-topbar-icon" title="Profile Viewer">👤</a>
+          <a href="global-settings.html" class="dashboard-topbar-icon" title="Global values">⚙</a>
         </div>
       </header>
 
       <main class="dashboard-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="edsBannerHeading">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="edsBannerHeading" class="dashboard-hero-title">EDS Demo Creator</h2>
+              <p class="dashboard-hero-subtitle">
+                Spin up a brand-new Edge Delivery Services site against your own GitHub org in seconds, then wire it to <strong>Adobe Data Collection</strong> in the same flow.
+              </p>
+            </header>
+          </div>
+        </section>
+
         <div class="eds-quickstart-frame-wrap" id="edsQuickstartFrameWrap">
           <iframe
             id="edsQuickstartFrame"
-            src="eds-quickstart/index.html"
-            title="EDS Site Bootstrap"
+            src="eds-quickstart/index.html?v=20260428i"
+            title="EDS Demo Creator"
             allow="clipboard-read; clipboard-write"
             loading="eager"></iframe>
         </div>
@@ -97,6 +145,6 @@
 
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
-  <script defer src="aep-lab-nav.js?v=20260427-overview-v2-journey"></script>
+  <script defer src="aep-lab-nav.js?v=20260428-eds-demo-creator"></script>
 </body>
 </html>

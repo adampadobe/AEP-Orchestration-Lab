@@ -596,7 +596,7 @@ CI does **not** build or deploy functions. Deployment is manual.
 
 ## EDS Quickstart submodule
 
-The **EDS Site Bootstrap (demo)** entry under the **Demos** sidebar is a
+The **EDS Demo Creator (in development)** entry under the **Demos** sidebar is a
 React + Adobe React Spectrum SPA vendored from a fork of Kasper Van Eeghem's
 private `vaneeghemk/eds-quickstart` Adobe I/O App Builder project.
 

@@ -73,8 +73,22 @@ if (!nav.includes('journey-arbitration-v2.html')) {
   failed = true;
 }
 if (!nav.includes("href: 'eds-quickstart.html'")) {
-  console.error('aep-lab-nav.js must include the EDS Site Bootstrap demo entry (href: eds-quickstart.html)');
+  console.error('aep-lab-nav.js must include the EDS Demo Creator entry (href: eds-quickstart.html)');
   failed = true;
+}
+// EDS Demo Creator is in-development; its nav entry MUST stay gated so it is hidden
+// from everyone by default (master in-dev toggle off + per-item Global values hide-key).
+const edsNavStart = nav.indexOf("href: 'eds-quickstart.html'");
+if (edsNavStart !== -1) {
+  const edsNavWindow = nav.slice(Math.max(0, edsNavStart - 200), edsNavStart + 600);
+  if (!edsNavWindow.includes('inDevelopment: true')) {
+    console.error('aep-lab-nav.js: EDS Demo Creator entry must set inDevelopment: true (hidden by default)');
+    failed = true;
+  }
+  if (!edsNavWindow.includes("navHideKey: 'edsQuickstart'")) {
+    console.error("aep-lab-nav.js: EDS Demo Creator entry must set navHideKey: 'edsQuickstart' (Global values toggle)");
+    failed = true;
+  }
 }
 
 const gsPath = path.join(root, 'web/profile-viewer/global-settings.html');
@@ -89,6 +103,10 @@ if (!gs.includes('journeyArbitrationV2')) {
 }
 if (gs.includes('decisioningOverviewV2')) {
   console.error('global-settings.html must NOT include nav hide key decisioningOverviewV2 (page hard-deleted)');
+  failed = true;
+}
+if (!gs.includes('data-aep-nav-hide-key="edsQuickstart"')) {
+  console.error('global-settings.html must include nav hide key edsQuickstart (per-item toggle for EDS Demo Creator)');
   failed = true;
 }
 

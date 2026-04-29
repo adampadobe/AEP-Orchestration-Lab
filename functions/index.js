@@ -2573,19 +2573,32 @@ exports.eventDatastreamsProxy = onRequest(
     if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
     if (req.method !== 'GET') { res.status(405).json({ error: 'GET only' }); return; }
 
+    /** Lightweight: deployment IMS org only (no Edge list call) — for manual datastream entry in EDS quickstart. */
+    if (String(req.query.imsOrgOnly || '').trim() === '1') {
+      res.status(200).json({ ok: true, imsOrg: ADOBE_IMS_ORG.value() });
+      return;
+    }
+
     let accessToken;
     try { accessToken = await getAdobeAccessToken(); }
     catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
 
     try {
-      const result = await eventEdgeService.listDatastreams(accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value());
+      const imsOrg = ADOBE_IMS_ORG.value();
+      const result = await eventEdgeService.listDatastreams(accessToken, ADOBE_CLIENT_ID.value(), imsOrg);
       if (result && result.errors) {
-        res.status(200).json({ ok: false, datastreams: [], discoveryErrors: result.errors, note: 'Auto-discovery failed. Use manual datastream ID input.' });
+        res.status(200).json({
+          ok: false,
+          datastreams: [],
+          discoveryErrors: result.errors,
+          note: 'Auto-discovery failed. Use manual datastream ID input.',
+          imsOrg,
+        });
       } else {
-        res.status(200).json({ ok: true, datastreams: Array.isArray(result) ? result : [] });
+        res.status(200).json({ ok: true, datastreams: Array.isArray(result) ? result : [], imsOrg });
       }
     } catch (e) {
-      res.status(500).json({ error: String(e.message || e), datastreams: [] });
+      res.status(500).json({ error: String(e.message || e), datastreams: [], imsOrg: ADOBE_IMS_ORG.value() });
     }
   },
 );
