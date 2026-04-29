@@ -413,11 +413,38 @@
     tabOnePager.addEventListener('click', function () { activateTab('onepager'); });
     syncBrandColourInputs();
     bindFullscreenButtons();
+    // Populate the sandbox <select> via the shared global helper, then wire
+    // the cross-tab + cross-page sync listeners (matches image-hosting and
+    // brand-scraper). Without this the dropdown sits on "Loading sandboxes…"
+    // forever because aep-lab-sandbox-sync only mirrors the active value, it
+    // doesn't fetch the sandbox list itself.
+    initSandboxSelect();
     // Pre-fill URL from ?url= query param so deep-links from elsewhere work.
     try {
       var qs = new URLSearchParams(window.location.search);
       if (qs.get('url')) urlInput.value = qs.get('url');
     } catch (_) { /* noop */ }
+  }
+
+  async function initSandboxSelect() {
+    if (!sandboxSelect) return;
+    try {
+      if (window.AepGlobalSandbox && window.AepGlobalSandbox.loadSandboxesIntoSelect) {
+        await window.AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
+      }
+    } catch (e) {
+      setStatus(lookupStatus, 'Failed to load sandboxes: ' + (e && e.message || e), 'error');
+      console.warn('[client-journey] sandbox load failed', e);
+      return;
+    }
+    if (window.AepGlobalSandbox) {
+      if (typeof window.AepGlobalSandbox.onSandboxSelectChange === 'function') {
+        window.AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
+      }
+      if (typeof window.AepGlobalSandbox.attachStorageSync === 'function') {
+        window.AepGlobalSandbox.attachStorageSync(sandboxSelect);
+      }
+    }
   }
 
   if (document.readyState === 'loading') {
