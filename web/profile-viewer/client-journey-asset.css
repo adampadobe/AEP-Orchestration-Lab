@@ -314,6 +314,30 @@
   color: var(--dash-text-secondary);
 }
 
+.client-journey-asset-page .cj-suggest-hint {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.35;
+}
+
+.client-journey-asset-page .cj-suggest-hint .cj-suggest-hint-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0 0 0 4px;
+  font: inherit;
+  color: var(--dash-blue);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.client-journey-asset-page .cj-suggest-hint .cj-suggest-hint-link:hover {
+  color: var(--dash-blue);
+  filter: brightness(1.1);
+}
+
 .client-journey-asset-page .cj-brand-swatch-row {
   display: flex;
   flex-wrap: wrap;

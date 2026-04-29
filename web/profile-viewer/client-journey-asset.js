@@ -660,10 +660,142 @@
     document.getElementById('cjRefineForm').style.display = 'none';
   }
 
+  // ─── Persona / journey-type dropdown suggestions ──────────────────────
+  //
+  // The brand scrape produces ~6 personas (with occupation/bio) and a mix
+  // of detected + recommended marketing campaigns (with type/channel).
+  // These map cleanly to the two free-text refinement fields, so we pipe
+  // them into a <datalist> attached to each input — that gives a native
+  // combobox UX (click input → suggestions, type to filter, custom values
+  // still allowed) without us having to swap input modes or build a
+  // custom popover. The hint below each input both surfaces the count
+  // and exposes a "Show options" affordance for keyboards that don't
+  // open the datalist on focus.
+  //
+  // We dedupe by lowercased value, cap to a sensible visible count, and
+  // attach friendly secondary labels (occupation / campaign type) so the
+  // user can pick confidently without having to bounce back to the
+  // brand scraper page.
+
+  var MAX_PERSONA_SUGGESTIONS = 12;
+  var MAX_JOURNEY_TYPE_SUGGESTIONS = 16;
+
+  function dedupeByValue(items) {
+    var seen = Object.create(null);
+    var out = [];
+    for (var i = 0; i < items.length; i++) {
+      var v = (items[i].value || '').trim();
+      if (!v) continue;
+      var k = v.toLowerCase();
+      if (seen[k]) continue;
+      seen[k] = true;
+      out.push(items[i]);
+    }
+    return out;
+  }
+
+  function buildPersonaOptions(scrape) {
+    var raw = scrape && scrape.personas && Array.isArray(scrape.personas.personas)
+      ? scrape.personas.personas
+      : (Array.isArray(scrape && scrape.personas) ? scrape.personas : []);
+    var items = raw.map(function (p) {
+      if (!p || typeof p !== 'object') return null;
+      var name = (p.name || '').toString().trim();
+      if (!name) return null;
+      var bits = [];
+      if (p.occupation) bits.push(p.occupation);
+      else if (p.role) bits.push(p.role);
+      if (p.age != null && p.age !== '') bits.push(p.age + 'y');
+      if (p.location) bits.push(p.location);
+      return {
+        value: name,
+        label: bits.filter(Boolean).join(' · '),
+      };
+    }).filter(Boolean);
+    return dedupeByValue(items).slice(0, MAX_PERSONA_SUGGESTIONS);
+  }
+
+  function buildJourneyTypeOptions(scrape) {
+    var raw = scrape && scrape.campaigns && Array.isArray(scrape.campaigns.campaigns)
+      ? scrape.campaigns.campaigns
+      : (Array.isArray(scrape && scrape.campaigns) ? scrape.campaigns : []);
+    // Detected campaigns first (more concrete to the brand), then suggestions.
+    var detected = [];
+    var suggested = [];
+    for (var i = 0; i < raw.length; i++) {
+      var c = raw[i];
+      if (!c || typeof c !== 'object') continue;
+      var name = (c.name || '').toString().trim();
+      if (!name) continue;
+      var bits = [];
+      if (c.type) bits.push(c.type);
+      if (c.channel) bits.push(c.channel);
+      var entry = {
+        value: name,
+        label: bits.filter(Boolean).join(' · '),
+        recommendation: !!c.is_recommendation,
+      };
+      if (c.is_recommendation) suggested.push(entry);
+      else detected.push(entry);
+    }
+    var ordered = detected.concat(suggested);
+    return dedupeByValue(ordered).slice(0, MAX_JOURNEY_TYPE_SUGGESTIONS);
+  }
+
+  function renderDatalist(datalistEl, options) {
+    if (!datalistEl) return;
+    datalistEl.innerHTML = '';
+    if (!options.length) return;
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < options.length; i++) {
+      var o = document.createElement('option');
+      o.value = options[i].value;
+      // Chrome/Edge show the `label` next to the value in the dropdown;
+      // Safari ignores it but still renders the value, so we lose nothing.
+      if (options[i].label) o.label = options[i].label;
+      frag.appendChild(o);
+    }
+    datalistEl.appendChild(frag);
+  }
+
+  function renderSuggestionHint(hintEl, inputEl, options, kind) {
+    if (!hintEl) return;
+    if (!options.length) {
+      hintEl.hidden = true;
+      hintEl.textContent = '';
+      return;
+    }
+    hintEl.hidden = false;
+    hintEl.textContent = options.length + ' ' + kind + ' from this scrape — start typing or ';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cj-suggest-hint-link';
+    btn.textContent = 'show options';
+    btn.addEventListener('click', function () {
+      if (!inputEl) return;
+      inputEl.focus();
+      // Nudge the native datalist popover open by selecting the field
+      // and dispatching an input event — works on Chromium-based browsers.
+      try { inputEl.select(); } catch (_e) { /* no-op */ }
+    });
+    hintEl.appendChild(btn);
+  }
+
+  function populateSuggestions(scrape) {
+    var personaOpts = buildPersonaOptions(scrape);
+    var journeyOpts = buildJourneyTypeOptions(scrape);
+    renderDatalist(document.getElementById('cjPersonaOptions'), personaOpts);
+    renderDatalist(document.getElementById('cjJourneyTypeOptions'), journeyOpts);
+    renderSuggestionHint($('cjPersonaHint'), personaInput, personaOpts, personaOpts.length === 1 ? 'persona' : 'personas');
+    renderSuggestionHint($('cjJourneyTypeHint'), journeyTypeInput, journeyOpts, journeyOpts.length === 1 ? 'campaign' : 'campaigns');
+  }
+
   function onScrapeLoaded(scrape) {
     state.selectedScrape = scrape;
     summarySection.hidden = false;
     document.getElementById('cjRefineForm').style.display = '';
+
+    populateSuggestions(scrape);
 
     var cs = scrape.crawlSummary || {};
     var assets = cs.assets || {};

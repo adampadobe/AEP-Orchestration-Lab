@@ -72,11 +72,15 @@
             </div>
             <div class="form-row">
               <label for="cjJourneyType">Journey type (optional)</label>
-              <input type="text" id="cjJourneyType" placeholder="e.g. Insurance Renewal, Energy Switch, Broadband Acquisition" autocomplete="off">
+              <input type="text" id="cjJourneyType" list="cjJourneyTypeOptions" placeholder="e.g. Insurance Renewal, Energy Switch, Broadband Acquisition" autocomplete="off">
+              <datalist id="cjJourneyTypeOptions"></datalist>
+              <p class="cj-suggest-hint" id="cjJourneyTypeHint" hidden></p>
             </div>
             <div class="form-row">
               <label for="cjPersona">Persona name (optional)</label>
-              <input type="text" id="cjPersona" placeholder="e.g. Sarah" autocomplete="off">
+              <input type="text" id="cjPersona" list="cjPersonaOptions" placeholder="e.g. Sarah" autocomplete="off">
+              <datalist id="cjPersonaOptions"></datalist>
+              <p class="cj-suggest-hint" id="cjPersonaHint" hidden></p>
             </div>
             <div class="form-row cj-generate-row">
               <button type="button" id="cjGenerateBtn" class="primary">Generate journey assets</button>
