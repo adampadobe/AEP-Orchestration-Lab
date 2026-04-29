@@ -34,6 +34,8 @@
   var scrapeCard = $('cjScrapeCard');
   var brandColourInput = $('cjBrandColour');
   var brandColourPicker = $('cjBrandColourPicker');
+  var brandSwatchRow = $('cjBrandSwatchRow');
+  var brandSwatchCaption = $('cjBrandSwatchCaption');
   var journeyTypeInput = $('cjJourneyType');
   var personaInput = $('cjPersona');
   var generateBtn = $('cjGenerateBtn');
@@ -102,21 +104,110 @@
     }
   }
 
-  function pickPrimaryColour(colours) {
-    if (!Array.isArray(colours)) return '#E60000';
+  // Normalise a single colour entry from crawlSummary.assets.colours into
+  // { hex: '#RRGGBB', count: number } | null. The brand-scraper returns
+  // { value, count } ordered by frequency, but older payloads might use
+  // { hex } / { color } or plain strings — handle all three shapes.
+  function normaliseColourEntry(entry) {
+    if (!entry) return null;
+    var raw = typeof entry === 'string'
+      ? entry
+      : (entry.hex || entry.color || entry.value || entry.colour);
+    if (!raw) return null;
+    var m = String(raw).trim().replace(/^#/, '');
+    if (m.length === 3) m = m[0] + m[0] + m[1] + m[1] + m[2] + m[2];
+    if (!/^[0-9a-fA-F]{6}$/.test(m)) return null;
+    return {
+      hex: '#' + m.toUpperCase(),
+      count: typeof entry === 'object' && Number.isFinite(entry.count) ? entry.count : 0,
+    };
+  }
+
+  // Build a deduped, frequency-ordered list of usable brand colours.
+  // We intentionally keep pure white / pure black out of the picker because
+  // they're never useful as a primary brand accent.
+  function normaliseColourList(colours) {
+    if (!Array.isArray(colours)) return [];
+    var seen = Object.create(null);
+    var out = [];
     for (var i = 0; i < colours.length; i++) {
-      var entry = colours[i];
-      var hex = typeof entry === 'string' ? entry : (entry && (entry.hex || entry.color));
-      if (!hex) continue;
-      var m = String(hex).replace(/^#/, '');
-      if (!/^[0-9a-fA-F]{6}$/.test(m)) continue;
-      var r = parseInt(m.slice(0, 2), 16);
-      var g = parseInt(m.slice(2, 4), 16);
-      var b = parseInt(m.slice(4, 6), 16);
-      var lum = 0.299 * r + 0.587 * g + 0.114 * b;
-      if (lum > 18 && lum < 235) return '#' + m.toUpperCase();
+      var n = normaliseColourEntry(colours[i]);
+      if (!n) continue;
+      if (n.hex === '#FFFFFF' || n.hex === '#000000') continue;
+      if (seen[n.hex]) continue;
+      seen[n.hex] = true;
+      out.push(n);
     }
-    return '#E60000';
+    return out;
+  }
+
+  // Choose the strongest brand-accent candidate: highest-frequency colour
+  // that isn't extremely light or extremely dark. Falls back to the first
+  // entry if every candidate is washed-out, or to Adobe's red (#E60000) if
+  // the scrape returned no usable colours at all.
+  function pickPrimaryColour(normalised) {
+    if (!Array.isArray(normalised) || !normalised.length) return '#E60000';
+    for (var i = 0; i < normalised.length; i++) {
+      var hex = normalised[i].hex.replace('#', '');
+      var r = parseInt(hex.slice(0, 2), 16);
+      var g = parseInt(hex.slice(2, 4), 16);
+      var b = parseInt(hex.slice(4, 6), 16);
+      var lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      if (lum > 18 && lum < 235) return normalised[i].hex;
+    }
+    return normalised[0].hex;
+  }
+
+  // Render the click-to-pick swatch row under the brand colour input.
+  // The primary is marked with a small "P" pip and selected by default.
+  function renderBrandSwatches(normalised, primary) {
+    if (!brandSwatchRow || !brandSwatchCaption) return;
+    if (!normalised.length) {
+      brandSwatchRow.hidden = true;
+      brandSwatchCaption.hidden = true;
+      brandSwatchRow.innerHTML = '';
+      return;
+    }
+    brandSwatchCaption.hidden = false;
+    brandSwatchRow.hidden = false;
+    var primaryUpper = (primary || '').toUpperCase();
+    brandSwatchRow.innerHTML = normalised.map(function (c) {
+      var isPrimary = c.hex === primaryUpper;
+      var classes = 'cj-brand-swatch'
+        + (isPrimary ? ' is-primary' : '')
+        + (isPrimary ? ' is-active' : '');
+      var label = c.hex + (isPrimary ? ' (primary)' : '') + (c.count ? ' · seen ' + c.count + 'x' : '');
+      return '<button type="button" role="radio" '
+        + 'class="' + classes + '" '
+        + 'data-hex="' + escapeAttr(c.hex) + '" '
+        + 'aria-checked="' + (isPrimary ? 'true' : 'false') + '" '
+        + 'aria-label="' + escapeAttr(label) + '" '
+        + 'title="' + escapeAttr(label) + '">'
+        + '<span class="cj-brand-swatch-fill" style="background:' + escapeAttr(c.hex) + '"></span>'
+        + '</button>';
+    }).join('');
+  }
+
+  // Mirror the active state when the user types a hex or uses the picker —
+  // so the swatch row stays in sync even if the chosen value happens to
+  // match one of the scraped colours.
+  function highlightActiveSwatch(hex) {
+    if (!brandSwatchRow) return;
+    var target = (hex || '').toUpperCase();
+    var btns = brandSwatchRow.querySelectorAll('.cj-brand-swatch');
+    for (var i = 0; i < btns.length; i++) {
+      var match = (btns[i].getAttribute('data-hex') || '').toUpperCase() === target;
+      btns[i].classList.toggle('is-active', match);
+      btns[i].setAttribute('aria-checked', match ? 'true' : 'false');
+    }
+  }
+
+  function applyBrandColour(hex) {
+    if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+    var upper = hex.toUpperCase();
+    brandColourInput.value = upper;
+    brandColourPicker.value = upper;
+    highlightActiveSwatch(upper);
   }
 
   // ─── API ──────────────────────────────────────────────────────────────
@@ -219,7 +310,10 @@
 
     var cs = scrape.crawlSummary || {};
     var assets = cs.assets || {};
-    var colours = Array.isArray(assets.colours) ? assets.colours.slice(0, 6) : [];
+    var allColours = normaliseColourList(assets.colours);
+    // Top 8 keeps the swatch row to a single line in most layouts while
+    // still giving the user a useful spread of accent options.
+    var colours = allColours.slice(0, 8);
     var primary = pickPrimaryColour(colours);
 
     var hostUrl = scrape.url || '';
@@ -227,8 +321,7 @@
     var logoSrc = clearbitDomain ? ('https://logo.clearbit.com/' + clearbitDomain) : '';
 
     var swatchesHtml = colours.map(function (c) {
-      var hex = (typeof c === 'string' ? c : (c && (c.hex || c.color))) || '';
-      return '<span class="cj-colour-swatch" style="background:' + escapeAttr(hex) + '" title="' + escapeAttr(hex) + '"></span>';
+      return '<span class="cj-colour-swatch" style="background:' + escapeAttr(c.hex) + '" title="' + escapeAttr(c.hex) + '"></span>';
     }).join('');
 
     scrapeCard.innerHTML =
@@ -247,8 +340,8 @@
         '<dt>Brand colours</dt><dd><div class="cj-colours">' + swatchesHtml + '</div></dd>' +
       '</dl>';
 
-    brandColourInput.value = primary;
-    brandColourPicker.value = primary;
+    renderBrandSwatches(colours, primary);
+    applyBrandColour(primary);
   }
 
   // ─── Generate ─────────────────────────────────────────────────────────
@@ -411,11 +504,24 @@
   function syncBrandColourInputs() {
     brandColourInput.addEventListener('input', function () {
       var v = brandColourInput.value.trim();
-      if (/^#[0-9a-fA-F]{6}$/.test(v)) brandColourPicker.value = v;
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+        brandColourPicker.value = v;
+        highlightActiveSwatch(v);
+      }
     });
     brandColourPicker.addEventListener('input', function () {
-      brandColourInput.value = brandColourPicker.value.toUpperCase();
+      var v = brandColourPicker.value.toUpperCase();
+      brandColourInput.value = v;
+      highlightActiveSwatch(v);
     });
+    if (brandSwatchRow) {
+      brandSwatchRow.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest && e.target.closest('.cj-brand-swatch');
+        if (!btn) return;
+        var hex = btn.getAttribute('data-hex');
+        if (hex) applyBrandColour(hex);
+      });
+    }
   }
 
   // ─── Init ─────────────────────────────────────────────────────────────
