@@ -379,7 +379,22 @@ Hard rules:
   identity examples: "ECID (anonymous)", "ECID | Email ID", "ECID | Email ID | Account ID | Phone ID", "All resolved identities".
 - "adobe": 12 items. Each item is an array of blocks. block.type ∈ "product" | "heading" | "bullet" | "blank". Use product for Adobe product names ("Real-Time CDP", "Journey Optimizer", "Customer Journey Analytics", "AEM Assets"). Use heading for sub-headings ("Data ingestion:", "Identities:", "Segmentation:", "Activation:"). Use bullet for the actual content. Use blank sparingly for spacing.
 - "tech": 12 items. Each item has heading (a 2-4 word category like "Web & CMS", "CRM & Billing", "Paid Media", "Engagement Channels") and bullets (each with text + confirmed:boolean). Use confirmed:true for technologies present in the input "detectedTech" list, confirmed:false for plausible inferences.
-- "slides": 13 items. slides[0] is the overview (activeNode -1, label "Overview", desc = one sentence summary of the whole journey). slides[1..12] correspond to journey steps 1..12 (activeNode = stepIndex - 1). Each slide carries: label (matches the stepLabel without the "NN  " prefix), activeNode, desc (1-2 sentence persona narrative), data[] (Data Collected bullets — strings), dataActive[] (subset newly captured this step), ingestion[] (Data Ingestion bullets), ingestionActive[], segs[] (segments — each {i: emoji, l: label-with-newlines}), segActive[] (subset of segment labels active this step), ids[] (each [label, isActive] tuple e.g. ["ECID", true]), orch[] (Journey Orchestration bullets), orchActive[], activ[] (Activation/Destinations bullets), activActive[], tech[] (each {t: text, a: isActive}).
+- "slides": 13 items. slides[0] is the overview (activeNode -1, label "Overview", desc = one sentence summary of the whole journey). slides[1..12] correspond to journey steps 1..12 (activeNode = stepIndex - 1). Each slide carries: label (matches the stepLabel without the "NN  " prefix), activeNode, desc (1-2 sentence persona narrative), data[] (Data Collected bullets — strings), dataActive[] (subset newly captured this step), ingestion[] (Data Ingestion bullets), ingestionActive[], segs[] (segments — each {i: emoji, l: label-with-newlines}), segActive[] (subset of segment labels active this step), ids[] (each [label, isActive] tuple e.g. ["ECID", true]), orch[] (Journey Orchestration bullets), orchActive[], activ[] (Activation/Destinations bullets — see CLOSED CHANNEL LIST below), activActive[] (subset of activ[] active this step — entries MUST exactly match strings in this slide's activ[]), tech[] (each {t: text, a: isActive}).
+
+CLOSED CHANNEL LIST for activ[] / activActive[] (Adobe Journey Optimizer delivery channels):
+- Every entry in "activ" and "activActive" MUST be exactly one of these 9 strings, character-for-character. NEVER invent new channels, paraphrase them, or substitute non-Adobe channels (e.g. "Salesforce email", "Marketo SMS", "Mailchimp", "Facebook Ads", "Google Ads" are FORBIDDEN — those are not AJO channels):
+    1. "Email"
+    2. "Push notifications (mobile app)"
+    3. "SMS / Text messages"
+    4. "In-app messages"
+    5. "Web in-app / Web overlays"
+    6. "WhatsApp"
+    7. "LINE"
+    8. "Push notifications on web"
+    9. "Direct mail"
+- Pick channels that genuinely improve the customer experience or marketing uplift at THAT step for THAT persona. Examples: discovery → "Email" + "Push notifications on web"; cart abandonment → "Email" + "Push notifications (mobile app)" + "SMS / Text messages"; in-store visit → "Push notifications (mobile app)" + "WhatsApp"; loyalty milestone → "Email" + "Direct mail"; APAC market → include "LINE" where appropriate; high-engagement messaging → "WhatsApp" where the country/persona supports it.
+- Each slide's activ[] should list 1-4 channels, ordered by relevance to that step. activActive[] is the subset that lights up on this slide (typically 1-2 — the channel(s) most active at this exact moment in the journey). activActive[] strings MUST match activ[] strings exactly.
+- "Adobe Journey Optimizer" itself is a product (use it in adobe[] blocks), NOT a channel — never put "Journey Optimizer" or "AJO" in activ[].
 
 Soft rules:
 - Use the persona's name throughout the slide narratives. If no persona was provided, invent a plausible first-name persona for this client and journey.
@@ -389,6 +404,31 @@ Soft rules:
 - Be specific to this client's industry; never use placeholder text.
 
 Do not return anything except the single JSON object.`;
+
+/**
+ * Closed list of Adobe Journey Optimizer delivery channels that the
+ * activ[] / activActive[] arrays may contain. These are the only
+ * strings the model may emit there — we enforce it both in the system
+ * prompt (above) and via a strict enum in the response schema below,
+ * AND we re-clamp post-parse in normaliseJourney() so any drift
+ * (older cache entries, non-schema fallbacks, model hallucinations)
+ * gets quietly snapped to the nearest valid channel.
+ *
+ * Order matters for fallback rendering — index 0 is the safest
+ * generic default (Email).
+ */
+const AJO_CHANNELS = [
+  'Email',
+  'Push notifications (mobile app)',
+  'SMS / Text messages',
+  'In-app messages',
+  'Web in-app / Web overlays',
+  'WhatsApp',
+  'LINE',
+  'Push notifications on web',
+  'Direct mail',
+];
+const AJO_CHANNEL_SET = new Set(AJO_CHANNELS);
 
 /**
  * Vertex Gemini responseSchema (subset that matters for structural validation).
@@ -499,8 +539,13 @@ const JOURNEY_RESPONSE_SCHEMA = {
           },
           orch: { type: 'array', items: { type: 'string' } },
           orchActive: { type: 'array', items: { type: 'string' } },
-          activ: { type: 'array', items: { type: 'string' } },
-          activActive: { type: 'array', items: { type: 'string' } },
+          // activ[] / activActive[] are constrained to the closed AJO
+          // channel list. Vertex's structured-output mode rejects any
+          // string outside the enum, which gives us hard schema-level
+          // protection against hallucinated channels (paid media,
+          // third-party ESPs, etc.) on top of the system-prompt rule.
+          activ: { type: 'array', items: { type: 'string', enum: AJO_CHANNELS } },
+          activActive: { type: 'array', items: { type: 'string', enum: AJO_CHANNELS } },
           tech: {
             type: 'array',
             items: {
@@ -573,6 +618,31 @@ function normaliseJourney(journeyData, overrides = {}) {
   slides[0].activeNode = -1;
   for (let i = 1; i < 13; i++) {
     slides[i].activeNode = i - 1;
+  }
+
+  // Channel sanitisation: clamp every activ[] / activActive[] entry to
+  // the closed AJO channel list. This protects against three things:
+  //   (1) model drift — Gemini occasionally hallucinates a new channel
+  //       even with the schema enum, especially on refinement;
+  //   (2) older cache entries generated before this constraint existed;
+  //   (3) the schema-less fallback path (callGemini retry without
+  //       responseSchema) which doesn't enforce the enum at all.
+  // After filtering we always end up with at least one channel per
+  // step (slides 1-12) so the Activation column never renders blank;
+  // Email is the safest fallback.
+  for (let i = 0; i < slides.length; i++) {
+    const s = slides[i];
+    const cleanActiv = (Array.isArray(s.activ) ? s.activ : [])
+      .map((v) => safeString(v).trim())
+      .filter((v) => AJO_CHANNEL_SET.has(v));
+    // De-dupe while preserving order.
+    const seen = Object.create(null);
+    s.activ = cleanActiv.filter((v) => (seen[v] ? false : (seen[v] = true)));
+    if (i > 0 && !s.activ.length) s.activ = ['Email'];
+    const activSet = new Set(s.activ);
+    s.activActive = (Array.isArray(s.activActive) ? s.activActive : [])
+      .map((v) => safeString(v).trim())
+      .filter((v) => activSet.has(v));
   }
 
   return { client, persona: personaOut, stepLabels, stepIcons, descriptions, data, adobe, tech, slides };
