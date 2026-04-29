@@ -342,17 +342,23 @@ function stepMockupSvg(step, brandColour, personaName, brandName) {
  * initials SVG (no external fetch — easy to replace by swapping the
  * slot contents or uploading a photo in the lab UI).
  */
+function isHttpImageUrl(s) {
+  return typeof s === 'string' && (s.startsWith('https://') || s.startsWith('http://'));
+}
+
 function resolvePersonaImage(images, personaName, _brandName, _brandColour, _mode = 'html') {
-  if (images && typeof images.persona === 'string' && images.persona.startsWith('data:')) {
-    return { kind: 'data', src: images.persona };
+  if (images && typeof images.persona === 'string') {
+    if (images.persona.startsWith('data:')) return { kind: 'data', src: images.persona };
+    if (isHttpImageUrl(images.persona)) return { kind: 'url', src: images.persona };
   }
   const svg = neutralPersonaAvatarSvg(personaName);
   return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
 }
 
 function resolveDeviceImage(images, brandColour, products) {
-  if (images && typeof images.device === 'string' && images.device.startsWith('data:')) {
-    return { kind: 'data', src: images.device };
+  if (images && typeof images.device === 'string') {
+    if (images.device.startsWith('data:')) return { kind: 'data', src: images.device };
+    if (isHttpImageUrl(images.device)) return { kind: 'url', src: images.device };
   }
   const svg = laptopMockupSvg(brandColour, products);
   return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
@@ -360,8 +366,9 @@ function resolveDeviceImage(images, brandColour, products) {
 
 function resolveLifestyleImage(images, industry, brandColour, mode = 'html') {
   // Uploaded image always wins.
-  if (images && typeof images.lifestyle === 'string' && images.lifestyle.startsWith('data:')) {
-    return { kind: 'data', src: images.lifestyle };
+  if (images && typeof images.lifestyle === 'string') {
+    if (images.lifestyle.startsWith('data:')) return { kind: 'data', src: images.lifestyle };
+    if (isHttpImageUrl(images.lifestyle)) return { kind: 'url', src: images.lifestyle };
   }
   // Deterministic, brand-coloured SVG fallback (no network fetch — keeps
   // the renderer pure and predictable in CI / offline / first-render).
@@ -378,7 +385,8 @@ function resolveLifestyleImage(images, industry, brandColour, mode = 'html') {
 // predictably; swap in real images via uploads or by replacing the slot
 // inner HTML.
 //
-// Optional uploads (data URLs) on the images payload:
+// Optional uploads on the images payload — each value may be a data:
+// URL or an https image URL (e.g. signed crawl assets from the lab UI):
 //   brandSurface, ajoCanvas, aepComposite — plus persona, device, lifestyle
 // Industry line-art (industryAccent) stays SVG, tinted via CSS currentColor.
 
@@ -605,24 +613,27 @@ function lifestyleHeroFallbackSvg(_brandColour, industry) {
 }
 
 function resolveBrandSurface(images, brandColour, brandName) {
-  if (images && typeof images.brandSurface === 'string' && images.brandSurface.startsWith('data:')) {
-    return { kind: 'data', src: images.brandSurface };
+  if (images && typeof images.brandSurface === 'string') {
+    if (images.brandSurface.startsWith('data:')) return { kind: 'data', src: images.brandSurface };
+    if (isHttpImageUrl(images.brandSurface)) return { kind: 'url', src: images.brandSurface };
   }
   const svg = brandSurfaceFallbackSvg(brandColour, brandName);
   return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
 }
 
 function resolveAjoCanvas(images, brandColour) {
-  if (images && typeof images.ajoCanvas === 'string' && images.ajoCanvas.startsWith('data:')) {
-    return { kind: 'data', src: images.ajoCanvas };
+  if (images && typeof images.ajoCanvas === 'string') {
+    if (images.ajoCanvas.startsWith('data:')) return { kind: 'data', src: images.ajoCanvas };
+    if (isHttpImageUrl(images.ajoCanvas)) return { kind: 'url', src: images.ajoCanvas };
   }
   const svg = ajoCanvasFallbackSvg(brandColour);
   return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
 }
 
 function resolveAepComposite(images, brandColour, personaName, sampleNotification) {
-  if (images && typeof images.aepComposite === 'string' && images.aepComposite.startsWith('data:')) {
-    return { kind: 'data', src: images.aepComposite };
+  if (images && typeof images.aepComposite === 'string') {
+    if (images.aepComposite.startsWith('data:')) return { kind: 'data', src: images.aepComposite };
+    if (isHttpImageUrl(images.aepComposite)) return { kind: 'url', src: images.aepComposite };
   }
   const svg = aepCompositeFallbackSvg(brandColour, personaName, sampleNotification);
   return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
@@ -1171,7 +1182,8 @@ function commonStyles(brand, dark) {
 }
 
 function imageSlotUploaded(images, key) {
-  return !!(images && typeof images[key] === 'string' && images[key].startsWith('data:'));
+  const v = images && images[key];
+  return typeof v === 'string' && (v.startsWith('data:') || isHttpImageUrl(v));
 }
 
 /** Wrap a replaceable bitmap/SVG zone. `state` is "upload" | "placeholder". */
@@ -1928,7 +1940,39 @@ function renderValueHtml(data, images) {
 
 // ─── PPTX RENDERER (PptxGenJS) ───────────────────────────────────────────────
 
-function renderDemoPptx(data, images) {
+const PPTX_REMOTE_IMAGE_TIMEOUT_MS = 25000;
+
+async function fetchUrlAsPptxImageData(url) {
+  const resp = await fetch(url, {
+    redirect: 'follow',
+    signal: AbortSignal.timeout(PPTX_REMOTE_IMAGE_TIMEOUT_MS),
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; AEP-Orchestration-Lab-demo-pptx/1.0)',
+      Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+    },
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const buf = Buffer.from(await resp.arrayBuffer());
+  const ct = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  let mime = ct.startsWith('image/') ? ct : '';
+  if (!mime && buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xd8) mime = 'image/jpeg';
+  if (!mime && buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50) mime = 'image/png';
+  if (!mime && buf.length >= 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') mime = 'image/webp';
+  if (!mime) mime = 'image/jpeg';
+  return `${mime};base64,${buf.toString('base64')}`;
+}
+
+async function materialisePptxSlot(resolved, fallbackResolved) {
+  if (resolved.kind !== 'url') return resolved.src;
+  try {
+    return await fetchUrlAsPptxImageData(resolved.src);
+  } catch (e) {
+    console.warn('[demoPptx] remote image fetch failed, using placeholder', e && e.message);
+    return fallbackResolved.src;
+  }
+}
+
+async function renderDemoPptx(data, images) {
   const PptxGenJS = require('pptxgenjs');
   const pres = new PptxGenJS();
   pres.layout = 'LAYOUT_WIDE'; // 13.333 x 7.5 inches (16:9)
@@ -1942,6 +1986,28 @@ function renderDemoPptx(data, images) {
   const inkSoft = '4A5060';
   const inkMute = '7D8492';
   const adobeRed = ADOBE_RED.replace('#', '');
+
+  const personaNameEarly = (data.experience && data.experience.persona && data.experience.persona.name) || 'Customer';
+  const snEarly = data.framing && data.framing.sampleNotification;
+  const empty = {};
+  const brandSurfaceR = resolveBrandSurface(images, brand, data.client.name);
+  const personaR = resolvePersonaImage(images, personaNameEarly, data.client.name, brand, 'pptx');
+  const ajoR = resolveAjoCanvas(images, brand);
+  const lifestyleR = resolveLifestyleImage(images, data.client.industry, brand, 'pptx');
+  const aepR = resolveAepComposite(images, brand, personaNameEarly, snEarly);
+  const [
+    brandSurfacePptxData,
+    personaPptxData,
+    ajoPptxData,
+    lifestylePptxData,
+    aepPptxData,
+  ] = await Promise.all([
+    materialisePptxSlot(brandSurfaceR, resolveBrandSurface(empty, brand, data.client.name)),
+    materialisePptxSlot(personaR, resolvePersonaImage(empty, personaNameEarly, data.client.name, brand, 'pptx')),
+    materialisePptxSlot(ajoR, resolveAjoCanvas(empty, brand)),
+    materialisePptxSlot(lifestyleR, resolveLifestyleImage(empty, data.client.industry, brand, 'pptx')),
+    materialisePptxSlot(aepR, resolveAepComposite(empty, brand, personaNameEarly, snEarly)),
+  ]);
 
   function addFooter(slide) {
     slide.addText('Adobe', {
@@ -2025,9 +2091,8 @@ function renderDemoPptx(data, images) {
   });
 
   // Right column — brand surface hero (placeholder OR uploaded screenshot)
-  const brandSurface = resolveBrandSurface(images, brand, data.client.name);
   s1.addImage({
-    data: brandSurface.src,
+    data: brandSurfacePptxData,
     x: 6.7, y: 0.85, w: 6.4, h: 4.5,
     sizing: { type: 'cover', w: 6.4, h: 4.5 },
   });
@@ -2092,9 +2157,8 @@ function renderDemoPptx(data, images) {
 
   // Persona block (top-left under header)
   const persona = data.experience.persona;
-  const personaImg = resolvePersonaImage(images, persona.name, data.client.name, brand, 'pptx');
   s2.addImage({
-    data: personaImg.src,
+    data: personaPptxData,
     x: 0.4, y: 1.2, w: 0.7, h: 0.7,
     sizing: { type: 'cover', w: 0.7, h: 0.7 },
   });
@@ -2173,9 +2237,8 @@ function renderDemoPptx(data, images) {
     x: 11.4, y: ajoStripY + 0.08, w: 1.5, h: 0.25,
     fontSize: 9, bold: true, color: brandHex, align: 'right',
   });
-  const ajo = resolveAjoCanvas(images, brand);
   s2.addImage({
-    data: ajo.src,
+    data: ajoPptxData,
     x: 0.55, y: ajoStripY + 0.32, w: 12.3, h: 0.68,
     sizing: { type: 'contain', w: 12.3, h: 0.68 },
   });
@@ -2241,9 +2304,8 @@ function renderDemoPptx(data, images) {
   // Body row — lifestyle (left, smaller) + AEP composite (right, larger)
   const bodyTop = 2.9;
   const bodyH = 3.1;
-  const lifestyle = resolveLifestyleImage(images, data.client.industry, brand, 'pptx');
   s3.addImage({
-    data: lifestyle.src,
+    data: lifestylePptxData,
     x: 0.4, y: bodyTop, w: 5.0, h: bodyH,
     sizing: { type: 'cover', w: 5.0, h: bodyH },
   });
@@ -2253,12 +2315,6 @@ function renderDemoPptx(data, images) {
   });
 
   // AEP composite (uploaded PNG OR our brand-coloured SVG fallback)
-  const aepComposite = resolveAepComposite(
-    images,
-    brand,
-    (data.experience && data.experience.persona && data.experience.persona.name) || '',
-    data.framing && data.framing.sampleNotification
-  );
   s3.addShape(pres.ShapeType.roundRect, {
     x: 5.6, y: bodyTop, w: 7.4, h: bodyH,
     fill: { color: 'FFFFFF' }, line: { color: 'E3E6EB', width: 1 }, rectRadius: 0.14,
@@ -2272,7 +2328,7 @@ function renderDemoPptx(data, images) {
     fontSize: 9, bold: true, color: brandHex, align: 'right',
   });
   s3.addImage({
-    data: aepComposite.src,
+    data: aepPptxData,
     x: 5.8, y: bodyTop + 0.4, w: 7.0, h: bodyH - 0.55,
     sizing: { type: 'contain', w: 7.0, h: bodyH - 0.55 },
   });

@@ -377,6 +377,16 @@
   flex-wrap: wrap;
   gap: 0.6rem;
 }
+.demo-use-case-asset-page .duc-scrape-fill-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.88rem;
+}
+.demo-use-case-asset-page .duc-scrape-fill-row .duc-form-hint { flex: 1 1 220px; margin: 0; }
+
 .demo-use-case-asset-page .duc-prev-load,
 .demo-use-case-asset-page .duc-prev-forget {
   background: var(--dash-surface);

@@ -69,6 +69,91 @@
     return o;
   }
 
+  function imageUrlFromV2Item(it) {
+    if (!it || it.error) return '';
+    var pub = it.publicUrl && String(it.publicUrl).trim();
+    if (/^https?:\/\//i.test(pub)) return pub;
+    var sig = it.signedUrl && String(it.signedUrl).trim();
+    if (/^https?:\/\//i.test(sig)) return sig;
+    return '';
+  }
+
+  function categoryOfV2(it) {
+    return String((it.classification && it.classification.category) || '').toLowerCase();
+  }
+
+  /** Map classified crawl images (crawlSummary.assets.imagesV2) into deck slots; each URL at most once. */
+  function pickScrapeImagesForSlots(imagesV2) {
+    var out = emptyImages();
+    if (!Array.isArray(imagesV2) || !imagesV2.length) return out;
+    var items = [];
+    for (var i = 0; i < imagesV2.length; i++) {
+      var it = imagesV2[i];
+      var url = imageUrlFromV2Item(it);
+      if (!url) continue;
+      items.push({ url: url, cat: categoryOfV2(it) });
+    }
+    var used = Object.create(null);
+    function take(matchFn) {
+      for (var j = 0; j < items.length; j++) {
+        var x = items[j];
+        if (!x.url || used[x.url]) continue;
+        if (matchFn(x.cat)) {
+          used[x.url] = true;
+          return x.url;
+        }
+      }
+      return '';
+    }
+    function takeCats(cats) {
+      var set = Object.create(null);
+      for (var c = 0; c < cats.length; c++) set[cats[c]] = true;
+      return take(function (cat) { return !!set[cat]; });
+    }
+
+    out.persona = takeCats(['portrait']);
+    out.brandSurface = takeCats(['hero_banner'])
+      || take(function (cat) { return cat === 'lifestyle' || cat === 'product' || cat === 'illustration'; });
+    out.lifestyle = takeCats(['lifestyle'])
+      || take(function (cat) { return cat === 'hero_banner' || cat === 'decorative'; });
+    out.ajoCanvas = takeCats(['infographic', 'illustration'])
+      || take(function (cat) { return cat === 'hero_banner' || cat === 'product' || cat === 'decorative'; });
+    out.aepComposite = takeCats(['product', 'infographic'])
+      || take(function (cat) { return cat === 'illustration'; });
+    out.device = take(function (cat) { return cat === 'product' || cat === 'hero_banner'; });
+    return out;
+  }
+
+  function mergeScrapeImagesIntoState(scrape, onlyEmpty) {
+    var v2 = (scrape && scrape.crawlSummary && scrape.crawlSummary.assets && scrape.crawlSummary.assets.imagesV2) || [];
+    var picked = pickScrapeImagesForSlots(v2);
+    IMAGE_SLOTS.forEach(function (slot) {
+      var url = picked[slot];
+      if (!url) return;
+      if (onlyEmpty && state.images[slot]) return;
+      state.images[slot] = url;
+    });
+  }
+
+  function scrapeHasClassifiedImages(scrape) {
+    var v2 = (scrape && scrape.crawlSummary && scrape.crawlSummary.assets && scrape.crawlSummary.assets.imagesV2) || [];
+    if (!Array.isArray(v2)) return false;
+    for (var i = 0; i < v2.length; i++) {
+      if (!v2[i].error && imageUrlFromV2Item(v2[i])) return true;
+    }
+    return false;
+  }
+
+  function updateApplyScrapeImagesButton() {
+    var btn = document.getElementById('ducApplyScrapeImagesBtn');
+    if (!btn) return;
+    var ok = !!(state.selectedScrape && scrapeHasClassifiedImages(state.selectedScrape));
+    btn.disabled = !ok;
+    btn.title = ok
+      ? 'Maps classified crawl photos into the image slots (Framing, Experience, Value).'
+      : 'No usable classified images on this scrape — run a crawl with images in Brand scraper first.';
+  }
+
   // ─── DOM refs ─────────────────────────────────────────────────────────
   var $ = function (id) { return document.getElementById(id); };
   var sandboxBadge = $('ducSandboxBadge');
@@ -129,7 +214,7 @@
     originalBrandColour: '',
     activeBrandColour: '',
     selectedProducts: [],     // Array<string> — checked product names
-    images: emptyImages(), // base64 data URLs ('' = neutral SVG placeholder in HTML)
+    images: emptyImages(), // data: URLs or https image URLs ('' = neutral SVG placeholder in HTML)
     activeTab: 'framing',
   };
 
@@ -254,6 +339,7 @@
     }
     progress.finish('success', 'Loaded previously generated result from ' + relativeTime(entry.generatedAt));
     setStatus(generateStatus, 'Restored previous result. Generate again to replace it, or download the PPTX.', 'success');
+    updateApplyScrapeImagesButton();
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────
@@ -935,10 +1021,12 @@
       state.selectedProducts = ['Real-Time CDP', 'Journey Optimizer'];
       if (customProductInput) customProductInput.value = '';
       state.images = emptyImages();
+      mergeScrapeImagesIntoState(scrape, false);
       syncProductChips();
       syncDropzonePreviews();
       resultsSection.hidden = true;
     }
+    updateApplyScrapeImagesButton();
     if (refinePromptInput) refinePromptInput.value = '';
     if (refineStatus) setStatus(refineStatus, '', '');
   }
@@ -1300,6 +1388,16 @@
     syncProductChips();
     bindDropzones();
     syncDropzonePreviews();
+
+    var applyScrapeImagesBtn = $('ducApplyScrapeImagesBtn');
+    if (applyScrapeImagesBtn) {
+      applyScrapeImagesBtn.addEventListener('click', function () {
+        if (!state.selectedScrape) return;
+        mergeScrapeImagesIntoState(state.selectedScrape, false);
+        syncDropzonePreviews();
+        setStatus(generateStatus, 'Image slots updated from scrape. Generate or download PPTX to refresh outputs.', 'success');
+      });
+    }
 
     generateBtn.addEventListener('click', generate);
     downloadPptxBtn.addEventListener('click', downloadPptx);
