@@ -210,6 +210,8 @@ async function listDatastreams(token, clientId, orgId) {
         title: d.title || d.name || d.datastreamId || d.id || '',
         sandbox: d.sandboxName || d.sandbox || '',
         enabled: d.enabled !== false,
+        /** Same org used for the Edge list call — clients can pre-fill Web SDK configure. */
+        orgId,
       })).filter((d) => d.id);
     } catch (e) {
       errors.push(`${url} → exception: ${e.message}`);
