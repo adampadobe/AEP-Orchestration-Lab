@@ -61,9 +61,6 @@
   var iframeJourney = $('cjJourneyIframe');
   var iframeOnePager = $('cjOnePagerIframe');
   var downloadPptxBtn = $('cjDownloadPptxBtn');
-  var prevBannerEl = $('cjPrevBanner');
-  var prevBannerWhenEl = $('cjPrevBannerWhen');
-  var prevBannerRefinementsEl = $('cjPrevBannerRefinements');
   var prevLoadBtn = $('cjPrevLoadBtn');
   var prevForgetBtn = $('cjPrevForgetBtn');
 
@@ -172,20 +169,27 @@
     return new Date(epochMs).toLocaleDateString();
   }
 
-  function showPrevBanner(entry) {
-    if (!prevBannerEl) return;
-    prevBannerWhenEl.textContent = relativeTime(entry.generatedAt) +
-      ' (' + new Date(entry.generatedAt).toLocaleString() + ')';
+  // Show the inline "Load previous result" + "Forget" buttons next to
+  // Generate when we have a cached entry for the active scrape. Title
+  // attribute carries the timestamp + refinements so the user can hover
+  // for full context without a big banner.
+  function showLoadPrev(entry) {
+    if (!prevLoadBtn) return;
+    prevLoadBtn.textContent = 'Load previous result (' + relativeTime(entry.generatedAt) + ')';
     var bits = [];
-    if (entry.brandColour) bits.push(entry.brandColour);
-    if (entry.journeyType) bits.push(entry.journeyType);
+    if (entry.brandColour) bits.push('colour ' + entry.brandColour);
+    if (entry.journeyType) bits.push('type: ' + entry.journeyType);
     if (entry.personaName) bits.push('persona: ' + entry.personaName);
-    prevBannerRefinementsEl.textContent = bits.length ? '· ' + bits.join(' · ') : '';
-    prevBannerEl.hidden = false;
+    prevLoadBtn.title =
+      'Generated ' + new Date(entry.generatedAt).toLocaleString() +
+      (bits.length ? ' — ' + bits.join(', ') : '');
+    prevLoadBtn.hidden = false;
+    if (prevForgetBtn) prevForgetBtn.hidden = false;
   }
 
-  function hidePrevBanner() {
-    if (prevBannerEl) prevBannerEl.hidden = true;
+  function hideLoadPrev() {
+    if (prevLoadBtn) prevLoadBtn.hidden = true;
+    if (prevForgetBtn) prevForgetBtn.hidden = true;
   }
 
   function applyCachedEntry(entry) {
@@ -400,7 +404,7 @@
     summarySection.hidden = true;
     resultsSection.hidden = true;
     scrapeCard.innerHTML = '';
-    hidePrevBanner();
+    hideLoadPrev();
 
     try {
       var summaries = await fetchScrapes(sandbox);
@@ -562,9 +566,9 @@
       if (cached.brandColour) applyBrandColour(cached.brandColour);
       if (cached.journeyType) journeyTypeInput.value = cached.journeyType;
       if (cached.personaName) personaInput.value = cached.personaName;
-      showPrevBanner(cached);
+      showLoadPrev(cached);
     } else {
-      hidePrevBanner();
+      hideLoadPrev();
       resultsSection.hidden = true;
     }
   }
@@ -729,7 +733,7 @@
       // Refresh the banner so it reflects "just now" + the new refinements
       // (and the pill on the scrape card if it wasn't there before).
       var fresh = loadFromCache(sandbox, state.selectedScrape.scrapeId);
-      if (fresh) showPrevBanner(fresh);
+      if (fresh) showLoadPrev(fresh);
       var pill = scrapeCard.querySelector('.cj-cached-pill');
       if (!pill) {
         var nameEl = scrapeCard.querySelector('.cj-brand-name');
@@ -898,7 +902,7 @@
         var entry = loadFromCache(getSandbox(), state.selectedScrape.scrapeId);
         if (!entry) {
           setStatus(generateStatus, 'No cached result for this scrape any more — generate a fresh one.', 'error');
-          hidePrevBanner();
+          hideLoadPrev();
           return;
         }
         applyCachedEntry(entry);
@@ -912,7 +916,7 @@
         try { localStorage.removeItem(key); } catch (_) {}
         var idx = readCacheIndex().filter(function (k) { return k !== key; });
         writeCacheIndex(idx);
-        hidePrevBanner();
+        hideLoadPrev();
         var pill = scrapeCard.querySelector('.cj-cached-pill');
         if (pill) pill.remove();
         setStatus(generateStatus, 'Cached result forgotten.', '');

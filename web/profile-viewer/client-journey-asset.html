@@ -60,17 +60,6 @@
 
         <section class="cj-scrape-summary panel" id="cjScrapeSummary" hidden>
           <div class="cj-scrape-card" id="cjScrapeCard"></div>
-          <div class="cj-prev-banner" id="cjPrevBanner" hidden>
-            <div class="cj-prev-banner-text">
-              <strong>Previously generated</strong>
-              <span id="cjPrevBannerWhen"></span>
-              <span id="cjPrevBannerRefinements" class="cj-prev-banner-refinements"></span>
-            </div>
-            <div class="cj-prev-banner-actions">
-              <button type="button" id="cjPrevLoadBtn" class="primary">Load previous result</button>
-              <button type="button" id="cjPrevForgetBtn" class="cj-prev-forget" title="Remove this cached result from your browser">Forget</button>
-            </div>
-          </div>
           <div class="cj-refine-form" id="cjRefineForm">
             <div class="form-row">
               <label for="cjBrandColour">Brand colour</label>
@@ -91,6 +80,8 @@
             </div>
             <div class="form-row cj-generate-row">
               <button type="button" id="cjGenerateBtn" class="primary">Generate journey assets</button>
+              <button type="button" id="cjPrevLoadBtn" class="cj-prev-load" hidden title="Restore the previous result for this scrape from your browser cache">Load previous result</button>
+              <button type="button" id="cjPrevForgetBtn" class="cj-prev-forget" hidden title="Remove this cached result from your browser">Forget</button>
               <span id="cjGenerateStatus" class="status" role="status" aria-live="polite"></span>
             </div>
             <div class="cj-progress" id="cjProgress" hidden role="status" aria-live="polite" aria-atomic="true">

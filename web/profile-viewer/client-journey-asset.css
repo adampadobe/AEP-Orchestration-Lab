@@ -235,60 +235,38 @@
   border: 1px solid var(--dash-border);
 }
 
-/* ── Previously-generated banner ─────────────────────────────────────── */
+/* ── Previously-generated inline actions ─────────────────────────────── */
 
-.client-journey-asset-page .cj-prev-banner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1rem;
-  margin: 0.85rem 0 0;
-  padding: 0.7rem 1rem;
-  background: color-mix(in srgb, var(--dash-blue) 8%, var(--dash-surface));
-  border: 1px solid color-mix(in srgb, var(--dash-blue) 30%, var(--dash-border));
-  border-radius: var(--dash-radius-sm);
-  font-size: 0.9rem;
-  color: var(--dash-text);
-}
-
-.client-journey-asset-page .cj-prev-banner-text {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.4rem 0.6rem;
-  min-width: 0;
-}
-
-.client-journey-asset-page .cj-prev-banner-text strong {
+.client-journey-asset-page .cj-prev-load {
+  background: transparent;
+  border: 1px solid var(--dash-blue);
   color: var(--dash-blue);
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--dash-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 
-.client-journey-asset-page .cj-prev-banner-refinements {
-  font-size: 0.78rem;
-  color: var(--dash-text-secondary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-.client-journey-asset-page .cj-prev-banner-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
+.client-journey-asset-page .cj-prev-load:hover {
+  background: var(--dash-blue);
+  color: #fff;
 }
 
 .client-journey-asset-page .cj-prev-forget {
   background: transparent;
-  border: 1px solid var(--dash-border);
+  border: none;
   color: var(--dash-text-secondary);
-  padding: 0.4rem 0.7rem;
-  border-radius: var(--dash-radius-sm);
-  font-size: 0.82rem;
+  padding: 0.4rem 0.4rem;
+  font-size: 0.78rem;
   cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .client-journey-asset-page .cj-prev-forget:hover {
   color: var(--dash-error, #b00020);
-  border-color: var(--dash-error, #b00020);
 }
 
 /* Small "✓ Cached" badge that we drop into the scrape summary card. */
@@ -396,8 +374,9 @@
 
 .client-journey-asset-page .cj-generate-row {
   flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  gap: 0.6rem 1rem;
   margin-top: 0.4rem;
 }
 
