@@ -769,6 +769,9 @@ function renderJourneyHtml(journeyData) {
     --border: #e5e7eb;
     --active-bg: #e8f5e9;
     --active-stroke: #4caf50;
+    /* Shared timing for the journey-map node cross-fade — keeps the
+       circle, icon, badge and label all dissolving as a single unit. */
+    --node-fade: 0.7s ease-in-out;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Adobe Clean', sans-serif; color: var(--ink); background: var(--bg); }
@@ -785,26 +788,31 @@ function renderJourneyHtml(journeyData) {
   .journey-map-container { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 12px; margin-bottom: 14px; }
   svg.journey-svg { width: 100%; height: auto; max-height: 280px; display: block; }
   .journey-base { stroke: #c9ced8; stroke-width: 2.5; fill: none; }
-  .journey-active { stroke: var(--brand); stroke-width: 4; fill: none; opacity: 0; transition: opacity 0.3s ease; }
+  .journey-active { stroke: var(--brand); stroke-width: 4; fill: none; opacity: 0; transition: opacity var(--node-fade); }
   .journey-active.visible { opacity: 1; }
 
-  /* Node circle: bigger, softer border, smooth fill transition. */
+  /* Active-state transitions everywhere (circle, icon, badge) share the
+     same slow ease-in-out curve so the whole node cross-fades as a unit
+     rather than each piece animating independently. No scale bounce, no
+     infinite pulse — just a calm appear / dissolve as the active step
+     advances. */
   .node { cursor: pointer; }
   .node-circle {
     fill: #fff;
     stroke: #c9ced8;
     stroke-width: 2;
-    transition: fill 0.25s ease, stroke 0.25s ease, stroke-width 0.2s ease;
+    transition: fill var(--node-fade), stroke var(--node-fade), stroke-width var(--node-fade);
   }
 
-  /* Icon glyph: stroked Feather-style outline, neutral when inactive,
-     white when the node is active. We set color on the parent <g> and
-     have the strokes/fills inherit currentColor so we can flip the
-     palette with a single CSS rule. */
+  /* Icon glyph: stroked Feather-style outline. Inactive icons sit at
+     a slightly muted opacity so the active icon clearly "appears" when
+     the slide advances; on dissolve the previous active fades back to
+     the muted baseline. */
   .node-icon {
     color: #6b7180;
+    opacity: 0.78;
     pointer-events: none;
-    transition: color 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: color var(--node-fade), opacity var(--node-fade);
     transform-box: fill-box;
     transform-origin: center;
   }
@@ -827,43 +835,36 @@ function renderJourneyHtml(journeyData) {
     fill: #fff;
     stroke: var(--brand);
     stroke-width: 1.5;
-    transition: fill 0.2s ease, stroke 0.2s ease;
+    transition: fill var(--node-fade), stroke var(--node-fade);
   }
   .node-badge text {
     font-size: 8.5px;
     font-weight: 700;
     fill: var(--brand);
     pointer-events: none;
-    transition: fill 0.2s ease;
+    transition: fill var(--node-fade);
   }
 
-  .node-label { font-size: 10px; fill: #4a5060; font-weight: 600; }
+  .node-label { font-size: 10px; fill: #4a5060; font-weight: 600; transition: fill var(--node-fade), font-weight var(--node-fade); }
 
-  /* Hover state on inactive nodes — subtle lift. */
-  .node:hover .node-circle { stroke: var(--brand); stroke-width: 2.5; }
-  .node:hover .node-icon { color: var(--brand); transform: scale(1.08); }
+  /* Hover on inactive nodes — gentle, non-distracting cue. */
+  .node:hover .node-circle { stroke: var(--brand); }
+  .node:hover .node-icon { color: var(--brand); opacity: 1; }
 
-  /* Active node — brand-filled circle, white icon, inverted badge, pulse. */
+  /* Active node — brand-filled circle, fully-opaque white icon, inverted
+     badge. No pulse, no scale; the slow fade above is the entire effect. */
   .node-active .node-circle {
     fill: var(--brand);
     stroke: var(--brand);
     stroke-width: 2.5;
-    animation: nodePulse 1.6s ease-out infinite;
   }
-  .node-active .node-icon { color: #fff; transform: scale(1.05); }
+  .node-active .node-icon { color: #fff; opacity: 1; }
   .node-active .node-badge circle { fill: var(--brand); stroke: #fff; }
   .node-active .node-badge text { fill: #fff; }
   .node-active .node-label { fill: var(--ink); font-weight: 700; }
 
-  @keyframes nodePulse {
-    0%   { filter: drop-shadow(0 0 0 transparent); }
-    50%  { filter: drop-shadow(0 0 8px var(--brand)); }
-    100% { filter: drop-shadow(0 0 0 transparent); }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .node-active .node-circle { animation: none; }
-    .node-icon, .node-badge circle, .node-badge text, .node-circle { transition: none; }
+    .node-icon, .node-badge circle, .node-badge text, .node-circle, .node-label, .journey-active { transition: none; }
   }
 
   .data-panel { background: var(--panel); border: 2px solid var(--brand); border-radius: 12px; padding: 14px 16px 18px; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
