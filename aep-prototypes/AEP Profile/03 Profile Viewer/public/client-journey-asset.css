@@ -612,6 +612,38 @@
   border-radius: var(--dash-radius-sm);
 }
 
+.client-journey-asset-page .cj-recolour-eyedropper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--dash-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.client-journey-asset-page .cj-recolour-eyedropper:hover {
+  background: var(--dash-blue);
+  border-color: var(--dash-blue);
+  color: #fff;
+}
+
+.client-journey-asset-page .cj-recolour-eyedropper.is-active {
+  background: var(--dash-blue);
+  border-color: var(--dash-blue);
+  color: #fff;
+  cursor: progress;
+}
+
+.client-journey-asset-page .cj-recolour-eyedropper svg {
+  flex: 0 0 auto;
+}
+
 .client-journey-asset-page .cj-recolour-reset {
   margin-left: auto;
   background: transparent;

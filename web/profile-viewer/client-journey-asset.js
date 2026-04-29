@@ -68,6 +68,7 @@
   var recolourPicker = $('cjRecolourPicker');
   var recolourHex = $('cjRecolourHex');
   var recolourReset = $('cjRecolourReset');
+  var recolourEyedropper = $('cjRecolourEyedropper');
 
   // ─── State ────────────────────────────────────────────────────────────
   var state = {
@@ -1095,6 +1096,33 @@
     if (recolourReset) {
       recolourReset.addEventListener('click', function () {
         if (state.originalBrandColour) applyRecolour(state.originalBrandColour);
+      });
+    }
+    // EyeDropper API (Chrome / Edge / Opera 95+). When supported, expose a
+    // sampler button that lets the user click anywhere on the screen — even
+    // outside the browser — to pick a colour. On unsupported browsers
+    // (Firefox, Safari) the button stays hidden so we degrade gracefully.
+    if (recolourEyedropper && typeof window.EyeDropper === 'function') {
+      recolourEyedropper.hidden = false;
+      recolourEyedropper.addEventListener('click', async function () {
+        if (recolourEyedropper.classList.contains('is-active')) return;
+        recolourEyedropper.classList.add('is-active');
+        try {
+          var dropper = new window.EyeDropper();
+          var result = await dropper.open();
+          if (result && result.sRGBHex) {
+            applyRecolour(result.sRGBHex);
+            setStatus(generateStatus, 'Recoloured to ' + result.sRGBHex.toUpperCase() + ' from screen sample.', 'success');
+          }
+        } catch (e) {
+          // User cancelled (Esc) → AbortError; anything else is unexpected.
+          if (e && e.name !== 'AbortError') {
+            console.warn('[client-journey] eyedropper failed', e);
+            setStatus(generateStatus, 'Eyedropper failed: ' + (e && e.message || e), 'error');
+          }
+        } finally {
+          recolourEyedropper.classList.remove('is-active');
+        }
       });
     }
     syncBrandColourInputs();

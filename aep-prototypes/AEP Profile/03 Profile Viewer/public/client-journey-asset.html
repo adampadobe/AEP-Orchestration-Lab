@@ -106,6 +106,16 @@
               <input type="color" id="cjRecolourPicker" value="#1151FF" aria-label="Pick a custom brand colour">
               <input type="text" id="cjRecolourHex" value="#1151FF" maxlength="7" pattern="^#[0-9a-fA-F]{6}$" aria-label="Custom brand colour hex" spellcheck="false">
             </label>
+            <button type="button" id="cjRecolourEyedropper" class="cj-recolour-eyedropper" hidden title="Pick a colour from anywhere on the screen" aria-label="Pick a colour from anywhere on the screen">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 22l3-3"/>
+                <path d="M5 19l9-9"/>
+                <path d="M14 10l4-4"/>
+                <path d="M14 10l3 3"/>
+                <path d="M18 6l-3-3a2.828 2.828 0 1 0-4 4l3 3"/>
+              </svg>
+              <span>Eyedropper</span>
+            </button>
             <button type="button" id="cjRecolourReset" class="cj-recolour-reset" title="Restore the colour the assets were generated with">Reset</button>
           </div>
 
