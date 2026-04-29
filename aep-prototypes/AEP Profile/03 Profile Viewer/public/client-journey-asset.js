@@ -24,6 +24,14 @@
 (function () {
   'use strict';
 
+  // Firebase Hosting rewrites cap proxied requests at 60s, but the
+  // Vertex AI Gemini call routinely takes 90–120s for a full 12-step
+  // journey + one-pager. Hit the Cloud Function direct URL for generate
+  // (matches the brand-scraper pattern); /api/* is fine for the fast
+  // PPTX render.
+  var FN_BASE = 'https://us-central1-aep-orchestration-lab.cloudfunctions.net';
+  var GENERATE_URL = FN_BASE + '/clientJourneyGenerate';
+
   // ─── DOM refs ─────────────────────────────────────────────────────────
   var $ = function (id) { return document.getElementById(id); };
   var sandboxBadge = $('cjSandboxBadge');
@@ -425,11 +433,11 @@
     var personaName = (personaInput.value || '').trim();
 
     generateBtn.disabled = true;
-    setStatus(generateStatus, 'Asking Vertex AI Gemini to design the 12-step journey (this can take 30–60 seconds)…', '');
+    setStatus(generateStatus, 'Asking Vertex AI Gemini to design the 12-step journey (typically 60–120 seconds)…', '');
     resultsSection.hidden = true;
 
     try {
-      var resp = await fetch('/api/client-journey/generate', {
+      var resp = await fetch(GENERATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
