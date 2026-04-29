@@ -98,6 +98,120 @@ const STEP_LABEL_GEOMETRY = [
 /** Default per-step icons used when Gemini doesn't supply a segment icon. */
 const DEFAULT_STEP_ICONS = ['🚗', '🔍', '🌐', '📋', '🛒', '☕', '🎯', '🔐', '🎁', '📝', '💬', '✅'];
 
+/**
+ * Inline SVG icon catalog used to render meaningful pictograms inside each
+ * journey-map node. Every entry is the inner SVG of a 24x24 outline icon
+ * (Feather-style — MIT-licensed look-and-feel) so we can splat them into
+ * <g class="node-icon"> without bringing in a font dependency.
+ *
+ * Gemini chooses one key per step from this catalog (see JOURNEY_SYSTEM_PROMPT
+ * + JOURNEY_RESPONSE_SCHEMA). The heuristicIconForLabel() fallback handles
+ * any step where the model omits a key or returns one not in the catalog.
+ */
+const STEP_ICON_CATALOG = {
+  // ── Discovery / Awareness ──────────────────────────────────────────────
+  search:        '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  globe:         '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  eye:           '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  target:        '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  cursor:        '<path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/>',
+  ad:            '<rect x="3" y="3" width="18" height="14" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="7" y1="14" x2="17" y2="14"/>',
+  bell:          '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  social:        '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
+  // ── Engagement / Consideration ─────────────────────────────────────────
+  mail:          '<path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+  chat:          '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+  phone:         '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  headset:       '<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-7h3zM3 19a2 2 0 0 0 2 2h1v-7H3z"/>',
+  play:          '<polygon points="5,3 19,12 5,21 5,3"/>',
+  book:          '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  calendar:      '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  // ── Identity / Profile ─────────────────────────────────────────────────
+  user:          '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  'user-plus':   '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>',
+  users:         '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  heart:         '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+  star:          '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26 12,2"/>',
+  // ── Conversion ─────────────────────────────────────────────────────────
+  tag:           '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+  cart:          '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>',
+  card:          '<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
+  bag:           '<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  check:         '<polyline points="20,6 9,17 4,12"/>',
+  'check-circle':'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/>',
+  // ── Post-purchase / Loyalty ────────────────────────────────────────────
+  gift:          '<polyline points="20,12 20,22 4,22 4,12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+  truck:         '<rect x="1" y="3" width="15" height="13"/><polygon points="16,8 20,8 23,11 23,16 16,16 16,8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+  package:       '<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+  refresh:       '<polyline points="23,4 23,10 17,10"/><polyline points="1,20 1,14 7,14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  crown:         '<path d="M2 18l3-13 5 5 4-7 4 7 5-5 3 13H2z"/>',
+  // ── Generic fallback ───────────────────────────────────────────────────
+  zap:           '<polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>',
+};
+
+/**
+ * Heuristic fallback: pick a sensible icon key from the catalog by
+ * keyword-matching the step label. Used when Gemini omits stepIcons or
+ * returns a key that's not in STEP_ICON_CATALOG. Order matters — earlier
+ * matches win, so put the more specific phrases first.
+ */
+const ICON_KEYWORD_RULES = [
+  [/(retarget|impression|view\s*ad|display\s*ad|programmatic)/i, 'eye'],
+  [/(paid\s*search|ppc|sem|google\s*ads|ad\s*click)/i, 'cursor'],
+  [/(banner|ad\b|advert|sponsor)/i, 'ad'],
+  [/(search|discover|research|find|explore)/i, 'search'],
+  [/(visit|website|site|landing|home\s*page|browse)/i, 'globe'],
+  [/(notif|push|alert|reminder)/i, 'bell'],
+  [/(social|share|tweet|facebook|instagram|tiktok|linkedin)/i, 'social'],
+  [/(target|audience|segment|persona)/i, 'target'],
+  [/(welcome|onboard|signup|sign\s*up|register|create\s*account|loyalty\s*onboard)/i, 'user-plus'],
+  [/(login|account|profile|identity|authent)/i, 'user'],
+  [/(community|referr|invite|advocate|friends?)/i, 'users'],
+  [/(email|newsletter|inbox)/i, 'mail'],
+  [/(chat|message|sms|messenger|whatsapp|conversation)/i, 'chat'],
+  [/(call|phone|dial)/i, 'phone'],
+  [/(support|help|service|agent|assist)/i, 'headset'],
+  [/(video|stream|watch|play)/i, 'play'],
+  [/(content|article|read|blog|guide|story)/i, 'book'],
+  [/(book|appointment|schedule|reserve|calendar|date)/i, 'calendar'],
+  [/(wishlist|favou?rite|save|like)/i, 'heart'],
+  [/(review|rate|rating|stars?|feedback)/i, 'star'],
+  [/(coupon|promo|discount|offer|deal|voucher)/i, 'tag'],
+  [/(reward|loyalty|points|tier|gift)/i, 'gift'],
+  [/(vip|premium|elite|top.?tier|priority)/i, 'crown'],
+  [/(abandon|recover|cart\s*recovery|drop\s*off)/i, 'refresh'],
+  [/(add\s*to\s*cart|added|basket|cart\s*update)/i, 'cart'],
+  [/(cart|basket|trolley)/i, 'cart'],
+  [/(checkout|payment|pay\b|billing)/i, 'card'],
+  [/(complete|purchase|order\s*placed|buy|conversion|transaction)/i, 'bag'],
+  [/(confirm|confirmation|thank\s*you|receipt)/i, 'check-circle'],
+  [/(deliver|ship|shipping|in\s*transit|out\s*for\s*delivery)/i, 'truck'],
+  [/(package|parcel|tracking|fulfil)/i, 'package'],
+  [/(return|refund|replace|exchange)/i, 'refresh'],
+];
+
+function heuristicIconForLabel(label) {
+  const text = String(label || '').trim();
+  if (!text) return 'zap';
+  for (const [re, key] of ICON_KEYWORD_RULES) {
+    if (re.test(text)) return key;
+  }
+  return 'zap';
+}
+
+function resolveStepIcons(rawIcons, stepLabels) {
+  const out = [];
+  for (let i = 0; i < 12; i++) {
+    const requested = Array.isArray(rawIcons) ? String(rawIcons[i] || '').trim().toLowerCase() : '';
+    if (requested && STEP_ICON_CATALOG[requested]) {
+      out.push(requested);
+    } else {
+      out.push(heuristicIconForLabel(stepLabels[i] || ''));
+    }
+  }
+  return out;
+}
+
 // ─── SMALL HELPERS ───────────────────────────────────────────────────────────
 
 function safeString(v, fallback = '') {
@@ -251,6 +365,14 @@ Output ONE JSON object that exactly matches the requested schema. Do not include
 
 Hard rules:
 - "stepLabels": 12 short labels, 2-4 words each, prefixed with "01  " "02  " ... "12  " (number, two spaces, label).
+- "stepIcons": 12 icon keys, one per step, chosen from this catalog (and ONLY from this catalog) so the journey map can render a meaningful pictogram inside each node circle:
+    Discovery / awareness: search, globe, eye, target, cursor, ad, bell, social
+    Engagement: mail, chat, phone, headset, play, book, calendar
+    Identity / profile: user, user-plus, users, heart, star
+    Conversion: tag, cart, card, bag, check, check-circle
+    Post-purchase / loyalty: gift, truck, package, refresh, crown
+    Generic fallback: zap
+  Pick the icon that best represents the customer's action or experience at that step (NOT the AEP capability behind it). Examples: a "Paid Search Click" step → "cursor"; "Audience Retargeting" → "eye" or "target"; "Adds to Cart" → "cart"; "Cart Abandonment" → "refresh"; "Order Confirmation" → "check-circle"; "Loyalty Onboarding" → "gift" or "crown"; "Personalised Welcome" → "user-plus" or "mail". Do not invent new keys. If nothing fits, use "zap".
 - "descriptions": 13 strings, one or two sentences each, in present tense. INDEX 2 (the third item) MUST be an empty string "" — it is the merged-cell hMerge spacer. Indices 0,1,3,4,5,6,7,8,9,10,11,12 carry steps 1..12 respectively.
 - "data": 12 items. Each item describes the customer-data state at that step.
   status options: "Unknown Customer", "Known Customer", "Active Customer", "Known Donor", "Known Supporter", "New Customer", or similar 2-3 word phrase.
@@ -298,6 +420,7 @@ const JOURNEY_RESPONSE_SCHEMA = {
       required: ['name'],
     },
     stepLabels: { type: 'array', items: { type: 'string' } },
+    stepIcons: { type: 'array', items: { type: 'string' } },
     descriptions: { type: 'array', items: { type: 'string' } },
     data: {
       type: 'array',
@@ -423,6 +546,10 @@ function normaliseJourney(journeyData, overrides = {}) {
   };
 
   const stepLabels = ensureLength(j.stepLabels, 12, (i) => `${String(i + 1).padStart(2, '0')}  Step ${i + 1}`);
+  // Resolve per-step icon keys: prefer Gemini's choice when it's a key we
+  // know about, otherwise fall back to a label-keyword heuristic so every
+  // node always has *some* sensible pictogram.
+  const stepIcons = resolveStepIcons(j.stepIcons, stepLabels.map(l => l.replace(/^\d+\s+/, '')));
   const descriptions = ensureLength(j.descriptions, 13, (i) => (i === 2 ? '' : `Step description ${i + 1}.`));
   // Strict rule: index 2 MUST be empty string (hMerge spacer).
   descriptions[2] = '';
@@ -448,7 +575,7 @@ function normaliseJourney(journeyData, overrides = {}) {
     slides[i].activeNode = i - 1;
   }
 
-  return { client, persona: personaOut, stepLabels, descriptions, data, adobe, tech, slides };
+  return { client, persona: personaOut, stepLabels, stepIcons, descriptions, data, adobe, tech, slides };
 }
 
 // ─── PUBLIC: GENERATE JOURNEY (LLM ORCHESTRATION) ────────────────────────────
@@ -561,18 +688,39 @@ function renderJourneyHtml(journeyData) {
   const clientName = j.client.name;
   const personaName = j.persona.name;
 
-  // Build SVG nodes
+  // Build SVG nodes — bigger circles with a centered Feather-style icon as
+  // the primary visual, the step number sitting as a small pill badge in
+  // the top-right corner of the circle, and the wrapped label below /
+  // above depending on whether the node is on the top or bottom row.
+  // The icon pictograms come from STEP_ICON_CATALOG (24x24) — we apply a
+  // 0.92 scale so they read clearly inside the 22px-radius circle.
+  const NODE_RADIUS = 22;
+  const ICON_SIZE = 22;          // rendered diameter of the icon glyph
+  const ICON_SCALE = ICON_SIZE / 24;
+  const BADGE_DX = NODE_RADIUS - 4;
+  const BADGE_DY = -(NODE_RADIUS - 4);
   const nodesSvg = NODES.map((n, idx) => {
     const stepLabel = (j.stepLabels[idx] || '').replace(/^\d+\s+/, '');
     const lines = wrapStepLabelTwoLines(stepLabel);
     const isTop = n.cy < 110;
-    const line1Y = isTop ? n.cy - 22 : n.cy + 22;
-    const line2Y = isTop ? n.cy - 31 : n.cy + 31;
+    // Push labels slightly further out to make room for the bigger circle.
+    const line1Y = isTop ? n.cy - 30 : n.cy + 30;
+    const line2Y = isTop ? n.cy - 40 : n.cy + 40;
     const numberLabel = String(idx + 1).padStart(2, '0');
+    const iconKey = (j.stepIcons && j.stepIcons[idx]) || heuristicIconForLabel(stepLabel);
+    const iconBody = STEP_ICON_CATALOG[iconKey] || STEP_ICON_CATALOG.zap;
+    // Translate icon so its 24x24 viewBox lands centered in the circle
+    // after scaling by ICON_SCALE.
+    const iconTx = n.cx - (24 * ICON_SCALE) / 2;
+    const iconTy = n.cy - (24 * ICON_SCALE) / 2;
     return `
       <g id="node-${idx}" class="node">
-        <circle class="node-circle" cx="${n.cx}" cy="${n.cy}" r="14"></circle>
-        <text class="node-number" x="${n.cx}" y="${n.cy + 4}" text-anchor="middle">${escapeHtml(numberLabel)}</text>
+        <circle class="node-circle" cx="${n.cx}" cy="${n.cy}" r="${NODE_RADIUS}"></circle>
+        <g class="node-icon" transform="translate(${iconTx} ${iconTy}) scale(${ICON_SCALE})">${iconBody}</g>
+        <g class="node-badge">
+          <circle cx="${n.cx + BADGE_DX}" cy="${n.cy + BADGE_DY}" r="9"></circle>
+          <text x="${n.cx + BADGE_DX}" y="${n.cy + BADGE_DY + 3}" text-anchor="middle">${escapeHtml(numberLabel)}</text>
+        </g>
         <text class="node-label" x="${n.cx}" y="${isTop ? line2Y : line1Y}" text-anchor="middle">${escapeHtml(lines[0])}</text>
         ${lines[1] ? `<text class="node-label" x="${n.cx}" y="${isTop ? line1Y : line2Y}" text-anchor="middle">${escapeHtml(lines[1])}</text>` : ''}
       </g>`;
@@ -635,19 +783,87 @@ function renderJourneyHtml(journeyData) {
   .header .journey-type { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
 
   .journey-map-container { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 12px; margin-bottom: 14px; }
-  svg.journey-svg { width: 100%; height: auto; max-height: 240px; display: block; }
+  svg.journey-svg { width: 100%; height: auto; max-height: 280px; display: block; }
   .journey-base { stroke: #c9ced8; stroke-width: 2.5; fill: none; }
   .journey-active { stroke: var(--brand); stroke-width: 4; fill: none; opacity: 0; transition: opacity 0.3s ease; }
   .journey-active.visible { opacity: 1; }
-  .node-circle { fill: #fff; stroke: #c9ced8; stroke-width: 2; transition: fill 0.25s ease, stroke 0.25s ease; }
-  .node-number { font-size: 11px; font-weight: 700; fill: #4a5060; pointer-events: none; }
-  .node-label { font-size: 9.5px; fill: #4a5060; font-weight: 600; }
-  .node-active .node-circle { fill: var(--brand); stroke: var(--brand); animation: nodePulse 1.4s ease-out infinite; }
-  .node-active .node-number { fill: #fff; }
+
+  /* Node circle: bigger, softer border, smooth fill transition. */
+  .node { cursor: pointer; }
+  .node-circle {
+    fill: #fff;
+    stroke: #c9ced8;
+    stroke-width: 2;
+    transition: fill 0.25s ease, stroke 0.25s ease, stroke-width 0.2s ease;
+  }
+
+  /* Icon glyph: stroked Feather-style outline, neutral when inactive,
+     white when the node is active. We set color on the parent <g> and
+     have the strokes/fills inherit currentColor so we can flip the
+     palette with a single CSS rule. */
+  .node-icon {
+    color: #6b7180;
+    pointer-events: none;
+    transition: color 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .node-icon * {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* Solid pictograms (e.g. cursor, star, play) — fill instead of stroke. */
+  .node-icon polygon {
+    fill: currentColor;
+    stroke: currentColor;
+  }
+
+  /* Number badge: small white pill in the top-right corner, brand-coloured
+     text. Inverts to a brand-filled pill with white text when active. */
+  .node-badge circle {
+    fill: #fff;
+    stroke: var(--brand);
+    stroke-width: 1.5;
+    transition: fill 0.2s ease, stroke 0.2s ease;
+  }
+  .node-badge text {
+    font-size: 8.5px;
+    font-weight: 700;
+    fill: var(--brand);
+    pointer-events: none;
+    transition: fill 0.2s ease;
+  }
+
+  .node-label { font-size: 10px; fill: #4a5060; font-weight: 600; }
+
+  /* Hover state on inactive nodes — subtle lift. */
+  .node:hover .node-circle { stroke: var(--brand); stroke-width: 2.5; }
+  .node:hover .node-icon { color: var(--brand); transform: scale(1.08); }
+
+  /* Active node — brand-filled circle, white icon, inverted badge, pulse. */
+  .node-active .node-circle {
+    fill: var(--brand);
+    stroke: var(--brand);
+    stroke-width: 2.5;
+    animation: nodePulse 1.6s ease-out infinite;
+  }
+  .node-active .node-icon { color: #fff; transform: scale(1.05); }
+  .node-active .node-badge circle { fill: var(--brand); stroke: #fff; }
+  .node-active .node-badge text { fill: #fff; }
+  .node-active .node-label { fill: var(--ink); font-weight: 700; }
+
   @keyframes nodePulse {
-    0%   { filter: drop-shadow(0 0 0 var(--brand)); }
-    50%  { filter: drop-shadow(0 0 6px var(--brand)); }
-    100% { filter: drop-shadow(0 0 0 var(--brand)); }
+    0%   { filter: drop-shadow(0 0 0 transparent); }
+    50%  { filter: drop-shadow(0 0 8px var(--brand)); }
+    100% { filter: drop-shadow(0 0 0 transparent); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .node-active .node-circle { animation: none; }
+    .node-icon, .node-badge circle, .node-badge text, .node-circle { transition: none; }
   }
 
   .data-panel { background: var(--panel); border: 2px solid var(--brand); border-radius: 12px; padding: 14px 16px 18px; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
