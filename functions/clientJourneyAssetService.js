@@ -665,21 +665,35 @@ async function generateJourney({
   // Use the full ceiling and let the model decide.
   const JOURNEY_MAX_OUTPUT_TOKENS = 65535;
 
+  // Common Gemini options for every journey call. retryOn429 lets the
+  // shared client absorb a single Vertex AI rate-limit hit (project RPM
+  // burned by another concurrent caller) by sleeping ~30s and retrying
+  // once before surfacing a friendly RATE_LIMITED error to the user.
+  const baseGeminiOpts = {
+    maxOutputTokens: JOURNEY_MAX_OUTPUT_TOKENS,
+    temperature: 0.3,
+    jsonMode: true,
+    retryOn429: true,
+    retryOn429DelayMs: 30000,
+    retryOn429Attempts: 1,
+  };
+
   let raw;
   try {
     raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
-      maxOutputTokens: JOURNEY_MAX_OUTPUT_TOKENS,
-      temperature: 0.3,
-      jsonMode: true,
+      ...baseGeminiOpts,
       responseSchema: JOURNEY_RESPONSE_SCHEMA,
     });
   } catch (e) {
+    // Vertex AI rate limit even after auto-retry — bubble the friendly
+    // message straight through (vertexClient already crafted it).
+    if (e && e.code === 'RATE_LIMITED') {
+      throw e;
+    }
     // Schema unsupported by this model? Retry without it.
     if (/responseSchema|schema/i.test(String(e && e.message || e))) {
       raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
-        maxOutputTokens: JOURNEY_MAX_OUTPUT_TOKENS,
-        temperature: 0.3,
-        jsonMode: true,
+        ...baseGeminiOpts,
       });
     } else if (e && e.code === 'MAX_TOKENS') {
       // The model still ran out of room even at the model maximum. This
@@ -688,12 +702,12 @@ async function generateJourney({
       // tokens go to JSON output rather than internal reasoning.
       try {
         raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
-          maxOutputTokens: JOURNEY_MAX_OUTPUT_TOKENS,
+          ...baseGeminiOpts,
           temperature: 0.2,
-          jsonMode: true,
           responseSchema: JOURNEY_RESPONSE_SCHEMA,
         });
       } catch (retryErr) {
+        if (retryErr && retryErr.code === 'RATE_LIMITED') throw retryErr;
         throw new Error(
           'Vertex AI couldn\'t fit the full 12-step journey within the output ' +
           'token limit, even after a retry. This usually means the brand scrape ' +

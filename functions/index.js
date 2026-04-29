@@ -3103,7 +3103,10 @@ exports.clientJourneyGenerate = onRequest(
   {
     region: REGION,
     invoker: 'public',
-    timeoutSeconds: 180,
+    // 240s gives headroom for: ~120s Vertex call + 30s rate-limit retry
+    // sleep + ~120s second Vertex call + ~10s rendering, so a single
+    // 429 retry can complete cleanly without the function killing it.
+    timeoutSeconds: 240,
     memory: '1GiB',
   },
   async (req, res) => {

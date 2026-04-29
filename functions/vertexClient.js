@@ -24,6 +24,18 @@ function getVertexClient() {
   return vertexClientCache;
 }
 
+// Vertex AI 429 detection.
+// The SDK throws e.g. `[VertexAI.ClientError]: got status: 429 Too Many
+// Requests. {"error":{"code":429,"status":"RESOURCE_EXHAUSTED",...}}` so
+// the cleanest signal we can rely on across SDK versions is a regex over
+// e.message — there's no exported error class with a numeric .status
+// field on every release of @google-cloud/vertexai.
+function isRateLimitedError(e) {
+  if (!e) return false;
+  const msg = String(e.message || e);
+  return /\b429\b|RESOURCE_EXHAUSTED|too many requests/i.test(msg);
+}
+
 async function callGemini(systemPrompt, userPrompt, opts = {}) {
   const {
     maxOutputTokens = 16384,
@@ -37,6 +49,16 @@ async function callGemini(systemPrompt, userPrompt, opts = {}) {
     // a UI that renders incremental markdown) can opt in with
     // `allowTruncation: true`.
     allowTruncation = false,
+    // Vertex AI rate-limit auto-retry. Off by default so existing
+    // callers (e.g. brand scraper) are unchanged. Long single-shot
+    // callers like the client-journey generator opt in — the project
+    // RPM/TPM windows roll on 60s, so one short sleep usually clears
+    // the limit. After the configured number of retries the call
+    // throws an Error with code='RATE_LIMITED' and a friendly,
+    // user-facing message (no SDK stack-trace leakage).
+    retryOn429 = false,
+    retryOn429DelayMs = 30000,
+    retryOn429Attempts = 1,
   } = opts;
   const client = getVertexClient();
   const modelName = modelOverride || process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-pro';
@@ -48,9 +70,38 @@ async function callGemini(systemPrompt, userPrompt, opts = {}) {
     systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] },
     generationConfig,
   });
-  const resp = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-  });
+
+  let resp;
+  const maxAttempts = retryOn429 ? Math.max(1, retryOn429Attempts + 1) : 1;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      resp = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      });
+      break;
+    } catch (e) {
+      if (!isRateLimitedError(e)) throw e;
+      if (attempt < maxAttempts) {
+        console.warn(
+          `[vertex] Gemini ${modelName} returned 429 RESOURCE_EXHAUSTED ` +
+          `(attempt ${attempt}/${maxAttempts}); sleeping ${retryOn429DelayMs}ms then retrying.`
+        );
+        await new Promise((r) => setTimeout(r, retryOn429DelayMs));
+        continue;
+      }
+      const err = new Error(
+        `Vertex AI Gemini (${modelName}) is rate-limited (RESOURCE_EXHAUSTED / 429). ` +
+        'The Google Cloud project has burned its requests-per-minute or ' +
+        'tokens-per-minute quota for this model in the current 60-second window. ' +
+        'Wait ~60 seconds and try again, or request a quota increase in the GCP ' +
+        'console under "Vertex AI API → Generate Content requests per minute per ' +
+        'region (us-central1)".'
+      );
+      err.code = 'RATE_LIMITED';
+      err.cause = e;
+      throw err;
+    }
+  }
   const candidates = resp && resp.response && resp.response.candidates;
   if (!candidates || !candidates.length) throw new Error('Gemini returned no candidates');
   const finish = candidates[0].finishReason;
