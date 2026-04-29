@@ -519,6 +519,122 @@
   gap: 0.75rem;
 }
 
+/* ── Recolour palette (lives above the asset tabs) ──────────────────── */
+
+.client-journey-asset-page .cj-recolour {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.85rem;
+  padding: 0.55rem 0.85rem;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+}
+
+.client-journey-asset-page .cj-recolour-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--dash-text-secondary);
+  white-space: nowrap;
+}
+
+.client-journey-asset-page .cj-recolour-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.client-journey-asset-page .cj-recolour-swatch {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--dash-border);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.06s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.client-journey-asset-page .cj-recolour-swatch:hover {
+  transform: translateY(-1px);
+  border-color: var(--dash-text-secondary);
+}
+
+.client-journey-asset-page .cj-recolour-swatch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dash-bg), 0 0 0 4px var(--dash-blue);
+}
+
+.client-journey-asset-page .cj-recolour-swatch.is-active {
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 2px var(--dash-bg), 0 0 0 3px var(--dash-blue);
+}
+
+.client-journey-asset-page .cj-recolour-swatch .cj-recolour-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
+}
+
+.client-journey-asset-page .cj-recolour-divider {
+  color: var(--dash-text-secondary);
+  opacity: 0.6;
+}
+
+.client-journey-asset-page .cj-recolour-custom {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.client-journey-asset-page .cj-recolour-custom input[type="color"] {
+  width: 32px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-input-bg);
+  cursor: pointer;
+}
+
+.client-journey-asset-page .cj-recolour-custom input[type="text"] {
+  width: 88px;
+  padding: 0.3rem 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  color: var(--dash-text);
+  border-radius: var(--dash-radius-sm);
+}
+
+.client-journey-asset-page .cj-recolour-reset {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--dash-border);
+  color: var(--dash-text-secondary);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--dash-radius-sm);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.client-journey-asset-page .cj-recolour-reset:hover {
+  color: var(--dash-text);
+  border-color: var(--dash-text-secondary);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
 .client-journey-asset-page .cj-results-tabs {
   display: flex;
   gap: 0.4rem;

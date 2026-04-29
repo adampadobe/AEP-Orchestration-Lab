@@ -63,6 +63,11 @@
   var downloadPptxBtn = $('cjDownloadPptxBtn');
   var prevLoadBtn = $('cjPrevLoadBtn');
   var prevForgetBtn = $('cjPrevForgetBtn');
+  var recolourEl = $('cjRecolour');
+  var recolourSwatchesEl = $('cjRecolourSwatches');
+  var recolourPicker = $('cjRecolourPicker');
+  var recolourHex = $('cjRecolourHex');
+  var recolourReset = $('cjRecolourReset');
 
   // ─── State ────────────────────────────────────────────────────────────
   var state = {
@@ -70,6 +75,9 @@
     journeyData: null,       // Last generated journey JSON (used for PPTX download)
     journeyBlobUrl: null,
     onePagerBlobUrl: null,
+    scrapeColours: [],       // [{hex, count}] from the active scrape (for recolour palette)
+    originalBrandColour: '', // Hex the assets were originally generated with — used by Reset
+    activeBrandColour: '',   // Currently applied hex (may differ from original after recolour)
   };
 
   // ─── Cache (per-browser) ──────────────────────────────────────────────
@@ -194,10 +202,18 @@
 
   function applyCachedEntry(entry) {
     state.journeyData = entry.journeyData;
+    state.originalBrandColour = String(entry.originalBrandColour || entry.brandColour || '').toUpperCase();
+    state.activeBrandColour = String(entry.colourOverride || entry.brandColour || state.originalBrandColour).toUpperCase();
     mountIframe(iframeJourney, entry.htmlJourney, 'journey');
     mountIframe(iframeOnePager, entry.htmlOnePager, 'onepager');
     resultsSection.hidden = false;
     activateTab('journey');
+    renderRecolourPanel(state.scrapeColours, state.originalBrandColour, state.activeBrandColour);
+    // Re-apply any colour override the user picked previously (don't
+    // re-persist — we just loaded from cache, the colour is already there).
+    if (state.activeBrandColour && state.activeBrandColour !== state.originalBrandColour) {
+      applyRecolour(state.activeBrandColour, { persist: false });
+    }
     progress.finish('success', 'Loaded previously generated result from ' + relativeTime(entry.generatedAt));
     setStatus(generateStatus, 'Restored previous result. Generate again to replace it, or download the PPTX.', 'success');
   }
@@ -368,6 +384,135 @@
     highlightActiveSwatch(upper);
   }
 
+  // ─── Live recolour (post-generation) ──────────────────────────────────
+  //
+  // The generated HTML uses CSS custom properties (--brand, --brand-dark)
+  // and the iframes are blob:-loaded same-origin sandboxed, so we can
+  // reach into contentDocument and inject a tiny override <style>. That
+  // lets the user audition any colour from the scrape palette (or a
+  // custom hex) instantly without paying another 60–120s Vertex AI bill.
+  // We also mutate state.journeyData.client.{brandColour,darkColour} so
+  // a subsequent PPTX download picks up the new colour, and persist the
+  // override on the cached entry so reload + Load previous keeps it.
+
+  function clientDarken(hex, amount) {
+    var amt = Math.max(0, Math.min(1, amount == null ? 0.55 : amount));
+    var h = String(hex || '').replace(/^#/, '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return '#1A1A1A';
+    var r = Math.round(parseInt(h.slice(0, 2), 16) * (1 - amt));
+    var g = Math.round(parseInt(h.slice(2, 4), 16) * (1 - amt));
+    var b = Math.round(parseInt(h.slice(4, 6), 16) * (1 - amt));
+    return '#' + [r, g, b].map(function (v) {
+      var s = v.toString(16);
+      return s.length === 1 ? '0' + s : s;
+    }).join('').toUpperCase();
+  }
+
+  function injectIframeColourOverride(iframeEl, brand, dark) {
+    if (!iframeEl) return;
+    function apply() {
+      var doc;
+      try { doc = iframeEl.contentDocument; }
+      catch (_) { return; }
+      if (!doc || !doc.documentElement) return;
+      var styleId = 'cj-colour-override';
+      var style = doc.getElementById(styleId);
+      if (!style) {
+        style = doc.createElement('style');
+        style.id = styleId;
+        (doc.head || doc.documentElement).appendChild(style);
+      }
+      // Higher specificity than the original :root block by virtue of
+      // appearing later in the document. We override --brand-dark too so
+      // the right-rail panel + table accents track the new accent.
+      style.textContent =
+        ':root{--brand:' + brand + ' !important;--brand-dark:' + dark + ' !important;}';
+    }
+    // contentDocument is available immediately for blob: same-origin iframes,
+    // but if the iframe is still loading we wait for the load event.
+    var doc;
+    try { doc = iframeEl.contentDocument; } catch (_) { doc = null; }
+    if (doc && doc.readyState === 'complete') {
+      apply();
+    } else {
+      iframeEl.addEventListener('load', apply, { once: true });
+      // Defensive: also try again on next tick — some browsers fire load
+      // synchronously for blob: URLs and we may miss the listener.
+      setTimeout(apply, 0);
+    }
+  }
+
+  function applyRecolour(hex, opts) {
+    opts = opts || {};
+    var upper = String(hex || '').toUpperCase();
+    if (!/^#[0-9A-F]{6}$/.test(upper)) return;
+    var dark = clientDarken(upper, 0.55);
+    state.activeBrandColour = upper;
+    if (state.journeyData && state.journeyData.client) {
+      state.journeyData.client.brandColour = upper;
+      state.journeyData.client.darkColour = dark;
+    }
+    injectIframeColourOverride(iframeJourney, upper, dark);
+    injectIframeColourOverride(iframeOnePager, upper, dark);
+    if (recolourPicker) recolourPicker.value = upper;
+    if (recolourHex) recolourHex.value = upper;
+    highlightActiveRecolourSwatch(upper);
+    if (opts.persist !== false) persistRecolourToCache(upper);
+  }
+
+  function highlightActiveRecolourSwatch(hex) {
+    if (!recolourSwatchesEl) return;
+    var target = (hex || '').toUpperCase();
+    var btns = recolourSwatchesEl.querySelectorAll('.cj-recolour-swatch');
+    for (var i = 0; i < btns.length; i++) {
+      var match = (btns[i].getAttribute('data-hex') || '').toUpperCase() === target;
+      btns[i].classList.toggle('is-active', match);
+      btns[i].setAttribute('aria-checked', match ? 'true' : 'false');
+    }
+  }
+
+  function persistRecolourToCache(hex) {
+    if (!state.selectedScrape) return;
+    var sb = getSandbox();
+    var entry = loadFromCache(sb, state.selectedScrape.scrapeId);
+    if (!entry) return;
+    entry.brandColour = hex;
+    entry.colourOverride = hex;
+    if (entry.journeyData && entry.journeyData.client) {
+      entry.journeyData.client.brandColour = hex;
+      entry.journeyData.client.darkColour = clientDarken(hex, 0.55);
+    }
+    try {
+      localStorage.setItem(cacheKey(sb, state.selectedScrape.scrapeId), JSON.stringify(entry));
+    } catch (_) { /* quota — ignore */ }
+  }
+
+  function renderRecolourPanel(scrapeColours, originalHex, activeHex) {
+    if (!recolourEl || !recolourSwatchesEl) return;
+    var colours = Array.isArray(scrapeColours) ? scrapeColours : [];
+    if (!colours.length && !originalHex) {
+      recolourEl.hidden = true;
+      return;
+    }
+    recolourEl.hidden = false;
+    var active = (activeHex || originalHex || '').toUpperCase();
+    recolourSwatchesEl.innerHTML = colours.map(function (c) {
+      var hex = c.hex.toUpperCase();
+      var isActive = hex === active;
+      var label = hex + (c.count ? ' · seen ' + c.count + 'x' : '');
+      return '<button type="button" role="radio" class="cj-recolour-swatch' + (isActive ? ' is-active' : '') + '"' +
+        ' data-hex="' + escapeAttr(hex) + '"' +
+        ' aria-checked="' + (isActive ? 'true' : 'false') + '"' +
+        ' aria-label="' + escapeAttr(label) + '"' +
+        ' title="' + escapeAttr(label) + '">' +
+        '<span class="cj-recolour-fill" style="background:' + escapeAttr(hex) + '"></span>' +
+        '</button>';
+    }).join('');
+    if (recolourPicker) recolourPicker.value = active;
+    if (recolourHex) recolourHex.value = active;
+  }
+
   // ─── API ──────────────────────────────────────────────────────────────
 
   async function fetchScrapes(sandbox) {
@@ -404,6 +549,7 @@
     summarySection.hidden = true;
     resultsSection.hidden = true;
     scrapeCard.innerHTML = '';
+    if (recolourEl) recolourEl.hidden = true;
     hideLoadPrev();
 
     try {
@@ -523,6 +669,7 @@
     var allColours = normaliseColourList(assets.colours);
     var colours = allColours.slice(0, 8);
     var primary = pickPrimaryColour(colours);
+    state.scrapeColours = colours;
 
     var hostUrl = scrape.url || '';
     var clearbitDomain = hostFromUrl(hostUrl);
@@ -715,8 +862,11 @@
       if (!resp.ok || !data.ok) throw new Error((data && data.error) || ('HTTP ' + resp.status));
 
       state.journeyData = data.journeyData;
+      state.originalBrandColour = brandColour.toUpperCase();
+      state.activeBrandColour = brandColour.toUpperCase();
       mountIframe(iframeJourney, data.htmlJourney, 'journey');
       mountIframe(iframeOnePager, data.htmlOnePager, 'onepager');
+      renderRecolourPanel(state.scrapeColours, state.originalBrandColour, state.activeBrandColour);
 
       // Persist so the user can restore this result on their next visit
       // without burning another 60–120s Vertex AI call. Keyed by sandbox
@@ -724,6 +874,7 @@
       saveToCache(sandbox, state.selectedScrape.scrapeId, {
         brandName: state.selectedScrape.brandName,
         brandColour: brandColour,
+        originalBrandColour: brandColour,
         journeyType: journeyType,
         personaName: personaName,
         journeyData: data.journeyData,
@@ -920,6 +1071,30 @@
         var pill = scrapeCard.querySelector('.cj-cached-pill');
         if (pill) pill.remove();
         setStatus(generateStatus, 'Cached result forgotten.', '');
+      });
+    }
+    if (recolourSwatchesEl) {
+      recolourSwatchesEl.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest && e.target.closest('.cj-recolour-swatch');
+        if (!btn) return;
+        var hex = btn.getAttribute('data-hex');
+        if (hex) applyRecolour(hex);
+      });
+    }
+    if (recolourPicker) {
+      recolourPicker.addEventListener('input', function () {
+        applyRecolour(recolourPicker.value);
+      });
+    }
+    if (recolourHex) {
+      recolourHex.addEventListener('input', function () {
+        var v = recolourHex.value.trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(v)) applyRecolour(v);
+      });
+    }
+    if (recolourReset) {
+      recolourReset.addEventListener('click', function () {
+        if (state.originalBrandColour) applyRecolour(state.originalBrandColour);
       });
     }
     syncBrandColourInputs();

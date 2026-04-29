@@ -97,6 +97,18 @@
         </section>
 
         <section class="cj-results" id="cjResults" hidden>
+          <div class="cj-recolour" id="cjRecolour" hidden>
+            <span class="cj-recolour-label">Recolour with palette:</span>
+            <div class="cj-recolour-swatches" id="cjRecolourSwatches" role="radiogroup" aria-label="Apply a brand colour from the scrape"></div>
+            <span class="cj-recolour-divider" aria-hidden="true">·</span>
+            <label class="cj-recolour-custom">
+              <span class="visually-hidden">Custom hex</span>
+              <input type="color" id="cjRecolourPicker" value="#1151FF" aria-label="Pick a custom brand colour">
+              <input type="text" id="cjRecolourHex" value="#1151FF" maxlength="7" pattern="^#[0-9a-fA-F]{6}$" aria-label="Custom brand colour hex" spellcheck="false">
+            </label>
+            <button type="button" id="cjRecolourReset" class="cj-recolour-reset" title="Restore the colour the assets were generated with">Reset</button>
+          </div>
+
           <div class="cj-results-tabs" role="tablist" aria-label="Asset views">
             <button type="button" role="tab" data-tab="journey" aria-selected="true" id="cjTabJourney">Journey map</button>
             <button type="button" role="tab" data-tab="onepager" aria-selected="false" id="cjTabOnePager">One-pager</button>
