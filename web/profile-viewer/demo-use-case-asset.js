@@ -218,6 +218,10 @@
     activeTab: 'framing',
   };
 
+  /** Cached GET /api/image-hosting/library for the active sandbox (images only). */
+  var libraryImageCache = { sandbox: '', items: null };
+  var libraryPickerFilterTimer = null;
+
   // Combobox handles — built once in init().
   var personaCombo = null;
   var useCaseCombo = null;
@@ -839,6 +843,7 @@
       var fileInput = area.querySelector('input[type="file"]');
       area.addEventListener('click', function (e) {
         if (e.target && e.target.closest && e.target.closest('.duc-dz-clear')) return;
+        if (e.target && e.target.closest && e.target.closest('.duc-dz-pick-library')) return;
         if (fileInput) fileInput.click();
       });
       area.addEventListener('dragover', function (e) { e.preventDefault(); area.classList.add('is-dragover'); });
@@ -864,6 +869,14 @@
           syncDropzonePreviews();
         });
       }
+      var pickBtn = document.querySelector('[data-dz-pick-library="' + slot + '"]');
+      if (pickBtn) {
+        pickBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          openLibraryPicker(slot);
+        });
+      }
     });
   }
 
@@ -878,6 +891,191 @@
     var r = await fetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId) + (sandbox ? ('?sandbox=' + encodeURIComponent(sandbox)) : ''));
     if (!r.ok) { var d = await r.json().catch(function () { return {}; }); throw new Error(d.error || ('HTTP ' + r.status)); }
     return r.json();
+  }
+
+  async function fetchImageHostingLibrary(sandbox) {
+    if (!sandbox) throw new Error('sandbox is required');
+    var r = await fetch('/api/image-hosting/library?sandbox=' + encodeURIComponent(sandbox));
+    var data = await r.json().catch(function () { return {}; });
+    if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+    return Array.isArray(data.items) ? data.items : [];
+  }
+
+  function isLibraryImageFile(item) {
+    if (!item || item.isFolderMarker) return false;
+    var f = String(item.file || '');
+    if (f === '.aep-library-folder' || f.indexOf('.aep-library-folder') !== -1) return false;
+    var ct = String(item.contentType || '').toLowerCase();
+    if (ct.indexOf('image/') === 0) return true;
+    var ext = (f.split('.').pop() || '').toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp'].indexOf(ext) !== -1;
+  }
+
+  function absoluteLibraryImageUrl(item) {
+    if (!item) return '';
+    var pub = item.publicUrl && String(item.publicUrl).trim();
+    if (/^https?:\/\//i.test(pub)) return pub;
+    var cdn = item.cdnUrl && String(item.cdnUrl).trim();
+    if (cdn && cdn.charAt(0) === '/') {
+      try {
+        var o = (window.location && window.location.origin) || '';
+        if (o) return o + cdn;
+      } catch (_e) { /* ignore */ }
+    }
+    return cdn || pub || '';
+  }
+
+  var SLOT_LIBRARY_LABELS = {
+    brandSurface: 'Brand surface',
+    persona: 'Persona photo',
+    device: 'Step mockup',
+    ajoCanvas: 'AJO canvas',
+    lifestyle: 'Lifestyle photo',
+    aepComposite: 'AEP composite',
+  };
+
+  async function loadLibraryImageItemsForSandbox() {
+    var sb = getSandbox();
+    if (!sb) throw new Error('Choose a sandbox first.');
+    if (libraryImageCache.sandbox === sb && libraryImageCache.items) return libraryImageCache.items;
+    var raw = await fetchImageHostingLibrary(sb);
+    var filtered = [];
+    for (var i = 0; i < raw.length; i++) {
+      if (isLibraryImageFile(raw[i])) filtered.push(raw[i]);
+    }
+    libraryImageCache.sandbox = sb;
+    libraryImageCache.items = filtered;
+    return filtered;
+  }
+
+  function renderLibraryPickerTiles(targetSlot, filterText) {
+    var grid = document.getElementById('ducLibraryPickerGrid');
+    var emptyEl = document.getElementById('ducLibraryPickerEmpty');
+    if (!grid) return;
+    var items = libraryImageCache.items || [];
+    var q = String(filterText || '').trim().toLowerCase();
+    var list = !q ? items.slice() : items.filter(function (it) {
+      var rel = String(it.relPath || '').toLowerCase();
+      return rel.indexOf(q) !== -1;
+    });
+    grid.innerHTML = '';
+    if (!list.length) {
+      if (emptyEl) {
+        if (q && items.length) {
+          emptyEl.textContent = 'No library files match that filter.';
+        } else if (!items.length) {
+          emptyEl.textContent = 'No image files in this sandbox library yet. Open Image hosting to publish assets from a scrape.';
+        } else {
+          emptyEl.textContent = 'No matches.';
+        }
+        emptyEl.hidden = false;
+      }
+      return;
+    }
+    if (emptyEl) {
+      emptyEl.textContent = 'No image files in this sandbox library yet. Open Image hosting to publish assets from a scrape.';
+      emptyEl.hidden = true;
+    }
+    for (var j = 0; j < list.length; j++) {
+      (function (item) {
+        var url = absoluteLibraryImageUrl(item);
+        if (!url) return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'duc-library-picker-tile';
+        btn.setAttribute('role', 'listitem');
+        var cap = String(item.relPath || item.file || 'image');
+        btn.setAttribute('title', cap);
+        var thumb = document.createElement('img');
+        thumb.alt = '';
+        thumb.loading = 'lazy';
+        thumb.src = url;
+        thumb.onerror = function () { thumb.style.visibility = 'hidden'; };
+        var meta = document.createElement('span');
+        meta.className = 'duc-library-tile-meta';
+        meta.textContent = cap;
+        btn.appendChild(thumb);
+        btn.appendChild(meta);
+        btn.addEventListener('click', function () {
+          if (!targetSlot) return;
+          state.images[targetSlot] = url;
+          syncDropzonePreviews();
+          var dlg = document.getElementById('ducLibraryPickerDialog');
+          if (dlg && typeof dlg.close === 'function') dlg.close();
+          setStatus(generateStatus, 'Slot updated from image library.', 'success');
+        });
+        grid.appendChild(btn);
+      })(list[j]);
+    }
+  }
+
+  async function openLibraryPicker(slot) {
+    var dlg = document.getElementById('ducLibraryPickerDialog');
+    var grid = document.getElementById('ducLibraryPickerGrid');
+    var hint = document.getElementById('ducLibraryPickerHint');
+    var emptyEl = document.getElementById('ducLibraryPickerEmpty');
+    var title = document.getElementById('ducLibraryPickerTitle');
+    var filterEl = document.getElementById('ducLibraryPickerFilter');
+    if (!dlg || !grid || !slot) return;
+    var sb = getSandbox();
+    if (!sb) {
+      setStatus(generateStatus, 'Choose a sandbox first — the image library is per sandbox.', 'error');
+      return;
+    }
+    if (libraryImageCache.sandbox !== sb) {
+      libraryImageCache.sandbox = '';
+      libraryImageCache.items = null;
+    }
+    if (title) title.textContent = 'Pick image — ' + (SLOT_LIBRARY_LABELS[slot] || slot);
+    if (hint) hint.textContent = 'Files from Image hosting for sandbox "' + sb + '". Thumbnails use the same CDN URLs as the library grid.';
+    if (filterEl) filterEl.value = '';
+    if (emptyEl) {
+      emptyEl.textContent = 'No image files in this sandbox library yet. Open Image hosting to publish assets from a scrape.';
+      emptyEl.hidden = true;
+    }
+    grid.innerHTML = '<p class="duc-suggest-hint" style="margin:0.5rem 1rem">Loading library…</p>';
+    try {
+      await loadLibraryImageItemsForSandbox();
+    } catch (e) {
+      grid.innerHTML = '';
+      if (emptyEl) {
+        emptyEl.textContent = 'Could not load library: ' + (e && e.message ? e.message : e) + '. Open Image hosting to confirm this sandbox.';
+        emptyEl.hidden = false;
+      }
+      return;
+    }
+    renderLibraryPickerTiles(slot, '');
+    if (typeof dlg.showModal === 'function') {
+      dlg.dataset.ducPickerSlot = slot;
+      dlg.showModal();
+    } else {
+      setStatus(generateStatus, 'Your browser does not support the image picker dialog.', 'error');
+    }
+  }
+
+  function bindLibraryPickerDialog() {
+    var dlg = document.getElementById('ducLibraryPickerDialog');
+    var closeBtn = document.getElementById('ducLibraryPickerClose');
+    var filterEl = document.getElementById('ducLibraryPickerFilter');
+    if (closeBtn && dlg) {
+      closeBtn.addEventListener('click', function () { if (typeof dlg.close === 'function') dlg.close(); });
+    }
+    if (dlg) {
+      dlg.addEventListener('click', function (ev) {
+        if (ev.target === dlg && typeof dlg.close === 'function') dlg.close();
+      });
+    }
+    if (filterEl && dlg) {
+      filterEl.addEventListener('input', function () {
+        var slot = dlg.dataset.ducPickerSlot || '';
+        if (libraryPickerFilterTimer) clearTimeout(libraryPickerFilterTimer);
+        var v = filterEl.value;
+        libraryPickerFilterTimer = setTimeout(function () {
+          libraryPickerFilterTimer = null;
+          renderLibraryPickerTiles(slot, v);
+        }, 160);
+      });
+    }
   }
 
   // ─── Lookup ───────────────────────────────────────────────────────────
@@ -1388,6 +1586,7 @@
     syncProductChips();
     bindDropzones();
     syncDropzonePreviews();
+    bindLibraryPickerDialog();
 
     var applyScrapeImagesBtn = $('ducApplyScrapeImagesBtn');
     if (applyScrapeImagesBtn) {

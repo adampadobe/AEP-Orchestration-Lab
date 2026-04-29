@@ -129,7 +129,10 @@
                     <div class="duc-dz-empty"><span>Drop or click to upload</span><small>JPG / PNG · landscape · their homepage / app</small></div>
                     <img class="duc-dz-preview" alt="" hidden>
                   </div>
-                  <button type="button" class="duc-dz-clear" data-dz-clear="brandSurface" hidden>Use stock fallback</button>
+                  <div class="duc-dz-actions">
+                    <button type="button" class="duc-dz-pick-library" data-dz-pick-library="brandSurface">From library…</button>
+                    <button type="button" class="duc-dz-clear" data-dz-clear="brandSurface" hidden>Use stock fallback</button>
+                  </div>
                 </div>
                 <div class="duc-dropzone" data-image-slot="persona">
                   <span class="duc-dz-title">Persona photo</span>
@@ -139,7 +142,10 @@
                     <div class="duc-dz-empty"><span>Drop or click to upload</span><small>JPG / PNG · square works best</small></div>
                     <img class="duc-dz-preview" alt="" hidden>
                   </div>
-                  <button type="button" class="duc-dz-clear" data-dz-clear="persona" hidden>Use stock fallback</button>
+                  <div class="duc-dz-actions">
+                    <button type="button" class="duc-dz-pick-library" data-dz-pick-library="persona">From library…</button>
+                    <button type="button" class="duc-dz-clear" data-dz-clear="persona" hidden>Use stock fallback</button>
+                  </div>
                 </div>
                 <div class="duc-dropzone" data-image-slot="device">
                   <span class="duc-dz-title">Step mockup</span>
@@ -149,7 +155,10 @@
                     <div class="duc-dz-empty"><span>Drop or click to upload</span><small>JPG / PNG · 16:10 works best</small></div>
                     <img class="duc-dz-preview" alt="" hidden>
                   </div>
-                  <button type="button" class="duc-dz-clear" data-dz-clear="device" hidden>Use stock fallback</button>
+                  <div class="duc-dz-actions">
+                    <button type="button" class="duc-dz-pick-library" data-dz-pick-library="device">From library…</button>
+                    <button type="button" class="duc-dz-clear" data-dz-clear="device" hidden>Use stock fallback</button>
+                  </div>
                 </div>
                 <div class="duc-dropzone" data-image-slot="ajoCanvas">
                   <span class="duc-dz-title">AJO canvas</span>
@@ -159,7 +168,10 @@
                     <div class="duc-dz-empty"><span>Drop or click to upload</span><small>PNG · screenshot of the actual journey</small></div>
                     <img class="duc-dz-preview" alt="" hidden>
                   </div>
-                  <button type="button" class="duc-dz-clear" data-dz-clear="ajoCanvas" hidden>Use stock fallback</button>
+                  <div class="duc-dz-actions">
+                    <button type="button" class="duc-dz-pick-library" data-dz-pick-library="ajoCanvas">From library…</button>
+                    <button type="button" class="duc-dz-clear" data-dz-clear="ajoCanvas" hidden>Use stock fallback</button>
+                  </div>
                 </div>
                 <div class="duc-dropzone" data-image-slot="lifestyle">
                   <span class="duc-dz-title">Lifestyle photo</span>
@@ -169,7 +181,10 @@
                     <div class="duc-dz-empty"><span>Drop or click to upload</span><small>JPG / PNG · landscape works best</small></div>
                     <img class="duc-dz-preview" alt="" hidden>
                   </div>
-                  <button type="button" class="duc-dz-clear" data-dz-clear="lifestyle" hidden>Use stock fallback</button>
+                  <div class="duc-dz-actions">
+                    <button type="button" class="duc-dz-pick-library" data-dz-pick-library="lifestyle">From library…</button>
+                    <button type="button" class="duc-dz-clear" data-dz-clear="lifestyle" hidden>Use stock fallback</button>
+                  </div>
                 </div>
                 <div class="duc-dropzone" data-image-slot="aepComposite">
                   <span class="duc-dz-title">AEP composite</span>
@@ -179,10 +194,13 @@
                     <div class="duc-dz-empty"><span>Drop or click to upload</span><small>PNG · AEP UI + customer-facing experience</small></div>
                     <img class="duc-dz-preview" alt="" hidden>
                   </div>
-                  <button type="button" class="duc-dz-clear" data-dz-clear="aepComposite" hidden>Use stock fallback</button>
+                  <div class="duc-dz-actions">
+                    <button type="button" class="duc-dz-pick-library" data-dz-pick-library="aepComposite">From library…</button>
+                    <button type="button" class="duc-dz-clear" data-dz-clear="aepComposite" hidden>Use stock fallback</button>
+                  </div>
                 </div>
               </div>
-              <p class="duc-suggest-hint">Without an upload we render neutral SVG placeholders for each image slot (each zone is tagged with a <span class="duc-suggest-mono">data-demo-slot</span> attribute in the generated HTML) so you can swap assets at scale. Text and chrome still follow the brand colour and the recolour bar.</p>
+              <p class="duc-suggest-hint">Use <span class="duc-suggest-mono">From library…</span> to pick a file already published in Image hosting for this sandbox (no re-upload). Without a slot value we render neutral SVG placeholders (each zone uses <span class="duc-suggest-mono">data-demo-slot</span> in the HTML). Text and chrome follow the brand colour and the recolour bar.</p>
             </div>
 
             <div class="form-row">
@@ -279,6 +297,18 @@
     </div>
   </div>
 
+  <dialog id="ducLibraryPickerDialog" class="duc-library-dialog" aria-labelledby="ducLibraryPickerTitle">
+    <div class="duc-library-dialog-header">
+      <h2 class="duc-library-dialog-title" id="ducLibraryPickerTitle">Choose from image library</h2>
+      <button type="button" class="duc-library-dialog-close" id="ducLibraryPickerClose">Close</button>
+    </div>
+    <p class="duc-form-hint duc-library-picker-hint" id="ducLibraryPickerHint"></p>
+    <label class="duc-library-picker-filter-wrap" for="ducLibraryPickerFilter">Filter</label>
+    <input type="search" id="ducLibraryPickerFilter" class="duc-library-picker-filter" placeholder="Filter by file or folder name…" autocomplete="off">
+    <div id="ducLibraryPickerGrid" class="duc-library-picker-grid" role="list"></div>
+    <p class="duc-suggest-hint duc-library-picker-empty" id="ducLibraryPickerEmpty" hidden>No image files in this sandbox library yet. Open Image hosting to publish assets from a scrape.</p>
+  </dialog>
+
   <script src="firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -287,6 +317,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260429-duc"></script>
-  <script src="demo-use-case-asset.js?v=20260429a"></script>
+  <script src="demo-use-case-asset.js?v=20260429b"></script>
 </body>
 </html>
