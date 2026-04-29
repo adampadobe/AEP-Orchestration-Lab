@@ -59,10 +59,9 @@
     device:       { maxWidth: 1280, maxHeight: 800,  quality: 0.86, mime: 'image/jpeg' },
     lifestyle:    { maxWidth: 1280, maxHeight: 1280, quality: 0.86, mime: 'image/jpeg' },
     brandSurface: { maxWidth: 1600, maxHeight: 1000, quality: 0.82, mime: 'image/jpeg' },
-    ajoCanvas:    { maxWidth: 1600, maxHeight: 900, quality: 0.82, mime: 'image/jpeg' },
     aepComposite: { maxWidth: 1600, maxHeight: 1200, quality: 0.82, mime: 'image/jpeg' },
   };
-  var IMAGE_SLOTS = ['persona', 'device', 'lifestyle', 'brandSurface', 'ajoCanvas', 'aepComposite'];
+  var IMAGE_SLOTS = ['persona', 'device', 'lifestyle', 'brandSurface', 'aepComposite'];
   function emptyImages() {
     var o = {};
     IMAGE_SLOTS.forEach(function (k) { o[k] = ''; });
@@ -116,8 +115,6 @@
       || take(function (cat) { return cat === 'lifestyle' || cat === 'product' || cat === 'illustration'; });
     out.lifestyle = takeCats(['lifestyle'])
       || take(function (cat) { return cat === 'hero_banner' || cat === 'decorative'; });
-    out.ajoCanvas = takeCats(['infographic', 'illustration'])
-      || take(function (cat) { return cat === 'hero_banner' || cat === 'product' || cat === 'decorative'; });
     out.aepComposite = takeCats(['product', 'infographic'])
       || take(function (cat) { return cat === 'illustration'; });
     out.device = take(function (cat) { return cat === 'product' || cat === 'hero_banner'; });
@@ -929,7 +926,6 @@
     brandSurface: 'Brand surface',
     persona: 'Persona photo',
     device: 'Step mockup',
-    ajoCanvas: 'AJO canvas',
     lifestyle: 'Lifestyle photo',
     aepComposite: 'AEP composite',
   };

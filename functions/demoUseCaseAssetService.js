@@ -387,7 +387,8 @@ function resolveLifestyleImage(images, industry, brandColour, mode = 'html') {
 //
 // Optional uploads on the images payload — each value may be a data:
 // URL or an https image URL (e.g. signed crawl assets from the lab UI):
-//   brandSurface, ajoCanvas, aepComposite — plus persona, device, lifestyle
+//   brandSurface, aepComposite — plus persona, device, lifestyle (ajoCanvas
+//   is accepted on the payload but not shown on the experience walkthrough)
 // Industry line-art (industryAccent) stays SVG, tinted via CSS currentColor.
 
 function industryIllustrationSvg(industry, opts = {}) {
@@ -1405,16 +1406,10 @@ function renderExperienceHtml(data, images) {
   const e = data.experience || {};
   const persona = e.persona || { name: 'Customer', traits: [], summary: '' };
   const personaImg = resolvePersonaImage(images, persona.name, c.name, brand, 'html');
-  // AJO canvas credibility strip — uploaded screenshot or stylised
-  // SVG fallback. Always rendered so the slide reads as "this is real
-  // Adobe Journey Optimizer" instead of a generic flow.
-  const ajoCanvas = resolveAjoCanvas(images, brand);
   const personaState = imageSlotUploaded(images, 'persona') ? 'upload' : 'placeholder';
   const personaInner = personaImg.kind === 'svg'
     ? `<span class="svg-wrap">${personaImg.inlineSvg || ''}</span>`
     : `<img src="${escapeAttr(personaImg.src)}" alt="">`;
-  const ajoState = imageSlotUploaded(images, 'ajoCanvas') ? 'upload' : 'placeholder';
-  const ajoInner = ajoCanvas.kind === 'svg' ? ajoCanvas.inlineSvg : `<img src="${escapeAttr(ajoCanvas.src)}" alt="Adobe Journey Optimizer canvas">`;
   const steps = e.steps || [];
   const n = steps.length;
 
@@ -1534,7 +1529,7 @@ function renderExperienceHtml(data, images) {
   .stage-panels { flex: 1 1 auto; min-height: 0; position: relative; }
   .stage-panel {
     display: grid; grid-template-columns: minmax(280px, 1.1fr) minmax(0, 1.1fr); gap: 28px;
-    align-items: center; height: 100%;
+    align-items: start; height: 100%;
     animation: stageIn 0.45s ease-in-out both;
   }
   .stage-panel[hidden] { display: none; }
@@ -1544,10 +1539,11 @@ function renderExperienceHtml(data, images) {
   }
   .stage-mockup {
     display: flex; align-items: center; justify-content: center;
-    height: 100%; min-height: 0; padding: 6px;
+    min-height: 200px; padding: 6px;
+    align-self: center;
   }
   .stage-mockup svg {
-    max-width: 100%; max-height: 100%;
+    max-width: 100%; max-height: min(52vh, 380px);
     filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.12));
   }
   .stage-info { display: flex; flex-direction: column; gap: 12px; }
@@ -1567,41 +1563,10 @@ function renderExperienceHtml(data, images) {
   }
   .stage-channel .ch-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
 
-  /* ── AJO canvas credibility strip ────────────────────────────────── */
-  .ajo-strip {
-    background: #ffffff;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 14px 0;
-    display: flex; flex-direction: column; gap: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-  }
-  .ajo-strip .ajo-eyebrow {
-    font-size: 10px; font-weight: 800; color: var(--ink-mute);
-    text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .ajo-strip .ajo-eyebrow .ajo-live {
-    display: inline-flex; align-items: center; gap: 5px;
-    margin-left: 8px; padding: 2px 8px; border-radius: 999px;
-    background: var(--brand-light); color: var(--brand);
-    text-transform: none; letter-spacing: 0; font-size: 10px;
-  }
-  .ajo-strip .ajo-eyebrow .ajo-live::before {
-    content: ''; width: 6px; height: 6px; border-radius: 50%;
-    background: var(--brand);
-  }
-  .ajo-canvas {
-    width: 100%; height: 130px;
-    display: block; line-height: 0;
-    position: relative;
-  }
-  .ajo-canvas .demo-slot-inner { width: 100%; height: 100%; }
-  .ajo-canvas svg, .ajo-canvas img { width: 100%; height: 100%; display: block; object-fit: contain; }
-
   /* ── Stage footer (Prev / Next) ─────────────────────────────────── */
   .stage-controls {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; margin-top: 14px;
+    gap: 10px; margin-top: 8px; flex-shrink: 0;
   }
   .stage-controls .control-hint {
     font-size: 10.5px; color: var(--ink-mute);
@@ -1650,13 +1615,6 @@ function renderExperienceHtml(data, images) {
 
     <div class="stage-wrap">
       <div class="stage-panels" id="stagePanels">${stagePanels}</div>
-      <div class="ajo-strip" aria-label="Adobe Journey Optimizer canvas preview">
-        <div class="ajo-eyebrow">
-          <span>Adobe Journey Optimizer · what you'll see live</span>
-          <span class="ajo-live">live</span>
-        </div>
-        <div class="ajo-canvas">${wrapDemoSlot('experience.ajoCanvas', 'AJO canvas screenshot', ajoState, ajoInner)}</div>
-      </div>
       <div class="stage-controls">
         <button type="button" class="stage-btn" id="navPrev" aria-label="Previous step">
           <span class="arrow">◀</span><span>Previous</span>
@@ -1992,19 +1950,16 @@ async function renderDemoPptx(data, images) {
   const empty = {};
   const brandSurfaceR = resolveBrandSurface(images, brand, data.client.name);
   const personaR = resolvePersonaImage(images, personaNameEarly, data.client.name, brand, 'pptx');
-  const ajoR = resolveAjoCanvas(images, brand);
   const lifestyleR = resolveLifestyleImage(images, data.client.industry, brand, 'pptx');
   const aepR = resolveAepComposite(images, brand, personaNameEarly, snEarly);
   const [
     brandSurfacePptxData,
     personaPptxData,
-    ajoPptxData,
     lifestylePptxData,
     aepPptxData,
   ] = await Promise.all([
     materialisePptxSlot(brandSurfaceR, resolveBrandSurface(empty, brand, data.client.name)),
     materialisePptxSlot(personaR, resolvePersonaImage(empty, personaNameEarly, data.client.name, brand, 'pptx')),
-    materialisePptxSlot(ajoR, resolveAjoCanvas(empty, brand)),
     materialisePptxSlot(lifestyleR, resolveLifestyleImage(empty, data.client.industry, brand, 'pptx')),
     materialisePptxSlot(aepR, resolveAepComposite(empty, brand, personaNameEarly, snEarly)),
   ]);
@@ -2175,11 +2130,10 @@ async function renderDemoPptx(data, images) {
     fontSize: 10, italic: true, color: inkSoft,
   });
 
-  // Steps in a horizontal row — shortened slightly so the AJO canvas
-  // credibility strip fits beneath them.
+  // Steps in a horizontal row — full width below persona (no AJO strip).
   const steps = data.experience.steps;
-  const flowTop = 2.4;
-  const flowH = 3.2;
+  const flowTop = 2.35;
+  const flowH = 3.55;
   const flowLeft = 0.6;
   const flowRight = 12.7;
   const colW = (flowRight - flowLeft) / steps.length;
@@ -2221,26 +2175,6 @@ async function renderDemoPptx(data, images) {
       x: x + 0.05, y: textY + 1.3, w: colW - 0.1, h: 0.2,
       fontSize: 8, bold: true, color: brandHex, align: 'center',
     });
-  });
-
-  // AJO canvas credibility strip at the bottom of slide 2
-  const ajoStripY = 5.9;
-  s2.addShape(pres.ShapeType.roundRect, {
-    x: 0.4, y: ajoStripY, w: 12.6, h: 1.05,
-    fill: { color: 'FFFFFF' }, line: { color: 'E3E6EB', width: 1 }, rectRadius: 0.1,
-  });
-  s2.addText('Adobe Journey Optimizer · what you\'ll see live', {
-    x: 0.55, y: ajoStripY + 0.08, w: 10.0, h: 0.25,
-    fontSize: 9, bold: true, color: inkMute,
-  });
-  s2.addText('● live', {
-    x: 11.4, y: ajoStripY + 0.08, w: 1.5, h: 0.25,
-    fontSize: 9, bold: true, color: brandHex, align: 'right',
-  });
-  s2.addImage({
-    data: ajoPptxData,
-    x: 0.55, y: ajoStripY + 0.32, w: 12.3, h: 0.68,
-    sizing: { type: 'contain', w: 12.3, h: 0.68 },
   });
 
   addFooter(s2);
