@@ -1,16 +1,16 @@
 /**
  * Demo Use Case Assets — sister service to clientJourneyAssetService.js.
  *
- * Produces a 3-slide presentation deck from a brand scrape:
- *   1. Framing   — what we're going to demonstrate (use case, tech, benefits)
- *   2. Experience — a 5/6/7-step persona walkthrough with channels per step
- *   3. Value     — a 3-prop takeaway after the live demo
+ * Produces HTML + PPTX for a demo deck aligned to the 4-slide reference
+ * (use case → persona journey → demo placeholder → value). We emit
+ * three HTML views (slides 1, 2, 4); the middle “demo” slide is live
+ * product, not generated here.
  *
  * Sibling of clientJourneyAssetService.js — same orchestration shape
  * (Vertex AI Gemini structured-output → normalise → render → cache),
  * different output (a 3-slide deck rather than a 12-step journey + one
- * pager). Stock fallbacks for the persona / device / lifestyle imagery
- * are inline SVGs so the page works offline and without API keys.
+ * pager). Image slots use neutral inline-SVG fallbacks plus
+ * data-demo-slot attributes so assets are easy to swap at scale.
  *
  * The AJO channel enum is duplicated from clientJourneyAssetService.js
  * on purpose — Adobe's channel surface is small and slow-moving, and
@@ -120,18 +120,6 @@ function darken(hex, amount = 0.25) {
   return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1).toUpperCase();
 }
 
-/**
- * Build a deterministic seed string from a name for the pravatar URL
- * fallback. Keeping the same persona name produces the same face on
- * every regeneration so the deck doesn't shuffle visually.
- */
-function personaSeed(personaName, brandName) {
-  const base = (safeString(personaName) + '|' + safeString(brandName)).toLowerCase().trim();
-  let h = 0;
-  for (let i = 0; i < base.length; i++) h = ((h << 5) - h + base.charCodeAt(i)) | 0;
-  return Math.abs(h).toString(36);
-}
-
 function pickPrimaryColour(colours, fallback = '#E60000') {
   if (!Array.isArray(colours)) return fallback;
   for (const c of colours) {
@@ -161,6 +149,18 @@ function initialsAvatarSvg(name, brandColour) {
       <stop offset="0%" stop-color="${dark}"/><stop offset="100%" stop-color="${colour}"/>
     </linearGradient></defs>
     <circle cx="60" cy="60" r="58" fill="url(#g)"/>
+    <text x="60" y="74" text-anchor="middle" fill="#fff" font-family="-apple-system,Segoe UI,Adobe Clean,sans-serif" font-size="44" font-weight="700">${escapeHtml(initials)}</text>
+  </svg>`;
+}
+
+/** Neutral headshot placeholder (PPTX + HTML when no upload). Recolour CSS does not reach inside data-URL SVGs — keep grays so swaps are obvious. */
+function neutralPersonaAvatarSvg(name) {
+  const initials = (safeString(name).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('') || 'P').toUpperCase();
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+    <defs><linearGradient id="np" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#64748b"/><stop offset="100%" stop-color="#475569"/>
+    </linearGradient></defs>
+    <circle cx="60" cy="60" r="58" fill="url(#np)"/>
     <text x="60" y="74" text-anchor="middle" fill="#fff" font-family="-apple-system,Segoe UI,Adobe Clean,sans-serif" font-size="44" font-weight="700">${escapeHtml(initials)}</text>
   </svg>`;
 }
@@ -338,20 +338,18 @@ function stepMockupSvg(step, brandColour, personaName, brandName) {
 }
 
 /**
- * Choose a real persona image (uploaded data URL, pravatar URL, or
- * inline initials avatar). HTML mode prefers the pravatar URL when no
- * upload, since browsers fetch it directly. PPTX mode prefers the
- * inline initials avatar (no runtime network fetch in the function).
+ * Persona image: uploaded data URL wins; otherwise a neutral inline
+ * initials SVG (no external fetch — easy to replace by swapping the
+ * slot contents or uploading a photo in the lab UI).
  */
 function resolvePersonaImage(images, personaName, brandName, brandColour, mode = 'html') {
   if (images && typeof images.persona === 'string' && images.persona.startsWith('data:')) {
     return { kind: 'data', src: images.persona };
   }
-  if (mode === 'html') {
-    return { kind: 'url', src: 'https://i.pravatar.cc/300?u=' + encodeURIComponent(personaSeed(personaName, brandName)) };
-  }
-  const svg = initialsAvatarSvg(personaName, brandColour);
-  return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64') };
+  const svg = mode === 'pptx'
+    ? initialsAvatarSvg(personaName, brandColour)
+    : neutralPersonaAvatarSvg(personaName);
+  return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
 }
 
 function resolveDeviceImage(images, brandColour, products) {
@@ -363,14 +361,272 @@ function resolveDeviceImage(images, brandColour, products) {
 }
 
 function resolveLifestyleImage(images, industry, brandColour, mode = 'html') {
+  // Uploaded image always wins.
   if (images && typeof images.lifestyle === 'string' && images.lifestyle.startsWith('data:')) {
     return { kind: 'data', src: images.lifestyle };
   }
-  if (mode === 'html') {
-    const tag = encodeURIComponent(safeString(industry, 'lifestyle').replace(/\s+/g, ',') || 'lifestyle');
-    return { kind: 'url', src: 'https://source.unsplash.com/featured/?' + tag + ',customer' };
+  // Deterministic, brand-coloured SVG fallback (no network fetch — keeps
+  // the renderer pure and predictable in CI / offline / first-render).
+  const svg = lifestyleHeroFallbackSvg(brandColour, industry);
+  return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
+}
+
+// ─── PLACEHOLDER FALLBACKS ──────────────────────────────────────────────────
+//
+// Photo / screenshot zones are wrapped with data-demo-slot="…" so you
+// can find-replace in HTML, post-process in a CMS, or extend the lab UI
+// with extra dropzones later. Fallbacks are intentionally neutral greys
+// (not customer-brand-tinted SVG) so the hosted recolour bar reads
+// predictably; swap in real images via uploads or by replacing the slot
+// inner HTML.
+//
+// Optional uploads (data URLs) on the images payload:
+//   brandSurface, ajoCanvas, aepComposite — plus persona, device, lifestyle
+// Industry line-art (industryAccent) stays SVG, tinted via CSS currentColor.
+
+function industryIllustrationSvg(industry, opts = {}) {
+  const w = opts.width || 380;
+  const h = opts.height || 140;
+  const stroke = opts.stroke || 1.6;
+  const ind = String(industry || '').toLowerCase();
+  const match = (kw) => kw.some((k) => ind.includes(k));
+  let body;
+  if (match(['airline', 'travel', 'aviation', 'flight', 'tourism'])) {
+    body = '<path d="M5 100 Q 80 60 150 100 T 300 70" stroke-dasharray="4 6"/>' +
+      '<path d="M310 65 l34 -10 l-3 14 l-13 4 l5 -8z M345 56 l9 -2 l-2 6 z" fill="currentColor" stroke="none"/>';
+  } else if (match(['retail', 'fashion', 'apparel', 'shop', 'store', 'ecommerce', 'commerce', 'cpg'])) {
+    body = '<path d="M150 70 h120 v60 a8 8 0 0 1 -8 8 h-104 a8 8 0 0 1 -8 -8 z M178 70 a32 22 0 0 1 64 0"/>' +
+      '<line x1="180" y1="98" x2="240" y2="98" stroke-dasharray="3 4"/>';
+  } else if (match(['bank', 'finance', 'insurance', 'fintech', 'invest', 'wealth', 'payment'])) {
+    body = '<rect x="120" y="60" width="180" height="70" rx="8"/>' +
+      '<rect x="135" y="78" width="22" height="16" rx="3"/>' +
+      '<line x1="135" y1="110" x2="240" y2="110" stroke-dasharray="4 4"/>' +
+      '<text x="270" y="118" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="currentColor" stroke="none">$</text>';
+  } else if (match(['telco', 'telecom', 'mobile', 'wireless', 'communication'])) {
+    body = '<rect x="180" y="50" width="46" height="86" rx="8"/>' +
+      '<line x1="195" y1="124" x2="211" y2="124"/>' +
+      '<path d="M150 90 a40 40 0 0 1 100 0"/><path d="M170 90 a20 20 0 0 1 60 0"/>';
+  } else if (match(['health', 'pharma', 'medical', 'wellness', 'hospital'])) {
+    body = '<path d="M170 70 v50 M195 70 v50 M170 95 q-30 0 -30 -25 v-25"/>' +
+      '<circle cx="225" cy="100" r="14"/>';
+  } else if (match(['auto', 'car', 'vehicle', 'motor'])) {
+    body = '<path d="M120 110 q15 -30 50 -30 h60 q35 0 50 30 h20 v15 h-180 v-15 z"/>' +
+      '<circle cx="155" cy="125" r="10"/><circle cx="245" cy="125" r="10"/>';
+  } else if (match(['food', 'restaurant', 'beverage', 'coffee', 'qsr', 'grocery'])) {
+    body = '<path d="M180 80 v50 q0 8 8 8 h44 q8 0 8 -8 v-50 z M240 90 h12 q8 0 8 8 v14 q0 8 -8 8 h-12"/>' +
+      '<path d="M195 70 q-3 -8 0 -16 M210 72 q3 -10 0 -18 M225 70 q-3 -8 0 -16"/>';
+  } else if (match(['hospitality', 'hotel', 'lodging'])) {
+    body = '<path d="M150 130 v-40 l50 -34 l50 34 v40 z"/>' +
+      '<rect x="190" y="106" width="20" height="24"/>' +
+      '<rect x="160" y="100" width="14" height="14"/><rect x="226" y="100" width="14" height="14"/>';
+  } else if (match(['energy', 'utilit', 'power', 'oil', 'gas'])) {
+    body = '<polyline points="150 60 200 60 175 100 215 100 165 130"/>';
+  } else if (match(['media', 'publish', 'entertain', 'stream', 'broadcast', 'gaming'])) {
+    body = '<rect x="140" y="60" width="180" height="80" rx="8"/>' +
+      '<polygon points="210 80 210 120 240 100" fill="currentColor" stroke="none"/>';
+  } else if (match(['educ', 'learn', 'school', 'university', 'edtech'])) {
+    body = '<polygon points="190 70 290 100 190 130 90 100"/>' +
+      '<line x1="190" y1="130" x2="190" y2="160"/><polyline points="170 145 190 160 210 145"/>';
+  } else if (match(['saas', 'software', 'tech', 'platform', 'cloud'])) {
+    body = '<path d="M140 110 a30 30 0 0 1 50 -22 a25 25 0 0 1 48 8 a22 22 0 0 1 14 42 h-100 a22 22 0 0 1 -12 -28 z"/>';
+  } else {
+    body = '<circle cx="160" cy="100" r="10"/><circle cx="220" cy="70" r="10"/>' +
+      '<circle cx="220" cy="130" r="10"/><circle cx="280" cy="100" r="10"/>' +
+      '<line x1="170" y1="100" x2="210" y2="80"/><line x1="170" y1="100" x2="210" y2="120"/>' +
+      '<line x1="230" y1="80" x2="270" y2="100"/><line x1="230" y1="120" x2="270" y2="100"/>';
   }
-  const svg = lifestyleMockupSvg(brandColour);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 140" width="${w}" height="${h}" fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+}
+
+function brandSurfaceFallbackSvg(_brandColour, brandName) {
+  const safeBrand = escapeHtml(safeString(brandName, 'Brand').slice(0, 22));
+  // Neutral wireframe — replace with a real site/product screenshot
+  // via images.brandSurface (data URL) or by editing the slot in HTML.
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 420" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <rect x="14" y="20" width="572" height="392" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+    <rect x="14" y="20" width="572" height="34" fill="#f8fafc" stroke="#e2e8f0"/>
+    <circle cx="34" cy="37" r="5" fill="#fecaca"/><circle cx="50" cy="37" r="5" fill="#fde68a"/><circle cx="66" cy="37" r="5" fill="#bbf7d0"/>
+    <rect x="120" y="30" width="360" height="14" rx="7" fill="#ffffff" stroke="#e2e8f0"/>
+    <rect x="14" y="54" width="572" height="30" fill="#ffffff"/>
+    <rect x="28" y="64" width="72" height="10" rx="2" fill="#e2e8f0"/>
+    <rect x="110" y="64" width="72" height="10" rx="2" fill="#e2e8f0"/>
+    <rect x="192" y="64" width="72" height="10" rx="2" fill="#e2e8f0"/>
+    <rect x="14" y="84" width="572" height="286" fill="#f1f5f9"/>
+    <rect x="44" y="120" width="512" height="200" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-width="2" stroke-dasharray="10 8"/>
+    <text x="300" y="210" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="15" font-weight="600" fill="#64748b">Brand / product screenshot</text>
+    <text x="300" y="236" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="12" fill="#94a3b8">${safeBrand}</text>
+    <text x="300" y="258" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="10" fill="#cbd5e1">data-demo-slot="framing.brandSurface"</text>
+  </svg>`;
+}
+
+function ajoCanvasFallbackSvg(_brandColour) {
+  const accent = '#64748b';
+  // Stylised AJO journey-canvas wireframe (neutral greys — drop a real
+  // screenshot via images.ajoCanvas).
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <rect width="720" height="220" rx="12" fill="#fafbfc" stroke="#e3e6eb"/>
+    <rect x="14" y="14" width="200" height="22" rx="3" fill="#ffffff" stroke="#e3e6eb"/>
+    <text x="22" y="29" font-family="-apple-system, sans-serif" font-size="11" font-weight="700" fill="#4a5060">Adobe Journey Optimizer</text>
+    <text x="640" y="29" font-family="-apple-system, sans-serif" font-size="10" fill="#7d8492">Live · v6</text>
+    <line x1="80" y1="120" x2="160" y2="120" stroke="#bcc3cf" stroke-width="2"/>
+    <circle cx="60" cy="120" r="20" fill="${accent}"/>
+    <text x="60" y="124" font-family="-apple-system, sans-serif" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">START</text>
+    <rect x="160" y="88" width="120" height="64" rx="6" fill="#ffffff" stroke="${accent}" stroke-width="2"/>
+    <rect x="172" y="100" width="14" height="14" rx="3" fill="${accent}" opacity="0.25"/>
+    <text x="194" y="112" font-family="-apple-system, sans-serif" font-size="11" font-weight="700" fill="#1a1a1a">Email</text>
+    <text x="172" y="134" font-family="-apple-system, sans-serif" font-size="9" fill="#7d8492">Entered: 312</text>
+    <line x1="280" y1="120" x2="320" y2="65" stroke="#bcc3cf" stroke-width="2"/>
+    <line x1="280" y1="120" x2="320" y2="175" stroke="#bcc3cf" stroke-width="2"/>
+    <rect x="320" y="35" width="120" height="60" rx="6" fill="#ffffff" stroke="${accent}" stroke-width="2"/>
+    <rect x="332" y="48" width="14" height="14" rx="3" fill="${accent}" opacity="0.25"/>
+    <text x="354" y="60" font-family="-apple-system, sans-serif" font-size="11" font-weight="700" fill="#1a1a1a">Push</text>
+    <text x="332" y="80" font-family="-apple-system, sans-serif" font-size="9" fill="#7d8492">Entered: 218</text>
+    <rect x="320" y="145" width="120" height="60" rx="6" fill="#ffffff" stroke="${accent}" stroke-width="2"/>
+    <rect x="332" y="158" width="14" height="14" rx="3" fill="${accent}" opacity="0.25"/>
+    <text x="354" y="170" font-family="-apple-system, sans-serif" font-size="11" font-weight="700" fill="#1a1a1a">SMS</text>
+    <text x="332" y="190" font-family="-apple-system, sans-serif" font-size="9" fill="#7d8492">Entered: 94</text>
+    <line x1="440" y1="65" x2="500" y2="110" stroke="#bcc3cf" stroke-width="2"/>
+    <line x1="440" y1="175" x2="500" y2="130" stroke="#bcc3cf" stroke-width="2"/>
+    <rect x="500" y="88" width="120" height="64" rx="6" fill="#ffffff" stroke="${accent}" stroke-width="2"/>
+    <rect x="512" y="100" width="14" height="14" rx="3" fill="${accent}" opacity="0.25"/>
+    <text x="534" y="112" font-family="-apple-system, sans-serif" font-size="11" font-weight="700" fill="#1a1a1a">Wait + Decision</text>
+    <text x="512" y="134" font-family="-apple-system, sans-serif" font-size="9" fill="#7d8492">Branches: 3</text>
+    <line x1="620" y1="120" x2="660" y2="120" stroke="#bcc3cf" stroke-width="2"/>
+    <circle cx="680" cy="120" r="20" fill="#1a1a1a"/>
+    <text x="680" y="124" font-family="-apple-system, sans-serif" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">END</text>
+  </svg>`;
+}
+
+function aepCompositeFallbackSvg(_brandColour, personaName, sampleNotification) {
+  const accent = '#64748b';
+  const sn = sampleNotification || {};
+  const sender = safeString(sn.sender, 'Brand').slice(0, 18);
+  const body = safeString(sn.body, 'Your tailored experience is ready.').slice(0, 110);
+  const initial = String(sender).charAt(0).toUpperCase();
+  const trait = safeString((personaName || 'High-intent visitors').split('|')[0], 'High-intent').trim().slice(0, 22);
+  // Hour:minute clock face on the phone uses a fixed time so re-renders
+  // are deterministic (the real reference deck uses 1:47).
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 540" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <defs>
+      <linearGradient id="aepPhoneScreen" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#382441"/>
+        <stop offset="100%" stop-color="#1a1024"/>
+      </linearGradient>
+    </defs>
+    <rect width="720" height="540" fill="#ffffff"/>
+    <g transform="translate(20 90)">
+      <rect width="240" height="58" rx="10" fill="#ffffff" stroke="#e3e6eb" stroke-width="1.5"/>
+      <text x="22" y="36" font-family="-apple-system, sans-serif" font-size="15" font-weight="600" fill="#1a1a1a">Create segment</text>
+    </g>
+    <g transform="translate(20 168)">
+      <rect width="290" height="220" rx="10" fill="#ffffff" stroke="#e3e6eb" stroke-width="1.5"/>
+      <g transform="translate(20 30)">
+        <circle cx="14" cy="14" r="9" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+        <line x1="20" y1="20" x2="28" y2="28" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round"/>
+        <text x="48" y="14" font-family="-apple-system, sans-serif" font-size="13" fill="#7d8492">Search:</text>
+        <text x="48" y="32" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="#1a1a1a">Best customers</text>
+      </g>
+      <line x1="20" y1="100" x2="270" y2="100" stroke="#e3e6eb"/>
+      <g transform="translate(20 116)">
+        <circle cx="14" cy="14" r="10" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+        <circle cx="14" cy="14" r="4" fill="#1a1a1a"/>
+        <text x="48" y="14" font-family="-apple-system, sans-serif" font-size="13" fill="#7d8492">Trait:</text>
+        <text x="48" y="32" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="#1a1a1a">${escapeHtml(trait)}</text>
+      </g>
+      <line x1="20" y1="174" x2="270" y2="174" stroke="#e3e6eb"/>
+      <g transform="translate(20 184)">
+        <rect x="0" y="0" width="44" height="20" rx="4" fill="${accent}" opacity="0.12"/>
+        <text x="22" y="14" font-family="-apple-system, sans-serif" font-size="11" font-weight="700" fill="${accent}" text-anchor="middle">Save</text>
+      </g>
+    </g>
+    <g transform="translate(370 50)">
+      <rect width="290" height="460" rx="38" fill="#1f1f1f"/>
+      <rect x="14" y="16" width="262" height="428" rx="28" fill="url(#aepPhoneScreen)"/>
+      <rect x="120" y="22" width="50" height="14" rx="7" fill="#000000"/>
+      <text x="40" y="58" font-family="-apple-system, sans-serif" font-size="12" font-weight="700" fill="#ffffff">9:41</text>
+      <rect x="234" y="46" width="32" height="14" rx="3" fill="#ffffff" opacity="0.85"/>
+      <text x="145" y="125" font-family="-apple-system, sans-serif" font-size="14" font-weight="500" fill="#ffffff" text-anchor="middle" opacity="0.85">Sunday, March 10</text>
+      <text x="145" y="195" font-family="-apple-system, sans-serif" font-size="64" font-weight="700" fill="#ffffff" text-anchor="middle">1:47</text>
+      <g transform="translate(28 240)">
+        <rect width="234" height="120" rx="14" fill="#ffffff" opacity="0.95"/>
+        <circle cx="32" cy="32" r="14" fill="${accent}"/>
+        <text x="32" y="37" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">${escapeHtml(initial)}</text>
+        <text x="58" y="30" font-family="-apple-system, sans-serif" font-size="13" font-weight="700" fill="#1a1a1a">${escapeHtml(sender)}</text>
+        <text x="208" y="30" font-family="-apple-system, sans-serif" font-size="10" fill="#7d8492" text-anchor="end">now</text>
+        <foreignObject x="20" y="48" width="200" height="64">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="font: 500 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #4a5060; line-height: 1.35;">${escapeHtml(body)}</div>
+        </foreignObject>
+      </g>
+    </g>
+  </svg>`;
+}
+
+function lifestyleHeroFallbackSvg(_brandColour, industry) {
+  const win = '#94a3b8';
+  // Neutral skyline + person silhouette (industry still biases the
+  // foreground figure). Replace with images.lifestyle when you have a
+  // real lifestyle shot.
+  const ind = String(industry || '').toLowerCase();
+  const figure = ind.includes('travel') || ind.includes('airline') || ind.includes('hotel')
+    ? '<g fill="#1a1a2a" opacity="0.78" transform="translate(280 408)"><ellipse cx="20" cy="20" rx="14" ry="16"/><path d="M0 50 q20 -20 40 0 v100 h-40 z"/><rect x="44" y="70" width="22" height="34" rx="3"/><line x1="55" y1="68" x2="55" y2="50" stroke="#1a1a2a" stroke-width="3"/></g>'
+    : ind.includes('retail') || ind.includes('shop') || ind.includes('fashion')
+    ? '<g fill="#1a1a2a" opacity="0.78" transform="translate(280 408)"><ellipse cx="20" cy="20" rx="14" ry="16"/><path d="M0 50 q20 -20 40 0 v100 h-40 z"/><path d="M44 80 h22 v32 h-22z M50 80 v-6 q5 -6 10 0 v6"/></g>'
+    : '<g fill="#1a1a2a" opacity="0.7" transform="translate(280 408)"><ellipse cx="20" cy="20" rx="14" ry="16"/><path d="M0 50 q20 -20 40 0 v100 h-40 z"/></g>';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="lifeSky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e2e8f0"/>
+        <stop offset="55%" stop-color="#f1f5f9"/>
+        <stop offset="100%" stop-color="#f8fafc"/>
+      </linearGradient>
+      <linearGradient id="lifeGround" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#cbd5e1"/>
+        <stop offset="100%" stop-color="#94a3b8"/>
+      </linearGradient>
+    </defs>
+    <rect width="600" height="600" fill="url(#lifeSky)"/>
+    <g fill="#1a1a2a" opacity="0.55">
+      <rect x="30" y="380" width="60" height="180"/>
+      <rect x="100" y="320" width="80" height="240"/>
+      <rect x="190" y="350" width="40" height="210"/>
+      <rect x="240" y="280" width="70" height="280"/>
+      <rect x="320" y="340" width="60" height="220"/>
+      <rect x="390" y="300" width="80" height="260"/>
+      <rect x="480" y="360" width="40" height="200"/>
+      <rect x="530" y="320" width="50" height="240"/>
+    </g>
+    <g fill="${win}" opacity="0.45">
+      <rect x="115" y="340" width="6" height="6"/><rect x="130" y="340" width="6" height="6"/><rect x="145" y="340" width="6" height="6"/>
+      <rect x="115" y="360" width="6" height="6"/><rect x="130" y="360" width="6" height="6"/>
+      <rect x="255" y="300" width="6" height="6"/><rect x="270" y="300" width="6" height="6"/><rect x="285" y="300" width="6" height="6"/>
+      <rect x="405" y="320" width="6" height="6"/><rect x="420" y="320" width="6" height="6"/><rect x="435" y="320" width="6" height="6"/>
+    </g>
+    <rect y="540" width="600" height="60" fill="url(#lifeGround)" opacity="0.5"/>
+    ${figure}
+  </svg>`;
+}
+
+function resolveBrandSurface(images, brandColour, brandName) {
+  if (images && typeof images.brandSurface === 'string' && images.brandSurface.startsWith('data:')) {
+    return { kind: 'data', src: images.brandSurface };
+  }
+  const svg = brandSurfaceFallbackSvg(brandColour, brandName);
+  return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
+}
+
+function resolveAjoCanvas(images, brandColour) {
+  if (images && typeof images.ajoCanvas === 'string' && images.ajoCanvas.startsWith('data:')) {
+    return { kind: 'data', src: images.ajoCanvas };
+  }
+  const svg = ajoCanvasFallbackSvg(brandColour);
+  return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
+}
+
+function resolveAepComposite(images, brandColour, personaName, sampleNotification) {
+  if (images && typeof images.aepComposite === 'string' && images.aepComposite.startsWith('data:')) {
+    return { kind: 'data', src: images.aepComposite };
+  }
+  const svg = aepCompositeFallbackSvg(brandColour, personaName, sampleNotification);
   return { kind: 'svg', src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'), inlineSvg: svg };
 }
 
@@ -514,10 +770,10 @@ EXPERIENCE (slide 2 — live walkthrough):
   - mockupKind — exactly one of "web" | "mobile" | "push" | "email" — pick the visual that best represents this step. First step usually "web" (landing on the site), middle steps usually "push" or "email", boarding/check-in steps "mobile", offline post-purchase "email".
 
 VALUE (slide 3 — post-demo takeaway):
-- "value.headline": 4-8 word statement, e.g. "Stand out with customer-centric engagement.". MUST end with a period.
-- "value.boldWord": one word from the headline that should be visually emphasised in the brand colour (e.g. "Stand out", "customer-centric").
+- "value.headline": 4-8 word statement that ends with a period, e.g. "Stand out with customer-centric engagement." or "Be relevant when it matters." The emphasis word goes in "boldWord" and MUST also appear verbatim inside "headline" (case-insensitive) so the renderer can highlight it.
+- "value.boldWord": REQUIRED. A short emphasis phrase (1-3 words) lifted from "headline" that the renderer will paint in the brand colour. Examples: "Stand out", "customer-centric", "relevant".
 - "value.subheading": short bridge phrase, 4-8 words, e.g. "Don't push more volume. Instead, be...".
-- "value.valueProps": EXACTLY 3 items. Each has: icon (short keyword like "file-search", "clock", "user"), boldWord (the bolded word, e.g. "relevant"), text (the full label, "More relevant"). The pattern "More <word>" or "Better <word>" works well.
+- "value.valueProps": EXACTLY 3 items. Each is one SINGLE WORD describing a virtue Adobe enables, paired with a short Feather icon keyword. Use "boldWord" for the SINGLE WORD (e.g. "relevant") — the renderer will automatically prepend "More" so the slide reads "More relevant / More personalized / More timely". "text" must be the rendered phrase ("More relevant"); the renderer reads "boldWord" first but falls back to "text" if missing. Icons: "file-search" or "target" for relevance, "user" or "smile" for personalisation, "clock" or "zap" for timeliness, "heart" for loyalty, "shield" for trust, "trending-up" for growth.
 - "value.takeaway": 1-2 sentence synopsis of what the demo proved. Names a concrete outcome — e.g. "Go beyond siloed channel-centric interactions by putting the customer at the center of your engagement efforts."
 
 Soft rules:
@@ -775,14 +1031,45 @@ function normaliseDemoData(parsed, overrides = {}) {
 
   // Value
   const valIn = (j.value && typeof j.value === 'object') ? j.value : {};
-  const valueProps = ensureLength(valIn.valueProps, 3, (i) => ({ icon: 'check', boldWord: ['relevant', 'timely', 'personalised'][i] || 'better', text: 'More ' + (['relevant', 'timely', 'personalised'][i] || 'aligned') })).map((v) => ({
-    icon: safeString(v && v.icon, 'check'),
-    boldWord: safeString(v && v.boldWord, 'better'),
-    text: safeString(v && v.text, 'More aligned'),
-  }));
+  const defaultProps = ['relevant', 'personalized', 'timely'];
+  const defaultIcons = ['file-search', 'user', 'clock'];
+  const valueProps = ensureLength(valIn.valueProps, 3, (i) => ({ icon: defaultIcons[i] || 'check', boldWord: defaultProps[i] || 'better', text: 'More ' + (defaultProps[i] || 'aligned') })).map((v, i) => {
+    // Prefer the explicit boldWord, otherwise lift the last word from
+    // "text" (covers "More relevant" → "relevant").
+    const rawBold = safeString(v && v.boldWord, '').trim();
+    const rawText = safeString(v && v.text, '').trim();
+    let boldWord = rawBold;
+    if (!boldWord && rawText) {
+      const parts = rawText.split(/\s+/);
+      boldWord = parts[parts.length - 1] || (defaultProps[i] || 'better');
+    }
+    if (!boldWord) boldWord = defaultProps[i] || 'better';
+    // Normalise "text" so it always reads "More <boldWord>" — the
+    // renderer renders this consistently regardless of what Vertex sent.
+    let text = rawText;
+    if (!text || !new RegExp('\\b' + boldWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(text)) {
+      text = 'More ' + boldWord;
+    }
+    return {
+      icon: safeString(v && v.icon, defaultIcons[i] || 'check'),
+      boldWord,
+      text,
+    };
+  });
+
+  // Headline + boldWord: ensure boldWord appears in headline (else
+  // renderer skips emphasis). If missing, try the first valueProp word.
+  let headline = safeString(valIn.headline, 'Stand out with customer-centric engagement.');
+  let valueBold = safeString(valIn.boldWord, '').trim();
+  if (!valueBold || !headline.toLowerCase().includes(valueBold.toLowerCase())) {
+    // Fall back to the first significant word in the headline (skip "be"/"is"/etc.).
+    const hWords = headline.replace(/[.,;:!?]/g, '').split(/\s+/).filter((w) => w.length > 3);
+    valueBold = hWords[0] || (valueProps[0] && valueProps[0].boldWord) || '';
+  }
+
   const value = {
-    headline: safeString(valIn.headline, 'Stand out with customer-centric engagement.'),
-    boldWord: safeString(valIn.boldWord, ''),
+    headline,
+    boldWord: valueBold,
     subheading: safeString(valIn.subheading, "Don't push more volume. Instead, be..."),
     valueProps,
     takeaway: safeString(valIn.takeaway, `Go beyond siloed channel-centric interactions by putting the customer at the centre of ${clientName}'s engagement.`),
@@ -867,7 +1154,35 @@ function commonStyles(brand, dark) {
     .deck-footer .copyright { letter-spacing: 0.2px; }
     .adobe-logo { display: inline-flex; align-items: center; gap: 6px; }
     .adobe-logo .wordmark { font-weight: 700; color: var(--adobe-red); font-size: 18px; letter-spacing: -0.2px; }
+    /* Replaceable image slots — find by [data-demo-slot] in devtools or HTML export */
+    .demo-slot { position: relative; }
+    .demo-slot--fill { width: 100%; height: 100%; min-height: 0; }
+    .demo-slot[data-demo-slot-state="placeholder"] .demo-slot-inner {
+      outline: 2px dashed var(--border); outline-offset: -2px;
+    }
+    .demo-slot-cap {
+      position: absolute; right: 10px; bottom: 10px; z-index: 3;
+      max-width: 55%; text-align: right;
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+      color: var(--ink-mute);
+      background: rgba(255,255,255,0.94); padding: 4px 8px; border-radius: 4px;
+      pointer-events: none; line-height: 1.25;
+      border: 1px solid var(--border);
+    }
   `;
+}
+
+function imageSlotUploaded(images, key) {
+  return !!(images && typeof images[key] === 'string' && images[key].startsWith('data:'));
+}
+
+/** Wrap a replaceable bitmap/SVG zone. `state` is "upload" | "placeholder". */
+function wrapDemoSlot(slotId, humanLabel, state, innerHtml, opts = {}) {
+  const showLabel = opts.showLabel !== false;
+  const cap = (showLabel && state === 'placeholder')
+    ? `<span class="demo-slot-cap">${escapeHtml(humanLabel)}</span>`
+    : '';
+  return `<div class="demo-slot demo-slot--fill" data-demo-slot="${escapeAttr(slotId)}" data-demo-slot-state="${escapeAttr(state)}"><div class="demo-slot-inner">${innerHtml}</div>${cap}</div>`;
 }
 
 function renderFramingHtml(data, images) {
@@ -875,112 +1190,193 @@ function renderFramingHtml(data, images) {
   const brand = normaliseHex(c.brandColour);
   const dark = c.darkColour || darken(brand, 0.25);
   const f = data.framing || {};
-  const device = resolveDeviceImage(images, brand, f.technology);
-  const techList = (f.technology || []).join(', ');
+  // Brand surface = customer's site / product UI (slide-1 hero zone).
+  // Falls back to a stylised browser screenshot in the brand colour.
+  const brandSurface = resolveBrandSurface(images, brand, c.name);
+  const techList = (f.technology || []).join(' · ');
   const benefits = (f.benefits || []).slice(0, 4);
+  const sn = f.sampleNotification || {};
+  const sh = f.statHighlight || {};
+  const surfaceState = imageSlotUploaded(images, 'brandSurface') ? 'upload' : 'placeholder';
+  const surfaceInner = brandSurface.kind === 'svg' ? brandSurface.inlineSvg : `<img src="${escapeAttr(brandSurface.src)}" alt="${escapeAttr(c.name)} surface">`;
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=1280, initial-scale=1">
 <title>${escapeHtml(c.name)} — Use case framing</title>
 <style>${commonStyles(brand, dark)}
-  .framing { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; flex: 1 1 auto; min-height: 0; }
-  .framing .col-left { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-  .framing .col-right { position: relative; min-width: 0; }
-  .top-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
-  .pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 14px; border-radius: 999px; background: #fff; border: 1.5px solid var(--border);
-    font-size: 11px; color: var(--ink); font-weight: 600;
+  /* ── Top metadata row ──────────────────────────────────────────── */
+  .meta-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border-radius: 999px;
+    background: #ffffff; border: 1.5px solid var(--border);
+    font-size: 11.5px; color: var(--ink); font-weight: 600;
   }
-  .pill .pill-icon { font-weight: 700; color: var(--adobe-red); }
-  .pill.tech { padding: 6px 14px 6px 8px; }
-  .pill.tech .adobe-mark { display: inline-flex; align-items: center; }
+  .chip .chip-label { color: var(--ink-mute); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; font-size: 10px; }
+  .chip.priority .priority-dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--brand); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800;
+  }
+  .chip.tech { padding: 6px 14px 6px 8px; }
+  .chip.tech .adobe-mark { display: inline-flex; align-items: center; }
+  /* ── Body grid ─────────────────────────────────────────────────── */
+  .framing-body {
+    display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: 28px; flex: 1 1 auto; min-height: 0;
+  }
+  .col-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .col-right { position: relative; min-width: 0; display: flex; flex-direction: column; }
+  /* Use-case quote card (top of left column) */
   .use-case-card {
     background: var(--brand-light);
-    border: 2px solid var(--brand);
+    border: 1.5px solid var(--brand);
     color: var(--ink);
     padding: 18px 22px;
-    border-radius: 4px;
-    font-size: 18px;
-    line-height: 1.35;
+    border-radius: 12px;
+    font-size: 17px;
+    line-height: 1.4;
     font-weight: 600;
+    position: relative;
   }
-  .use-case-card .label { color: var(--brand); font-weight: 800; letter-spacing: 0.4px; }
-  .benefits-card {
-    background: var(--brand-light);
-    border: 2px solid var(--brand);
+  .use-case-card .label {
+    display: inline-block;
+    background: var(--brand);
+    color: #ffffff;
+    padding: 3px 9px;
     border-radius: 4px;
-    padding: 18px 22px;
-    display: flex; flex-direction: column; gap: 12px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin-right: 8px;
+    vertical-align: middle;
+    text-transform: uppercase;
   }
-  .benefit { display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: 12px; font-size: 14px; color: var(--ink); font-weight: 500; }
-  .benefit .ic {
-    width: 36px; height: 36px; border-radius: 8px; background: var(--brand);
-    color: #fff; display: inline-flex; align-items: center; justify-content: center;
+  /* Benefits grid (4 outcome cards) */
+  .benefits-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
   }
-  .device-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-  .device-stage img { max-width: 100%; max-height: 380px; object-fit: contain; }
-  .stat-card {
-    position: absolute; left: 14%; bottom: 26%;
-    background: #fff; border: 1px solid var(--border); border-radius: 12px;
-    padding: 12px 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-    text-align: center; min-width: 110px;
+  .benefit-card {
+    background: #ffffff; border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
-  .stat-card .delta { color: #1aa55b; font-weight: 700; font-size: 14px; }
-  .stat-card .value { font-size: 24px; font-weight: 700; color: var(--ink); margin: 4px 0; }
-  .stat-card .label { font-size: 9px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.4px; }
+  .benefit-card .ic {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--panel); color: var(--ink-mute);
+    border: 1px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .benefit-card .text { font-size: 12.5px; line-height: 1.35; color: var(--ink); font-weight: 600; }
+  /* Industry illustration accent (slide-1 footer, watermark style) */
+  .industry-accent {
+    margin-top: auto;
+    color: var(--ink-mute);
+    opacity: 0.85;
+    align-self: flex-start;
+    line-height: 0;
+  }
+  .industry-accent svg { width: 320px; height: 90px; }
+  /* Right column — brand surface placeholder + overlap notification */
+  .surface-stage {
+    position: relative;
+    flex: 1 1 auto; min-height: 0;
+    border-radius: 14px; overflow: visible;
+  }
+  .surface-stage .demo-slot--fill { position: absolute; inset: 0; z-index: 1; }
+  .surface-stage .demo-slot-inner { position: relative; width: 100%; height: 100%; min-height: 0; }
+  .surface-frame {
+    position: absolute; inset: 0;
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.12);
+    background: var(--panel);
+  }
+  .surface-frame img, .surface-frame svg { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Floating iOS-style notification card overlapping the surface */
   .notification {
-    position: absolute; right: 4%; top: 8%;
-    background: #fff; border: 1px solid var(--border); border-radius: 16px;
-    padding: 12px 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.10);
-    width: 280px; display: grid; grid-template-columns: 32px 1fr; gap: 10px;
+    position: absolute;
+    z-index: 5;
+    right: -14px; top: -14px;
+    width: 300px;
+    background: #ffffff; border-radius: 18px;
+    padding: 12px 14px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+    display: grid; grid-template-columns: 36px 1fr; gap: 12px;
   }
-  .notification .badge { width: 32px; height: 32px; border-radius: 8px; background: var(--brand); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
-  .notification .meta { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .notification .sender { font-weight: 700; font-size: 11px; color: var(--ink); }
-  .notification .time { font-size: 9.5px; color: var(--ink-mute); }
-  .notification .body { font-size: 11px; color: var(--ink-soft); margin-top: 2px; line-height: 1.35; }
-  .priority-q { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; background: var(--brand); color: #fff; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+  .notification .badge {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--brand); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px;
+  }
+  .notification .meta {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  }
+  .notification .sender { font-weight: 700; font-size: 12.5px; color: var(--ink); }
+  .notification .time { font-size: 10.5px; color: var(--ink-mute); }
+  .notification .body { font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; line-height: 1.4; }
+  /* Stat callout (bottom-left of stage) */
+  .stat-card {
+    position: absolute; z-index: 4;
+    left: -16px; bottom: 24px;
+    background: #ffffff; border-radius: 12px;
+    padding: 12px 16px; min-width: 116px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+    text-align: center;
+  }
+  .stat-card .delta { color: #1aa55b; font-weight: 700; font-size: 13px; }
+  .stat-card .value { font-size: 26px; font-weight: 800; color: var(--ink); margin: 2px 0; line-height: 1; }
+  .stat-card .label { font-size: 9px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.4px; }
 </style></head>
 <body>
-  <section class="deck-slide framing">
-    <div class="top-row">
-      <span class="pill"><span>Priority:</span> <span class="priority-q" title="Priority">${escapeHtml(f.priority || 'High').slice(0, 1)}</span></span>
-      <span class="pill tech">
+  <section class="deck-slide">
+    <div class="meta-row">
+      <span class="chip priority">
+        <span class="chip-label">Priority</span>
+        <span class="priority-dot" title="${escapeAttr(f.priority || 'High')}">${escapeHtml((f.priority || 'High').slice(0, 1))}</span>
+      </span>
+      <span class="chip tech">
         <span class="adobe-mark">${ADOBE_LOGO_SVG.replace('width="48"', 'width="20"').replace('height="42"', 'height="18"')}</span>
-        <span><strong>Technology:</strong> ${escapeHtml(techList)}</span>
+        <span class="chip-label" style="margin-right:6px;">Technology</span>
+        <span>${escapeHtml(techList)}</span>
       </span>
     </div>
-    <div class="framing">
+
+    <div class="framing-body">
       <div class="col-left">
         <div class="use-case-card">
-          <span class="label">USE CASE:</span> ${escapeHtml(f.useCase)}
+          <span class="label">Use case</span>${escapeHtml(f.useCase)}
         </div>
-        <div class="benefits-card">
+        <div class="benefits-grid">
           ${benefits.map((b) => `
-            <div class="benefit">
-              <span class="ic">${iconSvg(b.icon, 18)}</span>
-              <span>${escapeHtml(b.text)}</span>
+            <div class="benefit-card">
+              <span class="ic">${iconSvg(b.icon, 16)}</span>
+              <span class="text">${escapeHtml(b.text)}</span>
             </div>
           `).join('')}
         </div>
+        <div class="industry-accent" aria-hidden="true">${industryIllustrationSvg(c.industry, { width: 320, height: 90 })}</div>
       </div>
       <div class="col-right">
-        <div class="device-stage"><img src="${escapeAttr(device.src)}" alt=""></div>
-        <div class="notification">
-          <span class="badge">${escapeHtml((f.sampleNotification.sender || c.name || 'B').slice(0, 1).toUpperCase())}</span>
-          <div>
-            <div class="meta">
-              <span class="sender">${escapeHtml(f.sampleNotification.sender)}</span>
-              <span class="time">${escapeHtml(f.sampleNotification.timeLabel || 'now')}</span>
+        <div class="surface-stage">
+          ${wrapDemoSlot('framing.brandSurface', 'Brand hero screenshot', surfaceState, `<div class="surface-frame">${surfaceInner}</div>`)}
+          <div class="notification">
+            <span class="badge">${escapeHtml((sn.sender || c.name || 'B').slice(0, 1).toUpperCase())}</span>
+            <div>
+              <div class="meta">
+                <span class="sender">${escapeHtml(sn.sender || c.name)}</span>
+                <span class="time">${escapeHtml(sn.timeLabel || 'now')}</span>
+              </div>
+              <div class="body">${escapeHtml(sn.body || 'A personalised update for you.')}</div>
             </div>
-            <div class="body">${escapeHtml(f.sampleNotification.body)}</div>
           </div>
-        </div>
-        <div class="stat-card">
-          <div class="delta">${escapeHtml(f.statHighlight.delta)}</div>
-          <div class="value">${escapeHtml(f.statHighlight.value)}</div>
-          <div class="label">${escapeHtml(f.statHighlight.label)}</div>
+          <div class="stat-card">
+            <div class="delta">${escapeHtml(sh.delta || '▲28.4%')}</div>
+            <div class="value">${escapeHtml(sh.value || '172')}</div>
+            <div class="label">${escapeHtml(sh.label || 'Profile uplift')}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -999,6 +1395,16 @@ function renderExperienceHtml(data, images) {
   const e = data.experience || {};
   const persona = e.persona || { name: 'Customer', traits: [], summary: '' };
   const personaImg = resolvePersonaImage(images, persona.name, c.name, brand, 'html');
+  // AJO canvas credibility strip — uploaded screenshot or stylised
+  // SVG fallback. Always rendered so the slide reads as "this is real
+  // Adobe Journey Optimizer" instead of a generic flow.
+  const ajoCanvas = resolveAjoCanvas(images, brand);
+  const personaState = imageSlotUploaded(images, 'persona') ? 'upload' : 'placeholder';
+  const personaInner = personaImg.kind === 'svg'
+    ? `<span class="svg-wrap">${personaImg.inlineSvg || ''}</span>`
+    : `<img src="${escapeAttr(personaImg.src)}" alt="">`;
+  const ajoState = imageSlotUploaded(images, 'ajoCanvas') ? 'upload' : 'placeholder';
+  const ajoInner = ajoCanvas.kind === 'svg' ? ajoCanvas.inlineSvg : `<img src="${escapeAttr(ajoCanvas.src)}" alt="Adobe Journey Optimizer canvas">`;
   const steps = e.steps || [];
   const n = steps.length;
 
@@ -1042,16 +1448,24 @@ function renderExperienceHtml(data, images) {
   .experience-subtitle { font-size: 14px; color: var(--ink-soft); font-weight: 500; margin-top: 2px; }
   .step-progress { font-size: 12px; color: var(--ink-mute); font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
   .step-progress .step-progress-current { color: var(--brand); font-size: 16px; }
-  .persona-block { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; margin: 0 0 14px; }
-  .persona-block .photo { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; background: var(--panel); border: 2px solid var(--brand); }
+  /* Persona block — bigger photo, name + traits stacked beside it */
+  .persona-block { display: grid; grid-template-columns: 88px 1fr; gap: 16px; align-items: center; margin: 0 0 16px; }
+  .persona-block .photo {
+    width: 88px; height: 88px; border-radius: 50%;
+    background: var(--panel); border: 3px solid var(--border);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    position: relative;
+  }
+  .persona-block .photo .demo-slot { border-radius: 50%; overflow: hidden; height: 100%; }
+  .persona-block .photo .demo-slot-inner { width: 100%; height: 100%; }
   .persona-block .photo img, .persona-block .photo svg { width: 100%; height: 100%; object-fit: cover; display: block; }
   .persona-block .photo .svg-wrap { width: 100%; height: 100%; display: block; }
-  .persona-name { font-size: 15px; font-weight: 700; color: var(--ink); }
-  .persona-traits { font-size: 11px; color: var(--ink-soft); margin-top: 1px; }
+  .persona-name { font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -0.2px; }
+  .persona-traits { font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
   .persona-traits .trait { display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; }
   .persona-traits .trait::before { content: "•"; color: var(--brand); font-weight: 800; margin-right: 2px; }
   .persona-traits .trait:first-child::before { content: ""; margin-right: 0; }
-  .persona-summary { font-size: 11px; color: var(--ink-soft); margin-top: 1px; font-style: italic; }
+  .persona-summary { font-size: 12px; color: var(--ink-soft); margin-top: 3px; font-style: italic; line-height: 1.4; }
 
   /* ── Timeline strip ─────────────────────────────────────────────── */
   .step-timeline {
@@ -1103,12 +1517,13 @@ function renderExperienceHtml(data, images) {
     background: #fafbfc;
     border: 1px solid var(--border);
     border-radius: 14px;
-    padding: 20px;
+    padding: 22px;
     display: flex; flex-direction: column;
+    gap: 16px;
   }
   .stage-panels { flex: 1 1 auto; min-height: 0; position: relative; }
   .stage-panel {
-    display: grid; grid-template-columns: minmax(220px, 0.8fr) 1.2fr; gap: 24px;
+    display: grid; grid-template-columns: minmax(280px, 1.1fr) minmax(0, 1.1fr); gap: 28px;
     align-items: center; height: 100%;
     animation: stageIn 0.45s ease-in-out both;
   }
@@ -1123,23 +1538,55 @@ function renderExperienceHtml(data, images) {
   }
   .stage-mockup svg {
     max-width: 100%; max-height: 100%;
-    filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.10));
+    filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.12));
   }
-  .stage-info { display: flex; flex-direction: column; gap: 10px; }
+  .stage-info { display: flex; flex-direction: column; gap: 12px; }
   .stage-eyebrow {
-    font-size: 11px; font-weight: 700; color: var(--brand);
-    text-transform: uppercase; letter-spacing: 0.4px;
+    font-size: 11px; font-weight: 800; color: var(--brand);
+    text-transform: uppercase; letter-spacing: 0.5px;
   }
-  .stage-eyebrow .stage-num { font-size: 13px; }
-  .stage-title { font-size: 24px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; line-height: 1.15; }
-  .stage-desc { font-size: 14px; color: var(--ink-soft); line-height: 1.5; max-width: 540px; }
+  .stage-eyebrow .stage-num { font-size: 14px; }
+  .stage-title { font-size: 28px; font-weight: 800; color: var(--ink); letter-spacing: -0.4px; line-height: 1.1; }
+  .stage-desc { font-size: 15px; color: var(--ink-soft); line-height: 1.55; max-width: 560px; }
   .stage-channel {
-    display: inline-flex; align-items: center; gap: 6px;
-    margin-top: 4px;
-    font-size: 11px; font-weight: 700; color: var(--brand);
-    text-transform: uppercase; letter-spacing: 0.3px;
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 6px; padding: 6px 12px;
+    font-size: 11px; font-weight: 800; color: var(--brand); background: var(--brand-light);
+    text-transform: uppercase; letter-spacing: 0.4px;
+    border-radius: 999px; align-self: flex-start;
   }
-  .stage-channel .ch-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
+  .stage-channel .ch-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
+
+  /* ── AJO canvas credibility strip ────────────────────────────────── */
+  .ajo-strip {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px 0;
+    display: flex; flex-direction: column; gap: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  }
+  .ajo-strip .ajo-eyebrow {
+    font-size: 10px; font-weight: 800; color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .ajo-strip .ajo-eyebrow .ajo-live {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+    background: var(--brand-light); color: var(--brand);
+    text-transform: none; letter-spacing: 0; font-size: 10px;
+  }
+  .ajo-strip .ajo-eyebrow .ajo-live::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--brand);
+  }
+  .ajo-canvas {
+    width: 100%; height: 130px;
+    display: block; line-height: 0;
+    position: relative;
+  }
+  .ajo-canvas .demo-slot-inner { width: 100%; height: 100%; }
+  .ajo-canvas svg, .ajo-canvas img { width: 100%; height: 100%; display: block; object-fit: contain; }
 
   /* ── Stage footer (Prev / Next) ─────────────────────────────────── */
   .stage-controls {
@@ -1181,7 +1628,7 @@ function renderExperienceHtml(data, images) {
       </div>
     </div>
     <div class="persona-block">
-      <span class="photo">${personaImg.kind === 'svg' ? `<span class="svg-wrap">${personaImg.inlineSvg || ''}</span>` : `<img src="${escapeAttr(personaImg.src)}" alt="">`}</span>
+      <span class="photo">${wrapDemoSlot('experience.persona', 'Persona headshot', personaState, personaInner, { showLabel: false })}</span>
       <div>
         <div class="persona-name">${escapeHtml(persona.name)}</div>
         <div class="persona-traits">${(persona.traits || []).map((t) => `<span class="trait">${escapeHtml(t)}</span>`).join(' ')}</div>
@@ -1193,6 +1640,13 @@ function renderExperienceHtml(data, images) {
 
     <div class="stage-wrap">
       <div class="stage-panels" id="stagePanels">${stagePanels}</div>
+      <div class="ajo-strip" aria-label="Adobe Journey Optimizer canvas preview">
+        <div class="ajo-eyebrow">
+          <span>Adobe Journey Optimizer · what you'll see live</span>
+          <span class="ajo-live">live</span>
+        </div>
+        <div class="ajo-canvas">${wrapDemoSlot('experience.ajoCanvas', 'AJO canvas screenshot', ajoState, ajoInner)}</div>
+      </div>
       <div class="stage-controls">
         <button type="button" class="stage-btn" id="navPrev" aria-label="Previous step">
           <span class="arrow">◀</span><span>Previous</span>
@@ -1294,91 +1748,178 @@ function renderValueHtml(data, images) {
   const brand = normaliseHex(c.brandColour);
   const dark = c.darkColour || darken(brand, 0.25);
   const v = data.value || {};
+  // Slide-4 image zones: lifestyle hero + AEP-in-action composite. Both
+  // use neutral SVG fallbacks and data-demo-slot wrappers for easy swaps.
   const lifestyle = resolveLifestyleImage(images, c.industry, brand, 'html');
+  const composite = resolveAepComposite(
+    images,
+    brand,
+    (data.experience && data.experience.persona && data.experience.persona.name) || '',
+    data.framing && data.framing.sampleNotification
+  );
+  const lifestyleState = imageSlotUploaded(images, 'lifestyle') ? 'upload' : 'placeholder';
+  const lifestyleInner = lifestyle.kind === 'svg' ? lifestyle.inlineSvg : `<img src="${escapeAttr(lifestyle.src)}" alt="">`;
+  const compositeState = imageSlotUploaded(images, 'aepComposite') ? 'upload' : 'placeholder';
+  const compositeInner = composite.kind === 'svg' ? composite.inlineSvg : `<img src="${escapeAttr(composite.src)}" alt="AEP composite">`;
 
-  // Render the headline with the boldWord highlighted in brand colour.
-  let headlineHtml;
-  if (v.boldWord && v.headline.toLowerCase().includes(v.boldWord.toLowerCase())) {
-    const idx = v.headline.toLowerCase().indexOf(v.boldWord.toLowerCase());
-    headlineHtml = escapeHtml(v.headline.slice(0, idx)) +
-      '<span class="brand-emph">' + escapeHtml(v.headline.substr(idx, v.boldWord.length)) + '</span>' +
-      escapeHtml(v.headline.slice(idx + v.boldWord.length));
-  } else {
-    headlineHtml = escapeHtml(v.headline);
+  // Render the headline with the boldWord emphasised in brand colour.
+  // Reference deck does the same with "Stand out" in red — we adopt the
+  // pattern but use the dynamic brand colour so recolour still works.
+  function emphasise(text, word) {
+    const escaped = escapeHtml(text);
+    if (!word) return escaped;
+    const wordEsc = escapeHtml(word);
+    if (!escaped.toLowerCase().includes(wordEsc.toLowerCase())) return escaped;
+    const idx = escaped.toLowerCase().indexOf(wordEsc.toLowerCase());
+    return escaped.slice(0, idx) +
+      '<span class="brand-emph">' + escaped.substr(idx, wordEsc.length) + '</span>' +
+      escaped.slice(idx + wordEsc.length);
   }
+  const headlineHtml = emphasise(v.headline, v.boldWord);
 
-  // Render the takeaway with a brand-coloured emphasis on phrases like
-  // "customer at the center" if that phrase appears (matches sample 3).
+  // Highlight the strongest phrase in the takeaway. We try the boldWord
+  // and a few common AEP value phrases; first hit wins.
   let takeawayHtml = escapeHtml(v.takeaway);
-  const emphPatterns = ['customer at the center', 'customer at the centre', 'customer-centric', 'real-time', 'personalised', 'personalized'];
-  for (const phrase of emphPatterns) {
-    const re = new RegExp('(' + phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i');
+  const emphCandidates = [
+    v.boldWord,
+    'customer at the center',
+    'customer at the centre',
+    'customer-centric',
+    'real-time',
+    'personalised',
+    'personalized',
+  ].filter(Boolean);
+  for (const phrase of emphCandidates) {
+    const safe = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('(' + safe + ')', 'i');
     if (re.test(v.takeaway)) {
-      takeawayHtml = escapeHtml(v.takeaway).replace(new RegExp('(' + phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i'), '<span class="brand-emph">$1</span>');
+      takeawayHtml = escapeHtml(v.takeaway).replace(re, '<span class="brand-emph">$1</span>');
       break;
     }
   }
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=1280, initial-scale=1">
-<title>${escapeHtml(c.name)} — Value</title>
+<title>${escapeHtml(c.name)} — Value return</title>
 <style>${commonStyles(brand, dark)}
-  .value-slide { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; flex: 1 1 auto; min-height: 0; }
-  .value-left { display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 12px 0 0; }
-  .value-headline { font-size: 56px; font-weight: 800; line-height: 1.05; color: var(--ink); letter-spacing: -1px; }
+  /* Top headline + value-prop band, full-width */
+  .value-top {
+    display: flex; flex-direction: column; gap: 18px;
+    margin-bottom: 22px;
+  }
+  .value-headline {
+    font-size: 56px; font-weight: 800; line-height: 1.05;
+    color: var(--ink); letter-spacing: -1.2px;
+    max-width: 1000px;
+  }
   .brand-emph { color: var(--brand); }
-  .value-subhead { font-size: 18px; color: var(--ink-soft); margin-top: 6px; font-weight: 400; }
-  .value-props { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
-  .value-prop { display: grid; grid-template-columns: 44px 1fr; align-items: center; gap: 14px; font-size: 18px; color: var(--ink); }
+  .value-subhead {
+    font-size: 18px; color: var(--ink-soft); font-weight: 500;
+    max-width: 760px;
+  }
+  .value-props {
+    display: flex; gap: 28px; align-items: center; margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .value-prop {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-size: 24px; color: var(--ink); font-weight: 500;
+  }
   .value-prop .ic {
-    width: 44px; height: 44px; border-radius: 10px; background: var(--brand);
-    color: #fff; display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 10px;
+    background: var(--panel); color: var(--ink-mute);
+    border: 1px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
   }
-  .value-prop b { font-weight: 800; }
-  .value-right { position: relative; border-radius: 12px; overflow: hidden; min-height: 460px; background: var(--panel); }
-  .value-right .lifestyle { position: absolute; inset: 0; }
-  .value-right .lifestyle img, .value-right .lifestyle svg { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .value-right .takeaway {
-    position: absolute; left: 22px; right: 22px; bottom: 22px;
-    background: rgba(20, 20, 20, 0.92); color: #fff;
-    padding: 16px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; line-height: 1.35;
+  .value-prop b { font-weight: 800; color: var(--ink); }
+  .value-prop .more { color: var(--ink-soft); font-weight: 500; margin-right: 4px; }
+
+  /* Body grid: lifestyle hero (left, smaller) + AEP composite (right, larger) */
+  .value-body {
+    flex: 1 1 auto; min-height: 0;
+    display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr); gap: 28px;
   }
-  .value-right .floating-card {
-    position: absolute; right: 22px; top: 22px;
-    background: #fff; border-radius: 12px; padding: 12px 14px;
-    box-shadow: 0 12px 28px rgba(0,0,0,0.18);
-    width: 220px; display: flex; flex-direction: column; gap: 10px;
+  .lifestyle-zone {
+    position: relative; border-radius: 14px; overflow: hidden;
+    min-height: 320px; background: var(--panel);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.10);
   }
-  .value-right .floating-card .row { display: grid; grid-template-columns: 18px 1fr; align-items: center; gap: 10px; font-size: 11px; color: var(--ink); }
-  .value-right .floating-card .row .ic { width: 18px; height: 18px; color: var(--ink-soft); display: inline-flex; align-items: center; justify-content: center; }
-  .value-right .floating-card .row .label { font-weight: 700; color: var(--ink-soft); margin-right: 4px; }
-  .value-right .floating-card .header { font-size: 11px; color: var(--ink); font-weight: 700; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .lifestyle-zone .lifestyle-img {
+    position: absolute; inset: 0; line-height: 0;
+  }
+  .lifestyle-zone .lifestyle-img .demo-slot { position: absolute; inset: 0; }
+  .lifestyle-zone .lifestyle-img .demo-slot-inner { width: 100%; height: 100%; }
+  .lifestyle-zone .lifestyle-img img,
+  .lifestyle-zone .lifestyle-img svg { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .composite-zone {
+    position: relative;
+    border-radius: 14px; padding: 18px;
+    background: #ffffff; border: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 12px;
+    min-height: 320px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+  }
+  .composite-eyebrow {
+    font-size: 10.5px; font-weight: 800; color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .composite-eyebrow .composite-tag {
+    display: inline-block; margin-left: 8px; padding: 2px 8px;
+    background: var(--brand-light); color: var(--brand);
+    border-radius: 999px; font-size: 10px; font-weight: 700;
+    text-transform: none; letter-spacing: 0;
+  }
+  .composite-canvas {
+    flex: 1 1 auto; min-height: 0;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 0;
+    position: relative;
+  }
+  .composite-canvas .demo-slot { width: 100%; flex: 1 1 auto; min-height: 220px; display: flex; align-items: center; justify-content: center; }
+  .composite-canvas .demo-slot-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+  .composite-canvas svg, .composite-canvas img {
+    max-width: 100%; max-height: 100%; display: block;
+  }
+
+  /* Takeaway band sits beneath the body grid */
+  .takeaway-band {
+    margin-top: 16px; padding: 16px 22px;
+    background: #1a1a2a; color: #ffffff;
+    border-radius: 12px;
+    font-size: 17px; font-weight: 600; line-height: 1.35;
+  }
+  .takeaway-band .brand-emph { color: var(--brand); }
 </style></head>
 <body>
-  <section class="deck-slide value-wrap">
-    <div class="value-slide">
-      <div class="value-left">
-        <div class="value-headline">${headlineHtml}</div>
-        <div class="value-subhead">${escapeHtml(v.subheading)}</div>
-        <div class="value-props">
-          ${v.valueProps.map((p) => `
-            <div class="value-prop">
-              <span class="ic">${iconSvg(p.icon, 22)}</span>
-              <span>${escapeHtml(p.text.split(p.boldWord).join('')).replace(/\s+$/, '')} <b>${escapeHtml(p.boldWord)}</b></span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      <div class="value-right">
-        <div class="lifestyle">${lifestyle.kind === 'svg' ? lifestyle.inlineSvg : `<img src="${escapeAttr(lifestyle.src)}" alt="">`}</div>
-        <div class="floating-card">
-          <div class="header">Create segment</div>
-          <div class="row"><span class="ic">${iconSvg('file-search', 14)}</span><span><span class="label">Search:</span>${escapeHtml((data.framing && data.framing.useCase || '').split(' ').slice(0, 4).join(' ') || 'Best customers')}</span></div>
-          <div class="row"><span class="ic">${iconSvg('users', 14)}</span><span><span class="label">Audience:</span>${escapeHtml(((data.experience && data.experience.persona && data.experience.persona.name) || 'High-intent visitors').split('|')[0].trim())}</span></div>
-        </div>
-        <div class="takeaway">${takeawayHtml}</div>
+  <section class="deck-slide">
+    <div class="value-top">
+      <div class="value-headline">${headlineHtml}</div>
+      ${v.subheading ? `<div class="value-subhead">${escapeHtml(v.subheading)}</div>` : ''}
+      <div class="value-props">
+        ${(v.valueProps || []).slice(0, 3).map((p) => `
+          <div class="value-prop">
+            <span class="ic">${iconSvg(p.icon, 22)}</span>
+            <span><span class="more">More</span><b>${escapeHtml(p.boldWord || p.text || '')}</b></span>
+          </div>
+        `).join('')}
       </div>
     </div>
+
+    <div class="value-body">
+      <div class="lifestyle-zone">
+        <div class="lifestyle-img">${wrapDemoSlot('value.lifestyle', 'Lifestyle / hero photo', lifestyleState, lifestyleInner)}</div>
+      </div>
+      <div class="composite-zone">
+        <div class="composite-eyebrow">
+          <span>Adobe Experience Platform · in action</span>
+          <span class="composite-tag">live</span>
+        </div>
+        <div class="composite-canvas">${wrapDemoSlot('value.aepComposite', 'AEP + message composite', compositeState, compositeInner)}</div>
+      </div>
+    </div>
+
+    <div class="takeaway-band">${takeawayHtml}</div>
+
     <div class="deck-footer">
       <span class="adobe-logo"><span class="wordmark">Adobe</span></span>
       <span class="copyright">© ${new Date().getFullYear()} Adobe. All Rights Reserved. Adobe Confidential.</span>
@@ -1416,107 +1957,124 @@ function renderDemoPptx(data, images) {
   }
 
   // ─── SLIDE 1 — FRAMING ──────────────────────────────────────────────────
+  // Layout mirrors the HTML output:
+  //   • Top: Priority + Technology chips (full-width row)
+  //   • Left col (≈ 6.0" wide): use-case quote card → 4 benefit cards
+  //     in a 2×2 grid → industry illustration accent
+  //   • Right col (≈ 6.5" wide): brand-surface placeholder / upload as
+  //     the hero, with an iOS-style notification card overlapping the
+  //     top edge and a stat callout pinned to the bottom-left.
   const s1 = pres.addSlide();
   s1.background = { color: 'FFFFFF' };
 
-  // Top pills
+  // Top metadata row (chips)
   s1.addText(`Priority: ${data.framing.priority}`, {
-    x: 0.4, y: 0.3, w: 1.4, h: 0.36,
+    x: 0.4, y: 0.3, w: 1.6, h: 0.36,
     fontSize: 9, bold: true, color: ink,
-    fill: { color: 'FFFFFF' },
-    line: { color: 'E3E6EB', width: 1 },
+    fill: { color: 'FFFFFF' }, line: { color: 'E3E6EB', width: 1 },
     align: 'center', valign: 'middle',
   });
-  s1.addText(`Technology: ${data.framing.technology.join(', ')}`, {
-    x: 1.85, y: 0.3, w: 6.5, h: 0.36,
+  s1.addText(`Technology: ${data.framing.technology.join(' · ')}`, {
+    x: 2.05, y: 0.3, w: 7.0, h: 0.36,
     fontSize: 9, bold: true, color: ink,
-    fill: { color: 'FFFFFF' },
-    line: { color: 'E3E6EB', width: 1 },
+    fill: { color: 'FFFFFF' }, line: { color: 'E3E6EB', width: 1 },
     align: 'left', valign: 'middle', margin: [0, 8, 0, 8],
   });
 
-  // Use case card
-  s1.addShape(pres.ShapeType.rect, {
-    x: 0.4, y: 1.0, w: 6.0, h: 1.4,
+  // Use-case quote card
+  s1.addShape(pres.ShapeType.roundRect, {
+    x: 0.4, y: 0.85, w: 6.0, h: 1.5,
     fill: { color: brandHex, transparency: 85 },
-    line: { color: brandHex, width: 2 },
+    line: { color: brandHex, width: 1.5 }, rectRadius: 0.12,
   });
-  s1.addText([
-    { text: 'USE CASE: ', options: { color: brandHex, bold: true } },
-    { text: data.framing.useCase, options: { color: ink } },
-  ], {
-    x: 0.6, y: 1.1, w: 5.6, h: 1.2,
-    fontSize: 14, bold: true, valign: 'middle',
+  s1.addText('USE CASE', {
+    x: 0.6, y: 1.0, w: 1.0, h: 0.32,
+    fontSize: 9, bold: true, color: 'FFFFFF',
+    fill: { color: brandHex }, align: 'center', valign: 'middle',
+  });
+  s1.addText(data.framing.useCase, {
+    x: 0.6, y: 1.36, w: 5.6, h: 0.95,
+    fontSize: 13, bold: true, color: ink, valign: 'top',
   });
 
-  // Benefits card
-  const benefitsTop = 2.6;
-  s1.addShape(pres.ShapeType.rect, {
-    x: 0.4, y: benefitsTop, w: 6.0, h: 3.4,
-    fill: { color: brandHex, transparency: 85 },
-    line: { color: brandHex, width: 2 },
-  });
+  // 4 benefit cards in a 2x2 grid beneath the use case
+  const benefitTop = 2.55;
   data.framing.benefits.slice(0, 4).forEach((b, i) => {
-    const y = benefitsTop + 0.25 + (i * 0.78);
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const x = 0.4 + col * 3.05;
+    const y = benefitTop + row * 1.3;
     s1.addShape(pres.ShapeType.roundRect, {
-      x: 0.6, y, w: 0.55, h: 0.55,
+      x, y, w: 2.9, h: 1.2,
+      fill: { color: 'FFFFFF' }, line: { color: 'E3E6EB', width: 1 }, rectRadius: 0.1,
+    });
+    s1.addShape(pres.ShapeType.roundRect, {
+      x: x + 0.18, y: y + 0.18, w: 0.42, h: 0.42,
       fill: { color: brandHex }, line: { color: brandHex }, rectRadius: 0.08,
     });
-    // Use a simple text glyph since PptxGenJS doesn't paint our SVG icons.
-    s1.addText('●', { x: 0.6, y, w: 0.55, h: 0.55, fontSize: 16, color: 'FFFFFF', align: 'center', valign: 'middle' });
+    s1.addText('●', { x: x + 0.18, y: y + 0.18, w: 0.42, h: 0.42, fontSize: 14, color: 'FFFFFF', align: 'center', valign: 'middle' });
     s1.addText(b.text, {
-      x: 1.3, y: y + 0.04, w: 5.0, h: 0.5,
-      fontSize: 13, color: ink, valign: 'middle',
+      x: x + 0.18, y: y + 0.65, w: 2.55, h: 0.5,
+      fontSize: 10.5, bold: true, color: ink, valign: 'top',
     });
   });
 
-  // Right-side device image (uploaded data URL OR our SVG fallback)
-  const device = resolveDeviceImage(images, brand, data.framing.technology);
+  // Industry illustration accent at the bottom of the left column
+  const accentSvg = industryIllustrationSvg(data.client.industry, { width: 320, height: 90 });
   s1.addImage({
-    data: device.src,
-    x: 6.7, y: 1.0, w: 6.4, h: 4.2,
-    sizing: { type: 'contain', w: 6.4, h: 4.2 },
+    data: 'data:image/svg+xml;base64,' + Buffer.from(accentSvg.replace(/currentColor/g, brand)).toString('base64'),
+    x: 0.4, y: 5.4, w: 3.2, h: 0.8,
   });
 
-  // Sample notification card
-  s1.addShape(pres.ShapeType.roundRect, {
-    x: 8.4, y: 1.1, w: 4.6, h: 1.0,
-    fill: { color: 'FFFFFF' }, line: { color: 'E3E6EB', width: 1 }, rectRadius: 0.1,
+  // Right column — brand surface hero (placeholder OR uploaded screenshot)
+  const brandSurface = resolveBrandSurface(images, brand, data.client.name);
+  s1.addImage({
+    data: brandSurface.src,
+    x: 6.7, y: 0.85, w: 6.4, h: 4.5,
+    sizing: { type: 'cover', w: 6.4, h: 4.5 },
   });
+
+  // iOS-style notification card overlapping the top of the brand surface
   s1.addShape(pres.ShapeType.roundRect, {
-    x: 8.55, y: 1.25, w: 0.5, h: 0.5,
-    fill: { color: brandHex }, line: { color: brandHex }, rectRadius: 0.06,
+    x: 8.0, y: 0.6, w: 4.9, h: 1.05,
+    fill: { color: 'FFFFFF' }, line: { type: 'none' }, rectRadius: 0.18,
+    shadow: { type: 'outer', blur: 20, offset: 6, angle: 90, color: '000000', opacity: 0.18 },
+  });
+  s1.addShape(pres.ShapeType.ellipse, {
+    x: 8.18, y: 0.78, w: 0.55, h: 0.55,
+    fill: { color: brandHex }, line: { color: brandHex },
   });
   s1.addText((data.framing.sampleNotification.sender || 'B').slice(0, 1).toUpperCase(), {
-    x: 8.55, y: 1.25, w: 0.5, h: 0.5,
+    x: 8.18, y: 0.78, w: 0.55, h: 0.55,
     fontSize: 18, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle',
   });
   s1.addText(data.framing.sampleNotification.sender, {
-    x: 9.2, y: 1.2, w: 2.8, h: 0.3,
-    fontSize: 10, bold: true, color: ink,
+    x: 8.85, y: 0.7, w: 3.0, h: 0.3,
+    fontSize: 11, bold: true, color: ink,
   });
   s1.addText(data.framing.sampleNotification.timeLabel || 'now', {
-    x: 12.0, y: 1.2, w: 0.85, h: 0.3,
+    x: 12.05, y: 0.7, w: 0.8, h: 0.3,
     fontSize: 9, color: inkMute, align: 'right',
   });
   s1.addText(data.framing.sampleNotification.body, {
-    x: 9.2, y: 1.45, w: 3.65, h: 0.65,
-    fontSize: 9.5, color: inkSoft,
+    x: 8.85, y: 0.97, w: 3.95, h: 0.55,
+    fontSize: 9.5, color: inkSoft, valign: 'top',
   });
 
-  // Stat highlight card
+  // Stat highlight card pinned to the bottom-left of the hero
   s1.addShape(pres.ShapeType.roundRect, {
-    x: 7.0, y: 4.3, w: 1.6, h: 1.2,
-    fill: { color: 'FFFFFF' }, line: { color: 'E3E6EB', width: 1 }, rectRadius: 0.1,
+    x: 6.55, y: 4.2, w: 1.85, h: 1.25,
+    fill: { color: 'FFFFFF' }, line: { type: 'none' }, rectRadius: 0.12,
+    shadow: { type: 'outer', blur: 18, offset: 4, angle: 90, color: '000000', opacity: 0.14 },
   });
   s1.addText(data.framing.statHighlight.delta, {
-    x: 7.0, y: 4.35, w: 1.6, h: 0.3, fontSize: 12, bold: true, color: '1AA55B', align: 'center',
+    x: 6.55, y: 4.28, w: 1.85, h: 0.3, fontSize: 12, bold: true, color: '1AA55B', align: 'center',
   });
   s1.addText(data.framing.statHighlight.value, {
-    x: 7.0, y: 4.65, w: 1.6, h: 0.55, fontSize: 22, bold: true, color: ink, align: 'center', valign: 'middle',
+    x: 6.55, y: 4.58, w: 1.85, h: 0.55, fontSize: 24, bold: true, color: ink, align: 'center', valign: 'middle',
   });
   s1.addText(data.framing.statHighlight.label, {
-    x: 7.0, y: 5.2, w: 1.6, h: 0.25, fontSize: 8, color: inkMute, align: 'center',
+    x: 6.55, y: 5.13, w: 1.85, h: 0.25, fontSize: 8, color: inkMute, align: 'center',
   });
 
   addFooter(s1);
@@ -1555,15 +2113,15 @@ function renderDemoPptx(data, images) {
     fontSize: 10, italic: true, color: inkSoft,
   });
 
-  // Steps in a horizontal row
+  // Steps in a horizontal row — shortened slightly so the AJO canvas
+  // credibility strip fits beneath them.
   const steps = data.experience.steps;
   const flowTop = 2.4;
-  const flowH = 4.4;
+  const flowH = 3.2;
   const flowLeft = 0.6;
   const flowRight = 12.7;
   const colW = (flowRight - flowLeft) / steps.length;
 
-  // Connecting line
   s2.addShape(pres.ShapeType.line, {
     x: flowLeft + 0.3, y: flowTop + flowH / 2, w: flowRight - flowLeft - 0.6, h: 0,
     line: { color: inkMute, width: 1.5 },
@@ -1573,46 +2131,68 @@ function renderDemoPptx(data, images) {
     const x = flowLeft + i * colW;
     const cx = x + colW / 2;
     const above = i % 2 === 0;
-    const mockupY = above ? flowTop : flowTop + flowH / 2 + 0.3;
-    const textY = above ? flowTop + flowH / 2 + 0.3 : flowTop + 0.1;
+    const mockupY = above ? flowTop : flowTop + flowH / 2 + 0.2;
+    const textY = above ? flowTop + flowH / 2 + 0.2 : flowTop + 0.05;
 
-    // Mockup image
     const mockupSvg = stepMockupSvg(step, brand, persona.name, data.client.name);
     const mockupData = 'data:image/svg+xml;base64,' + Buffer.from(mockupSvg).toString('base64');
     s2.addImage({
       data: mockupData,
-      x: cx - 0.85, y: mockupY, w: 1.7, h: 1.7,
-      sizing: { type: 'contain', w: 1.7, h: 1.7 },
+      x: cx - 0.75, y: mockupY, w: 1.5, h: 1.3,
+      sizing: { type: 'contain', w: 1.5, h: 1.3 },
     });
 
-    // Dot on the line
     s2.addShape(pres.ShapeType.ellipse, {
-      x: cx - 0.08, y: flowTop + flowH / 2 - 0.08, w: 0.16, h: 0.16,
+      x: cx - 0.1, y: flowTop + flowH / 2 - 0.1, w: 0.2, h: 0.2,
       fill: { color: brandHex }, line: { color: 'FFFFFF', width: 2 },
     });
 
-    // Step text
     s2.addText(step.title, {
       x: x + 0.05, y: textY, w: colW - 0.1, h: 0.3,
       fontSize: 11, bold: true, color: ink, align: 'center',
     });
     s2.addText(step.description, {
-      x: x + 0.05, y: textY + 0.3, w: colW - 0.1, h: 1.3,
+      x: x + 0.05, y: textY + 0.3, w: colW - 0.1, h: 1.0,
       fontSize: 9, color: inkSoft, align: 'center', valign: 'top',
     });
     s2.addText(step.channel.toUpperCase(), {
-      x: x + 0.05, y: textY + 1.6, w: colW - 0.1, h: 0.2,
+      x: x + 0.05, y: textY + 1.3, w: colW - 0.1, h: 0.2,
       fontSize: 8, bold: true, color: brandHex, align: 'center',
     });
+  });
+
+  // AJO canvas credibility strip at the bottom of slide 2
+  const ajoStripY = 5.9;
+  s2.addShape(pres.ShapeType.roundRect, {
+    x: 0.4, y: ajoStripY, w: 12.6, h: 1.05,
+    fill: { color: 'FFFFFF' }, line: { color: 'E3E6EB', width: 1 }, rectRadius: 0.1,
+  });
+  s2.addText('Adobe Journey Optimizer · what you\'ll see live', {
+    x: 0.55, y: ajoStripY + 0.08, w: 10.0, h: 0.25,
+    fontSize: 9, bold: true, color: inkMute,
+  });
+  s2.addText('● live', {
+    x: 11.4, y: ajoStripY + 0.08, w: 1.5, h: 0.25,
+    fontSize: 9, bold: true, color: brandHex, align: 'right',
+  });
+  const ajo = resolveAjoCanvas(images, brand);
+  s2.addImage({
+    data: ajo.src,
+    x: 0.55, y: ajoStripY + 0.32, w: 12.3, h: 0.68,
+    sizing: { type: 'contain', w: 12.3, h: 0.68 },
   });
 
   addFooter(s2);
 
   // ─── SLIDE 3 — VALUE ────────────────────────────────────────────────────
+  // Layout mirrors the HTML: full-width headline + value-prop band at
+  // the top, then a 2-column body with the lifestyle photo (smaller,
+  // left) and the AEP-in-action composite (larger, right), and finally
+  // a dark takeaway band across the bottom.
   const s3 = pres.addSlide();
   s3.background = { color: 'FFFFFF' };
 
-  // Headline (left)
+  // Headline (full width) with boldWord emphasised in the brand colour
   if (data.value.boldWord && data.value.headline.toLowerCase().includes(data.value.boldWord.toLowerCase())) {
     const idx = data.value.headline.toLowerCase().indexOf(data.value.boldWord.toLowerCase());
     s3.addText([
@@ -1620,54 +2200,93 @@ function renderDemoPptx(data, images) {
       { text: data.value.headline.substr(idx, data.value.boldWord.length), options: { color: brandHex } },
       { text: data.value.headline.slice(idx + data.value.boldWord.length), options: { color: ink } },
     ], {
-      x: 0.4, y: 0.8, w: 6.4, h: 2.8,
-      fontSize: 44, bold: true, valign: 'top',
+      x: 0.4, y: 0.4, w: 12.6, h: 1.1,
+      fontSize: 40, bold: true, valign: 'top',
     });
   } else {
     s3.addText(data.value.headline, {
-      x: 0.4, y: 0.8, w: 6.4, h: 2.8,
-      fontSize: 44, bold: true, color: ink, valign: 'top',
+      x: 0.4, y: 0.4, w: 12.6, h: 1.1,
+      fontSize: 40, bold: true, color: ink, valign: 'top',
     });
   }
 
-  s3.addText(data.value.subheading, {
-    x: 0.4, y: 3.6, w: 6.4, h: 0.5,
-    fontSize: 14, color: inkSoft,
-  });
+  if (data.value.subheading) {
+    s3.addText(data.value.subheading, {
+      x: 0.4, y: 1.5, w: 12.6, h: 0.4,
+      fontSize: 14, color: inkSoft,
+    });
+  }
 
-  // Value props (3 stacked)
-  data.value.valueProps.slice(0, 3).forEach((vp, i) => {
-    const y = 4.4 + i * 0.7;
+  // Three value props in a horizontal band beneath the headline:
+  // "More <bold>" with a brand-tinted icon tile.
+  const vpCount = Math.min(3, data.value.valueProps.length);
+  const vpRowY = 1.95;
+  const vpWidth = 4.2;
+  const vpGap = 0.1;
+  data.value.valueProps.slice(0, vpCount).forEach((vp, i) => {
+    const x = 0.4 + i * (vpWidth + vpGap);
     s3.addShape(pres.ShapeType.roundRect, {
-      x: 0.4, y, w: 0.5, h: 0.5,
-      fill: { color: brandHex }, line: { color: brandHex }, rectRadius: 0.08,
+      x, y: vpRowY, w: 0.6, h: 0.6,
+      fill: { color: brandHex, transparency: 80 },
+      line: { type: 'none' }, rectRadius: 0.08,
     });
-    s3.addText('★', { x: 0.4, y, w: 0.5, h: 0.5, fontSize: 16, color: 'FFFFFF', align: 'center', valign: 'middle' });
+    s3.addText('●', { x, y: vpRowY, w: 0.6, h: 0.6, fontSize: 18, color: brandHex, align: 'center', valign: 'middle' });
     s3.addText([
-      { text: (vp.text || '').replace(new RegExp(vp.boldWord || '', 'i'), '').trim() + ' ', options: { color: ink, bold: false } },
-      { text: vp.boldWord || '', options: { color: ink, bold: true } },
+      { text: 'More ', options: { color: inkSoft, bold: false } },
+      { text: vp.boldWord || vp.text || '', options: { color: ink, bold: true } },
     ], {
-      x: 1.0, y: y + 0.05, w: 5.4, h: 0.4,
-      fontSize: 16, valign: 'middle',
+      x: x + 0.7, y: vpRowY + 0.05, w: vpWidth - 0.7, h: 0.5,
+      fontSize: 20, valign: 'middle',
     });
   });
 
-  // Right-side lifestyle image
+  // Body row — lifestyle (left, smaller) + AEP composite (right, larger)
+  const bodyTop = 2.9;
+  const bodyH = 3.1;
   const lifestyle = resolveLifestyleImage(images, data.client.industry, brand, 'pptx');
   s3.addImage({
     data: lifestyle.src,
-    x: 7.0, y: 0.8, w: 6.0, h: 5.4,
-    sizing: { type: 'cover', w: 6.0, h: 5.4 },
+    x: 0.4, y: bodyTop, w: 5.0, h: bodyH,
+    sizing: { type: 'cover', w: 5.0, h: bodyH },
+  });
+  s3.addShape(pres.ShapeType.roundRect, {
+    x: 0.4, y: bodyTop, w: 5.0, h: bodyH,
+    fill: { type: 'none' }, line: { color: 'E3E6EB', width: 1 }, rectRadius: 0.14,
   });
 
-  // Takeaway banner overlay
+  // AEP composite (uploaded PNG OR our brand-coloured SVG fallback)
+  const aepComposite = resolveAepComposite(
+    images,
+    brand,
+    (data.experience && data.experience.persona && data.experience.persona.name) || '',
+    data.framing && data.framing.sampleNotification
+  );
   s3.addShape(pres.ShapeType.roundRect, {
-    x: 7.2, y: 5.4, w: 5.6, h: 1.0,
-    fill: { color: '141414', transparency: 8 }, line: { type: 'none' }, rectRadius: 0.08,
+    x: 5.6, y: bodyTop, w: 7.4, h: bodyH,
+    fill: { color: 'FFFFFF' }, line: { color: 'E3E6EB', width: 1 }, rectRadius: 0.14,
+  });
+  s3.addText('Adobe Experience Platform · in action', {
+    x: 5.8, y: bodyTop + 0.1, w: 5.0, h: 0.25,
+    fontSize: 9, bold: true, color: inkMute,
+  });
+  s3.addText('● live', {
+    x: 11.4, y: bodyTop + 0.1, w: 1.4, h: 0.25,
+    fontSize: 9, bold: true, color: brandHex, align: 'right',
+  });
+  s3.addImage({
+    data: aepComposite.src,
+    x: 5.8, y: bodyTop + 0.4, w: 7.0, h: bodyH - 0.55,
+    sizing: { type: 'contain', w: 7.0, h: bodyH - 0.55 },
+  });
+
+  // Takeaway band at the bottom
+  s3.addShape(pres.ShapeType.roundRect, {
+    x: 0.4, y: 6.2, w: 12.6, h: 0.8,
+    fill: { color: '1A1A2A' }, line: { type: 'none' }, rectRadius: 0.1,
   });
   s3.addText(data.value.takeaway, {
-    x: 7.4, y: 5.4, w: 5.2, h: 1.0,
-    fontSize: 11, bold: true, color: 'FFFFFF', valign: 'middle',
+    x: 0.65, y: 6.22, w: 12.1, h: 0.76,
+    fontSize: 13, bold: true, color: 'FFFFFF', valign: 'middle',
   });
 
   addFooter(s3);

@@ -53,14 +53,21 @@
   ];
 
   // Image dropzones cap each upload at ~500KB after canvas downscale so
-  // the {persona,device,lifestyle} images plus the demoData JSON fit
-  // comfortably in localStorage and in a Cloud Run request body. Width
-  // caps differ per slot — persona is square-ish, device/lifestyle wide.
+  // uploads plus demoData JSON fit in localStorage and the POST body.
   var IMAGE_LIMITS = {
-    persona:   { maxWidth: 600,  maxHeight: 600,  quality: 0.86, mime: 'image/jpeg' },
-    device:    { maxWidth: 1280, maxHeight: 800,  quality: 0.86, mime: 'image/jpeg' },
-    lifestyle: { maxWidth: 1280, maxHeight: 1280, quality: 0.86, mime: 'image/jpeg' },
+    persona:      { maxWidth: 600,  maxHeight: 600,  quality: 0.86, mime: 'image/jpeg' },
+    device:       { maxWidth: 1280, maxHeight: 800,  quality: 0.86, mime: 'image/jpeg' },
+    lifestyle:    { maxWidth: 1280, maxHeight: 1280, quality: 0.86, mime: 'image/jpeg' },
+    brandSurface: { maxWidth: 1600, maxHeight: 1000, quality: 0.82, mime: 'image/jpeg' },
+    ajoCanvas:    { maxWidth: 1600, maxHeight: 900, quality: 0.82, mime: 'image/jpeg' },
+    aepComposite: { maxWidth: 1600, maxHeight: 1200, quality: 0.82, mime: 'image/jpeg' },
   };
+  var IMAGE_SLOTS = ['persona', 'device', 'lifestyle', 'brandSurface', 'ajoCanvas', 'aepComposite'];
+  function emptyImages() {
+    var o = {};
+    IMAGE_SLOTS.forEach(function (k) { o[k] = ''; });
+    return o;
+  }
 
   // ─── DOM refs ─────────────────────────────────────────────────────────
   var $ = function (id) { return document.getElementById(id); };
@@ -122,7 +129,7 @@
     originalBrandColour: '',
     activeBrandColour: '',
     selectedProducts: [],     // Array<string> — checked product names
-    images: { persona: '', device: '', lifestyle: '' }, // base64 data URLs ('' = use stock)
+    images: emptyImages(), // base64 data URLs ('' = neutral SVG placeholder in HTML)
     activeTab: 'framing',
   };
 
@@ -171,7 +178,7 @@
       customProduct: payload.customProduct || '',
       additionalContext: payload.additionalContext || '',
       lastRefinementPrompt: payload.lastRefinementPrompt || '',
-      images: payload.images || { persona: '', device: '', lifestyle: '' },
+      images: Object.assign(emptyImages(), payload.images || {}),
       demoData: payload.demoData,
       framingHtml: payload.framingHtml,
       experienceHtml: payload.experienceHtml,
@@ -228,7 +235,7 @@
     if (additionalContextInput) additionalContextInput.value = entry.additionalContext || '';
     if (refinePromptInput) refinePromptInput.value = '';
     if (refineStatus) setStatus(refineStatus, '', '');
-    state.images = entry.images || { persona: '', device: '', lifestyle: '' };
+    state.images = Object.assign(emptyImages(), entry.images || {});
     syncDropzonePreviews();
     state.selectedProducts = Array.isArray(entry.products) ? entry.products.slice() : [];
     if (customProductInput) customProductInput.value = entry.customProduct || '';
@@ -721,8 +728,7 @@
   }
 
   function syncDropzonePreviews() {
-    var slots = ['persona', 'device', 'lifestyle'];
-    slots.forEach(function (slot) {
+    IMAGE_SLOTS.forEach(function (slot) {
       var area = document.querySelector('[data-dz-target="' + slot + '"]');
       if (!area) return;
       var img = area.querySelector('.duc-dz-preview');
@@ -741,8 +747,7 @@
   }
 
   function bindDropzones() {
-    var slots = ['persona', 'device', 'lifestyle'];
-    slots.forEach(function (slot) {
+    IMAGE_SLOTS.forEach(function (slot) {
       var area = document.querySelector('[data-dz-target="' + slot + '"]');
       if (!area) return;
       var fileInput = area.querySelector('input[type="file"]');
@@ -920,7 +925,7 @@
       if (additionalContextInput) additionalContextInput.value = cached.additionalContext || '';
       state.selectedProducts = Array.isArray(cached.products) ? cached.products.slice() : [];
       if (customProductInput) customProductInput.value = cached.customProduct || '';
-      state.images = cached.images || { persona: '', device: '', lifestyle: '' };
+      state.images = Object.assign(emptyImages(), cached.images || {});
       syncProductChips();
       syncDropzonePreviews();
       showLoadPrev(cached);
@@ -929,7 +934,7 @@
       if (additionalContextInput) additionalContextInput.value = '';
       state.selectedProducts = ['Real-Time CDP', 'Journey Optimizer'];
       if (customProductInput) customProductInput.value = '';
-      state.images = { persona: '', device: '', lifestyle: '' };
+      state.images = emptyImages();
       syncProductChips();
       syncDropzonePreviews();
       resultsSection.hidden = true;

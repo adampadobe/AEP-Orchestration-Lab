@@ -117,6 +117,16 @@
             <div class="form-row">
               <label>Imagery <span class="duc-form-hint">(optional — drop in real photos to lift the deck)</span></label>
               <div class="duc-dropzones">
+                <div class="duc-dropzone" data-image-slot="brandSurface">
+                  <span class="duc-dz-title">Brand surface</span>
+                  <span class="duc-dz-sub">Slide 1 hero — customer site</span>
+                  <div class="duc-dz-area" data-dz-target="brandSurface">
+                    <input type="file" id="ducDzBrandSurface" accept="image/*" hidden>
+                    <div class="duc-dz-empty"><span>Drop or click to upload</span><small>JPG / PNG · landscape · their homepage / app</small></div>
+                    <img class="duc-dz-preview" alt="" hidden>
+                  </div>
+                  <button type="button" class="duc-dz-clear" data-dz-clear="brandSurface" hidden>Use stock fallback</button>
+                </div>
                 <div class="duc-dropzone" data-image-slot="persona">
                   <span class="duc-dz-title">Persona photo</span>
                   <span class="duc-dz-sub">Slide 2 head shot</span>
@@ -128,8 +138,8 @@
                   <button type="button" class="duc-dz-clear" data-dz-clear="persona" hidden>Use stock fallback</button>
                 </div>
                 <div class="duc-dropzone" data-image-slot="device">
-                  <span class="duc-dz-title">Device screenshot</span>
-                  <span class="duc-dz-sub">Slide 1 laptop screen</span>
+                  <span class="duc-dz-title">Step mockup</span>
+                  <span class="duc-dz-sub">Slide 2 device frames</span>
                   <div class="duc-dz-area" data-dz-target="device">
                     <input type="file" id="ducDzDevice" accept="image/*" hidden>
                     <div class="duc-dz-empty"><span>Drop or click to upload</span><small>JPG / PNG · 16:10 works best</small></div>
@@ -137,9 +147,19 @@
                   </div>
                   <button type="button" class="duc-dz-clear" data-dz-clear="device" hidden>Use stock fallback</button>
                 </div>
+                <div class="duc-dropzone" data-image-slot="ajoCanvas">
+                  <span class="duc-dz-title">AJO canvas</span>
+                  <span class="duc-dz-sub">Slide 2 — Adobe Journey Optimizer</span>
+                  <div class="duc-dz-area" data-dz-target="ajoCanvas">
+                    <input type="file" id="ducDzAjoCanvas" accept="image/*" hidden>
+                    <div class="duc-dz-empty"><span>Drop or click to upload</span><small>PNG · screenshot of the actual journey</small></div>
+                    <img class="duc-dz-preview" alt="" hidden>
+                  </div>
+                  <button type="button" class="duc-dz-clear" data-dz-clear="ajoCanvas" hidden>Use stock fallback</button>
+                </div>
                 <div class="duc-dropzone" data-image-slot="lifestyle">
                   <span class="duc-dz-title">Lifestyle photo</span>
-                  <span class="duc-dz-sub">Slide 3 background</span>
+                  <span class="duc-dz-sub">Slide 4 hero — customer in context</span>
                   <div class="duc-dz-area" data-dz-target="lifestyle">
                     <input type="file" id="ducDzLifestyle" accept="image/*" hidden>
                     <div class="duc-dz-empty"><span>Drop or click to upload</span><small>JPG / PNG · landscape works best</small></div>
@@ -147,8 +167,18 @@
                   </div>
                   <button type="button" class="duc-dz-clear" data-dz-clear="lifestyle" hidden>Use stock fallback</button>
                 </div>
+                <div class="duc-dropzone" data-image-slot="aepComposite">
+                  <span class="duc-dz-title">AEP composite</span>
+                  <span class="duc-dz-sub">Slide 4 — segment + customer</span>
+                  <div class="duc-dz-area" data-dz-target="aepComposite">
+                    <input type="file" id="ducDzAepComposite" accept="image/*" hidden>
+                    <div class="duc-dz-empty"><span>Drop or click to upload</span><small>PNG · AEP UI + customer-facing experience</small></div>
+                    <img class="duc-dz-preview" alt="" hidden>
+                  </div>
+                  <button type="button" class="duc-dz-clear" data-dz-clear="aepComposite" hidden>Use stock fallback</button>
+                </div>
               </div>
-              <p class="duc-suggest-hint">Without an upload we render an inline SVG mockup (laptop with synthetic AJO canvas, initials avatar, brand-tinted gradient) so the deck still looks coherent.</p>
+              <p class="duc-suggest-hint">Without an upload we render neutral SVG placeholders for each image slot (each zone is tagged with a <span class="duc-suggest-mono">data-demo-slot</span> attribute in the generated HTML) so you can swap assets at scale. Text and chrome still follow the brand colour and the recolour bar.</p>
             </div>
 
             <div class="form-row">

@@ -276,6 +276,7 @@
 .demo-use-case-asset-page .duc-combo-option-label { color: var(--dash-muted); font-size: 0.78rem; text-align: right; }
 .demo-use-case-asset-page .duc-combo-empty { padding: 0.6rem 0.7rem; font-size: 0.82rem; color: var(--dash-muted); }
 .demo-use-case-asset-page .duc-suggest-hint { margin: 0.25rem 0 0; font-size: 0.78rem; color: var(--dash-muted); }
+.demo-use-case-asset-page .duc-suggest-mono { font-family: ui-monospace, monospace; font-size: 0.9em; color: var(--dash-text-secondary); }
 
 /* ── Adobe products multi-select ──────────────────────────────────────── */
 
