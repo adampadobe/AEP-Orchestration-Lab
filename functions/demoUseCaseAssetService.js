@@ -1502,34 +1502,41 @@ function renderExperienceHtml(data, images) {
     --jm-radius-lg: 16px;
     --jm-radius-sm: 10px;
   }
-  .experience-journey { padding: 28px 44px 52px; overflow: auto; }
+  /* Match slides 1 & 3: full-bleed deck-slide shell, no nested card wrapper. */
+  .experience-journey { padding: 38px 56px 22px; overflow: hidden; }
   .journey-app {
     width: 100%;
-    max-width: 1240px;
-    margin: 0 auto;
-    background: var(--jm-canvas);
-    border-radius: var(--jm-radius-lg);
-    box-shadow: var(--jm-shadow);
-    padding: 18px 22px 52px;
+    margin: 0;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
     position: relative;
-    min-height: 620px;
-    max-height: min(820px, 95vh);
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
   }
-  .deck-header { margin-bottom: 4px; }
+  .journey-header-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .deck-header { margin-bottom: 0; }
   .deck-title {
-    font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
     font-weight: 800;
     letter-spacing: -0.03em;
     color: var(--ink);
-    line-height: 1.15;
+    line-height: 1.1;
   }
   .deck-subtitle {
-    font-size: clamp(0.78rem, 1.4vw, 0.9rem);
+    font-size: clamp(0.95rem, 1.5vw, 1.1rem);
     color: var(--ink-soft);
     font-weight: 500;
-    margin-top: 4px;
+    margin-top: 6px;
   }
   .step-progress {
     font-size: 11px;
@@ -1538,16 +1545,16 @@ function renderExperienceHtml(data, images) {
     letter-spacing: 0.25px;
     text-transform: uppercase;
     text-align: right;
-    margin-bottom: 8px;
+    white-space: nowrap;
   }
   .step-progress-current { color: var(--brand); font-size: 14px; }
   .persona-row {
     display: grid;
     grid-template-columns: 72px 1fr;
-    gap: 12px 16px;
+    gap: 10px 18px;
     align-items: start;
-    max-width: 520px;
-    margin: 10px 0 8px;
+    max-width: 640px;
+    margin: 10px 0 12px;
   }
   .persona-photo-cell { position: relative; width: 72px; height: 72px; }
   .persona-photo-cell .demo-slot { width: 72px; height: 72px; border-radius: 50%; overflow: hidden;
@@ -1555,26 +1562,24 @@ function renderExperienceHtml(data, images) {
   .persona-photo-cell .demo-slot-inner { width: 100%; height: 100%; }
   .persona-photo-cell img, .persona-photo-cell svg { width: 100%; height: 100%; object-fit: cover; display: block; }
   .persona-photo-cell .svg-wrap { width: 100%; height: 100%; display: block; }
-  .persona-name { font-size: 0.95rem; font-weight: 800; color: var(--ink); }
-  .persona-role { font-size: 0.74rem; color: var(--ink-soft); margin-top: 4px; line-height: 1.35; }
+  .persona-name { font-size: 1rem; font-weight: 800; color: var(--ink); }
+  .persona-role { font-size: 0.78rem; color: var(--ink-soft); margin-top: 4px; line-height: 1.35; }
   .persona-signals {
     grid-column: 1 / -1;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     color: var(--ink-mute);
     line-height: 1.45;
-    padding: 8px 10px;
-    background: rgba(255,255,255,0.75);
-    border-radius: var(--jm-radius-sm);
-    border: 1px solid rgba(0,0,0,0.06);
+    padding: 7px 12px;
+    background: var(--panel);
+    border-radius: 10px;
+    border: 1px solid var(--border);
   }
   .svg-stage-wrap {
     position: relative;
     width: 100%;
-    margin-top: 6px;
+    margin-top: 4px;
     flex: 1 1 auto;
-    min-height: 360px;
-    aspect-ratio: 1200 / 480;
-    max-height: 520px;
+    min-height: 380px;
   }
   .svg-stage { width: 100%; height: 100%; display: block; overflow: visible; }
   #journeyPathProgress { transition: stroke-dashoffset 0.55s cubic-bezier(.4,.1,.2,1); }
@@ -1586,8 +1591,8 @@ function renderExperienceHtml(data, images) {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.4,.1,.2,1), visibility 0s linear 0.45s;
-    width: 150px;
-    max-width: 150px;
+    width: 158px;
+    max-width: 158px;
     z-index: 1;
   }
   .state-float.is-revealed {
@@ -1672,20 +1677,20 @@ function renderExperienceHtml(data, images) {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-top: 12px;
+    margin-top: 14px;
     padding-top: 10px;
-    border-top: 1px solid rgba(0,0,0,0.06);
+    border-top: 1px solid var(--border);
   }
   .nav-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
+    padding: 8px 18px;
     border-radius: 999px;
     border: 1.5px solid #c9ced8;
     background: #fff;
     font-weight: 700;
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     cursor: pointer;
     font-family: inherit;
     color: var(--ink);
@@ -1694,31 +1699,21 @@ function renderExperienceHtml(data, images) {
   .nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .nav-btn--primary { background: var(--jm-tap-ring); border-color: var(--jm-tap-ring); color: #fff; }
   .nav-btn--primary:hover:not(:disabled) { background: #0d62c4; border-color: #0d62c4; color: #fff; }
-  .nav-hint { font-size: 0.65rem; color: var(--ink-mute); text-align: center; flex: 1; }
-  .journey-app .deck-footer {
-    position: absolute;
-    left: 18px;
-    right: 18px;
-    bottom: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.62rem;
-    color: var(--ink-mute);
-  }
+  .nav-hint { font-size: 0.7rem; color: var(--ink-mute); text-align: center; flex: 1; }
   .adobe-wordmark { font-weight: 800; color: var(--adobe-red); letter-spacing: -0.02em; }
-  .copyright { text-align: right; max-width: 52%; line-height: 1.3; }
 </style></head>
 <body>
   <section class="deck-slide experience-journey">
-    <div class="step-progress" aria-live="polite">
-      Step <span class="step-progress-current" id="jmStepProg">1</span> of ${n}
-    </div>
-    <div class="journey-app" id="journeyApp" aria-live="polite">
+    <div class="journey-header-row">
       <header class="deck-header">
         <div class="deck-title">${escapeHtml(e.title)}</div>
         <div class="deck-subtitle">${escapeHtml(e.subtitle)}</div>
       </header>
+      <div class="step-progress" aria-live="polite">
+        Step <span class="step-progress-current" id="jmStepProg">1</span> of ${n}
+      </div>
+    </div>
+    <div class="journey-app" id="journeyApp" aria-live="polite">
       <div class="persona-row" id="personaBlock">
         <div class="persona-photo-cell">
           ${wrapDemoSlot('experience.persona', 'Persona headshot', personaState, personaInner, { showLabel: false })}
@@ -1730,11 +1725,11 @@ function renderExperienceHtml(data, images) {
         <div class="persona-signals">${escapeHtml(persona.summary)}</div>
       </div>
       <div class="svg-stage-wrap" id="stageWrap">
-        <svg class="svg-stage" id="journeySvg" viewBox="0 0 1200 480" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <svg class="svg-stage" id="journeySvg" viewBox="0 0 1280 480" preserveAspectRatio="none" aria-hidden="true">
           <path id="journeyPath" fill="none" stroke="var(--jm-path-line)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-            d="M 60 300 C 180 140, 320 360, 460 220 C 600 80, 740 380, 880 240 C 1000 120, 1080 320, 1160 240" />
+            d="M 60 300 C 200 140, 360 360, 500 220 C 640 80, 800 380, 940 240 C 1080 120, 1180 320, 1240 240" />
           <path id="journeyPathProgress" fill="none" stroke="var(--brand)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-            d="M 60 300 C 180 140, 320 360, 460 220 C 600 80, 740 380, 880 240 C 1000 120, 1080 320, 1160 240"
+            d="M 60 300 C 200 140, 360 360, 500 220 C 640 80, 800 380, 940 240 C 1080 120, 1180 320, 1240 240"
             opacity="0.85" />
           <g id="pathDecorations"></g>
         </svg>
@@ -1745,10 +1740,10 @@ function renderExperienceHtml(data, images) {
         <span class="nav-hint" id="navHint">Use Previous / Next or arrow keys.</span>
         <button type="button" class="nav-btn nav-btn--primary" id="btnNext">Next ▶</button>
       </div>
-      <footer class="deck-footer">
-        <span class="adobe-wordmark">Adobe</span>
-        <span class="copyright">© ${new Date().getFullYear()} Adobe. All Rights Reserved. Adobe Confidential.</span>
-      </footer>
+    </div>
+    <div class="deck-footer">
+      <span class="adobe-logo"><span class="wordmark">Adobe</span></span>
+      <span class="copyright">© ${new Date().getFullYear()} Adobe. All Rights Reserved. Adobe Confidential.</span>
     </div>
   </section>
   <script>
@@ -1849,7 +1844,7 @@ function renderExperienceHtml(data, images) {
         pathProgress.style.strokeDashoffset = String(pathLen);
       }
       var nn = states.length;
-      var evenTs = evenlySpacedTs(pathEl, nn, 0.03);
+      var evenTs = evenlySpacedTs(pathEl, nn, 0.05);
       for (var i = 0; i < nn; i++) {
         var st = states[i];
         var t = evenTs[i];
@@ -1984,12 +1979,10 @@ function renderExperienceHtml(data, images) {
       var svg = document.getElementById('journeySvg');
       if (!svg || !pathEl) return;
       var wrapRect = stageWrap.getBoundingClientRect();
-      // The viewBox is 1200 x 480; midline ~240. Cards anchored to the curve's
-      // opposite side so they never overlap the path or each other.
-      var midY = 240;
-      // Distance (in CSS px) from the path point to the card centre. This is
-      // converted from SVG units to layer px using the current scale.
+      // Strict above/below alternation by index — guarantees two adjacent
+      // cards never land on the same side of the curve.
       var ctm = svg.getScreenCTM();
+      var scaleX = ctm ? ctm.a : 1;
       var scaleY = ctm ? ctm.d : 1;
       var states = STATES;
       var nn = states.length;
@@ -1998,19 +1991,18 @@ function renderExperienceHtml(data, images) {
         var t = nodeT[i] != null ? nodeT[i] : (nn === 1 ? 0.5 : i / (nn - 1));
         var pt = st.point || pointOnPath(pathEl, t);
         var offDx = Number(el.dataset.offDx) || 0;
-        // Cards above the midline → place above (negative dy); below → place below.
-        var aboveMid = pt.y < midY;
-        var dySvg = aboveMid ? -135 : 135;
+        var aboveMid = nn === 1 ? false : (i % 2 === 0);
+        var dySvg = aboveMid ? -120 : 120;
         var dyPx = dySvg * scaleY;
         var scr = svgPointToLayerPx(svg, pt, wrapRect);
-        el.style.left = (scr.left + offDx * scaleY) + 'px';
+        el.style.left = (scr.left + offDx * scaleX) + 'px';
         el.style.top = (scr.top + dyPx) + 'px';
       });
       badgeEls.forEach(function (el, i) {
         var st = states[i];
         var t = nodeT[i] != null ? nodeT[i] : (nn === 1 ? 0.5 : i / (nn - 1));
         var pt = st.point || pointOnPath(pathEl, t);
-        var aboveMid = pt.y < midY;
+        var aboveMid = nn === 1 ? false : (i % 2 === 0);
         var dySvg = aboveMid ? -22 : 22;
         var dyPx = dySvg * scaleY;
         var scr = svgPointToLayerPx(svg, pt, wrapRect);
