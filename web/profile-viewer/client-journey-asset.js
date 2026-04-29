@@ -48,6 +48,11 @@
   var personaInput = $('cjPersona');
   var generateBtn = $('cjGenerateBtn');
   var generateStatus = $('cjGenerateStatus');
+  var progressEl = $('cjProgress');
+  var progressStageEl = $('cjProgressStage');
+  var progressElapsedEl = $('cjProgressElapsed');
+  var progressTrackEl = $('cjProgressTrack');
+  var progressFillEl = $('cjProgressFill');
   var resultsSection = $('cjResults');
   var tabJourney = $('cjTabJourney');
   var tabOnePager = $('cjTabOnePager');
@@ -416,6 +421,110 @@
     applyBrandColour(primary);
   }
 
+  // ─── Generate progress tracker ────────────────────────────────────────
+  //
+  // The Vertex AI call is opaque (one round-trip, no streamed progress),
+  // so we fake a determinate bar by easing fill % toward 95 over the
+  // expected window (default ~110s). We swap to an indeterminate stripe
+  // animation if Vertex overruns, and snap to 100% on success or red on
+  // error. Stage text steps through the rough phases the backend goes
+  // through so the user knows the request is alive.
+
+  var STAGES = [
+    // [seconds-into-call, stage text]
+    [0,   'Loading brand scrape from sandbox…'],
+    [3,   'Preparing prompt for Vertex AI Gemini…'],
+    [12,  'Generating 12-step customer journey…'],
+    [80,  'Refining journey content with brand context…'],
+    [110, 'Rendering interactive HTML + one-pager…'],
+    [140, 'Still working — Vertex AI is taking longer than usual…'],
+  ];
+
+  var progress = {
+    rafId: null,
+    startedAt: 0,
+    stageIdx: -1,
+    estimatedSeconds: 110,
+    overrunHandled: false,
+
+    start: function () {
+      if (!progressEl) return;
+      progress.startedAt = performance.now();
+      progress.stageIdx = -1;
+      progress.overrunHandled = false;
+      progressEl.hidden = false;
+      progressEl.classList.remove('is-success', 'is-error', 'is-overrun');
+      progressFillEl.style.width = '0%';
+      progressTrackEl.setAttribute('aria-valuenow', '0');
+      progress.tick();
+    },
+
+    tick: function () {
+      var elapsedMs = performance.now() - progress.startedAt;
+      var elapsedSec = elapsedMs / 1000;
+      var overrun = elapsedSec >= progress.estimatedSeconds;
+
+      // Update stage label as soon as we cross each threshold.
+      for (var i = STAGES.length - 1; i > progress.stageIdx; i--) {
+        if (elapsedSec >= STAGES[i][0]) {
+          progress.stageIdx = i;
+          progressStageEl.textContent = STAGES[i][1];
+          break;
+        }
+      }
+
+      progressElapsedEl.textContent = formatElapsed(elapsedSec);
+
+      if (overrun) {
+        if (!progress.overrunHandled) {
+          progressEl.classList.add('is-overrun');
+          // Indeterminate state: drop the aria-valuenow so screen readers
+          // know it's no longer a known-progress bar.
+          progressTrackEl.removeAttribute('aria-valuenow');
+          progress.overrunHandled = true;
+        }
+      } else {
+        // Smooth easing curve: fast at first, slows asymptotically toward 95%.
+        var pct = 95 * (1 - Math.pow(1 - elapsedSec / progress.estimatedSeconds, 2));
+        progressFillEl.style.width = pct.toFixed(1) + '%';
+        progressTrackEl.setAttribute('aria-valuenow', String(Math.round(pct)));
+      }
+
+      progress.rafId = requestAnimationFrame(progress.tick);
+    },
+
+    finish: function (kind, finalText) {
+      if (!progressEl) return;
+      if (progress.rafId) {
+        cancelAnimationFrame(progress.rafId);
+        progress.rafId = null;
+      }
+      progressEl.classList.remove('is-overrun');
+      if (kind === 'success') {
+        progressEl.classList.add('is-success');
+        progressFillEl.style.width = '100%';
+        progressTrackEl.setAttribute('aria-valuenow', '100');
+      } else {
+        progressEl.classList.add('is-error');
+      }
+      if (finalText) progressStageEl.textContent = finalText;
+      // Auto-hide after a moment on success so the panel doesn't stay cluttered.
+      if (kind === 'success') {
+        setTimeout(function () {
+          if (progressEl.classList.contains('is-success')) progressEl.hidden = true;
+        }, 2500);
+      }
+    },
+  };
+
+  function formatElapsed(seconds) {
+    var s = Math.max(0, Math.round(seconds));
+    if (s < 60) return s + 's';
+    var m = Math.floor(s / 60);
+    var rem = s % 60;
+    return m + 'm ' + (rem < 10 ? '0' : '') + rem + 's';
+  }
+
   // ─── Generate ─────────────────────────────────────────────────────────
 
   async function generate() {
@@ -433,8 +542,9 @@
     var personaName = (personaInput.value || '').trim();
 
     generateBtn.disabled = true;
-    setStatus(generateStatus, 'Asking Vertex AI Gemini to design the 12-step journey (typically 60–120 seconds)…', '');
+    setStatus(generateStatus, '', '');
     resultsSection.hidden = true;
+    progress.start();
 
     try {
       var resp = await fetch(GENERATE_URL, {
@@ -457,11 +567,12 @@
       mountIframe(iframeOnePager, data.htmlOnePager, 'onepager');
 
       resultsSection.hidden = false;
-      setStatus(generateStatus, 'Generated. Use the tabs to switch views, the ⛶ icon for full-screen, or download the PPTX.', 'success');
-      // Default to Journey tab
+      progress.finish('success', 'Generated successfully');
+      setStatus(generateStatus, 'Use the tabs to switch views, the ⛶ icon for full-screen, or download the PPTX.', 'success');
       activateTab('journey');
     } catch (e) {
       console.error('[client-journey] generate failed', e);
+      progress.finish('error', 'Generate failed: ' + (e && e.message || e));
       setStatus(generateStatus, 'Generate failed: ' + (e && e.message || e), 'error');
     } finally {
       generateBtn.disabled = false;

@@ -82,6 +82,15 @@
               <button type="button" id="cjGenerateBtn" class="primary">Generate journey assets</button>
               <span id="cjGenerateStatus" class="status" role="status" aria-live="polite"></span>
             </div>
+            <div class="cj-progress" id="cjProgress" hidden role="status" aria-live="polite" aria-atomic="true">
+              <div class="cj-progress-header">
+                <span class="cj-progress-stage" id="cjProgressStage">Starting…</span>
+                <span class="cj-progress-elapsed" id="cjProgressElapsed">0s</span>
+              </div>
+              <div class="cj-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cjProgressTrack">
+                <div class="cj-progress-fill" id="cjProgressFill"></div>
+              </div>
+            </div>
           </div>
         </section>
 

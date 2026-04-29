@@ -329,6 +329,100 @@
   margin-top: 0.4rem;
 }
 
+/* ── Generate progress bar ───────────────────────────────────────────── */
+
+.client-journey-asset-page .cj-progress {
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.85rem 0.75rem;
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+}
+
+.client-journey-asset-page .cj-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.45rem;
+}
+
+.client-journey-asset-page .cj-progress-stage {
+  font-size: 0.85rem;
+  color: var(--dash-text);
+  font-weight: 500;
+}
+
+.client-journey-asset-page .cj-progress-elapsed {
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.client-journey-asset-page .cj-progress-track {
+  position: relative;
+  height: 8px;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.client-journey-asset-page .cj-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: linear-gradient(90deg, var(--dash-blue), color-mix(in srgb, var(--dash-blue) 70%, var(--dash-text)));
+  border-radius: inherit;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
+}
+
+/* Stripe overlay used for the "running long" indeterminate state. */
+.client-journey-asset-page .cj-progress.is-overrun .cj-progress-fill {
+  width: 100% !important;
+  background-image: linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--dash-blue) 80%, transparent) 0%,
+    color-mix(in srgb, var(--dash-blue) 80%, transparent) 25%,
+    color-mix(in srgb, var(--dash-blue) 60%, transparent) 25%,
+    color-mix(in srgb, var(--dash-blue) 60%, transparent) 50%,
+    color-mix(in srgb, var(--dash-blue) 80%, transparent) 50%,
+    color-mix(in srgb, var(--dash-blue) 80%, transparent) 75%,
+    color-mix(in srgb, var(--dash-blue) 60%, transparent) 75%,
+    color-mix(in srgb, var(--dash-blue) 60%, transparent) 100%
+  );
+  background-size: 24px 24px;
+  animation: cj-progress-stripes 1.1s linear infinite;
+}
+
+.client-journey-asset-page .cj-progress.is-success .cj-progress-fill {
+  background: var(--dash-success, #2e7d32);
+}
+
+.client-journey-asset-page .cj-progress.is-error .cj-progress-fill {
+  background: var(--dash-error, #b00020);
+}
+
+.client-journey-asset-page .cj-progress.is-error .cj-progress-stage,
+.client-journey-asset-page .cj-progress.is-error .cj-progress-elapsed {
+  color: var(--dash-error, #b00020);
+}
+
+@keyframes cj-progress-stripes {
+  from { background-position: 0 0; }
+  to   { background-position: 24px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .client-journey-asset-page .cj-progress-fill {
+    transition: none;
+  }
+  .client-journey-asset-page .cj-progress.is-overrun .cj-progress-fill {
+    animation: none;
+  }
+}
+
 .client-journey-asset-page .cj-generate-row #cjGenerateStatus {
   margin: 0;
 }
