@@ -4,8 +4,9 @@
  * Sister of client-journey-asset.js. Same flow shape:
  *   1. Read the active sandbox from window.AepGlobalSandbox.
  *   2. Look up a brand scrape in that sandbox by URL/domain/brand-name.
- *   3. Show the scrape card + a refine form (brand colour, use case,
- *      Adobe products multi-select, step count, persona, optional image
+ *   3. Show the scrape card + a refine form (brand colour, use case +
+ *      persona themed comboboxes like client-journey-asset, Adobe product
+ *      multi-select, step count, optional image
  *      uploads, additional context). Cache hit shows "Load previous"
  *      + "Forget" inline buttons next to Generate.
  *   4. POST /api/demo-use-case/generate — backend asks Vertex AI Gemini
@@ -341,6 +342,7 @@
     progress.finish('success', 'Loaded previously generated result from ' + relativeTime(entry.generatedAt));
     setStatus(generateStatus, 'Restored previous result. Generate again to replace it, or download the PPTX.', 'success');
     updateApplyScrapeImagesButton();
+    if (state.selectedScrape) populateSuggestions(state.selectedScrape);
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────
@@ -539,7 +541,7 @@
     if (recolourHex) recolourHex.value = active;
   }
 
-  // ─── Themed combobox ──────────────────────────────────────────────────
+  // ─── Themed combobox (same behaviour as client-journey-asset.js) ───────
   function setupCombobox(opts) {
     var input = opts.input, toggle = opts.toggle, panel = opts.panel;
     if (!input || !toggle || !panel) return null;
@@ -547,14 +549,8 @@
     function isOpen() { return !panel.hidden; }
     function setOptions(next) {
       allOptions = Array.isArray(next) ? next : [];
-      // Chevron is always visible so the input *looks* like a dropdown
-      // affordance — we just dim it when there's nothing to suggest
-      // so the user understands an open will say "no suggestions".
-      // (Original behaviour was to hide the chevron entirely; that
-      // hid the affordance for scrapes with empty campaigns/personas
-      // and made the combobox indistinguishable from a plain input.)
-      toggle.hidden = false;
-      toggle.classList.toggle('is-empty', allOptions.length === 0);
+      toggle.hidden = allOptions.length === 0;
+      if (!allOptions.length && isOpen()) close();
     }
     function filterOptions(filterStr) {
       var f = (filterStr || '').toLowerCase().trim();
@@ -590,9 +586,7 @@
       panel.appendChild(frag);
     }
     function open() {
-      // Open even when there are zero options so the user gets a clear
-      // "No suggestions available" panel instead of a silently-dead
-      // chevron — discoverability over silence.
+      if (!allOptions.length) return;
       render(input.value);
       panel.hidden = false;
       input.setAttribute('aria-expanded', 'true');
@@ -609,11 +603,23 @@
     }
     toggle.addEventListener('click', function () { if (isOpen()) close(); else open(); input.focus(); });
     input.addEventListener('input', function () {
-      if (!isOpen()) open(); else render(input.value);
+      if (!allOptions.length) return;
+      if (!isOpen()) open();
+      else render(input.value);
     });
     input.addEventListener('keydown', function (ev) {
-      if (ev.key === 'ArrowDown') { ev.preventDefault(); if (!isOpen()) open(); else setActive(activeIdx + 1); }
-      else if (ev.key === 'ArrowUp') { ev.preventDefault(); if (!isOpen()) open(); else setActive(activeIdx - 1); }
+      if (ev.key === 'ArrowDown') {
+        if (!allOptions.length) return;
+        ev.preventDefault();
+        if (!isOpen()) open();
+        else setActive(activeIdx + 1);
+      }
+      else if (ev.key === 'ArrowUp') {
+        if (!allOptions.length) return;
+        ev.preventDefault();
+        if (!isOpen()) open();
+        else setActive(activeIdx - 1);
+      }
       else if (ev.key === 'Enter') {
         if (isOpen() && activeIdx >= 0) { ev.preventDefault(); input.value = optionEls[activeIdx].dataset.value; close(); input.dispatchEvent(new Event('change', { bubbles: true })); }
       } else if (ev.key === 'Escape') { if (isOpen()) { ev.preventDefault(); close(); } }
@@ -654,7 +660,14 @@
       if (p.location) bits.push(p.location);
       return { value: name, label: bits.filter(Boolean).join(' · ') };
     }).filter(Boolean);
-    return dedupeByValue(items).slice(0, 12);
+    var list = dedupeByValue(items).slice(0, 12);
+    if (list.length) return list;
+    var bn = (scrape && (scrape.brandName || scrape.url || '')).toString().trim();
+    if (!bn) return [];
+    return dedupeByValue([
+      { value: 'Primary customer', label: bn + ' · type your own or edit' },
+      { value: 'Loyalty member', label: bn + ' · template' },
+    ]);
   }
   // For use case: combine the scrape's campaigns (best signal — these
   // are real customer-facing journeys the brand actually runs or that
@@ -710,7 +723,23 @@
       added++;
     }
 
-    return dedupeByValue(out).slice(0, 16);
+    var merged = dedupeByValue(out).slice(0, 16);
+    if (merged.length) return merged;
+    var brand = ((scrape && (scrape.brandName || scrape.url)) || 'this brand').toString().trim() || 'this brand';
+    return dedupeByValue([
+      {
+        value: 'I want ' + brand + ' to recognise me across channels and respond with what matters most, in real time.',
+        label: 'template',
+      },
+      {
+        value: 'I want a simpler, more relevant experience every time I engage with ' + brand + ' — online or in store.',
+        label: 'template',
+      },
+      {
+        value: 'I want ' + brand + ' to reward my loyalty with offers that feel personal, not batch-and-blast.',
+        label: 'template',
+      },
+    ]);
   }
   function renderSuggestionHint(hintEl, options, kind) {
     if (!hintEl) return;
