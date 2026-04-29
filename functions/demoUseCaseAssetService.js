@@ -1586,8 +1586,8 @@ function renderExperienceHtml(data, images) {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.4,.1,.2,1), visibility 0s linear 0.45s;
-    width: 168px;
-    max-width: 168px;
+    width: 150px;
+    max-width: 150px;
     z-index: 1;
   }
   .state-float.is-revealed {
@@ -1732,9 +1732,9 @@ function renderExperienceHtml(data, images) {
       <div class="svg-stage-wrap" id="stageWrap">
         <svg class="svg-stage" id="journeySvg" viewBox="0 0 1200 480" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
           <path id="journeyPath" fill="none" stroke="var(--jm-path-line)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-            d="M 80 280 C 200 120, 340 360, 480 240 C 580 160, 680 200, 780 280 C 880 360, 980 320, 1060 200 C 1100 140, 1130 180, 1140 260" />
+            d="M 60 300 C 180 140, 320 360, 460 220 C 600 80, 740 380, 880 240 C 1000 120, 1080 320, 1160 240" />
           <path id="journeyPathProgress" fill="none" stroke="var(--brand)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-            d="M 80 280 C 200 120, 340 360, 480 240 C 580 160, 680 200, 780 280 C 880 360, 980 320, 1060 200 C 1100 140, 1130 180, 1140 260"
+            d="M 60 300 C 180 140, 320 360, 460 220 C 600 80, 740 380, 880 240 C 1000 120, 1080 320, 1160 240"
             opacity="0.85" />
           <g id="pathDecorations"></g>
         </svg>
@@ -1796,6 +1796,46 @@ function renderExperienceHtml(data, images) {
         return { x: 600, y: 210 };
       }
     }
+    // Sample the path densely once and pick t-values whose X is evenly
+    // distributed across the canvas — avoids node bunching on curve loop-backs.
+    function evenlySpacedTs(path, count, marginPct) {
+      try {
+        var len = path.getTotalLength();
+        var samples = [];
+        var steps = 800;
+        for (var s = 0; s <= steps; s++) {
+          var t = s / steps;
+          var p = path.getPointAtLength(len * t);
+          samples.push({ t: t, x: p.x });
+        }
+        var xMin = Infinity;
+        var xMax = -Infinity;
+        for (var k = 0; k < samples.length; k++) {
+          if (samples[k].x < xMin) xMin = samples[k].x;
+          if (samples[k].x > xMax) xMax = samples[k].x;
+        }
+        var m = marginPct == null ? 0.04 : marginPct;
+        var inner = xMin + (xMax - xMin) * m;
+        var outer = xMax - (xMax - xMin) * m;
+        var ts = [];
+        for (var i = 0; i < count; i++) {
+          var u = count === 1 ? 0.5 : i / (count - 1);
+          var targetX = inner + (outer - inner) * u;
+          var bestIdx = 0;
+          var bestDiff = Infinity;
+          for (var j = 0; j < samples.length; j++) {
+            var diff = Math.abs(samples[j].x - targetX);
+            if (diff < bestDiff) { bestDiff = diff; bestIdx = j; }
+          }
+          ts.push(samples[bestIdx].t);
+        }
+        return ts;
+      } catch (e) {
+        var arr = [];
+        for (var z = 0; z < count; z++) arr.push(count === 1 ? 0.5 : z / (count - 1));
+        return arr;
+      }
+    }
     function layoutFromStates(states) {
       decorG.innerHTML = '';
       floatLayer.innerHTML = '';
@@ -1809,9 +1849,10 @@ function renderExperienceHtml(data, images) {
         pathProgress.style.strokeDashoffset = String(pathLen);
       }
       var nn = states.length;
+      var evenTs = evenlySpacedTs(pathEl, nn, 0.03);
       for (var i = 0; i < nn; i++) {
         var st = states[i];
-        var t = nn === 1 ? 0.5 : (0.04 + (i / (nn - 1)) * 0.92);
+        var t = evenTs[i];
         nodeT.push(t);
         var pt = pointOnPath(pathEl, t);
         var nodeType = st.nodeType || 'marker';
@@ -1954,12 +1995,12 @@ function renderExperienceHtml(data, images) {
       var nn = states.length;
       stateEls.forEach(function (el, i) {
         var st = states[i];
-        var t = nodeT[i] != null ? nodeT[i] : (nn === 1 ? 0.5 : (0.04 + (i / (nn - 1)) * 0.92));
+        var t = nodeT[i] != null ? nodeT[i] : (nn === 1 ? 0.5 : i / (nn - 1));
         var pt = st.point || pointOnPath(pathEl, t);
         var offDx = Number(el.dataset.offDx) || 0;
         // Cards above the midline → place above (negative dy); below → place below.
         var aboveMid = pt.y < midY;
-        var dySvg = aboveMid ? -118 : 118;
+        var dySvg = aboveMid ? -135 : 135;
         var dyPx = dySvg * scaleY;
         var scr = svgPointToLayerPx(svg, pt, wrapRect);
         el.style.left = (scr.left + offDx * scaleY) + 'px';
@@ -1967,7 +2008,7 @@ function renderExperienceHtml(data, images) {
       });
       badgeEls.forEach(function (el, i) {
         var st = states[i];
-        var t = nodeT[i] != null ? nodeT[i] : (nn === 1 ? 0.5 : (0.04 + (i / (nn - 1)) * 0.92));
+        var t = nodeT[i] != null ? nodeT[i] : (nn === 1 ? 0.5 : i / (nn - 1));
         var pt = st.point || pointOnPath(pathEl, t);
         var aboveMid = pt.y < midY;
         var dySvg = aboveMid ? -22 : 22;
