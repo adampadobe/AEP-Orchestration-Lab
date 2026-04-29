@@ -42,12 +42,6 @@
 
         <section class="cj-controls panel" aria-label="Customer lookup">
           <div class="cj-controls-row">
-            <div class="form-row cj-sandbox-row">
-              <label for="sandboxSelect">Sandbox</label>
-              <select id="sandboxSelect" class="sandbox-select" aria-label="Select AEP sandbox">
-                <option value="">Loading sandboxes…</option>
-              </select>
-            </div>
             <div class="form-row cj-url-row">
               <label for="cjUrl">Customer URL or domain</label>
               <input type="text" id="cjUrl" placeholder="e.g. admiral.com or https://www.vodafone.ie/" autocomplete="off">
@@ -56,6 +50,11 @@
               <button type="button" id="cjLookupBtn" class="primary">Look up scrape</button>
             </div>
           </div>
+          <p class="cj-sandbox-hint" role="status" aria-live="polite">
+            Looking up scrapes in sandbox
+            <span class="cj-sandbox-badge" id="cjSandboxBadge" title="Active sandbox (set in Global values)">…</span>
+            · <a href="global-settings.html" class="cj-sandbox-change-link">change in Global values</a>
+          </p>
           <p id="cjLookupStatus" class="status" role="status" aria-live="polite"></p>
         </section>
 

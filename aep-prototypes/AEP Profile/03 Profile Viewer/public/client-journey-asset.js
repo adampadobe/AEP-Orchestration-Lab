@@ -2,8 +2,10 @@
  * Client journey assets — orchestrator script.
  *
  * Flow:
- *   1. Sandbox dropdown is populated by aep-lab-sandbox-sync (shared with
- *      every other lab page). When it changes we just store it for use.
+ *   1. The active sandbox is read from window.AepGlobalSandbox.getSandboxName()
+ *      (the same value the Global values page edits and aep-lab-sandbox-sync
+ *      mirrors across pages). A small read-only badge shows it so the user
+ *      always knows which sandbox they're targeting.
  *   2. User types a URL/domain and hits "Look up scrape". We GET
  *      /api/brand-scraper/scrapes?sandbox=… (existing endpoint), then
  *      hostname-match against each scrape's `url` field. If we find one
@@ -24,7 +26,7 @@
 
   // ─── DOM refs ─────────────────────────────────────────────────────────
   var $ = function (id) { return document.getElementById(id); };
-  var sandboxSelect = $('sandboxSelect');
+  var sandboxBadge = $('cjSandboxBadge');
   var urlInput = $('cjUrl');
   var lookupBtn = $('cjLookupBtn');
   var lookupStatus = $('cjLookupStatus');
@@ -62,7 +64,24 @@
   }
 
   function getSandbox() {
-    return (sandboxSelect && sandboxSelect.value && String(sandboxSelect.value).trim()) || '';
+    try {
+      if (window.AepGlobalSandbox && typeof window.AepGlobalSandbox.getSandboxName === 'function') {
+        return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
+      }
+    } catch (_) { /* noop */ }
+    return '';
+  }
+
+  function refreshSandboxBadge() {
+    if (!sandboxBadge) return;
+    var sb = getSandbox();
+    if (sb) {
+      sandboxBadge.textContent = sb;
+      sandboxBadge.classList.remove('is-empty');
+    } else {
+      sandboxBadge.textContent = 'not set';
+      sandboxBadge.classList.add('is-empty');
+    }
   }
 
   function normaliseDomain(input) {
@@ -413,38 +432,18 @@
     tabOnePager.addEventListener('click', function () { activateTab('onepager'); });
     syncBrandColourInputs();
     bindFullscreenButtons();
-    // Populate the sandbox <select> via the shared global helper, then wire
-    // the cross-tab + cross-page sync listeners (matches image-hosting and
-    // brand-scraper). Without this the dropdown sits on "Loading sandboxes…"
-    // forever because aep-lab-sandbox-sync only mirrors the active value, it
-    // doesn't fetch the sandbox list itself.
-    initSandboxSelect();
-    // Pre-fill URL from ?url= query param so deep-links from elsewhere work.
+    refreshSandboxBadge();
+    window.addEventListener('aep-lab-sandbox-synced', refreshSandboxBadge);
+    window.addEventListener('storage', function (e) {
+      if (!e || !e.key) return;
+      if (e.key === 'aepSandboxName' || e.key.indexOf('aepGlobal') === 0) {
+        refreshSandboxBadge();
+      }
+    });
     try {
       var qs = new URLSearchParams(window.location.search);
       if (qs.get('url')) urlInput.value = qs.get('url');
     } catch (_) { /* noop */ }
-  }
-
-  async function initSandboxSelect() {
-    if (!sandboxSelect) return;
-    try {
-      if (window.AepGlobalSandbox && window.AepGlobalSandbox.loadSandboxesIntoSelect) {
-        await window.AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
-      }
-    } catch (e) {
-      setStatus(lookupStatus, 'Failed to load sandboxes: ' + (e && e.message || e), 'error');
-      console.warn('[client-journey] sandbox load failed', e);
-      return;
-    }
-    if (window.AepGlobalSandbox) {
-      if (typeof window.AepGlobalSandbox.onSandboxSelectChange === 'function') {
-        window.AepGlobalSandbox.onSandboxSelectChange(sandboxSelect);
-      }
-      if (typeof window.AepGlobalSandbox.attachStorageSync === 'function') {
-        window.AepGlobalSandbox.attachStorageSync(sandboxSelect);
-      }
-    }
   }
 
   if (document.readyState === 'loading') {
