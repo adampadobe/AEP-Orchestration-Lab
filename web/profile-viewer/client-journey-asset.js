@@ -742,23 +742,191 @@
     return dedupeByValue(ordered).slice(0, MAX_JOURNEY_TYPE_SUGGESTIONS);
   }
 
-  function renderDatalist(datalistEl, options) {
-    if (!datalistEl) return;
-    datalistEl.innerHTML = '';
-    if (!options.length) return;
-    var frag = document.createDocumentFragment();
-    for (var i = 0; i < options.length; i++) {
-      var o = document.createElement('option');
-      o.value = options[i].value;
-      // Chrome/Edge show the `label` next to the value in the dropdown;
-      // Safari ignores it but still renders the value, so we lose nothing.
-      if (options[i].label) o.label = options[i].label;
-      frag.appendChild(o);
+  // ─── Themed combobox ──────────────────────────────────────────────────
+  //
+  // Native <datalist> popovers can't be styled (Chromium/Safari render
+  // them as a black/white box outside the page's theme), so we own the
+  // popover. Each combobox keeps its option set in a closure and re-
+  // renders the panel with optional substring filtering as the user
+  // types. We dedupe + sort upstream; this layer just paints + handles
+  // pointer/keyboard events.
+  //
+  // UX rules:
+  //   • Free text always wins — picking from the panel just fills the
+  //     input. Typing anything not in the list submits as-is.
+  //   • Chevron toggles the panel open/closed. Hidden when there are
+  //     zero options so the input looks like a plain text field.
+  //   • Typing opens the panel and live-filters by case-insensitive
+  //     substring match against value or secondary label.
+  //   • Up/Down arrows navigate, Enter picks, Escape closes.
+  //   • mousedown on outside the combobox closes the panel; we use
+  //     mousedown (not click) on options so the input's blur handler
+  //     doesn't race with the click.
+
+  function setupCombobox(opts) {
+    var input = opts.input;
+    var toggle = opts.toggle;
+    var panel = opts.panel;
+    if (!input || !toggle || !panel) return null;
+
+    var allOptions = [];
+    var optionEls = [];
+    var activeIdx = -1;
+
+    function isOpen() { return !panel.hidden; }
+
+    function setOptions(next) {
+      allOptions = Array.isArray(next) ? next : [];
+      // Hide the chevron when there's nothing to suggest — the input
+      // still works as plain text in that state.
+      toggle.hidden = allOptions.length === 0;
+      if (!allOptions.length && isOpen()) close();
     }
-    datalistEl.appendChild(frag);
+
+    function filterOptions(filterStr) {
+      var f = (filterStr || '').toLowerCase().trim();
+      if (!f) return allOptions.slice();
+      return allOptions.filter(function (o) {
+        var v = (o.value || '').toLowerCase();
+        var lbl = (o.label || '').toLowerCase();
+        return v.indexOf(f) !== -1 || lbl.indexOf(f) !== -1;
+      });
+    }
+
+    function render(filterStr) {
+      panel.innerHTML = '';
+      optionEls = [];
+      activeIdx = -1;
+      var filtered = filterOptions(filterStr);
+      if (!filtered.length) {
+        var empty = document.createElement('div');
+        empty.className = 'cj-combo-empty';
+        empty.textContent = allOptions.length
+          ? 'No matches — keep typing to use a custom value.'
+          : 'No suggestions available.';
+        panel.appendChild(empty);
+        return;
+      }
+      var frag = document.createDocumentFragment();
+      filtered.forEach(function (o) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cj-combo-option';
+        btn.setAttribute('role', 'option');
+        btn.dataset.value = o.value;
+
+        var v = document.createElement('span');
+        v.className = 'cj-combo-option-value';
+        v.textContent = o.value;
+        btn.appendChild(v);
+
+        if (o.label) {
+          var l = document.createElement('span');
+          l.className = 'cj-combo-option-label';
+          l.textContent = o.label;
+          btn.appendChild(l);
+        }
+
+        // mousedown fires before the input's blur — using it here avoids
+        // the option being torn down before its click would land.
+        btn.addEventListener('mousedown', function (ev) {
+          ev.preventDefault();
+          input.value = btn.dataset.value;
+          close();
+          input.focus();
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        frag.appendChild(btn);
+        optionEls.push(btn);
+      });
+      panel.appendChild(frag);
+    }
+
+    function open() {
+      if (!allOptions.length) return;
+      render(input.value);
+      panel.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    function close() {
+      panel.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-expanded', 'false');
+      activeIdx = -1;
+    }
+
+    function setActive(idx) {
+      if (!optionEls.length) return;
+      if (idx < 0) idx = optionEls.length - 1;
+      if (idx >= optionEls.length) idx = 0;
+      optionEls.forEach(function (el, i) {
+        el.classList.toggle('is-active', i === idx);
+      });
+      activeIdx = idx;
+      if (optionEls[idx] && optionEls[idx].scrollIntoView) {
+        optionEls[idx].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    toggle.addEventListener('click', function () {
+      if (isOpen()) {
+        close();
+      } else {
+        open();
+      }
+      input.focus();
+    });
+
+    input.addEventListener('input', function () {
+      if (!allOptions.length) return;
+      if (!isOpen()) open();
+      else render(input.value);
+    });
+
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowDown') {
+        if (!allOptions.length) return;
+        ev.preventDefault();
+        if (!isOpen()) open();
+        else setActive(activeIdx + 1);
+      } else if (ev.key === 'ArrowUp') {
+        if (!allOptions.length) return;
+        ev.preventDefault();
+        if (!isOpen()) open();
+        else setActive(activeIdx - 1);
+      } else if (ev.key === 'Enter') {
+        if (isOpen() && activeIdx >= 0) {
+          ev.preventDefault();
+          input.value = optionEls[activeIdx].dataset.value;
+          close();
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      } else if (ev.key === 'Escape') {
+        if (isOpen()) {
+          ev.preventDefault();
+          close();
+        }
+      }
+    });
+
+    document.addEventListener('mousedown', function (ev) {
+      if (!isOpen()) return;
+      var t = ev.target;
+      if (panel.contains(t) || t === input || t === toggle || toggle.contains(t)) return;
+      close();
+    });
+
+    return { setOptions: setOptions, open: open, close: close };
   }
 
-  function renderSuggestionHint(hintEl, inputEl, options, kind) {
+  // Built once at init() and updated every time a scrape loads.
+  var personaCombo = null;
+  var journeyCombo = null;
+
+  function renderSuggestionHint(hintEl, options, kind) {
     if (!hintEl) return;
     if (!options.length) {
       hintEl.hidden = true;
@@ -766,28 +934,16 @@
       return;
     }
     hintEl.hidden = false;
-    hintEl.textContent = options.length + ' ' + kind + ' from this scrape — start typing or ';
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'cj-suggest-hint-link';
-    btn.textContent = 'show options';
-    btn.addEventListener('click', function () {
-      if (!inputEl) return;
-      inputEl.focus();
-      // Nudge the native datalist popover open by selecting the field
-      // and dispatching an input event — works on Chromium-based browsers.
-      try { inputEl.select(); } catch (_e) { /* no-op */ }
-    });
-    hintEl.appendChild(btn);
+    hintEl.textContent = options.length + ' ' + kind + ' from this scrape — pick from the list or type your own.';
   }
 
   function populateSuggestions(scrape) {
     var personaOpts = buildPersonaOptions(scrape);
     var journeyOpts = buildJourneyTypeOptions(scrape);
-    renderDatalist(document.getElementById('cjPersonaOptions'), personaOpts);
-    renderDatalist(document.getElementById('cjJourneyTypeOptions'), journeyOpts);
-    renderSuggestionHint($('cjPersonaHint'), personaInput, personaOpts, personaOpts.length === 1 ? 'persona' : 'personas');
-    renderSuggestionHint($('cjJourneyTypeHint'), journeyTypeInput, journeyOpts, journeyOpts.length === 1 ? 'campaign' : 'campaigns');
+    if (personaCombo) personaCombo.setOptions(personaOpts);
+    if (journeyCombo) journeyCombo.setOptions(journeyOpts);
+    renderSuggestionHint($('cjPersonaHint'), personaOpts, personaOpts.length === 1 ? 'persona' : 'personas');
+    renderSuggestionHint($('cjJourneyTypeHint'), journeyOpts, journeyOpts.length === 1 ? 'campaign' : 'campaigns');
   }
 
   function onScrapeLoaded(scrape) {
@@ -1176,6 +1332,20 @@
     urlInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); lookupScrape(); }
     });
+
+    // Build the two themed combobox dropdowns once. Their option sets
+    // are updated whenever a scrape is loaded via populateSuggestions().
+    personaCombo = setupCombobox({
+      input: personaInput,
+      toggle: $('cjPersonaToggle'),
+      panel: $('cjPersonaPanel'),
+    });
+    journeyCombo = setupCombobox({
+      input: journeyTypeInput,
+      toggle: $('cjJourneyTypeToggle'),
+      panel: $('cjJourneyTypePanel'),
+    });
+
     generateBtn.addEventListener('click', generate);
     downloadPptxBtn.addEventListener('click', downloadPptx);
     tabJourney.addEventListener('click', function () { activateTab('journey'); });

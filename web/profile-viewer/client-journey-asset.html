@@ -72,14 +72,24 @@
             </div>
             <div class="form-row">
               <label for="cjJourneyType">Journey type (optional)</label>
-              <input type="text" id="cjJourneyType" list="cjJourneyTypeOptions" placeholder="e.g. Insurance Renewal, Energy Switch, Broadband Acquisition" autocomplete="off">
-              <datalist id="cjJourneyTypeOptions"></datalist>
+              <div class="cj-combo" id="cjJourneyTypeCombo">
+                <input type="text" id="cjJourneyType" placeholder="e.g. Insurance Renewal, Energy Switch, Broadband Acquisition" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cjJourneyTypePanel" aria-autocomplete="list">
+                <button type="button" class="cj-combo-toggle" id="cjJourneyTypeToggle" aria-label="Show journey type suggestions" aria-expanded="false" tabindex="-1" hidden>
+                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="cj-combo-panel" id="cjJourneyTypePanel" role="listbox" aria-label="Journey type suggestions" hidden></div>
+              </div>
               <p class="cj-suggest-hint" id="cjJourneyTypeHint" hidden></p>
             </div>
             <div class="form-row">
               <label for="cjPersona">Persona name (optional)</label>
-              <input type="text" id="cjPersona" list="cjPersonaOptions" placeholder="e.g. Sarah" autocomplete="off">
-              <datalist id="cjPersonaOptions"></datalist>
+              <div class="cj-combo" id="cjPersonaCombo">
+                <input type="text" id="cjPersona" placeholder="e.g. Sarah" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cjPersonaPanel" aria-autocomplete="list">
+                <button type="button" class="cj-combo-toggle" id="cjPersonaToggle" aria-label="Show persona suggestions" aria-expanded="false" tabindex="-1" hidden>
+                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="cj-combo-panel" id="cjPersonaPanel" role="listbox" aria-label="Persona suggestions" hidden></div>
+              </div>
               <p class="cj-suggest-hint" id="cjPersonaHint" hidden></p>
             </div>
             <div class="form-row cj-generate-row">

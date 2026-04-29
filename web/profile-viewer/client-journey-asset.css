@@ -321,21 +321,141 @@
   line-height: 1.35;
 }
 
-.client-journey-asset-page .cj-suggest-hint .cj-suggest-hint-link {
-  background: none;
-  border: 0;
-  padding: 0;
-  margin: 0 0 0 4px;
-  font: inherit;
-  color: var(--dash-blue);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+/* ─── Combobox (custom themed dropdown) ────────────────────────────────
+   Replaces the native <datalist> popover (which Safari/Chromium render
+   as an unstyled black box in dark mode). The chevron toggle opens the
+   panel; the panel is a scrolling, themed listbox of suggestions. The
+   underlying <input> still accepts free text — picking from the list
+   simply fills it in.
+*/
+.client-journey-asset-page .cj-combo {
+  position: relative;
+  display: block;
 }
 
-.client-journey-asset-page .cj-suggest-hint .cj-suggest-hint-link:hover {
-  color: var(--dash-blue);
-  filter: brightness(1.1);
+.client-journey-asset-page .cj-combo > input[type="text"] {
+  width: 100%;
+  padding-right: 36px;  /* room for the chevron */
+}
+
+.client-journey-asset-page .cj-combo-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 160ms ease;
+}
+
+.client-journey-asset-page .cj-combo-toggle:hover,
+.client-journey-asset-page .cj-combo-toggle:focus-visible {
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border-color: var(--dash-border);
+  outline: none;
+}
+
+.client-journey-asset-page .cj-combo-toggle[aria-expanded="true"] {
+  color: var(--dash-text);
+  background: var(--dash-hover);
+  border-color: var(--dash-border);
+}
+
+.client-journey-asset-page .cj-combo-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.client-journey-asset-page .cj-combo-toggle svg {
+  transition: transform 160ms ease;
+}
+
+.client-journey-asset-page .cj-combo-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  box-shadow: var(--dash-shadow);
+  z-index: 50;
+  padding: 4px;
+  /* Subtle scrollbar so it doesn't dominate the panel. */
+  scrollbar-width: thin;
+}
+
+.client-journey-asset-page .cj-combo-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.client-journey-asset-page .cj-combo-panel::-webkit-scrollbar-thumb {
+  background: var(--dash-border);
+  border-radius: 4px;
+}
+
+.client-journey-asset-page .cj-combo-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dash-text);
+  font: inherit;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.client-journey-asset-page .cj-combo-option + .cj-combo-option {
+  margin-top: 1px;
+}
+
+.client-journey-asset-page .cj-combo-option:hover,
+.client-journey-asset-page .cj-combo-option.is-active {
+  background: var(--dash-hover);
+}
+
+.client-journey-asset-page .cj-combo-option-value {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--dash-text);
+}
+
+.client-journey-asset-page .cj-combo-option-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  margin-top: 2px;
+}
+
+.client-journey-asset-page .cj-combo-section {
+  padding: 6px 10px 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dash-muted);
+}
+
+.client-journey-asset-page .cj-combo-empty {
+  padding: 10px;
+  font-size: 0.8rem;
+  color: var(--dash-text-secondary);
+  text-align: center;
 }
 
 .client-journey-asset-page .cj-brand-swatch-row {
