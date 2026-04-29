@@ -640,6 +640,7 @@ async function classifyIndustry({ about, brandName, baseUrl, crawlText }) {
       jsonMode: false,
       model: 'gemini-2.5-flash',
       temperature: 0.0,
+      allowTruncation: true,
     });
   } catch (e) {
     return { error: String(e && e.message || e) };
@@ -799,7 +800,7 @@ async function generateStakeholders(crawl, { provider, anthropicKey, openaiKey }
       raw = await callOpenAI(openaiKey, STAKEHOLDER_SYSTEM, userPrompt, { maxTokens: 4096 });
       usedProvider = 'openai';
     } else {
-      raw = await callGemini(STAKEHOLDER_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false });
+      raw = await callGemini(STAKEHOLDER_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false, allowTruncation: true });
       usedProvider = 'gemini';
     }
   } catch (e) {
@@ -949,7 +950,7 @@ async function generateSegments(crawl, personasObj, campaignsObj, { provider, an
       raw = await callOpenAI(openaiKey, SEGMENT_SYSTEM, userPrompt, { maxTokens: 4096 });
       usedProvider = 'openai';
     } else {
-      raw = await callGemini(SEGMENT_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false });
+      raw = await callGemini(SEGMENT_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false, allowTruncation: true });
       usedProvider = 'gemini';
     }
   } catch (e) {
@@ -989,7 +990,7 @@ async function generateCampaigns(crawl, { provider, anthropicKey, openaiKey } = 
       raw = await callOpenAI(openaiKey, CAMPAIGN_SYSTEM, userPrompt, { maxTokens: 4096 });
       usedProvider = 'openai';
     } else {
-      raw = await callGemini(CAMPAIGN_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false });
+      raw = await callGemini(CAMPAIGN_SYSTEM, userPrompt, { maxOutputTokens: 12000, jsonMode: false, allowTruncation: true });
       usedProvider = 'gemini';
     }
   } catch (e) {
@@ -1033,7 +1034,7 @@ async function generatePersonas(crawl, analysis, { country, businessType }, { pr
       raw = await callOpenAI(openaiKey, PERSONA_SYSTEM, userPrompt, { maxTokens: 4096 });
       usedProvider = 'openai';
     } else {
-      raw = await callGemini(PERSONA_SYSTEM, userPrompt, { maxOutputTokens: 16384, jsonMode: false });
+      raw = await callGemini(PERSONA_SYSTEM, userPrompt, { maxOutputTokens: 16384, jsonMode: false, allowTruncation: true });
       usedProvider = 'gemini';
     }
   } catch (e) {
@@ -1070,7 +1071,7 @@ async function analyseBrand(crawl, { provider, anthropicKey, openaiKey } = {}) {
       raw = await callOpenAI(openaiKey, BRAND_ANALYSIS_SYSTEM, userPrompt);
       usedProvider = 'openai';
     } else {
-      raw = await callGemini(BRAND_ANALYSIS_SYSTEM, userPrompt);
+      raw = await callGemini(BRAND_ANALYSIS_SYSTEM, userPrompt, { allowTruncation: true });
       usedProvider = 'gemini';
     }
   } catch (e) {

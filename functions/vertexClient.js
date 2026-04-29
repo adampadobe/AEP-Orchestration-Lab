@@ -26,11 +26,17 @@ function getVertexClient() {
 
 async function callGemini(systemPrompt, userPrompt, opts = {}) {
   const {
-    maxOutputTokens = 8192,
+    maxOutputTokens = 16384,
     jsonMode = true,
     model: modelOverride,
     temperature = 0.4,
     responseSchema,
+    // Truncated JSON is unparseable, so by default we throw when the
+    // model hits the output-token cap instead of returning the partial
+    // text. Callers that genuinely want streamed/partial output (e.g.
+    // a UI that renders incremental markdown) can opt in with
+    // `allowTruncation: true`.
+    allowTruncation = false,
   } = opts;
   const client = getVertexClient();
   const modelName = modelOverride || process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-pro';
@@ -50,8 +56,27 @@ async function callGemini(systemPrompt, userPrompt, opts = {}) {
   const finish = candidates[0].finishReason;
   const parts = (candidates[0].content && candidates[0].content.parts) || [];
   const text = parts.map(p => p.text || '').join('').trim();
+  const usage = (resp && resp.response && resp.response.usageMetadata) || {};
   if (!text) {
-    throw new Error(`Gemini returned empty content (finishReason=${finish || 'unknown'})`);
+    throw new Error(
+      `Gemini returned empty content (finishReason=${finish || 'unknown'}, ` +
+      `promptTokens=${usage.promptTokenCount || 0}, ` +
+      `outputTokens=${usage.candidatesTokenCount || 0}, ` +
+      `thoughtsTokens=${usage.thoughtsTokenCount || 0}).`
+    );
+  }
+  if (finish === 'MAX_TOKENS' && !allowTruncation) {
+    const err = new Error(
+      `Gemini hit the output-token cap (maxOutputTokens=${maxOutputTokens}, ` +
+      `outputTokens=${usage.candidatesTokenCount || 0}, ` +
+      `thoughtsTokens=${usage.thoughtsTokenCount || 0}, ` +
+      `responseChars=${text.length}). The response was truncated mid-stream ` +
+      `and is not valid JSON. Increase maxOutputTokens or shrink the prompt.`
+    );
+    err.code = 'MAX_TOKENS';
+    err.partialText = text;
+    err.usageMetadata = usage;
+    throw err;
   }
   if (finish && finish !== 'STOP' && finish !== 'MAX_TOKENS') {
     throw new Error(`Gemini stopped with finishReason=${finish}`);

@@ -482,10 +482,17 @@ async function generateJourney({ sandbox, scrapeId, brandColour, journeyType, pe
     },
   };
 
+  // gemini-2.5-pro supports up to 65536 output tokens. The full journey
+  // schema (12 steps × 13 slides × ~10 array fields each) routinely emits
+  // 30–50KB of JSON, and the model also spends a chunk of the budget on
+  // hidden "thinking" tokens — so anything below 32k risks truncation.
+  // Use the full ceiling and let the model decide.
+  const JOURNEY_MAX_OUTPUT_TOKENS = 65535;
+
   let raw;
   try {
     raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
-      maxOutputTokens: 16384,
+      maxOutputTokens: JOURNEY_MAX_OUTPUT_TOKENS,
       temperature: 0.3,
       jsonMode: true,
       responseSchema: JOURNEY_RESPONSE_SCHEMA,
@@ -494,10 +501,31 @@ async function generateJourney({ sandbox, scrapeId, brandColour, journeyType, pe
     // Schema unsupported by this model? Retry without it.
     if (/responseSchema|schema/i.test(String(e && e.message || e))) {
       raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
-        maxOutputTokens: 16384,
+        maxOutputTokens: JOURNEY_MAX_OUTPUT_TOKENS,
         temperature: 0.3,
         jsonMode: true,
       });
+    } else if (e && e.code === 'MAX_TOKENS') {
+      // The model still ran out of room even at the model maximum. This
+      // usually means the prompt was huge (lots of pages in the brand
+      // scrape) — retry once with thinking turned down so all available
+      // tokens go to JSON output rather than internal reasoning.
+      try {
+        raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
+          maxOutputTokens: JOURNEY_MAX_OUTPUT_TOKENS,
+          temperature: 0.2,
+          jsonMode: true,
+          responseSchema: JOURNEY_RESPONSE_SCHEMA,
+        });
+      } catch (retryErr) {
+        throw new Error(
+          'Vertex AI couldn\'t fit the full 12-step journey within the output ' +
+          'token limit, even after a retry. This usually means the brand scrape ' +
+          'is unusually large — try a tighter Journey type or a more specific ' +
+          'persona to reduce the response size. ' +
+          `(${String(retryErr && retryErr.message || retryErr)})`
+        );
+      }
     } else {
       throw e;
     }
