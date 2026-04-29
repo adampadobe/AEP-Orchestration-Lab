@@ -453,8 +453,14 @@
     function isOpen() { return !panel.hidden; }
     function setOptions(next) {
       allOptions = Array.isArray(next) ? next : [];
-      toggle.hidden = allOptions.length === 0;
-      if (!allOptions.length && isOpen()) close();
+      // Chevron is always visible so the input *looks* like a dropdown
+      // affordance — we just dim it when there's nothing to suggest
+      // so the user understands an open will say "no suggestions".
+      // (Original behaviour was to hide the chevron entirely; that
+      // hid the affordance for scrapes with empty campaigns/personas
+      // and made the combobox indistinguishable from a plain input.)
+      toggle.hidden = false;
+      toggle.classList.toggle('is-empty', allOptions.length === 0);
     }
     function filterOptions(filterStr) {
       var f = (filterStr || '').toLowerCase().trim();
@@ -489,7 +495,15 @@
       });
       panel.appendChild(frag);
     }
-    function open() { if (!allOptions.length) return; render(input.value); panel.hidden = false; input.setAttribute('aria-expanded', 'true'); toggle.setAttribute('aria-expanded', 'true'); }
+    function open() {
+      // Open even when there are zero options so the user gets a clear
+      // "No suggestions available" panel instead of a silently-dead
+      // chevron — discoverability over silence.
+      render(input.value);
+      panel.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      toggle.setAttribute('aria-expanded', 'true');
+    }
     function close() { panel.hidden = true; input.setAttribute('aria-expanded', 'false'); toggle.setAttribute('aria-expanded', 'false'); activeIdx = -1; }
     function setActive(idx) {
       if (!optionEls.length) return;
@@ -501,12 +515,11 @@
     }
     toggle.addEventListener('click', function () { if (isOpen()) close(); else open(); input.focus(); });
     input.addEventListener('input', function () {
-      if (!allOptions.length) return;
       if (!isOpen()) open(); else render(input.value);
     });
     input.addEventListener('keydown', function (ev) {
-      if (ev.key === 'ArrowDown') { if (!allOptions.length) return; ev.preventDefault(); if (!isOpen()) open(); else setActive(activeIdx + 1); }
-      else if (ev.key === 'ArrowUp') { if (!allOptions.length) return; ev.preventDefault(); if (!isOpen()) open(); else setActive(activeIdx - 1); }
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); if (!isOpen()) open(); else setActive(activeIdx + 1); }
+      else if (ev.key === 'ArrowUp') { ev.preventDefault(); if (!isOpen()) open(); else setActive(activeIdx - 1); }
       else if (ev.key === 'Enter') {
         if (isOpen() && activeIdx >= 0) { ev.preventDefault(); input.value = optionEls[activeIdx].dataset.value; close(); input.dispatchEvent(new Event('change', { bubbles: true })); }
       } else if (ev.key === 'Escape') { if (isOpen()) { ev.preventDefault(); close(); } }
@@ -549,25 +562,61 @@
     }).filter(Boolean);
     return dedupeByValue(items).slice(0, 12);
   }
-  // For use case: build from scrape.campaigns + recommended journeys.
-  // We surface the campaign name as the value; user edits to first-person.
+  // For use case: combine the scrape's campaigns (best signal — these
+  // are real customer-facing journeys the brand actually runs or that
+  // the scraper recommended) with a small set of "I want to ..." style
+  // templates derived from the brand industry / persona occupations,
+  // because some scrapes have empty campaigns[] and we still want the
+  // dropdown to feel useful. The combobox stays freeform — picking a
+  // suggestion just fills the input and the user can edit it into a
+  // proper first-person sentence before generating.
   function buildUseCaseOptions(scrape) {
-    var raw = scrape && scrape.campaigns && Array.isArray(scrape.campaigns.campaigns)
+    var out = [];
+    var campaignsRaw = scrape && scrape.campaigns && Array.isArray(scrape.campaigns.campaigns)
       ? scrape.campaigns.campaigns
       : (Array.isArray(scrape && scrape.campaigns) ? scrape.campaigns : []);
     var detected = [], suggested = [];
-    for (var i = 0; i < raw.length; i++) {
-      var c = raw[i];
+    for (var i = 0; i < campaignsRaw.length; i++) {
+      var c = campaignsRaw[i];
       if (!c || typeof c !== 'object') continue;
       var name = (c.name || '').toString().trim();
       if (!name) continue;
       var bits = [];
       if (c.type) bits.push(c.type);
       if (c.channel) bits.push(c.channel);
-      var entry = { value: name, label: bits.filter(Boolean).join(' · '), recommendation: !!c.is_recommendation };
+      var entry = {
+        value: name,
+        label: bits.filter(Boolean).join(' · ') || 'campaign',
+        recommendation: !!c.is_recommendation,
+      };
       if (c.is_recommendation) suggested.push(entry); else detected.push(entry);
     }
-    return dedupeByValue(detected.concat(suggested)).slice(0, 16);
+    out = out.concat(detected, suggested);
+
+    // Persona-derived templates: gives the user a quick "I want to ..."
+    // starter even when the campaign list is thin. We only generate a
+    // template per persona (max 4) so the dropdown doesn't explode.
+    var personaRaw = scrape && scrape.personas && Array.isArray(scrape.personas.personas)
+      ? scrape.personas.personas
+      : (Array.isArray(scrape && scrape.personas) ? scrape.personas : []);
+    var brand = (scrape && (scrape.brandName || scrape.url)) || 'this brand';
+    var added = 0;
+    for (var j = 0; j < personaRaw.length && added < 4; j++) {
+      var p = personaRaw[j];
+      if (!p || typeof p !== 'object') continue;
+      var pname = (p.name || '').toString().trim();
+      if (!pname) continue;
+      // First-person template grounded in this persona's role.
+      var role = (p.occupation || p.role || '').toString().trim();
+      var tagline = role ? (' as a ' + role.toLowerCase()) : '';
+      out.push({
+        value: 'I want to discover and engage with ' + brand + tagline + '.',
+        label: 'template · ' + pname,
+      });
+      added++;
+    }
+
+    return dedupeByValue(out).slice(0, 16);
   }
   function renderSuggestionHint(hintEl, options, kind) {
     if (!hintEl) return;

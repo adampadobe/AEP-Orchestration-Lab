@@ -110,10 +110,38 @@
   margin-left: 0.35rem;
 }
 
+/* The .duc-textarea class is used both inside .form-row (where the flex
+   layout forces full width) AND inside .duc-refine-panel (which is plain
+   block layout). The earlier rule only set min-height + resize, leaving
+   the panel-scoped textarea to honour the default <textarea> intrinsic
+   width and render as a tiny ~200px box (visible bug in the Refine
+   panel). Mirror .cj-textarea from the journey page: explicit width 100%,
+   matching padding, focus ring + placeholder treatment so both contexts
+   look the same as every other dashboard input. */
 .demo-use-case-asset-page .duc-textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   min-height: 70px;
-  resize: vertical;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
   line-height: 1.45;
+  resize: vertical;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-text);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.demo-use-case-asset-page .duc-textarea:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px rgba(17, 81, 255, 0.15);
+}
+.demo-use-case-asset-page .duc-textarea::placeholder {
+  color: var(--dash-text-secondary);
+  opacity: 0.7;
 }
 
 .demo-use-case-asset-page .status { font-size: 0.85rem; color: var(--dash-text-secondary); margin: 0.4rem 0 0; }
@@ -220,6 +248,12 @@
 .demo-use-case-asset-page .duc-combo-toggle:hover { background: var(--dash-hover); color: var(--dash-text); }
 .demo-use-case-asset-page .duc-combo-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
 .demo-use-case-asset-page .duc-combo-toggle svg { transition: transform 180ms ease; }
+/* Dimmed chevron when the combobox has zero suggestions — still
+   discoverable (so the user knows the field is a dropdown) but
+   visually de-emphasised so they understand it'll just say "no
+   suggestions" if they open it. Click is still allowed. */
+.demo-use-case-asset-page .duc-combo-toggle.is-empty { opacity: 0.4; cursor: default; }
+.demo-use-case-asset-page .duc-combo-toggle.is-empty:hover { background: transparent; color: var(--dash-text-secondary); }
 .demo-use-case-asset-page .duc-combo-panel {
   position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
   max-height: 280px; overflow-y: auto;
