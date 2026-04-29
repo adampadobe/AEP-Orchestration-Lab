@@ -3,8 +3,9 @@
  *
  * Produces HTML + PPTX for a demo deck aligned to the 4-slide reference
  * (use case → persona journey → demo placeholder → value). We emit
- * three HTML views (slides 1, 2, 4); the middle “demo” slide is live
- * product, not generated here.
+ * three HTML views (slides 1–3). Slide 2 is a curved SVG journey map
+ * (same interaction model as experience-journey-map.html) fed by Vertex
+ * steps, not a linear stepper strip.
  *
  * Sibling of clientJourneyAssetService.js — same orchestration shape
  * (Vertex AI Gemini structured-output → normalise → render → cache),
@@ -118,6 +119,25 @@ function darken(hex, amount = 0.25) {
   const g = Math.max(0, Math.floor(((n >> 8) & 255) * (1 - amount)));
   const b = Math.max(0, Math.floor((n & 255) * (1 - amount)));
   return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1).toUpperCase();
+}
+
+/** Lighten a #RRGGBB hex toward white (amount 0–1). */
+function lightenHex(hex, amount = 0.22) {
+  const h = normaliseHex(hex);
+  const n = parseInt(h.slice(1), 16);
+  const lift = (c) => Math.min(255, Math.floor(c + (255 - c) * amount));
+  const r = lift((n >> 16) & 255);
+  const g = lift((n >> 8) & 255);
+  const b = lift(n & 255);
+  return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1).toUpperCase();
+}
+
+/** JSON.stringify safe for embedding in HTML `<script>` (Gemini text may contain `<`). */
+function encodeJsonForInlineScript(obj) {
+  return JSON.stringify(obj)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 
 function pickPrimaryColour(colours, fallback = '#E60000') {
@@ -1399,6 +1419,47 @@ function renderFramingHtml(data, images) {
 </body></html>`;
 }
 
+/** Map AJO channel label to journey-map device channel (reference page). */
+function ajoChannelToJourneyDevice(channel) {
+  const c = safeString(channel).toLowerCase();
+  if (c.includes('email')) return 'email';
+  if (c.includes('sms') || c.includes('text message')) return 'sms';
+  if (c.includes('whatsapp') || c.includes('line')) return 'mobile';
+  if (c.includes('direct mail')) return 'tablet';
+  if (c.includes('push') && c.includes('web')) return 'web';
+  if (c.includes('push')) return 'push';
+  if (c.includes('in-app')) return 'mobile';
+  return 'web';
+}
+
+/** Vertex steps → JSON states for the curved-path journey UI (mirrors experience-journey-map.html). */
+function buildJourneyStatesFromStepsForDeck(steps) {
+  const offsets = [
+    { dx: 0, dy: 56 }, { dx: 90, dy: -8 }, { dx: -40, dy: 70 },
+    { dx: 0, dy: 58 }, { dx: 72, dy: -20 }, { dx: 72, dy: 64 },
+    { dx: -60, dy: 72 }, { dx: 0, dy: 58 }, { dx: 64, dy: -24 },
+  ];
+  return (Array.isArray(steps) ? steps : []).map((step, i) => ({
+    id: `s${i + 1}`,
+    channel: ajoChannelToJourneyDevice(step && step.channel),
+    image: '',
+    nodeType: (i % 3 === 0 ? 'tap' : 'marker'),
+    title: safeString(step && step.title, `Step ${i + 1}`),
+    description: safeString(step && step.description, ''),
+    offsetLabel: offsets[i % offsets.length],
+  }));
+}
+
+function pickActiveJourneyMarkerHex(brand) {
+  const n = parseInt(normaliseHex(brand).slice(1), 16);
+  const lum = ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114;
+  return lum < 72 ? '#FF9A3C' : lightenHex(brand, 0.38);
+}
+
+/**
+ * Slide 2 — curved SVG journey map (same interaction model as
+ * web/profile-viewer/experience-journey-map.html), driven by Vertex steps.
+ */
 function renderExperienceHtml(data, images) {
   const c = data.client || {};
   const brand = normaliseHex(c.brandColour);
@@ -1412,303 +1473,420 @@ function renderExperienceHtml(data, images) {
     : `<img src="${escapeAttr(personaImg.src)}" alt="">`;
   const steps = e.steps || [];
   const n = steps.length;
-
-  // Pre-render every step's mockup + info into a hidden panel so the
-  // presenter can click between them without the iframe having to re-
-  // mount or fetch anything. Each click swaps which panel is visible
-  // (and which timeline node is active) — essentially the journey map's
-  // click-through pattern, applied to a 5/6/7-step demo story.
-  const stagePanels = steps.map((step, i) => {
-    const mockupSvg = stepMockupSvg(step, brand, persona.name, c.name);
-    return `<div class="stage-panel" data-stage="${i}"${i === 0 ? '' : ' hidden'}>
-      <div class="stage-mockup">${mockupSvg}</div>
-      <div class="stage-info">
-        <div class="stage-eyebrow">Step <span class="stage-num">${i + 1}</span> of ${n}</div>
-        <div class="stage-title">${escapeHtml(step.title)}</div>
-        <div class="stage-desc">${escapeHtml(step.description)}</div>
-        <div class="stage-channel"><span class="ch-dot"></span><span>${escapeHtml(step.channel)}</span></div>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Timeline strip across the top: numbered buttons + connector lines.
-  // Each button has a label (the step title) below it that wraps so 7
-  // steps still fit comfortably on a 16:9 stage. Connectors are full-
-  // width <span>s sized by flex; CSS toggles their colour as the active
-  // index moves.
-  const timelineItems = steps.map((step, i) => {
-    return `<button type="button" class="step-btn" data-step="${i}" aria-label="Jump to step ${i + 1}: ${escapeAttr(step.title)}">
-      <span class="step-num">${i + 1}</span>
-      <span class="step-title-pill">${escapeHtml(step.title)}</span>
-    </button>` + (i < n - 1 ? '<span class="step-connector" aria-hidden="true"></span>' : '');
-  }).join('');
+  const states = buildJourneyStatesFromStepsForDeck(steps);
+  const statesJson = encodeJsonForInlineScript(states);
+  const activeMarker = pickActiveJourneyMarkerHex(brand);
+  const traitsLine = (persona.traits || []).length
+    ? (persona.traits || []).map((t) => safeString(t)).filter(Boolean).join(' · ')
+    : 'Customer journey';
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=1280, initial-scale=1">
 <title>${escapeHtml(c.name)} — Experience walkthrough</title>
 <style>${commonStyles(brand, dark)}
-  .experience { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-  .experience-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; gap: 16px; }
-  .experience-title { font-size: 28px; font-weight: 800; color: var(--ink); letter-spacing: -0.4px; }
-  .experience-subtitle { font-size: 14px; color: var(--ink-soft); font-weight: 500; margin-top: 2px; }
-  .step-progress { font-size: 12px; color: var(--ink-mute); font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
-  .step-progress .step-progress-current { color: var(--brand); font-size: 16px; }
-  /* Persona block — bigger photo, name + traits stacked beside it */
-  .persona-block { display: grid; grid-template-columns: 88px 1fr; gap: 16px; align-items: center; margin: 0 0 16px; }
-  .persona-block .photo {
-    width: 88px; height: 88px; border-radius: 50%;
-    background: var(--panel); border: 3px solid var(--border);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  :root {
+    --jm-canvas: #f4f5f7;
+    --jm-path-line: #d4d8e0;
+    --jm-tap-ring: #1473e6;
+    --jm-node: var(--brand);
+    --jm-accent-badge: var(--brand);
+    --jm-panel: #ffffff;
+    --jm-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    --jm-radius-lg: 16px;
+    --jm-radius-sm: 10px;
+  }
+  .experience-journey { padding: 28px 44px 52px; overflow: auto; }
+  .journey-app {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    background: var(--jm-canvas);
+    border-radius: var(--jm-radius-lg);
+    box-shadow: var(--jm-shadow);
+    padding: 18px 22px 48px;
     position: relative;
+    min-height: 480px;
+    max-height: min(720px, 92vh);
+    display: flex;
+    flex-direction: column;
   }
-  .persona-block .photo .demo-slot { border-radius: 50%; overflow: hidden; height: 100%; }
-  .persona-block .photo .demo-slot-inner { width: 100%; height: 100%; }
-  .persona-block .photo img, .persona-block .photo svg { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .persona-block .photo .svg-wrap { width: 100%; height: 100%; display: block; }
-  .persona-name { font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -0.2px; }
-  .persona-traits { font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
-  .persona-traits .trait { display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; }
-  .persona-traits .trait::before { content: "•"; color: var(--brand); font-weight: 800; margin-right: 2px; }
-  .persona-traits .trait:first-child::before { content: ""; margin-right: 0; }
-  .persona-summary { font-size: 12px; color: var(--ink-soft); margin-top: 3px; font-style: italic; line-height: 1.4; }
-
-  /* ── Timeline strip ─────────────────────────────────────────────── */
-  .step-timeline {
-    display: flex; align-items: stretch; justify-content: stretch;
-    gap: 0; margin: 6px 0 18px;
+  .deck-header { margin-bottom: 4px; }
+  .deck-title {
+    font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    line-height: 1.15;
   }
-  .step-btn {
-    flex: 0 0 auto;
-    display: inline-flex; flex-direction: column; align-items: center; gap: 6px;
-    padding: 6px 4px 0; background: transparent; border: 0; cursor: pointer;
-    color: var(--ink-mute); font-family: inherit; min-width: 0;
-    transition: color var(--node-fade, 0.4s ease-in-out);
-    --node-fade: 0.45s;
+  .deck-subtitle {
+    font-size: clamp(0.78rem, 1.4vw, 0.9rem);
+    color: var(--ink-soft);
+    font-weight: 500;
+    margin-top: 4px;
   }
-  .step-btn .step-num {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: #fff; border: 2px solid #c9ced8; color: #6b7180;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 700;
-    transition: background-color var(--node-fade), border-color var(--node-fade), color var(--node-fade), transform var(--node-fade), box-shadow var(--node-fade);
+  .step-progress {
+    font-size: 11px;
+    color: var(--ink-mute);
+    font-weight: 700;
+    letter-spacing: 0.25px;
+    text-transform: uppercase;
+    text-align: right;
+    margin-bottom: 8px;
   }
-  .step-btn .step-title-pill {
-    font-size: 10px; font-weight: 600; color: var(--ink-mute);
-    text-align: center; max-width: 90px; line-height: 1.2;
-    transition: color var(--node-fade), font-weight var(--node-fade);
-    word-break: break-word;
+  .step-progress-current { color: var(--brand); font-size: 14px; }
+  .persona-row {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 12px 16px;
+    align-items: start;
+    max-width: 520px;
+    margin: 10px 0 8px;
   }
-  .step-btn:hover .step-num { border-color: var(--brand); color: var(--brand); }
-  .step-btn:hover .step-title-pill { color: var(--brand); }
-  .step-btn.is-done .step-num { background: var(--brand-light); border-color: var(--brand); color: var(--brand); }
-  .step-btn.is-done .step-title-pill { color: var(--ink-soft); }
-  .step-btn.is-active .step-num {
-    background: var(--brand); border-color: var(--brand); color: #fff;
-    transform: scale(1.08);
-    box-shadow: 0 0 0 4px var(--brand-light);
+  .persona-photo-cell { position: relative; width: 72px; height: 72px; }
+  .persona-photo-cell .demo-slot { width: 72px; height: 72px; border-radius: 50%; overflow: hidden;
+    border: 3px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+  .persona-photo-cell .demo-slot-inner { width: 100%; height: 100%; }
+  .persona-photo-cell img, .persona-photo-cell svg { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .persona-photo-cell .svg-wrap { width: 100%; height: 100%; display: block; }
+  .persona-name { font-size: 0.95rem; font-weight: 800; color: var(--ink); }
+  .persona-role { font-size: 0.74rem; color: var(--ink-soft); margin-top: 4px; line-height: 1.35; }
+  .persona-signals {
+    grid-column: 1 / -1;
+    font-size: 0.7rem;
+    color: var(--ink-mute);
+    line-height: 1.45;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.75);
+    border-radius: var(--jm-radius-sm);
+    border: 1px solid rgba(0,0,0,0.06);
   }
-  .step-btn.is-active .step-title-pill { color: var(--ink); font-weight: 700; }
-  .step-connector {
-    flex: 1 1 auto; align-self: center; height: 2px;
-    background: #c9ced8; margin: 0 4px; min-width: 8px;
-    border-radius: 1px;
-    transition: background-color var(--node-fade, 0.4s ease-in-out);
+  .svg-stage-wrap {
+    position: relative;
+    width: 100%;
+    margin-top: 6px;
+    flex: 1 1 auto;
+    min-height: 220px;
+    aspect-ratio: 1200 / 420;
+    max-height: 360px;
   }
-  .step-connector.is-done { background: var(--brand); }
-
-  /* ── Stage (active step's full mockup + info) ───────────────────── */
-  .stage-wrap {
-    flex: 1 1 auto; min-height: 0;
-    background: #fafbfc;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 22px;
-    display: flex; flex-direction: column;
-    gap: 16px;
+  .svg-stage { width: 100%; height: 100%; display: block; }
+  .floating-layer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; }
+  .state-float {
+    position: absolute;
+    pointer-events: auto;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.35s ease, transform 0.35s ease, filter 0.35s ease;
+    max-width: min(220px, 28vw);
+    z-index: 1;
   }
-  .stage-panels { flex: 1 1 auto; min-height: 0; position: relative; }
-  .stage-panel {
-    display: grid; grid-template-columns: minmax(280px, 1.1fr) minmax(0, 1.1fr); gap: 28px;
-    align-items: start; height: 100%;
-    animation: stageIn 0.45s ease-in-out both;
+  .journey-app.is-ready .state-float { transition: opacity 0.35s ease, transform 0.35s ease, filter 0.35s ease; }
+  .state-float.is-active { z-index: 10; filter: none; opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
+  .state-float:not(.is-active) { opacity: 0.42; filter: saturate(0.65); }
+  .float-inner {
+    background: var(--jm-panel);
+    border-radius: var(--jm-radius-sm);
+    box-shadow: var(--jm-shadow);
+    border: 1px solid rgba(0,0,0,0.06);
+    overflow: hidden;
   }
-  .stage-panel[hidden] { display: none; }
-  @keyframes stageIn {
-    0% { opacity: 0; transform: translateY(6px); }
-    100% { opacity: 1; transform: translateY(0); }
+  .float-title { font-size: 0.68rem; font-weight: 800; color: var(--ink); padding: 7px 9px 0; line-height: 1.25; }
+  .float-desc { font-size: 0.64rem; color: var(--ink-soft); padding: 3px 9px 8px; line-height: 1.4; }
+  .device { margin: 5px 7px 0; border-radius: 10px; overflow: hidden; background: #0f1114; border: 1px solid #2a2e35; }
+  .device--mobile { width: 82px; margin-left: auto; margin-right: auto; aspect-ratio: 9 / 18; }
+  .device--tablet { width: 100%; max-width: 180px; margin-left: auto; margin-right: auto; aspect-ratio: 4 / 3; }
+  .device--desktop { width: 100%; max-width: 200px; margin-left: auto; margin-right: auto; aspect-ratio: 16 / 10; }
+  .device-bar { height: 7px; background: #2a2e35; display: flex; align-items: center; gap: 3px; padding: 0 5px; }
+  .device-bar span { width: 3px; height: 3px; border-radius: 50%; background: #5c6370; }
+  .device-screen {
+    position: relative;
+    height: calc(100% - 7px);
+    background: linear-gradient(180deg, #f8f9fb 0%, #eef0f4 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.52rem;
+    color: var(--ink-mute);
+    text-align: center;
+    padding: 5px;
   }
-  .stage-mockup {
-    display: flex; align-items: center; justify-content: center;
-    min-height: 200px; padding: 6px;
-    align-self: center;
+  .device-screen img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .channel-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--jm-accent-badge);
+    padding: 0 9px 5px;
   }
-  .stage-mockup svg {
-    max-width: 100%; max-height: min(52vh, 380px);
-    filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.12));
+  .nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0,0,0,0.06);
   }
-  .stage-info { display: flex; flex-direction: column; gap: 12px; }
-  .stage-eyebrow {
-    font-size: 11px; font-weight: 800; color: var(--brand);
-    text-transform: uppercase; letter-spacing: 0.5px;
+  .nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1.5px solid #c9ced8;
+    background: #fff;
+    font-weight: 700;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--ink);
   }
-  .stage-eyebrow .stage-num { font-size: 14px; }
-  .stage-title { font-size: 28px; font-weight: 800; color: var(--ink); letter-spacing: -0.4px; line-height: 1.1; }
-  .stage-desc { font-size: 15px; color: var(--ink-soft); line-height: 1.55; max-width: 560px; }
-  .stage-channel {
-    display: inline-flex; align-items: center; gap: 8px;
-    margin-top: 6px; padding: 6px 12px;
-    font-size: 11px; font-weight: 800; color: var(--brand); background: var(--brand-light);
-    text-transform: uppercase; letter-spacing: 0.4px;
-    border-radius: 999px; align-self: flex-start;
+  .nav-btn:hover:not(:disabled) { border-color: var(--jm-tap-ring); color: var(--jm-tap-ring); background: rgba(20,115,230,0.06); }
+  .nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .nav-btn--primary { background: var(--jm-tap-ring); border-color: var(--jm-tap-ring); color: #fff; }
+  .nav-btn--primary:hover:not(:disabled) { background: #0d62c4; border-color: #0d62c4; color: #fff; }
+  .nav-hint { font-size: 0.65rem; color: var(--ink-mute); text-align: center; flex: 1; }
+  .journey-app .deck-footer {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.62rem;
+    color: var(--ink-mute);
   }
-  .stage-channel .ch-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
-
-  /* ── Stage footer (Prev / Next) ─────────────────────────────────── */
-  .stage-controls {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; margin-top: 8px; flex-shrink: 0;
-  }
-  .stage-controls .control-hint {
-    font-size: 10.5px; color: var(--ink-mute);
-    margin: 0 auto; opacity: 0.85;
-  }
-  .stage-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 14px; min-width: 100px;
-    background: #fff; color: var(--ink);
-    border: 1.5px solid var(--border); border-radius: 999px;
-    font-family: inherit; font-size: 12px; font-weight: 700;
-    cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
-  }
-  .stage-btn:hover:not(:disabled) { background: var(--brand-light); border-color: var(--brand); color: var(--brand); }
-  .stage-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .stage-btn.is-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-  .stage-btn.is-primary:hover:not(:disabled) { background: var(--brand-dark); border-color: var(--brand-dark); color: #fff; }
-  .stage-btn .arrow { font-size: 14px; line-height: 1; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .step-btn .step-num, .step-btn .step-title-pill, .step-connector,
-    .stage-panel { transition: none !important; animation: none !important; }
-  }
+  .adobe-wordmark { font-weight: 800; color: var(--adobe-red); letter-spacing: -0.02em; }
+  .copyright { text-align: right; max-width: 52%; line-height: 1.3; }
 </style></head>
 <body>
-  <section class="deck-slide experience">
-    <div class="experience-header">
-      <div>
-        <div class="experience-title">${escapeHtml(e.title)}</div>
-        <div class="experience-subtitle">${escapeHtml(e.subtitle)}</div>
-      </div>
-      <div class="step-progress" aria-live="polite">
-        Step <span class="step-progress-current" id="stepProgressCurrent">1</span> of ${n}
-      </div>
+  <section class="deck-slide experience-journey">
+    <div class="step-progress" aria-live="polite">
+      Step <span class="step-progress-current" id="jmStepProg">1</span> of ${n}
     </div>
-    <div class="persona-block">
-      <span class="photo">${wrapDemoSlot('experience.persona', 'Persona headshot', personaState, personaInner, { showLabel: false })}</span>
-      <div>
-        <div class="persona-name">${escapeHtml(persona.name)}</div>
-        <div class="persona-traits">${(persona.traits || []).map((t) => `<span class="trait">${escapeHtml(t)}</span>`).join(' ')}</div>
-        <div class="persona-summary">${escapeHtml(persona.summary)}</div>
+    <div class="journey-app" id="journeyApp" aria-live="polite">
+      <header class="deck-header">
+        <div class="deck-title">${escapeHtml(e.title)}</div>
+        <div class="deck-subtitle">${escapeHtml(e.subtitle)}</div>
+      </header>
+      <div class="persona-row" id="personaBlock">
+        <div class="persona-photo-cell">
+          ${wrapDemoSlot('experience.persona', 'Persona headshot', personaState, personaInner, { showLabel: false })}
+        </div>
+        <div>
+          <div class="persona-name">${escapeHtml(persona.name)}</div>
+          <div class="persona-role">${escapeHtml(traitsLine)}</div>
+        </div>
+        <div class="persona-signals">${escapeHtml(persona.summary)}</div>
       </div>
-    </div>
-
-    <div class="step-timeline" role="tablist" aria-label="Demo steps">${timelineItems}</div>
-
-    <div class="stage-wrap">
-      <div class="stage-panels" id="stagePanels">${stagePanels}</div>
-      <div class="stage-controls">
-        <button type="button" class="stage-btn" id="navPrev" aria-label="Previous step">
-          <span class="arrow">◀</span><span>Previous</span>
-        </button>
-        <span class="control-hint">Click a step or use ← → arrow keys to advance</span>
-        <button type="button" class="stage-btn is-primary" id="navNext" aria-label="Next step">
-          <span>Next</span><span class="arrow">▶</span>
-        </button>
+      <div class="svg-stage-wrap" id="stageWrap">
+        <svg class="svg-stage" id="journeySvg" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <path id="journeyPath" fill="none" stroke="var(--jm-path-line)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            d="M 56 320 C 160 100, 280 360, 420 200 C 520 80, 620 100, 700 240 C 780 380, 860 360, 940 140 C 1000 60, 1080 120, 1144 260" />
+          <g id="pathDecorations"></g>
+        </svg>
+        <div class="floating-layer" id="floatLayer"></div>
       </div>
-    </div>
-
-    <div class="deck-footer">
-      <span class="adobe-logo"><span class="wordmark">Adobe</span></span>
-      <span class="copyright">© ${new Date().getFullYear()} Adobe. All Rights Reserved. Adobe Confidential.</span>
+      <div class="nav-row">
+        <button type="button" class="nav-btn" id="btnPrev">◀ Previous</button>
+        <span class="nav-hint" id="navHint">Use Previous / Next or arrow keys.</span>
+        <button type="button" class="nav-btn nav-btn--primary" id="btnNext">Next ▶</button>
+      </div>
+      <footer class="deck-footer">
+        <span class="adobe-wordmark">Adobe</span>
+        <span class="copyright">© ${new Date().getFullYear()} Adobe. All Rights Reserved. Adobe Confidential.</span>
+      </footer>
     </div>
   </section>
-
   <script>
   (function () {
-    var n = ${n};
+    var STATES = ${statesJson};
+    var ACTIVE_MARKER = ${JSON.stringify(activeMarker)};
+    var pathEl = document.getElementById('journeyPath');
+    var decorG = document.getElementById('pathDecorations');
+    var floatLayer = document.getElementById('floatLayer');
+    var stageWrap = document.getElementById('stageWrap');
+    var app = document.getElementById('journeyApp');
+    var btnPrev = document.getElementById('btnPrev');
+    var btnNext = document.getElementById('btnNext');
+    var navHint = document.getElementById('navHint');
+    var stepProg = document.getElementById('jmStepProg');
     var current = 0;
-    var btns = Array.prototype.slice.call(document.querySelectorAll('.step-btn'));
-    var connectors = Array.prototype.slice.call(document.querySelectorAll('.step-connector'));
-    var panels = Array.prototype.slice.call(document.querySelectorAll('.stage-panel'));
-    var prevBtn = document.getElementById('navPrev');
-    var nextBtn = document.getElementById('navNext');
-    var progressEl = document.getElementById('stepProgressCurrent');
+    var stateEls = [];
+    var markerEls = [];
+    var n = STATES.length;
 
-    function activate(i) {
-      if (i < 0) i = 0;
-      if (i > n - 1) i = n - 1;
-      current = i;
-      // Step buttons + connectors: done = brand-coloured, active =
-      // brand-filled, future = grey.
-      btns.forEach(function (b, j) {
-        b.classList.toggle('is-active', j === i);
-        b.classList.toggle('is-done', j < i);
-        b.setAttribute('aria-current', j === i ? 'step' : 'false');
-      });
-      connectors.forEach(function (c, j) {
-        // Connector j sits between btns[j] and btns[j+1].
-        c.classList.toggle('is-done', j < i);
-      });
-      // Stage panel: only show the active one. Re-set hidden then remove
-      // from the active so the CSS animation re-runs on every advance.
-      panels.forEach(function (p, j) {
-        if (j === i) {
-          p.hidden = false;
-          // Force re-trigger the entry animation by toggling a no-op class.
-          p.style.animation = 'none';
-          // eslint-disable-next-line no-unused-expressions
-          p.offsetHeight;
-          p.style.animation = '';
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function deviceClass(ch) {
+      var c = String(ch || '').toLowerCase();
+      if (c === 'mobile' || c === 'push' || c === 'sms') return 'device device--mobile';
+      if (c === 'tablet' || c === 'email') return 'device device--tablet';
+      return 'device device--desktop';
+    }
+    function pointOnPath(path, t) {
+      try {
+        var len = path.getTotalLength();
+        var p = path.getPointAtLength(len * Math.max(0, Math.min(1, t)));
+        return { x: p.x, y: p.y };
+      } catch (e) {
+        return { x: 600, y: 210 };
+      }
+    }
+    function layoutFromStates(states) {
+      decorG.innerHTML = '';
+      floatLayer.innerHTML = '';
+      stateEls = [];
+      markerEls = [];
+      var nn = states.length;
+      for (var i = 0; i < nn; i++) {
+        var st = states[i];
+        var t = nn === 1 ? 0.5 : i / (nn - 1);
+        var pt = st.point || pointOnPath(pathEl, 0.04 + t * 0.92);
+        var nodeType = st.nodeType || 'marker';
+        if (nodeType === 'tap') {
+          var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          g.setAttribute('transform', 'translate(' + pt.x + ',' + pt.y + ')');
+          var tc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          tc.setAttribute('r', '22');
+          tc.setAttribute('fill', 'var(--jm-tap-ring)');
+          tc.setAttribute('opacity', '0.95');
+          g.appendChild(tc);
+          var tx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          tx.setAttribute('text-anchor', 'middle');
+          tx.setAttribute('y', '6');
+          tx.setAttribute('fill', '#fff');
+          tx.setAttribute('font-size', '18');
+          tx.setAttribute('font-family', 'system-ui, sans-serif');
+          tx.textContent = '\u261d';
+          g.appendChild(tx);
+          decorG.appendChild(g);
+          markerEls.push({ kind: 'tap', el: g, index: i, basePt: { x: pt.x, y: pt.y } });
         } else {
-          p.hidden = true;
+          var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          c.setAttribute('cx', pt.x);
+          c.setAttribute('cy', pt.y);
+          c.setAttribute('r', 7);
+          c.setAttribute('fill', 'var(--jm-node)');
+          c.setAttribute('stroke', '#fff');
+          c.setAttribute('stroke-width', '2');
+          decorG.appendChild(c);
+          markerEls.push({ kind: 'marker', el: c, index: i });
+        }
+        var wrap = document.createElement('div');
+        wrap.className = 'state-float';
+        wrap.dataset.index = String(i);
+        wrap.dataset.offDx = String((st.offsetLabel && st.offsetLabel.dx) || 0);
+        wrap.dataset.offDy = String((st.offsetLabel && st.offsetLabel.dy) || 52);
+        var inner = document.createElement('div');
+        inner.className = 'float-inner';
+        var badge = document.createElement('div');
+        badge.className = 'channel-badge';
+        badge.textContent = String(st.channel || 'channel');
+        var dev = document.createElement('div');
+        dev.className = deviceClass(st.channel);
+        dev.innerHTML = '<div class="device-bar"><span></span><span></span><span></span></div><div class="device-screen">' +
+          (st.image ? '<img src="' + escapeHtml(st.image) + '" alt="">' : escapeHtml(st.title)) + '</div>';
+        var ttl = document.createElement('div');
+        ttl.className = 'float-title';
+        ttl.textContent = st.title || '';
+        var desc = document.createElement('div');
+        desc.className = 'float-desc';
+        desc.textContent = st.description || '';
+        inner.appendChild(badge);
+        inner.appendChild(dev);
+        inner.appendChild(ttl);
+        inner.appendChild(desc);
+        wrap.appendChild(inner);
+        floatLayer.appendChild(wrap);
+        stateEls.push(wrap);
+      }
+      app.classList.add('is-ready');
+      setActive(0);
+      requestAnimationFrame(function () {
+        syncFloatPositions();
+        requestAnimationFrame(syncFloatPositions);
+      });
+    }
+    function setActive(i) {
+      var states = STATES;
+      var nn = states.length;
+      current = Math.max(0, Math.min(nn - 1, i));
+      stateEls.forEach(function (el, j) {
+        el.classList.toggle('is-active', j === current);
+      });
+      markerEls.forEach(function (m) {
+        if (m.kind === 'marker') {
+          m.el.setAttribute('fill', m.index === current ? ACTIVE_MARKER : 'var(--jm-node)');
+          m.el.setAttribute('r', m.index === current ? 10 : 7);
+          m.el.setAttribute('stroke', '#fff');
+          m.el.setAttribute('stroke-width', m.index === current ? '3' : '2');
+        } else if (m.kind === 'tap' && m.basePt) {
+          var scale = m.index === current ? 1.14 : 1;
+          m.el.setAttribute('transform', 'translate(' + m.basePt.x + ',' + m.basePt.y + ') scale(' + scale + ')');
         }
       });
-      prevBtn.disabled = i === 0;
-      nextBtn.disabled = i === n - 1;
-      if (progressEl) progressEl.textContent = String(i + 1);
+      btnPrev.disabled = current <= 0;
+      btnNext.disabled = current >= nn - 1;
+      var st = states[current];
+      navHint.textContent = st ? ('Focused: ' + st.title) : '';
+      if (stepProg) stepProg.textContent = String(current + 1);
     }
-
-    btns.forEach(function (b) {
-      b.addEventListener('click', function () {
-        var idx = parseInt(b.getAttribute('data-step'), 10);
-        if (!isNaN(idx)) activate(idx);
+    btnPrev.addEventListener('click', function () { setActive(current - 1); });
+    btnNext.addEventListener('click', function () { setActive(current + 1); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setActive(current - 1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); setActive(current + 1); }
+    });
+    function svgPointToLayerPx(svg, pt, wrapRect) {
+      var p0 = svg.createSVGPoint();
+      p0.x = pt.x;
+      p0.y = pt.y;
+      var ctm = svg.getScreenCTM();
+      if (!ctm) return { left: 0, top: 0 };
+      var scr = p0.matrixTransform(ctm);
+      return { left: scr.x - wrapRect.left, top: scr.y - wrapRect.top };
+    }
+    function syncFloatPositions() {
+      var svg = document.getElementById('journeySvg');
+      if (!svg || !pathEl) return;
+      var wrapRect = stageWrap.getBoundingClientRect();
+      var states = STATES;
+      var nn = states.length;
+      stateEls.forEach(function (el, i) {
+        var st = states[i];
+        var t = nn === 1 ? 0.5 : i / (nn - 1);
+        var pt = st.point || pointOnPath(pathEl, 0.04 + t * 0.92);
+        var offDx = Number(el.dataset.offDx) || 0;
+        var offDy = Number(el.dataset.offDy) || 0;
+        var scr = svgPointToLayerPx(svg, pt, wrapRect);
+        el.style.left = (scr.left + offDx) + 'px';
+        el.style.top = (scr.top + offDy) + 'px';
+        el.style.transform = 'translate(-50%, -50%)';
       });
-    });
-    prevBtn.addEventListener('click', function () { activate(current - 1); });
-    nextBtn.addEventListener('click', function () { activate(current + 1); });
-
-    document.addEventListener('keydown', function (ev) {
-      if (ev.key === 'ArrowRight' || ev.key === 'PageDown' || ev.key === ' ') {
-        ev.preventDefault();
-        activate(current + 1);
-      } else if (ev.key === 'ArrowLeft' || ev.key === 'PageUp') {
-        ev.preventDefault();
-        activate(current - 1);
-      } else if (ev.key === 'Home') {
-        ev.preventDefault();
-        activate(0);
-      } else if (ev.key === 'End') {
-        ev.preventDefault();
-        activate(n - 1);
-      } else if (/^[1-9]$/.test(ev.key)) {
-        var num = parseInt(ev.key, 10) - 1;
-        if (num < n) activate(num);
-      }
-    });
-
-    activate(0);
+    }
+    if (n < 1) {
+      navHint.textContent = 'No journey steps.';
+      btnPrev.disabled = true;
+      btnNext.disabled = true;
+      return;
+    }
+    layoutFromStates(STATES);
+    window.addEventListener('resize', syncFloatPositions);
+    requestAnimationFrame(function () { syncFloatPositions(); });
   })();
   </script>
 </body></html>`;
+
 }
 
 function renderValueHtml(data, images) {
