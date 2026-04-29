@@ -537,6 +537,11 @@
 .demo-use-case-asset-page .duc-embed-title {
   font-size: 0.85rem; font-weight: 600; color: var(--dash-text);
 }
+.demo-use-case-asset-page .duc-embed-sub {
+  margin-left: 0.4rem;
+  font-size: 0.72rem; font-weight: 500; color: var(--dash-text-secondary);
+  white-space: nowrap;
+}
 .demo-use-case-asset-page .duc-iframe {
   width: 100%;
   height: min(82vh, 1100px);

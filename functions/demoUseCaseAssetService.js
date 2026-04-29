@@ -1000,74 +1000,185 @@ function renderExperienceHtml(data, images) {
   const persona = e.persona || { name: 'Customer', traits: [], summary: '' };
   const personaImg = resolvePersonaImage(images, persona.name, c.name, brand, 'html');
   const steps = e.steps || [];
+  const n = steps.length;
 
-  // Lay steps out in a grid; alternate above/below the centre line for
-  // visual rhythm, matching the sample slide.
-  const stepBlocks = steps.map((s, i) => {
-    const above = i % 2 === 0;
-    const mockupSvg = stepMockupSvg(s, brand, persona.name, c.name);
-    return `<div class="step ${above ? 'above' : 'below'}" data-i="${i}">
-      <div class="mockup">${mockupSvg}</div>
-      <div class="step-text">
-        <div class="step-title">${escapeHtml(s.title)}</div>
-        <div class="step-desc">${escapeHtml(s.description)}</div>
-        <div class="step-channel"><span class="channel-dot"></span>${escapeHtml(s.channel)}</div>
+  // Pre-render every step's mockup + info into a hidden panel so the
+  // presenter can click between them without the iframe having to re-
+  // mount or fetch anything. Each click swaps which panel is visible
+  // (and which timeline node is active) — essentially the journey map's
+  // click-through pattern, applied to a 5/6/7-step demo story.
+  const stagePanels = steps.map((step, i) => {
+    const mockupSvg = stepMockupSvg(step, brand, persona.name, c.name);
+    return `<div class="stage-panel" data-stage="${i}"${i === 0 ? '' : ' hidden'}>
+      <div class="stage-mockup">${mockupSvg}</div>
+      <div class="stage-info">
+        <div class="stage-eyebrow">Step <span class="stage-num">${i + 1}</span> of ${n}</div>
+        <div class="stage-title">${escapeHtml(step.title)}</div>
+        <div class="stage-desc">${escapeHtml(step.description)}</div>
+        <div class="stage-channel"><span class="ch-dot"></span><span>${escapeHtml(step.channel)}</span></div>
       </div>
     </div>`;
   }).join('');
 
-  // Layout count drives column sizes.
-  const cols = steps.length;
+  // Timeline strip across the top: numbered buttons + connector lines.
+  // Each button has a label (the step title) below it that wraps so 7
+  // steps still fit comfortably on a 16:9 stage. Connectors are full-
+  // width <span>s sized by flex; CSS toggles their colour as the active
+  // index moves.
+  const timelineItems = steps.map((step, i) => {
+    return `<button type="button" class="step-btn" data-step="${i}" aria-label="Jump to step ${i + 1}: ${escapeAttr(step.title)}">
+      <span class="step-num">${i + 1}</span>
+      <span class="step-title-pill">${escapeHtml(step.title)}</span>
+    </button>` + (i < n - 1 ? '<span class="step-connector" aria-hidden="true"></span>' : '');
+  }).join('');
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=1280, initial-scale=1">
 <title>${escapeHtml(c.name)} — Experience walkthrough</title>
 <style>${commonStyles(brand, dark)}
   .experience { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-  .experience-header { margin-bottom: 14px; }
+  .experience-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; gap: 16px; }
   .experience-title { font-size: 28px; font-weight: 800; color: var(--ink); letter-spacing: -0.4px; }
   .experience-subtitle { font-size: 14px; color: var(--ink-soft); font-weight: 500; margin-top: 2px; }
-  .persona-block { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center; margin: 4px 0 18px; }
-  .persona-block .photo { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: var(--panel); border: 2px solid var(--brand); }
-  .persona-block .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .step-progress { font-size: 12px; color: var(--ink-mute); font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .step-progress .step-progress-current { color: var(--brand); font-size: 16px; }
+  .persona-block { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; margin: 0 0 14px; }
+  .persona-block .photo { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; background: var(--panel); border: 2px solid var(--brand); }
+  .persona-block .photo img, .persona-block .photo svg { width: 100%; height: 100%; object-fit: cover; display: block; }
   .persona-block .photo .svg-wrap { width: 100%; height: 100%; display: block; }
-  .persona-name { font-size: 16px; font-weight: 700; color: var(--ink); }
-  .persona-traits { font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
-  .persona-summary { font-size: 11.5px; color: var(--ink-soft); margin-top: 1px; font-style: italic; }
-  .persona-traits .trait { display: inline-flex; align-items: center; gap: 4px; }
+  .persona-name { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .persona-traits { font-size: 11px; color: var(--ink-soft); margin-top: 1px; }
+  .persona-traits .trait { display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; }
   .persona-traits .trait::before { content: "•"; color: var(--brand); font-weight: 800; margin-right: 2px; }
   .persona-traits .trait:first-child::before { content: ""; margin-right: 0; }
-  .step-flow {
-    flex: 1 1 auto; min-height: 0; position: relative;
-    display: grid; grid-template-columns: repeat(${cols}, 1fr); gap: 12px;
-    padding: 32px 0;
+  .persona-summary { font-size: 11px; color: var(--ink-soft); margin-top: 1px; font-style: italic; }
+
+  /* ── Timeline strip ─────────────────────────────────────────────── */
+  .step-timeline {
+    display: flex; align-items: stretch; justify-content: stretch;
+    gap: 0; margin: 6px 0 18px;
   }
-  .step-flow::before {
-    content: ''; position: absolute; left: 4%; right: 4%; top: 50%;
-    height: 2px; background: linear-gradient(to right, transparent, var(--ink-mute) 6%, var(--ink-mute) 94%, transparent);
-    opacity: 0.45;
+  .step-btn {
+    flex: 0 0 auto;
+    display: inline-flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 6px 4px 0; background: transparent; border: 0; cursor: pointer;
+    color: var(--ink-mute); font-family: inherit; min-width: 0;
+    transition: color var(--node-fade, 0.4s ease-in-out);
+    --node-fade: 0.45s;
   }
-  .step { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .step.above { justify-content: flex-start; }
-  .step.below { flex-direction: column-reverse; justify-content: flex-end; }
-  .step .mockup { width: 100%; max-width: 180px; max-height: 160px; height: 160px; display: flex; align-items: center; justify-content: center; }
-  .step .mockup svg { max-width: 100%; max-height: 100%; }
-  .step .step-text { text-align: center; max-width: 200px; padding: 0 4px; }
-  .step .step-title { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
-  .step .step-desc { font-size: 10.5px; color: var(--ink-soft); line-height: 1.4; }
-  .step .step-channel { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 9.5px; color: var(--brand); font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
-  .step .step-channel .channel-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
-  .step::after {
-    content: ''; position: absolute; left: 50%; top: 50%;
-    width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%);
-    background: var(--brand); border: 3px solid #fff; box-shadow: 0 0 0 1px var(--brand);
+  .step-btn .step-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #fff; border: 2px solid #c9ced8; color: #6b7180;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+    transition: background-color var(--node-fade), border-color var(--node-fade), color var(--node-fade), transform var(--node-fade), box-shadow var(--node-fade);
+  }
+  .step-btn .step-title-pill {
+    font-size: 10px; font-weight: 600; color: var(--ink-mute);
+    text-align: center; max-width: 90px; line-height: 1.2;
+    transition: color var(--node-fade), font-weight var(--node-fade);
+    word-break: break-word;
+  }
+  .step-btn:hover .step-num { border-color: var(--brand); color: var(--brand); }
+  .step-btn:hover .step-title-pill { color: var(--brand); }
+  .step-btn.is-done .step-num { background: var(--brand-light); border-color: var(--brand); color: var(--brand); }
+  .step-btn.is-done .step-title-pill { color: var(--ink-soft); }
+  .step-btn.is-active .step-num {
+    background: var(--brand); border-color: var(--brand); color: #fff;
+    transform: scale(1.08);
+    box-shadow: 0 0 0 4px var(--brand-light);
+  }
+  .step-btn.is-active .step-title-pill { color: var(--ink); font-weight: 700; }
+  .step-connector {
+    flex: 1 1 auto; align-self: center; height: 2px;
+    background: #c9ced8; margin: 0 4px; min-width: 8px;
+    border-radius: 1px;
+    transition: background-color var(--node-fade, 0.4s ease-in-out);
+  }
+  .step-connector.is-done { background: var(--brand); }
+
+  /* ── Stage (active step's full mockup + info) ───────────────────── */
+  .stage-wrap {
+    flex: 1 1 auto; min-height: 0;
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex; flex-direction: column;
+  }
+  .stage-panels { flex: 1 1 auto; min-height: 0; position: relative; }
+  .stage-panel {
+    display: grid; grid-template-columns: minmax(220px, 0.8fr) 1.2fr; gap: 24px;
+    align-items: center; height: 100%;
+    animation: stageIn 0.45s ease-in-out both;
+  }
+  .stage-panel[hidden] { display: none; }
+  @keyframes stageIn {
+    0% { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .stage-mockup {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; min-height: 0; padding: 6px;
+  }
+  .stage-mockup svg {
+    max-width: 100%; max-height: 100%;
+    filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.10));
+  }
+  .stage-info { display: flex; flex-direction: column; gap: 10px; }
+  .stage-eyebrow {
+    font-size: 11px; font-weight: 700; color: var(--brand);
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .stage-eyebrow .stage-num { font-size: 13px; }
+  .stage-title { font-size: 24px; font-weight: 800; color: var(--ink); letter-spacing: -0.3px; line-height: 1.15; }
+  .stage-desc { font-size: 14px; color: var(--ink-soft); line-height: 1.5; max-width: 540px; }
+  .stage-channel {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 4px;
+    font-size: 11px; font-weight: 700; color: var(--brand);
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .stage-channel .ch-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
+
+  /* ── Stage footer (Prev / Next) ─────────────────────────────────── */
+  .stage-controls {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-top: 14px;
+  }
+  .stage-controls .control-hint {
+    font-size: 10.5px; color: var(--ink-mute);
+    margin: 0 auto; opacity: 0.85;
+  }
+  .stage-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; min-width: 100px;
+    background: #fff; color: var(--ink);
+    border: 1.5px solid var(--border); border-radius: 999px;
+    font-family: inherit; font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+  .stage-btn:hover:not(:disabled) { background: var(--brand-light); border-color: var(--brand); color: var(--brand); }
+  .stage-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .stage-btn.is-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .stage-btn.is-primary:hover:not(:disabled) { background: var(--brand-dark); border-color: var(--brand-dark); color: #fff; }
+  .stage-btn .arrow { font-size: 14px; line-height: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .step-btn .step-num, .step-btn .step-title-pill, .step-connector,
+    .stage-panel { transition: none !important; animation: none !important; }
   }
 </style></head>
 <body>
   <section class="deck-slide experience">
     <div class="experience-header">
-      <div class="experience-title">${escapeHtml(e.title)}</div>
-      <div class="experience-subtitle">${escapeHtml(e.subtitle)}</div>
+      <div>
+        <div class="experience-title">${escapeHtml(e.title)}</div>
+        <div class="experience-subtitle">${escapeHtml(e.subtitle)}</div>
+      </div>
+      <div class="step-progress" aria-live="polite">
+        Step <span class="step-progress-current" id="stepProgressCurrent">1</span> of ${n}
+      </div>
     </div>
     <div class="persona-block">
       <span class="photo">${personaImg.kind === 'svg' ? `<span class="svg-wrap">${personaImg.inlineSvg || ''}</span>` : `<img src="${escapeAttr(personaImg.src)}" alt="">`}</span>
@@ -1077,12 +1188,104 @@ function renderExperienceHtml(data, images) {
         <div class="persona-summary">${escapeHtml(persona.summary)}</div>
       </div>
     </div>
-    <div class="step-flow">${stepBlocks}</div>
+
+    <div class="step-timeline" role="tablist" aria-label="Demo steps">${timelineItems}</div>
+
+    <div class="stage-wrap">
+      <div class="stage-panels" id="stagePanels">${stagePanels}</div>
+      <div class="stage-controls">
+        <button type="button" class="stage-btn" id="navPrev" aria-label="Previous step">
+          <span class="arrow">◀</span><span>Previous</span>
+        </button>
+        <span class="control-hint">Click a step or use ← → arrow keys to advance</span>
+        <button type="button" class="stage-btn is-primary" id="navNext" aria-label="Next step">
+          <span>Next</span><span class="arrow">▶</span>
+        </button>
+      </div>
+    </div>
+
     <div class="deck-footer">
       <span class="adobe-logo"><span class="wordmark">Adobe</span></span>
       <span class="copyright">© ${new Date().getFullYear()} Adobe. All Rights Reserved. Adobe Confidential.</span>
     </div>
   </section>
+
+  <script>
+  (function () {
+    var n = ${n};
+    var current = 0;
+    var btns = Array.prototype.slice.call(document.querySelectorAll('.step-btn'));
+    var connectors = Array.prototype.slice.call(document.querySelectorAll('.step-connector'));
+    var panels = Array.prototype.slice.call(document.querySelectorAll('.stage-panel'));
+    var prevBtn = document.getElementById('navPrev');
+    var nextBtn = document.getElementById('navNext');
+    var progressEl = document.getElementById('stepProgressCurrent');
+
+    function activate(i) {
+      if (i < 0) i = 0;
+      if (i > n - 1) i = n - 1;
+      current = i;
+      // Step buttons + connectors: done = brand-coloured, active =
+      // brand-filled, future = grey.
+      btns.forEach(function (b, j) {
+        b.classList.toggle('is-active', j === i);
+        b.classList.toggle('is-done', j < i);
+        b.setAttribute('aria-current', j === i ? 'step' : 'false');
+      });
+      connectors.forEach(function (c, j) {
+        // Connector j sits between btns[j] and btns[j+1].
+        c.classList.toggle('is-done', j < i);
+      });
+      // Stage panel: only show the active one. Re-set hidden then remove
+      // from the active so the CSS animation re-runs on every advance.
+      panels.forEach(function (p, j) {
+        if (j === i) {
+          p.hidden = false;
+          // Force re-trigger the entry animation by toggling a no-op class.
+          p.style.animation = 'none';
+          // eslint-disable-next-line no-unused-expressions
+          p.offsetHeight;
+          p.style.animation = '';
+        } else {
+          p.hidden = true;
+        }
+      });
+      prevBtn.disabled = i === 0;
+      nextBtn.disabled = i === n - 1;
+      if (progressEl) progressEl.textContent = String(i + 1);
+    }
+
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var idx = parseInt(b.getAttribute('data-step'), 10);
+        if (!isNaN(idx)) activate(idx);
+      });
+    });
+    prevBtn.addEventListener('click', function () { activate(current - 1); });
+    nextBtn.addEventListener('click', function () { activate(current + 1); });
+
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowRight' || ev.key === 'PageDown' || ev.key === ' ') {
+        ev.preventDefault();
+        activate(current + 1);
+      } else if (ev.key === 'ArrowLeft' || ev.key === 'PageUp') {
+        ev.preventDefault();
+        activate(current - 1);
+      } else if (ev.key === 'Home') {
+        ev.preventDefault();
+        activate(0);
+      } else if (ev.key === 'End') {
+        ev.preventDefault();
+        activate(n - 1);
+      } else if (/^[1-9]$/.test(ev.key)) {
+        var num = parseInt(ev.key, 10) - 1;
+        if (num < n) activate(num);
+      }
+    });
+
+    activate(0);
+  })();
+  </script>
 </body></html>`;
 }
 
