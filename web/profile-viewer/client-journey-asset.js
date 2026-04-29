@@ -249,20 +249,49 @@
 
     try {
       var summaries = await fetchScrapes(sandbox);
-      // Match: prefer scrapes whose host equals our domain, then those whose host endsWith domain.
+      // 4-tier match ladder. We use the strongest tier that yields any
+      // results — so "nike.com" still wins exact, but "Nike" or "admir"
+      // gracefully degrade to a contains match against host or brandName.
+      // The minLen guard on tiers 3/4 prevents 2-letter inputs (e.g. "co")
+      // from matching every scrape on the planet.
+      var minSubstrLen = 3;
       var exact = [];
-      var endsWith = [];
+      var subdomain = [];
+      var hostContains = [];
+      var nameContains = [];
       for (var i = 0; i < summaries.length; i++) {
-        var host = hostFromUrl(summaries[i].url || summaries[i].baseUrl || '');
-        if (!host) continue;
-        if (host === domain) exact.push(summaries[i]);
-        else if (host.endsWith('.' + domain) || domain.endsWith('.' + host)) endsWith.push(summaries[i]);
+        var s = summaries[i];
+        var host = hostFromUrl(s.url || s.baseUrl || '');
+        var brandLc = String(s.brandName || '').toLowerCase();
+        if (host) {
+          if (host === domain) {
+            exact.push(s);
+            continue;
+          }
+          if (host.endsWith('.' + domain) || domain.endsWith('.' + host)) {
+            subdomain.push(s);
+            continue;
+          }
+          if (domain.length >= minSubstrLen && host.indexOf(domain) !== -1) {
+            hostContains.push(s);
+            continue;
+          }
+        }
+        if (brandLc && domain.length >= minSubstrLen && brandLc.indexOf(domain) !== -1) {
+          nameContains.push(s);
+        }
       }
-      var candidates = exact.length ? exact : endsWith;
+
+      var candidates = [];
+      var matchKind = '';
+      if (exact.length)            { candidates = exact;        matchKind = 'exact host'; }
+      else if (subdomain.length)   { candidates = subdomain;    matchKind = 'subdomain'; }
+      else if (hostContains.length){ candidates = hostContains; matchKind = 'host contains'; }
+      else if (nameContains.length){ candidates = nameContains; matchKind = 'brand name contains'; }
 
       if (!candidates.length) {
         showScrapeMissing(domain, sandbox);
-        setStatus(lookupStatus, 'No brand scrape matches ' + domain + ' in sandbox "' + sandbox + '".', 'error');
+        setStatus(lookupStatus, 'No brand scrape matches "' + domain + '" in sandbox "' + sandbox + '".', 'error');
         return;
       }
 
@@ -274,7 +303,10 @@
       });
       var pick = candidates[0];
 
-      setStatus(lookupStatus, 'Loading scrape "' + (pick.brandName || pick.scrapeId) + '"…', '');
+      var matchSuffix = candidates.length > 1
+        ? ' (' + candidates.length + ' ' + matchKind + ' matches; using newest)'
+        : ' (' + matchKind + ' match)';
+      setStatus(lookupStatus, 'Loading scrape "' + (pick.brandName || pick.scrapeId) + '"' + matchSuffix + '…', '');
       var hydrated = await fetchScrape(sandbox, pick.scrapeId);
       if (!hydrated) throw new Error('Failed to load scrape ' + pick.scrapeId);
       if (hydrated.payloadExpired) {
