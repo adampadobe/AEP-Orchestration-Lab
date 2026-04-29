@@ -580,7 +580,25 @@ function normaliseJourney(journeyData, overrides = {}) {
 
 // ─── PUBLIC: GENERATE JOURNEY (LLM ORCHESTRATION) ────────────────────────────
 
-async function generateJourney({ sandbox, scrapeId, brandColour, journeyType, personaName, clientName }) {
+async function generateJourney({
+  sandbox,
+  scrapeId,
+  brandColour,
+  journeyType,
+  personaName,
+  clientName,
+  // Freeform user prompt appended to the first-time generation. Steers
+  // the very first Vertex AI call (e.g. "focus on first-time customers,
+  // emphasise loyalty rewards, mention sustainability throughout").
+  additionalContext,
+  // Refinement mode: when both fields are present, we re-issue the
+  // generation with the previous JSON in the user payload and ask the
+  // model to apply `refinementPrompt` while preserving the rest of the
+  // journey + every schema invariant. This is what powers the "Refine
+  // with Vertex AI" panel that appears after the first generation.
+  previousJourney,
+  refinementPrompt,
+}) {
   if (!sandbox) throw new Error('sandbox is required');
   if (!scrapeId) throw new Error('scrapeId is required');
 
@@ -595,19 +613,50 @@ async function generateJourney({ sandbox, scrapeId, brandColour, journeyType, pe
   const finalBrandColour = normaliseHex(brandColour || inferredColour, '#E60000');
   const resolvedClientName = clientName || scrape.brandName || summary.brandName || 'Client';
 
-  const userPayload = {
-    instruction: 'Design a 12-step AEP customer journey for the brand below. Return one JSON object matching the schema described in the system prompt.',
-    inputs: {
-      client: {
-        name: resolvedClientName,
-        domain: summary.url,
-        brandColour: finalBrandColour,
-        journeyType: journeyType || 'Customer Journey',
-        personaName: personaName || (summary.personas[0] && summary.personas[0].name) || '',
-      },
-      brandSummary: summary,
-    },
+  // The Vertex AI system prompt + JSON schema stay the same in both
+  // modes — only the user payload and instruction line change. This
+  // keeps the schema invariants (12 stepLabels, 13 descriptions, etc.)
+  // enforced uniformly and lets the model reuse its training on this
+  // schema regardless of whether it's a first run or a refinement.
+  const isRefinement = !!(refinementPrompt && previousJourney && typeof previousJourney === 'object');
+  const trimmedContext = (typeof additionalContext === 'string' ? additionalContext : '').trim();
+  const trimmedRefine = (typeof refinementPrompt === 'string' ? refinementPrompt : '').trim();
+
+  const clientInputs = {
+    name: resolvedClientName,
+    domain: summary.url,
+    brandColour: finalBrandColour,
+    journeyType: journeyType || 'Customer Journey',
+    personaName: personaName || (summary.personas[0] && summary.personas[0].name) || '',
   };
+
+  let userPayload;
+  if (isRefinement) {
+    userPayload = {
+      instruction:
+        'You previously generated the JSON in "previousJourney" for this brand. Apply the user\'s "refinementRequest" to update it and return ONE new JSON object matching the same schema described in the system prompt. ' +
+        'Preserve sections that the request does not touch — only modify what the user asked you to change. ' +
+        'All schema invariants still apply: exactly 12 stepLabels (NN  prefix), 12 stepIcons from the catalog, 13 descriptions (index 2 = ""), 12 data/adobe/tech items, 13 slides with the activeNode invariant, etc. Return JSON only.',
+      inputs: {
+        client: clientInputs,
+        brandSummary: summary,
+        refinementRequest: trimmedRefine,
+        previousJourney,
+      },
+    };
+  } else {
+    const inputs = {
+      client: clientInputs,
+      brandSummary: summary,
+    };
+    if (trimmedContext) inputs.additionalContext = trimmedContext;
+    userPayload = {
+      instruction:
+        'Design a 12-step AEP customer journey for the brand below. Return one JSON object matching the schema described in the system prompt.' +
+        (trimmedContext ? ' Pay special attention to "additionalContext" in the inputs — it carries freeform guidance from the human user that should shape the narrative, persona behaviour, and step focus.' : ''),
+      inputs,
+    };
+  }
 
   // gemini-2.5-pro supports up to 65536 output tokens. The full journey
   // schema (12 steps × 13 slides × ~10 array fields each) routinely emits
@@ -1806,6 +1855,16 @@ async function handleGenerate(req, res) {
   const sandbox = String(body.sandbox || '').trim();
   const scrapeId = String(body.scrapeId || '').trim();
   if (!sandbox || !scrapeId) { res.status(400).json({ error: 'sandbox and scrapeId are required' }); return; }
+  // Refinement mode: caller passes the previous journey JSON + a freeform
+  // user prompt. Both must be present; a missing previousJourney with a
+  // refinementPrompt falls back to a fresh generation so the user always
+  // gets something useful.
+  const previousJourney = (body.previousJourney && typeof body.previousJourney === 'object')
+    ? body.previousJourney
+    : null;
+  const refinementPrompt = typeof body.refinementPrompt === 'string'
+    ? body.refinementPrompt
+    : '';
   try {
     const result = await generateJourney({
       sandbox,
@@ -1814,8 +1873,15 @@ async function handleGenerate(req, res) {
       journeyType: body.journeyType,
       personaName: body.personaName,
       clientName: body.clientName,
+      additionalContext: body.additionalContext,
+      previousJourney,
+      refinementPrompt,
     });
-    res.status(200).json({ ok: true, ...result });
+    res.status(200).json({
+      ok: true,
+      mode: (previousJourney && refinementPrompt.trim()) ? 'refinement' : 'initial',
+      ...result,
+    });
   } catch (e) {
     console.error('[clientJourney] generate failed', e);
     res.status(500).json({ ok: false, error: String(e && e.message || e) });

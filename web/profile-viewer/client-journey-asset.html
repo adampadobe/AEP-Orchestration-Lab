@@ -92,6 +92,11 @@
               </div>
               <p class="cj-suggest-hint" id="cjPersonaHint" hidden></p>
             </div>
+            <div class="form-row">
+              <label for="cjAdditionalContext">Additional context for Vertex AI <span class="cj-form-hint">(optional)</span></label>
+              <textarea id="cjAdditionalContext" class="cj-textarea" rows="3" placeholder="e.g. Focus on first-time customers, emphasise loyalty rewards, mention sustainability throughout, target the EMEA market…" spellcheck="true"></textarea>
+              <p class="cj-suggest-hint">Anything you add here is appended to the Vertex AI prompt to steer the first generation.</p>
+            </div>
             <div class="form-row cj-generate-row">
               <button type="button" id="cjGenerateBtn" class="primary">Generate journey assets</button>
               <button type="button" id="cjPrevLoadBtn" class="cj-prev-load" hidden title="Restore the previous result for this scrape from your browser cache">Load previous result</button>
@@ -111,6 +116,18 @@
         </section>
 
         <section class="cj-results" id="cjResults" hidden>
+          <div class="cj-refine-panel" id="cjRefinePanel">
+            <div class="cj-refine-panel-header">
+              <span class="cj-refine-panel-title">Refine with Vertex AI</span>
+              <span class="cj-refine-panel-status status" id="cjRefineStatus" role="status" aria-live="polite"></span>
+            </div>
+            <textarea id="cjRefinePrompt" class="cj-textarea" rows="3" placeholder="e.g. Make step 7 about a loyalty programme upgrade, swap email for SMS in step 9, add a sustainability angle throughout, tighten the persona narrative…" spellcheck="true"></textarea>
+            <div class="cj-refine-panel-actions">
+              <button type="button" id="cjRefineBtn" class="primary">Refine assets</button>
+              <span class="cj-refine-panel-hint">Sends your prompt + the current journey JSON back to Vertex AI to update the map and one-pager. Takes about as long as the first generation.</span>
+            </div>
+          </div>
+
           <div class="cj-recolour" id="cjRecolour" hidden>
             <span class="cj-recolour-label">Recolour with palette:</span>
             <div class="cj-recolour-swatches" id="cjRecolourSwatches" role="radiogroup" aria-label="Apply a brand colour from the scrape"></div>

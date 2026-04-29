@@ -942,3 +942,106 @@
   height: 100%;
   width: 100%;
 }
+
+/* ─── Freeform Vertex AI prompt boxes ──────────────────────────────────
+   Two text areas: one in the Refine form before generation (steers the
+   first run), one in the results section after generation (refines the
+   already-rendered assets). Both share the .cj-textarea class so they
+   pick up the same dashboard typography + focus ring as the rest of
+   the form. The post-generation "Refine with Vertex AI" panel sits in
+   its own card so it reads as a distinct workflow rather than another
+   recolour control.
+*/
+.client-journey-asset-page .cj-form-hint {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary);
+  margin-left: 4px;
+}
+
+.client-journey-asset-page .cj-textarea {
+  width: 100%;
+  min-height: 70px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--dash-text);
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.client-journey-asset-page .cj-textarea:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px rgba(17, 81, 255, 0.15);
+}
+
+.client-journey-asset-page .cj-textarea::placeholder {
+  color: var(--dash-text-secondary);
+  opacity: 0.7;
+}
+
+.client-journey-asset-page .cj-refine-panel {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  box-shadow: var(--dash-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.client-journey-asset-page .cj-refine-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.client-journey-asset-page .cj-refine-panel-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.client-journey-asset-page .cj-refine-panel-title::before {
+  content: "✦";
+  color: var(--dash-blue);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.client-journey-asset-page .cj-refine-panel-status:empty {
+  display: none;
+}
+
+.client-journey-asset-page .cj-refine-panel-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.client-journey-asset-page .cj-refine-panel-hint {
+  font-size: 0.75rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.35;
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.client-journey-asset-page .cj-refine-panel button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

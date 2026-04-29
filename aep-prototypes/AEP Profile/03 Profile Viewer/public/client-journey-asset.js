@@ -69,6 +69,13 @@
   var recolourHex = $('cjRecolourHex');
   var recolourReset = $('cjRecolourReset');
   var recolourEyedropper = $('cjRecolourEyedropper');
+  // Freeform Vertex AI prompts: one before generation (steers first
+  // run), one after (refines the already-rendered assets).
+  var additionalContextInput = $('cjAdditionalContext');
+  var refinePanel = $('cjRefinePanel');
+  var refinePromptInput = $('cjRefinePrompt');
+  var refineBtn = $('cjRefineBtn');
+  var refineStatus = $('cjRefineStatus');
 
   // ─── State ────────────────────────────────────────────────────────────
   var state = {
@@ -205,6 +212,9 @@
     state.journeyData = entry.journeyData;
     state.originalBrandColour = String(entry.originalBrandColour || entry.brandColour || '').toUpperCase();
     state.activeBrandColour = String(entry.colourOverride || entry.brandColour || state.originalBrandColour).toUpperCase();
+    if (additionalContextInput) additionalContextInput.value = entry.additionalContext || '';
+    if (refinePromptInput) refinePromptInput.value = '';
+    if (refineStatus) setStatus(refineStatus, '', '');
     mountIframe(iframeJourney, entry.htmlJourney, 'journey');
     mountIframe(iframeOnePager, entry.htmlOnePager, 'onepager');
     resultsSection.hidden = false;
@@ -1002,11 +1012,17 @@
       if (cached.brandColour) applyBrandColour(cached.brandColour);
       if (cached.journeyType) journeyTypeInput.value = cached.journeyType;
       if (cached.personaName) personaInput.value = cached.personaName;
+      if (additionalContextInput) additionalContextInput.value = cached.additionalContext || '';
       showLoadPrev(cached);
     } else {
       hideLoadPrev();
+      if (additionalContextInput) additionalContextInput.value = '';
       resultsSection.hidden = true;
     }
+    // Always start the post-generation refine textarea blank — it's a
+    // fire-and-forget instruction, not a value worth persisting.
+    if (refinePromptInput) refinePromptInput.value = '';
+    if (refineStatus) setStatus(refineStatus, '', '');
   }
 
   // ─── Generate progress tracker ────────────────────────────────────────
@@ -1128,9 +1144,11 @@
     }
     var journeyType = (journeyTypeInput.value || '').trim();
     var personaName = (personaInput.value || '').trim();
+    var additionalContext = (additionalContextInput && additionalContextInput.value || '').trim();
 
     generateBtn.disabled = true;
     setStatus(generateStatus, '', '');
+    setStatus(refineStatus, '', '');
     resultsSection.hidden = true;
     progress.start();
 
@@ -1145,6 +1163,7 @@
           journeyType: journeyType || undefined,
           personaName: personaName || undefined,
           clientName: state.selectedScrape.brandName || undefined,
+          additionalContext: additionalContext || undefined,
         }),
       });
       var data = await resp.json().catch(function () { return {}; });
@@ -1160,16 +1179,23 @@
       // Persist so the user can restore this result on their next visit
       // without burning another 60–120s Vertex AI call. Keyed by sandbox
       // + scrapeId so multiple customers and sandboxes coexist cleanly.
+      // We also stash the additionalContext used so the textarea can
+      // pre-fill on cache load (the user sees how they steered the
+      // original prompt and can tweak + regenerate without context loss).
       saveToCache(sandbox, state.selectedScrape.scrapeId, {
         brandName: state.selectedScrape.brandName,
         brandColour: brandColour,
         originalBrandColour: brandColour,
         journeyType: journeyType,
         personaName: personaName,
+        additionalContext: additionalContext,
         journeyData: data.journeyData,
         htmlJourney: data.htmlJourney,
         htmlOnePager: data.htmlOnePager,
       });
+      // Clear any stale refinement prompt left over from a previous
+      // generation so the user starts fresh.
+      if (refinePromptInput) refinePromptInput.value = '';
       // Refresh the banner so it reflects "just now" + the new refinements
       // (and the pill on the scrape card if it wasn't there before).
       var fresh = loadFromCache(sandbox, state.selectedScrape.scrapeId);
@@ -1185,13 +1211,116 @@
 
       resultsSection.hidden = false;
       progress.finish('success', 'Generated successfully');
-      setStatus(generateStatus, 'Use the tabs to switch views, the \u26F6 icon for full-screen, or download the PPTX.', 'success');
+      setStatus(generateStatus, 'Use the tabs to switch views, the \u26F6 icon for full-screen, or download the PPTX. To tweak, type into the Refine box below.', 'success');
       activateTab('journey');
     } catch (e) {
       console.error('[client-journey] generate failed', e);
       progress.finish('error', 'Generate failed: ' + (e && e.message || e));
       setStatus(generateStatus, 'Generate failed: ' + (e && e.message || e), 'error');
     } finally {
+      generateBtn.disabled = false;
+    }
+  }
+
+  // ─── Refine (post-generation Vertex AI prompt) ────────────────────────
+  //
+  // Sends the previously generated journey JSON + a freeform user prompt
+  // back to /api/client-journey/generate. The backend recognises both
+  // fields and switches to refinement mode — same schema, same render
+  // pipeline, but the model only changes what the user asked for and
+  // preserves the rest. We swap the iframes, update state.journeyData
+  // (so the next PPTX download / recolour uses the refined version), and
+  // overwrite the cache entry with the new content while preserving the
+  // additionalContext that originally seeded the run.
+
+  async function refineAssets() {
+    if (!state.selectedScrape) {
+      setStatus(refineStatus, 'Look up a scrape first.', 'error');
+      return;
+    }
+    if (!state.journeyData) {
+      setStatus(refineStatus, 'Generate a journey first, then refine it.', 'error');
+      return;
+    }
+    var prompt = (refinePromptInput && refinePromptInput.value || '').trim();
+    if (!prompt) {
+      setStatus(refineStatus, 'Type a refinement prompt before clicking Refine.', 'error');
+      if (refinePromptInput) refinePromptInput.focus();
+      return;
+    }
+
+    var sandbox = getSandbox();
+    var brandColour = (brandColourInput.value || '').trim() || '#E60000';
+    var journeyType = (journeyTypeInput.value || '').trim();
+    var personaName = (personaInput.value || '').trim();
+
+    refineBtn.disabled = true;
+    generateBtn.disabled = true;
+    setStatus(refineStatus, 'Refining with Vertex AI…', '');
+    setStatus(generateStatus, '', '');
+    progress.start();
+
+    try {
+      var resp = await fetch(GENERATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sandbox: sandbox,
+          scrapeId: state.selectedScrape.scrapeId,
+          brandColour: brandColour,
+          journeyType: journeyType || undefined,
+          personaName: personaName || undefined,
+          clientName: state.selectedScrape.brandName || undefined,
+          previousJourney: state.journeyData,
+          refinementPrompt: prompt,
+        }),
+      });
+      var data = await resp.json().catch(function () { return {}; });
+      if (!resp.ok || !data.ok) throw new Error((data && data.error) || ('HTTP ' + resp.status));
+
+      state.journeyData = data.journeyData;
+      mountIframe(iframeJourney, data.htmlJourney, 'journey');
+      mountIframe(iframeOnePager, data.htmlOnePager, 'onepager');
+
+      // Re-apply the active recolour override (if any) so the refined
+      // assets keep whatever recolour the user had picked. Fresh HTML
+      // from the backend always uses originalBrandColour, so without
+      // this step any active override would silently revert.
+      if (state.activeBrandColour && state.activeBrandColour !== state.originalBrandColour) {
+        applyRecolour(state.activeBrandColour, { persist: false });
+      }
+
+      // Overwrite cache with the refined journey but keep the original
+      // additionalContext + originalBrandColour so the user's history
+      // about how this run was seeded isn't lost.
+      var existing = loadFromCache(sandbox, state.selectedScrape.scrapeId) || {};
+      saveToCache(sandbox, state.selectedScrape.scrapeId, {
+        brandName: state.selectedScrape.brandName,
+        brandColour: existing.brandColour || brandColour,
+        originalBrandColour: existing.originalBrandColour || brandColour,
+        colourOverride: state.activeBrandColour && state.activeBrandColour !== state.originalBrandColour
+          ? state.activeBrandColour : undefined,
+        journeyType: existing.journeyType || journeyType,
+        personaName: existing.personaName || personaName,
+        additionalContext: existing.additionalContext || '',
+        lastRefinementPrompt: prompt,
+        journeyData: data.journeyData,
+        htmlJourney: data.htmlJourney,
+        htmlOnePager: data.htmlOnePager,
+      });
+
+      var fresh = loadFromCache(sandbox, state.selectedScrape.scrapeId);
+      if (fresh) showLoadPrev(fresh);
+
+      progress.finish('success', 'Refinement applied');
+      setStatus(refineStatus, 'Updated. The map and one-pager have been replaced.', 'success');
+      if (refinePromptInput) refinePromptInput.value = '';
+    } catch (e) {
+      console.error('[client-journey] refine failed', e);
+      progress.finish('error', 'Refine failed: ' + (e && e.message || e));
+      setStatus(refineStatus, 'Refine failed: ' + (e && e.message || e), 'error');
+    } finally {
+      refineBtn.disabled = false;
       generateBtn.disabled = false;
     }
   }
@@ -1348,6 +1477,18 @@
 
     generateBtn.addEventListener('click', generate);
     downloadPptxBtn.addEventListener('click', downloadPptx);
+
+    // Post-generation refine: button click + Cmd/Ctrl+Enter shortcut
+    // inside the textarea for keyboard-heavy users.
+    if (refineBtn) refineBtn.addEventListener('click', refineAssets);
+    if (refinePromptInput) {
+      refinePromptInput.addEventListener('keydown', function (ev) {
+        if ((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter') {
+          ev.preventDefault();
+          refineAssets();
+        }
+      });
+    }
     tabJourney.addEventListener('click', function () { activateTab('journey'); });
     tabOnePager.addEventListener('click', function () { activateTab('onepager'); });
     if (prevLoadBtn) {
