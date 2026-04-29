@@ -2573,6 +2573,12 @@ exports.eventDatastreamsProxy = onRequest(
     if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
     if (req.method !== 'GET') { res.status(405).json({ error: 'GET only' }); return; }
 
+    /** Lightweight: deployment IMS org only (no Edge list call) — for manual datastream entry in EDS quickstart. */
+    if (String(req.query.imsOrgOnly || '').trim() === '1') {
+      res.status(200).json({ ok: true, imsOrg: ADOBE_IMS_ORG.value() });
+      return;
+    }
+
     let accessToken;
     try { accessToken = await getAdobeAccessToken(); }
     catch (e) { res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) }); return; }
