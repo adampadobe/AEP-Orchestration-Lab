@@ -1432,22 +1432,29 @@ function ajoChannelToJourneyDevice(channel) {
   return 'web';
 }
 
-/** Vertex steps → JSON states for the curved-path journey UI (mirrors experience-journey-map.html). */
+/** Vertex steps → JSON states for the curved-path journey UI (mirrors experience-journey-map.html).
+ *  Card placement is computed at runtime from the path Y so cards sit on the
+ *  opposite side of the curve and never overlap. dx is a small horizontal nudge
+ *  used to push the leftmost / rightmost cards in from the canvas edge. */
 function buildJourneyStatesFromStepsForDeck(steps) {
-  const offsets = [
-    { dx: 0, dy: 56 }, { dx: 90, dy: -8 }, { dx: -40, dy: 70 },
-    { dx: 0, dy: 58 }, { dx: 72, dy: -20 }, { dx: 72, dy: 64 },
-    { dx: -60, dy: 72 }, { dx: 0, dy: 58 }, { dx: 64, dy: -24 },
-  ];
-  return (Array.isArray(steps) ? steps : []).map((step, i) => ({
-    id: `s${i + 1}`,
-    channel: ajoChannelToJourneyDevice(step && step.channel),
-    image: '',
-    nodeType: (i % 3 === 0 ? 'tap' : 'marker'),
-    title: safeString(step && step.title, `Step ${i + 1}`),
-    description: safeString(step && step.description, ''),
-    offsetLabel: offsets[i % offsets.length],
-  }));
+  const arr = Array.isArray(steps) ? steps : [];
+  const n = arr.length;
+  return arr.map((step, i) => {
+    let dx = 0;
+    if (n > 1) {
+      if (i === 0) dx = 60;
+      else if (i === n - 1) dx = -60;
+    }
+    return {
+      id: `s${i + 1}`,
+      channel: ajoChannelToJourneyDevice(step && step.channel),
+      image: '',
+      nodeType: (i % 3 === 0 ? 'tap' : 'marker'),
+      title: safeString(step && step.title, `Step ${i + 1}`),
+      description: safeString(step && step.description, ''),
+      offsetLabel: { dx, dy: 0 },
+    };
+  });
 }
 
 function pickActiveJourneyMarkerHex(brand) {
@@ -1495,34 +1502,41 @@ function renderExperienceHtml(data, images) {
     --jm-radius-lg: 16px;
     --jm-radius-sm: 10px;
   }
-  .experience-journey { padding: 28px 44px 52px; overflow: auto; }
+  /* Match slides 1 & 3: full-bleed deck-slide shell, no nested card wrapper. */
+  .experience-journey { padding: 38px 56px 22px; overflow: hidden; }
   .journey-app {
     width: 100%;
-    max-width: 1180px;
-    margin: 0 auto;
-    background: var(--jm-canvas);
-    border-radius: var(--jm-radius-lg);
-    box-shadow: var(--jm-shadow);
-    padding: 18px 22px 48px;
+    margin: 0;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
     position: relative;
-    min-height: 480px;
-    max-height: min(720px, 92vh);
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
   }
-  .deck-header { margin-bottom: 4px; }
+  .journey-header-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .deck-header { margin-bottom: 0; }
   .deck-title {
-    font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
     font-weight: 800;
     letter-spacing: -0.03em;
     color: var(--ink);
-    line-height: 1.15;
+    line-height: 1.1;
   }
   .deck-subtitle {
-    font-size: clamp(0.78rem, 1.4vw, 0.9rem);
+    font-size: clamp(0.95rem, 1.5vw, 1.1rem);
     color: var(--ink-soft);
     font-weight: 500;
-    margin-top: 4px;
+    margin-top: 6px;
   }
   .step-progress {
     font-size: 11px;
@@ -1531,16 +1545,16 @@ function renderExperienceHtml(data, images) {
     letter-spacing: 0.25px;
     text-transform: uppercase;
     text-align: right;
-    margin-bottom: 8px;
+    white-space: nowrap;
   }
   .step-progress-current { color: var(--brand); font-size: 14px; }
   .persona-row {
     display: grid;
     grid-template-columns: 72px 1fr;
-    gap: 12px 16px;
+    gap: 10px 18px;
     align-items: start;
-    max-width: 520px;
-    margin: 10px 0 8px;
+    max-width: 640px;
+    margin: 10px 0 12px;
   }
   .persona-photo-cell { position: relative; width: 72px; height: 72px; }
   .persona-photo-cell .demo-slot { width: 72px; height: 72px; border-radius: 50%; overflow: hidden;
@@ -1548,98 +1562,135 @@ function renderExperienceHtml(data, images) {
   .persona-photo-cell .demo-slot-inner { width: 100%; height: 100%; }
   .persona-photo-cell img, .persona-photo-cell svg { width: 100%; height: 100%; object-fit: cover; display: block; }
   .persona-photo-cell .svg-wrap { width: 100%; height: 100%; display: block; }
-  .persona-name { font-size: 0.95rem; font-weight: 800; color: var(--ink); }
-  .persona-role { font-size: 0.74rem; color: var(--ink-soft); margin-top: 4px; line-height: 1.35; }
+  .persona-name { font-size: 1rem; font-weight: 800; color: var(--ink); }
+  .persona-role { font-size: 0.78rem; color: var(--ink-soft); margin-top: 4px; line-height: 1.35; }
   .persona-signals {
     grid-column: 1 / -1;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     color: var(--ink-mute);
     line-height: 1.45;
-    padding: 8px 10px;
-    background: rgba(255,255,255,0.75);
-    border-radius: var(--jm-radius-sm);
-    border: 1px solid rgba(0,0,0,0.06);
+    padding: 7px 12px;
+    background: var(--panel);
+    border-radius: 10px;
+    border: 1px solid var(--border);
   }
   .svg-stage-wrap {
     position: relative;
     width: 100%;
-    margin-top: 6px;
+    margin-top: 4px;
     flex: 1 1 auto;
-    min-height: 220px;
-    aspect-ratio: 1200 / 420;
-    max-height: 360px;
+    min-height: 380px;
   }
-  .svg-stage { width: 100%; height: 100%; display: block; }
+  .svg-stage { width: 100%; height: 100%; display: block; overflow: visible; }
+  #journeyPathProgress { transition: stroke-dashoffset 0.55s cubic-bezier(.4,.1,.2,1); }
   .floating-layer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; }
   .state-float {
     position: absolute;
-    pointer-events: auto;
-    transform: translate(-50%, -50%);
-    transition: opacity 0.35s ease, transform 0.35s ease, filter 0.35s ease;
-    max-width: min(220px, 28vw);
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.86);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.4,.1,.2,1), visibility 0s linear 0.45s;
+    width: 158px;
+    max-width: 158px;
     z-index: 1;
   }
-  .journey-app.is-ready .state-float { transition: opacity 0.35s ease, transform 0.35s ease, filter 0.35s ease; }
-  .state-float.is-active { z-index: 10; filter: none; opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
-  .state-float:not(.is-active) { opacity: 0.42; filter: saturate(0.65); }
+  .state-float.is-revealed {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+    transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.4,.1,.2,1), visibility 0s linear 0s;
+  }
+  .state-float.is-active { z-index: 10; }
+  .state-float.is-active .float-inner {
+    box-shadow: 0 18px 44px rgba(0,0,0,0.16);
+    border-color: var(--brand);
+    border-width: 2px;
+  }
+  .channel-only-badge {
+    position: absolute;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .channel-only-badge.is-shown {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0s linear 0s;
+  }
   .float-inner {
     background: var(--jm-panel);
     border-radius: var(--jm-radius-sm);
-    box-shadow: var(--jm-shadow);
-    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+    border: 1px solid rgba(0,0,0,0.08);
     overflow: hidden;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease, border-width 0.3s ease;
   }
-  .float-title { font-size: 0.68rem; font-weight: 800; color: var(--ink); padding: 7px 9px 0; line-height: 1.25; }
-  .float-desc { font-size: 0.64rem; color: var(--ink-soft); padding: 3px 9px 8px; line-height: 1.4; }
-  .device { margin: 5px 7px 0; border-radius: 10px; overflow: hidden; background: #0f1114; border: 1px solid #2a2e35; }
-  .device--mobile { width: 82px; margin-left: auto; margin-right: auto; aspect-ratio: 9 / 18; }
-  .device--tablet { width: 100%; max-width: 180px; margin-left: auto; margin-right: auto; aspect-ratio: 4 / 3; }
-  .device--desktop { width: 100%; max-width: 200px; margin-left: auto; margin-right: auto; aspect-ratio: 16 / 10; }
-  .device-bar { height: 7px; background: #2a2e35; display: flex; align-items: center; gap: 3px; padding: 0 5px; }
+  .float-title { font-size: 0.66rem; font-weight: 800; color: var(--ink); padding: 6px 8px 0; line-height: 1.25; }
+  .float-desc { font-size: 0.6rem; color: var(--ink-soft); padding: 3px 8px 7px; line-height: 1.4; }
+  .device { margin: 5px 6px 0; border-radius: 8px; overflow: hidden; background: #0f1114; border: 1px solid #2a2e35; }
+  .device--mobile { width: 64px; margin-left: auto; margin-right: auto; aspect-ratio: 9 / 18; }
+  .device--tablet { width: 100%; max-width: 150px; margin-left: auto; margin-right: auto; aspect-ratio: 4 / 3; }
+  .device--desktop { width: 100%; max-width: 152px; margin-left: auto; margin-right: auto; aspect-ratio: 16 / 10; }
+  .device-bar { height: 6px; background: #2a2e35; display: flex; align-items: center; gap: 3px; padding: 0 5px; }
   .device-bar span { width: 3px; height: 3px; border-radius: 50%; background: #5c6370; }
   .device-screen {
     position: relative;
-    height: calc(100% - 7px);
+    height: calc(100% - 6px);
     background: linear-gradient(180deg, #f8f9fb 0%, #eef0f4 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.52rem;
+    font-size: 0.5rem;
     color: var(--ink-mute);
     text-align: center;
-    padding: 5px;
+    padding: 4px;
   }
   .device-screen img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .channel-badge {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 0.58rem;
-    font-weight: 700;
+    font-size: 0.56rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     color: var(--jm-accent-badge);
-    padding: 0 9px 5px;
+    padding: 6px 9px 0;
   }
   .nav-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    margin-top: 12px;
+    margin-top: 14px;
     padding-top: 10px;
-    border-top: 1px solid rgba(0,0,0,0.06);
+    border-top: 1px solid var(--border);
   }
   .nav-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
+    padding: 8px 18px;
     border-radius: 999px;
     border: 1.5px solid #c9ced8;
     background: #fff;
     font-weight: 700;
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     cursor: pointer;
     font-family: inherit;
     color: var(--ink);
@@ -1648,31 +1699,21 @@ function renderExperienceHtml(data, images) {
   .nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .nav-btn--primary { background: var(--jm-tap-ring); border-color: var(--jm-tap-ring); color: #fff; }
   .nav-btn--primary:hover:not(:disabled) { background: #0d62c4; border-color: #0d62c4; color: #fff; }
-  .nav-hint { font-size: 0.65rem; color: var(--ink-mute); text-align: center; flex: 1; }
-  .journey-app .deck-footer {
-    position: absolute;
-    left: 18px;
-    right: 18px;
-    bottom: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.62rem;
-    color: var(--ink-mute);
-  }
+  .nav-hint { font-size: 0.7rem; color: var(--ink-mute); text-align: center; flex: 1; }
   .adobe-wordmark { font-weight: 800; color: var(--adobe-red); letter-spacing: -0.02em; }
-  .copyright { text-align: right; max-width: 52%; line-height: 1.3; }
 </style></head>
 <body>
   <section class="deck-slide experience-journey">
-    <div class="step-progress" aria-live="polite">
-      Step <span class="step-progress-current" id="jmStepProg">1</span> of ${n}
-    </div>
-    <div class="journey-app" id="journeyApp" aria-live="polite">
+    <div class="journey-header-row">
       <header class="deck-header">
         <div class="deck-title">${escapeHtml(e.title)}</div>
         <div class="deck-subtitle">${escapeHtml(e.subtitle)}</div>
       </header>
+      <div class="step-progress" aria-live="polite">
+        Step <span class="step-progress-current" id="jmStepProg">1</span> of ${n}
+      </div>
+    </div>
+    <div class="journey-app" id="journeyApp" aria-live="polite">
       <div class="persona-row" id="personaBlock">
         <div class="persona-photo-cell">
           ${wrapDemoSlot('experience.persona', 'Persona headshot', personaState, personaInner, { showLabel: false })}
@@ -1684,9 +1725,12 @@ function renderExperienceHtml(data, images) {
         <div class="persona-signals">${escapeHtml(persona.summary)}</div>
       </div>
       <div class="svg-stage-wrap" id="stageWrap">
-        <svg class="svg-stage" id="journeySvg" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <svg class="svg-stage" id="journeySvg" viewBox="0 0 1280 480" preserveAspectRatio="none" aria-hidden="true">
           <path id="journeyPath" fill="none" stroke="var(--jm-path-line)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-            d="M 56 320 C 160 100, 280 360, 420 200 C 520 80, 620 100, 700 240 C 780 380, 860 360, 940 140 C 1000 60, 1080 120, 1144 260" />
+            d="M 60 300 C 200 140, 360 360, 500 220 C 640 80, 800 380, 940 240 C 1080 120, 1180 320, 1240 240" />
+          <path id="journeyPathProgress" fill="none" stroke="var(--brand)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+            d="M 60 300 C 200 140, 360 360, 500 220 C 640 80, 800 380, 940 240 C 1080 120, 1180 320, 1240 240"
+            opacity="0.85" />
           <g id="pathDecorations"></g>
         </svg>
         <div class="floating-layer" id="floatLayer"></div>
@@ -1696,10 +1740,10 @@ function renderExperienceHtml(data, images) {
         <span class="nav-hint" id="navHint">Use Previous / Next or arrow keys.</span>
         <button type="button" class="nav-btn nav-btn--primary" id="btnNext">Next ▶</button>
       </div>
-      <footer class="deck-footer">
-        <span class="adobe-wordmark">Adobe</span>
-        <span class="copyright">© ${new Date().getFullYear()} Adobe. All Rights Reserved. Adobe Confidential.</span>
-      </footer>
+    </div>
+    <div class="deck-footer">
+      <span class="adobe-logo"><span class="wordmark">Adobe</span></span>
+      <span class="copyright">© ${new Date().getFullYear()} Adobe. All Rights Reserved. Adobe Confidential.</span>
     </div>
   </section>
   <script>
@@ -1707,6 +1751,7 @@ function renderExperienceHtml(data, images) {
     var STATES = ${statesJson};
     var ACTIVE_MARKER = ${JSON.stringify(activeMarker)};
     var pathEl = document.getElementById('journeyPath');
+    var pathProgress = document.getElementById('journeyPathProgress');
     var decorG = document.getElementById('pathDecorations');
     var floatLayer = document.getElementById('floatLayer');
     var stageWrap = document.getElementById('stageWrap');
@@ -1717,8 +1762,12 @@ function renderExperienceHtml(data, images) {
     var stepProg = document.getElementById('jmStepProg');
     var current = 0;
     var stateEls = [];
+    var badgeEls = [];
     var markerEls = [];
     var n = STATES.length;
+    var pathLen = 0;
+    var nodeT = [];
+    var CHANNEL_LABEL = { mobile: 'Mobile', email: 'Email', sms: 'SMS', push: 'Push', web: 'Web', tablet: 'Tablet' };
 
     function escapeHtml(s) {
       return String(s == null ? '' : s)
@@ -1742,16 +1791,65 @@ function renderExperienceHtml(data, images) {
         return { x: 600, y: 210 };
       }
     }
+    // Sample the path densely once and pick t-values whose X is evenly
+    // distributed across the canvas — avoids node bunching on curve loop-backs.
+    function evenlySpacedTs(path, count, marginPct) {
+      try {
+        var len = path.getTotalLength();
+        var samples = [];
+        var steps = 800;
+        for (var s = 0; s <= steps; s++) {
+          var t = s / steps;
+          var p = path.getPointAtLength(len * t);
+          samples.push({ t: t, x: p.x });
+        }
+        var xMin = Infinity;
+        var xMax = -Infinity;
+        for (var k = 0; k < samples.length; k++) {
+          if (samples[k].x < xMin) xMin = samples[k].x;
+          if (samples[k].x > xMax) xMax = samples[k].x;
+        }
+        var m = marginPct == null ? 0.04 : marginPct;
+        var inner = xMin + (xMax - xMin) * m;
+        var outer = xMax - (xMax - xMin) * m;
+        var ts = [];
+        for (var i = 0; i < count; i++) {
+          var u = count === 1 ? 0.5 : i / (count - 1);
+          var targetX = inner + (outer - inner) * u;
+          var bestIdx = 0;
+          var bestDiff = Infinity;
+          for (var j = 0; j < samples.length; j++) {
+            var diff = Math.abs(samples[j].x - targetX);
+            if (diff < bestDiff) { bestDiff = diff; bestIdx = j; }
+          }
+          ts.push(samples[bestIdx].t);
+        }
+        return ts;
+      } catch (e) {
+        var arr = [];
+        for (var z = 0; z < count; z++) arr.push(count === 1 ? 0.5 : z / (count - 1));
+        return arr;
+      }
+    }
     function layoutFromStates(states) {
       decorG.innerHTML = '';
       floatLayer.innerHTML = '';
       stateEls = [];
+      badgeEls = [];
       markerEls = [];
+      nodeT = [];
+      try { pathLen = pathEl.getTotalLength(); } catch (e) { pathLen = 1000; }
+      if (pathProgress) {
+        pathProgress.style.strokeDasharray = pathLen + ' ' + pathLen;
+        pathProgress.style.strokeDashoffset = String(pathLen);
+      }
       var nn = states.length;
+      var evenTs = evenlySpacedTs(pathEl, nn, 0.05);
       for (var i = 0; i < nn; i++) {
         var st = states[i];
-        var t = nn === 1 ? 0.5 : i / (nn - 1);
-        var pt = st.point || pointOnPath(pathEl, 0.04 + t * 0.92);
+        var t = evenTs[i];
+        nodeT.push(t);
+        var pt = pointOnPath(pathEl, t);
         var nodeType = st.nodeType || 'marker';
         if (nodeType === 'tap') {
           var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -1786,12 +1884,12 @@ function renderExperienceHtml(data, images) {
         wrap.className = 'state-float';
         wrap.dataset.index = String(i);
         wrap.dataset.offDx = String((st.offsetLabel && st.offsetLabel.dx) || 0);
-        wrap.dataset.offDy = String((st.offsetLabel && st.offsetLabel.dy) || 52);
+        wrap.dataset.pathY = String(pt.y);
         var inner = document.createElement('div');
         inner.className = 'float-inner';
         var badge = document.createElement('div');
         badge.className = 'channel-badge';
-        badge.textContent = String(st.channel || 'channel');
+        badge.textContent = (CHANNEL_LABEL[String(st.channel || '').toLowerCase()] || String(st.channel || 'channel'));
         var dev = document.createElement('div');
         dev.className = deviceClass(st.channel);
         dev.innerHTML = '<div class="device-bar"><span></span><span></span><span></span></div><div class="device-screen">' +
@@ -1809,6 +1907,14 @@ function renderExperienceHtml(data, images) {
         wrap.appendChild(inner);
         floatLayer.appendChild(wrap);
         stateEls.push(wrap);
+
+        var pill = document.createElement('div');
+        pill.className = 'channel-only-badge';
+        pill.dataset.index = String(i);
+        pill.dataset.pathY = String(pt.y);
+        pill.textContent = (CHANNEL_LABEL[String(st.channel || '').toLowerCase()] || String(st.channel || 'channel')) + ' \u00b7 Step ' + (i + 1);
+        floatLayer.appendChild(pill);
+        badgeEls.push(pill);
       }
       app.classList.add('is-ready');
       setActive(0);
@@ -1822,19 +1928,32 @@ function renderExperienceHtml(data, images) {
       var nn = states.length;
       current = Math.max(0, Math.min(nn - 1, i));
       stateEls.forEach(function (el, j) {
+        el.classList.toggle('is-revealed', j <= current);
         el.classList.toggle('is-active', j === current);
       });
+      badgeEls.forEach(function (el, j) {
+        el.classList.toggle('is-shown', j > current);
+      });
       markerEls.forEach(function (m) {
+        var revealed = m.index <= current;
+        var isActive = m.index === current;
         if (m.kind === 'marker') {
-          m.el.setAttribute('fill', m.index === current ? ACTIVE_MARKER : 'var(--jm-node)');
-          m.el.setAttribute('r', m.index === current ? 10 : 7);
+          m.el.setAttribute('fill', isActive ? ACTIVE_MARKER : (revealed ? 'var(--jm-node)' : 'var(--jm-path-line)'));
+          m.el.setAttribute('r', isActive ? 10 : (revealed ? 7 : 5));
           m.el.setAttribute('stroke', '#fff');
-          m.el.setAttribute('stroke-width', m.index === current ? '3' : '2');
+          m.el.setAttribute('stroke-width', isActive ? '3' : '2');
+          m.el.setAttribute('opacity', revealed ? '1' : '0.55');
         } else if (m.kind === 'tap' && m.basePt) {
-          var scale = m.index === current ? 1.14 : 1;
+          var scale = isActive ? 1.14 : 1;
           m.el.setAttribute('transform', 'translate(' + m.basePt.x + ',' + m.basePt.y + ') scale(' + scale + ')');
+          m.el.setAttribute('opacity', revealed ? '0.95' : '0.35');
         }
       });
+      if (pathProgress && pathLen > 0) {
+        var t = nodeT[current] != null ? nodeT[current] : 0;
+        var visible = pathLen * t;
+        pathProgress.style.strokeDashoffset = String(pathLen - visible);
+      }
       btnPrev.disabled = current <= 0;
       btnNext.disabled = current >= nn - 1;
       var st = states[current];
@@ -1860,18 +1979,38 @@ function renderExperienceHtml(data, images) {
       var svg = document.getElementById('journeySvg');
       if (!svg || !pathEl) return;
       var wrapRect = stageWrap.getBoundingClientRect();
+      // Strict above/below alternation by index — guarantees two adjacent
+      // cards never land on the same side of the curve.
+      var ctm = svg.getScreenCTM();
+      var scaleX = ctm ? ctm.a : 1;
+      var scaleY = ctm ? ctm.d : 1;
       var states = STATES;
       var nn = states.length;
       stateEls.forEach(function (el, i) {
         var st = states[i];
-        var t = nn === 1 ? 0.5 : i / (nn - 1);
-        var pt = st.point || pointOnPath(pathEl, 0.04 + t * 0.92);
+        var t = nodeT[i] != null ? nodeT[i] : (nn === 1 ? 0.5 : i / (nn - 1));
+        var pt = st.point || pointOnPath(pathEl, t);
         var offDx = Number(el.dataset.offDx) || 0;
-        var offDy = Number(el.dataset.offDy) || 0;
+        var aboveMid = nn === 1 ? false : (i % 2 === 0);
+        var dySvg = aboveMid ? -120 : 120;
+        var dyPx = dySvg * scaleY;
         var scr = svgPointToLayerPx(svg, pt, wrapRect);
-        el.style.left = (scr.left + offDx) + 'px';
-        el.style.top = (scr.top + offDy) + 'px';
-        el.style.transform = 'translate(-50%, -50%)';
+        el.style.left = (scr.left + offDx * scaleX) + 'px';
+        el.style.top = (scr.top + dyPx) + 'px';
+      });
+      badgeEls.forEach(function (el, i) {
+        var st = states[i];
+        var t = nodeT[i] != null ? nodeT[i] : (nn === 1 ? 0.5 : i / (nn - 1));
+        var pt = st.point || pointOnPath(pathEl, t);
+        var aboveMid = nn === 1 ? false : (i % 2 === 0);
+        var dySvg = aboveMid ? -22 : 22;
+        var dyPx = dySvg * scaleY;
+        var scr = svgPointToLayerPx(svg, pt, wrapRect);
+        el.style.left = scr.left + 'px';
+        el.style.top = (scr.top + dyPx) + 'px';
+        el.style.transform = aboveMid
+          ? 'translate(-50%, -100%)'
+          : 'translate(-50%, 0)';
       });
     }
     if (n < 1) {
