@@ -1991,9 +1991,39 @@
         if (slowTimer) { clearTimeout(slowTimer); slowTimer = null; }
       }
 
-      var data = await resp.json().catch(function () { return {}; });
+      // Read body as text first so we can surface SOMETHING useful even
+      // when the response is a Cloud Run / Hosting platform error page
+      // (HTML, not JSON). Under HTTP/2 resp.statusText is always empty,
+      // so the previous "(data.error || resp.statusText)" template was
+      // silently rendering "Restore failed:" with no detail when the
+      // platform itself rejected the request — making it impossible to
+      // tell whether we hit a 413 body-size cap, a 502 cold-start, or a
+      // 500 from inside the function. Always include status + body
+      // snippet so there is no such thing as an empty error any more.
+      var rawBody = '';
+      var data = {};
+      try { rawBody = await resp.text(); } catch (_e) { /* ignore */ }
+      if (rawBody) { try { data = JSON.parse(rawBody); } catch (_e) { /* not JSON */ } }
       if (!resp.ok) {
-        var errMsg = 'Restore failed: ' + (data.error || resp.statusText);
+        var detail = data.error
+          || (rawBody ? String(rawBody).slice(0, 240) : '')
+          || resp.statusText
+          || '(no response body)';
+        var contentType = (resp.headers && resp.headers.get && resp.headers.get('content-type')) || '';
+        var errMsg = 'Restore failed (HTTP ' + resp.status + '): ' + detail;
+        try {
+          // Full diagnostic dump in DevTools console for the operator —
+          // far more detail than is sane to render in the dialog.
+          console.error('[restoreLibraryFromFile] failed', {
+            httpStatus: resp.status,
+            httpStatusText: resp.statusText,
+            contentType: contentType,
+            bodyLength: rawBody ? rawBody.length : 0,
+            bodySnippet: rawBody ? rawBody.slice(0, 1024) : '',
+            sandbox: sb,
+            file: { name: file.name, size: file.size },
+          });
+        } catch (_e) { /* ignore */ }
         markRestoreError(errMsg);
         setStatus(errMsg, 'err');
         return;
@@ -2014,7 +2044,17 @@
     } catch (e) {
       if (processingTimer) clearTimeout(processingTimer);
       if (slowTimer) clearTimeout(slowTimer);
-      var netMsg = 'Restore failed: ' + (e.message || e);
+      // Network-level error (DNS, TCP reset, request body too large
+      // rejected at the edge before any HTTP response, etc.). e.name
+      // distinguishes TypeError ("failed to fetch") vs AbortError vs
+      // SyntaxError. Surface name + message together so the user can
+      // copy-paste a useful snippet to us.
+      var detail = (e && e.message) ? e.message : String(e);
+      var name   = (e && e.name) ? e.name : 'Error';
+      var netMsg = 'Restore failed: ' + name + ' — ' + detail;
+      try {
+        console.error('[restoreLibraryFromFile] network/JS error', e);
+      } catch (_e) { /* ignore */ }
       markRestoreError(netMsg);
       setStatus(netMsg, 'err');
     }

@@ -861,39 +861,100 @@ async function uploadBackupZipAndSign(sandbox, buffer, fileName) {
  */
 async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
   const unzipper = require('unzipper');
-  const stream = require('stream');
   const bucket = getBucket();
   const prefix = libraryRoot(sandbox) + '/';
-  if (opts && opts.replace) {
-    const [existing] = await bucket.getFiles({ prefix });
-    await Promise.all(existing.map((f) => f.delete({ ignoreNotFound: true }).catch(() => {})));
+  let directory;
+  try {
+    directory = await unzipper.Open.buffer(zipBytes);
+  } catch (e) {
+    // Wrap parser errors so the caller can tell ZIP-corruption apart
+    // from GCS upload errors. Common shape: "FILE_ENDED", "invalid
+    // signature", "ENOENT" etc.
+    const wrapped = new Error('ZIP parse failed: ' + String((e && e.message) || e) + ' (zipBytes=' + zipBytes.length + ')');
+    wrapped.name = 'ZipParseError';
+    wrapped.cause = e;
+    throw wrapped;
   }
-  const pass = new stream.Readable();
-  pass._read = () => {};
-  pass.push(zipBytes);
-  pass.push(null);
-  const directory = await unzipper.Open.buffer(zipBytes);
-  const out = [];
+
+  // Skip README markers we add to backups so a roundtrip backup→restore
+  // does not pollute the library with diagnostic files. README-empty-library.txt
+  // is added by buildLibraryZipBuffer when there are zero real images
+  // (so the user's "Library was empty" backup round-trips harmlessly,
+  // triggering EmptyZipError below rather than wiping the live library).
+  const SKIPPED_NAMES = new Set(['README-skipped-files.txt', 'README-empty-library.txt']);
+
+  // Enumerate eligible entries first so we can refuse to delete the
+  // existing library when the ZIP is empty / contains zero real images.
+  // Without this guard a roundtrip backup→restore of a fresh sandbox
+  // would silently wipe whatever images you've added since.
+  const eligible = [];
   for (const entry of directory.files) {
     if (entry.type !== 'File') continue;
     const name = String(entry.path || '').replace(/\\/g, '/').replace(/^\/+/, '');
-    if (!name || name.indexOf('..') !== -1) continue;
-    const buf = await entry.buffer();
-    const ext = (name.split('.').pop() || '').toLowerCase();
-    const contentType = contentTypeFromExt(ext);
-    const key = prefix + name;
-    const file = bucket.file(key);
-    await file.save(buf, {
-      contentType,
-      resumable: false,
-      metadata: {
-        cacheControl: LIBRARY_CACHE_CONTROL,
-        metadata: { sandbox: sandboxPrefix(sandbox) },
-      },
-    });
-    try { await file.makePublic(); } catch (_e) {}
-    out.push({ relPath: name, size: buf.length });
+    if (!name) continue;
+    if (name.indexOf('..') !== -1) continue;
+    // macOS Archive Utility / Finder add __MACOSX/ resource-fork dirs
+    // and per-folder .DS_Store files when re-zipping. Both are noise
+    // that would land in the library as unviewable junk.
+    if (name.startsWith('__MACOSX/') || name === '__MACOSX') continue;
+    const baseName = name.split('/').pop() || '';
+    if (baseName === '.DS_Store') continue;
+    if (baseName.startsWith('._')) continue; // AppleDouble metadata
+    if (SKIPPED_NAMES.has(baseName)) continue;
+    eligible.push({ entry, name });
   }
+  if (eligible.length === 0) {
+    const msg = 'ZIP contains zero restorable image files (parsed ' + directory.files.length + ' entries, all of which were folders, paths with .., or the README). Refusing to wipe the existing library.';
+    const err = new Error(msg);
+    err.name = 'EmptyZipError';
+    throw err;
+  }
+
+  if (opts && opts.replace) {
+    const [existing] = await bucket.getFiles({ prefix });
+    const delResults = await Promise.allSettled(
+      existing.map((f) => f.delete({ ignoreNotFound: true }))
+    );
+    const delErrs = delResults.filter((r) => r.status === 'rejected');
+    if (delErrs.length) {
+      console.warn('[imageHostingLibrary.restore] some pre-restore deletes failed', delErrs.length, 'of', existing.length);
+    }
+  }
+
+  const out = [];
+  const failures = [];
+  for (const { entry, name } of eligible) {
+    try {
+      const buf = await entry.buffer();
+      const ext = (name.split('.').pop() || '').toLowerCase();
+      const contentType = contentTypeFromExt(ext);
+      const key = prefix + name;
+      const file = bucket.file(key);
+      await file.save(buf, {
+        contentType,
+        resumable: false,
+        metadata: {
+          cacheControl: LIBRARY_CACHE_CONTROL,
+          metadata: { sandbox: sandboxPrefix(sandbox) },
+        },
+      });
+      try { await file.makePublic(); } catch (_e) { /* best-effort */ }
+      out.push({ relPath: name, size: buf.length });
+    } catch (e) {
+      failures.push({ relPath: name, error: String((e && e.message) || e) });
+      console.error('[imageHostingLibrary.restore] entry failed', name, String((e && e.message) || e));
+    }
+  }
+
+  // Hard-fail when EVERY entry failed — the caller would otherwise see a
+  // 200 OK with restored:0 and think the restore completed silently.
+  if (out.length === 0 && failures.length > 0) {
+    const err = new Error('all ' + failures.length + ' entries failed to restore — first error: ' + failures[0].error);
+    err.name = 'AllEntriesFailedError';
+    err.failures = failures;
+    throw err;
+  }
+
   return out;
 }
 
