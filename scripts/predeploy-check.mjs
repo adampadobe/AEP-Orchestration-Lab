@@ -90,7 +90,11 @@ try {
 
 const ahead    = parseInt(git('rev-list --count origin/main..HEAD', '0'), 10) || 0;
 const behind   = parseInt(git('rev-list --count HEAD..origin/main', '0'), 10) || 0;
-const dirty    = git('status --porcelain', '').length > 0;
+// --untracked-files=no so untracked artifact directories (e.g. .claude/,
+// .venv/, IDE scratch dirs) don't trigger a false dirty warning. We only
+// care about modifications/deletions to tracked files — that's what would
+// actually ship.
+const dirty    = git('status --porcelain --untracked-files=no', '').length > 0;
 const branch   = git('rev-parse --abbrev-ref HEAD', '');
 const shortSha = git('rev-parse --short HEAD', '');
 

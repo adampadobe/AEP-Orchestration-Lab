@@ -63,17 +63,20 @@ async function fetchHostingVersion() {
 }
 
 async function fetchFunctionsBuildSha() {
-  // Any function with X-Build-Sha will do. event-config-store is small,
-  // public, and supports OPTIONS so a preflight gives us the headers
-  // without invoking real work.
-  const url = `${HOSTING_BASE}/api/event-config?cb=${Date.now()}`;
+  // Any function with X-Build-Sha will do — they all stamp via setCors().
+  // /api/sandboxes is a small, public, fast GET that's existed since the
+  // early days of this repo, so it's the most stable target for a probe.
+  // We use HEAD so we get headers without paying for the body work.
+  const url = `${HOSTING_BASE}/api/sandboxes?cb=${Date.now()}`;
   try {
-    const resp = await fetch(url, { method: 'OPTIONS', cache: 'no-store' });
+    const resp = await fetch(url, { method: 'HEAD', cache: 'no-store' });
     return {
       sha: resp.headers.get('x-build-sha') || null,
       shortSha: resp.headers.get('x-build-short-sha') || null,
       branch: resp.headers.get('x-build-branch') || null,
+      deployedAt: resp.headers.get('x-build-deployed-at') || null,
       url,
+      status: resp.status,
     };
   } catch (e) {
     return { error: String((e && e.message) || e), url };
@@ -101,7 +104,10 @@ function header(title) {
   const originShort     = git('rev-parse --short origin/main', '');
   const ahead           = parseInt(git('rev-list --count origin/main..HEAD', '0'), 10) || 0;
   const behind          = parseInt(git('rev-list --count HEAD..origin/main', '0'), 10) || 0;
-  const dirty           = git('status --porcelain', '').length > 0;
+  // Untracked artifact directories (.claude/, .venv/, IDE scratch dirs)
+  // shouldn't count as "dirty" for deploy-tracking purposes; only
+  // modifications to tracked files would actually ship in a deploy.
+  const dirty           = git('status --porcelain --untracked-files=no', '').length > 0;
 
   const [host, fn] = await Promise.all([fetchHostingVersion(), fetchFunctionsBuildSha()]);
 

@@ -26,3 +26,8 @@ scripts/data/*-restore.local.json
 # constant merge churn). They're served / read at runtime only.
 web/version.json
 functions/version.json
+
+# IDE / agent scratch directories (.cursor/rules and .cursor/skills are
+# intentionally tracked — only the per-machine .claude/ scratch dir is
+# excluded here)
+.claude/

@@ -53,7 +53,12 @@ function syncStatus() {
   } catch { /* offline / no origin — that's fine */ }
   const ahead  = parseInt(git('rev-list --count origin/main..HEAD', '0'), 10) || 0;
   const behind = parseInt(git('rev-list --count HEAD..origin/main', '0'), 10) || 0;
-  const dirty  = git('status --porcelain', '').length > 0;
+  // --untracked-files=no so untracked artifact directories (e.g. .claude/
+  // from Claude Code, .venv/, IDE scratch dirs) don't trigger a false
+  // "dirty" stamp. We only care about modifications/deletions to tracked
+  // files — that's what would actually ship and need surfacing in the
+  // version stamp.
+  const dirty  = git('status --porcelain --untracked-files=no', '').length > 0;
   return { ahead, behind, dirty };
 }
 
