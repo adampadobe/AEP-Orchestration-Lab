@@ -555,13 +555,67 @@
     }
   }
 
+  /** Technical sandbox id (?sandbox= / #sandboxSelect / localStorage) — works before aep-global-sandbox.js parses. */
+  function sandboxTechnicalNameFallback() {
+    try {
+      if (typeof AepGlobalSandbox !== 'undefined' && AepGlobalSandbox.getSandboxName) {
+        return String(AepGlobalSandbox.getSandboxName() || '').trim();
+      }
+    } catch (e) {}
+    try {
+      return String(localStorage.getItem('aepGlobalSandboxName') || '').trim();
+    } catch (e2) {
+      return '';
+    }
+  }
+
+  /** Mock AJO top bar — mirrors Global values / active sandbox (same source as Customise sandbox dropdown). */
+  function applyShellUserLine() {
+    var el = document.getElementById('expAccelShellUserLine');
+    if (!el) return;
+    var technical = sandboxTechnicalNameFallback();
+    var sel = document.getElementById('expAccelSandboxSelect');
+    if (sel && sel.options && technical) {
+      var i;
+      for (i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === technical) {
+          el.textContent = String(sel.options[i].textContent || '').replace(/\s+/g, ' ').trim();
+          return;
+        }
+      }
+    }
+    if (!technical) {
+      el.textContent = 'Server default sandbox';
+      return;
+    }
+    el.textContent = technical;
+  }
+
+  function bindShellUserLineEvents() {
+    if (document.documentElement.dataset.expAccelShellUserBound === '1') return;
+    document.documentElement.dataset.expAccelShellUserBound = '1';
+    window.addEventListener('aep-global-sandbox-change', applyShellUserLine);
+    window.addEventListener('storage', function (e) {
+      if (!e || e.key !== 'aepGlobalSandboxName') return;
+      applyShellUserLine();
+    });
+  }
+
   function initSandboxSelect() {
     var sel = document.getElementById('expAccelSandboxSelect');
-    if (!sel || typeof AepGlobalSandbox === 'undefined') return;
-    AepGlobalSandbox.loadSandboxesIntoSelect(sel).then(function () {
-      AepGlobalSandbox.onSandboxSelectChange(sel);
-      AepGlobalSandbox.attachStorageSync(sel);
-    });
+    if (!sel || typeof AepGlobalSandbox === 'undefined') {
+      applyShellUserLine();
+      return;
+    }
+    AepGlobalSandbox.loadSandboxesIntoSelect(sel)
+      .then(function () {
+        AepGlobalSandbox.onSandboxSelectChange(sel);
+        AepGlobalSandbox.attachStorageSync(sel);
+        applyShellUserLine();
+      })
+      .catch(function () {
+        applyShellUserLine();
+      });
   }
 
   function currentSandboxName() {
@@ -618,6 +672,7 @@
   }
 
   function init() {
+    bindShellUserLineEvents();
     initDock();
     initSandboxSelect();
     bindTeamSelectionPersistence();
@@ -709,6 +764,7 @@
   function bootstrapPrefs() {
     try {
       applyToDom(getForSandbox(currentSandboxName()) || {});
+      applyShellUserLine();
     } catch (e) {}
   }
 
