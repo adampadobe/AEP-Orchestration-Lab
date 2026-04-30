@@ -38,6 +38,9 @@ jobs:
       - name: Verify Profile Viewer decisioning routes (journey-arbitration redirect, v2, overview v2/v3)
         run: npm run verify:profile-viewer-routes
 
+      - name: Verify Experimentation Accelerator snapshot (customise + shell integration)
+        run: npm run verify:experimentation-accelerator
+
       - name: JSON well-formed
         run: |
           python <<'PY'
