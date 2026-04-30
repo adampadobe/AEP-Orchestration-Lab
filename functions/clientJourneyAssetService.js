@@ -961,11 +961,26 @@ function renderJourneyHtml(journeyData) {
   .header .title { font-size: 18px; font-weight: 600; letter-spacing: 0.2px; }
   .header .journey-type { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
 
-  .journey-map-container { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 12px; margin-bottom: 14px; }
+  .journey-map-container { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 12px; margin-bottom: 14px; transition: padding 0.4s ease, flex-basis 0.4s ease; display: flex; flex-direction: column; }
+  /* Overview mode: hide the data panel and let the journey map fill the
+     left column so the whole 12-step picture is at maximum size before
+     the user drills into individual steps. */
+  .journey-map-container.expanded { flex: 1 1 auto; justify-content: center; padding: 28px 18px; }
+  .journey-map-container.expanded svg.journey-svg { max-height: none; height: 100%; flex: 1 1 auto; }
+  .data-panel.hidden { display: none; }
   svg.journey-svg { width: 100%; height: auto; max-height: 280px; display: block; }
   .journey-base { stroke: #c9ced8; stroke-width: 2.5; fill: none; }
   .journey-active { stroke: var(--brand); stroke-width: 4; fill: none; opacity: 0; transition: opacity var(--node-fade); }
   .journey-active.visible { opacity: 1; }
+  /* Overview-only stroke-dasharray draw animation. Hidden on every
+     slide except slide 0; on entry it snaps to length=offset (invisible)
+     then transitions offset→0 over ~6s to "draw" the path end-to-end. */
+  .journey-draw { stroke: var(--brand); stroke-width: 4; fill: none; opacity: 0; transition: opacity 0.4s ease; pointer-events: none; }
+  .journey-draw.visible { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .journey-draw { transition: none !important; }
+    .journey-map-container { transition: none !important; }
+  }
 
   /* Active-state transitions everywhere (circle, icon, badge) share the
      same slow ease-in-out curve so the whole node cross-fades as a unit
@@ -1103,6 +1118,7 @@ function renderJourneyHtml(journeyData) {
     <div class="journey-map-container">
       <svg class="journey-svg" viewBox="0 0 1040 230" id="journey-svg" preserveAspectRatio="xMidYMid meet">
         <path class="journey-base" d="${BASE_PATH}"></path>
+        <path class="journey-draw" id="journey-draw" d="${BASE_PATH}"></path>
         <path class="journey-active" id="active-seg"></path>
         ${nodesSvg}
       </svg>
@@ -1173,10 +1189,44 @@ function renderJourneyHtml(journeyData) {
   const pathSegs = ${pathSegsJson};
   let current = 0;
 
+  // Animate the overview path with a stroke-dasharray draw effect every
+  // time the overview slide is entered. Length is computed from the SVG
+  // path itself so it stays accurate even if BASE_PATH ever changes.
+  function animateOverview() {
+    const path = document.getElementById('journey-draw');
+    if (!path) return;
+    let len = 0;
+    try { len = path.getTotalLength(); } catch (_) { len = 1200; }
+    path.style.strokeDasharray = String(len);
+    path.style.transition = 'none';
+    path.style.strokeDashoffset = String(len);
+    path.classList.add('visible');
+    void path.getBoundingClientRect();
+    const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    path.style.transition = reduced ? 'none' : 'stroke-dashoffset 6s cubic-bezier(0.45, 0.05, 0.55, 0.95)';
+    path.style.strokeDashoffset = '0';
+  }
+  function hideOverviewDraw() {
+    const path = document.getElementById('journey-draw');
+    if (!path) return;
+    path.classList.remove('visible');
+  }
+
   function render() {
     const s = slides[current];
     document.getElementById('slide-label').textContent = s.label || '';
     document.getElementById('slide-desc').textContent = s.desc || '';
+
+    // Overview-mode layout: collapse the data panel and let the map
+    // expand to fill the left column. The cumulative columns are still
+    // rendered into hidden DOM (so the trail accumulates state correctly
+    // when the user steps forward to slide 1) — they just don't show.
+    const isOverview = (s.activeNode === -1) || (current === 0);
+    const mapContainer = document.querySelector('.journey-map-container');
+    const dataPanel = document.querySelector('.data-panel');
+    if (mapContainer) mapContainer.classList.toggle('expanded', isOverview);
+    if (dataPanel) dataPanel.classList.toggle('hidden', isOverview);
+    if (isOverview) animateOverview(); else hideOverviewDraw();
 
     const dots = document.getElementById('nav-dots');
     dots.innerHTML = '';
