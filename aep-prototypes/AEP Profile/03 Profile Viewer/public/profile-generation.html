@@ -1101,14 +1101,20 @@
     <section class="consent-panel" id="genericProfilePanel" aria-labelledby="genericProfileHeading" hidden>
       <h2 id="genericProfileHeading" class="panel-title"><span class="icon">🧬</span> Generic profile (industry-less)</h2>
 
-      <!-- A. Sandbox &amp; streaming connection (mirrors consent.html pattern) -->
-      <details class="consent-streaming-details" id="genericProfileInfraDetails" aria-label="Generic Profile sandbox preparation and HTTP streaming connection">
+      <!-- A. Sandbox &amp; streaming connection (mirrors consent.html pattern).
+           Starts expanded so a fresh visitor sees the 4-step wizard. JS in
+           profile-generation-generic.js (applyConfiguredCollapseState)
+           collapses the <details> and swaps #genericProfileInfraHint to a
+           green "Configured" message once all four streaming fields are
+           populated (after Save connection or after a per-sandbox Firestore
+           load). showInfraMessage('…','error') re-opens it. -->
+      <details class="consent-streaming-details" id="genericProfileInfraDetails" open aria-label="Generic Profile sandbox preparation and HTTP streaming connection">
         <summary class="consent-streaming-details__summary">
           <span class="consent-streaming-details__title">
             <span class="icon" aria-hidden="true">⚙</span>
             Sandbox &amp; streaming connection
           </span>
-          <span class="consent-streaming-details__hint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
+          <span class="consent-streaming-details__hint" id="genericProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
         </summary>
         <div class="consent-streaming-details__body">
           <div class="consent-setup-instructions">

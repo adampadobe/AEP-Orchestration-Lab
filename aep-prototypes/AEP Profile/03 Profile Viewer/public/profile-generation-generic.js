@@ -25,6 +25,12 @@
   const stepCreateDatasetBtn = document.getElementById('genStepCreateDatasetBtn');
   const stepHttpFlowBtn = document.getElementById('genStepHttpFlowBtn');
   const infraStatusMessage = document.getElementById('genInfraStatusMessage');
+  // Collapsible <details> wrapping the wizard. We capture the original hint
+  // copy at module load so applyConfiguredCollapseState() can restore it
+  // when the user re-opens / clears fields.
+  const infraDetailsEl = document.getElementById('genericProfileInfraDetails');
+  const infraHintEl = document.getElementById('genericProfileInfraHint');
+  const ORIGINAL_INFRA_HINT = infraHintEl ? infraHintEl.textContent.trim() : '';
 
   // Streaming connection fields
   const streamSchemaIdEl = document.getElementById('genStreamSchemaId');
@@ -105,6 +111,50 @@
     if (text && type === 'error') {
       const det = document.getElementById('genericProfileInfraDetails');
       if (det) det.open = true;
+    }
+  }
+
+  /**
+   * True when the four required streaming fields (Schema $id, Dataset ID,
+   * Flow ID, Collection URL) are all filled. We treat that as "fully
+   * configured" — the operator has either completed the wizard or pasted
+   * a saved connection from Firebase.
+   */
+  function streamingFieldsAreFullyConfigured() {
+    const s = getStreamingPayload();
+    return !!(s && s.url && s.flowId && s.datasetId && s.schemaId);
+  }
+
+  /**
+   * Collapse the wizard <details> when fully configured (and swap the hint
+   * for a green "Configured" message); expand it again when the
+   * configuration becomes incomplete. Called from:
+   *   - loadConnectionFromFirestore() after a successful Firebase load.
+   *   - saveConnectionToFirestore() after a successful save.
+   *   - onSandboxChange() so switching sandboxes re-evaluates state.
+   *   - The "aep-generic-panel-shown" handler so the first reveal of the
+   *     Generic editor reflects the current state correctly.
+   * `showInfraMessage('…', 'error')` still force-opens the <details>
+   * regardless, so error states stay visible.
+   */
+  function applyConfiguredCollapseState() {
+    if (!infraDetailsEl) return;
+    const ready = streamingFieldsAreFullyConfigured();
+    if (ready) {
+      infraDetailsEl.open = false;
+      if (infraHintEl) {
+        const sb = getSandboxName();
+        infraHintEl.textContent = sb
+          ? `✓ Configured for sandbox "${sb}" — click to expand if you want to reconfigure.`
+          : '✓ Configured — click to expand if you want to reconfigure.';
+        infraHintEl.classList.add('consent-streaming-details__hint--configured');
+      }
+    } else {
+      infraDetailsEl.open = true;
+      if (infraHintEl) {
+        infraHintEl.textContent = ORIGINAL_INFRA_HINT;
+        infraHintEl.classList.remove('consent-streaming-details__hint--configured');
+      }
     }
   }
 
@@ -260,11 +310,13 @@
       if (rec && rec.streaming) {
         fillStreamingFields(rec.streaming);
         if (!silent) showInfraMessage('Loaded saved Generic Profile connection for this sandbox.', 'success');
+        applyConfiguredCollapseState();
         return true;
       }
       if (!silent) {
         showInfraMessage('No saved connection for this sandbox yet — run the 4 setup steps and Save connection.', '');
       }
+      applyConfiguredCollapseState();
       return false;
     } catch (e) {
       if (!silent) showInfraMessage(e.message || 'Network error loading connection.', 'error');
@@ -293,6 +345,7 @@
         showInfraMessage(data.error || 'Save failed.', 'error');
         return false;
       }
+      applyConfiguredCollapseState();
       return true;
     } catch (e) {
       showInfraMessage(e.message || 'Network error saving connection.', 'error');
@@ -1079,6 +1132,10 @@
   // Sandbox change: reload connection + counter context.
   function onSandboxChange() {
     clearStreamingFields();
+    // Immediately reflect the cleared fields in the wizard <details>
+    // (re-expand it) — the async loadConnectionFromFirestore() below will
+    // collapse it again if it finds a saved connection for the new sandbox.
+    applyConfiguredCollapseState();
     loadConnectionFromFirestore(true);
     loadCounterForCurrentContext();
     renderRecent();
@@ -1094,6 +1151,12 @@
   window.addEventListener('aep-generic-panel-shown', () => {
     renderRecent();
     applyLoyaltyToggleVisibility();
+    // Reflect the current configured state in the wizard <details> on the
+    // first reveal (the deferred loadConnectionFromFirestore at the bottom
+    // of this module already calls applyConfiguredCollapseState, but if the
+    // user picks Generic before that 750ms delay fires we still want a
+    // sensible initial state based on whatever fields are populated now).
+    applyConfiguredCollapseState();
   });
 
   // Initial render

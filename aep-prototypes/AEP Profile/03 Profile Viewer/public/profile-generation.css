@@ -759,6 +759,21 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   font-size: 0.9em;
 }
 
+/* "Configured" state for the Sandbox & streaming connection <details>
+ * summary hint. Flipped on by applyConfiguredCollapseState() in
+ * profile-generation-generic.js once all four streaming fields are
+ * populated (after Save connection or after a per-sandbox Firebase load),
+ * which also collapses the <details>. Uses --dash-success-* tokens so
+ * it themes correctly in light + dark. */
+.profile-generation-page #genericProfileInfraDetails .consent-streaming-details__hint--configured {
+  color: var(--dash-success-text);
+  background: var(--dash-success-bg);
+  border: 1px solid var(--dash-success-border);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
 /* "Manual step (in AEP UI, after the wizard)" callout under the 4-step
  * setup-wizard list. Same surface as the instructions block (so it reads as
  * part of the same flow), but with the warning border + warning text tones
