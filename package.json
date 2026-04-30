@@ -18,6 +18,9 @@
     "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",
     "validate:ecosystem-vendor-index": "python3 scripts/validate-ecosystem-vendor-index.py",
     "verify:profile-viewer-routes": "node scripts/verify-profile-viewer-routes.mjs",
+    "deploy:check": "node scripts/predeploy-check.mjs",
+    "deploy:stamp": "node scripts/build-version.mjs",
+    "deploy:status": "node scripts/deploy-status.mjs",
     "restore:decision-lab:kirkham-preset": "node scripts/restore-decision-lab-config.mjs kirkham --preset=race-for-life-retail"
   },
   "devDependencies": {

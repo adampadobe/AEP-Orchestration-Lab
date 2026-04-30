@@ -112,10 +112,17 @@ function resolveSandboxForProfileBody(req) {
 
 let tokenCache = { accessToken: null, expiresAtMs: 0 };
 
+const buildInfo = require('./buildInfo');
+
 function setCors(res, methods = 'GET, POST, OPTIONS') {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', methods);
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  // Stamp every response with the deployed git SHA so deploy-status.mjs
+  // and any in-page version pill can show what's actually live. See
+  // functions/buildInfo.js for details and Access-Control-Expose-Headers
+  // wiring so browser JS can read the X-Build-* values.
+  buildInfo.setBuildHeaders(res);
 }
 
 async function getAdobeAccessToken() {

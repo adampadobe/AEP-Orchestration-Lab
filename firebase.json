@@ -16,11 +16,17 @@
         "firebase-debug.log",
         "firebase-debug.*.log",
         "*.local"
+      ],
+      "predeploy": [
+        "node scripts/predeploy-check.mjs"
       ]
     }
   ],
   "hosting": {
     "public": "web",
+    "predeploy": [
+      "node scripts/predeploy-check.mjs"
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -495,6 +501,19 @@
           {
             "key": "Cache-Control",
             "value": "max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/version.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store, no-cache, max-age=0, must-revalidate"
+          },
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
           }
         ]
       }

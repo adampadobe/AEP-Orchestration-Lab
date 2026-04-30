@@ -21,7 +21,8 @@ Read this fully before making your first change.
 9. [Credentials, secrets and .env files](#credentials-secrets-and-env-files)
 10. [Change workflow (mandatory)](#change-workflow-mandatory)
 11. [Deployment](#deployment)
-12. [Things you must never do](#things-you-must-never-do)
+12. [Version control and rollback](#version-control-and-rollback)
+13. [Things you must never do](#things-you-must-never-do)
 
 ---
 
@@ -618,6 +619,117 @@ curl -fsS "https://aep-orchestration-lab.web.app/profile-viewer/<page>.html?cb=$
 For example, when verifying that the Image hosting **Backup customer images** progress dialog landed live, an `imageHostingBackupDialog` marker in the HTML body together with `?v=20260430b` (or newer) on the linked CSS/JS confirmed the live origin had the right version. If the canonical URL is missing those markers but the cache-bust URL has them, you have failure mode 2 (stale edge); if both are missing them, you have failure mode 1 (stale origin).
 
 **Don't try to "hard-refresh" out of failure mode 1.** When the origin itself is serving the wrong bytes, no amount of `Cmd+Shift+R`, `?cb=` query strings, or DevTools cache-disables on the user side will help — the file is genuinely wrong on Hosting. Pull, re-sync, and redeploy is the only fix. **This is why Phase C is non-negotiable when more than one agent or person is touching the workspace at the same time.** Asking the user to hard-refresh is the right answer for failure mode 2 only, and only after the probe above has confirmed the diagnosis.
+
+---
+
+## Version control and rollback
+
+Every Firebase deploy is **automatically stamped with the deploying git SHA** so you can answer three questions at any time without guessing:
+
+1. **What's live right now?** — single-commit answer for both Hosting and Cloud Functions.
+2. **Did my deploy actually land?** — compare local `git rev-parse HEAD` against the live stamp.
+3. **What was live an hour ago, and how do I roll back?** — Firebase Hosting and Cloud Run keep version history out of the box; the stamp is the bridge from "the user reports problem at 14:03" to "the commit that was live at 14:03".
+
+The mechanism is two small JSON files written by `scripts/build-version.mjs`, which runs as a `predeploy` hook in `firebase.json` for both `hosting` and `functions` targets:
+
+| File | Read by | Purpose |
+|------|---------|---------|
+| **`web/version.json`** | Hosting → served at **`https://aep-orchestration-lab.web.app/version.json`** | Tells the world (and `npm run deploy:status`) which commit is live on Hosting |
+| **`functions/version.json`** | `functions/buildInfo.js` at cold-start; emitted as **`X-Build-Sha` / `X-Build-Short-Sha` / `X-Build-Branch` / `X-Build-Deployed-At`** response headers from every function via `setCors()` | Tells the world which commit is live on Cloud Functions, independently of Hosting |
+
+Both files are **gitignored** — they're build artefacts that change on every deploy and would create endless merge churn if committed. They are deployed (not in `firebase.json`'s `ignore` lists) and regenerated automatically before every `firebase deploy`.
+
+### Reading what's live
+
+```bash
+# Quick pretty-printed view of Hosting + Functions deployed SHAs and any drift
+npm run deploy:status
+
+# Same data as JSON for tooling / scripts
+npm run deploy:status -- --json
+
+# Direct curl (handy on a colleague's machine without the repo cloned)
+curl -fsS "https://aep-orchestration-lab.web.app/version.json?cb=$(date +%s)" | jq
+
+# Live X-Build-Sha header from a function (any function — they all stamp via setCors)
+curl -fsSI "https://aep-orchestration-lab.web.app/api/event-config?cb=$(date +%s)" | rg -i "^x-build-"
+```
+
+`npm run deploy:status` prints **local checkout** state (HEAD, branch, ahead/behind origin, dirty), the **Hosting stamp**, the **Cloud Functions stamp**, and a final **Drift** summary that flags two failure modes:
+
+- **Hosting SHA differs from both your HEAD and `origin/main`** → likely an unsynced parallel-agent deploy (see [Diagnosing a stale deploy](#diagnosing-a-stale-deploy-edge-cache-or-parallel-agent-overwrite)).
+- **Hosting SHA ≠ Functions SHA** → they were deployed from different working trees. Usually fine if you only deployed one target intentionally; investigate if you deployed both and they disagree.
+
+### Pre-deploy guard (automatic)
+
+`scripts/predeploy-check.mjs` runs as the `predeploy` hook for both `hosting` and `functions` in `firebase.json`. It does three things on every `firebase deploy`:
+
+1. **REFUSES the deploy if the local branch is BEHIND `origin/main`.** This is the parallel-agent-overwrite guard — see [Phase C](#phase-c--immediately-before-firebase-deploy). The error message walks the user through the exact `git pull --ff-only origin main` fix.
+2. **WARNS (does not block) if the working tree is dirty or you have unpushed commits.** Sometimes you deploy hotfixes from a dirty tree intentionally — the warning prints in yellow and the SHA in `/version.json` will have `dirtyWorkingTree: true` so the regression is visible after the fact.
+3. **Stamps `web/version.json` + `functions/version.json`** with the current SHA, branch, commit subject/author/date, deployer, and sync status (ahead / behind / dirty) so the live deploy carries a record of how it was built.
+
+You can run the check ad-hoc without deploying:
+
+```bash
+npm run deploy:check        # full check + stamp (writes version.json files)
+npm run deploy:stamp        # just rewrite the stamp files (skip the safety check)
+```
+
+**Emergency override** (use sparingly, document in the commit message):
+
+```bash
+SKIP_PREDEPLOY_CHECKS=1 firebase deploy --only hosting
+```
+
+This bypasses the behind-origin block. Use only when you genuinely accept overwriting whatever is upstream — for example, an emergency rollback where you must ship an older commit over a known-bad current state.
+
+### Rolling back
+
+Firebase keeps deploy history for **Hosting** (release versions in the console) and **Cloud Functions** (Cloud Run revisions) out of the box. The version stamp tells you *which* git SHA you want to roll back to; the consoles let you actually do it without redeploying.
+
+#### Hosting rollback (UI, fast)
+
+1. Open **[Firebase Console → Hosting → Release history](https://console.firebase.google.com/project/aep-orchestration-lab/hosting/main)**.
+2. Find the previous good release. Each release shows the deployer's name and timestamp; cross-reference with `git log` and the stamps you've collected via `npm run deploy:status` over time.
+3. Click **⋯ → Rollback**. Firebase serves the previous release's files within seconds — no redeploy required.
+4. Verify with: `curl -fsS "https://aep-orchestration-lab.web.app/version.json?cb=$(date +%s)" | jq .gitShortSha`
+
+> Rollback does **not** touch `functions/`. If the bad release also touched function code, follow the Cloud Functions section below.
+
+#### Cloud Functions rollback (gcloud)
+
+Cloud Functions v2 runs on **Cloud Run**, which keeps every revision and lets you redirect traffic to an older one without redeploying:
+
+```bash
+# 1. List recent revisions for the function you want to roll back
+gcloud run revisions list --service=imageHostingLibrary --region=us-central1 --project=aep-orchestration-lab --limit=10
+
+# 2. Send 100% of traffic to the previous revision (no redeploy needed)
+gcloud run services update-traffic imageHostingLibrary \
+  --region=us-central1 --project=aep-orchestration-lab \
+  --to-revisions=imagehostinglibrary-00042-abc=100
+
+# 3. Verify the X-Build-Sha header now matches the older revision
+curl -fsSI "https://aep-orchestration-lab.web.app/api/image-hosting/library?cb=$(date +%s)&sandbox=prod" | rg -i "^x-build-"
+```
+
+Each Cloud Run revision corresponds to one `firebase deploy --only functions` run; the revision name (`imagehostinglibrary-NNNNN-xxx`) is opaque to git. The way you know **which** older revision corresponds to **which** git SHA is the `X-Build-Sha` header you've been collecting via `npm run deploy:status` — capture the SHA of every successful deploy somewhere your team can search (chat, ticket, deploy log) and cross-reference at rollback time.
+
+> If you need to roll back to a SHA that's older than any retained Cloud Run revision (default retention is generous but not infinite), the path is: `git checkout <sha>` → `firebase deploy --only functions`. The `predeploy-check.mjs` guard will need `SKIP_PREDEPLOY_CHECKS=1` because `<sha>` is by definition behind `origin/main` — that's the legitimate emergency-override case.
+
+### Quick rollback decision tree
+
+| Symptom | Action |
+|---------|--------|
+| User reports "the page looks wrong / a feature is gone" but you don't know yet whether it's stale-edge or stale-origin | `npm run deploy:status` first. If Drift shows nothing, do the `?cb=` probe from [Diagnosing a stale deploy](#diagnosing-a-stale-deploy-edge-cache-or-parallel-agent-overwrite). |
+| Stale-edge cache (`?cb=` shows newer ETag than canonical) | Trigger an edge invalidation: `firebase deploy --only hosting`. No git changes needed. |
+| Stale origin (`/version.json` shows a SHA that doesn't match the latest commit you intended to ship) | Pull, re-sync, redeploy from a clean tree (Phase C). The version stamp on the next deploy will confirm the fix. |
+| The latest deploy itself is broken and you need to revert | Hosting console rollback (UI) for `web/`-only regressions; gcloud `update-traffic --to-revisions` for `functions/`-only regressions; both for combined regressions. |
+| You need to roll back to a commit older than any retained revision | `git checkout <sha>` + `SKIP_PREDEPLOY_CHECKS=1 firebase deploy --only functions,hosting`. Document the SKIP in the commit message. |
+
+### Optional: in-page version pill
+
+A future enhancement (not yet wired) is a small "v 13e9449" pill in the dashboard topbar that fetches `/version.json` and links to the GitHub commit URL on click. The data is already live — the stamp file's `commitUrl` field is a ready-made `https://github.com/.../commit/<sha>` link. Wiring is one small `<script>` block in `home.css` / a shared topbar partial.
 
 ---
 
