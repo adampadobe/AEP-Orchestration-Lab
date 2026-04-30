@@ -3230,9 +3230,38 @@ exports.imageHostingLibrary = onRequest(
       if (req.method === 'GET' && /\/download$/.test(path)) {
         const customer = String((req.query && req.query.customer) || 'library').trim();
         const safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'library';
+        const fileName = `logo_${safe}.zip`;
         const { buffer, entries, skipped } = await imageHostingLibrary.buildLibraryZipBuffer(sandbox);
+
+        // Cloud Run gen2 caps a single response at 32 MiB. When the
+        // assembled ZIP would exceed our safe inline threshold, upload
+        // it to GCS and hand the browser a short-lived V4 signed URL
+        // instead — the inline path used to silently fail with an
+        // empty-bodied response (see Cloud Functions log line
+        // "Response size was too large. Please consider reducing
+        // response size.") which the UI surfaces as a bare
+        // "Download failed:" with no detail.
+        if (buffer.length > imageHostingLibrary.BACKUP_INLINE_MAX_BYTES) {
+          const { storagePath, downloadUrl, expiresAt } =
+            await imageHostingLibrary.uploadBackupZipAndSign(sandbox, buffer, fileName);
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate, no-transform');
+          res.status(200).json({
+            mode: 'redirect',
+            reason: 'inline-size-limit',
+            fileName,
+            size: buffer.length,
+            entries,
+            skipped: skipped.length,
+            downloadUrl,
+            expiresAt,
+            storagePath,
+          });
+          return;
+        }
+
         res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', `attachment; filename="logo_${safe}.zip"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         res.setHeader('Content-Length', String(buffer.length));
         res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate, no-transform');
         res.setHeader('X-Content-Type-Options', 'nosniff');

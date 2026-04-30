@@ -1706,10 +1706,62 @@
       if (slowTimer) { clearTimeout(slowTimer); slowTimer = null; }
 
       if (!resp.ok) {
-        var e = await resp.json().catch(function () { return {}; });
-        var msg = 'Download failed: ' + (e.error || resp.statusText);
+        var bodyText = '';
+        try { bodyText = await resp.text(); } catch (_e) {}
+        var parsedErr = null;
+        if (bodyText) {
+          try { parsedErr = JSON.parse(bodyText); } catch (_e) {}
+        }
+        var detail = (parsedErr && parsedErr.error)
+          || resp.statusText // empty over HTTP/2 (Cloud Functions / Hosting)
+          || (bodyText && bodyText.length < 240 ? bodyText : '')
+          || ('server returned HTTP ' + resp.status + ' with no body — likely the assembled ZIP exceeded Cloud Run\'s 32 MiB response cap; check Cloud Functions logs for "Response size was too large".');
+        var msg = 'Download failed: ' + detail;
         markBackupError(msg);
         setStatus(msg, 'err');
+        return;
+      }
+
+      // Large libraries blow Cloud Run's 32 MiB response cap. The server
+      // detects that, uploads the ZIP to GCS, and returns a JSON
+      // redirect document with a short-lived V4 signed URL. We follow
+      // that URL via a synthetic anchor click — the GCS object has
+      // attachment Content-Disposition so it lands in the browser's
+      // Downloads folder with the right filename, and we never have to
+      // pull the bytes through the function.
+      var contentType = (resp.headers.get('content-type') || '').toLowerCase();
+      if (contentType.indexOf('application/json') !== -1) {
+        var redirectBody = await resp.json().catch(function () { return null; });
+        if (redirectBody && redirectBody.mode === 'redirect' && redirectBody.downloadUrl) {
+          setBackupStage('downloading', 'Library exceeded the inline response limit — handing off a signed URL from cloud storage…');
+          var redirAnchor = document.createElement('a');
+          redirAnchor.href = redirectBody.downloadUrl;
+          if (redirectBody.fileName) redirAnchor.download = redirectBody.fileName;
+          redirAnchor.rel = 'noopener';
+          redirAnchor.target = '_self';
+          redirAnchor.style.display = 'none';
+          document.body.appendChild(redirAnchor);
+          redirAnchor.click();
+          var redirSize = formatBytesShort(redirectBody.size);
+          var redirName = redirectBody.fileName || fileName;
+          var redirMsg = 'Saved ' + redirName + (redirSize ? ' (' + redirSize + ')' : '') + ' via signed URL — too large to stream inline. Signed URL valid for ~15 min.';
+          // Use the same dialog "done" affordance, but point Re-download
+          // at the signed URL so the user can retry without rebuilding.
+          markBackupDone(redirMsg, redirectBody.downloadUrl, redirName);
+          setStatus('Downloaded ' + redirName + ' via signed URL.', 'ok');
+          // Defer cleanup of the anchor so Safari/Chrome have time to
+          // honour the click — symmetric with the inline path.
+          var redirCapturedAnchor = redirAnchor;
+          setTimeout(function () {
+            if (redirCapturedAnchor && redirCapturedAnchor.parentNode) {
+              redirCapturedAnchor.parentNode.removeChild(redirCapturedAnchor);
+            }
+          }, 60000);
+          return;
+        }
+        var jsonMsg = 'Download failed: server returned JSON (' + (redirectBody && redirectBody.error || 'unrecognised payload') + ') instead of a ZIP.';
+        markBackupError(jsonMsg);
+        setStatus(jsonMsg, 'err');
         return;
       }
 
