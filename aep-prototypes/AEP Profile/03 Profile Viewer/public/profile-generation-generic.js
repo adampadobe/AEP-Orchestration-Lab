@@ -72,8 +72,6 @@
   const loyaltyRandomBtn = document.getElementById('genLoyaltyRandomBtn');
   const loyaltyLanguageEl = document.getElementById('genLoyaltyLanguage');
   const languageEl = document.getElementById('genLanguage');
-  const languageCardEl = document.getElementById('genLanguageCard');
-
   // Recently-generated picker (per sandbox + base email + day)
   const recentPickerEl = document.getElementById('genRecentPicker');
   const recentSelectEl = document.getElementById('genRecentSelect');
@@ -512,14 +510,14 @@
     // Tenant preferences
     const ch = preferredChannelEl ? trimVal(preferredChannelEl) : '';
     if (ch) push('preferences.preferredChannel', ch);
-    // Standalone Language card — only used when the loyalty toggle is OFF.
-    // When the loyalty toggle is on the loyalty subgroup owns the language
-    // input (and the standalone card is hidden) so we skip this push to
-    // avoid sending stale values from a previously-visible field.
-    const loyToggleOnForLang = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
+    // Standalone Language card — always pushed when it has a value, even
+    // when the loyalty toggle is on. Both the standalone card and the
+    // loyalty subgroup write to `personalEmail.language` / `preferences
+    // .preferredLanguage`, so when both are filled the loyalty subgroup's
+    // value (pushed below) wins because it is appended later in the
+    // updates array (last write wins for the same XDM path).
     const lang = languageEl ? trimVal(languageEl) : '';
-    if (lang && !loyToggleOnForLang) {
-      // Root personalEmail.language (XDM standard); mirror under tenant prefs.
+    if (lang) {
       push('personalEmail.language', lang);
       push('preferences.preferredLanguage', lang);
     }
@@ -542,7 +540,11 @@
       const pts = loyaltyPointsEl ? trimVal(loyaltyPointsEl) : '';
       if (pts !== '') push('loyalty.points', Number(pts));
       // Language inside the loyalty toggle takes precedence over the
-      // standalone Language card (which is hidden while the toggle is on).
+      // standalone Language card (both stay visible when loyalty is on, but
+      // the loyalty subgroup is the more specific context). Pushed after
+      // the standalone push above so the loyalty value overrides for the
+      // same XDM path (`personalEmail.language` / `preferences
+      // .preferredLanguage`) on the AEP stream.
       const loyLang = loyaltyLanguageEl ? trimVal(loyaltyLanguageEl) : '';
       if (loyLang) {
         push('personalEmail.language', loyLang);
@@ -822,15 +824,15 @@
 
   // ---------- Loyalty toggle UX ----------
   /**
-   * Show/hide the loyalty subgroup and the standalone Language card based on
-   * the toggle state. When loyalty is ON we hide the standalone Language card
-   * (the loyalty subgroup contains its own language input so the form has a
-   * single source of truth); when OFF we expose the standalone card again.
+   * Show/hide the loyalty subgroup based on the toggle state. The standalone
+   * Language card stays visible at all times — when loyalty is ON the loyalty
+   * subgroup adds its own Language preference field alongside it (both write
+   * to `personalEmail.language` on the AEP side, with the loyalty subgroup
+   * winning on precedence; see buildUpdatesFromForm()).
    */
   function applyLoyaltyToggleVisibility() {
     const enabled = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
     if (loyaltyFieldsEl) loyaltyFieldsEl.hidden = !enabled;
-    if (languageCardEl) languageCardEl.hidden = enabled;
     if (loyaltyEnabledEl) loyaltyEnabledEl.setAttribute('aria-expanded', enabled ? 'true' : 'false');
   }
 
