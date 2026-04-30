@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="brand-scraper.css?v=20260420a">
-  <link rel="stylesheet" href="image-hosting.css?v=20260430a">
+  <link rel="stylesheet" href="image-hosting.css?v=20260430b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -172,6 +172,26 @@
     </figure>
   </dialog>
 
+  <dialog id="imageHostingBackupDialog" class="image-hosting-restore-dialog" aria-labelledby="imageHostingBackupDialogTitle" aria-describedby="imageHostingBackupDialogStatus">
+    <div class="image-hosting-restore-dialog-inner">
+      <h3 id="imageHostingBackupDialogTitle">Backing up library to ZIP</h3>
+      <p id="imageHostingBackupDialogFile" class="image-hosting-restore-dialog-file"></p>
+      <ol id="imageHostingBackupStages" class="image-hosting-restore-stages" aria-label="Backup progress">
+        <li data-stage="server">Server is building the ZIP from your library</li>
+        <li data-stage="downloading">Receiving the ZIP from the server</li>
+        <li data-stage="saved">Saved to your Downloads folder</li>
+      </ol>
+      <div class="image-hosting-restore-progress" aria-hidden="true">
+        <span class="image-hosting-restore-progress-bar"></span>
+      </div>
+      <p id="imageHostingBackupDialogStatus" class="image-hosting-restore-dialog-status" role="status" aria-live="polite"></p>
+      <div id="imageHostingBackupDialogActions" class="image-hosting-restore-dialog-actions" hidden>
+        <a id="imageHostingBackupDialogManualLink" class="dashboard-btn-outline image-hosting-backup-manual-link" hidden>Re-download</a>
+        <button type="button" id="imageHostingBackupDialogClose" class="dashboard-btn-outline">Close</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="imageHostingRestoreDialog" class="image-hosting-restore-dialog" aria-labelledby="imageHostingRestoreDialogTitle" aria-describedby="imageHostingRestoreDialogStatus">
     <div class="image-hosting-restore-dialog-inner">
       <h3 id="imageHostingRestoreDialogTitle">Restoring library from ZIP</h3>
@@ -200,6 +220,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script src="image-hosting.js?v=20260430a"></script>
+  <script src="image-hosting.js?v=20260430b"></script>
 </body>
 </html>

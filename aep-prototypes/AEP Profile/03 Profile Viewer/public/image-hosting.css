@@ -711,4 +711,12 @@
   justify-content: flex-end;
   gap: 0.5rem;
   padding-top: 0.2rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
+.image-hosting-backup-manual-link {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.image-hosting-backup-manual-link[hidden] { display: none; }
