@@ -76,7 +76,6 @@
   const loyaltyTierEl = document.getElementById('genLoyaltyTier');
   const loyaltyPointsEl = document.getElementById('genLoyaltyPoints');
   const loyaltyRandomBtn = document.getElementById('genLoyaltyRandomBtn');
-  const loyaltyLanguageEl = document.getElementById('genLoyaltyLanguage');
   const languageEl = document.getElementById('genLanguage');
   // Recently-generated picker (per sandbox + base email + day)
   const recentPickerEl = document.getElementById('genRecentPicker');
@@ -532,7 +531,6 @@
         id: loyaltyEnabled ? trimVal(loyaltyIDEl) : '',
         tier: loyaltyEnabled ? trimVal(loyaltyTierEl) : '',
         points: loyaltyEnabled ? trimVal(loyaltyPointsEl) : '',
-        language: loyaltyEnabled ? trimVal(loyaltyLanguageEl) : '',
       },
     };
   }
@@ -571,12 +569,8 @@
     // has no preferredChannel path. The <select> still lives in the DOM so
     // we can re-enable both the UI and a stream path in one follow-up.
 
-    // Standalone Language card — always pushed when it has a value, even
-    // when the loyalty toggle is on. Both the standalone card and the
-    // loyalty subgroup write to `personalEmail.language` / `preferences
-    // .preferredLanguage`, so when both are filled the loyalty subgroup's
-    // value (pushed below) wins because it is appended later in the
-    // updates array (last write wins for the same XDM path).
+    // Standalone Language card — maps to `personalEmail.language` and
+    // `preferences.preferredLanguage` (XDM root paths).
     const lang = languageEl ? trimVal(languageEl) : '';
     if (lang) {
       push('personalEmail.language', lang);
@@ -624,17 +618,6 @@
         const ptsNum = Number(pts);
         push('loyalty.points', ptsNum);
         push('loyaltyDetails.points', ptsNum);
-      }
-      // Language inside the loyalty toggle takes precedence over the
-      // standalone Language card (both stay visible when loyalty is on, but
-      // the loyalty subgroup is the more specific context). Pushed after
-      // the standalone push above so the loyalty value overrides for the
-      // same XDM path (`personalEmail.language` / `preferences
-      // .preferredLanguage`) on the AEP stream.
-      const loyLang = loyaltyLanguageEl ? trimVal(loyaltyLanguageEl) : '';
-      if (loyLang) {
-        push('personalEmail.language', loyLang);
-        push('preferences.preferredLanguage', loyLang);
       }
     }
 
@@ -734,9 +717,6 @@
     if (loyaltyId != null && loyaltyIDEl) loyaltyIDEl.value = String(loyaltyId);
     if (tier != null && loyaltyTierEl) loyaltyTierEl.value = String(tier);
     if (pts != null && loyaltyPointsEl) loyaltyPointsEl.value = String(pts);
-    // When loyalty is enabled, mirror the language into the loyalty subgroup
-    // input as well, so editing the loyalty card after a Find shows the value.
-    if (hasLoyaltyData && lang != null && loyaltyLanguageEl) loyaltyLanguageEl.value = String(lang);
   }
 
   // ---------- Find / Update / Generate ----------
@@ -1084,13 +1064,12 @@
     if (npsEl) npsEl.value = s.nps || '';
     if (aovEl && s.aov !== '') { aovEl.value = String(s.aov); renderAov(); }
     if (preferredChannelEl) preferredChannelEl.value = s.preferredChannel || '';
-    if (languageEl) languageEl.value = s.language || '';
+    if (languageEl) languageEl.value = s.language || (s.loyalty && s.loyalty.language) || '';
     // Loyalty
     if (loyaltyEnabledEl) loyaltyEnabledEl.checked = !!(s.loyalty && s.loyalty.enabled);
     if (loyaltyIDEl) loyaltyIDEl.value = (s.loyalty && s.loyalty.id) || '';
     if (loyaltyTierEl) loyaltyTierEl.value = (s.loyalty && s.loyalty.tier) || '';
     if (loyaltyPointsEl) loyaltyPointsEl.value = (s.loyalty && s.loyalty.points) || '';
-    if (loyaltyLanguageEl) loyaltyLanguageEl.value = (s.loyalty && s.loyalty.language) || '';
     applyLoyaltyToggleVisibility();
     // Restore counter so subsequent Update/Generate target the same scaled
     // email. The base email is whatever produced this entry — keep it.
