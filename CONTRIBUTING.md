@@ -69,6 +69,8 @@ This is the most often forgotten phase and the most dangerous. Even if your `git
 
 **Cursor:** **`.cursor/rules/sync-origin-main.mdc`** and **`.cursor/rules/ship-git-and-firebase.mdc`** encode all three phases as `alwaysApply: true` so any agent in this workspace is required to follow them on every commit-and-deploy cycle.
 
+**When you suspect this rule was violated** (a feature that you know shipped is suddenly "gone" from the live site, or another agent's changes overwrite yours): work through [Diagnosing a stale deploy (edge cache or parallel-agent overwrite)](#diagnosing-a-stale-deploy-edge-cache-or-parallel-agent-overwrite) before redeploying blindly. The one-line `curl -fsSI "<url>?cb=$(date +%s)"` probe distinguishes a stale Fastly edge cache (fixed by a single redeploy that invalidates the edge) from a true parallel-agent overwrite of the origin (fixed only by pulling the latest `main` and re-deploying from a clean tree).
+
 ### Node.js
 
 | Location | Version |
@@ -581,6 +583,42 @@ GitHub Actions runs on push/PR to `main`:
 
 CI does **not** build or deploy functions. Deployment is manual.
 
+### Diagnosing a stale deploy (edge cache or parallel-agent overwrite)
+
+Two failure modes look identical from a user's perspective ("the live page doesn't show my changes" or "a feature we just shipped is gone again") but have different root causes and different fixes. Both come up routinely when **multiple agents or sessions are touching the same workspace** in parallel — exactly the scenario Phase C is designed to prevent. When in doubt, work through the diagnosis below before redeploying blindly.
+
+**Failure mode 1 — parallel-agent deploy without sync (silent overwrite).** A teammate or another agent in a parallel session ran `firebase deploy --only hosting` from a workspace that hadn't pulled your latest commit. Because **`firebase deploy --only hosting` ships what's on local disk**, not what's on `origin/main`, their stale local files have just been published over the top of your live deploy. **Git history is still linear and clean** — nothing in `git log` reveals the regression. The live origin really is serving the older content. This is the exact failure mode that Phase C exists to prevent — see [Phase C — immediately before `firebase deploy`](#phase-c--immediately-before-firebase-deploy).
+
+**Failure mode 2 — stale Fastly edge cache in front of Hosting.** Firebase Hosting is fronted by a Fastly CDN. Even with `cache-control: max-age=0, must-revalidate` on HTML, an edge node can occasionally keep serving a stale cached response without revalidating against origin. You see `x-cache: HIT` and an old `etag` / `last-modified` even though the origin already has the newer content.
+
+**Distinguish them with a one-line probe.** A `?cb=<timestamp>` query string is enough to bypass the edge cache and hit origin directly:
+
+```bash
+# 1. Hit origin directly (cache-busted)
+curl -fsSI "https://aep-orchestration-lab.web.app/profile-viewer/<page>.html?cb=$(date +%s)" \
+  | rg -i "etag|last-modified|x-cache"
+
+# 2. Hit the canonical URL (whatever the user sees)
+curl -fsSI "https://aep-orchestration-lab.web.app/profile-viewer/<page>.html" \
+  | rg -i "etag|last-modified|x-cache"
+```
+
+| If… | Diagnosis | Fix |
+|-----|-----------|-----|
+| Both URLs return the **same** ETag, and that ETag corresponds to **old** content | **Origin is stale** (parallel-agent overwrite, or your own deploy never ran) | Pull `origin/main`, run Phase C, redeploy hosting |
+| The cache-buster URL returns a **newer** ETag than the canonical URL | **Edge cache is stale** | Run `firebase deploy --only hosting` once — a new release invalidates Fastly edges immediately |
+
+**Body-level confirmation.** When you need to verify which version of the actual bytes is being served (HTML markup, CSS/JS cache-bust strings), the same `?cb=` trick works on body inspection:
+
+```bash
+curl -fsS "https://aep-orchestration-lab.web.app/profile-viewer/<page>.html?cb=$(date +%s)" \
+  | rg -n '<feature-marker>|<page>\.(css|js)\?v='
+```
+
+For example, when verifying that the Image hosting **Backup customer images** progress dialog landed live, an `imageHostingBackupDialog` marker in the HTML body together with `?v=20260430b` (or newer) on the linked CSS/JS confirmed the live origin had the right version. If the canonical URL is missing those markers but the cache-bust URL has them, you have failure mode 2 (stale edge); if both are missing them, you have failure mode 1 (stale origin).
+
+**Don't try to "hard-refresh" out of failure mode 1.** When the origin itself is serving the wrong bytes, no amount of `Cmd+Shift+R`, `?cb=` query strings, or DevTools cache-disables on the user side will help — the file is genuinely wrong on Hosting. Pull, re-sync, and redeploy is the only fix. **This is why Phase C is non-negotiable when more than one agent or person is touching the workspace at the same time.** Asking the user to hard-refresh is the right answer for failure mode 2 only, and only after the probe above has confirmed the diagnosis.
+
 ---
 
 ## Things you must never do
@@ -594,6 +632,7 @@ CI does **not** build or deploy functions. Deployment is manual.
 | **Don't add new CSS frameworks** | The project is vanilla CSS by design. |
 | **Don't commit `.env` files or credentials** | They are gitignored. Never `git add --force` them. |
 | **Don't run `firebase deploy` while behind `origin/main`** | `firebase deploy --only hosting` ships local disk under `web/`, NOT what is on `origin/main`. Skipping the Phase C `git fetch` + `git pull --ff-only` will silently overwrite a teammate's hosted assets even though `git` itself stays clean. See [Phase C — immediately before `firebase deploy`](#phase-c--immediately-before-firebase-deploy). |
+| **Don't deploy hosting from a workspace where another agent or session is also editing in parallel without re-running Phase C first** | This is the most common way Phase C gets violated in practice. Two agents finish their work, both push, both deploy in alternation — and whichever deploys last from a workspace that hasn't pulled the other's commit silently reverts those changes on the live site. Git history stays linear and clean; nothing in `git log` reveals the regression. The `curl -fsSI "<url>?cb=$(date +%s)"` probe in [Diagnosing a stale deploy (edge cache or parallel-agent overwrite)](#diagnosing-a-stale-deploy-edge-cache-or-parallel-agent-overwrite) is the post-mortem tool when this happens. |
 | **Don't `git push --force` to `main`** | Destroys teammate commits irrecoverably. If your push is rejected, pull/rebase from `origin/main` and try again. |
 | **Don't change the `us-central1` region** without updating both `functions/index.js` and every entry in `firebase.json` | Mismatched regions cause 404s on `/api/*` calls. |
 | **Don't edit `firestore.rules` to allow client reads/writes** | All Firestore access goes through Admin SDK in functions. |
