@@ -537,8 +537,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 }
 
 .profile-generation-page .generic-helper code,
-.profile-generation-page .analytics-card-desc code,
-.profile-generation-page .analytics-info-banner code {
+.profile-generation-page .analytics-card-desc code {
   background: var(--dash-code-bg);
   padding: 0.1em 0.4em;
   border-radius: 4px;
@@ -701,17 +700,6 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 
 .profile-generation-page .nps-select option[data-band="promoter"] {
   color: var(--dash-success-text, #267a33);
-}
-
-.profile-generation-page .analytics-info-banner {
-  margin: 1rem 0 0;
-  padding: 0.65rem 0.85rem;
-  background: var(--dash-info-bg, var(--dash-surface-alt));
-  border: 1px solid var(--dash-info-border, var(--dash-border));
-  border-radius: 8px;
-  font-size: 0.825rem;
-  line-height: 1.45;
-  color: var(--dash-text-secondary);
 }
 
 .profile-generation-page #genericProfilePanel .form-group--small {
