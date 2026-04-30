@@ -224,6 +224,17 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   margin-bottom: 0;
 }
 
+/* showIndustryFields() in profile-generation.js sets these `hidden` on first
+ * paint (when no industry is picked) and when Generic owns the page. Their
+ * base layout rules above use `display: grid` / `display: flex`, both of
+ * which beat the user-agent `[hidden] { display: none }` selector — so the
+ * boxes and action row stay visible until we restate the hide here at equal
+ * specificity (defined later → this rule wins). */
+.profile-generation-page .profile-gen-boxes[hidden],
+.profile-generation-page .profile-gen-actions[hidden] {
+  display: none;
+}
+
 .profile-generation-page .profile-gen-merge-label {
   display: flex;
   align-items: flex-start;
