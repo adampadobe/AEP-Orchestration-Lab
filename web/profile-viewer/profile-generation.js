@@ -373,6 +373,10 @@ function getEmail() {
   const industry = (industrySelect?.value || '').trim().toLowerCase();
   const x = parseInt(profileIndexInput?.value || '1', 10) || 1;
   if (!industry) return (emailDisplay?.value || '').trim();
+  // Generic owns its own scaled email in profile-generation-generic.js — the
+  // top emailDisplay is hidden along with the rest of .profile-gen-boxes, so
+  // we must not auto-rewrite it with the kirkham+<industry>-<x> pattern.
+  if (industry === 'generic') return (emailDisplay?.value || '').trim();
   return `kirkham+${industry}-${x}@adobetest.com`;
 }
 
@@ -380,7 +384,9 @@ function getEmail() {
 function syncEmailFieldEditability() {
   if (!emailDisplay) return;
   const industry = (industrySelect?.value || '').trim().toLowerCase();
-  if (industry) {
+  // Generic doesn't use the top email field — leave it editable so the user
+  // can still see whatever they last typed if they switch back to "no industry".
+  if (industry && industry !== 'generic') {
     emailDisplay.readOnly = true;
     emailDisplay.setAttribute('readonly', 'readonly');
   } else {
@@ -392,15 +398,58 @@ function syncEmailFieldEditability() {
 function updateEmailDisplay() {
   if (!emailDisplay) return;
   const industry = (industrySelect?.value || '').trim().toLowerCase();
-  if (!industry) return;
+  if (!industry || industry === 'generic') return;
   const x = parseInt(profileIndexInput?.value || '1', 10) || 1;
   emailDisplay.value = `kirkham+${industry}-${x}@adobetest.com`;
 }
 
+/**
+ * Toggle industry-specific UI sections.
+ *
+ * Three modes:
+ *   - "generic": hand the page over to the Generic Profile Generator panel
+ *     (#genericProfilePanel). The six top profile boxes, the industry attribute
+ *     placeholder, and the kirkham+<industry>-<x> action controls in the config
+ *     panel (Profile index / Fill random / Generate / Merge into existing) all
+ *     hide because the Generic editor owns email scaling, identity, analytics,
+ *     and its own Find / Update / Generate-N actions.
+ *   - "" (no industry): show the top boxes, hide all industry attribute groups,
+ *     surface the "Select an industry…" placeholder. Top action row stays visible
+ *     so users who type a custom email can still click Generate.
+ *   - retail/fsi/travel/…: show the top boxes AND the matching industry-field-group.
+ */
 function showIndustryFields(industry) {
   const groups = document.querySelectorAll('.industry-field-group');
   groups.forEach((g) => { g.hidden = true; });
   const placeholder = document.getElementById('industryPlaceholder');
+  const topBoxes = document.querySelector('.profile-gen-boxes');
+  const genericPanel = document.getElementById('genericProfilePanel');
+  const profileIndexRow = document.getElementById('profileIndex')?.closest('.form-row');
+  const topActionRow = document.querySelector('#configPanel .profile-gen-actions');
+  const mergeRow = document.querySelector('#configPanel .profile-gen-merge-row');
+  const debugDetails = document.getElementById('generateDebug');
+
+  if (industry === 'generic') {
+    if (topBoxes) topBoxes.hidden = true;
+    if (genericPanel) genericPanel.hidden = false;
+    if (profileIndexRow) profileIndexRow.hidden = true;
+    if (topActionRow) topActionRow.hidden = true;
+    if (mergeRow) mergeRow.hidden = true;
+    if (debugDetails) debugDetails.hidden = true;
+    if (placeholder) placeholder.hidden = true;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('aep-generic-panel-shown'));
+    }
+    return;
+  }
+
+  // Restore the industry-driven layout when leaving Generic.
+  if (topBoxes) topBoxes.hidden = false;
+  if (genericPanel) genericPanel.hidden = true;
+  if (profileIndexRow) profileIndexRow.hidden = false;
+  if (topActionRow) topActionRow.hidden = false;
+  if (mergeRow) mergeRow.hidden = false;
+
   const id = industry ? INDUSTRY_GROUPS[industry] : null;
   if (id) {
     const el = document.getElementById(id);
