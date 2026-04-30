@@ -24,6 +24,23 @@ const admin = require('firebase-admin');
 const BUCKET_NAME = process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes';
 const LIBRARY_PREFIX = 'library';
 const BACKUPS_PREFIX = 'library_backups';
+/**
+ * Cloud Run gen2 (which Cloud Functions v2 runs on) caps a single HTTP
+ * response at 32 MiB. Going over that returns an empty body with no
+ * status text (HTTP/2), which surfaces in the UI as a bare
+ * "Download failed:" — see Cloud Functions log line
+ * "Response size was too large. Please consider reducing response size."
+ *
+ * For libraries whose assembled ZIP exceeds this conservative threshold
+ * we upload the buffer to GCS under `<sandbox>/library_backups/` and
+ * return a V4 signed URL instead of streaming the bytes through the
+ * function. The browser then downloads directly from GCS, which has no
+ * such cap. The bucket's ~3-day lifecycle reclaims the temporary file
+ * automatically; the signed URL we hand the browser is valid for 15
+ * minutes which is plenty for a download click + retry.
+ */
+const BACKUP_INLINE_MAX_BYTES = 20 * 1024 * 1024;
+const BACKUP_SIGNED_URL_EXPIRY_MS = 15 * 60 * 1000;
 /** Hidden JSON object so empty folders exist as a real GCS prefix. */
 const LIBRARY_FOLDER_MARKER = '.aep-library-folder';
 /**
@@ -793,6 +810,52 @@ async function buildLibraryZipBuffer(sandbox) {
 }
 
 /**
+ * Upload an already-built ZIP buffer to GCS under the library_backups/
+ * prefix and return a short-lived V4 signed URL the browser can hit
+ * directly. Used by the GET /library/download handler when the assembled
+ * ZIP would otherwise exceed Cloud Run gen2's 32 MiB response cap (see
+ * BACKUP_INLINE_MAX_BYTES above).
+ *
+ * The object metadata is set so the GCS download has the same UX as the
+ * inline path: `Content-Type: application/zip`, attachment disposition
+ * with the customer-friendly filename, and `no-transform` so any CDN
+ * between GCS and the browser leaves the bytes alone.
+ *
+ * `responseDisposition` / `responseType` on the signed URL guarantee the
+ * browser saves the file as `logo_<safe>.zip` regardless of the
+ * timestamp-prefixed object name.
+ *
+ * Returns: { storagePath, downloadUrl, expiresAt }
+ */
+async function uploadBackupZipAndSign(sandbox, buffer, fileName) {
+  const bucket = getBucket();
+  const safeName = String(fileName || 'library.zip').replace(/[^A-Za-z0-9._-]+/g, '-');
+  const storagePath = `${backupsRoot(sandbox)}/${Date.now()}-${safeName}`;
+  const file = bucket.file(storagePath);
+  await file.save(buffer, {
+    contentType: 'application/zip',
+    resumable: false,
+    metadata: {
+      contentType: 'application/zip',
+      contentDisposition: `attachment; filename="${safeName}"`,
+      cacheControl: 'private, no-store, max-age=0, no-transform',
+    },
+  });
+  const [downloadUrl] = await file.getSignedUrl({
+    action: 'read',
+    version: 'v4',
+    expires: Date.now() + BACKUP_SIGNED_URL_EXPIRY_MS,
+    responseDisposition: `attachment; filename="${safeName}"`,
+    responseType: 'application/zip',
+  });
+  return {
+    storagePath,
+    downloadUrl,
+    expiresAt: new Date(Date.now() + BACKUP_SIGNED_URL_EXPIRY_MS).toISOString(),
+  };
+}
+
+/**
  * Replace the current library contents with the files from a ZIP. The
  * old library is deleted first so stale names don't linger.
  */
@@ -837,6 +900,7 @@ async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
 module.exports = {
   BUCKET_NAME,
   LIBRARY_FOLDER_MARKER,
+  BACKUP_INLINE_MAX_BYTES,
   listLibrary,
   createLibraryFolder,
   publishScrapeImage,
@@ -847,6 +911,7 @@ module.exports = {
   backupsRoot,
   sandboxPrefix,
   buildLibraryZipBuffer,
+  uploadBackupZipAndSign,
   restoreLibraryFromZip,
   batchUpload,
   classifyFromFilename,

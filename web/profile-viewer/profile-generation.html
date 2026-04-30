@@ -1097,6 +1097,327 @@
         </div>
       </div>
     </section>
+
+    <!-- Generic Profile (industry-less) — sandbox-portable streaming + Customer Analytics editor. -->
+    <section class="consent-panel" id="genericProfilePanel" aria-labelledby="genericProfileHeading">
+      <h2 id="genericProfileHeading" class="panel-title"><span class="icon">🧬</span> Generic profile (industry-less)</h2>
+      <p class="panel-desc">
+        Skip the industry pack and stream a clean Profile with Customer Analytics fields (churn, propensity, NPS, AOV, preferred channel, gender, loyalty, language).
+        Set up the schema, attach field groups and create the Profile-enabled dataset for any sandbox; then generate or update profiles via Adobe Profile Updater (<code>/api/profile/update</code>).
+      </p>
+
+      <!-- A. Sandbox &amp; streaming connection (mirrors consent.html pattern) -->
+      <details class="consent-streaming-details" id="genericProfileInfraDetails" aria-label="Generic Profile sandbox preparation and HTTP streaming connection">
+        <summary class="consent-streaming-details__summary">
+          <span class="consent-streaming-details__title">
+            <span class="icon" aria-hidden="true">⚙</span>
+            Sandbox &amp; streaming connection
+          </span>
+          <span class="consent-streaming-details__hint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
+        </summary>
+        <div class="consent-streaming-details__body">
+          <div class="consent-setup-instructions">
+            <h4>Before you can generate or update generic profiles in a new sandbox:</h4>
+            <ol>
+              <li><strong>1 · Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - Generic Profile - Schema</code>.</li>
+              <li><strong>2 · Attach field groups</strong> — Attaches Profile Core v2, Demographic Details, Personal Contact Details, Loyalty Details and a tenant <code>AEP Lab - Customer Analytics</code> field group, plus the primary Email identity descriptor.</li>
+              <li><strong>3 · Create dataset</strong> — Creates <code>AEP Lab - Generic Profile - Dataset</code>, <strong>enabled for Real-Time Customer Profile</strong> (opposite of the Consent dataset).</li>
+              <li><strong>4 · HTTP flow (instructions)</strong> — Tells you how to create the HTTP API dataflow in AEP UI. Then use <strong>Fetch URL &amp; Flow ID</strong> to populate the connection and click <strong>Save connection</strong>.</li>
+            </ol>
+          </div>
+          <div class="button-row">
+            <button type="button" id="genCheckInfraBtn" class="btn btn-secondary">Check sandbox status</button>
+          </div>
+          <div class="button-row consent-infra-step-buttons">
+            <button type="button" id="genStepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
+            <button type="button" id="genStepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
+            <button type="button" id="genStepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
+            <button type="button" id="genStepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
+          </div>
+          <p id="genInfraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
+
+          <div class="sandbox-config gen-streaming-fields">
+            <h3 class="sandbox-config-title">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
+            <div class="form-row">
+              <label for="genStreamSchemaId">Schema $id</label>
+              <input type="text" id="genStreamSchemaId" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="genStreamDatasetId">Dataset ID</label>
+              <input type="text" id="genStreamDatasetId" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="genStreamXdmKey">Tenant XDM key</label>
+              <input type="text" id="genStreamXdmKey" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="genStreamFlowId">Flow ID (x-adobe-flow-id)</label>
+              <input type="text" id="genStreamFlowId" placeholder="Paste UUID from the dataflow in AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="genStreamFlowName">Dataflow name in AEP</label>
+              <input type="text" id="genStreamFlowName" value="AEP Lab - Generic Profile - Dataflow" placeholder="Dataflow name (used for lookup when Flow ID is empty)" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="genStreamUrl">Collection URL</label>
+              <input type="url" id="genStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="button-row">
+              <button type="button" id="genLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
+              <button type="button" id="genFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="genSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- B. Email pattern + actions -->
+      <div class="generic-pattern-panel">
+        <h3 class="generic-subhead"><span class="icon">📧</span> Profile email</h3>
+        <p class="generic-helper">
+          Enter the email you'd like to use for profiles (e.g. <code>apalmer@adobetest.com</code> or <code>adamp.adobedemo@gmail.com</code>).
+          We'll scale it with plus-addressing as <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> using today's date and a counter that resets daily per sandbox.
+        </p>
+        <div class="form-row form-row--inline">
+          <div class="form-group form-group--flex">
+            <label for="genBaseEmail">Base email</label>
+            <input type="email" id="genBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="genCounter">Counter (N)</label>
+            <input type="number" id="genCounter" min="1" step="1" value="1">
+          </div>
+          <div class="form-group">
+            <label for="genGenerateCount">Count</label>
+            <input type="number" id="genGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
+          </div>
+        </div>
+        <p class="email-pattern-preview">
+          <strong>Will scale to:</strong>
+          <code id="genEmailPreview">—</code>
+          <button type="button" id="genResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+        </p>
+
+        <div class="generic-actions button-row">
+          <button type="button" id="genFindProfileBtn" class="btn btn-secondary">Find profile (by current scaled email)</button>
+          <button type="button" id="genUpdateProfileBtn" class="btn btn-primary">Update profile</button>
+          <button type="button" id="genGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+          <label class="generic-dryrun-label">
+            <input type="checkbox" id="genDryRun"> <span>Dry run (preview payload, do not stream)</span>
+          </label>
+        </div>
+        <p id="genericProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+      </div>
+
+      <!-- C. Customer Analytics editor (matches the Adobe Profile Updater reference page) -->
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">📊</span> Customer Analytics</h3>
+        <div class="generic-analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🎯</span>
+              <h4 class="analytics-card-title">Churn risk</h4>
+              <span class="analytics-card-value" id="genChurnValue">50%</span>
+            </div>
+            <p class="analytics-card-desc">Likelihood of customer leaving (0–100). Maps to <code>_demoemea.scoring.churn.churnPrediction</code>.</p>
+            <input type="range" id="genChurn" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low risk</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="genChurn" title="Randomize">🎲</button>
+              <span>High risk</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📈</span>
+              <h4 class="analytics-card-title">Propensity score</h4>
+              <span class="analytics-card-value" id="genPropensityValue">50%</span>
+            </div>
+            <p class="analytics-card-desc">Likelihood to purchase (0–100). Maps to <code>_demoemea.scoring.core.propensityScore</code>.</p>
+            <input type="range" id="genPropensity" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="genPropensity" title="Randomize">🎲</button>
+              <span>High</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">⭐</span>
+              <h4 class="analytics-card-title">NPS score</h4>
+            </div>
+            <p class="analytics-card-desc">Net Promoter Score. Maps to <code>_demoemea.scoring.nps</code>.</p>
+            <select id="genNps" class="nps-select">
+              <option value="">— Select —</option>
+              <option value="0" data-band="detractor">0 — Detractor</option>
+              <option value="1" data-band="detractor">1 — Detractor</option>
+              <option value="2" data-band="detractor">2 — Detractor</option>
+              <option value="3" data-band="detractor">3 — Detractor</option>
+              <option value="4" data-band="detractor">4 — Detractor</option>
+              <option value="5" data-band="detractor">5 — Detractor</option>
+              <option value="6" data-band="detractor">6 — Detractor</option>
+              <option value="7" data-band="passive">7 — Passive</option>
+              <option value="8" data-band="passive">8 — Passive</option>
+              <option value="9" data-band="promoter">9 — Promoter</option>
+              <option value="10" data-band="promoter">10 — Promoter</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">💰</span>
+              <h4 class="analytics-card-title">Avg order value</h4>
+              <span class="analytics-card-value" id="genAovValue">$500</span>
+            </div>
+            <p class="analytics-card-desc">Average spending per order ($0–$10k). Maps to <code>_demoemea.commerce.averageOrderValue</code>.</p>
+            <input type="range" id="genAov" class="analytics-slider" min="0" max="10000" step="50" value="500">
+            <div class="analytics-slider-meta">
+              <span>$0</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="genAov" title="Randomize">🎲</button>
+              <span>$10k</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📢</span>
+              <h4 class="analytics-card-title">Preferred channel</h4>
+            </div>
+            <p class="analytics-card-desc">Communication channel preference. Maps to <code>_demoemea.preferences.preferredChannel</code>.</p>
+            <select id="genPreferredChannel">
+              <option value="">— Select —</option>
+              <option value="email">Email</option>
+              <option value="push">Push notifications</option>
+              <option value="inapp">In-app messages</option>
+              <option value="sms">SMS (text messages)</option>
+              <option value="phone">Phone calls</option>
+              <option value="postal">Physical mail</option>
+              <option value="invehicle">In-vehicle messages</option>
+              <option value="inhome">In-home messages</option>
+              <option value="iot">IoT messages</option>
+              <option value="social">Social media</option>
+              <option value="other">Other</option>
+              <option value="none">No preferred channel</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">👤</span>
+              <h4 class="analytics-card-title">Gender</h4>
+            </div>
+            <p class="analytics-card-desc">Customer gender identity. Maps to <code>person.gender</code> (XDM root).</p>
+            <select id="genGender">
+              <option value="">— Select —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="non_binary">Non-binary</option>
+              <option value="not_specified">Prefer not to say</option>
+              <option value="other">Other</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card analytics-card--loyalty">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🏆</span>
+              <h4 class="analytics-card-title">Loyalty program</h4>
+            </div>
+            <p class="analytics-card-desc">Tier and points balance. Maps to <code>loyalty.tier</code> and <code>loyalty.points</code> (XDM root).</p>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="genLoyaltyTier">Tier level</label>
+                <select id="genLoyaltyTier">
+                  <option value="">— Select —</option>
+                  <option value="Bronze">Bronze</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Platinum">Platinum</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="genLoyaltyPoints">Points balance</label>
+                <input type="number" id="genLoyaltyPoints" min="0" step="1" placeholder="e.g. 1500">
+              </div>
+              <div class="form-group form-group--small">
+                <label>&nbsp;</label>
+                <button type="button" id="genLoyaltyRandomBtn" class="btn btn-link" title="Random points within selected tier">🎲</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="analytics-card analytics-card--language">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🌍</span>
+              <h4 class="analytics-card-title">Language preference</h4>
+            </div>
+            <p class="analytics-card-desc">Maps to <code>personalEmail.language</code> (XDM root).</p>
+            <select id="genLanguage">
+              <option value="">— Select —</option>
+              <option value="en-US">English (United States)</option>
+              <option value="en-GB">English (United Kingdom)</option>
+              <option value="en-CA">English (Canada)</option>
+              <option value="en-AU">English (Australia)</option>
+              <option value="fr-FR">French (France)</option>
+              <option value="fr-CA">French (Canada)</option>
+              <option value="de-DE">German (Germany)</option>
+              <option value="de-AT">German (Austria)</option>
+              <option value="de-CH">German (Switzerland)</option>
+              <option value="es-ES">Spanish (Spain)</option>
+              <option value="es-MX">Spanish (Mexico)</option>
+              <option value="es-AR">Spanish (Argentina)</option>
+              <option value="it-IT">Italian (Italy)</option>
+              <option value="pt-PT">Portuguese (Portugal)</option>
+              <option value="pt-BR">Portuguese (Brazil)</option>
+              <option value="nl-NL">Dutch (Netherlands)</option>
+              <option value="nl-BE">Dutch (Belgium)</option>
+              <option value="da-DK">Danish (Denmark)</option>
+              <option value="sv-SE">Swedish (Sweden)</option>
+              <option value="no-NO">Norwegian (Norway)</option>
+              <option value="fi-FI">Finnish (Finland)</option>
+              <option value="pl-PL">Polish (Poland)</option>
+              <option value="ru-RU">Russian (Russia)</option>
+              <option value="zh-CN">Chinese (Simplified)</option>
+              <option value="zh-TW">Chinese (Traditional)</option>
+              <option value="ja-JP">Japanese (Japan)</option>
+              <option value="ko-KR">Korean (South Korea)</option>
+              <option value="ar-SA">Arabic (Saudi Arabia)</option>
+              <option value="ar-AE">Arabic (UAE)</option>
+              <option value="he-IL">Hebrew (Israel)</option>
+              <option value="tr-TR">Turkish (Turkey)</option>
+              <option value="hi-IN">Hindi (India)</option>
+              <option value="th-TH">Thai (Thailand)</option>
+              <option value="vi-VN">Vietnamese (Vietnam)</option>
+            </select>
+          </div>
+        </div>
+        <p class="analytics-info-banner">
+          <strong>Analytics info:</strong> these values update the customer's scoring, NPS, order profile, loyalty status and language preferences in Adobe Experience Platform via the existing
+          <code>profileUpdateProxy</code> (<code>POST /api/profile/update</code>). Leave fields blank to skip them — blanks are not sent.
+        </p>
+      </div>
+
+      <details id="genericProfileDebug" class="generate-debug" hidden>
+        <summary>Request &amp; response details</summary>
+        <div class="generate-debug-content">
+          <div class="generate-debug-section">
+            <strong>Client POST (to /api/profile/update):</strong>
+            <pre id="genDebugClientRequest"></pre>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Status:</strong> <span id="genDebugStatus"></span>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Response:</strong>
+            <pre id="genDebugResponse"></pre>
+          </div>
+        </div>
+      </details>
+    </section>
+
       </main>
     </div>
   </div>
@@ -1108,6 +1429,7 @@
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
   <script src="profile-generation.js"></script>
+  <script src="profile-generation-generic.js"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>

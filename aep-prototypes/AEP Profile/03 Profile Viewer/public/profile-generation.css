@@ -456,3 +456,294 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 .profile-generation-page .industry-placeholder[hidden] {
   display: none;
 }
+
+/* ============================================================
+ * Generic Profile (industry-less) panel
+ * Mirrors the Adobe Profile Updater reference page (Customer Analytics grid),
+ * uses --dash-* tokens only so it themes correctly in light & dark.
+ * ========================================================== */
+
+.profile-generation-page #genericProfilePanel {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--dash-border);
+}
+
+.profile-generation-page #genericProfilePanel .panel-title .icon {
+  margin-right: 0.35rem;
+}
+
+.profile-generation-page .gen-streaming-fields {
+  margin-top: 1rem;
+}
+
+.profile-generation-page .gen-streaming-fields .sandbox-config-title {
+  font-size: 0.95rem;
+  margin: 0 0 0.75rem;
+  color: var(--dash-text-secondary);
+}
+
+.profile-generation-page .gen-streaming-fields input[type="text"],
+.profile-generation-page .gen-streaming-fields input[type="url"] {
+  width: 100%;
+  max-width: 42rem;
+  box-sizing: border-box;
+}
+
+/* Email pattern panel */
+.profile-generation-page .generic-pattern-panel,
+.profile-generation-page .generic-analytics-section {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  box-shadow: var(--dash-shadow, 0 2px 8px rgba(0, 0, 0, 0.06));
+}
+
+.profile-generation-page .generic-subhead {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.profile-generation-page .generic-subhead .icon {
+  color: var(--dash-blue);
+  font-size: 1.1em;
+}
+
+.profile-generation-page .generic-helper {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.45;
+}
+
+.profile-generation-page .generic-helper code,
+.profile-generation-page .analytics-card-desc code,
+.profile-generation-page .analytics-info-banner code {
+  background: var(--dash-code-bg);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.profile-generation-page .email-pattern-preview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  color: var(--dash-text-secondary);
+}
+
+.profile-generation-page .email-pattern-preview code {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  padding: 0.2em 0.55em;
+  border-radius: 4px;
+  font-size: 0.95em;
+  color: var(--dash-text);
+  word-break: break-all;
+}
+
+.profile-generation-page .btn-link {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--dash-blue);
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.profile-generation-page .btn-link:hover {
+  background: var(--dash-hover, var(--dash-surface-alt));
+  border-color: var(--dash-border);
+}
+
+.profile-generation-page .generic-actions {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.profile-generation-page .generic-dryrun-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+  margin-left: 0.25rem;
+}
+
+/* Analytics grid */
+.profile-generation-page .generic-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 1100px) {
+  .profile-generation-page .generic-analytics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .profile-generation-page .generic-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-generation-page .analytics-card {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.profile-generation-page .analytics-card--loyalty,
+.profile-generation-page .analytics-card--language {
+  grid-column: span 1;
+}
+
+@media (min-width: 1101px) {
+  .profile-generation-page .analytics-card--loyalty {
+    grid-column: span 2;
+  }
+}
+
+.profile-generation-page .analytics-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-generation-page .analytics-card-icon {
+  font-size: 1.1em;
+}
+
+.profile-generation-page .analytics-card-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-generation-page .analytics-card-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dash-blue);
+  white-space: nowrap;
+}
+
+.profile-generation-page .analytics-card-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--dash-muted);
+}
+
+.profile-generation-page .analytics-slider {
+  width: 100%;
+  accent-color: var(--dash-blue);
+}
+
+.profile-generation-page .analytics-slider-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+}
+
+.profile-generation-page .analytics-randomize {
+  padding: 0.15rem 0.45rem;
+  font-size: 0.95rem;
+}
+
+/* NPS color coding via data-band on selected option */
+.profile-generation-page .nps-select option[data-band="detractor"] {
+  color: var(--dash-error-text, #c95a4a);
+}
+
+.profile-generation-page .nps-select option[data-band="passive"] {
+  color: var(--dash-warning-text, #b08000);
+}
+
+.profile-generation-page .nps-select option[data-band="promoter"] {
+  color: var(--dash-success-text, #267a33);
+}
+
+.profile-generation-page .analytics-info-banner {
+  margin: 1rem 0 0;
+  padding: 0.65rem 0.85rem;
+  background: var(--dash-info-bg, var(--dash-surface-alt));
+  border: 1px solid var(--dash-info-border, var(--dash-border));
+  border-radius: 8px;
+  font-size: 0.825rem;
+  line-height: 1.45;
+  color: var(--dash-text-secondary);
+}
+
+.profile-generation-page #genericProfilePanel .form-group--small {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.profile-generation-page #genericProfilePanel .consent-streaming-details {
+  margin-top: 0.75rem;
+}
+
+.profile-generation-page #genericProfilePanel .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.profile-generation-page #genericProfilePanel .consent-setup-instructions {
+  background: var(--dash-surface-alt);
+  border-left: 4px solid var(--dash-blue);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--dash-text);
+}
+
+.profile-generation-page #genericProfilePanel .consent-setup-instructions h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--dash-text);
+}
+
+.profile-generation-page #genericProfilePanel .consent-setup-instructions ol {
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.55;
+}
+
+.profile-generation-page #genericProfilePanel .consent-setup-instructions code {
+  background: var(--dash-code-bg);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}

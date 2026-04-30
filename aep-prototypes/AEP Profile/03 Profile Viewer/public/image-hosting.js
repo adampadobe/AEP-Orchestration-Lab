@@ -1557,48 +1557,280 @@
     setStatus(lastRecords.length + ' scrape(s), ' + classified + ' classified, ' + hostedCount + ' hosted image(s).', 'ok');
   }
 
+  // === Backup-to-ZIP visual progress dialog ================================
+  // Same shell as the restore dialog (reuses .image-hosting-restore-dialog
+  // CSS) but with three stages: server build → browser download → saved.
+  // Also fixes a silent-failure bug in the previous implementation:
+  // calling URL.revokeObjectURL(blobUrl) immediately after a.click() breaks
+  // the download in Chrome/Safari for blobs more than a few MB because the
+  // browser hasn't actually started reading the blob bytes when the URL is
+  // revoked. We now keep the anchor in the DOM and defer the revoke to 60s
+  // after the click, and we surface the same blob via a manual "Re-download"
+  // link inside the dialog as a fallback if the auto-trigger gets blocked.
+  var BACKUP_STAGES = ['server', 'downloading', 'saved'];
+  var backupDialogEl = null;
+  var backupDialogStagesEl = null;
+  var backupDialogStatusEl = null;
+  var backupDialogActionsEl = null;
+  var backupDialogFileEl = null;
+  var backupDialogManualLinkEl = null;
+  var backupDialogWired = false;
+
+  function ensureBackupDialog() {
+    if (backupDialogWired) return backupDialogEl;
+    backupDialogEl = document.getElementById('imageHostingBackupDialog');
+    if (!backupDialogEl) return null;
+    backupDialogStagesEl = document.getElementById('imageHostingBackupStages');
+    backupDialogStatusEl = document.getElementById('imageHostingBackupDialogStatus');
+    backupDialogActionsEl = document.getElementById('imageHostingBackupDialogActions');
+    backupDialogFileEl = document.getElementById('imageHostingBackupDialogFile');
+    backupDialogManualLinkEl = document.getElementById('imageHostingBackupDialogManualLink');
+    var closeBtn = document.getElementById('imageHostingBackupDialogClose');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function () {
+        if (backupDialogEl && backupDialogEl.open) {
+          try { backupDialogEl.close(); } catch (_e) { backupDialogEl.removeAttribute('open'); }
+        }
+      });
+    }
+    backupDialogWired = true;
+    return backupDialogEl;
+  }
+
+  function openBackupDialog(fileName) {
+    var dlg = ensureBackupDialog();
+    if (!dlg) return;
+    if (backupDialogFileEl) backupDialogFileEl.textContent = fileName ? ('Target: ' + fileName) : '';
+    if (backupDialogStatusEl) backupDialogStatusEl.textContent = '';
+    if (backupDialogActionsEl) backupDialogActionsEl.hidden = true;
+    if (backupDialogManualLinkEl) {
+      backupDialogManualLinkEl.hidden = true;
+      backupDialogManualLinkEl.removeAttribute('href');
+      backupDialogManualLinkEl.removeAttribute('download');
+    }
+    dlg.classList.remove('is-error', 'is-done');
+    if (backupDialogStagesEl) {
+      Array.prototype.forEach.call(backupDialogStagesEl.querySelectorAll('li'), function (li) {
+        li.classList.remove('is-active', 'is-done', 'is-error');
+      });
+    }
+    if (typeof dlg.showModal === 'function' && !dlg.open) {
+      try { dlg.showModal(); } catch (_e) { dlg.setAttribute('open', ''); }
+    } else if (!dlg.open) {
+      dlg.setAttribute('open', '');
+    }
+  }
+
+  function setBackupStage(stage, message) {
+    ensureBackupDialog();
+    if (!backupDialogStagesEl) return;
+    var idx = BACKUP_STAGES.indexOf(stage);
+    Array.prototype.forEach.call(backupDialogStagesEl.querySelectorAll('li'), function (li) {
+      var st = li.getAttribute('data-stage');
+      var i = BACKUP_STAGES.indexOf(st);
+      li.classList.remove('is-active', 'is-done', 'is-error');
+      if (i >= 0 && idx >= 0 && i < idx) li.classList.add('is-done');
+      else if (i === idx) li.classList.add('is-active');
+    });
+    if (backupDialogStatusEl && message != null) backupDialogStatusEl.textContent = message;
+    if (backupDialogEl) backupDialogEl.classList.remove('is-error', 'is-done');
+    if (backupDialogActionsEl) backupDialogActionsEl.hidden = true;
+  }
+
+  function markBackupError(message) {
+    ensureBackupDialog();
+    if (!backupDialogStagesEl) return;
+    Array.prototype.forEach.call(backupDialogStagesEl.querySelectorAll('li.is-active'), function (li) {
+      li.classList.remove('is-active');
+      li.classList.add('is-error');
+    });
+    if (backupDialogEl) backupDialogEl.classList.add('is-error');
+    if (backupDialogStatusEl) backupDialogStatusEl.textContent = message || 'Backup failed.';
+    if (backupDialogActionsEl) backupDialogActionsEl.hidden = false;
+  }
+
+  function markBackupDone(message, blobUrl, fileName) {
+    ensureBackupDialog();
+    if (!backupDialogStagesEl) return;
+    Array.prototype.forEach.call(backupDialogStagesEl.querySelectorAll('li'), function (li) {
+      li.classList.remove('is-active', 'is-error');
+      li.classList.add('is-done');
+    });
+    if (backupDialogEl) backupDialogEl.classList.add('is-done');
+    if (backupDialogStatusEl) backupDialogStatusEl.textContent = message || 'Done.';
+    if (backupDialogManualLinkEl && blobUrl && fileName) {
+      backupDialogManualLinkEl.href = blobUrl;
+      backupDialogManualLinkEl.download = fileName;
+      backupDialogManualLinkEl.textContent = 'Re-download ' + fileName;
+      backupDialogManualLinkEl.hidden = false;
+    }
+    if (backupDialogActionsEl) backupDialogActionsEl.hidden = false;
+  }
+
+  function formatBytesShort(n) {
+    if (n == null || isNaN(n)) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
   async function downloadLibrary() {
     var sb = getSandbox();
     if (!sb) { setStatus('Select a sandbox first.', 'err'); return; }
-    var customer = window.prompt('Backup images as logo_<name>.zip\n\nEnter a customer name (letters, numbers, hyphens):', '');
+    var customer = window.prompt(
+      'Backup images as logo_<name>.zip\n\n' +
+      'Enter a customer name (letters, numbers, hyphens). The ZIP will save to your browser\'s Downloads folder.',
+      ''
+    );
     if (customer == null) return;
     customer = String(customer).trim();
     if (!customer) customer = sb;
+    var safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'library';
+    var fileName = 'logo_' + safe + '.zip';
     var url = '/api/image-hosting/library/download?sandbox=' + encodeURIComponent(sb) + '&customer=' + encodeURIComponent(customer);
-    setStatus('Preparing ZIP…');
+
+    openBackupDialog(fileName);
+    setBackupStage('server', 'Server is building the ZIP from your library — this can take a few seconds for large libraries…');
+    setStatus('Preparing ' + fileName + '…');
+
+    var slowTimer = setTimeout(function () {
+      if (backupDialogStatusEl && backupDialogEl && !backupDialogEl.classList.contains('is-done') && !backupDialogEl.classList.contains('is-error')) {
+        backupDialogStatusEl.textContent = 'Still working — large libraries can take 10–30 seconds…';
+      }
+    }, 10000);
+
+    var blobUrl = null;
+    var anchorEl = null;
     try {
-      var resp = await fetch(url);
+      var resp = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+      if (slowTimer) { clearTimeout(slowTimer); slowTimer = null; }
+
       if (!resp.ok) {
-        var e = await resp.json().catch(function () { return {}; });
-        setStatus('Download failed: ' + (e.error || resp.statusText), 'err');
+        var bodyText = '';
+        try { bodyText = await resp.text(); } catch (_e) {}
+        var parsedErr = null;
+        if (bodyText) {
+          try { parsedErr = JSON.parse(bodyText); } catch (_e) {}
+        }
+        var detail = (parsedErr && parsedErr.error)
+          || resp.statusText // empty over HTTP/2 (Cloud Functions / Hosting)
+          || (bodyText && bodyText.length < 240 ? bodyText : '')
+          || ('server returned HTTP ' + resp.status + ' with no body — likely the assembled ZIP exceeded Cloud Run\'s 32 MiB response cap; check Cloud Functions logs for "Response size was too large".');
+        var msg = 'Download failed: ' + detail;
+        markBackupError(msg);
+        setStatus(msg, 'err');
         return;
       }
+
+      // Large libraries blow Cloud Run's 32 MiB response cap. The server
+      // detects that, uploads the ZIP to GCS, and returns a JSON
+      // redirect document with a short-lived V4 signed URL. We follow
+      // that URL via a synthetic anchor click — the GCS object has
+      // attachment Content-Disposition so it lands in the browser's
+      // Downloads folder with the right filename, and we never have to
+      // pull the bytes through the function.
+      var contentType = (resp.headers.get('content-type') || '').toLowerCase();
+      if (contentType.indexOf('application/json') !== -1) {
+        var redirectBody = await resp.json().catch(function () { return null; });
+        if (redirectBody && redirectBody.mode === 'redirect' && redirectBody.downloadUrl) {
+          setBackupStage('downloading', 'Library exceeded the inline response limit — handing off a signed URL from cloud storage…');
+          var redirAnchor = document.createElement('a');
+          redirAnchor.href = redirectBody.downloadUrl;
+          if (redirectBody.fileName) redirAnchor.download = redirectBody.fileName;
+          redirAnchor.rel = 'noopener';
+          redirAnchor.target = '_self';
+          redirAnchor.style.display = 'none';
+          document.body.appendChild(redirAnchor);
+          redirAnchor.click();
+          var redirSize = formatBytesShort(redirectBody.size);
+          var redirName = redirectBody.fileName || fileName;
+          var redirMsg = 'Saved ' + redirName + (redirSize ? ' (' + redirSize + ')' : '') + ' via signed URL — too large to stream inline. Signed URL valid for ~15 min.';
+          // Use the same dialog "done" affordance, but point Re-download
+          // at the signed URL so the user can retry without rebuilding.
+          markBackupDone(redirMsg, redirectBody.downloadUrl, redirName);
+          setStatus('Downloaded ' + redirName + ' via signed URL.', 'ok');
+          // Defer cleanup of the anchor so Safari/Chrome have time to
+          // honour the click — symmetric with the inline path.
+          var redirCapturedAnchor = redirAnchor;
+          setTimeout(function () {
+            if (redirCapturedAnchor && redirCapturedAnchor.parentNode) {
+              redirCapturedAnchor.parentNode.removeChild(redirCapturedAnchor);
+            }
+          }, 60000);
+          return;
+        }
+        var jsonMsg = 'Download failed: server returned JSON (' + (redirectBody && redirectBody.error || 'unrecognised payload') + ') instead of a ZIP.';
+        markBackupError(jsonMsg);
+        setStatus(jsonMsg, 'err');
+        return;
+      }
+
+      setBackupStage('downloading', 'Server finished — receiving the ZIP bytes from the browser…');
+
       var blob = await resp.blob();
+
+      // Sanity-check the bytes are actually a ZIP. The server fix landed in
+      // a previous deploy, but if any cache in front of the function ever
+      // misbehaves we'd rather surface a loud error here than silently save
+      // a bogus .zip into the user's Downloads folder.
       var head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
-      var isZip = head.length >= 2 && head[0] === 0x50 && head[1] === 0x4b; /* PK — ZIP local file header */
+      var isZip = head.length >= 2 && head[0] === 0x50 && head[1] === 0x4b;
       if (!isZip) {
         var errText = '';
-        try {
-          errText = await blob.text();
-        } catch (_e) {}
-        setStatus(
-          'Download was not a valid ZIP file (server returned JSON or HTML instead). If this persists after deploy, check the image-hosting API.',
-          'err'
-        );
+        try { errText = await blob.text(); } catch (_e) {}
+        var ct = resp.headers.get('content-type') || 'unknown';
+        var nonZipMsg = 'Server returned a ' + ct + ' response, not a ZIP. Try again or report this if it persists.';
+        markBackupError(nonZipMsg);
+        setStatus(nonZipMsg, 'err');
         if (errText && errText.length < 400) console.warn('[image-hosting] download non-zip body:', errText.slice(0, 400));
         return;
       }
-      var safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'library';
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'logo_' + safe + '.zip';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(a.href);
-      setStatus('Downloaded logo_' + safe + '.zip (' + Math.round(blob.size / 1024) + ' KB).', 'ok');
+
+      blobUrl = URL.createObjectURL(blob);
+
+      // Trigger the browser download. Two reliability fixes vs the previous
+      // implementation:
+      //   1. Anchor stays in the DOM (some browsers cancel the download
+      //      if the anchor element is removed before the click event has
+      //      finished propagating).
+      //   2. URL.revokeObjectURL is deferred to 60s after the click so the
+      //      browser has plenty of time to actually read the blob bytes —
+      //      revoking immediately is the most common cause of "I clicked
+      //      Backup, gave it a name, and nothing happened".
+      anchorEl = document.createElement('a');
+      anchorEl.href = blobUrl;
+      anchorEl.download = fileName;
+      anchorEl.rel = 'noopener';
+      anchorEl.style.display = 'none';
+      document.body.appendChild(anchorEl);
+      anchorEl.click();
+
+      var sizeStr = formatBytesShort(blob.size);
+      var doneMsg = 'Saved ' + fileName + ' (' + sizeStr + ') to your Downloads folder.';
+      markBackupDone(doneMsg, blobUrl, fileName);
+      setStatus('Downloaded ' + fileName + ' (' + sizeStr + ').', 'ok');
+
+      // Defer cleanup so Safari/Chrome have time to commit the download.
+      // 60s is comfortable; we tear down on the next backup or on dialog
+      // close anyway.
+      var capturedUrl = blobUrl;
+      var capturedAnchor = anchorEl;
+      setTimeout(function () {
+        try { URL.revokeObjectURL(capturedUrl); } catch (_e) {}
+        if (capturedAnchor && capturedAnchor.parentNode) {
+          capturedAnchor.parentNode.removeChild(capturedAnchor);
+        }
+      }, 60000);
     } catch (e) {
-      setStatus('Download failed: ' + (e.message || e), 'err');
+      if (slowTimer) clearTimeout(slowTimer);
+      // Best-effort cleanup if we made it as far as creating the blob URL.
+      if (blobUrl) {
+        var stale = blobUrl;
+        setTimeout(function () { try { URL.revokeObjectURL(stale); } catch (_e2) {} }, 60000);
+      }
+      var net = 'Download failed: ' + (e.message || e);
+      markBackupError(net);
+      setStatus(net, 'err');
     }
   }
 
