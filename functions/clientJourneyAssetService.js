@@ -379,7 +379,31 @@ Hard rules:
   identity examples: "ECID (anonymous)", "ECID | Email ID", "ECID | Email ID | Account ID | Phone ID", "All resolved identities".
 - "adobe": 12 items. Each item is an array of blocks. block.type ∈ "product" | "heading" | "bullet" | "blank". Use product for Adobe product names ("Real-Time CDP", "Journey Optimizer", "Customer Journey Analytics", "AEM Assets"). Use heading for sub-headings ("Data ingestion:", "Identities:", "Segmentation:", "Activation:"). Use bullet for the actual content. Use blank sparingly for spacing.
 - "tech": 12 items. Each item has heading (a 2-4 word category like "Web & CMS", "CRM & Billing", "Paid Media", "Engagement Channels") and bullets (each with text + confirmed:boolean). Use confirmed:true for technologies present in the input "detectedTech" list, confirmed:false for plausible inferences.
-- "slides": 13 items. slides[0] is the overview (activeNode -1, label "Overview", desc = one sentence summary of the whole journey). slides[1..12] correspond to journey steps 1..12 (activeNode = stepIndex - 1). Each slide carries: label (matches the stepLabel without the "NN  " prefix), activeNode, desc (1-2 sentence persona narrative), data[] (Data Collected bullets — strings), dataActive[] (subset newly captured this step), ingestion[] (Data Ingestion bullets), ingestionActive[], segs[] (segments — each {i: emoji, l: label-with-newlines}), segActive[] (subset of segment labels active this step), ids[] (each [label, isActive] tuple e.g. ["ECID", true]), orch[] (Journey Orchestration bullets), orchActive[], activ[] (Activation/Destinations bullets — see CLOSED CHANNEL LIST below), activActive[] (subset of activ[] active this step — entries MUST exactly match strings in this slide's activ[]), tech[] (each {t: text, a: isActive}).
+- "slides": 13 items. slides[0] is the overview (activeNode -1, label "Overview", desc = one sentence summary of the whole journey). slides[1..12] correspond to journey steps 1..12 (activeNode = stepIndex - 1). Each slide carries: label (matches the stepLabel without the "NN  " prefix), activeNode, desc (1-2 sentence persona narrative), data[] (Data Collected bullets — strings), dataActive[] (subset newly captured this step), ingestion[] (Data Ingestion bullets), ingestionActive[], segs[] (segments — each {i: emoji, l: label-with-newlines}), segActive[] (subset of segment labels active this step), ids[] (each [label, isActive] tuple e.g. ["ECID", true]), orch[] (Journey Orchestration bullets — Adobe Journey Optimizer activity: triggers fired, journey paths chosen, frequency rules applied), orchActive[], decisioning[] (Decision Management bullets — see critical rule 5 for format; one line per decision, outcome + signal that drove it. Use decisioning at retargeting, personalised offer, web personalisation, re-engagement, post-conversion next-best-action steps. Leave empty when no decision is being made at this step), decisioningActive[] (subset of decisioning[] newly active this step), activ[] (Activation/Destinations bullets — see CLOSED CHANNEL LIST below), activActive[] (subset of activ[] active this step — entries MUST exactly match strings in this slide's activ[]), tech[] (each {t: text, a: isActive}).
+
+Critical content rules (these govern WHAT goes in each cell — violations weaken the AEP narrative):
+
+1. ACQUISITION vs EXISTING-CUSTOMER journey type governs the starting state:
+   - Acquisition / cold start (no prior relationship — journeyType keywords like "acquisition", "new customer", "first-time visitor", "trial", "lead gen"): customer begins as "Unknown Customer" or "Anonymous Customer" at step 1. Identity, profile data, and segments build progressively as the journey unfolds.
+   - Existing-customer journey (loyalty member, account holder, CRM record, renewal, win-back, cross-sell, upgrade — journeyType keywords like "renewal", "loyalty", "upgrade", "cross-sell", "winback", "existing customer", "retention", "service"): customer begins as "Known Customer" (or "Active Customer", "Loyalty Member" etc.) from step 1. The brand already holds their email, account ID, purchase history, loyalty status, etc. Populate data, ids, and segments from step 1 accordingly — do NOT pretend they are anonymous.
+   - When in doubt, infer from input.client.journeyType plus the persona description.
+
+2. DATA must be blank when the customer is truly Unknown (no identifier, no prior relationship). For an acquisition journey at the first awareness/research moments, AEP literally has nothing on this person — return data: { status: "Unknown Customer", bullets: [] } with an empty bullets array. Do NOT invent behavioural data we could not have collected.
+
+3. ADOBE must be blank when there is no client-side touchpoint at that step. AEP can only ingest, segment, decide, or activate based on data flowing through a client-owned channel (their own website, app, email, login, etc.). Off-platform moments (browsing competitor sites, watching TV, googling, asking a friend, in-store window-shopping) are invisible to Adobe — return adobe: [] for those steps. Do NOT credit AEP with seeing data it could not have received.
+
+4. IDENTITY belongs ONLY in the slides[i].ids array (the dedicated Identities column) and in the adobe[] blocks under an "Identities:" heading. NEVER list identifiers (ECID, Email ID, Account ID, Phone ID, etc.) inside slides[i].data[] or the data[i].bullets — Data Collected is for behavioural and profile attributes only. The Identities column carries the identity story.
+
+5. DECISIONING bullets are one-line, outcome-plus-signal: state WHAT was selected and the SIGNAL THAT DROVE IT — never describe the mechanism (eligibility rules, ranking algorithms, fallback logic). Examples of correct format: "Best mortgage rate matched to her deposit band", "Deposit-match creative selected over rate-focus for first-time buyers", "Returning-visitor banner personalised to her saved product". Wrong: "The decision engine evaluated eligibility rules across the offer library and ranked candidates by propensity score". Pair Decision Management with the Journey Optimizer cell that delivers the outcome — Decisioning answers "what was chosen and why?", Journey Optimizer answers "how was it delivered?".
+
+6. TECH must contain ONLY digital platforms and software systems the client owns or operates (CRM, CMS, commerce, billing, paid-media DSPs, ESPs, analytics, tag managers, contact-centre software, mobile app frameworks, etc.). NEVER include offline channels, media, or non-software items: no print magazines, TV ads, radio, billboards, word-of-mouth, in-store signage, sponsorship, events. If awareness or inspiration comes from an offline source, that context belongs in the slide's "desc" narrative — never in TECH. The TECH row is an inventory of digital tooling, not a list of marketing channels.
+
+7. TECH applies a TWO-LEVEL FILTER:
+   - Journey level: only include technologies that are actually relevant to THIS journey. A B2B CRM in a retail consumer journey, or a loyalty app in a cold-acquisition journey, should NOT appear at any step — exclude entirely.
+   - Step level: of the journey-relevant tech, only include it in slides[i].tech where it is actively touched at that moment. If a platform plays no role at a step, omit it from that step's tech array.
+   Past entries accumulate in the renderer (they remain visible as dimmed past items as the user navigates forward), so do NOT repeat a technology once it has appeared — list it only on the step where it first becomes active.
+
+8. Every TECH bullet must have confirmed:true (vendor named in input.detectedTech) or confirmed:false (plausible inference from industry). The renderer surfaces this badge — never omit or fudge it.
 
 CLOSED CHANNEL LIST for activ[] / activActive[] (Adobe Journey Optimizer delivery channels):
 - Every entry in "activ" and "activActive" MUST be exactly one of these 9 strings, character-for-character. NEVER invent new channels, paraphrase them, or substitute non-Adobe channels (e.g. "Salesforce email", "Marketo SMS", "Mailchimp", "Facebook Ads", "Google Ads" are FORBIDDEN — those are not AJO channels):
@@ -539,6 +563,12 @@ const JOURNEY_RESPONSE_SCHEMA = {
           },
           orch: { type: 'array', items: { type: 'string' } },
           orchActive: { type: 'array', items: { type: 'string' } },
+          // Decisioning runs as a stacked sub-column underneath Orchestration
+          // in the journey map (column 4 = Orch top half + Decisioning bottom
+          // half). Optional in the schema so cached results that pre-date
+          // this addition still render — empty arrays just hide the strip.
+          decisioning: { type: 'array', items: { type: 'string' } },
+          decisioningActive: { type: 'array', items: { type: 'string' } },
           // activ[] / activActive[] are constrained to the closed AJO
           // channel list. Vertex's structured-output mode rejects any
           // string outside the enum, which gives us hard schema-level
@@ -611,9 +641,17 @@ function normaliseJourney(journeyData, overrides = {}) {
     segs: [], segActive: [],
     ids: [],
     orch: [], orchActive: [],
+    decisioning: [], decisioningActive: [],
     activ: [], activActive: [],
     tech: [],
   }));
+  // Backfill decisioning/decisioningActive on slides parsed from older
+  // cached results (pre-Phase 2). Empty arrays render the sub-column as
+  // blank — they don't break the layout.
+  for (let i = 0; i < slides.length; i++) {
+    if (!Array.isArray(slides[i].decisioning)) slides[i].decisioning = [];
+    if (!Array.isArray(slides[i].decisioningActive)) slides[i].decisioningActive = [];
+  }
   // Ensure activeNode invariant.
   slides[0].activeNode = -1;
   for (let i = 1; i < 13; i++) {
@@ -859,6 +897,27 @@ function renderJourneyHtml(journeyData) {
       </g>`;
   }).join('');
 
+  // Build a confirmed-flag lookup keyed by tech bullet text from the
+  // top-level j.tech grouped technology blocks (each with a heading +
+  // bullets[{text, confirmed}]). The slide-level tech entries only
+  // carry {t, a} — we enrich them here with c (confirmed) so the live
+  // interactive deck can show the same [confirmed]/[assumed] badge as
+  // the one-pager and PPTX. Lookup is normalised lower-case for
+  // tolerance against minor casing drift between layers.
+  const techConfirmedByText = new Map();
+  if (Array.isArray(j.tech)) {
+    for (const grp of j.tech) {
+      if (!grp || !Array.isArray(grp.bullets)) continue;
+      for (const b of grp.bullets) {
+        if (!b || !b.text) continue;
+        const key = String(b.text).trim().toLowerCase();
+        if (!techConfirmedByText.has(key)) {
+          techConfirmedByText.set(key, !!b.confirmed);
+        }
+      }
+    }
+  }
+
   const slidesJson = JSON.stringify(j.slides.map((s, idx) => ({
     label: safeString(s.label || (idx === 0 ? 'Overview' : 'Step ' + idx)),
     activeNode: typeof s.activeNode === 'number' ? s.activeNode : (idx === 0 ? -1 : idx - 1),
@@ -875,9 +934,21 @@ function renderJourneyHtml(journeyData) {
     ids: Array.isArray(s.ids) ? s.ids.map((row) => Array.isArray(row) ? [safeString(row[0]), !!row[1]] : [safeString(row), false]) : [],
     orch: Array.isArray(s.orch) ? s.orch : [],
     orchActive: Array.isArray(s.orchActive) ? s.orchActive : [],
+    // Decisioning is the bottom half of column 4 — Decision Management
+    // bullets (one line per decision: outcome + signal that drove it).
+    // Falls back to [] for older cached journeys with no decisioning data.
+    decisioning: Array.isArray(s.decisioning) ? s.decisioning : [],
+    decisioningActive: Array.isArray(s.decisioningActive) ? s.decisioningActive : [],
     activ: Array.isArray(s.activ) ? s.activ : [],
     activActive: Array.isArray(s.activActive) ? s.activActive : [],
-    tech: Array.isArray(s.tech) ? s.tech.map((t) => ({ t: safeString(t && t.t, ''), a: !!(t && t.a) })) : [],
+    tech: Array.isArray(s.tech) ? s.tech.map((t) => {
+      const text = safeString(t && t.t, '');
+      const key = text.trim().toLowerCase();
+      // c: true => [confirmed] vendor; false => [assumed] inference;
+      // null => no flag known (older cached results — render no badge).
+      const c = techConfirmedByText.has(key) ? techConfirmedByText.get(key) : null;
+      return { t: text, a: !!(t && t.a), c };
+    }) : [],
   })));
 
   const pathSegsJson = JSON.stringify(PATH_SEGS);
@@ -918,11 +989,26 @@ function renderJourneyHtml(journeyData) {
   .header .title { font-size: 18px; font-weight: 600; letter-spacing: 0.2px; }
   .header .journey-type { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
 
-  .journey-map-container { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 12px; margin-bottom: 14px; }
+  .journey-map-container { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 12px; margin-bottom: 14px; transition: padding 0.4s ease, flex-basis 0.4s ease; display: flex; flex-direction: column; }
+  /* Overview mode: hide the data panel and let the journey map fill the
+     left column so the whole 12-step picture is at maximum size before
+     the user drills into individual steps. */
+  .journey-map-container.expanded { flex: 1 1 auto; justify-content: center; padding: 28px 18px; }
+  .journey-map-container.expanded svg.journey-svg { max-height: none; height: 100%; flex: 1 1 auto; }
+  .data-panel.hidden { display: none; }
   svg.journey-svg { width: 100%; height: auto; max-height: 280px; display: block; }
   .journey-base { stroke: #c9ced8; stroke-width: 2.5; fill: none; }
   .journey-active { stroke: var(--brand); stroke-width: 4; fill: none; opacity: 0; transition: opacity var(--node-fade); }
   .journey-active.visible { opacity: 1; }
+  /* Overview-only stroke-dasharray draw animation. Hidden on every
+     slide except slide 0; on entry it snaps to length=offset (invisible)
+     then transitions offset→0 over ~6s to "draw" the path end-to-end. */
+  .journey-draw { stroke: var(--brand); stroke-width: 4; fill: none; opacity: 0; transition: opacity 0.4s ease; pointer-events: none; }
+  .journey-draw.visible { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .journey-draw { transition: none !important; }
+    .journey-map-container { transition: none !important; }
+  }
 
   /* Active-state transitions everywhere (circle, icon, badge) share the
      same slow ease-in-out curve so the whole node cross-fades as a unit
@@ -1004,11 +1090,31 @@ function renderJourneyHtml(journeyData) {
   .data-panel-title { font-size: 12px; font-weight: 700; color: var(--brand); letter-spacing: 0.4px; margin-bottom: 10px; text-transform: uppercase; }
   .data-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; flex: 1 1 auto; min-height: 0; }
   .data-col { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; }
+  /* Stacked sub-column layout: column 2 (Ingestion + Segments) and
+     column 4 (Orchestration + Decisioning) split vertically 50/50 with
+     a thin divider, so each strand carries its own header without
+     making the whole panel taller. */
+  .data-col.stacked { padding: 0; gap: 0; }
+  .data-col-half { flex: 0 0 50%; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; }
+  .data-col-half:first-child { border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 6px; }
   .data-col-title { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.3px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
-  .data-item { font-size: 10.5px; line-height: 1.35; padding: 4px 6px; border-radius: 4px; color: var(--ink); background: #f9fafb; border: 1px solid transparent; }
+  .data-col-subtitle { font-size: 9.5px; font-weight: 700; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.3px; opacity: 0.85; padding-bottom: 2px; }
+  .data-item { font-size: 10.5px; line-height: 1.35; padding: 4px 6px; border-radius: 4px; color: var(--ink); background: #f9fafb; border: 1px solid transparent; transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease; }
   .data-item.active { background: var(--active-bg); border-color: var(--active-stroke); color: #1b5e20; font-weight: 600; }
-  .seg { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; font-size: 10px; line-height: 1.25; background: #f9fafb; border: 1px solid transparent; }
+  /* Cumulative trail — items captured on prior slides remain visible as
+     dimmed past entries so the user can SEE the AEP picture growing as
+     they navigate forward. Applies to every column. */
+  .data-item.past { opacity: 0.42; background: transparent; border-color: transparent; }
+  /* Tech badge — surfaces whether a vendor was found in the input
+     detectedTech list (confirmed) or inferred from the industry
+     (assumed). Same pill style as the one-pager so the live deck and
+     the leave-behind PPTX tell the same story. */
+  .tech-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.2px; }
+  .tech-badge.confirmed { background: #e8f5e9; color: #1b5e20; }
+  .tech-badge.assumed { background: #fff3e0; color: #b26a00; }
+  .seg { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; font-size: 10px; line-height: 1.25; background: #f9fafb; border: 1px solid transparent; transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease; }
   .seg.active { background: var(--active-bg); border-color: var(--active-stroke); color: #1b5e20; font-weight: 600; }
+  .seg.past { opacity: 0.42; background: transparent; border-color: transparent; }
   .seg-icon { font-size: 13px; }
   .seg span { display: inline; }
 
@@ -1047,6 +1153,7 @@ function renderJourneyHtml(journeyData) {
     <div class="journey-map-container">
       <svg class="journey-svg" viewBox="0 0 1040 230" id="journey-svg" preserveAspectRatio="xMidYMid meet">
         <path class="journey-base" d="${BASE_PATH}"></path>
+        <path class="journey-draw" id="journey-draw" d="${BASE_PATH}"></path>
         <path class="journey-active" id="active-seg"></path>
         ${nodesSvg}
       </svg>
@@ -1054,12 +1161,42 @@ function renderJourneyHtml(journeyData) {
     <div class="data-panel">
       <div class="data-panel-title">Adobe Experience Platform</div>
       <div class="data-grid">
-        <div class="data-col"><div class="data-col-title">Data Collected</div><div id="col-data"></div></div>
-        <div class="data-col"><div class="data-col-title">Data Ingestion &amp; Segments</div><div id="col-ingestion"></div><div id="col-segments" style="margin-top:6px"></div></div>
-        <div class="data-col"><div class="data-col-title">Identities</div><div id="col-identities"></div></div>
-        <div class="data-col"><div class="data-col-title">Journey Orchestration</div><div id="col-orch"></div></div>
-        <div class="data-col"><div class="data-col-title">Activation / Destinations</div><div id="col-activ"></div></div>
-        <div class="data-col"><div class="data-col-title">Existing ${escapeHtml(clientName)} Technology</div><div id="col-tech"></div></div>
+        <div class="data-col">
+          <div class="data-col-title">Data Collected</div>
+          <div id="col-data"></div>
+        </div>
+        <div class="data-col stacked">
+          <div class="data-col-half">
+            <div class="data-col-title">Data Ingestion</div>
+            <div id="col-ingestion"></div>
+          </div>
+          <div class="data-col-half">
+            <div class="data-col-subtitle">Segments</div>
+            <div id="col-segments"></div>
+          </div>
+        </div>
+        <div class="data-col">
+          <div class="data-col-title">Identities</div>
+          <div id="col-identities"></div>
+        </div>
+        <div class="data-col stacked">
+          <div class="data-col-half">
+            <div class="data-col-title">Journey Orchestration</div>
+            <div id="col-orch"></div>
+          </div>
+          <div class="data-col-half">
+            <div class="data-col-subtitle">Decisioning</div>
+            <div id="col-decisioning"></div>
+          </div>
+        </div>
+        <div class="data-col">
+          <div class="data-col-title">Activation / Destinations</div>
+          <div id="col-activ"></div>
+        </div>
+        <div class="data-col">
+          <div class="data-col-title">Existing ${escapeHtml(clientName)} Technology</div>
+          <div id="col-tech"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1087,10 +1224,44 @@ function renderJourneyHtml(journeyData) {
   const pathSegs = ${pathSegsJson};
   let current = 0;
 
+  // Animate the overview path with a stroke-dasharray draw effect every
+  // time the overview slide is entered. Length is computed from the SVG
+  // path itself so it stays accurate even if BASE_PATH ever changes.
+  function animateOverview() {
+    const path = document.getElementById('journey-draw');
+    if (!path) return;
+    let len = 0;
+    try { len = path.getTotalLength(); } catch (_) { len = 1200; }
+    path.style.strokeDasharray = String(len);
+    path.style.transition = 'none';
+    path.style.strokeDashoffset = String(len);
+    path.classList.add('visible');
+    void path.getBoundingClientRect();
+    const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    path.style.transition = reduced ? 'none' : 'stroke-dashoffset 6s cubic-bezier(0.45, 0.05, 0.55, 0.95)';
+    path.style.strokeDashoffset = '0';
+  }
+  function hideOverviewDraw() {
+    const path = document.getElementById('journey-draw');
+    if (!path) return;
+    path.classList.remove('visible');
+  }
+
   function render() {
     const s = slides[current];
     document.getElementById('slide-label').textContent = s.label || '';
     document.getElementById('slide-desc').textContent = s.desc || '';
+
+    // Overview-mode layout: collapse the data panel and let the map
+    // expand to fill the left column. The cumulative columns are still
+    // rendered into hidden DOM (so the trail accumulates state correctly
+    // when the user steps forward to slide 1) — they just don't show.
+    const isOverview = (s.activeNode === -1) || (current === 0);
+    const mapContainer = document.querySelector('.journey-map-container');
+    const dataPanel = document.querySelector('.data-panel');
+    if (mapContainer) mapContainer.classList.toggle('expanded', isOverview);
+    if (dataPanel) dataPanel.classList.toggle('hidden', isOverview);
+    if (isOverview) animateOverview(); else hideOverviewDraw();
 
     const dots = document.getElementById('nav-dots');
     dots.innerHTML = '';
@@ -1114,30 +1285,114 @@ function renderJourneyHtml(journeyData) {
       seg.classList.remove('visible');
     }
 
-    document.getElementById('col-data').innerHTML = (s.data || []).map(t =>
-      '<div class="data-item' + ((s.dataActive || []).includes(t) ? ' active' : '') + '">' + esc(t) + '</div>'
-    ).join('');
-    document.getElementById('col-ingestion').innerHTML = (s.ingestion || []).map(t =>
-      '<div class="data-item' + ((s.ingestionActive || []).includes(t) ? ' active' : '') + '">' + esc(t) + '</div>'
-    ).join('');
-    document.getElementById('col-segments').innerHTML = (s.segs || []).map(sg =>
-      '<div class="seg' + ((s.segActive || []).includes(sg.l) ? ' active' : '') + '">' +
+    // Cumulative trail across slides[0..current]: accumulate the union of
+    // entries seen on every slide visited so far, mark the ones flagged
+    // active on the current slide, dim everything else as past.
+    // This shows the AEP picture *building* across the journey rather
+    // than blinking different per-slide snapshots in and out.
+    function accumulate(currentIdx, getList, getActiveList, keyOf) {
+      const map = new Map();
+      for (let i = 0; i <= currentIdx; i++) {
+        const list = (getList(slides[i]) || []);
+        const activeKeys = getActiveList ? (getActiveList(slides[i]) || []) : null;
+        list.forEach(item => {
+          const k = keyOf(item);
+          if (!map.has(k)) map.set(k, { item: item, isActive: false });
+          if (i === currentIdx) {
+            map.get(k).item = item;
+            if (activeKeys && activeKeys.indexOf(k) !== -1) map.get(k).isActive = true;
+          }
+        });
+      }
+      return Array.from(map.values()).map(v => ({
+        item: v.item,
+        isActive: v.isActive,
+        isPast: !v.isActive,
+      }));
+    }
+    function liStr(t, isActive, isPast) {
+      const cls = isActive ? ' active' : (isPast ? ' past' : '');
+      return '<div class="data-item' + cls + '">' + esc(t) + '</div>';
+    }
+
+    // String-list columns (Data, Ingestion, Orchestration, Decisioning, Activation).
+    document.getElementById('col-data').innerHTML = accumulate(
+      current, s => s.data || [], s => s.dataActive || [], x => String(x)
+    ).map(o => liStr(o.item, o.isActive, o.isPast)).join('');
+
+    document.getElementById('col-ingestion').innerHTML = accumulate(
+      current, s => s.ingestion || [], s => s.ingestionActive || [], x => String(x)
+    ).map(o => liStr(o.item, o.isActive, o.isPast)).join('');
+
+    document.getElementById('col-orch').innerHTML = accumulate(
+      current, s => s.orch || [], s => s.orchActive || [], x => String(x)
+    ).map(o => liStr(o.item, o.isActive, o.isPast)).join('');
+
+    // Decisioning is the bottom half of column 4. When a journey carries
+    // no decisioning bullets at all, the inner div stays empty and the
+    // sub-column renders as an empty strip — same visual weight as a
+    // step where nothing is happening on that strand.
+    document.getElementById('col-decisioning').innerHTML = accumulate(
+      current, s => s.decisioning || [], s => s.decisioningActive || [], x => String(x)
+    ).map(o => liStr(o.item, o.isActive, o.isPast)).join('');
+
+    document.getElementById('col-activ').innerHTML = accumulate(
+      current, s => s.activ || [], s => s.activActive || [], x => String(x)
+    ).map(o => liStr(o.item, o.isActive, o.isPast)).join('');
+
+    // Segments — accumulate by label, active when label appears in segActive.
+    document.getElementById('col-segments').innerHTML = accumulate(
+      current, s => s.segs || [], s => s.segActive || [], sg => String(sg && sg.l)
+    ).map(o => {
+      const cls = o.isActive ? ' active' : (o.isPast ? ' past' : '');
+      const sg = o.item;
+      return '<div class="seg' + cls + '">' +
         '<span class="seg-icon">' + esc(sg.i || '\u2728') + '</span>' +
-        sg.l.split('\\n').map(l => '<span>' + esc(l) + '</span>').join('') +
-      '</div>'
-    ).join('');
-    document.getElementById('col-identities').innerHTML = (s.ids || []).map(row =>
-      '<div class="data-item' + (row[1] ? ' active' : '') + '"><span style="font-weight:600">' + esc(row[0]) + '</span></div>'
-    ).join('');
-    document.getElementById('col-orch').innerHTML = (s.orch || []).map(t =>
-      '<div class="data-item' + ((s.orchActive || []).includes(t) ? ' active' : '') + '">' + esc(t) + '</div>'
-    ).join('');
-    document.getElementById('col-activ').innerHTML = (s.activ || []).map(t =>
-      '<div class="data-item' + ((s.activActive || []).includes(t) ? ' active' : '') + '">' + esc(t) + '</div>'
-    ).join('');
-    document.getElementById('col-tech').innerHTML = (s.tech || []).map(o =>
-      '<div class="data-item' + (o.a ? ' active' : '') + '">' + esc(o.t) + '</div>'
-    ).join('');
+        String(sg.l || '').split('\\n').map(l => '<span>' + esc(l) + '</span>').join('') +
+      '</div>';
+    }).join('');
+
+    // Identities — tuple [label, isActive]. Accumulate by label; active
+    // when the tuple at the current slide is true.
+    {
+      const map = new Map();
+      for (let i = 0; i <= current; i++) {
+        const list = (slides[i] && slides[i].ids) || [];
+        list.forEach(row => {
+          const k = String(row && row[0]);
+          if (!map.has(k)) map.set(k, { label: k, isActive: false });
+          if (i === current && row && row[1]) map.get(k).isActive = true;
+        });
+      }
+      document.getElementById('col-identities').innerHTML = Array.from(map.values()).map(v => {
+        const cls = v.isActive ? ' active' : ' past';
+        return '<div class="data-item' + cls + '"><span style="font-weight:600">' + esc(v.label) + '</span></div>';
+      }).join('');
+    }
+
+    // Tech — {t, a, c}. Accumulate by text; active when a===true at
+    // current. Render a [confirmed]/[assumed] pill badge if the c flag
+    // is known (null on older cached journeys — we just omit the badge
+    // rather than fabricating a confidence we don't have).
+    {
+      const map = new Map();
+      for (let i = 0; i <= current; i++) {
+        const list = (slides[i] && slides[i].tech) || [];
+        list.forEach(o => {
+          const k = String(o && o.t);
+          if (!map.has(k)) map.set(k, { text: k, isActive: false, confirmed: (o && typeof o.c === 'boolean') ? o.c : null });
+          if (i === current && o && o.a) map.get(k).isActive = true;
+          if (o && typeof o.c === 'boolean') map.get(k).confirmed = o.c;
+        });
+      }
+      document.getElementById('col-tech').innerHTML = Array.from(map.values()).map(v => {
+        const cls = v.isActive ? ' active' : ' past';
+        let badge = '';
+        if (v.confirmed === true) badge = '<span class="tech-badge confirmed">confirmed</span>';
+        else if (v.confirmed === false) badge = '<span class="tech-badge assumed">assumed</span>';
+        return '<div class="data-item' + cls + '">' + esc(v.text) + badge + '</div>';
+      }).join('');
+    }
 
     document.getElementById('prev-btn').disabled = current === 0;
     document.getElementById('next-btn').disabled = current === slides.length - 1;

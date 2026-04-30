@@ -7,17 +7,20 @@ alwaysApply: true
 
 Upstream is **`origin`** → `https://github.com/adampadobe/AEP-Orchestration-Lab.git`.
 
-You MUST run a sync check at **all three** of these points — not just at the start of a session:
+You MUST run a sync check at **all three** of these points — not just at the start of a session.
+
+> **`git fetch` is not `git pull`.** `git fetch origin` only refreshes `refs/remotes/origin/*` (your local copy of the remote refs). It does NOT advance your local `main` branch or your working tree. Your local branch is only "up to date" once **either** `git status` reports `Your branch is up to date with 'origin/main'` **or** you have run `git pull --ff-only origin main`. Every checkpoint below therefore runs `git fetch` → `git status` → (only if behind) `git pull --ff-only`.
 
 ## Checkpoint 1 — Before substantive edits
 
 ```bash
-git fetch origin
-git status                 # confirm not behind origin/main
-# If behind on main:
+git fetch origin           # refreshes remote refs ONLY — does not move local main
+git status                 # MUST show "Your branch is up to date with 'origin/main'"
+# If status reports "behind by N commits", local main is NOT in sync — pull:
 git pull --ff-only origin main
-# If on a feature branch:
-git rebase origin/main     # or merge origin/main into the feature branch
+git status                 # re-verify it now reports "up to date" before editing
+# If on a feature branch (instead of main):
+git pull --rebase origin main   # or: git merge origin/main into the feature branch
 ```
 
 ## Checkpoint 2 — IMMEDIATELY before `git push`
@@ -26,13 +29,14 @@ Even if you fetched at the start, a teammate may have pushed while you were work
 
 ```bash
 git fetch origin
-git status                 # MUST show "Your branch is up to date with 'origin/main'"
-# If now behind:
-git pull --rebase origin main
+git status                 # MUST show "up to date" (or "ahead by N" — both mean local main matches origin/main as a base)
+# If now behind or diverged:
+git pull --rebase origin main   # on a feature branch, or git pull --ff-only origin main on main
+git status                 # re-verify before pushing
 # Re-run any tests/verifiers that the rebase may have invalidated.
 ```
 
-Only `git push` once `git status` shows you are 0 behind.
+Only `git push` once `git status` confirms you are 0 behind `origin/main`.
 
 ## Checkpoint 3 — IMMEDIATELY before `firebase deploy`
 
@@ -40,9 +44,10 @@ This one is the most often forgotten and the most dangerous:
 
 ```bash
 git fetch origin
-git status                 # MUST show 0 behind
-# If behind:
+git status                 # MUST show "Your branch is up to date with 'origin/main'"
+# If behind, your local working tree does NOT yet match what is on GitHub:
 git pull --ff-only origin main
+git status                 # re-verify before deploying
 # Rebuild any built artefacts (e.g. `npm run build:edp`, `npm run build:eds-quickstart`)
 # so the deploy includes the teammate's changes too.
 ```

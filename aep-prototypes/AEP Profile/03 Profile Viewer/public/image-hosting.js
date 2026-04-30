@@ -1602,28 +1602,189 @@
     }
   }
 
+  // === Restore-from-ZIP visual progress dialog =============================
+  // The restore flow is destructive (delete library, then re-upload from ZIP)
+  // and can take several seconds. Without feedback the user sees a frozen
+  // page. The dialog walks through four stages (read → upload → server
+  // delete+write → reload) and at the end forces a hard page reload with a
+  // ?restored=<ts> query param so the new /cdn/ URLs come back fresh from
+  // any HTTP caches in front of the page.
+  var RESTORE_STAGES = ['reading', 'uploading', 'processing', 'reloading'];
+  var restoreDialogEl = null;
+  var restoreDialogStagesEl = null;
+  var restoreDialogStatusEl = null;
+  var restoreDialogActionsEl = null;
+  var restoreDialogFileEl = null;
+  var restoreDialogCloseBtn = null;
+  var restoreDialogWired = false;
+
+  function ensureRestoreDialog() {
+    if (restoreDialogWired) return restoreDialogEl;
+    restoreDialogEl = document.getElementById('imageHostingRestoreDialog');
+    if (!restoreDialogEl) return null;
+    restoreDialogStagesEl = document.getElementById('imageHostingRestoreStages');
+    restoreDialogStatusEl = document.getElementById('imageHostingRestoreDialogStatus');
+    restoreDialogActionsEl = document.getElementById('imageHostingRestoreDialogActions');
+    restoreDialogFileEl = document.getElementById('imageHostingRestoreDialogFile');
+    restoreDialogCloseBtn = document.getElementById('imageHostingRestoreDialogClose');
+    if (restoreDialogCloseBtn) {
+      restoreDialogCloseBtn.addEventListener('click', function () {
+        if (restoreDialogEl && restoreDialogEl.open) {
+          try { restoreDialogEl.close(); } catch (_e) { restoreDialogEl.removeAttribute('open'); }
+        }
+      });
+    }
+    restoreDialogWired = true;
+    return restoreDialogEl;
+  }
+
+  function openRestoreDialog(fileName) {
+    var dlg = ensureRestoreDialog();
+    if (!dlg) return;
+    if (restoreDialogFileEl) restoreDialogFileEl.textContent = fileName ? ('Source: ' + fileName) : '';
+    if (restoreDialogStatusEl) restoreDialogStatusEl.textContent = '';
+    if (restoreDialogActionsEl) restoreDialogActionsEl.hidden = true;
+    dlg.classList.remove('is-error', 'is-done');
+    if (restoreDialogStagesEl) {
+      Array.prototype.forEach.call(restoreDialogStagesEl.querySelectorAll('li'), function (li) {
+        li.classList.remove('is-active', 'is-done', 'is-error');
+      });
+    }
+    if (typeof dlg.showModal === 'function' && !dlg.open) {
+      try { dlg.showModal(); } catch (_e) { dlg.setAttribute('open', ''); }
+    } else if (!dlg.open) {
+      dlg.setAttribute('open', '');
+    }
+  }
+
+  function setRestoreStage(stage, message) {
+    ensureRestoreDialog();
+    if (!restoreDialogStagesEl) return;
+    var idx = RESTORE_STAGES.indexOf(stage);
+    Array.prototype.forEach.call(restoreDialogStagesEl.querySelectorAll('li'), function (li) {
+      var st = li.getAttribute('data-stage');
+      var i = RESTORE_STAGES.indexOf(st);
+      li.classList.remove('is-active', 'is-done', 'is-error');
+      if (i >= 0 && idx >= 0 && i < idx) li.classList.add('is-done');
+      else if (i === idx) li.classList.add('is-active');
+    });
+    if (restoreDialogStatusEl && message != null) restoreDialogStatusEl.textContent = message;
+    if (restoreDialogEl) restoreDialogEl.classList.remove('is-error', 'is-done');
+    if (restoreDialogActionsEl) restoreDialogActionsEl.hidden = true;
+  }
+
+  function markRestoreError(message) {
+    ensureRestoreDialog();
+    if (!restoreDialogStagesEl) return;
+    Array.prototype.forEach.call(restoreDialogStagesEl.querySelectorAll('li.is-active'), function (li) {
+      li.classList.remove('is-active');
+      li.classList.add('is-error');
+    });
+    if (restoreDialogEl) restoreDialogEl.classList.add('is-error');
+    if (restoreDialogStatusEl) restoreDialogStatusEl.textContent = message || 'Restore failed.';
+    if (restoreDialogActionsEl) restoreDialogActionsEl.hidden = false;
+  }
+
+  function markRestoreDone(message) {
+    ensureRestoreDialog();
+    if (!restoreDialogStagesEl) return;
+    Array.prototype.forEach.call(restoreDialogStagesEl.querySelectorAll('li'), function (li) {
+      li.classList.remove('is-active', 'is-error');
+      li.classList.add('is-done');
+    });
+    if (restoreDialogEl) restoreDialogEl.classList.add('is-done');
+    if (restoreDialogStatusEl) restoreDialogStatusEl.textContent = message || 'Done.';
+  }
+
+  function formatBytesShort(n) {
+    if (n == null || isNaN(n)) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function reloadWithCacheBust() {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('restored', String(Date.now()));
+      window.location.replace(url.toString());
+    } catch (_e) {
+      window.location.reload();
+    }
+  }
+
   async function restoreLibraryFromFile(file) {
     var sb = getSandbox();
     if (!sb) { setStatus('Select a sandbox first.', 'err'); return; }
     if (!file) return;
-    if (!confirm('Replace this sandbox\'s library with the contents of "' + file.name + '"?\n\nAll current library files will be removed first.')) return;
+    if (!confirm(
+      'Replace this sandbox\'s library with the contents of "' + file.name + '"?\n\n' +
+      'All current library files will be deleted first, then replaced with the files from the ZIP. ' +
+      'When the restore completes the page will reload so the new images appear without browser caching.'
+    )) return;
+
+    openRestoreDialog(file.name);
+    setRestoreStage('reading', 'Reading ZIP file (' + formatBytesShort(file.size) + ')…');
     setStatus('Restoring from ' + file.name + '…');
+
+    var processingTimer = null;
+    var slowTimer = null;
     try {
       var base64 = await fileToBase64(file);
-      var resp = await fetch('/api/image-hosting/library/restore?sandbox=' + encodeURIComponent(sb), {
+      setRestoreStage('uploading', 'Uploading ZIP to server…');
+
+      var fetchPromise = fetch('/api/image-hosting/library/restore?sandbox=' + encodeURIComponent(sb), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sandbox: sb, zipBase64: base64, replace: true }),
       });
+
+      // The fetch covers both the upload AND the server-side delete+write
+      // phase. We don't get real upload-progress from fetch(), so jump to
+      // the "processing" stage after a short grace period so the user sees
+      // movement instead of a spinner that looks stuck on "uploading".
+      processingTimer = setTimeout(function () {
+        setRestoreStage('processing', 'Server is deleting old library files and writing fresh ones from the ZIP…');
+        slowTimer = setTimeout(function () {
+          if (restoreDialogStatusEl) {
+            restoreDialogStatusEl.textContent = 'Still working — large libraries can take 10–30 seconds…';
+          }
+        }, 10000);
+      }, 1500);
+
+      var resp;
+      try { resp = await fetchPromise; }
+      finally {
+        if (processingTimer) { clearTimeout(processingTimer); processingTimer = null; }
+        if (slowTimer) { clearTimeout(slowTimer); slowTimer = null; }
+      }
+
       var data = await resp.json().catch(function () { return {}; });
       if (!resp.ok) {
-        setStatus('Restore failed: ' + (data.error || resp.statusText), 'err');
+        var errMsg = 'Restore failed: ' + (data.error || resp.statusText);
+        markRestoreError(errMsg);
+        setStatus(errMsg, 'err');
         return;
       }
-      setStatus('Restored ' + (data.restored || 0) + ' file(s) from ' + file.name + '.', 'ok');
-      await renderLibrary();
+
+      var n = data.restored || 0;
+      var okMsg = 'Restored ' + n + ' file(s) from ' + file.name + '.';
+      setRestoreStage('reloading', okMsg + ' Reloading the page so the new images appear without browser caching…');
+      setStatus(okMsg + ' Reloading…', 'ok');
+
+      // Brief pause so the green "done" state on every stage is visible
+      // before the page navigates away. ~900ms is short enough that the
+      // user doesn't wait, long enough to register the success.
+      setTimeout(function () {
+        markRestoreDone('Restored ' + n + ' file(s). Reloading…');
+        setTimeout(reloadWithCacheBust, 600);
+      }, 300);
     } catch (e) {
-      setStatus('Restore failed: ' + (e.message || e), 'err');
+      if (processingTimer) clearTimeout(processingTimer);
+      if (slowTimer) clearTimeout(slowTimer);
+      var netMsg = 'Restore failed: ' + (e.message || e);
+      markRestoreError(netMsg);
+      setStatus(netMsg, 'err');
     }
   }
 

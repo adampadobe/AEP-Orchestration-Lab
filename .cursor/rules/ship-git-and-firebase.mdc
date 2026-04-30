@@ -7,11 +7,15 @@ alwaysApply: true
 
 For this repo's **Firebase Hosting** (`web/`) and **Cloud Functions** (`functions/`), the ordered shipping ritual is:
 
+> **`git fetch` is not `git pull`.** `git fetch origin` only refreshes `refs/remotes/origin/*`; it does NOT advance your local `main` or your working tree. At every sync step below: run `git fetch origin`, read `git status`, and **only if status reports `behind by N commits`** run `git pull --ff-only origin main` (or `git pull --rebase origin main` on a feature branch). Local `main` is "up to date" only when `git status` reports `Your branch is up to date with 'origin/main'`.
+
 ## 1. Sync (start)
 
 ```bash
-git fetch origin && git status        # confirm 0 behind origin/main
-# If behind: git pull --ff-only origin main (or rebase feature branch)
+git fetch origin && git status        # MUST report "up to date with 'origin/main'"
+# If status reports "behind by N commits":
+git pull --ff-only origin main        # advances local main to match origin/main
+git status                            # re-verify it now reports "up to date" before editing
 ```
 
 ## 2. Commit
@@ -25,8 +29,10 @@ git commit -m "[<github-handle>] …"   # e.g. [apalmer] — see CONTRIBUTING.md
 ## 3. Sync again — IMMEDIATELY before push
 
 ```bash
-git fetch origin && git status        # MUST show 0 behind
-# If now behind: git pull --rebase origin main, re-run verifiers, then push.
+git fetch origin && git status        # MUST report "up to date" (or "ahead by N" — both mean local matches origin/main as a base)
+# If now behind or diverged:
+git pull --rebase origin main         # re-run verifiers/tests if the rebase invalidated them
+git status                            # re-verify before pushing
 ```
 
 ## 4. Push
@@ -48,9 +54,10 @@ Guards `journey-arbitration.html` redirect, `journey-arbitration-v2`, `eds-quick
 This is **the most often forgotten** step. `firebase deploy --only hosting` ships whatever is on YOUR local disk under `web/`, NOT what is on `origin/main`. If a teammate pushed between step 4 and step 6, you will silently overwrite their hosted assets.
 
 ```bash
-git fetch origin && git status        # MUST show 0 behind
-# If behind:
+git fetch origin && git status        # MUST report "up to date with 'origin/main'"
+# If status reports "behind", local working tree does NOT yet match GitHub:
 git pull --ff-only origin main
+git status                            # re-verify it now reports "up to date" before deploying
 # AND rebuild any vendored sub-apps so the deploy carries their pulled source:
 npm run build:edp                     # if their commit touched experience-decisioning-playground/
 npm run build:eds-quickstart          # if their commit touched the eds-quickstart submodule pointer

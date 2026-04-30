@@ -4,8 +4,9 @@
  * Sister of client-journey-asset.js. Same flow shape:
  *   1. Read the active sandbox from window.AepGlobalSandbox.
  *   2. Look up a brand scrape in that sandbox by URL/domain/brand-name.
- *   3. Show the scrape card + a refine form (brand colour, use case,
- *      Adobe products multi-select, step count, persona, optional image
+ *   3. Show the scrape card + a refine form (brand colour, use case +
+ *      persona themed comboboxes like client-journey-asset, Adobe product
+ *      multi-select, step count, optional image
  *      uploads, additional context). Cache hit shows "Load previous"
  *      + "Forget" inline buttons next to Generate.
  *   4. POST /api/demo-use-case/generate — backend asks Vertex AI Gemini

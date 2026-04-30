@@ -584,3 +584,131 @@
   justify-content: center;
   z-index: 2;
 }
+
+/* === Restore-from-ZIP progress dialog ====================================
+   Shown while the user restores the sandbox's library from a backup ZIP.
+   Surfaces each stage (read / upload / server delete+write / reload) so the
+   destructive replace flow has visible feedback, ending with a forced page
+   reload that cache-busts the now-overwritten /cdn URLs. */
+.image-hosting-restore-dialog {
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius, 16px);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  padding: 0;
+  max-width: 480px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+}
+.image-hosting-restore-dialog::backdrop {
+  background: rgba(8, 12, 18, 0.55);
+  backdrop-filter: blur(4px);
+}
+.image-hosting-restore-dialog-inner {
+  padding: 1.4rem 1.6rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.image-hosting-restore-dialog h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+.image-hosting-restore-dialog-file {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--dash-text-secondary, var(--dash-muted));
+  font-family: ui-monospace, monospace;
+  word-break: break-all;
+}
+.image-hosting-restore-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.image-hosting-restore-stages li {
+  font-size: 0.82rem;
+  color: var(--dash-text-secondary, var(--dash-muted));
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: color 0.15s ease;
+}
+.image-hosting-restore-stages li::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--dash-border);
+  background: transparent;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.image-hosting-restore-stages li.is-active {
+  color: var(--dash-text);
+  font-weight: 600;
+}
+.image-hosting-restore-stages li.is-active::before {
+  border-color: var(--dash-blue, #4b9fff);
+  background: radial-gradient(circle at center, var(--dash-blue, #4b9fff) 32%, transparent 35%);
+  animation: imageHostingRestorePulse 1.1s ease-in-out infinite;
+}
+.image-hosting-restore-stages li.is-done {
+  color: var(--dash-text);
+}
+.image-hosting-restore-stages li.is-done::before {
+  border-color: var(--dash-success, #1e9e6a);
+  background: var(--dash-success, #1e9e6a);
+}
+.image-hosting-restore-stages li.is-error {
+  color: var(--dash-error, #d7373f);
+  font-weight: 600;
+}
+.image-hosting-restore-stages li.is-error::before {
+  border-color: var(--dash-error, #d7373f);
+  background: var(--dash-error, #d7373f);
+}
+@keyframes imageHostingRestorePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(75, 159, 255, 0.45); }
+  50%      { box-shadow: 0 0 0 5px rgba(75, 159, 255, 0); }
+}
+.image-hosting-restore-progress {
+  position: relative;
+  height: 4px;
+  background: var(--dash-input-bg, rgba(0, 0, 0, 0.06));
+  border-radius: 999px;
+  overflow: hidden;
+}
+.image-hosting-restore-progress-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, var(--dash-blue, #4b9fff), transparent);
+  animation: imageHostingRestoreSlide 1.4s ease-in-out infinite;
+}
+@keyframes imageHostingRestoreSlide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+.image-hosting-restore-dialog.is-error .image-hosting-restore-progress,
+.image-hosting-restore-dialog.is-done  .image-hosting-restore-progress { display: none; }
+.image-hosting-restore-dialog-status {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary, var(--dash-muted));
+  min-height: 1.2em;
+}
+.image-hosting-restore-dialog.is-error .image-hosting-restore-dialog-status { color: var(--dash-error, #d7373f); }
+.image-hosting-restore-dialog.is-done  .image-hosting-restore-dialog-status { color: var(--dash-success, #1e9e6a); font-weight: 600; }
+.image-hosting-restore-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.2rem;
+}

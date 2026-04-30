@@ -31,31 +31,36 @@ Upstream is **`https://github.com/adampadobe/AEP-Orchestration-Lab`** (`origin`)
 
 > **Why three phases (and not two)?** `firebase deploy --only hosting` ships whatever is on YOUR local disk under `web/`, NOT what is on `origin/main`. If a teammate pushes between your `git push` and your `firebase deploy`, your deploy will silently overwrite their hosted assets even though `git` itself stayed clean. Phase C is the only protection.
 
+> **`git fetch` is not `git pull`.** **`git fetch origin`** only refreshes your local copy of the remote refs (`refs/remotes/origin/*`). It does **not** touch your local `main` branch or your working tree. Your local branch is only truly "up to date" once **either** (a) **`git status`** reports **`Your branch is up to date with 'origin/main'`** after a fresh fetch, **or** (b) you have run **`git pull --ff-only origin main`** to fast-forward your local `main` to match. Every phase below therefore runs **`git fetch` + `git status` + (only if behind) `git pull --ff-only`** in that order.
+
 ### Phase A — start of session (before substantive edits)
 
-1. `git fetch origin`
-2. `git status` — if you are **behind** `origin/main`, update before continuing.
-3. On **`main`**: `git pull --ff-only origin main`. If Git refuses because of local changes: `git stash push -m "wip"`, pull, then `git stash pop`.
-4. On a **feature branch**: merge or rebase **`origin/main`** so your branch includes the latest shared commits.
+1. **`git fetch origin`** — refreshes remote refs only (does not advance your local `main`).
+2. **`git status`** — must show **`Your branch is up to date with 'origin/main'`**. If it instead says **`Your branch is behind 'origin/main' by N commits`**, your local `main` is **not** in sync yet — continue to step 3.
+3. On **`main`**: **`git pull --ff-only origin main`** — this is what actually advances your local `main` to match `origin/main`. If Git refuses because of uncommitted local changes: `git stash push -m "wip"`, pull, then `git stash pop`.
+4. On a **feature branch**: merge or rebase **`origin/main`** so your branch includes the latest shared commits (`git pull --rebase origin main`, or `git merge origin/main`).
+5. Re-run **`git status`** to confirm you are now `up to date` before starting edits.
 
 **Cursor:** **`.cursor/skills/sync-with-origin-main/SKILL.md`** encodes this workflow for agents. **`.cursor/rules/sync-origin-main.mdc`** is the short workspace reminder.
 
 ### Phase B — immediately before `git push`
 
-Someone else may have merged while you were working.
+Someone else may have merged while you were working, so the local branch you are about to push could now be missing their commits.
 
-1. `git fetch origin` again.
-2. If you are behind `origin/main`, integrate (`git pull --ff-only origin main` on `main`, or rebase/merge your branch onto current `origin/main`) and resolve conflicts **before** `git push`.
+1. **`git fetch origin`** again.
+2. **`git status`** — confirm `Your branch is up to date with 'origin/main'` (you may also see `Your branch is ahead of 'origin/main' by N commits`, which is expected for the commits you are about to push).
+3. If status says you are **behind** or **diverged**: integrate before pushing — **`git pull --ff-only origin main`** on `main`, or **`git pull --rebase origin main`** on a feature branch. Resolve conflicts and re-run any verifiers/tests the integration may have invalidated.
+4. **Only then** run `git push`.
 
 If **`git push` is rejected**, do **not** force-push to **`main`**. Pull or rebase from `origin`, fix conflicts, then push. For other repositories, the **github-git-workflow** Cursor skill describes the same habits.
 
 ### Phase C — immediately before `firebase deploy`
 
-This is the most often forgotten phase and the most dangerous. Even if your `git push` succeeded a minute ago, a teammate may have pushed in the meantime — and `firebase deploy --only hosting` does not consult Git, it just ships whatever is on your local disk.
+This is the most often forgotten phase and the most dangerous. Even if your `git push` succeeded a minute ago, a teammate may have pushed in the meantime — and `firebase deploy --only hosting` does not consult Git, it just ships whatever is on your local disk under `web/`.
 
-1. `git fetch origin` again.
-2. `git status` — must show `Your branch is up to date with 'origin/main'`.
-3. If you are behind: `git pull --ff-only origin main` (or rebase your feature branch onto `origin/main`).
+1. **`git fetch origin`** again.
+2. **`git status`** — must show **`Your branch is up to date with 'origin/main'`**. Anything else (`behind`, `diverged`) means your local working tree does **not** yet match what is on GitHub, and a deploy now would ship stale assets.
+3. If you are behind: **`git pull --ff-only origin main`** (or rebase your feature branch onto `origin/main`). After the pull, re-run `git status` and confirm you are now `up to date`.
 4. **Rebuild any vendored sub-apps** so the deploy carries the teammate's pulled source, not your stale committed build output:
    - `npm run build:edp` — if their commit touched `web/profile-viewer/experience-decisioning-playground/`.
    - `npm run build:eds-quickstart` — if their commit touched the `tools/eds-quickstart` submodule pointer.
@@ -533,10 +538,12 @@ Every change **must** follow this ordered ritual. Do not skip any step.
 
 ```bash
 # 1. Re-sync with origin (a teammate may have pushed since your git push)
-git fetch origin
+git fetch origin                     # refreshes remote refs ONLY — does not move local main
 git status                           # MUST show "Your branch is up to date with 'origin/main'"
-# If behind:
+# If status reports "behind by N commits", local main is NOT yet in sync.
+# git pull --ff-only is what actually advances local main:
 git pull --ff-only origin main
+git status                           # re-verify: must now show "up to date" before continuing
 
 # 2. Rebuild any vendored sub-apps so the deploy carries pulled source
 npm run build:edp                    # if EDP playground source changed upstream
@@ -549,6 +556,8 @@ cd functions && npm install && cd ..
 ```
 
 **Why every step matters:** `firebase deploy --only hosting` ships whatever is on your local disk under `web/`, NOT what is on `origin/main`. Skip step 1 and you may silently overwrite a teammate's hosted assets. Skip step 2 and your deploy will carry stale built artefacts that don't match the freshly-pulled source.
+
+> Reminder: **`git fetch` alone does not update your local branch** — it only refreshes `refs/remotes/origin/*` so `git status` can compare. **`git pull --ff-only`** is what actually advances local `main` to match `origin/main`. See [Collaboration, Git, and environment](#collaboration-git-and-environment) for the full three-phase pull discipline.
 
 ### Deploy
 
@@ -608,9 +617,9 @@ CI does **not** build or deploy functions. Deployment is manual.
 - [ ] New API routes added to both `functions/index.js` and `firebase.json`
 - [ ] `firebase.json` rewrites use `"region": "us-central1"`
 - [ ] If you edited **`web/profile-viewer/`**: `npm run verify:profile-viewer-routes` passes (preserved Decisioning routes — see [Preserved Decisioning Profile Viewer routes](#preserved-decisioning-profile-viewer-routes))
-- [ ] **Phase A** sync ran before substantive edits (`git fetch origin && git pull --ff-only origin main` if behind)
-- [ ] **Phase B** sync ran immediately before `git push` (re-fetched, re-integrated if a teammate had pushed)
-- [ ] **Phase C** sync ran immediately before `firebase deploy` (re-fetched, pulled, AND re-ran any `npm run build:edp` / `npm run build:eds-quickstart` if the teammate's commit touched a vendored sub-app)
+- [ ] **Phase A** sync ran before substantive edits (`git fetch origin` → `git status` → `git pull --ff-only origin main` if behind, then re-`git status` to confirm `up to date`)
+- [ ] **Phase B** sync ran immediately before `git push` (re-fetched, re-`git status`, re-integrated via `git pull --ff-only` / `git pull --rebase` if a teammate had pushed)
+- [ ] **Phase C** sync ran immediately before `firebase deploy` (re-fetched, re-`git status`, pulled if behind, AND re-ran any `npm run build:edp` / `npm run build:eds-quickstart` if the teammate's commit touched a vendored sub-app)
 
 ---
 
