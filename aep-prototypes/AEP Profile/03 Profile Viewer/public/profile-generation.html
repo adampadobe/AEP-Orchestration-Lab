@@ -1327,7 +1327,16 @@
             </div>
           </div>
 
-          <div class="analytics-card">
+          <!--
+            Preferred Channel is hidden because the Profile Core v2 tenant
+            field group attached by the wizard does not expose a
+            preferredChannel path. The <select id="genPreferredChannel"> stays
+            in the DOM (still wired by profile-generation-generic.js) so we
+            can re-enable it cheaply later by removing this `hidden` flag and
+            wiring a tenant XDM path to it. profile-generation-generic.js no
+            longer reads/writes this field while it is hidden.
+          -->
+          <div id="genPreferredChannelCard" class="analytics-card" hidden>
             <div class="analytics-card-header">
               <span class="analytics-card-icon">📢</span>
               <h4 class="analytics-card-title">Preferred channel</h4>

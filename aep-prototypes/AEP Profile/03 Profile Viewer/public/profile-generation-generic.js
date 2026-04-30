@@ -547,19 +547,30 @@
     const lastName = trimVal(lastNameEl);
     if (lastName) push('person.name.lastName', lastName);
 
-    // Tenant analytics (under _demoemea)
+    // Tenant analytics — these XDM paths live under the Profile Core v2
+    // tenant field group attached by the wizard (see the schema dump in the
+    // chat thread that introduced this mapping). The proxy auto-prefixes
+    // any path NOT in PROFILE_STREAM_ROOT_PATH_PREFIXES with the discovered
+    // xdmKey (e.g. `_demoemea`), so we only specify the suffix here.
+    //
+    // Path notes (Profile Core v2):
+    //   NPS lives at `_<tenant>.scoring.npsScore` (NOT `scoring.nps`)
+    //   AOV lives at `_<tenant>.orderProfile.avgOrderSize`
+    //         (NOT `commerce.averageOrderValue`)
     const churnRaw = churnEl ? String(churnEl.value || '').trim() : '';
     const propRaw = propensityEl ? String(propensityEl.value || '').trim() : '';
     const aovRaw = aovEl ? String(aovEl.value || '').trim() : '';
     const npsRaw = npsEl ? String(npsEl.value || '').trim() : '';
     if (churnRaw !== '') push('scoring.churn.churnPrediction', Number(churnRaw));
     if (propRaw !== '') push('scoring.core.propensityScore', Number(propRaw));
-    if (npsRaw !== '') push('scoring.nps', parseInt(npsRaw, 10));
-    if (aovRaw !== '') push('commerce.averageOrderValue', Number(aovRaw));
+    if (npsRaw !== '') push('scoring.npsScore', parseInt(npsRaw, 10));
+    if (aovRaw !== '') push('orderProfile.avgOrderSize', Number(aovRaw));
 
-    // Tenant preferences
-    const ch = preferredChannelEl ? trimVal(preferredChannelEl) : '';
-    if (ch) push('preferences.preferredChannel', ch);
+    // Preferred Channel is intentionally NOT streamed: the input is hidden
+    // (#genPreferredChannelCard[hidden] in the HTML) because Profile Core v2
+    // has no preferredChannel path. The <select> still lives in the DOM so
+    // we can re-enable both the UI and a stream path in one follow-up.
+
     // Standalone Language card — always pushed when it has a value, even
     // when the loyalty toggle is on. Both the standalone card and the
     // loyalty subgroup write to `personalEmail.language` / `preferences
@@ -579,16 +590,41 @@
     // Loyalty — only stream when the user has explicitly toggled the loyalty
     // sub-form on. This keeps non-loyalty profiles clean (no empty loyalty.*
     // keys end up in the AEP profile).
+    //
+    // Each of the three loyalty fields below is DUAL-WRITTEN to two XDM
+    // paths so the profile lights up both the standard XDM Loyalty Details
+    // view AND the demo-platform's Profile Core v2 tenant tree (which the
+    // user has wired into other dashboards / journeys):
+    //
+    //                     standard XDM (loyalty.*)        Profile Core v2 tenant
+    //   Loyalty Tier   →  loyalty.tier                    _<tenant>.loyaltyDetails.level
+    //   Loyalty Points →  loyalty.points                  _<tenant>.loyaltyDetails.points
+    //   Loyalty ID     →  loyalty.loyaltyID (array)       _<tenant>.identification.core.loyaltyId
+    //
+    // The standard XDM `loyalty.*` paths reach the profile via the standard
+    // Loyalty Details field group attached by the wizard (step 2). The
+    // tenant `_<tenant>.*` paths reach it via Profile Core v2. The proxy
+    // sends the same payload to AEP exactly once; AEP populates both views
+    // because the field groups overlap on these semantic concepts.
     const loyaltyEnabled = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
     if (loyaltyEnabled) {
-      // ID — tenant namespace; profileUpdateProxy auto-prepends `_demoemea.`
-      // for paths not in PROFILE_STREAM_ROOT_PATH_PREFIXES.
       const loyaltyID = loyaltyIDEl ? trimVal(loyaltyIDEl) : '';
-      if (loyaltyID) push('identification.core.loyaltyId', loyaltyID);
+      if (loyaltyID) {
+        push('identification.core.loyaltyId', loyaltyID);
+        // Standard XDM loyalty.loyaltyID is an ARRAY of strings — wrap.
+        push('loyalty.loyaltyID', [loyaltyID]);
+      }
       const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
-      if (tier) push('loyalty.tier', tier);
+      if (tier) {
+        push('loyalty.tier', tier);
+        push('loyaltyDetails.level', tier);
+      }
       const pts = loyaltyPointsEl ? trimVal(loyaltyPointsEl) : '';
-      if (pts !== '') push('loyalty.points', Number(pts));
+      if (pts !== '') {
+        const ptsNum = Number(pts);
+        push('loyalty.points', ptsNum);
+        push('loyaltyDetails.points', ptsNum);
+      }
       // Language inside the loyalty toggle takes precedence over the
       // standalone Language card (both stay visible when loyalty is on, but
       // the loyalty subgroup is the more specific context). Pushed after
@@ -639,22 +675,55 @@
     if (churn != null && churnEl) { churnEl.value = String(churn); renderChurn(); }
     const prop = get(tenant, 'scoring.core.propensityScore');
     if (prop != null && propensityEl) { propensityEl.value = String(prop); renderPropensity(); }
-    const nps = get(tenant, 'scoring.nps');
-    if (nps != null && npsEl) npsEl.value = String(nps);
-    const aov = get(tenant, 'commerce.averageOrderValue');
-    if (aov != null && aovEl) { aovEl.value = String(aov); renderAov(); }
-    const ch = get(tenant, 'preferences.preferredChannel');
-    if (ch != null && preferredChannelEl) preferredChannelEl.value = String(ch);
+    // NPS now lives at `_<tenant>.scoring.npsScore` per Profile Core v2.
+    // Fall back to the legacy `_<tenant>.scoring.nps` path so profiles
+    // streamed before this change (which used the wrong key) still hydrate
+    // the form when looked up.
+    const nps = get(tenant, 'scoring.npsScore');
+    const npsLegacy = nps == null ? get(tenant, 'scoring.nps') : null;
+    const npsVal = nps != null ? nps : npsLegacy;
+    if (npsVal != null && npsEl) npsEl.value = String(npsVal);
+    // AOV likewise moved from `commerce.averageOrderValue` (Customer
+    // Analytics) to `orderProfile.avgOrderSize` (Profile Core v2). Same
+    // fallback strategy.
+    const aov = get(tenant, 'orderProfile.avgOrderSize');
+    const aovLegacy = aov == null ? get(tenant, 'commerce.averageOrderValue') : null;
+    const aovVal = aov != null ? aov : aovLegacy;
+    if (aovVal != null && aovEl) { aovEl.value = String(aovVal); renderAov(); }
+    // Preferred Channel input is currently hidden (no Profile Core v2
+    // home). Skip hydrating it; if the operator un-hides the card later
+    // we'll need a tenant XDM path here.
     const lang = get(tenant, 'preferences.preferredLanguage') || get(entity, 'personalEmail.language');
     if (lang != null && languageEl) languageEl.value = String(lang);
     const gender = get(entity, 'person.gender');
     if (gender != null && genderEl) genderEl.value = String(gender);
 
     // Loyalty: enable the toggle when AEP has loyalty data, then route the
-    // pulled values into the loyalty subgroup so the form mirrors the profile.
-    const loyaltyId = get(tenant, 'identification.core.loyaltyId');
-    const tier = get(entity, 'loyalty.tier');
-    const pts = get(entity, 'loyalty.points');
+    // pulled values into the loyalty subgroup so the form mirrors the
+    // profile. We dual-write each loyalty field to both a standard XDM
+    // path and a Profile Core v2 tenant path (see buildUpdatesFromForm),
+    // so on hydration we accept either source — preferring the standard
+    // XDM view because that's the primary identity-map store, and falling
+    // back to the tenant view for older profiles or stream paths.
+    //
+    //   Tier   →   loyalty.tier            ← preferred,  fallback _<tenant>.loyaltyDetails.level
+    //   Points →   loyalty.points          ← preferred,  fallback _<tenant>.loyaltyDetails.points
+    //   ID     →   loyalty.loyaltyID[0]    ← preferred,  fallback _<tenant>.identification.core.loyaltyId
+    const loyaltyIdArr = get(entity, 'loyalty.loyaltyID');
+    const loyaltyIdStandard = Array.isArray(loyaltyIdArr) && loyaltyIdArr.length
+      ? loyaltyIdArr[0]
+      : null;
+    const loyaltyIdTenant = get(tenant, 'identification.core.loyaltyId');
+    const loyaltyId = loyaltyIdStandard != null ? loyaltyIdStandard : loyaltyIdTenant;
+
+    const tierStandard = get(entity, 'loyalty.tier');
+    const tierTenant = tierStandard == null ? get(tenant, 'loyaltyDetails.level') : null;
+    const tier = tierStandard != null ? tierStandard : tierTenant;
+
+    const ptsStandard = get(entity, 'loyalty.points');
+    const ptsTenant = ptsStandard == null ? get(tenant, 'loyaltyDetails.points') : null;
+    const pts = ptsStandard != null ? ptsStandard : ptsTenant;
+
     const hasLoyaltyData = (loyaltyId != null && String(loyaltyId).trim() !== '')
       || (tier != null && String(tier).trim() !== '')
       || (pts != null && String(pts).trim() !== '');
