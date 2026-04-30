@@ -3555,16 +3555,60 @@ exports.imageHostingLibrary = onRequest(
       }
 
       if (req.method === 'POST' && /\/restore$/.test(path)) {
+        // Log body shape on entry so empty/oversized requests are
+        // diagnosable from Cloud Logging without having to repro.
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const b64Len = (body.zipBase64 && typeof body.zipBase64 === 'string') ? body.zipBase64.length : 0;
+        console.log('[imageHostingLibrary.restore] enter', {
+          sandbox, replace: body.replace !== false,
+          base64Length: b64Len,
+          approxZipBytes: Math.floor(b64Len * 3 / 4),
+          contentLength: req.headers && req.headers['content-length'] ? req.headers['content-length'] : null,
+        });
         if (!body.zipBase64 || typeof body.zipBase64 !== 'string') {
-          res.status(400).json({ error: 'zipBase64 is required' });
+          res.status(400).json({ error: 'zipBase64 is required (got an empty or non-string body — did the JSON exceed the body parser limit?)' });
           return;
         }
         let zipBytes;
         try { zipBytes = Buffer.from(body.zipBase64, 'base64'); }
-        catch (_e) { res.status(400).json({ error: 'invalid base64' }); return; }
+        catch (e) {
+          console.error('[imageHostingLibrary.restore] base64 decode failed', String((e && e.message) || e));
+          res.status(400).json({ error: 'invalid base64: ' + String((e && e.message) || e) });
+          return;
+        }
+        // ZIP magic is 'PK\x03\x04' (0x504B0304). Reject non-ZIP early
+        // with a clear message rather than letting unzipper throw a
+        // cryptic "FILE_ENDED" or similar deep in the parser.
+        if (zipBytes.length < 4 || zipBytes[0] !== 0x50 || zipBytes[1] !== 0x4B) {
+          console.error('[imageHostingLibrary.restore] not a ZIP', { firstBytes: Array.from(zipBytes.slice(0, 8)), totalBytes: zipBytes.length });
+          res.status(400).json({ error: 'uploaded file is not a valid ZIP (missing PK signature). First bytes: ' + Array.from(zipBytes.slice(0, 4)).map((b) => b.toString(16).padStart(2, '0')).join(' ') });
+          return;
+        }
         const replace = body.replace !== false; // default to replacing
-        const out = await imageHostingLibrary.restoreLibraryFromZip(sandbox, zipBytes, { replace });
+        let out;
+        try {
+          out = await imageHostingLibrary.restoreLibraryFromZip(sandbox, zipBytes, { replace });
+        } catch (e) {
+          // Bubble up with full error context — the caller's generic
+          // 500 catch a few lines down only emits e.message which can
+          // be cryptic for unzipper / GCS errors. Surface stack trace
+          // to Cloud Logging and a clean error message to the client.
+          console.error('[imageHostingLibrary.restore] restoreLibraryFromZip failed', {
+            sandbox, replace,
+            zipBytes: zipBytes.length,
+            errorName: e && e.name,
+            errorMessage: e && e.message,
+            errorCode: e && e.code,
+            errorStack: e && e.stack,
+          });
+          res.status(500).json({
+            error: 'restore failed: ' + (e && e.name ? e.name + ' — ' : '') + String((e && e.message) || e),
+            stage: 'restoreLibraryFromZip',
+            zipBytes: zipBytes.length,
+          });
+          return;
+        }
+        console.log('[imageHostingLibrary.restore] success', { sandbox, restored: out.length, replace });
         res.status(200).json({ sandbox, restored: out.length, items: out, replace });
         return;
       }
