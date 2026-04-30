@@ -3219,12 +3219,28 @@ exports.imageHostingLibrary = onRequest(
 
       // Must run before the generic GET list handler — otherwise download
       // requests return JSON and the browser saves a non-ZIP as .zip.
+      //
+      // Build the ZIP fully in memory before flipping any response headers
+      // so any error during enumeration / per-file download surfaces as a
+      // JSON 500 (rather than mid-stream truncation of an
+      // application/zip response, which yields a file that macOS Archive
+      // Utility refuses to open). Sending a single buffer with a real
+      // Content-Length and Cache-Control: no-transform also stops Hosting
+      // / intermediaries from re-framing the bytes.
       if (req.method === 'GET' && /\/download$/.test(path)) {
         const customer = String((req.query && req.query.customer) || 'library').trim();
         const safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'library';
+        const { buffer, entries, skipped } = await imageHostingLibrary.buildLibraryZipBuffer(sandbox);
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Disposition', `attachment; filename="logo_${safe}.zip"`);
-        await imageHostingLibrary.streamLibraryZip(sandbox, res);
+        res.setHeader('Content-Length', String(buffer.length));
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate, no-transform');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        // Surface count + skipped-file count as response headers so the
+        // client can sanity-check what came back without parsing the ZIP.
+        res.setHeader('X-Library-Entries', String(entries));
+        res.setHeader('X-Library-Skipped', String(skipped.length));
+        res.status(200).end(buffer);
         return;
       }
 

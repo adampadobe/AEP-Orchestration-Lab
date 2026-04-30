@@ -706,43 +706,90 @@ async function batchUpload(sandbox, entries, opts) {
 }
 
 /**
- * Stream a ZIP archive of the current library to the Express response.
- * Flattens the <sandbox>/library/ prefix so the ZIP contents are
- * identical to what a user would upload back to replace the folder.
+ * Build an in-memory ZIP buffer of the current library. Flattens the
+ * <sandbox>/library/ prefix so the ZIP contents are identical to what a
+ * user would upload back to replace the folder.
+ *
+ * Why an in-memory buffer instead of streaming directly into `res`:
+ *   - Firebase Hosting in front of Cloud Functions strips Content-Length
+ *     when archiver streams chunks live, falls back to chunked transfer
+ *     encoding, and can re-encode/buffer the response. That truncates the
+ *     ZIP's trailing central directory and produces files that look like
+ *     ZIPs (PK header bytes are present) but won't open in macOS Archive
+ *     Utility ("Error 2" / "Error 22") or strict tools like `unzip`.
+ *   - Streaming `f.createReadStream()` from GCS into archiver means a
+ *     transient GCS read error after bytes have started flowing leaves
+ *     the central directory out of sync with the local file headers.
+ *
+ * Resolving every file's bytes via `bucket.file(...).download()` before
+ * appending lets us catch per-file failures, skip the bad ones, and emit
+ * a fully self-consistent archive. We then send it with the correct
+ * Content-Length and `no-transform` so downstream caches don't touch it.
+ *
+ * Returns: { buffer, entries, skipped }
  */
-async function streamLibraryZip(sandbox, res) {
+async function buildLibraryZipBuffer(sandbox) {
   const prefix = libraryRoot(sandbox) + '/';
-  const [files] = await getBucket().getFiles({ prefix });
+  const bucket = getBucket();
+  const [files] = await bucket.getFiles({ prefix });
   const archiver = require('archiver');
+  const { Writable } = require('stream');
+
   const archive = archiver('zip', { zlib: { level: 6 } });
-  archive.on('error', (e) => {
-    console.error('[imageHostingLibrary] zip error', String((e && e.message) || e));
-    try { res.end(); } catch (_e) {}
+  const chunks = [];
+  const sink = new Writable({
+    write(chunk, _enc, cb) { chunks.push(chunk); cb(); },
   });
-  const streamDone = new Promise((resolve, reject) => {
-    res.once('finish', resolve);
-    res.once('error', reject);
+  const sinkDone = new Promise((resolve, reject) => {
+    sink.once('finish', resolve);
+    sink.once('error', reject);
     archive.once('error', reject);
   });
-  archive.pipe(res);
+  archive.pipe(sink);
+
   let entries = 0;
+  const skipped = [];
   for (const f of files) {
     const rel = f.name.slice(prefix.length);
     if (!rel) continue;
     if (rel === LIBRARY_FOLDER_MARKER || rel.endsWith(`/${LIBRARY_FOLDER_MARKER}`)) continue;
-    archive.append(f.createReadStream(), { name: rel });
-    entries += 1;
+    try {
+      const [buf] = await f.download();
+      archive.append(buf, { name: rel });
+      entries += 1;
+    } catch (e) {
+      // Skip the bad file — recording it in a README in the ZIP gives the
+      // user a way to spot drift between the listing and the actual bytes
+      // (e.g. an object aged out between list and download).
+      skipped.push({ name: rel, error: String((e && e.message) || e) });
+    }
   }
+
+  if (skipped.length) {
+    const lines = [
+      'The following library files could not be downloaded for this backup',
+      '(likely aged out of the bucket between listing and download). The',
+      'remaining files are included intact and will round-trip via Restore',
+      'from ZIP.',
+      '',
+      ...skipped.map((s) => `- ${s.name}: ${s.error}`),
+      '',
+    ].join('\r\n');
+    archive.append(Buffer.from(lines, 'utf8'), { name: 'README-skipped-files.txt' });
+  }
+
   // macOS Archive Utility rejects some zero-entry ZIPs; also helps users
   // who download before uploading any images.
-  if (entries === 0) {
+  if (entries === 0 && !skipped.length) {
     const note =
       'This library had no image files to export (only folder placeholders).\r\n' +
       'Upload PNG/JPEG/WebP images in Image hosting, then download the ZIP again.\r\n';
     archive.append(Buffer.from(note, 'utf8'), { name: 'README-empty-library.txt' });
   }
+
   await archive.finalize();
-  await streamDone;
+  await sinkDone;
+  return { buffer: Buffer.concat(chunks), entries, skipped };
 }
 
 /**
@@ -799,7 +846,7 @@ module.exports = {
   libraryRoot,
   backupsRoot,
   sandboxPrefix,
-  streamLibraryZip,
+  buildLibraryZipBuffer,
   restoreLibraryFromZip,
   batchUpload,
   classifyFromFilename,
