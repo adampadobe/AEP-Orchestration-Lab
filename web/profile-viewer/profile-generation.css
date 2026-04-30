@@ -759,6 +759,26 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   font-size: 0.9em;
 }
 
+/* "Manual step (in AEP UI, after the wizard)" callout under the 4-step
+ * setup-wizard list. Same surface as the instructions block (so it reads as
+ * part of the same flow), but with the warning border + warning text tones
+ * to flag that Profile-enabling a schema is a one-way AEP action and the
+ * operator must do it themselves. Tokenised so it themes correctly. */
+.profile-generation-page #genericProfilePanel .consent-setup-instructions__note {
+  margin: 0.85rem 0 0;
+  padding: 0.65rem 0.85rem;
+  background: var(--dash-warning-bg);
+  border-left: 3px solid var(--dash-warning-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--dash-warning-text);
+}
+
+.profile-generation-page #genericProfilePanel .consent-setup-instructions__note code {
+  background: rgba(0, 0, 0, 0.18);
+}
+
 /* ===== Identity row (First name + Last name) ===== */
 .profile-generation-page .generic-identity-section {
   margin-top: 1.5rem;
