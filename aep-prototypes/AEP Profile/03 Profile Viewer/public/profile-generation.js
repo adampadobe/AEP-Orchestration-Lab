@@ -413,9 +413,10 @@ function updateEmailDisplay() {
  *     panel (Profile index / Fill random / Generate / Merge into existing) all
  *     hide because the Generic editor owns email scaling, identity, analytics,
  *     and its own Find / Update / Generate-N actions.
- *   - "" (no industry): show the top boxes, hide all industry attribute groups,
- *     surface the "Select an industry…" placeholder. Top action row stays visible
- *     so users who type a custom email can still click Generate.
+ *   - "" (no industry): the page is in its "first impression" state — only the
+ *     header and the Sandbox + Industry selector show. The six top profile
+ *     boxes and the kirkham action controls all hide so the user is guided to
+ *     pick an industry; each industry then reveals its own editor surface.
  *   - retail/fsi/travel/…: show the top boxes AND the matching industry-field-group.
  */
 function showIndustryFields(industry) {
@@ -443,14 +444,31 @@ function showIndustryFields(industry) {
     return;
   }
 
-  // Restore the industry-driven layout when leaving Generic.
+  // No industry picked yet — keep the page in its lightweight "select an
+  // industry to begin" state. Same controls hide as Generic (the
+  // kirkham+<industry>-<x> pattern is meaningless without an industry, and
+  // every editor surface lives below the dropdown), but #genericProfilePanel
+  // also stays hidden because the user has not opted into Generic.
+  if (!industry) {
+    if (topBoxes) topBoxes.hidden = true;
+    if (genericPanel) genericPanel.hidden = true;
+    if (profileIndexRow) profileIndexRow.hidden = true;
+    if (topActionRow) topActionRow.hidden = true;
+    if (mergeRow) mergeRow.hidden = true;
+    if (debugDetails) debugDetails.hidden = true;
+    if (placeholder) placeholder.hidden = true;
+    return;
+  }
+
+  // Industry-driven layout (retail / fsi / travel / media / sports / telco /
+  // public): show the top boxes and reveal the matching field group.
   if (topBoxes) topBoxes.hidden = false;
   if (genericPanel) genericPanel.hidden = true;
   if (profileIndexRow) profileIndexRow.hidden = false;
   if (topActionRow) topActionRow.hidden = false;
   if (mergeRow) mergeRow.hidden = false;
 
-  const id = industry ? INDUSTRY_GROUPS[industry] : null;
+  const id = INDUSTRY_GROUPS[industry] || null;
   if (id) {
     const el = document.getElementById(id);
     if (el) el.hidden = false;
