@@ -47,6 +47,8 @@ const schemaRegistryService = lazyRequireMod('./schemaRegistryService');
 const consentInfraService = lazyRequireMod('./consentInfraService');
 const consentFlowLookup = lazyRequireMod('./consentFlowLookup');
 const consentConnectionStore = lazyRequireMod('./consentConnectionStore');
+const genericProfileInfraService = lazyRequireMod('./genericProfileInfraService');
+const genericProfileConnectionStore = lazyRequireMod('./genericProfileConnectionStore');
 const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
 const eventGeneratorService = lazyRequireMod('./eventGeneratorService');
@@ -817,6 +819,149 @@ exports.consentConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, re
       res.status(200).json({ ok: true, sandbox: sb, record: serializeConsentFirestoreRecord(record) });
     } catch (e) {
       console.log('[consentConnection]', JSON.stringify({ route: 'POST', sandbox: sb, error: String(e.message || e) }));
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sb });
+    }
+    return;
+  }
+  res.status(405).json({ error: 'Method not allowed' });
+});
+
+/** GET /api/generic-profile-infra/status?sandbox= — schema/field-groups/dataset readiness for the Generic Profile lab. */
+exports.genericProfileInfraStatus = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  console.log('[genericProfileInfra.http]', JSON.stringify({ route: 'GET /api/generic-profile-infra/status', sandbox }));
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await genericProfileInfraService.runGenericProfileInfraStatus(
+      sandbox,
+      accessToken,
+      ADOBE_CLIENT_ID.value(),
+      ADOBE_IMS_ORG.value()
+    );
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/**
+ * POST /api/generic-profile-infra/step — one wizard step.
+ * Body: { step: "createSchema" | "attachFieldGroups" | "createDataset" | "httpFlow" }
+ */
+exports.genericProfileInfraStep = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const step = String(body.step || '').trim();
+  console.log('[genericProfileInfra.http]', JSON.stringify({ route: 'POST /api/generic-profile-infra/step', sandbox, step }));
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await genericProfileInfraService.runGenericProfileInfraStep(
+      sandbox,
+      accessToken,
+      ADOBE_CLIENT_ID.value(),
+      ADOBE_IMS_ORG.value(),
+      step
+    );
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox, step });
+  }
+});
+
+/** GET /api/generic-profile-infra/flow-lookup?sandbox=&flowId=&flowName= — Flow Service inlet URL + flow id. */
+exports.genericProfileInfraFlowLookup = onRequest(profileFnOpts, async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const sandbox = resolveSandboxFromQuery(req);
+  const flowId = String(req.query.flowId || '').trim();
+  const flowName = String(req.query.flowName || '').trim() || genericProfileInfraService.GENERIC_PROFILE_HTTP_DATAFLOW_NAME;
+  let accessToken;
+  try {
+    accessToken = await getAdobeAccessToken();
+  } catch (e) {
+    res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
+    return;
+  }
+  try {
+    const payload = await consentFlowLookup.lookupConsentHttpFlow(sandbox, accessToken, ADOBE_CLIENT_ID.value(), ADOBE_IMS_ORG.value(), {
+      flowId: flowId || undefined,
+      flowName,
+    });
+    res.status(200).json(payload);
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e), sandbox });
+  }
+});
+
+/**
+ * GET/POST /api/generic-profile-connection?sandbox= — read or merge-save streaming + infra IDs per sandbox (Firestore).
+ * POST body: { sandbox?, streaming?: { url, flowId, flowName, datasetId, schemaId, xdmKey, apiKey }, infra?: { schemaMetaAltId, schemaId, datasetId, profileCoreMixinId, analyticsFieldGroupId, datasetName, imsOrg } }
+ */
+exports.genericProfileConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+  setCors(res, 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  const sandboxQ = resolveSandboxFromQuery(req);
+  if (req.method === 'GET') {
+    try {
+      const record = await genericProfileConnectionStore.getGenericProfileConnection(sandboxQ);
+      res.status(200).json({ ok: true, sandbox: sandboxQ, record: serializeConsentFirestoreRecord(record) });
+    } catch (e) {
+      console.log('[genericProfileConnection]', JSON.stringify({ route: 'GET', sandbox: sandboxQ, error: String(e.message || e) }));
+      res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sandboxQ });
+    }
+    return;
+  }
+  if (req.method === 'POST') {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const sb = String(body.sandbox || sandboxQ).trim() || sandboxQ;
+    try {
+      const record = await genericProfileConnectionStore.saveGenericProfileConnection(sb, {
+        streaming: body.streaming,
+        infra: body.infra,
+      });
+      res.status(200).json({ ok: true, sandbox: sb, record: serializeConsentFirestoreRecord(record) });
+    } catch (e) {
+      console.log('[genericProfileConnection]', JSON.stringify({ route: 'POST', sandbox: sb, error: String(e.message || e) }));
       res.status(500).json({ ok: false, error: String(e.message || e), sandbox: sb });
     }
     return;

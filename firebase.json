@@ -295,6 +295,34 @@
         }
       },
       {
+        "source": "/api/generic-profile-infra/status",
+        "function": {
+          "functionId": "genericProfileInfraStatus",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/generic-profile-infra/step",
+        "function": {
+          "functionId": "genericProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/generic-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "genericProfileInfraFlowLookup",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/generic-profile-connection",
+        "function": {
+          "functionId": "genericProfileConnectionStore",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/update",
         "function": {
           "functionId": "profileUpdateProxy",
