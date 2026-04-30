@@ -385,7 +385,16 @@ async function patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, 
   const enc = encodeURIComponent(metaAltId);
   const url = `${SCHEMA_REGISTRY}/tenant/schemas/${enc}`;
   let ifMatch = '1';
-  for (let attempt = 0; attempt < 4; attempt++) {
+  // Up to 6 attempts so we cover both the precondition-conflict retry case
+  // (412 / 428) and the AEP propagation window where the schema appears in
+  // the listing index seconds before it becomes retrievable by altId
+  // (visible to the operator as a confusing "Schema PATCH failed: Resource
+  // not found" error if the user clicks step 2 immediately after step 1).
+  // Backoff for 404: 1.5s, 3s, 4.5s, 6s, 7.5s — total ~22s of patience
+  // before giving up so genuine 404s (deleted schema, wrong sandbox) still
+  // surface within a reasonable window.
+  const NOT_FOUND_BACKOFF_MS = [1500, 3000, 4500, 6000, 7500];
+  for (let attempt = 0; attempt < 6; attempt++) {
     const full = await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId);
     if (full && full.version != null) ifMatch = String(full.version);
     const { res, data } = await fetchJson(url, {
@@ -401,10 +410,19 @@ async function patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, 
       logGen(sandbox, 'patchSchema.preconditionRetry', { attempt, status: res.status });
       continue;
     }
+    if (res.status === 404 && attempt < NOT_FOUND_BACKOFF_MS.length) {
+      logGen(sandbox, 'patchSchema.notFoundRetry', {
+        attempt,
+        metaAltId,
+        backoffMs: NOT_FOUND_BACKOFF_MS[attempt],
+      });
+      await new Promise((r) => setTimeout(r, NOT_FOUND_BACKOFF_MS[attempt]));
+      continue;
+    }
     const msg = data.message || data.title || data.detail || res.statusText;
-    throw new Error(`Schema PATCH failed: ${msg}`);
+    throw new Error(`Schema PATCH failed: HTTP ${res.status} — ${msg} (altId: ${metaAltId})`);
   }
-  throw new Error('Schema PATCH failed: version conflict after retries');
+  throw new Error(`Schema PATCH failed: gave up after 6 attempts (last status seen for altId ${metaAltId} was 404 — AEP eventual-consistency window may be longer than usual; refresh the page and re-run step 2).`);
 }
 
 function genericProfileFieldGroupsComplete(fullSchema, profileCoreMixinId, analyticsFgId) {
@@ -887,6 +905,33 @@ async function runGenericProfileInfraStep(sandbox, token, clientId, orgId, stepN
           sandbox,
           step,
           error: `No schema "${GENERIC_PROFILE_SCHEMA_TITLE}". Run step 1 (Create schema) first.`,
+        };
+      }
+      // AEP eventual-consistency guard: the list endpoint can return the
+      // schema seconds before the read-by-altId endpoint propagates. If we
+      // skip this check and proceed straight to PATCH, the user sees a
+      // confusing "Schema PATCH failed: Resource not found" error.
+      // patchSchemaJsonPatch retries on 404 internally, but doing the
+      // pre-check here means we surface a clearer "wait and retry"
+      // message in the most common failure mode (fast double-click of
+      // step 1 → step 2) without burning the PATCH retry budget.
+      const schemaMetaAltId = schema['meta:altId'];
+      if (!schemaMetaAltId) {
+        return {
+          ok: false,
+          sandbox,
+          step,
+          error: `Schema "${GENERIC_PROFILE_SCHEMA_TITLE}" was returned by the listing endpoint but has no meta:altId yet. AEP propagation can take a few seconds — wait 5–10 seconds and try step 2 again.`,
+        };
+      }
+      const schemaProbe = await getSchemaByAltId(token, clientId, orgId, sandbox, schemaMetaAltId);
+      if (!schemaProbe) {
+        logGen(sandbox, 'attachFieldGroups.schemaNotYetRetrievable', { metaAltId: schemaMetaAltId });
+        return {
+          ok: false,
+          sandbox,
+          step,
+          error: `Schema "${GENERIC_PROFILE_SCHEMA_TITLE}" was found in the listing index but is not yet retrievable by id. This is normal right after step 1 — AEP propagation can take a few seconds. Wait 5–10 seconds and click "2 · Attach field groups" again.`,
         };
       }
       const analytics = await ensureCustomerAnalyticsFieldGroup(token, clientId, orgId, sandbox, tenantCtx.tenantId);
