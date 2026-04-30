@@ -897,6 +897,27 @@ function renderJourneyHtml(journeyData) {
       </g>`;
   }).join('');
 
+  // Build a confirmed-flag lookup keyed by tech bullet text from the
+  // top-level j.tech grouped technology blocks (each with a heading +
+  // bullets[{text, confirmed}]). The slide-level tech entries only
+  // carry {t, a} — we enrich them here with c (confirmed) so the live
+  // interactive deck can show the same [confirmed]/[assumed] badge as
+  // the one-pager and PPTX. Lookup is normalised lower-case for
+  // tolerance against minor casing drift between layers.
+  const techConfirmedByText = new Map();
+  if (Array.isArray(j.tech)) {
+    for (const grp of j.tech) {
+      if (!grp || !Array.isArray(grp.bullets)) continue;
+      for (const b of grp.bullets) {
+        if (!b || !b.text) continue;
+        const key = String(b.text).trim().toLowerCase();
+        if (!techConfirmedByText.has(key)) {
+          techConfirmedByText.set(key, !!b.confirmed);
+        }
+      }
+    }
+  }
+
   const slidesJson = JSON.stringify(j.slides.map((s, idx) => ({
     label: safeString(s.label || (idx === 0 ? 'Overview' : 'Step ' + idx)),
     activeNode: typeof s.activeNode === 'number' ? s.activeNode : (idx === 0 ? -1 : idx - 1),
@@ -920,7 +941,14 @@ function renderJourneyHtml(journeyData) {
     decisioningActive: Array.isArray(s.decisioningActive) ? s.decisioningActive : [],
     activ: Array.isArray(s.activ) ? s.activ : [],
     activActive: Array.isArray(s.activActive) ? s.activActive : [],
-    tech: Array.isArray(s.tech) ? s.tech.map((t) => ({ t: safeString(t && t.t, ''), a: !!(t && t.a) })) : [],
+    tech: Array.isArray(s.tech) ? s.tech.map((t) => {
+      const text = safeString(t && t.t, '');
+      const key = text.trim().toLowerCase();
+      // c: true => [confirmed] vendor; false => [assumed] inference;
+      // null => no flag known (older cached results — render no badge).
+      const c = techConfirmedByText.has(key) ? techConfirmedByText.get(key) : null;
+      return { t: text, a: !!(t && t.a), c };
+    }) : [],
   })));
 
   const pathSegsJson = JSON.stringify(PATH_SEGS);
@@ -1077,6 +1105,13 @@ function renderJourneyHtml(journeyData) {
      dimmed past entries so the user can SEE the AEP picture growing as
      they navigate forward. Applies to every column. */
   .data-item.past { opacity: 0.42; background: transparent; border-color: transparent; }
+  /* Tech badge — surfaces whether a vendor was found in the input
+     detectedTech list (confirmed) or inferred from the industry
+     (assumed). Same pill style as the one-pager so the live deck and
+     the leave-behind PPTX tell the same story. */
+  .tech-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.2px; }
+  .tech-badge.confirmed { background: #e8f5e9; color: #1b5e20; }
+  .tech-badge.assumed { background: #fff3e0; color: #b26a00; }
   .seg { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; font-size: 10px; line-height: 1.25; background: #f9fafb; border: 1px solid transparent; transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease; }
   .seg.active { background: var(--active-bg); border-color: var(--active-stroke); color: #1b5e20; font-weight: 600; }
   .seg.past { opacity: 0.42; background: transparent; border-color: transparent; }
@@ -1335,20 +1370,27 @@ function renderJourneyHtml(journeyData) {
       }).join('');
     }
 
-    // Tech — {t, a}. Accumulate by text; active when a===true at current.
+    // Tech — {t, a, c}. Accumulate by text; active when a===true at
+    // current. Render a [confirmed]/[assumed] pill badge if the c flag
+    // is known (null on older cached journeys — we just omit the badge
+    // rather than fabricating a confidence we don't have).
     {
       const map = new Map();
       for (let i = 0; i <= current; i++) {
         const list = (slides[i] && slides[i].tech) || [];
         list.forEach(o => {
           const k = String(o && o.t);
-          if (!map.has(k)) map.set(k, { text: k, isActive: false });
+          if (!map.has(k)) map.set(k, { text: k, isActive: false, confirmed: (o && typeof o.c === 'boolean') ? o.c : null });
           if (i === current && o && o.a) map.get(k).isActive = true;
+          if (o && typeof o.c === 'boolean') map.get(k).confirmed = o.c;
         });
       }
       document.getElementById('col-tech').innerHTML = Array.from(map.values()).map(v => {
         const cls = v.isActive ? ' active' : ' past';
-        return '<div class="data-item' + cls + '">' + esc(v.text) + '</div>';
+        let badge = '';
+        if (v.confirmed === true) badge = '<span class="tech-badge confirmed">confirmed</span>';
+        else if (v.confirmed === false) badge = '<span class="tech-badge assumed">assumed</span>';
+        return '<div class="data-item' + cls + '">' + esc(v.text) + badge + '</div>';
       }).join('');
     }
 
