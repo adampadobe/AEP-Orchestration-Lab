@@ -362,10 +362,15 @@ async function ensureCustomerAnalyticsFieldGroup(token, clientId, orgId, sandbox
 /** PATCH ops to attach Profile Core v2 + Demographic Details + Personal Contact Details + Loyalty Details + Customer Analytics. */
 function buildAttachFieldGroupPatchOps(fullSchema, profileCoreMixinId, analyticsFgId) {
   const existing = collectSchemaRefUris(fullSchema);
+  // Canonical $id values per the public adobe/xdm repo. Loyalty Details
+  // lives under the nested `mixins/profile/...` namespace (not the flat
+  // `mixins/...` one). Sending the wrong path causes the Schema Registry
+  // to reject the entire PATCH with a misleading 404 "Resource not found"
+  // because AEP cannot resolve one of the $ref values in the body.
   const toAdd = [
     'https://ns.adobe.com/xdm/context/profile-person-details',
     'https://ns.adobe.com/xdm/context/profile-personal-details',
-    'https://ns.adobe.com/xdm/mixins/profile-loyalty-details',
+    'https://ns.adobe.com/xdm/mixins/profile/profile-loyalty-details',
     'https://ns.adobe.com/xdm/context/profile-preferences-details',
     String(profileCoreMixinId),
     String(analyticsFgId),
@@ -428,10 +433,14 @@ async function patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, 
 function genericProfileFieldGroupsComplete(fullSchema, profileCoreMixinId, analyticsFgId) {
   if (!fullSchema || !profileCoreMixinId || !analyticsFgId) return false;
   const refs = collectSchemaRefUris(fullSchema);
+  // Must mirror buildAttachFieldGroupPatchOps so the status check stays
+  // consistent with what the wizard actually attaches. Loyalty Details
+  // uses the nested `mixins/profile/...` namespace.
   const need = [
     'https://ns.adobe.com/xdm/context/profile',
     'https://ns.adobe.com/xdm/context/profile-person-details',
     'https://ns.adobe.com/xdm/context/profile-personal-details',
+    'https://ns.adobe.com/xdm/mixins/profile/profile-loyalty-details',
     'https://ns.adobe.com/xdm/context/profile-preferences-details',
     String(profileCoreMixinId),
     String(analyticsFgId),
