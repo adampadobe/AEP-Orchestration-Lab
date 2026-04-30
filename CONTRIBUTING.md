@@ -21,8 +21,10 @@ Read this fully before making your first change.
 9. [Credentials, secrets and .env files](#credentials-secrets-and-env-files)
 10. [Change workflow (mandatory)](#change-workflow-mandatory)
 11. [Deployment](#deployment)
-12. [Version control and rollback](#version-control-and-rollback)
-13. [Things you must never do](#things-you-must-never-do)
+12. [Hosting vs Git branch (avoid accidental “rollback”)](#hosting-vs-git-branch-avoid-accidental-rollback)
+13. [Profile Viewer cache busting and verification](#profile-viewer-cache-busting-and-verification)
+14. [Version control and rollback](#version-control-and-rollback)
+15. [Things you must never do](#things-you-must-never-do)
 
 ---
 
@@ -529,7 +531,7 @@ Every change **must** follow this ordered ritual. Do not skip any step.
 | 6. **Phase B sync** | `git fetch origin && git status` — pull/rebase if behind | Don't push on top of a teammate's commit (see [Phase B](#phase-b--immediately-before-git-push)) |
 | 7. **Push** | `git push origin <branch>` | GitHub is the audit trail; teammates and CI see your work |
 | 8. **Phase C sync** | `git fetch origin && git status` — pull AND rebuild sub-apps if behind | Don't silently overwrite a teammate's hosted assets (see [Phase C](#phase-c--immediately-before-firebase-deploy)) |
-| 9. **Deploy** | `firebase deploy --only hosting` and/or `firebase deploy --only functions` | Live site and functions pick up what is on `origin/main` |
+| 9. **Deploy** | `npx -y firebase-tools@latest deploy --only hosting` and/or `--only functions` | Ships **`web/`** and **`functions/`** from **your local checkout at `HEAD`**, not from `origin/main`. Whatever branch you have checked in is what goes live (see [Hosting vs Git branch](#hosting-vs-git-branch-avoid-accidental-rollback)). |
 
 > **Never** deploy work you care about before it is **committed and pushed**. **Never** deploy without re-syncing in Phase C — `firebase deploy` does not consult Git, only your local disk under `web/`. See [Collaboration, Git, and environment](#collaboration-git-and-environment) for the full three-phase pull discipline.
 
@@ -583,6 +585,34 @@ GitHub Actions runs on push/PR to `main`:
 - **`npm run verify:profile-viewer-routes`** (preserved Decisioning pages under `web/profile-viewer/`)
 
 CI does **not** build or deploy functions. Deployment is manual.
+
+### Hosting vs Git branch (avoid accidental “rollback”)
+
+`firebase deploy --only hosting` uploads **`web/` from your current working tree**. It does **not** read `origin/main` or GitHub — only the files on disk. Two consequences:
+
+1. **Wrong branch feels like a “rollback”.** If important UI changes exist only on a **feature branch** (for example long-lived work on `cursor/…`) but someone deploys from a checkout of **`main`** that does **not** yet include those commits, Firebase serves **`main`’s `web/`** for every path. The lab then looks “reverted” even though the feature branch still has the newer HTML/CSS/JS on GitHub. **Fix:** merge the feature branch to **`main`**, or **always** run hosting deploy from a checkout that **contains** the commits you intend to ship (then push so others can match `/version.json` to a SHA).
+
+2. **Phase C does not switch branches for you.** Being “up to date with `origin/main`” on **`main`** still means your accelerator files match **`main`**, not your feature branch. Before deploying accelerator work, **`git checkout`** the branch that has those commits and **`git pull`** it.
+
+**Team norm:** After shipping a feature from a feature branch, **open a PR to `main`** so the default deploy path and CI stay aligned. Until then, agree who may deploy hosting and **from which branch**.
+
+Use **`npm run deploy:status`** and **`https://aep-orchestration-lab.web.app/version.json`** to confirm which **git SHA** is live after any deploy (see [Version control and rollback](#version-control-and-rollback)).
+
+### Profile Viewer cache busting and verification
+
+**Cache busting (JS/CSS):** Profile Viewer pages load shared and feature scripts with query strings such as **`?v=YYYYMMDD`** (and sometimes a letter suffix). When you change a **`.js`** or **`.css`** file under **`web/profile-viewer/`**, **bump the `?v=` on every `<script>` / `<link>` that references it** in the HTML that loads it — otherwise browsers may keep an older copy even though HTML is revalidated frequently.
+
+**Firebase Hosting headers:** `firebase.json` sets **`Cache-Control: max-age=0, must-revalidate`** on **`/profile-viewer/**/*.html`**, on **`/profile-viewer/**/*.js`** and **`/profile-viewer/**/*.css`**, and on paths starting with **`/profile-viewer/experimentation-accelerator`** (covers accelerator HTML/CSS/JS under that prefix). Clients revalidate often; still bump **`?v=`** when you change linked assets. HTML still wins only if the updated HTML references updated asset URLs; keep **`?v=`** bumps as the primary cache-bust when you touch dependent assets.
+
+**Local guardrails before `firebase deploy --only hosting` when you edited Profile Viewer:**
+
+| Command | When |
+|---------|------|
+| **`npm run verify:profile-viewer-routes`** | Always after substantive edits under **`web/profile-viewer/`** — preserved Decisioning routes, eds-quickstart, forbidden **`decisioning-overview-v2`** (also runs in CI on `main`). |
+| **`npm run verify:experimentation-accelerator`** | When **`experimentation-accelerator*`** files should keep required integration points (Customise, shell user line, etc.). Available on branches that include **`scripts/verify-experimentation-accelerator-snapshot.mjs`**; add to CI after that script lands on **`main`**. |
+| **`npm run deploy:check`** | Optional dry-run of the same checks as the **`predeploy`** hook (without deploying). |
+
+The **`predeploy`** hook on hosting runs **`scripts/predeploy-check.mjs`** automatically (refuses deploy if your branch is **behind `origin/main`**; see [Pre-deploy guard](#pre-deploy-guard-automatic)).
 
 ### Diagnosing a stale deploy (edge cache or parallel-agent overwrite)
 
@@ -745,6 +775,7 @@ A future enhancement (not yet wired) is a small "v 13e9449" pill in the dashboar
 | **Don't commit `.env` files or credentials** | They are gitignored. Never `git add --force` them. |
 | **Don't run `firebase deploy` while behind `origin/main`** | `firebase deploy --only hosting` ships local disk under `web/`, NOT what is on `origin/main`. Skipping the Phase C `git fetch` + `git pull --ff-only` will silently overwrite a teammate's hosted assets even though `git` itself stays clean. See [Phase C — immediately before `firebase deploy`](#phase-c--immediately-before-firebase-deploy). |
 | **Don't deploy hosting from a workspace where another agent or session is also editing in parallel without re-running Phase C first** | This is the most common way Phase C gets violated in practice. Two agents finish their work, both push, both deploy in alternation — and whichever deploys last from a workspace that hasn't pulled the other's commit silently reverts those changes on the live site. Git history stays linear and clean; nothing in `git log` reveals the regression. The `curl -fsSI "<url>?cb=$(date +%s)"` probe in [Diagnosing a stale deploy (edge cache or parallel-agent overwrite)](#diagnosing-a-stale-deploy-edge-cache-or-parallel-agent-overwrite) is the post-mortem tool when this happens. |
+| **Don't assume `main` has your feature-branch `web/` changes** | If UI work lives only on a feature branch, a **`firebase deploy --only hosting` from a checkout of `main`** publishes **`main`'s files** — the live site can look "rolled back" relative to the branch. Merge to **`main`** (PR) or deploy from the branch that contains your commits; see [Hosting vs Git branch](#hosting-vs-git-branch-avoid-accidental-rollback). |
 | **Don't `git push --force` to `main`** | Destroys teammate commits irrecoverably. If your push is rejected, pull/rebase from `origin/main` and try again. |
 | **Don't change the `us-central1` region** without updating both `functions/index.js` and every entry in `firebase.json` | Mismatched regions cause 404s on `/api/*` calls. |
 | **Don't edit `firestore.rules` to allow client reads/writes** | All Firestore access goes through Admin SDK in functions. |
@@ -771,6 +802,7 @@ A future enhancement (not yet wired) is a small "v 13e9449" pill in the dashboar
 - [ ] **Phase A** sync ran before substantive edits (`git fetch origin` → `git status` → `git pull --ff-only origin main` if behind, then re-`git status` to confirm `up to date`)
 - [ ] **Phase B** sync ran immediately before `git push` (re-fetched, re-`git status`, re-integrated via `git pull --ff-only` / `git pull --rebase` if a teammate had pushed)
 - [ ] **Phase C** sync ran immediately before `firebase deploy` (re-fetched, re-`git status`, pulled if behind, AND re-ran any `npm run build:edp` / `npm run build:eds-quickstart` if the teammate's commit touched a vendored sub-app)
+- [ ] If your changes are on a **feature branch** that is **not** merged to `main`: you either **merged (or opened a PR) to `main`** or you **deployed from that feature branch** on purpose — not from a `main` checkout that lacks your commits ([Hosting vs Git branch](#hosting-vs-git-branch-avoid-accidental-rollback))
 
 ---
 
