@@ -1121,7 +1121,7 @@
             <h4>Before you can generate or update generic profiles in a new sandbox:</h4>
             <ol>
               <li><strong>Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - Generic Profile - Schema</code>.</li>
-              <li><strong>Attach field groups</strong> — Attaches Profile Core v2, Demographic Details, Personal Contact Details, Loyalty Details and a tenant <code>AEP Lab - Customer Analytics</code> field group, plus the primary Email identity descriptor. The wizard <strong>does not</strong> enable the schema for Real-Time Customer Profile at this point — that is a deliberate, manual step (see note below).</li>
+              <li><strong>Attach field groups</strong> — Attaches Profile Core v2, Demographic Details, Personal Contact Details, Loyalty Details and Preferences Details, plus the primary Email identity descriptor. The wizard <strong>does not</strong> enable the schema for Real-Time Customer Profile at this point — that is a deliberate, manual step (see note below).</li>
               <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Generic Profile - Dataset</code>.</li>
               <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Generic Profile - Dataflow</code></strong> (the value pre-populated in the <em>Dataflow name (used for lookup when Flow ID is empty)</em> field below) so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve the <strong>Flow ID</strong> and <strong>Collection URL</strong> automatically — or copy the Flow ID manually if you used a different name.</li>
             </ol>

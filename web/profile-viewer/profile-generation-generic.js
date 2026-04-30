@@ -399,7 +399,6 @@
         if (data.schemaMetaAltId) infra.schemaMetaAltId = data.schemaMetaAltId;
         if (data.datasetId) infra.datasetId = data.datasetId;
         if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
-        if (data.analyticsFieldGroupId) infra.analyticsFieldGroupId = data.analyticsFieldGroupId;
         if (Object.keys(infra).length) await saveConnectionToFirestore(infra);
       } catch (e) {
         console.warn('[generic-profile] infra sync:', e && e.message);
@@ -433,7 +432,6 @@
       const parts = [
         data.ready ? 'Ready for streaming (after URL + Flow ID set).' : 'Not fully ready yet.',
         `Profile Core v2 mixin: ${data.profileCoreMixinFound ? 'yes' : 'no'}`,
-        `Customer Analytics field group: ${data.analyticsFieldGroupFound ? 'yes' : 'no'}`,
         `Schema: ${data.schemaFound ? 'yes' : 'no'}`,
         `Primary email descriptor: ${data.primaryEmailDescriptor ? 'yes' : 'no'}`,
         `Dataset: ${data.datasetFound ? `yes (Profile-enabled: ${data.datasetProfileEnabled ? 'yes' : 'no'})` : 'no'}`,
@@ -446,7 +444,6 @@
         if (data.schemaMetaAltId) infra.schemaMetaAltId = data.schemaMetaAltId;
         if (data.datasetId) infra.datasetId = data.datasetId;
         if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
-        if (data.analyticsFieldGroupId) infra.analyticsFieldGroupId = data.analyticsFieldGroupId;
         if (Object.keys(infra).length) await saveConnectionToFirestore(infra);
       } catch (e) {
         console.warn('[generic-profile] status sync:', e && e.message);

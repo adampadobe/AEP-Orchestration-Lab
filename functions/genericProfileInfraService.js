@@ -360,20 +360,22 @@ async function ensureCustomerAnalyticsFieldGroup(token, clientId, orgId, sandbox
 }
 
 /** PATCH ops to attach Profile Core v2 + Demographic Details + Personal Contact Details + Loyalty Details + Customer Analytics. */
-function buildAttachFieldGroupPatchOps(fullSchema, profileCoreMixinId, analyticsFgId) {
+function buildAttachFieldGroupPatchOps(fullSchema, profileCoreMixinId) {
   const existing = collectSchemaRefUris(fullSchema);
   // Canonical $id values per the public adobe/xdm repo. Loyalty Details
   // lives under the nested `mixins/profile/...` namespace (not the flat
   // `mixins/...` one). Sending the wrong path causes the Schema Registry
   // to reject the entire PATCH with a misleading 404 "Resource not found"
   // because AEP cannot resolve one of the $ref values in the body.
+  // The tenant "AEP Lab - Customer Analytics" field group is intentionally
+  // NOT included here — operators decide separately if they want it
+  // (the wizard never auto-creates or attaches it).
   const toAdd = [
     'https://ns.adobe.com/xdm/context/profile-person-details',
     'https://ns.adobe.com/xdm/context/profile-personal-details',
     'https://ns.adobe.com/xdm/mixins/profile/profile-loyalty-details',
     'https://ns.adobe.com/xdm/context/profile-preferences-details',
     String(profileCoreMixinId),
-    String(analyticsFgId),
   ];
   const ops = [];
   for (const ref of toAdd) {
@@ -430,12 +432,13 @@ async function patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, 
   throw new Error(`Schema PATCH failed: gave up after 6 attempts (last status seen for altId ${metaAltId} was 404 — AEP eventual-consistency window may be longer than usual; refresh the page and re-run step 2).`);
 }
 
-function genericProfileFieldGroupsComplete(fullSchema, profileCoreMixinId, analyticsFgId) {
-  if (!fullSchema || !profileCoreMixinId || !analyticsFgId) return false;
+function genericProfileFieldGroupsComplete(fullSchema, profileCoreMixinId) {
+  if (!fullSchema || !profileCoreMixinId) return false;
   const refs = collectSchemaRefUris(fullSchema);
   // Must mirror buildAttachFieldGroupPatchOps so the status check stays
   // consistent with what the wizard actually attaches. Loyalty Details
-  // uses the nested `mixins/profile/...` namespace.
+  // uses the nested `mixins/profile/...` namespace. Customer Analytics
+  // is intentionally absent — see buildAttachFieldGroupPatchOps for why.
   const need = [
     'https://ns.adobe.com/xdm/context/profile',
     'https://ns.adobe.com/xdm/context/profile-person-details',
@@ -443,7 +446,6 @@ function genericProfileFieldGroupsComplete(fullSchema, profileCoreMixinId, analy
     'https://ns.adobe.com/xdm/mixins/profile/profile-loyalty-details',
     'https://ns.adobe.com/xdm/context/profile-preferences-details',
     String(profileCoreMixinId),
-    String(analyticsFgId),
   ];
   return need.every((r) => refs.has(r));
 }
@@ -455,13 +457,12 @@ async function attachFieldGroupsAndDescriptor(
   sandbox,
   tenantCtx,
   profileCore,
-  analyticsFg,
   schemaRow
 ) {
   const metaAltId = schemaRow['meta:altId'];
   const schemaId = schemaRow.$id;
   let full = (await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId)) || schemaRow;
-  const ops = buildAttachFieldGroupPatchOps(full, profileCore.$id, analyticsFg.$id);
+  const ops = buildAttachFieldGroupPatchOps(full, profileCore.$id);
   let patchApplied = false;
   if (ops.length) {
     await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, ops);
@@ -741,7 +742,6 @@ async function runGenericProfileInfraStatus(sandbox, token, clientId, orgId) {
         schema: GENERIC_PROFILE_SCHEMA_TITLE,
         dataset: GENERIC_PROFILE_DATASET_NAME,
         httpDataflow: GENERIC_PROFILE_HTTP_DATAFLOW_NAME,
-        fieldGroup: GENERIC_PROFILE_FIELD_GROUP_TITLE,
       },
     };
   }
@@ -763,13 +763,15 @@ async function runGenericProfileInfraStatus(sandbox, token, clientId, orgId) {
         schema: GENERIC_PROFILE_SCHEMA_TITLE,
         dataset: GENERIC_PROFILE_DATASET_NAME,
         httpDataflow: GENERIC_PROFILE_HTTP_DATAFLOW_NAME,
-        fieldGroup: GENERIC_PROFILE_FIELD_GROUP_TITLE,
       },
       nextSteps: manualFlowSteps(),
     };
   }
   const profileCore = findProfileCoreV2Mixin(mixins);
-  const analyticsFg = findCustomerAnalyticsFieldGroup(mixins);
+  // Customer Analytics tenant field group is no longer auto-created or
+  // attached by the wizard. The helpers (findCustomerAnalyticsFieldGroup,
+  // ensureCustomerAnalyticsFieldGroup) are kept in place for easy
+  // reactivation if we ever want to bring it back.
 
   const allSchemas = await listAllTenantSchemas(token, clientId, orgId, sandbox);
   const schema = findGenericProfileSchema(allSchemas);
@@ -802,15 +804,15 @@ async function runGenericProfileInfraStatus(sandbox, token, clientId, orgId) {
       const full = await getSchemaByAltId(token, clientId, orgId, sandbox, schema['meta:altId']);
       if (full) {
         schemaInProfileUnion = schemaHasProfileUnionTag(full);
-        if (profileCore && analyticsFg) {
-          fieldGroupsAttached = genericProfileFieldGroupsComplete(full, profileCore.$id, analyticsFg.$id);
+        if (profileCore) {
+          fieldGroupsAttached = genericProfileFieldGroupsComplete(full, profileCore.$id);
         }
       }
     }
   }
 
   const datasetProfileEnabled = !!dataset && datasetHasProfileEnabledTag(dataset);
-  const ready = !!(profileCore && analyticsFg && schema && dataset && hasDescriptor && fieldGroupsAttached);
+  const ready = !!(profileCore && schema && dataset && hasDescriptor && fieldGroupsAttached);
 
   return {
     ok: true,
@@ -821,8 +823,6 @@ async function runGenericProfileInfraStatus(sandbox, token, clientId, orgId) {
     xdmKey: tenantCtx.xdmKey,
     profileCoreMixinFound: !!profileCore,
     profileCoreMixinId: profileCore?.$id || null,
-    analyticsFieldGroupFound: !!analyticsFg,
-    analyticsFieldGroupId: analyticsFg?.$id || null,
     schemaFound: !!schema,
     schemaId: schema?.$id || null,
     schemaMetaAltId: schema?.['meta:altId'] || null,
@@ -840,7 +840,6 @@ async function runGenericProfileInfraStatus(sandbox, token, clientId, orgId) {
       schema: GENERIC_PROFILE_SCHEMA_TITLE,
       dataset: GENERIC_PROFILE_DATASET_NAME,
       httpDataflow: GENERIC_PROFILE_HTTP_DATAFLOW_NAME,
-      fieldGroup: GENERIC_PROFILE_FIELD_GROUP_TITLE,
     },
     nextSteps: ready ? [] : manualFlowSteps(),
   };
@@ -888,7 +887,7 @@ async function runGenericProfileInfraStep(sandbox, token, clientId, orgId, stepN
         schemaId: created.$id,
         schemaMetaAltId: created['meta:altId'],
         message:
-          'Schema shell created (Profile class only). Run step 2 to attach field groups + Customer Analytics + primary Email identity.',
+          'Schema shell created (Profile class only). Run step 2 to attach the standard Profile field groups + primary Email identity.',
       };
     }
 
@@ -943,7 +942,6 @@ async function runGenericProfileInfraStep(sandbox, token, clientId, orgId, stepN
           error: `Schema "${GENERIC_PROFILE_SCHEMA_TITLE}" was found in the listing index but is not yet retrievable by id. This is normal right after step 1 — AEP propagation can take a few seconds. Wait 5–10 seconds and click "2 · Attach field groups" again.`,
         };
       }
-      const analytics = await ensureCustomerAnalyticsFieldGroup(token, clientId, orgId, sandbox, tenantCtx.tenantId);
       const ar = await attachFieldGroupsAndDescriptor(
         token,
         clientId,
@@ -951,7 +949,6 @@ async function runGenericProfileInfraStep(sandbox, token, clientId, orgId, stepN
         sandbox,
         tenantCtx,
         profileCore,
-        analytics.row,
         schema
       );
       return {
@@ -963,12 +960,10 @@ async function runGenericProfileInfraStep(sandbox, token, clientId, orgId, stepN
         schemaId: schema.$id,
         schemaMetaAltId: schema['meta:altId'],
         profileCoreMixinId: profileCore.$id,
-        analyticsFieldGroupId: analytics.row.$id,
-        analyticsFieldGroupCreated: analytics.created,
         patchApplied: ar.patchApplied,
         descriptorOk: ar.descriptorOk,
         message: ar.patchApplied
-          ? 'Field groups attached and primary Email identity set (Profile Core v2 + Demographic Details + Personal Contact Details + Loyalty Details + Customer Analytics).'
+          ? 'Field groups attached and primary Email identity set (Profile Core v2 + Demographic Details + Personal Contact Details + Loyalty Details + Preferences Details).'
           : 'Field groups were already present; primary Email identity checked.',
       };
     }
@@ -1052,7 +1047,6 @@ async function runGenericProfileInfraStep(sandbox, token, clientId, orgId, stepN
         schema: GENERIC_PROFILE_SCHEMA_TITLE,
         dataset: GENERIC_PROFILE_DATASET_NAME,
         httpDataflow: GENERIC_PROFILE_HTTP_DATAFLOW_NAME,
-        fieldGroup: GENERIC_PROFILE_FIELD_GROUP_TITLE,
       },
       nextSteps: manualFlowSteps(),
       message: `Create HTTP API dataflow "${GENERIC_PROFILE_HTTP_DATAFLOW_NAME}" for dataset "${GENERIC_PROFILE_DATASET_NAME}". Then use "Fetch URL & Flow ID from AEP" on this page (Flow Service) or paste URL + Flow ID below.`,
