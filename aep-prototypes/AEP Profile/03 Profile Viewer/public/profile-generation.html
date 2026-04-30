@@ -42,9 +42,6 @@
           </div>
         </section>
     <section class="consent-panel" id="configPanel">
-      <h2 class="panel-title"><span class="icon">➕</span> Sandbox and options</h2>
-      <p class="panel-desc">Select your AEP sandbox, optional industry (for templated attributes and the kirkham+&lt;industry&gt;-&lt;x&gt; email pattern), and profile index. Use <strong>Fill random sample</strong> or edit fields below, then <strong>Generate profile</strong>.</p>
-
       <div class="profile-gen-config">
         <div class="config-row">
           <div class="form-row">
@@ -57,6 +54,7 @@
             <label for="industry">Industry</label>
             <select id="industry" aria-label="Industry">
               <option value="">— Select industry —</option>
+              <option value="generic">Generic (industry-less)</option>
               <option value="retail">Retail</option>
               <option value="fsi">FSI</option>
               <option value="travel">Travel</option>
@@ -1098,8 +1096,9 @@
       </div>
     </section>
 
-    <!-- Generic Profile (industry-less) — sandbox-portable streaming + Customer Analytics editor. -->
-    <section class="consent-panel" id="genericProfilePanel" aria-labelledby="genericProfileHeading">
+    <!-- Generic Profile (industry-less) — sandbox-portable streaming + Customer Analytics editor.
+         Hidden by default; profile-generation.js toggles this on when industry === "generic". -->
+    <section class="consent-panel" id="genericProfilePanel" aria-labelledby="genericProfileHeading" hidden>
       <h2 id="genericProfileHeading" class="panel-title"><span class="icon">🧬</span> Generic profile (industry-less)</h2>
       <p class="panel-desc">
         Skip the industry pack and stream a clean Profile with Customer Analytics fields (churn, propensity, NPS, AOV, preferred channel, gender, loyalty, language).
@@ -1207,6 +1206,49 @@
           </label>
         </div>
         <p id="genericProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+      </div>
+
+      <!-- C0. Identity (basic profile fields shared by every generic profile) -->
+      <div class="generic-identity-section">
+        <h3 class="generic-subhead"><span class="icon">👤</span> Identity</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="genFirstName">First name</label>
+            <input type="text" id="genFirstName" placeholder="e.g. Adam" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="genLastName">Last name</label>
+            <input type="text" id="genLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+        </div>
+        <p class="field-hint">Maps to <code>person.name.firstName</code> and <code>person.name.lastName</code> at the XDM root.</p>
+      </div>
+
+      <!-- C1. Recently generated (per sandbox + base email + day) -->
+      <div class="gen-recent-picker" id="genRecentPicker" hidden>
+        <label for="genRecentSelect" class="gen-recent-picker__label">
+          <span class="icon">🕘</span>
+          <span>Recently generated</span>
+        </label>
+        <select id="genRecentSelect" class="gen-recent-picker__select" aria-label="Load a recently generated profile">
+          <option value="">— pick to load —</option>
+        </select>
+        <button type="button" id="genRecentLoadBtn" class="btn btn-secondary" title="Load the selected snapshot back into the form">Load</button>
+        <details id="genRecentDetails" class="gen-recent-list">
+          <summary><span id="genRecentCountLabel">Recently generated (0)</span></summary>
+          <table class="gen-recent-list__table">
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Generated</th>
+                <th scope="col">Summary</th>
+                <th scope="col"><span class="visually-hidden">Action</span></th>
+              </tr>
+            </thead>
+            <tbody id="genRecentListBody"></tbody>
+          </table>
+          <p class="field-hint">Stored locally in your browser, partitioned by sandbox + base email + day. Cleared automatically when the day rolls over.</p>
+        </details>
       </div>
 
       <!-- C. Customer Analytics editor (matches the Adobe Profile Updater reference page) -->
@@ -1326,30 +1368,82 @@
               <span class="analytics-card-icon">🏆</span>
               <h4 class="analytics-card-title">Loyalty program</h4>
             </div>
-            <p class="analytics-card-desc">Tier and points balance. Maps to <code>loyalty.tier</code> and <code>loyalty.points</code> (XDM root).</p>
-            <div class="form-row form-row--inline">
-              <div class="form-group">
-                <label for="genLoyaltyTier">Tier level</label>
-                <select id="genLoyaltyTier">
+            <label class="gen-loyalty-toggle">
+              <input type="checkbox" id="genLoyaltyEnabled">
+              <span>Member of loyalty program</span>
+            </label>
+            <p class="analytics-card-desc">When toggled on we generate a loyalty profile with ID, tier, points, and the member's preferred language. Off by default — no <code>loyalty.*</code> keys are sent.</p>
+            <div class="gen-loyalty-fields" id="genLoyaltyFields" hidden>
+              <div class="form-row">
+                <label for="genLoyaltyID">Loyalty ID</label>
+                <input type="text" id="genLoyaltyID" placeholder="e.g. LYL-10001 (auto-generated if blank)" autocomplete="off">
+                <p class="field-hint">Maps to <code>_demoemea.identification.core.loyaltyId</code>.</p>
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="genLoyaltyTier">Tier / level</label>
+                  <select id="genLoyaltyTier">
+                    <option value="">— Select —</option>
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="genLoyaltyPoints">Points balance</label>
+                  <input type="number" id="genLoyaltyPoints" min="0" step="1" placeholder="e.g. 1500">
+                </div>
+                <div class="form-group form-group--small">
+                  <label>&nbsp;</label>
+                  <button type="button" id="genLoyaltyRandomBtn" class="btn btn-link" title="Random points within selected tier">🎲</button>
+                </div>
+              </div>
+              <div class="form-row">
+                <label for="genLoyaltyLanguage">Language preference</label>
+                <select id="genLoyaltyLanguage">
                   <option value="">— Select —</option>
-                  <option value="Bronze">Bronze</option>
-                  <option value="Silver">Silver</option>
-                  <option value="Gold">Gold</option>
-                  <option value="Platinum">Platinum</option>
+                  <option value="en-US">English (United States)</option>
+                  <option value="en-GB">English (United Kingdom)</option>
+                  <option value="en-CA">English (Canada)</option>
+                  <option value="en-AU">English (Australia)</option>
+                  <option value="fr-FR">French (France)</option>
+                  <option value="fr-CA">French (Canada)</option>
+                  <option value="de-DE">German (Germany)</option>
+                  <option value="de-AT">German (Austria)</option>
+                  <option value="de-CH">German (Switzerland)</option>
+                  <option value="es-ES">Spanish (Spain)</option>
+                  <option value="es-MX">Spanish (Mexico)</option>
+                  <option value="es-AR">Spanish (Argentina)</option>
+                  <option value="it-IT">Italian (Italy)</option>
+                  <option value="pt-PT">Portuguese (Portugal)</option>
+                  <option value="pt-BR">Portuguese (Brazil)</option>
+                  <option value="nl-NL">Dutch (Netherlands)</option>
+                  <option value="nl-BE">Dutch (Belgium)</option>
+                  <option value="da-DK">Danish (Denmark)</option>
+                  <option value="sv-SE">Swedish (Sweden)</option>
+                  <option value="no-NO">Norwegian (Norway)</option>
+                  <option value="fi-FI">Finnish (Finland)</option>
+                  <option value="pl-PL">Polish (Poland)</option>
+                  <option value="ru-RU">Russian (Russia)</option>
+                  <option value="zh-CN">Chinese (Simplified)</option>
+                  <option value="zh-TW">Chinese (Traditional)</option>
+                  <option value="ja-JP">Japanese (Japan)</option>
+                  <option value="ko-KR">Korean (South Korea)</option>
+                  <option value="ar-SA">Arabic (Saudi Arabia)</option>
+                  <option value="ar-AE">Arabic (UAE)</option>
+                  <option value="he-IL">Hebrew (Israel)</option>
+                  <option value="tr-TR">Turkish (Turkey)</option>
+                  <option value="hi-IN">Hindi (India)</option>
+                  <option value="th-TH">Thai (Thailand)</option>
+                  <option value="vi-VN">Vietnamese (Vietnam)</option>
                 </select>
-              </div>
-              <div class="form-group">
-                <label for="genLoyaltyPoints">Points balance</label>
-                <input type="number" id="genLoyaltyPoints" min="0" step="1" placeholder="e.g. 1500">
-              </div>
-              <div class="form-group form-group--small">
-                <label>&nbsp;</label>
-                <button type="button" id="genLoyaltyRandomBtn" class="btn btn-link" title="Random points within selected tier">🎲</button>
+                <p class="field-hint">Loyalty members get language as part of their profile. Maps to <code>personalEmail.language</code>.</p>
               </div>
             </div>
           </div>
 
-          <div class="analytics-card analytics-card--language">
+          <div class="analytics-card analytics-card--language" id="genLanguageCard">
             <div class="analytics-card-header">
               <span class="analytics-card-icon">🌍</span>
               <h4 class="analytics-card-title">Language preference</h4>

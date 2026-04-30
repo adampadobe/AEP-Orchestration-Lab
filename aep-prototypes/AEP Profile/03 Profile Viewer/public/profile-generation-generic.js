@@ -49,6 +49,10 @@
   const dryRunEl = document.getElementById('genDryRun');
   const messageEl = document.getElementById('genericProfileMessage');
 
+  // Identity (added when Generic became an industry option — basic profile fields)
+  const firstNameEl = document.getElementById('genFirstName');
+  const lastNameEl = document.getElementById('genLastName');
+
   // Customer Analytics
   const churnEl = document.getElementById('genChurn');
   const churnValueEl = document.getElementById('genChurnValue');
@@ -59,10 +63,22 @@
   const aovValueEl = document.getElementById('genAovValue');
   const preferredChannelEl = document.getElementById('genPreferredChannel');
   const genderEl = document.getElementById('genGender');
+  // Loyalty subgroup (now toggle-gated — see genLoyaltyEnabled)
+  const loyaltyEnabledEl = document.getElementById('genLoyaltyEnabled');
+  const loyaltyFieldsEl = document.getElementById('genLoyaltyFields');
+  const loyaltyIDEl = document.getElementById('genLoyaltyID');
   const loyaltyTierEl = document.getElementById('genLoyaltyTier');
   const loyaltyPointsEl = document.getElementById('genLoyaltyPoints');
   const loyaltyRandomBtn = document.getElementById('genLoyaltyRandomBtn');
+  const loyaltyLanguageEl = document.getElementById('genLoyaltyLanguage');
   const languageEl = document.getElementById('genLanguage');
+  // Recently-generated picker (per sandbox + base email + day)
+  const recentPickerEl = document.getElementById('genRecentPicker');
+  const recentSelectEl = document.getElementById('genRecentSelect');
+  const recentLoadBtn = document.getElementById('genRecentLoadBtn');
+  const recentDetailsEl = document.getElementById('genRecentDetails');
+  const recentListBodyEl = document.getElementById('genRecentListBody');
+  const recentCountLabelEl = document.getElementById('genRecentCountLabel');
 
   // Debug
   const debugEl = document.getElementById('genericProfileDebug');
@@ -444,9 +460,42 @@
    * Path-routing rule (per profileStreamingCore.js): paths starting with `loyalty.`, `person.`, `personalEmail.`
    * land at the XDM root; everything else goes under `_demoemea`.
    */
+  /**
+   * Snapshot the current form state so a successful generate can be replayed
+   * later via the Recently-generated picker. Mirror of buildUpdatesFromForm
+   * but as a plain object — the `Load` action restores fields from this.
+   */
+  function snapshotForm() {
+    const loyaltyEnabled = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
+    return {
+      firstName: trimVal(firstNameEl),
+      lastName: trimVal(lastNameEl),
+      gender: trimVal(genderEl),
+      churn: trimVal(churnEl),
+      propensity: trimVal(propensityEl),
+      nps: trimVal(npsEl),
+      aov: trimVal(aovEl),
+      preferredChannel: trimVal(preferredChannelEl),
+      language: trimVal(languageEl),
+      loyalty: {
+        enabled: loyaltyEnabled,
+        id: loyaltyEnabled ? trimVal(loyaltyIDEl) : '',
+        tier: loyaltyEnabled ? trimVal(loyaltyTierEl) : '',
+        points: loyaltyEnabled ? trimVal(loyaltyPointsEl) : '',
+        language: loyaltyEnabled ? trimVal(loyaltyLanguageEl) : '',
+      },
+    };
+  }
+
   function buildUpdatesFromForm() {
     const updates = [];
     const push = (path, value) => updates.push({ path, value });
+
+    // Identity (XDM root via PROFILE_STREAM_ROOT_PATH_PREFIXES "person.")
+    const firstName = trimVal(firstNameEl);
+    if (firstName) push('person.name.firstName', firstName);
+    const lastName = trimVal(lastNameEl);
+    if (lastName) push('person.name.lastName', lastName);
 
     // Tenant analytics (under _demoemea)
     const churnRaw = churnEl ? String(churnEl.value || '').trim() : '';
@@ -461,8 +510,13 @@
     // Tenant preferences
     const ch = preferredChannelEl ? trimVal(preferredChannelEl) : '';
     if (ch) push('preferences.preferredChannel', ch);
+    // Standalone Language card — always pushed when it has a value, even
+    // when the loyalty toggle is on. Both the standalone card and the
+    // loyalty subgroup write to `personalEmail.language` / `preferences
+    // .preferredLanguage`, so when both are filled the loyalty subgroup's
+    // value (pushed below) wins because it is appended later in the
+    // updates array (last write wins for the same XDM path).
     const lang = languageEl ? trimVal(languageEl) : '';
-    // Language goes to root personalEmail.language (XDM standard); also mirror under tenant prefs for completeness.
     if (lang) {
       push('personalEmail.language', lang);
       push('preferences.preferredLanguage', lang);
@@ -472,11 +526,31 @@
     const gender = genderEl ? trimVal(genderEl) : '';
     if (gender) push('person.gender', gender);
 
-    // Loyalty — root
-    const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
-    if (tier) push('loyalty.tier', tier);
-    const pts = loyaltyPointsEl ? trimVal(loyaltyPointsEl) : '';
-    if (pts !== '') push('loyalty.points', Number(pts));
+    // Loyalty — only stream when the user has explicitly toggled the loyalty
+    // sub-form on. This keeps non-loyalty profiles clean (no empty loyalty.*
+    // keys end up in the AEP profile).
+    const loyaltyEnabled = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
+    if (loyaltyEnabled) {
+      // ID — tenant namespace; profileUpdateProxy auto-prepends `_demoemea.`
+      // for paths not in PROFILE_STREAM_ROOT_PATH_PREFIXES.
+      const loyaltyID = loyaltyIDEl ? trimVal(loyaltyIDEl) : '';
+      if (loyaltyID) push('identification.core.loyaltyId', loyaltyID);
+      const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
+      if (tier) push('loyalty.tier', tier);
+      const pts = loyaltyPointsEl ? trimVal(loyaltyPointsEl) : '';
+      if (pts !== '') push('loyalty.points', Number(pts));
+      // Language inside the loyalty toggle takes precedence over the
+      // standalone Language card (both stay visible when loyalty is on, but
+      // the loyalty subgroup is the more specific context). Pushed after
+      // the standalone push above so the loyalty value overrides for the
+      // same XDM path (`personalEmail.language` / `preferences
+      // .preferredLanguage`) on the AEP stream.
+      const loyLang = loyaltyLanguageEl ? trimVal(loyaltyLanguageEl) : '';
+      if (loyLang) {
+        push('personalEmail.language', loyLang);
+        push('preferences.preferredLanguage', loyLang);
+      }
+    }
 
     return updates;
   }
@@ -504,6 +578,13 @@
     };
 
     const tenant = entity._demoemea && typeof entity._demoemea === 'object' ? entity._demoemea : {};
+
+    // Identity (added with the Generic-as-industry refactor)
+    const fn = get(entity, 'person.name.firstName');
+    if (fn != null && firstNameEl) firstNameEl.value = String(fn);
+    const ln = get(entity, 'person.name.lastName');
+    if (ln != null && lastNameEl) lastNameEl.value = String(ln);
+
     const churn = get(tenant, 'scoring.churn.churnPrediction');
     if (churn != null && churnEl) { churnEl.value = String(churn); renderChurn(); }
     const prop = get(tenant, 'scoring.core.propensityScore');
@@ -518,10 +599,25 @@
     if (lang != null && languageEl) languageEl.value = String(lang);
     const gender = get(entity, 'person.gender');
     if (gender != null && genderEl) genderEl.value = String(gender);
+
+    // Loyalty: enable the toggle when AEP has loyalty data, then route the
+    // pulled values into the loyalty subgroup so the form mirrors the profile.
+    const loyaltyId = get(tenant, 'identification.core.loyaltyId');
     const tier = get(entity, 'loyalty.tier');
-    if (tier != null && loyaltyTierEl) loyaltyTierEl.value = String(tier);
     const pts = get(entity, 'loyalty.points');
+    const hasLoyaltyData = (loyaltyId != null && String(loyaltyId).trim() !== '')
+      || (tier != null && String(tier).trim() !== '')
+      || (pts != null && String(pts).trim() !== '');
+    if (hasLoyaltyData && loyaltyEnabledEl) {
+      loyaltyEnabledEl.checked = true;
+      applyLoyaltyToggleVisibility();
+    }
+    if (loyaltyId != null && loyaltyIDEl) loyaltyIDEl.value = String(loyaltyId);
+    if (tier != null && loyaltyTierEl) loyaltyTierEl.value = String(tier);
     if (pts != null && loyaltyPointsEl) loyaltyPointsEl.value = String(pts);
+    // When loyalty is enabled, mirror the language into the loyalty subgroup
+    // input as well, so editing the loyalty card after a Find shows the value.
+    if (hasLoyaltyData && lang != null && loyaltyLanguageEl) loyaltyLanguageEl.value = String(lang);
   }
 
   // ---------- Find / Update / Generate ----------
@@ -642,6 +738,12 @@
         setMessage(messageEl, data.error || `Update failed (HTTP ${res.status}).`, 'error');
         return;
       }
+      // Refresh recent so an Update on a brand-new email also surfaces in
+      // the picker (Generate-N is not the only path that creates a profile).
+      if (!dryRun) {
+        const n = parseInt(counterEl.value || '1', 10) || 1;
+        recordGenerated(email, n);
+      }
       const okMsg = data.message || `Update sent for ${email}.`;
       setMessage(messageEl, okMsg + (dryRun ? ' (dry run)' : ''), 'success');
     } catch (e) {
@@ -689,6 +791,10 @@
             break;
           }
           successCount += 1;
+          // Record in the per-(sandbox, base, day) recent picker so the user
+          // can reload this exact profile to inspect or modify it later.
+          // Skip dry runs — they didn't actually create anything in AEP.
+          if (!dryRun) recordGenerated(email, n);
         } catch (e) {
           lastError = e.message || 'Network error';
           break;
@@ -714,6 +820,167 @@
     } finally {
       generateBtn.disabled = false;
     }
+  }
+
+  // ---------- Loyalty toggle UX ----------
+  /**
+   * Show/hide the loyalty subgroup based on the toggle state. The standalone
+   * Language card stays visible at all times — when loyalty is ON the loyalty
+   * subgroup adds its own Language preference field alongside it (both write
+   * to `personalEmail.language` on the AEP side, with the loyalty subgroup
+   * winning on precedence; see buildUpdatesFromForm()).
+   */
+  function applyLoyaltyToggleVisibility() {
+    const enabled = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
+    if (loyaltyFieldsEl) loyaltyFieldsEl.hidden = !enabled;
+    if (loyaltyEnabledEl) loyaltyEnabledEl.setAttribute('aria-expanded', enabled ? 'true' : 'false');
+  }
+
+  // ---------- Recently-generated picker ----------
+  // We persist the last ~20 successful generates per (sandbox, base email,
+  // day) so the user can reload any of them to inspect/modify. The same
+  // partitioning as the counter (see counterStorageKey) means the day
+  // rollover automatically clears stale entries.
+  const RECENT_LIMIT = 20;
+
+  function recentStorageKey() {
+    const sb = getSandboxName() || 'default';
+    const base = (trimVal(baseEmailEl) || 'no-email').toLowerCase();
+    return `genericProfileRecent:${sb}:${base}:${todayYmd()}`;
+  }
+
+  function readRecent() {
+    try {
+      const raw = localStorage.getItem(recentStorageKey());
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function writeRecent(arr) {
+    try {
+      localStorage.setItem(recentStorageKey(), JSON.stringify(arr.slice(0, RECENT_LIMIT)));
+    } catch (_) {
+      /* quota / privacy mode — non-fatal, just lose the picker for this session */
+    }
+  }
+
+  function recordGenerated(scaledEmail, n) {
+    if (!scaledEmail) return;
+    const entry = {
+      scaledEmail,
+      n: Number.isFinite(n) ? n : null,
+      ts: Date.now(),
+      snapshot: snapshotForm(),
+    };
+    const next = [entry, ...readRecent().filter((e) => e && e.scaledEmail !== scaledEmail)];
+    writeRecent(next);
+    renderRecent();
+  }
+
+  function summariseSnapshot(snap) {
+    if (!snap || typeof snap !== 'object') return '';
+    const parts = [];
+    if (snap.firstName || snap.lastName) parts.push(`${snap.firstName || ''} ${snap.lastName || ''}`.trim());
+    if (snap.gender) parts.push(snap.gender);
+    if (snap.loyalty && snap.loyalty.enabled) {
+      const lp = [];
+      if (snap.loyalty.tier) lp.push(snap.loyalty.tier);
+      if (snap.loyalty.points) lp.push(`${snap.loyalty.points} pts`);
+      parts.push(`Loyalty: ${lp.join(' · ') || 'on'}`);
+    }
+    if (snap.nps) parts.push(`NPS ${snap.nps}`);
+    if (snap.aov) parts.push(`AOV $${snap.aov}`);
+    return parts.join(' · ');
+  }
+
+  function formatRelative(ts) {
+    if (!ts) return '';
+    const diffMs = Date.now() - ts;
+    const sec = Math.round(diffMs / 1000);
+    if (sec < 60) return `${sec}s ago`;
+    const min = Math.round(sec / 60);
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.round(min / 60);
+    return `${hr}h ago`;
+  }
+
+  function renderRecent() {
+    const list = readRecent();
+    if (!recentPickerEl) return;
+    recentPickerEl.hidden = list.length === 0;
+    if (recentCountLabelEl) recentCountLabelEl.textContent = `Recently generated (${list.length})`;
+    // Dropdown
+    if (recentSelectEl) {
+      const prev = recentSelectEl.value;
+      recentSelectEl.innerHTML = '<option value="">— pick to load —</option>';
+      list.forEach((entry) => {
+        const opt = document.createElement('option');
+        opt.value = entry.scaledEmail;
+        const tail = summariseSnapshot(entry.snapshot);
+        opt.textContent = tail ? `${entry.scaledEmail} — ${tail}` : entry.scaledEmail;
+        recentSelectEl.appendChild(opt);
+      });
+      // Restore previous selection if still in the list.
+      if (list.some((e) => e.scaledEmail === prev)) recentSelectEl.value = prev;
+    }
+    // Table
+    if (recentListBodyEl) {
+      recentListBodyEl.innerHTML = '';
+      list.forEach((entry) => {
+        const tr = document.createElement('tr');
+        const tdEmail = document.createElement('td');
+        tdEmail.textContent = entry.scaledEmail;
+        const tdTs = document.createElement('td');
+        tdTs.textContent = formatRelative(entry.ts);
+        tdTs.title = new Date(entry.ts).toISOString();
+        const tdSummary = document.createElement('td');
+        tdSummary.textContent = summariseSnapshot(entry.snapshot);
+        const tdAction = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-link';
+        btn.textContent = 'Load';
+        btn.addEventListener('click', () => loadRecentSnapshot(entry));
+        tdAction.appendChild(btn);
+        tr.append(tdEmail, tdTs, tdSummary, tdAction);
+        recentListBodyEl.appendChild(tr);
+      });
+    }
+  }
+
+  function loadRecentSnapshot(entry) {
+    if (!entry || !entry.snapshot) return;
+    const s = entry.snapshot;
+    // Identity
+    if (firstNameEl) firstNameEl.value = s.firstName || '';
+    if (lastNameEl) lastNameEl.value = s.lastName || '';
+    // Analytics
+    if (genderEl) genderEl.value = s.gender || '';
+    if (churnEl && s.churn !== '') { churnEl.value = String(s.churn); renderChurn(); }
+    if (propensityEl && s.propensity !== '') { propensityEl.value = String(s.propensity); renderPropensity(); }
+    if (npsEl) npsEl.value = s.nps || '';
+    if (aovEl && s.aov !== '') { aovEl.value = String(s.aov); renderAov(); }
+    if (preferredChannelEl) preferredChannelEl.value = s.preferredChannel || '';
+    if (languageEl) languageEl.value = s.language || '';
+    // Loyalty
+    if (loyaltyEnabledEl) loyaltyEnabledEl.checked = !!(s.loyalty && s.loyalty.enabled);
+    if (loyaltyIDEl) loyaltyIDEl.value = (s.loyalty && s.loyalty.id) || '';
+    if (loyaltyTierEl) loyaltyTierEl.value = (s.loyalty && s.loyalty.tier) || '';
+    if (loyaltyPointsEl) loyaltyPointsEl.value = (s.loyalty && s.loyalty.points) || '';
+    if (loyaltyLanguageEl) loyaltyLanguageEl.value = (s.loyalty && s.loyalty.language) || '';
+    applyLoyaltyToggleVisibility();
+    // Restore counter so subsequent Update/Generate target the same scaled
+    // email. The base email is whatever produced this entry — keep it.
+    if (counterEl && Number.isFinite(entry.n)) {
+      counterEl.value = String(entry.n);
+      persistCounter(entry.n);
+      updateEmailPreview();
+    }
+    setMessage(messageEl, `Loaded ${entry.scaledEmail}. Edit fields then click Update profile, or Generate to create a new profile after this one.`, 'success');
   }
 
   // ---------- Wire events ----------
@@ -783,6 +1050,28 @@
     });
   }
 
+  // Loyalty toggle wiring
+  if (loyaltyEnabledEl) {
+    loyaltyEnabledEl.addEventListener('change', applyLoyaltyToggleVisibility);
+  }
+
+  // Recently-generated picker wiring
+  if (recentLoadBtn && recentSelectEl) {
+    recentLoadBtn.addEventListener('click', () => {
+      const v = recentSelectEl.value;
+      if (!v) {
+        setMessage(messageEl, 'Pick a generated profile from the dropdown first.', 'warning');
+        return;
+      }
+      const entry = readRecent().find((e) => e && e.scaledEmail === v);
+      if (entry) loadRecentSnapshot(entry);
+    });
+  }
+  // Reload recent when the base email changes — same partition key as counter.
+  if (baseEmailEl) {
+    baseEmailEl.addEventListener('input', renderRecent);
+  }
+
   if (findProfileBtn) findProfileBtn.addEventListener('click', findProfile);
   if (updateProfileBtn) updateProfileBtn.addEventListener('click', updateProfile);
   if (generateBtn) generateBtn.addEventListener('click', generateProfiles);
@@ -792,17 +1081,28 @@
     clearStreamingFields();
     loadConnectionFromFirestore(true);
     loadCounterForCurrentContext();
+    renderRecent();
   }
   if (sandboxSelect) {
     sandboxSelect.addEventListener('change', onSandboxChange);
   }
   window.addEventListener('aep-global-sandbox-change', onSandboxChange);
 
+  // When the user picks "Generic" in the industry dropdown, profile-generation.js
+  // emits aep-generic-panel-shown — that's a good cue to refresh the picker
+  // (the panel was hidden on initial load so the table wasn't drawn).
+  window.addEventListener('aep-generic-panel-shown', () => {
+    renderRecent();
+    applyLoyaltyToggleVisibility();
+  });
+
   // Initial render
   renderChurn();
   renderPropensity();
   renderAov();
+  applyLoyaltyToggleVisibility();
   loadCounterForCurrentContext();
+  renderRecent();
   // Defer initial connection load so the sandbox dropdown finishes loading first.
   setTimeout(() => loadConnectionFromFirestore(true), 750);
 })();
