@@ -558,11 +558,50 @@
   }
 
   // ---------- Customer Analytics editor wiring ----------
-  function renderChurn() { if (churnValueEl) churnValueEl.textContent = `${churnEl.value || 0}%`; }
-  function renderPropensity() { if (propensityValueEl) propensityValueEl.textContent = `${propensityEl.value || 0}%`; }
+  /** Same semantics as `content-decision-live-edge-micro-profile.js` (churn reversed: high = bad). */
+  function pickGenSliderToken(pct, reverse) {
+    if (pct < 0.34) return reverse ? '--dash-success-border' : '--dash-error-border';
+    if (pct < 0.67) return '--dash-warning-border';
+    return reverse ? '--dash-error-border' : '--dash-success-border';
+  }
+
+  function applyGenSliderTint(input, reverse) {
+    if (!input) return;
+    if (input.disabled) {
+      input.style.setProperty('--gen-slider-fill', 'var(--dash-input-border)');
+      input.style.setProperty('--gen-slider-pct', '0%');
+      return;
+    }
+    const min = Number(input.min);
+    const max = Number(input.max);
+    const val = Number(input.value);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min || !Number.isFinite(val)) return;
+    const pct = Math.max(0, Math.min(1, (val - min) / (max - min)));
+    const token = pickGenSliderToken(pct, !!reverse);
+    input.style.setProperty('--gen-slider-fill', `var(${token})`);
+    input.style.setProperty('--gen-slider-pct', `${(pct * 100).toFixed(2)}%`);
+  }
+
+  function renderChurn() { if (churnValueEl && churnEl) churnValueEl.textContent = `${churnEl.value || 0}%`; }
+  function renderPropensity() {
+    if (propensityValueEl && propensityEl) propensityValueEl.textContent = `${propensityEl.value || 0}%`;
+  }
   function renderAov() {
-    const n = parseInt(aovEl.value || '0', 10) || 0;
+    const n = parseInt(aovEl && aovEl.value ? aovEl.value : '0', 10) || 0;
     if (aovValueEl) aovValueEl.textContent = `$${n.toLocaleString('en-US')}`;
+  }
+
+  function syncChurnSlider() {
+    renderChurn();
+    applyGenSliderTint(churnEl, true);
+  }
+  function syncPropensitySlider() {
+    renderPropensity();
+    applyGenSliderTint(propensityEl, false);
+  }
+  function syncAovSlider() {
+    renderAov();
+    applyGenSliderTint(aovEl, false);
   }
 
   function randomBetween(min, max) {
@@ -961,10 +1000,10 @@
 
     if (firstName && firstNameEl) firstNameEl.value = firstName;
     if (lastName && lastNameEl) lastNameEl.value = lastName;
-    if (churn && churnEl) { churnEl.value = churn; if (typeof renderChurn === 'function') renderChurn(); }
-    if (propensity && propensityEl) { propensityEl.value = propensity; if (typeof renderPropensity === 'function') renderPropensity(); }
+    if (churn && churnEl) { churnEl.value = churn; syncChurnSlider(); }
+    if (propensity && propensityEl) { propensityEl.value = propensity; syncPropensitySlider(); }
     if (nps && npsEl) npsEl.value = nps;
-    if (aov && aovEl) { aovEl.value = aov; if (typeof renderAov === 'function') renderAov(); }
+    if (aov && aovEl) { aovEl.value = aov; syncAovSlider(); }
     setSelectValueLoose(languageEl, lang);
     setSelectValueLoose(genderEl, gender);
     setSelectValueLoose(preferredChannelEl, preferredChannel);
@@ -1380,10 +1419,10 @@
     if (lastNameEl) lastNameEl.value = s.lastName || '';
     // Analytics
     if (genderEl) genderEl.value = s.gender || '';
-    if (churnEl && s.churn !== '') { churnEl.value = String(s.churn); renderChurn(); }
-    if (propensityEl && s.propensity !== '') { propensityEl.value = String(s.propensity); renderPropensity(); }
+    if (churnEl && s.churn !== '') { churnEl.value = String(s.churn); syncChurnSlider(); }
+    if (propensityEl && s.propensity !== '') { propensityEl.value = String(s.propensity); syncPropensitySlider(); }
     if (npsEl) npsEl.value = s.nps || '';
-    if (aovEl && s.aov !== '') { aovEl.value = String(s.aov); renderAov(); }
+    if (aovEl && s.aov !== '') { aovEl.value = String(s.aov); syncAovSlider(); }
     if (preferredChannelEl) preferredChannelEl.value = s.preferredChannel || '';
     if (languageEl) languageEl.value = s.language || (s.loyalty && s.loyalty.language) || '';
     // Loyalty
@@ -1449,9 +1488,9 @@
   }
 
   // Customer Analytics
-  if (churnEl) churnEl.addEventListener('input', renderChurn);
-  if (propensityEl) propensityEl.addEventListener('input', renderPropensity);
-  if (aovEl) aovEl.addEventListener('input', renderAov);
+  if (churnEl) churnEl.addEventListener('input', syncChurnSlider);
+  if (propensityEl) propensityEl.addEventListener('input', syncPropensitySlider);
+  if (aovEl) aovEl.addEventListener('input', syncAovSlider);
   document.querySelectorAll('.analytics-randomize').forEach((btn) => {
     btn.addEventListener('click', () => {
       const target = document.getElementById(btn.getAttribute('data-target') || '');
@@ -1545,10 +1584,10 @@
   // Restore base email for the current sandbox before the counter so the counter partition matches.
   loadBaseEmailForCurrentSandbox();
 
-  // Initial render
-  renderChurn();
-  renderPropensity();
-  renderAov();
+  // Initial render (labels + Edge-style slider tints)
+  if (churnEl) syncChurnSlider();
+  if (propensityEl) syncPropensitySlider();
+  if (aovEl) syncAovSlider();
   applyLoyaltyToggleVisibility();
   loadCounterForCurrentContext();
   updateEmailPreview();

@@ -703,9 +703,62 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   color: var(--dash-muted);
 }
 
+/* Analytics sliders: same fill / thumb behaviour as Decisioning Lab Edge micro-profile (tint from JS). */
 .profile-generation-page .analytics-slider {
+  --gen-slider-fill: var(--dash-blue);
+  --gen-slider-pct: 50%;
   width: 100%;
-  accent-color: var(--dash-blue);
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    var(--gen-slider-fill) 0% var(--gen-slider-pct),
+    var(--dash-input-border) var(--gen-slider-pct) 100%
+  );
+  accent-color: var(--gen-slider-fill);
+}
+
+.profile-generation-page .analytics-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--dash-surface);
+  border: 2px solid var(--gen-slider-fill);
+  cursor: pointer;
+}
+
+.profile-generation-page .analytics-slider::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--dash-surface);
+  border: 2px solid var(--gen-slider-fill);
+  cursor: pointer;
+}
+
+.profile-generation-page .analytics-slider::-moz-range-track {
+  background: var(--dash-input-border);
+  border: 0;
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+.profile-generation-page .analytics-slider::-moz-range-progress {
+  background: var(--gen-slider-fill);
+  height: 0.5rem;
+  border-radius: 999px 0 0 999px;
+}
+
+/* Firefox: filled portion uses ::-moz-range-progress; avoid stacking a WebKit-style gradient under the track. */
+@supports (selector(::-moz-range-progress)) {
+  .profile-generation-page .analytics-slider {
+    background: var(--dash-input-border);
+  }
 }
 
 .profile-generation-page .analytics-slider-meta {
