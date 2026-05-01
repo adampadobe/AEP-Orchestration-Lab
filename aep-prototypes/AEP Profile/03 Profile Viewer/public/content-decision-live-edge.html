@@ -1199,6 +1199,126 @@
       color: var(--error, #d7373f);
     }
   </style>
+  <style>
+    /* Decisioning lab (Edge) — compact micro profile panel under the rail's
+       Run button. Tokens-only (var(--dash-*)) so light + dark modes Just Work. */
+    .cd-hero-rail .cd-micro-profile {
+      margin-top: 0.4rem;
+      padding: 0.6rem 0.7rem;
+      border: 1px solid var(--dash-border);
+      border-radius: var(--dash-radius-sm);
+      background: var(--dash-surface);
+      color: var(--dash-text);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      line-height: 1.35;
+      box-sizing: border-box;
+    }
+    .cd-hero-rail .cd-micro-profile-title {
+      margin: 0;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--dash-muted);
+    }
+    .cd-hero-rail .cd-micro-profile-id {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      padding: 0.4rem 0.5rem;
+      background: var(--dash-surface-alt);
+      border: 1px solid var(--dash-border);
+      border-radius: var(--dash-radius-sm);
+      color: var(--dash-text-secondary);
+      font-size: 0.7rem;
+      word-break: break-word;
+    }
+    .cd-hero-rail .cd-micro-profile-id strong {
+      color: var(--dash-text);
+      font-weight: 600;
+    }
+    .cd-hero-rail .cd-micro-profile-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .cd-hero-rail .cd-micro-profile-field > label {
+      margin: 0;
+      font-size: 0.7rem;
+      color: var(--dash-text-secondary);
+    }
+    .cd-hero-rail .cd-micro-profile-field select {
+      width: 100%;
+      padding: 0.3rem 0.45rem;
+      font-size: 0.78rem;
+      font-family: inherit;
+      color: var(--dash-text);
+      background: var(--dash-input-bg);
+      border: 1px solid var(--dash-input-border);
+      border-radius: var(--dash-radius-sm);
+      box-sizing: border-box;
+    }
+    .cd-hero-rail .cd-micro-profile-field input[type="range"] {
+      width: 100%;
+      margin: 0;
+      accent-color: var(--dash-blue);
+      background: transparent;
+    }
+    .cd-hero-rail .cd-micro-profile-range-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-size: 0.7rem;
+      color: var(--dash-text-secondary);
+    }
+    .cd-hero-rail .cd-micro-profile-range-row > label { margin: 0; }
+    .cd-hero-rail .cd-micro-profile-range-row strong {
+      color: var(--dash-text);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .cd-hero-rail .cd-micro-profile-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .cd-hero-rail .cd-micro-profile-apply {
+      width: 100%;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--dash-surface);
+      background: var(--dash-blue);
+      border: 1px solid var(--dash-blue);
+      border-radius: var(--dash-radius-sm);
+      cursor: pointer;
+    }
+    .cd-hero-rail .cd-micro-profile-apply:hover:not(:disabled) {
+      filter: brightness(1.05);
+    }
+    .cd-hero-rail .cd-micro-profile-apply:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .cd-hero-rail .cd-micro-profile-status {
+      margin: 0;
+      min-height: 1em;
+      font-size: 0.7rem;
+      color: var(--dash-text-secondary);
+      word-break: break-word;
+    }
+    .cd-hero-rail .cd-micro-profile-status.is-error {
+      color: var(--dash-error-text, var(--dash-text));
+    }
+    .cd-hero-rail .cd-micro-profile-status.is-ok {
+      color: var(--dash-success-text, var(--dash-text));
+    }
+  </style>
   <!-- Launch rules sometimes push to dataLayer (GTM-style); define before Launch to avoid ReferenceError — same as /index.html -->
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -1229,6 +1349,50 @@
             <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Fetch UPS profile, call Edge via Web SDK (Launch), render decisions into the preview areas below">
               Run content decision
             </button>
+            <section class="cd-micro-profile" id="cdMicroProfilePanel" aria-label="Micro profile editor">
+              <h3 class="cd-micro-profile-title">Tweak profile</h3>
+              <div class="cd-micro-profile-id" id="cdMicroProfileIdentity">
+                <span>Editing: <strong id="cdMicroProfileIdLabel">—</strong></span>
+                <span>ECID: <strong id="cdMicroProfileEcid">—</strong></span>
+                <span>Streaming key email: <strong id="cdMicroProfileStreamingEmail">—</strong></span>
+              </div>
+              <div class="cd-micro-profile-field">
+                <label for="cdMicroProfileTier">Loyalty tier</label>
+                <select id="cdMicroProfileTier">
+                  <option value="Standard">Standard</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Platinum">Platinum</option>
+                </select>
+              </div>
+              <div class="cd-micro-profile-field">
+                <div class="cd-micro-profile-range-row">
+                  <label for="cdMicroProfilePoints">Loyalty points</label>
+                  <strong id="cdMicroProfilePointsValue">3000</strong>
+                </div>
+                <input type="range" id="cdMicroProfilePoints" min="0" max="10000" step="100" value="3000">
+              </div>
+              <div class="cd-micro-profile-field">
+                <label for="cdMicroProfileChannel">Preferred channel</label>
+                <select id="cdMicroProfileChannel">
+                  <option value="email">Email</option>
+                  <option value="push">Push</option>
+                  <option value="sms">SMS</option>
+                  <option value="inapp">In-app</option>
+                </select>
+              </div>
+              <div class="cd-micro-profile-field">
+                <div class="cd-micro-profile-range-row">
+                  <label for="cdMicroProfilePropensity">Propensity score</label>
+                  <strong id="cdMicroProfilePropensityValue">0.50</strong>
+                </div>
+                <input type="range" id="cdMicroProfilePropensity" min="0" max="1" step="0.05" value="0.5">
+              </div>
+              <div class="cd-micro-profile-actions">
+                <button type="button" class="cd-micro-profile-apply" id="cdMicroProfileApply">Apply</button>
+                <p class="cd-micro-profile-status" id="cdMicroProfileStatus" aria-live="polite"></p>
+              </div>
+            </section>
             <p id="cdPipelineStatus" class="status" aria-live="polite"></p>
           </aside>
           <div class="cd-hero-main">
@@ -1560,7 +1724,9 @@
   <script src="content-decision-lab-config.js?v=20260216"></script>
   <script src="content-decision-live-edge-ui.js?v=20260424-edge-save-guard"></script>
   <script src="content-decision-live-edge-onboarding.js?v=20260424-edge-onboarding-query"></script>
+  <script src="profile-streaming-shared.js"></script>
   <script src="content-decision-live-edge-inline.js?v=20260424-edge-sandbox-select-sync"></script>
+  <script src="content-decision-live-edge-micro-profile.js?v=20260501"></script>
   <script src="content-decision-live-edge-embed-fs.js?v=20260427-edge-embed-fs"></script>
   <script defer src="marauders-map-egg.js?v=20260423-edge-flavor"></script>
 </body>

@@ -1137,6 +1137,10 @@ waitForAlloy()
     window.addEventListener('aep-lab-sandbox-synced', onSandboxSyncedReloadConfig);
   }
 
+  window.CdEdgeLive = window.CdEdgeLive || {};
+  window.CdEdgeLive.getLastUpsClientData = function () { return lastUpsClientData; };
+  window.CdEdgeLive.getLastProfileEcid = function () { return lastProfileEcid; };
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
   } else {
