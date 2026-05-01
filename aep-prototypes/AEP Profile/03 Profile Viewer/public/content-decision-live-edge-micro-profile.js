@@ -397,11 +397,11 @@
     cdMicroProfileChurn: '50',
     cdMicroProfilePropensity: '50',
     cdMicroProfileOrderValue: '500',
+    cdMicroProfileNps: '5',
   };
 
   function resetMicroProfilePanelDefaults() {
     if (!$('cdMicroProfilePanel')) return;
-    setSelectFromProfileValue($('cdMicroProfileNps'), '', '');
     setSelectFromProfileValue($('cdMicroProfileLanguage'), '', '');
     setSelectFromProfileValue($('cdMicroProfileChannel'), '', '');
     setSelectFromProfileValue($('cdMicroProfileTier'), '', '');
@@ -414,6 +414,7 @@
     dispatchRangeRefresh('cdMicroProfilePropensity');
     dispatchRangeRefresh('cdMicroProfileChurn');
     dispatchRangeRefresh('cdMicroProfileOrderValue');
+    dispatchRangeRefresh('cdMicroProfileNps');
     setMicroBaselineFromDom();
   }
 
@@ -426,10 +427,13 @@
     if (!entity) return;
 
     var nps = readNpsFromEntity(entity);
-    if (nps != null && nps >= 0 && nps <= 10) {
-      setSelectFromProfileValue($('cdMicroProfileNps'), nps, String(nps));
-    } else {
-      setSelectFromProfileValue($('cdMicroProfileNps'), '', '');
+    var npsEl = $('cdMicroProfileNps');
+    if (npsEl) {
+      if (nps != null && nps >= 0 && nps <= 10) {
+        npsEl.value = String(clamp(Math.round(nps), 0, 10));
+      } else {
+        npsEl.value = MICRO_RANGE_DEFAULTS.cdMicroProfileNps;
+      }
     }
 
     var lang = readLanguageFromEntity(entity);
@@ -490,6 +494,7 @@
     dispatchRangeRefresh('cdMicroProfilePropensity');
     dispatchRangeRefresh('cdMicroProfileChurn');
     dispatchRangeRefresh('cdMicroProfileOrderValue');
+    dispatchRangeRefresh('cdMicroProfileNps');
 
     setMicroBaselineFromDom();
   }
@@ -535,7 +540,7 @@
       }
     }
     if (form.nps != null && form.nps !== '') {
-      var np = parseInt(form.nps, 10);
+      var np = Math.round(Number(form.nps));
       if (!Number.isNaN(np) && !strEq(form.nps, base.nps)) {
         updates.push({ path: 'scoring.npsScore', value: np });
       }
@@ -648,6 +653,7 @@
     { id: 'cdMicroProfilePropensity', reverse: false },
     { id: 'cdMicroProfileOrderValue', reverse: false },
     { id: 'cdMicroProfilePoints', reverse: false },
+    { id: 'cdMicroProfileNps', reverse: false },
   ];
 
   function pickSliderToken(pct, reverse) {
@@ -696,6 +702,13 @@
       var syncOv = function () { ovLabel.textContent = formatMoney(ov.value); };
       ov.addEventListener('input', syncOv);
       syncOv();
+    }
+    var nps = $('cdMicroProfileNps');
+    var npsLabel = $('cdMicroProfileNpsValue');
+    if (nps && npsLabel) {
+      var syncNps = function () { npsLabel.textContent = formatIntScore(nps.value); };
+      nps.addEventListener('input', syncNps);
+      syncNps();
     }
     SLIDER_TINT_CONFIG.forEach(function (cfg) {
       var input = $(cfg.id);
