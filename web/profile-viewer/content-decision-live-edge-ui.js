@@ -184,6 +184,9 @@
       outer.appendChild(body);
       wrap.appendChild(outer);
     }
+    try {
+      global.dispatchEvent(new CustomEvent('cd-edge-placements-changed'));
+    } catch (e) {}
   }
 
   function createPlacementRow(p) {

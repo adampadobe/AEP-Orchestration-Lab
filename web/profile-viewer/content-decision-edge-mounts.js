@@ -539,12 +539,32 @@
     return el && !el.querySelector('.cd-edge-ajo-card-inner, .cd-banner, iframe');
   }
 
-  function buildMountByKey() {
+  /**
+   * @param {ParentNode} [scopeRoot] document when omitted
+   * @param {string} [mountIdPrefix] e.g. 'em-web-' → ids cd-edge-em-web-{key}
+   */
+  function queryMountById(scopeRoot, id) {
+    if (!scopeRoot || id == null) return null;
+    var idStr = String(id);
+    if (scopeRoot.nodeType === 9) {
+      return scopeRoot.getElementById(idStr);
+    }
+    try {
+      return scopeRoot.querySelector('[id="' + idStr.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function buildMountByKey(scopeRoot, mountIdPrefix) {
+    scopeRoot = scopeRoot || document;
+    var prefix = mountIdPrefix == null || mountIdPrefix === '' ? '' : String(mountIdPrefix);
     var mountByKey = {};
     var i;
     for (i = 0; i < _placements.length; i++) {
       var k = _placements[i].key;
-      mountByKey[k] = document.getElementById('cd-edge-' + k);
+      var id = 'cd-edge-' + prefix + k;
+      mountByKey[k] = queryMountById(scopeRoot, id);
     }
     return mountByKey;
   }
@@ -567,9 +587,17 @@
     return mountByKey.contentCard || null;
   }
 
-  function applyPropositionsManually(propositions) {
+  /**
+   * @param {unknown[]} propositions
+   * @param {{ root?: ParentNode, mountIdPrefix?: string } | null} [opts]
+   *        When omitted, resolves mounts on document with ids cd-edge-{key} (main canvas).
+   */
+  function applyPropositionsManually(propositions, opts) {
     if (!propositions || !propositions.length) return;
-    var mountByKey = buildMountByKey();
+    opts = opts || {};
+    var scopeRoot = opts.root != null ? opts.root : document;
+    var mountIdPrefix = opts.mountIdPrefix != null ? String(opts.mountIdPrefix) : '';
+    var mountByKey = buildMountByKey(scopeRoot, mountIdPrefix);
     var cards = firstContentCardMount(mountByKey);
     var i;
     var j;

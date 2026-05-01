@@ -1,0 +1,302 @@
+/**
+ * Channel preview emulators (Decisioning lab Edge) — M1 web + mobile.
+ * Colors: --dash-* only (inherits from home-dashboard-concierge).
+ */
+
+.cd-ch-em-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.cd-ch-em-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cd-ch-em-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.cd-ch-em-toolbar-btn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+
+.cd-ch-em-toolbar-btn:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--dash-hover);
+}
+
+.cd-ch-em-toolbar-btn:focus {
+  outline: none;
+}
+
+.cd-ch-em-toolbar-btn:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+.cd-ch-em-toolbar-btn[aria-pressed='true'] {
+  border-color: var(--dash-blue);
+  background: var(--dash-info-bg);
+  color: var(--dash-text);
+}
+
+.cd-ch-em-toolbar-btn:disabled,
+.cd-ch-em-toolbar-btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cd-ch-em-panel {
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+  padding: 0.5rem;
+  max-height: min(70vh, 28rem);
+  overflow: auto;
+}
+
+.cd-ch-em-panel[hidden] {
+  display: none !important;
+}
+
+.cd-ch-em-panel-inner[hidden] {
+  display: none !important;
+}
+
+/* Web: laptop frame */
+.cd-ch-em-web-frame {
+  margin: 0 auto;
+  max-width: 100%;
+  border-radius: var(--dash-radius-sm);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+  overflow: hidden;
+}
+
+.cd-ch-em-web-chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.45rem;
+  background: var(--dash-surface-alt);
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.cd-ch-em-web-dots {
+  display: flex;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.cd-ch-em-web-dot {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  background: var(--dash-muted);
+  opacity: 0.65;
+}
+
+.cd-ch-em-web-url {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.65rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: calc(var(--dash-radius-sm) - 4px);
+  border: 1px solid var(--dash-input-border);
+  background: var(--dash-input-bg);
+  color: var(--dash-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cd-ch-em-web-viewport {
+  max-height: 14rem;
+  overflow: auto;
+  padding: 0.45rem;
+  background: var(--dash-bg);
+}
+
+/* Emulator mounts: compact variant of main mounts */
+.cd-ch-em-web-viewport .cd-edge-mounts,
+.cd-ch-em-mob-viewport .cd-edge-mounts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+  max-width: none;
+}
+
+.cd-ch-em-web-viewport .cd-edge-mount-label,
+.cd-ch-em-mob-viewport .cd-edge-mount-label {
+  font-size: 0.58rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dash-muted);
+}
+
+.cd-ch-em-web-viewport .cd-edge-mount-body,
+.cd-ch-em-mob-viewport .cd-edge-mount-body {
+  min-height: 2rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px dashed var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface);
+  font-size: 0.7rem;
+  color: var(--dash-text);
+  box-sizing: border-box;
+}
+
+.cd-ch-em-web-viewport .cd-edge-mount-body.cd-edge-mount-body--hero,
+.cd-ch-em-mob-viewport .cd-edge-mount-body.cd-edge-mount-body--hero {
+  min-height: 3rem;
+}
+
+/* Mobile frame */
+.cd-ch-em-mob-wrap {
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.cd-ch-em-mob-toggle {
+  display: inline-flex;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  overflow: hidden;
+  background: var(--dash-surface);
+}
+
+.cd-ch-em-mob-toggle button {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  border: 0;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  cursor: pointer;
+}
+
+.cd-ch-em-mob-toggle button[aria-pressed='true'] {
+  background: var(--dash-info-bg);
+  color: var(--dash-text);
+}
+
+.cd-ch-em-mob-toggle button:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.cd-ch-em-phone {
+  position: relative;
+  width: 11rem;
+  max-width: 100%;
+  border-radius: 1.35rem;
+  border: 2px solid var(--dash-border);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+  padding: 0.45rem;
+  box-sizing: border-box;
+}
+
+.cd-ch-em-phone--ios {
+  border-radius: 1.65rem;
+}
+
+.cd-ch-em-phone--android {
+  border-radius: 0.85rem;
+}
+
+.cd-ch-em-phone-notch {
+  position: absolute;
+  top: 0.35rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4rem;
+  height: 0.85rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+  background: var(--dash-bg);
+  border: 1px solid var(--dash-border);
+  border-top: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cd-ch-em-phone--android .cd-ch-em-phone-notch {
+  display: none;
+}
+
+.cd-ch-em-mob-viewport {
+  margin-top: 1.15rem;
+  max-height: 13rem;
+  overflow: auto;
+  padding: 0.35rem;
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-bg);
+}
+
+.cd-ch-em-phone--android .cd-ch-em-mob-viewport {
+  margin-bottom: 1.5rem;
+}
+
+.cd-ch-em-android-nav {
+  display: none;
+  position: absolute;
+  bottom: 0.35rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6.5rem;
+  height: 0.35rem;
+  border-radius: 2px;
+  background: var(--dash-muted);
+  opacity: 0.55;
+}
+
+.cd-ch-em-phone--android .cd-ch-em-android-nav {
+  display: block;
+}
+
+.cd-ch-em-android-buttons {
+  display: none;
+  position: absolute;
+  bottom: 0.55rem;
+  left: 0;
+  right: 0;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  pointer-events: none;
+}
+
+.cd-ch-em-phone--android .cd-ch-em-android-buttons {
+  display: flex;
+}
+
+.cd-ch-em-android-buttons span {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  border: 1px solid var(--dash-muted);
+  opacity: 0.6;
+}

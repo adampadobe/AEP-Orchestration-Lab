@@ -35,6 +35,7 @@
   var lastUpsClientData = null;
   var lastProfileEcid = '';
   var lastEdgeResult = null;
+  var lastPropositionsArray = [];
   var alloyConfiguredFor = '';
   var lastIdentityMapSentForDebug = null;
 
@@ -518,6 +519,14 @@ waitForAlloy()
       cdLog('applyPropositions', String(e && e.message ? e.message : e));
     }
     CdEdgeMounts.applyPropositionsManually(propositions);
+    lastPropositionsArray = Array.isArray(propositions) ? propositions.slice() : [];
+    try {
+      if (typeof window.CdChannelPreview !== 'undefined' && window.CdChannelPreview.sync) {
+        window.CdChannelPreview.sync(lastPropositionsArray);
+      }
+    } catch (e) {
+      cdLog('CdChannelPreview.sync', String(e && e.message ? e.message : e));
+    }
     // Re-apply any saved surface HTML overrides on top of the live content
     // so the user's custom wrapper/styling survives each decisioning call.
     try {
@@ -609,6 +618,14 @@ waitForAlloy()
     if (typeof CdEdgeMounts !== 'undefined' && CdEdgeMounts.applyPropositionsManually) {
       CdEdgeMounts.applyPropositionsManually(propositionsOut);
     }
+    lastPropositionsArray = Array.isArray(propositionsOut) ? propositionsOut.slice() : [];
+    try {
+      if (typeof window.CdChannelPreview !== 'undefined' && window.CdChannelPreview.sync) {
+        window.CdChannelPreview.sync(lastPropositionsArray);
+      }
+    } catch (e) {
+      cdLog('CdChannelPreview.sync', String(e && e.message ? e.message : e));
+    }
     try {
       if (window.CdLabUi && typeof window.CdLabUi.applySurfaceStylesToMounts === 'function') {
         window.CdLabUi.applySurfaceStylesToMounts();
@@ -624,6 +641,14 @@ waitForAlloy()
     }
     persistEdgeFields();
     clearEdgeMounts();
+    lastPropositionsArray = [];
+    try {
+      if (typeof window.CdChannelPreview !== 'undefined' && window.CdChannelPreview.sync) {
+        window.CdChannelPreview.sync([]);
+      }
+    } catch (e) {
+      cdLog('CdChannelPreview.sync(clear)', String(e && e.message ? e.message : e));
+    }
     var mode =
       typeof window.CdLabUi !== 'undefined' && typeof window.CdLabUi.getEdgePersonalizationMode === 'function'
         ? window.CdLabUi.getEdgePersonalizationMode()
@@ -1180,6 +1205,7 @@ waitForAlloy()
   window.CdEdgeLive = window.CdEdgeLive || {};
   window.CdEdgeLive.getLastUpsClientData = function () { return lastUpsClientData; };
   window.CdEdgeLive.getLastProfileEcid = function () { return lastProfileEcid; };
+  window.CdEdgeLive.getLastPropositions = function () { return lastPropositionsArray; };
   window.CdEdgeLive.runProfileLookup = runProfileLookup;
 
   if (document.readyState === 'loading') {
