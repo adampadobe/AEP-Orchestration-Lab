@@ -1527,6 +1527,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <!-- Shared identifier-history helpers: AepIdentityPicker keeps the namespace
+       dropdown in sync across all profile lookup pages, and attachEmailDatalist
+       gives the identifier input per-namespace autocomplete (cap MAX_PER_NS=20)
+       backed by localStorage 'aep-profile-viewer-recent-identifiers-v1'. Loaded
+       before profile-generation-generic.js so the module can call into them
+       during init. Used by consent.js, app.js (index.html lookup), event-tool.js,
+       live-activities.js, etc. -->
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
   <script src="profile-generation.js"></script>
   <script src="profile-generation-generic.js"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

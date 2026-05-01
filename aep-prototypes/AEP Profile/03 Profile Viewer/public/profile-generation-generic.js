@@ -44,9 +44,23 @@
   const saveStreamBtn = document.getElementById('genSaveStreamBtn');
 
   // Profile lookup (any identity namespace) — mirrors the standard widget on index.html.
+  // The namespace <select> is wired to AepIdentityPicker (shared aepIdentityNamespace
+  // localStorage key, kept in sync across every lookup page in the lab) and the
+  // identifier <input> gets per-namespace autocomplete via attachEmailDatalist
+  // (shared 'aep-profile-viewer-recent-identifiers-v1' cache, populated by every
+  // successful lookup on consent.html, index.html, event-tool, live-activities, etc).
   const lookupNsEl = document.getElementById('genLookupNs');
   const lookupIdentifierEl = document.getElementById('genLookupIdentifier');
   const lookupBtn = document.getElementById('genLookupBtn');
+  if (typeof window.AepIdentityPicker !== 'undefined' && typeof window.AepIdentityPicker.init === 'function') {
+    window.AepIdentityPicker.init('genLookupIdentifier', 'genLookupNs');
+  }
+  if (typeof window.attachEmailDatalist === 'function') {
+    // Page-local datalist id avoids collision with the global 'recentEmails'
+    // datalist that consent.html and others create — same shared cache, separate
+    // <datalist> element so the input's `list=` attribute resolves cleanly.
+    window.attachEmailDatalist('genLookupIdentifier', 'genLookupRecent', 'genLookupNs');
+  }
 
   // Base email + counter + actions ("Generate from your base email" sub-block)
   const baseEmailEl = document.getElementById('genBaseEmail');
@@ -791,6 +805,12 @@
         );
         return;
       }
+      // Remember the resolved identifier in the shared per-namespace cache
+      // so autocomplete on the next visit (or on any other lookup page in
+      // the lab — consent.html, index.html, event-tool, etc.) suggests it.
+      if (typeof window.addRecentIdentifier === 'function') {
+        try { window.addRecentIdentifier(identifier, ns); } catch (_) {}
+      }
       setMessage(messageEl, `Loaded profile for ${ns}: ${identifier}. Edit fields then click Update profile.`, 'success');
     } catch (e) {
       setMessage(messageEl, e.message || 'Network error', 'error');
@@ -997,6 +1017,12 @@
     const next = [entry, ...readRecent().filter((e) => e && e.scaledEmail !== scaledEmail)];
     writeRecent(next);
     renderRecent();
+    // Also seed the shared cross-page identifier cache so this scaled email
+    // appears in the autocomplete datalist on every other lookup page in
+    // the lab (consent.html, index.html, event-tool, live-activities, etc.).
+    if (typeof window.addRecentIdentifier === 'function') {
+      try { window.addRecentIdentifier(scaledEmail, 'email'); } catch (_) {}
+    }
   }
 
   function summariseSnapshot(snap) {

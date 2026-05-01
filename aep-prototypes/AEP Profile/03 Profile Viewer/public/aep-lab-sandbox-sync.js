@@ -13,6 +13,7 @@
     'aepIdentityNamespace',
     'aepDetailsChannelTab',
     'aep-profile-viewer-recent-search-terms',
+    'genericProfileBaseEmail',
     'aepTheme',
     'aepMenuPalette',
     'aepBgPreset',
