@@ -71,6 +71,20 @@
               <div class="cj-brand-swatch-row" id="cjBrandSwatchRow" role="radiogroup" aria-label="Pick a brand colour from the scrape" hidden></div>
             </div>
             <div class="form-row">
+              <span class="cj-tier-label" id="cjTierLabel">AEP capability tier</span>
+              <div class="cj-tier-segmented" role="radiogroup" aria-labelledby="cjTierLabel">
+                <button type="button" class="cj-tier-btn" data-tier="foundation" role="radio" aria-checked="false" id="cjTierFoundation" title="Real-Time CDP, Journey Optimizer, Customer Journey Analytics">
+                  <span class="cj-tier-name">Foundation</span>
+                  <span class="cj-tier-meta">RT-CDP + AJO + CJA</span>
+                </button>
+                <button type="button" class="cj-tier-btn is-active" data-tier="advanced" role="radio" aria-checked="true" id="cjTierAdvanced" title="Foundation plus Decision Management and Brand Concierge">
+                  <span class="cj-tier-name">Advanced</span>
+                  <span class="cj-tier-meta">+ Decisioning + Brand Concierge</span>
+                </button>
+              </div>
+              <p class="cj-suggest-hint" id="cjTierHint">Advanced unlocks Decision Management and Brand Concierge in the journey. Foundation keeps the deck to core AEP only.</p>
+            </div>
+            <div class="form-row">
               <label for="cjJourneyType">Journey type (optional)</label>
               <div class="cj-combo" id="cjJourneyTypeCombo">
                 <input type="text" id="cjJourneyType" placeholder="e.g. Insurance Renewal, Energy Switch, Broadband Acquisition" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cjJourneyTypePanel" aria-autocomplete="list">

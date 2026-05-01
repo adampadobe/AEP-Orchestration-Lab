@@ -135,7 +135,7 @@
             </ul>
             Set the primary identity to <code>_{tenant}.identification.core.email</code> with namespace <strong>Email</strong>. Copy the <strong>Schema $id</strong>.</li>
           <li><strong>Create a Dataset</strong> — In AEP, go to <em>Datasets</em> and create a new dataset from your schema. Enable it for <strong>Real-Time Customer Profile</strong> if you want consent updates to appear on the profile. Copy the <strong>Dataset ID</strong>.</li>
-          <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. Copy the <strong>Collection URL</strong> and <strong>Flow ID</strong>.</li>
+          <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Profile Viewer - Consent - Dataflow</code></strong> (the value pre-populated in the <em>Dataflow name in AEP</em> field below) so the wizard can later look up the <strong>Flow ID</strong> and <strong>Collection URL</strong> for you — or copy the Flow ID manually if you used a different name.</li>
           <li><strong>Enter the details below</strong> — Paste Schema $id, Dataset ID, Flow ID, and Collection URL into the fields, then click <strong>Save connection</strong>. The connection is stored per sandbox in Firebase so you only need to do this once.</li>
         </ol>
         <p style="margin: 0.75rem 0 0 0; font-size: 0.85rem; opacity: 0.85;">If this sandbox already has a saved connection, click <strong>Load from Firebase</strong> to populate the fields.</p>
@@ -246,12 +246,21 @@
           <h3 class="subsection-title"><span class="icon">⭐</span> Preferred communication</h3>
           <div class="form-row">
             <label for="preferredChannel">Preferred Marketing Channel</label>
-            <select id="preferredChannel">
-              <option value="email">Email</option>
-              <option value="sms">SMS</option>
-              <option value="push">Push</option>
-              <option value="phone">Phone</option>
-              <option value="postal">Postal Mail</option>
+            <select id="preferredChannel" aria-label="Preferred marketing channel">
+              <option value="email">email</option>
+              <option value="push">Push Notifications</option>
+              <option value="inApp">In-app Messages</option>
+              <option value="sms">SMS (Text Messages)</option>
+              <option value="whatsApp">WhatsApp Messages</option>
+              <option value="phone">Phone Calls</option>
+              <option value="phyMail">Physical Mail</option>
+              <option value="inVehicle">In-vehicle Messages</option>
+              <option value="inHome">In-home Messages</option>
+              <option value="iot">IoT Messages</option>
+              <option value="social">Social Media</option>
+              <option value="other">Other</option>
+              <option value="none">No Preferred Channel</option>
+              <option value="unknown">Unknown</option>
             </select>
           </div>
           <div class="form-row">

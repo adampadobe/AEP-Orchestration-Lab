@@ -604,6 +604,22 @@
     return n;
   }
 
+  /**
+   * Single-shot call to the rename endpoint with a chosen onConflict
+   * mode. Returns { ok, status, data } so the caller can branch on
+   * 409 (conflict) without throwing.
+   */
+  async function callRenameEndpoint(sb, relPath, newRelPath, onConflict) {
+    var r = await fetch('/api/image-hosting/library/rename?sandbox=' + encodeURIComponent(sb), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sandbox: sb, relPath: relPath, newRelPath: newRelPath, onConflict: onConflict }),
+    });
+    var data = {};
+    try { data = await r.json(); } catch (_e) { /* non-JSON body */ }
+    return { ok: r.ok, status: r.status, data: data };
+  }
+
   async function renameLibraryItem(relPath) {
     var sb = getSandbox();
     if (!sb || !relPath) return;
@@ -623,23 +639,53 @@
       setManualMsg('Name unchanged.', 'ok');
       return;
     }
+
     try {
-      var r = await fetch('/api/image-hosting/library/rename?sandbox=' + encodeURIComponent(sb), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sandbox: sb, relPath: relPath, newRelPath: newRelPath }),
-      });
-      var data = await r.json().catch(function () { return {}; });
-      if (!r.ok) {
-        setManualMsg('Rename failed: ' + (data.error || r.statusText), 'err');
+      // First attempt: onConflict=error so we get a 409 with the
+      // pre-computed suggestedVersionRelPath rather than silently
+      // auto-suffixing (which would break downstream URL lookups —
+      // exactly the bug the user reported).
+      var first = await callRenameEndpoint(sb, relPath, newRelPath, 'error');
+
+      if (first.status === 409 && first.data && first.data.code === 'TARGET_EXISTS') {
+        var prompt = await promptForConflictResolution({
+          conflictingRelPath: first.data.conflictingRelPath || newRelPath,
+          suggestedVersionRelPath: first.data.suggestedVersionRelPath,
+          contextLabel: '"' + parts.file + '"',
+          allowApplyAll: false,
+        });
+        if (prompt.choice === 'cancel') {
+          setManualMsg('Rename cancelled — "' + (first.data.conflictingRelPath || newRelPath) + '" already exists.', 'ok');
+          return;
+        }
+        var second = await callRenameEndpoint(sb, relPath, newRelPath, prompt.choice);
+        if (!second.ok) {
+          setManualMsg('Rename failed: ' + ((second.data && second.data.error) || ('HTTP ' + second.status)), 'err');
+          return;
+        }
+        var finalPath = (second.data && second.data.newRelPath) || newRelPath;
+        delete selectedRelPaths[relPath];
+        if (second.data && second.data.conflictResolved === 'replace') {
+          setManualMsg('Replaced existing file — renamed to ' + finalPath + '.', 'ok');
+        } else if (second.data && second.data.conflictResolved === 'version') {
+          setManualMsg('Saved as new version — renamed to ' + finalPath + '.', 'ok');
+        } else {
+          setManualMsg('Renamed to ' + finalPath + '.', 'ok');
+        }
+        await renderLibrary();
         return;
       }
-      if (data.noop) {
+
+      if (!first.ok) {
+        setManualMsg('Rename failed: ' + ((first.data && first.data.error) || ('HTTP ' + first.status)), 'err');
+        return;
+      }
+      if (first.data && first.data.noop) {
         setManualMsg('Name unchanged.', 'ok');
         return;
       }
       delete selectedRelPaths[relPath];
-      setManualMsg('Renamed to ' + (data.newRelPath || newRelPath) + '.', 'ok');
+      setManualMsg('Renamed to ' + ((first.data && first.data.newRelPath) || newRelPath) + '.', 'ok');
       await renderLibrary();
     } catch (e) {
       setManualMsg('Rename failed: ' + (e.message || e), 'err');
@@ -1023,9 +1069,15 @@
     return /^image\//.test(f.type) || /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico|zip)$/i.test(f.name);
   }
 
-  async function uploadOneFile(sb, file) {
+  /**
+   * One-shot POST to /upload for a single file with a chosen onConflict
+   * mode. Returns the parsed body unchanged (caller inspects
+   * `uploaded`, `errors`, `conflicts`). Throws only on transport-level
+   * failures — application-level conflicts come back as 200 with a
+   * non-empty `conflicts` array.
+   */
+  async function callUploadEndpoint(sb, file, opts, onConflict) {
     var base64 = await fileToBase64(file);
-    var opts = readUploadOptions();
     var resp = await fetch('/api/image-hosting/library/upload?sandbox=' + encodeURIComponent(sb), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1034,11 +1086,63 @@
         files: [{ name: file.name, base64: base64, contentType: file.type || '' }],
         keepFilename: opts.keepFilename,
         convertToPng: opts.convertToPng,
+        onConflict: onConflict,
       }),
     });
     var data = await resp.json().catch(function () { return {}; });
-    if (!resp.ok) throw new Error(data.error || resp.statusText);
+    if (!resp.ok) {
+      var err = new Error(data.error || ('HTTP ' + resp.status));
+      err.httpStatus = resp.status;
+      throw err;
+    }
     return data;
+  }
+
+  /**
+   * Upload a single file. If keep-filename is on and the target name is
+   * already taken, prompts the user (Replace / Save as version /
+   * Cancel) and retries once with their chosen mode. The optional
+   * `batchCtx` lets a multi-file drop carry an "apply to all" choice
+   * forward so the user only clicks once for an N-conflict batch.
+   *
+   * Returns: { uploaded: [...], errors: [...], cancelled: bool }
+   */
+  async function uploadOneFile(sb, file, batchCtx) {
+    var opts = readUploadOptions();
+    // Auto-classifier uploads have always auto-suffixed and we keep
+    // that behaviour. For keep-filename we send 'error' so we get the
+    // structured conflicts list back and can prompt.
+    var initialMode = opts.keepFilename ? 'error' : 'version';
+    if (batchCtx && batchCtx.appliedChoice) initialMode = batchCtx.appliedChoice;
+
+    var data = await callUploadEndpoint(sb, file, opts, initialMode);
+    var conflicts = (data && data.conflicts) || [];
+    if (!conflicts.length) {
+      return { uploaded: data.uploaded || [], errors: data.errors || [], cancelled: false };
+    }
+
+    // Single-file POST → 0 or 1 conflicts. Prompt and retry on the
+    // user's choice. The "apply to all" toggle is only useful when
+    // the parent batch has more than one file remaining.
+    var conflict = conflicts[0];
+    var prompt = await promptForConflictResolution({
+      conflictingRelPath: conflict.conflictingRelPath,
+      suggestedVersionRelPath: conflict.suggestedVersionRelPath,
+      contextLabel: '"' + file.name + '"',
+      allowApplyAll: !!(batchCtx && batchCtx.remaining > 1),
+    });
+    if (prompt.choice === 'cancel') {
+      return { uploaded: [], errors: [], cancelled: true, conflictingRelPath: conflict.conflictingRelPath };
+    }
+    if (batchCtx && prompt.applyToAll) batchCtx.appliedChoice = prompt.choice;
+
+    var retry = await callUploadEndpoint(sb, file, opts, prompt.choice);
+    return {
+      uploaded: retry.uploaded || [],
+      errors: retry.errors || [],
+      cancelled: false,
+      conflictResolved: prompt.choice,
+    };
   }
 
   async function handleDroppedFiles(files) {
@@ -1056,32 +1160,43 @@
     var drop = document.getElementById('imageHostingDropZone');
     if (drop) drop.classList.add('is-busy');
     var totalOk = 0;
-    var totalErr = 0;
+    var totalCancelled = 0;
     var errors = [];
+    // Shared state across the batch so "apply to all" survives between
+    // files. Updated by uploadOneFile when the user ticks the checkbox.
+    var batchCtx = { appliedChoice: null, remaining: list.length };
     for (var i = 0; i < list.length; i++) {
       var f = list[i];
+      batchCtx.remaining = list.length - i;
       setManualMsg('Uploading ' + f.name + ' (' + (i + 1) + '/' + list.length + ')…');
       try {
-        var data = await uploadOneFile(sb, f);
-        totalOk += (data.uploaded || []).length;
-        (data.errors || []).forEach(function (e) { errors.push(e); });
+        var result = await uploadOneFile(sb, f, batchCtx);
+        if (result.cancelled) {
+          totalCancelled += 1;
+        } else {
+          totalOk += (result.uploaded || []).length;
+          (result.errors || []).forEach(function (e) { errors.push(e); });
+        }
       } catch (e) {
-        totalErr += 1;
         errors.push({ name: f.name, error: String(e.message || e) });
       }
     }
     if (drop) drop.classList.remove('is-busy');
 
+    var summary = 'Added ' + totalOk + ' file(s).';
+    if (totalCancelled) summary += ' Skipped ' + totalCancelled + ' (name in use, kept existing).';
     if (errors.length) {
       setManualMsg(
-        'Added ' + totalOk + ' file(s). ' + errors.length + ' failed: ' +
+        summary + ' ' + errors.length + ' failed: ' +
         errors.map(function (e) { return e.name + ' (' + e.error + ')'; }).join(', '),
         totalOk ? 'warn' : 'err'
       );
+    } else if (totalCancelled && !totalOk) {
+      setManualMsg('Nothing added — cancelled ' + totalCancelled + ' name conflict(s).', 'ok');
     } else {
-      setManualMsg('Added ' + totalOk + ' file(s) to the library.', 'ok');
+      setManualMsg(summary, 'ok');
     }
-    await renderLibrary();
+    if (totalOk) await renderLibrary();
   }
 
   function sortLibraryItems(items) {
@@ -1841,6 +1956,118 @@
   // delete+write → reload) and at the end forces a hard page reload with a
   // ?restored=<ts> query param so the new /cdn/ URLs come back fresh from
   // any HTTP caches in front of the page.
+  // ------------------------------------------------------------------
+  // Filename-conflict modal (rename + keep-filename upload)
+  // ------------------------------------------------------------------
+  // Shown when the backend returns 409 TARGET_EXISTS or a batch upload
+  // response carries a non-empty `conflicts` array. Asks the user to
+  // pick: replace the existing file, save as a numbered version (the
+  // backend already computed the next free <name>-N.<ext>), or cancel.
+  // For batch uploads the dialog also offers an "apply to all" option
+  // so the user doesn't have to click through every single conflict.
+  // Returns a Promise<{ choice: 'replace'|'version'|'cancel', applyToAll: boolean }>.
+  var conflictDlgEl = null;
+  var conflictDlgWired = false;
+  var conflictDlgDescEl = null;
+  var conflictDlgPathEl = null;
+  var conflictDlgApplyAllWrapEl = null;
+  var conflictDlgApplyAllEl = null;
+  var conflictDlgReplaceBtn = null;
+  var conflictDlgVersionBtn = null;
+  var conflictDlgCancelBtn = null;
+
+  function ensureConflictDialog() {
+    if (conflictDlgWired) return conflictDlgEl;
+    conflictDlgEl = document.getElementById('imageHostingConflictDialog');
+    if (!conflictDlgEl) return null;
+    conflictDlgDescEl = document.getElementById('imageHostingConflictDialogDesc');
+    conflictDlgPathEl = document.getElementById('imageHostingConflictDialogPath');
+    conflictDlgApplyAllWrapEl = document.getElementById('imageHostingConflictDialogApplyAllWrap');
+    conflictDlgApplyAllEl = document.getElementById('imageHostingConflictDialogApplyAll');
+    conflictDlgReplaceBtn = document.getElementById('imageHostingConflictDialogReplace');
+    conflictDlgVersionBtn = document.getElementById('imageHostingConflictDialogVersion');
+    conflictDlgCancelBtn = document.getElementById('imageHostingConflictDialogCancel');
+    conflictDlgWired = true;
+    return conflictDlgEl;
+  }
+
+  function promptForConflictResolution(opts) {
+    var dlg = ensureConflictDialog();
+    if (!dlg) {
+      // Dialog markup missing — fall back to confirm() so the page is
+      // still usable. confirm() can only ask yes/no, so we map "OK" to
+      // 'replace' and "Cancel" to 'cancel'. Better than silently
+      // failing the rename / upload.
+      try {
+        var msg = (opts && opts.message)
+          || ('A file already exists at "' + (opts && opts.conflictingRelPath) + '".\nClick OK to replace, Cancel to skip.');
+        return Promise.resolve({ choice: window.confirm(msg) ? 'replace' : 'cancel', applyToAll: false });
+      } catch (_e) {
+        return Promise.resolve({ choice: 'cancel', applyToAll: false });
+      }
+    }
+
+    var conflicting = (opts && opts.conflictingRelPath) || '';
+    var suggested  = (opts && opts.suggestedVersionRelPath) || '';
+    var allowApplyAll = !!(opts && opts.allowApplyAll);
+    var contextLabel = (opts && opts.contextLabel) || 'this file';
+
+    if (conflictDlgDescEl) {
+      conflictDlgDescEl.innerHTML = ''; // clear
+      var p1 = document.createTextNode('Renaming ' + contextLabel + ' would overwrite an existing file. Choose what to do:');
+      conflictDlgDescEl.appendChild(p1);
+      var ul = document.createElement('ul');
+      ul.style.margin = '0.4rem 0 0';
+      ul.style.paddingInlineStart = '1.2rem';
+      ul.style.fontSize = '0.78rem';
+      var li1 = document.createElement('li');
+      var b1 = document.createElement('strong'); b1.textContent = 'Replace existing'; li1.appendChild(b1);
+      li1.appendChild(document.createTextNode(' — overwrite the bytes at ' + conflicting + ' (URL stays exactly the same).'));
+      var li2 = document.createElement('li');
+      var b2 = document.createElement('strong'); b2.textContent = 'Save as new version'; li2.appendChild(b2);
+      li2.appendChild(document.createTextNode(' — save as ' + (suggested || (conflicting + '-1')) + ' (existing file is kept untouched).'));
+      var li3 = document.createElement('li');
+      var b3 = document.createElement('strong'); b3.textContent = 'Cancel'; li3.appendChild(b3);
+      li3.appendChild(document.createTextNode(' — leave everything as it is.'));
+      ul.appendChild(li1); ul.appendChild(li2); ul.appendChild(li3);
+      conflictDlgDescEl.appendChild(ul);
+    }
+    if (conflictDlgPathEl) conflictDlgPathEl.textContent = conflicting ? ('Conflict at: ' + conflicting) : '';
+    if (conflictDlgVersionBtn && suggested) conflictDlgVersionBtn.textContent = 'Save as ' + suggested;
+    else if (conflictDlgVersionBtn) conflictDlgVersionBtn.textContent = 'Save as new version';
+    if (conflictDlgApplyAllWrapEl) conflictDlgApplyAllWrapEl.hidden = !allowApplyAll;
+    if (conflictDlgApplyAllEl) conflictDlgApplyAllEl.checked = false;
+
+    return new Promise(function (resolve) {
+      function done(choice) {
+        var applyToAll = !!(allowApplyAll && conflictDlgApplyAllEl && conflictDlgApplyAllEl.checked);
+        // Detach handlers so the same dialog can be reused for the next
+        // conflict in the batch without stacking listeners.
+        if (conflictDlgReplaceBtn) conflictDlgReplaceBtn.removeEventListener('click', onReplace);
+        if (conflictDlgVersionBtn) conflictDlgVersionBtn.removeEventListener('click', onVersion);
+        if (conflictDlgCancelBtn)  conflictDlgCancelBtn.removeEventListener('click', onCancel);
+        dlg.removeEventListener('cancel', onEscape);
+        if (dlg.open) { try { dlg.close(); } catch (_e) { dlg.removeAttribute('open'); } }
+        resolve({ choice: choice, applyToAll: applyToAll });
+      }
+      function onReplace() { done('replace'); }
+      function onVersion() { done('version'); }
+      function onCancel()  { done('cancel'); }
+      function onEscape(e) { e.preventDefault(); done('cancel'); }
+
+      if (conflictDlgReplaceBtn) conflictDlgReplaceBtn.addEventListener('click', onReplace);
+      if (conflictDlgVersionBtn) conflictDlgVersionBtn.addEventListener('click', onVersion);
+      if (conflictDlgCancelBtn)  conflictDlgCancelBtn.addEventListener('click', onCancel);
+      dlg.addEventListener('cancel', onEscape);
+
+      if (typeof dlg.showModal === 'function' && !dlg.open) {
+        try { dlg.showModal(); } catch (_e) { dlg.setAttribute('open', ''); }
+      } else if (!dlg.open) {
+        dlg.setAttribute('open', '');
+      }
+    });
+  }
+
   var RESTORE_STAGES = ['reading', 'uploading', 'processing', 'reloading'];
   var restoreDialogEl = null;
   var restoreDialogStagesEl = null;

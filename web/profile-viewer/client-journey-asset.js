@@ -46,6 +46,11 @@
   var brandSwatchCaption = $('cjBrandSwatchCaption');
   var journeyTypeInput = $('cjJourneyType');
   var personaInput = $('cjPersona');
+  // AEP capability tier picker — Foundation (RT-CDP + AJO + CJA) vs
+  // Advanced (also unlocks Decision Management + Brand Concierge). Default
+  // 'advanced' so existing users see no change in output behaviour.
+  var tierFoundationBtn = $('cjTierFoundation');
+  var tierAdvancedBtn = $('cjTierAdvanced');
   var generateBtn = $('cjGenerateBtn');
   var generateStatus = $('cjGenerateStatus');
   var progressEl = $('cjProgress');
@@ -86,7 +91,27 @@
     scrapeColours: [],       // [{hex, count}] from the active scrape (for recolour palette)
     originalBrandColour: '', // Hex the assets were originally generated with — used by Reset
     activeBrandColour: '',   // Currently applied hex (may differ from original after recolour)
+    tier: 'advanced',        // 'foundation' | 'advanced' — see setTier() / readTier()
   };
+
+  // ─── Tier helpers ─────────────────────────────────────────────────────
+  // Single source of truth for which tier the user has selected. State is
+  // mirrored on the segmented control via the .is-active class + ARIA so
+  // screen readers and the visible UI stay in sync.
+
+  function setTier(tier) {
+    var t = (tier === 'foundation') ? 'foundation' : 'advanced';
+    state.tier = t;
+    if (tierFoundationBtn) {
+      tierFoundationBtn.classList.toggle('is-active', t === 'foundation');
+      tierFoundationBtn.setAttribute('aria-checked', String(t === 'foundation'));
+    }
+    if (tierAdvancedBtn) {
+      tierAdvancedBtn.classList.toggle('is-active', t === 'advanced');
+      tierAdvancedBtn.setAttribute('aria-checked', String(t === 'advanced'));
+    }
+  }
+  function readTier() { return state.tier === 'foundation' ? 'foundation' : 'advanced'; }
 
   // ─── Cache (per-browser) ──────────────────────────────────────────────
   // We persist generated journeys in localStorage keyed by sandbox+scrapeId
@@ -147,6 +172,9 @@
       brandColour: payload.brandColour || '',
       journeyType: payload.journeyType || '',
       personaName: payload.personaName || '',
+      // tier is optional on legacy entries — restoreFromCache normalises
+      // a missing value to 'advanced' (matches today's behaviour).
+      tier: payload.tier === 'foundation' ? 'foundation' : 'advanced',
       journeyData: payload.journeyData,
       htmlJourney: payload.htmlJourney,
       htmlOnePager: payload.htmlOnePager,
@@ -215,6 +243,10 @@
     if (additionalContextInput) additionalContextInput.value = entry.additionalContext || '';
     if (refinePromptInput) refinePromptInput.value = '';
     if (refineStatus) setStatus(refineStatus, '', '');
+    // Restore the tier picker to whatever the cached entry was generated
+    // under. Legacy entries (pre-Phase-1) are missing the field — default
+    // to 'advanced' to preserve original behaviour.
+    setTier(entry.tier === 'foundation' ? 'foundation' : 'advanced');
     mountIframe(iframeJourney, entry.htmlJourney, 'journey');
     mountIframe(iframeOnePager, entry.htmlOnePager, 'onepager');
     resultsSection.hidden = false;
@@ -1145,6 +1177,7 @@
     var journeyType = (journeyTypeInput.value || '').trim();
     var personaName = (personaInput.value || '').trim();
     var additionalContext = (additionalContextInput && additionalContextInput.value || '').trim();
+    var tier = readTier();
 
     generateBtn.disabled = true;
     setStatus(generateStatus, '', '');
@@ -1164,6 +1197,10 @@
           personaName: personaName || undefined,
           clientName: state.selectedScrape.brandName || undefined,
           additionalContext: additionalContext || undefined,
+          // Tier governs whether Decision Management + Brand Concierge
+          // appear in the journey. Backend defaults to 'advanced' if
+          // unset for backward-compat.
+          tier: tier,
         }),
       });
       var data = await resp.json().catch(function () { return {}; });
@@ -1182,6 +1219,8 @@
       // We also stash the additionalContext used so the textarea can
       // pre-fill on cache load (the user sees how they steered the
       // original prompt and can tweak + regenerate without context loss).
+      // Tier is recorded so a Load-previous restores the picker to whatever
+      // the cached entry was generated under.
       saveToCache(sandbox, state.selectedScrape.scrapeId, {
         brandName: state.selectedScrape.brandName,
         brandColour: brandColour,
@@ -1189,6 +1228,7 @@
         journeyType: journeyType,
         personaName: personaName,
         additionalContext: additionalContext,
+        tier: tier,
         journeyData: data.journeyData,
         htmlJourney: data.htmlJourney,
         htmlOnePager: data.htmlOnePager,
@@ -1477,6 +1517,12 @@
 
     generateBtn.addEventListener('click', generate);
     downloadPptxBtn.addEventListener('click', downloadPptx);
+
+    // Tier picker — segmented control. setTier handles ARIA + class
+    // toggling so click handlers stay tiny.
+    if (tierFoundationBtn) tierFoundationBtn.addEventListener('click', function () { setTier('foundation'); });
+    if (tierAdvancedBtn)  tierAdvancedBtn.addEventListener('click',  function () { setTier('advanced'); });
+    setTier(state.tier);
 
     // Post-generation refine: button click + Cmd/Ctrl+Enter shortcut
     // inside the textarea for keyboard-heavy users.

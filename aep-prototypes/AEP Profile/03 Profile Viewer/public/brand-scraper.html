@@ -52,20 +52,20 @@
                   autocomplete="url"
                   required>
                 <div class="brand-scraper-run-options">
-                  <button type="button" class="dashboard-btn-outline brand-scraper-run-options-btn" id="brandScraperOptionsBtn" aria-haspopup="true" aria-expanded="false" title="Choose which AI steps to run">
-                    Options <span id="brandScraperOptionsCount">6/7</span> ▾
+                    <button type="button" class="dashboard-btn-outline brand-scraper-run-options-btn" id="brandScraperOptionsBtn" aria-haspopup="true" aria-expanded="false" title="Choose which AI steps to run">
+                    Options <span id="brandScraperOptionsCount">4/7</span> ▾
                   </button>
                   <div class="brand-scraper-run-options-menu" id="brandScraperOptionsMenu" hidden>
                     <h6>What to run on Analyse</h6>
-                    <label><input type="checkbox" data-run-option="analysis" checked /> <span><strong>Brand guidelines</strong><em>tone, values, editorial, channels</em></span></label>
-                    <label><input type="checkbox" data-run-option="personas" checked /> <span><strong>Customer personas</strong><em>6 localised personas</em></span></label>
-                    <label><input type="checkbox" data-run-option="campaigns" checked /> <span><strong>Campaigns</strong><em>detected + recommended</em></span></label>
-                    <label><input type="checkbox" data-run-option="segments" checked /> <span><strong>Audience segments</strong><em>edge / streaming / batch</em></span></label>
-                    <label><input type="checkbox" data-run-option="stakeholders" checked /> <span><strong>Business stakeholders</strong><em>leadership org chart</em></span></label>
+                    <label><input type="checkbox" data-run-option="analysis" checked /> <span><strong>Brand guidelines</strong><em>about, tone, imagery, channel samples (runs first)</em></span></label>
+                    <label><input type="checkbox" data-run-option="personas" /> <span><strong>Customer personas</strong><em>enable for depth or append later</em></span></label>
+                    <label><input type="checkbox" data-run-option="campaigns" checked /> <span><strong>Campaigns</strong><em>detected on-site + recommended</em></span></label>
+                    <label><input type="checkbox" data-run-option="segments" /> <span><strong>Audience segments</strong><em>edge / streaming / batch</em></span></label>
+                    <label><input type="checkbox" data-run-option="stakeholders" /> <span><strong>Business stakeholders</strong><em>leadership org chart</em></span></label>
                     <label><input type="checkbox" data-run-option="tagAudit" checked /> <span><strong>Tag &amp; analytics audit</strong><em>Adobe / Google / CMP signals; JS crawl adds timings &amp; console errors</em></span></label>
                     <hr class="brand-scraper-run-options-divider" />
                     <label><input type="checkbox" id="brandScraperCrawlerJs" /> <span><strong>JS-rendered crawl</strong><em>Playwright in Cloud Run; slower but handles bot protection + SPAs</em></span></label>
-                    <p class="brand-scraper-result-muted">Crawl + asset extraction always run. Turning off AI steps saves tokens; turning off the tag audit skips vendor/network instrumentation only.</p>
+                    <p class="brand-scraper-result-muted">Defaults favour a <strong>light first pass</strong> (fewer pages, smaller brand JSON, phased saves). Re-run with more pages or use <strong>append</strong> to deepen. Turning off AI steps saves tokens; turning off the tag audit skips vendor/network instrumentation only.</p>
                   </div>
                 </div>
                 <button type="submit" class="dashboard-btn-primary" id="brandScraperRun">Analyse</button>
@@ -88,8 +88,8 @@
                     min="1"
                     max="25"
                     step="1"
-                    value="5"
-                    title="Number of pages to crawl (1-25). More pages = richer context but slower analyse." />
+                    value="3"
+                    title="Number of pages to crawl (1-25). Start low for speed; append or raise for depth." />
                 </div>
                 <div class="brand-scraper-field">
                   <label class="brand-scraper-label" for="brandScraperCountry">Persona country</label>

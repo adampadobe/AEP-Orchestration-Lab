@@ -137,6 +137,22 @@ async function resolveTargetName(sandbox, opts) {
     // When false, skip the sharp PNG transcode and keep bytes in the
     // source format. Defaults to true — the longstanding behaviour.
     convertToPng = true,
+    // What to do when the target path is already taken. Only honoured
+    // when the caller provided an explicit overrideFile (keep-filename
+    // mode); auto-classifier uploads stick with the legacy auto-suffix
+    // behaviour because they pick safe generic names ("logo",
+    // "image", "hero-banner") that ALWAYS need collision avoidance.
+    //
+    //   'error'   — throw TargetExistsError (handler returns 409 +
+    //               conflictingRelPath + suggestedVersionRelPath)
+    //   'replace' — overwrite the existing object, keep URL stable
+    //   'version' — auto-suffix to <stem>-1.<ext>, <stem>-2.<ext>, …
+    //
+    // Defaults to 'version' for backward-compat with non-keep-filename
+    // callers (auto-classifier publishes always auto-suffix). The
+    // image-hosting page now passes 'error' explicitly when the user
+    // chose "keep filename" so they get the prompt UX.
+    onConflict = 'version',
   } = opts;
   let ct = contentType || '';
   let ext = extensionFromContentType(ct) || 'bin';
@@ -202,26 +218,65 @@ async function resolveTargetName(sandbox, opts) {
   }
 
   const prefix = `${libraryRoot(sandbox)}/${folder ? folder + '/' : ''}`;
-  // Avoid collisions for non-logo entries by appending -2, -3, … if the
-  // candidate already exists. Logos always overwrite the single slot.
-  const candidates = [baseName].concat(
-    Array.from({ length: 50 }, (_, i) => `${baseName}-${i + 2}`)
-  );
   const bucket = getBucket();
-  for (const c of candidates) {
-    const key = `${prefix}${c}.${ext}`;
-    if (cat === 'logo') {
-      // Always write to logo.<ext>; if a different extension is already
-      // there (e.g. legacy logo.svg), delete it so there's exactly one.
-      await deleteSiblings(key, prefix + c);
-      return { folder, file: `${c}.${ext}`, key, contentType: ct || contentTypeFromExt(ext), bytes: body };
+
+  // Logos always overwrite the single slot — there is exactly one
+  // logo.<ext> per sandbox by design (the auto-classifier path), and
+  // even keep-filename uploads of "logo.png" should overwrite (the
+  // user's "logo.png is always logo.png online" expectation).
+  if (cat === 'logo') {
+    const key = `${prefix}${baseName}.${ext}`;
+    await deleteSiblings(key, prefix + baseName);
+    return { folder, file: `${baseName}.${ext}`, key, contentType: ct || contentTypeFromExt(ext), bytes: body };
+  }
+
+  // User-named uploads honour onConflict. The user explicitly typed
+  // this filename (or it's the original from a "keep filename" drop),
+  // so silent auto-suffixing breaks downstream URL lookups.
+  if (overrideFile) {
+    const desiredKey = `${prefix}${baseName}.${ext}`;
+    const [exists] = await bucket.file(desiredKey).exists();
+    if (!exists) {
+      return { folder, file: `${baseName}.${ext}`, key: desiredKey, contentType: ct || contentTypeFromExt(ext), bytes: body };
     }
+    if (onConflict === 'replace') {
+      // Same path — caller will overwrite via putLibraryObject. The
+      // URL stays stable, which is exactly what the user wants.
+      return { folder, file: `${baseName}.${ext}`, key: desiredKey, contentType: ct || contentTypeFromExt(ext), bytes: body, conflictResolved: 'replace' };
+    }
+    if (onConflict === 'error') {
+      const [siblings] = await bucket.getFiles({ prefix });
+      const existingRelPaths = new Set(siblings.map((f) => f.name.slice(libraryRoot(sandbox).length + 1)));
+      const desiredRelPath = (folder ? folder + '/' : '') + `${baseName}.${ext}`;
+      const suggestion = suggestVersionedRelPath(desiredRelPath, existingRelPaths);
+      const err = new Error(`target path already exists: ${desiredRelPath}`);
+      err.name = 'TargetExistsError';
+      err.code = 'TARGET_EXISTS';
+      err.conflictingRelPath = desiredRelPath;
+      err.suggestedVersionRelPath = suggestion;
+      throw err;
+    }
+    // 'version' — fall through to the auto-suffix loop below.
+  }
+
+  // Auto-classifier uploads (no overrideFile) and explicit
+  // onConflict:'version' uploads share the same -2, -3, … sweep. We
+  // start at -2 for auto-classifier paths to preserve historical
+  // filenames (logo, logo-2, logo-3, …); for explicit user-named
+  // 'version' uploads we want -1, -2, … to match the rename UX.
+  const startAt = overrideFile ? 1 : 2;
+  const sweepCount = 50;
+  for (let i = 0; i <= sweepCount; i++) {
+    const c = i === 0 ? baseName : `${baseName}-${i + startAt - 1}`;
+    const key = `${prefix}${c}.${ext}`;
     const [exists] = await bucket.file(key).exists();
     if (!exists) {
-      return { folder, file: `${c}.${ext}`, key, contentType: ct || contentTypeFromExt(ext), bytes: body };
+      const result = { folder, file: `${c}.${ext}`, key, contentType: ct || contentTypeFromExt(ext), bytes: body };
+      if (overrideFile && c !== baseName) result.conflictResolved = 'version';
+      return result;
     }
   }
-  // Fallback: timestamp-suffix.
+  // Fallback: timestamp-suffix (50+ collisions is pathological).
   const ts = Date.now().toString(36);
   const key = `${prefix}${baseName}-${ts}.${ext}`;
   return { folder, file: `${baseName}-${ts}.${ext}`, key, contentType: ct || contentTypeFromExt(ext), bytes: body };
@@ -397,27 +452,103 @@ async function deleteLibraryObject(sandbox, relPath) {
   return { deleted: key };
 }
 
-async function renameLibraryObject(sandbox, relPath, newRelPath) {
+/**
+ * Given a desired relative library path that already collides with an
+ * existing object, walk -1, -2, -3, … until we find a free slot and
+ * return that suggestion. Pure function — does not mutate GCS.
+ *
+ * Suffix starts at -1 (not -2 like chooseLibraryTarget) because the
+ * user explicitly typed `<name>` and is choosing between "replace
+ * <name>" and "save as <name>-1" — going straight from <name> to
+ * <name>-2 would feel odd to a human ("where did -1 go?"). The legacy
+ * auto-classifier path keeps starting at -2 to avoid breaking existing
+ * upload behaviour when the desired name was DERIVED rather than
+ * USER-PROVIDED.
+ */
+function suggestVersionedRelPath(desiredRelPath, existingRelPathSet) {
+  const m = /^(.*?)(\.[A-Za-z0-9]{1,12})?$/.exec(desiredRelPath || '');
+  const stem = (m && m[1]) || desiredRelPath || '';
+  const ext  = (m && m[2]) || '';
+  for (let n = 1; n <= 500; n++) {
+    const candidate = `${stem}-${n}${ext}`;
+    if (!existingRelPathSet.has(candidate)) return candidate;
+  }
+  // Pathological: 500+ versions already exist. Fall back to a
+  // millisecond-suffix so we still produce a unique name.
+  return `${stem}-${Date.now().toString(36)}${ext}`;
+}
+
+/**
+ * Rename / move a single library object. `opts.onConflict` controls
+ * what happens when `newRelPath` is already taken:
+ *
+ *   'error'   (default) → throw a TargetExistsError so the caller can
+ *                         prompt the user. The handler in index.js
+ *                         maps this to HTTP 409 with the conflicting
+ *                         path AND a `suggestedVersionRelPath` so the
+ *                         UI can populate a "Save as <name>-1" option.
+ *   'replace' → delete the existing target then perform the rename.
+ *               The result includes `conflictResolved: 'replace'` so
+ *               the UI can confirm what happened.
+ *   'version' → auto-pick the next free `<name>-N.<ext>` suffix and
+ *               rename to that. Result includes
+ *               `conflictResolved: 'version'` and the actual
+ *               `newRelPath` chosen (which may differ from what the
+ *               caller requested).
+ */
+async function renameLibraryObject(sandbox, relPath, newRelPath, opts) {
   const prefix = libraryRoot(sandbox) + '/';
   const r1 = String(relPath || '').trim().replace(/^\/+/, '');
-  const r2 = String(newRelPath || '').trim().replace(/^\/+/, '');
+  let   r2 = String(newRelPath || '').trim().replace(/^\/+/, '');
   if (!r1 || !r2 || r1.indexOf('..') !== -1 || r2.indexOf('..') !== -1) {
     throw new Error('bad path');
   }
   if (r1 === r2) {
     return { src: prefix + r1, dst: prefix + r2, relPath: r1, newRelPath: r2, noop: true };
   }
-  const src = prefix + r1;
-  const dst = prefix + r2;
+  const onConflict = (opts && opts.onConflict) || 'error';
   const bucket = getBucket();
+  const src = prefix + r1;
   const [srcExists] = await bucket.file(src).exists();
   if (!srcExists) throw new Error('source not found');
+
+  let conflictResolved;
+  let dst = prefix + r2;
   const [dstExists] = await bucket.file(dst).exists();
-  if (dstExists) throw new Error('target path already exists');
+  if (dstExists) {
+    if (onConflict === 'error') {
+      // Build a suggested versioned name so the UI can offer "Save as
+      // <name>-1.<ext>" without a second round-trip.
+      const [siblings] = await bucket.getFiles({ prefix });
+      const existingRelPaths = new Set(siblings.map((f) => f.name.slice(prefix.length)));
+      const suggestion = suggestVersionedRelPath(r2, existingRelPaths);
+      const err = new Error(`target path already exists: ${r2}`);
+      err.name = 'TargetExistsError';
+      err.code = 'TARGET_EXISTS';
+      err.conflictingRelPath = r2;
+      err.suggestedVersionRelPath = suggestion;
+      throw err;
+    }
+    if (onConflict === 'replace') {
+      await bucket.file(dst).delete({ ignoreNotFound: true });
+      conflictResolved = 'replace';
+    } else if (onConflict === 'version') {
+      const [siblings] = await bucket.getFiles({ prefix });
+      const existingRelPaths = new Set(siblings.map((f) => f.name.slice(prefix.length)));
+      r2 = suggestVersionedRelPath(r2, existingRelPaths);
+      dst = prefix + r2;
+      conflictResolved = 'version';
+    } else {
+      throw new Error(`unknown onConflict mode: ${onConflict}`);
+    }
+  }
+
   await bucket.file(src).copy(bucket.file(dst));
   try { await bucket.file(dst).makePublic(); } catch (_e) {}
   await bucket.file(src).delete({ ignoreNotFound: true });
-  return { src, dst, relPath: r1, newRelPath: r2 };
+  const result = { src, dst, relPath: r1, newRelPath: r2 };
+  if (conflictResolved) result.conflictResolved = conflictResolved;
+  return result;
 }
 
 /**
@@ -646,6 +777,9 @@ function decodeBase64File(name, base64, contentType) {
 async function uploadSingleFile(sandbox, fileName, bytes, contentType, opts) {
   const keepFilename = !!(opts && opts.keepFilename);
   const convertToPng = opts && opts.convertToPng !== undefined ? !!opts.convertToPng : true;
+  // Honoured only for keep-filename uploads (auto-classifier path
+  // ignores it — see resolveTargetName for the rationale).
+  const onConflict = (opts && opts.onConflict) || (keepFilename ? 'error' : 'version');
 
   // In "keep filename" mode we bypass the classification heuristic and
   // use the incoming filename as-is (sanitised) for the target path.
@@ -656,6 +790,7 @@ async function uploadSingleFile(sandbox, fileName, bytes, contentType, opts) {
         bytes,
         overrideFile: fileName,
         convertToPng,
+        onConflict,
       }
     : {
         classification: classifyFromFilename(fileName),
@@ -665,7 +800,9 @@ async function uploadSingleFile(sandbox, fileName, bytes, contentType, opts) {
         convertToPng,
       };
   const target = await resolveTargetName(sandbox, tgtOpts);
-  return putLibraryObject(sandbox, target);
+  const published = await putLibraryObject(sandbox, target);
+  if (target.conflictResolved) published.conflictResolved = target.conflictResolved;
+  return published;
 }
 
 /**
@@ -677,9 +814,16 @@ async function uploadSingleFile(sandbox, fileName, bytes, contentType, opts) {
 async function batchUpload(sandbox, entries, opts) {
   const uploaded = [];
   const errors = [];
+  const conflicts = [];
   const passOpts = {
     keepFilename: !!(opts && opts.keepFilename),
     convertToPng: opts && opts.convertToPng !== undefined ? !!opts.convertToPng : true,
+    // Forward the per-batch onConflict choice if the caller specified
+    // one (image-hosting page passes 'error' to get the prompt UX,
+    // 'replace' / 'version' on retry after the user clicks). When
+    // unset, uploadSingleFile defaults to 'error' for keep-filename
+    // and 'version' for auto-classifier.
+    onConflict: opts && opts.onConflict,
   };
   if (opts && opts.replace) {
     const bucket = getBucket();
@@ -708,18 +852,38 @@ async function batchUpload(sandbox, entries, opts) {
             const published = await uploadSingleFile(sandbox, base, buf, contentTypeFromExt(ext), passOpts);
             uploaded.push(published);
           } catch (e) {
-            errors.push({ name: zName, error: String((e && e.message) || e) });
+            if (e && e.code === 'TARGET_EXISTS') {
+              conflicts.push({
+                name: zName,
+                conflictingRelPath: e.conflictingRelPath,
+                suggestedVersionRelPath: e.suggestedVersionRelPath,
+              });
+            } else {
+              errors.push({ name: zName, error: String((e && e.message) || e) });
+            }
           }
         }
       } else {
-        const published = await uploadSingleFile(sandbox, name, bytes, contentType, passOpts);
-        uploaded.push(published);
+        try {
+          const published = await uploadSingleFile(sandbox, name, bytes, contentType, passOpts);
+          uploaded.push(published);
+        } catch (e) {
+          if (e && e.code === 'TARGET_EXISTS') {
+            conflicts.push({
+              name,
+              conflictingRelPath: e.conflictingRelPath,
+              suggestedVersionRelPath: e.suggestedVersionRelPath,
+            });
+          } else {
+            throw e;
+          }
+        }
       }
     } catch (e) {
       errors.push({ name: entry && entry.name, error: String((e && e.message) || e) });
     }
   }
-  return { uploaded, errors };
+  return { uploaded, errors, conflicts };
 }
 
 /**
@@ -967,6 +1131,7 @@ module.exports = {
   publishScrapeImage,
   deleteLibraryObject,
   renameLibraryObject,
+  suggestVersionedRelPath,
   resolveAsset,
   libraryRoot,
   backupsRoot,

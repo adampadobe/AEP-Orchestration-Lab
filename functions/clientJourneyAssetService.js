@@ -405,6 +405,22 @@ Critical content rules (these govern WHAT goes in each cell — violations weake
 
 8. Every TECH bullet must have confirmed:true (vendor named in input.detectedTech) or confirmed:false (plausible inference from industry). The renderer surfaces this badge — never omit or fudge it.
 
+9. CUSTOMER STATE ENUM. Every slide's persona narrative MUST resolve to exactly one of three formal customer states: "Acquisition" (no prior relationship — anonymous, first-time, lead), "Existing" (the brand already holds an identifier and historical behaviour — loyalty members, account holders, paying customers, registered users), or "Win-back" (the brand previously had a relationship that has lapsed — churned, dormant, post-cancellation). Pick the state from the input.client.journeyType + persona description and stay consistent across all 12 steps; do NOT slide between states mid-journey unless the journey is explicitly designed as a conversion ("Acquisition" first half → "Existing" second half is fine after step ~6 once the customer has bought; otherwise stay in one state).
+
+10. IDENTITY TIMING. When an identity becomes known to the brand (ECID at first page-view, Email ID at form submit, Account ID at login, Phone ID at SMS opt-in, Loyalty ID at programme join), update slides[i].ids[] AT THE SAME STEP that captures the identifier — not the next step. The Identities column should mark the new identifier with a:true on the step it's captured, and roll forward as a:true on every subsequent step where the customer is still recognised. Do NOT lazily push the identity to the slide AFTER the capture step — the audience needs to see the cause and effect on the same slide.
+
+11. AEM ASSETS PLACEMENT. Adobe Experience Manager Assets is NEVER its own product entry in adobe[]. Mention it (when relevant) inside an existing AJO bullet, e.g. "AJO email send (assets pulled from AEM Assets)". The audience should read AEM Assets as the asset library that AJO draws on, not as a standalone product line in the AEP narrative.
+
+12. DECISION MANAGEMENT SCOPE. Reserve decisioning[] for PRIMARY decisions that materially shape what the customer sees or receives — offer selected, hero content selected, channel selected, upsell selected, ranking of multiple eligible products against profile signals. NEVER use decisioning[] for: minor display rules ("badge shown", "tag added", "label applied"), pure signal-flagging without delivery ("high-intent profile flagged", "affinity noted"), Brand Concierge conversational recommendations (those are conversation, not catalogue decisioning), OR paid-media creative selection (Meta / Google / TikTok control their own creative selection — Adobe is not deciding what ad to show).
+
+13. PAID-MEDIA TECH EXCEPTION. Paid-media platforms (Meta Ads, Google Ads, TikTok, programmatic DSPs) MAY appear in TECH with a:false on every slide. Their role is to receive AEP-segment audiences for activation, not to be live "active" at any step (the moment they're active is the moment AEP pushes the audience — captured by activ[] / activActive[] for AJO channels and by the activation column more broadly). For paid-media TECH entries, set a:false on every slide and let the renderer dim them; the audience reads "this is the customer's existing paid-media stack that AEP will feed".
+
+14. NO NEVER-ACTIVE TECH. Excepting the paid-media platforms above, every other TECH entry MUST be a:true on at least one slide. If a vendor never plays an active role in the journey, omit it from j.tech entirely — a permanently dimmed entry is noise.
+
+15. B2B JOURNEY ARC. If input.client.journeyType signals B2B (keywords: "B2B", "account", "lead", "MQL", "SQL", "opportunity", "ABM", "demand gen", "enterprise sale"), the arc is account → contact → opportunity → close, NOT a consumer purchase funnel. Persona narratives reference job titles + buying committee members, decisioning bullets reference offer/content selection by industry/company-size/role, ids[] should include "Account ID" alongside "Email ID" early, and orchestration emphasises lead routing + sales handoff alongside marketing automation. Do NOT shoehorn a B2C cart/checkout arc onto a B2B journey.
+
+16. desc REFLECTS orchActive. The slide's "desc" persona narrative MUST describe what is ACTIVELY happening at THIS step, derived from orchActive[] / decisioningActive[] / activActive[] / dataActive[] — not what was queued earlier, what was done two steps ago, or what might happen in the future. The audience reads desc and looks down at the live (active) bullets to see them play out. If desc says "she opens the email" but no email-related bullet is in any *Active[] array on this slide, the narrative is broken.
+
 CLOSED CHANNEL LIST for activ[] / activActive[] (Adobe Journey Optimizer delivery channels):
 - Every entry in "activ" and "activActive" MUST be exactly one of these 9 strings, character-for-character. NEVER invent new channels, paraphrase them, or substitute non-Adobe channels (e.g. "Salesforce email", "Marketo SMS", "Mailchimp", "Facebook Ads", "Google Ads" are FORBIDDEN — those are not AJO channels):
     1. "Email"
@@ -428,6 +444,45 @@ Soft rules:
 - Be specific to this client's industry; never use placeholder text.
 
 Do not return anything except the single JSON object.`;
+
+/**
+ * Tier-specific overlay prepended to the system prompt at call time.
+ *
+ * Foundation = core AEP only (RT-CDP + Journey Optimizer + CJA). The
+ * model MUST emit empty decisioning/decisioningActive arrays on every
+ * slide and MUST NOT mention Decision Management or Brand Concierge in
+ * the adobe[] product blocks.
+ *
+ * Advanced = Foundation + Decision Management + Brand Concierge.
+ * Decisioning bullets follow critical rule 5 (outcome + signal). Brand
+ * Concierge bullets sit inside orch[] / orchActive[] alongside AJO
+ * bullets, prefixed with "Brand Concierge:" so the renderer can style
+ * them. BC must be customer-initiated, owned-channel only, and have a
+ * clear narrative reason.
+ */
+function buildSystemPrompt(tier) {
+  const t = tier === 'foundation' ? 'foundation' : 'advanced';
+  const overlay = t === 'foundation'
+    ? `AEP CAPABILITY TIER: FOUNDATION
+This journey demonstrates ONLY the core AEP foundation — Real-Time CDP, Journey Optimizer, and Customer Journey Analytics. You MUST observe these tier-specific rules in addition to everything below:
+- decisioning[] and decisioningActive[] MUST be empty arrays [] on every slide. Do NOT generate any decisioning bullets at all.
+- adobe[] product blocks MUST NOT mention "Decision Management" or "Brand Concierge". The only Adobe products available are: "Real-Time CDP" (or "CDP"), "Journey Optimizer", "Customer Journey Analytics", and (rarely, only if explicitly relevant) "AEM Assets" referenced inside an AJO bullet.
+- The personalisation narrative still happens — but attribute it to Journey Optimizer's segment-driven content selection rather than a separate Decision Management product.
+- orch[] bullets MUST NOT contain "Brand Concierge:" entries.
+
+`
+    : `AEP CAPABILITY TIER: ADVANCED
+This journey may use the full AEP suite — RT-CDP, Journey Optimizer, Customer Journey Analytics, Decision Management, and Brand Concierge. In addition to everything below, you MUST observe these tier-specific rules:
+- Use Decision Management at every personalisation step where a specific offer / hero content / channel / upsell is chosen. Bullets follow critical rule 5 below (outcome + signal). DM is for PRIMARY decisions only — not for minor display rules (badges, labels, tags) and never for paid media creative selection (Meta/Google control their own creative).
+- Brand Concierge is a customer-initiated conversational AI on the brand's owned web/app surfaces. When you include it, write the bullet inside orch[] / orchActive[] (NOT a separate column) prefixed with "Brand Concierge:" so the renderer can style it distinctly. Format: "Brand Concierge: customer asked X — guided to Y". One or two BC bullets per relevant step, max.
+- Brand Concierge is FORBIDDEN at any step where the customer is not actively on a brand-owned channel — never at abandonment steps, email/SMS steps, retargeting steps, or any off-site moment. The customer opens the widget; it cannot reach out.
+- Brand Concierge must have a clear narrative reason: what did the customer ask, what did they get? Do not include BC at a step just because the customer is on the website. A BC bullet without a specific question is noise — omit it.
+- Brand Concierge cannot personalise outbound content (emails, SMS, push). Email/SMS personalisation is a Decision Management call.
+- Brand Concierge conversational recommendations are NOT Decision Management. DM appears within a BC interaction only if a specific promotional offer from the offer catalogue is being surfaced (e.g. a loyalty discount applied to a recommended product).
+
+`;
+  return overlay + JOURNEY_SYSTEM_PROMPT;
+}
 
 /**
  * Closed list of Adobe Journey Optimizer delivery channels that the
@@ -600,10 +655,329 @@ function ensureLength(arr, n, fillFactory) {
   return out;
 }
 
+// ─── Phase 3 helpers: post-Vertex content scans ─────────────────────────────
+
+// Words/phrases that indicate the model put a "no journey yet" placeholder
+// or a data-write-back into orch (both belong elsewhere). Matched
+// case-insensitively against the trimmed bullet text.
+const ORCH_PLACEHOLDER_RX = /\b(no journey|queued|not yet|waiting|triggered but)\b/i;
+const ORCH_WRITE_BACK_RX = /\b(written to|profile updated|affinity written|attribute (?:updated|written)|signal (?:captured|written))\b/i;
+
+// DM purity — bullets that name a paid-media platform, are pure
+// signal-flagging without delivery, are minor display rules, or are
+// BC-style conversational recommendations.
+const DM_PAID_MEDIA_RX = /\b(meta|google|instagram|facebook|tiktok|paid media|carousel|ad creative|dsp|programmatic)\b/i;
+const DM_SIGNAL_ONLY_RX = /^(?:\s*)(?:high[- ]intent (?:profile )?flagged|.*affinity noted|.*threshold reached|signal flagged|propensity score (?:noted|flagged))(?:\s*)$/i;
+const DM_MINOR_RULE_RX = /^(?:\s*)(?:badge shown|label applied|tag added|sustainability badge)(?:\s*)$/i;
+const DM_BC_LEAK_RX = /\b(brand concierge|conversational|asked about|guided to|outfit guidance)\b/i;
+
+// Identity namespace — strings that are not person-level identifiers.
+const IDS_FORBIDDEN_RX = /\b(order|session|token|transaction|reference)\b/i;
+
+// Paid media impressions — never available at the individual level.
+const PAID_IMPRESSION_RX = /\b(meta ad impression|google ad shown|instagram impression|facebook impression|tiktok impression|ad shown|ad impression)\b/i;
+
+// Email events on Web SDK — should be AJO email tracking instead.
+const WEBSDK_EMAIL_RX = /\b(email (?:engagement|open|click|opens|clicks).*(?:web ?sdk|browser sdk))\b/i;
+
+// CJA references that have leaked into orch/activ (belong in segs).
+const CJA_PREFIX_RX = /^\s*cja\s*:/i;
+
+// SMS detection (rules out push notifications, in-app messages, etc).
+const SMS_RX = /\b(sms|text message|text msg)\b/i;
+
+// Step labels that imply the customer is OFF the brand's owned channel.
+const OFF_CHANNEL_LABEL_RX = /\b(abandon|abandonment|email|sms|retargeting|paid media|push|off[- ]site|out[- ]of[- ]session)\b/i;
+
+// Generic TECH catch-all — name a real ESP or omit.
+const GENERIC_EMAIL_TECH_RX = /^(?:\s*)email delivery platform(?:\s*)$/i;
+
+function runContentScans(slides, j) {
+  if (!Array.isArray(slides) || slides.length === 0) return;
+
+  // Track new-vs-carried orch items across slides so scans 1 + 2 can
+  // both reason about novelty.
+  const seenOrch = new Set();
+  const slideOffChannel = slides.map((s) =>
+    OFF_CHANNEL_LABEL_RX.test(safeString(s && s.label))
+  );
+
+  // Set of live SMS-channel slides (used by scan 5 — Phone ID rule).
+  for (let i = 0; i < slides.length; i++) {
+    const s = slides[i];
+    if (!s) continue;
+
+    // Scan 1 — orch placeholders / write-backs / cross-slide duplicates.
+    const orchRaw = Array.isArray(s.orch) ? s.orch : [];
+    const orchClean = [];
+    for (const item of orchRaw) {
+      const text = safeString(item).trim();
+      if (!text) continue;
+      if (ORCH_PLACEHOLDER_RX.test(text)) continue;
+      if (ORCH_WRITE_BACK_RX.test(text)) continue;
+      // Drop carry-forward duplicates (skill v9: accumulate() does this
+      // visually; the model shouldn't repeat itself in the data).
+      if (seenOrch.has(text)) continue;
+      seenOrch.add(text);
+      orchClean.push(text);
+    }
+    s.orch = orchClean;
+
+    // Scan 2a — orchActive completeness. Every orch item that is new
+    // at this slide (i.e. not present in any prior slide's orch — we
+    // approximate via seenOrch.size delta) gets added to orchActive
+    // if missing. We re-derive newness from orchClean order: items
+    // appended at this slide ARE new because we filtered duplicates
+    // above, so their union with the existing orchActive is correct.
+    const orchActiveSet = new Set(
+      (Array.isArray(s.orchActive) ? s.orchActive : []).map((v) => safeString(v).trim())
+    );
+    const orchSet = new Set(orchClean);
+    // Strip orchActive entries that aren't in orch (clamp to validity)
+    // then ensure every orch item that's new at this slide is active.
+    const finalActive = [];
+    for (const t of orchClean) {
+      if (orchActiveSet.has(t) || true) {
+        // True "newness" = it wasn't in any earlier slide. Because
+        // dedupe above already removed cross-slide repeats from
+        // s.orch, every item left here is genuinely new at this step.
+        finalActive.push(t);
+      }
+    }
+    // De-dupe and clamp to entries that exist in orch.
+    const seenActive = Object.create(null);
+    s.orchActive = finalActive.filter((v) => orchSet.has(v) && (seenActive[v] ? false : (seenActive[v] = true)));
+
+    // Scan 2b — segActive emoji-prefix bug. The accumulator matches
+    // segActive entries against segs[i].l exactly; an emoji-prefixed
+    // entry will never match and the segment will silently never
+    // highlight. Strip any leading non-letter run that doesn't appear
+    // in the segs[].l set.
+    const segs = Array.isArray(s.segs) ? s.segs : [];
+    const segLabels = new Set(segs.map((sg) => safeString(sg && sg.l).trim()));
+    s.segActive = (Array.isArray(s.segActive) ? s.segActive : [])
+      .map((v) => {
+        const raw = safeString(v).trim();
+        if (segLabels.has(raw)) return raw;
+        // Try stripping a leading emoji + whitespace/newline run.
+        const stripped = raw.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+        return segLabels.has(stripped) ? stripped : null;
+      })
+      .filter((v) => v !== null);
+
+    // Scan 3 — Decision Management purity. Drop bullets that mention
+    // paid media, are signal-only, are minor display rules, or are BC
+    // conversational recommendations. Keep the parallel
+    // decisioningActive in sync with the cleaned set.
+    const decRaw = Array.isArray(s.decisioning) ? s.decisioning : [];
+    const decClean = decRaw
+      .map((v) => safeString(v).trim())
+      .filter((v) => {
+        if (!v) return false;
+        if (DM_PAID_MEDIA_RX.test(v)) return false;
+        if (DM_SIGNAL_ONLY_RX.test(v)) return false;
+        if (DM_MINOR_RULE_RX.test(v)) return false;
+        if (DM_BC_LEAK_RX.test(v)) return false;
+        return true;
+      });
+    s.decisioning = decClean;
+    const decSet = new Set(decClean);
+    s.decisioningActive = (Array.isArray(s.decisioningActive) ? s.decisioningActive : [])
+      .map((v) => safeString(v).trim())
+      .filter((v) => decSet.has(v));
+
+    // Scan 5a — identity namespace. Person-level identifiers only.
+    const ids = Array.isArray(s.ids) ? s.ids : [];
+    s.ids = ids.filter((row) => {
+      if (!Array.isArray(row) || !row.length) return false;
+      const label = safeString(row[0]).trim();
+      if (!label) return false;
+      return !IDS_FORBIDDEN_RX.test(label);
+    });
+
+    // Scan 6a — CJA bullets in orch belong in segs (or get dropped if
+    // already represented). We move the segment-friendly form (label
+    // after the "CJA: " prefix) to segs and remove the orch entry.
+    if (s.orch.length) {
+      const remainingOrch = [];
+      for (const t of s.orch) {
+        if (CJA_PREFIX_RX.test(t)) {
+          const segLabel = t.replace(CJA_PREFIX_RX, '').trim();
+          if (segLabel && !Array.from(segLabels).some((l) => l.toLowerCase() === segLabel.toLowerCase())) {
+            (s.segs = s.segs || []).push({ i: '📊', l: segLabel });
+            segLabels.add(segLabel);
+          }
+          // and drop from orch entirely
+          continue;
+        }
+        remainingOrch.push(t);
+      }
+      s.orch = remainingOrch;
+      // Re-sync orchActive after the move.
+      const liveOrch = new Set(s.orch);
+      s.orchActive = (s.orchActive || []).filter((v) => liveOrch.has(v));
+    }
+    // Same scrub for activ — CJA never belongs in activation.
+    if (Array.isArray(s.activ)) {
+      s.activ = s.activ.filter((v) => !CJA_PREFIX_RX.test(safeString(v).trim()));
+    }
+
+    // Scan 6b — paid-impression items in data/ingestion (never
+    // available at the individual level).
+    if (Array.isArray(s.data)) {
+      const cleanData = s.data.filter((v) => !PAID_IMPRESSION_RX.test(safeString(v)));
+      const dataSet = new Set(cleanData);
+      s.dataActive = (Array.isArray(s.dataActive) ? s.dataActive : []).filter((v) => dataSet.has(v));
+      s.data = cleanData;
+    }
+    if (Array.isArray(s.ingestion)) {
+      const cleanIng = s.ingestion.filter((v) => !PAID_IMPRESSION_RX.test(safeString(v)));
+      const ingSet = new Set(cleanIng);
+      s.ingestionActive = (Array.isArray(s.ingestionActive) ? s.ingestionActive : []).filter((v) => ingSet.has(v));
+      s.ingestion = cleanIng;
+    }
+
+    // Scan 6c — email events on Web SDK should be AJO email tracking.
+    // Rewrite in place (preserves item identity for orchActive matching).
+    if (Array.isArray(s.ingestion)) {
+      s.ingestion = s.ingestion.map((v) => {
+        const t = safeString(v);
+        if (WEBSDK_EMAIL_RX.test(t)) {
+          return 'AJO email open / click events → ExperienceEvent';
+        }
+        return t;
+      });
+      // Keep ingestionActive aligned to the rewritten strings — easiest
+      // to clamp by intersection with the rewritten ingestion set.
+      const ingSet2 = new Set(s.ingestion);
+      s.ingestionActive = (Array.isArray(s.ingestionActive) ? s.ingestionActive : []).filter((v) => ingSet2.has(v));
+    }
+
+    // Scan 7 — Brand Concierge placement. BC entries (orch bullets
+    // with "Brand Concierge:" prefix) are forbidden at off-channel
+    // steps (abandonment, email/SMS, retargeting). We drop them along
+    // with their matching orchActive entries.
+    if (slideOffChannel[i] && Array.isArray(s.orch)) {
+      const filtered = s.orch.filter((v) => !/^\s*brand concierge\s*:/i.test(safeString(v)));
+      const dropped = s.orch.length !== filtered.length;
+      if (dropped) {
+        const liveOrch = new Set(filtered);
+        s.orchActive = (Array.isArray(s.orchActive) ? s.orchActive : []).filter((v) => liveOrch.has(v));
+        s.orch = filtered;
+      }
+    }
+  }
+
+  // Scan 4 — Activation timing. Look for paid-destination pushes
+  // ("segments to Meta", "audience to Google", "Custom Audience push")
+  // landing on a slide whose label contains "abandon"; if the next
+  // slide exists, push them forward by one. We model this minimally:
+  // we move the activActive entry only — leaving activ in place is
+  // safe because the abandonment slide may still have other channels
+  // legitimately listed.
+  const ABANDON_LABEL_RX = /\babandon(ment)?\b/i;
+  const PAID_PUSH_RX = /\b(meta|google|facebook|tiktok|dsp|paid media|custom audience)\b/i;
+  for (let i = 0; i < slides.length - 1; i++) {
+    const s = slides[i];
+    if (!s || !ABANDON_LABEL_RX.test(safeString(s.label))) continue;
+    const aActive = Array.isArray(s.activActive) ? s.activActive : [];
+    const next = slides[i + 1];
+    if (!next) continue;
+    const moved = [];
+    const stay = [];
+    for (const v of aActive) {
+      if (PAID_PUSH_RX.test(safeString(v))) moved.push(v);
+      else stay.push(v);
+    }
+    if (moved.length) {
+      s.activActive = stay;
+      next.activActive = Array.from(new Set([...(next.activActive || []), ...moved]));
+      // ensure those entries also exist on next.activ
+      next.activ = Array.from(new Set([...(next.activ || []), ...moved]));
+    }
+  }
+
+  // Scan 5b — SMS sent without a Phone ID. Walk forward; if a slide's
+  // orch (or desc) mentions SMS but no Phone ID exists in any earlier
+  // ids[], inject a Phone ID into THAT slide's ids[] (active true).
+  // Conservative: we don't try to back-date the capture step — the
+  // user can refine the journey if the timing matters.
+  let phoneIdSeen = false;
+  for (let i = 0; i < slides.length; i++) {
+    const s = slides[i];
+    if (!s) continue;
+    if (Array.isArray(s.ids)) {
+      for (const row of s.ids) {
+        if (!Array.isArray(row)) continue;
+        if (/\bphone\b/i.test(safeString(row[0]))) { phoneIdSeen = true; break; }
+      }
+    }
+    const orchHasSms = Array.isArray(s.orch) && s.orch.some((v) => SMS_RX.test(safeString(v)));
+    const descHasSms = SMS_RX.test(safeString(s.desc));
+    if ((orchHasSms || descHasSms) && !phoneIdSeen) {
+      s.ids = (Array.isArray(s.ids) ? s.ids : []).concat([['Phone ID', true]]);
+      phoneIdSeen = true;
+    }
+  }
+
+  // Scan 8a — generic "Email delivery platform" tech entries. Drop
+  // them at the bullet level on j.tech (the source the live deck and
+  // the one-pager both read), and mirror by stripping out per-slide
+  // tech entries with the same generic text.
+  if (Array.isArray(j.tech)) {
+    for (const grp of j.tech) {
+      if (!grp || !Array.isArray(grp.bullets)) continue;
+      grp.bullets = grp.bullets.filter((b) => !(b && GENERIC_EMAIL_TECH_RX.test(safeString(b.text))));
+    }
+  }
+  for (const s of slides) {
+    if (Array.isArray(s.tech)) {
+      s.tech = s.tech.filter((o) => !(o && GENERIC_EMAIL_TECH_RX.test(safeString(o.t))));
+    }
+  }
+
+  // Scan 8b — strip [confirmed]/[assumed] markers from any per-slide
+  // tech entry that leaked through. The PPTX/one-pager keep the labels
+  // (separately applied via b.confirmed); the live deck shows them via
+  // the .tech-badge already, so the inline marker is noise.
+  for (const s of slides) {
+    if (!Array.isArray(s.tech)) continue;
+    s.tech = s.tech.map((o) => {
+      if (!o || typeof o.t !== 'string') return o;
+      const cleaned = o.t.replace(/\s*\[(?:confirmed|assumed)\]\s*$/i, '').trim();
+      return cleaned !== o.t ? { ...o, t: cleaned } : o;
+    });
+  }
+
+  // Scan 8c — drop tech entries that are never a:true across any
+  // slide. A permanently dimmed entry means the platform plays no
+  // active role in the journey — it's noise.
+  const everActiveTech = new Set();
+  for (const s of slides) {
+    if (!Array.isArray(s.tech)) continue;
+    for (const o of s.tech) {
+      if (o && o.a) everActiveTech.add(safeString(o.t).trim());
+    }
+  }
+  if (everActiveTech.size > 0) {
+    for (const s of slides) {
+      if (!Array.isArray(s.tech)) continue;
+      s.tech = s.tech.filter((o) => o && everActiveTech.has(safeString(o.t).trim()));
+    }
+  }
+}
+
 function normaliseJourney(journeyData, overrides = {}) {
   const j = (journeyData && typeof journeyData === 'object') ? journeyData : {};
   const clientIn = (j.client && typeof j.client === 'object') ? j.client : {};
   const brandColour = normaliseHex(overrides.brandColour || clientIn.brandColour, '#E60000');
+  // tier travels through the journeyData itself so the renderer (and
+  // any downstream tooling that re-renders from cached JSON) knows
+  // which layout / which Adobe products are in scope. Default 'advanced'
+  // for cached results that pre-date Phase 1.
+  const tier = (overrides.tier === 'foundation' || clientIn.tier === 'foundation')
+    ? 'foundation'
+    : 'advanced';
   const client = {
     name: safeString(overrides.clientName || clientIn.name, 'Client'),
     slug: slugify(overrides.clientName || clientIn.name || clientIn.slug || 'client'),
@@ -611,6 +985,7 @@ function normaliseJourney(journeyData, overrides = {}) {
     brandColour,
     darkColour: normaliseHex(clientIn.darkColour || darken(brandColour, 0.55), darken(brandColour, 0.55)),
     journeyType: safeString(overrides.journeyType || clientIn.journeyType, 'Customer Journey'),
+    tier,
   };
 
   const persona = (j.persona && typeof j.persona === 'object') ? j.persona : {};
@@ -651,6 +1026,59 @@ function normaliseJourney(journeyData, overrides = {}) {
   for (let i = 0; i < slides.length; i++) {
     if (!Array.isArray(slides[i].decisioning)) slides[i].decisioning = [];
     if (!Array.isArray(slides[i].decisioningActive)) slides[i].decisioningActive = [];
+  }
+
+  // ─── Phase 3: post-Vertex content scans (skill v9 §Pre-write pattern scan)
+  //
+  // Eight quiet auto-fixes that run AFTER the model has emitted the
+  // journey. Each one targets a class of silent-bug the colleague's
+  // skill specifically calls out — duplicated orch carry-forward,
+  // segActive emoji-prefix mismatch, DM-on-paid-media leakage, etc.
+  // Auto-fix rather than reject because the model can't usefully
+  // self-correct from a thrown error and the user shouldn't see a
+  // regenerate loop. Applies to every tier; the Foundation clamp below
+  // sees the cleaned shape so any DM/BC the scans missed still get
+  // stripped.
+  runContentScans(slides, j);
+
+  // Foundation tier clamp — strip Decision Management and Brand
+  // Concierge from the journey entirely so the prompt overlay is
+  // belt-and-braces. Empty decisioning arrays => the renderer drops the
+  // Decisioning sub-column for Foundation; orch entries beginning
+  // "Brand Concierge:" are removed (and the matching orchActive entries
+  // along with them) so an Advanced-leaning model that ignored the tier
+  // overlay can't smuggle DM/BC into a Foundation deck.
+  if (tier === 'foundation') {
+    for (let i = 0; i < slides.length; i++) {
+      slides[i].decisioning = [];
+      slides[i].decisioningActive = [];
+      const orch = Array.isArray(slides[i].orch) ? slides[i].orch : [];
+      const orchActiveSet = new Set(Array.isArray(slides[i].orchActive) ? slides[i].orchActive : []);
+      const filtered = orch.filter((s) => !/^(\s*)brand concierge\s*:/i.test(safeString(s)));
+      slides[i].orch = filtered;
+      slides[i].orchActive = filtered.filter((s) => orchActiveSet.has(s));
+    }
+    // Strip DM/BC product blocks from the adobe[] cells too. We do this
+    // tolerantly: if a "product" block names DM or BC we drop it AND the
+    // immediately-following heading/bullet/blank run that belongs to it
+    // (i.e. up to the next "product" entry or end of array).
+    const FORBIDDEN_PRODUCTS = /^(decision management|brand concierge)$/i;
+    if (Array.isArray(j.adobe)) {
+      for (let i = 0; i < j.adobe.length; i++) {
+        const blocks = Array.isArray(j.adobe[i]) ? j.adobe[i] : [];
+        const out = [];
+        let dropping = false;
+        for (const b of blocks) {
+          if (b && b.type === 'product') {
+            dropping = !!(b.text && FORBIDDEN_PRODUCTS.test(safeString(b.text).trim()));
+            if (!dropping) out.push(b);
+          } else if (!dropping) {
+            out.push(b);
+          }
+        }
+        j.adobe[i] = out;
+      }
+    }
   }
   // Ensure activeNode invariant.
   slides[0].activeNode = -1;
@@ -699,6 +1127,10 @@ async function generateJourney({
   // the very first Vertex AI call (e.g. "focus on first-time customers,
   // emphasise loyalty rewards, mention sustainability throughout").
   additionalContext,
+  // 'foundation' | 'advanced'. Foundation excludes Decision Management
+  // and Brand Concierge from the journey entirely — col 4 in the
+  // rendered HTML becomes a single full-height Orchestration column.
+  tier = 'advanced',
   // Refinement mode: when both fields are present, we re-issue the
   // generation with the previous JSON in the user payload and ask the
   // model to apply `refinementPrompt` while preserving the rest of the
@@ -707,6 +1139,7 @@ async function generateJourney({
   previousJourney,
   refinementPrompt,
 }) {
+  const resolvedTier = tier === 'foundation' ? 'foundation' : 'advanced';
   if (!sandbox) throw new Error('sandbox is required');
   if (!scrapeId) throw new Error('scrapeId is required');
 
@@ -786,9 +1219,13 @@ async function generateJourney({
     retryOn429Attempts: 1,
   };
 
+  // System prompt is rebuilt per-call so the tier overlay (Foundation
+  // vs Advanced) is bound to the same call. Cheap to re-string-concat.
+  const systemPrompt = buildSystemPrompt(resolvedTier);
+
   let raw;
   try {
-    raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
+    raw = await callGemini(systemPrompt, JSON.stringify(userPayload, null, 2), {
       ...baseGeminiOpts,
       responseSchema: JOURNEY_RESPONSE_SCHEMA,
     });
@@ -800,7 +1237,7 @@ async function generateJourney({
     }
     // Schema unsupported by this model? Retry without it.
     if (/responseSchema|schema/i.test(String(e && e.message || e))) {
-      raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
+      raw = await callGemini(systemPrompt, JSON.stringify(userPayload, null, 2), {
         ...baseGeminiOpts,
       });
     } else if (e && e.code === 'MAX_TOKENS') {
@@ -809,7 +1246,7 @@ async function generateJourney({
       // scrape) — retry once with thinking turned down so all available
       // tokens go to JSON output rather than internal reasoning.
       try {
-        raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
+        raw = await callGemini(systemPrompt, JSON.stringify(userPayload, null, 2), {
           ...baseGeminiOpts,
           temperature: 0.2,
           responseSchema: JOURNEY_RESPONSE_SCHEMA,
@@ -842,6 +1279,7 @@ async function generateJourney({
     personaName,
     clientName: resolvedClientName,
     domain: summary.url,
+    tier: resolvedTier,
   });
 
   const htmlJourney = renderJourneyHtml(journeyData);
@@ -858,6 +1296,11 @@ function renderJourneyHtml(journeyData) {
   const dark = j.client.darkColour;
   const clientName = j.client.name;
   const personaName = j.persona.name;
+  // Tier governs which Adobe products are in scope and whether column 4
+  // is a single Orchestration column (Foundation) or stacked
+  // Orchestration + Decisioning (Advanced). Default 'advanced' for older
+  // cached journeys parsed before the tier field existed.
+  const tier = (j.client && j.client.tier === 'foundation') ? 'foundation' : 'advanced';
 
   // Build SVG nodes — bigger circles with a centered Feather-style icon as
   // the primary visual, the step number sitting as a small pill badge in
@@ -971,7 +1414,12 @@ function renderJourneyHtml(journeyData) {
     --bg: #f5f5f7;
     --panel: #ffffff;
     --border: #e5e7eb;
-    --active-bg: #e8f5e9;
+    /* Skill v9: softer mint wash so the "this is happening NOW" cue
+       reads as a tonal layer rather than a competing block of colour.
+       Translucent rgba lets it sit on top of the panel without picking
+       up a hard edge between siblings, and the 0.16 alpha is just
+       enough to register on light AND dark slide chrome. */
+    --active-bg: rgba(76, 175, 80, 0.16);
     --active-stroke: #4caf50;
     /* Shared timing for the journey-map node cross-fade — keeps the
        circle, icon, badge and label all dissolving as a single unit. */
@@ -995,7 +1443,12 @@ function renderJourneyHtml(journeyData) {
      the user drills into individual steps. */
   .journey-map-container.expanded { flex: 1 1 auto; justify-content: center; padding: 28px 18px; }
   .journey-map-container.expanded svg.journey-svg { max-height: none; height: 100%; flex: 1 1 auto; }
-  .data-panel.hidden { display: none; }
+  /* Skill v9: replace display:none with a max-height + opacity slide
+     so the panel collapses smoothly when the user reaches the overview
+     slide, rather than snapping out and snapping back in. The map
+     container's flex-basis transition (already in place) drives the
+     resulting layout reflow at the same 0.5s tempo. */
+  .data-panel.hidden { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; margin-top: 0; margin-bottom: 0; border-width: 0; overflow: hidden; }
   svg.journey-svg { width: 100%; height: auto; max-height: 280px; display: block; }
   .journey-base { stroke: #c9ced8; stroke-width: 2.5; fill: none; }
   .journey-active { stroke: var(--brand); stroke-width: 4; fill: none; opacity: 0; transition: opacity var(--node-fade); }
@@ -1007,7 +1460,9 @@ function renderJourneyHtml(journeyData) {
   .journey-draw.visible { opacity: 1; }
   @media (prefers-reduced-motion: reduce) {
     .journey-draw { transition: none !important; }
+    .journey-active { transition: none !important; }
     .journey-map-container { transition: none !important; }
+    .data-panel { transition: none !important; }
   }
 
   /* Active-state transitions everywhere (circle, icon, badge) share the
@@ -1086,17 +1541,35 @@ function renderJourneyHtml(journeyData) {
     .node-icon, .node-badge circle, .node-badge text, .node-circle, .node-label, .journey-active { transition: none; }
   }
 
-  .data-panel { background: var(--panel); border: 2px solid var(--brand); border-radius: 12px; padding: 14px 16px 18px; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
-  .data-panel-title { font-size: 12px; font-weight: 700; color: var(--brand); letter-spacing: 0.4px; margin-bottom: 10px; text-transform: uppercase; }
+  .data-panel { background: var(--panel); border: 2px solid var(--brand); border-radius: 12px; padding: 14px 16px 18px; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; max-height: 9999px; opacity: 1; transition: max-height 0.5s ease, opacity 0.4s ease, padding 0.5s ease, margin 0.5s ease, border-width 0.5s ease; }
+  /* Skill v9: bigger, calmer title — sits above the data grid as a
+     clear "what AEP does here" anchor rather than a tiny label. The
+     inline accent dot reuses --brand so the panel signature reads as
+     one piece even when the brand colour changes via recolour. */
+  .data-panel-title { font-size: 13px; font-weight: 700; color: var(--brand); letter-spacing: 0.5px; margin-bottom: 12px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px; }
+  .data-panel-title::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
   .data-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; flex: 1 1 auto; min-height: 0; }
   .data-col { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; }
   /* Stacked sub-column layout: column 2 (Ingestion + Segments) and
      column 4 (Orchestration + Decisioning) split vertically 50/50 with
      a thin divider, so each strand carries its own header without
      making the whole panel taller. */
-  .data-col.stacked { padding: 0; gap: 0; }
-  .data-col-half { flex: 0 0 50%; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; }
+  /* Stacked column (Ingestion+Segments, Orchestration+Decisioning).
+     CSS grid with minmax rows means each half always anchors to a
+     stable baseline that lines up with the unstacked sibling cols
+     (Data Collected, Identities, Activation), even when one half has
+     two bullets and the other has eight. minmax(80px, 1fr) gives each
+     half a guaranteed visible footprint while still letting them
+     redistribute under content pressure. */
+  .data-col.stacked {
+    display: grid;
+    grid-template-rows: minmax(80px, 1fr) minmax(80px, 1fr);
+    padding: 0;
+    gap: 0;
+  }
+  .data-col-half { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; }
   .data-col-half:first-child { border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 6px; }
+  .data-col-half:last-child { padding-bottom: 6px; }
   .data-col-title { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.3px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
   .data-col-subtitle { font-size: 9.5px; font-weight: 700; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.3px; opacity: 0.85; padding-bottom: 2px; }
   .data-item { font-size: 10.5px; line-height: 1.35; padding: 4px 6px; border-radius: 4px; color: var(--ink); background: #f9fafb; border: 1px solid transparent; transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease; }
@@ -1112,6 +1585,17 @@ function renderJourneyHtml(journeyData) {
   .tech-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.2px; }
   .tech-badge.confirmed { background: #e8f5e9; color: #1b5e20; }
   .tech-badge.assumed { background: #fff3e0; color: #b26a00; }
+  /* Brand Concierge badge — Advanced-tier orch column. Bullets the model
+     prefixes "Brand Concierge:" pick up a small violet "BC" pill before
+     the text and a thin left-accent so audiences can see at a glance
+     that this is conversational AI fired from an owned channel, not a
+     marketer-orchestrated AJO push. The accent is intentionally subtle
+     — BC sits inside the same Journey Orchestration column on purpose
+     (per the skill v9 spec); the badge is the cue, not a new column. */
+  .bc-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-right: 6px; vertical-align: middle; letter-spacing: 0.4px; background: rgba(125, 73, 220, 0.14); color: #5a2eb8; text-transform: uppercase; }
+  .data-item.is-bc { border-left: 2px solid rgba(125, 73, 220, 0.55); padding-left: 5px; }
+  .data-item.is-bc.past { border-left-color: rgba(125, 73, 220, 0.32); }
+  .data-item.is-bc.active { border-left-color: rgba(125, 73, 220, 0.85); }
   .seg { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; font-size: 10px; line-height: 1.25; background: #f9fafb; border: 1px solid transparent; transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease; }
   .seg.active { background: var(--active-bg); border-color: var(--active-stroke); color: #1b5e20; font-weight: 600; }
   .seg.past { opacity: 0.42; background: transparent; border-color: transparent; }
@@ -1179,6 +1663,17 @@ function renderJourneyHtml(journeyData) {
           <div class="data-col-title">Identities</div>
           <div id="col-identities"></div>
         </div>
+        ${tier === 'foundation' ? `
+        <!-- Foundation tier: column 4 collapses to a single full-height
+             Journey Orchestration column. Decisioning lives only in
+             Advanced. The col-decisioning div is still rendered (hidden)
+             so the per-tier renderer JS can write into it without
+             nullref-checking, but it has no visible chrome. -->
+        <div class="data-col">
+          <div class="data-col-title">Journey Orchestration</div>
+          <div id="col-orch"></div>
+          <div id="col-decisioning" hidden></div>
+        </div>` : `
         <div class="data-col stacked">
           <div class="data-col-half">
             <div class="data-col-title">Journey Orchestration</div>
@@ -1188,7 +1683,7 @@ function renderJourneyHtml(journeyData) {
             <div class="data-col-subtitle">Decisioning</div>
             <div id="col-decisioning"></div>
           </div>
-        </div>
+        </div>`}
         <div class="data-col">
           <div class="data-col-title">Activation / Destinations</div>
           <div id="col-activ"></div>
@@ -1224,27 +1719,39 @@ function renderJourneyHtml(journeyData) {
   const pathSegs = ${pathSegsJson};
   let current = 0;
 
-  // Animate the overview path with a stroke-dasharray draw effect every
-  // time the overview slide is entered. Length is computed from the SVG
-  // path itself so it stays accurate even if BASE_PATH ever changes.
+  // Skill v9: the active-seg path is the single source of truth for
+  // the brand-coloured trail. On the overview slide we point active-seg
+  // at the full BASE_PATH and animate stroke-dashoffset from len → 0
+  // over 7s with a deep cubic-bezier ease. On every other slide
+  // render() points the same path at the relevant sub-segment, so
+  // there's only ever one drawn brand-coloured stroke on screen — the
+  // one that's "active right now". The journey-draw path stays in the
+  // SVG as a static base for layering, but it never animates.
+  const OVERVIEW_PATH = ${JSON.stringify(BASE_PATH)};
   function animateOverview() {
-    const path = document.getElementById('journey-draw');
-    if (!path) return;
+    const seg = document.getElementById('active-seg');
+    if (!seg) return;
+    seg.setAttribute('d', OVERVIEW_PATH);
     let len = 0;
-    try { len = path.getTotalLength(); } catch (_) { len = 1200; }
-    path.style.strokeDasharray = String(len);
-    path.style.transition = 'none';
-    path.style.strokeDashoffset = String(len);
-    path.classList.add('visible');
-    void path.getBoundingClientRect();
+    try { len = seg.getTotalLength(); } catch (_) { len = 1200; }
+    seg.style.strokeDasharray = String(len);
+    seg.style.transition = 'none';
+    seg.style.strokeDashoffset = String(len);
+    seg.classList.add('visible');
+    void seg.getBoundingClientRect();
     const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    path.style.transition = reduced ? 'none' : 'stroke-dashoffset 6s cubic-bezier(0.45, 0.05, 0.55, 0.95)';
-    path.style.strokeDashoffset = '0';
+    seg.style.transition = reduced ? 'none' : 'stroke-dashoffset 7s cubic-bezier(0.25, 0.1, 0.25, 1)';
+    seg.style.strokeDashoffset = '0';
   }
   function hideOverviewDraw() {
-    const path = document.getElementById('journey-draw');
-    if (!path) return;
-    path.classList.remove('visible');
+    // Clear the dasharray + transition so render() can take over the
+    // active-seg path for the per-step sub-segment without inheriting
+    // the 7s overview ease.
+    const seg = document.getElementById('active-seg');
+    if (!seg) return;
+    seg.style.transition = '';
+    seg.style.strokeDasharray = '';
+    seg.style.strokeDashoffset = '';
   }
 
   function render() {
@@ -1326,7 +1833,21 @@ function renderJourneyHtml(journeyData) {
 
     document.getElementById('col-orch').innerHTML = accumulate(
       current, s => s.orch || [], s => s.orchActive || [], x => String(x)
-    ).map(o => liStr(o.item, o.isActive, o.isPast)).join('');
+    ).map(o => {
+      // Brand Concierge bullets sit in this same column per the skill
+      // v9 spec; we surface a "BC" pill + violet accent so the audience
+      // can see where conversational AI fires vs where AJO pushes.
+      // Match is case-insensitive and strips the prefix from the
+      // visible text (the badge replaces it).
+      var raw = String(o.item);
+      var bcMatch = raw.match(/^\s*brand\s+concierge\s*:\s*(.*)$/i);
+      if (bcMatch) {
+        var rest = bcMatch[1];
+        var cls = (o.isActive ? ' active' : (o.isPast ? ' past' : '')) + ' is-bc';
+        return '<div class="data-item' + cls + '"><span class="bc-badge">BC</span>' + esc(rest) + '</div>';
+      }
+      return liStr(o.item, o.isActive, o.isPast);
+    }).join('');
 
     // Decisioning is the bottom half of column 4. When a journey carries
     // no decisioning bullets at all, the inner div stays empty and the
@@ -2204,6 +2725,12 @@ async function handleGenerate(req, res) {
   const refinementPrompt = typeof body.refinementPrompt === 'string'
     ? body.refinementPrompt
     : '';
+  // AEP capability tier — Foundation = RT-CDP + AJO + CJA only;
+  // Advanced = also includes Decision Management + Brand Concierge.
+  // Default is 'advanced' so callers that pre-date this field (legacy
+  // localStorage cache loads, older external integrations) keep getting
+  // today's behaviour with no surprise.
+  const tier = body.tier === 'foundation' ? 'foundation' : 'advanced';
   try {
     const result = await generateJourney({
       sandbox,
@@ -2213,6 +2740,7 @@ async function handleGenerate(req, res) {
       personaName: body.personaName,
       clientName: body.clientName,
       additionalContext: body.additionalContext,
+      tier,
       previousJourney,
       refinementPrompt,
     });

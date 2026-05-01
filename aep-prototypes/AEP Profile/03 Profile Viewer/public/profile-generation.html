@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="profile-generation.css">
+  <link rel="stylesheet" href="profile-generation.css?v=20260501">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -1100,29 +1100,36 @@
          Hidden by default; profile-generation.js toggles this on when industry === "generic". -->
     <section class="consent-panel" id="genericProfilePanel" aria-labelledby="genericProfileHeading" hidden>
       <h2 id="genericProfileHeading" class="panel-title"><span class="icon">🧬</span> Generic profile (industry-less)</h2>
-      <p class="panel-desc">
-        Skip the industry pack and stream a clean Profile with Customer Analytics fields (churn, propensity, NPS, AOV, preferred channel, gender, loyalty, language).
-        Set up the schema, attach field groups and create the Profile-enabled dataset for any sandbox; then generate or update profiles via Adobe Profile Updater (<code>/api/profile/update</code>).
-      </p>
 
-      <!-- A. Sandbox &amp; streaming connection (mirrors consent.html pattern) -->
-      <details class="consent-streaming-details" id="genericProfileInfraDetails" aria-label="Generic Profile sandbox preparation and HTTP streaming connection">
+      <!-- A. Sandbox &amp; streaming connection (mirrors consent.html pattern).
+           Starts expanded so a fresh visitor sees the 4-step wizard. JS in
+           profile-generation-generic.js (applyConfiguredCollapseState)
+           collapses the <details> and swaps #genericProfileInfraHint to a
+           green "Configured" message once all four streaming fields are
+           populated (after Save connection or after a per-sandbox Firestore
+           load). showInfraMessage('…','error') re-opens it. -->
+      <details class="consent-streaming-details" id="genericProfileInfraDetails" open aria-label="Generic Profile sandbox preparation and HTTP streaming connection">
         <summary class="consent-streaming-details__summary">
           <span class="consent-streaming-details__title">
             <span class="icon" aria-hidden="true">⚙</span>
             Sandbox &amp; streaming connection
           </span>
-          <span class="consent-streaming-details__hint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
+          <span class="consent-streaming-details__hint" id="genericProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
         </summary>
         <div class="consent-streaming-details__body">
           <div class="consent-setup-instructions">
             <h4>Before you can generate or update generic profiles in a new sandbox:</h4>
             <ol>
-              <li><strong>1 · Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - Generic Profile - Schema</code>.</li>
-              <li><strong>2 · Attach field groups</strong> — Attaches Profile Core v2, Demographic Details, Personal Contact Details, Loyalty Details and a tenant <code>AEP Lab - Customer Analytics</code> field group, plus the primary Email identity descriptor.</li>
-              <li><strong>3 · Create dataset</strong> — Creates <code>AEP Lab - Generic Profile - Dataset</code>, <strong>enabled for Real-Time Customer Profile</strong> (opposite of the Consent dataset).</li>
-              <li><strong>4 · HTTP flow (instructions)</strong> — Tells you how to create the HTTP API dataflow in AEP UI. Then use <strong>Fetch URL &amp; Flow ID</strong> to populate the connection and click <strong>Save connection</strong>.</li>
+              <li><strong>Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - Generic Profile - Schema</code>.</li>
+              <li>
+                <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong> (OOTB <code>consents.marketing.*</code>, including the preferred-channel enum at <code>consents.marketing.preferred</code>), and <strong>Preference Details</strong> (<code>preferences.*</code>, e.g. preferred language) to <code>AEP Lab - Generic Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. The wizard <strong>does not</strong> enable the schema for Real-Time Customer Profile at this point — that is a deliberate, manual step (see note below).
+              </li>
+              <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Generic Profile - Dataset</code>.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Generic Profile - Dataflow</code></strong> (the value pre-populated in the <em>Dataflow name (used for lookup when Flow ID is empty)</em> field below) so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve the <strong>Flow ID</strong> and <strong>Collection URL</strong> automatically — or copy the Flow ID manually if you used a different name.</li>
             </ol>
+            <p class="consent-setup-instructions__note">
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the schema's field groups, open <code>AEP Lab - Generic Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. The wizard intentionally never sets this flag because enabling a schema for Profile is a <strong>one-way action</strong> in AEP — once enabled you cannot add or remove field groups, and the schema becomes very difficult to retire. Only toggle it on after you confirm step 2 attached every field group you need.
+            </p>
           </div>
           <div class="button-row">
             <button type="button" id="genCheckInfraBtn" class="btn btn-secondary">Check sandbox status</button>
@@ -1170,41 +1177,77 @@
         </div>
       </details>
 
-      <!-- B. Email pattern + actions -->
+      <!-- B. Profile email — two consolidated sub-blocks:
+           1) Look up an existing profile by any identity namespace, populating the editor below.
+           2) Generate from your saved base email (persisted in localStorage for "set it and forget it" UX). -->
       <div class="generic-pattern-panel">
         <h3 class="generic-subhead"><span class="icon">📧</span> Profile email</h3>
-        <p class="generic-helper">
-          Enter the email you'd like to use for profiles (e.g. <code>apalmer@adobetest.com</code> or <code>adamp.adobedemo@gmail.com</code>).
-          We'll scale it with plus-addressing as <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> using today's date and a counter that resets daily per sandbox.
-        </p>
-        <div class="form-row form-row--inline">
-          <div class="form-group form-group--flex">
-            <label for="genBaseEmail">Base email</label>
-            <input type="email" id="genBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
-          </div>
-          <div class="form-group">
-            <label for="genCounter">Counter (N)</label>
-            <input type="number" id="genCounter" min="1" step="1" value="1">
-          </div>
-          <div class="form-group">
-            <label for="genGenerateCount">Count</label>
-            <input type="number" id="genGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
-          </div>
-        </div>
-        <p class="email-pattern-preview">
-          <strong>Will scale to:</strong>
-          <code id="genEmailPreview">—</code>
-          <button type="button" id="genResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
-        </p>
 
-        <div class="generic-actions button-row">
-          <button type="button" id="genFindProfileBtn" class="btn btn-secondary">Find profile (by current scaled email)</button>
-          <button type="button" id="genUpdateProfileBtn" class="btn btn-primary">Update profile</button>
-          <button type="button" id="genGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
-          <label class="generic-dryrun-label">
-            <input type="checkbox" id="genDryRun"> <span>Dry run (preview payload, do not stream)</span>
-          </label>
+        <!-- B1. Look up an existing profile (any identity namespace).
+             Mirrors the standard widget on index.html (Query profile). When namespace=email and the
+             identifier is empty, profile-generation-generic.js auto-fills it with the current scaled
+             email on focus so a single click after landing still matches "Find by current scaled email". -->
+        <div class="generic-lookup-block">
+          <h4 class="generic-lookup-block__title"><span class="icon" aria-hidden="true">🔎</span> Look up an existing profile</h4>
+          <p class="generic-helper">Pick an identity namespace, paste the value, and we'll load that profile's data into the editor below.</p>
+          <div class="form-row form-row--inline">
+            <div class="form-group">
+              <label for="genLookupNs">Namespace</label>
+              <select id="genLookupNs" aria-label="Identity namespace for profile lookup">
+                <option value="email" selected>Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-group form-group--flex">
+              <label for="genLookupIdentifier">Identifier value</label>
+              <input type="text" id="genLookupIdentifier" placeholder="Click to use the current scaled email, or paste any identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-group form-group--small">
+              <label>&nbsp;</label>
+              <button type="button" id="genLookupBtn" class="btn btn-secondary">Look up profile</button>
+            </div>
+          </div>
         </div>
+
+        <!-- B2. Generate from base email (set-and-forget — persisted in localStorage). -->
+        <div class="generic-pattern-block">
+          <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
+          <p class="generic-helper">
+            We scale your base email with plus-addressing as <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> using today's date and a counter that resets daily per sandbox.
+            Your base email is <strong>saved on this device</strong> — type once, edit any time, autosaved.
+          </p>
+          <div class="form-row form-row--inline">
+            <div class="form-group form-group--flex">
+              <label for="genBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <input type="email" id="genBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="genCounter">Counter (N)</label>
+              <input type="number" id="genCounter" min="1" step="1" value="1">
+            </div>
+            <div class="form-group">
+              <label for="genGenerateCount">Count</label>
+              <input type="number" id="genGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
+            </div>
+          </div>
+          <p class="email-pattern-preview">
+            <strong>Will scale to:</strong>
+            <code id="genEmailPreview">—</code>
+            <button type="button" id="genResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+          </p>
+
+          <div class="generic-actions button-row">
+            <button type="button" id="genUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
+            <button type="button" id="genGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="genDryRun"> <span>Dry run (preview payload, do not stream)</span>
+            </label>
+          </div>
+        </div>
+
         <p id="genericProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
       </div>
 
@@ -1322,26 +1365,33 @@
             </div>
           </div>
 
-          <div class="analytics-card">
+          <!--
+            Preferred marketing channel: OOTB Consent and Preference Details
+            (`profile-consents`) enum at `consents.marketing.preferred`. Option
+            values are the XDM enum strings; labels are operator-facing display
+            names. Step 2 of the Generic wizard attaches the field group.
+          -->
+          <div id="genPreferredChannelCard" class="analytics-card">
             <div class="analytics-card-header">
               <span class="analytics-card-icon">📢</span>
-              <h4 class="analytics-card-title">Preferred channel</h4>
+              <h4 class="analytics-card-title">Preferred marketing channel</h4>
             </div>
-            <p class="analytics-card-desc">Communication channel preference. Maps to <code>_demoemea.preferences.preferredChannel</code>.</p>
-            <select id="genPreferredChannel">
-              <option value="">— Select —</option>
-              <option value="email">Email</option>
-              <option value="push">Push notifications</option>
-              <option value="inapp">In-app messages</option>
-              <option value="sms">SMS (text messages)</option>
-              <option value="phone">Phone calls</option>
-              <option value="postal">Physical mail</option>
-              <option value="invehicle">In-vehicle messages</option>
-              <option value="inhome">In-home messages</option>
-              <option value="iot">IoT messages</option>
-              <option value="social">Social media</option>
+            <p class="analytics-card-desc">Stored as the enum string at <code>consents.marketing.preferred</code> (Consent and Preference Details field group). Leave blank to skip on this update.</p>
+            <select id="genPreferredChannel" aria-label="Preferred marketing channel">
+              <option value="">— Skip (unchanged) —</option>
+              <option value="email">email</option>
+              <option value="push">Push Notifications</option>
+              <option value="inApp">In-app Messages</option>
+              <option value="sms">SMS (Text Messages)</option>
+              <option value="whatsApp">WhatsApp Messages</option>
+              <option value="phone">Phone Calls</option>
+              <option value="phyMail">Physical Mail</option>
+              <option value="inVehicle">In-vehicle Messages</option>
+              <option value="inHome">In-home Messages</option>
+              <option value="iot">IoT Messages</option>
+              <option value="social">Social Media</option>
               <option value="other">Other</option>
-              <option value="none">No preferred channel</option>
+              <option value="none">No Preferred Channel</option>
               <option value="unknown">Unknown</option>
             </select>
           </div>
@@ -1372,7 +1422,7 @@
               <input type="checkbox" id="genLoyaltyEnabled">
               <span>Member of loyalty program</span>
             </label>
-            <p class="analytics-card-desc">When toggled on we generate a loyalty profile with ID, tier, points, and the member's preferred language. Off by default — no <code>loyalty.*</code> keys are sent.</p>
+            <p class="analytics-card-desc">When toggled on we generate a loyalty profile with ID, tier, and points. Use the standalone <strong>Language preference</strong> card for <code>personalEmail.language</code>. Off by default — no <code>loyalty.*</code> keys are sent.</p>
             <div class="gen-loyalty-fields" id="genLoyaltyFields" hidden>
               <div class="form-row">
                 <label for="genLoyaltyID">Loyalty ID</label>
@@ -1398,47 +1448,6 @@
                   <label>&nbsp;</label>
                   <button type="button" id="genLoyaltyRandomBtn" class="btn btn-link" title="Random points within selected tier">🎲</button>
                 </div>
-              </div>
-              <div class="form-row">
-                <label for="genLoyaltyLanguage">Language preference</label>
-                <select id="genLoyaltyLanguage">
-                  <option value="">— Select —</option>
-                  <option value="en-US">English (United States)</option>
-                  <option value="en-GB">English (United Kingdom)</option>
-                  <option value="en-CA">English (Canada)</option>
-                  <option value="en-AU">English (Australia)</option>
-                  <option value="fr-FR">French (France)</option>
-                  <option value="fr-CA">French (Canada)</option>
-                  <option value="de-DE">German (Germany)</option>
-                  <option value="de-AT">German (Austria)</option>
-                  <option value="de-CH">German (Switzerland)</option>
-                  <option value="es-ES">Spanish (Spain)</option>
-                  <option value="es-MX">Spanish (Mexico)</option>
-                  <option value="es-AR">Spanish (Argentina)</option>
-                  <option value="it-IT">Italian (Italy)</option>
-                  <option value="pt-PT">Portuguese (Portugal)</option>
-                  <option value="pt-BR">Portuguese (Brazil)</option>
-                  <option value="nl-NL">Dutch (Netherlands)</option>
-                  <option value="nl-BE">Dutch (Belgium)</option>
-                  <option value="da-DK">Danish (Denmark)</option>
-                  <option value="sv-SE">Swedish (Sweden)</option>
-                  <option value="no-NO">Norwegian (Norway)</option>
-                  <option value="fi-FI">Finnish (Finland)</option>
-                  <option value="pl-PL">Polish (Poland)</option>
-                  <option value="ru-RU">Russian (Russia)</option>
-                  <option value="zh-CN">Chinese (Simplified)</option>
-                  <option value="zh-TW">Chinese (Traditional)</option>
-                  <option value="ja-JP">Japanese (Japan)</option>
-                  <option value="ko-KR">Korean (South Korea)</option>
-                  <option value="ar-SA">Arabic (Saudi Arabia)</option>
-                  <option value="ar-AE">Arabic (UAE)</option>
-                  <option value="he-IL">Hebrew (Israel)</option>
-                  <option value="tr-TR">Turkish (Turkey)</option>
-                  <option value="hi-IN">Hindi (India)</option>
-                  <option value="th-TH">Thai (Thailand)</option>
-                  <option value="vi-VN">Vietnamese (Vietnam)</option>
-                </select>
-                <p class="field-hint">Loyalty members get language as part of their profile. Maps to <code>personalEmail.language</code>.</p>
               </div>
             </div>
           </div>
@@ -1488,10 +1497,6 @@
             </select>
           </div>
         </div>
-        <p class="analytics-info-banner">
-          <strong>Analytics info:</strong> these values update the customer's scoring, NPS, order profile, loyalty status and language preferences in Adobe Experience Platform via the existing
-          <code>profileUpdateProxy</code> (<code>POST /api/profile/update</code>). Leave fields blank to skip them — blanks are not sent.
-        </p>
       </div>
 
       <details id="genericProfileDebug" class="generate-debug" hidden>
@@ -1522,6 +1527,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="aep-global-sandbox.js"></script>
   <script src="aep-lab-sandbox-sync.js?v=20260420-theme-per-sandbox"></script>
+  <!-- Shared identifier-history helpers: AepIdentityPicker keeps the namespace
+       dropdown in sync across all profile lookup pages, and attachEmailDatalist
+       gives the identifier input per-namespace autocomplete (cap MAX_PER_NS=20)
+       backed by localStorage 'aep-profile-viewer-recent-identifiers-v1'. Loaded
+       before profile-generation-generic.js so the module can call into them
+       during init. Used by consent.js, app.js (index.html lookup), event-tool.js,
+       live-activities.js, etc. -->
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
   <script src="profile-generation.js"></script>
   <script src="profile-generation-generic.js"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

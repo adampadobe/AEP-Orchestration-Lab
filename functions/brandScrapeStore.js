@@ -9,6 +9,7 @@
  *       stakeholdersPresent, storagePath, storageSize, hasFullRecord,
  *       lastExport, createdAt, updatedAt,
  *       scrapeStatus ('running' | 'crawl_complete' | 'failed' | 'complete'), scrapeError,
+ *       buildPhase ('crawl' | 'brand' | 'audiences' | 'complete') — progressive build; optional on legacy rows,
  *       runSteps: [{ id, label, status: 'ok'|'failed'|'skipped', detail? }] — last-fail trace,
  *       analysisPending (boolean, index only — true after crawl checkpoint until final save),
  *       runStartedAt, crawlEngine, includeSummary,
@@ -364,6 +365,10 @@ async function saveScrape(sandbox, payload, options = {}) {
   }
 
   // 2. Write the slim, queryable index doc to Firestore.
+  const resolvedBuildPhase = options.buildPhase != null
+    ? String(options.buildPhase)
+    : (isCheckpoint ? 'crawl' : 'complete');
+
   const indexDoc = {
     sandbox: name,
     scrapeId,
@@ -390,6 +395,7 @@ async function saveScrape(sandbox, payload, options = {}) {
     scrapeStatus: isCheckpoint ? 'crawl_complete' : 'complete',
     scrapeError: null,
     analysisPending: !!isCheckpoint,
+    buildPhase: resolvedBuildPhase,
   };
 
   const ref = getDb().collection(COLLECTION).doc(docId(name, scrapeId));
@@ -471,6 +477,7 @@ async function listScrapes(sandbox, { limit = 50 } = {}) {
       crawlEngine: data.crawlEngine || null,
       archiveVersionCount: Array.isArray(data.scrapeVersions) ? data.scrapeVersions.length : 0,
       runSteps: Array.isArray(data.runSteps) ? data.runSteps : [],
+      buildPhase: data.buildPhase || null,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     }));

@@ -4,7 +4,7 @@
  * Handles:
  *  - Sandbox-portable setup wizard (4 steps): Create schema → Attach field groups → Create dataset → HTTP flow instructions.
  *  - Per-sandbox saved DCS HTTP API connection (URL, Flow ID, Dataset ID, Schema $id) via Firestore.
- *  - Customer Analytics editor (churn, propensity, NPS, AOV, preferred channel, gender, loyalty tier+points, language).
+ *  - Customer Analytics editor (churn, propensity, NPS, AOV, preferred marketing channel → consents.marketing.preferred, gender, loyalty tier+points, language).
  *  - Plain-email-to-pattern scaler `<local>+DDMMYYYY-N@<domain>` with daily counter per (sandbox, base email).
  *  - Find existing profile by scaled email (`/api/profile/table`).
  *  - Update / generate-N profiles via the existing Adobe Profile Updater (`/api/profile/update`).
@@ -25,6 +25,12 @@
   const stepCreateDatasetBtn = document.getElementById('genStepCreateDatasetBtn');
   const stepHttpFlowBtn = document.getElementById('genStepHttpFlowBtn');
   const infraStatusMessage = document.getElementById('genInfraStatusMessage');
+  // Collapsible <details> wrapping the wizard. We capture the original hint
+  // copy at module load so applyConfiguredCollapseState() can restore it
+  // when the user re-opens / clears fields.
+  const infraDetailsEl = document.getElementById('genericProfileInfraDetails');
+  const infraHintEl = document.getElementById('genericProfileInfraHint');
+  const ORIGINAL_INFRA_HINT = infraHintEl ? infraHintEl.textContent.trim() : '';
 
   // Streaming connection fields
   const streamSchemaIdEl = document.getElementById('genStreamSchemaId');
@@ -37,17 +43,38 @@
   const fetchFlowFromAepBtn = document.getElementById('genFetchFlowFromAepBtn');
   const saveStreamBtn = document.getElementById('genSaveStreamBtn');
 
-  // Email + actions
+  // Profile lookup (any identity namespace) — mirrors the standard widget on index.html.
+  // The namespace <select> is wired to AepIdentityPicker (shared aepIdentityNamespace
+  // localStorage key, kept in sync across every lookup page in the lab) and the
+  // identifier <input> gets per-namespace autocomplete via attachEmailDatalist
+  // (shared 'aep-profile-viewer-recent-identifiers-v1' cache, populated by every
+  // successful lookup on consent.html, index.html, event-tool, live-activities, etc).
+  const lookupNsEl = document.getElementById('genLookupNs');
+  const lookupIdentifierEl = document.getElementById('genLookupIdentifier');
+  const lookupBtn = document.getElementById('genLookupBtn');
+  if (typeof window.AepIdentityPicker !== 'undefined' && typeof window.AepIdentityPicker.init === 'function') {
+    window.AepIdentityPicker.init('genLookupIdentifier', 'genLookupNs');
+  }
+  if (typeof window.attachEmailDatalist === 'function') {
+    // Page-local datalist id avoids collision with the global 'recentEmails'
+    // datalist that consent.html and others create — same shared cache, separate
+    // <datalist> element so the input's `list=` attribute resolves cleanly.
+    window.attachEmailDatalist('genLookupIdentifier', 'genLookupRecent', 'genLookupNs');
+  }
+
+  // Base email + counter + actions ("Generate from your base email" sub-block)
   const baseEmailEl = document.getElementById('genBaseEmail');
   const counterEl = document.getElementById('genCounter');
   const generateCountEl = document.getElementById('genGenerateCount');
   const emailPreviewEl = document.getElementById('genEmailPreview');
   const resetCounterBtn = document.getElementById('genResetCounterBtn');
-  const findProfileBtn = document.getElementById('genFindProfileBtn');
   const updateProfileBtn = document.getElementById('genUpdateProfileBtn');
   const generateBtn = document.getElementById('genGenerateBtn');
   const dryRunEl = document.getElementById('genDryRun');
   const messageEl = document.getElementById('genericProfileMessage');
+
+  // Set-and-forget base email persistence (global, all sandboxes — one device, one user).
+  const BASE_EMAIL_STORAGE_KEY = 'genericProfileBaseEmail';
 
   // Identity (added when Generic became an industry option — basic profile fields)
   const firstNameEl = document.getElementById('genFirstName');
@@ -70,7 +97,6 @@
   const loyaltyTierEl = document.getElementById('genLoyaltyTier');
   const loyaltyPointsEl = document.getElementById('genLoyaltyPoints');
   const loyaltyRandomBtn = document.getElementById('genLoyaltyRandomBtn');
-  const loyaltyLanguageEl = document.getElementById('genLoyaltyLanguage');
   const languageEl = document.getElementById('genLanguage');
   // Recently-generated picker (per sandbox + base email + day)
   const recentPickerEl = document.getElementById('genRecentPicker');
@@ -105,6 +131,50 @@
     if (text && type === 'error') {
       const det = document.getElementById('genericProfileInfraDetails');
       if (det) det.open = true;
+    }
+  }
+
+  /**
+   * True when the four required streaming fields (Schema $id, Dataset ID,
+   * Flow ID, Collection URL) are all filled. We treat that as "fully
+   * configured" — the operator has either completed the wizard or pasted
+   * a saved connection from Firebase.
+   */
+  function streamingFieldsAreFullyConfigured() {
+    const s = getStreamingPayload();
+    return !!(s && s.url && s.flowId && s.datasetId && s.schemaId);
+  }
+
+  /**
+   * Collapse the wizard <details> when fully configured (and swap the hint
+   * for a green "Configured" message); expand it again when the
+   * configuration becomes incomplete. Called from:
+   *   - loadConnectionFromFirestore() after a successful Firebase load.
+   *   - saveConnectionToFirestore() after a successful save.
+   *   - onSandboxChange() so switching sandboxes re-evaluates state.
+   *   - The "aep-generic-panel-shown" handler so the first reveal of the
+   *     Generic editor reflects the current state correctly.
+   * `showInfraMessage('…', 'error')` still force-opens the <details>
+   * regardless, so error states stay visible.
+   */
+  function applyConfiguredCollapseState() {
+    if (!infraDetailsEl) return;
+    const ready = streamingFieldsAreFullyConfigured();
+    if (ready) {
+      infraDetailsEl.open = false;
+      if (infraHintEl) {
+        const sb = getSandboxName();
+        infraHintEl.textContent = sb
+          ? `✓ Configured for sandbox "${sb}" — click to expand if you want to reconfigure.`
+          : '✓ Configured — click to expand if you want to reconfigure.';
+        infraHintEl.classList.add('consent-streaming-details__hint--configured');
+      }
+    } else {
+      infraDetailsEl.open = true;
+      if (infraHintEl) {
+        infraHintEl.textContent = ORIGINAL_INFRA_HINT;
+        infraHintEl.classList.remove('consent-streaming-details__hint--configured');
+      }
     }
   }
 
@@ -260,11 +330,13 @@
       if (rec && rec.streaming) {
         fillStreamingFields(rec.streaming);
         if (!silent) showInfraMessage('Loaded saved Generic Profile connection for this sandbox.', 'success');
+        applyConfiguredCollapseState();
         return true;
       }
       if (!silent) {
         showInfraMessage('No saved connection for this sandbox yet — run the 4 setup steps and Save connection.', '');
       }
+      applyConfiguredCollapseState();
       return false;
     } catch (e) {
       if (!silent) showInfraMessage(e.message || 'Network error loading connection.', 'error');
@@ -293,6 +365,7 @@
         showInfraMessage(data.error || 'Save failed.', 'error');
         return false;
       }
+      applyConfiguredCollapseState();
       return true;
     } catch (e) {
       showInfraMessage(e.message || 'Network error saving connection.', 'error');
@@ -346,7 +419,6 @@
         if (data.schemaMetaAltId) infra.schemaMetaAltId = data.schemaMetaAltId;
         if (data.datasetId) infra.datasetId = data.datasetId;
         if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
-        if (data.analyticsFieldGroupId) infra.analyticsFieldGroupId = data.analyticsFieldGroupId;
         if (Object.keys(infra).length) await saveConnectionToFirestore(infra);
       } catch (e) {
         console.warn('[generic-profile] infra sync:', e && e.message);
@@ -380,7 +452,6 @@
       const parts = [
         data.ready ? 'Ready for streaming (after URL + Flow ID set).' : 'Not fully ready yet.',
         `Profile Core v2 mixin: ${data.profileCoreMixinFound ? 'yes' : 'no'}`,
-        `Customer Analytics field group: ${data.analyticsFieldGroupFound ? 'yes' : 'no'}`,
         `Schema: ${data.schemaFound ? 'yes' : 'no'}`,
         `Primary email descriptor: ${data.primaryEmailDescriptor ? 'yes' : 'no'}`,
         `Dataset: ${data.datasetFound ? `yes (Profile-enabled: ${data.datasetProfileEnabled ? 'yes' : 'no'})` : 'no'}`,
@@ -393,7 +464,6 @@
         if (data.schemaMetaAltId) infra.schemaMetaAltId = data.schemaMetaAltId;
         if (data.datasetId) infra.datasetId = data.datasetId;
         if (data.profileCoreMixinId) infra.profileCoreMixinId = data.profileCoreMixinId;
-        if (data.analyticsFieldGroupId) infra.analyticsFieldGroupId = data.analyticsFieldGroupId;
         if (Object.keys(infra).length) await saveConnectionToFirestore(infra);
       } catch (e) {
         console.warn('[generic-profile] status sync:', e && e.message);
@@ -482,7 +552,6 @@
         id: loyaltyEnabled ? trimVal(loyaltyIDEl) : '',
         tier: loyaltyEnabled ? trimVal(loyaltyTierEl) : '',
         points: loyaltyEnabled ? trimVal(loyaltyPointsEl) : '',
-        language: loyaltyEnabled ? trimVal(loyaltyLanguageEl) : '',
       },
     };
   }
@@ -497,25 +566,33 @@
     const lastName = trimVal(lastNameEl);
     if (lastName) push('person.name.lastName', lastName);
 
-    // Tenant analytics (under _demoemea)
+    // Tenant analytics — these XDM paths live under the Profile Core v2
+    // tenant field group attached by the wizard (see the schema dump in the
+    // chat thread that introduced this mapping). The proxy auto-prefixes
+    // any path NOT in PROFILE_STREAM_ROOT_PATH_PREFIXES with the discovered
+    // xdmKey (e.g. `_demoemea`), so we only specify the suffix here.
+    //
+    // Path notes (Profile Core v2):
+    //   NPS lives at `_<tenant>.scoring.npsScore` (NOT `scoring.nps`)
+    //   AOV lives at `_<tenant>.orderProfile.avgOrderSize`
+    //         (NOT `commerce.averageOrderValue`)
     const churnRaw = churnEl ? String(churnEl.value || '').trim() : '';
     const propRaw = propensityEl ? String(propensityEl.value || '').trim() : '';
     const aovRaw = aovEl ? String(aovEl.value || '').trim() : '';
     const npsRaw = npsEl ? String(npsEl.value || '').trim() : '';
     if (churnRaw !== '') push('scoring.churn.churnPrediction', Number(churnRaw));
     if (propRaw !== '') push('scoring.core.propensityScore', Number(propRaw));
-    if (npsRaw !== '') push('scoring.nps', parseInt(npsRaw, 10));
-    if (aovRaw !== '') push('commerce.averageOrderValue', Number(aovRaw));
+    if (npsRaw !== '') push('scoring.npsScore', parseInt(npsRaw, 10));
+    if (aovRaw !== '') push('orderProfile.avgOrderSize', Number(aovRaw));
 
-    // Tenant preferences
-    const ch = preferredChannelEl ? trimVal(preferredChannelEl) : '';
-    if (ch) push('preferences.preferredChannel', ch);
-    // Standalone Language card — always pushed when it has a value, even
-    // when the loyalty toggle is on. Both the standalone card and the
-    // loyalty subgroup write to `personalEmail.language` / `preferences
-    // .preferredLanguage`, so when both are filled the loyalty subgroup's
-    // value (pushed below) wins because it is appended later in the
-    // updates array (last write wins for the same XDM path).
+    // Consent and Preference Details: enum string at consents.marketing.preferred
+    // (not a Profile Core v2 tenant path — merged at root via tenant.consents
+    // in profileStreamingCore.resolveStreamingConsentsOptInOut).
+    const preferredRaw = preferredChannelEl ? String(preferredChannelEl.value || '').trim() : '';
+    if (preferredRaw !== '') push('consents.marketing.preferred', preferredRaw);
+
+    // Standalone Language card — maps to `personalEmail.language` and
+    // `preferences.preferredLanguage` (XDM root paths).
     const lang = languageEl ? trimVal(languageEl) : '';
     if (lang) {
       push('personalEmail.language', lang);
@@ -529,95 +606,223 @@
     // Loyalty — only stream when the user has explicitly toggled the loyalty
     // sub-form on. This keeps non-loyalty profiles clean (no empty loyalty.*
     // keys end up in the AEP profile).
+    //
+    // Each of the three loyalty fields below is DUAL-WRITTEN to two XDM
+    // paths so the profile lights up both the standard XDM Loyalty Details
+    // view AND the demo-platform's Profile Core v2 tenant tree (which the
+    // user has wired into other dashboards / journeys):
+    //
+    //                     standard XDM (loyalty.*)        Profile Core v2 tenant
+    //   Loyalty Tier   →  loyalty.tier                    _<tenant>.loyaltyDetails.level
+    //   Loyalty Points →  loyalty.points                  _<tenant>.loyaltyDetails.points
+    //   Loyalty ID     →  loyalty.loyaltyID (array)       _<tenant>.identification.core.loyaltyId
+    //
+    // The standard XDM `loyalty.*` paths reach the profile via the standard
+    // Loyalty Details field group attached by the wizard (step 2). The
+    // tenant `_<tenant>.*` paths reach it via Profile Core v2. The proxy
+    // sends the same payload to AEP exactly once; AEP populates both views
+    // because the field groups overlap on these semantic concepts.
     const loyaltyEnabled = !!(loyaltyEnabledEl && loyaltyEnabledEl.checked);
     if (loyaltyEnabled) {
-      // ID — tenant namespace; profileUpdateProxy auto-prepends `_demoemea.`
-      // for paths not in PROFILE_STREAM_ROOT_PATH_PREFIXES.
       const loyaltyID = loyaltyIDEl ? trimVal(loyaltyIDEl) : '';
-      if (loyaltyID) push('identification.core.loyaltyId', loyaltyID);
+      if (loyaltyID) {
+        push('identification.core.loyaltyId', loyaltyID);
+        // Standard XDM loyalty.loyaltyID is an ARRAY of strings — wrap.
+        push('loyalty.loyaltyID', [loyaltyID]);
+      }
       const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
-      if (tier) push('loyalty.tier', tier);
+      if (tier) {
+        push('loyalty.tier', tier);
+        push('loyaltyDetails.level', tier);
+      }
       const pts = loyaltyPointsEl ? trimVal(loyaltyPointsEl) : '';
-      if (pts !== '') push('loyalty.points', Number(pts));
-      // Language inside the loyalty toggle takes precedence over the
-      // standalone Language card (both stay visible when loyalty is on, but
-      // the loyalty subgroup is the more specific context). Pushed after
-      // the standalone push above so the loyalty value overrides for the
-      // same XDM path (`personalEmail.language` / `preferences
-      // .preferredLanguage`) on the AEP stream.
-      const loyLang = loyaltyLanguageEl ? trimVal(loyaltyLanguageEl) : '';
-      if (loyLang) {
-        push('personalEmail.language', loyLang);
-        push('preferences.preferredLanguage', loyLang);
+      if (pts !== '') {
+        const ptsNum = Number(pts);
+        push('loyalty.points', ptsNum);
+        push('loyaltyDetails.points', ptsNum);
       }
     }
 
     return updates;
   }
 
+  /**
+   * Hydrate the editor below from a /api/profile/table response so the
+   * operator can pull a profile, tweak fields, and resend an update — the
+   * core "round-trip" workflow on this page.
+   *
+   * The table API returns a flat row array: { found, rows: [{ path, value,
+   * attribute, displayName }], profileEmail, ecid, entityId, lastModified }
+   * — see functions/profileTableHelpers.js → buildProfileTablePayload().
+   * That's the same shape index.html consumes through extractProfileInsightFields.
+   *
+   * We deliberately avoid hard-coding the tenant prefix (`_demoemea` etc.)
+   * — sandbox tenant ids vary per IMS org. Path-suffix / path-keyword
+   * matching against the lower-cased path strings in rows[] gives us a
+   * tenant-agnostic, schema-version-agnostic resolver that works for both
+   * legacy paths (Customer Analytics: scoring.nps, commerce.averageOrderValue)
+   * AND the current Profile Core v2 paths (scoring.npsScore,
+   * orderProfile.avgOrderSize) emitted by buildUpdatesFromForm().
+   *
+   * The legacy entity-walking branch is kept as a fallback for any caller
+   * that hands us a raw UPS entity (e.g. a future code path that bypasses
+   * the table proxy).
+   */
   function applyProfileFindResultToForm(found) {
     if (!found || typeof found !== 'object') return;
-    // The /api/profile/table response is sandbox-specific; we look for keys in the entity object.
-    // Extract a single entity object (handle several shapes):
-    let entity = null;
-    if (found.entity && typeof found.entity === 'object') entity = found.entity;
-    if (!entity && found.profile && typeof found.profile === 'object') entity = found.profile;
-    if (!entity && Array.isArray(found.entities) && found.entities.length) entity = found.entities[0];
-    if (!entity && Array.isArray(found.profiles) && found.profiles.length) entity = found.profiles[0];
-    if (!entity && Array.isArray(found.results) && found.results.length) entity = found.results[0];
-    if (!entity) return;
 
-    const get = (obj, path) => {
-      const keys = path.split('.');
-      let cur = obj;
-      for (const k of keys) {
-        if (cur == null || typeof cur !== 'object') return undefined;
-        cur = cur[k];
+    const rows = Array.isArray(found.rows) ? found.rows : null;
+    const trim = (v) => (v == null ? '' : String(v).trim());
+    const pathLower = (r) => String(r && r.path || '').toLowerCase().replace(/_/g, '.');
+
+    // Path-suffix match (e.g. ['npsscore', 'nps']) — first non-empty wins.
+    function findBySuffix(suffixes) {
+      if (!rows) return '';
+      for (const row of rows) {
+        const p = pathLower(row);
+        for (const s of suffixes) {
+          const ss = s.toLowerCase();
+          if (p === ss || p.endsWith(`.${ss}`) || p.endsWith(ss)) {
+            const v = trim(row.value);
+            if (v) return v;
+          }
+        }
       }
-      return cur;
-    };
-
-    const tenant = entity._demoemea && typeof entity._demoemea === 'object' ? entity._demoemea : {};
-
-    // Identity (added with the Generic-as-industry refactor)
-    const fn = get(entity, 'person.name.firstName');
-    if (fn != null && firstNameEl) firstNameEl.value = String(fn);
-    const ln = get(entity, 'person.name.lastName');
-    if (ln != null && lastNameEl) lastNameEl.value = String(ln);
-
-    const churn = get(tenant, 'scoring.churn.churnPrediction');
-    if (churn != null && churnEl) { churnEl.value = String(churn); renderChurn(); }
-    const prop = get(tenant, 'scoring.core.propensityScore');
-    if (prop != null && propensityEl) { propensityEl.value = String(prop); renderPropensity(); }
-    const nps = get(tenant, 'scoring.nps');
-    if (nps != null && npsEl) npsEl.value = String(nps);
-    const aov = get(tenant, 'commerce.averageOrderValue');
-    if (aov != null && aovEl) { aovEl.value = String(aov); renderAov(); }
-    const ch = get(tenant, 'preferences.preferredChannel');
-    if (ch != null && preferredChannelEl) preferredChannelEl.value = String(ch);
-    const lang = get(tenant, 'preferences.preferredLanguage') || get(entity, 'personalEmail.language');
-    if (lang != null && languageEl) languageEl.value = String(lang);
-    const gender = get(entity, 'person.gender');
-    if (gender != null && genderEl) genderEl.value = String(gender);
-
-    // Loyalty: enable the toggle when AEP has loyalty data, then route the
-    // pulled values into the loyalty subgroup so the form mirrors the profile.
-    const loyaltyId = get(tenant, 'identification.core.loyaltyId');
-    const tier = get(entity, 'loyalty.tier');
-    const pts = get(entity, 'loyalty.points');
-    const hasLoyaltyData = (loyaltyId != null && String(loyaltyId).trim() !== '')
-      || (tier != null && String(tier).trim() !== '')
-      || (pts != null && String(pts).trim() !== '');
-    if (hasLoyaltyData && loyaltyEnabledEl) {
-      loyaltyEnabledEl.checked = true;
-      applyLoyaltyToggleVisibility();
+      return '';
     }
-    if (loyaltyId != null && loyaltyIDEl) loyaltyIDEl.value = String(loyaltyId);
-    if (tier != null && loyaltyTierEl) loyaltyTierEl.value = String(tier);
-    if (pts != null && loyaltyPointsEl) loyaltyPointsEl.value = String(pts);
-    // When loyalty is enabled, mirror the language into the loyalty subgroup
-    // input as well, so editing the loyalty card after a Find shows the value.
-    if (hasLoyaltyData && lang != null && loyaltyLanguageEl) loyaltyLanguageEl.value = String(lang);
+    // All-keywords match (e.g. ['loyalty', 'points']) — useful when the
+    // suffix alone is too generic ('points' on its own would also match
+    // 'rewards.points'). First non-empty wins.
+    function findByKeywords(...keywords) {
+      if (!rows) return '';
+      const kws = keywords.map((k) => String(k).toLowerCase());
+      for (const row of rows) {
+        const p = pathLower(row);
+        if (kws.every((k) => p.includes(k))) {
+          const v = trim(row.value);
+          if (v) return v;
+        }
+      }
+      return '';
+    }
+
+    let firstName = findBySuffix(['firstname', 'givenname']);
+    let lastName = findBySuffix(['lastname', 'surname', 'familyname']);
+    let churn = findByKeywords('churn', 'prediction') || findBySuffix(['churnprediction', 'churnscore']);
+    let propensity = findByKeywords('scoring', 'propensity') || findBySuffix(['propensityscore']);
+    // NPS: prefer Profile Core v2 (scoring.npsScore), fall back to legacy
+    // (scoring.nps from the old AEP Lab Customer Analytics field group).
+    let nps = findBySuffix(['npsscore']) || findByKeywords('scoring', 'nps');
+    // AOV: Profile Core v2 = orderProfile.avgOrderSize; legacy = commerce.averageOrderValue.
+    let aov = findBySuffix(['avgordersize', 'averageordervalue']);
+    let lang = findBySuffix(['preferredlanguage']) ||
+      findByKeywords('personalemail', 'language') ||
+      findBySuffix(['language', 'locale']);
+    let gender = findBySuffix(['gender']) || findByKeywords('person', 'gender');
+    let preferredChannel = findBySuffix(['marketing.preferred']);
+
+    // Loyalty (dual-written by buildUpdatesFromForm to both the standard
+    // XDM mixin and Profile Core v2 tenant paths). Path-suffix match
+    // pulls whichever one made it into the profile, regardless of order.
+    let loyaltyId =
+      findByKeywords('loyalty', 'loyaltyid') ||
+      findByKeywords('identification', 'loyaltyid') ||
+      findBySuffix(['loyaltyid']);
+    let tier = findByKeywords('loyalty', 'tier') ||
+      findByKeywords('loyaltydetails', 'level') ||
+      findBySuffix(['tier']);
+    let points = findByKeywords('loyalty', 'points') ||
+      findByKeywords('loyaltydetails', 'points');
+
+    // Fallback path for raw UPS entity payloads (rows[] absent).
+    if (!rows) {
+      let entity = null;
+      if (found.entity && typeof found.entity === 'object') entity = found.entity;
+      if (!entity && found.profile && typeof found.profile === 'object') entity = found.profile;
+      if (!entity && Array.isArray(found.entities) && found.entities.length) entity = found.entities[0];
+      if (!entity && Array.isArray(found.profiles) && found.profiles.length) entity = found.profiles[0];
+      if (!entity && Array.isArray(found.results) && found.results.length) entity = found.results[0];
+      if (!entity) return;
+      const get = (obj, path) => {
+        const keys = path.split('.');
+        let cur = obj;
+        for (const k of keys) {
+          if (cur == null || typeof cur !== 'object') return undefined;
+          cur = cur[k];
+        }
+        return cur;
+      };
+      // Discover tenant prefix dynamically (any key starting with `_`).
+      const tenantKey = Object.keys(entity).find((k) => k.startsWith('_'));
+      const tenant = tenantKey && entity[tenantKey] && typeof entity[tenantKey] === 'object'
+        ? entity[tenantKey]
+        : {};
+      if (!firstName) { const v = get(entity, 'person.name.firstName'); if (v != null) firstName = String(v); }
+      if (!lastName)  { const v = get(entity, 'person.name.lastName');  if (v != null) lastName  = String(v); }
+      if (!churn)      { const v = get(tenant, 'scoring.churn.churnPrediction'); if (v != null) churn = String(v); }
+      if (!propensity) { const v = get(tenant, 'scoring.core.propensityScore'); if (v != null) propensity = String(v); }
+      if (!nps) { const v = get(tenant, 'scoring.npsScore'); if (v != null) nps = String(v); }
+      if (!nps) { const v = get(tenant, 'scoring.nps'); if (v != null) nps = String(v); }
+      if (!aov) { const v = get(tenant, 'orderProfile.avgOrderSize'); if (v != null) aov = String(v); }
+      if (!aov) { const v = get(tenant, 'commerce.averageOrderValue'); if (v != null) aov = String(v); }
+      if (!lang) {
+        const v = get(tenant, 'preferences.preferredLanguage') || get(entity, 'personalEmail.language');
+        if (v != null) lang = String(v);
+      }
+      if (!gender) { const v = get(entity, 'person.gender'); if (v != null) gender = String(v); }
+      if (!preferredChannel) {
+        const v = get(entity, 'consents.marketing.preferred');
+        if (v != null) preferredChannel = String(v);
+      }
+      if (!loyaltyId) {
+        const arr = get(entity, 'loyalty.loyaltyID');
+        if (Array.isArray(arr) && arr.length) loyaltyId = String(arr[0]);
+        else { const v = get(tenant, 'identification.core.loyaltyId'); if (v != null) loyaltyId = String(v); }
+      }
+      if (!tier)   { let v = get(entity, 'loyalty.tier');   if (v == null) v = get(tenant, 'loyaltyDetails.level');  if (v != null) tier   = String(v); }
+      if (!points) { let v = get(entity, 'loyalty.points'); if (v == null) v = get(tenant, 'loyaltyDetails.points'); if (v != null) points = String(v); }
+    }
+
+    if (firstName && firstNameEl) firstNameEl.value = firstName;
+    if (lastName && lastNameEl) lastNameEl.value = lastName;
+    if (churn && churnEl) { churnEl.value = churn; if (typeof renderChurn === 'function') renderChurn(); }
+    if (propensity && propensityEl) { propensityEl.value = propensity; if (typeof renderPropensity === 'function') renderPropensity(); }
+    if (nps && npsEl) npsEl.value = nps;
+    if (aov && aovEl) { aovEl.value = aov; if (typeof renderAov === 'function') renderAov(); }
+    setSelectValueLoose(languageEl, lang);
+    setSelectValueLoose(genderEl, gender);
+    setSelectValueLoose(preferredChannelEl, preferredChannel);
+
+    const hasLoyalty = !!(loyaltyId || tier || points);
+    if (hasLoyalty && loyaltyEnabledEl) {
+      loyaltyEnabledEl.checked = true;
+      if (typeof applyLoyaltyToggleVisibility === 'function') applyLoyaltyToggleVisibility();
+    }
+    if (loyaltyId && loyaltyIDEl) loyaltyIDEl.value = loyaltyId;
+    setSelectValueLoose(loyaltyTierEl, tier);
+    if (points && loyaltyPointsEl) loyaltyPointsEl.value = points;
+  }
+
+  /**
+   * Set a <select> to a value with case- and label-fallback matching. Profile
+   * Core v2 stores loyalty tier as lower-case 'silver' / 'gold' but the form's
+   * <option> values are Title Case ('Silver' / 'Gold') — direct assignment
+   * silently leaves the dropdown on '— Select —' because <select>.value is
+   * case-sensitive. Try exact value, then case-insensitive value, then
+   * case-insensitive option text. If nothing matches, leave the existing
+   * selection alone (don't blank out a value the operator may have set).
+   */
+  function setSelectValueLoose(selectEl, raw) {
+    if (!selectEl || raw == null) return;
+    const val = String(raw).trim();
+    if (!val) return;
+    const opts = Array.from(selectEl.options || []);
+    const exact = opts.find((o) => o.value === val);
+    if (exact) { selectEl.value = exact.value; return; }
+    const ci = opts.find((o) => String(o.value).toLowerCase() === val.toLowerCase());
+    if (ci) { selectEl.value = ci.value; return; }
+    const byText = opts.find((o) => String(o.textContent || '').trim().toLowerCase() === val.toLowerCase());
+    if (byText) { selectEl.value = byText.value; return; }
   }
 
   // ---------- Find / Update / Generate ----------
@@ -641,26 +846,42 @@
     return s;
   }
 
-  async function findProfile() {
-    const email = getCurrentScaledEmail();
-    if (!email) {
-      setMessage(messageEl, 'Enter a base email first.', 'warning');
-      baseEmailEl.focus();
+  /**
+   * Look up an existing profile by any identity namespace (email / ecid / crmId / loyaltyId / phone)
+   * via /api/profile/table — same endpoint as the standard widget on index.html. Result is fed into
+   * the editor below through applyProfileFindResultToForm so the Customer Analytics + Loyalty fields
+   * pre-populate. When namespace=email and the identifier is blank, we substitute the current
+   * scaled email so a one-click lookup still mirrors the old "Find by current scaled email" UX.
+   */
+  async function lookupProfile() {
+    if (!lookupNsEl || !lookupIdentifierEl || !lookupBtn) return;
+    const ns = String(lookupNsEl.value || 'email').trim();
+    let identifier = trimVal(lookupIdentifierEl);
+    if (!identifier && ns === 'email') {
+      identifier = getCurrentScaledEmail();
+      if (identifier) lookupIdentifierEl.value = identifier;
+    }
+    if (!identifier) {
+      setMessage(messageEl, `Enter an ${ns} identifier to look up, or set a base email and try again.`, 'warning');
+      lookupIdentifierEl.focus();
       return;
     }
-    findProfileBtn.disabled = true;
-    setMessage(messageEl, `Looking up ${email}…`, '');
+    lookupBtn.disabled = true;
+    setMessage(messageEl, `Looking up ${ns}: ${identifier}…`, '');
     try {
-      const url = '/api/profile/table' + querySuffix({ entityIdNS: 'email', entityId: email });
+      const url = '/api/profile/table' + querySuffix({ identifier, namespace: ns });
       const res = await fetch(url);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setMessage(messageEl, data.error || `Lookup failed (HTTP ${res.status}).`, 'error');
         return;
       }
-      // Try to display headline plus apply known analytics fields if present.
-      applyProfileFindResultToForm(data);
+      // /api/profile/table contract: { found: bool, rows: [...] } when the
+      // proxy resolved a UPS entity, otherwise { found: false, rows: [] }.
+      // The legacy entity-shape branches stay in place to cover any future
+      // caller that pipes a raw UPS payload through the same handler.
       const found =
+        (data && data.found === true) ||
         (data && (data.entity || data.profile)) ||
         (Array.isArray(data && data.entities) && data.entities.length) ||
         (Array.isArray(data && data.profiles) && data.profiles.length) ||
@@ -668,16 +889,23 @@
       if (!found) {
         setMessage(
           messageEl,
-          `No existing profile for ${email} in this sandbox. Click Generate or Update to create one.`,
+          `No profile found for ${ns}: ${identifier} in this sandbox. Use Generate / Update to create one.`,
           ''
         );
         return;
       }
-      setMessage(messageEl, `Found profile for ${email}. Form populated where available.`, 'success');
+      applyProfileFindResultToForm(data);
+      // Remember the resolved identifier in the shared per-namespace cache
+      // so autocomplete on the next visit (or on any other lookup page in
+      // the lab — consent.html, index.html, event-tool, etc.) suggests it.
+      if (typeof window.addRecentIdentifier === 'function') {
+        try { window.addRecentIdentifier(identifier, ns); } catch (_) {}
+      }
+      setMessage(messageEl, `Loaded profile for ${ns}: ${identifier}. Edit fields then click Update profile.`, 'success');
     } catch (e) {
       setMessage(messageEl, e.message || 'Network error', 'error');
     } finally {
-      findProfileBtn.disabled = false;
+      lookupBtn.disabled = false;
     }
   }
 
@@ -879,6 +1107,12 @@
     const next = [entry, ...readRecent().filter((e) => e && e.scaledEmail !== scaledEmail)];
     writeRecent(next);
     renderRecent();
+    // Also seed the shared cross-page identifier cache so this scaled email
+    // appears in the autocomplete datalist on every other lookup page in
+    // the lab (consent.html, index.html, event-tool, live-activities, etc.).
+    if (typeof window.addRecentIdentifier === 'function') {
+      try { window.addRecentIdentifier(scaledEmail, 'email'); } catch (_) {}
+    }
   }
 
   function summariseSnapshot(snap) {
@@ -894,6 +1128,7 @@
     }
     if (snap.nps) parts.push(`NPS ${snap.nps}`);
     if (snap.aov) parts.push(`AOV $${snap.aov}`);
+    if (snap.preferredChannel) parts.push(`Preferred ${snap.preferredChannel}`);
     return parts.join(' · ');
   }
 
@@ -965,13 +1200,12 @@
     if (npsEl) npsEl.value = s.nps || '';
     if (aovEl && s.aov !== '') { aovEl.value = String(s.aov); renderAov(); }
     if (preferredChannelEl) preferredChannelEl.value = s.preferredChannel || '';
-    if (languageEl) languageEl.value = s.language || '';
+    if (languageEl) languageEl.value = s.language || (s.loyalty && s.loyalty.language) || '';
     // Loyalty
     if (loyaltyEnabledEl) loyaltyEnabledEl.checked = !!(s.loyalty && s.loyalty.enabled);
     if (loyaltyIDEl) loyaltyIDEl.value = (s.loyalty && s.loyalty.id) || '';
     if (loyaltyTierEl) loyaltyTierEl.value = (s.loyalty && s.loyalty.tier) || '';
     if (loyaltyPointsEl) loyaltyPointsEl.value = (s.loyalty && s.loyalty.points) || '';
-    if (loyaltyLanguageEl) loyaltyLanguageEl.value = (s.loyalty && s.loyalty.language) || '';
     applyLoyaltyToggleVisibility();
     // Restore counter so subsequent Update/Generate target the same scaled
     // email. The base email is whatever produced this entry — keep it.
@@ -1006,6 +1240,8 @@
 
   if (baseEmailEl) {
     baseEmailEl.addEventListener('input', () => {
+      // Persist the base email globally so the next visit (any sandbox) prefills it — set-and-forget.
+      try { localStorage.setItem(BASE_EMAIL_STORAGE_KEY, baseEmailEl.value || ''); } catch (_) {}
       // When the base email changes, reload the counter for the new (sandbox, base, today) key.
       loadCounterForCurrentContext();
     });
@@ -1072,13 +1308,36 @@
     baseEmailEl.addEventListener('input', renderRecent);
   }
 
-  if (findProfileBtn) findProfileBtn.addEventListener('click', findProfile);
+  // Profile lookup wiring (replaces the old "Find profile by current scaled email" button —
+  // the lookup widget below covers that case via auto-fill on focus when namespace=email).
+  if (lookupBtn) lookupBtn.addEventListener('click', lookupProfile);
+  if (lookupIdentifierEl) {
+    lookupIdentifierEl.addEventListener('focus', () => {
+      // One-click parity with the old Find button: when nothing is typed and namespace=email,
+      // pre-fill the identifier with the current scaled email so the user just clicks Look up.
+      if (!trimVal(lookupIdentifierEl) && lookupNsEl && lookupNsEl.value === 'email') {
+        const scaled = getCurrentScaledEmail();
+        if (scaled) lookupIdentifierEl.value = scaled;
+      }
+    });
+    // Pressing Enter inside the identifier input triggers lookup.
+    lookupIdentifierEl.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        lookupProfile();
+      }
+    });
+  }
   if (updateProfileBtn) updateProfileBtn.addEventListener('click', updateProfile);
   if (generateBtn) generateBtn.addEventListener('click', generateProfiles);
 
   // Sandbox change: reload connection + counter context.
   function onSandboxChange() {
     clearStreamingFields();
+    // Immediately reflect the cleared fields in the wizard <details>
+    // (re-expand it) — the async loadConnectionFromFirestore() below will
+    // collapse it again if it finds a saved connection for the new sandbox.
+    applyConfiguredCollapseState();
     loadConnectionFromFirestore(true);
     loadCounterForCurrentContext();
     renderRecent();
@@ -1094,7 +1353,24 @@
   window.addEventListener('aep-generic-panel-shown', () => {
     renderRecent();
     applyLoyaltyToggleVisibility();
+    // Reflect the current configured state in the wizard <details> on the
+    // first reveal (the deferred loadConnectionFromFirestore at the bottom
+    // of this module already calls applyConfiguredCollapseState, but if the
+    // user picks Generic before that 750ms delay fires we still want a
+    // sensible initial state based on whatever fields are populated now).
+    applyConfiguredCollapseState();
   });
+
+  // Set-and-forget base email: prefill from localStorage so the user only types it once.
+  // We do this before loadCounterForCurrentContext() because the counter partition key
+  // includes the base email — restoring it first means the saved counter for that base
+  // email loads correctly on first paint.
+  try {
+    const savedBase = localStorage.getItem(BASE_EMAIL_STORAGE_KEY);
+    if (savedBase && baseEmailEl && !trimVal(baseEmailEl)) {
+      baseEmailEl.value = savedBase;
+    }
+  } catch (_) { /* localStorage unavailable — fall through */ }
 
   // Initial render
   renderChurn();
@@ -1102,6 +1378,7 @@
   renderAov();
   applyLoyaltyToggleVisibility();
   loadCounterForCurrentContext();
+  updateEmailPreview();
   renderRecent();
   // Defer initial connection load so the sandbox dropdown finishes loading first.
   setTimeout(() => loadConnectionFromFirestore(true), 750);

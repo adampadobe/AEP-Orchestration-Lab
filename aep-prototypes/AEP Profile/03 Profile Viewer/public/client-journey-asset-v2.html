@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');else d.removeAttribute('data-aep-theme');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');else d.removeAttribute('data-sidebar-collapsed');var mp=localStorage.getItem('aepMenuPalette');if(mp&&mp!=='default')d.setAttribute('data-aep-menu-palette',mp);else d.removeAttribute('data-aep-menu-palette');var bp=localStorage.getItem('aepBgPreset');if(bp&&bp!=='default')d.setAttribute('data-aep-bg-preset',bp);else d.removeAttribute('data-aep-bg-preset');var st=localStorage.getItem('aepHomeDashboardSidebarTheme');if(st==='light')d.setAttribute('data-ajo-sidebar','light');else d.setAttribute('data-ajo-sidebar','dark');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Journey Assets v2 — AEP Orchestration Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="client-journey-asset-v2.css?v=20260501a">
+  <link rel="stylesheet" href="home.css?v=20260423b">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+</head>
+<body class="client-journey-v2-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">AEP Orchestration Lab</h1>
+        <div class="dashboard-topbar-right">
+          <span class="dashboard-env-pill" title="Internal tool">Internal</span>
+          <a href="https://github.com/adampadobe/AEP-Orchestration-Lab" class="dashboard-topbar-link" target="_blank" rel="noopener">Repo</a>
+          <a href="home.html" class="dashboard-topbar-icon" title="Home">🏠</a>
+        </div>
+      </header>
+
+      <main class="dashboard-main cjv2-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="cjv2Banner">
+          <div class="dashboard-hero-inner">
+            <header class="dashboard-hero-header">
+              <h2 id="cjv2Banner" class="dashboard-hero-title">Client journey assets v2</h2>
+              <p class="dashboard-hero-subtitle">
+                Generate a 12-step Adobe Experience Platform journey deliverable for any client.
+                Vertex AI Gemini drafts the journey using the canonical
+                <code>aep-client-journey</code> skill plus Context7-sourced Adobe
+                Experience League snippets and Google Search grounding for the client's
+                tech stack. Outputs an interactive HTML journey map and a one-pager PPTX
+                cloned from the Admiral template.
+              </p>
+            </header>
+          </div>
+        </section>
+
+        <section class="cjv2-panel">
+          <h2 class="cjv2-panel-title">1. Brief</h2>
+          <p class="cjv2-panel-desc">
+            All fields except client name + tier are optional. Tier governs whether
+            <strong>Decision Management</strong> and <strong>Brand Concierge</strong> appear
+            in the deliverable.
+          </p>
+
+          <form id="cjv2Form" novalidate>
+            <fieldset class="cjv2-fieldset">
+              <legend class="cjv2-legend">Tier</legend>
+              <div class="cjv2-radio-row">
+                <label class="cjv2-radio">
+                  <input type="radio" name="tier" value="Foundation" checked>
+                  <strong>Foundation</strong>
+                  <span>Real-Time CDP, Journey Optimizer, Customer Journey Analytics</span>
+                </label>
+                <label class="cjv2-radio">
+                  <input type="radio" name="tier" value="Advanced">
+                  <strong>Advanced</strong>
+                  <span>Foundation + Decision Management + Brand Concierge</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="cjv2-grid-2">
+              <label class="cjv2-field">
+                <span class="cjv2-label">Client name <span class="cjv2-req">*</span></span>
+                <input type="text" id="cjv2Client" name="client" required autocomplete="off" spellcheck="false" placeholder="Vodafone Ireland">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Client domain <small>(for logo + grounding)</small></span>
+                <input type="text" id="cjv2Domain" name="clientDomain" autocomplete="off" spellcheck="false" placeholder="vodafone.ie">
+              </label>
+
+              <label class="cjv2-field">
+                <span class="cjv2-label">Brand colour (hex)</span>
+                <div class="cjv2-color-row">
+                  <input type="text" id="cjv2BrandColor" name="brandColor" maxlength="7" autocomplete="off" spellcheck="false" placeholder="E60000">
+                  <span class="cjv2-color-swatch" id="cjv2BrandSwatch" aria-hidden="true"></span>
+                </div>
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Journey type</span>
+                <input type="text" id="cjv2JourneyType" name="journeyType" autocomplete="off" spellcheck="false" placeholder="Broadband acquisition · Insurance renewal · SaaS expansion">
+              </label>
+
+              <label class="cjv2-field">
+                <span class="cjv2-label">Customer persona name</span>
+                <input type="text" id="cjv2Persona" name="personaName" autocomplete="off" spellcheck="false" placeholder="Sarah">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Persona gender (avatar)</span>
+                <select id="cjv2PersonaGender" name="personaGender">
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                </select>
+              </label>
+
+              <label class="cjv2-field">
+                <span class="cjv2-label">Marketer persona name <small>(optional)</small></span>
+                <input type="text" id="cjv2Marketer" name="marketerPersonaName" autocomplete="off" spellcheck="false" placeholder="Kris">
+              </label>
+              <label class="cjv2-field">
+                <span class="cjv2-label">Existing client tech stack <small>(optional — one platform per line)</small></span>
+                <textarea id="cjv2Tech" name="techStack" rows="4" placeholder="Salesforce CRM&#10;Braze&#10;Google Analytics&#10;Akamai CDN"></textarea>
+                <small class="cjv2-help-hint">Leave blank to auto-research via Google Search grounding (slower by ~30–60s).</small>
+              </label>
+            </div>
+
+            <label class="cjv2-field cjv2-field--wide">
+              <span class="cjv2-label">Additional context <small>(personas, success criteria, anything specific you want to surface)</small></span>
+              <textarea id="cjv2Context" name="additionalContext" rows="3" placeholder="They are renewing 250k home insurance customers ahead of an 18% rate rise. Sustainability proof is important for the consideration step."></textarea>
+            </label>
+
+            <div class="cjv2-actions">
+              <button type="submit" id="cjv2GenerateBtn" class="cjv2-btn cjv2-btn-primary">
+                Generate journey
+              </button>
+              <button type="button" id="cjv2ResetBtn" class="cjv2-btn cjv2-btn-secondary">
+                Reset
+              </button>
+              <span id="cjv2Status" class="cjv2-status" role="status" aria-live="polite"></span>
+            </div>
+          </form>
+
+          <p class="cjv2-hint" id="cjv2LongCallNote" hidden>
+            Vertex AI Gemini typically takes <strong>60–180 seconds</strong> to compose a
+            full 12-step journey, run the eight self-scans silently, and emit valid JSON.
+            Don't refresh the page — it's working.
+          </p>
+        </section>
+
+        <section class="cjv2-panel cjv2-panel-output" id="cjv2Output" hidden>
+          <h2 class="cjv2-panel-title">2. Output</h2>
+          <div class="cjv2-output-actions">
+            <button type="button" id="cjv2DownloadHtmlBtn" class="cjv2-btn cjv2-btn-secondary">
+              Download HTML journey
+            </button>
+            <button type="button" id="cjv2DownloadPptxBtn" class="cjv2-btn cjv2-btn-primary">
+              Download one-pager (.pptx)
+            </button>
+            <button type="button" id="cjv2OpenNewTabBtn" class="cjv2-btn cjv2-btn-secondary">
+              Open journey in new tab
+            </button>
+            <span id="cjv2PptxStatus" class="cjv2-status" role="status" aria-live="polite"></span>
+          </div>
+          <div class="cjv2-iframe-wrap">
+            <iframe id="cjv2HtmlPreview" title="Standalone interactive HTML journey preview"></iframe>
+          </div>
+        </section>
+
+        <section class="cjv2-panel cjv2-debug-panel" id="cjv2DebugSection" hidden>
+          <details>
+            <summary><strong>Debug — sources, meta, log</strong></summary>
+            <div class="cjv2-debug-body">
+              <h3>Source attribution</h3>
+              <ul id="cjv2Sources"></ul>
+              <h3>Run log</h3>
+              <pre id="cjv2Log"></pre>
+              <h3>Generated meta</h3>
+              <pre id="cjv2Meta"></pre>
+            </div>
+          </details>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="client-journey-asset-v2.js?v=20260501a"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20260501-cjv2"></script>
+</body>
+</html>

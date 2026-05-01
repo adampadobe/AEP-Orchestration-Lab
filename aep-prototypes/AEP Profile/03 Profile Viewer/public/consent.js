@@ -31,6 +31,24 @@ const consentPreviewMinimizeBtn = document.getElementById('consentPreviewMinimiz
 const consentPreviewTitle = document.getElementById('consentPreviewTitle');
 const consentPreviewMeta = document.getElementById('consentPreviewMeta');
 const preferredChannelSelect = document.getElementById('preferredChannel');
+
+/** XDM enum strings for `consents.marketing.preferred` (Consent and Preference Details). */
+const PREFERRED_MARKETING_CHANNEL_VALUES = [
+  'email',
+  'push',
+  'inApp',
+  'sms',
+  'whatsApp',
+  'phone',
+  'phyMail',
+  'inVehicle',
+  'inHome',
+  'iot',
+  'social',
+  'other',
+  'none',
+  'unknown',
+];
 const preferredLanguageSelect = document.getElementById('preferredLanguage');
 const sandboxSelect = document.getElementById('sandboxSelect');
 const infraStatusMessage = document.getElementById('infraStatusMessage');
@@ -816,21 +834,46 @@ function clearForm() {
   setTri('postalMarketing', 'n');
   setTri('whatsappMarketing', 'n');
   if (preferredLanguageSelect) preferredLanguageSelect.value = 'en-US';
+  if (preferredChannelSelect) preferredChannelSelect.value = 'email';
   clearStep1ProfileMetaFields();
   consentFingerprintBaseline = null;
   step4Message.hidden = true;
   refreshProfileStreamingIdentityNote();
 }
 
+/**
+ * Map profile / API `consents.marketing.preferred` (any casing or legacy alias) to a
+ * `<select id="preferredChannel">` option value.
+ */
 function mapPreferredToSelect(value) {
-  if (!value) return 'email';
-  const v = String(value).toLowerCase();
-  if (v === 'email') return 'email';
-  if (v === 'sms') return 'sms';
-  if (v === 'push') return 'push';
-  if (v === 'phone') return 'phone';
-  if (v === 'postal' || v === 'postalmail' || v === 'directmail' || v === 'direct_mail') return 'postal';
-  return 'email';
+  if (value == null || String(value).trim() === '') return 'email';
+  const raw = String(value).trim();
+  if (PREFERRED_MARKETING_CHANNEL_VALUES.includes(raw)) return raw;
+  const v = raw.toLowerCase().replace(/_/g, '');
+  const aliases = {
+    email: 'email',
+    push: 'push',
+    sms: 'sms',
+    phone: 'phone',
+    call: 'phone',
+    inapp: 'inApp',
+    whatsapp: 'whatsApp',
+    postal: 'phyMail',
+    postalmail: 'phyMail',
+    directmail: 'phyMail',
+    phymail: 'phyMail',
+    invehicle: 'inVehicle',
+    inhome: 'inHome',
+    iot: 'iot',
+    social: 'social',
+    other: 'other',
+    none: 'none',
+    unknown: 'unknown',
+  };
+  const mapped = aliases[v];
+  if (mapped && PREFERRED_MARKETING_CHANNEL_VALUES.includes(mapped)) return mapped;
+  const ci = PREFERRED_MARKETING_CHANNEL_VALUES.find((x) => x.toLowerCase() === v);
+  return ci || 'email';
 }
 
 function ynFromProfile(v) {
@@ -859,7 +902,10 @@ function applyProfileToForm(data) {
   }
 
   if (preferredChannelSelect) {
-    preferredChannelSelect.value = mapPreferredToSelect(data.preferredMarketingChannel ?? data.preferred);
+    const want = mapPreferredToSelect(data.preferredMarketingChannel ?? data.preferred);
+    preferredChannelSelect.value = [...preferredChannelSelect.options].some((o) => o.value === want)
+      ? want
+      : 'email';
   }
   if (preferredLanguageSelect && data.preferredLanguage) {
     const want = String(data.preferredLanguage).trim();

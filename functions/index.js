@@ -14,6 +14,15 @@ const ADOBE_SCOPES = defineSecret('ADOBE_SCOPES');
 const EASTER_EGG_MAILGUN_API_KEY = defineSecret('EASTER_EGG_MAILGUN_API_KEY');
 const EASTER_EGG_MAILGUN_DOMAIN = defineSecret('EASTER_EGG_MAILGUN_DOMAIN');
 
+/**
+ * Context7 API key — used by clientJourneyV2Generate to fetch curated
+ * Adobe Experience League capability snippets for the system prompt.
+ * Provision once with: `firebase functions:secrets:set CONTEXT7_API_KEY`
+ * (paste at the prompt — never on the command line, never in any file).
+ * The key is read only via .value() inside a request handler.
+ */
+const CONTEXT7_API_KEY = defineSecret('CONTEXT7_API_KEY');
+
 /** Default Platform sandbox; override at deploy: `ADOBE_SANDBOX_NAME=other firebase deploy` or edit this constant. */
 const DEFAULT_ADOBE_SANDBOX = 'apalmer';
 const RESOLVED_ADOBE_SANDBOX = String(
@@ -71,6 +80,7 @@ const brandScraperService = lazyRequireMod('./brandScraperService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
 const clientJourneyAssetService = lazyRequireMod('./clientJourneyAssetService');
+const clientJourneyAssetV2Service = lazyRequireMod('./clientJourneyAssetV2Service');
 const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
@@ -3293,6 +3303,61 @@ exports.clientJourneyPptx = onRequest(
 );
 
 /**
+ * POST clientJourneyV2Generate
+ * Body: { client, clientDomain?, brandColor, journeyType?, personaName?,
+ *         personaGender?, marketerPersonaName?, tier ('Foundation'|'Advanced'),
+ *         techStack?, additionalContext? }
+ * Returns: { ok, meta, journey, html, sources, log }
+ *
+ * v2 Client Journey Asset — independent baseline. Calls Vertex AI Gemini in
+ * JSON mode with Google Search grounding for client tech-stack research,
+ * pre-fetches Adobe Experience League capability snippets from Context7
+ * (24h Firestore cache, static-summary fallback), then renders the standalone
+ * interactive HTML journey. The PPTX one-pager is rendered separately by
+ * clientJourneyV2Pptx so the long Vertex call doesn't block the binary.
+ *
+ * Long-running: 60–180s typical. The Hosting rewrite caps proxied requests
+ * at 60s, so the v2 page invokes this function via its direct Cloud Function
+ * URL (the /api/client-journey-v2/generate rewrite exists for curl debugging
+ * but the browser never hits it).
+ */
+exports.clientJourneyV2Generate = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    secrets: [CONTEXT7_API_KEY],
+    timeoutSeconds: 540,
+    memory: '1GiB',
+  },
+  async (req, res) => {
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await clientJourneyAssetV2Service.handleGenerate(req, res, {
+      contextSevenKey: CONTEXT7_API_KEY.value(),
+    });
+  }
+);
+
+/**
+ * POST /api/client-journey-v2/pptx
+ * Body: the journey JSON returned by clientJourneyV2Generate (or `{ journey }`
+ * wrapping it). Re-validates the schema before rendering to keep tampered
+ * round-trips from crashing the renderer.
+ * Returns: binary application/vnd.openxmlformats-officedocument.presentationml.presentation
+ */
+exports.clientJourneyV2Pptx = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await clientJourneyAssetV2Service.handlePptx(req, res);
+  }
+);
+
+/**
  * POST /api/demo-use-case/generate
  * Body: { sandbox, scrapeId, brandColour?, useCase?, personaName?, products?,
  *         customProduct?, stepCount?, additionalContext?, previousData?,
@@ -3545,11 +3610,23 @@ exports.imageHostingLibrary = onRequest(
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const files = Array.isArray(body.files) ? body.files : [];
         if (!files.length) { res.status(400).json({ error: 'files[] is required' }); return; }
+        // onConflict: 'error' | 'replace' | 'version'. Honoured for
+        // keep-filename uploads (auto-classifier path always
+        // auto-suffixes — see resolveTargetName for the rationale).
+        const onConflictRaw = String(body.onConflict || '').toLowerCase();
+        const onConflict = (onConflictRaw === 'replace' || onConflictRaw === 'version' || onConflictRaw === 'error')
+          ? onConflictRaw
+          : undefined; // let uploadSingleFile pick the right default
         const result = await imageHostingLibrary.batchUpload(sandbox, files, {
           replace: !!body.replace,
           keepFilename: !!body.keepFilename,
           convertToPng: body.convertToPng !== undefined ? !!body.convertToPng : true,
+          onConflict,
         });
+        // Conflicts are NOT errors — they're a state the UI needs to
+        // resolve via a prompt. Use 200 so the client can surface the
+        // conflicts list and re-submit per-file with the chosen mode.
+        // (Errors and uploaded items are also still returned.)
         res.status(200).json({ sandbox, ...result });
         return;
       }
@@ -3619,8 +3696,30 @@ exports.imageHostingLibrary = onRequest(
           res.status(400).json({ error: 'relPath + newRelPath required' });
           return;
         }
-        const out = await imageHostingLibrary.renameLibraryObject(sandbox, body.relPath, body.newRelPath);
-        res.status(200).json({ sandbox, ...out });
+        const onConflictRaw = String(body.onConflict || '').toLowerCase();
+        const onConflict = (onConflictRaw === 'replace' || onConflictRaw === 'version')
+          ? onConflictRaw : 'error';
+        try {
+          const out = await imageHostingLibrary.renameLibraryObject(
+            sandbox, body.relPath, body.newRelPath, { onConflict }
+          );
+          res.status(200).json({ sandbox, ...out });
+        } catch (e) {
+          // Surface "target already exists" as a structured 409 with
+          // the suggested versioned name so the UI can prompt the user
+          // to Replace / Save as <name>-1 / Cancel without a second
+          // round-trip to discover the next free slot.
+          if (e && e.code === 'TARGET_EXISTS') {
+            res.status(409).json({
+              error: e.message,
+              code: 'TARGET_EXISTS',
+              conflictingRelPath: e.conflictingRelPath,
+              suggestedVersionRelPath: e.suggestedVersionRelPath,
+            });
+            return;
+          }
+          throw e;
+        }
         return;
       }
 

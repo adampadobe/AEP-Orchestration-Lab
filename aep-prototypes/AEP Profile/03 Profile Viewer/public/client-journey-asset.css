@@ -321,6 +321,70 @@
   line-height: 1.35;
 }
 
+/* AEP capability tier segmented control — Foundation vs Advanced.
+   Two-button radio-pill that matches the page's existing form-row idiom
+   (label above, control below, hint underneath). The active button picks
+   up the dashboard blue accent so it reads as "selected" at a glance. */
+.client-journey-asset-page .cj-tier-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  margin-bottom: 0.4rem;
+}
+
+.client-journey-asset-page .cj-tier-segmented {
+  display: inline-flex;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-input-bg);
+  overflow: hidden;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.client-journey-asset-page .cj-tier-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.5rem 0.95rem;
+  background: transparent;
+  border: none;
+  color: var(--dash-text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.12s ease, color 0.12s ease;
+  border-right: 1px solid var(--dash-input-border);
+}
+
+.client-journey-asset-page .cj-tier-btn:last-child { border-right: none; }
+
+.client-journey-asset-page .cj-tier-btn:hover { background: var(--dash-hover); }
+
+.client-journey-asset-page .cj-tier-btn.is-active {
+  background: var(--dash-blue);
+  color: #fff;
+}
+.client-journey-asset-page .cj-tier-btn.is-active:hover { background: var(--dash-blue); }
+
+.client-journey-asset-page .cj-tier-btn .cj-tier-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+
+.client-journey-asset-page .cj-tier-btn .cj-tier-meta {
+  font-size: 0.7rem;
+  font-weight: 500;
+  opacity: 0.78;
+  letter-spacing: 0.1px;
+}
+.client-journey-asset-page .cj-tier-btn.is-active .cj-tier-meta { opacity: 0.92; }
+
 /* ─── Combobox (custom themed dropdown) ────────────────────────────────
    Replaces the native <datalist> popover (which Safari/Chromium render
    as an unstyled black box in dark mode). The chevron toggle opens the

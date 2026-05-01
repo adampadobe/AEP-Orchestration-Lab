@@ -31,8 +31,13 @@ async function crawlViaPlaywrightService(url, { maxPages, tagAudit: runTagAudit 
 
 const USER_AGENT = 'Mozilla/5.0 (compatible; AEPOrchestrationLab-BrandScraper/1.0; +https://aep-orchestration-lab.web.app)';
 const REQUEST_TIMEOUT_MS = 15000;
-const MAX_PAGES = 5;
+/** Default pages per crawl — keep small for fast “light pass”; user can raise or append deeper runs. */
+const MAX_PAGES = 3;
 const MAX_DISCOVERED = 200;
+/** Cap BFS queue so we never spend minutes draining low-value URLs (franchise mega-sites). */
+const MAX_QUEUE_URLS = 120;
+/** Hard stop for fetch crawl wall time so the function can reach LLM phases within CF budget. */
+const MAX_CRAWL_WALL_MS = 240000;
 const PRIORITY_PATHS = ['/', '/about', '/about-us', '/products', '/services', '/solutions', '/brand', '/company'];
 
 function normaliseUrl(raw) {
@@ -347,9 +352,19 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES, tagAudit: runTagAudit =
   const visited = new Set();
   const discovered = new Set([baseUrl]);
   const queue = [baseUrl];
+  const pendingUrls = new Set(queue);
+  const crawlStarted = Date.now();
   const pages = [];
   const failures = [];
   let brandName = '';
+
+  function tryEnqueue(l) {
+    if (!l || visited.has(l) || pendingUrls.has(l)) return;
+    if (queue.length >= MAX_QUEUE_URLS) return;
+    if (discovered.size < MAX_DISCOVERED) discovered.add(l);
+    queue.push(l);
+    pendingUrls.add(l);
+  }
 
   // If the seed URL fails with http_error/network, retry with www. prefix or naked host once.
   async function fetchSeed(seedUrl) {
@@ -371,7 +386,9 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES, tagAudit: runTagAudit =
   }
 
   while (queue.length && pages.length < maxPages) {
+    if (Date.now() - crawlStarted > MAX_CRAWL_WALL_MS) break;
     const current = queue.shift();
+    pendingUrls.delete(current);
     if (visited.has(current)) continue;
     visited.add(current);
 
@@ -396,12 +413,10 @@ async function crawlSite(rawUrl, { maxPages = MAX_PAGES, tagAudit: runTagAudit =
 
     const description = extractMeta(html, 'name', 'description') || extractMeta(html, 'property', 'og:description');
     const links = extractLinks(html, current, baseUrl);
-    for (const l of links) {
-      if (discovered.size < MAX_DISCOVERED) discovered.add(l);
-      if (!visited.has(l) && !queue.includes(l)) queue.push(l);
-    }
+    for (const l of links) tryEnqueue(l);
     // Re-prioritise queue after every page so priority paths bubble up
-    queue.splice(0, queue.length, ...prioritise(queue, baseUrl));
+    const prioritised = prioritise(queue, baseUrl);
+    queue.splice(0, queue.length, ...prioritised);
 
     const pageRow = {
       url: current,
@@ -498,7 +513,7 @@ async function runCrawlWithRetries(url, { wantJs, maxPages, wantTagAudit, maxAtt
         attemptsUsed++;
         try {
           if (engine === 'js') {
-            lastCrawl = await crawlViaPlaywrightService(seed, { maxPages: maxPages || 5, tagAudit: wantTagAudit });
+            lastCrawl = await crawlViaPlaywrightService(seed, { maxPages: maxPages || MAX_PAGES, tagAudit: wantTagAudit });
           } else {
             lastCrawl = await crawlSite(seed, { ...(maxPages ? { maxPages } : {}), tagAudit: wantTagAudit });
           }
@@ -603,7 +618,7 @@ const INDUSTRY_TAXONOMY = [
   'Other',
 ];
 
-const BRAND_ANALYSIS_SYSTEM = `You are a brand strategist and marketing expert. Analyse the provided website content and generate concise brand guidelines.
+const BRAND_ANALYSIS_SYSTEM = `You are a brand strategist and marketing expert. Analyse the provided website content and generate concise brand guidelines for a first-pass kit (prioritise accuracy over volume).
 
 Respond with valid JSON only, no other text. Use this exact structure:
 {
@@ -615,7 +630,7 @@ Respond with valid JSON only, no other text. Use this exact structure:
   "channel_guidelines": [{"channel": "Email|SMS|Push|In-App", "subject_line": "...", "preheader": "...", "headline": "...", "body": "...", "cta": "..."}]
 }
 
-Provide 5-8 tone rules, 3-5 values, 5-8 editorial rules, 4-6 image rules, and 4 channels (Email, SMS, Push, In-App).`;
+Provide 3-5 tone rules, 3 brand values, 4 editorial rules, 3-4 image rules, and 3 channel samples (Email, SMS, Push or In-App). Keep examples short.`;
 
 const INDUSTRY_SYSTEM = `You classify a brand into exactly one industry from a fixed taxonomy. Respond with valid JSON only:
 {"industry": "<one of the allowed values>", "confidence": "low|medium|high", "rationale": "<one short sentence>"}
@@ -1422,7 +1437,7 @@ async function executeAnalyzePipeline({
   }
   if (!checkpointRecord.scrapeId) checkpointRecord.scrapeId = runScrapeId;
   try {
-    await brandScrapeStore.saveScrape(sandbox, checkpointRecord, { checkpoint: true });
+    await brandScrapeStore.saveScrape(sandbox, checkpointRecord, { checkpoint: true, buildPhase: 'crawl' });
   } catch (e) {
     const pe = String((e && e.message) || e);
     try {
@@ -1453,7 +1468,18 @@ async function executeAnalyzePipeline({
 
   const skipped = (reason) => ({ skipped: true, reason: reason || 'disabled by user' });
 
+  /** Merge append baseline in-memory before each persist so union rules stay consistent. */
+  function persistPayload(working) {
+    if (appendMode && appendBaseline) {
+      const merged = mergeScrapeRecords(appendBaseline, working);
+      merged.scrapeId = appendBaseline.scrapeId;
+      return merged;
+    }
+    return working;
+  }
+
   analyzePipelineLog(runScrapeId, 'llm_start', { sandbox });
+  let working = { ...checkpointRecord };
   let analysis = null;
   let analysisError = null;
   let personas = null;
@@ -1465,16 +1491,37 @@ async function executeAnalyzePipeline({
   let stakeholders = null;
   let stakeholdersError = null;
   let recordClassification = null;
+
   try {
-    const [analysisResult, personasResult, campaignsResult, stakeholdersResult] = await Promise.all([
-      inc('analysis')
-        ? analyseBrand(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
-        : Promise.resolve(skipped('Brand guidelines disabled in Options')),
+    // Phase 1 — brand core (about, tone, editorial, image + channel samples) so UI can render guidelines first.
+    if (inc('analysis')) {
+      analysis = await analyseBrand(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }));
+    } else {
+      analysis = skipped('Brand guidelines disabled in Options');
+    }
+    working.analysis = analysis;
+    working.analysisError = (analysis && analysis.error) ? analysis.error : null;
+    working.elapsedMs = Date.now() - started;
+    try {
+      await brandScrapeStore.saveScrape(sandbox, persistPayload(working), { checkpoint: true, buildPhase: 'brand' });
+    } catch (e) {
+      const pe = String((e && e.message) || e);
+      analyzePipelineLog(runScrapeId, 'phase_brand_checkpoint_failed', { sandbox });
+      await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+        error: 'Brand checkpoint failed: ' + pe,
+        steps: [...runSteps, runStepFailed('checkpoint_brand', 'Save brand guidelines checkpoint', pe)],
+      }).catch(() => {});
+      return { status: 500, payload: { error: 'Brand checkpoint failed: ' + pe, scrapeId: runScrapeId } };
+    }
+    runSteps.push(runStepFromLlm('analysis', 'Brand guidelines', analysis));
+
+    // Phase 2 — personas, on-site campaigns, stakeholders (parallel wall time, one persist).
+    const [personasResult, campaignsResult, stakeholdersResult] = await Promise.all([
       inc('personas')
         ? generatePersonas(crawl, null, {
-            country: body.country || '',
-            businessType: body.businessType || 'b2c',
-          }, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
+          country: body.country || '',
+          businessType: body.businessType || 'b2c',
+        }, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
         : Promise.resolve(skipped('Personas disabled in Options')),
       inc('campaigns')
         ? generateCampaigns(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
@@ -1483,10 +1530,30 @@ async function executeAnalyzePipeline({
         ? generateStakeholders(crawl, providerOpts).catch(e => ({ error: String(e && e.message || e) }))
         : Promise.resolve(skipped('Stakeholders disabled in Options')),
     ]);
-    analysis = analysisResult;
     personas = personasResult;
     campaigns = campaignsResult;
     stakeholders = stakeholdersResult;
+    working.personas = personas;
+    working.personasError = (personas && personas.error) ? personas.error : null;
+    working.campaigns = campaigns;
+    working.campaignsError = (campaigns && campaigns.error) ? campaigns.error : null;
+    working.stakeholders = stakeholders;
+    working.stakeholdersError = (stakeholders && stakeholders.error) ? stakeholders.error : null;
+    working.elapsedMs = Date.now() - started;
+    try {
+      await brandScrapeStore.saveScrape(sandbox, persistPayload(working), { checkpoint: true, buildPhase: 'audiences' });
+    } catch (e) {
+      const pe = String((e && e.message) || e);
+      analyzePipelineLog(runScrapeId, 'phase_audiences_checkpoint_failed', { sandbox });
+      await brandScrapeStore.markScrapeFailed(sandbox, runScrapeId, {
+        error: 'Audiences checkpoint failed: ' + pe,
+        steps: [...runSteps, runStepFailed('checkpoint_audiences', 'Save personas/campaigns checkpoint', pe)],
+      }).catch(() => {});
+      return { status: 500, payload: { error: 'Audiences checkpoint failed: ' + pe, scrapeId: runScrapeId } };
+    }
+    runSteps.push(runStepFromLlm('personas', 'Customer personas', personas));
+    runSteps.push(runStepFromLlm('campaigns', 'Campaigns', campaigns));
+    runSteps.push(runStepFromLlm('stakeholders', 'Stakeholders', stakeholders));
 
     const crawlSnippet = crawl.pages.map(p =>
       [p.title, p.description, (p.text || '').slice(0, 400)].filter(Boolean).join(' · ')
@@ -1501,54 +1568,40 @@ async function executeAnalyzePipeline({
     const [segmentsResult, industryClassification] = await Promise.all([
       inc('segments')
         ? generateSegments(crawl, personas, campaigns, providerOpts)
-            .catch(e => ({ error: String(e && e.message || e) }))
+          .catch(e => ({ error: String(e && e.message || e) }))
         : Promise.resolve(skipped('Segments disabled in Options')),
       classifyIndustry(industryInputs).catch(e => ({ error: String(e && e.message || e) })),
     ]);
     segments = segmentsResult;
     recordClassification = industryClassification;
+    working.segments = segments;
+    working.segmentsError = (segments && segments.error) ? segments.error : null;
+    working.industryInfo = recordClassification;
+    working.industry = (recordClassification && !recordClassification.error && !recordClassification.skipped)
+      ? String(recordClassification.industry || '').trim()
+      : '';
+    working.elapsedMs = Date.now() - started;
   } catch (e) {
     analysisError = String(e && e.message || e);
   }
   analyzePipelineLog(runScrapeId, 'llm_done', { sandbox, ms: Date.now() - started });
-  runSteps.push(runStepFromLlm('analysis', 'Brand guidelines', analysis));
-  runSteps.push(runStepFromLlm('personas', 'Customer personas', personas));
-  runSteps.push(runStepFromLlm('campaigns', 'Campaigns', campaigns));
-  runSteps.push(runStepFromLlm('stakeholders', 'Stakeholders', stakeholders));
+  if (!runSteps.some(s => s && s.id === 'analysis')) {
+    runSteps.push(runStepFromLlm('analysis', 'Brand guidelines', analysis));
+  }
+  if (!runSteps.some(s => s && s.id === 'personas')) {
+    runSteps.push(runStepFromLlm('personas', 'Customer personas', personas));
+    runSteps.push(runStepFromLlm('campaigns', 'Campaigns', campaigns));
+    runSteps.push(runStepFromLlm('stakeholders', 'Stakeholders', stakeholders));
+  }
   runSteps.push(runStepFromLlm('segments', 'Audience segments', segments));
   runSteps.push(runStepFromLlm('industry', 'Industry classification', recordClassification));
 
   const elapsedMs = Date.now() - started;
+  working.elapsedMs = elapsedMs;
 
-  const inferredIndustry = (recordClassification && !recordClassification.error && !recordClassification.skipped)
-    ? String(recordClassification.industry || '').trim()
-    : '';
+  const inferredIndustry = String(working.industry || '').trim();
 
-  let recordToPersist = {
-    url,
-    baseUrl: crawl.baseUrl,
-    brandName: crawl.brandName,
-    businessType: body.businessType || 'b2c',
-    country: body.country || '',
-    industry: inferredIndustry,
-    industryInfo: recordClassification,
-    crawlSummary,
-    analysis,
-    analysisError,
-    personas,
-    personasError,
-    campaigns,
-    campaignsError,
-    segments,
-    segmentsError,
-    stakeholders,
-    stakeholdersError,
-    elapsedMs,
-  };
-  if (appendMode && appendBaseline) {
-    recordToPersist = mergeScrapeRecords(appendBaseline, recordToPersist);
-    recordToPersist.scrapeId = appendBaseline.scrapeId;
-  }
+  let recordToPersist = persistPayload(working);
   if (!recordToPersist.scrapeId) recordToPersist.scrapeId = runScrapeId;
 
   let saved = null;
@@ -1556,6 +1609,7 @@ async function executeAnalyzePipeline({
   try {
     saved = await brandScrapeStore.saveScrape(sandbox, recordToPersist, {
       archiveSnapshotOf: appendMode ? appendBaseline : null,
+      buildPhase: 'complete',
     });
   } catch (e) {
     persistError = String(e && e.message || e);

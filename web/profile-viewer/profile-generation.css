@@ -536,9 +536,40 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   line-height: 1.45;
 }
 
+/* Profile email sub-blocks: separate the lookup widget from the pattern/generate widget
+   visually so the user reads them as two consolidated actions in the same box. */
+.profile-generation-page .generic-lookup-block,
+.profile-generation-page .generic-pattern-block {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1rem 1.1rem;
+  margin-top: 1rem;
+}
+
+.profile-generation-page .generic-lookup-block:first-of-type {
+  margin-top: 0.5rem;
+}
+
+.profile-generation-page .generic-lookup-block__title,
+.profile-generation-page .generic-pattern-block__title {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.profile-generation-page .generic-helper-inline {
+  font-weight: 400;
+  color: var(--dash-text-secondary);
+  font-size: 0.8em;
+}
+
 .profile-generation-page .generic-helper code,
-.profile-generation-page .analytics-card-desc code,
-.profile-generation-page .analytics-info-banner code {
+.profile-generation-page .analytics-card-desc code {
   background: var(--dash-code-bg);
   padding: 0.1em 0.4em;
   border-radius: 4px;
@@ -703,17 +734,6 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   color: var(--dash-success-text, #267a33);
 }
 
-.profile-generation-page .analytics-info-banner {
-  margin: 1rem 0 0;
-  padding: 0.65rem 0.85rem;
-  background: var(--dash-info-bg, var(--dash-surface-alt));
-  border: 1px solid var(--dash-info-border, var(--dash-border));
-  border-radius: 8px;
-  font-size: 0.825rem;
-  line-height: 1.45;
-  color: var(--dash-text-secondary);
-}
-
 .profile-generation-page #genericProfilePanel .form-group--small {
   flex: 0 0 auto;
   min-width: 0;
@@ -757,6 +777,41 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   padding: 0.1em 0.4em;
   border-radius: 4px;
   font-size: 0.9em;
+}
+
+/* "Configured" state for the Sandbox & streaming connection <details>
+ * summary hint. Flipped on by applyConfiguredCollapseState() in
+ * profile-generation-generic.js once all four streaming fields are
+ * populated (after Save connection or after a per-sandbox Firebase load),
+ * which also collapses the <details>. Uses --dash-success-* tokens so
+ * it themes correctly in light + dark. */
+.profile-generation-page #genericProfileInfraDetails .consent-streaming-details__hint--configured {
+  color: var(--dash-success-text);
+  background: var(--dash-success-bg);
+  border: 1px solid var(--dash-success-border);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* "Manual step (in AEP UI, after the wizard)" callout under the 4-step
+ * setup-wizard list. Same surface as the instructions block (so it reads as
+ * part of the same flow), but with the warning border + warning text tones
+ * to flag that Profile-enabling a schema is a one-way AEP action and the
+ * operator must do it themselves. Tokenised so it themes correctly. */
+.profile-generation-page #genericProfilePanel .consent-setup-instructions__note {
+  margin: 0.85rem 0 0;
+  padding: 0.65rem 0.85rem;
+  background: var(--dash-warning-bg);
+  border-left: 3px solid var(--dash-warning-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--dash-warning-text);
+}
+
+.profile-generation-page #genericProfilePanel .consent-setup-instructions__note code {
+  background: rgba(0, 0, 0, 0.18);
 }
 
 /* ===== Identity row (First name + Last name) ===== */
