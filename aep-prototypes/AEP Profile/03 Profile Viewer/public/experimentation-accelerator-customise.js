@@ -243,7 +243,10 @@
     var img = document.getElementById('expAccelHeroDetailImg');
     var wrap = img && img.closest('.ajo-exp-leader-thumb');
     if (!img || !wrap) return;
-    var u = raw.heroDetailImg != null ? String(raw.heroDetailImg).trim() : '';
+    var heroOnly = raw.heroDetailImg != null ? String(raw.heroDetailImg).trim() : '';
+    var treatment1 = raw.expImg1 != null ? String(raw.expImg1).trim() : '';
+    /** Hero detail URL if set; otherwise same image as Treatment 1 / Overview tile 1 (avoids empty src on experiment page). */
+    var u = heroOnly || treatment1;
     if (u) {
       img.src = u;
       wrap.classList.add('ajo-exp-leader-thumb--has-custom-img');
