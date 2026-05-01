@@ -17,6 +17,36 @@
   var mobScaleRaf = null;
   var mobWinResizeHandler = null;
   var USER_PHONE_SCALE_KEY = 'cdEdgePhoneUserScale';
+  var PHONE_BEZEL_DARK_KEY = 'cdEdgePhoneBezelDark';
+
+  function readPhoneBezelDark() {
+    try {
+      return !!(global.sessionStorage && global.sessionStorage.getItem(PHONE_BEZEL_DARK_KEY) === '1');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function writePhoneBezelDark(on) {
+    try {
+      if (global.sessionStorage) {
+        global.sessionStorage.setItem(PHONE_BEZEL_DARK_KEY, on ? '1' : '0');
+      }
+    } catch (e2) {}
+  }
+
+  function applyPhoneBezelDarkShell(shellEl, isDark) {
+    if (!shellEl) return;
+    shellEl.classList.toggle('cd-ch-em-phone-shell--bezel-dark', !!isDark);
+  }
+
+  function syncPhoneBezelRadios(defaultBtn, blackBtn, isDark) {
+    if (!defaultBtn || !blackBtn) return;
+    defaultBtn.setAttribute('aria-checked', isDark ? 'false' : 'true');
+    blackBtn.setAttribute('aria-checked', isDark ? 'true' : 'false');
+    defaultBtn.setAttribute('tabindex', isDark ? '-1' : '0');
+    blackBtn.setAttribute('tabindex', isDark ? '0' : '-1');
+  }
 
   function escAttrId(id) {
     return String(id).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -344,6 +374,10 @@
 
     var userPhoneScale = readUserPhoneScale();
     var dragResizeState = null;
+    var bezelDark = readPhoneBezelDark();
+
+    var toolbarRow = document.createElement('div');
+    toolbarRow.className = 'cd-ch-em-mob-toolbar-row';
 
     var toggle = document.createElement('div');
     toggle.className = 'cd-ch-em-mob-toggle';
@@ -361,11 +395,38 @@
     bAnd.setAttribute('aria-pressed', 'false');
     toggle.appendChild(bIos);
     toggle.appendChild(bAnd);
-    wrap.appendChild(toggle);
+    toolbarRow.appendChild(toggle);
+
+    var bezelLab = document.createElement('span');
+    bezelLab.className = 'cd-ch-em-mob-bezel-prefix';
+    bezelLab.textContent = 'Bezel';
+    toolbarRow.appendChild(bezelLab);
+
+    var bezelRg = document.createElement('div');
+    bezelRg.className = 'cd-ch-em-mob-bezel-toggle';
+    bezelRg.setAttribute('role', 'radiogroup');
+    bezelRg.setAttribute('aria-label', 'Phone bezel color');
+    var bBezDef = document.createElement('button');
+    bBezDef.type = 'button';
+    bBezDef.id = 'cdChEmMobBezelDefault';
+    bBezDef.setAttribute('role', 'radio');
+    bBezDef.textContent = 'Default';
+    var bBezBlk = document.createElement('button');
+    bBezBlk.type = 'button';
+    bBezBlk.id = 'cdChEmMobBezelBlack';
+    bBezBlk.setAttribute('role', 'radio');
+    bBezBlk.textContent = 'Black';
+    bezelRg.appendChild(bBezDef);
+    bezelRg.appendChild(bBezBlk);
+    toolbarRow.appendChild(bezelRg);
+    wrap.appendChild(toolbarRow);
+
+    syncPhoneBezelRadios(bBezDef, bBezBlk, bezelDark);
 
     var shell = document.createElement('div');
     shell.className = 'cd-ch-em-phone-shell';
     shell.id = 'cdChEmPhoneShell';
+    applyPhoneBezelDarkShell(shell, bezelDark);
 
     var scaleOuter = document.createElement('div');
     scaleOuter.className = 'cd-ch-em-phone-scale-outer';
@@ -611,6 +672,17 @@
     });
     bAnd.addEventListener('click', function () {
       setOs(true);
+    });
+
+    bBezDef.addEventListener('click', function () {
+      writePhoneBezelDark(false);
+      applyPhoneBezelDarkShell(shell, false);
+      syncPhoneBezelRadios(bBezDef, bBezBlk, false);
+    });
+    bBezBlk.addEventListener('click', function () {
+      writePhoneBezelDark(true);
+      applyPhoneBezelDarkShell(shell, true);
+      syncPhoneBezelRadios(bBezDef, bBezBlk, true);
     });
 
     panelMob.appendChild(wrap);
