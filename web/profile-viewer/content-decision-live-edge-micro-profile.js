@@ -42,21 +42,26 @@
   }
 
   /**
-   * Minimal UPS entity walker — mirrors content-decision-live-edge-inline.js's
-   * `extractEntityFromUpsClientData` so this module stays decoupled from that
-   * IIFE's internals.
+   * Minimal UPS entity extraction — aligned with functions/profileTableHelpers.js
+   * `buildProfileTablePayload`: GET /access/entities returns
+   * `{ "<entityId>": { entity?: mergedProfile } | mergedProfile }` (payload may
+   * be the merged profile object with no `.entity` wrapper).
+   * Mirrors content-decision-live-edge-inline.js `extractEntityFromUpsClientData`.
    */
   function extractEntityFromUps(clientData) {
     if (!clientData || typeof clientData !== 'object') return null;
     var root = clientData.platform_response != null ? clientData.platform_response : clientData;
     if (!root || typeof root !== 'object') return null;
-    var keys = Object.keys(root);
-    for (var i = 0; i < keys.length; i++) {
-      var v = root[keys[i]];
-      if (v && typeof v === 'object' && v.entity && typeof v.entity === 'object') return v.entity;
-    }
-    if (root.entity && typeof root.entity === 'object') return root.entity;
-    return null;
+    if (root.entity && typeof root.entity === 'object' && !Array.isArray(root.entity)) return root.entity;
+    var keys = Object.keys(root).filter(function (k) { return k.charAt(0) !== '_'; });
+    if (!keys.length) return null;
+    var entityPayload = root[keys[0]];
+    if (!entityPayload || typeof entityPayload !== 'object' || Array.isArray(entityPayload)) return null;
+    var ent =
+      entityPayload.entity != null && typeof entityPayload.entity === 'object' && !Array.isArray(entityPayload.entity)
+        ? entityPayload.entity
+        : entityPayload;
+    return ent && typeof ent === 'object' && !Array.isArray(ent) ? ent : null;
   }
 
   function extractEmailFromEntity(entity) {
@@ -1009,6 +1014,7 @@
     toggle.addEventListener('click', function () {
       var collapsed = panel.classList.contains('is-collapsed');
       setExpanded(collapsed);
+      if (collapsed && isProfileLoaded()) hydrateMicroProfileFromUps();
     });
   }
 

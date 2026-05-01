@@ -389,13 +389,16 @@ waitForAlloy()
     if (!clientData || typeof clientData !== 'object') return null;
     var root = clientData.platform_response != null ? clientData.platform_response : clientData;
     if (!root || typeof root !== 'object') return null;
-    var keys = Object.keys(root);
-    for (var vi = 0; vi < keys.length; vi++) {
-      var v = root[keys[vi]];
-      if (v && typeof v === 'object' && v.entity && typeof v.entity === 'object') return v.entity;
-    }
-    if (root.entity && typeof root.entity === 'object') return root.entity;
-    return null;
+    if (root.entity && typeof root.entity === 'object' && !Array.isArray(root.entity)) return root.entity;
+    var keys = Object.keys(root).filter(function (k) { return k.charAt(0) !== '_'; });
+    if (!keys.length) return null;
+    var entityPayload = root[keys[0]];
+    if (!entityPayload || typeof entityPayload !== 'object' || Array.isArray(entityPayload)) return null;
+    var ent =
+      entityPayload.entity != null && typeof entityPayload.entity === 'object' && !Array.isArray(entityPayload.entity)
+        ? entityPayload.entity
+        : entityPayload;
+    return ent && typeof ent === 'object' && !Array.isArray(ent) ? ent : null;
   }
 
   function buildIdentityMapFromUpsEntity(entity, fallbackEmail) {
