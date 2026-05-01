@@ -154,9 +154,14 @@
   var microBaseline = null;
 
   function snapshotMicroForm() {
+    var tierMetal = '';
+    if (microLoyaltyInScheme) {
+      var tEl = $('cdMicroProfileTier');
+      tierMetal = tEl ? metalFromTierIndex(tEl.value) : '';
+    }
     return {
-      tier: ($('cdMicroProfileTier') || {}).value || '',
-      points: ($('cdMicroProfilePoints') || {}).value || '',
+      tier: tierMetal,
+      points: microLoyaltyInScheme ? (($('cdMicroProfilePoints') || {}).value || '') : '',
       channel: ($('cdMicroProfileChannel') || {}).value || '',
       propensity: ($('cdMicroProfilePropensity') || {}).value || '',
       churn: ($('cdMicroProfileChurn') || {}).value || '',
@@ -278,6 +283,71 @@
       }
     });
     return out;
+  }
+
+  /** Same slice walk as readTierFromEntity / readPointsFromEntity: in loyalty program when tier/level text and/or loyalty points exist on profile. */
+  function profileInLoyaltyScheme(entity) {
+    if (!entity || typeof entity !== 'object') return false;
+    var t = readTierFromEntity(entity);
+    if (t && String(t).trim()) return true;
+    var p = readPointsFromEntity(entity);
+    return p != null && !Number.isNaN(p);
+  }
+
+  var LOYALTY_METAL_TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum'];
+
+  function metalFromTierIndex(ix) {
+    var i = Math.round(Number(ix));
+    if (!Number.isFinite(i)) return LOYALTY_METAL_TIERS[0];
+    return LOYALTY_METAL_TIERS[clamp(i, 0, LOYALTY_METAL_TIERS.length - 1)];
+  }
+
+  function tierIndexFromMetalName(raw) {
+    if (raw == null || raw === '') return 0;
+    var s = String(raw).trim().toLowerCase();
+    for (var i = 0; i < LOYALTY_METAL_TIERS.length; i++) {
+      if (LOYALTY_METAL_TIERS[i].toLowerCase() === s) return i;
+    }
+    return 0;
+  }
+
+  /** Whether UPS-backed loyalty controls may emit profile updates (hydrated from last UPS entity). */
+  var microLoyaltyInScheme = false;
+
+  function syncTierDisplayFromSlider() {
+    var tierEl = $('cdMicroProfileTier');
+    var tierLabel = $('cdMicroProfileTierValue');
+    if (!tierEl || !tierLabel) return;
+    var metal = metalFromTierIndex(tierEl.value);
+    tierLabel.textContent = metal;
+    tierEl.setAttribute('aria-valuenow', String(tierEl.value));
+    tierEl.setAttribute('aria-valuetext', metal);
+  }
+
+  function setLoyaltyUiEnabled(inScheme) {
+    microLoyaltyInScheme = !!inScheme;
+    var panel = $('cdMicroProfilePanel');
+    var tierEl = $('cdMicroProfileTier');
+    var ptsEl = $('cdMicroProfilePoints');
+    var tierLabel = $('cdMicroProfileTierValue');
+    if (panel) panel.classList.toggle('is-loyalty-disabled', !inScheme);
+    if (tierEl) {
+      tierEl.disabled = !inScheme;
+      tierEl.setAttribute('aria-disabled', inScheme ? 'false' : 'true');
+    }
+    if (ptsEl) {
+      ptsEl.disabled = !inScheme;
+      ptsEl.setAttribute('aria-disabled', inScheme ? 'false' : 'true');
+    }
+    if (tierLabel) {
+      tierLabel.classList.toggle('cd-micro-profile-tier-label--na', !inScheme);
+      if (!inScheme) {
+        tierLabel.textContent = 'N/A';
+        if (tierEl) tierEl.setAttribute('aria-valuetext', 'N/A');
+      } else {
+        syncTierDisplayFromSlider();
+      }
+    }
   }
 
   function readPropensityFromEntity(entity) {
@@ -404,12 +474,15 @@
     if (!$('cdMicroProfilePanel')) return;
     setSelectFromProfileValue($('cdMicroProfileLanguage'), '', '');
     setSelectFromProfileValue($('cdMicroProfileChannel'), '', '');
-    setSelectFromProfileValue($('cdMicroProfileTier'), '', '');
+    var tierEl = $('cdMicroProfileTier');
+    if (tierEl) tierEl.value = '0';
+    setLoyaltyUiEnabled(false);
     for (var id in MICRO_RANGE_DEFAULTS) {
       if (!Object.prototype.hasOwnProperty.call(MICRO_RANGE_DEFAULTS, id)) continue;
       var el = $(id);
       if (el) el.value = MICRO_RANGE_DEFAULTS[id];
     }
+    dispatchRangeRefresh('cdMicroProfileTier');
     dispatchRangeRefresh('cdMicroProfilePoints');
     dispatchRangeRefresh('cdMicroProfilePropensity');
     dispatchRangeRefresh('cdMicroProfileChurn');
@@ -442,15 +515,26 @@
     var chPref = readPreferredChannelFromEntity(entity);
     setSelectFromProfileValue($('cdMicroProfileChannel'), chPref, chPref);
 
-    var tier = readTierFromEntity(entity);
-    setSelectFromProfileValue($('cdMicroProfileTier'), tier, tier);
+    var inLoyalty = profileInLoyaltyScheme(entity);
+    setLoyaltyUiEnabled(inLoyalty);
+
+    var tierStr = readTierFromEntity(entity);
+    var tierEl = $('cdMicroProfileTier');
+    if (tierEl && inLoyalty) {
+      tierEl.value = String(tierIndexFromMetalName(tierStr));
+      syncTierDisplayFromSlider();
+    }
 
     var pts = readPointsFromEntity(entity);
     var ptsEl = $('cdMicroProfilePoints');
     if (ptsEl) {
-      if (pts != null && !Number.isNaN(pts)) {
-        var pClamped = clamp(pts, Number(ptsEl.min) || 0, Number(ptsEl.max) || 10000);
-        ptsEl.value = String(pClamped);
+      if (inLoyalty) {
+        if (pts != null && !Number.isNaN(pts)) {
+          var pClamped = clamp(pts, Number(ptsEl.min) || 0, Number(ptsEl.max) || 10000);
+          ptsEl.value = String(pClamped);
+        } else {
+          ptsEl.value = MICRO_RANGE_DEFAULTS.cdMicroProfilePoints;
+        }
       } else {
         ptsEl.value = MICRO_RANGE_DEFAULTS.cdMicroProfilePoints;
       }
@@ -490,6 +574,7 @@
       }
     }
 
+    dispatchRangeRefresh('cdMicroProfileTier');
     dispatchRangeRefresh('cdMicroProfilePoints');
     dispatchRangeRefresh('cdMicroProfilePropensity');
     dispatchRangeRefresh('cdMicroProfileChurn');
@@ -507,15 +592,17 @@
     var base = microBaseline || {};
     var updates = [];
 
-    if (form.tier && !strEq(form.tier, base.tier)) {
-      updates.push({ path: 'loyalty.tier', value: form.tier });
-      updates.push({ path: 'loyaltyDetails.level', value: form.tier });
-    }
-    if (form.points != null && form.points !== '') {
-      var pts = Number(form.points);
-      if (!Number.isNaN(pts) && !strEq(form.points, base.points)) {
-        updates.push({ path: 'loyalty.points', value: pts });
-        updates.push({ path: 'loyaltyDetails.points', value: pts });
+    if (microLoyaltyInScheme) {
+      if (form.tier && !strEq(form.tier, base.tier)) {
+        updates.push({ path: 'loyalty.tier', value: form.tier });
+        updates.push({ path: 'loyaltyDetails.level', value: form.tier });
+      }
+      if (form.points != null && form.points !== '') {
+        var pts = Number(form.points);
+        if (!Number.isNaN(pts) && !strEq(form.points, base.points)) {
+          updates.push({ path: 'loyalty.points', value: pts });
+          updates.push({ path: 'loyaltyDetails.points', value: pts });
+        }
       }
     }
     if (form.channel && !strEq(form.channel, base.channel)) {
@@ -596,9 +683,10 @@
     }
     var sandbox = getSandboxName();
     var ecid = resolveEcid();
+    var tierElApply = $('cdMicroProfileTier');
     var form = {
-      tier: ($('cdMicroProfileTier') || {}).value || '',
-      points: ($('cdMicroProfilePoints') || {}).value || '',
+      tier: microLoyaltyInScheme && tierElApply ? metalFromTierIndex(tierElApply.value) : '',
+      points: microLoyaltyInScheme ? (($('cdMicroProfilePoints') || {}).value || '') : '',
       channel: ($('cdMicroProfileChannel') || {}).value || '',
       propensity: ($('cdMicroProfilePropensity') || {}).value || '',
       churn: ($('cdMicroProfileChurn') || {}).value || '',
@@ -652,6 +740,7 @@
     { id: 'cdMicroProfileChurn', reverse: true },
     { id: 'cdMicroProfilePropensity', reverse: false },
     { id: 'cdMicroProfileOrderValue', reverse: false },
+    { id: 'cdMicroProfileTier', reverse: false },
     { id: 'cdMicroProfilePoints', reverse: false },
     { id: 'cdMicroProfileNps', reverse: false },
   ];
@@ -664,6 +753,11 @@
 
   function applySliderTint(input, reverse) {
     if (!input) return;
+    if (input.disabled) {
+      input.style.setProperty('--cd-slider-fill', 'var(--dash-input-border)');
+      input.style.setProperty('--cd-slider-pct', '0%');
+      return;
+    }
     var min = Number(input.min);
     var max = Number(input.max);
     var val = Number(input.value);
@@ -675,6 +769,15 @@
   }
 
   function wireRangeMirrors() {
+    var tierIn = $('cdMicroProfileTier');
+    if (tierIn) {
+      var syncTierLbl = function () {
+        if (!microLoyaltyInScheme) return;
+        syncTierDisplayFromSlider();
+      };
+      tierIn.addEventListener('input', syncTierLbl);
+      syncTierLbl();
+    }
     var pts = $('cdMicroProfilePoints');
     var ptsLabel = $('cdMicroProfilePointsValue');
     if (pts && ptsLabel) {

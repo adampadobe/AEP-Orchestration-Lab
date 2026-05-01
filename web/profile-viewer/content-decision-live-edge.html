@@ -1465,7 +1465,7 @@
             <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Fetch UPS profile, call Edge via Web SDK (Launch), render decisions into the preview areas below">
               Run content decision
             </button>
-            <section class="cd-micro-profile is-collapsed" id="cdMicroProfilePanel" aria-label="Tweak profile">
+            <section class="cd-micro-profile is-collapsed is-loyalty-disabled" id="cdMicroProfilePanel" aria-label="Tweak profile">
               <button type="button" class="cd-micro-profile-toggle" id="cdMicroProfileToggle" aria-expanded="false" aria-controls="cdMicroProfileBody">
                 <span class="cd-micro-profile-toggle-cluster">
                   <span class="cd-micro-profile-state" id="cdMicroProfileState" data-loaded="false">
@@ -1498,12 +1498,19 @@
                 </div>
                 <input type="range" id="cdMicroProfileOrderValue" min="0" max="5000" step="50" value="500">
               </div>
-              <div class="cd-micro-profile-field">
+              <div class="cd-micro-profile-field cd-micro-profile-field--loyalty-tier">
+                <div class="cd-micro-profile-range-row">
+                  <label for="cdMicroProfileTier">Loyalty tier</label>
+                  <strong id="cdMicroProfileTierValue" class="cd-micro-profile-tier-label cd-micro-profile-tier-label--na">N/A</strong>
+                </div>
+                <input type="range" id="cdMicroProfileTier" min="0" max="3" step="1" value="0" disabled aria-disabled="true" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0" aria-valuetext="N/A">
+              </div>
+              <div class="cd-micro-profile-field cd-micro-profile-field--loyalty-points">
                 <div class="cd-micro-profile-range-row">
                   <label for="cdMicroProfilePoints">Loyalty points</label>
                   <strong id="cdMicroProfilePointsValue">3000</strong>
                 </div>
-                <input type="range" id="cdMicroProfilePoints" min="0" max="10000" step="100" value="3000">
+                <input type="range" id="cdMicroProfilePoints" min="0" max="10000" step="100" value="3000" disabled aria-disabled="true">
               </div>
               <div class="cd-micro-profile-field">
                 <div class="cd-micro-profile-range-row">
@@ -1511,16 +1518,6 @@
                   <strong id="cdMicroProfileNpsValue">5</strong>
                 </div>
                 <input type="range" id="cdMicroProfileNps" min="0" max="10" step="1" value="5">
-              </div>
-              <div class="cd-micro-profile-field">
-                <label for="cdMicroProfileTier">Loyalty tier</label>
-                <select id="cdMicroProfileTier">
-                  <option value="">— Unchanged —</option>
-                  <option value="Bronze">Bronze</option>
-                  <option value="Silver">Silver</option>
-                  <option value="Gold">Gold</option>
-                  <option value="Platinum">Platinum</option>
-                </select>
               </div>
               <div class="cd-micro-profile-field">
                 <label for="cdMicroProfileLanguage">Language preference</label>
@@ -1886,7 +1883,7 @@
   <script src="content-decision-live-edge-onboarding.js?v=20260424-edge-onboarding-query"></script>
   <script src="profile-streaming-shared.js"></script>
   <script src="content-decision-live-edge-inline.js?v=20260501-auto-lookup"></script>
-  <script src="content-decision-live-edge-micro-profile.js?v=20260501-micro-profile-sliders-nps"></script>
+  <script src="content-decision-live-edge-micro-profile.js?v=20260501-loyalty-tier-slider"></script>
   <script src="content-decision-live-edge-embed-fs.js?v=20260427-edge-embed-fs"></script>
   <script defer src="marauders-map-egg.js?v=20260423-edge-flavor"></script>
 </body>
