@@ -4,7 +4,7 @@
  * Handles:
  *  - Sandbox-portable setup wizard (4 steps): Create schema → Attach field groups → Create dataset → HTTP flow instructions.
  *  - Per-sandbox saved DCS HTTP API connection (URL, Flow ID, Dataset ID, Schema $id) via Firestore.
- *  - Customer Analytics editor (churn, propensity, NPS, AOV, preferred channel, gender, loyalty tier+points, language).
+ *  - Customer Analytics editor (churn, propensity, NPS, AOV, preferred marketing channel → consents.marketing.preferred, gender, loyalty tier+points, language).
  *  - Plain-email-to-pattern scaler `<local>+DDMMYYYY-N@<domain>` with daily counter per (sandbox, base email).
  *  - Find existing profile by scaled email (`/api/profile/table`).
  *  - Update / generate-N profiles via the existing Adobe Profile Updater (`/api/profile/update`).
@@ -585,10 +585,11 @@
     if (npsRaw !== '') push('scoring.npsScore', parseInt(npsRaw, 10));
     if (aovRaw !== '') push('orderProfile.avgOrderSize', Number(aovRaw));
 
-    // Preferred Channel is intentionally NOT streamed: the input is hidden
-    // (#genPreferredChannelCard[hidden] in the HTML) because Profile Core v2
-    // has no preferredChannel path. The <select> still lives in the DOM so
-    // we can re-enable both the UI and a stream path in one follow-up.
+    // Consent and Preference Details: enum string at consents.marketing.preferred
+    // (not a Profile Core v2 tenant path — merged at root via tenant.consents
+    // in profileStreamingCore.resolveStreamingConsentsOptInOut).
+    const preferredRaw = preferredChannelEl ? String(preferredChannelEl.value || '').trim() : '';
+    if (preferredRaw !== '') push('consents.marketing.preferred', preferredRaw);
 
     // Standalone Language card — maps to `personalEmail.language` and
     // `preferences.preferredLanguage` (XDM root paths).
@@ -718,6 +719,7 @@
       findByKeywords('personalemail', 'language') ||
       findBySuffix(['language', 'locale']);
     let gender = findBySuffix(['gender']) || findByKeywords('person', 'gender');
+    let preferredChannel = findBySuffix(['marketing.preferred']);
 
     // Loyalty (dual-written by buildUpdatesFromForm to both the standard
     // XDM mixin and Profile Core v2 tenant paths). Path-suffix match
@@ -768,6 +770,10 @@
         if (v != null) lang = String(v);
       }
       if (!gender) { const v = get(entity, 'person.gender'); if (v != null) gender = String(v); }
+      if (!preferredChannel) {
+        const v = get(entity, 'consents.marketing.preferred');
+        if (v != null) preferredChannel = String(v);
+      }
       if (!loyaltyId) {
         const arr = get(entity, 'loyalty.loyaltyID');
         if (Array.isArray(arr) && arr.length) loyaltyId = String(arr[0]);
@@ -785,6 +791,7 @@
     if (aov && aovEl) { aovEl.value = aov; if (typeof renderAov === 'function') renderAov(); }
     setSelectValueLoose(languageEl, lang);
     setSelectValueLoose(genderEl, gender);
+    setSelectValueLoose(preferredChannelEl, preferredChannel);
 
     const hasLoyalty = !!(loyaltyId || tier || points);
     if (hasLoyalty && loyaltyEnabledEl) {
@@ -1121,6 +1128,7 @@
     }
     if (snap.nps) parts.push(`NPS ${snap.nps}`);
     if (snap.aov) parts.push(`AOV $${snap.aov}`);
+    if (snap.preferredChannel) parts.push(`Preferred ${snap.preferredChannel}`);
     return parts.join(' · ');
   }
 

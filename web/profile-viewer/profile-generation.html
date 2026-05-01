@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="consent.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
-  <link rel="stylesheet" href="profile-generation.css">
+  <link rel="stylesheet" href="profile-generation.css?v=20260501">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -1121,7 +1121,9 @@
             <h4>Before you can generate or update generic profiles in a new sandbox:</h4>
             <ol>
               <li><strong>Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - Generic Profile - Schema</code>.</li>
-              <li><strong>Attach field groups</strong> — Attaches Profile Core v2, Demographic Details, Personal Contact Details, Loyalty Details and Preferences Details, plus the primary Email identity descriptor. The wizard <strong>does not</strong> enable the schema for Real-Time Customer Profile at this point — that is a deliberate, manual step (see note below).</li>
+              <li>
+                <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong> (OOTB <code>consents.marketing.*</code>, including the preferred-channel enum at <code>consents.marketing.preferred</code>), and <strong>Preference Details</strong> (<code>preferences.*</code>, e.g. preferred language) to <code>AEP Lab - Generic Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. The wizard <strong>does not</strong> enable the schema for Real-Time Customer Profile at this point — that is a deliberate, manual step (see note below).
+              </li>
               <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Generic Profile - Dataset</code>.</li>
               <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Generic Profile - Dataflow</code></strong> (the value pre-populated in the <em>Dataflow name (used for lookup when Flow ID is empty)</em> field below) so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve the <strong>Flow ID</strong> and <strong>Collection URL</strong> automatically — or copy the Flow ID manually if you used a different name.</li>
             </ol>
@@ -1364,34 +1366,32 @@
           </div>
 
           <!--
-            Preferred Channel is hidden because the Profile Core v2 tenant
-            field group attached by the wizard does not expose a
-            preferredChannel path. The <select id="genPreferredChannel"> stays
-            in the DOM (still wired by profile-generation-generic.js) so we
-            can re-enable it cheaply later by removing this `hidden` flag and
-            wiring a tenant XDM path to it. profile-generation-generic.js no
-            longer reads/writes this field while it is hidden.
+            Preferred marketing channel: OOTB Consent and Preference Details
+            (`profile-consents`) enum at `consents.marketing.preferred`. Option
+            values are the XDM enum strings; labels are operator-facing display
+            names. Step 2 of the Generic wizard attaches the field group.
           -->
-          <div id="genPreferredChannelCard" class="analytics-card" hidden>
+          <div id="genPreferredChannelCard" class="analytics-card">
             <div class="analytics-card-header">
               <span class="analytics-card-icon">📢</span>
-              <h4 class="analytics-card-title">Preferred channel</h4>
+              <h4 class="analytics-card-title">Preferred marketing channel</h4>
             </div>
-            <p class="analytics-card-desc">Communication channel preference. Maps to <code>_demoemea.preferences.preferredChannel</code>.</p>
-            <select id="genPreferredChannel">
-              <option value="">— Select —</option>
-              <option value="email">Email</option>
-              <option value="push">Push notifications</option>
-              <option value="inapp">In-app messages</option>
-              <option value="sms">SMS (text messages)</option>
-              <option value="phone">Phone calls</option>
-              <option value="postal">Physical mail</option>
-              <option value="invehicle">In-vehicle messages</option>
-              <option value="inhome">In-home messages</option>
-              <option value="iot">IoT messages</option>
-              <option value="social">Social media</option>
+            <p class="analytics-card-desc">Stored as the enum string at <code>consents.marketing.preferred</code> (Consent and Preference Details field group). Leave blank to skip on this update.</p>
+            <select id="genPreferredChannel" aria-label="Preferred marketing channel">
+              <option value="">— Skip (unchanged) —</option>
+              <option value="email">email</option>
+              <option value="push">Push Notifications</option>
+              <option value="inApp">In-app Messages</option>
+              <option value="sms">SMS (Text Messages)</option>
+              <option value="whatsApp">WhatsApp Messages</option>
+              <option value="phone">Phone Calls</option>
+              <option value="phyMail">Physical Mail</option>
+              <option value="inVehicle">In-vehicle Messages</option>
+              <option value="inHome">In-home Messages</option>
+              <option value="iot">IoT Messages</option>
+              <option value="social">Social Media</option>
               <option value="other">Other</option>
-              <option value="none">No preferred channel</option>
+              <option value="none">No Preferred Channel</option>
               <option value="unknown">Unknown</option>
             </select>
           </div>

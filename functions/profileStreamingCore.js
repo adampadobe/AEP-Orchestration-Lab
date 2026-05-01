@@ -144,17 +144,43 @@ function profileStreamingUseEnvelope(envFlag) {
   return v === '1' || v === 'true' || v === 'yes';
 }
 
+/**
+ * Deep-merge partial consent fragments from profile streaming (e.g. only
+ * `consents.marketing.preferred`) into the default marketing consent shape so
+ * root `consents` stays valid for DCS.
+ */
+function deepMergeStreamingConsentsPatch(base, patch) {
+  if (patch == null || typeof patch !== 'object' || Array.isArray(patch)) return base;
+  if (base == null || typeof base !== 'object' || Array.isArray(base)) return patch;
+  const out = { ...base };
+  for (const k of Object.keys(patch)) {
+    const pv = patch[k];
+    if (pv === undefined) continue;
+    const bv = base[k];
+    if (pv && typeof pv === 'object' && !Array.isArray(pv) && bv && typeof bv === 'object' && !Array.isArray(bv)) {
+      out[k] = deepMergeStreamingConsentsPatch(bv, pv);
+    } else {
+      out[k] = pv;
+    }
+  }
+  return out;
+}
+
 /** Root-level consents/optInOut: reuse tenant object when present so consent updates match the form (email-primary identity unchanged). */
 function resolveStreamingConsentsOptInOut(tenantPayload, email) {
   const tenant = tenantPayload && typeof tenantPayload === 'object' ? tenantPayload : {};
+  const defaults = buildDefaultProfileStreamingConsentFields(email);
   if (tenant.consents != null && typeof tenant.consents === 'object') {
     const optInOut =
       tenant.optInOut != null && typeof tenant.optInOut === 'object'
         ? tenant.optInOut
-        : buildDefaultProfileStreamingConsentFields(email).optInOut;
-    return { consents: tenant.consents, optInOut };
+        : defaults.optInOut;
+    return {
+      consents: deepMergeStreamingConsentsPatch(defaults.consents, tenant.consents),
+      optInOut,
+    };
   }
-  return buildDefaultProfileStreamingConsentFields(email);
+  return defaults;
 }
 
 function buildProfileXdmEntityForStream(tenantPayload, email, ecid, xdmKey, rootProfileFields) {

@@ -359,7 +359,7 @@ async function ensureCustomerAnalyticsFieldGroup(token, clientId, orgId, sandbox
   throw new Error(`Create Customer Analytics field group failed: ${lastErr}`);
 }
 
-/** PATCH ops to attach Profile Core v2 + Demographic Details + Personal Contact Details + Loyalty Details + Customer Analytics. */
+/** PATCH ops to attach Profile Core v2 + Demographic Details + Personal Contact Details + Loyalty Details + Consent and Preference Details + Preference Details. */
 function buildAttachFieldGroupPatchOps(fullSchema, profileCoreMixinId) {
   const existing = collectSchemaRefUris(fullSchema);
   // Canonical $id values per the public adobe/xdm repo. Loyalty Details
@@ -367,6 +367,8 @@ function buildAttachFieldGroupPatchOps(fullSchema, profileCoreMixinId) {
   // `mixins/...` one). Sending the wrong path causes the Schema Registry
   // to reject the entire PATCH with a misleading 404 "Resource not found"
   // because AEP cannot resolve one of the $ref values in the body.
+  // `profile-consents` is the OOTB Consent and Preference Details field group
+  // (`consents.marketing.preferred`, channel objects, etc.).
   // The tenant "AEP Lab - Customer Analytics" field group is intentionally
   // NOT included here — operators decide separately if they want it
   // (the wizard never auto-creates or attaches it).
@@ -374,6 +376,7 @@ function buildAttachFieldGroupPatchOps(fullSchema, profileCoreMixinId) {
     'https://ns.adobe.com/xdm/context/profile-person-details',
     'https://ns.adobe.com/xdm/context/profile-personal-details',
     'https://ns.adobe.com/xdm/mixins/profile/profile-loyalty-details',
+    'https://ns.adobe.com/xdm/mixins/profile-consents',
     'https://ns.adobe.com/xdm/context/profile-preferences-details',
     String(profileCoreMixinId),
   ];
@@ -444,6 +447,7 @@ function genericProfileFieldGroupsComplete(fullSchema, profileCoreMixinId) {
     'https://ns.adobe.com/xdm/context/profile-person-details',
     'https://ns.adobe.com/xdm/context/profile-personal-details',
     'https://ns.adobe.com/xdm/mixins/profile/profile-loyalty-details',
+    'https://ns.adobe.com/xdm/mixins/profile-consents',
     'https://ns.adobe.com/xdm/context/profile-preferences-details',
     String(profileCoreMixinId),
   ];
@@ -887,7 +891,7 @@ async function runGenericProfileInfraStep(sandbox, token, clientId, orgId, stepN
         schemaId: created.$id,
         schemaMetaAltId: created['meta:altId'],
         message:
-          'Schema shell created (Profile class only). Run step 2 to attach the standard Profile field groups + primary Email identity.',
+          'Schema shell created (Profile class only). Run step 2 to attach the standard Profile field groups (including Consent and Preference Details for consents.marketing.*) + primary Email identity.',
       };
     }
 
@@ -963,7 +967,7 @@ async function runGenericProfileInfraStep(sandbox, token, clientId, orgId, stepN
         patchApplied: ar.patchApplied,
         descriptorOk: ar.descriptorOk,
         message: ar.patchApplied
-          ? 'Field groups attached and primary Email identity set (Profile Core v2 + Demographic Details + Personal Contact Details + Loyalty Details + Preferences Details).'
+          ? 'Field groups attached and primary Email identity set (Profile Core v2 + Demographic Details + Personal Contact Details + Loyalty Details + Consent and Preference Details + Preference Details).'
           : 'Field groups were already present; primary Email identity checked.',
       };
     }
