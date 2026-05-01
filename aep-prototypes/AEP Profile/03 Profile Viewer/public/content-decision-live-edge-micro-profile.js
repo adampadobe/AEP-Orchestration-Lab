@@ -101,19 +101,6 @@
     return '';
   }
 
-  function refreshIdentityStrip() {
-    var ns = getNamespace();
-    var idVal = getIdentifierValue();
-    var streamingEmail = resolveStreamingEmail(ns, idVal);
-    var ecid = resolveEcid();
-    var idLabel = $('cdMicroProfileIdLabel');
-    var ecidLabel = $('cdMicroProfileEcid');
-    var emailLabel = $('cdMicroProfileStreamingEmail');
-    if (idLabel) idLabel.textContent = idVal ? (ns + '=' + idVal) : '—';
-    if (ecidLabel) ecidLabel.textContent = ecid || '—';
-    if (emailLabel) emailLabel.textContent = streamingEmail || '—';
-  }
-
   /** Cache the streaming connection per sandbox (one fetch per sandbox per page load). */
   var streamingCache = Object.create(null);
 
@@ -196,7 +183,6 @@
   async function onApply() {
     var btn = $('cdMicroProfileApply');
     if (!btn) return;
-    refreshIdentityStrip();
     var ns = getNamespace();
     var idVal = getIdentifierValue();
     if (!idVal) {
@@ -275,35 +261,18 @@
     }
   }
 
-  function wireIdentityWatchers() {
-    var ns = $('cdNs');
-    var em = $('cdLiveEmail');
-    if (ns) ns.addEventListener('change', refreshIdentityStrip);
-    if (em) {
-      em.addEventListener('input', refreshIdentityStrip);
-      em.addEventListener('change', refreshIdentityStrip);
-    }
-    document.addEventListener('click', function (ev) {
-      var t = ev.target;
-      if (!t || !t.id) return;
-      if (t.id === 'btnFetchProfile' || t.id === 'btnProfileAndEdge' || t.id === 'btnRunFullContentDecision') {
-        setTimeout(refreshIdentityStrip, 1500);
-        setTimeout(refreshIdentityStrip, 4000);
-      }
-    });
+  function wireSandboxResetWatcher() {
     window.addEventListener('aep-lab-sandbox-synced', function () {
       streamingCache = Object.create(null);
-      refreshIdentityStrip();
     });
   }
 
   function boot() {
     if (!$('cdMicroProfilePanel')) return;
     wireRangeMirrors();
-    wireIdentityWatchers();
+    wireSandboxResetWatcher();
     var btn = $('cdMicroProfileApply');
     if (btn) btn.addEventListener('click', onApply);
-    refreshIdentityStrip();
   }
 
   if (document.readyState === 'loading') {
