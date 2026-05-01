@@ -1214,6 +1214,17 @@ function renderJourneyHtml(journeyData) {
   .tech-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.2px; }
   .tech-badge.confirmed { background: #e8f5e9; color: #1b5e20; }
   .tech-badge.assumed { background: #fff3e0; color: #b26a00; }
+  /* Brand Concierge badge — Advanced-tier orch column. Bullets the model
+     prefixes "Brand Concierge:" pick up a small violet "BC" pill before
+     the text and a thin left-accent so audiences can see at a glance
+     that this is conversational AI fired from an owned channel, not a
+     marketer-orchestrated AJO push. The accent is intentionally subtle
+     — BC sits inside the same Journey Orchestration column on purpose
+     (per the skill v9 spec); the badge is the cue, not a new column. */
+  .bc-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-right: 6px; vertical-align: middle; letter-spacing: 0.4px; background: rgba(125, 73, 220, 0.14); color: #5a2eb8; text-transform: uppercase; }
+  .data-item.is-bc { border-left: 2px solid rgba(125, 73, 220, 0.55); padding-left: 5px; }
+  .data-item.is-bc.past { border-left-color: rgba(125, 73, 220, 0.32); }
+  .data-item.is-bc.active { border-left-color: rgba(125, 73, 220, 0.85); }
   .seg { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; font-size: 10px; line-height: 1.25; background: #f9fafb; border: 1px solid transparent; transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease; }
   .seg.active { background: var(--active-bg); border-color: var(--active-stroke); color: #1b5e20; font-weight: 600; }
   .seg.past { opacity: 0.42; background: transparent; border-color: transparent; }
@@ -1439,7 +1450,21 @@ function renderJourneyHtml(journeyData) {
 
     document.getElementById('col-orch').innerHTML = accumulate(
       current, s => s.orch || [], s => s.orchActive || [], x => String(x)
-    ).map(o => liStr(o.item, o.isActive, o.isPast)).join('');
+    ).map(o => {
+      // Brand Concierge bullets sit in this same column per the skill
+      // v9 spec; we surface a "BC" pill + violet accent so the audience
+      // can see where conversational AI fires vs where AJO pushes.
+      // Match is case-insensitive and strips the prefix from the
+      // visible text (the badge replaces it).
+      var raw = String(o.item);
+      var bcMatch = raw.match(/^\s*brand\s+concierge\s*:\s*(.*)$/i);
+      if (bcMatch) {
+        var rest = bcMatch[1];
+        var cls = (o.isActive ? ' active' : (o.isPast ? ' past' : '')) + ' is-bc';
+        return '<div class="data-item' + cls + '"><span class="bc-badge">BC</span>' + esc(rest) + '</div>';
+      }
+      return liStr(o.item, o.isActive, o.isPast);
+    }).join('');
 
     // Decisioning is the bottom half of column 4. When a journey carries
     // no decisioning bullets at all, the inner div stays empty and the
