@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="home.css?v=20260422d">
   <link rel="stylesheet" href="aep-theme.css?v=20260422d">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260428l">
+  <link rel="stylesheet" href="experimentation-accelerator.css?v=20260410c">
   <link rel="stylesheet" href="experimentation-accelerator-dock.css?v=20260423f">
 </head>
 <body class="profile-viewer-page home-dashboard-concierge experimentation-accelerator-page experimentation-accelerator-page--immersive" data-ajo-tab="overview">
@@ -676,7 +676,7 @@
           </div>
         </div>
 
-        <script src="experimentation-accelerator-customise.js?v=20260429a"></script>
+        <script src="experimentation-accelerator-customise.js?v=20260410b"></script>
 
         <div id="expAccelDockOuter" class="workflow-dock-outer" aria-label="Customise dock">
           <div class="workflow-dock-slide">
@@ -712,6 +712,15 @@
                     <option value="travel">Travel and hospitality</option>
                     <option value="technology">Technology</option>
                   </select>
+                  <div class="ajo-customise-sample-row">
+                    <label class="ajo-customise-check-label" for="expAccelIndustrySampleCheck">
+                      <input type="checkbox" id="expAccelIndustrySampleCheck" />
+                      <span>Use industry sample content (text + images)</span>
+                    </label>
+                    <p class="hint ajo-customise-hint">
+                      When checked, the page uses stock copy and Unsplash images for the selected industry. Fields below keep your saved values; uncheck to show those saved values on the page again.
+                    </p>
+                  </div>
                   <h2 class="workflow-drawer-scroll__subhead">Top experiments (Overview)</h2>
                   <p class="hint">Image URLs for the four experiment tiles (ACE… rows). Leave blank to use colored placeholders.</p>
                   <label for="expAccelDockExpImgUrl1">Experiment 1 image URL</label>

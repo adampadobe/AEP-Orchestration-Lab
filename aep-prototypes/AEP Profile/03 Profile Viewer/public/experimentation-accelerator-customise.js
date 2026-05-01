@@ -96,6 +96,115 @@
     },
   };
 
+  /**
+   * Stock team line, hero name, experiment rows + images when "Use industry sample content" is checked.
+   * Unsplash URLs use fixed photo IDs + crop params (stable).
+   */
+  var INDUSTRY_SAMPLE_PRESETS = {
+    general: {
+      sampleDisplayName: 'Jordan',
+      sampleTeamRaw: 'Creative Cloud, Demo Experience Lab',
+      expImg1: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=320&h=280&fit=crop&q=80',
+      expImg2: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=320&h=280&fit=crop&q=80',
+      expImg3: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=320&h=280&fit=crop&q=80',
+      expImg4: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=320&h=280&fit=crop&q=80',
+      expTitle1: 'ACE1101 | US | Creative | Homepage emotional headline',
+      expSub1: 'Creative Cloud landing',
+      expTitle2: 'ACE1102 | US | Creative | Trial CTA microcopy',
+      expSub2: 'Photoshop product page',
+      expTitle3: 'ACE1103 | US | Creative | In-app upsell banner',
+      expSub3: 'Illustrator product page',
+      expTitle4: 'ACE1104 | US | Creative | Email nurture subject',
+      expSub4: 'Acrobat DC page',
+      heroDetailImg: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=960&h=540&fit=crop&q=80',
+    },
+    retail: {
+      sampleDisplayName: 'Sam',
+      sampleTeamRaw: 'Retail Brand, Storefront & Digital',
+      expImg1: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=320&h=280&fit=crop&q=80',
+      expImg2: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=320&h=280&fit=crop&q=80',
+      expImg3: 'https://images.unsplash.com/photo-1555529902-4538246e3c93?w=320&h=280&fit=crop&q=80',
+      expImg4: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=320&h=280&fit=crop&q=80',
+      expTitle1: 'ACE2101 | UK | Retail | Seasonal hero emotional framing',
+      expSub1: 'Flagship category landing',
+      expTitle2: 'ACE2102 | UK | Retail | PLP recommendation strip',
+      expSub2: 'Womenswear listing',
+      expTitle3: 'ACE2103 | UK | Retail | Cart abandonment email',
+      expSub3: 'Checkout funnel',
+      expTitle4: 'ACE2104 | UK | Retail | Loyalty module banner',
+      expSub4: 'Account dashboard',
+      heroDetailImg: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=960&h=540&fit=crop&q=80',
+    },
+    financial: {
+      sampleDisplayName: 'Morgan',
+      sampleTeamRaw: 'Wealth Services, Digital Banking',
+      expImg1: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=320&h=280&fit=crop&q=80',
+      expImg2: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=320&h=280&fit=crop&q=80',
+      expImg3: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=320&h=280&fit=crop&q=80',
+      expImg4: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=320&h=280&fit=crop&q=80',
+      expTitle1: 'ACE3101 | US | Finance | Trust-led homepage hero',
+      expSub1: 'High-yield savings LP',
+      expTitle2: 'ACE3102 | US | Finance | Card acquisition landing',
+      expSub2: 'Rewards product page',
+      expTitle3: 'ACE3103 | US | Finance | Mobile app onboarding',
+      expSub3: 'App store funnel',
+      expTitle4: 'ACE3104 | US | Finance | Nurture journey email',
+      expSub4: 'Advisor scheduling',
+      heroDetailImg: 'https://images.unsplash.com/photo-1642543492481-44f81b7f550e?w=960&h=540&fit=crop&q=80',
+    },
+    healthcare: {
+      sampleDisplayName: 'Riley',
+      sampleTeamRaw: 'Clinical Programs, Patient Experience',
+      expImg1: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=320&h=280&fit=crop&q=80',
+      expImg2: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=320&h=280&fit=crop&q=80',
+      expImg3: 'https://images.unsplash.com/photo-1584515933487-779824d29309?w=320&h=280&fit=crop&q=80',
+      expImg4: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=320&h=280&fit=crop&q=80',
+      expTitle1: 'ACE4101 | US | Health | Empathetic service-line hero',
+      expSub1: 'Primary care landing',
+      expTitle2: 'ACE4102 | US | Health | Appointment booking module',
+      expSub2: 'Patient portal',
+      expTitle3: 'ACE4103 | US | Health | Wellness email series',
+      expSub3: 'Preventive care',
+      expTitle4: 'ACE4104 | US | Health | Telehealth promo tile',
+      expSub4: 'Virtual visit funnel',
+      heroDetailImg: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=960&h=540&fit=crop&q=80',
+    },
+    travel: {
+      sampleDisplayName: 'River',
+      sampleTeamRaw: 'Global Hospitality, Direct Booking',
+      expImg1: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=320&h=280&fit=crop&q=80',
+      expImg2: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=320&h=280&fit=crop&q=80',
+      expImg3: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=320&h=280&fit=crop&q=80',
+      expImg4: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=320&h=280&fit=crop&q=80',
+      expTitle1: 'ACE5101 | EU | Travel | Destination campaign hero',
+      expSub1: 'Beach resort LP',
+      expTitle2: 'ACE5102 | EU | Travel | Loyalty reactivation',
+      expSub2: 'Member email',
+      expTitle3: 'ACE5103 | EU | Travel | Mobile booking path',
+      expSub3: 'App install funnel',
+      expTitle4: 'ACE5104 | EU | Travel | Ancillary upsell',
+      expSub4: 'Flight extras',
+      heroDetailImg: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=960&h=540&fit=crop&q=80',
+    },
+    technology: {
+      sampleDisplayName: 'Devon',
+      sampleTeamRaw: 'B2B SaaS, Product Growth',
+      expImg1: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=320&h=280&fit=crop&q=80',
+      expImg2: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=320&h=280&fit=crop&q=80',
+      expImg3: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=320&h=280&fit=crop&q=80',
+      expImg4: 'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=320&h=280&fit=crop&q=80',
+      expTitle1: 'ACE6101 | US | Tech | Outcome-led homepage headline',
+      expSub1: 'Platform landing',
+      expTitle2: 'ACE6102 | US | Tech | Solution page value prop',
+      expSub2: 'Enterprise segment',
+      expTitle3: 'ACE6103 | US | Tech | Trial signup friction test',
+      expSub3: 'Self-serve funnel',
+      expTitle4: 'ACE6104 | US | Tech | Lifecycle email subject lines',
+      expSub4: 'Developer newsletter',
+      heroDetailImg: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=960&h=540&fit=crop&q=80',
+    },
+  };
+
   function rowField(p, i, kind) {
     var def = EXP_ROW_DEFAULTS[i - 1] || { title: '', sub: '' };
     var key = kind === 'title' ? 'expTitle' + i : 'expSub' + i;
@@ -293,6 +402,17 @@
 
   function resolveAndApplyHeroName() {
     var sb = currentSandboxName();
+    var stored = getForSandbox(sb) || {};
+    if (stored.useIndustrySamplePack) {
+      var ind = normaliseOpportunityIndustry(stored);
+      var pack = INDUSTRY_SAMPLE_PRESETS[ind] || INDUSTRY_SAMPLE_PRESETS[DEFAULTS.opportunityIndustry];
+      if (pack && pack.sampleDisplayName) {
+        lastResolvedFirstName = pack.sampleDisplayName;
+        applyHeroNameEl(pack.sampleDisplayName);
+        fillNameInputOnly();
+        return;
+      }
+    }
     var gen = ++fetchGen;
     var override = getNameOverride(sb);
     if (override) {
@@ -366,6 +486,43 @@
     var key = stored && typeof stored.opportunityIndustry === 'string' ? stored.opportunityIndustry.trim().toLowerCase() : '';
     if (!key || !OPPORTUNITY_RATIONALE_COPY[key]) return DEFAULTS.opportunityIndustry;
     return key;
+  }
+
+  /**
+   * Prefs applied to the page. When useIndustrySamplePack is true, experiment/hero/team overlays
+   * come from INDUSTRY_SAMPLE_PRESETS; stored localStorage values are unchanged (dock inputs still show them).
+   */
+  function buildEffectivePrefs(stored) {
+    var base = stored && typeof stored === 'object' ? Object.assign({}, stored) : {};
+    if (!base.useIndustrySamplePack) return base;
+    var ind = normaliseOpportunityIndustry(base);
+    var pack = INDUSTRY_SAMPLE_PRESETS[ind] || INDUSTRY_SAMPLE_PRESETS[DEFAULTS.opportunityIndustry];
+    if (!pack) return base;
+    var out = Object.assign({}, base);
+    var keys = [
+      'expImg1',
+      'expImg2',
+      'expImg3',
+      'expImg4',
+      'expTitle1',
+      'expTitle2',
+      'expTitle3',
+      'expTitle4',
+      'expSub1',
+      'expSub2',
+      'expSub3',
+      'expSub4',
+      'heroDetailImg',
+    ];
+    keys.forEach(function (k) {
+      if (pack[k] !== undefined && pack[k] !== null) out[k] = pack[k];
+    });
+    if (pack.sampleTeamRaw) {
+      var nt = normaliseTeam({ teamName: pack.sampleTeamRaw, teamSelected: '' });
+      out.teamName = nt.raw;
+      out.teamSelected = nt.selected;
+    }
+    return out;
   }
 
   function setTextById(id, value) {
@@ -664,11 +821,14 @@
     }
     var heroU = document.getElementById('expAccelDockHeroDetailImgUrl');
     if (heroU) heroU.value = p.heroDetailImg != null ? String(p.heroDetailImg) : '';
+    var sampleCb = document.getElementById('expAccelIndustrySampleCheck');
+    if (sampleCb) sampleCb.checked = !!(m && m.useIndustrySamplePack);
   }
 
   function refreshFromStorage() {
     fillInputs();
-    applyToDom(getForSandbox(currentSandboxName()) || {});
+    var stored = getForSandbox(currentSandboxName()) || {};
+    applyToDom(buildEffectivePrefs(stored));
   }
 
   function init() {
@@ -724,10 +884,34 @@
           var heroTrim = heroIn.value != null ? String(heroIn.value).trim() : '';
           payload.heroDetailImg = heroTrim;
         }
+        var sampleCb = document.getElementById('expAccelIndustrySampleCheck');
+        payload.useIndustrySamplePack = !!(sampleCb && sampleCb.checked);
 
         saveForSandbox(sb, payload);
         refreshFromStorage();
         setStatus('Updated labels for sandbox “' + (sb || 'default') + '”.', 'ok');
+      });
+    }
+
+    var industrySelEarly = document.getElementById('expAccelOpportunityIndustryInput');
+    if (industrySelEarly && industrySelEarly.tagName === 'SELECT') {
+      industrySelEarly.addEventListener('change', function () {
+        var sb = currentSandboxName();
+        var prev = getForSandbox(sb) || {};
+        var key = OPPORTUNITY_RATIONALE_COPY[String(industrySelEarly.value || '').trim().toLowerCase()]
+          ? String(industrySelEarly.value).trim().toLowerCase()
+          : DEFAULTS.opportunityIndustry;
+        saveForSandbox(sb, Object.assign({}, prev, { opportunityIndustry: key }));
+        refreshFromStorage();
+      });
+    }
+    var samplePackCb = document.getElementById('expAccelIndustrySampleCheck');
+    if (samplePackCb) {
+      samplePackCb.addEventListener('change', function () {
+        var sb = currentSandboxName();
+        var prev = getForSandbox(sb) || {};
+        saveForSandbox(sb, Object.assign({}, prev, { useIndustrySamplePack: !!samplePackCb.checked }));
+        refreshFromStorage();
       });
     }
 
@@ -763,7 +947,8 @@
   /** Apply Customise labels before first paint when this script is parser-inserted before the dock (sync, no defer). */
   function bootstrapPrefs() {
     try {
-      applyToDom(getForSandbox(currentSandboxName()) || {});
+      var stored = getForSandbox(currentSandboxName()) || {};
+      applyToDom(buildEffectivePrefs(stored));
       applyShellUserLine();
     } catch (e) {}
   }

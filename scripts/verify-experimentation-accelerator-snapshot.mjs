@@ -24,6 +24,8 @@ const checks = [
     mustInclude: [
       'function bootstrapPrefs',
       'function applyShellUserLine',
+      'function buildEffectivePrefs',
+      'INDUSTRY_SAMPLE_PRESETS',
       'sandboxTechnicalNameFallback',
       'aep-global-sandbox-change',
       'applyLatestUpdateTitles',
@@ -31,7 +33,12 @@ const checks = [
   },
   {
     file: 'experimentation-accelerator.html',
-    mustInclude: ['id="expAccelShellUserLine"', 'experimentation-accelerator-customise.js?v=', '<script src="experimentation-accelerator-customise.js'],
+    mustInclude: [
+      'id="expAccelShellUserLine"',
+      'id="expAccelIndustrySampleCheck"',
+      'experimentation-accelerator-customise.js?v=',
+      '<script src="experimentation-accelerator-customise.js',
+    ],
   },
   {
     file: 'experimentation-accelerator-experiment.html',
