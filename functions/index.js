@@ -987,9 +987,15 @@ exports.genericProfileConnectionStore = onRequest(CONSENT_STORE_FN_OPTS, async (
 });
 
 /**
- * POST /api/profile/update — streams to the consent HTTP connection (body.streaming.url + flowId, sandbox).
+ * POST /api/profile/update — streams to the HTTP API connection (body.streaming.url + flowId, sandbox).
  * Default payload matches Profile Viewer: profileStreamingCore.buildProfileStreamPayload (identityMap + root consents/optInOut + _demoemea + demoemea mirror).
- * ECID optional: included in identityMap and identification.core when body.ecid is valid (matches EMEA presales Consent Manager). Optional streamPayloadProfile=operational for slim shape only.
+ * ECID optional: included in identityMap and identification.core when body.ecid is valid.
+ * Optional streamPayloadProfile=operational for slim shape only.
+ *
+ * Consent Manager (consent.html) does **not** use this endpoint for “Update consent”: it builds a full DCS
+ * envelope client-side and POSTs to `/api/consent/legacy-update` (see consent.js `buildConsentPayload` /
+ * `postLegacyConsentUpdate`). The `body.consent` branch here is a compact programmatic shape via
+ * `profileStreamingCore.buildConsentXdm` (no idSpecific tree); no in-repo UI currently sends it.
  */
 exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
@@ -1111,8 +1117,8 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       optInOut: fragment._demoemea.optInOut,
     };
     applied = 1;
-    sourceLabel = 'Consent Manager update';
-    successMessage = 'Profile update accepted (consent). Re-query to see changes.';
+    sourceLabel = 'Programmatic consent (body.consent)';
+    successMessage = 'Profile update accepted (consent object). Re-query to see changes.';
   } else {
     demoemea = {
       identification: {
