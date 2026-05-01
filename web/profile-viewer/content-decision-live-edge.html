@@ -1434,31 +1434,6 @@
     .cd-hero-rail .cd-micro-profile-status.is-ok {
       color: var(--dash-success-text, var(--dash-text));
     }
-    /* Loyalty tier + points: single "not in loyalty program" state from UPS */
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-tier,
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-points {
-      opacity: 0.72;
-    }
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-tier > label,
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-points > label,
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-tier .cd-micro-profile-range-row > label,
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-points .cd-micro-profile-range-row > label {
-      color: var(--dash-muted);
-    }
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-tier .cd-micro-profile-range-row strong,
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-points .cd-micro-profile-range-row strong {
-      color: var(--dash-text-secondary);
-      font-weight: 500;
-    }
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-tier input[type="range"],
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-field--loyalty-points input[type="range"] {
-      cursor: not-allowed;
-      opacity: 0.65;
-    }
-    .cd-hero-rail .cd-micro-profile.is-loyalty-disabled .cd-micro-profile-tier-label--na {
-      color: var(--dash-muted);
-      font-variant-numeric: normal;
-    }
   </style>
   <!-- Launch rules sometimes push to dataLayer (GTM-style); define before Launch to avoid ReferenceError — same as /index.html -->
   <script>
@@ -1523,14 +1498,7 @@
                 </div>
                 <input type="range" id="cdMicroProfileOrderValue" min="0" max="5000" step="50" value="500">
               </div>
-              <div class="cd-micro-profile-field cd-micro-profile-field--loyalty-tier">
-                <div class="cd-micro-profile-range-row">
-                  <label for="cdMicroProfileTier">Loyalty tier</label>
-                  <strong id="cdMicroProfileTierValue" class="cd-micro-profile-tier-label">Bronze</strong>
-                </div>
-                <input type="range" id="cdMicroProfileTier" min="0" max="3" step="1" value="0" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0" aria-valuetext="Bronze">
-              </div>
-              <div class="cd-micro-profile-field cd-micro-profile-field--loyalty-points">
+              <div class="cd-micro-profile-field">
                 <div class="cd-micro-profile-range-row">
                   <label for="cdMicroProfilePoints">Loyalty points</label>
                   <strong id="cdMicroProfilePointsValue">3000</strong>
@@ -1543,6 +1511,16 @@
                   <strong id="cdMicroProfileNpsValue">5</strong>
                 </div>
                 <input type="range" id="cdMicroProfileNps" min="0" max="10" step="1" value="5">
+              </div>
+              <div class="cd-micro-profile-field">
+                <label for="cdMicroProfileTier">Loyalty tier</label>
+                <select id="cdMicroProfileTier">
+                  <option value="">— Unchanged —</option>
+                  <option value="Bronze">Bronze</option>
+                  <option value="Silver">Silver</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Platinum">Platinum</option>
+                </select>
               </div>
               <div class="cd-micro-profile-field">
                 <label for="cdMicroProfileLanguage">Language preference</label>
@@ -1908,7 +1886,7 @@
   <script src="content-decision-live-edge-onboarding.js?v=20260424-edge-onboarding-query"></script>
   <script src="profile-streaming-shared.js"></script>
   <script src="content-decision-live-edge-inline.js?v=20260501-auto-lookup"></script>
-  <script src="content-decision-live-edge-micro-profile.js?v=20260501-edge-micro-profile-collapsed"></script>
+  <script src="content-decision-live-edge-micro-profile.js?v=20260501-micro-profile-sliders-nps"></script>
   <script src="content-decision-live-edge-embed-fs.js?v=20260427-edge-embed-fs"></script>
   <script defer src="marauders-map-egg.js?v=20260423-edge-flavor"></script>
 </body>
