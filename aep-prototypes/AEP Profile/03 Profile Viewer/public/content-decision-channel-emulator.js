@@ -2,6 +2,7 @@
  * Channel preview emulators (Decisioning lab Edge) — web + mobile in main stage;
  * icon toolbar stays in the hero rail.
  * Depends on CdEdgeMounts (content-decision-edge-mounts.js). Loads after content-decision-live-edge-inline.js.
+ * Mobile frames: iPhone 17 Pro (402×874 CSS viewport); Android: Google Pixel 9 Pro (412×915).
  */
 (function (global) {
   'use strict';
@@ -12,6 +13,9 @@
   var openKind = null;
   var webBuilt = false;
   var mobBuilt = false;
+  var mobScaleObserver = null;
+  var mobScaleRaf = null;
+  var mobWinResizeHandler = null;
 
   function escAttrId(id) {
     return String(id).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -302,6 +306,19 @@
 
   function ensureMobPanel(panelMob) {
     if (mobBuilt) return;
+    if (mobScaleObserver) {
+      try {
+        mobScaleObserver.disconnect();
+      } catch (e) {}
+      mobScaleObserver = null;
+    }
+    if (mobWinResizeHandler) {
+      try {
+        global.removeEventListener('resize', mobWinResizeHandler);
+      } catch (e) {}
+      mobWinResizeHandler = null;
+    }
+
     var wrap = document.createElement('div');
     wrap.className = 'cd-ch-em-mob-wrap';
 
@@ -323,38 +340,171 @@
     toggle.appendChild(bAnd);
     wrap.appendChild(toggle);
 
+    var shell = document.createElement('div');
+    shell.className = 'cd-ch-em-phone-shell';
+    shell.id = 'cdChEmPhoneShell';
+
+    var scaleOuter = document.createElement('div');
+    scaleOuter.className = 'cd-ch-em-phone-scale-outer';
+    scaleOuter.id = 'cdChEmPhoneScaleOuter';
+
+    var scaleInner = document.createElement('div');
+    scaleInner.className = 'cd-ch-em-phone-scale-inner';
+    scaleInner.id = 'cdChEmPhoneScaleInner';
+
     var phone = document.createElement('div');
     phone.className = 'cd-ch-em-phone cd-ch-em-phone--ios';
     phone.id = 'cdChEmPhoneFrame';
 
-    var notch = document.createElement('div');
-    notch.className = 'cd-ch-em-phone-notch';
-    notch.setAttribute('aria-hidden', 'true');
-    phone.appendChild(notch);
+    var display = document.createElement('div');
+    display.className = 'cd-ch-em-phone-display';
+
+    var punch = document.createElement('div');
+    punch.className = 'cd-ch-em-android-punch';
+    punch.setAttribute('aria-hidden', 'true');
+
+    var iosStatus = document.createElement('div');
+    iosStatus.className = 'cd-ch-em-ios-status';
+    iosStatus.setAttribute('aria-hidden', 'true');
+    var iosTime = document.createElement('span');
+    iosTime.className = 'cd-ch-em-ios-time';
+    iosTime.textContent = '9:41';
+    var iosTrail = document.createElement('div');
+    iosTrail.className = 'cd-ch-em-ios-status-trail';
+    var sig = document.createElement('div');
+    sig.className = 'cd-ch-em-ios-signal';
+    var si;
+    for (si = 0; si < 4; si++) {
+      sig.appendChild(document.createElement('span'));
+    }
+    iosTrail.appendChild(sig);
+    var wifi = document.createElement('div');
+    wifi.className = 'cd-ch-em-ios-wifi';
+    wifi.setAttribute('aria-hidden', 'true');
+    iosTrail.appendChild(wifi);
+    var batt = document.createElement('div');
+    batt.className = 'cd-ch-em-ios-battery';
+    batt.setAttribute('aria-hidden', 'true');
+    var battFill = document.createElement('span');
+    battFill.className = 'cd-ch-em-ios-battery-fill';
+    batt.appendChild(battFill);
+    iosTrail.appendChild(batt);
+    iosStatus.appendChild(iosTime);
+    iosStatus.appendChild(iosTrail);
+
+    var island = document.createElement('div');
+    island.className = 'cd-ch-em-dynamic-island';
+    island.setAttribute('aria-hidden', 'true');
+
+    var androidStatus = document.createElement('div');
+    androidStatus.className = 'cd-ch-em-android-status';
+    androidStatus.setAttribute('aria-hidden', 'true');
+    var andClock = document.createElement('span');
+    andClock.className = 'cd-ch-em-android-clock';
+    andClock.textContent = '10:00';
+    var andIcons = document.createElement('div');
+    andIcons.className = 'cd-ch-em-android-icons';
+    andIcons.appendChild(iconAndroidCellular());
+    andIcons.appendChild(iconAndroidWifi());
+    andIcons.appendChild(iconAndroidBattery());
+    androidStatus.appendChild(andClock);
+    androidStatus.appendChild(andIcons);
 
     var vp = document.createElement('div');
     vp.className = 'cd-ch-em-mob-viewport';
     vp.id = 'cdChEmMobViewport';
-    phone.appendChild(vp);
 
-    var nav = document.createElement('div');
-    nav.className = 'cd-ch-em-android-nav';
-    nav.setAttribute('aria-hidden', 'true');
-    phone.appendChild(nav);
-    var three = document.createElement('div');
-    three.className = 'cd-ch-em-android-buttons';
-    three.appendChild(document.createElement('span'));
-    three.appendChild(document.createElement('span'));
-    three.appendChild(document.createElement('span'));
-    phone.appendChild(three);
+    var iosHome = document.createElement('div');
+    iosHome.className = 'cd-ch-em-ios-home';
+    iosHome.setAttribute('aria-hidden', 'true');
+    var iosHomeBar = document.createElement('div');
+    iosHomeBar.className = 'cd-ch-em-ios-home-bar';
+    iosHome.appendChild(iosHomeBar);
 
-    wrap.appendChild(phone);
+    var androidBottom = document.createElement('div');
+    androidBottom.className = 'cd-ch-em-android-bottom';
+    androidBottom.setAttribute('aria-hidden', 'true');
+    var gesture = document.createElement('div');
+    gesture.className = 'cd-ch-em-android-gesture';
+    androidBottom.appendChild(gesture);
+    var hintRow = document.createElement('div');
+    hintRow.className = 'cd-ch-em-android-hint-row';
+    hintRow.appendChild(document.createElement('span'));
+    hintRow.appendChild(document.createElement('span'));
+    hintRow.appendChild(document.createElement('span'));
+    androidBottom.appendChild(hintRow);
+
+    display.appendChild(punch);
+    display.appendChild(iosStatus);
+    display.appendChild(island);
+    display.appendChild(androidStatus);
+    display.appendChild(vp);
+    display.appendChild(iosHome);
+    display.appendChild(androidBottom);
+    phone.appendChild(display);
+
+    scaleInner.appendChild(phone);
+    scaleOuter.appendChild(scaleInner);
+    shell.appendChild(scaleOuter);
+    wrap.appendChild(shell);
+
+    function updatePhoneScale() {
+      var phoneEl = document.getElementById('cdChEmPhoneFrame');
+      var sh = document.getElementById('cdChEmPhoneShell');
+      var outer = document.getElementById('cdChEmPhoneScaleOuter');
+      var inner = document.getElementById('cdChEmPhoneScaleInner');
+      if (!phoneEl || !sh || !outer || !inner) return;
+
+      var W = phoneEl.offsetWidth;
+      var H = phoneEl.offsetHeight;
+      if (!W || !H) return;
+
+      var hero = document.querySelector('.cd-hero-main');
+      var shellRect = sh.getBoundingClientRect();
+      var availW = Math.max(48, sh.clientWidth - 8);
+      var availH = Math.max(64, sh.clientHeight - 8);
+      if (hero && shellRect.height > 0) {
+        var heroRect = hero.getBoundingClientRect();
+        var fromTop = shellRect.top - heroRect.top;
+        var heroRoom = heroRect.height - fromTop - 12;
+        if (heroRoom > 80) {
+          availH = Math.min(availH, heroRoom);
+        }
+      }
+      if (availH < 64) {
+        availH = Math.max(64, Math.min(Math.round(global.innerHeight * 0.85), 900) - 8);
+      }
+      if (availW < 48) {
+        availW = Math.max(48, Math.round(global.innerWidth) - 24);
+      }
+
+      var scale = Math.min(1, availW / W, availH / H);
+      if (!(scale > 0) || !isFinite(scale)) scale = 1;
+      inner.style.transform = 'scale(' + scale + ')';
+      outer.style.width = Math.round(W * scale) + 'px';
+      outer.style.height = Math.round(H * scale) + 'px';
+    }
+
+    function schedulePhoneScale() {
+      if (mobScaleRaf) cancelAnimationFrame(mobScaleRaf);
+      mobScaleRaf = requestAnimationFrame(function () {
+        mobScaleRaf = null;
+        updatePhoneScale();
+      });
+    }
+
+    mobWinResizeHandler = schedulePhoneScale;
+    global.addEventListener('resize', mobWinResizeHandler);
+
+    mobScaleObserver = new ResizeObserver(schedulePhoneScale);
+    mobScaleObserver.observe(shell);
 
     function setOs(isAndroid) {
       phone.classList.toggle('cd-ch-em-phone--ios', !isAndroid);
       phone.classList.toggle('cd-ch-em-phone--android', !!isAndroid);
       bIos.setAttribute('aria-pressed', isAndroid ? 'false' : 'true');
       bAnd.setAttribute('aria-pressed', isAndroid ? 'true' : 'false');
+      schedulePhoneScale();
     }
     bIos.addEventListener('click', function () {
       setOs(false);
@@ -366,6 +516,80 @@
     panelMob.appendChild(wrap);
     buildMountTree(vp, PREFIX_MOB);
     mobBuilt = true;
+    schedulePhoneScale();
+    setTimeout(schedulePhoneScale, 50);
+  }
+
+  function iconAndroidCellular() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 18 12');
+    svg.setAttribute('aria-hidden', 'true');
+    var i;
+    for (i = 0; i < 4; i++) {
+      var r = document.createElementNS(ns, 'rect');
+      r.setAttribute('x', String(2 + i * 4));
+      r.setAttribute('y', String(10 - (i + 1) * 2));
+      r.setAttribute('width', '3');
+      r.setAttribute('height', String((i + 1) * 2));
+      r.setAttribute('rx', '0.5');
+      r.setAttribute('fill', 'currentColor');
+      svg.appendChild(r);
+    }
+    return svg;
+  }
+
+  function iconAndroidWifi() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 12');
+    svg.setAttribute('aria-hidden', 'true');
+    var p = document.createElementNS(ns, 'path');
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', 'currentColor');
+    p.setAttribute('stroke-width', '1.4');
+    p.setAttribute('stroke-linecap', 'round');
+    p.setAttribute(
+      'd',
+      'M2 9c2.5-2.5 9.5-2.5 12 0M4.5 6.5C6.8 4.5 9.2 4.5 11.5 6.5M7 4c1-0.8 1.8-0.8 2.8 0'
+    );
+    svg.appendChild(p);
+    return svg;
+  }
+
+  function iconAndroidBattery() {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 22 11');
+    svg.setAttribute('aria-hidden', 'true');
+    var r = document.createElementNS(ns, 'rect');
+    r.setAttribute('x', '1');
+    r.setAttribute('y', '1.5');
+    r.setAttribute('width', '17');
+    r.setAttribute('height', '8');
+    r.setAttribute('rx', '1.5');
+    r.setAttribute('fill', 'none');
+    r.setAttribute('stroke', 'currentColor');
+    r.setAttribute('stroke-width', '1.2');
+    svg.appendChild(r);
+    var tip = document.createElementNS(ns, 'rect');
+    tip.setAttribute('x', '18.5');
+    tip.setAttribute('y', '4');
+    tip.setAttribute('width', '1.5');
+    tip.setAttribute('height', '3');
+    tip.setAttribute('rx', '0.3');
+    tip.setAttribute('fill', 'currentColor');
+    svg.appendChild(tip);
+    var fill = document.createElementNS(ns, 'rect');
+    fill.setAttribute('x', '3');
+    fill.setAttribute('y', '3.5');
+    fill.setAttribute('width', '11');
+    fill.setAttribute('height', '4');
+    fill.setAttribute('rx', '0.5');
+    fill.setAttribute('fill', 'currentColor');
+    fill.setAttribute('opacity', '0.85');
+    svg.appendChild(fill);
+    return svg;
   }
 
   function applyToViewport(viewport, prefix) {
@@ -544,6 +768,18 @@
     }
 
     window.addEventListener('cd-edge-placements-changed', function () {
+      if (mobScaleObserver) {
+        try {
+          mobScaleObserver.disconnect();
+        } catch (e) {}
+        mobScaleObserver = null;
+      }
+      if (mobWinResizeHandler) {
+        try {
+          global.removeEventListener('resize', mobWinResizeHandler);
+        } catch (e) {}
+        mobWinResizeHandler = null;
+      }
       webBuilt = false;
       mobBuilt = false;
       panelWeb.textContent = '';
