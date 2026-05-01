@@ -1398,7 +1398,12 @@ function renderJourneyHtml(journeyData) {
     --bg: #f5f5f7;
     --panel: #ffffff;
     --border: #e5e7eb;
-    --active-bg: #e8f5e9;
+    /* Skill v9: softer mint wash so the "this is happening NOW" cue
+       reads as a tonal layer rather than a competing block of colour.
+       Translucent rgba lets it sit on top of the panel without picking
+       up a hard edge between siblings, and the 0.16 alpha is just
+       enough to register on light AND dark slide chrome. */
+    --active-bg: rgba(76, 175, 80, 0.16);
     --active-stroke: #4caf50;
     /* Shared timing for the journey-map node cross-fade — keeps the
        circle, icon, badge and label all dissolving as a single unit. */
@@ -1422,7 +1427,12 @@ function renderJourneyHtml(journeyData) {
      the user drills into individual steps. */
   .journey-map-container.expanded { flex: 1 1 auto; justify-content: center; padding: 28px 18px; }
   .journey-map-container.expanded svg.journey-svg { max-height: none; height: 100%; flex: 1 1 auto; }
-  .data-panel.hidden { display: none; }
+  /* Skill v9: replace display:none with a max-height + opacity slide
+     so the panel collapses smoothly when the user reaches the overview
+     slide, rather than snapping out and snapping back in. The map
+     container's flex-basis transition (already in place) drives the
+     resulting layout reflow at the same 0.5s tempo. */
+  .data-panel.hidden { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; margin-top: 0; margin-bottom: 0; border-width: 0; overflow: hidden; }
   svg.journey-svg { width: 100%; height: auto; max-height: 280px; display: block; }
   .journey-base { stroke: #c9ced8; stroke-width: 2.5; fill: none; }
   .journey-active { stroke: var(--brand); stroke-width: 4; fill: none; opacity: 0; transition: opacity var(--node-fade); }
@@ -1434,7 +1444,9 @@ function renderJourneyHtml(journeyData) {
   .journey-draw.visible { opacity: 1; }
   @media (prefers-reduced-motion: reduce) {
     .journey-draw { transition: none !important; }
+    .journey-active { transition: none !important; }
     .journey-map-container { transition: none !important; }
+    .data-panel { transition: none !important; }
   }
 
   /* Active-state transitions everywhere (circle, icon, badge) share the
@@ -1513,17 +1525,35 @@ function renderJourneyHtml(journeyData) {
     .node-icon, .node-badge circle, .node-badge text, .node-circle, .node-label, .journey-active { transition: none; }
   }
 
-  .data-panel { background: var(--panel); border: 2px solid var(--brand); border-radius: 12px; padding: 14px 16px 18px; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
-  .data-panel-title { font-size: 12px; font-weight: 700; color: var(--brand); letter-spacing: 0.4px; margin-bottom: 10px; text-transform: uppercase; }
+  .data-panel { background: var(--panel); border: 2px solid var(--brand); border-radius: 12px; padding: 14px 16px 18px; flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; max-height: 9999px; opacity: 1; transition: max-height 0.5s ease, opacity 0.4s ease, padding 0.5s ease, margin 0.5s ease, border-width 0.5s ease; }
+  /* Skill v9: bigger, calmer title — sits above the data grid as a
+     clear "what AEP does here" anchor rather than a tiny label. The
+     inline accent dot reuses --brand so the panel signature reads as
+     one piece even when the brand colour changes via recolour. */
+  .data-panel-title { font-size: 13px; font-weight: 700; color: var(--brand); letter-spacing: 0.5px; margin-bottom: 12px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px; }
+  .data-panel-title::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
   .data-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; flex: 1 1 auto; min-height: 0; }
   .data-col { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden; }
   /* Stacked sub-column layout: column 2 (Ingestion + Segments) and
      column 4 (Orchestration + Decisioning) split vertically 50/50 with
      a thin divider, so each strand carries its own header without
      making the whole panel taller. */
-  .data-col.stacked { padding: 0; gap: 0; }
-  .data-col-half { flex: 0 0 50%; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; }
+  /* Stacked column (Ingestion+Segments, Orchestration+Decisioning).
+     CSS grid with minmax rows means each half always anchors to a
+     stable baseline that lines up with the unstacked sibling cols
+     (Data Collected, Identities, Activation), even when one half has
+     two bullets and the other has eight. minmax(80px, 1fr) gives each
+     half a guaranteed visible footprint while still letting them
+     redistribute under content pressure. */
+  .data-col.stacked {
+    display: grid;
+    grid-template-rows: minmax(80px, 1fr) minmax(80px, 1fr);
+    padding: 0;
+    gap: 0;
+  }
+  .data-col-half { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; }
   .data-col-half:first-child { border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 6px; }
+  .data-col-half:last-child { padding-bottom: 6px; }
   .data-col-title { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.3px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
   .data-col-subtitle { font-size: 9.5px; font-weight: 700; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.3px; opacity: 0.85; padding-bottom: 2px; }
   .data-item { font-size: 10.5px; line-height: 1.35; padding: 4px 6px; border-radius: 4px; color: var(--ink); background: #f9fafb; border: 1px solid transparent; transition: opacity 0.25s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease; }
@@ -1673,27 +1703,39 @@ function renderJourneyHtml(journeyData) {
   const pathSegs = ${pathSegsJson};
   let current = 0;
 
-  // Animate the overview path with a stroke-dasharray draw effect every
-  // time the overview slide is entered. Length is computed from the SVG
-  // path itself so it stays accurate even if BASE_PATH ever changes.
+  // Skill v9: the active-seg path is the single source of truth for
+  // the brand-coloured trail. On the overview slide we point active-seg
+  // at the full BASE_PATH and animate stroke-dashoffset from len → 0
+  // over 7s with a deep cubic-bezier ease. On every other slide
+  // render() points the same path at the relevant sub-segment, so
+  // there's only ever one drawn brand-coloured stroke on screen — the
+  // one that's "active right now". The journey-draw path stays in the
+  // SVG as a static base for layering, but it never animates.
+  const OVERVIEW_PATH = ${JSON.stringify(BASE_PATH)};
   function animateOverview() {
-    const path = document.getElementById('journey-draw');
-    if (!path) return;
+    const seg = document.getElementById('active-seg');
+    if (!seg) return;
+    seg.setAttribute('d', OVERVIEW_PATH);
     let len = 0;
-    try { len = path.getTotalLength(); } catch (_) { len = 1200; }
-    path.style.strokeDasharray = String(len);
-    path.style.transition = 'none';
-    path.style.strokeDashoffset = String(len);
-    path.classList.add('visible');
-    void path.getBoundingClientRect();
+    try { len = seg.getTotalLength(); } catch (_) { len = 1200; }
+    seg.style.strokeDasharray = String(len);
+    seg.style.transition = 'none';
+    seg.style.strokeDashoffset = String(len);
+    seg.classList.add('visible');
+    void seg.getBoundingClientRect();
     const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    path.style.transition = reduced ? 'none' : 'stroke-dashoffset 6s cubic-bezier(0.45, 0.05, 0.55, 0.95)';
-    path.style.strokeDashoffset = '0';
+    seg.style.transition = reduced ? 'none' : 'stroke-dashoffset 7s cubic-bezier(0.25, 0.1, 0.25, 1)';
+    seg.style.strokeDashoffset = '0';
   }
   function hideOverviewDraw() {
-    const path = document.getElementById('journey-draw');
-    if (!path) return;
-    path.classList.remove('visible');
+    // Clear the dasharray + transition so render() can take over the
+    // active-seg path for the per-step sub-segment without inheriting
+    // the 7s overview ease.
+    const seg = document.getElementById('active-seg');
+    if (!seg) return;
+    seg.style.transition = '';
+    seg.style.strokeDasharray = '';
+    seg.style.strokeDashoffset = '';
   }
 
   function render() {
