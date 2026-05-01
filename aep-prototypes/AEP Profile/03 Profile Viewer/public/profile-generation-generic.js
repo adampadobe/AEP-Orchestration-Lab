@@ -74,9 +74,6 @@
   const dryRunEl = document.getElementById('genDryRun');
   const messageEl = document.getElementById('genericProfileMessage');
 
-  // Set-and-forget base email persistence (global, all sandboxes — one device, one user).
-  const BASE_EMAIL_STORAGE_KEY = 'genericProfileBaseEmail';
-
   // Identity (added when Generic became an industry option — basic profile fields)
   const firstNameEl = document.getElementById('genFirstName');
   const lastNameEl = document.getElementById('genLastName');
@@ -184,6 +181,21 @@
       return String(window.AepGlobalSandbox.getSandboxName() || '').trim();
     }
     return String((sandboxSelect && sandboxSelect.value) || '').trim();
+  }
+
+  /** Per-sandbox localStorage key for the generic profile base email (same `sb` partition as `counterStorageKey`). */
+  function baseEmailStorageKey() {
+    return `genericProfileBaseEmail:${getSandboxName() || 'default'}`;
+  }
+
+  function loadBaseEmailForCurrentSandbox() {
+    if (!baseEmailEl) return;
+    try {
+      const raw = localStorage.getItem(baseEmailStorageKey());
+      baseEmailEl.value = raw == null ? '' : raw;
+    } catch (_) {
+      baseEmailEl.value = '';
+    }
   }
 
   function querySuffix(extra) {
@@ -1403,8 +1415,8 @@
 
   if (baseEmailEl) {
     baseEmailEl.addEventListener('input', () => {
-      // Persist the base email globally so the next visit (any sandbox) prefills it — set-and-forget.
-      try { localStorage.setItem(BASE_EMAIL_STORAGE_KEY, baseEmailEl.value || ''); } catch (_) {}
+      // Persist base email per sandbox (set-and-forget for this sandbox only; no migration from legacy global key).
+      try { localStorage.setItem(baseEmailStorageKey(), baseEmailEl.value || ''); } catch (_) {}
       // When the base email changes, reload the counter for the new (sandbox, base, today) key.
       loadCounterForCurrentContext();
     });
@@ -1496,6 +1508,7 @@
     // collapse it again if it finds a saved connection for the new sandbox.
     applyConfiguredCollapseState();
     loadConnectionFromFirestore(true);
+    loadBaseEmailForCurrentSandbox();
     loadCounterForCurrentContext();
     renderRecent();
   }
@@ -1518,16 +1531,8 @@
     applyConfiguredCollapseState();
   });
 
-  // Set-and-forget base email: prefill from localStorage so the user only types it once.
-  // We do this before loadCounterForCurrentContext() because the counter partition key
-  // includes the base email — restoring it first means the saved counter for that base
-  // email loads correctly on first paint.
-  try {
-    const savedBase = localStorage.getItem(BASE_EMAIL_STORAGE_KEY);
-    if (savedBase && baseEmailEl && !trimVal(baseEmailEl)) {
-      baseEmailEl.value = savedBase;
-    }
-  } catch (_) { /* localStorage unavailable — fall through */ }
+  // Restore base email for the current sandbox before the counter so the counter partition matches.
+  loadBaseEmailForCurrentSandbox();
 
   // Initial render
   renderChurn();
