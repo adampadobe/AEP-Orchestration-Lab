@@ -107,13 +107,13 @@ function buildConsentXdm(email, opts) {
       _channels[key] = defaultChannelVal;
     }
   }
+  // Always emit collect / share / personalize so HTTP streams satisfy schemas
+  // that mark these paths required (operators refine via Consent Manager later).
   const consents = {
     marketing,
-    ...(dataCollection != null && { collect: { val: toYorN(dataCollection) } }),
-    ...(dataSharing != null && { share: { val: toYorN(dataSharing) } }),
-    ...(contentPersonalization != null && {
-      personalize: { content: { val: toYorN(contentPersonalization) } },
-    }),
+    collect: { val: dataCollection != null ? toYorN(dataCollection) : 'y' },
+    share: { val: dataSharing != null ? toYorN(dataSharing) : 'y' },
+    personalize: { content: { val: contentPersonalization != null ? toYorN(contentPersonalization) : 'y' } },
   };
   return {
     identityMap: { Email: [{ id: email, primary: true }] },
@@ -423,9 +423,7 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
   const channels = ['email', 'sms', 'push', 'call', 'postalMail', 'whatsApp'];
   /** @type {Record<string, unknown>} */
   const marketingOut = {};
-  if (m.val != null && m.val !== '') {
-    marketingOut.val = operationalPickYn(m.val, 'y');
-  }
+  marketingOut.val = operationalPickYn(m.val, 'y');
   marketingOut.any = operationalMarketingField(m, 'any', now, 'y');
   marketingOut.preferred = typeof m.preferred === 'string' && m.preferred.trim() ? m.preferred.trim() : 'email';
   marketingOut.preferredLanguage = preferredLanguage;
@@ -436,26 +434,30 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
   marketingOut.commercialEmail = operationalMarketingField(m, 'commercialEmail', now, 'y');
 
   /** @type {Record<string, unknown>} */
-  const consentsOut = {};
-  if (c.collect && typeof c.collect === 'object' && c.collect.val != null) {
-    consentsOut.collect = { val: operationalPickYn(c.collect.val, 'y') };
-  }
-  consentsOut.idSpecific = {
-    Email: {
-      [em]: {
-        marketing: {
-          email: operationalMarketingField(m, 'email', now, 'y'),
+  const consentsOut = {
+    collect: { val: operationalPickYn(c.collect && typeof c.collect === 'object' ? c.collect.val : undefined, 'y') },
+    share: { val: operationalPickYn(c.share && typeof c.share === 'object' ? c.share.val : undefined, 'y') },
+    personalize: {
+      content: {
+        val: operationalPickYn(
+          c.personalize && c.personalize.content && typeof c.personalize.content === 'object'
+            ? c.personalize.content.val
+            : undefined,
+          'y'
+        ),
+      },
+    },
+    idSpecific: {
+      Email: {
+        [em]: {
+          marketing: {
+            email: operationalMarketingField(m, 'email', now, 'y'),
+          },
         },
       },
     },
+    marketing: marketingOut,
   };
-  consentsOut.marketing = marketingOut;
-  if (c.personalize && c.personalize.content && c.personalize.content.val != null) {
-    consentsOut.personalize = { content: { val: operationalPickYn(c.personalize.content.val, 'y') } };
-  }
-  if (c.share && c.share.val != null) {
-    consentsOut.share = { val: operationalPickYn(c.share.val, 'y') };
-  }
 
   const core = { email: em };
   if (ecid != null && String(ecid).trim().length >= 10) core.ecid = String(ecid).trim();
