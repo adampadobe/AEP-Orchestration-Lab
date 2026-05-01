@@ -16,6 +16,7 @@
   var mobScaleObserver = null;
   var mobScaleRaf = null;
   var mobWinResizeHandler = null;
+  var USER_PHONE_SCALE_KEY = 'cdEdgePhoneUserScale';
 
   function escAttrId(id) {
     return String(id).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -322,6 +323,28 @@
     var wrap = document.createElement('div');
     wrap.className = 'cd-ch-em-mob-wrap';
 
+    function readUserPhoneScale() {
+      try {
+        var v = global.sessionStorage ? global.sessionStorage.getItem(USER_PHONE_SCALE_KEY) : null;
+        var n = v != null ? parseFloat(v, 10) : 1;
+        if (!isFinite(n) || n <= 0) return 1;
+        return Math.min(2, Math.max(0.5, n));
+      } catch (e) {
+        return 1;
+      }
+    }
+
+    function writeUserPhoneScale(v) {
+      try {
+        if (global.sessionStorage) {
+          global.sessionStorage.setItem(USER_PHONE_SCALE_KEY, String(Math.round(v * 1000) / 1000));
+        }
+      } catch (e) {}
+    }
+
+    var userPhoneScale = readUserPhoneScale();
+    var dragResizeState = null;
+
     var toggle = document.createElement('div');
     toggle.className = 'cd-ch-em-mob-toggle';
     toggle.setAttribute('role', 'group');
@@ -445,6 +468,60 @@
 
     scaleInner.appendChild(phone);
     scaleOuter.appendChild(scaleInner);
+
+    var resizeHandle = document.createElement('button');
+    resizeHandle.type = 'button';
+    resizeHandle.className = 'cd-ch-em-phone-resize-handle';
+    resizeHandle.id = 'cdChEmPhoneResizeHandle';
+    resizeHandle.setAttribute('aria-label', 'Resize mobile preview');
+    var gripNs = 'http://www.w3.org/2000/svg';
+    var gripSvg = document.createElementNS(gripNs, 'svg');
+    gripSvg.setAttribute('viewBox', '0 0 16 16');
+    gripSvg.setAttribute('aria-hidden', 'true');
+    var gripPath = document.createElementNS(gripNs, 'path');
+    gripPath.setAttribute('fill', 'none');
+    gripPath.setAttribute('stroke', 'currentColor');
+    gripPath.setAttribute('stroke-width', '1.65');
+    gripPath.setAttribute('stroke-linecap', 'round');
+    gripPath.setAttribute('d', 'M14 10v4h-4M10 14l4-4M14 6V2h-4M10 2l4 4');
+    gripSvg.appendChild(gripPath);
+    resizeHandle.appendChild(gripSvg);
+
+    resizeHandle.addEventListener('pointerdown', function (e) {
+      if (e.button != null && e.button !== 0) return;
+      e.preventDefault();
+      dragResizeState = {
+        pid: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startUser: userPhoneScale,
+      };
+      try {
+        resizeHandle.setPointerCapture(e.pointerId);
+      } catch (err) {}
+    });
+
+    resizeHandle.addEventListener('pointermove', function (e) {
+      if (!dragResizeState || e.pointerId !== dragResizeState.pid) return;
+      var delta = (e.clientX - dragResizeState.startX) + (e.clientY - dragResizeState.startY);
+      var next = dragResizeState.startUser * (1 + delta / 150);
+      userPhoneScale = Math.min(2, Math.max(0.5, next));
+      schedulePhoneScale();
+    });
+
+    function endResizeDrag(e) {
+      if (!dragResizeState || (e && e.pointerId !== dragResizeState.pid)) return;
+      try {
+        if (e) resizeHandle.releasePointerCapture(e.pointerId);
+      } catch (err2) {}
+      dragResizeState = null;
+      writeUserPhoneScale(userPhoneScale);
+    }
+
+    resizeHandle.addEventListener('pointerup', endResizeDrag);
+    resizeHandle.addEventListener('pointercancel', endResizeDrag);
+
+    scaleOuter.appendChild(resizeHandle);
     shell.appendChild(scaleOuter);
     wrap.appendChild(shell);
 
@@ -459,30 +536,47 @@
       var H = phoneEl.offsetHeight;
       if (!W || !H) return;
 
-      var hero = document.querySelector('.cd-hero-main');
+      var stage = document.getElementById('cdEdgeMainStage');
       var shellRect = sh.getBoundingClientRect();
-      var availW = Math.max(48, sh.clientWidth - 8);
-      var availH = Math.max(64, sh.clientHeight - 8);
-      if (hero && shellRect.height > 0) {
-        var heroRect = hero.getBoundingClientRect();
-        var fromTop = shellRect.top - heroRect.top;
-        var heroRoom = heroRect.height - fromTop - 12;
-        if (heroRoom > 80) {
-          availH = Math.min(availH, heroRoom);
-        }
-      }
-      if (availH < 64) {
-        availH = Math.max(64, Math.min(Math.round(global.innerHeight * 0.85), 900) - 8);
-      }
-      if (availW < 48) {
-        availW = Math.max(48, Math.round(global.innerWidth) - 24);
+      var stageRect = stage ? stage.getBoundingClientRect() : null;
+
+      var availW = Math.max(96, sh.clientWidth - 8);
+      var availH = Math.max(120, sh.clientHeight - 8);
+
+      if (stageRect && stageRect.height > 140) {
+        availH = Math.max(availH, Math.floor(stageRect.height) - 56);
+        availW = Math.max(availW, Math.floor(stageRect.width) - 12);
       }
 
-      var scale = Math.min(1, availW / W, availH / H);
-      if (!(scale > 0) || !isFinite(scale)) scale = 1;
-      inner.style.transform = 'scale(' + scale + ')';
-      outer.style.width = Math.round(W * scale) + 'px';
-      outer.style.height = Math.round(H * scale) + 'px';
+      var vCap = global.innerHeight - shellRect.top - 16;
+      if (isFinite(vCap) && vCap > 100) {
+        availH = Math.min(availH, Math.floor(vCap));
+      }
+      var hCap = global.innerWidth - shellRect.left - 16;
+      if (isFinite(hCap) && hCap > 96) {
+        availW = Math.min(availW, Math.floor(hCap));
+      }
+
+      if (availH < 160) {
+        availH = Math.max(availH, Math.floor(global.innerHeight * 0.5));
+      }
+      if (availW < 120) {
+        availW = Math.max(availW, Math.floor(global.innerWidth * 0.88));
+      }
+
+      var fit = Math.min(availW / W, availH / H, 1);
+      if (!(fit > 0) || !isFinite(fit)) fit = 1;
+
+      var legibilityFloor = Math.min(0.76, Math.max(0.52, 304 / W));
+      var autoScale = Math.min(1, Math.max(fit, legibilityFloor));
+
+      var us = Math.min(2, Math.max(0.5, userPhoneScale));
+      var finalScale = autoScale * us;
+      if (!(finalScale > 0) || !isFinite(finalScale)) finalScale = autoScale;
+
+      inner.style.transform = 'scale(' + finalScale + ')';
+      outer.style.width = Math.round(W * finalScale) + 'px';
+      outer.style.height = Math.round(H * finalScale) + 'px';
     }
 
     function schedulePhoneScale() {
@@ -498,6 +592,12 @@
 
     mobScaleObserver = new ResizeObserver(schedulePhoneScale);
     mobScaleObserver.observe(shell);
+    var stageObs = document.getElementById('cdEdgeMainStage');
+    if (stageObs) {
+      try {
+        mobScaleObserver.observe(stageObs);
+      } catch (e2) {}
+    }
 
     function setOs(isAndroid) {
       phone.classList.toggle('cd-ch-em-phone--ios', !isAndroid);

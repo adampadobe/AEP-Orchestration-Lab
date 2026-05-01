@@ -14,6 +14,11 @@
   gap: 0.75rem;
 }
 
+/* Channel-on: nested flex:1 + min-height:0 otherwise collapses to ~0 height → tiny phone scale. */
+.cd-edge-main-stage.cd-edge-main-stage--channel-on {
+  min-height: min(70vh, 42rem);
+}
+
 .cd-edge-mounts-wrap {
   flex: 1 1 auto;
   min-height: 0;
@@ -274,7 +279,7 @@
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: min(58vh, 34rem);
   width: 100%;
   max-width: none;
 }
@@ -311,21 +316,21 @@
 
 .cd-ch-em-phone-shell {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: min(48vh, 26rem);
   width: 100%;
   max-width: none;
   max-height: min(85vh, 900px);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: auto;
   box-sizing: border-box;
 }
 
 .cd-ch-em-phone-scale-outer {
   position: relative;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .cd-ch-em-phone-scale-inner {
@@ -342,7 +347,11 @@
   flex-shrink: 0;
   border: 3px solid var(--dash-border);
   background: var(--dash-surface);
-  box-shadow: var(--dash-shadow);
+  box-shadow:
+    var(--dash-shadow),
+    inset 0 0 0 1px color-mix(in srgb, var(--dash-surface-alt) 55%, transparent),
+    inset 0 1px 0 0 color-mix(in srgb, var(--dash-text) 8%, transparent),
+    inset 0 -2px 6px color-mix(in srgb, var(--dash-bg) 35%, transparent);
   overflow: hidden;
 }
 
@@ -382,6 +391,52 @@
   margin: 0 auto;
   background: var(--dash-bg);
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dash-border) 18%, transparent);
+}
+
+/* Bottom-right drag handle (aspect ratio preserved in JS). */
+.cd-ch-em-phone-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  z-index: 8;
+  cursor: nwse-resize;
+  touch-action: none;
+  box-sizing: border-box;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  border-radius: var(--dash-radius-sm) 0 var(--dash-radius-sm) 0;
+  background: color-mix(in srgb, var(--dash-surface-alt) 88%, transparent);
+  color: var(--dash-text-secondary);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  line-height: 0;
+}
+
+.cd-ch-em-phone-resize-handle:hover {
+  background: var(--dash-hover);
+  color: var(--dash-text);
+}
+
+.cd-ch-em-phone-resize-handle:focus {
+  outline: none;
+}
+
+.cd-ch-em-phone-resize-handle:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 1px;
+}
+
+.cd-ch-em-phone-resize-handle svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex-shrink: 0;
+  margin: 0.12rem;
+  opacity: 0.85;
 }
 
 /* —— iOS status + Dynamic Island —— */
