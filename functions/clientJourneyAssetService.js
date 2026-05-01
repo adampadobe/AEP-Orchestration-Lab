@@ -430,6 +430,45 @@ Soft rules:
 Do not return anything except the single JSON object.`;
 
 /**
+ * Tier-specific overlay prepended to the system prompt at call time.
+ *
+ * Foundation = core AEP only (RT-CDP + Journey Optimizer + CJA). The
+ * model MUST emit empty decisioning/decisioningActive arrays on every
+ * slide and MUST NOT mention Decision Management or Brand Concierge in
+ * the adobe[] product blocks.
+ *
+ * Advanced = Foundation + Decision Management + Brand Concierge.
+ * Decisioning bullets follow critical rule 5 (outcome + signal). Brand
+ * Concierge bullets sit inside orch[] / orchActive[] alongside AJO
+ * bullets, prefixed with "Brand Concierge:" so the renderer can style
+ * them. BC must be customer-initiated, owned-channel only, and have a
+ * clear narrative reason.
+ */
+function buildSystemPrompt(tier) {
+  const t = tier === 'foundation' ? 'foundation' : 'advanced';
+  const overlay = t === 'foundation'
+    ? `AEP CAPABILITY TIER: FOUNDATION
+This journey demonstrates ONLY the core AEP foundation — Real-Time CDP, Journey Optimizer, and Customer Journey Analytics. You MUST observe these tier-specific rules in addition to everything below:
+- decisioning[] and decisioningActive[] MUST be empty arrays [] on every slide. Do NOT generate any decisioning bullets at all.
+- adobe[] product blocks MUST NOT mention "Decision Management" or "Brand Concierge". The only Adobe products available are: "Real-Time CDP" (or "CDP"), "Journey Optimizer", "Customer Journey Analytics", and (rarely, only if explicitly relevant) "AEM Assets" referenced inside an AJO bullet.
+- The personalisation narrative still happens — but attribute it to Journey Optimizer's segment-driven content selection rather than a separate Decision Management product.
+- orch[] bullets MUST NOT contain "Brand Concierge:" entries.
+
+`
+    : `AEP CAPABILITY TIER: ADVANCED
+This journey may use the full AEP suite — RT-CDP, Journey Optimizer, Customer Journey Analytics, Decision Management, and Brand Concierge. In addition to everything below, you MUST observe these tier-specific rules:
+- Use Decision Management at every personalisation step where a specific offer / hero content / channel / upsell is chosen. Bullets follow critical rule 5 below (outcome + signal). DM is for PRIMARY decisions only — not for minor display rules (badges, labels, tags) and never for paid media creative selection (Meta/Google control their own creative).
+- Brand Concierge is a customer-initiated conversational AI on the brand's owned web/app surfaces. When you include it, write the bullet inside orch[] / orchActive[] (NOT a separate column) prefixed with "Brand Concierge:" so the renderer can style it distinctly. Format: "Brand Concierge: customer asked X — guided to Y". One or two BC bullets per relevant step, max.
+- Brand Concierge is FORBIDDEN at any step where the customer is not actively on a brand-owned channel — never at abandonment steps, email/SMS steps, retargeting steps, or any off-site moment. The customer opens the widget; it cannot reach out.
+- Brand Concierge must have a clear narrative reason: what did the customer ask, what did they get? Do not include BC at a step just because the customer is on the website. A BC bullet without a specific question is noise — omit it.
+- Brand Concierge cannot personalise outbound content (emails, SMS, push). Email/SMS personalisation is a Decision Management call.
+- Brand Concierge conversational recommendations are NOT Decision Management. DM appears within a BC interaction only if a specific promotional offer from the offer catalogue is being surfaced (e.g. a loyalty discount applied to a recommended product).
+
+`;
+  return overlay + JOURNEY_SYSTEM_PROMPT;
+}
+
+/**
  * Closed list of Adobe Journey Optimizer delivery channels that the
  * activ[] / activActive[] arrays may contain. These are the only
  * strings the model may emit there — we enforce it both in the system
@@ -604,6 +643,13 @@ function normaliseJourney(journeyData, overrides = {}) {
   const j = (journeyData && typeof journeyData === 'object') ? journeyData : {};
   const clientIn = (j.client && typeof j.client === 'object') ? j.client : {};
   const brandColour = normaliseHex(overrides.brandColour || clientIn.brandColour, '#E60000');
+  // tier travels through the journeyData itself so the renderer (and
+  // any downstream tooling that re-renders from cached JSON) knows
+  // which layout / which Adobe products are in scope. Default 'advanced'
+  // for cached results that pre-date Phase 1.
+  const tier = (overrides.tier === 'foundation' || clientIn.tier === 'foundation')
+    ? 'foundation'
+    : 'advanced';
   const client = {
     name: safeString(overrides.clientName || clientIn.name, 'Client'),
     slug: slugify(overrides.clientName || clientIn.name || clientIn.slug || 'client'),
@@ -611,6 +657,7 @@ function normaliseJourney(journeyData, overrides = {}) {
     brandColour,
     darkColour: normaliseHex(clientIn.darkColour || darken(brandColour, 0.55), darken(brandColour, 0.55)),
     journeyType: safeString(overrides.journeyType || clientIn.journeyType, 'Customer Journey'),
+    tier,
   };
 
   const persona = (j.persona && typeof j.persona === 'object') ? j.persona : {};
@@ -651,6 +698,46 @@ function normaliseJourney(journeyData, overrides = {}) {
   for (let i = 0; i < slides.length; i++) {
     if (!Array.isArray(slides[i].decisioning)) slides[i].decisioning = [];
     if (!Array.isArray(slides[i].decisioningActive)) slides[i].decisioningActive = [];
+  }
+
+  // Foundation tier clamp — strip Decision Management and Brand
+  // Concierge from the journey entirely so the prompt overlay is
+  // belt-and-braces. Empty decisioning arrays => the renderer drops the
+  // Decisioning sub-column for Foundation; orch entries beginning
+  // "Brand Concierge:" are removed (and the matching orchActive entries
+  // along with them) so an Advanced-leaning model that ignored the tier
+  // overlay can't smuggle DM/BC into a Foundation deck.
+  if (tier === 'foundation') {
+    for (let i = 0; i < slides.length; i++) {
+      slides[i].decisioning = [];
+      slides[i].decisioningActive = [];
+      const orch = Array.isArray(slides[i].orch) ? slides[i].orch : [];
+      const orchActiveSet = new Set(Array.isArray(slides[i].orchActive) ? slides[i].orchActive : []);
+      const filtered = orch.filter((s) => !/^(\s*)brand concierge\s*:/i.test(safeString(s)));
+      slides[i].orch = filtered;
+      slides[i].orchActive = filtered.filter((s) => orchActiveSet.has(s));
+    }
+    // Strip DM/BC product blocks from the adobe[] cells too. We do this
+    // tolerantly: if a "product" block names DM or BC we drop it AND the
+    // immediately-following heading/bullet/blank run that belongs to it
+    // (i.e. up to the next "product" entry or end of array).
+    const FORBIDDEN_PRODUCTS = /^(decision management|brand concierge)$/i;
+    if (Array.isArray(j.adobe)) {
+      for (let i = 0; i < j.adobe.length; i++) {
+        const blocks = Array.isArray(j.adobe[i]) ? j.adobe[i] : [];
+        const out = [];
+        let dropping = false;
+        for (const b of blocks) {
+          if (b && b.type === 'product') {
+            dropping = !!(b.text && FORBIDDEN_PRODUCTS.test(safeString(b.text).trim()));
+            if (!dropping) out.push(b);
+          } else if (!dropping) {
+            out.push(b);
+          }
+        }
+        j.adobe[i] = out;
+      }
+    }
   }
   // Ensure activeNode invariant.
   slides[0].activeNode = -1;
@@ -699,6 +786,10 @@ async function generateJourney({
   // the very first Vertex AI call (e.g. "focus on first-time customers,
   // emphasise loyalty rewards, mention sustainability throughout").
   additionalContext,
+  // 'foundation' | 'advanced'. Foundation excludes Decision Management
+  // and Brand Concierge from the journey entirely — col 4 in the
+  // rendered HTML becomes a single full-height Orchestration column.
+  tier = 'advanced',
   // Refinement mode: when both fields are present, we re-issue the
   // generation with the previous JSON in the user payload and ask the
   // model to apply `refinementPrompt` while preserving the rest of the
@@ -707,6 +798,7 @@ async function generateJourney({
   previousJourney,
   refinementPrompt,
 }) {
+  const resolvedTier = tier === 'foundation' ? 'foundation' : 'advanced';
   if (!sandbox) throw new Error('sandbox is required');
   if (!scrapeId) throw new Error('scrapeId is required');
 
@@ -786,9 +878,13 @@ async function generateJourney({
     retryOn429Attempts: 1,
   };
 
+  // System prompt is rebuilt per-call so the tier overlay (Foundation
+  // vs Advanced) is bound to the same call. Cheap to re-string-concat.
+  const systemPrompt = buildSystemPrompt(resolvedTier);
+
   let raw;
   try {
-    raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
+    raw = await callGemini(systemPrompt, JSON.stringify(userPayload, null, 2), {
       ...baseGeminiOpts,
       responseSchema: JOURNEY_RESPONSE_SCHEMA,
     });
@@ -800,7 +896,7 @@ async function generateJourney({
     }
     // Schema unsupported by this model? Retry without it.
     if (/responseSchema|schema/i.test(String(e && e.message || e))) {
-      raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
+      raw = await callGemini(systemPrompt, JSON.stringify(userPayload, null, 2), {
         ...baseGeminiOpts,
       });
     } else if (e && e.code === 'MAX_TOKENS') {
@@ -809,7 +905,7 @@ async function generateJourney({
       // scrape) — retry once with thinking turned down so all available
       // tokens go to JSON output rather than internal reasoning.
       try {
-        raw = await callGemini(JOURNEY_SYSTEM_PROMPT, JSON.stringify(userPayload, null, 2), {
+        raw = await callGemini(systemPrompt, JSON.stringify(userPayload, null, 2), {
           ...baseGeminiOpts,
           temperature: 0.2,
           responseSchema: JOURNEY_RESPONSE_SCHEMA,
@@ -842,6 +938,7 @@ async function generateJourney({
     personaName,
     clientName: resolvedClientName,
     domain: summary.url,
+    tier: resolvedTier,
   });
 
   const htmlJourney = renderJourneyHtml(journeyData);
@@ -858,6 +955,11 @@ function renderJourneyHtml(journeyData) {
   const dark = j.client.darkColour;
   const clientName = j.client.name;
   const personaName = j.persona.name;
+  // Tier governs which Adobe products are in scope and whether column 4
+  // is a single Orchestration column (Foundation) or stacked
+  // Orchestration + Decisioning (Advanced). Default 'advanced' for older
+  // cached journeys parsed before the tier field existed.
+  const tier = (j.client && j.client.tier === 'foundation') ? 'foundation' : 'advanced';
 
   // Build SVG nodes — bigger circles with a centered Feather-style icon as
   // the primary visual, the step number sitting as a small pill badge in
@@ -1179,6 +1281,17 @@ function renderJourneyHtml(journeyData) {
           <div class="data-col-title">Identities</div>
           <div id="col-identities"></div>
         </div>
+        ${tier === 'foundation' ? `
+        <!-- Foundation tier: column 4 collapses to a single full-height
+             Journey Orchestration column. Decisioning lives only in
+             Advanced. The col-decisioning div is still rendered (hidden)
+             so the per-tier renderer JS can write into it without
+             nullref-checking, but it has no visible chrome. -->
+        <div class="data-col">
+          <div class="data-col-title">Journey Orchestration</div>
+          <div id="col-orch"></div>
+          <div id="col-decisioning" hidden></div>
+        </div>` : `
         <div class="data-col stacked">
           <div class="data-col-half">
             <div class="data-col-title">Journey Orchestration</div>
@@ -1188,7 +1301,7 @@ function renderJourneyHtml(journeyData) {
             <div class="data-col-subtitle">Decisioning</div>
             <div id="col-decisioning"></div>
           </div>
-        </div>
+        </div>`}
         <div class="data-col">
           <div class="data-col-title">Activation / Destinations</div>
           <div id="col-activ"></div>
@@ -2204,6 +2317,12 @@ async function handleGenerate(req, res) {
   const refinementPrompt = typeof body.refinementPrompt === 'string'
     ? body.refinementPrompt
     : '';
+  // AEP capability tier — Foundation = RT-CDP + AJO + CJA only;
+  // Advanced = also includes Decision Management + Brand Concierge.
+  // Default is 'advanced' so callers that pre-date this field (legacy
+  // localStorage cache loads, older external integrations) keep getting
+  // today's behaviour with no surprise.
+  const tier = body.tier === 'foundation' ? 'foundation' : 'advanced';
   try {
     const result = await generateJourney({
       sandbox,
@@ -2213,6 +2332,7 @@ async function handleGenerate(req, res) {
       personaName: body.personaName,
       clientName: body.clientName,
       additionalContext: body.additionalContext,
+      tier,
       previousJourney,
       refinementPrompt,
     });
