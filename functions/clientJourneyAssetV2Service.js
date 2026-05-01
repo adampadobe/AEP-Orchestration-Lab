@@ -41,6 +41,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const { callGemini, callGeminiResearch, stripJsonFences } = require('./vertexClient');
+const { jsonrepair } = require('jsonrepair');
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
@@ -53,8 +54,15 @@ const CONTEXT7_BASE = 'https://context7.com/api/v1';
 const CONTEXT7_TOKEN_BUDGET = 1500;
 const CONTEXT7_TIMEOUT_MS = 12_000;
 
-const GEMINI_MAX_OUTPUT_TOKENS = 24_000;
-const GEMINI_TEMPERATURE = 0.4;
+// Generation-pass output budget. Gemini 2.5 supports up to 65536 output
+// tokens; 16k is comfortable headroom for the 13-slide journey JSON
+// (typical real-world payload is ~9–12k tokens) without leaving a wide
+// margin for the model to ramble itself into a truncation.
+const GEMINI_MAX_OUTPUT_TOKENS = 16_384;
+// Generation-pass temperature. The schema is strict and the deliverable
+// is structured JSON — determinism beats creativity here. Creativity
+// belongs in the upstream research pass, not in the generator.
+const GEMINI_TEMPERATURE = 0.25;
 
 /** SVG journey map — verbatim from html-rules.md (12 nodes). */
 const NODES = [
@@ -814,11 +822,210 @@ async function runResearchPass(input) {
   };
 }
 
+/**
+ * Strip Markdown JSON fences and surrounding whitespace from a raw
+ * Gemini response. Tolerant of:
+ *   - Plain JSON (no fence)        → trimmed
+ *   - ```json … ``` complete fence → fenced contents trimmed
+ *   - ```json … (no closing fence) → opening stripped, body trimmed
+ *   - Bare ``` … ``` fences        → contents trimmed
+ *
+ * Controlled-generation Gemini calls SHOULD never emit fences, but we
+ * have observed it in the wild when the model decides to add a leading
+ * "```json\n" anyway, so we strip defensively before strict parsing.
+ */
+function stripGenerationFences(raw) {
+  if (!raw) return '';
+  let s = String(raw).trim();
+  const completeFence = /^```(?:json)?\s*([\s\S]*?)\s*```\s*$/i.exec(s);
+  if (completeFence) return completeFence[1].trim();
+  const openingFence = /^```(?:json)?\s*([\s\S]*)$/i.exec(s);
+  if (openingFence) {
+    return openingFence[1].replace(/```\s*$/i, '').trim();
+  }
+  return s;
+}
+
+/**
+ * Parse the Gemini generation-pass response into a journey object,
+ * with three layers of resilience against minor model JSON hiccups:
+ *
+ *   (1) Strip Markdown fences + whitespace, then try strict JSON.parse.
+ *   (2) On SyntaxError, run jsonrepair (handles missing colons,
+ *       trailing commas, single quotes, smart quotes, unescaped
+ *       newlines) and re-parse. Log the repair, log a head/tail
+ *       preview of the original raw output to Cloud Logs.
+ *   (3) On repair failure, if the caller supplied `retryFn`, invoke
+ *       it once with the original SyntaxError so the caller can ask
+ *       Gemini to self-correct, then run the same strict + repair
+ *       flow on the retry response.
+ *
+ * Throws an Error with `code === 'CJV2_JSON_PARSE_FAILED'` and a safe
+ * `details` object (no PII — only the parse-error message, position,
+ * and which mitigations were tried) when every mitigation fails.
+ *
+ * Returns `{ journey, repaired, retried }` where `repaired` and
+ * `retried` are booleans the caller can surface for observability.
+ *
+ * @param {string} raw — raw Gemini response text (call returns a string).
+ * @param {{ retryFn?: (firstErr: Error) => Promise<string> }} [opts]
+ */
+function isJourneyShapedObject(v) {
+  // The downstream pipeline expects a non-null object (it later reads
+  // `.meta`, `.slides`, etc.). jsonrepair is permissive enough to wrap
+  // raw garbage like `<<< not json >>>` into a quoted string, which
+  // would technically `JSON.parse` cleanly but is useless to us — so we
+  // treat anything that isn't a non-null, non-array object as a parse
+  // failure and let the repair / retry path try again.
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+async function parseGenerationJson(raw, opts = {}) {
+  const retryFn = opts && typeof opts.retryFn === 'function' ? opts.retryFn : null;
+  const cleaned = stripGenerationFences(raw);
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (!isJourneyShapedObject(parsed)) {
+      // Synthesise a SyntaxError so the repair / retry path engages.
+      const e = new SyntaxError(
+        `parsed value is not a JSON object (got ${parsed === null ? 'null' : Array.isArray(parsed) ? 'array' : typeof parsed})`
+      );
+      throw e;
+    }
+    return { journey: parsed, repaired: false, retried: false };
+  } catch (firstErr) {
+    if (!(firstErr instanceof SyntaxError)) throw firstErr;
+
+    // Cloud-Logs-only preview of the raw model output so future parse
+    // failures have something to post-mortem against. NEVER include
+    // this in the HTTP response — it can be tens of kilobytes.
+    console.warn('[cjv2] raw JSON parse failed — head/tail preview', {
+      head: cleaned.slice(0, 2000),
+      tail: cleaned.slice(-500),
+      totalChars: cleaned.length,
+    });
+
+    const firstPosition = (firstErr && Object.prototype.hasOwnProperty.call(firstErr, 'position'))
+      ? firstErr.position
+      : null;
+
+    // Pass 1 mitigation — jsonrepair on the original cleaned response.
+    const originalLen = cleaned.length;
+    try {
+      const repairedStr = jsonrepair(cleaned);
+      const journey = JSON.parse(repairedStr);
+      if (!isJourneyShapedObject(journey)) {
+        // jsonrepair "succeeded" by wrapping garbage in quotes — useless.
+        throw new SyntaxError(
+          'jsonrepair produced a non-object value ' +
+          `(got ${journey === null ? 'null' : Array.isArray(journey) ? 'array' : typeof journey})`
+        );
+      }
+      console.warn('[cjv2] generation JSON repaired', {
+        originalLen,
+        repairedLen: repairedStr.length,
+        syntaxErrorAt: firstErr.message,
+      });
+      return { journey, repaired: true, retried: false };
+    } catch (repairErr) {
+      console.warn('[cjv2] jsonrepair failed on initial response', {
+        firstError: firstErr.message,
+        repairError: String(repairErr && repairErr.message || repairErr),
+      });
+    }
+
+    // Pass 2 mitigation — one-shot retry, asking Gemini to self-correct.
+    if (!retryFn) {
+      const e = new Error('Gemini returned malformed JSON and no retry was attempted');
+      e.code = 'CJV2_JSON_PARSE_FAILED';
+      e.details = {
+        firstError: firstErr.message,
+        position: firstPosition,
+        repairTried: true,
+        retryTried: false,
+      };
+      throw e;
+    }
+
+    let retryRaw;
+    try {
+      retryRaw = await retryFn(firstErr);
+    } catch (retryCallErr) {
+      const e = new Error('Gemini retry call failed after malformed JSON');
+      e.code = 'CJV2_JSON_PARSE_FAILED';
+      e.details = {
+        firstError: firstErr.message,
+        position: firstPosition,
+        repairTried: true,
+        retryTried: true,
+        retryCallError: String(retryCallErr && retryCallErr.message || retryCallErr),
+      };
+      throw e;
+    }
+
+    const cleanedRetry = stripGenerationFences(retryRaw);
+    try {
+      const parsedRetry = JSON.parse(cleanedRetry);
+      if (!isJourneyShapedObject(parsedRetry)) {
+        throw new SyntaxError(
+          `retry parsed value is not a JSON object (got ${parsedRetry === null ? 'null' : Array.isArray(parsedRetry) ? 'array' : typeof parsedRetry})`
+        );
+      }
+      return { journey: parsedRetry, repaired: false, retried: true };
+    } catch (secondParseErr) {
+      if (!(secondParseErr instanceof SyntaxError)) throw secondParseErr;
+      console.warn('[cjv2] retry response JSON parse failed — head/tail preview', {
+        head: cleanedRetry.slice(0, 2000),
+        tail: cleanedRetry.slice(-500),
+        totalChars: cleanedRetry.length,
+        firstError: firstErr.message,
+        secondError: secondParseErr.message,
+      });
+      // Last-ditch: jsonrepair the retry response before giving up.
+      try {
+        const repairedRetry = jsonrepair(cleanedRetry);
+        const journey = JSON.parse(repairedRetry);
+        if (!isJourneyShapedObject(journey)) {
+          throw new SyntaxError(
+            'jsonrepair produced a non-object value on retry ' +
+            `(got ${journey === null ? 'null' : Array.isArray(journey) ? 'array' : typeof journey})`
+          );
+        }
+        console.warn('[cjv2] retry response JSON repaired', {
+          originalLen: cleanedRetry.length,
+          repairedLen: repairedRetry.length,
+          firstError: firstErr.message,
+          secondError: secondParseErr.message,
+        });
+        return { journey, repaired: true, retried: true };
+      } catch (finalRepairErr) {
+        void finalRepairErr;
+        const e = new Error('Gemini returned malformed JSON after repair + retry');
+        e.code = 'CJV2_JSON_PARSE_FAILED';
+        e.details = {
+          firstError: firstErr.message,
+          position: firstPosition,
+          repairTried: true,
+          retryTried: true,
+        };
+        throw e;
+      }
+    }
+  }
+}
+
 async function runGenerationPass(input, snippets, research) {
   const systemPrompt = buildSystemPrompt(input.tier);
-  const userPrompt = buildUserPrompt(input, snippets, research);
+  const baseUserPrompt = buildUserPrompt(input, snippets, research);
   const t0 = Date.now();
-  const raw = await callGemini(systemPrompt, userPrompt, {
+
+  // The retry path appends a short corrective note to the user prompt
+  // so Gemini knows the previous response was malformed and what the
+  // failure looked like. Everything else (system prompt, schema-less
+  // JSON mode, max tokens, temperature) stays identical so we don't
+  // shift the response distribution.
+  const call = (extra = '') => callGemini(systemPrompt, baseUserPrompt + extra, {
     maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
     temperature: GEMINI_TEMPERATURE,
     jsonMode: true,
@@ -828,8 +1035,59 @@ async function runGenerationPass(input, snippets, research) {
     // Mixing tools + responseMimeType:'application/json' is rejected
     // by Vertex AI (see vertexClient.js comment on the `tools` opt).
   });
+
+  const firstRaw = await call();
+  let parseResult;
+  try {
+    parseResult = await parseGenerationJson(firstRaw, {
+      retryFn: async (firstErr) => {
+        const pos = (firstErr && Object.prototype.hasOwnProperty.call(firstErr, 'position'))
+          ? firstErr.position
+          : null;
+        const positionHint = (pos != null) ? ` around position ${pos}` : '';
+        const errMsg = (firstErr && firstErr.message) ? firstErr.message : 'unknown';
+        const repairHint =
+          '\n\n### RETRY NOTE\n' +
+          `Your previous response had a JSON syntax error${positionHint}. ` +
+          `The parser reported: "${errMsg}". ` +
+          'Return ONLY valid JSON matching the schema in the system prompt — ' +
+          'no prose, no markdown, no code fences, no trailing commas, no comments. ' +
+          'Double-check every property name is followed by a colon, every string ' +
+          'is double-quoted, and every array / object is closed.';
+        console.warn('[cjv2] generation JSON parse retry — asking Gemini to self-correct', {
+          firstError: errMsg,
+          position: pos,
+        });
+        return call(repairHint);
+      },
+    });
+  } catch (e) {
+    const ms = Date.now() - t0;
+    console.warn('[cjv2] generation pass failed', {
+      ms,
+      code: e && e.code,
+      details: e && e.details,
+      rawChars: String(firstRaw || '').length,
+    });
+    throw e;
+  }
+
   const ms = Date.now() - t0;
-  return { raw, ms };
+  const journey = parseResult.journey;
+  const slideCount = (journey && Array.isArray(journey.slides)) ? journey.slides.length : 0;
+  console.log('[cjv2] generation pass', {
+    ms,
+    slideCount,
+    retried: parseResult.retried,
+    repaired: parseResult.repaired,
+  });
+  return {
+    journey,
+    raw: firstRaw,
+    ms,
+    retried: parseResult.retried,
+    repaired: parseResult.repaired,
+  };
 }
 
 // ─── INPUT VALIDATION ────────────────────────────────────────────────────────
@@ -2120,31 +2378,34 @@ async function handleGenerate(req, res, opts = {}) {
     (research.error ? ` error=${research.error}` : '')
   );
 
-  let raw;
+  let journey;
   let generationMs = 0;
+  let generationRetried = false;
+  let generationRepaired = false;
   try {
     const out = await runGenerationPass(input, snippets, research);
-    raw = out.raw;
+    journey = out.journey;
     generationMs = out.ms;
+    generationRetried = !!out.retried;
+    generationRepaired = !!out.repaired;
   } catch (err) {
+    if (err && err.code === 'CJV2_JSON_PARSE_FAILED') {
+      // User-facing: friendly, transient-issue framing.
+      // Cloud-Logs-side: full details already emitted by runGenerationPass.
+      log_(`Gemini JSON parse failed after repair + retry: ${err.message}`);
+      res.status(502).json({
+        error: 'Gemini returned malformed JSON even after repair. Please try again — transient model issue.',
+        code: 'CJV2_JSON_PARSE_FAILED',
+        details: err.details, // safe: { firstError, position, repairTried, retryTried }
+        log,
+      });
+      return;
+    }
     log_(`Gemini generation pass failed: ${err.message || err}`);
     res.status(502).json({
       error: 'Vertex AI Gemini failed to produce a journey',
       code: err && err.code,
       detail: String(err.message || err),
-      log,
-    });
-    return;
-  }
-
-  let journey;
-  try {
-    journey = JSON.parse(stripJsonFences(raw));
-  } catch (err) {
-    res.status(502).json({
-      error: 'Vertex AI returned non-JSON',
-      detail: String(err.message || err),
-      preview: String(raw).slice(0, 1200),
       log,
     });
     return;
@@ -2183,12 +2444,9 @@ async function handleGenerate(req, res, opts = {}) {
 
   log_(
     `generation pass: ms=${generationMs} slideCount=${(journey.slides || []).length} ` +
-    `stepLabels=${(journey.stepLabels || []).length}`
+    `stepLabels=${(journey.stepLabels || []).length} ` +
+    `retried=${generationRetried} repaired=${generationRepaired}`
   );
-  console.log('[cjv2] generation pass', {
-    ms: generationMs,
-    slideCount: (journey.slides || []).length,
-  });
   log_(`generate ok client="${input.client}" tier=${input.tier} htmlBytes=${html.length}`);
 
   res.status(200).json({
@@ -2282,5 +2540,7 @@ module.exports = {
     parseResearchSections,
     runResearchPass,
     runGenerationPass,
+    parseGenerationJson,
+    stripGenerationFences,
   },
 };

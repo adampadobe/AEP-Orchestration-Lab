@@ -139,7 +139,17 @@
         if (Array.isArray(json && json.validationErrors) && json.validationErrors.length) {
           detail += ' — schema errors: ' + json.validationErrors.slice(0, 3).join('; ');
         }
-        throw new Error(detail);
+        // Map known structured codes to friendly user-facing messages.
+        // The raw detail (incl. parse-position) still goes to the console
+        // for debugging — we just don't expose it on-screen.
+        var userMessage = detail;
+        if (json && json.code === 'CJV2_JSON_PARSE_FAILED') {
+          console.error('[cjv2] CJV2_JSON_PARSE_FAILED — server detail:', detail, json.details || null);
+          userMessage = 'Temporary model issue — please press Generate again. ' +
+            'Vertex AI Gemini returned slightly-malformed JSON for this run; the ' +
+            'server already tried an automatic repair and a self-correcting retry.';
+        }
+        throw new Error(userMessage);
       }
       if (!json.html || !json.journey) {
         throw new Error('Server returned ok but no html or journey in payload');
