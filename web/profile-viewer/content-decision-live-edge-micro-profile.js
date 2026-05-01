@@ -293,6 +293,31 @@
     }
   }
 
+  var SLIDER_TINT_CONFIG = [
+    { id: 'cdMicroProfileChurn', reverse: true },
+    { id: 'cdMicroProfilePropensity', reverse: false },
+    { id: 'cdMicroProfileOrderValue', reverse: false },
+    { id: 'cdMicroProfilePoints', reverse: false },
+  ];
+
+  function pickSliderToken(pct, reverse) {
+    if (pct < 0.34) return reverse ? '--dash-success-border' : '--dash-error-border';
+    if (pct < 0.67) return '--dash-warning-border';
+    return reverse ? '--dash-error-border' : '--dash-success-border';
+  }
+
+  function applySliderTint(input, reverse) {
+    if (!input) return;
+    var min = Number(input.min);
+    var max = Number(input.max);
+    var val = Number(input.value);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min || !Number.isFinite(val)) return;
+    var pct = Math.max(0, Math.min(1, (val - min) / (max - min)));
+    var token = pickSliderToken(pct, !!reverse);
+    input.style.setProperty('--cd-slider-fill', 'var(' + token + ')');
+    input.style.setProperty('--cd-slider-pct', (pct * 100).toFixed(2) + '%');
+  }
+
   function wireRangeMirrors() {
     var pts = $('cdMicroProfilePoints');
     var ptsLabel = $('cdMicroProfilePointsValue');
@@ -322,6 +347,13 @@
       ov.addEventListener('input', syncOv);
       syncOv();
     }
+    SLIDER_TINT_CONFIG.forEach(function (cfg) {
+      var input = $(cfg.id);
+      if (!input) return;
+      var sync = function () { applySliderTint(input, cfg.reverse); };
+      input.addEventListener('input', sync);
+      sync();
+    });
   }
 
   /** Coalesce auto-lookup attempts so identity-restored + sandbox-synced

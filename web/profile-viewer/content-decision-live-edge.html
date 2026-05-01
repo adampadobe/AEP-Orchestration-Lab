@@ -1278,10 +1278,43 @@
       box-sizing: border-box;
     }
     .cd-hero-rail .cd-micro-profile-field input[type="range"] {
+      --cd-slider-fill: var(--dash-blue);
+      --cd-slider-pct: 50%;
       width: 100%;
       margin: 0;
-      accent-color: var(--dash-blue);
+      -webkit-appearance: none;
+      appearance: none;
+      height: 0.5rem;
+      border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(
+        to right,
+        var(--cd-slider-fill) 0% var(--cd-slider-pct),
+        var(--dash-input-border) var(--cd-slider-pct) 100%
+      );
+      accent-color: var(--cd-slider-fill);
+    }
+    .cd-hero-rail .cd-micro-profile-field input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      background: var(--dash-surface);
+      border: 2px solid var(--cd-slider-fill);
+      cursor: pointer;
+    }
+    .cd-hero-rail .cd-micro-profile-field input[type="range"]::-moz-range-thumb {
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      background: var(--dash-surface);
+      border: 2px solid var(--cd-slider-fill);
+      cursor: pointer;
+    }
+    .cd-hero-rail .cd-micro-profile-field input[type="range"]::-moz-range-track {
       background: transparent;
+      border: 0;
+      height: 0.5rem;
     }
     .cd-hero-rail .cd-micro-profile-range-row {
       display: flex;
@@ -1789,7 +1822,7 @@
   <script src="content-decision-live-edge-onboarding.js?v=20260424-edge-onboarding-query"></script>
   <script src="profile-streaming-shared.js"></script>
   <script src="content-decision-live-edge-inline.js?v=20260501-auto-lookup"></script>
-  <script src="content-decision-live-edge-micro-profile.js?v=20260501-status-dot"></script>
+  <script src="content-decision-live-edge-micro-profile.js?v=20260501-tinted-sliders"></script>
   <script src="content-decision-live-edge-embed-fs.js?v=20260427-edge-embed-fs"></script>
   <script defer src="marauders-map-egg.js?v=20260423-edge-flavor"></script>
 </body>
