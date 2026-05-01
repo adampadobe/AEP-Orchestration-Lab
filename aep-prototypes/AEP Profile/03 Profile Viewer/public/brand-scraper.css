@@ -1849,3 +1849,72 @@ html[data-aep-theme='dark'] .brand-scraper-dev-pill {
   max-height: 260px;
   color: var(--dash-text);
 }
+
+.brand-scraper-build-hint {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: var(--dash-radius-sm, 12px);
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface-alt);
+}
+
+.brand-scraper-tile {
+  margin-bottom: 20px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface);
+  box-shadow: var(--dash-shadow);
+  overflow: hidden;
+}
+
+.brand-scraper-tile--pending {
+  border-color: color-mix(in srgb, var(--dash-blue) 45%, var(--dash-border));
+}
+
+.brand-scraper-tile--ready {
+  border-color: color-mix(in srgb, var(--dash-text-secondary) 35%, var(--dash-border));
+}
+
+.brand-scraper-tile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--dash-surface-alt);
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.brand-scraper-tile-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dash-text);
+}
+
+.brand-scraper-tile-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--dash-blue) 14%, var(--dash-surface));
+  color: var(--dash-blue);
+  border: 1px solid color-mix(in srgb, var(--dash-blue) 35%, var(--dash-border));
+  white-space: nowrap;
+}
+
+.brand-scraper-tile-badge--ok {
+  background: color-mix(in srgb, var(--dash-success) 12%, var(--dash-surface));
+  color: var(--dash-success);
+  border-color: color-mix(in srgb, var(--dash-success) 40%, var(--dash-border));
+}
+
+.brand-scraper-tile-body {
+  padding: 14px 16px 16px;
+}
+
+.brand-scraper-tile-body .brand-scraper-result-block:first-child h4 {
+  margin-top: 0;
+}

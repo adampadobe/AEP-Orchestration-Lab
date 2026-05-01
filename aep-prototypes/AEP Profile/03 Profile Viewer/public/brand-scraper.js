@@ -62,7 +62,8 @@
   const RUN_OPTION_KEYS = ['analysis', 'personas', 'campaigns', 'segments', 'stakeholders', 'tagAudit'];
 
   function loadRunOptions() {
-    const defaults = { analysis: true, personas: true, campaigns: true, segments: true, stakeholders: true, tagAudit: true };
+    // Light first pass: brand core + on-site signals + assets; add personas/segments/stakeholders when you need depth (or append).
+    const defaults = { analysis: true, personas: false, campaigns: true, segments: false, stakeholders: false, tagAudit: true };
     try {
       const raw = localStorage.getItem(LS_RUN_OPTIONS);
       if (!raw) return defaults;
@@ -357,18 +358,16 @@
   }
 
   function estimateAnalyzeDurationMs(opts) {
-    // Rough per-phase Gemini Pro / Flash durations (seconds) observed in prod.
-    let crawl = opts.crawler === 'js' ? 15 : 5;
+    // Server runs phases sequentially: brand core → audiences (parallel) → segments + industry.
+    let crawl = opts.crawler === 'js' ? 18 : 6;
     const inc = opts.include || {};
     if (inc.tagAudit !== false && opts.crawler === 'js') crawl += 3;
-    const includes = inc;
-    const trio = [includes.analysis, includes.personas, includes.campaigns, includes.stakeholders]
-      .filter(Boolean).length;
-    // trio members run in parallel — wall time ≈ max of them, not sum.
-    const trioWall = trio === 0 ? 0 : 30 + (trio - 1) * 2;  // slight amortisation cost
-    const segmentsWall = includes.segments ? 25 : 0;        // sequential after trio
-    const industryWall = trio > 0 ? 2 : 0;                   // always runs when we have analysis context
-    return (crawl + trioWall + segmentsWall + industryWall) * 1000;
+    const brandWall = inc.analysis !== false ? 35 : 0;
+    const trio = [inc.personas, inc.campaigns, inc.stakeholders].filter(Boolean).length;
+    const trioWall = trio === 0 ? 0 : 32 + (trio - 1) * 2;
+    const segmentsWall = inc.segments ? 28 : 0;
+    const industryWall = inc.analysis !== false ? 4 : 0;
+    return (crawl + brandWall + trioWall + segmentsWall + industryWall) * 1000;
   }
 
   function startProgress(totalMs, phases) {
@@ -1162,10 +1161,29 @@
     );
   }
 
+  /** Wrap a results block so in-flight scrapes show per-tile progress (ready vs filling). */
+  function renderTileSection(title, innerHtml, filled, pending) {
+    const hasBody = !!(innerHtml && String(innerHtml).trim());
+    if (!hasBody && !pending) return '';
+    const mod = filled ? 'ready' : (pending ? 'pending' : 'muted');
+    const badge = pending
+      ? '<span class="brand-scraper-tile-badge">Filling\u2026</span>'
+      : (filled ? '<span class="brand-scraper-tile-badge brand-scraper-tile-badge--ok">Ready</span>' : '');
+    const body = hasBody ? innerHtml : '<p class="brand-scraper-result-muted">Running in this session \u2014 use <strong>View</strong> on the history card to refresh.</p>';
+    return (
+      '<section class="brand-scraper-tile brand-scraper-tile--' + mod + '">' +
+        '<header class="brand-scraper-tile-head"><h4 class="brand-scraper-tile-title">' + esc(title) + '</h4>' + badge + '</header>' +
+        '<div class="brand-scraper-tile-body">' + body + '</div>' +
+      '</section>'
+    );
+  }
+
   function renderResults(data) {
     currentScrapeData = data;
     resultsEl.hidden = false;
     const crawl = data.crawl || data.crawlSummary;
+    const inProgress = data.scrapeStatus === 'running' || data.scrapeStatus === 'crawl_complete';
+    const buildPhase = data.buildPhase || '';
     const lastExport = data.lastExport || null;
     const versions = Array.isArray(data.availableVersions) ? data.availableVersions : [];
     const hist = data.viewingVersion != null && data.viewingVersion !== '';
@@ -1214,14 +1232,58 @@
         '</div>'
       ) : '') +
       (data.analysisError ? '<p class="brand-scraper-result-muted">Analysis error: ' + esc(data.analysisError) + '</p>' : '') +
+      (inProgress && buildPhase
+        ? '<p class="brand-scraper-result-muted brand-scraper-build-hint">Building in phases \u2014 ' + esc(
+          buildPhase === 'crawl' ? 'crawl saved; starting brand core.' :
+            buildPhase === 'brand' ? 'brand guidelines saved; running audiences.' :
+              buildPhase === 'audiences' ? 'audiences saved; finishing segments & industry.' :
+                'saving\u2026',
+        ) + ' Click <strong>View</strong> on the card anytime for the latest partial result.</p>'
+        : '') +
       renderExecutiveSummary(data, crawl) +
-      renderAnalysis(data.analysis) +
-      renderStakeholders(data.stakeholders) +
-      renderSegments(data.segments) +
-      renderCampaigns(data.campaigns) +
-      renderPersonas(data.personas) +
-      renderAssets(crawl && crawl.assets) +
-      renderTagAuditSummary(crawl && crawl.tagAuditSummary) +
+      renderTileSection(
+        'Tag and analytics (on-site)',
+        (function () {
+          const ta = crawl && crawl.tagAuditSummary;
+          const inner = renderTagAuditSummary(ta);
+          if (inner) return inner;
+          if (ta) return '<p class="brand-scraper-result-muted">Crawl sample recorded; no vendor roll-up matched the usual patterns on these pages.</p>';
+          return '';
+        })(),
+        !!(crawl && crawl.tagAuditSummary),
+        inProgress && (!buildPhase || buildPhase === 'crawl') && !(crawl && crawl.tagAuditSummary),
+      ) +
+      renderTileSection('Brand assets (from crawl)', renderAssets(crawl && crawl.assets), !!(crawl && crawl.assets), false) +
+      renderTileSection(
+        'Brand guidelines',
+        renderAnalysis(data.analysis),
+        !!(data.analysis && !data.analysis.skipped && !data.analysis.error && data.analysis.about),
+        inProgress && buildPhase === 'crawl',
+      ) +
+      renderTileSection(
+        'Campaigns (detected on-site)',
+        renderCampaigns(data.campaigns),
+        !!(data.campaigns && !data.campaigns.skipped && !data.campaigns.error && Array.isArray(data.campaigns.campaigns) && data.campaigns.campaigns.length),
+        inProgress && buildPhase === 'brand',
+      ) +
+      renderTileSection(
+        'Customer personas',
+        renderPersonas(data.personas),
+        !!(data.personas && !data.personas.skipped && !data.personas.error && Array.isArray(data.personas.personas) && data.personas.personas.length),
+        inProgress && buildPhase === 'brand',
+      ) +
+      renderTileSection(
+        'Audience segments',
+        renderSegments(data.segments),
+        !!(data.segments && !data.segments.skipped && !data.segments.error && Array.isArray(data.segments.segments) && data.segments.segments.length),
+        inProgress && buildPhase === 'audiences',
+      ) +
+      renderTileSection(
+        'Business stakeholders',
+        renderStakeholders(data.stakeholders),
+        !!(data.stakeholders && !data.stakeholders.skipped && !data.stakeholders.error && Array.isArray(data.stakeholders.people) && data.stakeholders.people.length),
+        inProgress && buildPhase === 'brand',
+      ) +
       renderCrawl(crawl)
     );
     resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1286,6 +1348,7 @@
             (it.segmentsPresent ? ' · segments' : '') +
             (it.stakeholdersPresent ? ' · stakeholders' : '') +
             (it.analysisPending ? ' · analysis pending' : '') +
+            (it.buildPhase && it.buildPhase !== 'complete' ? ' · phase: ' + esc(it.buildPhase) : '') +
             (it.archiveVersionCount ? ' · ' + it.archiveVersionCount + ' snapshot' + (it.archiveVersionCount === 1 ? '' : 's') : '') +
           '</p>' +
           failDetails +
@@ -1387,8 +1450,10 @@
     if (!expectedId) return;
     stopScrapePoll();
     let ticks = 0;
+    let lastBuildPhase = '';
     const maxTicks = 200;
     const onTerminal = opts.onTerminal;
+    const onPartial = opts.onPartial;
     const progressPhases = opts.progressPhases;
 
     function scheduleNext() {
@@ -1396,17 +1461,27 @@
       loadHistory().then(function () {
         const row = historyItemsCache.find(function (x) { return x.scrapeId === expectedId; });
         const st = row && row.scrapeStatus;
+        const bp = row && row.buildPhase ? String(row.buildPhase) : '';
         if (!row && ticks < 10) {
           scrapePollTimer = setTimeout(scheduleNext, pollDelayMs(ticks));
           return;
         }
         if (progressPhases && progressPhaseEl) {
-          if (st === 'running') {
+          if (st === 'running' && !bp) {
             progressPhaseEl.textContent = progressPhases[0] || 'Crawling pages…';
+          } else if (bp === 'crawl') {
+            progressPhaseEl.textContent = 'Crawl saved — generating brand core…';
+          } else if (bp === 'brand') {
+            progressPhaseEl.textContent = 'Brand core saved — personas & campaigns…';
+          } else if (bp === 'audiences') {
+            progressPhaseEl.textContent = 'Audiences saved — segments & industry…';
           } else if (st === 'crawl_complete') {
-            const mid = Math.min(Math.max(1, progressPhases.length - 2), progressPhases.length - 1);
-            progressPhaseEl.textContent = progressPhases[mid] || 'Running brand analysis…';
+            progressPhaseEl.textContent = progressPhases[Math.min(2, progressPhases.length - 1)] || 'Finishing…';
           }
+        }
+        if (onPartial && row && (st === 'running' || st === 'crawl_complete') && bp && bp !== lastBuildPhase && bp !== 'complete') {
+          lastBuildPhase = bp;
+          onPartial(row, bp);
         }
         const inProgress = st === 'running' || st === 'crawl_complete';
         if (!row || !inProgress || ticks >= maxTicks) {
@@ -1755,15 +1830,12 @@
       include: runOptions,
     });
     const phases = [
-      'Crawling pages',
+      'Crawling (light sample)',
       (crawlerJsCb && crawlerJsCb.checked) ? 'Rendering JS (Playwright)' : 'Extracting page content',
-      runOptions.analysis ? 'Generating brand guidelines' : null,
-      runOptions.personas ? 'Building customer personas' : null,
-      runOptions.campaigns ? 'Detecting campaigns' : null,
-      runOptions.stakeholders ? 'Extracting stakeholders' : null,
-      runOptions.segments ? 'Building audience segments' : null,
-      'Classifying industry',
-      'Saving to Firestore',
+      runOptions.analysis ? 'Brand core (about, tone, imagery, channels)' : null,
+      runOptions.campaigns || runOptions.personas || runOptions.stakeholders ? 'Audiences (campaigns, personas, stakeholders)' : null,
+      runOptions.segments ? 'Segments and industry' : (runOptions.analysis ? 'Industry classification' : null),
+      'Saving',
     ].filter(Boolean);
     startProgress(estMs, phases);
 
@@ -1780,7 +1852,7 @@
           existingScrapeId: existingScrapeId,
           businessType: btypeSel && btypeSel.value,
           country: countrySel && countrySel.value,
-          maxPages: pagesInput ? clampPages(pagesInput.value) : 5,
+          maxPages: pagesInput ? clampPages(pagesInput.value) : 3,
           crawler: (crawlerJsCb && crawlerJsCb.checked) ? 'js' : 'fetch',
           include: { ...runOptions },
         }),
@@ -1807,6 +1879,17 @@
         loadHistory();
         startScrapePoll(pendingAsyncScrapeId, {
           progressPhases: phases,
+          onPartial: function (row) {
+            const sid = row && row.scrapeId;
+            if (!sid) return;
+            fetch(withSandboxQuery('/api/brand-scraper/scrapes/' + encodeURIComponent(sid)))
+              .then(function (r) { return r.json().then(function (j) { return { r: r, j: j }; }); })
+              .then(function (o) {
+                if (!o.r.ok) return;
+                renderResults(Object.assign({}, o.j, { crawl: o.j.crawlSummary }));
+              })
+              .catch(function () { /* ignore */ });
+          },
           onTerminal: function (row, st, timedOut) {
             pendingAsyncScrapeId = null;
             if (runBtn) runBtn.disabled = false;

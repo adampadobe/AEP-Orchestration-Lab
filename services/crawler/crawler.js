@@ -12,6 +12,8 @@ const tagAudit = require('./tagAudit');
 
 const DEFAULT_PAGE_TIMEOUT_MS = 25000;
 const MAX_DISCOVERED = 200;
+const MAX_QUEUE_URLS = 120;
+const MAX_CRAWL_WALL_MS = 240000;
 const PRIORITY_PATHS = ['/', '/about', '/about-us', '/products', '/services', '/solutions', '/brand', '/company', '/leadership', '/team', '/our-team', '/management', '/people'];
 
 function normaliseUrl(raw) {
@@ -171,7 +173,7 @@ async function tryFetchPage(context, url, { pageTimeout, tagAudit: doTagAudit = 
   }
 }
 
-async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_MS, tagAudit: runTagAudit = true } = {}) {
+async function crawl(rawUrl, { maxPages = 3, pageTimeout = DEFAULT_PAGE_TIMEOUT_MS, tagAudit: runTagAudit = true } = {}) {
   const baseUrl = normaliseUrl(rawUrl);
   const browser = await chromium.launch({
     headless: true,
@@ -195,12 +197,24 @@ async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_
     const visited = new Set();
     const discovered = new Set([baseUrl]);
     const queue = [baseUrl];
+    const pendingUrls = new Set(queue);
+    const crawlStarted = Date.now();
     const pages = [];
     const failures = [];
     let brandName = '';
 
+    function tryEnqueue(l) {
+      if (!l || visited.has(l) || pendingUrls.has(l)) return;
+      if (queue.length >= MAX_QUEUE_URLS) return;
+      if (discovered.size < MAX_DISCOVERED) discovered.add(l);
+      queue.push(l);
+      pendingUrls.add(l);
+    }
+
     while (queue.length && pages.length < maxPages) {
+      if (Date.now() - crawlStarted > MAX_CRAWL_WALL_MS) break;
       const current = queue.shift();
+      pendingUrls.delete(current);
       if (visited.has(current)) continue;
       visited.add(current);
 
@@ -220,10 +234,7 @@ async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_
                 discovered.add(altUrl);
                 pages.push(buildPage(altUrl, alt.status, alt.html, baseUrl, alt.tagAudit));
                 if (!brandName) brandName = E.extractBrandName(alt.html, baseUrl);
-                for (const l of E.extractLinks(alt.html, altUrl, baseUrl)) {
-                  if (discovered.size < MAX_DISCOVERED) discovered.add(l);
-                  if (!visited.has(l) && !queue.includes(l)) queue.push(l);
-                }
+                for (const l of E.extractLinks(alt.html, altUrl, baseUrl)) tryEnqueue(l);
                 continue;
               } else {
                 failures.push({ url: altUrl, status: alt.status, reason: alt.reason, error: alt.error });
@@ -237,10 +248,7 @@ async function crawl(rawUrl, { maxPages = 5, pageTimeout = DEFAULT_PAGE_TIMEOUT_
       pages.push(buildPage(current, status, html, baseUrl, pageTagAudit));
       if (!brandName) brandName = E.extractBrandName(html, baseUrl);
       const links = E.extractLinks(html, current, baseUrl);
-      for (const l of links) {
-        if (discovered.size < MAX_DISCOVERED) discovered.add(l);
-        if (!visited.has(l) && !queue.includes(l)) queue.push(l);
-      }
+      for (const l of links) tryEnqueue(l);
       queue.splice(0, queue.length, ...prioritise(queue));
     }
 
