@@ -34,6 +34,7 @@ const PROFILE_STREAM_ROOT_PATH_PREFIXES = new Set([
   'faxPhone',
   'mobilePhone',
   'loyalty',
+  'preferences',
 ]);
 
 const PROFILE_STREAM_SCHEMA_CONTENT_TYPE = 'application/vnd.adobe.xed-full+json;version=1.0';
