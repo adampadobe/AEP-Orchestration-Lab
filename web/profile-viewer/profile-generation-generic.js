@@ -583,6 +583,17 @@
     return out;
   }
 
+  /** First matching `<option>.value` for a canonical gender string (case-insensitive). */
+  function resolveGenderOptionValue(selectEl, canonicalLower) {
+    if (!selectEl || !selectEl.options) return '';
+    const want = String(canonicalLower || '').toLowerCase();
+    for (let i = 0; i < selectEl.options.length; i++) {
+      const v = selectEl.options[i].value;
+      if (v !== '' && String(v).toLowerCase() === want) return v;
+    }
+    return '';
+  }
+
   function randomizeSliderControl(el) {
     if (!el) return;
     const min = parseFloat(el.min || '0');
@@ -626,11 +637,22 @@
    * Called before each profile in Generate-N so every scaled email gets distinct demo data.
    */
   function applyRandomCustomerPersonaForGenerate() {
-    const genderChoices = selectNonEmptyValues(genderEl);
-    const gender = genderChoices.length ? randomPick(genderChoices) : '';
-    if (genderEl && gender) genderEl.value = gender;
+    const mfCanon = ['male', 'female'];
+    const available = [];
+    for (const c of mfCanon) {
+      const optVal = resolveGenderOptionValue(genderEl, c);
+      if (optVal) available.push({ canon: c, optVal });
+    }
+    let genderCanon = 'female';
+    let genderValue = '';
+    if (available.length) {
+      const chosen = randomPick(available);
+      genderCanon = chosen.canon;
+      genderValue = chosen.optVal;
+    }
+    if (genderEl && genderValue) genderEl.value = genderValue;
 
-    if (firstNameEl) firstNameEl.value = randomFirstNameForGender(gender);
+    if (firstNameEl) firstNameEl.value = randomFirstNameForGender(genderCanon);
     if (lastNameEl) lastNameEl.value = randomPick(RANDOM_LAST_NAMES);
 
     randomizeSliderControl(churnEl);
