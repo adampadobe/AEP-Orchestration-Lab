@@ -536,6 +536,38 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   line-height: 1.45;
 }
 
+/* Profile email sub-blocks: separate the lookup widget from the pattern/generate widget
+   visually so the user reads them as two consolidated actions in the same box. */
+.profile-generation-page .generic-lookup-block,
+.profile-generation-page .generic-pattern-block {
+  background: var(--dash-surface-alt);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 1rem 1.1rem;
+  margin-top: 1rem;
+}
+
+.profile-generation-page .generic-lookup-block:first-of-type {
+  margin-top: 0.5rem;
+}
+
+.profile-generation-page .generic-lookup-block__title,
+.profile-generation-page .generic-pattern-block__title {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.profile-generation-page .generic-helper-inline {
+  font-weight: 400;
+  color: var(--dash-text-secondary);
+  font-size: 0.8em;
+}
+
 .profile-generation-page .generic-helper code,
 .profile-generation-page .analytics-card-desc code {
   background: var(--dash-code-bg);

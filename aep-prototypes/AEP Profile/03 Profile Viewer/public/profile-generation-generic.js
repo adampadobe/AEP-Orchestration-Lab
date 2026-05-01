@@ -43,17 +43,24 @@
   const fetchFlowFromAepBtn = document.getElementById('genFetchFlowFromAepBtn');
   const saveStreamBtn = document.getElementById('genSaveStreamBtn');
 
-  // Email + actions
+  // Profile lookup (any identity namespace) — mirrors the standard widget on index.html.
+  const lookupNsEl = document.getElementById('genLookupNs');
+  const lookupIdentifierEl = document.getElementById('genLookupIdentifier');
+  const lookupBtn = document.getElementById('genLookupBtn');
+
+  // Base email + counter + actions ("Generate from your base email" sub-block)
   const baseEmailEl = document.getElementById('genBaseEmail');
   const counterEl = document.getElementById('genCounter');
   const generateCountEl = document.getElementById('genGenerateCount');
   const emailPreviewEl = document.getElementById('genEmailPreview');
   const resetCounterBtn = document.getElementById('genResetCounterBtn');
-  const findProfileBtn = document.getElementById('genFindProfileBtn');
   const updateProfileBtn = document.getElementById('genUpdateProfileBtn');
   const generateBtn = document.getElementById('genGenerateBtn');
   const dryRunEl = document.getElementById('genDryRun');
   const messageEl = document.getElementById('genericProfileMessage');
+
+  // Set-and-forget base email persistence (global, all sandboxes — one device, one user).
+  const BASE_EMAIL_STORAGE_KEY = 'genericProfileBaseEmail';
 
   // Identity (added when Generic became an industry option — basic profile fields)
   const firstNameEl = document.getElementById('genFirstName');
@@ -740,24 +747,36 @@
     return s;
   }
 
-  async function findProfile() {
-    const email = getCurrentScaledEmail();
-    if (!email) {
-      setMessage(messageEl, 'Enter a base email first.', 'warning');
-      baseEmailEl.focus();
+  /**
+   * Look up an existing profile by any identity namespace (email / ecid / crmId / loyaltyId / phone)
+   * via /api/profile/table — same endpoint as the standard widget on index.html. Result is fed into
+   * the editor below through applyProfileFindResultToForm so the Customer Analytics + Loyalty fields
+   * pre-populate. When namespace=email and the identifier is blank, we substitute the current
+   * scaled email so a one-click lookup still mirrors the old "Find by current scaled email" UX.
+   */
+  async function lookupProfile() {
+    if (!lookupNsEl || !lookupIdentifierEl || !lookupBtn) return;
+    const ns = String(lookupNsEl.value || 'email').trim();
+    let identifier = trimVal(lookupIdentifierEl);
+    if (!identifier && ns === 'email') {
+      identifier = getCurrentScaledEmail();
+      if (identifier) lookupIdentifierEl.value = identifier;
+    }
+    if (!identifier) {
+      setMessage(messageEl, `Enter an ${ns} identifier to look up, or set a base email and try again.`, 'warning');
+      lookupIdentifierEl.focus();
       return;
     }
-    findProfileBtn.disabled = true;
-    setMessage(messageEl, `Looking up ${email}…`, '');
+    lookupBtn.disabled = true;
+    setMessage(messageEl, `Looking up ${ns}: ${identifier}…`, '');
     try {
-      const url = '/api/profile/table' + querySuffix({ entityIdNS: 'email', entityId: email });
+      const url = '/api/profile/table' + querySuffix({ identifier, namespace: ns });
       const res = await fetch(url);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setMessage(messageEl, data.error || `Lookup failed (HTTP ${res.status}).`, 'error');
         return;
       }
-      // Try to display headline plus apply known analytics fields if present.
       applyProfileFindResultToForm(data);
       const found =
         (data && (data.entity || data.profile)) ||
@@ -767,16 +786,16 @@
       if (!found) {
         setMessage(
           messageEl,
-          `No existing profile for ${email} in this sandbox. Click Generate or Update to create one.`,
+          `No profile found for ${ns}: ${identifier} in this sandbox. Use Generate / Update to create one.`,
           ''
         );
         return;
       }
-      setMessage(messageEl, `Found profile for ${email}. Form populated where available.`, 'success');
+      setMessage(messageEl, `Loaded profile for ${ns}: ${identifier}. Edit fields then click Update profile.`, 'success');
     } catch (e) {
       setMessage(messageEl, e.message || 'Network error', 'error');
     } finally {
-      findProfileBtn.disabled = false;
+      lookupBtn.disabled = false;
     }
   }
 
@@ -1104,6 +1123,8 @@
 
   if (baseEmailEl) {
     baseEmailEl.addEventListener('input', () => {
+      // Persist the base email globally so the next visit (any sandbox) prefills it — set-and-forget.
+      try { localStorage.setItem(BASE_EMAIL_STORAGE_KEY, baseEmailEl.value || ''); } catch (_) {}
       // When the base email changes, reload the counter for the new (sandbox, base, today) key.
       loadCounterForCurrentContext();
     });
@@ -1170,7 +1191,26 @@
     baseEmailEl.addEventListener('input', renderRecent);
   }
 
-  if (findProfileBtn) findProfileBtn.addEventListener('click', findProfile);
+  // Profile lookup wiring (replaces the old "Find profile by current scaled email" button —
+  // the lookup widget below covers that case via auto-fill on focus when namespace=email).
+  if (lookupBtn) lookupBtn.addEventListener('click', lookupProfile);
+  if (lookupIdentifierEl) {
+    lookupIdentifierEl.addEventListener('focus', () => {
+      // One-click parity with the old Find button: when nothing is typed and namespace=email,
+      // pre-fill the identifier with the current scaled email so the user just clicks Look up.
+      if (!trimVal(lookupIdentifierEl) && lookupNsEl && lookupNsEl.value === 'email') {
+        const scaled = getCurrentScaledEmail();
+        if (scaled) lookupIdentifierEl.value = scaled;
+      }
+    });
+    // Pressing Enter inside the identifier input triggers lookup.
+    lookupIdentifierEl.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        lookupProfile();
+      }
+    });
+  }
   if (updateProfileBtn) updateProfileBtn.addEventListener('click', updateProfile);
   if (generateBtn) generateBtn.addEventListener('click', generateProfiles);
 
@@ -1204,12 +1244,24 @@
     applyConfiguredCollapseState();
   });
 
+  // Set-and-forget base email: prefill from localStorage so the user only types it once.
+  // We do this before loadCounterForCurrentContext() because the counter partition key
+  // includes the base email — restoring it first means the saved counter for that base
+  // email loads correctly on first paint.
+  try {
+    const savedBase = localStorage.getItem(BASE_EMAIL_STORAGE_KEY);
+    if (savedBase && baseEmailEl && !trimVal(baseEmailEl)) {
+      baseEmailEl.value = savedBase;
+    }
+  } catch (_) { /* localStorage unavailable — fall through */ }
+
   // Initial render
   renderChurn();
   renderPropensity();
   renderAov();
   applyLoyaltyToggleVisibility();
   loadCounterForCurrentContext();
+  updateEmailPreview();
   renderRecent();
   // Defer initial connection load so the sandbox dropdown finishes loading first.
   setTimeout(() => loadConnectionFromFirestore(true), 750);

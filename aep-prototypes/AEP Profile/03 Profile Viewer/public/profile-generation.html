@@ -1175,41 +1175,77 @@
         </div>
       </details>
 
-      <!-- B. Email pattern + actions -->
+      <!-- B. Profile email — two consolidated sub-blocks:
+           1) Look up an existing profile by any identity namespace, populating the editor below.
+           2) Generate from your saved base email (persisted in localStorage for "set it and forget it" UX). -->
       <div class="generic-pattern-panel">
         <h3 class="generic-subhead"><span class="icon">📧</span> Profile email</h3>
-        <p class="generic-helper">
-          Enter the email you'd like to use for profiles (e.g. <code>apalmer@adobetest.com</code> or <code>adamp.adobedemo@gmail.com</code>).
-          We'll scale it with plus-addressing as <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> using today's date and a counter that resets daily per sandbox.
-        </p>
-        <div class="form-row form-row--inline">
-          <div class="form-group form-group--flex">
-            <label for="genBaseEmail">Base email</label>
-            <input type="email" id="genBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
-          </div>
-          <div class="form-group">
-            <label for="genCounter">Counter (N)</label>
-            <input type="number" id="genCounter" min="1" step="1" value="1">
-          </div>
-          <div class="form-group">
-            <label for="genGenerateCount">Count</label>
-            <input type="number" id="genGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
-          </div>
-        </div>
-        <p class="email-pattern-preview">
-          <strong>Will scale to:</strong>
-          <code id="genEmailPreview">—</code>
-          <button type="button" id="genResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
-        </p>
 
-        <div class="generic-actions button-row">
-          <button type="button" id="genFindProfileBtn" class="btn btn-secondary">Find profile (by current scaled email)</button>
-          <button type="button" id="genUpdateProfileBtn" class="btn btn-primary">Update profile</button>
-          <button type="button" id="genGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
-          <label class="generic-dryrun-label">
-            <input type="checkbox" id="genDryRun"> <span>Dry run (preview payload, do not stream)</span>
-          </label>
+        <!-- B1. Look up an existing profile (any identity namespace).
+             Mirrors the standard widget on index.html (Query profile). When namespace=email and the
+             identifier is empty, profile-generation-generic.js auto-fills it with the current scaled
+             email on focus so a single click after landing still matches "Find by current scaled email". -->
+        <div class="generic-lookup-block">
+          <h4 class="generic-lookup-block__title"><span class="icon" aria-hidden="true">🔎</span> Look up an existing profile</h4>
+          <p class="generic-helper">Pick an identity namespace, paste the value, and we'll load that profile's data into the editor below.</p>
+          <div class="form-row form-row--inline">
+            <div class="form-group">
+              <label for="genLookupNs">Namespace</label>
+              <select id="genLookupNs" aria-label="Identity namespace for profile lookup">
+                <option value="email" selected>Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-group form-group--flex">
+              <label for="genLookupIdentifier">Identifier value</label>
+              <input type="text" id="genLookupIdentifier" placeholder="Click to use the current scaled email, or paste any identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-group form-group--small">
+              <label>&nbsp;</label>
+              <button type="button" id="genLookupBtn" class="btn btn-secondary">Look up profile</button>
+            </div>
+          </div>
         </div>
+
+        <!-- B2. Generate from base email (set-and-forget — persisted in localStorage). -->
+        <div class="generic-pattern-block">
+          <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
+          <p class="generic-helper">
+            We scale your base email with plus-addressing as <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> using today's date and a counter that resets daily per sandbox.
+            Your base email is <strong>saved on this device</strong> — type once, edit any time, autosaved.
+          </p>
+          <div class="form-row form-row--inline">
+            <div class="form-group form-group--flex">
+              <label for="genBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <input type="email" id="genBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="genCounter">Counter (N)</label>
+              <input type="number" id="genCounter" min="1" step="1" value="1">
+            </div>
+            <div class="form-group">
+              <label for="genGenerateCount">Count</label>
+              <input type="number" id="genGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
+            </div>
+          </div>
+          <p class="email-pattern-preview">
+            <strong>Will scale to:</strong>
+            <code id="genEmailPreview">—</code>
+            <button type="button" id="genResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+          </p>
+
+          <div class="generic-actions button-row">
+            <button type="button" id="genUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
+            <button type="button" id="genGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="genDryRun"> <span>Dry run (preview payload, do not stream)</span>
+            </label>
+          </div>
+        </div>
+
         <p id="genericProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
       </div>
 
