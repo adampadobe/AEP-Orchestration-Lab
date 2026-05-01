@@ -614,12 +614,6 @@
   }
 
   /**
-   * Build the `updates: [{path, value}]` array for /api/profile/update.
-   * Empty / unset fields are skipped (so we never overwrite existing profile data with defaults).
-   * Path-routing rule (per profileStreamingCore.js): paths starting with `loyalty.`, `person.`, `personalEmail.`
-   * land at the XDM root; everything else goes under `_demoemea`.
-   */
-  /**
    * Snapshot the current form state so a successful generate can be replayed
    * later via the Recently-generated picker. Mirror of buildUpdatesFromForm
    * but as a plain object — the `Load` action restores fields from this.
@@ -645,6 +639,12 @@
     };
   }
 
+  /**
+   * HTTP/DCS XDM shape is defined by profileUpdateProxy + profileStreamingCore merge:
+   * these path suffixes nest under streaming.xdmKey (e.g. `_demoemea`) unless the
+   * top segment is in PROFILE_STREAM_ROOT_PATH_PREFIXES. Random persona code only
+   * mutates scalar form values—it never changes path strings or push order below.
+   */
   function buildUpdatesFromForm() {
     const updates = [];
     const push = (path, value) => updates.push({ path, value });
