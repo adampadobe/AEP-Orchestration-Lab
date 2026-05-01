@@ -40,7 +40,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
-const { callGemini, stripJsonFences } = require('./vertexClient');
+const { callGemini, callGeminiResearch, stripJsonFences } = require('./vertexClient');
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
@@ -540,7 +540,7 @@ function buildSystemPrompt(tier) {
   return sections.join('');
 }
 
-function buildUserPrompt(input, snippets) {
+function buildUserPrompt(input, snippets, research) {
   const parts = [];
   parts.push('### REQUEST INPUT');
   parts.push(JSON.stringify({
@@ -563,6 +563,38 @@ function buildUserPrompt(input, snippets) {
     parts.push('');
   }
   parts.push('');
+
+  // Live research output from the upstream Google Search-grounded
+  // research pass (call 1 of the two-call flow). Only present when the
+  // research pass actually returned something — on grounding failure we
+  // fall through with empty strings and the generation pass continues.
+  const techResearch  = (research && research.techStackResearch) || '';
+  const adobeResearch = (research && research.adobeFreshness)    || '';
+  const hasResearch = Boolean(techResearch.trim() || adobeResearch.trim());
+  if (hasResearch) {
+    parts.push('### LIVE RESEARCH (FROM GOOGLE SEARCH GROUNDING)');
+    parts.push(
+      'These bullets come from a separate, just-run Gemini call with ' +
+      'Google Search grounding ENABLED. Treat them as authoritative ' +
+      'when populating the TECH row and when surfacing recent Adobe ' +
+      'agentic / AI capability bullets. Carry the [confirmed] / [assumed] ' +
+      'tags through verbatim into the TECH bullets — do not soften them. ' +
+      'If a bullet lists a citation like "(builtwith.com)", keep the ' +
+      'platform name but drop the parenthetical URL when emitting JSON.'
+    );
+    parts.push('');
+    if (techResearch.trim()) {
+      parts.push('#### Tech stack research');
+      parts.push(techResearch.trim());
+      parts.push('');
+    }
+    if (adobeResearch.trim()) {
+      parts.push('#### Recent Adobe capability freshness');
+      parts.push(adobeResearch.trim());
+      parts.push('');
+    }
+  }
+
   parts.push('### CLIENT TECH RESEARCH INSTRUCTIONS');
   if (input.techStack && input.techStack.trim()) {
     parts.push(
@@ -573,16 +605,27 @@ function buildUserPrompt(input, snippets) {
       'Operator-supplied tech stack (one per line):\n' +
       String(input.techStack).trim()
     );
-  } else {
+  } else if (hasResearch && techResearch.trim()) {
     parts.push(
-      'The operator did NOT supply a tech stack. Use Google Search grounding to ' +
-      'research the actual marketing technology platforms ' + JSON.stringify(input.client) +
-      ' uses today: CRM, ESP, paid media platforms, analytics, CMS / commerce, etc. ' +
-      'Look for credible sources — BuiltWith, the company\'s tech / engineering ' +
-      'careers page, recent press releases or vendor case studies, LinkedIn job ' +
-      'postings for marketing-technology roles. For each TECH bullet, label ' +
-      '`[confirmed]` if you found a clear public source, `[assumed]` if you inferred ' +
-      'from the sector. Never invent specific platform names without a basis.'
+      'The operator did NOT supply a tech stack. Use the bullets under ' +
+      '"Tech stack research" above as the spine of the TECH row — they ' +
+      'were produced by a Google Search-grounded research pass run ' +
+      'immediately before this call. Carry the [confirmed] / [assumed] ' +
+      'tags through verbatim. Do not invent additional platform names ' +
+      'beyond what the research surfaced unless they are obvious sector ' +
+      'standards (and label those [assumed]).'
+    );
+  } else {
+    // Research pass either failed or was skipped AND operator left the
+    // textarea blank. Fall back to a sector-inferred TECH row, clearly
+    // labelled, rather than failing the whole generation.
+    parts.push(
+      'The operator did NOT supply a tech stack and the upstream ' +
+      'research pass returned no tech-stack bullets. Infer 4–6 likely ' +
+      'marketing technology platforms (CRM, ESP, paid media, analytics, ' +
+      'CMS / commerce) from the client sector and tier, and tag each ' +
+      'one `[assumed]`. Do NOT use `[confirmed]` for any bullet in this ' +
+      'fallback case.'
     );
   }
   parts.push('');
@@ -593,6 +636,200 @@ function buildUserPrompt(input, snippets) {
     'before emitting and fix any flag.'
   );
   return parts.join('\n');
+}
+
+// ─── TWO-CALL FLOW (research + generation) ───────────────────────────────────
+//
+// Vertex AI rejects `tools: [{ googleSearch: {} }]` combined with
+// `responseMimeType: 'application/json'` / `responseSchema` (HTTP 400
+// "controlled generation is not supported with Search tool"). To keep
+// both Google Search grounding AND a strict-schema journey JSON, we run
+// two sequential Gemini calls:
+//
+//   Call 1 — runResearchPass:    grounding ON,  free text out, 2k tokens.
+//   Call 2 — runGenerationPass:  no tools,      controlled JSON out, 24k tokens.
+//
+// The research output is appended to call 2's user prompt under a clearly
+// labelled section so Gemini treats it as authoritative for TECH bullets.
+
+const RESEARCH_SYSTEM_PROMPT =
+  'You are a senior MarTech research assistant for an Adobe Experience ' +
+  'Cloud architect. You have Google Search grounding enabled. Return ONLY ' +
+  'a markdown response in two clearly headed sections — no prose intro, ' +
+  'no closing summary, no code fences. Use the EXACT section headings ' +
+  'requested in the user message. Inside each section, output a flat ' +
+  'bulleted list (one bullet per line, dash prefix). Tag each tech-stack ' +
+  'bullet [confirmed] when you found a credible public source for it, ' +
+  '[assumed] when you inferred it from sector / journey type. Do not ' +
+  'invent specific platform names without a basis. Keep each bullet under ' +
+  '180 characters. Never emit JSON in this pass.';
+
+function buildResearchUserPrompt(input, opts) {
+  const wantsTechStack = !!(opts && opts.wantsTechStack);
+  const parts = [];
+  parts.push('### REQUEST CONTEXT');
+  parts.push(JSON.stringify({
+    client: input.client,
+    clientDomain: input.clientDomain || '',
+    journeyType: input.journeyType || '',
+    tier: input.tier,
+  }, null, 2));
+  parts.push('');
+  parts.push(
+    'Use Google Search grounding aggressively. Two sections required, ' +
+    'in this exact order, with these exact headings:'
+  );
+  parts.push('');
+
+  if (wantsTechStack) {
+    parts.push('## TECH_STACK_RESEARCH');
+    parts.push(
+      'Bullet list of 5–10 marketing-technology platforms ' +
+      JSON.stringify(input.client) +
+      ' actually uses today: CRM, ESP / marketing automation, paid-media ' +
+      'platforms, web analytics, CMS / commerce, CDP, and any in-house ' +
+      'data warehouse or activation tooling. Prefer credible sources ' +
+      '(BuiltWith, the company\'s engineering / careers page, vendor ' +
+      'case studies, recent press releases, LinkedIn job postings for ' +
+      'martech roles). Format: "- PlatformName — one-line role [confirmed|assumed] (source: short-domain.com)". ' +
+      'When grounding cannot find a source for a platform you suspect, ' +
+      'tag it [assumed] and skip the (source:) suffix. Skip platforms ' +
+      'that are merely speculative.'
+    );
+    parts.push('');
+  } else {
+    parts.push('## TECH_STACK_RESEARCH');
+    parts.push(
+      '(intentionally skipped — operator supplied an explicit tech-stack ' +
+      'list on the form. Output the heading then the literal string ' +
+      '"_skipped_" so the downstream parser stays happy.)'
+    );
+    parts.push('');
+  }
+
+  parts.push('## ADOBE_FRESHNESS');
+  parts.push(
+    'Bullet list of any Adobe Experience Platform / Journey Optimizer / ' +
+    'Customer Journey Analytics / Brand Concierge / Agent Orchestrator ' +
+    'features released or materially updated in the LAST 6 MONTHS that ' +
+    'are relevant to a journey of type ' +
+    JSON.stringify(input.journeyType || 'general acquisition / engagement / retention') +
+    ' for a ' + JSON.stringify(input.tier) + '-tier deployment. Prefer ' +
+    'announcements on business.adobe.com, Adobe Summit / Adobe MAX news ' +
+    'pages, blog.adobe.com, and Experience League "What\'s new" pages. ' +
+    'Format: "- FeatureName — one-line capability summary (source: short-domain.com, Mon YYYY)". ' +
+    'If grounding surfaces nothing material, output the literal string ' +
+    '"_no recent material updates_" under this heading and stop. Do not ' +
+    'invent feature names.'
+  );
+
+  return parts.join('\n');
+}
+
+/**
+ * Parse the research-pass markdown into two named sections.
+ *
+ * The model is instructed to use exact `## TECH_STACK_RESEARCH` and
+ * `## ADOBE_FRESHNESS` headings, but Gemini occasionally adds a leading
+ * `# Research output` H1 or wraps in fences — strip both defensively.
+ */
+function parseResearchSections(raw) {
+  const text = String(raw || '');
+  const stripped = stripJsonFences(text); // also strips ```text ...``` fences
+  const result = { techStackResearch: '', adobeFreshness: '' };
+
+  // Find headings using a tolerant regex — accept `## TECH_STACK_RESEARCH`,
+  // `**TECH_STACK_RESEARCH**`, or just `TECH_STACK_RESEARCH:` on its own line.
+  const techRe = /(?:^|\n)\s*(?:#+\s*|\*\*\s*)?TECH[_ ]STACK[_ ]RESEARCH(?:\s*\*\*)?\s*:?\s*\n([\s\S]*?)(?=(?:\n\s*(?:#+\s*|\*\*\s*)?ADOBE[_ ]FRESHNESS)|$)/i;
+  const adobeRe = /(?:^|\n)\s*(?:#+\s*|\*\*\s*)?ADOBE[_ ]FRESHNESS(?:\s*\*\*)?\s*:?\s*\n([\s\S]*)$/i;
+
+  const techMatch  = techRe.exec(stripped);
+  const adobeMatch = adobeRe.exec(stripped);
+
+  if (techMatch && techMatch[1]) {
+    const body = techMatch[1].trim();
+    if (body && !/^_skipped_$/i.test(body)) result.techStackResearch = body;
+  }
+  if (adobeMatch && adobeMatch[1]) {
+    const body = adobeMatch[1].trim();
+    if (body && !/^_no recent material updates_$/i.test(body)) result.adobeFreshness = body;
+  }
+  // Fallback: no headings at all → put the whole body under techStackResearch
+  // so the generation pass at least sees the grounded bullets.
+  if (!result.techStackResearch && !result.adobeFreshness && stripped.trim()) {
+    result.techStackResearch = stripped.trim();
+  }
+  return result;
+}
+
+async function runResearchPass(input) {
+  const wantsTechStack = !(input.techStack && input.techStack.trim());
+  const userPrompt = buildResearchUserPrompt(input, { wantsTechStack });
+  const t0 = Date.now();
+  let raw = '';
+  try {
+    raw = await callGeminiResearch(RESEARCH_SYSTEM_PROMPT, userPrompt, {
+      // Defaults from callGeminiResearch are temperature 0.4, maxOutputTokens 2048,
+      // tools [{ googleSearch: {} }], jsonMode false, allowTruncation true.
+      // 30s retry buys one ride through a transient grounding 429.
+      retryOn429: true,
+      retryOn429Attempts: 1,
+      retryOn429DelayMs: 30_000,
+    });
+  } catch (err) {
+    const ms = Date.now() - t0;
+    console.warn(
+      `[cjv2] research pass failed after ${ms}ms — continuing without ` +
+      `grounded research. wantsTechStack=${wantsTechStack}. ` +
+      `error=${err && err.message || err}`
+    );
+    return {
+      ms,
+      wantsTechStack,
+      techStackResearch: '',
+      adobeFreshness: '',
+      raw: '',
+      error: String(err && err.message || err),
+    };
+  }
+  const ms = Date.now() - t0;
+  const parsed = parseResearchSections(raw);
+  console.log(
+    `[cjv2] research pass`,
+    {
+      ms,
+      tookGrounding: Boolean((parsed.techStackResearch || parsed.adobeFreshness).trim()),
+      wantsTechStack,
+      rawChars: String(raw || '').length,
+      techChars: parsed.techStackResearch.length,
+      freshChars: parsed.adobeFreshness.length,
+    }
+  );
+  return {
+    ms,
+    wantsTechStack,
+    techStackResearch: parsed.techStackResearch,
+    adobeFreshness: parsed.adobeFreshness,
+    raw,
+  };
+}
+
+async function runGenerationPass(input, snippets, research) {
+  const systemPrompt = buildSystemPrompt(input.tier);
+  const userPrompt = buildUserPrompt(input, snippets, research);
+  const t0 = Date.now();
+  const raw = await callGemini(systemPrompt, userPrompt, {
+    maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
+    temperature: GEMINI_TEMPERATURE,
+    jsonMode: true,
+    retryOn429: true,
+    retryOn429Attempts: 1,
+    // NO tools here — this call uses controlled JSON output.
+    // Mixing tools + responseMimeType:'application/json' is rejected
+    // by Vertex AI (see vertexClient.js comment on the `tools` opt).
+  });
+  const ms = Date.now() - t0;
+  return { raw, ms };
 }
 
 // ─── INPUT VALIDATION ────────────────────────────────────────────────────────
@@ -1872,21 +2109,25 @@ async function handleGenerate(req, res, opts = {}) {
       }));
   }
 
-  const systemPrompt = buildSystemPrompt(input.tier);
-  const userPrompt = buildUserPrompt(input, snippets);
+  // Two-call flow: research (grounding ON, free text out) → generation
+  // (no tools, controlled JSON out). Vertex rejects tools + responseSchema
+  // in a single call (HTTP 400 INVALID_ARGUMENT, May 2026).
+  const research = await runResearchPass(input);
+  log_(
+    `research pass: ms=${research.ms} wantsTechStack=${research.wantsTechStack} ` +
+    `techChars=${(research.techStackResearch || '').length} ` +
+    `freshChars=${(research.adobeFreshness || '').length}` +
+    (research.error ? ` error=${research.error}` : '')
+  );
 
   let raw;
+  let generationMs = 0;
   try {
-    raw = await callGemini(systemPrompt, userPrompt, {
-      maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
-      temperature: GEMINI_TEMPERATURE,
-      jsonMode: true,
-      retryOn429: true,
-      retryOn429Attempts: 1,
-      tools: [{ googleSearch: {} }],
-    });
+    const out = await runGenerationPass(input, snippets, research);
+    raw = out.raw;
+    generationMs = out.ms;
   } catch (err) {
-    log_(`Gemini call failed: ${err.message || err}`);
+    log_(`Gemini generation pass failed: ${err.message || err}`);
     res.status(502).json({
       error: 'Vertex AI Gemini failed to produce a journey',
       code: err && err.code,
@@ -1940,6 +2181,14 @@ async function handleGenerate(req, res, opts = {}) {
     return;
   }
 
+  log_(
+    `generation pass: ms=${generationMs} slideCount=${(journey.slides || []).length} ` +
+    `stepLabels=${(journey.stepLabels || []).length}`
+  );
+  console.log('[cjv2] generation pass', {
+    ms: generationMs,
+    slideCount: (journey.slides || []).length,
+  });
   log_(`generate ok client="${input.client}" tier=${input.tier} htmlBytes=${html.length}`);
 
   res.status(200).json({
@@ -1950,6 +2199,16 @@ async function handleGenerate(req, res, opts = {}) {
     sources: snippets.map((s) => ({
       id: s.id, title: s.title, source: s.source, libraryId: s.libraryId,
     })),
+    // Debug-only field. The front-end intentionally ignores this; we
+    // surface it so operators can inspect what the grounded research
+    // pass actually returned (Cloud Logs already has the raw response).
+    _research: {
+      ms: research.ms,
+      wantsTechStack: research.wantsTechStack,
+      techStackResearch: research.techStackResearch,
+      adobeFreshness: research.adobeFreshness,
+      error: research.error || null,
+    },
     log,
   });
 }
@@ -2019,5 +2278,9 @@ module.exports = {
     renderStandaloneHtml,
     buildSystemPrompt,
     buildUserPrompt,
+    buildResearchUserPrompt,
+    parseResearchSections,
+    runResearchPass,
+    runGenerationPass,
   },
 };

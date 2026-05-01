@@ -145,6 +145,15 @@ body.home-dashboard-concierge.client-journey-v2-page .cjv2-label small {
   color: var(--dash-muted);
 }
 
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-help-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--dash-muted);
+  line-height: 1.35;
+}
+
 body.home-dashboard-concierge.client-journey-v2-page .cjv2-req {
   color: var(--dash-error, #d12424);
   margin-left: 0.15em;
