@@ -1304,7 +1304,6 @@
               <h4 class="analytics-card-title">Churn risk</h4>
               <span class="analytics-card-value" id="genChurnValue">50%</span>
             </div>
-            <p class="analytics-card-desc">Likelihood of customer leaving (0–100). Maps to <code>_demoemea.scoring.churn.churnPrediction</code>.</p>
             <input type="range" id="genChurn" class="analytics-slider" min="0" max="100" step="1" value="50">
             <div class="analytics-slider-meta">
               <span>Low risk</span>
@@ -1319,7 +1318,6 @@
               <h4 class="analytics-card-title">Propensity score</h4>
               <span class="analytics-card-value" id="genPropensityValue">50%</span>
             </div>
-            <p class="analytics-card-desc">Likelihood to purchase (0–100). Maps to <code>_demoemea.scoring.core.propensityScore</code>.</p>
             <input type="range" id="genPropensity" class="analytics-slider" min="0" max="100" step="1" value="50">
             <div class="analytics-slider-meta">
               <span>Low</span>
@@ -1333,7 +1331,6 @@
               <span class="analytics-card-icon">⭐</span>
               <h4 class="analytics-card-title">NPS score</h4>
             </div>
-            <p class="analytics-card-desc">Net Promoter Score. Maps to <code>_demoemea.scoring.nps</code>.</p>
             <select id="genNps" class="nps-select">
               <option value="">— Select —</option>
               <option value="0" data-band="detractor">0 — Detractor</option>
@@ -1356,7 +1353,6 @@
               <h4 class="analytics-card-title">Avg order value</h4>
               <span class="analytics-card-value" id="genAovValue">$500</span>
             </div>
-            <p class="analytics-card-desc">Average spending per order ($0–$10k). Maps to <code>_demoemea.commerce.averageOrderValue</code>.</p>
             <input type="range" id="genAov" class="analytics-slider" min="0" max="10000" step="50" value="500">
             <div class="analytics-slider-meta">
               <span>$0</span>
@@ -1365,18 +1361,11 @@
             </div>
           </div>
 
-          <!--
-            Preferred marketing channel: OOTB Consent and Preference Details
-            (`profile-consents`) enum at `consents.marketing.preferred`. Option
-            values are the XDM enum strings; labels are operator-facing display
-            names. Step 2 of the Generic wizard attaches the field group.
-          -->
           <div id="genPreferredChannelCard" class="analytics-card">
             <div class="analytics-card-header">
               <span class="analytics-card-icon">📢</span>
               <h4 class="analytics-card-title">Preferred marketing channel</h4>
             </div>
-            <p class="analytics-card-desc">Stored as the enum string at <code>consents.marketing.preferred</code> (Consent and Preference Details field group). Leave blank to skip on this update.</p>
             <select id="genPreferredChannel" aria-label="Preferred marketing channel">
               <option value="">— Skip (unchanged) —</option>
               <option value="email">email</option>
@@ -1401,7 +1390,6 @@
               <span class="analytics-card-icon">👤</span>
               <h4 class="analytics-card-title">Gender</h4>
             </div>
-            <p class="analytics-card-desc">Customer gender identity. Maps to <code>person.gender</code> (XDM root).</p>
             <select id="genGender">
               <option value="">— Select —</option>
               <option value="male">Male</option>
@@ -1422,12 +1410,10 @@
               <input type="checkbox" id="genLoyaltyEnabled">
               <span>Member of loyalty program</span>
             </label>
-            <p class="analytics-card-desc">When toggled on we generate a loyalty profile with ID, tier, and points. Use the standalone <strong>Language preference</strong> card for <code>personalEmail.language</code>. Off by default — no <code>loyalty.*</code> keys are sent.</p>
             <div class="gen-loyalty-fields" id="genLoyaltyFields" hidden>
               <div class="form-row">
                 <label for="genLoyaltyID">Loyalty ID</label>
                 <input type="text" id="genLoyaltyID" placeholder="e.g. LYL-10001 (auto-generated if blank)" autocomplete="off">
-                <p class="field-hint">Maps to <code>_demoemea.identification.core.loyaltyId</code>.</p>
               </div>
               <div class="form-row form-row--inline">
                 <div class="form-group">
@@ -1457,7 +1443,6 @@
               <span class="analytics-card-icon">🌍</span>
               <h4 class="analytics-card-title">Language preference</h4>
             </div>
-            <p class="analytics-card-desc">Writes BCP-47 tags to <code>preferences.preferredLanguage</code> (Preference Details) and mirrors to <code>personalEmail.language</code> for compatibility.</p>
             <select id="genLanguage">
               <option value="">— Select —</option>
               <option value="en-US">English (United States)</option>
