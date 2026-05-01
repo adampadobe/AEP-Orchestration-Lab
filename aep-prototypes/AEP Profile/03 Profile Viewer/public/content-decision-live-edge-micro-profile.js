@@ -208,24 +208,82 @@
     return out;
   }
 
+  /**
+   * Normalize UPS language values (string, array, or small object shapes) to a
+   * single BCP-47-ish tag string — mirrors resilience in profile-generation-generic.js.
+   */
+  function coerceLanguageScalar(raw) {
+    if (raw == null || raw === '') return '';
+    if (typeof raw === 'string') return String(raw).trim();
+    if (typeof raw === 'number' && !Number.isNaN(raw)) return String(raw).trim();
+    if (Array.isArray(raw)) {
+      for (var i = 0; i < raw.length; i++) {
+        var x = coerceLanguageScalar(raw[i]);
+        if (x) return x;
+      }
+      return '';
+    }
+    if (typeof raw === 'object') {
+      var keys = ['language', 'code', 'locale', 'preferredLanguage', 'primary', 'value'];
+      for (var k = 0; k < keys.length; k++) {
+        if (!Object.prototype.hasOwnProperty.call(raw, keys[k])) continue;
+        var y = coerceLanguageScalar(raw[keys[k]]);
+        if (y) return y;
+      }
+      return '';
+    }
+    return '';
+  }
+
+  /** Underscore locale tags (en_US) → hyphen (en-US) so <option value="en-US"> matches. */
+  function normalizeLanguageTagForSelect(s) {
+    var t = String(s || '').trim();
+    if (!t) return '';
+    return t.replace(/_/g, '-');
+  }
+
+  /** One merged profile slice / sub-object — all paths we read for language. */
+  function readLanguageFromSlice(sl) {
+    if (!sl || typeof sl !== 'object') return '';
+    var pe = sl.personalEmail;
+    if (pe && typeof pe === 'object') {
+      var fromPe = coerceLanguageScalar(pe.language);
+      if (fromPe) return fromPe;
+    }
+    var pr = sl.preferences;
+    if (pr && typeof pr === 'object') {
+      var fromPr = coerceLanguageScalar(pr.preferredLanguage);
+      if (fromPr) return fromPr;
+    }
+    var rootPref = coerceLanguageScalar(sl.preferredLanguage);
+    if (rootPref) return rootPref;
+    var m = sl.consents && sl.consents.marketing;
+    if (m && typeof m === 'object') {
+      var fromM = coerceLanguageScalar(m.preferredLanguage);
+      if (fromM) return fromM;
+    }
+    return '';
+  }
+
   function readLanguageFromEntity(entity) {
     var out = '';
     eachProfileSlice(entity, function (sl) {
       if (out) return;
-      var pe = sl.personalEmail;
-      if (pe && typeof pe === 'object' && pe.language) {
-        var v = String(pe.language).trim();
-        if (v) out = v;
-      }
-      if (!out) {
-        var pr = sl.preferences;
-        if (pr && typeof pr === 'object' && pr.preferredLanguage) {
-          var v2 = String(pr.preferredLanguage).trim();
-          if (v2) out = v2;
+      var t = readLanguageFromSlice(sl);
+      if (t) out = t;
+    });
+    if (!out && entity && entity.attributes && typeof entity.attributes === 'object') {
+      for (var ak in entity.attributes) {
+        if (!Object.prototype.hasOwnProperty.call(entity.attributes, ak)) continue;
+        var att = entity.attributes[ak];
+        var t2 = readLanguageFromSlice(att);
+        if (t2) {
+          out = t2;
+          break;
         }
       }
-    });
-    return out;
+    }
+    return normalizeLanguageTagForSelect(out);
   }
 
   function readPreferredChannelFromEntity(entity) {
@@ -511,7 +569,14 @@
     }
 
     var lang = readLanguageFromEntity(entity);
-    setSelectFromProfileValue($('cdMicroProfileLanguage'), lang, lang);
+    var langEl = $('cdMicroProfileLanguage');
+    setSelectFromProfileValue(langEl, lang, lang);
+    if (langEl && String(lang || '').trim() && !String(langEl.value || '').trim()) {
+      var lq = String(lang).trim();
+      stripUpsInjectedOptions(langEl);
+      injectUpsOption(langEl, lq, lq + ' (from profile)');
+      langEl.value = lq;
+    }
 
     var chPref = readPreferredChannelFromEntity(entity);
     setSelectFromProfileValue($('cdMicroProfileChannel'), chPref, chPref);
