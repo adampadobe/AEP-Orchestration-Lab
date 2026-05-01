@@ -85,19 +85,16 @@
                 <input type="checkbox" id="aepShowInDevCapabilitiesToggle" style="margin-top:3px;" />
                 <span><strong>Show in development capabilities</strong> — reveal menus and paths tagged “in development” for the <strong>active sandbox</strong> (off by default until you enable).</span>
               </label>
-              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Hide specific in-development pages (sidebar)</label>
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;font-weight:600;">Hide specific in-development pages (sidebar &amp; home)</label>
               <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
-                When capabilities are shown, check a row to <strong>hide</strong> that page from the sidebar (this browser only).
+                When <strong>Show in development capabilities</strong> is on, check a row to <strong>hide</strong> that page. Keys match <code>aep-lab-nav.js</code> entries with <code>inDevelopment: true</code> (this browser only).
               </p>
               <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:center;">
-                <button type="button" class="dashboard-btn-outline" id="aepNavInDevHideAll">Hide all</button>
-                <button type="button" class="dashboard-btn-outline" id="aepNavInDevShowAll">Show all</button>
+                <button type="button" class="dashboard-btn-outline" id="aepNavInDevHideAll">Hide all in-development</button>
+                <button type="button" class="dashboard-btn-outline" id="aepNavInDevShowAll">Show all in-development</button>
               </div>
               <div class="aep-nav-indev-checklist" style="display: flex; flex-direction: column; gap: 10px;">
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="profileGeneration" style="margin-top:3px;" />
-                  <span>Hide <strong>Profile generation</strong> (Tools)</span>
-                </label>
+                <span class="schema-aep-sandbox-label" style="font-size:13px;font-weight:600;margin-top:4px;">Tools</span>
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="clientJourneyAsset" style="margin-top:3px;" />
                   <span>Hide <strong>Client journey assets</strong> (Tools)</span>
@@ -110,17 +107,14 @@
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="demoUseCaseAsset" style="margin-top:3px;" />
                   <span>Hide <strong>Demo use case assets</strong> (Tools)</span>
                 </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="demoDeliveryConcept" style="margin-top:3px;" />
-                  <span>Hide <strong>Demo Delivery Concept</strong> (Decisioning)</span>
-                </label>
+                <span class="schema-aep-sandbox-label" style="font-size:13px;font-weight:600;margin-top:8px;">Decisioning</span>
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="decisioningLab" style="margin-top:3px;" />
                   <span>Hide <strong>Decisioning lab</strong> (Decisioning)</span>
                 </label>
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="decisioningLabEdge" style="margin-top:3px;" />
-                  <span>Hide <strong>Decisioning lab (Edge)</strong> (Decisioning)</span>
+                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="demoDeliveryConcept" style="margin-top:3px;" />
+                  <span>Hide <strong>Demo Delivery Concept</strong> (Decisioning)</span>
                 </label>
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="decisioningOverview" style="margin-top:3px;" />
@@ -130,6 +124,7 @@
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="journeyArbitrationV2" style="margin-top:3px;" />
                   <span>Hide <strong>Journey arbitration v2</strong> (Decisioning)</span>
                 </label>
+                <span class="schema-aep-sandbox-label" style="font-size:13px;font-weight:600;margin-top:8px;">Experimentation</span>
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="experimentationVisualiser" style="margin-top:3px;" />
                   <span>Hide <strong>Experimentation visualiser</strong> (Experimentation)</span>
@@ -138,10 +133,7 @@
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="experimentationOverview" style="margin-top:3px;" />
                   <span>Hide <strong>Experimentation overview</strong> (Experimentation)</span>
                 </label>
-                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="experimentationAccelerator" style="margin-top:3px;" />
-                  <span>Hide <strong>Experimentation Accelerator</strong> (Experimentation)</span>
-                </label>
+                <span class="schema-aep-sandbox-label" style="font-size:13px;font-weight:600;margin-top:8px;">Architecture</span>
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="aepArchitectureApps" style="margin-top:3px;" />
                   <span>Hide <strong>AEP &amp; Apps</strong> (Architecture)</span>
@@ -152,18 +144,45 @@
                 </label>
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="architectureEndToEnd" style="margin-top:3px;" />
-                  <span>Hide <strong>Adobe integration flow</strong> (Architecture → End 2 End)</span>
+                  <span>Hide <strong>Adobe integration flow</strong> (Architecture)</span>
                 </label>
+                <span class="schema-aep-sandbox-label" style="font-size:13px;font-weight:600;margin-top:8px;">Demos</span>
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="edsQuickstart" style="margin-top:3px;" />
                   <span>Hide <strong>EDS Demo Creator</strong> (Demos)</span>
                 </label>
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
                   <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="demos" style="margin-top:3px;" />
-                  <span>Hide <strong>Demos</strong> (Donate demo, Race for Life)</span>
+                  <span>Hide <strong>Demos</strong> group (Donate, Race for Life, …)</span>
+                </label>
+              </div>
+              <label class="schema-aep-sandbox-label" style="display:block;margin-bottom:8px;margin-top:20px;font-weight:600;">Hide other sidebar &amp; home items</label>
+              <p class="dashboard-hero-subtitle" style="margin: 0 0 12px; font-size: 13px;">
+                These pages are <strong>not</strong> gated by the in-development master toggle. Use the row below to hide them any time (same localStorage keys as the sidebar).
+              </p>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:center;">
+                <button type="button" class="dashboard-btn-outline" id="aepNavSidebarHideAll">Hide all below</button>
+                <button type="button" class="dashboard-btn-outline" id="aepNavSidebarShowAll">Show all below</button>
+              </div>
+              <div class="aep-nav-sidebar-checklist" style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="profileGeneration" style="margin-top:3px;" />
+                  <span>Hide <strong>Profile generation</strong> (Profiles)</span>
                 </label>
                 <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
-                  <input type="checkbox" class="aep-nav-indev-hide-cb" data-aep-nav-hide-key="dataCollectionTags" style="margin-top:3px;" />
+                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="decisioningLabEdge" style="margin-top:3px;" />
+                  <span>Hide <strong>Decisioning lab (Edge)</strong> (Decisioning)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="experimentationAccelerator" style="margin-top:3px;" />
+                  <span>Hide <strong>Experimentation Accelerator</strong> (Experimentation)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="imageHosting" style="margin-top:3px;" />
+                  <span>Hide <strong>Image hosting</strong> (Tools)</span>
+                </label>
+                <label style="display:flex; gap:10px; align-items:flex-start; cursor:pointer; font-size: 14px; line-height: 1.4;">
+                  <input type="checkbox" class="aep-nav-sidebar-hide-cb" data-aep-nav-hide-key="dataCollectionTags" style="margin-top:3px;" />
                   <span>Hide <strong>Tags</strong> (Data Collection)</span>
                 </label>
               </div>
@@ -294,7 +313,7 @@
       }
 
       function syncCheckboxes() {
-        document.querySelectorAll('.aep-nav-indev-hide-cb').forEach(function (cb) {
+        document.querySelectorAll('.aep-nav-indev-hide-cb, .aep-nav-sidebar-hide-cb').forEach(function (cb) {
           var key = cb.getAttribute('data-aep-nav-hide-key');
           if (!key) return;
           cb.checked = isHiddenKey(key);
@@ -333,6 +352,29 @@
         dispatchNavChange();
       }
 
+      function forEachSidebarHideKey(fn) {
+        document.querySelectorAll('.aep-nav-sidebar-hide-cb').forEach(function (cb) {
+          var key = cb.getAttribute('data-aep-nav-hide-key');
+          if (key) fn(key);
+        });
+      }
+
+      function hideAllSidebarOptional() {
+        forEachSidebarHideKey(function (key) {
+          setHiddenKey(key, true);
+        });
+        syncCheckboxes();
+        dispatchNavChange();
+      }
+
+      function showAllSidebarOptional() {
+        forEachSidebarHideKey(function (key) {
+          setHiddenKey(key, false);
+        });
+        syncCheckboxes();
+        dispatchNavChange();
+      }
+
       function init() {
         syncMasterToggle();
         syncCheckboxes();
@@ -347,7 +389,11 @@
         var btnShowAll = document.getElementById('aepNavInDevShowAll');
         if (btnHideAll) btnHideAll.addEventListener('click', hideAllInDevNav);
         if (btnShowAll) btnShowAll.addEventListener('click', showAllInDevNav);
-        document.querySelectorAll('.aep-nav-indev-hide-cb').forEach(function (cb) {
+        var btnHideSidebar = document.getElementById('aepNavSidebarHideAll');
+        var btnShowSidebar = document.getElementById('aepNavSidebarShowAll');
+        if (btnHideSidebar) btnHideSidebar.addEventListener('click', hideAllSidebarOptional);
+        if (btnShowSidebar) btnShowSidebar.addEventListener('click', showAllSidebarOptional);
+        document.querySelectorAll('.aep-nav-indev-hide-cb, .aep-nav-sidebar-hide-cb').forEach(function (cb) {
           cb.addEventListener('change', function () {
             var key = cb.getAttribute('data-aep-nav-hide-key');
             if (!key) return;
