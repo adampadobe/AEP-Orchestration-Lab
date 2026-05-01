@@ -1164,6 +1164,10 @@ exports.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     successMessage = `Profile update accepted (${applied} field(s)).`;
   }
 
+  if (!hasConsent) {
+    profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
+  }
+
   const normPayloadProfile = String(
     body.streamPayloadProfile || streaming.streamPayloadProfile || '',
   )

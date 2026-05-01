@@ -9,8 +9,12 @@ import { readFileSync, existsSync } from 'fs';
 import { getAuth, getConfig } from '../00 Adobe Auth/src/index.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { createRequire } from 'module';
 import { registerFirebaseHostingRoutes, hostingRenameHandler } from './firebase-hosting-routes.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const requireCjs = createRequire(import.meta.url);
+/** Canonical streaming path routing + language mirror (keep in sync with Firebase `functions/profileStreamingCore.js`). */
+const profileStreamingCore = requireCjs(join(__dirname, '../../../functions/profileStreamingCore.js'));
 dotenv.config({ path: join(__dirname, '.env') });
 
 /** Journey names cache (AJO system schema workaround). Loaded from journey-names.json if present. */
@@ -94,30 +98,6 @@ function setByPath(obj, path, value) {
   cur[keys[keys.length - 1]] = value;
 }
 
-/**
- * First path segment for fields that belong on the streaming JSON root beside `_demoemea`
- * (profile mixin group), not nested under the tenant key. Matches AEP Operational Profile
- * union samples where e.g. `telecomSubscription` and `loyalty` are siblings of `_demoemea`.
- */
-const PROFILE_STREAM_ROOT_PATH_PREFIXES = new Set([
-  'telecomSubscription',
-  'person',
-  'personID',
-  'personalEmail',
-  'homeAddress',
-  'homePhone',
-  'workAddress',
-  'workPhone',
-  'billingAddress',
-  'billingAddressPhone',
-  'mailingAddress',
-  'shippingAddress',
-  'shippingAddressPhone',
-  'faxPhone',
-  'mobilePhone',
-  'loyalty',
-]);
-
 /** Ensure XDM calendar dates on update: YYYY-MM-DD; fix legacy YYYY-DD-MM when middle segment > 12. */
 function normalizeProfileUpdateDateString(relativePath, val) {
   if (val == null || typeof val !== 'string') return val;
@@ -144,7 +124,7 @@ function assignProfileStreamingAttributes(demoemeaTenant, rootExtras, filteredAt
     if (!cleanPath) continue;
     const out = val !== undefined && val !== null ? val : '';
     const top = cleanPath.split('.')[0];
-    const target = PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top) ? rootExtras : demoemeaTenant;
+    const target = profileStreamingCore.PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top) ? rootExtras : demoemeaTenant;
     if (typeof out === 'string' && out.trim() !== '' && /^\d+$/.test(out)) setByPath(target, cleanPath, parseInt(out, 10));
     else setByPath(target, cleanPath, out);
   }
@@ -4618,6 +4598,7 @@ app.post('/api/profile/generate', async (req, res) => {
     const filteredAttrs = stripEmpty(attributes);
     const rootExtras = {};
     assignProfileStreamingAttributes(demoemea, rootExtras, filteredAttrs);
+    profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
     demoemea.testProfile = true;
 
     const { payload, format: payloadFormat } = buildProfileStreamPayload(
@@ -4830,7 +4811,7 @@ app.post('/api/profile/update', async (req, res) => {
           out = normalizeProfileUpdateDateString(path, out);
         }
         const top = path.split('.')[0];
-        const underRootMixin = PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top);
+        const underRootMixin = profileStreamingCore.PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top);
         const target = underRootMixin ? rootExtras : demoemea;
         if (typeof out === 'string' && out.trim() !== '' && /^\d+$/.test(out)) setByPath(target, path, parseInt(out, 10));
         else setByPath(target, path, out);
@@ -4845,6 +4826,10 @@ app.post('/api/profile/update', async (req, res) => {
         });
       }
       successMessage = `Profile update accepted (${applied} attribute${applied === 1 ? '' : 's'}). Refresh the profile to see changes.`;
+    }
+
+    if (!hasConsent) {
+      profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
     }
 
     const { payload, format: payloadFormat } = buildProfileStreamPayload(

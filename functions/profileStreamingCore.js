@@ -35,9 +35,42 @@ const PROFILE_STREAM_ROOT_PATH_PREFIXES = new Set([
   'mobilePhone',
   'loyalty',
   'preferences',
+  // Flat BCP-47 on streaming root + tenant (Profile Core v2 / WMG-style generators).
+  'preferredLanguage',
 ]);
 
 const PROFILE_STREAM_SCHEMA_CONTENT_TYPE = 'application/vnd.adobe.xed-full+json;version=1.0';
+
+function coercePreferredLanguageScalar(v) {
+  if (v == null) return '';
+  if (typeof v === 'string') return v.trim();
+  return '';
+}
+
+/**
+ * When language is set via `preferences.preferredLanguage`, `personalEmail.language`, or root
+ * `preferredLanguage`, also emit flat `preferredLanguage` on the tenant object and on the
+ * streaming root — same dual placement as external demo generators (root + `_demoemea`).
+ * Mutates both objects in place; no-op if no non-empty language is found.
+ *
+ * Precedence if multiple are set: root `preferredLanguage` → `preferences.preferredLanguage`
+ * → `personalEmail.language`.
+ */
+function mirrorPreferredLanguageDemoSchema(demoemeaTenant, rootProfileFields) {
+  const roots = rootProfileFields && typeof rootProfileFields === 'object' && !Array.isArray(rootProfileFields)
+    ? rootProfileFields
+    : {};
+  const tenant = demoemeaTenant && typeof demoemeaTenant === 'object' && !Array.isArray(demoemeaTenant)
+    ? demoemeaTenant
+    : {};
+  const lang =
+    coercePreferredLanguageScalar(roots.preferredLanguage) ||
+    coercePreferredLanguageScalar(roots.preferences && roots.preferences.preferredLanguage) ||
+    coercePreferredLanguageScalar(roots.personalEmail && roots.personalEmail.language);
+  if (!lang) return;
+  tenant.preferredLanguage = lang;
+  roots.preferredLanguage = lang;
+}
 
 function setByPath(obj, path, value) {
   if (!path || typeof path !== 'string') return;
@@ -490,6 +523,7 @@ function buildOperationalConsentXdmEntity(demoemea, email, ecid, rootExtras) {
 
 module.exports = {
   PROFILE_STREAM_ROOT_PATH_PREFIXES,
+  mirrorPreferredLanguageDemoSchema,
   setByPath,
   normalizeProfileUpdateDateString,
   buildConsentXdm,
