@@ -47,12 +47,17 @@
       --cd-primary-btn-fg: #1a1d23;
     }
 
-    body.cd-page .dashboard-main.cd-main {
-      padding: 0;
+    /* Beat home.css `.dashboard-main.app-page` (max-width min(1600px)); fluid lab on wide / multi-monitor */
+    body.home-dashboard-concierge.cd-page:not(.home-page) .dashboard-main.app-page.cd-main {
       max-width: none;
+      width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      box-sizing: border-box;
     }
 
     .cd-content {
@@ -63,6 +68,7 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
+      min-width: 0;
       overflow: hidden;
     }
 
@@ -88,6 +94,7 @@
     .hero-stage {
       flex: 1 1 0;
       min-height: 0;
+      min-width: 0;
       padding: 1.25rem 1.5rem;
       overflow-y: auto;
       display: flex;
@@ -131,14 +138,14 @@
       min-width: 0;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
       gap: 1rem;
       width: 100%;
     }
 
     .cd-edge-mounts {
       width: 100%;
-      max-width: 960px;
+      max-width: none;
       display: flex;
       flex-direction: column;
       gap: 0.85rem;
@@ -231,7 +238,7 @@
     .cd-edge-ajo-iframe { width: 100%; min-height: 180px; border: 0; border-radius: 4px; }
 
     .hero-placeholder {
-      width: 100%; max-width: 960px; border: 2px dashed var(--border); border-radius: var(--radius);
+      width: 100%; max-width: none; border: 2px dashed var(--border); border-radius: var(--radius);
       padding: 2.5rem 1.5rem; text-align: center; background: var(--bg-panel); color: var(--muted);
       font-size: 0.875rem;
     }
@@ -239,7 +246,7 @@
     .hero-placeholder[hidden] { display: none !important; }
 
     .cd-banner-wrap {
-      width: 100%; max-width: 960px; border-radius: var(--radius);
+      width: 100%; max-width: none; border-radius: var(--radius);
       border: 1px solid var(--border); box-shadow: var(--shadow);
       overflow: hidden;
     }
@@ -430,7 +437,7 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      max-width: 100vw;
+      max-width: none;
       display: flex;
       flex-direction: column;
       align-items: stretch;
