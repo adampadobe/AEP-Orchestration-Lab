@@ -101,17 +101,20 @@
     return '';
   }
 
-  function refreshIdentityStrip() {
-    var ns = getNamespace();
-    var idVal = getIdentifierValue();
-    var streamingEmail = resolveStreamingEmail(ns, idVal);
-    var ecid = resolveEcid();
-    var idLabel = $('cdMicroProfileIdLabel');
-    var ecidLabel = $('cdMicroProfileEcid');
-    var emailLabel = $('cdMicroProfileStreamingEmail');
-    if (idLabel) idLabel.textContent = idVal ? (ns + '=' + idVal) : '—';
-    if (ecidLabel) ecidLabel.textContent = ecid || '—';
-    if (emailLabel) emailLabel.textContent = streamingEmail || '—';
+  function isProfileLoaded() {
+    var api = window.CdEdgeLive;
+    if (!api || typeof api.getLastUpsClientData !== 'function') return false;
+    return !!api.getLastUpsClientData();
+  }
+
+  function refreshStateDot() {
+    var el = $('cdMicroProfileState');
+    if (!el) return;
+    var loaded = isProfileLoaded();
+    var labelEl = el.querySelector('.cd-micro-profile-state-label');
+    el.setAttribute('data-loaded', loaded ? 'true' : 'false');
+    el.setAttribute('aria-label', loaded ? 'Profile loaded' : 'No profile loaded');
+    if (labelEl) labelEl.textContent = loaded ? 'Profile ready' : 'No profile loaded';
   }
 
   /** Cache the streaming connection per sandbox (one fetch per sandbox per page load). */
@@ -224,7 +227,7 @@
   async function onApply() {
     var btn = $('cdMicroProfileApply');
     if (!btn) return;
-    refreshIdentityStrip();
+    refreshStateDot();
     var ns = getNamespace();
     var idVal = getIdentifierValue();
     if (!idVal) {
@@ -321,35 +324,80 @@
     }
   }
 
-  function wireIdentityWatchers() {
-    var ns = $('cdNs');
+  /** Coalesce auto-lookup attempts so identity-restored + sandbox-synced
+   *  events that fire close together still result in a single fetch. */
+  var autoLookupInFlight = false;
+  var autoLookupLastKey = '';
+
+  async function maybeAutoLookup(reason) {
+    var api = window.CdEdgeLive;
+    if (!api || typeof api.runProfileLookup !== 'function') return;
+    var ns = getNamespace();
+    var idVal = getIdentifierValue();
+    if (!ns || !idVal) return;
+    var key = (getSandboxName() || '') + '\u0001' + ns + '\u0001' + idVal;
+    if (autoLookupInFlight) return;
+    if (key === autoLookupLastKey && isProfileLoaded()) return;
+    autoLookupInFlight = true;
+    autoLookupLastKey = key;
+    log('auto-lookup', reason, { ns: ns, sandbox: getSandboxName() });
+    try {
+      await api.runProfileLookup({ silent: true });
+    } catch (e) {
+      log('auto-lookup error', String((e && e.message) || e));
+    } finally {
+      autoLookupInFlight = false;
+      refreshStateDot();
+    }
+  }
+
+  function wireProfileStateWatchers() {
+    window.addEventListener('cd-edge-profile-lookup', function () {
+      refreshStateDot();
+    });
+    window.addEventListener('cd-edge-identity-restored', function () {
+      maybeAutoLookup('identity-restored');
+    });
+    window.addEventListener('aep-lab-sandbox-synced', function () {
+      streamingCache = Object.create(null);
+      autoLookupLastKey = '';
+      refreshStateDot();
+      maybeAutoLookup('sandbox-synced');
+    });
     var em = $('cdLiveEmail');
-    if (ns) ns.addEventListener('change', refreshIdentityStrip);
+    var ns = $('cdNs');
     if (em) {
-      em.addEventListener('input', refreshIdentityStrip);
-      em.addEventListener('change', refreshIdentityStrip);
+      em.addEventListener('change', function () {
+        autoLookupLastKey = '';
+        refreshStateDot();
+      });
+    }
+    if (ns) {
+      ns.addEventListener('change', function () {
+        autoLookupLastKey = '';
+        refreshStateDot();
+      });
     }
     document.addEventListener('click', function (ev) {
       var t = ev.target;
       if (!t || !t.id) return;
       if (t.id === 'btnFetchProfile' || t.id === 'btnProfileAndEdge' || t.id === 'btnRunFullContentDecision') {
-        setTimeout(refreshIdentityStrip, 1500);
-        setTimeout(refreshIdentityStrip, 4000);
+        setTimeout(refreshStateDot, 1500);
+        setTimeout(refreshStateDot, 4000);
       }
-    });
-    window.addEventListener('aep-lab-sandbox-synced', function () {
-      streamingCache = Object.create(null);
-      refreshIdentityStrip();
     });
   }
 
   function boot() {
     if (!$('cdMicroProfilePanel')) return;
     wireRangeMirrors();
-    wireIdentityWatchers();
+    wireProfileStateWatchers();
     var btn = $('cdMicroProfileApply');
     if (btn) btn.addEventListener('click', onApply);
-    refreshIdentityStrip();
+    refreshStateDot();
+    if (getIdentifierValue()) {
+      maybeAutoLookup('boot');
+    }
   }
 
   if (document.readyState === 'loading') {

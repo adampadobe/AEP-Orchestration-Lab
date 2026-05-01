@@ -856,6 +856,71 @@ waitForAlloy()
     }
   }
 
+  /**
+   * Run the same UPS profile fetch the "Fetch profile only" button performs,
+   * without triggering the full Edge pipeline. Updates lastUpsClientData,
+   * lastProfileEcid, and the visible status / hint elements so any consumer
+   * (e.g. micro panel) can read state via window.CdEdgeLive accessors.
+   * Returns true on success, false otherwise. With { silent: true }, a missing
+   * identifier resolves to false without surfacing a UI error.
+   */
+  async function runProfileLookup(opts) {
+    opts = opts || {};
+    persistLiveIdentity();
+    var idVal = getIdentifierValue();
+    var upsNs = getUpsEntityIdNS();
+    var st = document.getElementById('profileStatus');
+    var hint = document.getElementById('ecidHint');
+    var rawEl = document.getElementById('profileRaw');
+    cdLog('Fetch profile only: start', { namespace: upsNs, silent: !!opts.silent });
+    if (!idVal) {
+      if (!opts.silent && st) {
+        st.textContent = 'Enter an identifier for the selected namespace.';
+        st.className = 'status err';
+      }
+      return false;
+    }
+    if (st) {
+      st.textContent = 'Loading…';
+      st.className = 'status';
+    }
+    var r = await fetchProfileByIdentity(upsNs, idVal);
+    lastUpsPayload = r.data;
+    lastUpsClientData = r.data;
+    if (rawEl) rawEl.textContent = JSON.stringify(r.data, null, 2);
+    if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
+      lastUpsClientData = null;
+      lastProfileEcid = '';
+      if (st) {
+        st.textContent = opts.silent
+          ? 'No saved profile for this identifier in the active sandbox.'
+          : 'Profile not found or UPS error — check identifier and sandbox.';
+        st.className = 'status' + (opts.silent ? '' : ' err');
+      }
+      if (hint) hint.textContent = '';
+      try {
+        window.dispatchEvent(new CustomEvent('cd-edge-profile-lookup', { detail: { ok: false } }));
+      } catch (e) {}
+      return false;
+    }
+    var ecid = recordEcidFromUpsProfile(r.data);
+    cdLog('Fetch profile only ✓', { ecid: ecid ? ecid.slice(0, 8) + '…' : null });
+    if (st) {
+      st.textContent = 'Profile loaded.';
+      st.className = 'status ok';
+    }
+    rememberCdLiveIdentifierAfterProfileOk();
+    if (hint) {
+      hint.textContent = ecid
+        ? 'ECID in profile: ' + ecid
+        : 'No ECID in identityMap; journey may still key on the primary id.';
+    }
+    try {
+      window.dispatchEvent(new CustomEvent('cd-edge-profile-lookup', { detail: { ok: true, ecid: ecid || '' } }));
+    } catch (e) {}
+    return true;
+  }
+
   async function runProfileAndEdgeDecisions() {
     persistLiveIdentity();
     var idVal = getIdentifierValue();
@@ -885,9 +950,11 @@ waitForAlloy()
       lastProfileEcid = '';
       document.getElementById('ecidHint').textContent = '';
       if (rawEdge) rawEdge.textContent = '{}';
+      try { window.dispatchEvent(new CustomEvent('cd-edge-profile-lookup', { detail: { ok: false } })); } catch (e) {}
       return false;
     }
     var ecid = recordEcidFromUpsProfile(r.data);
+    try { window.dispatchEvent(new CustomEvent('cd-edge-profile-lookup', { detail: { ok: true, ecid: ecid || '' } })); } catch (e) {}
     document.getElementById('ecidHint').textContent = ecid
       ? 'ECID from UPS (sent on Edge): ' + ecid
       : 'No ECID in payload — Edge may rely on the primary identifier only.';
@@ -1043,38 +1110,8 @@ waitForAlloy()
     wireFieldListeners();
     initWorkflowDock();
 
-    document.getElementById('btnFetchProfile').addEventListener('click', async function () {
-      persistLiveIdentity();
-      var idVal = getIdentifierValue();
-      var upsNs = getUpsEntityIdNS();
-      var st = document.getElementById('profileStatus');
-      var hint = document.getElementById('ecidHint');
-      cdLog('Fetch profile only: start', { namespace: upsNs });
-      st.textContent = 'Loading…';
-      st.className = 'status';
-      if (!idVal) {
-        st.textContent = 'Enter an identifier for the selected namespace.';
-        st.className = 'status err';
-        return;
-      }
-      var r = await fetchProfileByIdentity(upsNs, idVal);
-      lastUpsPayload = r.data;
-      lastUpsClientData = r.data;
-      document.getElementById('profileRaw').textContent = JSON.stringify(r.data, null, 2);
-      if (!r.httpOk || !isUpsProfileSuccess(r.data)) {
-        st.textContent = 'Profile not found or UPS error — check identifier and sandbox.';
-        st.className = 'status err';
-        hint.textContent = '';
-        lastUpsClientData = null;
-        lastProfileEcid = '';
-        return;
-      }
-      var ecid = recordEcidFromUpsProfile(r.data);
-      cdLog('Fetch profile only ✓', { ecid: ecid ? ecid.slice(0, 8) + '…' : null });
-      st.textContent = 'Profile loaded.';
-      st.className = 'status ok';
-      rememberCdLiveIdentifierAfterProfileOk();
-      hint.textContent = ecid ? 'ECID in profile: ' + ecid : 'No ECID in identityMap; journey may still key on the primary id.';
+    document.getElementById('btnFetchProfile').addEventListener('click', function () {
+      runProfileLookup({ silent: false });
     });
 
     document.getElementById('btnProfileAndEdge').addEventListener('click', async function () {
@@ -1112,6 +1149,9 @@ waitForAlloy()
           attachEmailDatalist('cdLiveEmail', 'cdLiveEmailRecent', 'cdNs');
         }
         hydrateCdLiveEmailFromRecents();
+        try {
+          window.dispatchEvent(new CustomEvent('cd-edge-identity-restored'));
+        } catch (e) {}
         return typeof window.CdLabUi !== 'undefined' && window.CdLabUi.bootstrapAfterAuth
           ? window.CdLabUi.bootstrapAfterAuth()
           : null;
@@ -1140,6 +1180,7 @@ waitForAlloy()
   window.CdEdgeLive = window.CdEdgeLive || {};
   window.CdEdgeLive.getLastUpsClientData = function () { return lastUpsClientData; };
   window.CdEdgeLive.getLastProfileEcid = function () { return lastProfileEcid; };
+  window.CdEdgeLive.runProfileLookup = runProfileLookup;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
