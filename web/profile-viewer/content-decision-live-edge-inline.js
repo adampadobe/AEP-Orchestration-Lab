@@ -392,7 +392,27 @@ waitForAlloy()
     if (root.entity && typeof root.entity === 'object' && !Array.isArray(root.entity)) return root.entity;
     var keys = Object.keys(root).filter(function (k) { return k.charAt(0) !== '_'; });
     if (!keys.length) return null;
-    var entityPayload = root[keys[0]];
+    var bestKey = null;
+    var bestScore = -1;
+    for (var bi = 0; bi < keys.length; bi++) {
+      var bk = keys[bi];
+      var payload = root[bk];
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) continue;
+      var score = 0;
+      if (payload.entity != null && typeof payload.entity === 'object' && !Array.isArray(payload.entity)) score += 100;
+      if (bk.indexOf('@') !== -1) score += 50;
+      var subn = 0;
+      for (var sk in payload) {
+        if (Object.prototype.hasOwnProperty.call(payload, sk) && sk.charAt(0) !== '_') subn++;
+      }
+      score += Math.min(40, subn * 4);
+      if (score > bestScore) {
+        bestScore = score;
+        bestKey = bk;
+      }
+    }
+    var chosenKey = bestKey != null ? bestKey : keys[0];
+    var entityPayload = root[chosenKey];
     if (!entityPayload || typeof entityPayload !== 'object' || Array.isArray(entityPayload)) return null;
     var ent =
       entityPayload.entity != null && typeof entityPayload.entity === 'object' && !Array.isArray(entityPayload.entity)

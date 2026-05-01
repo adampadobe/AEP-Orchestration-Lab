@@ -55,7 +55,27 @@
     if (root.entity && typeof root.entity === 'object' && !Array.isArray(root.entity)) return root.entity;
     var keys = Object.keys(root).filter(function (k) { return k.charAt(0) !== '_'; });
     if (!keys.length) return null;
-    var entityPayload = root[keys[0]];
+    var bestKey = null;
+    var bestScore = -1;
+    for (var bi = 0; bi < keys.length; bi++) {
+      var bk = keys[bi];
+      var payload = root[bk];
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) continue;
+      var score = 0;
+      if (payload.entity != null && typeof payload.entity === 'object' && !Array.isArray(payload.entity)) score += 100;
+      if (bk.indexOf('@') !== -1) score += 50;
+      var subn = 0;
+      for (var sk in payload) {
+        if (Object.prototype.hasOwnProperty.call(payload, sk) && sk.charAt(0) !== '_') subn++;
+      }
+      score += Math.min(40, subn * 4);
+      if (score > bestScore) {
+        bestScore = score;
+        bestKey = bk;
+      }
+    }
+    var chosenKey = bestKey != null ? bestKey : keys[0];
+    var entityPayload = root[chosenKey];
     if (!entityPayload || typeof entityPayload !== 'object' || Array.isArray(entityPayload)) return null;
     var ent =
       entityPayload.entity != null && typeof entityPayload.entity === 'object' && !Array.isArray(entityPayload.entity)
@@ -265,6 +285,13 @@
   /** One merged profile slice / sub-object — all paths we read for language. */
   function readLanguageFromSlice(sl) {
     if (!sl || typeof sl !== 'object') return '';
+    var rootPref = coerceLanguageScalar(sl.preferredLanguage);
+    if (rootPref) return rootPref;
+    var m0 = sl.consents && sl.consents.marketing;
+    if (m0 && typeof m0 === 'object') {
+      var fromM0 = coerceLanguageScalar(m0.preferredLanguage);
+      if (fromM0) return fromM0;
+    }
     var pe = sl.personalEmail;
     if (pe && typeof pe === 'object') {
       var fromPe = coerceLanguageScalar(pe.language);
@@ -275,12 +302,27 @@
       var fromPr = coerceLanguageScalar(pr.preferredLanguage);
       if (fromPr) return fromPr;
     }
-    var rootPref = coerceLanguageScalar(sl.preferredLanguage);
-    if (rootPref) return rootPref;
-    var m = sl.consents && sl.consents.marketing;
-    if (m && typeof m === 'object') {
-      var fromM = coerceLanguageScalar(m.preferredLanguage);
-      if (fromM) return fromM;
+    var pc = sl.person && sl.person.communication;
+    if (pc && typeof pc === 'object') {
+      var loc = coerceLanguageScalar(pc.locale) || coerceLanguageScalar(pc.language);
+      if (loc) return loc;
+    }
+    return '';
+  }
+
+  function readLanguageWalkObjects(node, depth, seen) {
+    if (!node || depth < 0) return '';
+    if (typeof node !== 'object' || Array.isArray(node)) return '';
+    if (seen.has(node)) return '';
+    seen.add(node);
+    var here = readLanguageFromSlice(node);
+    if (here) return here;
+    for (var k in node) {
+      if (!Object.prototype.hasOwnProperty.call(node, k)) continue;
+      var v = node[k];
+      if (!v || typeof v !== 'object' || Array.isArray(v)) continue;
+      var inner = readLanguageWalkObjects(v, depth - 1, seen);
+      if (inner) return inner;
     }
     return '';
   }
@@ -302,6 +344,11 @@
           break;
         }
       }
+    }
+    if (!out && entity && typeof entity === 'object') {
+      try {
+        out = readLanguageWalkObjects(entity, 5, new WeakSet());
+      } catch (e) {}
     }
     return normalizeLanguageTagForSelect(out);
   }
