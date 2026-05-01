@@ -639,6 +639,318 @@ function ensureLength(arr, n, fillFactory) {
   return out;
 }
 
+// ─── Phase 3 helpers: post-Vertex content scans ─────────────────────────────
+
+// Words/phrases that indicate the model put a "no journey yet" placeholder
+// or a data-write-back into orch (both belong elsewhere). Matched
+// case-insensitively against the trimmed bullet text.
+const ORCH_PLACEHOLDER_RX = /\b(no journey|queued|not yet|waiting|triggered but)\b/i;
+const ORCH_WRITE_BACK_RX = /\b(written to|profile updated|affinity written|attribute (?:updated|written)|signal (?:captured|written))\b/i;
+
+// DM purity — bullets that name a paid-media platform, are pure
+// signal-flagging without delivery, are minor display rules, or are
+// BC-style conversational recommendations.
+const DM_PAID_MEDIA_RX = /\b(meta|google|instagram|facebook|tiktok|paid media|carousel|ad creative|dsp|programmatic)\b/i;
+const DM_SIGNAL_ONLY_RX = /^(?:\s*)(?:high[- ]intent (?:profile )?flagged|.*affinity noted|.*threshold reached|signal flagged|propensity score (?:noted|flagged))(?:\s*)$/i;
+const DM_MINOR_RULE_RX = /^(?:\s*)(?:badge shown|label applied|tag added|sustainability badge)(?:\s*)$/i;
+const DM_BC_LEAK_RX = /\b(brand concierge|conversational|asked about|guided to|outfit guidance)\b/i;
+
+// Identity namespace — strings that are not person-level identifiers.
+const IDS_FORBIDDEN_RX = /\b(order|session|token|transaction|reference)\b/i;
+
+// Paid media impressions — never available at the individual level.
+const PAID_IMPRESSION_RX = /\b(meta ad impression|google ad shown|instagram impression|facebook impression|tiktok impression|ad shown|ad impression)\b/i;
+
+// Email events on Web SDK — should be AJO email tracking instead.
+const WEBSDK_EMAIL_RX = /\b(email (?:engagement|open|click|opens|clicks).*(?:web ?sdk|browser sdk))\b/i;
+
+// CJA references that have leaked into orch/activ (belong in segs).
+const CJA_PREFIX_RX = /^\s*cja\s*:/i;
+
+// SMS detection (rules out push notifications, in-app messages, etc).
+const SMS_RX = /\b(sms|text message|text msg)\b/i;
+
+// Step labels that imply the customer is OFF the brand's owned channel.
+const OFF_CHANNEL_LABEL_RX = /\b(abandon|abandonment|email|sms|retargeting|paid media|push|off[- ]site|out[- ]of[- ]session)\b/i;
+
+// Generic TECH catch-all — name a real ESP or omit.
+const GENERIC_EMAIL_TECH_RX = /^(?:\s*)email delivery platform(?:\s*)$/i;
+
+function runContentScans(slides, j) {
+  if (!Array.isArray(slides) || slides.length === 0) return;
+
+  // Track new-vs-carried orch items across slides so scans 1 + 2 can
+  // both reason about novelty.
+  const seenOrch = new Set();
+  const slideOffChannel = slides.map((s) =>
+    OFF_CHANNEL_LABEL_RX.test(safeString(s && s.label))
+  );
+
+  // Set of live SMS-channel slides (used by scan 5 — Phone ID rule).
+  for (let i = 0; i < slides.length; i++) {
+    const s = slides[i];
+    if (!s) continue;
+
+    // Scan 1 — orch placeholders / write-backs / cross-slide duplicates.
+    const orchRaw = Array.isArray(s.orch) ? s.orch : [];
+    const orchClean = [];
+    for (const item of orchRaw) {
+      const text = safeString(item).trim();
+      if (!text) continue;
+      if (ORCH_PLACEHOLDER_RX.test(text)) continue;
+      if (ORCH_WRITE_BACK_RX.test(text)) continue;
+      // Drop carry-forward duplicates (skill v9: accumulate() does this
+      // visually; the model shouldn't repeat itself in the data).
+      if (seenOrch.has(text)) continue;
+      seenOrch.add(text);
+      orchClean.push(text);
+    }
+    s.orch = orchClean;
+
+    // Scan 2a — orchActive completeness. Every orch item that is new
+    // at this slide (i.e. not present in any prior slide's orch — we
+    // approximate via seenOrch.size delta) gets added to orchActive
+    // if missing. We re-derive newness from orchClean order: items
+    // appended at this slide ARE new because we filtered duplicates
+    // above, so their union with the existing orchActive is correct.
+    const orchActiveSet = new Set(
+      (Array.isArray(s.orchActive) ? s.orchActive : []).map((v) => safeString(v).trim())
+    );
+    const orchSet = new Set(orchClean);
+    // Strip orchActive entries that aren't in orch (clamp to validity)
+    // then ensure every orch item that's new at this slide is active.
+    const finalActive = [];
+    for (const t of orchClean) {
+      if (orchActiveSet.has(t) || true) {
+        // True "newness" = it wasn't in any earlier slide. Because
+        // dedupe above already removed cross-slide repeats from
+        // s.orch, every item left here is genuinely new at this step.
+        finalActive.push(t);
+      }
+    }
+    // De-dupe and clamp to entries that exist in orch.
+    const seenActive = Object.create(null);
+    s.orchActive = finalActive.filter((v) => orchSet.has(v) && (seenActive[v] ? false : (seenActive[v] = true)));
+
+    // Scan 2b — segActive emoji-prefix bug. The accumulator matches
+    // segActive entries against segs[i].l exactly; an emoji-prefixed
+    // entry will never match and the segment will silently never
+    // highlight. Strip any leading non-letter run that doesn't appear
+    // in the segs[].l set.
+    const segs = Array.isArray(s.segs) ? s.segs : [];
+    const segLabels = new Set(segs.map((sg) => safeString(sg && sg.l).trim()));
+    s.segActive = (Array.isArray(s.segActive) ? s.segActive : [])
+      .map((v) => {
+        const raw = safeString(v).trim();
+        if (segLabels.has(raw)) return raw;
+        // Try stripping a leading emoji + whitespace/newline run.
+        const stripped = raw.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+        return segLabels.has(stripped) ? stripped : null;
+      })
+      .filter((v) => v !== null);
+
+    // Scan 3 — Decision Management purity. Drop bullets that mention
+    // paid media, are signal-only, are minor display rules, or are BC
+    // conversational recommendations. Keep the parallel
+    // decisioningActive in sync with the cleaned set.
+    const decRaw = Array.isArray(s.decisioning) ? s.decisioning : [];
+    const decClean = decRaw
+      .map((v) => safeString(v).trim())
+      .filter((v) => {
+        if (!v) return false;
+        if (DM_PAID_MEDIA_RX.test(v)) return false;
+        if (DM_SIGNAL_ONLY_RX.test(v)) return false;
+        if (DM_MINOR_RULE_RX.test(v)) return false;
+        if (DM_BC_LEAK_RX.test(v)) return false;
+        return true;
+      });
+    s.decisioning = decClean;
+    const decSet = new Set(decClean);
+    s.decisioningActive = (Array.isArray(s.decisioningActive) ? s.decisioningActive : [])
+      .map((v) => safeString(v).trim())
+      .filter((v) => decSet.has(v));
+
+    // Scan 5a — identity namespace. Person-level identifiers only.
+    const ids = Array.isArray(s.ids) ? s.ids : [];
+    s.ids = ids.filter((row) => {
+      if (!Array.isArray(row) || !row.length) return false;
+      const label = safeString(row[0]).trim();
+      if (!label) return false;
+      return !IDS_FORBIDDEN_RX.test(label);
+    });
+
+    // Scan 6a — CJA bullets in orch belong in segs (or get dropped if
+    // already represented). We move the segment-friendly form (label
+    // after the "CJA: " prefix) to segs and remove the orch entry.
+    if (s.orch.length) {
+      const remainingOrch = [];
+      for (const t of s.orch) {
+        if (CJA_PREFIX_RX.test(t)) {
+          const segLabel = t.replace(CJA_PREFIX_RX, '').trim();
+          if (segLabel && !Array.from(segLabels).some((l) => l.toLowerCase() === segLabel.toLowerCase())) {
+            (s.segs = s.segs || []).push({ i: '📊', l: segLabel });
+            segLabels.add(segLabel);
+          }
+          // and drop from orch entirely
+          continue;
+        }
+        remainingOrch.push(t);
+      }
+      s.orch = remainingOrch;
+      // Re-sync orchActive after the move.
+      const liveOrch = new Set(s.orch);
+      s.orchActive = (s.orchActive || []).filter((v) => liveOrch.has(v));
+    }
+    // Same scrub for activ — CJA never belongs in activation.
+    if (Array.isArray(s.activ)) {
+      s.activ = s.activ.filter((v) => !CJA_PREFIX_RX.test(safeString(v).trim()));
+    }
+
+    // Scan 6b — paid-impression items in data/ingestion (never
+    // available at the individual level).
+    if (Array.isArray(s.data)) {
+      const cleanData = s.data.filter((v) => !PAID_IMPRESSION_RX.test(safeString(v)));
+      const dataSet = new Set(cleanData);
+      s.dataActive = (Array.isArray(s.dataActive) ? s.dataActive : []).filter((v) => dataSet.has(v));
+      s.data = cleanData;
+    }
+    if (Array.isArray(s.ingestion)) {
+      const cleanIng = s.ingestion.filter((v) => !PAID_IMPRESSION_RX.test(safeString(v)));
+      const ingSet = new Set(cleanIng);
+      s.ingestionActive = (Array.isArray(s.ingestionActive) ? s.ingestionActive : []).filter((v) => ingSet.has(v));
+      s.ingestion = cleanIng;
+    }
+
+    // Scan 6c — email events on Web SDK should be AJO email tracking.
+    // Rewrite in place (preserves item identity for orchActive matching).
+    if (Array.isArray(s.ingestion)) {
+      s.ingestion = s.ingestion.map((v) => {
+        const t = safeString(v);
+        if (WEBSDK_EMAIL_RX.test(t)) {
+          return 'AJO email open / click events → ExperienceEvent';
+        }
+        return t;
+      });
+      // Keep ingestionActive aligned to the rewritten strings — easiest
+      // to clamp by intersection with the rewritten ingestion set.
+      const ingSet2 = new Set(s.ingestion);
+      s.ingestionActive = (Array.isArray(s.ingestionActive) ? s.ingestionActive : []).filter((v) => ingSet2.has(v));
+    }
+
+    // Scan 7 — Brand Concierge placement. BC entries (orch bullets
+    // with "Brand Concierge:" prefix) are forbidden at off-channel
+    // steps (abandonment, email/SMS, retargeting). We drop them along
+    // with their matching orchActive entries.
+    if (slideOffChannel[i] && Array.isArray(s.orch)) {
+      const filtered = s.orch.filter((v) => !/^\s*brand concierge\s*:/i.test(safeString(v)));
+      const dropped = s.orch.length !== filtered.length;
+      if (dropped) {
+        const liveOrch = new Set(filtered);
+        s.orchActive = (Array.isArray(s.orchActive) ? s.orchActive : []).filter((v) => liveOrch.has(v));
+        s.orch = filtered;
+      }
+    }
+  }
+
+  // Scan 4 — Activation timing. Look for paid-destination pushes
+  // ("segments to Meta", "audience to Google", "Custom Audience push")
+  // landing on a slide whose label contains "abandon"; if the next
+  // slide exists, push them forward by one. We model this minimally:
+  // we move the activActive entry only — leaving activ in place is
+  // safe because the abandonment slide may still have other channels
+  // legitimately listed.
+  const ABANDON_LABEL_RX = /\babandon(ment)?\b/i;
+  const PAID_PUSH_RX = /\b(meta|google|facebook|tiktok|dsp|paid media|custom audience)\b/i;
+  for (let i = 0; i < slides.length - 1; i++) {
+    const s = slides[i];
+    if (!s || !ABANDON_LABEL_RX.test(safeString(s.label))) continue;
+    const aActive = Array.isArray(s.activActive) ? s.activActive : [];
+    const next = slides[i + 1];
+    if (!next) continue;
+    const moved = [];
+    const stay = [];
+    for (const v of aActive) {
+      if (PAID_PUSH_RX.test(safeString(v))) moved.push(v);
+      else stay.push(v);
+    }
+    if (moved.length) {
+      s.activActive = stay;
+      next.activActive = Array.from(new Set([...(next.activActive || []), ...moved]));
+      // ensure those entries also exist on next.activ
+      next.activ = Array.from(new Set([...(next.activ || []), ...moved]));
+    }
+  }
+
+  // Scan 5b — SMS sent without a Phone ID. Walk forward; if a slide's
+  // orch (or desc) mentions SMS but no Phone ID exists in any earlier
+  // ids[], inject a Phone ID into THAT slide's ids[] (active true).
+  // Conservative: we don't try to back-date the capture step — the
+  // user can refine the journey if the timing matters.
+  let phoneIdSeen = false;
+  for (let i = 0; i < slides.length; i++) {
+    const s = slides[i];
+    if (!s) continue;
+    if (Array.isArray(s.ids)) {
+      for (const row of s.ids) {
+        if (!Array.isArray(row)) continue;
+        if (/\bphone\b/i.test(safeString(row[0]))) { phoneIdSeen = true; break; }
+      }
+    }
+    const orchHasSms = Array.isArray(s.orch) && s.orch.some((v) => SMS_RX.test(safeString(v)));
+    const descHasSms = SMS_RX.test(safeString(s.desc));
+    if ((orchHasSms || descHasSms) && !phoneIdSeen) {
+      s.ids = (Array.isArray(s.ids) ? s.ids : []).concat([['Phone ID', true]]);
+      phoneIdSeen = true;
+    }
+  }
+
+  // Scan 8a — generic "Email delivery platform" tech entries. Drop
+  // them at the bullet level on j.tech (the source the live deck and
+  // the one-pager both read), and mirror by stripping out per-slide
+  // tech entries with the same generic text.
+  if (Array.isArray(j.tech)) {
+    for (const grp of j.tech) {
+      if (!grp || !Array.isArray(grp.bullets)) continue;
+      grp.bullets = grp.bullets.filter((b) => !(b && GENERIC_EMAIL_TECH_RX.test(safeString(b.text))));
+    }
+  }
+  for (const s of slides) {
+    if (Array.isArray(s.tech)) {
+      s.tech = s.tech.filter((o) => !(o && GENERIC_EMAIL_TECH_RX.test(safeString(o.t))));
+    }
+  }
+
+  // Scan 8b — strip [confirmed]/[assumed] markers from any per-slide
+  // tech entry that leaked through. The PPTX/one-pager keep the labels
+  // (separately applied via b.confirmed); the live deck shows them via
+  // the .tech-badge already, so the inline marker is noise.
+  for (const s of slides) {
+    if (!Array.isArray(s.tech)) continue;
+    s.tech = s.tech.map((o) => {
+      if (!o || typeof o.t !== 'string') return o;
+      const cleaned = o.t.replace(/\s*\[(?:confirmed|assumed)\]\s*$/i, '').trim();
+      return cleaned !== o.t ? { ...o, t: cleaned } : o;
+    });
+  }
+
+  // Scan 8c — drop tech entries that are never a:true across any
+  // slide. A permanently dimmed entry means the platform plays no
+  // active role in the journey — it's noise.
+  const everActiveTech = new Set();
+  for (const s of slides) {
+    if (!Array.isArray(s.tech)) continue;
+    for (const o of s.tech) {
+      if (o && o.a) everActiveTech.add(safeString(o.t).trim());
+    }
+  }
+  if (everActiveTech.size > 0) {
+    for (const s of slides) {
+      if (!Array.isArray(s.tech)) continue;
+      s.tech = s.tech.filter((o) => o && everActiveTech.has(safeString(o.t).trim()));
+    }
+  }
+}
+
 function normaliseJourney(journeyData, overrides = {}) {
   const j = (journeyData && typeof journeyData === 'object') ? journeyData : {};
   const clientIn = (j.client && typeof j.client === 'object') ? j.client : {};
@@ -699,6 +1011,19 @@ function normaliseJourney(journeyData, overrides = {}) {
     if (!Array.isArray(slides[i].decisioning)) slides[i].decisioning = [];
     if (!Array.isArray(slides[i].decisioningActive)) slides[i].decisioningActive = [];
   }
+
+  // ─── Phase 3: post-Vertex content scans (skill v9 §Pre-write pattern scan)
+  //
+  // Eight quiet auto-fixes that run AFTER the model has emitted the
+  // journey. Each one targets a class of silent-bug the colleague's
+  // skill specifically calls out — duplicated orch carry-forward,
+  // segActive emoji-prefix mismatch, DM-on-paid-media leakage, etc.
+  // Auto-fix rather than reject because the model can't usefully
+  // self-correct from a thrown error and the user shouldn't see a
+  // regenerate loop. Applies to every tier; the Foundation clamp below
+  // sees the cleaned shape so any DM/BC the scans missed still get
+  // stripped.
+  runContentScans(slides, j);
 
   // Foundation tier clamp — strip Decision Management and Brand
   // Concierge from the journey entirely so the prompt overlay is
