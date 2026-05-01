@@ -783,8 +783,8 @@
     if (propensity && propensityEl) { propensityEl.value = propensity; if (typeof renderPropensity === 'function') renderPropensity(); }
     if (nps && npsEl) npsEl.value = nps;
     if (aov && aovEl) { aovEl.value = aov; if (typeof renderAov === 'function') renderAov(); }
-    if (lang && languageEl) languageEl.value = lang;
-    if (gender && genderEl) genderEl.value = gender;
+    setSelectValueLoose(languageEl, lang);
+    setSelectValueLoose(genderEl, gender);
 
     const hasLoyalty = !!(loyaltyId || tier || points);
     if (hasLoyalty && loyaltyEnabledEl) {
@@ -792,8 +792,30 @@
       if (typeof applyLoyaltyToggleVisibility === 'function') applyLoyaltyToggleVisibility();
     }
     if (loyaltyId && loyaltyIDEl) loyaltyIDEl.value = loyaltyId;
-    if (tier && loyaltyTierEl) loyaltyTierEl.value = tier;
+    setSelectValueLoose(loyaltyTierEl, tier);
     if (points && loyaltyPointsEl) loyaltyPointsEl.value = points;
+  }
+
+  /**
+   * Set a <select> to a value with case- and label-fallback matching. Profile
+   * Core v2 stores loyalty tier as lower-case 'silver' / 'gold' but the form's
+   * <option> values are Title Case ('Silver' / 'Gold') — direct assignment
+   * silently leaves the dropdown on '— Select —' because <select>.value is
+   * case-sensitive. Try exact value, then case-insensitive value, then
+   * case-insensitive option text. If nothing matches, leave the existing
+   * selection alone (don't blank out a value the operator may have set).
+   */
+  function setSelectValueLoose(selectEl, raw) {
+    if (!selectEl || raw == null) return;
+    const val = String(raw).trim();
+    if (!val) return;
+    const opts = Array.from(selectEl.options || []);
+    const exact = opts.find((o) => o.value === val);
+    if (exact) { selectEl.value = exact.value; return; }
+    const ci = opts.find((o) => String(o.value).toLowerCase() === val.toLowerCase());
+    if (ci) { selectEl.value = ci.value; return; }
+    const byText = opts.find((o) => String(o.textContent || '').trim().toLowerCase() === val.toLowerCase());
+    if (byText) { selectEl.value = byText.value; return; }
   }
 
   // ---------- Find / Update / Generate ----------
