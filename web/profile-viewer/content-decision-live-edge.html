@@ -1540,12 +1540,26 @@
               </div>
               <div class="cd-micro-profile-field">
                 <label for="cdMicroProfileChannel">Preferred channel</label>
-                <select id="cdMicroProfileChannel">
+                <!--
+                  Same XDM enum values / labels as #genPreferredChannel in profile-generation.html
+                  (consents.marketing.preferred). First option: empty = skip patch (micro panel wording).
+                -->
+                <select id="cdMicroProfileChannel" aria-label="Preferred marketing channel">
                   <option value="">— Unchanged —</option>
-                  <option value="email">Email</option>
-                  <option value="push">Push</option>
-                  <option value="sms">SMS</option>
-                  <option value="inapp">In-app</option>
+                  <option value="email">email</option>
+                  <option value="push">Push Notifications</option>
+                  <option value="inApp">In-app Messages</option>
+                  <option value="sms">SMS (Text Messages)</option>
+                  <option value="whatsApp">WhatsApp Messages</option>
+                  <option value="phone">Phone Calls</option>
+                  <option value="phyMail">Physical Mail</option>
+                  <option value="inVehicle">In-vehicle Messages</option>
+                  <option value="inHome">In-home Messages</option>
+                  <option value="iot">IoT Messages</option>
+                  <option value="social">Social Media</option>
+                  <option value="other">Other</option>
+                  <option value="none">No Preferred Channel</option>
+                  <option value="unknown">Unknown</option>
                 </select>
               </div>
               <div class="cd-micro-profile-actions">
