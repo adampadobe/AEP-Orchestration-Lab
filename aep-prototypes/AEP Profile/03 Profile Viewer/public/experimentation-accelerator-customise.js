@@ -116,7 +116,6 @@
       expSub3: 'Illustrator product page',
       expTitle4: 'ACE1104 | US | Creative | Email nurture subject',
       expSub4: 'Acrobat DC page',
-      heroDetailImg: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=960&h=540&fit=crop&q=80',
     },
     retail: {
       sampleDisplayName: 'Sam',
@@ -133,7 +132,6 @@
       expSub3: 'Checkout funnel',
       expTitle4: 'ACE2104 | UK | Retail | Loyalty module banner',
       expSub4: 'Account dashboard',
-      heroDetailImg: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=960&h=540&fit=crop&q=80',
     },
     financial: {
       sampleDisplayName: 'Morgan',
@@ -150,7 +148,6 @@
       expSub3: 'App store funnel',
       expTitle4: 'ACE3104 | US | Finance | Nurture journey email',
       expSub4: 'Advisor scheduling',
-      heroDetailImg: 'https://images.unsplash.com/photo-1642543492481-44f81b7f550e?w=960&h=540&fit=crop&q=80',
     },
     healthcare: {
       sampleDisplayName: 'Riley',
@@ -167,7 +164,6 @@
       expSub3: 'Preventive care',
       expTitle4: 'ACE4104 | US | Health | Telehealth promo tile',
       expSub4: 'Virtual visit funnel',
-      heroDetailImg: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=960&h=540&fit=crop&q=80',
     },
     travel: {
       sampleDisplayName: 'River',
@@ -184,7 +180,6 @@
       expSub3: 'App install funnel',
       expTitle4: 'ACE5104 | EU | Travel | Ancillary upsell',
       expSub4: 'Flight extras',
-      heroDetailImg: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=960&h=540&fit=crop&q=80',
     },
     technology: {
       sampleDisplayName: 'Devon',
@@ -201,7 +196,6 @@
       expSub3: 'Self-serve funnel',
       expTitle4: 'ACE6104 | US | Tech | Lifecycle email subject lines',
       expSub4: 'Developer newsletter',
-      heroDetailImg: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=960&h=540&fit=crop&q=80',
     },
   };
 
@@ -245,8 +239,8 @@
     if (!img || !wrap) return;
     var heroOnly = raw.heroDetailImg != null ? String(raw.heroDetailImg).trim() : '';
     var treatment1 = raw.expImg1 != null ? String(raw.expImg1).trim() : '';
-    /** Hero detail URL if set; otherwise same image as Treatment 1 / Overview tile 1 (avoids empty src on experiment page). */
-    var u = heroOnly || treatment1;
+    /** Match Current leader to Treatment 1 when set; hero-detail URL only fills in if Experiment 1 image is blank. */
+    var u = treatment1 || heroOnly;
     if (u) {
       img.src = u;
       wrap.classList.add('ajo-exp-leader-thumb--has-custom-img');
