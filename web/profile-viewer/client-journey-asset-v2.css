@@ -1,0 +1,391 @@
+/**
+ * Client Journey Asset v2 — page styles.
+ * Light/dark via --dash-* tokens only. No hardcoded hex values
+ * for project palette anywhere — the only hex that ever lives in this file
+ * is on the user-supplied brand-colour swatch (set inline at runtime).
+ */
+
+body.home-dashboard-concierge.client-journey-v2-page {
+  background: var(--dash-bg);
+  color: var(--dash-text);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem clamp(1rem, 2vw, 1.5rem) 2rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-panel {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius, 16px);
+  box-shadow: var(--dash-shadow);
+  padding: 1.5rem clamp(1rem, 2vw, 1.75rem);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-panel-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--dash-text);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-panel-desc {
+  margin: 0 0 1.1rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.5;
+  max-width: 70ch;
+  font-size: 0.95rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-panel-desc code {
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: 4px;
+  padding: 0.05em 0.4em;
+}
+
+/* ── Form ────────────────────────────────────────────────────────────────── */
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-fieldset {
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  padding: 0.75rem 1rem 1rem;
+  margin: 0 0 1.1rem;
+  background: var(--dash-surface-alt);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-legend {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dash-text-secondary);
+  padding: 0 0.4rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-radio-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-radio {
+  flex: 1 1 240px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  column-gap: 0.6rem;
+  row-gap: 0.2rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-radio:hover {
+  border-color: var(--dash-blue);
+  background: var(--dash-hover);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-radio input {
+  grid-row: 1 / span 2;
+  margin-top: 0.2rem;
+  accent-color: var(--dash-blue);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-radio strong {
+  font-size: 0.95rem;
+  color: var(--dash-text);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-radio span {
+  font-size: 0.82rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.35;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.8rem 1rem;
+  margin-bottom: 0.8rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-field--wide {
+  margin-bottom: 1rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dash-text-secondary);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-label small {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--dash-muted);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-req {
+  color: var(--dash-error, #d12424);
+  margin-left: 0.15em;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-field input,
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-field select,
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-field textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--dash-text);
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm, 8px);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-field textarea {
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.88rem;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-field input:focus,
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-field select:focus,
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-field textarea:focus {
+  outline: none;
+  border-color: var(--dash-blue);
+  box-shadow: 0 0 0 3px var(--dash-hover);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-color-row input {
+  flex: 1;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-color-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--dash-radius-sm, 8px);
+  border: 1px solid var(--dash-input-border);
+  background: var(--dash-input-bg);
+  flex-shrink: 0;
+}
+
+/* ── Actions row ─────────────────────────────────────────────────────────── */
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 0.6rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-btn {
+  appearance: none;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--dash-radius-sm, 10px);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-btn:hover:not(:disabled) {
+  background: var(--dash-hover);
+  border-color: var(--dash-blue);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-btn:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-btn-primary {
+  background: var(--dash-blue);
+  color: #ffffff;
+  border-color: var(--dash-blue);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-btn-primary:hover:not(:disabled) {
+  background: var(--dash-blue);
+  filter: brightness(1.08);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-btn-secondary {
+  background: var(--dash-surface);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-status {
+  font-size: 0.88rem;
+  color: var(--dash-text-secondary);
+  line-height: 1.35;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-status.error {
+  color: var(--dash-error, #d12424);
+  font-weight: 600;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-status.success {
+  color: var(--dash-success, #207a3a);
+  font-weight: 600;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-hint {
+  margin: 0.9rem 0 0;
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+  background: var(--dash-surface-alt);
+  border-left: 3px solid var(--dash-blue);
+  padding: 0.6rem 0.8rem;
+  border-radius: 0 var(--dash-radius-sm, 8px) var(--dash-radius-sm, 8px) 0;
+}
+
+/* ── Output panel ────────────────────────────────────────────────────────── */
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-panel-output {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-output-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-iframe-wrap {
+  width: 100%;
+  height: clamp(600px, 75vh, 1100px);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 10px);
+  overflow: hidden;
+  background: var(--dash-bg);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-iframe-wrap iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #ffffff;
+}
+
+/* ── Debug panel ─────────────────────────────────────────────────────────── */
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-debug-panel {
+  font-size: 0.88rem;
+  color: var(--dash-text-secondary);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-debug-panel summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.2rem 0;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-debug-body {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-debug-body h3 {
+  margin: 0.4rem 0 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dash-text);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-debug-body ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  line-height: 1.5;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-debug-body pre {
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  border-radius: var(--dash-radius-sm, 8px);
+  padding: 0.7rem 0.9rem;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--dash-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  overflow: auto;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-source-pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  margin-left: 0.4rem;
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-source-pill[data-source="context7"] {
+  background: var(--dash-success-bg, rgba(80, 200, 120, 0.18));
+  color: var(--dash-success, #207a3a);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-source-pill[data-source="cache"] {
+  background: var(--dash-info-bg, rgba(64, 132, 207, 0.18));
+  color: var(--dash-info, #1e5a96);
+}
+
+body.home-dashboard-concierge.client-journey-v2-page .cjv2-source-pill[data-source="fallback"] {
+  background: var(--dash-warning-bg, rgba(212, 158, 47, 0.18));
+  color: var(--dash-warning, #8a5a00);
+}

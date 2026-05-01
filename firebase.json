@@ -474,6 +474,20 @@
           "functionId": "schemaViewerProxy",
           "region": "us-central1"
         }
+      },
+      {
+        "source": "/api/client-journey-v2/generate",
+        "function": {
+          "functionId": "clientJourneyV2Generate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/client-journey-v2/pptx",
+        "function": {
+          "functionId": "clientJourneyV2Pptx",
+          "region": "us-central1"
+        }
       }
     ],
     "headers": [

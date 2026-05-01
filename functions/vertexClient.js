@@ -59,17 +59,28 @@ async function callGemini(systemPrompt, userPrompt, opts = {}) {
     retryOn429 = false,
     retryOn429DelayMs = 30000,
     retryOn429Attempts = 1,
+    // Optional tools array passed straight through to getGenerativeModel.
+    // Default undefined → unchanged behaviour for every existing caller.
+    // Callers that want Gemini to use Google Search grounding should
+    // pass `tools: [{ googleSearch: {} }]` (Gemini 2.5+) or
+    // `tools: [{ googleSearchRetrieval: {} }]` (Gemini 1.5).
+    // NOTE: Gemini's JSON-mode + tool-use combination is supported but
+    // some tool/responseSchema combinations are mutually exclusive — if
+    // a caller mixes both, validate the model's response in the caller.
+    tools,
   } = opts;
   const client = getVertexClient();
   const modelName = modelOverride || process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-pro';
   const generationConfig = { temperature, maxOutputTokens };
   if (jsonMode) generationConfig.responseMimeType = 'application/json';
   if (responseSchema) generationConfig.responseSchema = responseSchema;
-  const model = client.getGenerativeModel({
+  const modelInit = {
     model: modelName,
     systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] },
     generationConfig,
-  });
+  };
+  if (Array.isArray(tools) && tools.length > 0) modelInit.tools = tools;
+  const model = client.getGenerativeModel(modelInit);
 
   let resp;
   const maxAttempts = retryOn429 ? Math.max(1, retryOn429Attempts + 1) : 1;

@@ -14,6 +14,15 @@ const ADOBE_SCOPES = defineSecret('ADOBE_SCOPES');
 const EASTER_EGG_MAILGUN_API_KEY = defineSecret('EASTER_EGG_MAILGUN_API_KEY');
 const EASTER_EGG_MAILGUN_DOMAIN = defineSecret('EASTER_EGG_MAILGUN_DOMAIN');
 
+/**
+ * Context7 API key — used by clientJourneyV2Generate to fetch curated
+ * Adobe Experience League capability snippets for the system prompt.
+ * Provision once with: `firebase functions:secrets:set CONTEXT7_API_KEY`
+ * (paste at the prompt — never on the command line, never in any file).
+ * The key is read only via .value() inside a request handler.
+ */
+const CONTEXT7_API_KEY = defineSecret('CONTEXT7_API_KEY');
+
 /** Default Platform sandbox; override at deploy: `ADOBE_SANDBOX_NAME=other firebase deploy` or edit this constant. */
 const DEFAULT_ADOBE_SANDBOX = 'apalmer';
 const RESOLVED_ADOBE_SANDBOX = String(
@@ -71,6 +80,7 @@ const brandScraperService = lazyRequireMod('./brandScraperService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
 const clientJourneyAssetService = lazyRequireMod('./clientJourneyAssetService');
+const clientJourneyAssetV2Service = lazyRequireMod('./clientJourneyAssetV2Service');
 const demoUseCaseAssetService = lazyRequireMod('./demoUseCaseAssetService');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
@@ -3289,6 +3299,61 @@ exports.clientJourneyPptx = onRequest(
     setCors(res, 'POST, OPTIONS');
     res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
     await clientJourneyAssetService.handlePptx(req, res);
+  }
+);
+
+/**
+ * POST clientJourneyV2Generate
+ * Body: { client, clientDomain?, brandColor, journeyType?, personaName?,
+ *         personaGender?, marketerPersonaName?, tier ('Foundation'|'Advanced'),
+ *         techStack?, additionalContext? }
+ * Returns: { ok, meta, journey, html, sources, log }
+ *
+ * v2 Client Journey Asset — independent baseline. Calls Vertex AI Gemini in
+ * JSON mode with Google Search grounding for client tech-stack research,
+ * pre-fetches Adobe Experience League capability snippets from Context7
+ * (24h Firestore cache, static-summary fallback), then renders the standalone
+ * interactive HTML journey. The PPTX one-pager is rendered separately by
+ * clientJourneyV2Pptx so the long Vertex call doesn't block the binary.
+ *
+ * Long-running: 60–180s typical. The Hosting rewrite caps proxied requests
+ * at 60s, so the v2 page invokes this function via its direct Cloud Function
+ * URL (the /api/client-journey-v2/generate rewrite exists for curl debugging
+ * but the browser never hits it).
+ */
+exports.clientJourneyV2Generate = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    secrets: [CONTEXT7_API_KEY],
+    timeoutSeconds: 540,
+    memory: '1GiB',
+  },
+  async (req, res) => {
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await clientJourneyAssetV2Service.handleGenerate(req, res, {
+      contextSevenKey: CONTEXT7_API_KEY.value(),
+    });
+  }
+);
+
+/**
+ * POST /api/client-journey-v2/pptx
+ * Body: the journey JSON returned by clientJourneyV2Generate (or `{ journey }`
+ * wrapping it). Re-validates the schema before rendering to keep tampered
+ * round-trips from crashing the renderer.
+ * Returns: binary application/vnd.openxmlformats-officedocument.presentationml.presentation
+ */
+exports.clientJourneyV2Pptx = onRequest(
+  {
+    region: REGION,
+    invoker: 'public',
+    timeoutSeconds: 60,
+    memory: '512MiB',
+  },
+  async (req, res) => {
+    res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+    await clientJourneyAssetV2Service.handlePptx(req, res);
   }
 );
 
