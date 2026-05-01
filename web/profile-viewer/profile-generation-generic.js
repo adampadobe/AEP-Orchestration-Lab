@@ -756,12 +756,12 @@
     const preferredRaw = preferredChannelEl ? String(preferredChannelEl.value || '').trim() : '';
     if (preferredRaw !== '') push('consents.marketing.preferred', preferredRaw);
 
-    // Standalone Language card — maps to `personalEmail.language` and
-    // `preferences.preferredLanguage` (XDM root paths).
+    // Standalone Language card — canonical BCP-47 on `preferences.preferredLanguage`
+    // (profile-preferences-details); mirror to `personalEmail.language`.
     const lang = languageEl ? trimVal(languageEl) : '';
     if (lang) {
-      push('personalEmail.language', lang);
       push('preferences.preferredLanguage', lang);
+      push('personalEmail.language', lang);
     }
 
     // Person.gender — root via PROFILE_STREAM_ROOT_PATH_PREFIXES

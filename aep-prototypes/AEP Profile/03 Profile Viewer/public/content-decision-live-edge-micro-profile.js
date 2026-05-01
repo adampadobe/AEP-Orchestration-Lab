@@ -282,25 +282,29 @@
     return out.join('-');
   }
 
-  /** One merged profile slice / sub-object — all paths we read for language. */
+  /**
+   * One slice — read BCP-47 locale for the micro-panel.
+   * Prefer `preferences.preferredLanguage` (profile-preferences-details mixin)
+   * over `personalEmail.language`; keep marketing consent language last.
+   */
   function readLanguageFromSlice(sl) {
     if (!sl || typeof sl !== 'object') return '';
-    var rootPref = coerceLanguageScalar(sl.preferredLanguage);
-    if (rootPref) return rootPref;
-    var m0 = sl.consents && sl.consents.marketing;
-    if (m0 && typeof m0 === 'object') {
-      var fromM0 = coerceLanguageScalar(m0.preferredLanguage);
-      if (fromM0) return fromM0;
+    var pr = sl.preferences;
+    if (pr && typeof pr === 'object') {
+      var fromPr = coerceLanguageScalar(pr.preferredLanguage);
+      if (fromPr) return fromPr;
     }
     var pe = sl.personalEmail;
     if (pe && typeof pe === 'object') {
       var fromPe = coerceLanguageScalar(pe.language);
       if (fromPe) return fromPe;
     }
-    var pr = sl.preferences;
-    if (pr && typeof pr === 'object') {
-      var fromPr = coerceLanguageScalar(pr.preferredLanguage);
-      if (fromPr) return fromPr;
+    var rootPref = coerceLanguageScalar(sl.preferredLanguage);
+    if (rootPref) return rootPref;
+    var m0 = sl.consents && sl.consents.marketing;
+    if (m0 && typeof m0 === 'object') {
+      var fromM0 = coerceLanguageScalar(m0.preferredLanguage);
+      if (fromM0) return fromM0;
     }
     var pc = sl.person && sl.person.communication;
     if (pc && typeof pc === 'object') {
@@ -786,8 +790,8 @@
       }
     }
     if (form.language && !strEq(form.language, base.language)) {
-      updates.push({ path: 'personalEmail.language', value: form.language });
       updates.push({ path: 'preferences.preferredLanguage', value: form.language });
+      updates.push({ path: 'personalEmail.language', value: form.language });
     }
     return updates;
   }
