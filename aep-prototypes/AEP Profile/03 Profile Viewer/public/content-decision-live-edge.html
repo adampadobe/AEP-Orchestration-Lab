@@ -1225,6 +1225,22 @@
       text-transform: uppercase;
       color: var(--dash-muted);
     }
+    .cd-hero-rail .cd-micro-profile-id {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      padding: 0.4rem 0.5rem;
+      background: var(--dash-surface-alt);
+      border: 1px solid var(--dash-border);
+      border-radius: var(--dash-radius-sm);
+      color: var(--dash-text-secondary);
+      font-size: 0.7rem;
+      word-break: break-word;
+    }
+    .cd-hero-rail .cd-micro-profile-id strong {
+      color: var(--dash-text);
+      font-weight: 600;
+    }
     .cd-hero-rail .cd-micro-profile-field {
       display: flex;
       flex-direction: column;
@@ -1336,6 +1352,49 @@
             </button>
             <section class="cd-micro-profile" id="cdMicroProfilePanel" aria-label="Micro profile editor">
               <h3 class="cd-micro-profile-title">Tweak profile</h3>
+              <div class="cd-micro-profile-id" id="cdMicroProfileIdentity">
+                <span>Editing: <strong id="cdMicroProfileIdLabel">—</strong></span>
+                <span>ECID: <strong id="cdMicroProfileEcid">—</strong></span>
+                <span>Streaming key email: <strong id="cdMicroProfileStreamingEmail">—</strong></span>
+              </div>
+              <div class="cd-micro-profile-field">
+                <div class="cd-micro-profile-range-row">
+                  <label for="cdMicroProfileChurn">Churn risk</label>
+                  <strong id="cdMicroProfileChurnValue">0.50</strong>
+                </div>
+                <input type="range" id="cdMicroProfileChurn" min="0" max="1" step="0.05" value="0.5">
+              </div>
+              <div class="cd-micro-profile-field">
+                <div class="cd-micro-profile-range-row">
+                  <label for="cdMicroProfilePropensity">Propensity score</label>
+                  <strong id="cdMicroProfilePropensityValue">0.50</strong>
+                </div>
+                <input type="range" id="cdMicroProfilePropensity" min="0" max="1" step="0.05" value="0.5">
+              </div>
+              <div class="cd-micro-profile-field">
+                <div class="cd-micro-profile-range-row">
+                  <label for="cdMicroProfileOrderValue">Order value</label>
+                  <strong id="cdMicroProfileOrderValueDisplay">$500</strong>
+                </div>
+                <input type="range" id="cdMicroProfileOrderValue" min="0" max="5000" step="50" value="500">
+              </div>
+              <div class="cd-micro-profile-field">
+                <label for="cdMicroProfileNps">NPS score</label>
+                <select id="cdMicroProfileNps">
+                  <option value="">— Unchanged —</option>
+                  <option value="0">0 — Detractor</option>
+                  <option value="1">1 — Detractor</option>
+                  <option value="2">2 — Detractor</option>
+                  <option value="3">3 — Detractor</option>
+                  <option value="4">4 — Detractor</option>
+                  <option value="5">5 — Detractor</option>
+                  <option value="6">6 — Detractor</option>
+                  <option value="7">7 — Passive</option>
+                  <option value="8">8 — Passive</option>
+                  <option value="9">9 — Promoter</option>
+                  <option value="10">10 — Promoter</option>
+                </select>
+              </div>
               <div class="cd-micro-profile-field">
                 <label for="cdMicroProfileTier">Loyalty tier</label>
                 <select id="cdMicroProfileTier">
@@ -1353,6 +1412,21 @@
                 <input type="range" id="cdMicroProfilePoints" min="0" max="10000" step="100" value="3000">
               </div>
               <div class="cd-micro-profile-field">
+                <label for="cdMicroProfileLanguage">Language preference</label>
+                <select id="cdMicroProfileLanguage">
+                  <option value="">— Unchanged —</option>
+                  <option value="en-GB">English (United Kingdom)</option>
+                  <option value="en-US">English (United States)</option>
+                  <option value="fr-FR">French (France)</option>
+                  <option value="de-DE">German (Germany)</option>
+                  <option value="es-ES">Spanish (Spain)</option>
+                  <option value="it-IT">Italian (Italy)</option>
+                  <option value="pt-BR">Portuguese (Brazil)</option>
+                  <option value="nl-NL">Dutch (Netherlands)</option>
+                  <option value="ja-JP">Japanese (Japan)</option>
+                </select>
+              </div>
+              <div class="cd-micro-profile-field">
                 <label for="cdMicroProfileChannel">Preferred channel</label>
                 <select id="cdMicroProfileChannel">
                   <option value="email">Email</option>
@@ -1360,13 +1434,6 @@
                   <option value="sms">SMS</option>
                   <option value="inapp">In-app</option>
                 </select>
-              </div>
-              <div class="cd-micro-profile-field">
-                <div class="cd-micro-profile-range-row">
-                  <label for="cdMicroProfilePropensity">Propensity score</label>
-                  <strong id="cdMicroProfilePropensityValue">0.50</strong>
-                </div>
-                <input type="range" id="cdMicroProfilePropensity" min="0" max="1" step="0.05" value="0.5">
               </div>
               <div class="cd-micro-profile-actions">
                 <button type="button" class="cd-micro-profile-apply" id="cdMicroProfileApply">Apply</button>
