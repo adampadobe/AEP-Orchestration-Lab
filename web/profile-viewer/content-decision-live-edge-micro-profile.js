@@ -169,13 +169,13 @@
     if (form.propensity != null && form.propensity !== '') {
       var pr = Number(form.propensity);
       if (!Number.isNaN(pr)) {
-        updates.push({ path: 'scoring.core.propensityScore', value: pr });
+        updates.push({ path: 'scoring.core.propensityScore', value: Math.round(pr) });
       }
     }
     if (form.churn != null && form.churn !== '') {
       var ch = Number(form.churn);
       if (!Number.isNaN(ch)) {
-        updates.push({ path: 'scoring.churn.churnPrediction', value: ch });
+        updates.push({ path: 'scoring.churn.churnPrediction', value: Math.round(ch) });
       }
     }
     if (form.orderValue != null && form.orderValue !== '') {
@@ -206,10 +206,10 @@
     else if (kind === 'ok') el.classList.add('is-ok');
   }
 
-  function formatPropensity(v) {
+  function formatIntScore(v) {
     var n = Number(v);
-    if (Number.isNaN(n)) return '0.00';
-    return n.toFixed(2);
+    if (Number.isNaN(n)) return '0';
+    return String(Math.round(n));
   }
 
   function formatPoints(v) {
@@ -329,14 +329,14 @@
     var pr = $('cdMicroProfilePropensity');
     var prLabel = $('cdMicroProfilePropensityValue');
     if (pr && prLabel) {
-      var syncPr = function () { prLabel.textContent = formatPropensity(pr.value); };
+      var syncPr = function () { prLabel.textContent = formatIntScore(pr.value); };
       pr.addEventListener('input', syncPr);
       syncPr();
     }
     var ch = $('cdMicroProfileChurn');
     var chLabel = $('cdMicroProfileChurnValue');
     if (ch && chLabel) {
-      var syncCh = function () { chLabel.textContent = formatPropensity(ch.value); };
+      var syncCh = function () { chLabel.textContent = formatIntScore(ch.value); };
       ch.addEventListener('input', syncCh);
       syncCh();
     }
