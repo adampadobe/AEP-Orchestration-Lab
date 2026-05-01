@@ -8,6 +8,7 @@
  *  - Plain-email-to-pattern scaler `<local>+DDMMYYYY-N@<domain>` with daily counter per (sandbox, base email).
  *  - Find existing profile by scaled email (`/api/profile/table`).
  *  - Update / generate-N profiles via the existing Adobe Profile Updater (`/api/profile/update`).
+ *  - Generate rolls a fresh random persona (name, gender, analytics, channel, language; loyalty when enabled) per profile.
  *
  * Sandbox is read from the global `AepGlobalSandbox` so the section follows the page's sandbox switcher.
  */
@@ -524,6 +525,94 @@
     }
   }
 
+  function randomPick(arr) {
+    if (!arr || !arr.length) return '';
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  /** Non-placeholder `<option value="">` values from a `<select>`. */
+  function selectNonEmptyValues(selectEl) {
+    if (!selectEl || !selectEl.options) return [];
+    const out = [];
+    for (let i = 0; i < selectEl.options.length; i++) {
+      const v = selectEl.options[i].value;
+      if (v !== '') out.push(v);
+    }
+    return out;
+  }
+
+  function randomizeSliderControl(el) {
+    if (!el) return;
+    const min = parseFloat(el.min || '0');
+    const max = parseFloat(el.max || '100');
+    const step = parseFloat(el.step || '1') || 1;
+    const span = max - min;
+    const rand = min + Math.random() * span;
+    el.value = String(Math.round(rand / step) * step);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  /** First names loosely aligned with `person.gender` for believable demo personas. */
+  const RANDOM_MALE_FIRST = [
+    'James', 'Michael', 'Robert', 'David', 'Daniel', 'Matthew', 'Ryan', 'Kevin', 'Brian', 'Jason',
+    'Eric', 'Thomas', 'William', 'John', 'Christopher', 'Andrew', 'Steven', 'Adam', 'Marcus', 'Omar',
+  ];
+  const RANDOM_FEMALE_FIRST = [
+    'Emma', 'Olivia', 'Sophia', 'Isabella', 'Mia', 'Charlotte', 'Amelia', 'Harper', 'Evelyn', 'Luna',
+    'Grace', 'Chloe', 'Victoria', 'Aria', 'Zoey', 'Natalie', 'Hannah', 'Sarah', 'Priya', 'Yuki',
+  ];
+  const RANDOM_NEUTRAL_FIRST = [
+    'Alex', 'Jordan', 'Taylor', 'Casey', 'Riley', 'Morgan', 'Jamie', 'Quinn', 'Avery', 'Skyler',
+    'Reese', 'Cameron', 'Remi', 'Rowan', 'Phoenix', 'Sam', 'Dakota', 'Blake', 'Eden', 'Sage',
+  ];
+  const RANDOM_LAST_NAMES = [
+    'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez',
+    'Lee', 'Kim', 'Patel', 'Cohen', 'Okafor', 'Silva', 'Andersen', 'Nielsen', 'Kowalski', 'Tanaka',
+    'Nguyen', 'Khan', 'Lopez', 'Thompson', 'Murphy', "O'Brien", 'Bernhardt', 'Rossi', 'Santos', 'Chen',
+    'Walsh', 'Fernandez', 'Okonkwo', 'Hassan', 'Park', 'Ito', 'Muller', 'Dubois', 'van Dijk', 'Reyes',
+  ];
+
+  function randomFirstNameForGender(genderVal) {
+    const g = String(genderVal || '').toLowerCase();
+    if (g === 'male') return randomPick(RANDOM_MALE_FIRST);
+    if (g === 'female') return randomPick(RANDOM_FEMALE_FIRST);
+    return randomPick(RANDOM_NEUTRAL_FIRST);
+  }
+
+  /**
+   * Fills Identity + Customer Analytics (and loyalty when enabled) with one random persona.
+   * Called before each profile in Generate-N so every scaled email gets distinct demo data.
+   */
+  function applyRandomCustomerPersonaForGenerate() {
+    const genderChoices = selectNonEmptyValues(genderEl);
+    const gender = genderChoices.length ? randomPick(genderChoices) : '';
+    if (genderEl && gender) genderEl.value = gender;
+
+    if (firstNameEl) firstNameEl.value = randomFirstNameForGender(gender);
+    if (lastNameEl) lastNameEl.value = randomPick(RANDOM_LAST_NAMES);
+
+    randomizeSliderControl(churnEl);
+    randomizeSliderControl(propensityEl);
+    randomizeSliderControl(aovEl);
+
+    const npsChoices = selectNonEmptyValues(npsEl);
+    if (npsEl && npsChoices.length) npsEl.value = randomPick(npsChoices);
+
+    const prefChoices = selectNonEmptyValues(preferredChannelEl);
+    if (preferredChannelEl && prefChoices.length) preferredChannelEl.value = randomPick(prefChoices);
+
+    const langChoices = selectNonEmptyValues(languageEl);
+    if (languageEl && langChoices.length) languageEl.value = randomPick(langChoices);
+
+    if (loyaltyEnabledEl && loyaltyEnabledEl.checked) {
+      const tierChoices = selectNonEmptyValues(loyaltyTierEl);
+      if (loyaltyTierEl && tierChoices.length) loyaltyTierEl.value = randomPick(tierChoices);
+      const tier = loyaltyTierEl ? trimVal(loyaltyTierEl) : '';
+      if (loyaltyPointsEl) loyaltyPointsEl.value = String(randomLoyaltyPointsForTier(tier));
+      if (loyaltyIDEl) loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`;
+    }
+  }
+
   /**
    * Build the `updates: [{path, value}]` array for /api/profile/update.
    * Empty / unset fields are skipped (so we never overwrite existing profile data with defaults).
@@ -990,11 +1079,6 @@
     }
     const streaming = ensureStreamingReady();
     if (!streaming) return;
-    const updates = buildUpdatesFromForm();
-    if (!updates.length) {
-      setMessage(messageEl, 'Add at least one Customer Analytics field before generating.', 'warning');
-      return;
-    }
     const count = Math.max(1, Math.min(100, parseInt(generateCountEl.value || '1', 10) || 1));
     const dryRun = !!(dryRunEl && dryRunEl.checked);
 
@@ -1013,6 +1097,12 @@
         }
         lastEmail = email;
         try {
+          applyRandomCustomerPersonaForGenerate();
+          const updates = buildUpdatesFromForm();
+          if (!updates.length) {
+            lastError = 'Could not build profile fields after randomization — check form configuration.';
+            break;
+          }
           const { res, data } = await postProfileUpdate(email, updates, streaming, dryRun);
           if (!res.ok) {
             lastError = data.error || `HTTP ${res.status}`;
@@ -1022,7 +1112,7 @@
           // Record in the per-(sandbox, base, day) recent picker so the user
           // can reload this exact profile to inspect or modify it later.
           // Skip dry runs — they didn't actually create anything in AEP.
-          if (!dryRun) recordGenerated(email, n);
+          if (!dryRun) recordGenerated(email, n, snapshotForm());
         } catch (e) {
           lastError = e.message || 'Network error';
           break;
@@ -1096,13 +1186,15 @@
     }
   }
 
-  function recordGenerated(scaledEmail, n) {
+  function recordGenerated(scaledEmail, n, snapshotOverride) {
     if (!scaledEmail) return;
+    const snap =
+      snapshotOverride && typeof snapshotOverride === 'object' ? snapshotOverride : snapshotForm();
     const entry = {
       scaledEmail,
       n: Number.isFinite(n) ? n : null,
       ts: Date.now(),
-      snapshot: snapshotForm(),
+      snapshot: snap,
     };
     const next = [entry, ...readRecent().filter((e) => e && e.scaledEmail !== scaledEmail)];
     writeRecent(next);
@@ -1270,13 +1362,7 @@
     btn.addEventListener('click', () => {
       const target = document.getElementById(btn.getAttribute('data-target') || '');
       if (!target) return;
-      const min = parseFloat(target.min || '0');
-      const max = parseFloat(target.max || '100');
-      const step = parseFloat(target.step || '1') || 1;
-      const span = max - min;
-      const rand = min + Math.random() * span;
-      target.value = String(Math.round(rand / step) * step);
-      target.dispatchEvent(new Event('input', { bubbles: true }));
+      randomizeSliderControl(target);
     });
   });
   if (loyaltyRandomBtn && loyaltyTierEl && loyaltyPointsEl) {
