@@ -149,39 +149,6 @@
               <p class="dashboard-panel-lead">AEP Profile Viewer — local companion for Real-Time CDP profile inspection, consent, and journey tooling.</p>
               <p class="dashboard-panel-text">Use the sidebar to jump between tools. Your server <code class="dashboard-code">localhost:3333</code> proxies AEP APIs using environment credentials.<button type="button" class="map-egg-speck" data-map-egg-flavor="home" title="" aria-label="A stray ink dot on the margin"></button></p>
             </section>
-            <section class="dashboard-panel">
-              <h3 class="dashboard-panel-title">Quick paths</h3>
-              <ul class="dashboard-link-list">
-                <li class="dashboard-link-list-heading">Top</li>
-                <li><a href="global-settings.html">Global values</a></li>
-                <li class="dashboard-link-list-heading">Profiles</li>
-                <li><a href="index.html">Profile Viewer</a></li>
-                <li><a href="schema-viewer.html">Data viewer</a></li>
-                <li><a href="audience-membership.html">Audience</a></li>
-                <li data-aep-nav-sidebar-hide-key="profileGeneration"><a href="profile-generation.html">Profile generation</a></li>
-                <li><a href="consent.html">Consent</a></li>
-                <li class="dashboard-link-list-heading">Decisioning</li>
-                <li data-aep-nav-indev-li="decisioningLab"><a href="content-decision-live.html">Decisioning lab (in development)</a></li>
-                <li data-aep-nav-sidebar-hide-key="decisioningLabEdge"><a href="content-decision-live-edge.html">Decisioning lab (Edge)</a></li>
-                <li><a href="decisioning-catalog.html">Decisioning catalog</a></li>
-                <li><a href="decisioning-visualiser.html">Decisioning visualiser</a></li>
-                <li class="dashboard-link-list-heading">Architecture</li>
-                <li data-aep-nav-indev-li="aepArchitectureApps"><a href="aep-architecture-apps.html">AEP &amp; Apps (in development)</a></li>
-                <li data-aep-nav-indev-li="agenticLayerArchitectureV2"><a href="agentic-ai-v2.html">Agentic layer</a></li>
-                <li data-aep-nav-indev-li="architectureEndToEnd"><a href="architecture-end-to-end.html">Adobe integration flow (in development)</a></li>
-                <li class="dashboard-link-list-heading">Tools</li>
-                <li><a href="journeys.html">Journeys</a></li>
-                <li><a href="event-tool.html">Event tool</a></li>
-                <li><a href="webhooks.html">Webhooks</a></li>
-                <li><a href="live-activities.html">Live activities</a></li>
-                <li><a href="firebase-database.html">Real-time database</a></li>
-                <li><a href="audit-events.html">Audit events</a></li>
-                <li class="dashboard-link-list-heading home-demos-only" hidden>Demos</li>
-                <li class="home-demos-only" hidden><a href="donate-demo.html">Donate (demo)</a></li>
-                <li class="home-demos-only" hidden><a href="race-for-life-demo.html">Race for Life (demo)</a></li>
-                <li class="home-demos-only" hidden><a href="navigator-global-demo.html">Navigator Global (demo)</a></li>
-              </ul>
-            </section>
           </div>
           <div class="dashboard-lower-col">
             <div class="dashboard-info-banner" role="note">
@@ -207,60 +174,6 @@
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="home-layout.js?v=20260416a"></script>
   <script defer src="aep-lab-nav.js?v=20260418-architecture-e2e"></script>
-  <script>
-    (function () {
-      function syncHomeDemos() {
-        try {
-          var api = window.AepNavInDev;
-          var show = api && typeof api.shouldShowDemosMenu === 'function' && api.shouldShowDemosMenu();
-          document.querySelectorAll('.home-demos-only').forEach(function (el) {
-            if (show) el.removeAttribute('hidden');
-            else el.setAttribute('hidden', '');
-          });
-        } catch (e) {}
-      }
-      function syncHomeInDevLinks() {
-        try {
-          var api = window.AepNavInDev;
-          if (!api || typeof api.shouldShowMenuItem !== 'function') return;
-          document.querySelectorAll('[data-aep-nav-indev-li]').forEach(function (li) {
-            var key = li.getAttribute('data-aep-nav-indev-li');
-            li.hidden = !api.shouldShowMenuItem(key);
-          });
-        } catch (e) {}
-      }
-      function syncHomeSidebarHideKeys() {
-        try {
-          var api = window.AepNavInDev;
-          if (!api || typeof api.isNavInDevHidden !== 'function') return;
-          document.querySelectorAll('[data-aep-nav-sidebar-hide-key]').forEach(function (li) {
-            var key = li.getAttribute('data-aep-nav-sidebar-hide-key');
-            li.hidden = api.isNavInDevHidden(key);
-          });
-        } catch (e) {}
-      }
-      function syncHome() {
-        syncHomeDemos();
-        syncHomeInDevLinks();
-        syncHomeSidebarHideKeys();
-      }
-      document.addEventListener('DOMContentLoaded', syncHome);
-      syncHomeDemos();
-      window.addEventListener('aep-global-sandbox-change', syncHome);
-      window.addEventListener('aep-nav-indev-visibility-change', syncHome);
-      window.addEventListener('storage', function (e) {
-        if (!e.key) return;
-        if (e.key === 'aepGlobalSandboxName') syncHome();
-        if (
-          e.key.indexOf('aepNavHideInDev_') === 0 ||
-          e.key.indexOf('aepShowInDevCapabilities_') === 0 ||
-          e.key === 'aepHideDataViewerDecisioningPlayground'
-        ) {
-          syncHome();
-        }
-      });
-    })();
-  </script>
   <script defer src="marauders-map-egg.js?v=20260420"></script>
 </body>
 </html>
