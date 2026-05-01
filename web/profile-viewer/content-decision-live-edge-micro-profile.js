@@ -235,11 +235,26 @@
     return '';
   }
 
-  /** Underscore locale tags (en_US) → hyphen (en-US) so <option value="en-US"> matches. */
+  /**
+   * BCP-47-ish cleanup for language <select>: underscores → hyphens, primary
+   * language lowercased, 2-letter region uppercased so values align with
+   * #genLanguage in profile-generation.html (matches findOptionValueLoose).
+   */
   function normalizeLanguageTagForSelect(s) {
-    var t = String(s || '').trim();
+    var t = String(s || '').trim().replace(/_/g, '-');
     if (!t) return '';
-    return t.replace(/_/g, '-');
+    var parts = t.split('-').filter(function (seg) { return !!seg; });
+    if (!parts.length) return '';
+    var out = [parts[0].toLowerCase()];
+    for (var i = 1; i < parts.length; i++) {
+      var seg = parts[i];
+      if (seg.length === 2 && /^[A-Za-z]{2}$/.test(seg)) {
+        out.push(seg.toUpperCase());
+      } else {
+        out.push(seg);
+      }
+    }
+    return out.join('-');
   }
 
   /** One merged profile slice / sub-object — all paths we read for language. */
@@ -487,6 +502,27 @@
     return '';
   }
 
+  /**
+   * Same idea as profile-generation-generic.js setSelectValueLoose: exact value,
+   * case-insensitive value, then case-insensitive option label (UPS sometimes
+   * echoes display text).
+   */
+  function findOptionValueLoose(select, raw) {
+    if (!select || raw == null || raw === '') return '';
+    var want = String(raw).trim();
+    if (!want) return '';
+    var matched = findOptionValueCaseInsensitive(select, want);
+    if (matched) return matched;
+    var wantLo = want.toLowerCase();
+    var o = select.options;
+    for (var k = 0; k < o.length; k++) {
+      if (!o[k].value) continue;
+      var lab = String(o[k].textContent || '').trim().toLowerCase();
+      if (lab && lab === wantLo) return o[k].value;
+    }
+    return '';
+  }
+
   function setSelectFromProfileValue(select, raw, labelPrefix) {
     stripUpsInjectedOptions(select);
     if (!select) return;
@@ -499,7 +535,12 @@
       select.value = '';
       return;
     }
-    var matched = findOptionValueCaseInsensitive(select, str);
+    if (select.id === 'cdMicroProfileLanguage') {
+      str = normalizeLanguageTagForSelect(str);
+    }
+    var matched = select.id === 'cdMicroProfileLanguage'
+      ? findOptionValueLoose(select, str)
+      : findOptionValueCaseInsensitive(select, str);
     if (matched) {
       select.value = matched;
       return;
@@ -571,12 +612,6 @@
     var lang = readLanguageFromEntity(entity);
     var langEl = $('cdMicroProfileLanguage');
     setSelectFromProfileValue(langEl, lang, lang);
-    if (langEl && String(lang || '').trim() && !String(langEl.value || '').trim()) {
-      var lq = String(lang).trim();
-      stripUpsInjectedOptions(langEl);
-      injectUpsOption(langEl, lq, lq + ' (from profile)');
-      langEl.value = lq;
-    }
 
     var chPref = readPreferredChannelFromEntity(entity);
     setSelectFromProfileValue($('cdMicroProfileChannel'), chPref, chPref);
