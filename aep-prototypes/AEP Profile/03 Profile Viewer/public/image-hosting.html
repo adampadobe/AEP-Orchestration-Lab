@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="brand-scraper.css?v=20260420a">
-  <link rel="stylesheet" href="image-hosting.css?v=20260430b">
+  <link rel="stylesheet" href="image-hosting.css?v=20260501a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -212,6 +212,23 @@
     </div>
   </dialog>
 
+  <dialog id="imageHostingConflictDialog" class="image-hosting-restore-dialog image-hosting-conflict-dialog" aria-labelledby="imageHostingConflictDialogTitle" aria-describedby="imageHostingConflictDialogDesc">
+    <div class="image-hosting-restore-dialog-inner">
+      <h3 id="imageHostingConflictDialogTitle">A file with that name already exists</h3>
+      <p id="imageHostingConflictDialogDesc" class="image-hosting-conflict-dialog-desc"></p>
+      <p class="image-hosting-restore-dialog-file" id="imageHostingConflictDialogPath"></p>
+      <label class="image-hosting-conflict-dialog-applyall" id="imageHostingConflictDialogApplyAllWrap" hidden>
+        <input type="checkbox" id="imageHostingConflictDialogApplyAll" />
+        Apply this choice to remaining conflicts in this batch
+      </label>
+      <div class="image-hosting-conflict-dialog-actions">
+        <button type="button" id="imageHostingConflictDialogReplace" class="dashboard-btn-primary">Replace existing</button>
+        <button type="button" id="imageHostingConflictDialogVersion" class="dashboard-btn-outline">Save as new version</button>
+        <button type="button" id="imageHostingConflictDialogCancel" class="dashboard-btn-outline">Cancel</button>
+      </div>
+    </div>
+  </dialog>
+
   <script src="firebase-database-config.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -220,6 +237,6 @@
   <script src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260420a"></script>
   <script src="aep-lab-nav.js?v=20260423-demos-bc"></script>
-  <script src="image-hosting.js?v=20260430b"></script>
+  <script src="image-hosting.js?v=20260501a"></script>
 </body>
 </html>

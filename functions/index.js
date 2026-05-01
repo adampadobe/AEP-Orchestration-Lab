@@ -3545,11 +3545,23 @@ exports.imageHostingLibrary = onRequest(
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const files = Array.isArray(body.files) ? body.files : [];
         if (!files.length) { res.status(400).json({ error: 'files[] is required' }); return; }
+        // onConflict: 'error' | 'replace' | 'version'. Honoured for
+        // keep-filename uploads (auto-classifier path always
+        // auto-suffixes — see resolveTargetName for the rationale).
+        const onConflictRaw = String(body.onConflict || '').toLowerCase();
+        const onConflict = (onConflictRaw === 'replace' || onConflictRaw === 'version' || onConflictRaw === 'error')
+          ? onConflictRaw
+          : undefined; // let uploadSingleFile pick the right default
         const result = await imageHostingLibrary.batchUpload(sandbox, files, {
           replace: !!body.replace,
           keepFilename: !!body.keepFilename,
           convertToPng: body.convertToPng !== undefined ? !!body.convertToPng : true,
+          onConflict,
         });
+        // Conflicts are NOT errors — they're a state the UI needs to
+        // resolve via a prompt. Use 200 so the client can surface the
+        // conflicts list and re-submit per-file with the chosen mode.
+        // (Errors and uploaded items are also still returned.)
         res.status(200).json({ sandbox, ...result });
         return;
       }
@@ -3619,8 +3631,30 @@ exports.imageHostingLibrary = onRequest(
           res.status(400).json({ error: 'relPath + newRelPath required' });
           return;
         }
-        const out = await imageHostingLibrary.renameLibraryObject(sandbox, body.relPath, body.newRelPath);
-        res.status(200).json({ sandbox, ...out });
+        const onConflictRaw = String(body.onConflict || '').toLowerCase();
+        const onConflict = (onConflictRaw === 'replace' || onConflictRaw === 'version')
+          ? onConflictRaw : 'error';
+        try {
+          const out = await imageHostingLibrary.renameLibraryObject(
+            sandbox, body.relPath, body.newRelPath, { onConflict }
+          );
+          res.status(200).json({ sandbox, ...out });
+        } catch (e) {
+          // Surface "target already exists" as a structured 409 with
+          // the suggested versioned name so the UI can prompt the user
+          // to Replace / Save as <name>-1 / Cancel without a second
+          // round-trip to discover the next free slot.
+          if (e && e.code === 'TARGET_EXISTS') {
+            res.status(409).json({
+              error: e.message,
+              code: 'TARGET_EXISTS',
+              conflictingRelPath: e.conflictingRelPath,
+              suggestedVersionRelPath: e.suggestedVersionRelPath,
+            });
+            return;
+          }
+          throw e;
+        }
         return;
       }
 

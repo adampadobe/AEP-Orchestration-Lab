@@ -720,3 +720,38 @@
   cursor: pointer;
 }
 .image-hosting-backup-manual-link[hidden] { display: none; }
+
+/* Filename-conflict prompt: "A file already exists. Replace? Save as new version? Cancel?"
+ * Reuses .image-hosting-restore-dialog as the surface (border, radius, padding, backdrop)
+ * so the dialog matches the rest of the page without duplicated rules. */
+.image-hosting-conflict-dialog-desc {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--dash-text);
+}
+.image-hosting-conflict-dialog-desc strong {
+  font-weight: 600;
+  color: var(--dash-text);
+}
+.image-hosting-conflict-dialog-applyall {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary, var(--dash-muted));
+  cursor: pointer;
+  user-select: none;
+}
+.image-hosting-conflict-dialog-applyall[hidden] { display: none; }
+.image-hosting-conflict-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.4rem;
+  flex-wrap: wrap;
+}
+.image-hosting-conflict-dialog-actions .dashboard-btn-primary,
+.image-hosting-conflict-dialog-actions .dashboard-btn-outline {
+  min-width: 0;
+}
