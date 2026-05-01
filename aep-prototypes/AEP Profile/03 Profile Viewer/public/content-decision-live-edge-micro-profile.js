@@ -348,6 +348,7 @@
         syncTierDisplayFromSlider();
       }
     }
+    if (tierEl) applyLoyaltyTierSliderTint(tierEl);
   }
 
   function readPropensityFromEntity(entity) {
@@ -740,9 +741,16 @@
     { id: 'cdMicroProfileChurn', reverse: true },
     { id: 'cdMicroProfilePropensity', reverse: false },
     { id: 'cdMicroProfileOrderValue', reverse: false },
-    { id: 'cdMicroProfileTier', reverse: false },
     { id: 'cdMicroProfilePoints', reverse: false },
     { id: 'cdMicroProfileNps', reverse: false },
+  ];
+
+  /** Loyalty tier slider (0–3): bronze / silver / gold / platinum using dash tokens only. */
+  var TIER_SLIDER_COLORS = [
+    'color-mix(in srgb, var(--dash-error-border) 38%, var(--dash-warning-border))',
+    'color-mix(in srgb, var(--dash-muted) 45%, var(--dash-blue))',
+    'var(--dash-warning-border)',
+    'color-mix(in srgb, var(--dash-blue) 40%, var(--dash-info-text))',
   ];
 
   function pickSliderToken(pct, reverse) {
@@ -768,6 +776,23 @@
     input.style.setProperty('--cd-slider-pct', (pct * 100).toFixed(2) + '%');
   }
 
+  function applyLoyaltyTierSliderTint(el) {
+    if (!el) return;
+    if (el.disabled) {
+      el.style.setProperty('--cd-slider-fill', 'var(--dash-input-border)');
+      el.style.setProperty('--cd-slider-pct', '0%');
+      return;
+    }
+    var min = Number(el.min);
+    var max = Number(el.max);
+    var val = Number(el.value);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min || !Number.isFinite(val)) return;
+    var pct = Math.max(0, Math.min(1, (val - min) / (max - min)));
+    var ix = clamp(Math.round(val), 0, TIER_SLIDER_COLORS.length - 1);
+    el.style.setProperty('--cd-slider-fill', TIER_SLIDER_COLORS[ix]);
+    el.style.setProperty('--cd-slider-pct', (pct * 100).toFixed(2) + '%');
+  }
+
   function wireRangeMirrors() {
     var tierIn = $('cdMicroProfileTier');
     if (tierIn) {
@@ -777,6 +802,11 @@
       };
       tierIn.addEventListener('input', syncTierLbl);
       syncTierLbl();
+      var syncTierTint = function () {
+        applyLoyaltyTierSliderTint(tierIn);
+      };
+      tierIn.addEventListener('input', syncTierTint);
+      syncTierTint();
     }
     var pts = $('cdMicroProfilePoints');
     var ptsLabel = $('cdMicroProfilePointsValue');
