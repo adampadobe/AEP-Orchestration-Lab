@@ -70,12 +70,28 @@
 
   function clearEdgeMounts() {
     var wrap = document.getElementById('cdEdgeMounts');
-    if (!wrap) return;
-    var bodies = wrap.querySelectorAll('.cd-edge-mount-body');
-    for (var i = 0; i < bodies.length; i++) {
-      bodies[i].innerHTML = '';
-      bodies[i].classList.remove('cd-banner-wrap');
+    if (wrap) {
+      var bodies = wrap.querySelectorAll('.cd-edge-mount-body');
+      for (var i = 0; i < bodies.length; i++) {
+        bodies[i].innerHTML = '';
+        bodies[i].classList.remove('cd-banner-wrap');
+      }
     }
+    try {
+      if (typeof window.CdChannelPreview !== 'undefined' && window.CdChannelPreview.clearAllEmulatorMountBodies) {
+        window.CdChannelPreview.clearAllEmulatorMountBodies();
+      }
+    } catch (e) {}
+  }
+
+  function heroMountElementId() {
+    var prefix = '';
+    try {
+      if (window.CdChannelPreview && typeof window.CdChannelPreview.getMountIdPrefix === 'function') {
+        prefix = window.CdChannelPreview.getMountIdPrefix() || '';
+      }
+    } catch (e) {}
+    return 'cd-edge-' + prefix + 'hero';
   }
 
   function hydrateCdLiveEmailFromRecents() {
@@ -518,11 +534,12 @@ waitForAlloy()
     } catch (e) {
       cdLog('applyPropositions', String(e && e.message ? e.message : e));
     }
-    CdEdgeMounts.applyPropositionsManually(propositions);
     lastPropositionsArray = Array.isArray(propositions) ? propositions.slice() : [];
     try {
       if (typeof window.CdChannelPreview !== 'undefined' && window.CdChannelPreview.sync) {
         window.CdChannelPreview.sync(lastPropositionsArray);
+      } else if (typeof CdEdgeMounts !== 'undefined' && CdEdgeMounts.applyPropositionsManually) {
+        CdEdgeMounts.applyPropositionsManually(propositions);
       }
     } catch (e) {
       cdLog('CdChannelPreview.sync', String(e && e.message ? e.message : e));
@@ -615,13 +632,12 @@ waitForAlloy()
     }
     var result = await alloy('sendEvent', sendOpts);
     var propositionsOut = (result && (result.propositions || result.decisions)) || [];
-    if (typeof CdEdgeMounts !== 'undefined' && CdEdgeMounts.applyPropositionsManually) {
-      CdEdgeMounts.applyPropositionsManually(propositionsOut);
-    }
     lastPropositionsArray = Array.isArray(propositionsOut) ? propositionsOut.slice() : [];
     try {
       if (typeof window.CdChannelPreview !== 'undefined' && window.CdChannelPreview.sync) {
         window.CdChannelPreview.sync(lastPropositionsArray);
+      } else if (typeof CdEdgeMounts !== 'undefined' && CdEdgeMounts.applyPropositionsManually) {
+        CdEdgeMounts.applyPropositionsManually(propositionsOut);
       }
     } catch (e) {
       cdLog('CdChannelPreview.sync', String(e && e.message ? e.message : e));
@@ -636,11 +652,6 @@ waitForAlloy()
 
   async function runEdgePropositions(opts) {
     opts = opts || {};
-    if (typeof window.CdLabUi !== 'undefined' && window.CdLabUi.applyPlacementsToMountsModule) {
-      window.CdLabUi.applyPlacementsToMountsModule();
-    }
-    persistEdgeFields();
-    clearEdgeMounts();
     lastPropositionsArray = [];
     try {
       if (typeof window.CdChannelPreview !== 'undefined' && window.CdChannelPreview.sync) {
@@ -648,6 +659,18 @@ waitForAlloy()
       }
     } catch (e) {
       cdLog('CdChannelPreview.sync(clear)', String(e && e.message ? e.message : e));
+    }
+    if (typeof window.CdLabUi !== 'undefined' && window.CdLabUi.applyPlacementsToMountsModule) {
+      window.CdLabUi.applyPlacementsToMountsModule();
+    }
+    persistEdgeFields();
+    clearEdgeMounts();
+    try {
+      if (typeof window.CdChannelPreview !== 'undefined' && window.CdChannelPreview.sync) {
+        window.CdChannelPreview.sync([]);
+      }
+    } catch (e2) {
+      cdLog('CdChannelPreview.sync(clear)', String(e2 && e2.message ? e2.message : e2));
     }
     var mode =
       typeof window.CdLabUi !== 'undefined' && typeof window.CdLabUi.getEdgePersonalizationMode === 'function'
@@ -757,7 +780,7 @@ waitForAlloy()
   }
 
   function applyDefaultHeroBannerLayout() {
-    var wrap = document.getElementById('cd-edge-hero');
+    var wrap = document.getElementById(heroMountElementId());
     if (!wrap || wrap.hidden) return;
     var st = CD_BANNER_DEFAULTS;
     var banner = wrap.querySelector('.cd-banner');
@@ -801,7 +824,7 @@ waitForAlloy()
   }
 
   function renderJourneyContentDecisionBanner(jd) {
-    var wrap = document.getElementById('cd-edge-hero');
+    var wrap = document.getElementById(heroMountElementId());
     if (!wrap) return;
     wrap.innerHTML = '';
     wrap.classList.remove('cd-banner-wrap');
@@ -998,7 +1021,7 @@ waitForAlloy()
         }
       }
       var jd = journeyVisualFromEdgeResult(edgeResult);
-      var heroMount = document.getElementById('cd-edge-hero');
+      var heroMount = document.getElementById(heroMountElementId());
       if (jd && heroMount && !heroMount.querySelector('.cd-banner')) {
         renderJourneyContentDecisionBanner(withBannerImageCacheBust(jd));
         cdLog('Profile → Edge ✓ structured hero from Edge payload (mount was empty)');

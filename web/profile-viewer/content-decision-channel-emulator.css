@@ -1,13 +1,59 @@
 /**
- * Channel preview emulators (Decisioning lab Edge) — M1 web + mobile.
+ * Channel preview emulators (Decisioning lab Edge) — toolbar in rail, device chrome in main stage.
  * Colors: --dash-* only (inherits from home-dashboard-concierge).
  */
+
+.cd-edge-main-stage {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  gap: 0.75rem;
+}
+
+.cd-edge-mounts-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+}
+
+.cd-edge-main-stage.cd-edge-main-stage--channel-on .cd-edge-mounts-wrap {
+  display: none !important;
+}
+
+.cd-channel-emulator-host {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: none;
+  box-sizing: border-box;
+}
+
+.cd-edge-main-stage.cd-edge-main-stage--channel-on .cd-channel-emulator-host {
+  display: block;
+}
+
+.cd-ch-em-rail-host {
+  width: 100%;
+}
 
 .cd-ch-em-shell {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   width: 100%;
+}
+
+.cd-ch-em-shell--rail {
+  gap: 0.35rem;
 }
 
 .cd-ch-em-toolbar {
@@ -72,6 +118,16 @@
   overflow: auto;
 }
 
+.cd-channel-emulator-host .cd-ch-em-panel {
+  max-height: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
 .cd-ch-em-panel[hidden] {
   display: none !important;
 }
@@ -84,11 +140,13 @@
 .cd-ch-em-web-frame {
   margin: 0 auto;
   max-width: 100%;
+  width: 100%;
   border-radius: var(--dash-radius-sm);
   border: 1px solid var(--dash-border);
   background: var(--dash-surface);
   box-shadow: var(--dash-shadow);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .cd-ch-em-web-chrome {
@@ -133,6 +191,11 @@
   overflow: auto;
   padding: 0.45rem;
   background: var(--dash-bg);
+}
+
+.cd-channel-emulator-host .cd-ch-em-web-viewport {
+  max-height: min(72vh, 36rem);
+  overflow: auto;
 }
 
 /* Emulator mounts: compact variant of main mounts */
@@ -255,6 +318,11 @@
   padding: 0.35rem;
   border-radius: var(--dash-radius-sm);
   background: var(--dash-bg);
+}
+
+.cd-channel-emulator-host .cd-ch-em-mob-viewport {
+  max-height: min(68vh, 32rem);
+  overflow: auto;
 }
 
 .cd-ch-em-phone--android .cd-ch-em-mob-viewport {

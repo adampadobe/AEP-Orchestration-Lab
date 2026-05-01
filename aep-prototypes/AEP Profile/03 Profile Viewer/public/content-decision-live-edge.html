@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="home.css?v=20260423b">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="content-decision-live-edge-embed-fs.css?v=20260427-edge-embed-fs">
-  <link rel="stylesheet" href="content-decision-channel-emulator.css?v=20260501">
+  <link rel="stylesheet" href="content-decision-channel-emulator.css?v=20260501-main-stage">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
   <style>
@@ -1477,7 +1477,7 @@
             <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Fetch UPS profile, call Edge via Web SDK (Launch), render decisions into the preview areas below">
               Run content decision
             </button>
-            <div id="cdChannelPreviewShell"></div>
+            <div id="cdChannelPreviewShell" class="cd-ch-em-rail-host"></div>
             <section class="cd-micro-profile is-collapsed is-loyalty-disabled" id="cdMicroProfilePanel" aria-label="Tweak profile">
               <button type="button" class="cd-micro-profile-toggle" id="cdMicroProfileToggle" aria-expanded="false" aria-controls="cdMicroProfileBody">
                 <span class="cd-micro-profile-toggle-cluster">
@@ -1580,8 +1580,13 @@
             <p id="cdPipelineStatus" class="status" aria-live="polite"></p>
           </aside>
           <div class="cd-hero-main">
-            <div class="cd-edge-mounts" id="cdEdgeMounts" aria-label="Personalization mounts">
-              <!-- Filled by content-decision-live-edge-ui.js from placement rows (default: topRibbon, hero, contentCard). -->
+            <div id="cdEdgeMainStage" class="cd-edge-main-stage">
+              <div id="cdChannelEmulatorHost" class="cd-channel-emulator-host" hidden></div>
+              <div id="cdEdgeMountsWrap" class="cd-edge-mounts-wrap">
+                <div class="cd-edge-mounts" id="cdEdgeMounts" aria-label="Personalization mounts">
+                  <!-- Filled by content-decision-live-edge-ui.js from placement rows (default: topRibbon, hero, contentCard). -->
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1906,11 +1911,11 @@
   <script src="identity-picker.js"></script>
   <script src="content-decision-edge-mounts.js?v=20260501-channel-preview-root"></script>
   <script src="content-decision-lab-config.js?v=20260216"></script>
-  <script src="content-decision-live-edge-ui.js?v=20260501-placements-changed-ev"></script>
+  <script src="content-decision-live-edge-ui.js?v=20260501-main-stage-mount-prefix"></script>
   <script src="content-decision-live-edge-onboarding.js?v=20260424-edge-onboarding-query"></script>
   <script src="profile-streaming-shared.js"></script>
-  <script src="content-decision-live-edge-inline.js?v=20260501-channel-preview-sync"></script>
-  <script src="content-decision-channel-emulator.js?v=20260501"></script>
+  <script src="content-decision-live-edge-inline.js?v=20260501-main-stage-sync"></script>
+  <script src="content-decision-channel-emulator.js?v=20260501-main-stage"></script>
   <script src="content-decision-live-edge-micro-profile.js?v=20260501-micro-lang-hydrate"></script>
   <script src="content-decision-live-edge-embed-fs.js?v=20260427-edge-embed-fs"></script>
   <script defer src="marauders-map-egg.js?v=20260423-edge-flavor"></script>

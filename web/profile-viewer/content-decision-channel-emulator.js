@@ -1,5 +1,6 @@
 /**
- * Channel preview emulators (Decisioning lab Edge) — M1 web + mobile.
+ * Channel preview emulators (Decisioning lab Edge) — web + mobile in main stage;
+ * icon toolbar stays in the hero rail.
  * Depends on CdEdgeMounts (content-decision-edge-mounts.js). Loads after content-decision-live-edge-inline.js.
  */
 (function (global) {
@@ -50,6 +51,46 @@
       try {
         body.removeAttribute('hidden');
       } catch (e) {}
+    }
+  }
+
+  function clearMainPipelineMountBodies() {
+    var wrap = document.getElementById('cdEdgeMounts');
+    if (!wrap) return;
+    var bodies = wrap.querySelectorAll('.cd-edge-mount-body');
+    var i;
+    for (i = 0; i < bodies.length; i++) {
+      bodies[i].innerHTML = '';
+      bodies[i].classList.remove('cd-banner-wrap');
+    }
+  }
+
+  function clearAllEmulatorMountBodies() {
+    var webVp = document.getElementById('cdChEmWebViewport');
+    var mobVp = document.getElementById('cdChEmMobViewport');
+    if (webVp) clearBodiesInViewport(webVp, PREFIX_WEB);
+    if (mobVp) clearBodiesInViewport(mobVp, PREFIX_MOB);
+  }
+
+  function dispatchChannelChanged() {
+    try {
+      global.dispatchEvent(
+        new CustomEvent('cd-edge-channel-preview-changed', {
+          detail: { channel: openKind },
+        })
+      );
+    } catch (e) {}
+  }
+
+  function setMainStageChannelUi(active) {
+    var stage = document.getElementById('cdEdgeMainStage');
+    var host = document.getElementById('cdChannelEmulatorHost');
+    if (stage) {
+      stage.classList.toggle('cd-edge-main-stage--channel-on', !!active);
+    }
+    if (host) {
+      if (active) host.removeAttribute('hidden');
+      else host.setAttribute('hidden', '');
     }
   }
 
@@ -336,17 +377,51 @@
     CdEdgeMounts.applyPropositionsManually(cachedPropositions, { root: viewport, mountIdPrefix: prefix });
   }
 
+  function applyToMainMounts() {
+    var mainWrap = document.getElementById('cdEdgeMounts');
+    if (!mainWrap || typeof CdEdgeMounts === 'undefined' || !CdEdgeMounts.applyPropositionsManually) return;
+    if (!cachedPropositions.length) {
+      clearMainPipelineMountBodies();
+      return;
+    }
+    CdEdgeMounts.applyPropositionsManually(cachedPropositions, { root: mainWrap, mountIdPrefix: '' });
+  }
+
+  /**
+   * Single place to route proposition HTML into either the main pipeline mounts
+   * or the active channel emulator — never both visible at once.
+   */
   function sync(propositions) {
     cachedPropositions = Array.isArray(propositions) ? propositions.slice() : [];
     var webVp = document.getElementById('cdChEmWebViewport');
     var mobVp = document.getElementById('cdChEmMobViewport');
+
     if (!cachedPropositions.length) {
+      clearMainPipelineMountBodies();
       if (webVp) clearBodiesInViewport(webVp, PREFIX_WEB);
       if (mobVp) clearBodiesInViewport(mobVp, PREFIX_MOB);
       return;
     }
-    if (webVp) applyToViewport(webVp, PREFIX_WEB);
-    if (mobVp) applyToViewport(mobVp, PREFIX_MOB);
+
+    if (!openKind) {
+      if (webVp) clearBodiesInViewport(webVp, PREFIX_WEB);
+      if (mobVp) clearBodiesInViewport(mobVp, PREFIX_MOB);
+      applyToMainMounts();
+      return;
+    }
+
+    if (openKind === 'web') {
+      clearMainPipelineMountBodies();
+      if (mobVp) clearBodiesInViewport(mobVp, PREFIX_MOB);
+      applyToViewport(webVp, PREFIX_WEB);
+      return;
+    }
+
+    if (openKind === 'mobile') {
+      clearMainPipelineMountBodies();
+      if (webVp) clearBodiesInViewport(webVp, PREFIX_WEB);
+      applyToViewport(mobVp, PREFIX_MOB);
+    }
   }
 
   function setToolbarPressed(btnWeb, btnMob, kind) {
@@ -354,13 +429,24 @@
     if (btnMob) btnMob.setAttribute('aria-pressed', kind === 'mobile' ? 'true' : 'false');
   }
 
+  function getActiveChannel() {
+    return openKind;
+  }
+
+  function getMountIdPrefix() {
+    if (openKind === 'web') return PREFIX_WEB;
+    if (openKind === 'mobile') return PREFIX_MOB;
+    return '';
+  }
+
   function init() {
-    var host = document.getElementById('cdChannelPreviewShell');
-    if (!host || host.getAttribute('data-cd-ch-em-init') === '1') return;
-    host.setAttribute('data-cd-ch-em-init', '1');
+    var hostRail = document.getElementById('cdChannelPreviewShell');
+    var hostCenter = document.getElementById('cdChannelEmulatorHost');
+    if (!hostRail || hostRail.getAttribute('data-cd-ch-em-init') === '1') return;
+    hostRail.setAttribute('data-cd-ch-em-init', '1');
 
     var shell = document.createElement('div');
-    shell.className = 'cd-ch-em-shell';
+    shell.className = 'cd-ch-em-shell cd-ch-em-shell--rail';
 
     var tb = document.createElement('div');
     tb.className = 'cd-ch-em-toolbar';
@@ -398,32 +484,48 @@
     panel.appendChild(panelMob);
 
     shell.appendChild(tb);
-    shell.appendChild(panel);
-    host.appendChild(shell);
+    hostRail.appendChild(shell);
+
+    if (hostCenter) {
+      hostCenter.appendChild(panel);
+    } else {
+      shell.appendChild(panel);
+    }
 
     function showPanel(kind) {
+      if (!hostCenter) {
+        panel.hidden = false;
+      }
       if (openKind === kind) {
         openKind = null;
         panel.hidden = true;
         panelWeb.hidden = true;
         panelMob.hidden = true;
         setToolbarPressed(btnWeb, btnMob, null);
+        setMainStageChannelUi(false);
+        dispatchChannelChanged();
+        sync(cachedPropositions);
         return;
       }
       openKind = kind;
-      panel.hidden = false;
+      if (hostCenter) {
+        panel.hidden = false;
+        setMainStageChannelUi(true);
+      } else {
+        panel.hidden = false;
+      }
       if (kind === 'web') {
         ensureWebPanel(panelWeb);
         panelWeb.hidden = false;
         panelMob.hidden = true;
-        applyToViewport(document.getElementById('cdChEmWebViewport'), PREFIX_WEB);
       } else {
         ensureMobPanel(panelMob);
         panelWeb.hidden = true;
         panelMob.hidden = false;
-        applyToViewport(document.getElementById('cdChEmMobViewport'), PREFIX_MOB);
       }
       setToolbarPressed(btnWeb, btnMob, kind);
+      sync(cachedPropositions);
+      dispatchChannelChanged();
     }
 
     btnWeb.addEventListener('click', function () {
@@ -438,7 +540,7 @@
         typeof window.CdEdgeLive !== 'undefined' && typeof window.CdEdgeLive.getLastPropositions === 'function'
           ? window.CdEdgeLive.getLastPropositions()
           : null;
-      if (Array.isArray(g) && g.length) sync(g);
+      sync(Array.isArray(g) ? g : []);
     }
 
     window.addEventListener('cd-edge-placements-changed', function () {
@@ -455,6 +557,10 @@
   global.CdChannelPreview = {
     sync: sync,
     init: init,
+    getActiveChannel: getActiveChannel,
+    getMountIdPrefix: getMountIdPrefix,
+    clearAllEmulatorMountBodies: clearAllEmulatorMountBodies,
+    clearMainPipelineMountBodies: clearMainPipelineMountBodies,
   };
 
   if (document.readyState === 'loading') {

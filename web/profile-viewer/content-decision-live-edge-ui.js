@@ -970,7 +970,13 @@
     var placements = currentPlacementList();
     var placement = placements.find(function (p) { return p.fragment === fragment; });
     if (!placement) return null;
-    return document.getElementById('cd-edge-' + placement.key);
+    var prefix = '';
+    try {
+      if (typeof window.CdChannelPreview !== 'undefined' && typeof window.CdChannelPreview.getMountIdPrefix === 'function') {
+        prefix = window.CdChannelPreview.getMountIdPrefix() || '';
+      }
+    } catch (e) {}
+    return document.getElementById('cd-edge-' + prefix + placement.key);
   }
 
   /** Walk every saved surface style and apply its CSS vars to the matching mount. */
