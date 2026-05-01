@@ -272,6 +272,48 @@
     return `genericProfileCounter:${sb}:${base}:${todayYmd()}`;
   }
 
+  /** Same partition as counter — last scaled email we successfully streamed (generate/update). */
+  function lastStreamedStorageKey() {
+    return counterStorageKey().replace(/^genericProfileCounter:/, 'genericProfileLastStreamed:');
+  }
+
+  function persistLastStreamed(email, n) {
+    const e = String(email || '').trim();
+    if (!e.includes('@')) return;
+    try {
+      localStorage.setItem(
+        lastStreamedStorageKey(),
+        JSON.stringify({ email: e, n: Number.isFinite(n) ? n : null, ts: Date.now() }),
+      );
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function readLastStreamed() {
+    try {
+      const raw = localStorage.getItem(lastStreamedStorageKey());
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      if (o && typeof o.email === 'string' && o.email.includes('@')) return o;
+    } catch (_) {
+      /* ignore */
+    }
+    return null;
+  }
+
+  /**
+   * Email to pre-fill for email-namespace lookup when the field is empty.
+   * After Generate, the counter points at the *next* slot; the last profile
+   * that exists in AEP is the one we just streamed — prefer that over
+   * `getCurrentScaledEmail()` (which would be one slot ahead).
+   */
+  function getDefaultEmailLookupIdentifier() {
+    const last = readLastStreamed();
+    if (last && last.email) return last.email;
+    return getCurrentScaledEmail();
+  }
+
   function loadCounterForCurrentContext() {
     try {
       const raw = localStorage.getItem(counterStorageKey());
@@ -940,14 +982,15 @@
    * via /api/profile/table — same endpoint as the standard widget on index.html. Result is fed into
    * the editor below through applyProfileFindResultToForm so the Customer Analytics + Loyalty fields
    * pre-populate. When namespace=email and the identifier is blank, we substitute the current
-   * scaled email so a one-click lookup still mirrors the old "Find by current scaled email" UX.
+   * last streamed scaled email when available (see `getDefaultEmailLookupIdentifier`),
+   * else the scaled email for the current counter.
    */
   async function lookupProfile() {
     if (!lookupNsEl || !lookupIdentifierEl || !lookupBtn) return;
     const ns = String(lookupNsEl.value || 'email').trim();
     let identifier = trimVal(lookupIdentifierEl);
     if (!identifier && ns === 'email') {
-      identifier = getCurrentScaledEmail();
+      identifier = getDefaultEmailLookupIdentifier();
       if (identifier) lookupIdentifierEl.value = identifier;
     }
     if (!identifier) {
@@ -984,6 +1027,7 @@
         return;
       }
       applyProfileFindResultToForm(data);
+      if (ns === 'email') persistLastStreamed(identifier, null);
       // Remember the resolved identifier in the shared per-namespace cache
       // so autocomplete on the next visit (or on any other lookup page in
       // the lab — consent.html, index.html, event-tool, etc.) suggests it.
@@ -1060,6 +1104,7 @@
       if (!dryRun) {
         const n = parseInt(counterEl.value || '1', 10) || 1;
         recordGenerated(email, n);
+        persistLastStreamed(email, n);
       }
       const okMsg = data.message || `Update sent for ${email}.`;
       setMessage(messageEl, okMsg + (dryRun ? ' (dry run)' : ''), 'success');
@@ -1112,7 +1157,10 @@
           // Record in the per-(sandbox, base, day) recent picker so the user
           // can reload this exact profile to inspect or modify it later.
           // Skip dry runs — they didn't actually create anything in AEP.
-          if (!dryRun) recordGenerated(email, n, snapshotForm());
+          if (!dryRun) {
+            recordGenerated(email, n, snapshotForm());
+            persistLastStreamed(email, n);
+          }
         } catch (e) {
           lastError = e.message || 'Network error';
           break;
@@ -1306,6 +1354,7 @@
       persistCounter(entry.n);
       updateEmailPreview();
     }
+    persistLastStreamed(entry.scaledEmail, entry.n);
     setMessage(messageEl, `Loaded ${entry.scaledEmail}. Edit fields then click Update profile, or Generate to create a new profile after this one.`, 'success');
   }
 
@@ -1402,7 +1451,7 @@
       // One-click parity with the old Find button: when nothing is typed and namespace=email,
       // pre-fill the identifier with the current scaled email so the user just clicks Look up.
       if (!trimVal(lookupIdentifierEl) && lookupNsEl && lookupNsEl.value === 'email') {
-        const scaled = getCurrentScaledEmail();
+        const scaled = getDefaultEmailLookupIdentifier();
         if (scaled) lookupIdentifierEl.value = scaled;
       }
     });
