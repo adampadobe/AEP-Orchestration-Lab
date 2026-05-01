@@ -645,99 +645,155 @@
     return updates;
   }
 
+  /**
+   * Hydrate the editor below from a /api/profile/table response so the
+   * operator can pull a profile, tweak fields, and resend an update — the
+   * core "round-trip" workflow on this page.
+   *
+   * The table API returns a flat row array: { found, rows: [{ path, value,
+   * attribute, displayName }], profileEmail, ecid, entityId, lastModified }
+   * — see functions/profileTableHelpers.js → buildProfileTablePayload().
+   * That's the same shape index.html consumes through extractProfileInsightFields.
+   *
+   * We deliberately avoid hard-coding the tenant prefix (`_demoemea` etc.)
+   * — sandbox tenant ids vary per IMS org. Path-suffix / path-keyword
+   * matching against the lower-cased path strings in rows[] gives us a
+   * tenant-agnostic, schema-version-agnostic resolver that works for both
+   * legacy paths (Customer Analytics: scoring.nps, commerce.averageOrderValue)
+   * AND the current Profile Core v2 paths (scoring.npsScore,
+   * orderProfile.avgOrderSize) emitted by buildUpdatesFromForm().
+   *
+   * The legacy entity-walking branch is kept as a fallback for any caller
+   * that hands us a raw UPS entity (e.g. a future code path that bypasses
+   * the table proxy).
+   */
   function applyProfileFindResultToForm(found) {
     if (!found || typeof found !== 'object') return;
-    // The /api/profile/table response is sandbox-specific; we look for keys in the entity object.
-    // Extract a single entity object (handle several shapes):
-    let entity = null;
-    if (found.entity && typeof found.entity === 'object') entity = found.entity;
-    if (!entity && found.profile && typeof found.profile === 'object') entity = found.profile;
-    if (!entity && Array.isArray(found.entities) && found.entities.length) entity = found.entities[0];
-    if (!entity && Array.isArray(found.profiles) && found.profiles.length) entity = found.profiles[0];
-    if (!entity && Array.isArray(found.results) && found.results.length) entity = found.results[0];
-    if (!entity) return;
 
-    const get = (obj, path) => {
-      const keys = path.split('.');
-      let cur = obj;
-      for (const k of keys) {
-        if (cur == null || typeof cur !== 'object') return undefined;
-        cur = cur[k];
+    const rows = Array.isArray(found.rows) ? found.rows : null;
+    const trim = (v) => (v == null ? '' : String(v).trim());
+    const pathLower = (r) => String(r && r.path || '').toLowerCase().replace(/_/g, '.');
+
+    // Path-suffix match (e.g. ['npsscore', 'nps']) — first non-empty wins.
+    function findBySuffix(suffixes) {
+      if (!rows) return '';
+      for (const row of rows) {
+        const p = pathLower(row);
+        for (const s of suffixes) {
+          const ss = s.toLowerCase();
+          if (p === ss || p.endsWith(`.${ss}`) || p.endsWith(ss)) {
+            const v = trim(row.value);
+            if (v) return v;
+          }
+        }
       }
-      return cur;
-    };
-
-    const tenant = entity._demoemea && typeof entity._demoemea === 'object' ? entity._demoemea : {};
-
-    // Identity (added with the Generic-as-industry refactor)
-    const fn = get(entity, 'person.name.firstName');
-    if (fn != null && firstNameEl) firstNameEl.value = String(fn);
-    const ln = get(entity, 'person.name.lastName');
-    if (ln != null && lastNameEl) lastNameEl.value = String(ln);
-
-    const churn = get(tenant, 'scoring.churn.churnPrediction');
-    if (churn != null && churnEl) { churnEl.value = String(churn); renderChurn(); }
-    const prop = get(tenant, 'scoring.core.propensityScore');
-    if (prop != null && propensityEl) { propensityEl.value = String(prop); renderPropensity(); }
-    // NPS now lives at `_<tenant>.scoring.npsScore` per Profile Core v2.
-    // Fall back to the legacy `_<tenant>.scoring.nps` path so profiles
-    // streamed before this change (which used the wrong key) still hydrate
-    // the form when looked up.
-    const nps = get(tenant, 'scoring.npsScore');
-    const npsLegacy = nps == null ? get(tenant, 'scoring.nps') : null;
-    const npsVal = nps != null ? nps : npsLegacy;
-    if (npsVal != null && npsEl) npsEl.value = String(npsVal);
-    // AOV likewise moved from `commerce.averageOrderValue` (Customer
-    // Analytics) to `orderProfile.avgOrderSize` (Profile Core v2). Same
-    // fallback strategy.
-    const aov = get(tenant, 'orderProfile.avgOrderSize');
-    const aovLegacy = aov == null ? get(tenant, 'commerce.averageOrderValue') : null;
-    const aovVal = aov != null ? aov : aovLegacy;
-    if (aovVal != null && aovEl) { aovEl.value = String(aovVal); renderAov(); }
-    // Preferred Channel input is currently hidden (no Profile Core v2
-    // home). Skip hydrating it; if the operator un-hides the card later
-    // we'll need a tenant XDM path here.
-    const lang = get(tenant, 'preferences.preferredLanguage') || get(entity, 'personalEmail.language');
-    if (lang != null && languageEl) languageEl.value = String(lang);
-    const gender = get(entity, 'person.gender');
-    if (gender != null && genderEl) genderEl.value = String(gender);
-
-    // Loyalty: enable the toggle when AEP has loyalty data, then route the
-    // pulled values into the loyalty subgroup so the form mirrors the
-    // profile. We dual-write each loyalty field to both a standard XDM
-    // path and a Profile Core v2 tenant path (see buildUpdatesFromForm),
-    // so on hydration we accept either source — preferring the standard
-    // XDM view because that's the primary identity-map store, and falling
-    // back to the tenant view for older profiles or stream paths.
-    //
-    //   Tier   →   loyalty.tier            ← preferred,  fallback _<tenant>.loyaltyDetails.level
-    //   Points →   loyalty.points          ← preferred,  fallback _<tenant>.loyaltyDetails.points
-    //   ID     →   loyalty.loyaltyID[0]    ← preferred,  fallback _<tenant>.identification.core.loyaltyId
-    const loyaltyIdArr = get(entity, 'loyalty.loyaltyID');
-    const loyaltyIdStandard = Array.isArray(loyaltyIdArr) && loyaltyIdArr.length
-      ? loyaltyIdArr[0]
-      : null;
-    const loyaltyIdTenant = get(tenant, 'identification.core.loyaltyId');
-    const loyaltyId = loyaltyIdStandard != null ? loyaltyIdStandard : loyaltyIdTenant;
-
-    const tierStandard = get(entity, 'loyalty.tier');
-    const tierTenant = tierStandard == null ? get(tenant, 'loyaltyDetails.level') : null;
-    const tier = tierStandard != null ? tierStandard : tierTenant;
-
-    const ptsStandard = get(entity, 'loyalty.points');
-    const ptsTenant = ptsStandard == null ? get(tenant, 'loyaltyDetails.points') : null;
-    const pts = ptsStandard != null ? ptsStandard : ptsTenant;
-
-    const hasLoyaltyData = (loyaltyId != null && String(loyaltyId).trim() !== '')
-      || (tier != null && String(tier).trim() !== '')
-      || (pts != null && String(pts).trim() !== '');
-    if (hasLoyaltyData && loyaltyEnabledEl) {
-      loyaltyEnabledEl.checked = true;
-      applyLoyaltyToggleVisibility();
+      return '';
     }
-    if (loyaltyId != null && loyaltyIDEl) loyaltyIDEl.value = String(loyaltyId);
-    if (tier != null && loyaltyTierEl) loyaltyTierEl.value = String(tier);
-    if (pts != null && loyaltyPointsEl) loyaltyPointsEl.value = String(pts);
+    // All-keywords match (e.g. ['loyalty', 'points']) — useful when the
+    // suffix alone is too generic ('points' on its own would also match
+    // 'rewards.points'). First non-empty wins.
+    function findByKeywords(...keywords) {
+      if (!rows) return '';
+      const kws = keywords.map((k) => String(k).toLowerCase());
+      for (const row of rows) {
+        const p = pathLower(row);
+        if (kws.every((k) => p.includes(k))) {
+          const v = trim(row.value);
+          if (v) return v;
+        }
+      }
+      return '';
+    }
+
+    let firstName = findBySuffix(['firstname', 'givenname']);
+    let lastName = findBySuffix(['lastname', 'surname', 'familyname']);
+    let churn = findByKeywords('churn', 'prediction') || findBySuffix(['churnprediction', 'churnscore']);
+    let propensity = findByKeywords('scoring', 'propensity') || findBySuffix(['propensityscore']);
+    // NPS: prefer Profile Core v2 (scoring.npsScore), fall back to legacy
+    // (scoring.nps from the old AEP Lab Customer Analytics field group).
+    let nps = findBySuffix(['npsscore']) || findByKeywords('scoring', 'nps');
+    // AOV: Profile Core v2 = orderProfile.avgOrderSize; legacy = commerce.averageOrderValue.
+    let aov = findBySuffix(['avgordersize', 'averageordervalue']);
+    let lang = findBySuffix(['preferredlanguage']) ||
+      findByKeywords('personalemail', 'language') ||
+      findBySuffix(['language', 'locale']);
+    let gender = findBySuffix(['gender']) || findByKeywords('person', 'gender');
+
+    // Loyalty (dual-written by buildUpdatesFromForm to both the standard
+    // XDM mixin and Profile Core v2 tenant paths). Path-suffix match
+    // pulls whichever one made it into the profile, regardless of order.
+    let loyaltyId =
+      findByKeywords('loyalty', 'loyaltyid') ||
+      findByKeywords('identification', 'loyaltyid') ||
+      findBySuffix(['loyaltyid']);
+    let tier = findByKeywords('loyalty', 'tier') ||
+      findByKeywords('loyaltydetails', 'level') ||
+      findBySuffix(['tier']);
+    let points = findByKeywords('loyalty', 'points') ||
+      findByKeywords('loyaltydetails', 'points');
+
+    // Fallback path for raw UPS entity payloads (rows[] absent).
+    if (!rows) {
+      let entity = null;
+      if (found.entity && typeof found.entity === 'object') entity = found.entity;
+      if (!entity && found.profile && typeof found.profile === 'object') entity = found.profile;
+      if (!entity && Array.isArray(found.entities) && found.entities.length) entity = found.entities[0];
+      if (!entity && Array.isArray(found.profiles) && found.profiles.length) entity = found.profiles[0];
+      if (!entity && Array.isArray(found.results) && found.results.length) entity = found.results[0];
+      if (!entity) return;
+      const get = (obj, path) => {
+        const keys = path.split('.');
+        let cur = obj;
+        for (const k of keys) {
+          if (cur == null || typeof cur !== 'object') return undefined;
+          cur = cur[k];
+        }
+        return cur;
+      };
+      // Discover tenant prefix dynamically (any key starting with `_`).
+      const tenantKey = Object.keys(entity).find((k) => k.startsWith('_'));
+      const tenant = tenantKey && entity[tenantKey] && typeof entity[tenantKey] === 'object'
+        ? entity[tenantKey]
+        : {};
+      if (!firstName) { const v = get(entity, 'person.name.firstName'); if (v != null) firstName = String(v); }
+      if (!lastName)  { const v = get(entity, 'person.name.lastName');  if (v != null) lastName  = String(v); }
+      if (!churn)      { const v = get(tenant, 'scoring.churn.churnPrediction'); if (v != null) churn = String(v); }
+      if (!propensity) { const v = get(tenant, 'scoring.core.propensityScore'); if (v != null) propensity = String(v); }
+      if (!nps) { const v = get(tenant, 'scoring.npsScore'); if (v != null) nps = String(v); }
+      if (!nps) { const v = get(tenant, 'scoring.nps'); if (v != null) nps = String(v); }
+      if (!aov) { const v = get(tenant, 'orderProfile.avgOrderSize'); if (v != null) aov = String(v); }
+      if (!aov) { const v = get(tenant, 'commerce.averageOrderValue'); if (v != null) aov = String(v); }
+      if (!lang) {
+        const v = get(tenant, 'preferences.preferredLanguage') || get(entity, 'personalEmail.language');
+        if (v != null) lang = String(v);
+      }
+      if (!gender) { const v = get(entity, 'person.gender'); if (v != null) gender = String(v); }
+      if (!loyaltyId) {
+        const arr = get(entity, 'loyalty.loyaltyID');
+        if (Array.isArray(arr) && arr.length) loyaltyId = String(arr[0]);
+        else { const v = get(tenant, 'identification.core.loyaltyId'); if (v != null) loyaltyId = String(v); }
+      }
+      if (!tier)   { let v = get(entity, 'loyalty.tier');   if (v == null) v = get(tenant, 'loyaltyDetails.level');  if (v != null) tier   = String(v); }
+      if (!points) { let v = get(entity, 'loyalty.points'); if (v == null) v = get(tenant, 'loyaltyDetails.points'); if (v != null) points = String(v); }
+    }
+
+    if (firstName && firstNameEl) firstNameEl.value = firstName;
+    if (lastName && lastNameEl) lastNameEl.value = lastName;
+    if (churn && churnEl) { churnEl.value = churn; if (typeof renderChurn === 'function') renderChurn(); }
+    if (propensity && propensityEl) { propensityEl.value = propensity; if (typeof renderPropensity === 'function') renderPropensity(); }
+    if (nps && npsEl) npsEl.value = nps;
+    if (aov && aovEl) { aovEl.value = aov; if (typeof renderAov === 'function') renderAov(); }
+    if (lang && languageEl) languageEl.value = lang;
+    if (gender && genderEl) genderEl.value = gender;
+
+    const hasLoyalty = !!(loyaltyId || tier || points);
+    if (hasLoyalty && loyaltyEnabledEl) {
+      loyaltyEnabledEl.checked = true;
+      if (typeof applyLoyaltyToggleVisibility === 'function') applyLoyaltyToggleVisibility();
+    }
+    if (loyaltyId && loyaltyIDEl) loyaltyIDEl.value = loyaltyId;
+    if (tier && loyaltyTierEl) loyaltyTierEl.value = tier;
+    if (points && loyaltyPointsEl) loyaltyPointsEl.value = points;
   }
 
   // ---------- Find / Update / Generate ----------
@@ -791,8 +847,12 @@
         setMessage(messageEl, data.error || `Lookup failed (HTTP ${res.status}).`, 'error');
         return;
       }
-      applyProfileFindResultToForm(data);
+      // /api/profile/table contract: { found: bool, rows: [...] } when the
+      // proxy resolved a UPS entity, otherwise { found: false, rows: [] }.
+      // The legacy entity-shape branches stay in place to cover any future
+      // caller that pipes a raw UPS payload through the same handler.
       const found =
+        (data && data.found === true) ||
         (data && (data.entity || data.profile)) ||
         (Array.isArray(data && data.entities) && data.entities.length) ||
         (Array.isArray(data && data.profiles) && data.profiles.length) ||
@@ -805,6 +865,7 @@
         );
         return;
       }
+      applyProfileFindResultToForm(data);
       // Remember the resolved identifier in the shared per-namespace cache
       // so autocomplete on the next visit (or on any other lookup page in
       // the lab — consent.html, index.html, event-tool, etc.) suggests it.
