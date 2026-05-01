@@ -1216,19 +1216,80 @@
       line-height: 1.35;
       box-sizing: border-box;
     }
-    .cd-hero-rail .cd-micro-profile-header {
+    .cd-hero-rail .cd-micro-profile.is-collapsed {
+      gap: 0;
+      padding: 0.45rem 0.55rem;
+    }
+    .cd-hero-rail .cd-micro-profile-toggle {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 0.4rem;
+      width: 100%;
+      margin: 0;
+      padding: 0.15rem 0.1rem;
+      box-sizing: border-box;
+      border: 0;
+      border-radius: var(--dash-radius-sm);
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      line-height: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .cd-hero-rail .cd-micro-profile-toggle:hover {
+      background: var(--dash-hover);
+    }
+    .cd-hero-rail .cd-micro-profile-toggle:focus {
+      outline: none;
+    }
+    .cd-hero-rail .cd-micro-profile-toggle:focus-visible {
+      outline: 2px solid var(--dash-blue);
+      outline-offset: 2px;
+    }
+    .cd-hero-rail .cd-micro-profile-toggle-cluster {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .cd-hero-rail .cd-micro-profile-toggle-title {
+      flex: 0 0 auto;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--dash-text);
+      white-space: nowrap;
+    }
+    .cd-hero-rail .cd-micro-profile-chevron {
+      flex-shrink: 0;
+      width: 0.45rem;
+      height: 0.45rem;
+      margin-left: 0.1rem;
+      border-right: 2px solid var(--dash-muted);
+      border-bottom: 2px solid var(--dash-muted);
+      opacity: 0.9;
+      transform: rotate(45deg);
+      transition: transform 0.2s ease;
+    }
+    .cd-hero-rail .cd-micro-profile:not(.is-collapsed) .cd-micro-profile-chevron {
+      transform: rotate(-135deg);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cd-hero-rail .cd-micro-profile-chevron {
+        transition-duration: 0.01ms;
+      }
+    }
+    .cd-hero-rail .cd-micro-profile-body {
+      display: flex;
+      flex-direction: column;
       gap: 0.5rem;
     }
-    .cd-hero-rail .cd-micro-profile-title {
-      margin: 0;
-      font-size: 0.66rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--dash-muted);
+    .cd-hero-rail .cd-micro-profile.is-collapsed .cd-micro-profile-body {
+      display: none !important;
+    }
+    .cd-hero-rail .cd-micro-profile:not(.is-collapsed) .cd-micro-profile-body {
+      margin-top: 0.4rem;
+      padding-top: 0.45rem;
+      border-top: 1px solid var(--dash-border);
     }
     .cd-hero-rail .cd-micro-profile-state {
       display: inline-flex;
@@ -1253,6 +1314,14 @@
     }
     .cd-hero-rail .cd-micro-profile-state[data-loaded="true"] {
       color: var(--dash-success-text, var(--dash-text));
+    }
+    .cd-hero-rail .cd-micro-profile-toggle-cluster .cd-micro-profile-state {
+      max-width: 100%;
+    }
+    .cd-hero-rail .cd-micro-profile-toggle-cluster .cd-micro-profile-state-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .cd-hero-rail .cd-micro-profile-field {
       display: flex;
@@ -1396,14 +1465,18 @@
             <button type="button" class="primary cd-run-full-btn" id="btnRunFullContentDecision" title="Fetch UPS profile, call Edge via Web SDK (Launch), render decisions into the preview areas below">
               Run content decision
             </button>
-            <section class="cd-micro-profile" id="cdMicroProfilePanel" aria-label="Micro profile editor">
-              <div class="cd-micro-profile-header">
-                <h3 class="cd-micro-profile-title">Tweak profile</h3>
-                <span class="cd-micro-profile-state" id="cdMicroProfileState" data-loaded="false">
-                  <span class="cd-micro-profile-state-dot" aria-hidden="true"></span>
-                  <span class="cd-micro-profile-state-label">No profile loaded</span>
+            <section class="cd-micro-profile is-collapsed" id="cdMicroProfilePanel" aria-label="Tweak profile">
+              <button type="button" class="cd-micro-profile-toggle" id="cdMicroProfileToggle" aria-expanded="false" aria-controls="cdMicroProfileBody">
+                <span class="cd-micro-profile-toggle-cluster">
+                  <span class="cd-micro-profile-state" id="cdMicroProfileState" data-loaded="false">
+                    <span class="cd-micro-profile-state-dot" aria-hidden="true"></span>
+                    <span class="cd-micro-profile-state-label">No profile loaded</span>
+                  </span>
                 </span>
-              </div>
+                <span class="cd-micro-profile-toggle-title">Tweak profile</span>
+                <span class="cd-micro-profile-chevron" aria-hidden="true"></span>
+              </button>
+              <div id="cdMicroProfileBody" class="cd-micro-profile-body">
               <div class="cd-micro-profile-field">
                 <div class="cd-micro-profile-range-row">
                   <label for="cdMicroProfileChurn">Churn risk</label>
@@ -1445,6 +1518,7 @@
               <div class="cd-micro-profile-field">
                 <label for="cdMicroProfileTier">Loyalty tier</label>
                 <select id="cdMicroProfileTier">
+                  <option value="">— Unchanged —</option>
                   <option value="Bronze">Bronze</option>
                   <option value="Silver">Silver</option>
                   <option value="Gold">Gold</option>
@@ -1476,6 +1550,7 @@
               <div class="cd-micro-profile-field">
                 <label for="cdMicroProfileChannel">Preferred channel</label>
                 <select id="cdMicroProfileChannel">
+                  <option value="">— Unchanged —</option>
                   <option value="email">Email</option>
                   <option value="push">Push</option>
                   <option value="sms">SMS</option>
@@ -1485,6 +1560,7 @@
               <div class="cd-micro-profile-actions">
                 <button type="button" class="cd-micro-profile-apply" id="cdMicroProfileApply">Apply</button>
                 <p class="cd-micro-profile-status" id="cdMicroProfileStatus" aria-live="polite"></p>
+              </div>
               </div>
             </section>
             <p id="cdPipelineStatus" class="status" aria-live="polite"></p>
@@ -1820,7 +1896,7 @@
   <script src="content-decision-live-edge-onboarding.js?v=20260424-edge-onboarding-query"></script>
   <script src="profile-streaming-shared.js"></script>
   <script src="content-decision-live-edge-inline.js?v=20260501-auto-lookup"></script>
-  <script src="content-decision-live-edge-micro-profile.js?v=20260501-int-scores"></script>
+  <script src="content-decision-live-edge-micro-profile.js?v=20260501-micro-profile-collapse"></script>
   <script src="content-decision-live-edge-embed-fs.js?v=20260427-edge-embed-fs"></script>
   <script defer src="marauders-map-egg.js?v=20260423-edge-flavor"></script>
 </body>

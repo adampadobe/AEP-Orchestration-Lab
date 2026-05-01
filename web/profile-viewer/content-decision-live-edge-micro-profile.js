@@ -7,6 +7,7 @@
   'use strict';
 
   var LOG_PREFIX = '[cd-edge-micro-profile]';
+  var SESSION_EXPANDED_KEY = 'cdEdgeMicroProfileExpanded';
 
   function log() {
     try {
@@ -149,48 +150,397 @@
     return streamingCache[key];
   }
 
+  /** Snapshot of micro form used for Apply diffing — set at boot and after UPS hydrate. */
+  var microBaseline = null;
+
+  function snapshotMicroForm() {
+    return {
+      tier: ($('cdMicroProfileTier') || {}).value || '',
+      points: ($('cdMicroProfilePoints') || {}).value || '',
+      channel: ($('cdMicroProfileChannel') || {}).value || '',
+      propensity: ($('cdMicroProfilePropensity') || {}).value || '',
+      churn: ($('cdMicroProfileChurn') || {}).value || '',
+      orderValue: ($('cdMicroProfileOrderValue') || {}).value || '',
+      nps: ($('cdMicroProfileNps') || {}).value || '',
+      language: ($('cdMicroProfileLanguage') || {}).value || '',
+    };
+  }
+
+  function setMicroBaselineFromDom() {
+    microBaseline = snapshotMicroForm();
+  }
+
+  /**
+   * Walk the merged profile entity plus Profile-Core-v2 tenant slices (`_*` keys)
+   * so reads match UPS shapes without hard-coding a tenant id.
+   */
+  function eachProfileSlice(entity, fn) {
+    if (!entity || typeof entity !== 'object') return;
+    fn(entity);
+    for (var k in entity) {
+      if (!Object.prototype.hasOwnProperty.call(entity, k)) continue;
+      if (k.length < 2 || k.charAt(0) !== '_') continue;
+      if (k === '_id') continue;
+      var v = entity[k];
+      if (v && typeof v === 'object') fn(v);
+    }
+  }
+
+  function readNpsFromEntity(entity) {
+    var out = null;
+    eachProfileSlice(entity, function (sl) {
+      if (out != null) return;
+      var s = sl.scoring;
+      if (!s || typeof s !== 'object') return;
+      if (s.npsScore != null && s.npsScore !== '') {
+        var n = Number(s.npsScore);
+        if (!Number.isNaN(n)) out = Math.round(n);
+      } else if (s.nps != null && s.nps !== '') {
+        var n2 = Number(s.nps);
+        if (!Number.isNaN(n2)) out = Math.round(n2);
+      }
+    });
+    return out;
+  }
+
+  function readLanguageFromEntity(entity) {
+    var out = '';
+    eachProfileSlice(entity, function (sl) {
+      if (out) return;
+      var pe = sl.personalEmail;
+      if (pe && typeof pe === 'object' && pe.language) {
+        var v = String(pe.language).trim();
+        if (v) out = v;
+      }
+      if (!out) {
+        var pr = sl.preferences;
+        if (pr && typeof pr === 'object' && pr.preferredLanguage) {
+          var v2 = String(pr.preferredLanguage).trim();
+          if (v2) out = v2;
+        }
+      }
+    });
+    return out;
+  }
+
+  function readPreferredChannelFromEntity(entity) {
+    var out = '';
+    eachProfileSlice(entity, function (sl) {
+      if (out) return;
+      var c = sl.consents;
+      if (!c || typeof c !== 'object') return;
+      var m = c.marketing;
+      if (!m || typeof m !== 'object') return;
+      if (m.preferred != null && m.preferred !== '') {
+        out = String(m.preferred).trim();
+      }
+    });
+    return out;
+  }
+
+  function readTierFromEntity(entity) {
+    var out = '';
+    eachProfileSlice(entity, function (sl) {
+      if (out) return;
+      var lo = sl.loyalty;
+      if (lo && typeof lo === 'object' && lo.tier) {
+        var t = String(lo.tier).trim();
+        if (t) {
+          out = t;
+          return;
+        }
+      }
+      var ld = sl.loyaltyDetails;
+      if (ld && typeof ld === 'object' && ld.level) {
+        var lv = String(ld.level).trim();
+        if (lv) out = lv;
+      }
+    });
+    return out;
+  }
+
+  function readPointsFromEntity(entity) {
+    var out = null;
+    eachProfileSlice(entity, function (sl) {
+      if (out != null) return;
+      var lo = sl.loyalty;
+      if (lo && lo.points != null && lo.points !== '') {
+        var n = Number(lo.points);
+        if (!Number.isNaN(n)) {
+          out = Math.round(n);
+          return;
+        }
+      }
+      var ld = sl.loyaltyDetails;
+      if (ld && ld.points != null && ld.points !== '') {
+        var n2 = Number(ld.points);
+        if (!Number.isNaN(n2)) out = Math.round(n2);
+      }
+    });
+    return out;
+  }
+
+  function readPropensityFromEntity(entity) {
+    var out = null;
+    eachProfileSlice(entity, function (sl) {
+      if (out != null) return;
+      var s = sl.scoring;
+      if (!s || typeof s !== 'object') return;
+      var core = s.core;
+      if (!core || typeof core !== 'object') return;
+      if (core.propensityScore == null || core.propensityScore === '') return;
+      var n = Number(core.propensityScore);
+      if (!Number.isNaN(n)) out = Math.round(n);
+    });
+    return out;
+  }
+
+  function readChurnFromEntity(entity) {
+    var out = null;
+    eachProfileSlice(entity, function (sl) {
+      if (out != null) return;
+      var s = sl.scoring;
+      if (!s || typeof s !== 'object') return;
+      var ch = s.churn;
+      if (!ch || typeof ch !== 'object') return;
+      if (ch.churnPrediction == null && ch.churnScore == null) return;
+      var raw = ch.churnPrediction != null ? ch.churnPrediction : ch.churnScore;
+      if (raw === '' || raw == null) return;
+      var n = Number(raw);
+      if (!Number.isNaN(n)) out = Math.round(n);
+    });
+    return out;
+  }
+
+  function readAvgOrderFromEntity(entity) {
+    var out = null;
+    eachProfileSlice(entity, function (sl) {
+      if (out != null) return;
+      var op = sl.orderProfile;
+      if (!op || typeof op !== 'object') return;
+      if (op.avgOrderSize == null || op.avgOrderSize === '') return;
+      var n = Number(op.avgOrderSize);
+      if (!Number.isNaN(n)) out = n;
+    });
+    return out;
+  }
+
+  var UPS_OPTION_ATTR = 'data-cd-micro-profile-from-ups';
+
+  function stripUpsInjectedOptions(select) {
+    if (!select) return;
+    var opts = select.querySelectorAll('option[' + UPS_OPTION_ATTR + ']');
+    for (var i = 0; i < opts.length; i++) opts[i].parentNode.removeChild(opts[i]);
+  }
+
+  function injectUpsOption(select, value, labelText) {
+    var opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = labelText;
+    opt.setAttribute(UPS_OPTION_ATTR, '1');
+    select.appendChild(opt);
+  }
+
+  /** Match an existing option by value (case-insensitive for tier). */
+  function findOptionValueCaseInsensitive(select, raw) {
+    if (!select || raw == null || raw === '') return '';
+    var want = String(raw).trim();
+    if (!want) return '';
+    var o = select.options;
+    for (var i = 0; i < o.length; i++) {
+      if (!o[i].value) continue;
+      if (o[i].value === want) return o[i].value;
+    }
+    for (var j = 0; j < o.length; j++) {
+      if (!o[j].value) continue;
+      if (String(o[j].value).toLowerCase() === want.toLowerCase()) return o[j].value;
+    }
+    return '';
+  }
+
+  function setSelectFromProfileValue(select, raw, labelPrefix) {
+    stripUpsInjectedOptions(select);
+    if (!select) return;
+    if (raw == null || raw === '') {
+      select.value = '';
+      return;
+    }
+    var str = typeof raw === 'number' && !Number.isNaN(raw) ? String(Math.round(raw)) : String(raw).trim();
+    if (str === '') {
+      select.value = '';
+      return;
+    }
+    var matched = findOptionValueCaseInsensitive(select, str);
+    if (matched) {
+      select.value = matched;
+      return;
+    }
+    injectUpsOption(select, str, (labelPrefix || str) + ' (from profile)');
+    select.value = str;
+  }
+
+  function clamp(n, lo, hi) {
+    return Math.max(lo, Math.min(hi, n));
+  }
+
+  function dispatchRangeRefresh(id) {
+    var el = $(id);
+    if (!el) return;
+    try {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch (e) {}
+  }
+
+  /** Matches initial markup defaults when UPS is cleared or lookup fails. */
+  var MICRO_RANGE_DEFAULTS = {
+    cdMicroProfilePoints: '3000',
+    cdMicroProfileChurn: '50',
+    cdMicroProfilePropensity: '50',
+    cdMicroProfileOrderValue: '500',
+  };
+
+  function resetMicroProfilePanelDefaults() {
+    if (!$('cdMicroProfilePanel')) return;
+    setSelectFromProfileValue($('cdMicroProfileNps'), '', '');
+    setSelectFromProfileValue($('cdMicroProfileLanguage'), '', '');
+    setSelectFromProfileValue($('cdMicroProfileChannel'), '', '');
+    setSelectFromProfileValue($('cdMicroProfileTier'), '', '');
+    for (var id in MICRO_RANGE_DEFAULTS) {
+      if (!Object.prototype.hasOwnProperty.call(MICRO_RANGE_DEFAULTS, id)) continue;
+      var el = $(id);
+      if (el) el.value = MICRO_RANGE_DEFAULTS[id];
+    }
+    dispatchRangeRefresh('cdMicroProfilePoints');
+    dispatchRangeRefresh('cdMicroProfilePropensity');
+    dispatchRangeRefresh('cdMicroProfileChurn');
+    dispatchRangeRefresh('cdMicroProfileOrderValue');
+    setMicroBaselineFromDom();
+  }
+
+  function hydrateMicroProfileFromUps() {
+    if (!$('cdMicroProfilePanel')) return;
+    var api = window.CdEdgeLive;
+    if (!api || typeof api.getLastUpsClientData !== 'function') return;
+    var clientData = api.getLastUpsClientData();
+    var entity = extractEntityFromUps(clientData);
+    if (!entity) return;
+
+    var nps = readNpsFromEntity(entity);
+    if (nps != null && nps >= 0 && nps <= 10) {
+      setSelectFromProfileValue($('cdMicroProfileNps'), nps, String(nps));
+    } else {
+      setSelectFromProfileValue($('cdMicroProfileNps'), '', '');
+    }
+
+    var lang = readLanguageFromEntity(entity);
+    setSelectFromProfileValue($('cdMicroProfileLanguage'), lang, lang);
+
+    var chPref = readPreferredChannelFromEntity(entity);
+    setSelectFromProfileValue($('cdMicroProfileChannel'), chPref, chPref);
+
+    var tier = readTierFromEntity(entity);
+    setSelectFromProfileValue($('cdMicroProfileTier'), tier, tier);
+
+    var pts = readPointsFromEntity(entity);
+    var ptsEl = $('cdMicroProfilePoints');
+    if (ptsEl) {
+      if (pts != null && !Number.isNaN(pts)) {
+        var pClamped = clamp(pts, Number(ptsEl.min) || 0, Number(ptsEl.max) || 10000);
+        ptsEl.value = String(pClamped);
+      } else {
+        ptsEl.value = MICRO_RANGE_DEFAULTS.cdMicroProfilePoints;
+      }
+    }
+
+    var pr = readPropensityFromEntity(entity);
+    var prEl = $('cdMicroProfilePropensity');
+    if (prEl) {
+      if (pr != null && !Number.isNaN(pr)) {
+        prEl.value = String(clamp(pr, Number(prEl.min) || 0, Number(prEl.max) || 100));
+      } else {
+        prEl.value = MICRO_RANGE_DEFAULTS.cdMicroProfilePropensity;
+      }
+    }
+
+    var ch = readChurnFromEntity(entity);
+    var chEl = $('cdMicroProfileChurn');
+    if (chEl) {
+      if (ch != null && !Number.isNaN(ch)) {
+        chEl.value = String(clamp(ch, Number(chEl.min) || 0, Number(chEl.max) || 100));
+      } else {
+        chEl.value = MICRO_RANGE_DEFAULTS.cdMicroProfileChurn;
+      }
+    }
+
+    var aov = readAvgOrderFromEntity(entity);
+    var ovEl = $('cdMicroProfileOrderValue');
+    if (ovEl) {
+      if (aov != null && !Number.isNaN(aov)) {
+        var step = Number(ovEl.step) || 50;
+        var max = Number(ovEl.max) || 5000;
+        var min = Number(ovEl.min) || 0;
+        var snapped = Math.round(aov / step) * step;
+        ovEl.value = String(clamp(snapped, min, max));
+      } else {
+        ovEl.value = MICRO_RANGE_DEFAULTS.cdMicroProfileOrderValue;
+      }
+    }
+
+    dispatchRangeRefresh('cdMicroProfilePoints');
+    dispatchRangeRefresh('cdMicroProfilePropensity');
+    dispatchRangeRefresh('cdMicroProfileChurn');
+    dispatchRangeRefresh('cdMicroProfileOrderValue');
+
+    setMicroBaselineFromDom();
+  }
+
+  function strEq(a, b) {
+    return String(a || '') === String(b || '');
+  }
+
   function buildUpdates(form) {
+    var base = microBaseline || {};
     var updates = [];
-    var tier = form.tier;
-    if (tier) {
-      updates.push({ path: 'loyalty.tier', value: tier });
-      updates.push({ path: 'loyaltyDetails.level', value: tier });
+
+    if (form.tier && !strEq(form.tier, base.tier)) {
+      updates.push({ path: 'loyalty.tier', value: form.tier });
+      updates.push({ path: 'loyaltyDetails.level', value: form.tier });
     }
     if (form.points != null && form.points !== '') {
       var pts = Number(form.points);
-      if (!Number.isNaN(pts)) {
+      if (!Number.isNaN(pts) && !strEq(form.points, base.points)) {
         updates.push({ path: 'loyalty.points', value: pts });
         updates.push({ path: 'loyaltyDetails.points', value: pts });
       }
     }
-    if (form.channel) {
+    if (form.channel && !strEq(form.channel, base.channel)) {
       updates.push({ path: 'consents.marketing.preferred', value: form.channel });
     }
     if (form.propensity != null && form.propensity !== '') {
       var pr = Number(form.propensity);
-      if (!Number.isNaN(pr)) {
+      if (!Number.isNaN(pr) && !strEq(form.propensity, base.propensity)) {
         updates.push({ path: 'scoring.core.propensityScore', value: Math.round(pr) });
       }
     }
     if (form.churn != null && form.churn !== '') {
       var ch = Number(form.churn);
-      if (!Number.isNaN(ch)) {
+      if (!Number.isNaN(ch) && !strEq(form.churn, base.churn)) {
         updates.push({ path: 'scoring.churn.churnPrediction', value: Math.round(ch) });
       }
     }
     if (form.orderValue != null && form.orderValue !== '') {
       var ov = Number(form.orderValue);
-      if (!Number.isNaN(ov)) {
+      if (!Number.isNaN(ov) && !strEq(form.orderValue, base.orderValue)) {
         updates.push({ path: 'orderProfile.avgOrderSize', value: ov });
       }
     }
     if (form.nps != null && form.nps !== '') {
       var np = parseInt(form.nps, 10);
-      if (!Number.isNaN(np)) {
+      if (!Number.isNaN(np) && !strEq(form.nps, base.nps)) {
         updates.push({ path: 'scoring.npsScore', value: np });
       }
     }
-    if (form.language) {
+    if (form.language && !strEq(form.language, base.language)) {
       updates.push({ path: 'personalEmail.language', value: form.language });
       updates.push({ path: 'preferences.preferredLanguage', value: form.language });
     }
@@ -383,9 +733,48 @@
     }
   }
 
+  function readSessionMicroProfileExpanded() {
+    try {
+      return sessionStorage.getItem(SESSION_EXPANDED_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function writeSessionMicroProfileExpanded(expanded) {
+    try {
+      sessionStorage.setItem(SESSION_EXPANDED_KEY, expanded ? '1' : '0');
+    } catch (e) {}
+  }
+
+  function wireMicroProfileCollapse() {
+    var panel = $('cdMicroProfilePanel');
+    var toggle = $('cdMicroProfileToggle');
+    if (!panel || !toggle) return;
+
+    function setExpanded(expanded) {
+      panel.classList.toggle('is-collapsed', !expanded);
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      writeSessionMicroProfileExpanded(expanded);
+    }
+
+    setExpanded(readSessionMicroProfileExpanded());
+
+    toggle.addEventListener('click', function () {
+      var collapsed = panel.classList.contains('is-collapsed');
+      setExpanded(collapsed);
+    });
+  }
+
   function wireProfileStateWatchers() {
-    window.addEventListener('cd-edge-profile-lookup', function () {
+    window.addEventListener('cd-edge-profile-lookup', function (ev) {
       refreshStateDot();
+      var d = ev && ev.detail;
+      if (d && d.ok === false) {
+        resetMicroProfilePanelDefaults();
+        return;
+      }
+      if (isProfileLoaded()) hydrateMicroProfileFromUps();
     });
     window.addEventListener('cd-edge-identity-restored', function () {
       maybeAutoLookup('identity-restored');
@@ -422,11 +811,14 @@
 
   function boot() {
     if (!$('cdMicroProfilePanel')) return;
+    wireMicroProfileCollapse();
     wireRangeMirrors();
     wireProfileStateWatchers();
     var btn = $('cdMicroProfileApply');
     if (btn) btn.addEventListener('click', onApply);
     refreshStateDot();
+    if (isProfileLoaded()) hydrateMicroProfileFromUps();
+    else setMicroBaselineFromDom();
     if (getIdentifierValue()) {
       maybeAutoLookup('boot');
     }
