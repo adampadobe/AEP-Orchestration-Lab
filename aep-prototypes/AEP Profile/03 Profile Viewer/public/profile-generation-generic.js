@@ -595,6 +595,17 @@
     return out;
   }
 
+  /** XDM consent enum sentinels — exclude from random persona so we do not stream `unknown` / `none` as a “channel”. */
+  const PREFERRED_CHANNEL_RANDOM_SKIP = new Set(['unknown', 'none']);
+
+  function selectPreferredChannelValuesForRandom(selectEl) {
+    const raw = selectNonEmptyValues(selectEl);
+    const filtered = raw.filter((v) => !PREFERRED_CHANNEL_RANDOM_SKIP.has(String(v).toLowerCase()));
+    if (filtered.length) return filtered;
+    const hasEmail = raw.includes('email');
+    return hasEmail ? ['email'] : raw;
+  }
+
   /** First matching `<option>.value` for a canonical gender string (case-insensitive). */
   function resolveGenderOptionValue(selectEl, canonicalLower) {
     if (!selectEl || !selectEl.options) return '';
@@ -674,7 +685,7 @@
     const npsChoices = selectNonEmptyValues(npsEl);
     if (npsEl && npsChoices.length) npsEl.value = randomPick(npsChoices);
 
-    const prefChoices = selectNonEmptyValues(preferredChannelEl);
+    const prefChoices = selectPreferredChannelValuesForRandom(preferredChannelEl);
     if (preferredChannelEl && prefChoices.length) preferredChannelEl.value = randomPick(prefChoices);
 
     const langChoices = selectNonEmptyValues(languageEl);
