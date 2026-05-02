@@ -35,6 +35,12 @@ const PROFILE_STREAM_ROOT_PATH_PREFIXES = new Set([
   'mobilePhone',
   'loyalty',
   'preferences',
+  // OOTB Travel Preferences mixin (https://ns.adobe.com/xdm/mixins/profile/travel-preferences)
+  // attaches its leaves directly under the XDM root: `travelPreferences.{meal, seat, roomType,
+  // vehicleType, preferredDepartureAirportCode, gym, pool, ...}`. Without this entry the proxy
+  // would tenant-prefix it to `_<tenant>.travelPreferences.*` and AEP would silently drop the
+  // values, which is what produced "travel profiles with only generic attributes" before.
+  'travelPreferences',
   // Flat BCP-47 on streaming root + tenant (Profile Core v2 / WMG-style generators).
   'preferredLanguage',
 ]);

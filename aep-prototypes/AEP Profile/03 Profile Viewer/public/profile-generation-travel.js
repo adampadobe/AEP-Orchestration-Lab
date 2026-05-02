@@ -596,14 +596,200 @@
     return randomPick(RANDOM_NEUTRAL_FIRST);
   }
 
-  // Travel-flavoured persona randomization for Generate-N. Plus airline /
-  // travel class so each generated profile carries believable attributes
+  // Travel-flavoured persona randomization for Generate-N. Each generated
+  // profile carries a full Travel-schema-aligned reservation + preferences
+  // bundle so the rendered profile in AEP looks like a real travel customer
   // even when the operator only fills the analytics sliders.
+  //
+  // What gets streamed (matches AEP Lab - Travel Profile - Schema in apalmer):
+  //   _<tenant>.travelReservations.flightReservations.{usaFlight, numberofPassengers,
+  //     flightNumber, flightDate, flightClass, departureCountry, departureAirportCode,
+  //     confirmationNumber, childrenTravelling, arrivalCountry, arrivalAirportCode,
+  //     multiLeg.{multiLeg, numberofLayovers, layoverDuration_1/_2,
+  //               layoverAirport_1, layoverAiport_2 (sic — typo preserved upstream),
+  //               layoverAirportCode_1/_2}}
+  //   travelPreferences.{meal, seat, seatSection, roomType, vehicleType,
+  //     preferredDepartureAirportCode, ticketDelivery, gym, pool, earlyCheckIn, ...}
+  //     (root-level OOTB Adobe travel-preferences mixin)
+  //
+  // What is NOT streamed (no schema home today — see hint banner in profile-generation.html):
+  //   _<tenant>.individualCharacteristics.travel.* (favouriteAirline, primaryTravelClass, recentStay)
+  //   _<tenant>.travelReservations.{hotelReservations, carReservations}.*
+  // The form inputs for those subsections still render so an operator can preview
+  // a richer travel persona, but the values stay client-side until the Travel Profile
+  // schema gains a tenant FG that exposes them.
   const RANDOM_AIRLINES = [
     'British Airways', 'Air France', 'Lufthansa', 'KLM', 'Emirates',
     'Qatar Airways', 'Delta Air Lines', 'United Airlines', 'American Airlines',
     'Singapore Airlines', 'Cathay Pacific', 'ANA', 'Turkish Airlines', 'Iberia',
   ];
+
+  // Map display name → 2-letter IATA code so flightNumber prefixes match the
+  // randomly-picked favourite airline (BA0287, EK1145, etc.).
+  const AIRLINE_IATA = {
+    'British Airways': 'BA', 'Air France': 'AF', 'Lufthansa': 'LH', 'KLM': 'KL',
+    'Emirates': 'EK', 'Qatar Airways': 'QR', 'Delta Air Lines': 'DL',
+    'United Airlines': 'UA', 'American Airlines': 'AA', 'Singapore Airlines': 'SQ',
+    'Cathay Pacific': 'CX', 'ANA': 'NH', 'Turkish Airlines': 'TK', 'Iberia': 'IB',
+  };
+
+  // Curated airport pool. Each entry carries the country + USA flag so we can
+  // derive _<tenant>.travelReservations.flightReservations.{departureCountry,
+  // arrivalCountry, usaFlight} from the picked codes without a second API call.
+  const AIRPORTS = [
+    { code: 'LHR', city: 'London',         country: 'United Kingdom',     isUSA: false },
+    { code: 'CDG', city: 'Paris',          country: 'France',             isUSA: false },
+    { code: 'FRA', city: 'Frankfurt',      country: 'Germany',            isUSA: false },
+    { code: 'AMS', city: 'Amsterdam',      country: 'Netherlands',        isUSA: false },
+    { code: 'MAD', city: 'Madrid',         country: 'Spain',              isUSA: false },
+    { code: 'FCO', city: 'Rome',           country: 'Italy',              isUSA: false },
+    { code: 'IST', city: 'Istanbul',       country: 'Turkey',             isUSA: false },
+    { code: 'DXB', city: 'Dubai',          country: 'United Arab Emirates', isUSA: false },
+    { code: 'DOH', city: 'Doha',           country: 'Qatar',              isUSA: false },
+    { code: 'SIN', city: 'Singapore',      country: 'Singapore',          isUSA: false },
+    { code: 'HKG', city: 'Hong Kong',      country: 'Hong Kong',          isUSA: false },
+    { code: 'NRT', city: 'Tokyo',          country: 'Japan',              isUSA: false },
+    { code: 'SYD', city: 'Sydney',         country: 'Australia',          isUSA: false },
+    { code: 'YYZ', city: 'Toronto',        country: 'Canada',             isUSA: false },
+    { code: 'JFK', city: 'New York',       country: 'United States',      isUSA: true },
+    { code: 'LAX', city: 'Los Angeles',    country: 'United States',      isUSA: true },
+    { code: 'SFO', city: 'San Francisco',  country: 'United States',      isUSA: true },
+    { code: 'ORD', city: 'Chicago',        country: 'United States',      isUSA: true },
+    { code: 'MIA', city: 'Miami',          country: 'United States',      isUSA: true },
+  ];
+
+  // OOTB Travel Preferences mixin enums (root-level travelPreferences.*).
+  const MEAL_OPTIONS    = ['Standard', 'Vegetarian', 'Vegan', 'Kosher', 'Halal', 'Gluten-Free', 'Low-Sodium'];
+  const SEAT_OPTIONS    = ['window', 'aisle', 'middle'];
+  const SEAT_SECTION    = ['front', 'middle', 'rear'];
+  const ROOM_TYPES      = ['King', 'Queen', 'Twin', 'Suite', 'Studio'];
+  const VEHICLE_TYPES   = ['Compact', 'Sedan', 'SUV', 'Luxury', 'Convertible', 'Minivan'];
+  const TICKET_DELIVERY = ['mobile', 'email', 'printed'];
+
+  // Module-level "pending" state populated by applyRandomCustomerPersonaForGenerate
+  // and consumed-then-cleared by buildUpdatesFromForm. Lets the randomizer attach
+  // schema-valid extras (departureCountry, usaFlight, multiLeg sub-fields, root
+  // travelPreferences.*) that have no UI inputs without polluting the form DOM.
+  let pendingFlightExtras = null;
+  let pendingTravelPreferences = null;
+
+  function pickAirportPair() {
+    const dep = randomPick(AIRPORTS);
+    let arr = randomPick(AIRPORTS);
+    let guard = 0;
+    while (arr.code === dep.code && guard < 6) {
+      arr = randomPick(AIRPORTS);
+      guard += 1;
+    }
+    return { dep, arr };
+  }
+
+  function isoFutureDate(daysAhead) {
+    const d = new Date();
+    d.setDate(d.getDate() + daysAhead);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function randomConfirmationCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // unambiguous
+    let out = '';
+    for (let i = 0; i < 6; i++) out += chars.charAt(Math.floor(Math.random() * chars.length));
+    return out;
+  }
+
+  function randomFlightNumber(airlineDisplay) {
+    const code = AIRLINE_IATA[airlineDisplay] || randomPick(['BA', 'AF', 'LH', 'EK', 'QR']);
+    return `${code}${String(randomBetween(100, 4999)).padStart(4, '0')}`;
+  }
+
+  // Build the full random Travel persona once per Generate iteration. Mutates
+  // form fields (so snapshotForm + summariseSnapshot stay accurate) AND stashes
+  // schema-only extras into pendingFlightExtras / pendingTravelPreferences so
+  // buildUpdatesFromForm can stream them.
+  function generateRandomTravelPersona() {
+    const airline = randomPick(RANDOM_AIRLINES);
+    const { dep, arr } = pickAirportPair();
+    const passengers = randomBetween(1, 4);
+    const childrenTravelling = passengers >= 2 && Math.random() < 0.3;
+    const flightClassRaw = randomPick(['economy', 'economy', 'economy', 'premium_economy', 'business', 'business', 'first']);
+    const isMultiLeg = Math.random() < 0.35;
+    const layovers = isMultiLeg ? randomBetween(1, 2) : 0;
+    const layover1 = isMultiLeg ? randomPick(AIRPORTS.filter((a) => a.code !== dep.code && a.code !== arr.code)) : null;
+    const layover2 = isMultiLeg && layovers === 2
+      ? randomPick(AIRPORTS.filter((a) => a.code !== dep.code && a.code !== arr.code && a.code !== (layover1 && layover1.code)))
+      : null;
+
+    // Mutate the form so the existing (toggle-gated) buildUpdatesFromForm path
+    // pushes the visible inputs. The reservations toggle is auto-checked below.
+    if (favouriteAirlineEl) favouriteAirlineEl.value = airline;
+    if (primaryTravelClassEl && !trimVal(primaryTravelClassEl)) {
+      const opts = selectNonEmptyValues(primaryTravelClassEl);
+      if (opts.includes(flightClassRaw)) primaryTravelClassEl.value = flightClassRaw;
+    }
+    if (flightDepartureEl) flightDepartureEl.value = dep.code;
+    if (flightArrivalEl) flightArrivalEl.value = arr.code;
+    if (flightNumberEl) flightNumberEl.value = randomFlightNumber(airline);
+    if (flightDateEl) flightDateEl.value = isoFutureDate(randomBetween(7, 120));
+    if (flightClassEl) {
+      const opts = selectNonEmptyValues(flightClassEl);
+      flightClassEl.value = opts.includes(flightClassRaw) ? flightClassRaw : (opts[0] || '');
+    }
+    if (flightConfirmationEl) flightConfirmationEl.value = randomConfirmationCode();
+    if (flightPassengersEl) flightPassengersEl.value = String(passengers);
+    if (flightChildrenEl) flightChildrenEl.value = childrenTravelling ? 'true' : 'false';
+    if (flightMultiLegEl) flightMultiLegEl.value = isMultiLeg ? 'true' : 'false';
+    if (flightLayoversEl) flightLayoversEl.value = String(layovers);
+
+    // Auto-enable the reservations toggle so the existing push-from-form code
+    // for the visible flight inputs runs. The Hotel/Car form fields are dead
+    // (no schema home) so we leave them blank — the proxy receives nothing for
+    // them and the OOTB travelPreferences mixin covers room/vehicle preferences.
+    if (reservationsEnabledEl && !reservationsEnabledEl.checked) {
+      reservationsEnabledEl.checked = true;
+      try { applyReservationsToggleVisibility(); } catch (_) {}
+    }
+
+    // Stash flightReservations leaves that don't have a UI input.
+    pendingFlightExtras = {
+      usaFlight: !!(dep.isUSA || arr.isUSA),
+      departureCountry: dep.country,
+      arrivalCountry: arr.country,
+      multiLeg: {
+        layoverAirport_1: layover1 ? layover1.city : '',
+        layoverAirportCode_1: layover1 ? layover1.code : '',
+        layoverDuration_1: layover1 ? randomBetween(45, 240) : 0,
+        // Schema typo preserved upstream: `layoverAiport_2` (note missing 'r').
+        layoverAiport_2: layover2 ? layover2.city : '',
+        layoverAirportCode_2: layover2 ? layover2.code : '',
+        layoverDuration_2: layover2 ? randomBetween(45, 240) : 0,
+      },
+    };
+
+    // Stash root-level OOTB travel preferences (no UI inputs today). Booleans
+    // bias toward leisure-friendly defaults; strings pick from the OOTB enums.
+    pendingTravelPreferences = {
+      meal: randomPick(MEAL_OPTIONS),
+      seat: randomPick(SEAT_OPTIONS),
+      seatSection: randomPick(SEAT_SECTION),
+      roomType: randomPick(ROOM_TYPES),
+      vehicleType: randomPick(VEHICLE_TYPES),
+      preferredDepartureAirportCode: dep.code,
+      ticketDelivery: randomPick(TICKET_DELIVERY),
+      gym: Math.random() < 0.6,
+      pool: Math.random() < 0.7,
+      hasRestaurant: true,
+      earlyCheckIn: Math.random() < 0.5,
+      roomService: Math.random() < 0.4,
+      foamPillows: Math.random() < 0.3,
+      crib: childrenTravelling && Math.random() < 0.5,
+      rollAwayBed: childrenTravelling && Math.random() < 0.3,
+      smokingRoom: false,
+      smokingVehicle: false,
+      manualTransmission: Math.random() < 0.15,
+      visuallyImpairedAccessible: false,
+      wheelchairAccessible: Math.random() < 0.05,
+    };
+  }
 
   function applyRandomCustomerPersonaForGenerate() {
     const mfCanon = ['male', 'female'];
@@ -645,14 +831,13 @@
       if (loyaltyIDEl) loyaltyIDEl.value = `LYL-${randomBetween(100000, 999999)}`;
     }
 
-    // Light Travel persona — only fill if blank so operator-supplied values stick.
-    if (favouriteAirlineEl && !trimVal(favouriteAirlineEl)) {
-      favouriteAirlineEl.value = randomPick(RANDOM_AIRLINES);
-    }
-    const travelClassChoices = selectNonEmptyValues(primaryTravelClassEl);
-    if (primaryTravelClassEl && !trimVal(primaryTravelClassEl) && travelClassChoices.length) {
-      primaryTravelClassEl.value = randomPick(travelClassChoices);
-    }
+    // Full Travel persona — picks airline + airport pair + class, fills the
+    // visible flight reservation form fields, auto-checks the reservations
+    // toggle (so the existing buildUpdatesFromForm push code runs), and stashes
+    // the schema-only extras (departureCountry, usaFlight, multiLeg layovers,
+    // root travelPreferences.*) into module-level pending state for
+    // buildUpdatesFromForm to consume on the next call.
+    generateRandomTravelPersona();
   }
 
   function snapshotForm() {
@@ -783,27 +968,22 @@
       }
     }
 
-    // Travel attributes — tenant subtree under Profile Core v2.
-    const favAirline = trimVal(favouriteAirlineEl);
-    if (favAirline) push('individualCharacteristics.travel.favouriteAirlineCompany', favAirline);
-    const travelClass = trimVal(primaryTravelClassEl);
-    if (travelClass) push('individualCharacteristics.travel.primaryTravelClass', travelClass);
-
-    if (recentStayEnabledEl && recentStayEnabledEl.checked) {
-      const stayPath = 'individualCharacteristics.travel.recentStay';
-      const v = (el) => trimVal(el);
-      if (v(recentStayHotelEl)) push(`${stayPath}.hotelName`, v(recentStayHotelEl));
-      if (v(recentStayCityEl)) push(`${stayPath}.city`, v(recentStayCityEl));
-      if (v(recentStayCountryEl)) push(`${stayPath}.country`, v(recentStayCountryEl));
-      if (v(recentStayCheckInEl)) push(`${stayPath}.checkInDate`, v(recentStayCheckInEl));
-      if (v(recentStayCheckOutEl)) push(`${stayPath}.checkOutDate`, v(recentStayCheckOutEl));
-      if (v(recentStayRoomTypeEl)) push(`${stayPath}.roomType`, v(recentStayRoomTypeEl));
-    }
-
+    // Travel attributes — schema-aligned with `AEP Lab - Travel Profile - Schema`
+    // (Profile Core v2 tenant subtree + OOTB Adobe travel-preferences mixin).
+    //
+    // NOTE on dropped paths:
+    //   - `individualCharacteristics.travel.{favouriteAirlineCompany, primaryTravelClass,
+    //     recentStay.*}` is NOT in the current schema's `_<tenant>` subtree. The favourite
+    //     airline / primary travel class form inputs still drive the Generate randomizer
+    //     (airline picks the IATA prefix for flightNumber, class flows into flightClass),
+    //     and recentStay form fields stay client-side only. AEP would silently drop them
+    //     if streamed, which is the bug that caused "travel profiles with only generic
+    //     attributes" before.
+    //   - `travelReservations.{hotelReservations, carReservations}.*` likewise have no
+    //     schema home today. The OOTB `travelPreferences.{roomType, vehicleType}` covers
+    //     room/vehicle preferences instead, and Generate now populates those.
     if (reservationsEnabledEl && reservationsEnabledEl.checked) {
       const flightPath = 'travelReservations.flightReservations';
-      const hotelPath = 'travelReservations.hotelReservations';
-      const carPath = 'travelReservations.carReservations';
       const v = (el) => trimVal(el);
       const intVal = (el) => {
         const s = trimVal(el);
@@ -818,6 +998,7 @@
         return null;
       };
 
+      // Visible flight inputs.
       if (v(flightDepartureEl)) push(`${flightPath}.departureAirportCode`, v(flightDepartureEl));
       if (v(flightArrivalEl)) push(`${flightPath}.arrivalAirportCode`, v(flightArrivalEl));
       if (v(flightNumberEl)) push(`${flightPath}.flightNumber`, v(flightNumberEl));
@@ -833,20 +1014,39 @@
       const layovers = intVal(flightLayoversEl);
       if (layovers != null) push(`${flightPath}.multiLeg.numberofLayovers`, layovers);
 
-      if (v(hotelNameEl)) push(`${hotelPath}.hotelName`, v(hotelNameEl));
-      if (v(hotelCityEl)) push(`${hotelPath}.city`, v(hotelCityEl));
-      if (v(hotelCountryEl)) push(`${hotelPath}.country`, v(hotelCountryEl));
-      if (v(hotelCheckInEl)) push(`${hotelPath}.checkInDate`, v(hotelCheckInEl));
-      if (v(hotelCheckOutEl)) push(`${hotelPath}.checkOutDate`, v(hotelCheckOutEl));
-      if (v(hotelRoomTypeEl)) push(`${hotelPath}.roomType`, v(hotelRoomTypeEl));
-      if (v(hotelConfirmationEl)) push(`${hotelPath}.confirmationNumber`, v(hotelConfirmationEl));
+      // Schema extras with no UI inputs (populated by Generate randomizer via
+      // pendingFlightExtras). Read-and-clear so manual Update flows after a
+      // Generate don't accidentally re-emit a stale random country/usaFlight.
+      if (pendingFlightExtras) {
+        const extras = pendingFlightExtras;
+        pendingFlightExtras = null;
+        if (typeof extras.usaFlight === 'boolean') push(`${flightPath}.usaFlight`, extras.usaFlight);
+        if (extras.departureCountry) push(`${flightPath}.departureCountry`, extras.departureCountry);
+        if (extras.arrivalCountry) push(`${flightPath}.arrivalCountry`, extras.arrivalCountry);
+        const ml = extras.multiLeg || {};
+        if (ml.layoverAirport_1) push(`${flightPath}.multiLeg.layoverAirport_1`, ml.layoverAirport_1);
+        if (ml.layoverAirportCode_1) push(`${flightPath}.multiLeg.layoverAirportCode_1`, ml.layoverAirportCode_1);
+        if (Number.isFinite(ml.layoverDuration_1)) push(`${flightPath}.multiLeg.layoverDuration_1`, ml.layoverDuration_1);
+        // Schema typo preserved upstream: `layoverAiport_2` (note missing 'r').
+        if (ml.layoverAiport_2) push(`${flightPath}.multiLeg.layoverAiport_2`, ml.layoverAiport_2);
+        if (ml.layoverAirportCode_2) push(`${flightPath}.multiLeg.layoverAirportCode_2`, ml.layoverAirportCode_2);
+        if (Number.isFinite(ml.layoverDuration_2)) push(`${flightPath}.multiLeg.layoverDuration_2`, ml.layoverDuration_2);
+      }
+    }
 
-      if (v(carCompanyEl)) push(`${carPath}.rentalCompany`, v(carCompanyEl));
-      if (v(carPickupCityEl)) push(`${carPath}.pickupCity`, v(carPickupCityEl));
-      if (v(carClassEl)) push(`${carPath}.carClass`, v(carClassEl));
-      if (v(carPickupDateEl)) push(`${carPath}.pickupDate`, v(carPickupDateEl));
-      if (v(carReturnDateEl)) push(`${carPath}.returnDate`, v(carReturnDateEl));
-      if (v(carConfirmationEl)) push(`${carPath}.confirmationNumber`, v(carConfirmationEl));
+    // Root-level OOTB Travel Preferences mixin (https://ns.adobe.com/xdm/mixins/profile/
+    // travel-preferences). Routes to XDM root because `travelPreferences` is in
+    // PROFILE_STREAM_ROOT_PATH_PREFIXES — without that the proxy would tenant-prefix it
+    // to `_<tenant>.travelPreferences.*` and AEP would drop the values.
+    if (pendingTravelPreferences) {
+      const prefs = pendingTravelPreferences;
+      pendingTravelPreferences = null;
+      const prefsPath = 'travelPreferences';
+      for (const [k, val] of Object.entries(prefs)) {
+        if (val == null) continue;
+        if (typeof val === 'string' && val.trim() === '') continue;
+        push(`${prefsPath}.${k}`, val);
+      }
     }
 
     return updates;

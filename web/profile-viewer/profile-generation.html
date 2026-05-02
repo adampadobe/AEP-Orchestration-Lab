@@ -1878,12 +1878,25 @@
         </div>
       </div>
 
-      <!-- Travel-specific attributes — tenant subtree under Profile Core v2.
-           Paths: _<tenant>.individualCharacteristics.travel.* and
-           _<tenant>.travelReservations.{flightReservations,hotelReservations,carReservations}.
-           profile-generation-travel.js builds the update list from these. -->
+      <!-- Travel-specific attributes — aligned with `AEP Lab - Travel Profile - Schema`
+           in the configured sandbox. Paths actually streamed by Generate / Update:
+             _<tenant>.travelReservations.flightReservations.* (full set incl. multiLeg)
+             travelPreferences.* (root-level OOTB Adobe travel-preferences mixin)
+           Form fields under "Travel attributes" / "Recent stay" / "Hotel reservation"
+           / "Car reservation" stay client-side for now (no schema home). See the
+           hint banner below — operators can preview a richer persona, but those
+           values aren't streamed until the Travel schema gains tenant FGs that
+           expose them. profile-generation-travel.js builds the update list. -->
       <div class="generic-analytics-section">
         <h3 class="generic-subhead"><span class="icon">✈️</span> Travel attributes</h3>
+        <p class="setup-step-hint" style="margin-top:0;font-size:0.88em;">
+          Generate auto-fills the full Flight reservation block + a randomized OOTB
+          <code>travelPreferences.*</code> bundle (meal, seat, roomType, vehicleType, …)
+          so the resulting AEP profile carries substantive travel data, not just analytics.
+          Hotel reservation, Car reservation and Recent-stay subsections are not in the
+          current Travel Profile schema and stay client-side only — extend the Travel
+          tenant FG to add them.
+        </p>
         <div class="gen-identity-grid">
           <div class="form-group">
             <label for="travelFavouriteAirlineCompany">Favourite airline</label>
@@ -4403,7 +4416,7 @@
   <script src="profile-generation-shared.js?v=20260502c"></script>
   <script src="profile-generation.js?v=20260502c"></script>
   <script src="profile-generation-generic.js?v=20260502c"></script>
-  <script src="profile-generation-travel.js?v=20260502c"></script>
+  <script src="profile-generation-travel.js?v=20260502e"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
