@@ -803,7 +803,14 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   margin-top: 0.65rem;
 }
 
-.profile-generation-page #genericProfilePanel .consent-setup-instructions {
+/* Sandbox setup instructions block.
+ * Shared 1:1 between the Generic panel and the Travel panel so both
+ * industries render the wizard preamble identically — same surface,
+ * same blue-accent left border, same code/note styling, same warning
+ * callout. Adding a new industry panel later? Add its id to the
+ * :is() list below (and to the configured-pill rule + the
+ * __note rules) to inherit the full treatment. */
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel) .consent-setup-instructions {
   background: var(--dash-surface-alt);
   border-left: 4px solid var(--dash-blue);
   border-radius: 8px;
@@ -813,19 +820,19 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   color: var(--dash-text);
 }
 
-.profile-generation-page #genericProfilePanel .consent-setup-instructions h4 {
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel) .consent-setup-instructions h4 {
   margin: 0 0 0.5rem;
   font-size: 0.95rem;
   color: var(--dash-text);
 }
 
-.profile-generation-page #genericProfilePanel .consent-setup-instructions ol {
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel) .consent-setup-instructions ol {
   margin: 0;
   padding-left: 1.25rem;
   line-height: 1.55;
 }
 
-.profile-generation-page #genericProfilePanel .consent-setup-instructions code {
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel) .consent-setup-instructions code {
   background: var(--dash-code-bg);
   padding: 0.1em 0.4em;
   border-radius: 4px;
@@ -834,11 +841,11 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
 
 /* "Configured" state for the Sandbox & streaming connection <details>
  * summary hint. Flipped on by applyConfiguredCollapseState() in
- * profile-generation-generic.js once all four streaming fields are
- * populated (after Save connection or after a per-sandbox Firebase load),
- * which also collapses the <details>. Uses --dash-success-* tokens so
- * it themes correctly in light + dark. */
-.profile-generation-page #genericProfileInfraDetails .consent-streaming-details__hint--configured {
+ * profile-generation-generic.js / profile-generation-travel.js once all
+ * four streaming fields are populated (after Save connection or after
+ * a per-sandbox Firebase load), which also collapses the <details>.
+ * Uses --dash-success-* tokens so it themes correctly in light + dark. */
+.profile-generation-page :is(#genericProfileInfraDetails, #travelProfileInfraDetails) .consent-streaming-details__hint--configured {
   color: var(--dash-success-text);
   background: var(--dash-success-bg);
   border: 1px solid var(--dash-success-border);
@@ -852,7 +859,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
  * part of the same flow), but with the warning border + warning text tones
  * to flag that Profile-enabling a schema is a one-way AEP action and the
  * operator must do it themselves. Tokenised so it themes correctly. */
-.profile-generation-page #genericProfilePanel .consent-setup-instructions__note {
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel) .consent-setup-instructions__note {
   margin: 0.85rem 0 0;
   padding: 0.65rem 0.85rem;
   background: var(--dash-warning-bg);
@@ -863,7 +870,7 @@ body.profile-generation-page.consent-page.with-sidebar .dashboard-main .consent-
   color: var(--dash-warning-text);
 }
 
-.profile-generation-page #genericProfilePanel .consent-setup-instructions__note code {
+.profile-generation-page :is(#genericProfilePanel, #travelProfilePanel) .consent-setup-instructions__note code {
   background: rgba(0, 0, 0, 0.18);
 }
 
