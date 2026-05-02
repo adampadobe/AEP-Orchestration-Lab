@@ -15,6 +15,17 @@
  * `_demoemea.travelReservations.*`) are streamed via Profile Core v2's
  * tenant subtree so they surface in UPS without needing a custom tenant
  * field group attached at schema level.
+ *
+ * Travel-only addition vs Generic: the Adobe-OOTB **Travel Preferences**
+ * field group (`https://ns.adobe.com/xdm/mixins/profile/travel-preferences`)
+ * is attached on top of the Generic set. It is the only Travel-themed
+ * Adobe field group that is intended for the Profile class — Flight
+ * Reservation, Dining Reservation and Upgrade Details are scoped to the
+ * ExperienceEvent class (`meta:intendedToExtend` enforced by the Schema
+ * Registry) and would be rejected by step 2 if attached here. Reservation
+ * data therefore continues to ride on the tenant subtree (above) for now;
+ * a separate Travel ExperienceEvent pipeline is the right home for canonical
+ * flight/dining/upgrade event data — see plan "Out of scope" / follow-ups.
  */
 
 const SCHEMA_REGISTRY = 'https://platform.adobe.io/data/foundation/schemaregistry';
@@ -252,7 +263,14 @@ function collectSchemaRefUris(schema) {
 /**
  * PATCH ops to attach the same OOTB Profile field group set as Generic
  * (Profile Core v2 + Demographic Details + Personal Contact Details +
- * Loyalty Details + Consent and Preference Details + Preference Details).
+ * Loyalty Details + Consent and Preference Details + Preference Details),
+ * PLUS the Travel-only OOTB Profile field group **Travel Preferences**
+ * (home airport, meal preference, seat preference, etc.).
+ *
+ * Only Profile-class Adobe field groups are listed here. The Schema
+ * Registry rejects ExperienceEvent-scoped field groups (Flight / Dining /
+ * Upgrade) when PATCH'd onto a Profile schema, so those are deliberately
+ * NOT in `toAdd` — see the file-level comment for the longer explanation.
  *
  * Travel-specific attribute paths (`_<tenant>.individualCharacteristics.travel.*`,
  * `_<tenant>.travelReservations.*`) ride on Profile Core v2's tenant
@@ -269,6 +287,7 @@ function buildAttachFieldGroupPatchOps(fullSchema, profileCoreMixinId) {
     'https://ns.adobe.com/xdm/mixins/profile/profile-loyalty-details',
     'https://ns.adobe.com/xdm/mixins/profile-consents',
     'https://ns.adobe.com/xdm/context/profile-preferences-details',
+    'https://ns.adobe.com/xdm/mixins/profile/travel-preferences',
     String(profileCoreMixinId),
   ];
   const ops = [];
@@ -332,6 +351,7 @@ function travelProfileFieldGroupsComplete(fullSchema, profileCoreMixinId) {
     'https://ns.adobe.com/xdm/mixins/profile/profile-loyalty-details',
     'https://ns.adobe.com/xdm/mixins/profile-consents',
     'https://ns.adobe.com/xdm/context/profile-preferences-details',
+    'https://ns.adobe.com/xdm/mixins/profile/travel-preferences',
     String(profileCoreMixinId),
   ];
   return need.every((r) => refs.has(r));
@@ -769,7 +789,7 @@ async function runTravelProfileInfraStep(sandbox, token, clientId, orgId, stepNa
         schemaId: created.$id,
         schemaMetaAltId: created['meta:altId'],
         message:
-          'Schema shell created (Profile class only). Run step 2 to attach the standard Profile field groups (including Consent and Preference Details) + primary Email identity. Travel-specific tenant attributes ride on Profile Core v2 — no extra tenant FG required.',
+          'Schema shell created (Profile class only). Run step 2 to attach the standard Profile field groups (including Consent and Preference Details and the OOTB Travel Preferences field group) + primary Email identity. Travel-specific reservation attributes still ride on Profile Core v2 — no extra tenant FG required.',
       };
     }
 
@@ -841,7 +861,7 @@ async function runTravelProfileInfraStep(sandbox, token, clientId, orgId, stepNa
         patchApplied: ar.patchApplied,
         descriptorOk: ar.descriptorOk,
         message: ar.patchApplied
-          ? 'Field groups attached and primary Email identity set (Profile Core v2 + Demographic Details + Personal Contact Details + Loyalty Details + Consent and Preference Details + Preference Details).'
+          ? 'Field groups attached and primary Email identity set (Profile Core v2 + Demographic Details + Personal Contact Details + Loyalty Details + Consent and Preference Details + Preference Details + Travel Preferences).'
           : 'Field groups were already present; primary Email identity checked.',
       };
     }
