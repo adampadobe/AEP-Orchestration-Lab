@@ -4001,15 +4001,28 @@
         </div>
       </div>
 
-            <!-- Retail-specific attributes — tenant subtree under Profile Core v2.
-           Paths: _<tenant>.industryRetail.* (favourite category, LTV
-           band, household composition, store/online preference, loyalty
-           tier separate from Generic). When the custom Profile Retail v2
-           and/or Profile Retail Scoring FGs are attached the paths still
-           live under industryRetail.* (their tenant subtree subsumes
-           them). -->
+            <!-- Retail-specific attributes — tenant subtree under Profile Core v2 + Profile Retail v2 + Profile Retail Scoring.
+           Streamed paths (mapped to schema leaves under _<tenant>):
+             • individualCharacteristics.core.favouriteCategory      ← Favourite category dropdown
+             • individualCharacteristics.core.{childrenInHouseHold,numberChildreninHouseHold}
+                                                                     ← derived from Household composition
+             • individualCharacteristics.retail.{cobrandedCreditCardHolder,favoriteStore,favoriteColor,
+                                                  favoriteDesigner,favoriteFashionBrand,linkedStore[],
+                                                  pantsSize,shirtSize,shoeSize}
+                                                                     ← Retail products & sizes section below
+             • scoring.retail.{cobrandedCreditCardSignUp,loyaltyProgramSignUp,loyaltyStatusUpgrade}
+                                                                     ← Retail propensity sliders
+             • orderProfile.{lastOrderDate,lastOrderSize,lastOrderValue,lastOrderPaymentMethod,
+                             lastOrderSku[],lastOrderStore[],lastOrderType[],ordersYTD,lifetimeValue}
+                                                                     ← Last order section + LTV-band midpoint + Last-purchase-recency derived date
+           Client-side only (no schema home today, kept for operator context):
+             channelPreference, retailLoyaltyTier (use Generic loyalty section instead),
+             cart/wishlist/store-card/subscribed/returned/reviews engagement flags. -->
       <div class="generic-analytics-section">
         <h3 class="generic-subhead"><span class="icon">🛍️</span> Retail attributes</h3>
+        <p class="form-help" style="margin: 4px 0 12px 0; padding: 8px 12px; background: var(--dash-surface-alt); border-radius: var(--dash-radius-sm); border-left: 3px solid var(--dash-blue); font-size: 0.85em; color: var(--dash-text-secondary);">
+          Favourite category, LTV band, Household composition and Last-purchase recency stream into AEP via the Profile Core v2 / Retail FG tenant subtree. Channel preference, Retail loyalty tier and the engagement flags below are client-side only — they help you describe the persona but are not in the current Retail schema.
+        </p>
         <div class="gen-identity-grid">
           <div class="form-group">
             <label for="retailFavoriteCategory">Favourite category</label>
@@ -4091,6 +4104,179 @@
             <label class="gen-loyalty-toggle"><input type="checkbox" id="retailSubscribed"> <span>Subscribed to product feed</span></label>
             <label class="gen-loyalty-toggle"><input type="checkbox" id="retailReturnedRecent"> <span>Returned an item recently</span></label>
             <label class="gen-loyalty-toggle"><input type="checkbox" id="retailReviewsItems"> <span>Writes product reviews</span></label>
+          </div>
+        </div>
+
+        <!-- Retail products & sizes — _<tenant>.individualCharacteristics.retail.* -->
+        <div class="generic-identity-section" style="margin-top: 20px;">
+          <h4 class="generic-subhead" style="font-size: 0.95em;">🧥 Retail products &amp; sizes</h4>
+          <div class="gen-identity-grid">
+            <div class="form-group">
+              <label for="retailFavoriteStore">Favourite store</label>
+              <input type="text" id="retailFavoriteStore" placeholder="e.g. Selfridges" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="retailFavoriteColor">Favourite colour</label>
+              <select id="retailFavoriteColor">
+                <option value="">— Select —</option>
+                <option value="black">Black</option>
+                <option value="white">White</option>
+                <option value="navy">Navy</option>
+                <option value="grey">Grey</option>
+                <option value="beige">Beige</option>
+                <option value="brown">Brown</option>
+                <option value="red">Red</option>
+                <option value="pink">Pink</option>
+                <option value="green">Green</option>
+                <option value="blue">Blue</option>
+                <option value="yellow">Yellow</option>
+                <option value="purple">Purple</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="retailFavoriteDesigner">Favourite designer</label>
+              <input type="text" id="retailFavoriteDesigner" placeholder="e.g. Burberry" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="retailFavoriteFashionBrand">Favourite fashion brand</label>
+              <input type="text" id="retailFavoriteFashionBrand" placeholder="e.g. Nike" autocomplete="off">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label for="retailLinkedStore">Linked stores (comma-separated)</label>
+              <input type="text" id="retailLinkedStore" placeholder="e.g. Oxford St, Westfield, Online" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="retailPantsSize">Pants size</label>
+              <input type="text" id="retailPantsSize" placeholder="e.g. 32x34" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="retailShirtSize">Shirt size</label>
+              <select id="retailShirtSize">
+                <option value="">— Select —</option>
+                <option value="XS">XS</option>
+                <option value="S">S</option>
+                <option value="M">M</option>
+                <option value="L">L</option>
+                <option value="XL">XL</option>
+                <option value="XXL">XXL</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="retailShoeSize">Shoe size</label>
+              <input type="text" id="retailShoeSize" placeholder="e.g. 10 US" autocomplete="off">
+            </div>
+          </div>
+          <div class="form-row form-row--inline" style="margin-top: 12px;">
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="retailCobrandedCreditCardHolder"> <span>Co-branded credit-card holder</span></label>
+          </div>
+        </div>
+
+        <!-- Retail propensity scores — _<tenant>.scoring.retail.* (0.00 – 1.00) -->
+        <div class="generic-identity-section" style="margin-top: 20px;">
+          <h4 class="generic-subhead" style="font-size: 0.95em;">🎯 Retail propensity scores</h4>
+          <p class="form-help" style="margin: 4px 0 12px 0; font-size: 0.85em; color: var(--dash-text-secondary);">
+            AEP propensity scores (0.00 – 1.00). Streamed to <code>scoring.retail.*</code>.
+          </p>
+          <div class="generic-analytics-grid">
+            <div class="analytics-card">
+              <div class="analytics-card-header">
+                <span class="analytics-card-icon">💳</span>
+                <h4 class="analytics-card-title">Co-branded card sign-up</h4>
+                <span class="analytics-card-value" id="retailCobrandedCreditCardSignUpValue">0.50</span>
+              </div>
+              <input type="range" id="retailCobrandedCreditCardSignUp" class="analytics-slider" min="0" max="100" step="1" value="50">
+              <div class="analytics-slider-meta">
+                <span>Low</span>
+                <button type="button" class="btn btn-link analytics-randomize" data-target="retailCobrandedCreditCardSignUp" data-display="retailCobrandedCreditCardSignUpValue" data-format="prob" title="Randomize">🎲</button>
+                <span>High</span>
+              </div>
+            </div>
+            <div class="analytics-card">
+              <div class="analytics-card-header">
+                <span class="analytics-card-icon">🎁</span>
+                <h4 class="analytics-card-title">Loyalty programme sign-up</h4>
+                <span class="analytics-card-value" id="retailLoyaltyProgramSignUpValue">0.50</span>
+              </div>
+              <input type="range" id="retailLoyaltyProgramSignUp" class="analytics-slider" min="0" max="100" step="1" value="50">
+              <div class="analytics-slider-meta">
+                <span>Low</span>
+                <button type="button" class="btn btn-link analytics-randomize" data-target="retailLoyaltyProgramSignUp" data-display="retailLoyaltyProgramSignUpValue" data-format="prob" title="Randomize">🎲</button>
+                <span>High</span>
+              </div>
+            </div>
+            <div class="analytics-card">
+              <div class="analytics-card-header">
+                <span class="analytics-card-icon">⬆️</span>
+                <h4 class="analytics-card-title">Loyalty status upgrade</h4>
+                <span class="analytics-card-value" id="retailLoyaltyStatusUpgradeValue">0.50</span>
+              </div>
+              <input type="range" id="retailLoyaltyStatusUpgrade" class="analytics-slider" min="0" max="100" step="1" value="50">
+              <div class="analytics-slider-meta">
+                <span>Low</span>
+                <button type="button" class="btn btn-link analytics-randomize" data-target="retailLoyaltyStatusUpgrade" data-display="retailLoyaltyStatusUpgradeValue" data-format="prob" title="Randomize">🎲</button>
+                <span>High</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Last order details — _<tenant>.orderProfile.* (extends Generic's avgOrderSize push) -->
+        <div class="generic-identity-section" style="margin-top: 20px;">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <h4 class="generic-subhead" style="font-size: 0.95em; margin: 0;">🧾 Last order details</h4>
+            <label class="gen-loyalty-toggle" style="margin-left: auto;"><input type="checkbox" id="retailLastOrderEnabled" checked> <span>Stream last-order details</span></label>
+          </div>
+          <p class="form-help" style="margin: 4px 0 12px 0; font-size: 0.85em; color: var(--dash-text-secondary);">
+            When enabled, these explicit values override the LTV-band midpoint
+            and the recency-derived date. Streamed to <code>orderProfile.*</code>.
+          </p>
+          <div id="retailLastOrderFields" class="gen-identity-grid">
+            <div class="form-group">
+              <label for="retailLastOrderDate">Last order date</label>
+              <input type="date" id="retailLastOrderDate" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="retailLastOrderSize">Last order size (# items)</label>
+              <input type="number" id="retailLastOrderSize" min="0" step="1" placeholder="e.g. 3">
+            </div>
+            <div class="form-group">
+              <label for="retailLastOrderValue">Last order value ($)</label>
+              <input type="number" id="retailLastOrderValue" min="0" step="0.01" placeholder="e.g. 149.99">
+            </div>
+            <div class="form-group">
+              <label for="retailLastOrderPaymentMethod">Last order payment method</label>
+              <select id="retailLastOrderPaymentMethod">
+                <option value="">— Select —</option>
+                <option value="credit_card">Credit card</option>
+                <option value="debit_card">Debit card</option>
+                <option value="paypal">PayPal</option>
+                <option value="apple_pay">Apple Pay</option>
+                <option value="google_pay">Google Pay</option>
+                <option value="bnpl">Buy now, pay later</option>
+                <option value="bank_transfer">Bank transfer</option>
+                <option value="cash">Cash</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label for="retailLastOrderSku">Last order SKUs (comma-separated)</label>
+              <input type="text" id="retailLastOrderSku" placeholder="e.g. SKU-12345, SKU-67890" autocomplete="off">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label for="retailLastOrderStore">Last order store(s) (comma-separated)</label>
+              <input type="text" id="retailLastOrderStore" placeholder="e.g. Online, Oxford St" autocomplete="off">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label for="retailLastOrderType">Last order type(s) (comma-separated)</label>
+              <input type="text" id="retailLastOrderType" placeholder="e.g. online, click-and-collect" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="retailOrdersYTD">Orders year-to-date</label>
+              <input type="number" id="retailOrdersYTD" min="0" step="1" placeholder="e.g. 12">
+            </div>
+            <div class="form-group">
+              <label for="retailLifetimeValue">Lifetime value ($)</label>
+              <input type="number" id="retailLifetimeValue" min="0" step="0.01" placeholder="e.g. 4250.00">
+            </div>
           </div>
         </div>
       </div>
@@ -4599,7 +4785,7 @@
   <script src="profile-generation-industry-runtime.js?v=20260502d"></script>
   <script src="profile-generation-fsi.js?v=20260502d"></script>
   <script src="profile-generation-telecom.js?v=20260502d"></script>
-  <script src="profile-generation-retail.js?v=20260502d"></script>
+  <script src="profile-generation-retail.js?v=20260502g"></script>
   <script src="profile-generation-media.js?v=20260502d"></script>
   <script src="profile-generation-sports.js?v=20260502d"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
