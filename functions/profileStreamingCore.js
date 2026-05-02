@@ -43,6 +43,20 @@ const PROFILE_STREAM_ROOT_PATH_PREFIXES = new Set([
   'travelPreferences',
   // Flat BCP-47 on streaming root + tenant (Profile Core v2 / WMG-style generators).
   'preferredLanguage',
+  // OOTB Personal Finance Details + Personal Tax Profile Details mixins
+  // (https://ns.adobe.com/xdm/mixins/profile-personal-finance-details and
+  // https://ns.adobe.com/xdm/mixins/profile/profile-personal-tax-profile-details)
+  // attach `personalFinances.*` (creditScores, employmentStatus,
+  // accountCardsTotal, hasAssignedBeneficiary, personalTaxProfile.*) at the
+  // XDM root. The FSI Profile wizard pulls them in by default; without this
+  // entry the FSI-extras UI fields would tenant-prefix to
+  // `_<tenant>.personalFinances.*` and AEP would silently drop them.
+  'personalFinances',
+  // OOTB Subscription Details mixin (https://ns.adobe.com/xdm/context/profile-subscriptions)
+  // attaches `subscriptions.*` (planName, SKU, billingPeriod, status, type,
+  // term, paymentMethod, startDate, endDate, …) at the XDM root. The Media
+  // Profile wizard pulls it in by default; same reasoning as personalFinances.
+  'subscriptions',
 ]);
 
 const PROFILE_STREAM_SCHEMA_CONTENT_TYPE = 'application/vnd.adobe.xed-full+json;version=1.0';

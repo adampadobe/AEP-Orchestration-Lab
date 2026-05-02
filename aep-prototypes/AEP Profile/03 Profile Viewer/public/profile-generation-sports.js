@@ -8,14 +8,28 @@
  * jersey size, merchandise spend, last attended event) and fan flags
  * differ.
  *
+ * Schema-valid push paths:
+ *
+ *   tenant subtree (`_<tenant>.…`) — auto-prefixed by the proxy
+ *     • industrySports.{favouriteSport, favouriteTeam, fanSegment,
+ *         jerseySize, merchSpendBand, lastAttendedEvent}
+ *     • industrySports.fanFlags.{seasonTicket, fantasyPlayer, betsRegularly,
+ *         streamLive, newsletterSub, childFan}
+ *           ← existing operator-context dropdowns + flags. Declared in the
+ *              auto-created `Profile Sports v1` tenant FG body, see
+ *              functions/sportsProfileInfraService.js.
+ *     • individualCharacteristics.core.favouriteCategory  ← always 'sports'
+ *     • individualCharacteristics.core.favouriteSubCategory  ← favouriteSport
+ *     • scoring.product.affinity  ← favouriteTeam value (free-text affinity
+ *           leaf on Profile Core v2; lets generic audience builders target by
+ *           team without depending on the industrySports.* tenant subtree).
+ *
+ * Adobe ships no Profile-class Sports OOTB FG today, so unlike the other
+ * industries there is no root-mixin section to expose.
+ *
  * Wire-up:
  *   - DOM scope: #sportsProfilePanel.
  *   - Endpoints: /api/sports-profile-infra/* + /api/sports-profile-connection.
- *   - Streaming target: AEP Lab - Sports Profile - Dataset. There is NO
- *     Profile-class custom or OOTB Adobe Sports field group, so the
- *     wizard always falls back to the `_<tenant>.industrySports.*` tenant
- *     subtree (Profile Core v2). This validates the Phase 0 layered
- *     field-group resolver's tenant-subtree fallback path.
  *   - Counter / recent / scaler shared via window.AepProfileGenShared.
  */
 (function () {
@@ -43,6 +57,7 @@
   ];
 
   const $ = (id) => document.getElementById(id);
+  const trim = (el) => (el && typeof el.value === 'string') ? el.value.trim() : '';
   const getCheck = (id) => { const el = $(id); return el ? !!el.checked : false; };
   const setCheck = (id, v) => { const el = $(id); if (el) el.checked = !!v; };
   const setSelect = (id, v) => {
@@ -137,6 +152,7 @@
         return { ...scalar, fanFlags: flags };
       },
       buildUpdates({ push }) {
+        // ---- Original industrySports.* pushes (kept; valid via Profile Sports v1) ----
         SCALAR_FIELDS.forEach((f) => {
           const el = $(f.id); const v = el ? String(el.value || '').trim() : '';
           if (v) push(`industrySports.${f.key}`, v);
@@ -145,6 +161,26 @@
           const el = $(t.id); if (!el) return;
           push(`industrySports.fanFlags.${t.key}`, !!el.checked);
         });
+
+        // ---- Operator-context dropdown re-mappings onto Profile Core v2 ----
+        // The auto-created Profile Sports v1 FG declares industrySports.* but
+        // Adobe ships no Profile-class Sports OOTB FG to extend the schema
+        // further. To make Sports profiles discoverable from generic
+        // audience builders we fan out the favourite-sport / team values
+        // onto Profile Core v2 leaves that every other industry sees too.
+        const sport = trim($('sportsFavouriteSport'));
+        if (sport) {
+          // 'sports' is a reasonable parent for the generic favouriteCategory;
+          // the specific sport carries the sub-category.
+          push('individualCharacteristics.core.favouriteCategory', 'sports');
+          push('individualCharacteristics.core.favouriteSubCategory', sport);
+        }
+        const team = trim($('sportsFavouriteTeam'));
+        if (team) {
+          // scoring.product.affinity is a string leaf on Profile Core v2;
+          // free-form values are accepted.
+          push('scoring.product.affinity', team);
+        }
       },
       applyFindResult({ findBySuffix, findByKeywords, setSelectValueLoose }) {
         SCALAR_FIELDS.forEach((f) => {
@@ -158,6 +194,18 @@
           if (v === '' || v == null) return;
           setCheck(t.id, String(v).toLowerCase() === 'true');
         });
+        // Hydrate sport from Profile Core v2 if the industrySports.* tenant
+        // subtree value was missing (e.g. cross-industry profile lookup).
+        if (!trim($('sportsFavouriteSport'))) {
+          const sub = findBySuffix(['individualcharacteristics.core.favouritesubcategory']) ||
+                      findByKeywords('individualcharacteristics', 'core', 'favouritesubcategory');
+          if (sub) setSelectValueLoose($('sportsFavouriteSport'), sub);
+        }
+        if (!trim($('sportsFavouriteTeam'))) {
+          const aff = findBySuffix(['scoring.product.affinity']) ||
+                      findByKeywords('scoring', 'product', 'affinity');
+          if (aff) setSelectValueLoose($('sportsFavouriteTeam'), aff);
+        }
       },
       loadFromSnapshot(snap) {
         if (!snap || typeof snap !== 'object') return;
@@ -170,6 +218,7 @@
         const ind = snap.industry;
         const parts = [];
         if (ind.favouriteSport) parts.push(ind.favouriteSport.replace(/_/g, ' '));
+        if (ind.favouriteTeam) parts.push(ind.favouriteTeam.replace(/_/g, ' '));
         if (ind.fanSegment) parts.push(ind.fanSegment);
         if (ind.merchSpendBand) parts.push(`merch ${ind.merchSpendBand.replace(/_/g, ' ')}`);
         if (ind.fanFlags && typeof ind.fanFlags === 'object') {
@@ -178,10 +227,10 @@
         }
         return parts.join(' · ');
       },
-      randomizePersona({ randomPick }) {
+      randomizePersona({ randomPick: pick }) {
         SCALAR_FIELDS.forEach((f) => {
           const opts = selectValuesNonEmpty(f.id);
-          if (opts.length) { const el = $(f.id); if (el) el.value = randomPick(opts); }
+          if (opts.length) { const el = $(f.id); if (el) el.value = pick(opts); }
         });
         // Fan-flag distribution: most fans stream live games and
         // subscribe to the club newsletter; season tickets and betting

@@ -743,7 +743,20 @@
 
       const lang = languageEl ? trimVal(languageEl) : '';
       if (lang) {
-        push('preferences.preferredLanguage', lang);
+        // Schema-valid root path. The OOTB Profile-class schemas (Generic /
+        // Travel / Retail and the per-industry lab schemas) all expose
+        // `preferredLanguage` at the streaming root and `_<tenant>.preferredLanguage`
+        // via Profile Core v2; profileStreamingCore.mirrorPreferredLanguageDemoSchema
+        // copies it to both. The previous push to `preferences.preferredLanguage`
+        // landed at root.preferences.preferredLanguage which doesn't exist on
+        // any of these schemas (no `preferences` root mixin attached) so AEP
+        // silently dropped the language for every NEW-runtime industry
+        // (FSI / Media / Sports / Telecom / Retail). Fixed Apr 2026.
+        push('preferredLanguage', lang);
+        // `personalEmail.language` is kept as a fallback signal for the
+        // mirror function; the personalEmail schema itself doesn't actually
+        // have a `language` leaf so AEP drops the literal but the mirror
+        // already harvested the value above. Safe to leave.
         push('personalEmail.language', lang);
       }
 

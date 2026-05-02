@@ -2746,6 +2746,74 @@
         </div>
       </div>
 
+      <!-- FSI extras — schema-valid Profile Core v2 leaves and OOTB
+           `personalFinances.*` mixin (Personal Finance Details + Personal
+           Tax Profile Details). The FSI wizard attaches both OOTB FGs by
+           default, so these inputs stream live alongside the industryFsi.*
+           tenant block above. -->
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">💼</span> FSI extras (Profile Core + OOTB Personal Finance)</h3>
+        <p class="field-hint">All inputs in this section stream to schema-valid leaves on the AEP Lab FSI Profile schema (Profile Core v2 + OOTB <code>personalFinances.*</code> mixin). They populate automatically when you click Generate.</p>
+
+        <h4 class="generic-subhead" style="font-size: 0.95em; margin-top: 16px;">Demographic profile (Profile Core v2)</h4>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="fsiAge">Age</label>
+            <input type="number" id="fsiAge" min="13" max="110" step="1" placeholder="e.g. 38">
+          </div>
+          <div class="form-group">
+            <label for="fsiEmployer">Employer</label>
+            <input type="text" id="fsiEmployer" placeholder="e.g. JPMorgan" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="fsiOccupation">Occupation</label>
+            <input type="text" id="fsiOccupation" placeholder="e.g. Software engineer" autocomplete="off">
+          </div>
+        </div>
+
+        <h4 class="generic-subhead" style="font-size: 0.95em; margin-top: 16px;">Credit (OOTB <code>personalFinances.creditScores.*</code>)</h4>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="fsiCreditScore">FICO score</label>
+            <input type="number" id="fsiCreditScore" min="300" max="850" step="1" placeholder="e.g. 720">
+          </div>
+          <div class="form-group">
+            <label for="fsiCreditBureau">Provider / bureau</label>
+            <input type="text" id="fsiCreditBureau" placeholder="e.g. Experian" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="fsiCreditScoreDate">Score date</label>
+            <input type="date" id="fsiCreditScoreDate">
+          </div>
+          <div class="form-group">
+            <label for="fsiAccountCardsTotal">Account cards total</label>
+            <input type="number" id="fsiAccountCardsTotal" min="0" max="50" step="1" placeholder="e.g. 4">
+          </div>
+        </div>
+
+        <h4 class="generic-subhead" style="font-size: 0.95em; margin-top: 16px;">Tax profile (OOTB <code>personalFinances.personalTaxProfile.*</code>)</h4>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="fsiTaxBracket">Tax bracket</label>
+            <input type="text" id="fsiTaxBracket" placeholder="e.g. 24%" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="fsiHouseholdIncomeAmount">Household income (USD)</label>
+            <input type="number" id="fsiHouseholdIncomeAmount" min="0" step="1000" placeholder="e.g. 145000">
+          </div>
+        </div>
+        <div class="form-row form-row--inline" style="margin-top: 8px;">
+          <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiHasBeneficiary"> <span>Has assigned beneficiary</span></label>
+          <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiHeadOfHousehold"> <span>Head of household</span></label>
+        </div>
+        <div class="form-row form-row--inline" style="margin-top: 8px;">
+          <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiTaxFilingJoint"> <span>Filing jointly</span></label>
+          <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiTaxFilingSeparate"> <span>Filing separately</span></label>
+          <label class="gen-loyalty-toggle"><input type="checkbox" id="fsiTaxFilingSingle"> <span>Single filer</span></label>
+        </div>
+        <p class="field-hint" style="margin-top: 8px;">The three filing checkboxes are mutually exclusive (selecting one clears the others).</p>
+      </div>
+
       <details id="fsiProfileDebug" class="generate-debug" hidden>
         <summary>Request &amp; response details</summary>
         <div class="generate-debug-content">
@@ -3204,6 +3272,7 @@
             <label class="gen-loyalty-toggle"><input type="checkbox" id="sportsNewsletterSub"> <span>Subscribed to club newsletter</span></label>
             <label class="gen-loyalty-toggle"><input type="checkbox" id="sportsChildFan"> <span>Has a child who is also a fan</span></label>
           </div>
+          <p class="field-hint" style="margin-top: 12px;">All fields above stream to the auto-created <code>Profile Sports v1</code> tenant FG (no Profile-class Sports OOTB FG ships in AEP today). Favourite sport is also mirrored onto Profile Core v2 (<code>_{tenant}.individualCharacteristics.core.favouriteSubCategory</code>) and favourite team onto <code>_{tenant}.scoring.product.affinity</code> so generic audience builders can target by sport / team without depending on the industrySports.* tenant subtree.</p>
         </div>
       </div>
 
@@ -3663,6 +3732,123 @@
             <label class="gen-loyalty-toggle"><input type="checkbox" id="mediaHasKidsProfile"> <span>Has kids profile</span></label>
             <label class="gen-loyalty-toggle"><input type="checkbox" id="mediaLiveTv"> <span>Live TV channels</span></label>
             <label class="gen-loyalty-toggle"><input type="checkbox" id="mediaBingeWatcher"> <span>Binge watcher</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subscription details — schema-valid OOTB `subscriptions.*` mixin
+           (the Media wizard attaches the OOTB `Subscription Details` FG
+           https://ns.adobe.com/xdm/context/profile-subscriptions). All
+           inputs in this section stream live to the AEP Lab Media Profile
+           schema root. -->
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">💳</span> Subscription details (OOTB)</h3>
+        <p class="field-hint">Streams to schema-valid leaves on the OOTB <code>subscriptions.*</code> mixin attached by the Media wizard. Fields auto-populate from the chosen subscription tier when you click Generate.</p>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="mediaSubSku">Subscription SKU</label>
+            <input type="text" id="mediaSubSku" placeholder="e.g. SUB-PREM-MO" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="mediaSubPlanName">Plan name</label>
+            <input type="text" id="mediaSubPlanName" placeholder="e.g. Premium" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="mediaSubStatus">Status</label>
+            <select id="mediaSubStatus">
+              <option value="">— Select —</option>
+              <option value="active">Active</option>
+              <option value="trial">Trial</option>
+              <option value="paused">Paused</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaSubType">Type</label>
+            <select id="mediaSubType">
+              <option value="">— Select —</option>
+              <option value="streaming">Streaming</option>
+              <option value="cable">Cable</option>
+              <option value="satellite">Satellite</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaSubCategory">Category</label>
+            <select id="mediaSubCategory">
+              <option value="">— Select —</option>
+              <option value="video_streaming">Video streaming</option>
+              <option value="audio_streaming">Audio streaming</option>
+              <option value="live_tv">Live TV</option>
+              <option value="news">News</option>
+              <option value="kids">Kids</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaSubBillingPeriod">Billing period</label>
+            <select id="mediaSubBillingPeriod">
+              <option value="">— Select —</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annual">Annual</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaSubPaymentMethod">Payment method</label>
+            <select id="mediaSubPaymentMethod">
+              <option value="">— Select —</option>
+              <option value="credit_card">Credit card</option>
+              <option value="debit_card">Debit card</option>
+              <option value="paypal">PayPal</option>
+              <option value="apple_pay">Apple Pay</option>
+              <option value="google_pay">Google Pay</option>
+              <option value="gift_card">Gift card</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaSubCountry">Country</label>
+            <select id="mediaSubCountry">
+              <option value="">— Select —</option>
+              <option value="US">US</option>
+              <option value="UK">UK</option>
+              <option value="FR">FR</option>
+              <option value="DE">DE</option>
+              <option value="CA">CA</option>
+              <option value="AU">AU</option>
+              <option value="JP">JP</option>
+              <option value="BR">BR</option>
+              <option value="IN">IN</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaSubStartDate">Start date</label>
+            <input type="date" id="mediaSubStartDate">
+          </div>
+          <div class="form-group">
+            <label for="mediaSubEndDate">End date</label>
+            <input type="date" id="mediaSubEndDate">
+          </div>
+          <div class="form-group">
+            <label for="mediaSubTerm">Term</label>
+            <input type="number" id="mediaSubTerm" min="1" max="60" step="1" placeholder="e.g. 12">
+          </div>
+          <div class="form-group">
+            <label for="mediaSubTermUnit">Term unit</label>
+            <select id="mediaSubTermUnit">
+              <option value="">— Select —</option>
+              <option value="days">Days</option>
+              <option value="weeks">Weeks</option>
+              <option value="months">Months</option>
+              <option value="years">Years</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaSubRenew">Renewal</label>
+            <select id="mediaSubRenew">
+              <option value="">— Select —</option>
+              <option value="auto">Auto-renew</option>
+              <option value="manual">Manual</option>
+            </select>
           </div>
         </div>
       </div>
@@ -4767,6 +4953,75 @@
         </div>
       </div>
 
+      <!-- Telecom Subscription extras — schema-valid OOTB
+           `telecomSubscription.*` mixin (the wizard attaches the OOTB
+           https://ns.adobe.com/xdm/mixins/profile/profile-telecom-subscription
+           field group). All scalar leaves below stream live to the AEP Lab
+           Telecom Profile schema root. Only scalar leaves are exposed —
+           array children of subscriptionDetails.* require array editors. -->
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">📞</span> Subscription details (OOTB <code>telecomSubscription.*</code>)</h3>
+        <p class="field-hint">Streams to schema-valid leaves on the OOTB Telecom Subscription mixin attached by the Telecom wizard. Bundle name and mobile plan level seed automatically from the chosen plan tier when you click Generate.</p>
+
+        <h4 class="generic-subhead" style="font-size: 0.95em; margin-top: 16px;">Bundle &amp; mobile</h4>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="telecomSubBundleName">Bundle name</label>
+            <input type="text" id="telecomSubBundleName" placeholder="e.g. Premium Bundle" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="telecomSubMobilePlanLevel">Mobile plan level</label>
+            <input type="text" id="telecomSubMobilePlanLevel" placeholder="e.g. Premium" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-row form-row--inline" style="margin-top: 8px;">
+          <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomSubPortedNumber"> <span>Ported number</span></label>
+          <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomSubEarlyUpgrade"> <span>Early-upgrade enrolled</span></label>
+        </div>
+
+        <h4 class="generic-subhead" style="font-size: 0.95em; margin-top: 16px;">Internet</h4>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="telecomSubInternetConnection">Connection type</label>
+            <select id="telecomSubInternetConnection">
+              <option value="">— Select —</option>
+              <option value="fiber">Fiber</option>
+              <option value="cable">Cable</option>
+              <option value="dsl">DSL</option>
+              <option value="wireless">Wireless</option>
+              <option value="satellite">Satellite</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="telecomSubInternetDownload">Download speed (Mbps)</label>
+            <input type="number" id="telecomSubInternetDownload" min="1" max="10000" step="1" placeholder="e.g. 500">
+          </div>
+          <div class="form-group">
+            <label for="telecomSubInternetUpload">Upload speed (Mbps)</label>
+            <input type="number" id="telecomSubInternetUpload" min="1" max="10000" step="1" placeholder="e.g. 100">
+          </div>
+          <div class="form-group">
+            <label for="telecomSubInternetDataCap">Data cap (GB / month)</label>
+            <input type="number" id="telecomSubInternetDataCap" min="0" max="100000" step="1" placeholder="e.g. 1000">
+          </div>
+        </div>
+        <div class="form-row form-row--inline" style="margin-top: 8px;">
+          <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomSubInternetSelfSetup"> <span>Self-setup</span></label>
+        </div>
+
+        <h4 class="generic-subhead" style="font-size: 0.95em; margin-top: 16px;">Media &amp; landline</h4>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="telecomSubMediaChannels">TV channels included</label>
+            <input type="number" id="telecomSubMediaChannels" min="0" max="2000" step="1" placeholder="e.g. 200">
+          </div>
+        </div>
+        <div class="form-row form-row--inline" style="margin-top: 8px;">
+          <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomSubLandlineVoicemail"> <span>Voicemail</span></label>
+          <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomSubLandlineCallerID"> <span>Caller ID</span></label>
+        </div>
+      </div>
+
       <details id="telecomProfileDebug" class="generate-debug" hidden>
         <summary>Request &amp; response details</summary>
         <div class="generate-debug-content">
@@ -4815,12 +5070,12 @@
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
-  <script src="profile-generation-industry-runtime.js?v=20260502d"></script>
-  <script src="profile-generation-fsi.js?v=20260502d"></script>
-  <script src="profile-generation-telecom.js?v=20260502d"></script>
+  <script src="profile-generation-industry-runtime.js?v=20260502k"></script>
+  <script src="profile-generation-fsi.js?v=20260502k"></script>
+  <script src="profile-generation-telecom.js?v=20260502k"></script>
   <script src="profile-generation-retail.js?v=20260502g"></script>
-  <script src="profile-generation-media.js?v=20260502d"></script>
-  <script src="profile-generation-sports.js?v=20260502d"></script>
+  <script src="profile-generation-media.js?v=20260502k"></script>
+  <script src="profile-generation-sports.js?v=20260502k"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>
