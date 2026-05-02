@@ -55,12 +55,12 @@
             <select id="industry" aria-label="Industry">
               <option value="">— Select industry —</option>
               <option value="generic">Generic (industry-less)</option>
-              <option value="retail">Retail (to be built)</option>
-              <option value="fsi">FSI (to be built)</option>
+              <option value="retail">Retail</option>
+              <option value="fsi">FSI</option>
               <option value="travel">Travel</option>
-              <option value="media">Media (to be built)</option>
-              <option value="sports">Sports (to be built)</option>
-              <option value="telecommunications">Telecommunications (to be built)</option>
+              <option value="media">Media</option>
+              <option value="sports">Sports</option>
+              <option value="telecommunications">Telecommunications</option>
               <option value="public">Public (to be built)</option>
             </select>
           </div>
@@ -2542,6 +2542,1841 @@
       </details>
     </section>
 
+<!-- Sports Profile (industry === "sports") — uses the shared
+         AepProfileGenIndustry runtime (see profile-generation-industry-runtime.js).
+         Same wizard, same Customer Analytics, same shared counter — only the
+         industry-attributes block is unique. profile-generation.js toggles this
+         on when industry === "sports". -->
+    <section class="consent-panel" id="sportsProfilePanel" aria-labelledby="sportsProfileHeading" hidden>
+      <h2 id="sportsProfileHeading" class="panel-title"><span class="icon">⚽</span> Sports profile</h2>
+
+      <details class="consent-streaming-details" id="sportsProfileInfraDetails" open aria-label="Sports Profile sandbox preparation and HTTP streaming connection">
+        <summary class="consent-streaming-details__summary">
+          <span class="consent-streaming-details__title">
+            <span class="icon" aria-hidden="true">⚙</span>
+            Sandbox &amp; streaming connection
+          </span>
+          <span class="consent-streaming-details__hint" id="sportsProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
+        </summary>
+        <div class="consent-streaming-details__body">
+          <div class="consent-setup-instructions">
+            <h4>Before you can generate or update Sports profiles in a new sandbox:</h4>
+            <ol>
+              <li><strong>Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - Sports Profile - Schema</code>.</li>
+              <li>
+                <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - Sports Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. No Profile-class custom or OOTB Sports field group exists in any of the three sandboxes checked, so the wizard always falls back to the <code>_{tenant}.industrySports.*</code> tenant subtree. Step 2 still succeeds — this validates the Phase 0 layered field-group resolver.
+              </li>
+              <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Sports Profile - Dataset</code>.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Sports Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+            </ol>
+            <p class="consent-setup-instructions__note">
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Sports schema's field groups, open <code>AEP Lab - Sports Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+            </p>
+          </div>
+          <div class="button-row">
+            <button type="button" id="sportsCheckInfraBtn" class="btn btn-secondary">Check sandbox status</button>
+          </div>
+          <div class="button-row consent-infra-step-buttons">
+            <button type="button" id="sportsStepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
+            <button type="button" id="sportsStepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
+            <button type="button" id="sportsStepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
+            <button type="button" id="sportsStepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
+          </div>
+          <p id="sportsInfraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
+
+          <div class="sandbox-config gen-streaming-fields">
+            <h3 class="sandbox-config-title">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
+            <div class="form-row">
+              <label for="sportsStreamSchemaId">Schema $id</label>
+              <input type="text" id="sportsStreamSchemaId" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="sportsStreamDatasetId">Dataset ID</label>
+              <input type="text" id="sportsStreamDatasetId" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="sportsStreamXdmKey">Tenant XDM key</label>
+              <input type="text" id="sportsStreamXdmKey" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="sportsStreamFlowId">Flow ID (x-adobe-flow-id)</label>
+              <input type="text" id="sportsStreamFlowId" placeholder="Paste UUID from the dataflow in AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="sportsStreamFlowName">Dataflow name in AEP</label>
+              <input type="text" id="sportsStreamFlowName" value="AEP Lab - Sports Profile - Dataflow" placeholder="Dataflow name (used for lookup when Flow ID is empty)" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="sportsStreamUrl">Collection URL</label>
+              <input type="url" id="sportsStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="button-row">
+              <button type="button" id="sportsLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
+              <button type="button" id="sportsFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="sportsSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="generic-pattern-panel">
+        <h3 class="generic-subhead"><span class="icon">📧</span> Profile email</h3>
+
+        <div class="generic-lookup-block">
+          <h4 class="generic-lookup-block__title"><span class="icon" aria-hidden="true">🔎</span> Look up an existing profile</h4>
+          <p class="generic-helper">Pick an identity namespace, paste the value, and we'll load that profile's data into the editor below.</p>
+          <div class="form-row form-row--inline">
+            <div class="form-group">
+              <label for="sportsLookupNs">Namespace</label>
+              <select id="sportsLookupNs" aria-label="Identity namespace for profile lookup">
+                <option value="email" selected>Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-group form-group--flex">
+              <label for="sportsLookupIdentifier">Identifier value</label>
+              <input type="text" id="sportsLookupIdentifier" placeholder="Click to use the current scaled email, or paste any identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-group form-group--small">
+              <label>&nbsp;</label>
+              <button type="button" id="sportsLookupBtn" class="btn btn-secondary">Look up profile</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="generic-pattern-block">
+          <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
+          <p class="generic-helper">
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Sports profile in this sandbox can never reuse the same scaled email on the same day.
+          </p>
+          <div class="form-row form-row--inline">
+            <div class="form-group form-group--flex">
+              <label for="sportsBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <input type="email" id="sportsBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="sportsCounter">Counter (N)</label>
+              <input type="number" id="sportsCounter" min="1" step="1" value="1">
+            </div>
+            <div class="form-group">
+              <label for="sportsGenerateCount">Count</label>
+              <input type="number" id="sportsGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
+            </div>
+          </div>
+          <p class="email-pattern-preview">
+            <strong>Will scale to:</strong>
+            <code id="sportsEmailPreview">—</code>
+            <button type="button" id="sportsResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+          </p>
+
+          <div class="generic-actions button-row">
+            <button type="button" id="sportsUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
+            <button type="button" id="sportsGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="sportsDryRun"> <span>Dry run (preview payload, do not stream)</span>
+            </label>
+          </div>
+        </div>
+
+        <p id="sportsProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+      </div>
+
+      <div class="generic-identity-section">
+        <h3 class="generic-subhead"><span class="icon">👤</span> Identity</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="sportsFirstName">First name</label>
+            <input type="text" id="sportsFirstName" placeholder="e.g. Adam" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="sportsLastName">Last name</label>
+            <input type="text" id="sportsLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="gen-recent-picker" id="sportsRecentPicker" hidden>
+        <label for="sportsRecentSelect" class="gen-recent-picker__label">
+          <span class="icon">🕘</span>
+          <span>Recently generated</span>
+        </label>
+        <select id="sportsRecentSelect" class="gen-recent-picker__select" aria-label="Load a recently generated profile">
+          <option value="">— pick to load —</option>
+        </select>
+        <button type="button" id="sportsRecentLoadBtn" class="btn btn-secondary" title="Load the selected snapshot back into the form">Load</button>
+        <details id="sportsRecentDetails" class="gen-recent-list">
+          <summary><span id="sportsRecentCountLabel">Recently generated (0)</span></summary>
+          <table class="gen-recent-list__table">
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Generated</th>
+                <th scope="col">Summary</th>
+                <th scope="col"><span class="visually-hidden">Action</span></th>
+              </tr>
+            </thead>
+            <tbody id="sportsRecentListBody"></tbody>
+          </table>
+          <p class="field-hint">Stored locally in your browser, partitioned by sandbox + base email + day. Shared across industries — a recent generated under Generic for the same sandbox and base email also appears here.</p>
+        </details>
+      </div>
+
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">📊</span> Customer Analytics</h3>
+        <div class="generic-analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🎯</span>
+              <h4 class="analytics-card-title">Churn risk</h4>
+              <span class="analytics-card-value" id="sportsChurnValue">50%</span>
+            </div>
+            <input type="range" id="sportsChurn" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low risk</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="sportsChurn" title="Randomize">🎲</button>
+              <span>High risk</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📈</span>
+              <h4 class="analytics-card-title">Propensity score</h4>
+              <span class="analytics-card-value" id="sportsPropensityValue">50%</span>
+            </div>
+            <input type="range" id="sportsPropensity" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="sportsPropensity" title="Randomize">🎲</button>
+              <span>High</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">⭐</span>
+              <h4 class="analytics-card-title">NPS score</h4>
+            </div>
+            <select id="sportsNps" class="nps-select">
+              <option value="">— Select —</option>
+              <option value="0" data-band="detractor">0 — Detractor</option>
+              <option value="1" data-band="detractor">1 — Detractor</option>
+              <option value="2" data-band="detractor">2 — Detractor</option>
+              <option value="3" data-band="detractor">3 — Detractor</option>
+              <option value="4" data-band="detractor">4 — Detractor</option>
+              <option value="5" data-band="detractor">5 — Detractor</option>
+              <option value="6" data-band="detractor">6 — Detractor</option>
+              <option value="7" data-band="passive">7 — Passive</option>
+              <option value="8" data-band="passive">8 — Passive</option>
+              <option value="9" data-band="promoter">9 — Promoter</option>
+              <option value="10" data-band="promoter">10 — Promoter</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">💰</span>
+              <h4 class="analytics-card-title">Avg order value</h4>
+              <span class="analytics-card-value" id="sportsAovValue">$500</span>
+            </div>
+            <input type="range" id="sportsAov" class="analytics-slider" min="0" max="10000" step="50" value="500">
+            <div class="analytics-slider-meta">
+              <span>$0</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="sportsAov" title="Randomize">🎲</button>
+              <span>$10k</span>
+            </div>
+          </div>
+
+          <div id="sportsPreferredChannelCard" class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📢</span>
+              <h4 class="analytics-card-title">Preferred marketing channel</h4>
+            </div>
+            <select id="sportsPreferredChannel" aria-label="Preferred marketing channel">
+              <option value="">— Skip (unchanged) —</option>
+              <option value="email">email</option>
+              <option value="push">Push Notifications</option>
+              <option value="inApp">In-app Messages</option>
+              <option value="sms">SMS (Text Messages)</option>
+              <option value="whatsApp">WhatsApp Messages</option>
+              <option value="phone">Phone Calls</option>
+              <option value="phyMail">Physical Mail</option>
+              <option value="inVehicle">In-vehicle Messages</option>
+              <option value="inHome">In-home Messages</option>
+              <option value="iot">IoT Messages</option>
+              <option value="social">Social Media</option>
+              <option value="other">Other</option>
+              <option value="none">No Preferred Channel</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">👤</span>
+              <h4 class="analytics-card-title">Gender</h4>
+            </div>
+            <select id="sportsGender">
+              <option value="">— Select —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="non_binary">Non-binary</option>
+              <option value="not_specified">Prefer not to say</option>
+              <option value="other">Other</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card analytics-card--loyalty">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🏆</span>
+              <h4 class="analytics-card-title">Loyalty program</h4>
+            </div>
+            <label class="gen-loyalty-toggle">
+              <input type="checkbox" id="sportsLoyaltyEnabled">
+              <span>Member of loyalty program</span>
+            </label>
+            <div class="gen-loyalty-fields" id="sportsLoyaltyFields" hidden>
+              <div class="form-row">
+                <label for="sportsLoyaltyID">Loyalty ID</label>
+                <input type="text" id="sportsLoyaltyID" placeholder="e.g. LYL-10001 (auto-generated if blank)" autocomplete="off">
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="sportsLoyaltyTier">Tier / level</label>
+                  <select id="sportsLoyaltyTier">
+                    <option value="">— Select —</option>
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="sportsLoyaltyPoints">Points balance</label>
+                  <input type="number" id="sportsLoyaltyPoints" min="0" step="1" placeholder="e.g. 1500">
+                </div>
+                <div class="form-group form-group--small">
+                  <label>&nbsp;</label>
+                  <button type="button" id="sportsLoyaltyRandomBtn" class="btn btn-link" title="Random points within selected tier">🎲</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="analytics-card analytics-card--language" id="sportsLanguageCard">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🌍</span>
+              <h4 class="analytics-card-title">Language preference</h4>
+            </div>
+            <select id="sportsLanguage">
+              <option value="">— Select —</option>
+              <option value="en-US">English (United States)</option>
+              <option value="en-GB" selected>English (United Kingdom)</option>
+              <option value="en-CA">English (Canada)</option>
+              <option value="fr-FR">French (France)</option>
+              <option value="de-DE">German (Germany)</option>
+              <option value="es-ES">Spanish (Spain)</option>
+              <option value="it-IT">Italian (Italy)</option>
+              <option value="pt-BR">Portuguese (Brazil)</option>
+              <option value="nl-NL">Dutch (Netherlands)</option>
+              <option value="ja-JP">Japanese (Japan)</option>
+              <option value="zh-CN">Chinese (Simplified)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+            <!-- Sports-specific attributes — pure tenant subtree under Profile
+           Core v2 (no custom or OOTB Profile-class Sports FG anywhere).
+           Paths: _<tenant>.industrySports.* (favourite team, sport,
+           jersey size, fan segment, season ticket, last attended event,
+           merchandise spend band). -->
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">⚽</span> Sports attributes</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="sportsFavouriteSport">Favourite sport</label>
+            <select id="sportsFavouriteSport">
+              <option value="">— Select —</option>
+              <option value="football">Football / soccer</option>
+              <option value="american_football">American football</option>
+              <option value="basketball">Basketball</option>
+              <option value="baseball">Baseball</option>
+              <option value="hockey">Hockey</option>
+              <option value="rugby">Rugby</option>
+              <option value="cricket">Cricket</option>
+              <option value="tennis">Tennis</option>
+              <option value="motorsport">Motorsport</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="sportsFavouriteTeam">Favourite team</label>
+            <select id="sportsFavouriteTeam">
+              <option value="">— Select —</option>
+              <option value="team_a">Team A</option>
+              <option value="team_b">Team B</option>
+              <option value="team_c">Team C</option>
+              <option value="team_d">Team D</option>
+              <option value="team_e">Team E</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="sportsFanSegment">Fan segment</label>
+            <select id="sportsFanSegment">
+              <option value="">— Select —</option>
+              <option value="casual">Casual viewer</option>
+              <option value="enthusiast">Enthusiast</option>
+              <option value="superfan">Superfan</option>
+              <option value="day_one">Day-one diehard</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="sportsJerseySize">Jersey size</label>
+            <select id="sportsJerseySize">
+              <option value="">— Select —</option>
+              <option value="xs">XS</option>
+              <option value="s">S</option>
+              <option value="m">M</option>
+              <option value="l">L</option>
+              <option value="xl">XL</option>
+              <option value="xxl">XXL</option>
+              <option value="xxxl">XXXL</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="sportsMerchSpendBand">Merchandise spend</label>
+            <select id="sportsMerchSpendBand">
+              <option value="">— Select —</option>
+              <option value="none">None</option>
+              <option value="under_50">< $50 / yr</option>
+              <option value="50_200">$50 – $200 / yr</option>
+              <option value="200_500">$200 – $500 / yr</option>
+              <option value="500_plus">$500+ / yr</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="sportsLastAttendedEvent">Last attended event</label>
+            <select id="sportsLastAttendedEvent">
+              <option value="">— Select —</option>
+              <option value="this_month">This month</option>
+              <option value="this_quarter">This quarter</option>
+              <option value="this_year">This year</option>
+              <option value="over_1y">> 1 year ago</option>
+              <option value="never">Never attended</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="generic-identity-section" style="margin-top: 16px;">
+          <h4 class="generic-subhead" style="font-size: 0.95em;">Fan flags</h4>
+          <div class="form-row form-row--inline">
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="sportsSeasonTicket"> <span>Season-ticket holder</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="sportsFantasyPlayer"> <span>Plays fantasy league</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="sportsBetsRegularly"> <span>Bets on matches</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="sportsStreamLive"> <span>Streams live games</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="sportsNewsletterSub"> <span>Subscribed to club newsletter</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="sportsChildFan"> <span>Has a child who is also a fan</span></label>
+          </div>
+        </div>
+      </div>
+
+      <details id="sportsProfileDebug" class="generate-debug" hidden>
+        <summary>Request &amp; response details</summary>
+        <div class="generate-debug-content">
+          <div class="generate-debug-section">
+            <strong>Client POST (to /api/profile/update):</strong>
+            <pre id="sportsDebugClientRequest"></pre>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Status:</strong> <span id="sportsDebugStatus"></span>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Response:</strong>
+            <pre id="sportsDebugResponse"></pre>
+          </div>
+        </div>
+      </details>
+    </section>
+
+<!-- Media Profile (industry === "media") — uses the shared
+         AepProfileGenIndustry runtime (see profile-generation-industry-runtime.js).
+         Same wizard, same Customer Analytics, same shared counter — only the
+         industry-attributes block is unique. profile-generation.js toggles this
+         on when industry === "media". -->
+    <section class="consent-panel" id="mediaProfilePanel" aria-labelledby="mediaProfileHeading" hidden>
+      <h2 id="mediaProfileHeading" class="panel-title"><span class="icon">🎬</span> Media profile</h2>
+
+      <details class="consent-streaming-details" id="mediaProfileInfraDetails" open aria-label="Media Profile sandbox preparation and HTTP streaming connection">
+        <summary class="consent-streaming-details__summary">
+          <span class="consent-streaming-details__title">
+            <span class="icon" aria-hidden="true">⚙</span>
+            Sandbox &amp; streaming connection
+          </span>
+          <span class="consent-streaming-details__hint" id="mediaProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
+        </summary>
+        <div class="consent-streaming-details__body">
+          <div class="consent-setup-instructions">
+            <h4>Before you can generate or update Media profiles in a new sandbox:</h4>
+            <ol>
+              <li><strong>Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - Media Profile - Schema</code>.</li>
+              <li>
+                <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - Media Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. When present in this sandbox the wizard ALSO attaches <strong>Profile Media</strong> (custom tenant FG, when available) and the OOTB <strong>Subscription Details</strong>; sandboxes that lack both fall back to the <code>_{tenant}.industryMedia.*</code> tenant subtree and the wizard still succeeds.
+              </li>
+              <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Media Profile - Dataset</code>.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Media Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+            </ol>
+            <p class="consent-setup-instructions__note">
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Media schema's field groups, open <code>AEP Lab - Media Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+            </p>
+          </div>
+          <div class="button-row">
+            <button type="button" id="mediaCheckInfraBtn" class="btn btn-secondary">Check sandbox status</button>
+          </div>
+          <div class="button-row consent-infra-step-buttons">
+            <button type="button" id="mediaStepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
+            <button type="button" id="mediaStepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
+            <button type="button" id="mediaStepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
+            <button type="button" id="mediaStepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
+          </div>
+          <p id="mediaInfraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
+
+          <div class="sandbox-config gen-streaming-fields">
+            <h3 class="sandbox-config-title">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
+            <div class="form-row">
+              <label for="mediaStreamSchemaId">Schema $id</label>
+              <input type="text" id="mediaStreamSchemaId" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="mediaStreamDatasetId">Dataset ID</label>
+              <input type="text" id="mediaStreamDatasetId" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="mediaStreamXdmKey">Tenant XDM key</label>
+              <input type="text" id="mediaStreamXdmKey" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="mediaStreamFlowId">Flow ID (x-adobe-flow-id)</label>
+              <input type="text" id="mediaStreamFlowId" placeholder="Paste UUID from the dataflow in AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="mediaStreamFlowName">Dataflow name in AEP</label>
+              <input type="text" id="mediaStreamFlowName" value="AEP Lab - Media Profile - Dataflow" placeholder="Dataflow name (used for lookup when Flow ID is empty)" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="mediaStreamUrl">Collection URL</label>
+              <input type="url" id="mediaStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="button-row">
+              <button type="button" id="mediaLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
+              <button type="button" id="mediaFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="mediaSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="generic-pattern-panel">
+        <h3 class="generic-subhead"><span class="icon">📧</span> Profile email</h3>
+
+        <div class="generic-lookup-block">
+          <h4 class="generic-lookup-block__title"><span class="icon" aria-hidden="true">🔎</span> Look up an existing profile</h4>
+          <p class="generic-helper">Pick an identity namespace, paste the value, and we'll load that profile's data into the editor below.</p>
+          <div class="form-row form-row--inline">
+            <div class="form-group">
+              <label for="mediaLookupNs">Namespace</label>
+              <select id="mediaLookupNs" aria-label="Identity namespace for profile lookup">
+                <option value="email" selected>Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-group form-group--flex">
+              <label for="mediaLookupIdentifier">Identifier value</label>
+              <input type="text" id="mediaLookupIdentifier" placeholder="Click to use the current scaled email, or paste any identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-group form-group--small">
+              <label>&nbsp;</label>
+              <button type="button" id="mediaLookupBtn" class="btn btn-secondary">Look up profile</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="generic-pattern-block">
+          <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
+          <p class="generic-helper">
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Media profile in this sandbox can never reuse the same scaled email on the same day.
+          </p>
+          <div class="form-row form-row--inline">
+            <div class="form-group form-group--flex">
+              <label for="mediaBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <input type="email" id="mediaBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="mediaCounter">Counter (N)</label>
+              <input type="number" id="mediaCounter" min="1" step="1" value="1">
+            </div>
+            <div class="form-group">
+              <label for="mediaGenerateCount">Count</label>
+              <input type="number" id="mediaGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
+            </div>
+          </div>
+          <p class="email-pattern-preview">
+            <strong>Will scale to:</strong>
+            <code id="mediaEmailPreview">—</code>
+            <button type="button" id="mediaResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+          </p>
+
+          <div class="generic-actions button-row">
+            <button type="button" id="mediaUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
+            <button type="button" id="mediaGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="mediaDryRun"> <span>Dry run (preview payload, do not stream)</span>
+            </label>
+          </div>
+        </div>
+
+        <p id="mediaProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+      </div>
+
+      <div class="generic-identity-section">
+        <h3 class="generic-subhead"><span class="icon">👤</span> Identity</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="mediaFirstName">First name</label>
+            <input type="text" id="mediaFirstName" placeholder="e.g. Adam" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="mediaLastName">Last name</label>
+            <input type="text" id="mediaLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="gen-recent-picker" id="mediaRecentPicker" hidden>
+        <label for="mediaRecentSelect" class="gen-recent-picker__label">
+          <span class="icon">🕘</span>
+          <span>Recently generated</span>
+        </label>
+        <select id="mediaRecentSelect" class="gen-recent-picker__select" aria-label="Load a recently generated profile">
+          <option value="">— pick to load —</option>
+        </select>
+        <button type="button" id="mediaRecentLoadBtn" class="btn btn-secondary" title="Load the selected snapshot back into the form">Load</button>
+        <details id="mediaRecentDetails" class="gen-recent-list">
+          <summary><span id="mediaRecentCountLabel">Recently generated (0)</span></summary>
+          <table class="gen-recent-list__table">
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Generated</th>
+                <th scope="col">Summary</th>
+                <th scope="col"><span class="visually-hidden">Action</span></th>
+              </tr>
+            </thead>
+            <tbody id="mediaRecentListBody"></tbody>
+          </table>
+          <p class="field-hint">Stored locally in your browser, partitioned by sandbox + base email + day. Shared across industries — a recent generated under Generic for the same sandbox and base email also appears here.</p>
+        </details>
+      </div>
+
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">📊</span> Customer Analytics</h3>
+        <div class="generic-analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🎯</span>
+              <h4 class="analytics-card-title">Churn risk</h4>
+              <span class="analytics-card-value" id="mediaChurnValue">50%</span>
+            </div>
+            <input type="range" id="mediaChurn" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low risk</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="mediaChurn" title="Randomize">🎲</button>
+              <span>High risk</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📈</span>
+              <h4 class="analytics-card-title">Propensity score</h4>
+              <span class="analytics-card-value" id="mediaPropensityValue">50%</span>
+            </div>
+            <input type="range" id="mediaPropensity" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="mediaPropensity" title="Randomize">🎲</button>
+              <span>High</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">⭐</span>
+              <h4 class="analytics-card-title">NPS score</h4>
+            </div>
+            <select id="mediaNps" class="nps-select">
+              <option value="">— Select —</option>
+              <option value="0" data-band="detractor">0 — Detractor</option>
+              <option value="1" data-band="detractor">1 — Detractor</option>
+              <option value="2" data-band="detractor">2 — Detractor</option>
+              <option value="3" data-band="detractor">3 — Detractor</option>
+              <option value="4" data-band="detractor">4 — Detractor</option>
+              <option value="5" data-band="detractor">5 — Detractor</option>
+              <option value="6" data-band="detractor">6 — Detractor</option>
+              <option value="7" data-band="passive">7 — Passive</option>
+              <option value="8" data-band="passive">8 — Passive</option>
+              <option value="9" data-band="promoter">9 — Promoter</option>
+              <option value="10" data-band="promoter">10 — Promoter</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">💰</span>
+              <h4 class="analytics-card-title">Avg order value</h4>
+              <span class="analytics-card-value" id="mediaAovValue">$500</span>
+            </div>
+            <input type="range" id="mediaAov" class="analytics-slider" min="0" max="10000" step="50" value="500">
+            <div class="analytics-slider-meta">
+              <span>$0</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="mediaAov" title="Randomize">🎲</button>
+              <span>$10k</span>
+            </div>
+          </div>
+
+          <div id="mediaPreferredChannelCard" class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📢</span>
+              <h4 class="analytics-card-title">Preferred marketing channel</h4>
+            </div>
+            <select id="mediaPreferredChannel" aria-label="Preferred marketing channel">
+              <option value="">— Skip (unchanged) —</option>
+              <option value="email">email</option>
+              <option value="push">Push Notifications</option>
+              <option value="inApp">In-app Messages</option>
+              <option value="sms">SMS (Text Messages)</option>
+              <option value="whatsApp">WhatsApp Messages</option>
+              <option value="phone">Phone Calls</option>
+              <option value="phyMail">Physical Mail</option>
+              <option value="inVehicle">In-vehicle Messages</option>
+              <option value="inHome">In-home Messages</option>
+              <option value="iot">IoT Messages</option>
+              <option value="social">Social Media</option>
+              <option value="other">Other</option>
+              <option value="none">No Preferred Channel</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">👤</span>
+              <h4 class="analytics-card-title">Gender</h4>
+            </div>
+            <select id="mediaGender">
+              <option value="">— Select —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="non_binary">Non-binary</option>
+              <option value="not_specified">Prefer not to say</option>
+              <option value="other">Other</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card analytics-card--loyalty">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🏆</span>
+              <h4 class="analytics-card-title">Loyalty program</h4>
+            </div>
+            <label class="gen-loyalty-toggle">
+              <input type="checkbox" id="mediaLoyaltyEnabled">
+              <span>Member of loyalty program</span>
+            </label>
+            <div class="gen-loyalty-fields" id="mediaLoyaltyFields" hidden>
+              <div class="form-row">
+                <label for="mediaLoyaltyID">Loyalty ID</label>
+                <input type="text" id="mediaLoyaltyID" placeholder="e.g. LYL-10001 (auto-generated if blank)" autocomplete="off">
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="mediaLoyaltyTier">Tier / level</label>
+                  <select id="mediaLoyaltyTier">
+                    <option value="">— Select —</option>
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="mediaLoyaltyPoints">Points balance</label>
+                  <input type="number" id="mediaLoyaltyPoints" min="0" step="1" placeholder="e.g. 1500">
+                </div>
+                <div class="form-group form-group--small">
+                  <label>&nbsp;</label>
+                  <button type="button" id="mediaLoyaltyRandomBtn" class="btn btn-link" title="Random points within selected tier">🎲</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="analytics-card analytics-card--language" id="mediaLanguageCard">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🌍</span>
+              <h4 class="analytics-card-title">Language preference</h4>
+            </div>
+            <select id="mediaLanguage">
+              <option value="">— Select —</option>
+              <option value="en-US">English (United States)</option>
+              <option value="en-GB" selected>English (United Kingdom)</option>
+              <option value="en-CA">English (Canada)</option>
+              <option value="fr-FR">French (France)</option>
+              <option value="de-DE">German (Germany)</option>
+              <option value="es-ES">Spanish (Spain)</option>
+              <option value="it-IT">Italian (Italy)</option>
+              <option value="pt-BR">Portuguese (Brazil)</option>
+              <option value="nl-NL">Dutch (Netherlands)</option>
+              <option value="ja-JP">Japanese (Japan)</option>
+              <option value="zh-CN">Chinese (Simplified)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+            <!-- Media-specific attributes — tenant subtree under Profile Core v2.
+           Paths: _<tenant>.industryMedia.* (subscription tier, preferred
+           device, last viewed, viewing minutes band, ad-supported toggle,
+           content preferences). The Profile Media custom FG (1/3 sandboxes)
+           and the OOTB profile-subscriptions FG also live under the same
+           industryMedia.* subtree when attached. -->
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">🎬</span> Media attributes</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="mediaSubscriptionTier">Subscription tier</label>
+            <select id="mediaSubscriptionTier">
+              <option value="">— Select —</option>
+              <option value="free">Free / ad-supported</option>
+              <option value="standard">Standard</option>
+              <option value="premium">Premium</option>
+              <option value="premium_plus">Premium+</option>
+              <option value="family">Family bundle</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaPreferredDevice">Preferred device</label>
+            <select id="mediaPreferredDevice">
+              <option value="">— Select —</option>
+              <option value="smart_tv">Smart TV</option>
+              <option value="mobile">Mobile phone</option>
+              <option value="tablet">Tablet</option>
+              <option value="laptop">Laptop / desktop</option>
+              <option value="console">Game console</option>
+              <option value="streaming_stick">Streaming stick</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaViewingMinutesBand">Monthly viewing minutes</label>
+            <select id="mediaViewingMinutesBand">
+              <option value="">— Select —</option>
+              <option value="under_500">< 500 min</option>
+              <option value="500_2k">500 – 2k min</option>
+              <option value="2k_10k">2k – 10k min</option>
+              <option value="10k_30k">10k – 30k min</option>
+              <option value="over_30k">30k+ min</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaPrimaryGenre">Primary genre</label>
+            <select id="mediaPrimaryGenre">
+              <option value="">— Select —</option>
+              <option value="drama">Drama</option>
+              <option value="comedy">Comedy</option>
+              <option value="action">Action / thriller</option>
+              <option value="documentary">Documentary</option>
+              <option value="news">News</option>
+              <option value="sports">Sports</option>
+              <option value="kids">Kids & family</option>
+              <option value="reality">Reality / unscripted</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaLastViewedRecency">Last viewed</label>
+            <select id="mediaLastViewedRecency">
+              <option value="">— Select —</option>
+              <option value="today">Today</option>
+              <option value="this_week">This week</option>
+              <option value="this_month">This month</option>
+              <option value="this_quarter">This quarter</option>
+              <option value="lapsed">Lapsed (> 90d)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaAccountSharingBand">Account sharing</label>
+            <select id="mediaAccountSharingBand">
+              <option value="">— Select —</option>
+              <option value="solo">Solo viewer</option>
+              <option value="paired">Two profiles</option>
+              <option value="family">Family (3–5 profiles)</option>
+              <option value="extended">Extended (5+ profiles)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="generic-identity-section" style="margin-top: 16px;">
+          <h4 class="generic-subhead" style="font-size: 0.95em;">Engagement flags</h4>
+          <div class="form-row form-row--inline">
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="mediaAdSupported"> <span>Ad-supported plan</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="mediaDownloadsEnabled"> <span>Downloads enabled</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="mediaSportsPackage"> <span>Sports add-on</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="mediaHasKidsProfile"> <span>Has kids profile</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="mediaLiveTv"> <span>Live TV channels</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="mediaBingeWatcher"> <span>Binge watcher</span></label>
+          </div>
+        </div>
+      </div>
+
+      <details id="mediaProfileDebug" class="generate-debug" hidden>
+        <summary>Request &amp; response details</summary>
+        <div class="generate-debug-content">
+          <div class="generate-debug-section">
+            <strong>Client POST (to /api/profile/update):</strong>
+            <pre id="mediaDebugClientRequest"></pre>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Status:</strong> <span id="mediaDebugStatus"></span>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Response:</strong>
+            <pre id="mediaDebugResponse"></pre>
+          </div>
+        </div>
+      </details>
+    </section>
+
+<!-- Retail Profile (industry === "retail") — uses the shared
+         AepProfileGenIndustry runtime (see profile-generation-industry-runtime.js).
+         Same wizard, same Customer Analytics, same shared counter — only the
+         industry-attributes block is unique. profile-generation.js toggles this
+         on when industry === "retail". -->
+    <section class="consent-panel" id="retailProfilePanel" aria-labelledby="retailProfileHeading" hidden>
+      <h2 id="retailProfileHeading" class="panel-title"><span class="icon">🛍️</span> Retail profile</h2>
+
+      <details class="consent-streaming-details" id="retailProfileInfraDetails" open aria-label="Retail Profile sandbox preparation and HTTP streaming connection">
+        <summary class="consent-streaming-details__summary">
+          <span class="consent-streaming-details__title">
+            <span class="icon" aria-hidden="true">⚙</span>
+            Sandbox &amp; streaming connection
+          </span>
+          <span class="consent-streaming-details__hint" id="retailProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
+        </summary>
+        <div class="consent-streaming-details__body">
+          <div class="consent-setup-instructions">
+            <h4>Before you can generate or update Retail profiles in a new sandbox:</h4>
+            <ol>
+              <li><strong>Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - Retail Profile - Schema</code>.</li>
+              <li>
+                <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - Retail Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. When present in this sandbox the wizard ALSO attaches <strong>Profile Retail v2</strong> and <strong>Profile Retail Scoring</strong> (custom tenant FGs); sandboxes that lack them fall back to the <code>_{tenant}.industryRetail.*</code> tenant subtree and the wizard still succeeds.
+              </li>
+              <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Retail Profile - Dataset</code>.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Retail Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+            </ol>
+            <p class="consent-setup-instructions__note">
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Retail schema's field groups, open <code>AEP Lab - Retail Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+            </p>
+          </div>
+          <div class="button-row">
+            <button type="button" id="retailCheckInfraBtn" class="btn btn-secondary">Check sandbox status</button>
+          </div>
+          <div class="button-row consent-infra-step-buttons">
+            <button type="button" id="retailStepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
+            <button type="button" id="retailStepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
+            <button type="button" id="retailStepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
+            <button type="button" id="retailStepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
+          </div>
+          <p id="retailInfraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
+
+          <div class="sandbox-config gen-streaming-fields">
+            <h3 class="sandbox-config-title">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
+            <div class="form-row">
+              <label for="retailStreamSchemaId">Schema $id</label>
+              <input type="text" id="retailStreamSchemaId" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="retailStreamDatasetId">Dataset ID</label>
+              <input type="text" id="retailStreamDatasetId" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="retailStreamXdmKey">Tenant XDM key</label>
+              <input type="text" id="retailStreamXdmKey" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="retailStreamFlowId">Flow ID (x-adobe-flow-id)</label>
+              <input type="text" id="retailStreamFlowId" placeholder="Paste UUID from the dataflow in AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="retailStreamFlowName">Dataflow name in AEP</label>
+              <input type="text" id="retailStreamFlowName" value="AEP Lab - Retail Profile - Dataflow" placeholder="Dataflow name (used for lookup when Flow ID is empty)" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="retailStreamUrl">Collection URL</label>
+              <input type="url" id="retailStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="button-row">
+              <button type="button" id="retailLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
+              <button type="button" id="retailFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="retailSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="generic-pattern-panel">
+        <h3 class="generic-subhead"><span class="icon">📧</span> Profile email</h3>
+
+        <div class="generic-lookup-block">
+          <h4 class="generic-lookup-block__title"><span class="icon" aria-hidden="true">🔎</span> Look up an existing profile</h4>
+          <p class="generic-helper">Pick an identity namespace, paste the value, and we'll load that profile's data into the editor below.</p>
+          <div class="form-row form-row--inline">
+            <div class="form-group">
+              <label for="retailLookupNs">Namespace</label>
+              <select id="retailLookupNs" aria-label="Identity namespace for profile lookup">
+                <option value="email" selected>Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-group form-group--flex">
+              <label for="retailLookupIdentifier">Identifier value</label>
+              <input type="text" id="retailLookupIdentifier" placeholder="Click to use the current scaled email, or paste any identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-group form-group--small">
+              <label>&nbsp;</label>
+              <button type="button" id="retailLookupBtn" class="btn btn-secondary">Look up profile</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="generic-pattern-block">
+          <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
+          <p class="generic-helper">
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Retail profile in this sandbox can never reuse the same scaled email on the same day.
+          </p>
+          <div class="form-row form-row--inline">
+            <div class="form-group form-group--flex">
+              <label for="retailBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <input type="email" id="retailBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="retailCounter">Counter (N)</label>
+              <input type="number" id="retailCounter" min="1" step="1" value="1">
+            </div>
+            <div class="form-group">
+              <label for="retailGenerateCount">Count</label>
+              <input type="number" id="retailGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
+            </div>
+          </div>
+          <p class="email-pattern-preview">
+            <strong>Will scale to:</strong>
+            <code id="retailEmailPreview">—</code>
+            <button type="button" id="retailResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+          </p>
+
+          <div class="generic-actions button-row">
+            <button type="button" id="retailUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
+            <button type="button" id="retailGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="retailDryRun"> <span>Dry run (preview payload, do not stream)</span>
+            </label>
+          </div>
+        </div>
+
+        <p id="retailProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+      </div>
+
+      <div class="generic-identity-section">
+        <h3 class="generic-subhead"><span class="icon">👤</span> Identity</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="retailFirstName">First name</label>
+            <input type="text" id="retailFirstName" placeholder="e.g. Adam" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="retailLastName">Last name</label>
+            <input type="text" id="retailLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="gen-recent-picker" id="retailRecentPicker" hidden>
+        <label for="retailRecentSelect" class="gen-recent-picker__label">
+          <span class="icon">🕘</span>
+          <span>Recently generated</span>
+        </label>
+        <select id="retailRecentSelect" class="gen-recent-picker__select" aria-label="Load a recently generated profile">
+          <option value="">— pick to load —</option>
+        </select>
+        <button type="button" id="retailRecentLoadBtn" class="btn btn-secondary" title="Load the selected snapshot back into the form">Load</button>
+        <details id="retailRecentDetails" class="gen-recent-list">
+          <summary><span id="retailRecentCountLabel">Recently generated (0)</span></summary>
+          <table class="gen-recent-list__table">
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Generated</th>
+                <th scope="col">Summary</th>
+                <th scope="col"><span class="visually-hidden">Action</span></th>
+              </tr>
+            </thead>
+            <tbody id="retailRecentListBody"></tbody>
+          </table>
+          <p class="field-hint">Stored locally in your browser, partitioned by sandbox + base email + day. Shared across industries — a recent generated under Generic for the same sandbox and base email also appears here.</p>
+        </details>
+      </div>
+
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">📊</span> Customer Analytics</h3>
+        <div class="generic-analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🎯</span>
+              <h4 class="analytics-card-title">Churn risk</h4>
+              <span class="analytics-card-value" id="retailChurnValue">50%</span>
+            </div>
+            <input type="range" id="retailChurn" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low risk</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="retailChurn" title="Randomize">🎲</button>
+              <span>High risk</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📈</span>
+              <h4 class="analytics-card-title">Propensity score</h4>
+              <span class="analytics-card-value" id="retailPropensityValue">50%</span>
+            </div>
+            <input type="range" id="retailPropensity" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="retailPropensity" title="Randomize">🎲</button>
+              <span>High</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">⭐</span>
+              <h4 class="analytics-card-title">NPS score</h4>
+            </div>
+            <select id="retailNps" class="nps-select">
+              <option value="">— Select —</option>
+              <option value="0" data-band="detractor">0 — Detractor</option>
+              <option value="1" data-band="detractor">1 — Detractor</option>
+              <option value="2" data-band="detractor">2 — Detractor</option>
+              <option value="3" data-band="detractor">3 — Detractor</option>
+              <option value="4" data-band="detractor">4 — Detractor</option>
+              <option value="5" data-band="detractor">5 — Detractor</option>
+              <option value="6" data-band="detractor">6 — Detractor</option>
+              <option value="7" data-band="passive">7 — Passive</option>
+              <option value="8" data-band="passive">8 — Passive</option>
+              <option value="9" data-band="promoter">9 — Promoter</option>
+              <option value="10" data-band="promoter">10 — Promoter</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">💰</span>
+              <h4 class="analytics-card-title">Avg order value</h4>
+              <span class="analytics-card-value" id="retailAovValue">$500</span>
+            </div>
+            <input type="range" id="retailAov" class="analytics-slider" min="0" max="10000" step="50" value="500">
+            <div class="analytics-slider-meta">
+              <span>$0</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="retailAov" title="Randomize">🎲</button>
+              <span>$10k</span>
+            </div>
+          </div>
+
+          <div id="retailPreferredChannelCard" class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📢</span>
+              <h4 class="analytics-card-title">Preferred marketing channel</h4>
+            </div>
+            <select id="retailPreferredChannel" aria-label="Preferred marketing channel">
+              <option value="">— Skip (unchanged) —</option>
+              <option value="email">email</option>
+              <option value="push">Push Notifications</option>
+              <option value="inApp">In-app Messages</option>
+              <option value="sms">SMS (Text Messages)</option>
+              <option value="whatsApp">WhatsApp Messages</option>
+              <option value="phone">Phone Calls</option>
+              <option value="phyMail">Physical Mail</option>
+              <option value="inVehicle">In-vehicle Messages</option>
+              <option value="inHome">In-home Messages</option>
+              <option value="iot">IoT Messages</option>
+              <option value="social">Social Media</option>
+              <option value="other">Other</option>
+              <option value="none">No Preferred Channel</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">👤</span>
+              <h4 class="analytics-card-title">Gender</h4>
+            </div>
+            <select id="retailGender">
+              <option value="">— Select —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="non_binary">Non-binary</option>
+              <option value="not_specified">Prefer not to say</option>
+              <option value="other">Other</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card analytics-card--loyalty">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🏆</span>
+              <h4 class="analytics-card-title">Loyalty program</h4>
+            </div>
+            <label class="gen-loyalty-toggle">
+              <input type="checkbox" id="retailLoyaltyEnabled">
+              <span>Member of loyalty program</span>
+            </label>
+            <div class="gen-loyalty-fields" id="retailLoyaltyFields" hidden>
+              <div class="form-row">
+                <label for="retailLoyaltyID">Loyalty ID</label>
+                <input type="text" id="retailLoyaltyID" placeholder="e.g. LYL-10001 (auto-generated if blank)" autocomplete="off">
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="retailLoyaltyTier">Tier / level</label>
+                  <select id="retailLoyaltyTier">
+                    <option value="">— Select —</option>
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="retailLoyaltyPoints">Points balance</label>
+                  <input type="number" id="retailLoyaltyPoints" min="0" step="1" placeholder="e.g. 1500">
+                </div>
+                <div class="form-group form-group--small">
+                  <label>&nbsp;</label>
+                  <button type="button" id="retailLoyaltyRandomBtn" class="btn btn-link" title="Random points within selected tier">🎲</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="analytics-card analytics-card--language" id="retailLanguageCard">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🌍</span>
+              <h4 class="analytics-card-title">Language preference</h4>
+            </div>
+            <select id="retailLanguage">
+              <option value="">— Select —</option>
+              <option value="en-US">English (United States)</option>
+              <option value="en-GB" selected>English (United Kingdom)</option>
+              <option value="en-CA">English (Canada)</option>
+              <option value="fr-FR">French (France)</option>
+              <option value="de-DE">German (Germany)</option>
+              <option value="es-ES">Spanish (Spain)</option>
+              <option value="it-IT">Italian (Italy)</option>
+              <option value="pt-BR">Portuguese (Brazil)</option>
+              <option value="nl-NL">Dutch (Netherlands)</option>
+              <option value="ja-JP">Japanese (Japan)</option>
+              <option value="zh-CN">Chinese (Simplified)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+            <!-- Retail-specific attributes — tenant subtree under Profile Core v2.
+           Paths: _<tenant>.industryRetail.* (favourite category, LTV
+           band, household composition, store/online preference, loyalty
+           tier separate from Generic). When the custom Profile Retail v2
+           and/or Profile Retail Scoring FGs are attached the paths still
+           live under industryRetail.* (their tenant subtree subsumes
+           them). -->
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">🛍️</span> Retail attributes</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="retailFavoriteCategory">Favourite category</label>
+            <select id="retailFavoriteCategory">
+              <option value="">— Select —</option>
+              <option value="apparel">Apparel</option>
+              <option value="electronics">Electronics</option>
+              <option value="home">Home & living</option>
+              <option value="beauty">Beauty & wellness</option>
+              <option value="sports">Sports & outdoors</option>
+              <option value="kids">Kids & baby</option>
+              <option value="grocery">Grocery</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="retailLtvBand">Lifetime value band</label>
+            <select id="retailLtvBand">
+              <option value="">— Select —</option>
+              <option value="under_100">< $100</option>
+              <option value="100_500">$100 – $500</option>
+              <option value="500_2k">$500 – $2k</option>
+              <option value="2k_10k">$2k – $10k</option>
+              <option value="over_10k">$10k+</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="retailHouseholdComposition">Household composition</label>
+            <select id="retailHouseholdComposition">
+              <option value="">— Select —</option>
+              <option value="single">Single</option>
+              <option value="couple">Couple</option>
+              <option value="family_young">Family with young kids</option>
+              <option value="family_teen">Family with teens</option>
+              <option value="empty_nesters">Empty nesters</option>
+              <option value="multi_generation">Multi-generation</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="retailChannelPreference">Channel preference</label>
+            <select id="retailChannelPreference">
+              <option value="">— Select —</option>
+              <option value="online_only">Online only</option>
+              <option value="mostly_online">Mostly online</option>
+              <option value="blended">Blended</option>
+              <option value="mostly_store">Mostly in-store</option>
+              <option value="store_only">In-store only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="retailRetailLoyaltyTier">Retail loyalty tier</label>
+            <select id="retailRetailLoyaltyTier">
+              <option value="">— Select —</option>
+              <option value="none">Not a member</option>
+              <option value="member">Member</option>
+              <option value="silver">Silver</option>
+              <option value="gold">Gold</option>
+              <option value="platinum">Platinum</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="retailLastPurchaseRecency">Last purchase recency</label>
+            <select id="retailLastPurchaseRecency">
+              <option value="">— Select —</option>
+              <option value="within_7d">Within 7 days</option>
+              <option value="within_30d">Within 30 days</option>
+              <option value="within_90d">Within 90 days</option>
+              <option value="within_1y">Within 1 year</option>
+              <option value="over_1y">> 1 year</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="generic-identity-section" style="margin-top: 16px;">
+          <h4 class="generic-subhead" style="font-size: 0.95em;">Cart & engagement flags</h4>
+          <div class="form-row form-row--inline">
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="retailCartAbandoned"> <span>Recent cart abandonment</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="retailWishlist"> <span>Active wishlist</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="retailStoreCardHolder"> <span>Store credit-card holder</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="retailSubscribed"> <span>Subscribed to product feed</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="retailReturnedRecent"> <span>Returned an item recently</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="retailReviewsItems"> <span>Writes product reviews</span></label>
+          </div>
+        </div>
+      </div>
+
+      <details id="retailProfileDebug" class="generate-debug" hidden>
+        <summary>Request &amp; response details</summary>
+        <div class="generate-debug-content">
+          <div class="generate-debug-section">
+            <strong>Client POST (to /api/profile/update):</strong>
+            <pre id="retailDebugClientRequest"></pre>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Status:</strong> <span id="retailDebugStatus"></span>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Response:</strong>
+            <pre id="retailDebugResponse"></pre>
+          </div>
+        </div>
+      </details>
+    </section>
+
+<!-- Telecom Profile (industry === "telecommunications") — uses the shared
+         AepProfileGenIndustry runtime (see profile-generation-industry-runtime.js).
+         Same wizard, same Customer Analytics, same shared counter — only the
+         industry-attributes block is unique. profile-generation.js toggles this
+         on when industry === "telecommunications". -->
+    <section class="consent-panel" id="telecomProfilePanel" aria-labelledby="telecomProfileHeading" hidden>
+      <h2 id="telecomProfileHeading" class="panel-title"><span class="icon">📡</span> Telecom profile</h2>
+
+      <details class="consent-streaming-details" id="telecomProfileInfraDetails" open aria-label="Telecom Profile sandbox preparation and HTTP streaming connection">
+        <summary class="consent-streaming-details__summary">
+          <span class="consent-streaming-details__title">
+            <span class="icon" aria-hidden="true">⚙</span>
+            Sandbox &amp; streaming connection
+          </span>
+          <span class="consent-streaming-details__hint" id="telecomProfileInfraHint">Per-sandbox setup. Run the four steps once per sandbox, then create the HTTP API dataflow in AEP and click Fetch URL &amp; Flow ID.</span>
+        </summary>
+        <div class="consent-streaming-details__body">
+          <div class="consent-setup-instructions">
+            <h4>Before you can generate or update Telecom profiles in a new sandbox:</h4>
+            <ol>
+              <li><strong>Create schema</strong> — Creates an empty Profile schema named <code>AEP Lab - Telecom Profile - Schema</code>.</li>
+              <li>
+                <strong>Attach field groups</strong> — Adds <strong>Profile Core v2</strong>, <strong>Demographic Details</strong>, <strong>Personal Contact Details</strong>, <strong>Loyalty Details</strong>, <strong>Consent and Preference Details</strong>, and <strong>Preference Details</strong> to <code>AEP Lab - Telecom Profile - Schema</code>, then sets the primary <strong>Email</strong> identity descriptor on <code>_{tenant}.identification.core.email</code>. When present in this sandbox the wizard ALSO attaches <strong>Telecom Subscription Details</strong> (OOTB Adobe field group); sandboxes that lack it fall back to the <code>_{tenant}.industryTelecom.*</code> tenant subtree and the wizard still succeeds.
+              </li>
+              <li><strong>Create dataset</strong> — Creates <code>AEP Lab - Telecom Profile - Dataset</code>.</li>
+              <li><strong>Create an HTTP API Dataflow</strong> — In AEP, go to <em>Sources → Streaming → HTTP API</em> and create a new streaming connection pointing at your dataset. <strong>Name the dataflow <code>AEP Lab - Telecom Profile - Dataflow</code></strong> so <strong>Fetch URL &amp; Flow ID from AEP</strong> can resolve them automatically.</li>
+            </ol>
+            <p class="consent-setup-instructions__note">
+              <strong>⚠ Manual step (in AEP UI, after the wizard):</strong> When you are satisfied with the Telecom schema's field groups, open <code>AEP Lab - Telecom Profile - Schema</code> in the AEP UI and toggle <strong>Profile</strong> ON yourself. Enabling a schema for Profile is a <strong>one-way action</strong> — only toggle it on after step 2 completes.
+            </p>
+          </div>
+          <div class="button-row">
+            <button type="button" id="telecomCheckInfraBtn" class="btn btn-secondary">Check sandbox status</button>
+          </div>
+          <div class="button-row consent-infra-step-buttons">
+            <button type="button" id="telecomStepCreateSchemaBtn" class="btn btn-primary">1 · Create schema</button>
+            <button type="button" id="telecomStepAttachFgBtn" class="btn btn-secondary">2 · Attach field groups</button>
+            <button type="button" id="telecomStepCreateDatasetBtn" class="btn btn-secondary">3 · Create dataset</button>
+            <button type="button" id="telecomStepHttpFlowBtn" class="btn btn-secondary">4 · HTTP flow (instructions)</button>
+          </div>
+          <p id="telecomInfraStatusMessage" class="consent-message" role="status" aria-live="polite" hidden></p>
+
+          <div class="sandbox-config gen-streaming-fields">
+            <h3 class="sandbox-config-title">HTTP API streaming (Sources → Streaming → HTTP API)</h3>
+            <div class="form-row">
+              <label for="telecomStreamSchemaId">Schema $id</label>
+              <input type="text" id="telecomStreamSchemaId" placeholder="https://ns.adobe.com/{tenant}/schemas/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="telecomStreamDatasetId">Dataset ID</label>
+              <input type="text" id="telecomStreamDatasetId" placeholder="Paste dataset ID from AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="telecomStreamXdmKey">Tenant XDM key</label>
+              <input type="text" id="telecomStreamXdmKey" value="_demoemea" placeholder="_demoemea" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="telecomStreamFlowId">Flow ID (x-adobe-flow-id)</label>
+              <input type="text" id="telecomStreamFlowId" placeholder="Paste UUID from the dataflow in AEP" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="telecomStreamFlowName">Dataflow name in AEP</label>
+              <input type="text" id="telecomStreamFlowName" value="AEP Lab - Telecom Profile - Dataflow" placeholder="Dataflow name (used for lookup when Flow ID is empty)" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-row">
+              <label for="telecomStreamUrl">Collection URL</label>
+              <input type="url" id="telecomStreamUrl" placeholder="https://dcs.adobedc.net/collection/..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="button-row">
+              <button type="button" id="telecomLoadFromFirebaseBtn" class="btn btn-primary">Load from Firebase</button>
+              <button type="button" id="telecomFetchFlowFromAepBtn" class="btn btn-secondary">Fetch URL &amp; Flow ID from AEP</button>
+              <button type="button" id="telecomSaveStreamBtn" class="btn btn-secondary">Save connection (Firebase)</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="generic-pattern-panel">
+        <h3 class="generic-subhead"><span class="icon">📧</span> Profile email</h3>
+
+        <div class="generic-lookup-block">
+          <h4 class="generic-lookup-block__title"><span class="icon" aria-hidden="true">🔎</span> Look up an existing profile</h4>
+          <p class="generic-helper">Pick an identity namespace, paste the value, and we'll load that profile's data into the editor below.</p>
+          <div class="form-row form-row--inline">
+            <div class="form-group">
+              <label for="telecomLookupNs">Namespace</label>
+              <select id="telecomLookupNs" aria-label="Identity namespace for profile lookup">
+                <option value="email" selected>Email</option>
+                <option value="ecid">ECID</option>
+                <option value="crmId">CRM ID</option>
+                <option value="loyaltyId">Loyalty ID</option>
+                <option value="phone">Phone</option>
+              </select>
+            </div>
+            <div class="form-group form-group--flex">
+              <label for="telecomLookupIdentifier">Identifier value</label>
+              <input type="text" id="telecomLookupIdentifier" placeholder="Click to use the current scaled email, or paste any identifier" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-group form-group--small">
+              <label>&nbsp;</label>
+              <button type="button" id="telecomLookupBtn" class="btn btn-secondary">Look up profile</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="generic-pattern-block">
+          <h4 class="generic-pattern-block__title"><span class="icon" aria-hidden="true">✨</span> Generate from your base email</h4>
+          <p class="generic-helper">
+            Same scaler as Generic — <code>&lt;local&gt;+DDMMYYYY-N@&lt;domain&gt;</code> with today's date and a counter that resets daily per sandbox.
+            The counter is <strong>shared across industries</strong>, so a Generic, Travel, and Telecom profile in this sandbox can never reuse the same scaled email on the same day.
+          </p>
+          <div class="form-row form-row--inline">
+            <div class="form-group form-group--flex">
+              <label for="telecomBaseEmail">Base email <small class="generic-helper-inline">(saved on this device)</small></label>
+              <input type="email" id="telecomBaseEmail" placeholder="apalmer@adobetest.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label for="telecomCounter">Counter (N)</label>
+              <input type="number" id="telecomCounter" min="1" step="1" value="1">
+            </div>
+            <div class="form-group">
+              <label for="telecomGenerateCount">Count</label>
+              <input type="number" id="telecomGenerateCount" min="1" max="100" step="1" value="1" title="How many profiles to generate in one click (counter increments each).">
+            </div>
+          </div>
+          <p class="email-pattern-preview">
+            <strong>Will scale to:</strong>
+            <code id="telecomEmailPreview">—</code>
+            <button type="button" id="telecomResetCounterBtn" class="btn btn-link" title="Reset N to 1 for this sandbox + base email + today">Reset N</button>
+          </p>
+
+          <div class="generic-actions button-row">
+            <button type="button" id="telecomUpdateProfileBtn" class="btn btn-primary">Update profile (current scaled email)</button>
+            <button type="button" id="telecomGenerateBtn" class="btn btn-primary btn-save">Generate profiles</button>
+            <label class="generic-dryrun-label">
+              <input type="checkbox" id="telecomDryRun"> <span>Dry run (preview payload, do not stream)</span>
+            </label>
+          </div>
+        </div>
+
+        <p id="telecomProfileMessage" class="consent-message consent-message--below-btn" role="status" aria-live="polite" hidden></p>
+      </div>
+
+      <div class="generic-identity-section">
+        <h3 class="generic-subhead"><span class="icon">👤</span> Identity</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="telecomFirstName">First name</label>
+            <input type="text" id="telecomFirstName" placeholder="e.g. Adam" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="telecomLastName">Last name</label>
+            <input type="text" id="telecomLastName" placeholder="e.g. Palmer" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="gen-recent-picker" id="telecomRecentPicker" hidden>
+        <label for="telecomRecentSelect" class="gen-recent-picker__label">
+          <span class="icon">🕘</span>
+          <span>Recently generated</span>
+        </label>
+        <select id="telecomRecentSelect" class="gen-recent-picker__select" aria-label="Load a recently generated profile">
+          <option value="">— pick to load —</option>
+        </select>
+        <button type="button" id="telecomRecentLoadBtn" class="btn btn-secondary" title="Load the selected snapshot back into the form">Load</button>
+        <details id="telecomRecentDetails" class="gen-recent-list">
+          <summary><span id="telecomRecentCountLabel">Recently generated (0)</span></summary>
+          <table class="gen-recent-list__table">
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Generated</th>
+                <th scope="col">Summary</th>
+                <th scope="col"><span class="visually-hidden">Action</span></th>
+              </tr>
+            </thead>
+            <tbody id="telecomRecentListBody"></tbody>
+          </table>
+          <p class="field-hint">Stored locally in your browser, partitioned by sandbox + base email + day. Shared across industries — a recent generated under Generic for the same sandbox and base email also appears here.</p>
+        </details>
+      </div>
+
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">📊</span> Customer Analytics</h3>
+        <div class="generic-analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🎯</span>
+              <h4 class="analytics-card-title">Churn risk</h4>
+              <span class="analytics-card-value" id="telecomChurnValue">50%</span>
+            </div>
+            <input type="range" id="telecomChurn" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low risk</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="telecomChurn" title="Randomize">🎲</button>
+              <span>High risk</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📈</span>
+              <h4 class="analytics-card-title">Propensity score</h4>
+              <span class="analytics-card-value" id="telecomPropensityValue">50%</span>
+            </div>
+            <input type="range" id="telecomPropensity" class="analytics-slider" min="0" max="100" step="1" value="50">
+            <div class="analytics-slider-meta">
+              <span>Low</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="telecomPropensity" title="Randomize">🎲</button>
+              <span>High</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">⭐</span>
+              <h4 class="analytics-card-title">NPS score</h4>
+            </div>
+            <select id="telecomNps" class="nps-select">
+              <option value="">— Select —</option>
+              <option value="0" data-band="detractor">0 — Detractor</option>
+              <option value="1" data-band="detractor">1 — Detractor</option>
+              <option value="2" data-band="detractor">2 — Detractor</option>
+              <option value="3" data-band="detractor">3 — Detractor</option>
+              <option value="4" data-band="detractor">4 — Detractor</option>
+              <option value="5" data-band="detractor">5 — Detractor</option>
+              <option value="6" data-band="detractor">6 — Detractor</option>
+              <option value="7" data-band="passive">7 — Passive</option>
+              <option value="8" data-band="passive">8 — Passive</option>
+              <option value="9" data-band="promoter">9 — Promoter</option>
+              <option value="10" data-band="promoter">10 — Promoter</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">💰</span>
+              <h4 class="analytics-card-title">Avg order value</h4>
+              <span class="analytics-card-value" id="telecomAovValue">$500</span>
+            </div>
+            <input type="range" id="telecomAov" class="analytics-slider" min="0" max="10000" step="50" value="500">
+            <div class="analytics-slider-meta">
+              <span>$0</span>
+              <button type="button" class="btn btn-link analytics-randomize" data-target="telecomAov" title="Randomize">🎲</button>
+              <span>$10k</span>
+            </div>
+          </div>
+
+          <div id="telecomPreferredChannelCard" class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">📢</span>
+              <h4 class="analytics-card-title">Preferred marketing channel</h4>
+            </div>
+            <select id="telecomPreferredChannel" aria-label="Preferred marketing channel">
+              <option value="">— Skip (unchanged) —</option>
+              <option value="email">email</option>
+              <option value="push">Push Notifications</option>
+              <option value="inApp">In-app Messages</option>
+              <option value="sms">SMS (Text Messages)</option>
+              <option value="whatsApp">WhatsApp Messages</option>
+              <option value="phone">Phone Calls</option>
+              <option value="phyMail">Physical Mail</option>
+              <option value="inVehicle">In-vehicle Messages</option>
+              <option value="inHome">In-home Messages</option>
+              <option value="iot">IoT Messages</option>
+              <option value="social">Social Media</option>
+              <option value="other">Other</option>
+              <option value="none">No Preferred Channel</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">👤</span>
+              <h4 class="analytics-card-title">Gender</h4>
+            </div>
+            <select id="telecomGender">
+              <option value="">— Select —</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="non_binary">Non-binary</option>
+              <option value="not_specified">Prefer not to say</option>
+              <option value="other">Other</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div class="analytics-card analytics-card--loyalty">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🏆</span>
+              <h4 class="analytics-card-title">Loyalty program</h4>
+            </div>
+            <label class="gen-loyalty-toggle">
+              <input type="checkbox" id="telecomLoyaltyEnabled">
+              <span>Member of loyalty program</span>
+            </label>
+            <div class="gen-loyalty-fields" id="telecomLoyaltyFields" hidden>
+              <div class="form-row">
+                <label for="telecomLoyaltyID">Loyalty ID</label>
+                <input type="text" id="telecomLoyaltyID" placeholder="e.g. LYL-10001 (auto-generated if blank)" autocomplete="off">
+              </div>
+              <div class="form-row form-row--inline">
+                <div class="form-group">
+                  <label for="telecomLoyaltyTier">Tier / level</label>
+                  <select id="telecomLoyaltyTier">
+                    <option value="">— Select —</option>
+                    <option value="Bronze">Bronze</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Gold">Gold</option>
+                    <option value="Platinum">Platinum</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="telecomLoyaltyPoints">Points balance</label>
+                  <input type="number" id="telecomLoyaltyPoints" min="0" step="1" placeholder="e.g. 1500">
+                </div>
+                <div class="form-group form-group--small">
+                  <label>&nbsp;</label>
+                  <button type="button" id="telecomLoyaltyRandomBtn" class="btn btn-link" title="Random points within selected tier">🎲</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="analytics-card analytics-card--language" id="telecomLanguageCard">
+            <div class="analytics-card-header">
+              <span class="analytics-card-icon">🌍</span>
+              <h4 class="analytics-card-title">Language preference</h4>
+            </div>
+            <select id="telecomLanguage">
+              <option value="">— Select —</option>
+              <option value="en-US">English (United States)</option>
+              <option value="en-GB" selected>English (United Kingdom)</option>
+              <option value="en-CA">English (Canada)</option>
+              <option value="fr-FR">French (France)</option>
+              <option value="de-DE">German (Germany)</option>
+              <option value="es-ES">Spanish (Spain)</option>
+              <option value="it-IT">Italian (Italy)</option>
+              <option value="pt-BR">Portuguese (Brazil)</option>
+              <option value="nl-NL">Dutch (Netherlands)</option>
+              <option value="ja-JP">Japanese (Japan)</option>
+              <option value="zh-CN">Chinese (Simplified)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+            <!-- Telecom-specific attributes — tenant subtree under Profile Core v2.
+           Paths: _<tenant>.industryTelecom.* (plan tier, contract end,
+           monthly spend band, data allowance, device, network NPS,
+           upgrade churn risk). When the OOTB profile-telecom-subscription
+           field group is attached the paths still live under
+           industryTelecom.* — the runtime never streams to the OOTB
+           telecomSubscription root path. -->
+      <div class="generic-analytics-section">
+        <h3 class="generic-subhead"><span class="icon">📡</span> Telecom attributes</h3>
+        <div class="gen-identity-grid">
+          <div class="form-group">
+            <label for="telecomPlanTier">Plan tier</label>
+            <select id="telecomPlanTier">
+              <option value="">— Select —</option>
+              <option value="basic">Basic</option>
+              <option value="standard">Standard</option>
+              <option value="premium">Premium</option>
+              <option value="unlimited">Unlimited</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="telecomMonthlySpendBand">Monthly spend band</label>
+            <select id="telecomMonthlySpendBand">
+              <option value="">— Select —</option>
+              <option value="under_25">< $25 / mo</option>
+              <option value="25_50">$25 – $50 / mo</option>
+              <option value="50_100">$50 – $100 / mo</option>
+              <option value="100_200">$100 – $200 / mo</option>
+              <option value="200_plus">$200+ / mo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="telecomDataAllowance">Data allowance</label>
+            <select id="telecomDataAllowance">
+              <option value="">— Select —</option>
+              <option value="under_5gb">< 5 GB</option>
+              <option value="5_25gb">5 – 25 GB</option>
+              <option value="25_100gb">25 – 100 GB</option>
+              <option value="unlimited">Unlimited</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="telecomContractEndBand">Contract end</label>
+            <select id="telecomContractEndBand">
+              <option value="">— Select —</option>
+              <option value="under_3m">< 3 months</option>
+              <option value="3_6m">3 – 6 months</option>
+              <option value="6_12m">6 – 12 months</option>
+              <option value="over_12m">> 12 months</option>
+              <option value="no_contract">No contract</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="telecomDeviceTier">Device tier</label>
+            <select id="telecomDeviceTier">
+              <option value="">— Select —</option>
+              <option value="entry">Entry</option>
+              <option value="mid_range">Mid-range</option>
+              <option value="flagship">Flagship</option>
+              <option value="premium_flagship">Premium flagship</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="telecomNetworkNps">Network NPS</label>
+            <select id="telecomNetworkNps">
+              <option value="">— Select —</option>
+              <option value="detractor">Detractor</option>
+              <option value="passive">Passive</option>
+              <option value="promoter">Promoter</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="generic-identity-section" style="margin-top: 16px;">
+          <h4 class="generic-subhead" style="font-size: 0.95em;">Service flags</h4>
+          <div class="form-row form-row--inline">
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomHasMobile"> <span>Mobile line</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomHasBroadband"> <span>Home broadband</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomHasTv"> <span>TV / streaming bundle</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomHasFamilyPlan"> <span>Family / shared plan</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomRecentNetworkIssue"> <span>Recent network issue</span></label>
+            <label class="gen-loyalty-toggle"><input type="checkbox" id="telecomUpgradeEligible"> <span>Upgrade eligible</span></label>
+          </div>
+        </div>
+      </div>
+
+      <details id="telecomProfileDebug" class="generate-debug" hidden>
+        <summary>Request &amp; response details</summary>
+        <div class="generate-debug-content">
+          <div class="generate-debug-section">
+            <strong>Client POST (to /api/profile/update):</strong>
+            <pre id="telecomDebugClientRequest"></pre>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Status:</strong> <span id="telecomDebugStatus"></span>
+          </div>
+          <div class="generate-debug-section">
+            <strong>Response:</strong>
+            <pre id="telecomDebugResponse"></pre>
+          </div>
+        </div>
+      </details>
+    </section>
+
       </main>
     </div>
   </div>
@@ -2565,15 +4400,19 @@
        one-time genericProfile* → profileGen* localStorage migration). MUST
        load BEFORE the per-industry modules below — both Generic and Travel
        call into window.AepProfileGenShared on init. -->
-  <script src="profile-generation-shared.js?v=20260502b"></script>
-  <script src="profile-generation.js?v=20260502b"></script>
-  <script src="profile-generation-generic.js?v=20260502b"></script>
-  <script src="profile-generation-travel.js?v=20260502b"></script>
+  <script src="profile-generation-shared.js?v=20260502c"></script>
+  <script src="profile-generation.js?v=20260502c"></script>
+  <script src="profile-generation-generic.js?v=20260502c"></script>
+  <script src="profile-generation-travel.js?v=20260502c"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->
-  <script src="profile-generation-industry-runtime.js?v=20260502b"></script>
-  <script src="profile-generation-fsi.js?v=20260502b"></script>
+  <script src="profile-generation-industry-runtime.js?v=20260502c"></script>
+  <script src="profile-generation-fsi.js?v=20260502c"></script>
+  <script src="profile-generation-telecom.js?v=20260502c"></script>
+  <script src="profile-generation-retail.js?v=20260502c"></script>
+  <script src="profile-generation-media.js?v=20260502c"></script>
+  <script src="profile-generation-sports.js?v=20260502c"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20260423-demos-bc"></script>

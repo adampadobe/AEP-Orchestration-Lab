@@ -62,6 +62,14 @@ const travelProfileInfraService = lazyRequireMod('./travelProfileInfraService');
 const travelProfileConnectionStore = lazyRequireMod('./travelProfileConnectionStore');
 const fsiProfileInfraService = lazyRequireMod('./fsiProfileInfraService');
 const fsiProfileConnectionStore = lazyRequireMod('./fsiProfileConnectionStore');
+const telecomProfileInfraService = lazyRequireMod('./telecomProfileInfraService');
+const telecomProfileConnectionStore = lazyRequireMod('./telecomProfileConnectionStore');
+const retailProfileInfraService = lazyRequireMod('./retailProfileInfraService');
+const retailProfileConnectionStore = lazyRequireMod('./retailProfileConnectionStore');
+const mediaProfileInfraService = lazyRequireMod('./mediaProfileInfraService');
+const mediaProfileConnectionStore = lazyRequireMod('./mediaProfileConnectionStore');
+const sportsProfileInfraService = lazyRequireMod('./sportsProfileInfraService');
+const sportsProfileConnectionStore = lazyRequireMod('./sportsProfileConnectionStore');
 const { createProfileIndustryRoutes } = require('./createProfileIndustryRoutes');
 const journeyNameStore = lazyRequireMod('./journeyNameStore');
 const eventEdgeService = lazyRequireMod('./eventEdgeService');
@@ -1171,6 +1179,54 @@ exports.fsiProfileInfraStatus = fsiProfileRoutes.statusHandler;
 exports.fsiProfileInfraStep = fsiProfileRoutes.stepHandler;
 exports.fsiProfileInfraFlowLookup = fsiProfileRoutes.flowLookupHandler;
 exports.fsiProfileConnectionStore = fsiProfileRoutes.connectionStoreHandler;
+
+const telecomProfileRoutes = createProfileIndustryRoutes({
+  industryKey: 'telecom',
+  routePathPrefix: 'telecom-profile',
+  infraService: telecomProfileInfraService,
+  connectionStore: telecomProfileConnectionStore,
+  ctx: profileIndustryRoutesCtx,
+});
+exports.telecomProfileInfraStatus = telecomProfileRoutes.statusHandler;
+exports.telecomProfileInfraStep = telecomProfileRoutes.stepHandler;
+exports.telecomProfileInfraFlowLookup = telecomProfileRoutes.flowLookupHandler;
+exports.telecomProfileConnectionStore = telecomProfileRoutes.connectionStoreHandler;
+
+const retailProfileRoutes = createProfileIndustryRoutes({
+  industryKey: 'retail',
+  routePathPrefix: 'retail-profile',
+  infraService: retailProfileInfraService,
+  connectionStore: retailProfileConnectionStore,
+  ctx: profileIndustryRoutesCtx,
+});
+exports.retailProfileInfraStatus = retailProfileRoutes.statusHandler;
+exports.retailProfileInfraStep = retailProfileRoutes.stepHandler;
+exports.retailProfileInfraFlowLookup = retailProfileRoutes.flowLookupHandler;
+exports.retailProfileConnectionStore = retailProfileRoutes.connectionStoreHandler;
+
+const mediaProfileRoutes = createProfileIndustryRoutes({
+  industryKey: 'media',
+  routePathPrefix: 'media-profile',
+  infraService: mediaProfileInfraService,
+  connectionStore: mediaProfileConnectionStore,
+  ctx: profileIndustryRoutesCtx,
+});
+exports.mediaProfileInfraStatus = mediaProfileRoutes.statusHandler;
+exports.mediaProfileInfraStep = mediaProfileRoutes.stepHandler;
+exports.mediaProfileInfraFlowLookup = mediaProfileRoutes.flowLookupHandler;
+exports.mediaProfileConnectionStore = mediaProfileRoutes.connectionStoreHandler;
+
+const sportsProfileRoutes = createProfileIndustryRoutes({
+  industryKey: 'sports',
+  routePathPrefix: 'sports-profile',
+  infraService: sportsProfileInfraService,
+  connectionStore: sportsProfileConnectionStore,
+  ctx: profileIndustryRoutesCtx,
+});
+exports.sportsProfileInfraStatus = sportsProfileRoutes.statusHandler;
+exports.sportsProfileInfraStep = sportsProfileRoutes.stepHandler;
+exports.sportsProfileInfraFlowLookup = sportsProfileRoutes.flowLookupHandler;
+exports.sportsProfileConnectionStore = sportsProfileRoutes.connectionStoreHandler;
 
 /**
  * POST /api/profile/update — streams to the HTTP API connection (body.streaming.url + flowId, sandbox).

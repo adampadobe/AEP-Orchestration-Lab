@@ -385,6 +385,118 @@
         }
       },
       {
+        "source": "/api/telecom-profile-infra/status",
+        "function": {
+          "functionId": "telecomProfileInfraStatus",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/telecom-profile-infra/step",
+        "function": {
+          "functionId": "telecomProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/telecom-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "telecomProfileInfraFlowLookup",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/telecom-profile-connection",
+        "function": {
+          "functionId": "telecomProfileConnectionStore",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/retail-profile-infra/status",
+        "function": {
+          "functionId": "retailProfileInfraStatus",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/retail-profile-infra/step",
+        "function": {
+          "functionId": "retailProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/retail-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "retailProfileInfraFlowLookup",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/retail-profile-connection",
+        "function": {
+          "functionId": "retailProfileConnectionStore",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/media-profile-infra/status",
+        "function": {
+          "functionId": "mediaProfileInfraStatus",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/media-profile-infra/step",
+        "function": {
+          "functionId": "mediaProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/media-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "mediaProfileInfraFlowLookup",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/media-profile-connection",
+        "function": {
+          "functionId": "mediaProfileConnectionStore",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/sports-profile-infra/status",
+        "function": {
+          "functionId": "sportsProfileInfraStatus",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/sports-profile-infra/step",
+        "function": {
+          "functionId": "sportsProfileInfraStep",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/sports-profile-infra/flow-lookup",
+        "function": {
+          "functionId": "sportsProfileInfraFlowLookup",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/sports-profile-connection",
+        "function": {
+          "functionId": "sportsProfileConnectionStore",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/profile/update",
         "function": {
           "functionId": "profileUpdateProxy",
