@@ -2021,6 +2021,60 @@
               </div>
             </div>
 
+            <!-- Schema-only flight extras (added 2026-05-02): operator-editable.
+                 Generate auto-fills these from the airport pool; manual edits stick. -->
+            <div class="form-row form-row--inline" style="margin-top: 6px;">
+              <div class="form-group">
+                <label for="travelFlightDepartureCountry">Departure country</label>
+                <input type="text" id="travelFlightDepartureCountry" placeholder="United Kingdom">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightArrivalCountry">Arrival country</label>
+                <input type="text" id="travelFlightArrivalCountry" placeholder="United States">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightUsaFlight">USA flight?</label>
+                <select id="travelFlightUsaFlight" title="Leave on Auto to derive from the two countries above">
+                  <option value="">Auto (derive)</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+            </div>
+
+            <p class="setup-step-hint" style="margin-top: 6px; font-size: 0.85em;">
+              Layover details below stream only when <strong>Multi-leg = Yes</strong>. Layover 2
+              also requires <strong># Layovers ≥ 2</strong>. Generate fills these automatically.
+            </p>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightLayover1Code">Layover 1 airport code</label>
+                <input type="text" id="travelFlightLayover1Code" placeholder="DOH">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightLayover1Name">Layover 1 airport name</label>
+                <input type="text" id="travelFlightLayover1Name" placeholder="Doha">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightLayover1Duration">Layover 1 duration (min)</label>
+                <input type="number" id="travelFlightLayover1Duration" min="0" step="1" placeholder="90">
+              </div>
+            </div>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelFlightLayover2Code">Layover 2 airport code</label>
+                <input type="text" id="travelFlightLayover2Code" placeholder="SIN">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightLayover2Name">Layover 2 airport name</label>
+                <input type="text" id="travelFlightLayover2Name" placeholder="Singapore">
+              </div>
+              <div class="form-group">
+                <label for="travelFlightLayover2Duration">Layover 2 duration (min)</label>
+                <input type="number" id="travelFlightLayover2Duration" min="0" step="1" placeholder="120">
+              </div>
+            </div>
+
             <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 12px;">Hotel reservation</h5>
             <div class="form-row form-row--inline">
               <div class="form-group form-group--flex">
@@ -2082,6 +2136,128 @@
               <div class="form-group">
                 <label for="travelCarConfirmation">Confirmation #</label>
                 <input type="text" id="travelCarConfirmation" placeholder="CR987">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Travel preferences (OOTB Adobe travel-preferences mixin) — root-level
+             paths streamed under `travelPreferences.*` (NOT under the tenant key,
+             because functions/profileStreamingCore.js whitelists `travelPreferences`
+             in PROFILE_STREAM_ROOT_PATH_PREFIXES). Generate auto-fills these so
+             the resulting AEP profile carries substantive preference data; the
+             operator can override anything before clicking Generate / Update. -->
+        <div class="generic-identity-section" style="margin-top: 16px;">
+          <h4 class="generic-subhead" style="font-size: 0.95em;">Travel preferences <span style="font-weight:normal;font-size:0.85em;opacity:0.7;">(OOTB <code>travelPreferences.*</code>)</span></h4>
+          <label class="gen-loyalty-toggle">
+            <input type="checkbox" id="travelPrefsEnabled" checked>
+            <span>Include travel preferences (meal, seat, room/vehicle type, accessibility, …)</span>
+          </label>
+          <div class="gen-loyalty-fields" id="travelPrefsFields">
+
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 8px;">Flight preferences</h5>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelPrefMeal">Meal</label>
+                <select id="travelPrefMeal">
+                  <option value="">— Select —</option>
+                  <option value="Standard">Standard</option>
+                  <option value="Vegetarian">Vegetarian</option>
+                  <option value="Vegan">Vegan</option>
+                  <option value="Kosher">Kosher</option>
+                  <option value="Halal">Halal</option>
+                  <option value="Gluten-Free">Gluten-Free</option>
+                  <option value="Low-Sodium">Low-Sodium</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelPrefSeat">Seat</label>
+                <select id="travelPrefSeat">
+                  <option value="">— Select —</option>
+                  <option value="window">Window</option>
+                  <option value="aisle">Aisle</option>
+                  <option value="middle">Middle</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelPrefSeatSection">Seat section</label>
+                <select id="travelPrefSeatSection">
+                  <option value="">— Select —</option>
+                  <option value="front">Front</option>
+                  <option value="middle">Middle</option>
+                  <option value="rear">Rear</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelPrefTicketDelivery">Ticket delivery</label>
+                <select id="travelPrefTicketDelivery">
+                  <option value="">— Select —</option>
+                  <option value="mobile">Mobile</option>
+                  <option value="email">Email</option>
+                  <option value="printed">Printed</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="travelPrefDepartureAirport">Preferred departure airport</label>
+                <input type="text" id="travelPrefDepartureAirport" placeholder="LHR" maxlength="6">
+              </div>
+            </div>
+            <div class="form-row form-row--inline" style="margin-top: 4px;">
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefVisuallyImpaired"> <span>Visually-impaired accessible</span></label>
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefWheelchair"> <span>Wheelchair accessible</span></label>
+            </div>
+
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 12px;">Hotel preferences</h5>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelPrefRoomType">Room type</label>
+                <select id="travelPrefRoomType">
+                  <option value="">— Select —</option>
+                  <option value="King">King</option>
+                  <option value="Queen">Queen</option>
+                  <option value="Twin">Twin</option>
+                  <option value="Suite">Suite</option>
+                  <option value="Studio">Studio</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row form-row--inline" style="margin-top: 4px; flex-wrap: wrap; gap: 8px 16px;">
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefGym"> <span>Gym</span></label>
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefPool"> <span>Pool</span></label>
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefEarlyCheckIn"> <span>Early check-in</span></label>
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefRoomService"> <span>Room service</span></label>
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefHasRestaurant" checked> <span>Has restaurant</span></label>
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefFoamPillows"> <span>Foam pillows</span></label>
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefCrib"> <span>Crib</span></label>
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefRollAwayBed"> <span>Roll-away bed</span></label>
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefSmokingRoom"> <span>Smoking room</span></label>
+            </div>
+
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 12px;">Car preferences</h5>
+            <div class="form-row form-row--inline">
+              <div class="form-group">
+                <label for="travelPrefVehicleType">Vehicle type</label>
+                <select id="travelPrefVehicleType">
+                  <option value="">— Select —</option>
+                  <option value="Compact">Compact</option>
+                  <option value="Sedan">Sedan</option>
+                  <option value="SUV">SUV</option>
+                  <option value="Luxury">Luxury</option>
+                  <option value="Convertible">Convertible</option>
+                  <option value="Minivan">Minivan</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row form-row--inline" style="margin-top: 4px;">
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefManualTransmission"> <span>Manual transmission</span></label>
+              <label class="gen-loyalty-toggle"><input type="checkbox" id="travelPrefSmokingVehicle"> <span>Smoking vehicle</span></label>
+            </div>
+
+            <h5 class="generic-subhead" style="font-size: 0.85em; margin-top: 12px;">Other</h5>
+            <div class="form-row form-row--inline">
+              <div class="form-group form-group--flex">
+                <label for="travelPrefMedicalAlerts">Medical alerts</label>
+                <input type="text" id="travelPrefMedicalAlerts" placeholder="e.g. Peanut allergy, diabetic">
               </div>
             </div>
           </div>
@@ -4416,7 +4592,7 @@
   <script src="profile-generation-shared.js?v=20260502c"></script>
   <script src="profile-generation.js?v=20260502c"></script>
   <script src="profile-generation-generic.js?v=20260502c"></script>
-  <script src="profile-generation-travel.js?v=20260502e"></script>
+  <script src="profile-generation-travel.js?v=20260502f"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->

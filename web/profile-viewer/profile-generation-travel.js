@@ -113,6 +113,16 @@
   const flightChildrenEl = document.getElementById('travelFlightChildren');
   const flightMultiLegEl = document.getElementById('travelFlightMultiLeg');
   const flightLayoversEl = document.getElementById('travelFlightLayovers');
+  // Schema-only flight extras (added 2026-05-02): now editable in the UI.
+  const flightDepartureCountryEl = document.getElementById('travelFlightDepartureCountry');
+  const flightArrivalCountryEl = document.getElementById('travelFlightArrivalCountry');
+  const flightUsaFlightEl = document.getElementById('travelFlightUsaFlight');
+  const flightLayover1CodeEl = document.getElementById('travelFlightLayover1Code');
+  const flightLayover1NameEl = document.getElementById('travelFlightLayover1Name');
+  const flightLayover1DurationEl = document.getElementById('travelFlightLayover1Duration');
+  const flightLayover2CodeEl = document.getElementById('travelFlightLayover2Code');
+  const flightLayover2NameEl = document.getElementById('travelFlightLayover2Name');
+  const flightLayover2DurationEl = document.getElementById('travelFlightLayover2Duration');
   const hotelNameEl = document.getElementById('travelHotelName');
   const hotelCityEl = document.getElementById('travelHotelCity');
   const hotelCountryEl = document.getElementById('travelHotelCountry');
@@ -126,6 +136,33 @@
   const carPickupDateEl = document.getElementById('travelCarPickupDate');
   const carReturnDateEl = document.getElementById('travelCarReturnDate');
   const carConfirmationEl = document.getElementById('travelCarConfirmation');
+
+  // Travel preferences (OOTB Adobe travel-preferences mixin) — root-level paths.
+  // Toggle gates the entire block in buildUpdatesFromForm. Strings are <select>
+  // / <input>; the 13 amenity / accessibility flags are checkboxes.
+  const travelPrefsEnabledEl = document.getElementById('travelPrefsEnabled');
+  const travelPrefsFieldsEl = document.getElementById('travelPrefsFields');
+  const prefMealEl = document.getElementById('travelPrefMeal');
+  const prefSeatEl = document.getElementById('travelPrefSeat');
+  const prefSeatSectionEl = document.getElementById('travelPrefSeatSection');
+  const prefTicketDeliveryEl = document.getElementById('travelPrefTicketDelivery');
+  const prefDepartureAirportEl = document.getElementById('travelPrefDepartureAirport');
+  const prefRoomTypeEl = document.getElementById('travelPrefRoomType');
+  const prefVehicleTypeEl = document.getElementById('travelPrefVehicleType');
+  const prefMedicalAlertsEl = document.getElementById('travelPrefMedicalAlerts');
+  const prefGymEl = document.getElementById('travelPrefGym');
+  const prefPoolEl = document.getElementById('travelPrefPool');
+  const prefEarlyCheckInEl = document.getElementById('travelPrefEarlyCheckIn');
+  const prefRoomServiceEl = document.getElementById('travelPrefRoomService');
+  const prefHasRestaurantEl = document.getElementById('travelPrefHasRestaurant');
+  const prefFoamPillowsEl = document.getElementById('travelPrefFoamPillows');
+  const prefCribEl = document.getElementById('travelPrefCrib');
+  const prefRollAwayBedEl = document.getElementById('travelPrefRollAwayBed');
+  const prefSmokingRoomEl = document.getElementById('travelPrefSmokingRoom');
+  const prefManualTransmissionEl = document.getElementById('travelPrefManualTransmission');
+  const prefSmokingVehicleEl = document.getElementById('travelPrefSmokingVehicle');
+  const prefVisuallyImpairedEl = document.getElementById('travelPrefVisuallyImpaired');
+  const prefWheelchairEl = document.getElementById('travelPrefWheelchair');
 
   // Recently-generated picker
   const recentPickerEl = document.getElementById('travelRecentPicker');
@@ -666,13 +703,6 @@
   const VEHICLE_TYPES   = ['Compact', 'Sedan', 'SUV', 'Luxury', 'Convertible', 'Minivan'];
   const TICKET_DELIVERY = ['mobile', 'email', 'printed'];
 
-  // Module-level "pending" state populated by applyRandomCustomerPersonaForGenerate
-  // and consumed-then-cleared by buildUpdatesFromForm. Lets the randomizer attach
-  // schema-valid extras (departureCountry, usaFlight, multiLeg sub-fields, root
-  // travelPreferences.*) that have no UI inputs without polluting the form DOM.
-  let pendingFlightExtras = null;
-  let pendingTravelPreferences = null;
-
   function pickAirportPair() {
     const dep = randomPick(AIRPORTS);
     let arr = randomPick(AIRPORTS);
@@ -740,55 +770,56 @@
     if (flightMultiLegEl) flightMultiLegEl.value = isMultiLeg ? 'true' : 'false';
     if (flightLayoversEl) flightLayoversEl.value = String(layovers);
 
-    // Auto-enable the reservations toggle so the existing push-from-form code
-    // for the visible flight inputs runs. The Hotel/Car form fields are dead
-    // (no schema home) so we leave them blank — the proxy receives nothing for
-    // them and the OOTB travelPreferences mixin covers room/vehicle preferences.
+    // Auto-enable the reservations toggle so the visible flight inputs +
+    // schema-only flight extras (departure/arrival country, usaFlight, layovers)
+    // get streamed.
     if (reservationsEnabledEl && !reservationsEnabledEl.checked) {
       reservationsEnabledEl.checked = true;
       try { applyReservationsToggleVisibility(); } catch (_) {}
     }
 
-    // Stash flightReservations leaves that don't have a UI input.
-    pendingFlightExtras = {
-      usaFlight: !!(dep.isUSA || arr.isUSA),
-      departureCountry: dep.country,
-      arrivalCountry: arr.country,
-      multiLeg: {
-        layoverAirport_1: layover1 ? layover1.city : '',
-        layoverAirportCode_1: layover1 ? layover1.code : '',
-        layoverDuration_1: layover1 ? randomBetween(45, 240) : 0,
-        // Schema typo preserved upstream: `layoverAiport_2` (note missing 'r').
-        layoverAiport_2: layover2 ? layover2.city : '',
-        layoverAirportCode_2: layover2 ? layover2.code : '',
-        layoverDuration_2: layover2 ? randomBetween(45, 240) : 0,
-      },
-    };
+    // Schema-only flight extras — now have UI inputs, write to them so the
+    // operator sees what's about to stream and can override before clicking
+    // Generate / Update.
+    if (flightDepartureCountryEl) flightDepartureCountryEl.value = dep.country;
+    if (flightArrivalCountryEl) flightArrivalCountryEl.value = arr.country;
+    if (flightUsaFlightEl) flightUsaFlightEl.value = (dep.isUSA || arr.isUSA) ? 'true' : 'false';
+    if (flightLayover1CodeEl) flightLayover1CodeEl.value = layover1 ? layover1.code : '';
+    if (flightLayover1NameEl) flightLayover1NameEl.value = layover1 ? layover1.city : '';
+    if (flightLayover1DurationEl) flightLayover1DurationEl.value = layover1 ? String(randomBetween(45, 240)) : '';
+    if (flightLayover2CodeEl) flightLayover2CodeEl.value = layover2 ? layover2.code : '';
+    if (flightLayover2NameEl) flightLayover2NameEl.value = layover2 ? layover2.city : '';
+    if (flightLayover2DurationEl) flightLayover2DurationEl.value = layover2 ? String(randomBetween(45, 240)) : '';
 
-    // Stash root-level OOTB travel preferences (no UI inputs today). Booleans
-    // bias toward leisure-friendly defaults; strings pick from the OOTB enums.
-    pendingTravelPreferences = {
-      meal: randomPick(MEAL_OPTIONS),
-      seat: randomPick(SEAT_OPTIONS),
-      seatSection: randomPick(SEAT_SECTION),
-      roomType: randomPick(ROOM_TYPES),
-      vehicleType: randomPick(VEHICLE_TYPES),
-      preferredDepartureAirportCode: dep.code,
-      ticketDelivery: randomPick(TICKET_DELIVERY),
-      gym: Math.random() < 0.6,
-      pool: Math.random() < 0.7,
-      hasRestaurant: true,
-      earlyCheckIn: Math.random() < 0.5,
-      roomService: Math.random() < 0.4,
-      foamPillows: Math.random() < 0.3,
-      crib: childrenTravelling && Math.random() < 0.5,
-      rollAwayBed: childrenTravelling && Math.random() < 0.3,
-      smokingRoom: false,
-      smokingVehicle: false,
-      manualTransmission: Math.random() < 0.15,
-      visuallyImpairedAccessible: false,
-      wheelchairAccessible: Math.random() < 0.05,
-    };
+    // Auto-enable the travel-prefs toggle so the OOTB Adobe travel-preferences
+    // mixin paths (root-level travelPreferences.*) get streamed alongside the
+    // flight reservation. Booleans bias toward leisure-friendly defaults.
+    if (travelPrefsEnabledEl && !travelPrefsEnabledEl.checked) {
+      travelPrefsEnabledEl.checked = true;
+      try { applyTravelPrefsToggleVisibility(); } catch (_) {}
+    }
+    const setSel = (el, val) => { if (!el) return; const opts = selectNonEmptyValues(el); if (opts.includes(val)) el.value = val; };
+    setSel(prefMealEl, randomPick(MEAL_OPTIONS));
+    setSel(prefSeatEl, randomPick(SEAT_OPTIONS));
+    setSel(prefSeatSectionEl, randomPick(SEAT_SECTION));
+    setSel(prefRoomTypeEl, randomPick(ROOM_TYPES));
+    setSel(prefVehicleTypeEl, randomPick(VEHICLE_TYPES));
+    setSel(prefTicketDeliveryEl, randomPick(TICKET_DELIVERY));
+    if (prefDepartureAirportEl) prefDepartureAirportEl.value = dep.code;
+    if (prefMedicalAlertsEl && !trimVal(prefMedicalAlertsEl)) prefMedicalAlertsEl.value = '';
+    if (prefGymEl) prefGymEl.checked = Math.random() < 0.6;
+    if (prefPoolEl) prefPoolEl.checked = Math.random() < 0.7;
+    if (prefEarlyCheckInEl) prefEarlyCheckInEl.checked = Math.random() < 0.5;
+    if (prefRoomServiceEl) prefRoomServiceEl.checked = Math.random() < 0.4;
+    if (prefHasRestaurantEl) prefHasRestaurantEl.checked = true;
+    if (prefFoamPillowsEl) prefFoamPillowsEl.checked = Math.random() < 0.3;
+    if (prefCribEl) prefCribEl.checked = childrenTravelling && Math.random() < 0.5;
+    if (prefRollAwayBedEl) prefRollAwayBedEl.checked = childrenTravelling && Math.random() < 0.3;
+    if (prefSmokingRoomEl) prefSmokingRoomEl.checked = false;
+    if (prefManualTransmissionEl) prefManualTransmissionEl.checked = Math.random() < 0.15;
+    if (prefSmokingVehicleEl) prefSmokingVehicleEl.checked = false;
+    if (prefVisuallyImpairedEl) prefVisuallyImpairedEl.checked = false;
+    if (prefWheelchairEl) prefWheelchairEl.checked = Math.random() < 0.05;
   }
 
   function applyRandomCustomerPersonaForGenerate() {
@@ -863,6 +894,13 @@
       travel: {
         favouriteAirline: trimVal(favouriteAirlineEl),
         primaryTravelClass: trimVal(primaryTravelClassEl),
+        prefs: (travelPrefsEnabledEl && travelPrefsEnabledEl.checked) ? {
+          enabled: true,
+          meal: trimVal(prefMealEl),
+          seat: trimVal(prefSeatEl),
+          roomType: trimVal(prefRoomTypeEl),
+          vehicleType: trimVal(prefVehicleTypeEl),
+        } : { enabled: false },
         recentStay: recentStayOn ? {
           enabled: true,
           hotelName: trimVal(recentStayHotelEl),
@@ -1014,39 +1052,73 @@
       const layovers = intVal(flightLayoversEl);
       if (layovers != null) push(`${flightPath}.multiLeg.numberofLayovers`, layovers);
 
-      // Schema extras with no UI inputs (populated by Generate randomizer via
-      // pendingFlightExtras). Read-and-clear so manual Update flows after a
-      // Generate don't accidentally re-emit a stale random country/usaFlight.
-      if (pendingFlightExtras) {
-        const extras = pendingFlightExtras;
-        pendingFlightExtras = null;
-        if (typeof extras.usaFlight === 'boolean') push(`${flightPath}.usaFlight`, extras.usaFlight);
-        if (extras.departureCountry) push(`${flightPath}.departureCountry`, extras.departureCountry);
-        if (extras.arrivalCountry) push(`${flightPath}.arrivalCountry`, extras.arrivalCountry);
-        const ml = extras.multiLeg || {};
-        if (ml.layoverAirport_1) push(`${flightPath}.multiLeg.layoverAirport_1`, ml.layoverAirport_1);
-        if (ml.layoverAirportCode_1) push(`${flightPath}.multiLeg.layoverAirportCode_1`, ml.layoverAirportCode_1);
-        if (Number.isFinite(ml.layoverDuration_1)) push(`${flightPath}.multiLeg.layoverDuration_1`, ml.layoverDuration_1);
-        // Schema typo preserved upstream: `layoverAiport_2` (note missing 'r').
-        if (ml.layoverAiport_2) push(`${flightPath}.multiLeg.layoverAiport_2`, ml.layoverAiport_2);
-        if (ml.layoverAirportCode_2) push(`${flightPath}.multiLeg.layoverAirportCode_2`, ml.layoverAirportCode_2);
-        if (Number.isFinite(ml.layoverDuration_2)) push(`${flightPath}.multiLeg.layoverDuration_2`, ml.layoverDuration_2);
+      // Schema-only flight extras — operator-editable via the new UI inputs.
+      if (v(flightDepartureCountryEl)) push(`${flightPath}.departureCountry`, v(flightDepartureCountryEl));
+      if (v(flightArrivalCountryEl)) push(`${flightPath}.arrivalCountry`, v(flightArrivalCountryEl));
+      // usaFlight: explicit override wins, else derive from the two countries
+      // (United States in either => true). Only pushes when we have a value.
+      let usaFlight = boolFromTriState(flightUsaFlightEl);
+      if (usaFlight == null) {
+        const dc = v(flightDepartureCountryEl).toLowerCase();
+        const ac = v(flightArrivalCountryEl).toLowerCase();
+        if (dc || ac) usaFlight = (dc === 'united states' || ac === 'united states');
+      }
+      if (usaFlight != null) push(`${flightPath}.usaFlight`, usaFlight);
+
+      // Layovers — only stream when the multi-leg toggle is Yes (so the operator
+      // can leave layover values populated from a previous Generate without them
+      // accidentally streaming on a single-leg flight).
+      if (multiLeg === true) {
+        if (v(flightLayover1NameEl)) push(`${flightPath}.multiLeg.layoverAirport_1`, v(flightLayover1NameEl));
+        if (v(flightLayover1CodeEl)) push(`${flightPath}.multiLeg.layoverAirportCode_1`, v(flightLayover1CodeEl));
+        const ld1 = intVal(flightLayover1DurationEl);
+        if (ld1 != null) push(`${flightPath}.multiLeg.layoverDuration_1`, ld1);
+        // Layover 2 only when there are at least 2 layovers.
+        if (layovers != null && layovers >= 2) {
+          // Schema typo preserved upstream: `layoverAiport_2` (note missing 'r').
+          if (v(flightLayover2NameEl)) push(`${flightPath}.multiLeg.layoverAiport_2`, v(flightLayover2NameEl));
+          if (v(flightLayover2CodeEl)) push(`${flightPath}.multiLeg.layoverAirportCode_2`, v(flightLayover2CodeEl));
+          const ld2 = intVal(flightLayover2DurationEl);
+          if (ld2 != null) push(`${flightPath}.multiLeg.layoverDuration_2`, ld2);
+        }
       }
     }
 
     // Root-level OOTB Travel Preferences mixin (https://ns.adobe.com/xdm/mixins/profile/
     // travel-preferences). Routes to XDM root because `travelPreferences` is in
-    // PROFILE_STREAM_ROOT_PATH_PREFIXES — without that the proxy would tenant-prefix it
-    // to `_<tenant>.travelPreferences.*` and AEP would drop the values.
-    if (pendingTravelPreferences) {
-      const prefs = pendingTravelPreferences;
-      pendingTravelPreferences = null;
-      const prefsPath = 'travelPreferences';
-      for (const [k, val] of Object.entries(prefs)) {
-        if (val == null) continue;
-        if (typeof val === 'string' && val.trim() === '') continue;
-        push(`${prefsPath}.${k}`, val);
-      }
+    // PROFILE_STREAM_ROOT_PATH_PREFIXES — without that the proxy would tenant-prefix
+    // it to `_<tenant>.travelPreferences.*` and AEP would drop the values. The
+    // operator can edit every field via the "Travel preferences" section; the
+    // toggle gates the entire block (untick to update only scoring/loyalty/flight).
+    if (travelPrefsEnabledEl && travelPrefsEnabledEl.checked) {
+      const prefs = 'travelPreferences';
+      const v = (el) => trimVal(el);
+      // String preferences — only push if non-empty.
+      if (v(prefMealEl)) push(`${prefs}.meal`, v(prefMealEl));
+      if (v(prefSeatEl)) push(`${prefs}.seat`, v(prefSeatEl));
+      if (v(prefSeatSectionEl)) push(`${prefs}.seatSection`, v(prefSeatSectionEl));
+      if (v(prefTicketDeliveryEl)) push(`${prefs}.ticketDelivery`, v(prefTicketDeliveryEl));
+      if (v(prefDepartureAirportEl)) push(`${prefs}.preferredDepartureAirportCode`, v(prefDepartureAirportEl));
+      if (v(prefRoomTypeEl)) push(`${prefs}.roomType`, v(prefRoomTypeEl));
+      if (v(prefVehicleTypeEl)) push(`${prefs}.vehicleType`, v(prefVehicleTypeEl));
+      if (v(prefMedicalAlertsEl)) push(`${prefs}.medicalAlerts`, v(prefMedicalAlertsEl));
+      // Boolean amenity / accessibility flags — always push the checkbox state
+      // (true OR false) so a profile lookup that sets a checkbox to false can
+      // round-trip back as `false` instead of leaving the prior value untouched.
+      const cb = (el) => !!(el && el.checked);
+      if (prefGymEl) push(`${prefs}.gym`, cb(prefGymEl));
+      if (prefPoolEl) push(`${prefs}.pool`, cb(prefPoolEl));
+      if (prefEarlyCheckInEl) push(`${prefs}.earlyCheckIn`, cb(prefEarlyCheckInEl));
+      if (prefRoomServiceEl) push(`${prefs}.roomService`, cb(prefRoomServiceEl));
+      if (prefHasRestaurantEl) push(`${prefs}.hasRestaurant`, cb(prefHasRestaurantEl));
+      if (prefFoamPillowsEl) push(`${prefs}.foamPillows`, cb(prefFoamPillowsEl));
+      if (prefCribEl) push(`${prefs}.crib`, cb(prefCribEl));
+      if (prefRollAwayBedEl) push(`${prefs}.rollAwayBed`, cb(prefRollAwayBedEl));
+      if (prefSmokingRoomEl) push(`${prefs}.smokingRoom`, cb(prefSmokingRoomEl));
+      if (prefManualTransmissionEl) push(`${prefs}.manualTransmission`, cb(prefManualTransmissionEl));
+      if (prefSmokingVehicleEl) push(`${prefs}.smokingVehicle`, cb(prefSmokingVehicleEl));
+      if (prefVisuallyImpairedEl) push(`${prefs}.visuallyImpairedAccessible`, cb(prefVisuallyImpairedEl));
+      if (prefWheelchairEl) push(`${prefs}.wheelchairAccessible`, cb(prefWheelchairEl));
     }
 
     return updates;
@@ -1112,9 +1184,67 @@
     const points = findByKeywords('loyalty', 'points') ||
       findByKeywords('loyaltydetails', 'points');
 
-    // Travel
+    // Travel — favourite airline / primary travel class are operator-only fields
+    // (not in schema today), but if a previous tool happened to write them we
+    // still hydrate so the operator sees something familiar.
     const favAirline = findBySuffix(['favouriteairlinecompany', 'favoriteairlinecompany']);
     const travelClass = findBySuffix(['primarytravelclass']);
+
+    // Schema-valid flight reservation paths (`_<tenant>.travelReservations.flightReservations.*`).
+    // The path-lower normalizer strips `_` to handle both `_demoemea` and any
+    // other tenant key. We use compound suffix matchers (`flightreservations.X`)
+    // so we don't accidentally pick up an `airportcode` from a different parent.
+    const flightDeparture = findBySuffix(['flightreservations.departureairportcode']);
+    const flightArrival = findBySuffix(['flightreservations.arrivalairportcode']);
+    const flightNumber = findBySuffix(['flightreservations.flightnumber']);
+    const flightDate = findBySuffix(['flightreservations.flightdate']);
+    const flightClass = findBySuffix(['flightreservations.flightclass']);
+    const flightConfirmation = findBySuffix(['flightreservations.confirmationnumber']);
+    const flightPassengers = findBySuffix(['flightreservations.numberofpassengers']);
+    const flightChildren = findBySuffix(['flightreservations.childrentravelling']);
+    const flightDepartureCountry = findBySuffix(['flightreservations.departurecountry']);
+    const flightArrivalCountry = findBySuffix(['flightreservations.arrivalcountry']);
+    const flightUsa = findBySuffix(['flightreservations.usaflight']);
+    const flightMultiLeg = findBySuffix(['multileg.multileg']);
+    const flightLayoverCount = findBySuffix(['multileg.numberoflayovers']);
+    const layover1Code = findBySuffix(['multileg.layoverairportcode.1', 'multileg.layoverairportcode1']);
+    const layover1Name = findBySuffix(['multileg.layoverairport.1', 'multileg.layoverairport1']);
+    const layover1Duration = findBySuffix(['multileg.layoverduration.1', 'multileg.layoverduration1']);
+    // Schema typo preserved upstream: `layoverAiport_2` becomes `layoverairport.2`
+    // after the `_`→`.` normalizer (note missing 'r' in the second variant).
+    const layover2Code = findBySuffix(['multileg.layoverairportcode.2', 'multileg.layoverairportcode2']);
+    const layover2Name = findBySuffix(['multileg.layoverairport.2', 'multileg.layoverairport2', 'multileg.layoveraiport.2']);
+    const layover2Duration = findBySuffix(['multileg.layoverduration.2', 'multileg.layoverduration2']);
+
+    // Root-level OOTB Travel Preferences (`travelPreferences.*`). Use compound
+    // suffix so e.g. `meal` doesn't collide with an unrelated XDM `meal` field.
+    const prefMeal = findBySuffix(['travelpreferences.meal']);
+    const prefSeat = findBySuffix(['travelpreferences.seat']);
+    const prefSeatSection = findBySuffix(['travelpreferences.seatsection']);
+    const prefTicketDelivery = findBySuffix(['travelpreferences.ticketdelivery']);
+    const prefDepartureAirport = findBySuffix(['travelpreferences.preferreddepartureairportcode']);
+    const prefRoomType = findBySuffix(['travelpreferences.roomtype']);
+    const prefVehicleType = findBySuffix(['travelpreferences.vehicletype']);
+    const prefMedicalAlerts = findBySuffix(['travelpreferences.medicalalerts']);
+    const prefBoolFinder = (suffix) => {
+      const v = findBySuffix([`travelpreferences.${suffix}`]);
+      if (v === '') return null;
+      const lv = v.toLowerCase();
+      return lv === 'true' || lv === '1' || lv === 'yes';
+    };
+    const prefGym = prefBoolFinder('gym');
+    const prefPool = prefBoolFinder('pool');
+    const prefEarlyCheckIn = prefBoolFinder('earlycheckin');
+    const prefRoomService = prefBoolFinder('roomservice');
+    const prefHasRestaurant = prefBoolFinder('hasrestaurant');
+    const prefFoamPillows = prefBoolFinder('foampillows');
+    const prefCrib = prefBoolFinder('crib');
+    const prefRollAwayBed = prefBoolFinder('rollawaybed');
+    const prefSmokingRoom = prefBoolFinder('smokingroom');
+    const prefManualTransmission = prefBoolFinder('manualtransmission');
+    const prefSmokingVehicle = prefBoolFinder('smokingvehicle');
+    const prefVisuallyImpaired = prefBoolFinder('visuallyimpairedaccessible');
+    const prefWheelchair = prefBoolFinder('wheelchairaccessible');
 
     if (firstName && firstNameEl) firstNameEl.value = firstName;
     if (lastName && lastNameEl) lastNameEl.value = lastName;
@@ -1137,6 +1267,72 @@
 
     if (favAirline && favouriteAirlineEl) favouriteAirlineEl.value = favAirline;
     setSelectValueLoose(primaryTravelClassEl, travelClass);
+
+    // Hydrate the schema-valid Flight reservation block. Auto-open the toggle
+    // if any flight value came back so the operator sees what's stored.
+    const hasFlight = !!(flightDeparture || flightArrival || flightNumber || flightDate ||
+      flightClass || flightConfirmation || flightPassengers || flightChildren ||
+      flightDepartureCountry || flightArrivalCountry || flightUsa || flightMultiLeg);
+    if (hasFlight && reservationsEnabledEl) {
+      reservationsEnabledEl.checked = true;
+      applyReservationsToggleVisibility();
+    }
+    if (flightDeparture && flightDepartureEl) flightDepartureEl.value = flightDeparture;
+    if (flightArrival && flightArrivalEl) flightArrivalEl.value = flightArrival;
+    if (flightNumber && flightNumberEl) flightNumberEl.value = flightNumber;
+    if (flightDate && flightDateEl) flightDateEl.value = flightDate;
+    setSelectValueLoose(flightClassEl, flightClass);
+    if (flightConfirmation && flightConfirmationEl) flightConfirmationEl.value = flightConfirmation;
+    if (flightPassengers && flightPassengersEl) flightPassengersEl.value = flightPassengers;
+    setSelectValueLoose(flightChildrenEl, flightChildren);
+    if (flightDepartureCountry && flightDepartureCountryEl) flightDepartureCountryEl.value = flightDepartureCountry;
+    if (flightArrivalCountry && flightArrivalCountryEl) flightArrivalCountryEl.value = flightArrivalCountry;
+    setSelectValueLoose(flightUsaFlightEl, flightUsa);
+    setSelectValueLoose(flightMultiLegEl, flightMultiLeg);
+    if (flightLayoverCount && flightLayoversEl) flightLayoversEl.value = flightLayoverCount;
+    if (layover1Code && flightLayover1CodeEl) flightLayover1CodeEl.value = layover1Code;
+    if (layover1Name && flightLayover1NameEl) flightLayover1NameEl.value = layover1Name;
+    if (layover1Duration && flightLayover1DurationEl) flightLayover1DurationEl.value = layover1Duration;
+    if (layover2Code && flightLayover2CodeEl) flightLayover2CodeEl.value = layover2Code;
+    if (layover2Name && flightLayover2NameEl) flightLayover2NameEl.value = layover2Name;
+    if (layover2Duration && flightLayover2DurationEl) flightLayover2DurationEl.value = layover2Duration;
+
+    // Hydrate the OOTB Travel Preferences block. Auto-open the toggle if any
+    // preference came back; checkboxes preserve `false` from the lookup so
+    // unchecking a preference and clicking Update can write false back.
+    const hasPrefs = !!(prefMeal || prefSeat || prefSeatSection || prefTicketDelivery ||
+      prefDepartureAirport || prefRoomType || prefVehicleType || prefMedicalAlerts ||
+      prefGym !== null || prefPool !== null || prefEarlyCheckIn !== null ||
+      prefRoomService !== null || prefHasRestaurant !== null || prefFoamPillows !== null ||
+      prefCrib !== null || prefRollAwayBed !== null || prefSmokingRoom !== null ||
+      prefManualTransmission !== null || prefSmokingVehicle !== null ||
+      prefVisuallyImpaired !== null || prefWheelchair !== null);
+    if (hasPrefs && travelPrefsEnabledEl) {
+      travelPrefsEnabledEl.checked = true;
+      applyTravelPrefsToggleVisibility();
+    }
+    setSelectValueLoose(prefMealEl, prefMeal);
+    setSelectValueLoose(prefSeatEl, prefSeat);
+    setSelectValueLoose(prefSeatSectionEl, prefSeatSection);
+    setSelectValueLoose(prefTicketDeliveryEl, prefTicketDelivery);
+    if (prefDepartureAirport && prefDepartureAirportEl) prefDepartureAirportEl.value = prefDepartureAirport;
+    setSelectValueLoose(prefRoomTypeEl, prefRoomType);
+    setSelectValueLoose(prefVehicleTypeEl, prefVehicleType);
+    if (prefMedicalAlerts && prefMedicalAlertsEl) prefMedicalAlertsEl.value = prefMedicalAlerts;
+    const setCb = (el, val) => { if (el && val !== null) el.checked = !!val; };
+    setCb(prefGymEl, prefGym);
+    setCb(prefPoolEl, prefPool);
+    setCb(prefEarlyCheckInEl, prefEarlyCheckIn);
+    setCb(prefRoomServiceEl, prefRoomService);
+    setCb(prefHasRestaurantEl, prefHasRestaurant);
+    setCb(prefFoamPillowsEl, prefFoamPillows);
+    setCb(prefCribEl, prefCrib);
+    setCb(prefRollAwayBedEl, prefRollAwayBed);
+    setCb(prefSmokingRoomEl, prefSmokingRoom);
+    setCb(prefManualTransmissionEl, prefManualTransmission);
+    setCb(prefSmokingVehicleEl, prefSmokingVehicle);
+    setCb(prefVisuallyImpairedEl, prefVisuallyImpaired);
+    setCb(prefWheelchairEl, prefWheelchair);
   }
 
   function setSelectValueLoose(selectEl, raw) {
@@ -1378,6 +1574,11 @@
     if (reservationsFieldsEl) reservationsFieldsEl.hidden = !enabled;
     if (reservationsEnabledEl) reservationsEnabledEl.setAttribute('aria-expanded', enabled ? 'true' : 'false');
   }
+  function applyTravelPrefsToggleVisibility() {
+    const enabled = !!(travelPrefsEnabledEl && travelPrefsEnabledEl.checked);
+    if (travelPrefsFieldsEl) travelPrefsFieldsEl.hidden = !enabled;
+    if (travelPrefsEnabledEl) travelPrefsEnabledEl.setAttribute('aria-expanded', enabled ? 'true' : 'false');
+  }
 
   // ---------- Recently-generated picker (shared storage) ----------
   function readRecent() {
@@ -1405,8 +1606,23 @@
     const parts = [];
     if (snap.firstName || snap.lastName) parts.push(`${snap.firstName || ''} ${snap.lastName || ''}`.trim());
     if (snap.gender) parts.push(snap.gender);
-    if (snap.travel && snap.travel.favouriteAirline) parts.push(`Airline: ${snap.travel.favouriteAirline}`);
-    if (snap.travel && snap.travel.primaryTravelClass) parts.push(snap.travel.primaryTravelClass);
+    const t = snap.travel || {};
+    // Flight route is the most identifiable bit — show it first if we streamed
+    // a reservation. Falls back to airline/class for legacy snapshots.
+    const r = t.reservations || {};
+    if (r.enabled && r.flight && (r.flight.departure || r.flight.arrival)) {
+      const route = [r.flight.departure, r.flight.arrival].filter(Boolean).join('→');
+      const flightBits = [route];
+      if (r.flight.number) flightBits.push(r.flight.number);
+      if (r.flight.class) flightBits.push(r.flight.class);
+      parts.push(flightBits.join(' '));
+    } else if (t.favouriteAirline) {
+      parts.push(`Airline: ${t.favouriteAirline}`);
+    }
+    if (t.prefs && t.prefs.enabled) {
+      const pp = [t.prefs.meal, t.prefs.seat, t.prefs.roomType, t.prefs.vehicleType].filter(Boolean);
+      if (pp.length) parts.push(pp.join('/'));
+    }
     if (snap.loyalty && snap.loyalty.enabled) {
       const lp = [];
       if (snap.loyalty.tier) lp.push(snap.loyalty.tier);
@@ -1602,6 +1818,7 @@
   if (loyaltyEnabledEl) loyaltyEnabledEl.addEventListener('change', applyLoyaltyToggleVisibility);
   if (recentStayEnabledEl) recentStayEnabledEl.addEventListener('change', applyRecentStayToggleVisibility);
   if (reservationsEnabledEl) reservationsEnabledEl.addEventListener('change', applyReservationsToggleVisibility);
+  if (travelPrefsEnabledEl) travelPrefsEnabledEl.addEventListener('change', applyTravelPrefsToggleVisibility);
 
   if (recentLoadBtn && recentSelectEl) {
     recentLoadBtn.addEventListener('click', () => {
@@ -1653,6 +1870,7 @@
     applyLoyaltyToggleVisibility();
     applyRecentStayToggleVisibility();
     applyReservationsToggleVisibility();
+    applyTravelPrefsToggleVisibility();
     applyConfiguredCollapseState();
     // Refresh the picker now that the panel is on screen — the partition
     // depends on the live sandbox + base email, both of which can have
@@ -1667,6 +1885,7 @@
   applyLoyaltyToggleVisibility();
   applyRecentStayToggleVisibility();
   applyReservationsToggleVisibility();
+  applyTravelPrefsToggleVisibility();
   loadCounterForCurrentContext();
   updateEmailPreview();
   renderRecent();
