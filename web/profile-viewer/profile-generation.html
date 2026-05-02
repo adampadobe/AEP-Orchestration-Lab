@@ -2159,21 +2159,37 @@
             <div class="form-row form-row--inline">
               <div class="form-group">
                 <label for="travelPrefMeal">Meal</label>
+                <!-- Values MUST match the OOTB travel-preferences mixin's `meal` enum
+                     (regularMeal / vegetarian / kosherMeal / …). AEP silently drops
+                     anything else. Display labels follow the mixin's meta:enum. -->
                 <select id="travelPrefMeal">
                   <option value="">— Select —</option>
-                  <option value="Standard">Standard</option>
-                  <option value="Vegetarian">Vegetarian</option>
-                  <option value="Vegan">Vegan</option>
-                  <option value="Kosher">Kosher</option>
-                  <option value="Halal">Halal</option>
-                  <option value="Gluten-Free">Gluten-Free</option>
-                  <option value="Low-Sodium">Low-Sodium</option>
+                  <option value="regularMeal">Regular Meal</option>
+                  <option value="vegetarian">Vegetarian</option>
+                  <option value="vegLactoOvo">Veg Lacto-Ovo</option>
+                  <option value="vegetarianKosher">Vegetarian Kosher</option>
+                  <option value="vegetarianRaw">Vegetarian, Raw</option>
+                  <option value="kosherMeal">Kosher Meal</option>
+                  <option value="halalMeal">Halal Meal</option>
+                  <option value="glutenFreeMeal">Gluten Free Meal</option>
+                  <option value="diabeticMeal">Diabetic Meal</option>
+                  <option value="lowCalorieMeal">Low Calorie Meal</option>
+                  <option value="lowSaltSodiumMeal">Low Salt / Sodium Meal</option>
+                  <option value="noSaltMeal">No Salt Meal</option>
+                  <option value="nonLactoseMeal">Non Lactose Meal</option>
+                  <option value="peanutFreeMeal">Peanut Free Meal</option>
+                  <option value="seafoodMeal">Seafood Meal</option>
+                  <option value="fruitPlatter">Fruit Platter</option>
+                  <option value="blandLowResidue">Bland / Low Residue</option>
+                  <option value="childMeal">Child Meal</option>
+                  <option value="infantBabyMeal">Infant / Baby Meal</option>
                 </select>
               </div>
               <div class="form-group">
                 <label for="travelPrefSeat">Seat</label>
                 <select id="travelPrefSeat">
                   <option value="">— Select —</option>
+                  <option value="noPreference">No Preference</option>
                   <option value="window">Window</option>
                   <option value="aisle">Aisle</option>
                   <option value="middle">Middle</option>
@@ -2183,8 +2199,10 @@
                 <label for="travelPrefSeatSection">Seat section</label>
                 <select id="travelPrefSeatSection">
                   <option value="">— Select —</option>
-                  <option value="front">Front</option>
-                  <option value="middle">Middle</option>
+                  <option value="noPreference">No Preference</option>
+                  <option value="forward">Forward</option>
+                  <option value="bulkhead">Bulkhead</option>
+                  <option value="exitRow">Exit Row</option>
                   <option value="rear">Rear</option>
                 </select>
               </div>
@@ -2192,14 +2210,14 @@
                 <label for="travelPrefTicketDelivery">Ticket delivery</label>
                 <select id="travelPrefTicketDelivery">
                   <option value="">— Select —</option>
-                  <option value="mobile">Mobile</option>
-                  <option value="email">Email</option>
-                  <option value="printed">Printed</option>
+                  <option value="eTicket">E-Ticket</option>
+                  <option value="physical">Physical</option>
                 </select>
               </div>
               <div class="form-group">
                 <label for="travelPrefDepartureAirport">Preferred departure airport</label>
-                <input type="text" id="travelPrefDepartureAirport" placeholder="LHR" maxlength="6">
+                <!-- Schema constraint: `^[A-Z]{3}$` (3-letter IATA code). -->
+                <input type="text" id="travelPrefDepartureAirport" placeholder="LHR" maxlength="3" pattern="[A-Za-z]{3}" style="text-transform: uppercase;">
               </div>
             </div>
             <div class="form-row form-row--inline" style="margin-top: 4px;">
@@ -2213,11 +2231,13 @@
                 <label for="travelPrefRoomType">Room type</label>
                 <select id="travelPrefRoomType">
                   <option value="">— Select —</option>
-                  <option value="King">King</option>
-                  <option value="Queen">Queen</option>
-                  <option value="Twin">Twin</option>
-                  <option value="Suite">Suite</option>
-                  <option value="Studio">Studio</option>
+                  <option value="noPreference">No Preference</option>
+                  <option value="king">King</option>
+                  <option value="queen">Queen</option>
+                  <option value="double">Double</option>
+                  <option value="twin">Twin</option>
+                  <option value="single">Single</option>
+                  <option value="disability">Disability</option>
                 </select>
               </div>
             </div>
@@ -2239,12 +2259,25 @@
                 <label for="travelPrefVehicleType">Vehicle type</label>
                 <select id="travelPrefVehicleType">
                   <option value="">— Select —</option>
-                  <option value="Compact">Compact</option>
-                  <option value="Sedan">Sedan</option>
-                  <option value="SUV">SUV</option>
-                  <option value="Luxury">Luxury</option>
-                  <option value="Convertible">Convertible</option>
-                  <option value="Minivan">Minivan</option>
+                  <option value="miniCar">Mini Car</option>
+                  <option value="economyCar">Economy Car</option>
+                  <option value="economyCarHybrid">Economy Car Hybrid</option>
+                  <option value="compactCar">Compact Car</option>
+                  <option value="compactCarHybrid">Compact Car Hybrid</option>
+                  <option value="intermediateCar">Intermediate Car</option>
+                  <option value="intermediateCarHybrid">Intermediate Car Hybrid</option>
+                  <option value="standardCar">Standard Car</option>
+                  <option value="standardCarHybrid">Standard Car Hybrid</option>
+                  <option value="fullSizeCar">Full-size Car</option>
+                  <option value="fullSizeCarHybrid">Full-size Car Hybrid</option>
+                  <option value="premiumCar">Premium Car</option>
+                  <option value="luxuryCar">Luxury Car</option>
+                  <option value="intermediateSUV">Intermediate SUV</option>
+                  <option value="standardSUV">Standard SUV</option>
+                  <option value="fullSizeSUV">Full-size SUV</option>
+                  <option value="miniVan">Mini Van</option>
+                  <option value="fullSizePickup">Full-size Pickup</option>
+                  <option value="specializedVehicle">Specialized Vehicle</option>
                 </select>
               </div>
             </div>
@@ -4778,7 +4811,7 @@
   <script src="profile-generation-shared.js?v=20260502c"></script>
   <script src="profile-generation.js?v=20260502c"></script>
   <script src="profile-generation-generic.js?v=20260502c"></script>
-  <script src="profile-generation-travel.js?v=20260502h"></script>
+  <script src="profile-generation-travel.js?v=20260502j"></script>
   <!-- Shared client runtime for the new industries (FSI, Telecom, Retail,
        Media, Sports). MUST load before any of the per-industry modules
        below — they each call window.AepProfileGenIndustry.bind(...). -->

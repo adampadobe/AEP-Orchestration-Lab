@@ -696,12 +696,48 @@
   ];
 
   // OOTB Travel Preferences mixin enums (root-level travelPreferences.*).
-  const MEAL_OPTIONS    = ['Standard', 'Vegetarian', 'Vegan', 'Kosher', 'Halal', 'Gluten-Free', 'Low-Sodium'];
-  const SEAT_OPTIONS    = ['window', 'aisle', 'middle'];
-  const SEAT_SECTION    = ['front', 'middle', 'rear'];
-  const ROOM_TYPES      = ['King', 'Queen', 'Twin', 'Suite', 'Studio'];
-  const VEHICLE_TYPES   = ['Compact', 'Sedan', 'SUV', 'Luxury', 'Convertible', 'Minivan'];
-  const TICKET_DELIVERY = ['mobile', 'email', 'printed'];
+  // Values MUST match the OOTB `travel-preferences` field group's `enum` arrays
+  // verbatim — AEP silently drops any value not in the schema enum (the bug
+  // that hid every "Vegetarian" / "Window" / "King" persona produced before
+  // 2026-05-02; see commit history). The randomizer biases toward the most
+  // common real-world picks (regular meal, leisure-friendly defaults) so
+  // generated personas read as believable Travel customers.
+  const MEAL_OPTIONS = [
+    'regularMeal', 'regularMeal', 'regularMeal', // weight: ~50% regular meal
+    'vegetarian', 'vegetarian',
+    'vegLactoOvo',
+    'kosherMeal',
+    'halalMeal',
+    'glutenFreeMeal',
+    'diabeticMeal',
+    'lowCalorieMeal',
+    'lowSaltSodiumMeal',
+    'nonLactoseMeal',
+    'peanutFreeMeal',
+    'seafoodMeal',
+    'fruitPlatter',
+  ];
+  const SEAT_OPTIONS    = ['window', 'aisle', 'middle', 'noPreference'];
+  const SEAT_SECTION    = ['forward', 'rear', 'exitRow', 'bulkhead', 'noPreference'];
+  const ROOM_TYPES      = ['king', 'queen', 'double', 'twin', 'single', 'noPreference'];
+  // Weight ~70% toward common car classes (compact / mid-size / SUV) so most
+  // generated personas don't end up with esoteric vehicle picks.
+  const VEHICLE_TYPES = [
+    'compactCar', 'compactCar',
+    'economyCar', 'economyCar',
+    'intermediateCar',
+    'standardCar',
+    'fullSizeCar',
+    'intermediateSUV',
+    'standardSUV',
+    'fullSizeSUV',
+    'miniVan',
+    'premiumCar',
+    'luxuryCar',
+    'compactCarHybrid',
+    'economyCarHybrid',
+  ];
+  const TICKET_DELIVERY = ['eTicket', 'eTicket', 'eTicket', 'physical']; // ~75% e-ticket
 
   function pickAirportPair() {
     const dep = randomPick(AIRPORTS);
