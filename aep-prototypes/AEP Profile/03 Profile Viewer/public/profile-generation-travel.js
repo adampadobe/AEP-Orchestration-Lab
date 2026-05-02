@@ -733,10 +733,30 @@
   }
 
   // Build the full random Travel persona once per Generate iteration. Mutates
-  // form fields (so snapshotForm + summariseSnapshot stay accurate) AND stashes
-  // schema-only extras into pendingFlightExtras / pendingTravelPreferences so
-  // buildUpdatesFromForm can stream them.
+  // form fields (so snapshotForm + summariseSnapshot stay accurate) and writes
+  // every schema-aligned input directly so buildUpdatesFromForm has values to
+  // stream.
+  //
+  // **Always-on contract (per operator request 2026-05-02):** every Generate
+  // click MUST force both the Reservations and Travel-preferences toggles ON
+  // and populate every schema-aligned field, regardless of prior UI state.
+  // The toggles are visibility-only affordances; buildUpdatesFromForm streams
+  // travel data whenever the inputs hold values, so Generate cannot produce a
+  // profile that's missing reservations or preferences just because a toggle
+  // happened to be off.
   function generateRandomTravelPersona() {
+    // Force both panels OPEN first so the fields we're about to populate are
+    // visible to the operator. Done unconditionally — clicking Generate is
+    // always a "show me the full persona" action.
+    if (reservationsEnabledEl) {
+      reservationsEnabledEl.checked = true;
+      try { applyReservationsToggleVisibility(); } catch (_) {}
+    }
+    if (travelPrefsEnabledEl) {
+      travelPrefsEnabledEl.checked = true;
+      try { applyTravelPrefsToggleVisibility(); } catch (_) {}
+    }
+
     const airline = randomPick(RANDOM_AIRLINES);
     const { dep, arr } = pickAirportPair();
     const passengers = randomBetween(1, 4);
@@ -749,13 +769,16 @@
       ? randomPick(AIRPORTS.filter((a) => a.code !== dep.code && a.code !== arr.code && a.code !== (layover1 && layover1.code)))
       : null;
 
-    // Mutate the form so the existing (toggle-gated) buildUpdatesFromForm path
-    // pushes the visible inputs. The reservations toggle is auto-checked below.
+    // Visible Travel attribute fields — always overwrite (the operator wants a
+    // fresh realistic persona on every click, not partial holdover values).
     if (favouriteAirlineEl) favouriteAirlineEl.value = airline;
-    if (primaryTravelClassEl && !trimVal(primaryTravelClassEl)) {
+    if (primaryTravelClassEl) {
       const opts = selectNonEmptyValues(primaryTravelClassEl);
       if (opts.includes(flightClassRaw)) primaryTravelClassEl.value = flightClassRaw;
+      else if (opts.length) primaryTravelClassEl.value = opts[0];
     }
+
+    // Visible flight reservation inputs.
     if (flightDepartureEl) flightDepartureEl.value = dep.code;
     if (flightArrivalEl) flightArrivalEl.value = arr.code;
     if (flightNumberEl) flightNumberEl.value = randomFlightNumber(airline);
@@ -770,17 +793,7 @@
     if (flightMultiLegEl) flightMultiLegEl.value = isMultiLeg ? 'true' : 'false';
     if (flightLayoversEl) flightLayoversEl.value = String(layovers);
 
-    // Auto-enable the reservations toggle so the visible flight inputs +
-    // schema-only flight extras (departure/arrival country, usaFlight, layovers)
-    // get streamed.
-    if (reservationsEnabledEl && !reservationsEnabledEl.checked) {
-      reservationsEnabledEl.checked = true;
-      try { applyReservationsToggleVisibility(); } catch (_) {}
-    }
-
-    // Schema-only flight extras — now have UI inputs, write to them so the
-    // operator sees what's about to stream and can override before clicking
-    // Generate / Update.
+    // Schema-only flight extras (now backed by real UI inputs).
     if (flightDepartureCountryEl) flightDepartureCountryEl.value = dep.country;
     if (flightArrivalCountryEl) flightArrivalCountryEl.value = arr.country;
     if (flightUsaFlightEl) flightUsaFlightEl.value = (dep.isUSA || arr.isUSA) ? 'true' : 'false';
@@ -791,13 +804,9 @@
     if (flightLayover2NameEl) flightLayover2NameEl.value = layover2 ? layover2.city : '';
     if (flightLayover2DurationEl) flightLayover2DurationEl.value = layover2 ? String(randomBetween(45, 240)) : '';
 
-    // Auto-enable the travel-prefs toggle so the OOTB Adobe travel-preferences
-    // mixin paths (root-level travelPreferences.*) get streamed alongside the
-    // flight reservation. Booleans bias toward leisure-friendly defaults.
-    if (travelPrefsEnabledEl && !travelPrefsEnabledEl.checked) {
-      travelPrefsEnabledEl.checked = true;
-      try { applyTravelPrefsToggleVisibility(); } catch (_) {}
-    }
+    // OOTB Adobe travel-preferences mixin (root-level travelPreferences.*).
+    // Booleans bias toward leisure-friendly defaults so the resulting AEP
+    // profile reads like a real travel customer.
     const setSel = (el, val) => { if (!el) return; const opts = selectNonEmptyValues(el); if (opts.includes(val)) el.value = val; };
     setSel(prefMealEl, randomPick(MEAL_OPTIONS));
     setSel(prefSeatEl, randomPick(SEAT_OPTIONS));
@@ -806,7 +815,11 @@
     setSel(prefVehicleTypeEl, randomPick(VEHICLE_TYPES));
     setSel(prefTicketDeliveryEl, randomPick(TICKET_DELIVERY));
     if (prefDepartureAirportEl) prefDepartureAirportEl.value = dep.code;
-    if (prefMedicalAlertsEl && !trimVal(prefMedicalAlertsEl)) prefMedicalAlertsEl.value = '';
+    // medicalAlerts: only fill ~10% of personas (most travellers have none),
+    // and only on the first click (don't clobber an operator-typed override).
+    if (prefMedicalAlertsEl && !trimVal(prefMedicalAlertsEl) && Math.random() < 0.1) {
+      prefMedicalAlertsEl.value = randomPick(['Peanut allergy', 'Diabetic', 'Asthmatic', 'Lactose intolerant']);
+    }
     if (prefGymEl) prefGymEl.checked = Math.random() < 0.6;
     if (prefPoolEl) prefPoolEl.checked = Math.random() < 0.7;
     if (prefEarlyCheckInEl) prefEarlyCheckInEl.checked = Math.random() < 0.5;
@@ -1009,6 +1022,16 @@
     // Travel attributes — schema-aligned with `AEP Lab - Travel Profile - Schema`
     // (Profile Core v2 tenant subtree + OOTB Adobe travel-preferences mixin).
     //
+    // **Toggle-independent contract (per operator request 2026-05-02):** travel
+    // values stream whenever the underlying inputs hold a value, regardless of
+    // the visibility toggle. The `travelReservationsEnabled` and
+    // `travelPrefsEnabled` checkboxes are now pure UI affordances (open/close
+    // the panel); they no longer gate the streamed payload. This guarantees a
+    // Generate click — which always populates every input — produces a profile
+    // with full reservation + preferences data, even if a toggle is off when
+    // the operator clicks Update afterwards. To skip a field, clear the input
+    // value (or leave it empty) instead of unticking the toggle.
+    //
     // NOTE on dropped paths:
     //   - `individualCharacteristics.travel.{favouriteAirlineCompany, primaryTravelClass,
     //     recentStay.*}` is NOT in the current schema's `_<tenant>` subtree. The favourite
@@ -1020,7 +1043,7 @@
     //   - `travelReservations.{hotelReservations, carReservations}.*` likewise have no
     //     schema home today. The OOTB `travelPreferences.{roomType, vehicleType}` covers
     //     room/vehicle preferences instead, and Generate now populates those.
-    if (reservationsEnabledEl && reservationsEnabledEl.checked) {
+    {
       const flightPath = 'travelReservations.flightReservations';
       const v = (el) => trimVal(el);
       const intVal = (el) => {
@@ -1087,13 +1110,13 @@
     // Root-level OOTB Travel Preferences mixin (https://ns.adobe.com/xdm/mixins/profile/
     // travel-preferences). Routes to XDM root because `travelPreferences` is in
     // PROFILE_STREAM_ROOT_PATH_PREFIXES — without that the proxy would tenant-prefix
-    // it to `_<tenant>.travelPreferences.*` and AEP would drop the values. The
-    // operator can edit every field via the "Travel preferences" section; the
-    // toggle gates the entire block (untick to update only scoring/loyalty/flight).
-    if (travelPrefsEnabledEl && travelPrefsEnabledEl.checked) {
+    // it to `_<tenant>.travelPreferences.*` and AEP would drop the values. Stream
+    // these UNCONDITIONALLY (toggle is now visibility-only — see top of function).
+    {
       const prefs = 'travelPreferences';
       const v = (el) => trimVal(el);
-      // String preferences — only push if non-empty.
+      // String preferences — only push if non-empty (so an operator who wants
+      // to skip a field can clear the input).
       if (v(prefMealEl)) push(`${prefs}.meal`, v(prefMealEl));
       if (v(prefSeatEl)) push(`${prefs}.seat`, v(prefSeatEl));
       if (v(prefSeatSectionEl)) push(`${prefs}.seatSection`, v(prefSeatSectionEl));
