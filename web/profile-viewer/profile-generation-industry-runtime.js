@@ -523,9 +523,29 @@
         } catch (e) {
           warn('infra sync:', e && e.message);
         }
-        const msg =
+        // Enrich attachFieldGroups success with the auto-create + tag-discovery
+        // breakdown the new factory now returns. The factory's `data.message`
+        // already mentions any FG it created in this sandbox; we additionally
+        // surface OOTB FGs discovered via the ootbByIndustryTag layer so the
+        // operator sees exactly which `meta:industries` / titleHints matches
+        // the wizard pulled in.
+        let msg =
           data.message ||
           (data.manual && Array.isArray(data.nextSteps) ? data.nextSteps.join(' ') : 'Step completed.');
+        if (step === 'attachFieldGroups') {
+          const created = Array.isArray(data.industryFieldGroupsCreated) ? data.industryFieldGroupsCreated : [];
+          const discovered = Array.isArray(data.industryFieldGroupsDiscovered) ? data.industryFieldGroupsDiscovered : [];
+          if (discovered.length) {
+            const titles = discovered.map((d) => d.label || d.ref || 'unknown').join(', ');
+            msg += ` Discovered Profile-class OOTB FG${discovered.length === 1 ? '' : 's'} via tag/title hints: ${titles}.`;
+          }
+          if (created.length) {
+            log(`auto-created ${created.length} tenant field group${created.length === 1 ? '' : 's'}:`, created);
+          }
+          if (discovered.length) {
+            log(`tag-discovered ${discovered.length} OOTB field group${discovered.length === 1 ? '' : 's'}:`, discovered);
+          }
+        }
         showInfraMessage(msg, 'success');
         if (Array.isArray(data.nextSteps) && data.nextSteps.length) {
           log('Next steps:', data.nextSteps.join('\n'));

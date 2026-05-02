@@ -32,10 +32,26 @@
  *
  *   { source: 'ootb', $id: 'https://ns.adobe.com/...' }
  *   { source: 'tenantTitlePattern', match: /^Profile Retail( v\d+)?$/i, optional: true }
+ *   { source: 'tenantTitlePattern', match: /^Profile Telecom v\d+$/i, optional: true,
+ *     createIfMissing: { title: 'Profile Telecom v1', description: '...', properties: { industryTelecom: { ... XDM ... } } } }
+ *   { source: 'ootbByIndustryTag', industries: ['Telecommunications'], titleHints: [/telecom/i] }
  *
  * For each entry the factory:
  *   - 'ootb'                → uses the literal $id straight from config
- *   - 'tenantTitlePattern'  → searches the live tenant-FG list by title regex
+ *   - 'tenantTitlePattern'  → searches the live tenant-FG list by title regex;
+ *                             if `createIfMissing` is provided AND nothing
+ *                             matches in this sandbox, the factory POSTs the
+ *                             FG (Profile-class, properties wrapped under
+ *                             `_<tenant>`) and re-resolves
+ *   - 'ootbByIndustryTag'   → searches the live /global/fieldgroups list for
+ *                             Profile-class FGs whose `meta:industries`
+ *                             intersects `industries` OR whose title matches
+ *                             any of `titleHints` (Adobe does not consistently
+ *                             populate meta:industries on OOTB FGs as of 2026,
+ *                             so titleHints is the actually-effective matcher
+ *                             — verified against the apalmer sandbox; the
+ *                             industries[] list is forward-compat and will
+ *                             start contributing if Adobe begins tagging)
  *
  * If the entry resolves it goes into the PATCH ops; otherwise:
  *   - `optional: true` → silently skipped (the wizard still succeeds; the
@@ -231,10 +247,60 @@ function schemaHasProfileUnionTag(fullSchema) {
 /* -------------------- Layered industry FG resolver -------------------- */
 
 /**
- * Resolve one `industryFieldGroups` config entry against the live tenant FG list.
- * @returns {{ resolved: boolean, ref?: string, label?: string, optional: boolean, reason?: string }}
+ * Pick Profile-class entries from a `/global/fieldgroups` list whose
+ * `meta:industries` array intersects the configured industries set OR whose
+ * `title` matches any of the configured titleHints regex array.
+ *
+ * Adobe does not consistently populate `meta:industries` on OOTB Profile-class
+ * field groups (verified empty for all 34 Profile-class entries in the apalmer
+ * sandbox in 2026 — see /tmp/probe-fg-evidence-summary-2.json). The
+ * titleHints regex list is therefore the actually-effective matcher today;
+ * the `industries` list is kept for forward compatibility (if Adobe ships
+ * updated metadata, those entries auto-flow in without code changes).
+ *
+ * Returns the deduplicated list of `{ $id, title }` to attach.
  */
-function resolveIndustryFgEntry(entry, tenantFgList) {
+function pickProfileClassOotbByTag(globalList, industries, titleHints) {
+  const indSet = new Set((industries || []).map((s) => String(s).toLowerCase()));
+  const titleRes = (titleHints || []).filter((re) => re instanceof RegExp);
+  const out = new Map();
+  for (const row of globalList || []) {
+    if (!isProfileClassFieldGroup(row)) continue;
+    const matchesIndustry =
+      Array.isArray(row['meta:industries']) &&
+      row['meta:industries'].some((t) => indSet.has(String(t).toLowerCase()));
+    const matchesTitle = titleRes.some((re) => re.test(String(row.title || '')));
+    if (!matchesIndustry && !matchesTitle) continue;
+    if (!row.$id) continue;
+    if (out.has(row.$id)) continue;
+    out.set(row.$id, { $id: String(row.$id), title: String(row.title || '') });
+  }
+  return [...out.values()];
+}
+
+function isProfileClassFieldGroup(row) {
+  if (!row || typeof row !== 'object') return false;
+  const ext = row['meta:intendedToExtend'];
+  if (Array.isArray(ext) && ext.includes('https://ns.adobe.com/xdm/context/profile')) return true;
+  if (row['meta:class'] === 'https://ns.adobe.com/xdm/context/profile') return true;
+  return false;
+}
+
+/**
+ * Resolve one `industryFieldGroups` config entry against the live tenant FG list
+ * and (optionally) the live /global/fieldgroups list.
+ *
+ * Return shape:
+ *   { resolved: true,  ref, label, optional }            - attach this $id
+ *   { resolved: true,  refs: [{ref,label}], optional }   - attach multiple (ootbByIndustryTag)
+ *   { resolved: false, optional, reason, needsCreate? }  - skip (or create when needsCreate is set)
+ *
+ * `needsCreate` is set only for tenantTitlePattern entries whose config
+ * contains `createIfMissing`. The orchestrator (attachFieldGroupsAndDescriptor)
+ * is responsible for POSTing the FG, relisting, and re-resolving — keeping
+ * this helper a pure function of its inputs.
+ */
+function resolveIndustryFgEntry(entry, tenantFgList, globalFgList) {
   const optional = entry.optional === true;
   if (entry.source === 'ootb') {
     const id = String(entry.$id || '').trim();
@@ -249,7 +315,14 @@ function resolveIndustryFgEntry(entry, tenantFgList) {
     // newer one. Tie-break by title (deterministic) to keep behaviour stable.
     const matches = (tenantFgList || []).filter((m) => re.test(String(m.title || '')));
     if (matches.length === 0) {
-      return { resolved: false, optional, reason: `no tenant FG matches /${re.source}/` };
+      const result = { resolved: false, optional, reason: `no tenant FG matches /${re.source}/` };
+      if (entry.createIfMissing && typeof entry.createIfMissing === 'object') {
+        result.needsCreate = {
+          spec: entry.createIfMissing,
+          label: entry.label || entry.createIfMissing.title || re.source,
+        };
+      }
+      return result;
     }
     const versionOf = (s) => {
       const m = String(s.title || '').match(/v(\d+(?:\.\d+)?)/i);
@@ -264,7 +337,48 @@ function resolveIndustryFgEntry(entry, tenantFgList) {
       optional,
     };
   }
+  if (entry.source === 'ootbByIndustryTag') {
+    const picks = pickProfileClassOotbByTag(globalFgList || [], entry.industries, entry.titleHints);
+    if (picks.length === 0) {
+      return { resolved: false, optional: true, reason: 'no /global Profile-class FG matched industries/titleHints' };
+    }
+    return {
+      resolved: true,
+      refs: picks.map((p) => ({ ref: p.$id, label: p.title })),
+      optional: true,
+    };
+  }
   return { resolved: false, optional, reason: `unknown source "${entry.source}"` };
+}
+
+/**
+ * Wrap a per-industry `createIfMissing.properties` tree under the tenant's
+ * `_<tenantId>` namespace and decorate with the Profile-class metadata AEP
+ * expects (verified against the live `Profile Retail v2` body in apalmer —
+ * see /tmp/probe-fg-evidence-summary-2.json: definitions.customFields wraps
+ * a single top-level `_<tenant>` object, allOf $refs that customFields, and
+ * meta:intendedToExtend lists the Profile context class).
+ */
+function buildTenantFieldGroupCreateBody(tenantId, createSpec) {
+  const tenantKey = `_${tenantId}`;
+  return {
+    title: createSpec.title,
+    description: createSpec.description || `AEP Lab auto-created Profile-class field group for ${createSpec.title}.`,
+    type: 'object',
+    'meta:intendedToExtend': ['https://ns.adobe.com/xdm/context/profile'],
+    definitions: {
+      customFields: {
+        type: 'object',
+        properties: {
+          [tenantKey]: {
+            type: 'object',
+            properties: createSpec.properties || {},
+          },
+        },
+      },
+    },
+    allOf: [{ $ref: '#/definitions/customFields', type: 'object', 'meta:xdmType': 'object' }],
+  };
 }
 
 /* -------------------- Factory -------------------- */
@@ -365,6 +479,118 @@ function createProfileInfraService(config) {
     throw new Error(`Tenant field groups list failed: ${lastErr}`);
   }
 
+  /**
+   * List Adobe-OOTB Profile-class field groups from /global/fieldgroups.
+   * Used by the `ootbByIndustryTag` resolver source. Mirrors
+   * `listTenantFieldGroups` (same accept-header fallback strategy) but hits
+   * the global endpoint AND deliberately omits the `?properties=` filter so
+   * `meta:intendedToExtend` and `meta:industries` come back populated (the
+   * filtered list strips them — verified in the apalmer probe).
+   *
+   * Paginated through `_links.next`; bounded at 30 pages (= 6,000 rows) to
+   * cap worst-case latency. Returns an empty list on any unrecoverable error
+   * so a /global outage never breaks the wizard for users whose tenant FGs
+   * already cover the industry.
+   */
+  async function listGlobalOotbFieldGroups(token, clientId, orgId, sandbox) {
+    const base = {
+      Authorization: `Bearer ${token}`,
+      'x-api-key': clientId,
+      'x-gw-ims-org-id': orgId,
+      'x-sandbox-name': sandbox,
+    };
+    const acceptCandidates = [
+      'application/vnd.adobe.xed+json',
+      'application/vnd.adobe.xed+json;version=1',
+      'application/vnd.adobe.xed-id+json',
+      'application/json',
+    ];
+    const out = [];
+    let url = `${SCHEMA_REGISTRY}/global/fieldgroups?limit=100`;
+    for (let page = 0; page < 30; page++) {
+      let pageOk = false;
+      for (const accept of acceptCandidates) {
+        const { res, data } = await fetchJson(url, { method: 'GET', headers: { ...base, Accept: accept } });
+        if (res.ok) {
+          out.push(...(data.results || []));
+          const next =
+            data._links?.next?.href ||
+            (typeof data._links?.next === 'string' ? data._links.next : null) ||
+            (typeof data._page?.next === 'string' ? data._page.next : null);
+          if (!next) {
+            pageOk = true;
+            url = '';
+          } else {
+            url = next.startsWith('http') ? next : `https://platform.adobe.io${next.startsWith('/') ? next : `/${next}`}`;
+            pageOk = true;
+          }
+          break;
+        }
+        // 406/415 → try the next accept; anything else → bail to keep this
+        // helper non-fatal (caller treats empty list as "nothing to discover").
+        if (res.status !== 406 && res.status !== 415) {
+          log(sandbox, 'listGlobalFieldGroups.failed', {
+            httpStatus: res.status,
+            msg: data?.message || data?.title || res.statusText,
+          });
+          return out;
+        }
+      }
+      if (!pageOk || !url) break;
+    }
+    log(sandbox, 'listGlobalFieldGroups.ok', { count: out.length });
+    return out;
+  }
+
+  /**
+   * POST a new tenant Profile-class field group. Body is built by
+   * `buildTenantFieldGroupCreateBody(tenantId, createSpec)`. Uses the same
+   * accept-fallback as `postTenantSchemaCreate` because the registry
+   * occasionally rotates which media types it accepts on POST.
+   *
+   * Returns the created FG row ($id, meta:altId, version, ...). Throws on
+   * unrecoverable errors so the orchestrator can surface a clear failure.
+   */
+  async function createTenantFieldGroup(token, clientId, orgId, sandbox, body) {
+    const url = `${SCHEMA_REGISTRY}/tenant/fieldgroups`;
+    const baseHeaders = {
+      Authorization: `Bearer ${token}`,
+      'x-api-key': clientId,
+      'x-gw-ims-org-id': orgId,
+      'x-sandbox-name': sandbox,
+      'Content-Type': 'application/json',
+    };
+    const acceptOrder = [
+      'application/vnd.adobe.xed+json',
+      'application/vnd.adobe.xed+json;version=1',
+      ACCEPT_XED,
+      ACCEPT_XDM,
+      'application/json',
+    ];
+    let lastErr = 'Unknown';
+    for (const accept of acceptOrder) {
+      const { res, data } = await fetchJson(url, {
+        method: 'POST',
+        headers: { ...baseHeaders, Accept: accept },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        log(sandbox, 'createTenantFieldGroup.ok', {
+          title: body.title,
+          $id: data.$id,
+          acceptUsed: accept.slice(0, 48),
+        });
+        return data;
+      }
+      lastErr = data.message || data.title || data.detail || res.statusText || String(res.status);
+      const retry = res.status === 415 || res.status === 406 || /unsupported media type|not acceptable/i.test(String(lastErr));
+      if (!retry) {
+        throw new Error(`Create tenant field group "${body.title}" failed: ${lastErr}`);
+      }
+    }
+    throw new Error(`Create tenant field group "${body.title}" failed: ${lastErr}`);
+  }
+
   async function listAllTenantSchemas(token, clientId, orgId, sandbox) {
     const out = [];
     let url = `${SCHEMA_REGISTRY}/tenant/schemas?limit=100&properties=title,$id,meta:altId,version`;
@@ -451,8 +677,26 @@ function createProfileInfraService(config) {
    * Build PATCH ops for the base Generic FG set + Profile Core v2 + every
    * resolved entry from `industryFieldGroups`. Returns both the ops list
    * and the resolution report so the wizard step can surface what was added.
+   *
+   * @param fullSchema           Latest tenant schema (for `existing` ref dedupe)
+   * @param profileCoreMixinId   Resolved Profile Core v2 $id
+   * @param tenantFgList         Latest /tenant/fieldgroups list (for tenantTitlePattern)
+   * @param globalFgList         Latest /global/fieldgroups list (for ootbByIndustryTag)
+   *
+   * Returns:
+   *   ops              - JSON-Patch ops to apply
+   *   resolvedIndustry - { label, ref, source } per attached industry FG
+   *                      (includes both curated `ootb` $ids and entries
+   *                      discovered via `ootbByIndustryTag` — the discovered
+   *                      ones are also surfaced separately as `discovered`)
+   *   skippedOptional  - optional entries the resolver could not satisfy
+   *   needsCreate      - tenantTitlePattern entries that have a
+   *                      `createIfMissing` spec but did not resolve; the
+   *                      orchestrator must POST these and re-call this
+   *                      function with refreshed lists
+   *   discovered       - subset of `resolvedIndustry` from `ootbByIndustryTag`
    */
-  function buildAttachFieldGroupPatchOps(fullSchema, profileCoreMixinId, tenantFgList) {
+  function buildAttachFieldGroupPatchOps(fullSchema, profileCoreMixinId, tenantFgList, globalFgList) {
     const existing = collectSchemaRefUris(fullSchema);
     const targetRefs = [...BASE_PROFILE_FIELD_GROUP_REFS, String(profileCoreMixinId)];
 
@@ -460,12 +704,30 @@ function createProfileInfraService(config) {
     const resolvedIndustry = [];
     /** @type {{entry: object, reason: string}[]} */
     const skippedOptional = [];
+    /** @type {{entry: object, spec: object, label: string}[]} */
+    const needsCreate = [];
+    /** @type {{label: string, ref: string}[]} */
+    const discovered = [];
 
     for (const entry of industryFieldGroups) {
-      const r = resolveIndustryFgEntry(entry, tenantFgList);
+      const r = resolveIndustryFgEntry(entry, tenantFgList, globalFgList);
       if (r.resolved) {
-        targetRefs.push(r.ref);
-        resolvedIndustry.push({ label: r.label, ref: r.ref, source: entry.source });
+        if (Array.isArray(r.refs)) {
+          // ootbByIndustryTag returns multiple refs in a single resolution.
+          for (const item of r.refs) {
+            if (!item.ref || targetRefs.includes(item.ref)) continue;
+            targetRefs.push(item.ref);
+            resolvedIndustry.push({ label: item.label, ref: item.ref, source: entry.source });
+            discovered.push({ label: item.label, ref: item.ref });
+          }
+        } else if (r.ref) {
+          if (!targetRefs.includes(r.ref)) {
+            targetRefs.push(r.ref);
+            resolvedIndustry.push({ label: r.label, ref: r.ref, source: entry.source });
+          }
+        }
+      } else if (r.needsCreate) {
+        needsCreate.push({ entry, spec: r.needsCreate.spec, label: r.needsCreate.label });
       } else if (r.optional) {
         skippedOptional.push({ entry, reason: r.reason });
       } else {
@@ -484,7 +746,7 @@ function createProfileInfraService(config) {
       existing.add(ref);
     }
 
-    return { ops, resolvedIndustry, skippedOptional, requiredRefs: targetRefs };
+    return { ops, resolvedIndustry, skippedOptional, needsCreate, discovered, requiredRefs: targetRefs };
   }
 
   async function patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, operations) {
@@ -530,8 +792,18 @@ function createProfileInfraService(config) {
     );
   }
 
-  /** Status check: every required FG ref must be present on the schema. */
-  function profileFieldGroupsComplete(fullSchema, profileCoreMixinId, tenantFgList) {
+  /** Status check: every required FG ref must be present on the schema.
+   *
+   * Optional entries (which today is essentially every industry entry — see
+   * the per-industry config files) never block readiness, so this function
+   * only inspects required `tenantTitlePattern` / `ootb` entries. The
+   * `ootbByIndustryTag` source is always optional by definition (zero matches
+   * is a valid outcome — Adobe simply hasn't shipped a Profile-class FG for
+   * that industry). The global list is therefore not needed here today, but
+   * is accepted for symmetry with `attachFieldGroupsAndDescriptor` and for
+   * future entries that might mark a discovered FG as required.
+   */
+  function profileFieldGroupsComplete(fullSchema, profileCoreMixinId, tenantFgList, globalFgList) {
     if (!fullSchema || !profileCoreMixinId) return false;
     const refs = collectSchemaRefUris(fullSchema);
 
@@ -541,14 +813,13 @@ function createProfileInfraService(config) {
       String(profileCoreMixinId),
     ];
 
-    // Add only NON-optional industry entries that resolve in the current
-    // sandbox. An optional entry that didn't resolve doesn't block readiness;
-    // an optional entry that DOES resolve also doesn't block readiness even
-    // if the operator removed it later (status only checks "minimum viable").
     for (const entry of industryFieldGroups) {
       if (entry.optional === true) continue;
-      const r = resolveIndustryFgEntry(entry, tenantFgList);
-      if (r.resolved) need.push(r.ref);
+      const r = resolveIndustryFgEntry(entry, tenantFgList, globalFgList);
+      if (r.resolved) {
+        if (r.ref) need.push(r.ref);
+        if (Array.isArray(r.refs)) for (const x of r.refs) need.push(x.ref);
+      }
     }
 
     return need.every((r) => refs.has(r));
@@ -627,11 +898,86 @@ function createProfileInfraService(config) {
     throw new Error(`Create identity descriptor failed: ${lastErr}`);
   }
 
-  async function attachFieldGroupsAndDescriptor(token, clientId, orgId, sandbox, tenantCtx, profileCore, schemaRow, tenantFgList) {
+  /**
+   * Wait for a freshly-POSTed tenant FG to appear in /tenant/fieldgroups.
+   * AEP's eventual-consistency window is usually <1s but can stretch to 5-7s
+   * under load. Backoff `[800, 1500, 2500, 4000]` ms = ~9s worst case.
+   * Returns the refreshed list (which may or may not yet contain the new FG;
+   * callers must re-resolve and decide whether to keep waiting).
+   */
+  async function relistTenantFieldGroupsUntilSeen(token, clientId, orgId, sandbox, expectedIds) {
+    const expected = new Set((expectedIds || []).filter(Boolean).map(String));
+    const BACKOFF_MS = [0, 800, 1500, 2500, 4000];
+    let last = await listTenantFieldGroups(token, clientId, orgId, sandbox);
+    for (let i = 0; i < BACKOFF_MS.length; i++) {
+      if (i > 0) await new Promise((r) => setTimeout(r, BACKOFF_MS[i]));
+      if (i > 0) last = await listTenantFieldGroups(token, clientId, orgId, sandbox);
+      const seen = new Set(last.map((r) => String(r.$id || '')));
+      let allSeen = true;
+      for (const id of expected) {
+        if (!seen.has(id)) {
+          allSeen = false;
+          break;
+        }
+      }
+      if (allSeen) {
+        log(sandbox, 'relistTenantFieldGroups.allSeen', { attempts: i + 1, expected: [...expected] });
+        return last;
+      }
+    }
+    log(sandbox, 'relistTenantFieldGroups.timeout', { expected: [...expected] });
+    return last;
+  }
+
+  async function attachFieldGroupsAndDescriptor(token, clientId, orgId, sandbox, tenantCtx, profileCore, schemaRow, tenantFgList, globalFgList) {
     const metaAltId = schemaRow['meta:altId'];
     const schemaId = schemaRow.$id;
     let full = (await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId)) || schemaRow;
-    const planResult = buildAttachFieldGroupPatchOps(full, profileCore.$id, tenantFgList);
+
+    // First pass: see whether any tenantTitlePattern entries need creation.
+    let workingTenantList = tenantFgList;
+    let planResult = buildAttachFieldGroupPatchOps(full, profileCore.$id, workingTenantList, globalFgList);
+
+    /** @type {{title: string, $id: string, source: string}[]} */
+    const created = [];
+
+    if (planResult.needsCreate.length) {
+      const newIds = [];
+      for (const item of planResult.needsCreate) {
+        const body = buildTenantFieldGroupCreateBody(tenantCtx.tenantId, item.spec);
+        let createdRow;
+        try {
+          createdRow = await createTenantFieldGroup(token, clientId, orgId, sandbox, body);
+        } catch (e) {
+          const msg = String(e.message || e);
+          // 409 / duplicate — someone (or a previous run) created it between
+          // our list and our POST. Re-list will pick it up; treat as success.
+          if (/409|already exists|duplicate|conflict/i.test(msg)) {
+            log(sandbox, 'createTenantFieldGroup.alreadyExists', { title: item.spec.title });
+            continue;
+          }
+          // Optional-entry create failure: log and continue (the wizard can
+          // still complete with the remaining FGs and the tenant subtree
+          // fallback). Required-entry failures throw.
+          if (item.entry.optional === true) {
+            log(sandbox, 'createTenantFieldGroup.optionalFailed', { title: item.spec.title, error: msg.slice(0, 240) });
+            continue;
+          }
+          throw e;
+        }
+        if (createdRow && createdRow.$id) {
+          newIds.push(String(createdRow.$id));
+          created.push({ title: createdRow.title || item.spec.title, $id: String(createdRow.$id), source: 'tenantTitlePattern.createIfMissing' });
+        }
+      }
+      // Wait for the registry to surface the new FGs in the listing endpoint
+      // (eventual consistency), then re-plan with the refreshed list.
+      if (newIds.length) {
+        workingTenantList = await relistTenantFieldGroupsUntilSeen(token, clientId, orgId, sandbox, newIds);
+        planResult = buildAttachFieldGroupPatchOps(full, profileCore.$id, workingTenantList, globalFgList);
+      }
+    }
+
     let patchApplied = false;
     if (planResult.ops.length) {
       await patchSchemaJsonPatch(token, clientId, orgId, sandbox, metaAltId, planResult.ops);
@@ -658,6 +1004,8 @@ function createProfileInfraService(config) {
       fullSchema: full,
       resolvedIndustry: planResult.resolvedIndustry,
       skippedOptional: planResult.skippedOptional,
+      created,
+      discovered: planResult.discovered,
     };
   }
 
@@ -764,15 +1112,20 @@ function createProfileInfraService(config) {
 
   /**
    * Compose the success message for step 2: the mandatory base set, followed
-   * by any industry FGs that resolved in this sandbox. The base list mirrors
-   * the labels operators see in the UI's setup-instructions card so the message
-   * is verifiable against what the wizard says it'll do.
+   * by any industry FGs that resolved in this sandbox, plus any FGs
+   * auto-created for this sandbox during this run. The base list mirrors
+   * the labels operators see in the UI's setup-instructions card so the
+   * message is verifiable against what the wizard says it'll do.
    */
-  function buildStep2SuccessMessage(resolvedIndustry, patchApplied) {
-    if (!patchApplied) return 'Field groups were already present; primary Email identity checked.';
+  function buildStep2SuccessMessage(resolvedIndustry, patchApplied, created) {
+    const createdFragment =
+      created && created.length ? ` (created in this sandbox: ${created.map((c) => c.title).join(', ')})` : '';
+    if (!patchApplied) {
+      return `Field groups were already present; primary Email identity checked${createdFragment}.`;
+    }
     const labels = [...BASE_PROFILE_FIELD_GROUP_LABELS];
     for (const r of resolvedIndustry) labels.push(r.label);
-    return `Field groups attached and primary Email identity set (${labels.join(' + ')}).`;
+    return `Field groups attached and primary Email identity set (${labels.join(' + ')})${createdFragment}.`;
   }
 
   /* ---- Wizard runners ---- */
@@ -811,6 +1164,15 @@ function createProfileInfraService(config) {
     }
     const profileCore = findProfileCoreV2Mixin(mixins);
 
+    // Discover OOTB Profile-class FGs once per status call. Optional source
+    // (returns [] on any error), so a /global outage doesn't block status.
+    let globalFgList = [];
+    try {
+      globalFgList = await listGlobalOotbFieldGroups(token, clientId, orgId, sandbox);
+    } catch (e) {
+      log(sandbox, 'status.globalFgListFailed', { error: String(e.message || e).slice(0, 200) });
+    }
+
     const allSchemas = await listAllTenantSchemas(token, clientId, orgId, sandbox);
     const schema = findOurSchema(allSchemas);
 
@@ -837,7 +1199,7 @@ function createProfileInfraService(config) {
         if (full) {
           schemaInProfileUnion = schemaHasProfileUnionTag(full);
           if (profileCore) {
-            fieldGroupsAttached = profileFieldGroupsComplete(full, profileCore.$id, mixins);
+            fieldGroupsAttached = profileFieldGroupsComplete(full, profileCore.$id, mixins, globalFgList);
           }
         }
       }
@@ -923,6 +1285,15 @@ function createProfileInfraService(config) {
       if (step === 'attachFieldGroups') {
         const tenantCtx = await discoverTenantContext(token, clientId, orgId, sandbox);
         const mixins = await listTenantFieldGroups(token, clientId, orgId, sandbox);
+        // Best-effort discovery of OOTB Profile-class FGs (for the
+        // `ootbByIndustryTag` resolver source). Empty list is a fine
+        // outcome — the resolver simply contributes zero refs.
+        let globalFgList = [];
+        try {
+          globalFgList = await listGlobalOotbFieldGroups(token, clientId, orgId, sandbox);
+        } catch (e) {
+          log(sandbox, 'attachFieldGroups.globalFgListFailed', { error: String(e.message || e).slice(0, 200) });
+        }
         const profileCore = findProfileCoreV2Mixin(mixins);
         if (!profileCore) {
           return {
@@ -974,7 +1345,8 @@ function createProfileInfraService(config) {
           tenantCtx,
           profileCore,
           schema,
-          mixins
+          mixins,
+          globalFgList
         );
         return {
           ok: true,
@@ -992,7 +1364,9 @@ function createProfileInfraService(config) {
             label: s.entry.label || (s.entry.match && s.entry.match.source) || s.entry.$id || 'unknown',
             reason: s.reason,
           })),
-          message: buildStep2SuccessMessage(ar.resolvedIndustry, ar.patchApplied),
+          industryFieldGroupsCreated: ar.created,
+          industryFieldGroupsDiscovered: ar.discovered,
+          message: buildStep2SuccessMessage(ar.resolvedIndustry, ar.patchApplied, ar.created),
         };
       }
 
@@ -1094,4 +1468,9 @@ module.exports = {
   BASE_PROFILE_FIELD_GROUP_REFS,
   BASE_PROFILE_FIELD_GROUP_LABELS,
   STEP_NAMES,
+  // Exposed for unit tests / external use; not currently consumed elsewhere.
+  pickProfileClassOotbByTag,
+  isProfileClassFieldGroup,
+  buildTenantFieldGroupCreateBody,
+  resolveIndustryFgEntry,
 };
